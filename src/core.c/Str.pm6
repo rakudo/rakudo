@@ -124,6 +124,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
           self
         )
     }
+    multi method chomp(Str:D: Str:D $needle--> Str:D) {
+        my int $offset = nqp::sub_i(nqp::chars(self),nqp::chars($needle));
+        nqp::eqat(self,$needle,$offset)
+          ?? nqp::substr(self,0,$offset)
+          !! self
+    }
 
     multi method chop(Str:D: --> Str:D) {
         nqp::box_s(

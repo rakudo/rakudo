@@ -48,7 +48,7 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-    method !register-custom-lib-repo(
+    method !register-custom-lib-repository(
       str $type, str $id, CompUnit::Repository $repo
     ) {
         $lock.protect: {
@@ -161,7 +161,7 @@ class CompUnit::RepositoryRegistry {
         }
 
         unless $precomp-specs {
-            $next-repo := self!register-custom-lib-repo(
+            $next-repo := self!register-custom-lib-repository(
               'core', $core, 
               CompUnit::Repository::Installation.new(
                 :prefix("$prefix/core"),
@@ -169,7 +169,7 @@ class CompUnit::RepositoryRegistry {
               )
             ) unless nqp::existskey($unique,$core);
 
-            $next-repo := self!register-custom-lib-repo(
+            $next-repo := self!register-custom-lib-repository(
               'vendor', $vendor,
               CompUnit::Repository::Installation.new(
                 :prefix("$prefix/vendor"),
@@ -177,7 +177,7 @@ class CompUnit::RepositoryRegistry {
               )
             ) unless nqp::existskey($unique, $vendor);
 
-            $next-repo := self!register-custom-lib-repo(
+            $next-repo := self!register-custom-lib-repository(
               'site', $site,
               CompUnit::Repository::Installation.new(
                 :prefix("$prefix/site"),
@@ -185,7 +185,7 @@ class CompUnit::RepositoryRegistry {
               )
             ) unless nqp::existskey($unique, $site);
 
-            $next-repo := self!register-custom-lib-repo(
+            $next-repo := self!register-custom-lib-repository(
               'home', $home-spec,
               CompUnit::Repository::Installation.new(
                 :prefix($home),

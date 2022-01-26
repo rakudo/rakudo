@@ -1517,7 +1517,7 @@ my class SmartmatchOptimizer {
         )
     }
 
-    method maybe_respect_junctions($lhs, $rhs, $optimized_ast) {
+    method maybe_respect_junctions($lhs, $rhs, $optimized_ast, :$negated = 0) {
         return $optimized_ast unless $lhs.can-be-junction;
         my $fallback_ast;
         if $rhs.has-value && $rhs.value-kind == $OPERAND_VALUE_CONST && $rhs.is-ACCEPTS-default {
@@ -1528,14 +1528,16 @@ my class SmartmatchOptimizer {
                     :op<callmethod>,
                     :name<BOOLIFY-ACCEPTS>,
                     $lhs.localized,
-                    $rhs.ast
+                    $rhs.ast,
+                    QAST::WVal.new( :value(nqp::hllboolfor($negated, 'Raku')) )
                 );
         }
         else {
+            my $bool-method := $negated ?? 'not' !! 'Bool';
             $fallback_ast :=
                 QAST::Op.new(
                     :op<callmethod>,
-                    :name<Bool>,
+                    :name($bool-method),
                     QAST::Op.new(
                         :op<callmethod>,
                         :name<ACCEPTS>,
@@ -2020,7 +2022,11 @@ my class SmartmatchOptimizer {
                 || $op.ann('smartmatch_optimized');
         note("Try optimizing chained smartmatch:\n", $op.dump(2)) if $!debug;
 
-        return nqp::null() unless self.is_chain($op) && ($op.name eq '&infix:<~~>');
+        my $negated := 0;
+        return nqp::null()
+            unless self.is_chain($op)
+                    && ($op.name eq '&infix:<~~>'
+                        || ($negated := $op.name eq '&infix:<!~~>'));
 
         # Don't optimize long chains. If either we're in a chain, or the first child is a chain op then fall back.
         return nqp::null() if $!optimizer.chain_depth > 1 || self.is_chain($op[0]);
@@ -2044,13 +2050,14 @@ my class SmartmatchOptimizer {
                 :op<callmethod>,
                 :name<BOOLIFY-ACCEPTS>,
                 $lhs.orig-ast,
-                $rhs.ast
+                $rhs.ast,
+                QAST::WVal.new( :value(nqp::hllboolfor($negated, 'Raku')) )
             );
         }
 
         if nqp::isnull($result)
-            && (nqp::defined($sm_ast := self.maybe_typematch($lhs, $rhs))
-                || nqp::defined($sm_ast := self.maybe_literal($lhs, $rhs)))
+            && (nqp::defined($sm_ast := self.maybe_typematch($lhs, $rhs, :$negated))
+                || nqp::defined($sm_ast := self.maybe_literal($lhs, $rhs, :$negated)))
         {
             if $!debug {
                 note("Optimization possible, ensure we don't lose a junction");
@@ -2059,7 +2066,7 @@ my class SmartmatchOptimizer {
                     ", type: ", $lhs.value-type-name);
                 note($lhs.dump(2));
             }
-            $result := self.maybe_respect_junctions($lhs, $rhs, $sm_ast);
+            $result := self.maybe_respect_junctions($lhs, $rhs, $sm_ast, :$negated);
         }
 
         if nqp::isnull($result) {
@@ -2072,7 +2079,7 @@ my class SmartmatchOptimizer {
             QAST::SVal.new( :value<raku-smartmatch> ),
             $lhs.orig-ast,
             $rhs.orig-ast,
-            QAST::IVal.new( :value(1) )
+            QAST::IVal.new( :value($negated ?? -1 !! 1) )
         );
 #?endif
         }
@@ -2561,7 +2568,7 @@ class Perl6::Optimizer {
 
         if $!level >= 2
             && ($optype eq 'chain' || $optype eq 'chainstatic')
-            && ($op.name eq '&infix:<~~>')
+            && ($op.name eq '&infix:<~~>' || $op.name eq '&infix:<!~~>')
         {
             $visit_children_mode := 'sm_chain';
         }
@@ -2768,7 +2775,9 @@ class Perl6::Optimizer {
         }
 
         # Visit the children.
-        if ($visit_children_mode eq 'sm_chain' && nqp::defined(my $sm_op := $!smartmatch_opt.optimize_chain($op))) {
+        if ($visit_children_mode eq 'sm_chain'
+            && nqp::defined(my $sm_op := $!smartmatch_opt.optimize_chain($op)))
+        {
             # Smartmatch in a chain is only optimizable if chain depth is 1.
             $!chain_depth := 0;
             return $sm_op;

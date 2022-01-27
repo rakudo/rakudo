@@ -332,6 +332,17 @@ role Raku::Common {
 #        }
         self;
     }
+
+    method check_variable($var) {
+        my $ast := $var.ast;
+        if $ast ~~ self.actions.r('Var', 'Lexical') {
+            $ast.resolve-with($*R);
+            unless $ast.is-resolved || $ast.sigil eq '&' {
+                # TODO restore good error
+                nqp::die("Undeclared variable " ~ $ast.name);
+            }
+        }
+    }
 }
 
 grammar Raku::Grammar is HLL::Grammar does Raku::Common {
@@ -787,6 +798,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 {
                     $<variable><O> := self.O(:prec<t=>, :assoc<left>, :dba<additive>).MATCH unless $<variable><O>;
                     $*OPER := $<variable>;
+                    self.check_variable($<variable>);
                 }
             | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
             | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
@@ -1006,7 +1018,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <longname> {
                 if $<longname> eq '::' { self.malformed("class-qualified postfix call") }
           }
-#        | <?[$@&]> <variable>
+#        | <?[$@&]> <variable> { self.check_variable($<variable>) }
         | <?['"]>
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>
@@ -1328,6 +1340,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*SCOPE := "";
         :my $*MULTINESS := "";
         :my $*OFTYPE;
+        :my $*VAR;
         :dba('term')
         # TODO try to use $/ for lookback to check for erroneous
         #      use of pod6 trailing declarator block, e.g.:
@@ -1364,6 +1377,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             ]
         || <!{ $*QSIGIL }> <postfixish>*
         ]
+        {
+            if $*VAR {
+                self.check_variable($*VAR);
+                $*VAR := 0;
+            }
+        }
     }
 
     sub bracket_ending($matches) {
@@ -1396,7 +1415,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<colonpair>          { <colonpair> }
-    token term:sym<variable>           { <variable> }
+    token term:sym<variable>           { <variable> { $*VAR := $<variable> unless $*VAR; } }
     token term:sym<package_declarator> { <package_declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
@@ -1463,7 +1482,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $*key := $<identifier>.Str }
             [ <.unsp>? :dba('pair value') <coloncircumfix($*key)> ]?
         | <var=.colonpair_variable>
-            { $*key := $<var><desigilname>.Str }
+            { $*key := $<var><desigilname>.Str; self.check_variable($<var>); }
         ]
     }
 
@@ -1665,7 +1684,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <?before <.sigil> <.sigil> > <variable>
         | <?sigil>
           [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
-          <variable>
+          <variable> { $*VAR := $<variable> }
         | <longname>
         ]
     }
@@ -3144,6 +3163,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         <?before <.sigil> $<twigil>=[<.alpha> | <+[\W]-[\s]><.alpha> | '(']>
         <!before <.sigil> <.rxstopper> >
         <var=.LANG('MAIN', 'variable')>
+        { self.check_variable($<var>) }
         [
             <?before '.'? <.[ \[ \{ \< ]>>
             <.worry: "Apparent subscript will be treated as regex">

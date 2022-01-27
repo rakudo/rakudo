@@ -877,18 +877,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 self.attach: $/, $decl;
             }
             elsif $twigil eq '' {
-                my $resolution := $*R.resolve-lexical($name);
-                if nqp::isconcrete($resolution) {
-                    self.attach: $/, $resolution.generate-lookup();
-                }
-                elsif $<sigil> eq '&' {
-                    # Can be resolved late-bound.
-                    self.attach: $/, self.r('Var', 'Lexical').new($name);
-                }
-                else {
-                    # TODO restore good error
-                    nqp::die("Undeclared variable $name");
-                }
+                self.attach: $/, self.r('Var', 'Lexical').new($name);
             }
             elsif $twigil eq '*' {
                 self.attach: $/, self.r('Var', 'Dynamic').new($name);

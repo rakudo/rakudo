@@ -263,7 +263,6 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-    # this feels like dead code  XXX
     method register-name($name, CompUnit::Repository $repo) {
         $lock.protect: {
             nqp::bindkey($custom-lib, $name, $repo)

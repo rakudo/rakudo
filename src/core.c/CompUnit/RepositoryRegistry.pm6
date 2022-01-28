@@ -18,6 +18,7 @@ class CompUnit::Repository::NodeJs { ... }
 class CompUnit::RepositoryRegistry {
     my $lock := Lock.new;
     my $include-spec2cur := nqp::hash;
+    my $custom-lib := nqp::hash();
 
     proto method repository-for-spec(|) { * }
     multi method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
@@ -35,20 +36,29 @@ class CompUnit::RepositoryRegistry {
               !! $path;
             %options<next-repo> = $next-repo if $next-repo;
 
-            my str $id = "$short-id#$prefix";
-            $lock.protect: {
-                nqp::ifnull(
-                  nqp::atkey($include-spec2cur,$id),
-                  nqp::bindkey($include-spec2cur,$id,
-                    $class.new(:$prefix, |%options)
-                  )
-                )
-            }
+            self!register-repository(
+              "$short-id#$prefix", $class.new(:$prefix, |%options)
+            );
         }
         else {
             CompUnit::Repository::Unknown.new(
               :path-spec($spec),
               :short-name($short-id)
+            )
+        }
+    }
+
+    method !register-custom-lib-repository(
+      str $type, str $id, CompUnit::Repository $repo
+    ) {
+        $lock.protect: {
+            nqp::bindkey(
+              $custom-lib,
+              $type,
+              nqp::ifnull(
+                nqp::atkey($include-spec2cur,$id),
+                nqp::bindkey($include-spec2cur,$id,$repo)
+              )
             )
         }
     }
@@ -62,7 +72,6 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-    my $custom-lib := nqp::hash();
     method setup-repositories() {
         my $raw-specs;
         # only look up environment once
@@ -152,43 +161,35 @@ class CompUnit::RepositoryRegistry {
         }
 
         unless $precomp-specs {
-            nqp::bindkey($custom-lib,'core',
-              $next-repo := self!register-repository(
-                $core,
-                CompUnit::Repository::Installation.new(
-                  :prefix("$prefix/core"),
-                  :$next-repo
-                )
+            $next-repo := self!register-custom-lib-repository(
+              'core', $core, 
+              CompUnit::Repository::Installation.new(
+                :prefix("$prefix/core"),
+                :$next-repo
               )
             ) unless nqp::existskey($unique,$core);
 
-            nqp::bindkey($custom-lib,'vendor',
-              $next-repo := self!register-repository(
-                $vendor,
-                CompUnit::Repository::Installation.new(
-                  :prefix("$prefix/vendor"),
-                  :$next-repo
-                )
+            $next-repo := self!register-custom-lib-repository(
+              'vendor', $vendor,
+              CompUnit::Repository::Installation.new(
+                :prefix("$prefix/vendor"),
+                :$next-repo
               )
             ) unless nqp::existskey($unique, $vendor);
 
-            nqp::bindkey($custom-lib,'site',
-              $next-repo := self!register-repository(
-                $site,
-                CompUnit::Repository::Installation.new(
-                  :prefix("$prefix/site"),
-                  :$next-repo
-                )
+            $next-repo := self!register-custom-lib-repository(
+              'site', $site,
+              CompUnit::Repository::Installation.new(
+                :prefix("$prefix/site"),
+                :$next-repo
               )
             ) unless nqp::existskey($unique, $site);
 
-            nqp::bindkey($custom-lib,'home',
-              $next-repo := self!register-repository(
-                $home-spec,
-                CompUnit::Repository::Installation.new(
-                  :prefix($home),
-                  :$next-repo
-                )
+            $next-repo := self!register-custom-lib-repository(
+              'home', $home-spec,
+              CompUnit::Repository::Installation.new(
+                :prefix($home),
+                :$next-repo
               )
             ) if $home-spec and nqp::not_i(nqp::existskey($unique,$home-spec));
         }
@@ -203,22 +204,24 @@ class CompUnit::RepositoryRegistry {
         }
 
         # register manually set custom-lib repos
-        unless nqp::existskey($custom-lib,'core') {
-            my \repo := nqp::atkey($repos,$core);
-            nqp::bindkey($custom-lib,'core',repo) if repo;
-        }
-        unless nqp::existskey($custom-lib,'vendor') {
-            my \repo := nqp::atkey($repos,$vendor);
-            nqp::bindkey($custom-lib,'vendor',repo) if repo;
-        }
-        unless nqp::existskey($custom-lib,'site') {
-            my \repo := nqp::atkey($repos,$site);
-            nqp::bindkey($custom-lib,'site',repo) if repo;
-        }
-        unless nqp::existskey($custom-lib,'home') {
-            if $home-spec {
-                my \repo := nqp::atkey($repos,$home-spec);
-                nqp::bindkey($custom-lib,'home',repo) if repo;
+        $lock.protect: {
+            unless nqp::existskey($custom-lib,'core') {
+                my \repo := nqp::atkey($repos,$core);
+                nqp::bindkey($custom-lib,'core',repo) if repo;
+            }
+            unless nqp::existskey($custom-lib,'vendor') {
+                my \repo := nqp::atkey($repos,$vendor);
+                nqp::bindkey($custom-lib,'vendor',repo) if repo;
+            }
+            unless nqp::existskey($custom-lib,'site') {
+                my \repo := nqp::atkey($repos,$site);
+                nqp::bindkey($custom-lib,'site',repo) if repo;
+            }
+            unless nqp::existskey($custom-lib,'home') {
+                if $home-spec {
+                    my \repo := nqp::atkey($repos,$home-spec);
+                    nqp::bindkey($custom-lib,'home',repo) if repo;
+                }
             }
         }
 
@@ -255,19 +258,26 @@ class CompUnit::RepositoryRegistry {
 
     method repository-for-name(str $name) {
         $*REPO; # initialize if not yet done
-        nqp::ifnull(nqp::atkey($custom-lib,$name),Nil)
+        $lock.protect: {
+            nqp::ifnull(nqp::atkey($custom-lib,$name),Nil)
+        }
     }
 
     method register-name($name, CompUnit::Repository $repo) {
-        nqp::bindkey($custom-lib, $name, $repo);
+        $lock.protect: {
+            nqp::bindkey($custom-lib, $name, $repo)
+        }
     }
 
     method name-for-repository(CompUnit::Repository $repo) {
         $*REPO; # initialize if not yet done
-        my $iter := nqp::iterator($custom-lib);
-        while $iter {
-            my \pair = nqp::shift($iter);
-            return nqp::iterkey_s(pair) if nqp::iterval(pair).prefix eq $repo.prefix;
+        $lock.protect: {
+            my $iter := nqp::iterator($custom-lib);
+            while $iter {
+                my \pair = nqp::shift($iter);
+                return nqp::iterkey_s(pair)
+                  if nqp::iterval(pair).prefix eq $repo.prefix;
+            }
         }
         Nil
     }

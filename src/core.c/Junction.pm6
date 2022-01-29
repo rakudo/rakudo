@@ -284,6 +284,10 @@ my class Junction { # declared in BOOTSTRAP
         $!type ~ '(' ~ nqp::join(', ',$rakus) ~ ')'
     }
 
+    multi method put() {
+        self.THREAD: { .put }
+    }
+
     method CALL-ME(|c) {
         my \storage     := nqp::getattr(self, Junction, '$!eigenstates');
         my int $elems    = nqp::elems(storage);

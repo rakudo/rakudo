@@ -3516,7 +3516,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         # The dispatch receives:
         # - lhs with containerization preserved
         # - rhs with containerization preserved
-        # - boolification flag)
+        # - boolification flag
         # boolification flag can either be -1 to negate, 0 to return as-is, 1 to boolify
         # Note that boolification flag is not guarded because it is expected to be invariant over call site.
         my $Match               := find-core-symbol('Match', :ctx(nqp::ctxcaller(nqp::ctx())));
@@ -3587,10 +3587,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 $explicit-accepts := 0;
             }
         }
+        # Delegate to Junction.BOOLIFY-ACCEPTS if possible and makes sense.
+        # - Junction type object on RHS is always a type match and we can pass it to the typematching branch
+        # - when boolifying over a concrete Regex ACCEPTS fallback is required too
+        # - BOOLIFY-ACCEPTS only makes sense when ACCEPTS doesn't handle junctions in a special way. For now this can
+        #   only be guaranteed for CORE's ACCEPTS only.
         elsif nqp::istype_nd($lhs, Junction)
             && nqp::isconcrete_nd($lhs)
-            && !(nqp::isconcrete_nd($rhs) && (nqp::istype_nd($rhs, Junction)
-                    || ($boolification == 1 && nqp::istype_nd($rhs, Regex))))
+            && (nqp::isconcrete_nd($rhs) || !nqp::istype($rhs, Junction))
+            && !(nqp::isconcrete_nd($rhs) && $boolification == 1 && nqp::istype_nd($rhs, Regex))
             && is-method-setting-only($rhs, 'ACCEPTS', :D)
         {
             # nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-boolification);

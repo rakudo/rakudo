@@ -1110,7 +1110,7 @@ my class Operand {
 
     # $!localizable can be set only once.
     method localizable($set = nqp::null()) {
-        $!localizable := nqp::istrue($set) if nqp::isnull($!localizable);
+        $!localizable := nqp::istrue($set) if nqp::isnull($!localizable) && !nqp::isnull($set);
         $!localizable
     }
 
@@ -1220,6 +1220,14 @@ my class Operand {
 
     method value-type-name() {
         $!value.HOW.name($!value)
+    }
+
+    method is-type-object($type = nqp::null(), :$strict = 0) {
+        self.value-analyze;
+        $!value-kind == $OPERAND_VALUE_CONST
+            && !nqp::isconcrete($!value)
+            && (nqp::isnull($type)
+                || ($strict ?? nqp::eqaddr($!value, $type) !! nqp::istype($!value, $type)))
     }
 
     method str() {
@@ -1519,6 +1527,8 @@ my class SmartmatchOptimizer {
 
     method maybe_respect_junctions($lhs, $rhs, $optimized_ast, :$negated = 0) {
         return $optimized_ast unless $lhs.can-be-junction;
+        # typematching against a Junction doesn't need a fallback
+        return $optimized_ast if $optimized_ast.ann('sm_typematch') && $rhs.is-type-object($!symbols.Junction);
         my $fallback_ast;
         if $rhs.has-value && $rhs.value-kind == $OPERAND_VALUE_CONST && $rhs.is-ACCEPTS-default {
             # When we can guarantee that RHS uses CORE's ACCEPTS then instead of doing .ACCEPTS.Bool chain where all
@@ -1552,13 +1562,14 @@ my class SmartmatchOptimizer {
     method maybe_typematch($lhs, $rhs, :$in-when = 0, :$negated = 0) {
         my $sm_type;
         # Don't try if RHS is not a compile-time known type object or it has user-defined ACCEPTS method. In the latter
-        # case we can't guarantee that method behavior is independent of run-tim conditions, contrary to core-provided
+        # case we can't guarantee that method behavior is independent of run-time conditions, contrary to core-provided
         # versions of it.
         return nqp::null()
-            unless $rhs.value-kind == $OPERAND_VALUE_CONST
-                    && !nqp::isconcrete($sm_type := $rhs.value)
+            unless $rhs.is-type-object
                     && $rhs.is-ACCEPTS-default(:u-invocant)
                     && ($in-when || !$lhs.is-junction);
+
+        $sm_type := $rhs.value;
 
         # We wouldn't be able to shortcut typematching for generics and it is barely possible against most of subsets.
         return nqp::null()
@@ -1603,7 +1614,9 @@ my class SmartmatchOptimizer {
         # For 'when' statement it is sufficient to get native 0 or 1. Otherwise we need to boolify.
         $sm_ast := QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast );
         $sm_ast := QAST::Op.new( :op<not_i>, $sm_ast ) if $negated;
-        $in-when ?? $sm_ast !! QAST::Op.new( :op<hllbool>, $sm_ast )
+        ($in-when
+            ?? $sm_ast
+            !! QAST::Op.new( :op<hllbool>, $sm_ast )).annotate_self('sm_typematch', 1)
     }
 
     method maybe_literal($lhs, $rhs, :$in-when = 0, :$negated) {
@@ -2038,14 +2051,14 @@ my class SmartmatchOptimizer {
         my $lhs := Operand.new($op[0], $!optimizer, $!symbols, :name<LHS>);
         my $rhs := Operand.new($op[1], $!optimizer, $!symbols, :name<RHS>);
 
-        $lhs.localizable($lhs.can-be-junction);
+        $lhs.localizable($lhs.can-be-junction && !$rhs.is-type-object($!symbols.Junction));
 
         note("- LHS:\n", $lhs.dump(2), "- RHS:\n", $rhs.dump(2)) if $!debug;
 
         my $sm_ast;
         my $result := nqp::null();
 
-        if $lhs.is-junction {
+        if $lhs.is-junction && !$rhs.is-type-object($!symbols.Junction) {
             $result := QAST::Op.new(
                 :op<callmethod>,
                 :name<BOOLIFY-ACCEPTS>,
@@ -2064,6 +2077,7 @@ my class SmartmatchOptimizer {
                 note("  - LHS can be a junction? ", $lhs.can-be-junction,
                     ", is junction? ", $lhs.is-junction,
                     ", type: ", $lhs.value-type-name);
+                note("  - RHS is a Junction type object? ", $rhs.is-type-object($!symbols.Junction));
                 note($lhs.dump(2));
             }
             $result := self.maybe_respect_junctions($lhs, $rhs, $sm_ast, :$negated);
@@ -2137,7 +2151,7 @@ my class SmartmatchOptimizer {
             my $negated := $sm_accepts.ann('smartmatch_negated');
             my $boolified := $op[0][2].ann('smartmatch_boolified');
 
-            $lhs.localizable($lhs.can-be-junction);
+            $lhs.localizable($lhs.can-be-junction && !$rhs.is-type-object($!symbols.Junction));
 
             note("Topicalized smartmatch:\n    TOPIC:\n", $lhs.dump(11), "\n      RHS:\n", $rhs.dump(11)) if $!debug;
 

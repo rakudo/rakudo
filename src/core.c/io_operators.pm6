@@ -104,7 +104,9 @@ multi sub put() {
 }
 multi sub put(Junction:D \j) {
     my $out := $*OUT;
-    j.THREAD: { $out.print: nqp::concat(.Str,$out.nl-out) }
+    j.THREAD: { nqp::istype($_, Junction)
+                    ?? put($_)
+                    !! $out.print: nqp::concat(.Str,$out.nl-out) }
 }
 multi sub put(\x) {
     $_ := $*OUT;

@@ -17,6 +17,7 @@ my %provides =
     "snapper"                       => "lib/snapper.rakumod",
     "safe-snapper"                  => "lib/safe-snapper.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
+    "show-precompilation"           => "lib/show-precompilation.rakumod",
 ;
 
 %provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"

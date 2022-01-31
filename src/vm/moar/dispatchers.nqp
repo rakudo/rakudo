@@ -3516,7 +3516,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         # The dispatch receives:
         # - lhs with containerization preserved
         # - rhs with containerization preserved
-        # - boolification flag)
+        # - boolification flag
         # boolification flag can either be -1 to negate, 0 to return as-is, 1 to boolify
         # Note that boolification flag is not guarded because it is expected to be invariant over call site.
         my $Match               := find-core-symbol('Match', :ctx(nqp::ctxcaller(nqp::ctx())));
@@ -3550,8 +3550,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
-                        nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                                0),                                                                # LHS
                             0, nqp::what($rhs)),
                         1, 'Bool'));
                 $explicit-accepts := 0;
@@ -3563,8 +3565,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
-                        nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                                0),                                                                # LHS
                             0, nqp::what($rhs)),
                         1, 'eager'));
                 $explicit-accepts := 0;
@@ -3587,10 +3591,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 $explicit-accepts := 0;
             }
         }
+        # Delegate to Junction.BOOLIFY-ACCEPTS if possible and makes sense.
+        # - Junction type object on RHS is always a type match and we can pass it to the typematching branch
+        # - when boolifying over a concrete Regex ACCEPTS fallback is required too
+        # - BOOLIFY-ACCEPTS only makes sense when ACCEPTS doesn't handle junctions in a special way. For now this can
+        #   only be guaranteed for CORE's ACCEPTS only.
         elsif nqp::istype_nd($lhs, Junction)
             && nqp::isconcrete_nd($lhs)
-            && !(nqp::isconcrete_nd($rhs) && (nqp::istype_nd($rhs, Junction)
-                    || ($boolification == 1 && nqp::istype_nd($rhs, Regex))))
+            && (nqp::isconcrete_nd($rhs) || !nqp::istype($rhs, Junction))
+            && !(nqp::isconcrete_nd($rhs) && $boolification == 1 && nqp::istype_nd($rhs, Regex))
             && is-method-setting-only($rhs, 'ACCEPTS', :D)
         {
             # nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-boolification);
@@ -3598,8 +3607,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-lhs);
             nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
             nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-rhs);
-            my $method-capture := nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-                $capture, 2, nqp::hllboolfor($boolification == -1, 'Raku')); # boolification -> Raku's Bool negation flag
+            my $method-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2);
+            $method-capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $method-capture, 2, nqp::hllboolfor($boolification == -1, 'Raku')); # boolification -> Raku's Bool negation flag
             $method-capture :=
                 nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                     $method-capture, 0, nqp::what($lhs));
@@ -3618,7 +3628,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-rhs);
                         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
-                            nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj', $capture, 0, $hllbool_not($rhs)));
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                                0, $hllbool_not($rhs)));
                         $explicit-accepts := 0;
                     }
                     elsif nqp::istype_nd($rhs, $Match) {
@@ -3627,8 +3639,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
                             nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
-                                nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                                        0),                                                                # LHS
                                     0, nqp::what($rhs)),
                                 1, 'not'));
                         $explicit-accepts := 0;
@@ -3653,7 +3667,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 my $matches := try nqp::istype_nd($lhs, $rhs);
                 $matches := $boolification < 0 ?? $hllbool_not($matches) !! $hllbool($matches);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
-                    nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj', $capture, 0, $matches));
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                        0, $matches));
 
                 $explicit-accepts := 0;
             }

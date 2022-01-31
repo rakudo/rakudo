@@ -3550,8 +3550,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
-                        nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                                0),                                                                # LHS
                             0, nqp::what($rhs)),
                         1, 'Bool'));
                 $explicit-accepts := 0;
@@ -3563,8 +3565,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
-                        nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                                0),                                                                # LHS
                             0, nqp::what($rhs)),
                         1, 'eager'));
                 $explicit-accepts := 0;
@@ -3603,8 +3607,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-lhs);
             nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
             nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-rhs);
-            my $method-capture := nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-                $capture, 2, nqp::hllboolfor($boolification == -1, 'Raku')); # boolification -> Raku's Bool negation flag
+            my $method-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2);
+            $method-capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $method-capture, 2, nqp::hllboolfor($boolification == -1, 'Raku')); # boolification -> Raku's Bool negation flag
             $method-capture :=
                 nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                     $method-capture, 0, nqp::what($lhs));
@@ -3623,7 +3628,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-rhs);
                         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
-                            nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj', $capture, 0, $hllbool_not($rhs)));
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                                0, $hllbool_not($rhs)));
                         $explicit-accepts := 0;
                     }
                     elsif nqp::istype_nd($rhs, $Match) {
@@ -3632,8 +3639,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
                             nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
-                                nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                                        0),                                                                # LHS
                                     0, nqp::what($rhs)),
                                 1, 'not'));
                         $explicit-accepts := 0;
@@ -3658,7 +3667,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 my $matches := try nqp::istype_nd($lhs, $rhs);
                 $matches := $boolification < 0 ?? $hllbool_not($matches) !! $hllbool($matches);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
-                    nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj', $capture, 0, $matches));
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                        0, $matches));
 
                 $explicit-accepts := 0;
             }

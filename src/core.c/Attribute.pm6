@@ -181,9 +181,11 @@ my class Attribute { # declared in BOOTSTRAP
         (my int $t = nqp::objprimspec($!type))
           ?? nqp::iseq_i($t,1)
             ?? nqp::getattr_i(nqp::decont($obj),$!package,$!name)
-            !! nqp::iseq_i($t,2)
-              ?? nqp::getattr_n(nqp::decont($obj),$!package,$!name)
-              !! nqp::getattr_s(nqp::decont($obj),$!package,$!name) # assume t=3
+            !! nqp::iseq_i($t,10)
+              ?? nqp::getattr_i(nqp::decont($obj),$!package,$!name) #FIXME probably need getattr_u
+              !! nqp::iseq_i($t,2)
+                ?? nqp::getattr_n(nqp::decont($obj),$!package,$!name)
+                !! nqp::getattr_s(nqp::decont($obj),$!package,$!name) # assume t=3
           !! nqp::getattr(nqp::decont($obj),$!package,$!name)
     }
 
@@ -191,9 +193,11 @@ my class Attribute { # declared in BOOTSTRAP
         (my int $t = nqp::objprimspec($!type))
           ?? nqp::iseq_i($t,1)
             ?? nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value)
-            !! nqp::iseq_i($t,2)
-              ?? nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value)
-              !! nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value) # t=3
+            !! nqp::iseq_i($t,10)
+              ?? nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value) #FIXME probably need bindattr_u
+              !! nqp::iseq_i($t,2)
+                ?? nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value)
+                !! nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value) # t=3
           !! nqp::bindattr(nqp::decont($obj),$!package,$!name,value)
     }
 

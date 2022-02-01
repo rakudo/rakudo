@@ -483,6 +483,7 @@ multi sub infix:«+>»(int $a, int $b --> int) {
 
 multi sub prefix:<+^>(Int:D $a --> Int:D) { nqp::bitneg_I($a,Int) }
 multi sub prefix:<+^>(int   $a --> int)   { nqp::bitneg_i($a)     }
+multi sub prefix:<+^>(uint  $a --> uint)  { nqp::bitneg_u($a)     }
 
 proto sub is-prime($, *%) is pure {*}
 multi sub is-prime(\x --> Int:D) { x.is-prime }

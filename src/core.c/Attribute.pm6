@@ -54,6 +54,13 @@ my class Attribute { # declared in BOOTSTRAP
                                 nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
                             }
                             !!
+                            nqp::iseq_i($attr_type, 10)
+                            ??
+                            method (Mu:D \fles:) is raw {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::getattrref_u(nqp::decont(fles), $dcpkg, $name)
+                            }
+                            !!
                             nqp::iseq_i($attr_type, 2)
                             ??
                             method (Mu:D \fles:) is raw {
@@ -81,6 +88,15 @@ my class Attribute { # declared in BOOTSTRAP
                                 Rakudo::Deprecations.DEPRECATED($alternative,:$what);
                                 nqp::p6box_i(
                                     nqp::getattr_i(nqp::decont(fles), $dcpkg, $name)
+                                );
+                            }
+                            !!
+                            nqp::iseq_i($attr_type, 10)
+                            ??
+                            method (Mu:D \fles:) {
+                                Rakudo::Deprecations.DEPRECATED($alternative,:$what);
+                                nqp::p6box_i(
+                                    nqp::getattr_u(nqp::decont(fles), $dcpkg, $name)
                                 );
                             }
                             !!
@@ -122,6 +138,12 @@ my class Attribute { # declared in BOOTSTRAP
                             nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
                         }
                         !!
+                        nqp::iseq_i($attr_type, 10)
+                        ??
+                        method (Mu:D \fles:) is raw {
+                            nqp::getattrref_u(nqp::decont(fles), $dcpkg, $name)
+                        }
+                        !!
                         nqp::iseq_i($attr_type, 2)
                         ??
                         method (Mu:D \fles:) is raw {
@@ -145,6 +167,14 @@ my class Attribute { # declared in BOOTSTRAP
                         method (Mu:D \fles:) {
                             nqp::p6box_i(
                                 nqp::getattr_i(nqp::decont(fles), $dcpkg, $name)
+                            );
+                        }
+                        !!
+                        nqp::iseq_i($attr_type, 10)
+                        ??
+                        method (Mu:D \fles:) {
+                            nqp::p6box_i(
+                                nqp::getattr_u(nqp::decont(fles), $dcpkg, $name)
                             );
                         }
                         !!
@@ -182,7 +212,7 @@ my class Attribute { # declared in BOOTSTRAP
           ?? nqp::iseq_i($t,1)
             ?? nqp::getattr_i(nqp::decont($obj),$!package,$!name)
             !! nqp::iseq_i($t,10)
-              ?? nqp::getattr_i(nqp::decont($obj),$!package,$!name) #FIXME probably need getattr_u
+              ?? nqp::getattr_u(nqp::decont($obj),$!package,$!name)
               !! nqp::iseq_i($t,2)
                 ?? nqp::getattr_n(nqp::decont($obj),$!package,$!name)
                 !! nqp::getattr_s(nqp::decont($obj),$!package,$!name) # assume t=3
@@ -194,7 +224,7 @@ my class Attribute { # declared in BOOTSTRAP
           ?? nqp::iseq_i($t,1)
             ?? nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value)
             !! nqp::iseq_i($t,10)
-              ?? nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value) #FIXME probably need bindattr_u
+              ?? nqp::bindattr_u(nqp::decont($obj),$!package,$!name,value)
               !! nqp::iseq_i($t,2)
                 ?? nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value)
                 !! nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value) # t=3

@@ -17,21 +17,23 @@ role Perl6::Metamodel::BUILDPLAN {
     #    1 class name attr_name = set a native int attribute from init hash
     #    2 class name attr_name = set a native num attribute from init hash
     #    3 class name attr_name = set a native str attribute from init hash
-    #    4 class attr_name code = call default value closure if needed
-    #    5 class attr_name code = call default value closure if needed, int or uint attr
-    #    6 class attr_name code = call default value closure if needed, num attr
-    #    7 class attr_name code = call default value closure if needed, str attr
-    #    8 die if a required attribute is not present
-    #    9 class attr_name code = run attribute container initializer
-    #   10 class attr_name = touch/vivify attribute if part of mixin
-    #   11 same as 0, but init to nqp::list if value absent (nqp only)
-    #   12 same as 0, but init to nqp::hash if value absent (nqp only)
-    #   13 same as 0 but *bind* the received value + optional type constraint
-    #   14 same as 4 but *bind* the default value + optional type constraint
-    #   15 die if a required int attribute is 0
-    #   16 die if a required num attribute is 0e0
-    #   17 die if a required str attribute is null_s (will be '' in the future)
-    #   24 die if a required uint attribute is 0
+    #   10 class name attr_name = set a native uint attribute from init hash
+    #  400 class attr_name code = call default value closure if needed
+    #  401 class attr_name code = call default value closure if needed, int attr
+    #  402 class attr_name code = call default value closure if needed, num attr
+    #  403 class attr_name code = call default value closure if needed, str attr
+    #  410 class attr_name code = call default value closure if needed, uint attr
+    #  800 die if a required attribute is not present
+    #  900 class attr_name code = run attribute container initializer
+    # 1000 class attr_name = touch/vivify attribute if part of mixin
+    # 1100 same as 0, but init to nqp::list if value absent (nqp only)
+    # 1200 same as 0, but init to nqp::hash if value absent (nqp only)
+    # 1300 same as 0 but *bind* the received value + optional type constraint
+    # 1400 same as 400 but *bind* the default value + optional type constraint
+    # 1501 die if a required int attribute is 0
+    # 1502 die if a required num attribute is 0e0
+    # 1503 die if a required str attribute is null_s (will be '' in the future)
+    # 1510 die if a required uint attribute is 0
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
@@ -68,7 +70,7 @@ role Perl6::Metamodel::BUILDPLAN {
                         }
                     }
 
-                    nqp::push(@plan,[9, $obj, $_.name, $ci]);
+                    nqp::push(@plan,[900, $obj, $_.name, $ci]);
                     next;
                 }
             }
@@ -113,13 +115,13 @@ role Perl6::Metamodel::BUILDPLAN {
                 if $_.is_built {
                     my $name := $_.name;
                     my $action := $primspec || !$_.is_bound
-                      ?? $primspec == 10 ?? 1 !! 0 + $primspec
-                      !! 13;
+                      ?? 0 + $primspec
+                      !! 1300;
 
                     my $info := [$action,$obj,$name,nqp::substr($name,2)];
 
                     # binding may need type info for runtime checks
-                    if $action == 13 {
+                    if $action == 1300 {
                         my $type := $_.type;
                         # since we may wind up here at runtime, get Mu by
                         # HLLizing a VMNull instead of looking it up through
@@ -139,7 +141,7 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::can($_, 'required') && $_.required {
                 my $type := $_.type;
                 my int $primspec := nqp::objprimspec($type);
-                my int $op := $primspec ?? $primspec == 10 ?? 24 !! 14 + $primspec !! 8;
+                my int $op := $primspec ?? 1500 + $primspec !! 800;
                 nqp::push(@plan,[$op, $obj, $_.name, $_.required]);
                 nqp::deletekey(%attrs_untouched, $_.name);
             }
@@ -160,11 +162,11 @@ role Perl6::Metamodel::BUILDPLAN {
             # compile check constants for correct type
             if nqp::isconcrete($default) {
                 my $name   := $_.name;
-                my $opcode := $primspec || !$_.is_bound ?? $primspec == 10 ?? 5 !! 4 + $primspec !! 14;
+                my $opcode := $primspec || !$_.is_bound ?? 400 + $primspec !! 1400;
                 my @action := [$opcode, $obj, $name, $default];
 
                 # binding defaults to additional check at runtime
-                my $check-at-runtime := $opcode == 14;
+                my $check-at-runtime := $opcode == 1400;
 
                 # currently compiling, so we can do typechecking now.
                 if !nqp::isnull(nqp::getlexdyn('$*W')) && $*W.in_unit_parse {
@@ -226,7 +228,7 @@ role Perl6::Metamodel::BUILDPLAN {
         # Add vivify instructions.
         for @attrs { # iterate over the array to get a consistent order
             if nqp::existskey(%attrs_untouched, $_.name) {
-                nqp::push(@plan,[10, $obj, $_.name]);
+                nqp::push(@plan,[1000, $obj, $_.name]);
             }
         }
 
@@ -254,7 +256,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 $i := $i - 1;
                 my $class := @mro[$i];
                 for $class.HOW.BUILDPLAN($class) {
-                    if nqp::islist($_) && $_[0] == 10 {   # noop in BUILDALLPLAN
+                    if nqp::islist($_) && $_[0] == 1000 {   # noop in BUILDALLPLAN
                         $noops := 1;
                     }
                     else {

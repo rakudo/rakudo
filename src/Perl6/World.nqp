@@ -3632,8 +3632,8 @@ class Perl6::World is HLL::World {
                           QAST::SVal.new( :value(nqp::atpos($task,2)) );
 
                         my int $code := nqp::atpos($task,0);
-                        # 0,11,12,13 = initialize opaque from %init
-                        if $code == 0 || $code == 11 || $code == 12 || $code == 13 {
+                        # 0,1100,1200,1300 = initialize opaque from %init
+                        if $code == 0 || $code == 1100 || $code == 1200 || $code == 1300 {
 
 # 'a'
                             my $key :=
@@ -3675,7 +3675,7 @@ class Perl6::World is HLL::World {
                             }
 
 # nqp::bindattr(self,Foo,'$!a',tmp)
-                            elsif $code == 13 {
+                            elsif $code == 1300 {
                                 my $arg := QAST::Var.new( :name($tmp), :scope<local> );
                                 if nqp::elems($task) == 5 {
                                     $arg := QAST::Op.new(
@@ -3702,14 +3702,14 @@ class Perl6::World is HLL::World {
                                 );
                             }
 
-                            # 11,12
+                            # 1100,1200
 # bindattr(self,Foo,'$!a',nqp::list|hash)
-                            if $code == 11 || $code == 12 {
+                            if $code == 1100 || $code == 1200 {
                                 $if.push(
                                   QAST::Op.new(:op<bindattr>,
                                     $!self, $class, $attr,
                                     QAST::Op.new(
-                                      :op($code == 11 ?? 'list' !! 'hash')
+                                      :op($code == 1100 ?? 'list' !! 'hash')
                                     )
                                   )
                                 );
@@ -3719,8 +3719,8 @@ class Perl6::World is HLL::World {
                             $stmts.push($if);
                         }
 
-                        # 1,2,3 = initialize native from %init
-                        elsif $code < 4 {
+                        # 1,2,3,10 = initialize native from %init
+                        elsif $code < 100 {
 
 # nqp::unless(
 #   nqp::isnull(my \tmp := nqp::atkey($init,'a')),
@@ -3745,8 +3745,8 @@ class Perl6::World is HLL::World {
                             );
                         }
 
-                        # 4 = set opaque with default if not set yet
-                        elsif $code == 4 || $code == 14 {
+                        # 400 = set opaque with default if not set yet
+                        elsif $code == 400 || $code == 1400 {
 
 # nqp::getattr(self,Foo,'$!a')
                             my $getattr := QAST::Op.new( :op<getattr>,
@@ -3783,7 +3783,7 @@ class Perl6::World is HLL::World {
                                 );
                             }
 
-                            elsif $code == 14 {
+                            elsif $code == 1400 {
 # (nqp::bindattr(self,Foo,'$!a',$code(self,nqp::getattr(self,Foo,'$!a'))))
                                 if nqp::elems($task) == 5 {
                                     $initializer := QAST::Op.new(
@@ -3818,8 +3818,8 @@ class Perl6::World is HLL::World {
                             $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
-                        # 5,6 = set native numeric with default if not set
-                        elsif $code < 7 {
+                        # 401,402,410 = set native numeric with default if not set
+                        elsif $code == 401 || $code == 402 || $code == 410 {
 # nqp::if(
 #   nqp::iseq_x(
 #     nqp::getattr_x(self,Foo,'$!a'),
@@ -3829,16 +3829,16 @@ class Perl6::World is HLL::World {
 #     $initializer(self,nqp::getattr_x(self,Foo,'$!a')))
 # ),
                             my $getattr := QAST::Op.new(
-                              :op('getattr' ~ @psp[$code - 4]),
+                              :op('getattr' ~ @psp[$code - 400]),
                               $!self, $class, $attr
                             );
                             $stmts.push(
                               QAST::Op.new( :op<if>,
-                                QAST::Op.new( :op('iseq' ~ @psp[$code - 4]),
+                                QAST::Op.new( :op('iseq' ~ @psp[$code - 400]),
                                   $getattr,
-                                  @psd[$code - 4],
+                                  @psd[$code - 400],
                                 ),
-                                QAST::Op.new( :op('bindattr' ~ @psp[$code - 4]),
+                                QAST::Op.new( :op('bindattr' ~ @psp[$code - 400]),
                                   $!self, $class, $attr,
                                   nqp::if(
                                     nqp::istype(nqp::atpos($task,3),$!Block),
@@ -3848,7 +3848,7 @@ class Perl6::World is HLL::World {
                                       $getattr
                                     ),
                                     nqp::if(
-                                      nqp::iseq_i($code,5),
+                                      nqp::iseq_i($code,401) || nqp::iseq_i($code,410),
                                       QAST::IVal.new(:value(nqp::atpos($task,3))),
                                       QAST::NVal.new(:value(nqp::atpos($task,3)))
                                     )
@@ -3860,8 +3860,8 @@ class Perl6::World is HLL::World {
                             $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
-                        # 7 = set native string with default if not set
-                        elsif $code == 7 {
+                        # 403 = set native string with default if not set
+                        elsif $code == 403 {
 # nqp::if(
 #   nqp::isnull_s(nqp::getattr_s(self,Foo,'$!a')),
 #   nqp::bindattr_s(self,Foo,'$!a',
@@ -3891,27 +3891,28 @@ class Perl6::World is HLL::World {
                             $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
-                        # 8 = die if opaque not yet initialized
-                        # 15 = die if int is 0
-                        # 16 = die if num is 0e0
-                        # 17 = die if str is null_s
-                        elsif $code == 8 || $code >= 15 && $code <= 17 || $code == 24 {
+                        # 800 = die if opaque not yet initialized
+                        # 1501 = die if int is 0
+                        # 1502 = die if num is 0e0
+                        # 1503 = die if str is null_s
+                        # 1510 = die if uint is 0
+                        elsif $code == 800 || $code > 1500 && $code < 1600 {
 # nqp::unless(
 #   nqp::p6attrinited(nqp::getattr(self,Foo,'$!a')),
 #   X::Attribute::Required.new(name => '$!a', why => (value))
 # ),
                             my $check;
-                            if $code == 15 {
+                            if $code == 1501 {
                                 $check := QAST::Op.new( :op<getattr_i>,
                                   $!self, $class, $attr
                                 );
                             }
-                            elsif $code == 16 {
+                            elsif $code == 1502 {
                                 $check := QAST::Op.new( :op<getattr_n>,
                                   $!self, $class, $attr
                                 );
                             }
-                            elsif $code == 17 {
+                            elsif $code == 1503 {
                                 $check := QAST::Op.new( :op<not_i>,
                                   QAST::Op.new( :op<isnull_s>,
                                     QAST::Op.new( :op<getattr_s>,
@@ -3920,7 +3921,7 @@ class Perl6::World is HLL::World {
                                   )
                                 );
                             }
-                            elsif $code == 24 {
+                            elsif $code == 1510 {
                                 $check := QAST::Op.new( :op<getattr_u>,
                                   $!self, $class, $attr
                                 );
@@ -3949,8 +3950,8 @@ class Perl6::World is HLL::World {
                             );
                         }
 
-                        # 9 = run attribute container initializer
-                        elsif $code == 9 {
+                        # 900 = run attribute container initializer
+                        elsif $code == 900 {
 
 # nqp::bindattr(self,Foo,'$!a',$initializer())
                             $stmts.push(
@@ -3965,8 +3966,8 @@ class Perl6::World is HLL::World {
                             $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
-                        # 10 = set attrinited on attribute
-                        elsif $code == 10 {
+                        # 1000 = set attrinited on attribute
+                        elsif $code == 1000 {
 # nqp::getattr(self,Foo,'$!a')
                             $stmts.push(
                               QAST::Op.new(:op<getattr>, $!self, $class, $attr)

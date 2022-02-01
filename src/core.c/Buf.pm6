@@ -202,7 +202,7 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
               nqp::if(
                 nqp::istype(nqp::hllize($got),Int),
                 nqp::stmts(
-                  nqp::push_i(to,$got),
+                  nqp::push_i(to,my $ = $got),
                   ($i = nqp::add_i($i,1))
                 ),
                 self!fail-typecheck-element(action,$i,$got).throw

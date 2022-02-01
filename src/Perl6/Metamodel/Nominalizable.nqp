@@ -7,7 +7,7 @@ role Perl6::Metamodel::Nominalizable {
         );
     }
 
-    method !find_wrappee($obj, %kind_of) {
+    method !find_wrappee($obj, %kind_of, :$lookup = 0) {
         unless %kind_of{self.nominalizable_kind} {
             my $my_wrappee := self."!wrappee"($obj);
 
@@ -16,8 +16,11 @@ role Perl6::Metamodel::Nominalizable {
                 unless nqp::elems(%kind_of);
 
             # If the immediate wrappee is a nominalizable then bypass the request
-            return $my_wrappee.HOW."!find_wrappee"($my_wrappee, %kind_of)
+            return $my_wrappee.HOW."!find_wrappee"($my_wrappee, %kind_of, :$lookup)
                 if $my_wrappee.HOW.archetypes.nominalizable;
+
+            # Don't be aggressive if it's about introspection purposes
+            return nqp::null() if $lookup;
 
             # Otherwise the request cannot be completed
             Perl6::Metamodel::Configuration.throw_or_die(
@@ -36,6 +39,10 @@ role Perl6::Metamodel::Nominalizable {
     method wrappee($obj, *%kind_of) {
         my $*ORIG-NOMINALIZABLE := $obj;
         self."!find_wrappee"($obj, %kind_of)
+    }
+
+    method wrappee-lookup($obj, *%kind_of) {
+        self."!find_wrappee"($obj, %kind_of, :lookup)
     }
 
     method coerce($obj, $value) {

@@ -3491,6 +3491,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
     my &negate-smartmatch-code := nqp::getstaticcode(-> $topic, $rhs {
         $rhs.ACCEPTS($topic).not
     });
+    my &nominalizable-sm-code := nqp::getstaticcode(-> $topic, $rhs {
+        nqp::hllboolfor($rhs.HOW.accepts_type($rhs, $topic), 'Raku')
+    });
+    my &negate-nominalizable-sm-code := nqp::getstaticcode(-> $topic, $rhs {
+        nqp::hllboolfor(nqp::not_i($rhs.HOW.accepts_type($rhs, $topic)), 'Raku')
+    });
 
     my sub find-core-symbol(str $sym, :$ctx, :$revision) {
         unless nqp::isconcrete($ctx) {
@@ -3526,18 +3532,18 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         my $track-lhs           := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
         my $track-rhs           := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
 
-        if nqp::istype_nd($rhs, Scalar) {
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs );
-            $track-rhs :=
-                nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-rhs, Scalar, '$!value');
-            $rhs := nqp::getattr($rhs, Scalar, '$!value');
-        }
-
         if nqp::istype_nd($lhs, Scalar) {
             nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-lhs );
             $track-lhs :=
                 nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-lhs, Scalar, '$!value');
             $lhs := nqp::getattr($lhs, Scalar, '$!value');
+        }
+
+        if nqp::istype_nd($rhs, Scalar) {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs );
+            $track-rhs :=
+                nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-rhs, Scalar, '$!value');
+            $rhs := nqp::getattr($rhs, Scalar, '$!value');
         }
 
         my $explicit-accepts := 1;
@@ -3661,15 +3667,36 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 # A typeobject on RHS with default ACCEPTS can be reduced to nqp::istype, unless LHS is a concrete Junction
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-rhs);
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
-                # nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-boolification);
-                nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-lhs);
+                my $rhs-how := $rhs.HOW;
+                my $can-archetypes := nqp::can($rhs-how, 'archetypes');
 
-                my $matches := try nqp::istype_nd($lhs, $rhs);
-                $matches := $boolification < 0 ?? $hllbool_not($matches) !! $hllbool($matches);
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
-                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-                        0, $matches));
+                if !$can-archetypes
+                    || !$rhs-how.archetypes.nominalizable
+                    || nqp::isnull($rhs-how.wrappee-lookup($rhs, :subset))
+                {
+                    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-lhs);
+                    if $can-archetypes && $rhs-how.archetypes.definite {
+                        # If RHS is a definite then concreteness of LHS must be considered
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-lhs);
+                    }
+
+                    my $matches := try nqp::istype_nd($lhs, $rhs);
+                    $matches := $boolification < 0 ?? $hllbool_not($matches) !! $hllbool($matches);
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                            0, $matches));
+                }
+                else {
+                    # Subsets are usually using topic value to ensure matching. Normally it would mean full ACCEPTS+Bool
+                    # fallback, but we can shortcut directly to HOW.accepts_type and then boolify.
+                    # Note that LHS is not relevant for dispatching in this case.
+                    my $sm-code := $boolification < 0 ?? &negate-nominalizable-sm-code !! &nominalizable-sm-code;
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2), # boolification flag
+                            0, $sm-code));
+                }
 
                 $explicit-accepts := 0;
             }

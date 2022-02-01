@@ -1570,19 +1570,27 @@ my class SmartmatchOptimizer {
                     && ($in-when || !$lhs.is-junction);
 
         $sm_type := $rhs.value;
+        my $sm_type_how := nqp::how($sm_type);
 
-        # We wouldn't be able to shortcut typematching for generics and it is barely possible against most of subsets.
+        # We wouldn't be able to shortcut typematching when:
+        # - can't determine type's archetype
+        # - the type is a generic
         return nqp::null()
-            if $sm_type.HOW.archetypes.generic
-                || $sm_type.HOW ~~ Perl6::Metamodel::SubsetHOW;
+            if !nqp::can($sm_type_how, 'archetypes')
+                || $sm_type_how.archetypes.generic;
+
+        my $sm_is_subset :=
+            $sm_type_how.archetypes.nominalizable
+            && !nqp::isnull($sm_type_how.wrappee-lookup($sm_type, :subset));
 
         note("Try typematch over RHS ", $sm_type.HOW.name($sm_type)) if $!debug;
 
         my $sm_ast;
 
         # When ~~ LHS is known at compile time we sometimes can reduce down to a plain boolean constant.
-        # Doesn't work for 'when' statement.
-        if !$in-when && $lhs.has-value {
+        # Doesn't work for 'when' statement and for subsets. The latter may depend on run-time conditions in their
+        # `when` code.
+        if !$sm_is_subset && !$in-when && $lhs.has-value {
             note("  . typematch: LHS has a value (",
                 $lhs.value-type-name, ", ",
                 (nqp::isconcrete($lhs.value) ?? "concrete" !! "undefined"),
@@ -1611,9 +1619,9 @@ my class SmartmatchOptimizer {
         # overrides CORE's methods.
         note("Typematch over ", $sm_type.HOW.name($sm_type), " can be reduced to nqp::istype") if $!debug;
 
-        # For 'when' statement it is sufficient to get native 0 or 1. Otherwise we need to boolify.
         $sm_ast := QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast );
         $sm_ast := QAST::Op.new( :op<not_i>, $sm_ast ) if $negated;
+        # For 'when' statement it is sufficient to get native 0 or 1. Otherwise we need to boolify.
         ($in-when
             ?? $sm_ast
             !! QAST::Op.new( :op<hllbool>, $sm_ast )).annotate_self('sm_typematch', 1)
@@ -1639,7 +1647,11 @@ my class SmartmatchOptimizer {
                 note($rhs-type.HOW.name($rhs-type), " is not ", $_.HOW.name($_)) if $!debug;
             }
             if $try-it {
-                note("Both sides are literal, try static match of ", $lhs.value-type-name, " vs. ", $rhs.value-type-name) if $!debug;
+                note("Both sides are literal, try static match of ",
+                        $lhs.value-type-name,
+                        " vs. ",
+                        $rhs.value-type-name)
+                    if $!debug;
                 my $is_eq := nqp::null();
                 try {
                     $is_eq := $rhs.value.ACCEPTS($lhs.value);

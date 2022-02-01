@@ -3895,7 +3895,7 @@ class Perl6::World is HLL::World {
                         # 15 = die if int is 0
                         # 16 = die if num is 0e0
                         # 17 = die if str is null_s
-                        elsif $code == 8 || $code >= 15 && $code <= 17 {
+                        elsif $code == 8 || $code >= 15 && $code <= 17 || $code == 24 {
 # nqp::unless(
 #   nqp::p6attrinited(nqp::getattr(self,Foo,'$!a')),
 #   X::Attribute::Required.new(name => '$!a', why => (value))
@@ -3918,6 +3918,11 @@ class Perl6::World is HLL::World {
                                       $!self, $class, $attr
                                     )
                                   )
+                                );
+                            }
+                            elsif $code == 24 {
+                                $check := QAST::Op.new( :op<getattr_u>,
+                                  $!self, $class, $attr
                                 );
                             }
                             else {

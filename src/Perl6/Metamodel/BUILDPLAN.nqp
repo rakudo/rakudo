@@ -18,7 +18,7 @@ role Perl6::Metamodel::BUILDPLAN {
     #    2 class name attr_name = set a native num attribute from init hash
     #    3 class name attr_name = set a native str attribute from init hash
     #    4 class attr_name code = call default value closure if needed
-    #    5 class attr_name code = call default value closure if needed, int attr
+    #    5 class attr_name code = call default value closure if needed, int or uint attr
     #    6 class attr_name code = call default value closure if needed, num attr
     #    7 class attr_name code = call default value closure if needed, str attr
     #    8 die if a required attribute is not present
@@ -31,6 +31,7 @@ role Perl6::Metamodel::BUILDPLAN {
     #   15 die if a required int attribute is 0
     #   16 die if a required num attribute is 0e0
     #   17 die if a required str attribute is null_s (will be '' in the future)
+    #   24 die if a required uint attribute is 0
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
@@ -138,7 +139,7 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::can($_, 'required') && $_.required {
                 my $type := $_.type;
                 my int $primspec := nqp::objprimspec($type);
-                my int $op := $primspec ?? 14 + $primspec !! 8;
+                my int $op := $primspec ?? $primspec == 10 ?? 24 !! 14 + $primspec !! 8;
                 nqp::push(@plan,[$op, $obj, $_.name, $_.required]);
                 nqp::deletekey(%attrs_untouched, $_.name);
             }
@@ -159,7 +160,7 @@ role Perl6::Metamodel::BUILDPLAN {
             # compile check constants for correct type
             if nqp::isconcrete($default) {
                 my $name   := $_.name;
-                my $opcode := $primspec || !$_.is_bound ?? 4 + $primspec !! 14;
+                my $opcode := $primspec || !$_.is_bound ?? $primspec == 10 ?? 5 !! 4 + $primspec !! 14;
                 my @action := [$opcode, $obj, $name, $default];
 
                 # binding defaults to additional check at runtime

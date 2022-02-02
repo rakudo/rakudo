@@ -313,21 +313,21 @@ while @lines {
         multi method AT-POS(::?CLASS:D: int \one --> #type#) is raw {
            nqp::atposref_#postfix#(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one --> #type#) is raw {
-           nqp::atposref_#postfix#(self,one)
+        multi method AT-POS(::?CLASS:D: Int:D $one --> #type#) is raw {
+           nqp::atposref_#postfix#(self,$one)
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, #type# \value --> #type#) {
             nqp::bindpos_#postfix#(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, #type# \value --> #type#) {
-            nqp::bindpos_#postfix#(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, #type# \value --> #type#) {
+            nqp::bindpos_#postfix#(self,$one,value)
         }
         multi method ASSIGN-POS(::?CLASS:D: int \one, #Type#:D \value --> #type#) {
             nqp::bindpos_#postfix#(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, #Type#:D \value --> #type#) {
-            nqp::bindpos_#postfix#(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, #Type#:D \value --> #type#) {
+            nqp::bindpos_#postfix#(self,$one,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
@@ -335,9 +335,9 @@ while @lines {
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
+              nqp::isge_i($one,0) && nqp::islt_i($one,nqp::elems(self))
             )
         }
 
@@ -485,15 +485,15 @@ while @lines {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> #type#) is raw {
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> #type#) is raw {
-            nqp::multidimref_#postfix#(self,nqp::list_i(one, two))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two --> #type#) is raw {
+            nqp::multidimref_#postfix#(self,nqp::list_i($one, $two))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, #Type#:D \value --> #type#) {
             nqp::bindpos2d_#postfix#(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, #Type#:D \value --> #type#) {
-            nqp::bindpos2d_#postfix#(self,one,two,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, #Type#:D \value --> #type#) {
+            nqp::bindpos2d_#postfix#(self,$one,$two,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
@@ -504,12 +504,12 @@ while @lines {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
     } # end of shaped2#type#array role
@@ -518,15 +518,15 @@ while @lines {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> #type#) is raw {
             nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> #type#) is raw {
-            nqp::multidimref_#postfix#(self,nqp::list_i(one, two, three))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> #type#) is raw {
+            nqp::multidimref_#postfix#(self,nqp::list_i($one, $two, $three))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, #Type#:D \value --> #type#) {
             nqp::bindpos3d_#postfix#(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, #Type#:D \value --> #type#) {
-            nqp::bindpos3d_#postfix#(self,one,two,three,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three, #Type#:D \value --> #type#) {
+            nqp::bindpos3d_#postfix#(self,$one,$two,$three,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
@@ -539,14 +539,14 @@ while @lines {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::isge_i(three,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
-                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::isge_i($three,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i($three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
     } # end of shaped3#type#array role

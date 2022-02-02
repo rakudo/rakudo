@@ -2679,7 +2679,7 @@ my class array does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2022-02-02T13:19:15+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-02T18:04:27+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2941,21 +2941,21 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one --> int) is raw {
            nqp::atposref_i(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one --> int) is raw {
-           nqp::atposref_i(self,one)
+        multi method AT-POS(::?CLASS:D: Int:D $one --> int) is raw {
+           nqp::atposref_i(self,$one)
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \value --> int) {
             nqp::bindpos_i(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, int \value --> int) {
-            nqp::bindpos_i(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, int \value --> int) {
+            nqp::bindpos_i(self,$one,value)
         }
         multi method ASSIGN-POS(::?CLASS:D: int \one, Int:D \value --> int) {
             nqp::bindpos_i(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \value --> int) {
-            nqp::bindpos_i(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D \value --> int) {
+            nqp::bindpos_i(self,$one,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
@@ -2963,9 +2963,9 @@ my class array does Iterable does Positional {
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
+              nqp::isge_i($one,0) && nqp::islt_i($one,nqp::elems(self))
             )
         }
 
@@ -3113,15 +3113,15 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> int) is raw {
-            nqp::multidimref_i(self,nqp::list_i(one, two))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two --> int) is raw {
+            nqp::multidimref_i(self,nqp::list_i($one, $two))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Int:D \value --> int) {
             nqp::bindpos2d_i(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \value --> int) {
-            nqp::bindpos2d_i(self,one,two,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D \value --> int) {
+            nqp::bindpos2d_i(self,$one,$two,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
@@ -3132,12 +3132,12 @@ my class array does Iterable does Positional {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
     } # end of shaped2intarray role
@@ -3146,15 +3146,15 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> int) is raw {
             nqp::multidimref_i(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> int) is raw {
-            nqp::multidimref_i(self,nqp::list_i(one, two, three))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> int) is raw {
+            nqp::multidimref_i(self,nqp::list_i($one, $two, $three))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Int:D \value --> int) {
             nqp::bindpos3d_i(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Int:D \value --> int) {
-            nqp::bindpos3d_i(self,one,two,three,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three, Int:D \value --> int) {
+            nqp::bindpos3d_i(self,$one,$two,$three,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
@@ -3167,14 +3167,14 @@ my class array does Iterable does Positional {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::isge_i(three,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
-                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::isge_i($three,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i($three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
     } # end of shaped3intarray role
@@ -3182,7 +3182,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapeduintarray role -----------------------------
-#- Generated on 2022-02-02T13:19:15+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-02T18:04:27+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapeduintarray does shapedarray {
@@ -3444,21 +3444,21 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one --> uint) is raw {
            nqp::atposref_u(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one --> uint) is raw {
-           nqp::atposref_u(self,one)
+        multi method AT-POS(::?CLASS:D: Int:D $one --> uint) is raw {
+           nqp::atposref_u(self,$one)
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, uint \value --> uint) {
             nqp::bindpos_u(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, uint \value --> uint) {
-            nqp::bindpos_u(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, uint \value --> uint) {
+            nqp::bindpos_u(self,$one,value)
         }
         multi method ASSIGN-POS(::?CLASS:D: int \one, UInt:D \value --> uint) {
             nqp::bindpos_u(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, UInt:D \value --> uint) {
-            nqp::bindpos_u(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, UInt:D \value --> uint) {
+            nqp::bindpos_u(self,$one,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
@@ -3466,9 +3466,9 @@ my class array does Iterable does Positional {
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
+              nqp::isge_i($one,0) && nqp::islt_i($one,nqp::elems(self))
             )
         }
 
@@ -3616,15 +3616,15 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> uint) is raw {
             nqp::multidimref_u(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> uint) is raw {
-            nqp::multidimref_u(self,nqp::list_i(one, two))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two --> uint) is raw {
+            nqp::multidimref_u(self,nqp::list_i($one, $two))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, UInt:D \value --> uint) {
             nqp::bindpos2d_u(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, UInt:D \value --> uint) {
-            nqp::bindpos2d_u(self,one,two,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, UInt:D \value --> uint) {
+            nqp::bindpos2d_u(self,$one,$two,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
@@ -3635,12 +3635,12 @@ my class array does Iterable does Positional {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
     } # end of shaped2uintarray role
@@ -3649,15 +3649,15 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> uint) is raw {
             nqp::multidimref_u(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> uint) is raw {
-            nqp::multidimref_u(self,nqp::list_i(one, two, three))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> uint) is raw {
+            nqp::multidimref_u(self,nqp::list_i($one, $two, $three))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, UInt:D \value --> uint) {
             nqp::bindpos3d_u(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, UInt:D \value --> uint) {
-            nqp::bindpos3d_u(self,one,two,three,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three, UInt:D \value --> uint) {
+            nqp::bindpos3d_u(self,$one,$two,$three,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
@@ -3670,14 +3670,14 @@ my class array does Iterable does Positional {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::isge_i(three,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
-                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::isge_i($three,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i($three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
     } # end of shaped3uintarray role
@@ -3685,7 +3685,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapeduintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2022-02-02T13:19:15+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-02T18:04:27+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -3947,21 +3947,21 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one --> num) is raw {
            nqp::atposref_n(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one --> num) is raw {
-           nqp::atposref_n(self,one)
+        multi method AT-POS(::?CLASS:D: Int:D $one --> num) is raw {
+           nqp::atposref_n(self,$one)
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, num \value --> num) {
             nqp::bindpos_n(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, num \value --> num) {
-            nqp::bindpos_n(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, num \value --> num) {
+            nqp::bindpos_n(self,$one,value)
         }
         multi method ASSIGN-POS(::?CLASS:D: int \one, Num:D \value --> num) {
             nqp::bindpos_n(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Num:D \value --> num) {
-            nqp::bindpos_n(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Num:D \value --> num) {
+            nqp::bindpos_n(self,$one,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
@@ -3969,9 +3969,9 @@ my class array does Iterable does Positional {
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
+              nqp::isge_i($one,0) && nqp::islt_i($one,nqp::elems(self))
             )
         }
 
@@ -4119,15 +4119,15 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> num) is raw {
-            nqp::multidimref_n(self,nqp::list_i(one, two))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two --> num) is raw {
+            nqp::multidimref_n(self,nqp::list_i($one, $two))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Num:D \value --> num) {
             nqp::bindpos2d_n(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Num:D \value --> num) {
-            nqp::bindpos2d_n(self,one,two,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, Num:D \value --> num) {
+            nqp::bindpos2d_n(self,$one,$two,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
@@ -4138,12 +4138,12 @@ my class array does Iterable does Positional {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
     } # end of shaped2numarray role
@@ -4152,15 +4152,15 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> num) is raw {
             nqp::multidimref_n(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> num) is raw {
-            nqp::multidimref_n(self,nqp::list_i(one, two, three))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> num) is raw {
+            nqp::multidimref_n(self,nqp::list_i($one, $two, $three))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Num:D \value --> num) {
             nqp::bindpos3d_n(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Num:D \value --> num) {
-            nqp::bindpos3d_n(self,one,two,three,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three, Num:D \value --> num) {
+            nqp::bindpos3d_n(self,$one,$two,$three,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
@@ -4173,14 +4173,14 @@ my class array does Iterable does Positional {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::isge_i(three,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
-                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::isge_i($three,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i($three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
     } # end of shaped3numarray role
@@ -4188,7 +4188,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2022-02-02T13:19:15+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-02T18:04:27+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -4450,21 +4450,21 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one --> str) is raw {
            nqp::atposref_s(self,one)
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one --> str) is raw {
-           nqp::atposref_s(self,one)
+        multi method AT-POS(::?CLASS:D: Int:D $one --> str) is raw {
+           nqp::atposref_s(self,$one)
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, str \value --> str) {
             nqp::bindpos_s(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, str \value --> str) {
-            nqp::bindpos_s(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, str \value --> str) {
+            nqp::bindpos_s(self,$one,value)
         }
         multi method ASSIGN-POS(::?CLASS:D: int \one, Str:D \value --> str) {
             nqp::bindpos_s(self,one,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Str:D \value --> str) {
-            nqp::bindpos_s(self,one,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Str:D \value --> str) {
+            nqp::bindpos_s(self,$one,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
@@ -4472,9 +4472,9 @@ my class array does Iterable does Positional {
               nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
+              nqp::isge_i($one,0) && nqp::islt_i($one,nqp::elems(self))
             )
         }
 
@@ -4622,15 +4622,15 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> str) is raw {
-            nqp::multidimref_s(self,nqp::list_i(one, two))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two --> str) is raw {
+            nqp::multidimref_s(self,nqp::list_i($one, $two))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, Str:D \value --> str) {
             nqp::bindpos2d_s(self,one,two,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Str:D \value --> str) {
-            nqp::bindpos2d_s(self,one,two,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, Str:D \value --> str) {
+            nqp::bindpos2d_s(self,$one,$two,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
@@ -4641,12 +4641,12 @@ my class array does Iterable does Positional {
                 && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
             )
         }
     } # end of shaped2strarray role
@@ -4655,15 +4655,15 @@ my class array does Iterable does Positional {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> str) is raw {
             nqp::multidimref_s(self,nqp::list_i(one, two, three))
         }
-        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> str) is raw {
-            nqp::multidimref_s(self,nqp::list_i(one, two, three))
+        multi method AT-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> str) is raw {
+            nqp::multidimref_s(self,nqp::list_i($one, $two, $three))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, Str:D \value --> str) {
             nqp::bindpos3d_s(self,one,two,three,value)
         }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, Str:D \value --> str) {
-            nqp::bindpos3d_s(self,one,two,three,value)
+        multi method ASSIGN-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three, Str:D \value --> str) {
+            nqp::bindpos3d_s(self,$one,$two,$three,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
@@ -4676,14 +4676,14 @@ my class array does Iterable does Positional {
                 && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
-        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
+        multi method EXISTS-POS(::?CLASS:D: Int:D $one, Int:D $two, Int:D $three --> Bool:D) {
             nqp::hllbool(
-              nqp::isge_i(one,0)
-                && nqp::isge_i(two,0)
-                && nqp::isge_i(three,0)
-                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
-                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
-                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+              nqp::isge_i($one,0)
+                && nqp::isge_i($two,0)
+                && nqp::isge_i($three,0)
+                && nqp::islt_i($one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i($two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i($three,nqp::atpos_i(nqp::dimensions(self),2))
             )
         }
     } # end of shaped3strarray role

@@ -2679,7 +2679,7 @@ my class array does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2021-12-30T19:54:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-02T13:19:15+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2705,9 +2705,7 @@ my class array does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                X::NYI.new(
-                  feature => "Partially dimensioned views of shaped arrays"
-                ).throw
+                NYI("Partially dimensioned views of shaped arrays").throw
               )
             )
         }
@@ -3184,7 +3182,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapeduintarray role -----------------------------
-#- Generated on 2021-12-30T19:54:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-02T13:19:15+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapeduintarray does shapedarray {
@@ -3201,7 +3199,7 @@ my class array does Iterable does Positional {
                   nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
-                nqp::multidimref_i(self,$idxs)
+                nqp::multidimref_u(self,$idxs)
               ),
               nqp::if(
                 nqp::isgt_i($numind,$numdims),
@@ -3230,7 +3228,7 @@ my class array does Iterable does Positional {
                     nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
                     nqp::push_i($idxs,nqp::shift($indices))
                   ),
-                  nqp::bindposnd_i(self, $idxs, $value)
+                  nqp::bindposnd_u(self, $idxs, $value)
                 ),
                 nqp::if(
                   nqp::isgt_i($numind,$numdims),
@@ -3255,8 +3253,8 @@ my class array does Iterable does Positional {
             }
             method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
             method result(--> Nil) {
-                nqp::bindposnd_i($!list,$!indices,
-                  nqp::multidimref_i($!from,$!indices))
+                nqp::bindposnd_u($!list,$!indices,
+                  nqp::multidimref_u($!from,$!indices))
             }
         }
         sub NATCPY(Mu \to, Mu \from) is raw {
@@ -3274,7 +3272,7 @@ my class array does Iterable does Positional {
             }
             method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
             method result(--> Nil) {
-                nqp::bindposnd_i($!list,$!indices,
+                nqp::bindposnd_u($!list,$!indices,
                   nqp::atposnd($!from,$!indices))
             }
         }
@@ -3301,7 +3299,7 @@ my class array does Iterable does Positional {
                   nqp::atpos($!iterators,0).is-lazy # finite iterator
                     || nqp::eqaddr(                 # and something there
                          nqp::atpos($!iterators,0).pull-one,IterationEnd),
-                  nqp::atposnd_i($!list,$!indices)    # boom!
+                  nqp::atposnd_u($!list,$!indices)    # boom!
                 )
             }
             method process(--> Nil) {
@@ -3328,7 +3326,7 @@ my class array does Iterable does Positional {
                     nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
                       || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
                     nqp::stmts(
-                      nqp::bindposnd_i($!list,$!indices,pulled),
+                      nqp::bindposnd_u($!list,$!indices,pulled),
                       nqp::bindpos_i($!indices,$!maxdim,  # increment index
                         nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
                     )
@@ -3338,7 +3336,7 @@ my class array does Iterable does Positional {
                       || nqp::isle_i(                 # and index too high
                            nqp::atpos_i($!indices,$!maxdim),$!maxind)
                       || iter.is-lazy,                # and not lazy
-                    nqp::atposnd_i($!list,$!indices)  # boom!
+                    nqp::atposnd_u($!list,$!indices)  # boom!
                   )
                 )
             }
@@ -3391,7 +3389,7 @@ my class array does Iterable does Positional {
 
         my class Iterate-uint does Rakudo::Iterator::ShapeLeaf {
             method result() is raw {
-                nqp::multidimref_i($!list,nqp::clone($!indices))
+                nqp::multidimref_u($!list,nqp::clone($!indices))
             }
         }
         method iterator(::?CLASS:D: --> Iterate-uint:D) {
@@ -3409,7 +3407,7 @@ my class array does Iterable does Positional {
                       nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
                     result
                   ),
-                  nqp::multidimref_i($!list,nqp::clone($!indices))
+                  nqp::multidimref_u($!list,nqp::clone($!indices))
                 )
             }
             # needs its own push-all since it fiddles with $!indices
@@ -3426,7 +3424,7 @@ my class array does Iterable does Positional {
             method result() {
                 Pair.new(
                   self.indices,
-                  nqp::multidimref_i($!list,nqp::clone($!indices))
+                  nqp::multidimref_u($!list,nqp::clone($!indices))
                 )
             }
         }
@@ -3434,7 +3432,7 @@ my class array does Iterable does Positional {
 
         my class Antipairs-uint does Rakudo::Iterator::ShapeLeaf {
             method result() {
-                Pair.new(nqp::atposnd_i($!list,$!indices),self.indices)
+                Pair.new(nqp::atposnd_u($!list,$!indices),self.indices)
             }
         }
         multi method antipairs(::?CLASS:D: --> Seq:D) {
@@ -3481,7 +3479,7 @@ my class array does Iterable does Positional {
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos_u(self,$i,nqp::atpos_i(from,$i))
+                  nqp::bindpos_u(self,$i,nqp::atpos_u(from,$i))
                 ),
                 self
               ),
@@ -3493,7 +3491,7 @@ my class array does Iterable does Positional {
         }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
             my \iter := Rakudo::Iterator.TailWith(in.iterator,0);
-            my uint $i = -1;
+            my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
               nqp::bindpos_u(self,$i,iter.pull-one)
@@ -3616,17 +3614,17 @@ my class array does Iterable does Positional {
 
     role shaped2uintarray does shapeduintarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two --> uint) is raw {
-            nqp::multidimref_i(self,nqp::list_i(one, two))
+            nqp::multidimref_u(self,nqp::list_i(one, two))
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> uint) is raw {
-            nqp::multidimref_i(self,nqp::list_i(one, two))
+            nqp::multidimref_u(self,nqp::list_i(one, two))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, UInt:D \value --> uint) {
-            nqp::bindpos2d_i(self,one,two,value)
+            nqp::bindpos2d_u(self,one,two,value)
         }
         multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, UInt:D \value --> uint) {
-            nqp::bindpos2d_i(self,one,two,value)
+            nqp::bindpos2d_u(self,one,two,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
@@ -3649,17 +3647,17 @@ my class array does Iterable does Positional {
 
     role shaped3uintarray does shapeduintarray {
         multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> uint) is raw {
-            nqp::multidimref_i(self,nqp::list_i(one, two, three))
+            nqp::multidimref_u(self,nqp::list_i(one, two, three))
         }
         multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> uint) is raw {
-            nqp::multidimref_i(self,nqp::list_i(one, two, three))
+            nqp::multidimref_u(self,nqp::list_i(one, two, three))
         }
 
         multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, UInt:D \value --> uint) {
-            nqp::bindpos3d_i(self,one,two,three,value)
+            nqp::bindpos3d_u(self,one,two,three,value)
         }
         multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, UInt:D \value --> uint) {
-            nqp::bindpos3d_i(self,one,two,three,value)
+            nqp::bindpos3d_u(self,one,two,three,value)
         }
 
         multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
@@ -3687,7 +3685,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapeduintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2022-01-14T17:27:16+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-02T13:19:15+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -4190,7 +4188,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2022-01-14T17:27:16+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-02T13:19:15+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {

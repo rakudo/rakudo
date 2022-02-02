@@ -45,7 +45,7 @@ while @lines {
 
     # set up template values
     my %mapper =
-      postfix => $type eq 'uint' ?? 'i' !! $type.substr(0,1), #FIXME un-special-case after implementing multidimref_u and friends
+      postfix => $type.substr(0,1),
       type    => $type,
       Type    => $type eq 'uint' ?? 'UInt' !! $type.tclc,
       null    => %null{$type},

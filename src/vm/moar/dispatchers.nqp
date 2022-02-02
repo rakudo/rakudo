@@ -3492,10 +3492,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         $rhs.ACCEPTS($topic).not
     });
     my &nominalizable-sm-code := nqp::getstaticcode(-> $topic, $rhs {
-        nqp::hllboolfor($rhs.HOW.accepts_type($rhs, $topic), 'Raku')
+        nqp::hllboolfor(nqp::istype($topic, $rhs), 'Raku')
     });
     my &negate-nominalizable-sm-code := nqp::getstaticcode(-> $topic, $rhs {
-        nqp::hllboolfor(nqp::not_i($rhs.HOW.accepts_type($rhs, $topic)), 'Raku')
+        nqp::hllboolfor(nqp::not_i(nqp::istype($topic, $rhs)), 'Raku')
     });
 
     my sub find-core-symbol(str $sym, :$ctx, :$revision) {

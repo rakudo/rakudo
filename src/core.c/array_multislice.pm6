@@ -63,15 +63,15 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
     nqp::while(
       nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
       nqp::if(
-        nqp::istype((my \index := nqp::atpos(indices,$i)),Int),
-        nqp::push_i(idxs,index),               # it's an Int, use that
+        nqp::istype((my $index = nqp::atpos(indices,$i)),Int),
+        nqp::push_i(idxs,$index),               # it's an Int, use that
         nqp::if(
-          nqp::istype(index,Numeric),
-          nqp::push_i(idxs,index.Int),         # can be safely coerced to Int
+          nqp::istype($index,Numeric),
+          nqp::push_i(idxs,$index.Int),         # can be safely coerced to Int
           nqp::if(
-            nqp::istype(index,Str),
+            nqp::istype($index,Str),
             nqp::if(
-              nqp::istype((my \coerced := index.Int),Failure),
+              nqp::istype((my \coerced := $index.Int),Failure),
               coerced.throw,                   # alas, not numeric, bye!
               nqp::push_i(idxs,coerced)        # could be coerced to Int
             ),

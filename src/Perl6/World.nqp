@@ -3834,7 +3834,7 @@ class Perl6::World is HLL::World {
                             );
                             $stmts.push(
                               QAST::Op.new( :op<if>,
-                                QAST::Op.new( :op('iseq' ~ @psp[$code - 400]),
+                                QAST::Op.new( :op('iseq' ~ ($code == 410 ?? '_i' !! @psp[$code - 400])),
                                   $getattr,
                                   @psd[$code - 400],
                                 ),

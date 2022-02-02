@@ -131,6 +131,8 @@ sub nativesizeof($obj) is export(:DEFAULT) {
 
 my constant $signed_ints_by_size =
   nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
+my constant $unsigned_ints_by_size =
+  nqp::list_s( "", "uchar", "ushort", "", "uint", "", "", "", "ulonglong" );
 
 # Gets the NCI type code to use based on a given Raku type.
 my constant $type_map = nqp::hash(
@@ -150,7 +152,7 @@ my constant $type_map = nqp::hash(
   "num",        "double",
   "num32",      "float",
   "num64",      "double",
-  "size_t",     nqp::atpos_s($signed_ints_by_size,nativesizeof(size_t)),
+  "size_t",     nqp::atpos_s($unsigned_ints_by_size,nativesizeof(size_t)),
   "ssize_t",    nqp::atpos_s($signed_ints_by_size,nativesizeof(ssize_t)),
   "uint",       "ulong",
   "uint16",     "ushort",

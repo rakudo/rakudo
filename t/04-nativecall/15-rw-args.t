@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 22;
+plan 24;
 
 compile_test_lib('15-rw-args');
 
@@ -30,6 +30,9 @@ sub PassULong(ulong is rw)         returns ulong is native('./15-rw-args') { * }
 sub SetULongLong(ulonglong is rw)  is native('./15-rw-args') { * }
 sub PassULongLong(ulonglong is rw) returns ulonglong is native('./15-rw-args') { * }
 sub SetPtrToPtr(Pointer is rw) returns int32 is native('./15-rw-args') { * }
+
+sub SetSizeT(size_t is rw)  is symbol('SetULongLong') is native('./15-rw-args') { * }
+sub PassSizeT(size_t is rw) returns size_t is symbol('PassULongLong') is native('./15-rw-args') { * }
 
 my int8 $c; SetChar($c);
 is $c, 97, 'Perl\'s rw variable was set by C (char)';
@@ -70,6 +73,10 @@ is PassULong($ul), 777, 'Perl\'s rw variable was passed and returned by C (unsig
 my ulonglong $ull; SetULongLong($ull);
 is $ull, 15324, 'Perl\'s rw variable was set by C (unsigned long long)';
 is PassULongLong($ull), 15324, 'Perl\'s rw variable was passed and returned by C (unsigned long long)';
+
+my size_t $size_t; SetSizeT($size_t);
+is $size_t, 15324, 'Perl\'s rw variable was set by C (size_t)';
+is PassSizeT($size_t), 15324, 'Perl\'s rw variable was passed and returned by C (size_t)';
 
 my Pointer $ptr .= new;
 ok SetPtrToPtr($ptr), 'Can pass an instantiated pointer with rw-trait to C';

@@ -277,7 +277,7 @@ my class Date does Dateish {
             nqp::bindattr_i($new,Date,'$!daycount',0);
             $new
         }
-        else { # year
+        elsif nqp::eqat($unit,'year',0) {
             my int $year = nqp::add_i($!year,$amount);
 
             my $new := nqp::clone(self);

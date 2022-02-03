@@ -183,7 +183,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -214,7 +214,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -252,7 +252,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled

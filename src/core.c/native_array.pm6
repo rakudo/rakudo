@@ -4883,7 +4883,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2021-12-31T11:00:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-03T19:03:07+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5016,7 +5016,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5047,7 +5047,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5085,7 +5085,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5135,7 +5135,7 @@ multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2021-12-31T11:00:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-03T19:03:07+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5268,7 +5268,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5299,7 +5299,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5337,7 +5337,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5387,7 +5387,7 @@ multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2021-12-31T11:00:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-03T19:03:07+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5520,7 +5520,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5551,7 +5551,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5589,7 +5589,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5639,7 +5639,7 @@ multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of postcircumfix candidates of uintarray -------------------------------
-#- Generated on 2021-12-31T11:00:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-03T19:03:07+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5772,7 +5772,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5803,7 +5803,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled
@@ -5841,7 +5841,7 @@ multi sub postcircumfix:<[ ]>(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::istype(
-          (my $got := nqp::if(
+          (my $got = nqp::if(
             nqp::istype($pulled,Callable),
             $pulled.POSITIONS($self),
             $pulled

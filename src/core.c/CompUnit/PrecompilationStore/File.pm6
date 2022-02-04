@@ -322,7 +322,8 @@ class CompUnit::PrecompilationStore::File
       CompUnit::PrecompilationId:D $precomp-id,
       CompUnit::PrecompilationUnit:D $unit
     ) {
-        my $precomp-file := self!file($compiler-id, $precomp-id, :extension<.tmp>);
+        my $extension := self!tmp-extension;
+        my $precomp-file := self!file($compiler-id, $precomp-id, :$extension);
         $unit.save-to($precomp-file);
         my &rename-block = {
             $precomp-file.rename(self!file($compiler-id, $precomp-id));
@@ -341,7 +342,8 @@ class CompUnit::PrecompilationStore::File
       CompUnit::PrecompilationId:D $precomp-id,
       Str:D :$repo-id!
     ) {
-        my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
+        my $extension := ".repo-id" ~ self!tmp-extension;
+        my $repo-id-file := self!file($compiler-id, $precomp-id, :$extension);
         $repo-id-file.spurt($repo-id);
         my &rename-block = { $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>)); };
         if Rakudo::Internals.IS-WIN {
@@ -367,6 +369,10 @@ class CompUnit::PrecompilationStore::File
              $subdir.rmdir;
          }
          $compiler-dir.rmdir;
+    }
+
+    method !tmp-extension(--> Str:D) {
+        '.' ~ (^2**128).pick.base(36) ~ '.tmp'
     }
 }
 

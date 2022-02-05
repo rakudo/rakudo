@@ -50,11 +50,7 @@ static void p6stateinit(MVMThreadContext *tc, MVMuint8 *cur_op) {
 }
 
 /* First FIRST, use a flag in the object header. */
-#ifdef MVM_COLLECTABLE_FLAGS1
 #define RAKUDO_FIRST_FLAG 128
-#else
-#define RAKUDO_FIRST_FLAG 16384
-#endif
 
 static MVMuint8 s_p6setfirstflag[] = {
     MVM_operand_obj | MVM_operand_write_reg,
@@ -64,11 +60,7 @@ static void p6setfirstflag(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *code_obj = GET_REG(tc, 2).o;
     if (!MVM_code_iscode(tc, code_obj))
         MVM_exception_throw_adhoc(tc, "p6setfirstflag requires a bytecode handle");
-#ifdef MVM_COLLECTABLE_FLAGS1
     code_obj->header.flags1 |= RAKUDO_FIRST_FLAG;
-#else
-    code_obj->header.flags |= RAKUDO_FIRST_FLAG;
-#endif
     GET_REG(tc, 0).o = code_obj;
 }
 
@@ -77,13 +69,8 @@ static MVMuint8 s_p6takefirstflag[] = {
 };
 static void p6takefirstflag(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *vm_code = tc->cur_frame->code_ref;
-#ifdef MVM_COLLECTABLE_FLAGS1
     if (vm_code->header.flags1 & RAKUDO_FIRST_FLAG) {
         vm_code->header.flags1 ^= RAKUDO_FIRST_FLAG;
-#else
-    if (vm_code->header.flags & RAKUDO_FIRST_FLAG) {
-        vm_code->header.flags ^= RAKUDO_FIRST_FLAG;
-#endif
         GET_REG(tc, 0).i64 = 1;
     }
     else {
@@ -164,11 +151,7 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
     /* Now we call the second code ref, thus meaning it'll appear to have been
      * called by the first. We set up a special return handler to properly
      * remove it. */
-#if MVM_CALLSTACK_SPECIAL_RETURN
     MVM_callstack_allocate_special_return(tc, return_from_fake, NULL, NULL, 0);
-#else
-    MVM_frame_special_return(tc, tc->cur_frame, return_from_fake, NULL, NULL, NULL);
-#endif
     tc->cur_frame->return_value = res;
     tc->cur_frame->return_type = MVM_RETURN_OBJ;
     MVM_frame_dispatch_zero_args(tc, (MVMCode *)code);

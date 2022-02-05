@@ -486,25 +486,6 @@ public final class RakOps {
             + in.substring(Character.charCount(first)).toLowerCase();
     }
 
-    private static final CallSiteDescriptor SortCSD = new CallSiteDescriptor(
-        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
-    public static SixModelObject p6sort(SixModelObject indices, final SixModelObject comparator, final ThreadContext tc) {
-        int elems = (int)indices.elems(tc);
-        SixModelObject[] sortable = new SixModelObject[elems];
-        for (int i = 0; i < elems; i++)
-            sortable[i] = indices.at_pos_boxed(tc, i);
-        Arrays.sort(sortable, new Comparator<SixModelObject>() {
-            public int compare(SixModelObject a, SixModelObject b) {
-                Ops.invokeDirect(tc, comparator, SortCSD,
-                    new Object[] { a, b });
-                return (int)Ops.result_i(tc.curFrame);
-            }
-        });
-        for (int i = 0; i < elems; i++)
-            indices.bind_pos_boxed(tc, i, sortable[i]);
-        return indices;
-    }
-
     public static long p6stateinit(ThreadContext tc) {
         return tc.curFrame.stateInit ? 1 : 0;
     }

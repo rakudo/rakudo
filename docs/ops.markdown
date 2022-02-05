@@ -6,7 +6,6 @@
     - [p6bindattrinvres](#p6bindattrinvres)
     - [p6bindcaptosig](#p6bindcaptosig)
     - [p6bindsig](#p6bindsig)
-    - [p6bool](#p6bool)
     - [p6box_i](#p6box_i)
     - [p6box_n](#p6box_n)
     - [p6box_s](#p6box_s)
@@ -41,7 +40,6 @@
     - [p6setpre](#p6setpre)
     - [p6settypes](#p6settypes)
     - [p6sink](#p6sink)
-    - [p6sort](#p6sort)
     - [p6stateinit](#p6stateinit)
     - [p6staticouter](#p6staticouter)
     - [p6store](#p6store)
@@ -78,11 +76,6 @@ This desugars to:
 
 ## p6bindsig
 * p6bindsig()
-
-## p6bool
-* p6bool(Mu $value)
-
-Create a Raku Bool from $value.
 
 ## p6box_i
 * p6box_i(int $value)
@@ -235,9 +228,6 @@ Sets the "pre" flag on the current frame.
 
 ## p6sink
 * p6sink(Mu $past)
-
-## p6sort
-* p6sort(Mu @data, Mu &comparator)
 
 ## p6stateinit
 * p6stateinit()

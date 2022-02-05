@@ -90,7 +90,6 @@ $ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :side_effect
 
 $ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :side_effects);
 $ops.add_simple_op('p6init', $ops.OBJ, [], :side_effects, -> {"nqp.extraRuntime('Raku', {$ops.quote_string($*PERL6_RUNTIME)})"});
-$ops.add_simple_op('p6bool', $ops.OBJ, [$ops.BOOL], :side_effects);
 
 $ops.add_simple_op('p6typecheckrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ], :ctx, :await);
 

@@ -776,7 +776,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
             $with-name);
     }
     elsif nqp::istype_nd($callee, Routine) {
-        if nqp::can($callee, 'WRAPPERS') {
+        my $track_is-wrapped := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $track_callee, Routine, '$!is-wrapped');
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_is-wrapped);
+        if $callee.is-wrapped {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped', $capture);
         }
         elsif nqp::can($callee, 'CALL-ME') {
@@ -1147,16 +1150,19 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
         # just invoke if it's single dispatch.
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-n-args',
             $capture, 1, 2);
+        my $track_method := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
         my $method := nqp::captureposarg($delegate_capture, 0);
         my int $code-constant := nqp::dispatch('boot-syscall', 'dispatcher-is-arg-literal',
             $capture, 0);
         unless $code-constant {
             # Need at least a type guard on the callee, if it's not constant.
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
-                nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_method);
         }
         if nqp::istype($method, Routine) {
-            if nqp::can($method, 'WRAPPERS') {
+            my $track_is-wrapped := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track_method, Routine, '$!is-wrapped');
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_is-wrapped);
+            if $method.is-wrapped {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped',
                     $delegate_capture);
             }
@@ -1388,6 +1394,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-deferral',
                 my $track_method := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                     $track_chain, DeferralChain, '$!code');
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_method);
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_method);
+                my $track_is-wrapped := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track_method, Routine, '$!is-wrapped');
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_is-wrapped);
 
                 # Now perform the action needed based upon the kind of resumption
                 # we have.
@@ -1435,7 +1445,7 @@ sub method-deferral-step($chain-head, int $kind, $args) {
         my $delegate_capture := nqp::dispatch('boot-syscall',
             'dispatcher-insert-arg-literal-obj', $args, 0, $next_method);
         if nqp::istype($next_method, Routine) {
-            if nqp::can($next_method, 'WRAPPERS') {
+            if $next_method.is-wrapped {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped',
                     $delegate_capture);
             }

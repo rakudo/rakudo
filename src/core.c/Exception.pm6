@@ -3008,8 +3008,8 @@ my class X::Multi::NoMatch is Exception {
                     unless @cand == @un-rw-cand
                 )
             !! ( @cand
-                 ??  join "\n    ", 'none of these signatures match:', @cand
-                 !! "Routine does not have any candidates. Is only the proto defined?"
+                 ??  join "\n    ", 'none of these signatures matches:', @cand
+                 !! "Routine does not have any candidates.  Is only the proto defined?"
                )
         );
     }

@@ -102,7 +102,7 @@ my class Routine { # declared in BOOTSTRAP
                 nqp::bindattr($handle, WrapHandle, '$!dispatcher', $!dispatcher);
                 nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
                 nqp::bindattr($handle, WrapHandle, '$!routine', self);
-                $!is-wrapped := 1;
+                nqp::bindattr_i(self, Routine, '$!is-wrapped', 1);
                 $handle
             }
             method CALL-ME(|c) is raw {
@@ -113,7 +113,7 @@ my class Routine { # declared in BOOTSTRAP
             method update_wrapped_state {
                 nqp::bindattr_i(
                     nqp::decont(self), Routine, '$!is-wrapped',
-                    nqp::isgt_i(nqp::elems($!dispatcher.candidates), 1));
+                    nqp::isgt_i($!dispatcher.candidates.elems, 1));
             }
         }
 

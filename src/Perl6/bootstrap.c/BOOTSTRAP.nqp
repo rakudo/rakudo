@@ -3780,6 +3780,7 @@ BEGIN {
     Junction.HOW.add_parent(Junction, Mu);
     Junction.HOW.add_attribute(Junction, scalar_attr('$!eigenstates', Mu, Junction));
     Junction.HOW.add_attribute(Junction, scalar_attr('$!type', str, Junction));
+    Junction.HOW.add_attribute(Junction, Attribute.new(:name<$!WHICH>, :type(ValueObjAt), :package(Junction)));
     Junction.HOW.compose_repr(Junction);
 
     # class Bool is Int {

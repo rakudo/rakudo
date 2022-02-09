@@ -176,6 +176,22 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
+    multi method WHICH(Junction:D: --> ValueObjAt:D) {
+        nqp::if(
+            nqp::defined($!WHICH),
+            $!WHICH,
+            ($!WHICH := nqp::box_s(
+                nqp::concat(
+                    nqp::if(
+                        nqp::eqaddr(self.WHAT, Junction),
+                        'Junction|',
+                        nqp::concat(nqp::unbox_s(self.^name), '|')
+                    ),
+                    nqp::sha1(self.gist)
+                ),
+                ValueObjAt )));
+    }
+
     multi method ACCEPTS(Junction:U: Junction:D --> True) { }
     multi method ACCEPTS(Junction:D \SELF: Junction:D \topic) {
         topic.BOOLIFY-ACCEPTS(self)

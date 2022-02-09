@@ -1,45 +1,45 @@
 # all sub postcircumfix {} candidates here please
 
-proto sub postcircumfix:<{ }>(Mu $, $?, Mu $?, *%) is nodal {*}
+proto sub postcircumfix:<{ }>(Mu $, Mu $?, Mu $?, *%) is nodal {*}
 
 # %h<key>
-multi sub postcircumfix:<{ }>( \SELF, \key ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key ) is raw {
     SELF.AT-KEY(key);
 }
-multi sub postcircumfix:<{ }>(\SELF, \key, Mu \ASSIGN) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Mu \key, Mu \ASSIGN) is raw {
     SELF.ASSIGN-KEY(key, ASSIGN);
 }
-multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is raw) is raw {
+multi sub postcircumfix:<{ }>(\SELF, Mu \key, Mu :$BIND! is raw) is raw {
     SELF.BIND-KEY(key, $BIND);
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$delete! ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$delete! ) is raw {
     $delete ?? SELF.DELETE-KEY(key) !! SELF.AT-KEY(key)
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$delete!, *%other ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$delete!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'delete', $delete, %other )
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$exists! ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$exists! ) is raw {
     $exists ?? SELF.EXISTS-KEY(key) !! !SELF.EXISTS-KEY(key)
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$exists!, *%other ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$exists!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'exists', $exists, %other )
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$kv!, *%other ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$kv!, *%other ) is raw {
     $kv && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-KEY(key) ?? (key,SELF.AT-KEY(key)) !! ())
       !! SLICE_ONE_HASH( SELF, key, 'kv', $kv, %other );
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$p!, *%other ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$p!, *%other ) is raw {
     $p && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-KEY(key) ?? Pair.new(key,SELF.AT-KEY(key)) !! ())
       !! SLICE_ONE_HASH( SELF, key, 'p', $p, %other );
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$k!, *%other ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$k!, *%other ) is raw {
     $k && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-KEY(key) ?? key !! ())
       !! SLICE_ONE_HASH( SELF, key, 'k', $k, %other );
 }
-multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$v!, *%other ) is raw {
+multi sub postcircumfix:<{ }>( \SELF, Mu \key, Bool() :$v!, *%other ) is raw {
     $v && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
       ?? (SELF.EXISTS-KEY(key) ?? nqp::decont(SELF.AT-KEY(key)) !! ())
       !! SLICE_ONE_HASH( SELF, key, 'v', $v, %other );

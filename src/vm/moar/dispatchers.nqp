@@ -1395,9 +1395,11 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-deferral',
                     $track_chain, DeferralChain, '$!code');
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_method);
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_method);
-                my $track_is-wrapped := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                    $track_method, Routine, '$!is-wrapped');
-                nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_is-wrapped);
+                if nqp::istype($chain.code, Routine) {
+                    my $track_is-wrapped := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                        $track_method, Routine, '$!is-wrapped');
+                    nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_is-wrapped);
+                }
 
                 # Now perform the action needed based upon the kind of resumption
                 # we have.

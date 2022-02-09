@@ -5524,8 +5524,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     # Ensure both types are composed before complaining,
                     # or we give spurious errors on stubbed things or
                     # things we're in the middle of compiling.
-                    my $got_comp := try $value.HOW.is_composed($value);
-                    my $exp_comp := try $expected.HOW.is_composed($expected);
+                    my $got_comp := nqp::can($value.HOW, "is_composed") && $value.HOW.is_composed($value);
+                    my $exp_comp := nqp::can($expected.HOW, "is_composed") && $expected.HOW.is_composed($expected);
                     if $got_comp && $exp_comp {
                         $<default_value>[0].typed_sorry(
                             'X::Parameter::Default::TypeCheck',
@@ -10637,8 +10637,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*W.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
         }
         my $type := $*W.find_symbol(@name);
-        my $is_generic := 0;
-        try { $is_generic := $type.HOW.archetypes.generic }
+        my $is_generic := nqp::can($type.HOW, "archetypes") && nqp::can($type.HOW.archetypes, "generic") && $type.HOW.archetypes.generic;
         my $past;
         if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
             $past := $*W.symbol_lookup(@name, $/);

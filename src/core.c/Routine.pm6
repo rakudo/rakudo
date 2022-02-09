@@ -77,16 +77,15 @@ my class Routine { # declared in BOOTSTRAP
 
     method soft(--> Nil) { }
 
+    method is-wrapped(--> False) { }
+
 #?if !moar
     method wrap(&wrapper) {
         my class WrapHandle {
             has $!dispatcher;
             has $!wrapper;
-            has $!routine;
             method restore() {
-                my $success = nqp::hllbool($!dispatcher.remove($!wrapper));
-                $!routine.update_wrapped_state;
-                $success;
+                nqp::hllbool($!dispatcher.remove($!wrapper));
             }
         }
         my role Wrapped {
@@ -101,8 +100,6 @@ my class Routine { # declared in BOOTSTRAP
                 my $handle := nqp::create(WrapHandle);
                 nqp::bindattr($handle, WrapHandle, '$!dispatcher', $!dispatcher);
                 nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
-                nqp::bindattr($handle, WrapHandle, '$!routine', self);
-                nqp::bindattr_i(self, Routine, '$!is-wrapped', 1);
                 $handle
             }
             method CALL-ME(|c) is raw {
@@ -110,11 +107,7 @@ my class Routine { # declared in BOOTSTRAP
             }
             method WRAPPERS() { IterationBuffer.new($!dispatcher.candidates) }
             method soft(--> True) { }
-            method update_wrapped_state {
-                nqp::bindattr_i(
-                    nqp::decont(self), Routine, '$!is-wrapped',
-                    nqp::isgt_i($!dispatcher.candidates.elems, 1));
-            }
+            method is-wrapped(--> Bool) { $!dispatcher.candidates > 1 }
         }
 
         # We can't wrap a hardened routine (that is, one that's been
@@ -148,7 +141,6 @@ my class Routine { # declared in BOOTSTRAP
                 ?? nqp::clone($!wrappers)
                 !! IterationBuffer.new;
             nqp::unshift($new-wrappers, &wrapper);
-            nqp::bindattr_i(nqp::decont(self), Routine, '$!is-wrapped', 1);
             $!wrappers := $new-wrappers;
         }
         method REMOVE-WRAPPER(&wrapper --> Bool) {
@@ -166,11 +158,9 @@ my class Routine { # declared in BOOTSTRAP
                 $i++;
             }
             $!wrappers := $new-wrappers if $found;
-            nqp::bindattr_i(
-                nqp::decont(self), Routine, '$!is-wrapped',
-                nqp::isgt_i(nqp::elems($!wrappers), 1));
             $found
         }
+        method is-wrapped(--> Bool) { nqp::elems($!wrappers) > 1 }
     }
     my class WrapHandle {
         has &!routine;

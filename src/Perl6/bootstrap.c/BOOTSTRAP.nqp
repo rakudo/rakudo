@@ -2442,7 +2442,6 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!flags>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!is-wrapped>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
 #?if !moar
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
@@ -2452,10 +2451,6 @@ BEGIN {
             my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
             nqp::hllboolfor(nqp::defined($disp_list), "Raku");
-        }));
-    Routine.HOW.add_method(Routine, 'is-wrapped', nqp::getstaticcode(sub ($self) {
-            my $dc_self   := nqp::decont($self);
-            nqp::hllboolfor(nqp::getattr($dc_self, Routine, '$!is-wrapped'), "Raku");
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);

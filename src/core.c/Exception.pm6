@@ -239,6 +239,7 @@ my class X::Method::NotFound is Exception {
             # $!invocant can be a KnowHOW which method `methods` returns a hash, not a list.
             my $invocant_methods :=
               Set.new: $!invocant.^methods(:local).map: { code-name($_) };
+            my \type = ::($.typename);
 
             my $found-types := SetHash.new;
             for $!invocant.^methods(:all) -> $method_candidate {
@@ -251,8 +252,8 @@ my class X::Method::NotFound is Exception {
                 if $.method eq $method_name {
                     $found-types.set($method_candidate.package.^name());
                 }
-                else {
-                    find_public_suggestion($.method, $method_name) if nqp::can(::($.typename), $method_name);
+                elsif nqp::not_i(nqp::istype(type, Failure)) && nqp::can(type, $method_name) {
+                    find_public_suggestion($.method, $method_name);
                 }
             }
             if $found-types.keys -> @types {

@@ -2783,23 +2783,6 @@ class Perl6::Optimizer {
             }
         }
 
-        # Warn for something like `my $a = 2.rand.Int; say "a = " ~ $a ?? "true" !! "false";`, which
-        # will just print 'true' because the entire expression `"a = " ~ $a` is being evaluated by the
-        # ternary instead of just the `$a` (the correct form is `"a = " ~ ($a ?? "true" !! "false"`)).
-        if $optype eq 'if' && $op.name eq '&infix:<??>' &&
-              nqp::istype($op[0], QAST::Op) && ($op[0].op eq 'call' || $op[0].op eq 'callstatic') &&
-              nqp::index($op[0].name, '&infix:') == 0 && $!symbols.is_from_core($op[0].name) &&
-              (nqp::istype($op[0][0], QAST::Want) || nqp::istype($op[0][1], QAST::Want)) {
-            # See if we can staticalize the infix to determine whether it's 'iffy' (produces a boolean value),
-            # which is valid in this construct, so we wouldn't want to warn.
-            try {
-                my $obj := $!symbols.find_lexical($op[0].name);
-                if nqp::can($obj, 'prec') && !$obj.prec<iffy> {
-                    $!problems.add_worry($op, "Potential dead code, the '?? !!' is gobbling up the result of the '" ~ $op[0].name ~ "'");
-                }
-            }
-        }
-
         # Visit the children.
         if ($visit_children_mode eq 'sm_chain'
             && nqp::defined(my $sm_op := $!smartmatch_opt.optimize_chain($op)))

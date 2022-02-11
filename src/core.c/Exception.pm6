@@ -253,7 +253,7 @@ my class X::Method::NotFound is Exception {
                     $found-types.set($method_candidate.package.^name());
                 }
                 elsif nqp::istype(type, Failure) {
-                    type.so; # defuse
+                    type.Bool; # defuse
                 }
                 elsif nqp::can(type, $method_name) {
                     find_public_suggestion($.method, $method_name);

@@ -3035,8 +3035,9 @@ class Perl6::Optimizer {
     }
 
     method optimize_p6typecheckrv($op) {
-        try {
-            my $rettype        := $!symbols.top_routine.returns;
+        my $tr := $!symbols.top_routine;
+        if nqp::can($tr, "returns") {
+            my $rettype        := $tr.returns;
             my int $rettype_ps := nqp::objprimspec($rettype);
             if $rettype =:= $!symbols.Mu {
                 return $op[0];
@@ -3309,8 +3310,7 @@ class Perl6::Optimizer {
             # The first is that we may be able to work out what to
             # call at compile time. Failing that, we can at least inline
             # the proto.
-            my $dispatcher;
-            try { if $obj.is_dispatcher { $dispatcher := 1 } }
+            my $dispatcher := nqp::can($obj, "is_dispatcher") && $obj.is_dispatcher;
             if $dispatcher && $obj.onlystar {
                 # Try to do compile-time multi-dispatch. Need to consider
                 # both the proto and the multi candidates.

@@ -2889,7 +2889,7 @@ class Perl6::World is HLL::World {
         # single frame and copy all the visible things into it.
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
         my %seen;
-        my $mu        := try { self.find_single_symbol('Mu', :setting-only) };
+        my $mu        := self.find_single_symbol('Mu', :setting-only);
         my $cur_block := $past;
         while $cur_block {
             my %symbols := $cur_block.symtable();
@@ -4334,18 +4334,15 @@ class Perl6::World is HLL::World {
                 nqp::scwbenable();
                 if nqp::isconcrete($!resolved) {
                     my int $added_update := 0;
-                    try {
-                        my $W := $*W;
-                        my $cur_handle := $W.handle;
-                        if $cur_handle ne $!resolver {
-                            $W.add_object_if_no_sc($code);
-                            $W.add_fixup_task(:deserialize_ast(QAST::Op.new(
-                                :op('callmethod'), :name('update'),
-                                QAST::WVal.new( :value(self) ),
-                                QAST::WVal.new( :value($code) )
-                            )));
-                            $added_update := 1;
-                        }
+                    my $W := $*W;
+                    if nqp::can($W, "handle") && $W.handle ne $!resolver {
+                        $W.add_object_if_no_sc($code);
+                        $W.add_fixup_task(:deserialize_ast(QAST::Op.new(
+                            :op('callmethod'), :name('update'),
+                            QAST::WVal.new( :value(self) ),
+                            QAST::WVal.new( :value($code) )
+                        )));
+                        $added_update := 1;
                     }
                     unless $added_update {
                         my $do := nqp::getattr($code, $!Code, '$!do');

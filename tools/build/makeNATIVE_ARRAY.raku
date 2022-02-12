@@ -378,8 +378,10 @@ while @lines {
         }
         multi method splice(#type#array:D: Int:D \offset --> #type#array:D) {
             nqp::if(
-              nqp::islt_i((my uint $offset = offset),0)
-                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
+              nqp::islt_i(offset,0) || nqp::isgt_i(
+                (my uint $offset = offset),
+                (my uint $elems = nqp::elems(self))
+              ),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),

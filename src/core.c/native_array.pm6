@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-02-12T19:53:46+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-13T00:23:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -384,8 +384,10 @@ my class array does Iterable does Positional {
         }
         multi method splice(strarray:D: Int:D \offset --> strarray:D) {
             nqp::if(
-              nqp::islt_i((my uint $offset = offset),0)
-                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
+              nqp::islt_i(offset,0) || nqp::isgt_i(
+                (my uint $offset = offset),
+                (my uint $elems = nqp::elems(self))
+              ),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),
@@ -702,7 +704,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-02-12T19:53:46+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-13T00:23:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -988,8 +990,10 @@ my class array does Iterable does Positional {
         }
         multi method splice(intarray:D: Int:D \offset --> intarray:D) {
             nqp::if(
-              nqp::islt_i((my uint $offset = offset),0)
-                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
+              nqp::islt_i(offset,0) || nqp::isgt_i(
+                (my uint $offset = offset),
+                (my uint $elems = nqp::elems(self))
+              ),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),
@@ -1348,7 +1352,7 @@ my class array does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2022-02-12T19:53:46+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-13T00:23:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1634,8 +1638,10 @@ my class array does Iterable does Positional {
         }
         multi method splice(uintarray:D: Int:D \offset --> uintarray:D) {
             nqp::if(
-              nqp::islt_i((my uint $offset = offset),0)
-                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
+              nqp::islt_i(offset,0) || nqp::isgt_i(
+                (my uint $offset = offset),
+                (my uint $elems = nqp::elems(self))
+              ),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),
@@ -1994,7 +2000,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-02-12T19:53:46+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-13T00:23:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -2280,8 +2286,10 @@ my class array does Iterable does Positional {
         }
         multi method splice(numarray:D: Int:D \offset --> numarray:D) {
             nqp::if(
-              nqp::islt_i((my uint $offset = offset),0)
-                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
+              nqp::islt_i(offset,0) || nqp::isgt_i(
+                (my uint $offset = offset),
+                (my uint $elems = nqp::elems(self))
+              ),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),

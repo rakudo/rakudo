@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2021-12-05T16:43:05+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T13:24:30+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -709,7 +709,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2021-12-05T16:43:05+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T13:24:30+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1362,7 +1362,7 @@ my class array does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2021-12-05T16:43:05+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T13:24:30+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1434,63 +1434,60 @@ my class array does Iterable does Positional {
                     !! $needle
         }
 
-#        multi method unique(uintarray:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::unless(
-#                nqp::existskey($seen,nqp::atpos_u(self,$i)),
-#                nqp::stmts(
-#                  nqp::bindkey($seen,nqp::atpos_u(self,$i),1),
-#                  nqp::push_i($result,nqp::atpos_u(self,$i))
-#                )
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
-#        multi method repeated(uintarray:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::if(
-#                nqp::existskey($seen,nqp::atpos_u(self,$i)),
-#                nqp::push_i($result,nqp::atpos_u(self,$i)),
-#                nqp::bindkey($seen,nqp::atpos_u(self,$i),1)
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
-#        multi method squish(uintarray:D: --> Seq:D) {
-#            if nqp::elems(self) -> int $elems {
-#                my $result  := nqp::create(self);
-#                my uint $last = nqp::push_i($result,nqp::atpos_u(self,0));
-#                my int $i;
-#
-#                nqp::while(
-#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#                  nqp::if(
-#                    nqp::isne_i(nqp::atpos_u(self,$i),$last),
-#                    nqp::push_i($result,$last = nqp::atpos_u(self,$i))
-#                  )
-#                );
-#                $result.Seq
-#            }
-#            else {
-#                self.Seq
-#            }
-#        }
+        multi method unique(uintarray:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::existskey($seen,nqp::atpos_u(self,$i)),
+                nqp::bindkey($seen,nqp::push_i($result,nqp::atpos_u(self,$i)),1)
+              )
+            );
+
+            $result
+        }
+
+        multi method repeated(uintarray:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,(my uint $key = nqp::atpos_u(self,$i))),
+                nqp::push_i($result,$key),
+                nqp::bindkey($seen,$key,1)
+              )
+            );
+
+            $result
+        }
+
+        multi method squish(uintarray:D:) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(array[self.of]);
+                my uint $last = nqp::push_i($result,nqp::atpos_u(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_i(nqp::atpos_u(self,$i),$last),
+                    nqp::push_i($result,$last = nqp::atpos_u(self,$i))
+                  )
+                );
+                $result
+            }
+            else {
+                self
+            }
+        }
 
         multi method AT-POS(uintarray:D: int $idx --> uint) is raw {
             nqp::islt_i($idx,0)
@@ -2018,7 +2015,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2021-12-05T16:43:05+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T13:24:30+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {

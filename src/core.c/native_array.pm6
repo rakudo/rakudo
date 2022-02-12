@@ -4852,9 +4852,14 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2022-02-03T19:03:07+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-12T20:29:54+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+multi sub postcircumfix:<[ ]>(
+  array::strarray:D \SELF, uint $pos
+) is raw {
+    nqp::atposref_s(nqp::decont(SELF),$pos)
+}
 multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Int:D $pos
 ) is raw {
@@ -4864,12 +4869,16 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::strarray:D \SELF, uint $pos, Str:D \assignee
+) is raw {
+    nqp::bindpos_s(nqp::decont(SELF),$pos,assignee)
+}
+multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Int:D $pos, Str:D \assignee
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
       !! nqp::bindpos_s(nqp::decont(SELF),$pos,assignee);
-    assignee
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -5047,7 +5056,7 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
-    my $values  := Rakudo::Iterator.TailWith(values.iterator,'');
+    my $values  := Rakudo::Iterator.TailWith(values.iterator,"");
     my str @result;
 
     nqp::until(
@@ -5104,9 +5113,14 @@ multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2022-02-03T19:03:07+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-12T20:29:54+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+multi sub postcircumfix:<[ ]>(
+  array::numarray:D \SELF, uint $pos
+) is raw {
+    nqp::atposref_n(nqp::decont(SELF),$pos)
+}
 multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Int:D $pos
 ) is raw {
@@ -5116,12 +5130,16 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::numarray:D \SELF, uint $pos, Num:D \assignee
+) is raw {
+    nqp::bindpos_n(nqp::decont(SELF),$pos,assignee)
+}
+multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Int:D $pos, Num:D \assignee
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
       !! nqp::bindpos_n(nqp::decont(SELF),$pos,assignee);
-    assignee
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -5356,9 +5374,14 @@ multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2022-02-03T19:03:07+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-12T20:29:54+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+multi sub postcircumfix:<[ ]>(
+  array::intarray:D \SELF, uint $pos
+) is raw {
+    nqp::atposref_i(nqp::decont(SELF),$pos)
+}
 multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Int:D $pos
 ) is raw {
@@ -5368,12 +5391,16 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::intarray:D \SELF, uint $pos, Int:D \assignee
+) is raw {
+    nqp::bindpos_i(nqp::decont(SELF),$pos,assignee)
+}
+multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Int:D $pos, Int:D \assignee
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
       !! nqp::bindpos_i(nqp::decont(SELF),$pos,assignee);
-    assignee
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -5608,9 +5635,14 @@ multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of postcircumfix candidates of uintarray -------------------------------
-#- Generated on 2022-02-03T19:03:07+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-12T20:29:54+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, uint $pos
+) is raw {
+    nqp::atposref_u(nqp::decont(SELF),$pos)
+}
 multi sub postcircumfix:<[ ]>(
   array::uintarray:D \SELF, Int:D $pos
 ) is raw {
@@ -5620,12 +5652,16 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, uint $pos, UInt:D \assignee
+) is raw {
+    nqp::bindpos_u(nqp::decont(SELF),$pos,assignee)
+}
+multi sub postcircumfix:<[ ]>(
   array::uintarray:D \SELF, Int:D $pos, UInt:D \assignee
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
       !! nqp::bindpos_u(nqp::decont(SELF),$pos,assignee);
-    assignee
 }
 
 multi sub postcircumfix:<[ ]>(

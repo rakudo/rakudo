@@ -288,6 +288,11 @@ my class Date does Dateish {
             nqp::bindattr_i($new,Date,'$!daycount',0);
             $new
         }
+        elsif nqp::eqat($unit,'hour',0)
+          || nqp::eqat($unit,'minute',0)
+          || nqp::eqat($unit,'second',0) {
+            die "Cannot use '$amount $unit' as a unit on a {self.^name}"
+        }
     }
 
     # Helper method to move a number of days within a month

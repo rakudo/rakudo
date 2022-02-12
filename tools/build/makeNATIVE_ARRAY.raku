@@ -26,6 +26,7 @@ my %type_mapper = (
            :push_postfix<i>,
            :type<int>,
            :Type<Int>,
+           :value<int>,
            :Value<Int>,
          ).Map,
   num => ( :iseq_postfix<n>,
@@ -35,6 +36,7 @@ my %type_mapper = (
            :push_postfix<n>,
            :type<num>,
            :Type<Num>,
+           :value<num>,
            :Value<Num>,
          ).Map,
   str => ( :iseq_postfix<s>,
@@ -44,6 +46,7 @@ my %type_mapper = (
            :push_postfix<s>,
            :type<str>,
            :Type<Str>,
+           :value<str>,
            :Value<Str>,
          ).Map,
   uint => ( :iseq_postfix<i>,
@@ -53,6 +56,7 @@ my %type_mapper = (
             :push_postfix<i>,
             :type<uint>,
             :Type<UInt>,
+            :value<int>,
             :Value<Int>,
           ).Map,
 );
@@ -92,9 +96,9 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
         multi method grep(#type#array:D: #Value#:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
-            my int $i     = -1;
-            my int $elems = nqp::elems(self);
-            my $result   := nqp::create(IterationBuffer);
+            my uint $i     = -1;
+            my uint $elems = nqp::elems(self);
+            my $result    := nqp::create(IterationBuffer);
 
             if $k {
                 nqp::while(
@@ -127,7 +131,6 @@ while @lines {
                 );
             }
             else {
-                my int $found;
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
@@ -140,8 +143,8 @@ while @lines {
         }
 
         multi method first(#type#array:D: #Value#:D $needle, :$k, :$kv, :$p, :$v) {
-            my int $i     = -1;
-            my int $elems = nqp::elems(self);
+            my uint $i     = -1;
+            my uint $elems = nqp::elems(self);
 
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
@@ -149,7 +152,7 @@ while @lines {
               nqp::null()
             );
 
-            nqp::iseq_i($i,nqp::elems(self))
+            nqp::iseq_i($i,$elems)
               ?? Nil
               !! $k
                 ?? $i
@@ -161,8 +164,8 @@ while @lines {
         }
 
         multi method unique(#type#array:D:) {
-            my int $i     = -1;
-            my int $elems = nqp::elems(self);
+            my uint $i     = -1;
+            my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
 
@@ -178,8 +181,8 @@ while @lines {
         }
 
         multi method repeated(#type#array:D:) {
-            my int $i     = -1;
-            my int $elems = nqp::elems(self);
+            my uint $i     = -1;
+            my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
 
@@ -199,7 +202,7 @@ while @lines {
             if nqp::elems(self) -> int $elems {
                 my $result  := nqp::create(array[self.of]);
                 my #type# $last = nqp::push_#push_postfix#($result,nqp::atpos_#postfix#(self,0));
-                my int $i;
+                my uint $i;
 
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),

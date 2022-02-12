@@ -96,7 +96,7 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
         multi method grep(#type#array:D: #Value#:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result    := nqp::create(IterationBuffer);
 
@@ -143,7 +143,7 @@ while @lines {
         }
 
         multi method first(#type#array:D: #Value#:D $needle, :$k, :$kv, :$p, :$v) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
 
             nqp::while(
@@ -164,7 +164,7 @@ while @lines {
         }
 
         multi method unique(#type#array:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -181,7 +181,7 @@ while @lines {
         }
 
         multi method repeated(#type#array:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -218,10 +218,8 @@ while @lines {
             }
         }
 
-        multi method AT-POS(#type#array:D: int $idx --> #type#) is raw {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::atposref_#postfix#(self,$idx)
+        multi method AT-POS(#type#array:D: uint $idx --> #type#) is raw {
+            nqp::atposref_#postfix#(self,$idx)
         }
         multi method AT-POS(#type#array:D: Int:D $idx --> #type#) is raw {
             $idx < 0
@@ -229,20 +227,16 @@ while @lines {
               !! nqp::atposref_#postfix#(self,$idx)
         }
 
-        multi method ASSIGN-POS(#type#array:D: int $idx, #type# $value --> #type#) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: uint $idx, #type# $value --> #type#) {
+            nqp::bindpos_#postfix#(self, $idx, $value)
         }
         multi method ASSIGN-POS(#type#array:D: Int:D $idx, #type# $value --> #type#) {
             $idx < 0
               ?? INDEX_OUT_OF_RANGE($idx)
               !! nqp::bindpos_#postfix#(self, $idx, $value)
         }
-        multi method ASSIGN-POS(#type#array:D: int $idx, #Value#:D $value --> #type#) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_#postfix#(self, $idx, $value)
+        multi method ASSIGN-POS(#type#array:D: uint $idx, #Value#:D $value --> #type#) {
+            nqp::bindpos_#postfix#(self, $idx, $value)
         }
         multi method ASSIGN-POS(#type#array:D: Int:D $idx, #Value#:D $value --> #type#) {
             $idx < 0

@@ -98,11 +98,11 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-02-12T14:20:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T18:14:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result    := nqp::create(IterationBuffer);
 
@@ -149,7 +149,7 @@ my class array does Iterable does Positional {
         }
 
         multi method first(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
 
             nqp::while(
@@ -170,7 +170,7 @@ my class array does Iterable does Positional {
         }
 
         multi method unique(strarray:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -187,7 +187,7 @@ my class array does Iterable does Positional {
         }
 
         multi method repeated(strarray:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -224,10 +224,8 @@ my class array does Iterable does Positional {
             }
         }
 
-        multi method AT-POS(strarray:D: int $idx --> str) is raw {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::atposref_s(self,$idx)
+        multi method AT-POS(strarray:D: uint $idx --> str) is raw {
+            nqp::atposref_s(self,$idx)
         }
         multi method AT-POS(strarray:D: Int:D $idx --> str) is raw {
             $idx < 0
@@ -235,20 +233,16 @@ my class array does Iterable does Positional {
               !! nqp::atposref_s(self,$idx)
         }
 
-        multi method ASSIGN-POS(strarray:D: int $idx, str $value --> str) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_s(self, $idx, $value)
+        multi method ASSIGN-POS(strarray:D: uint $idx, str $value --> str) {
+            nqp::bindpos_s(self, $idx, $value)
         }
         multi method ASSIGN-POS(strarray:D: Int:D $idx, str $value --> str) {
             $idx < 0
               ?? INDEX_OUT_OF_RANGE($idx)
               !! nqp::bindpos_s(self, $idx, $value)
         }
-        multi method ASSIGN-POS(strarray:D: int $idx, Str:D $value --> str) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_s(self, $idx, $value)
+        multi method ASSIGN-POS(strarray:D: uint $idx, Str:D $value --> str) {
+            nqp::bindpos_s(self, $idx, $value)
         }
         multi method ASSIGN-POS(strarray:D: Int:D $idx, Str:D $value --> str) {
             $idx < 0
@@ -708,11 +702,11 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-02-12T14:20:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T18:14:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result    := nqp::create(IterationBuffer);
 
@@ -759,7 +753,7 @@ my class array does Iterable does Positional {
         }
 
         multi method first(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
 
             nqp::while(
@@ -780,7 +774,7 @@ my class array does Iterable does Positional {
         }
 
         multi method unique(intarray:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -797,7 +791,7 @@ my class array does Iterable does Positional {
         }
 
         multi method repeated(intarray:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -834,10 +828,8 @@ my class array does Iterable does Positional {
             }
         }
 
-        multi method AT-POS(intarray:D: int $idx --> int) is raw {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::atposref_i(self,$idx)
+        multi method AT-POS(intarray:D: uint $idx --> int) is raw {
+            nqp::atposref_i(self,$idx)
         }
         multi method AT-POS(intarray:D: Int:D $idx --> int) is raw {
             $idx < 0
@@ -845,20 +837,16 @@ my class array does Iterable does Positional {
               !! nqp::atposref_i(self,$idx)
         }
 
-        multi method ASSIGN-POS(intarray:D: int $idx, int $value --> int) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_i(self, $idx, $value)
+        multi method ASSIGN-POS(intarray:D: uint $idx, int $value --> int) {
+            nqp::bindpos_i(self, $idx, $value)
         }
         multi method ASSIGN-POS(intarray:D: Int:D $idx, int $value --> int) {
             $idx < 0
               ?? INDEX_OUT_OF_RANGE($idx)
               !! nqp::bindpos_i(self, $idx, $value)
         }
-        multi method ASSIGN-POS(intarray:D: int $idx, Int:D $value --> int) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_i(self, $idx, $value)
+        multi method ASSIGN-POS(intarray:D: uint $idx, Int:D $value --> int) {
+            nqp::bindpos_i(self, $idx, $value)
         }
         multi method ASSIGN-POS(intarray:D: Int:D $idx, Int:D $value --> int) {
             $idx < 0
@@ -1360,11 +1348,11 @@ my class array does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2022-02-12T14:20:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T18:14:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result    := nqp::create(IterationBuffer);
 
@@ -1411,7 +1399,7 @@ my class array does Iterable does Positional {
         }
 
         multi method first(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
 
             nqp::while(
@@ -1432,7 +1420,7 @@ my class array does Iterable does Positional {
         }
 
         multi method unique(uintarray:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -1449,7 +1437,7 @@ my class array does Iterable does Positional {
         }
 
         multi method repeated(uintarray:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -1486,10 +1474,8 @@ my class array does Iterable does Positional {
             }
         }
 
-        multi method AT-POS(uintarray:D: int $idx --> uint) is raw {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::atposref_u(self,$idx)
+        multi method AT-POS(uintarray:D: uint $idx --> uint) is raw {
+            nqp::atposref_u(self,$idx)
         }
         multi method AT-POS(uintarray:D: Int:D $idx --> uint) is raw {
             $idx < 0
@@ -1497,20 +1483,16 @@ my class array does Iterable does Positional {
               !! nqp::atposref_u(self,$idx)
         }
 
-        multi method ASSIGN-POS(uintarray:D: int $idx, uint $value --> uint) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_u(self, $idx, $value)
+        multi method ASSIGN-POS(uintarray:D: uint $idx, uint $value --> uint) {
+            nqp::bindpos_u(self, $idx, $value)
         }
         multi method ASSIGN-POS(uintarray:D: Int:D $idx, uint $value --> uint) {
             $idx < 0
               ?? INDEX_OUT_OF_RANGE($idx)
               !! nqp::bindpos_u(self, $idx, $value)
         }
-        multi method ASSIGN-POS(uintarray:D: int $idx, Int:D $value --> uint) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_u(self, $idx, $value)
+        multi method ASSIGN-POS(uintarray:D: uint $idx, Int:D $value --> uint) {
+            nqp::bindpos_u(self, $idx, $value)
         }
         multi method ASSIGN-POS(uintarray:D: Int:D $idx, Int:D $value --> uint) {
             $idx < 0
@@ -2012,11 +1994,11 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-02-12T14:20:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T18:14:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result    := nqp::create(IterationBuffer);
 
@@ -2063,7 +2045,7 @@ my class array does Iterable does Positional {
         }
 
         multi method first(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
 
             nqp::while(
@@ -2084,7 +2066,7 @@ my class array does Iterable does Positional {
         }
 
         multi method unique(numarray:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -2101,7 +2083,7 @@ my class array does Iterable does Positional {
         }
 
         multi method repeated(numarray:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
@@ -2138,10 +2120,8 @@ my class array does Iterable does Positional {
             }
         }
 
-        multi method AT-POS(numarray:D: int $idx --> num) is raw {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::atposref_n(self,$idx)
+        multi method AT-POS(numarray:D: uint $idx --> num) is raw {
+            nqp::atposref_n(self,$idx)
         }
         multi method AT-POS(numarray:D: Int:D $idx --> num) is raw {
             $idx < 0
@@ -2149,20 +2129,16 @@ my class array does Iterable does Positional {
               !! nqp::atposref_n(self,$idx)
         }
 
-        multi method ASSIGN-POS(numarray:D: int $idx, num $value --> num) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_n(self, $idx, $value)
+        multi method ASSIGN-POS(numarray:D: uint $idx, num $value --> num) {
+            nqp::bindpos_n(self, $idx, $value)
         }
         multi method ASSIGN-POS(numarray:D: Int:D $idx, num $value --> num) {
             $idx < 0
               ?? INDEX_OUT_OF_RANGE($idx)
               !! nqp::bindpos_n(self, $idx, $value)
         }
-        multi method ASSIGN-POS(numarray:D: int $idx, Num:D $value --> num) {
-            nqp::islt_i($idx,0)
-              ?? INDEX_OUT_OF_RANGE($idx)
-              !! nqp::bindpos_n(self, $idx, $value)
+        multi method ASSIGN-POS(numarray:D: uint $idx, Num:D $value --> num) {
+            nqp::bindpos_n(self, $idx, $value)
         }
         multi method ASSIGN-POS(numarray:D: Int:D $idx, Num:D $value --> num) {
             $idx < 0

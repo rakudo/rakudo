@@ -851,7 +851,7 @@ my role X::Comp is Exception {
     }
 }
 
-my class X::Comp::Group is Exception {
+class X::Comp::Group is Exception {
     has $.panic;
     has @.sorrows;
     has @.worries;

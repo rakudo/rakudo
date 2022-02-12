@@ -272,8 +272,8 @@ while @lines {
             )
         }
         multi method STORE(#type#array:D: List:D \values --> #type#array:D) {
-            my int $elems = values.elems;    # reifies
-            my \reified := nqp::getattr(values,List,'$!reified');
+            my uint $elems = values.elems;    # reifies
+            my \reified   := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -290,7 +290,7 @@ while @lines {
             self
         }
         multi method STORE(#type#array:D: @values --> #type#array:D) {
-            my int $elems = @values.elems;   # reifies
+            my uint $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -378,8 +378,8 @@ while @lines {
         }
         multi method splice(#type#array:D: Int:D \offset --> #type#array:D) {
             nqp::if(
-              nqp::islt_i((my int $offset = offset),0)
-                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              nqp::islt_i((my uint $offset = offset),0)
+                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),
@@ -446,7 +446,7 @@ while @lines {
             return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
-            my int $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);  # XXX execution error on next line if uint
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -471,9 +471,9 @@ while @lines {
 
         multi method min(#type#array:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my #type# $min = nqp::atpos_#postfix#(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -489,9 +489,9 @@ while @lines {
         }
         multi method max(#type#array:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my #type# $max = nqp::atpos_#postfix#(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -507,9 +507,9 @@ while @lines {
         }
         multi method minmax(#type#array:D: --> Range:D) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my #type# $min =
                   my #type# $max = nqp::atpos_#postfix#(self,0)),
                 nqp::while(
@@ -537,9 +537,9 @@ while @lines {
 
         method reverse(#type#array:D: --> #type#array:D) is nodal {
             nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my int $last  = nqp::sub_i($elems,1)),
-              (my int $i     = -1),
+              (my uint $elems = nqp::elems(self)),
+              (my int $last   = nqp::sub_i($elems,1)),
+              (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -550,23 +550,23 @@ while @lines {
             )
         }
         method rotate(#type#array:D: Int(Cool) $rotate = 1 --> #type#array:D) is nodal {
-            nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my $to := nqp::clone(self)),
-              (my int $i = -1),
-              (my int $j =
-                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
-              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_#postfix#(
-                  $to,
-                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
-                  nqp::atpos_#postfix#(self,$i)
-                ),
+            my int $elems = nqp::elems(self);
+            my $to := nqp::clone(self);
+            my int $i = -1;
+            my int $j = nqp::mod_i(
+              nqp::sub_i(nqp::sub_i($elems,1),$rotate),
+              $elems
+            );
+            $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_#postfix#(
+                $to,
+                ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                nqp::atpos_#postfix#(self,$i)
               ),
-              $to
-            )
+            );
+            $to
         }
         multi method sort(#type#array:D: --> #type#array:D) {
             Rakudo::Sorting.MERGESORT-#type#(nqp::clone(self))
@@ -578,7 +578,7 @@ while @lines {
                 nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
-                    (my int $elems = nqp::elems(self)),
+                    (my uint $elems = nqp::elems(self)),
                     nqp::elems(other)
                   ),
                   nqp::stmts(
@@ -608,11 +608,11 @@ while @lines {
 
         my class GrabN does Iterator {
             has $!array;
-            has int $!count;
+            has uint $!count;
 
             method !SET-SELF(\array,\count) {
                 nqp::stmts(
-                  (my int $elems = nqp::elems(array)),
+                  (my uint $elems = nqp::elems(array)),
                   ($!array := array),
                   nqp::if(
                     count == Inf,
@@ -651,7 +651,7 @@ while @lines {
             nqp::stmts(
               (my $value := nqp::atpos_#postfix#(
                 self,
-                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+                (my uint $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
               )),
               nqp::splice(self,$empty_#postfix#,$pos,1),
               $value

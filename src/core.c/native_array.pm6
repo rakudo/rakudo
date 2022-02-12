@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-02-12T18:14:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T19:53:46+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -278,8 +278,8 @@ my class array does Iterable does Positional {
             )
         }
         multi method STORE(strarray:D: List:D \values --> strarray:D) {
-            my int $elems = values.elems;    # reifies
-            my \reified := nqp::getattr(values,List,'$!reified');
+            my uint $elems = values.elems;    # reifies
+            my \reified   := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -296,7 +296,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method STORE(strarray:D: @values --> strarray:D) {
-            my int $elems = @values.elems;   # reifies
+            my uint $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -384,8 +384,8 @@ my class array does Iterable does Positional {
         }
         multi method splice(strarray:D: Int:D \offset --> strarray:D) {
             nqp::if(
-              nqp::islt_i((my int $offset = offset),0)
-                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              nqp::islt_i((my uint $offset = offset),0)
+                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),
@@ -452,7 +452,7 @@ my class array does Iterable does Positional {
             return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
-            my int $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);  # XXX execution error on next line if uint
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -477,9 +477,9 @@ my class array does Iterable does Positional {
 
         multi method min(strarray:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my str $min = nqp::atpos_s(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -495,9 +495,9 @@ my class array does Iterable does Positional {
         }
         multi method max(strarray:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my str $max = nqp::atpos_s(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -513,9 +513,9 @@ my class array does Iterable does Positional {
         }
         multi method minmax(strarray:D: --> Range:D) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my str $min =
                   my str $max = nqp::atpos_s(self,0)),
                 nqp::while(
@@ -543,9 +543,9 @@ my class array does Iterable does Positional {
 
         method reverse(strarray:D: --> strarray:D) is nodal {
             nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my int $last  = nqp::sub_i($elems,1)),
-              (my int $i     = -1),
+              (my uint $elems = nqp::elems(self)),
+              (my int $last   = nqp::sub_i($elems,1)),
+              (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -556,23 +556,23 @@ my class array does Iterable does Positional {
             )
         }
         method rotate(strarray:D: Int(Cool) $rotate = 1 --> strarray:D) is nodal {
-            nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my $to := nqp::clone(self)),
-              (my int $i = -1),
-              (my int $j =
-                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
-              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_s(
-                  $to,
-                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
-                  nqp::atpos_s(self,$i)
-                ),
+            my int $elems = nqp::elems(self);
+            my $to := nqp::clone(self);
+            my int $i = -1;
+            my int $j = nqp::mod_i(
+              nqp::sub_i(nqp::sub_i($elems,1),$rotate),
+              $elems
+            );
+            $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_s(
+                $to,
+                ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                nqp::atpos_s(self,$i)
               ),
-              $to
-            )
+            );
+            $to
         }
         multi method sort(strarray:D: --> strarray:D) {
             Rakudo::Sorting.MERGESORT-str(nqp::clone(self))
@@ -584,7 +584,7 @@ my class array does Iterable does Positional {
                 nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
-                    (my int $elems = nqp::elems(self)),
+                    (my uint $elems = nqp::elems(self)),
                     nqp::elems(other)
                   ),
                   nqp::stmts(
@@ -614,11 +614,11 @@ my class array does Iterable does Positional {
 
         my class GrabN does Iterator {
             has $!array;
-            has int $!count;
+            has uint $!count;
 
             method !SET-SELF(\array,\count) {
                 nqp::stmts(
-                  (my int $elems = nqp::elems(array)),
+                  (my uint $elems = nqp::elems(array)),
                   ($!array := array),
                   nqp::if(
                     count == Inf,
@@ -657,7 +657,7 @@ my class array does Iterable does Positional {
             nqp::stmts(
               (my $value := nqp::atpos_s(
                 self,
-                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+                (my uint $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
               )),
               nqp::splice(self,$empty_s,$pos,1),
               $value
@@ -702,7 +702,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-02-12T18:14:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T19:53:46+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -882,8 +882,8 @@ my class array does Iterable does Positional {
             )
         }
         multi method STORE(intarray:D: List:D \values --> intarray:D) {
-            my int $elems = values.elems;    # reifies
-            my \reified := nqp::getattr(values,List,'$!reified');
+            my uint $elems = values.elems;    # reifies
+            my \reified   := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -900,7 +900,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method STORE(intarray:D: @values --> intarray:D) {
-            my int $elems = @values.elems;   # reifies
+            my uint $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -988,8 +988,8 @@ my class array does Iterable does Positional {
         }
         multi method splice(intarray:D: Int:D \offset --> intarray:D) {
             nqp::if(
-              nqp::islt_i((my int $offset = offset),0)
-                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              nqp::islt_i((my uint $offset = offset),0)
+                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),
@@ -1056,7 +1056,7 @@ my class array does Iterable does Positional {
             return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
-            my int $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);  # XXX execution error on next line if uint
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -1081,9 +1081,9 @@ my class array does Iterable does Positional {
 
         multi method min(intarray:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my int $min = nqp::atpos_i(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -1099,9 +1099,9 @@ my class array does Iterable does Positional {
         }
         multi method max(intarray:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my int $max = nqp::atpos_i(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -1117,9 +1117,9 @@ my class array does Iterable does Positional {
         }
         multi method minmax(intarray:D: --> Range:D) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my int $min =
                   my int $max = nqp::atpos_i(self,0)),
                 nqp::while(
@@ -1147,9 +1147,9 @@ my class array does Iterable does Positional {
 
         method reverse(intarray:D: --> intarray:D) is nodal {
             nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my int $last  = nqp::sub_i($elems,1)),
-              (my int $i     = -1),
+              (my uint $elems = nqp::elems(self)),
+              (my int $last   = nqp::sub_i($elems,1)),
+              (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -1160,23 +1160,23 @@ my class array does Iterable does Positional {
             )
         }
         method rotate(intarray:D: Int(Cool) $rotate = 1 --> intarray:D) is nodal {
-            nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my $to := nqp::clone(self)),
-              (my int $i = -1),
-              (my int $j =
-                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
-              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_i(
-                  $to,
-                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
-                  nqp::atpos_i(self,$i)
-                ),
+            my int $elems = nqp::elems(self);
+            my $to := nqp::clone(self);
+            my int $i = -1;
+            my int $j = nqp::mod_i(
+              nqp::sub_i(nqp::sub_i($elems,1),$rotate),
+              $elems
+            );
+            $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_i(
+                $to,
+                ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                nqp::atpos_i(self,$i)
               ),
-              $to
-            )
+            );
+            $to
         }
         multi method sort(intarray:D: --> intarray:D) {
             Rakudo::Sorting.MERGESORT-int(nqp::clone(self))
@@ -1188,7 +1188,7 @@ my class array does Iterable does Positional {
                 nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
-                    (my int $elems = nqp::elems(self)),
+                    (my uint $elems = nqp::elems(self)),
                     nqp::elems(other)
                   ),
                   nqp::stmts(
@@ -1218,11 +1218,11 @@ my class array does Iterable does Positional {
 
         my class GrabN does Iterator {
             has $!array;
-            has int $!count;
+            has uint $!count;
 
             method !SET-SELF(\array,\count) {
                 nqp::stmts(
-                  (my int $elems = nqp::elems(array)),
+                  (my uint $elems = nqp::elems(array)),
                   ($!array := array),
                   nqp::if(
                     count == Inf,
@@ -1261,7 +1261,7 @@ my class array does Iterable does Positional {
             nqp::stmts(
               (my $value := nqp::atpos_i(
                 self,
-                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+                (my uint $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
               )),
               nqp::splice(self,$empty_i,$pos,1),
               $value
@@ -1348,7 +1348,7 @@ my class array does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2022-02-12T18:14:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T19:53:46+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1528,8 +1528,8 @@ my class array does Iterable does Positional {
             )
         }
         multi method STORE(uintarray:D: List:D \values --> uintarray:D) {
-            my int $elems = values.elems;    # reifies
-            my \reified := nqp::getattr(values,List,'$!reified');
+            my uint $elems = values.elems;    # reifies
+            my \reified   := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -1546,7 +1546,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method STORE(uintarray:D: @values --> uintarray:D) {
-            my int $elems = @values.elems;   # reifies
+            my uint $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -1634,8 +1634,8 @@ my class array does Iterable does Positional {
         }
         multi method splice(uintarray:D: Int:D \offset --> uintarray:D) {
             nqp::if(
-              nqp::islt_i((my int $offset = offset),0)
-                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              nqp::islt_i((my uint $offset = offset),0)
+                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),
@@ -1702,7 +1702,7 @@ my class array does Iterable does Positional {
             return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
-            my int $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);  # XXX execution error on next line if uint
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -1727,9 +1727,9 @@ my class array does Iterable does Positional {
 
         multi method min(uintarray:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my uint $min = nqp::atpos_u(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -1745,9 +1745,9 @@ my class array does Iterable does Positional {
         }
         multi method max(uintarray:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my uint $max = nqp::atpos_u(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -1763,9 +1763,9 @@ my class array does Iterable does Positional {
         }
         multi method minmax(uintarray:D: --> Range:D) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my uint $min =
                   my uint $max = nqp::atpos_u(self,0)),
                 nqp::while(
@@ -1793,9 +1793,9 @@ my class array does Iterable does Positional {
 
         method reverse(uintarray:D: --> uintarray:D) is nodal {
             nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my int $last  = nqp::sub_i($elems,1)),
-              (my int $i     = -1),
+              (my uint $elems = nqp::elems(self)),
+              (my int $last   = nqp::sub_i($elems,1)),
+              (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -1806,23 +1806,23 @@ my class array does Iterable does Positional {
             )
         }
         method rotate(uintarray:D: Int(Cool) $rotate = 1 --> uintarray:D) is nodal {
-            nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my $to := nqp::clone(self)),
-              (my int $i = -1),
-              (my int $j =
-                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
-              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_u(
-                  $to,
-                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
-                  nqp::atpos_u(self,$i)
-                ),
+            my int $elems = nqp::elems(self);
+            my $to := nqp::clone(self);
+            my int $i = -1;
+            my int $j = nqp::mod_i(
+              nqp::sub_i(nqp::sub_i($elems,1),$rotate),
+              $elems
+            );
+            $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_u(
+                $to,
+                ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                nqp::atpos_u(self,$i)
               ),
-              $to
-            )
+            );
+            $to
         }
         multi method sort(uintarray:D: --> uintarray:D) {
             Rakudo::Sorting.MERGESORT-uint(nqp::clone(self))
@@ -1834,7 +1834,7 @@ my class array does Iterable does Positional {
                 nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
-                    (my int $elems = nqp::elems(self)),
+                    (my uint $elems = nqp::elems(self)),
                     nqp::elems(other)
                   ),
                   nqp::stmts(
@@ -1864,11 +1864,11 @@ my class array does Iterable does Positional {
 
         my class GrabN does Iterator {
             has $!array;
-            has int $!count;
+            has uint $!count;
 
             method !SET-SELF(\array,\count) {
                 nqp::stmts(
-                  (my int $elems = nqp::elems(array)),
+                  (my uint $elems = nqp::elems(array)),
                   ($!array := array),
                   nqp::if(
                     count == Inf,
@@ -1907,7 +1907,7 @@ my class array does Iterable does Positional {
             nqp::stmts(
               (my $value := nqp::atpos_u(
                 self,
-                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+                (my uint $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
               )),
               nqp::splice(self,$empty_u,$pos,1),
               $value
@@ -1994,7 +1994,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-02-12T18:14:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-12T19:53:46+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -2174,8 +2174,8 @@ my class array does Iterable does Positional {
             )
         }
         multi method STORE(numarray:D: List:D \values --> numarray:D) {
-            my int $elems = values.elems;    # reifies
-            my \reified := nqp::getattr(values,List,'$!reified');
+            my uint $elems = values.elems;    # reifies
+            my \reified   := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -2192,7 +2192,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method STORE(numarray:D: @values --> numarray:D) {
-            my int $elems = @values.elems;   # reifies
+            my uint $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -2280,8 +2280,8 @@ my class array does Iterable does Positional {
         }
         multi method splice(numarray:D: Int:D \offset --> numarray:D) {
             nqp::if(
-              nqp::islt_i((my int $offset = offset),0)
-                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              nqp::islt_i((my uint $offset = offset),0)
+                || nqp::isgt_i($offset,(my uint $elems = nqp::elems(self))),
               Failure.new(X::OutOfRange.new(
                 :what('Offset argument to splice'),
                 :got($offset),
@@ -2348,7 +2348,7 @@ my class array does Iterable does Positional {
             return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
-            my int $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);  # XXX execution error on next line if uint
             my int $o = nqp::istype($offset,Callable)
               ?? $offset($elems)
               !! nqp::istype($offset,Whatever)
@@ -2373,9 +2373,9 @@ my class array does Iterable does Positional {
 
         multi method min(numarray:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my num $min = nqp::atpos_n(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -2391,9 +2391,9 @@ my class array does Iterable does Positional {
         }
         multi method max(numarray:D:) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my num $max = nqp::atpos_n(self,0)),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -2409,9 +2409,9 @@ my class array does Iterable does Positional {
         }
         multi method minmax(numarray:D: --> Range:D) {
             nqp::if(
-              (my int $elems = nqp::elems(self)),
+              (my uint $elems = nqp::elems(self)),
               nqp::stmts(
-                (my int $i),
+                (my uint $i),
                 (my num $min =
                   my num $max = nqp::atpos_n(self,0)),
                 nqp::while(
@@ -2439,9 +2439,9 @@ my class array does Iterable does Positional {
 
         method reverse(numarray:D: --> numarray:D) is nodal {
             nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my int $last  = nqp::sub_i($elems,1)),
-              (my int $i     = -1),
+              (my uint $elems = nqp::elems(self)),
+              (my int $last   = nqp::sub_i($elems,1)),
+              (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
                 nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
@@ -2452,23 +2452,23 @@ my class array does Iterable does Positional {
             )
         }
         method rotate(numarray:D: Int(Cool) $rotate = 1 --> numarray:D) is nodal {
-            nqp::stmts(
-              (my int $elems = nqp::elems(self)),
-              (my $to := nqp::clone(self)),
-              (my int $i = -1),
-              (my int $j =
-                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
-              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_n(
-                  $to,
-                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
-                  nqp::atpos_n(self,$i)
-                ),
+            my int $elems = nqp::elems(self);
+            my $to := nqp::clone(self);
+            my int $i = -1;
+            my int $j = nqp::mod_i(
+              nqp::sub_i(nqp::sub_i($elems,1),$rotate),
+              $elems
+            );
+            $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_n(
+                $to,
+                ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                nqp::atpos_n(self,$i)
               ),
-              $to
-            )
+            );
+            $to
         }
         multi method sort(numarray:D: --> numarray:D) {
             Rakudo::Sorting.MERGESORT-num(nqp::clone(self))
@@ -2480,7 +2480,7 @@ my class array does Iterable does Positional {
                 nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
-                    (my int $elems = nqp::elems(self)),
+                    (my uint $elems = nqp::elems(self)),
                     nqp::elems(other)
                   ),
                   nqp::stmts(
@@ -2510,11 +2510,11 @@ my class array does Iterable does Positional {
 
         my class GrabN does Iterator {
             has $!array;
-            has int $!count;
+            has uint $!count;
 
             method !SET-SELF(\array,\count) {
                 nqp::stmts(
-                  (my int $elems = nqp::elems(array)),
+                  (my uint $elems = nqp::elems(array)),
                   ($!array := array),
                   nqp::if(
                     count == Inf,
@@ -2553,7 +2553,7 @@ my class array does Iterable does Positional {
             nqp::stmts(
               (my $value := nqp::atpos_n(
                 self,
-                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+                (my uint $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
               )),
               nqp::splice(self,$empty_n,$pos,1),
               $value

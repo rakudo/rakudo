@@ -109,8 +109,9 @@ my class Cool { # declared in BOOTSTRAP
     proto method flip(*%) {*}
     multi method flip(Cool:D:) { self.Str.flip }
 
-    proto method chomp(*%) {*}
+    proto method chomp($?, *%) {*}
     multi method chomp(Cool:D:) { self.Str.chomp }
+    multi method chomp(Cool:D: Cool:D $needle) { self.Str.chomp($needle.Str) }
 
     proto method chop(|)                {*}
     multi method chop(Cool:D:)          { self.Str.chop }

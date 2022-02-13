@@ -8,6 +8,7 @@ my class X::Import::MissingSymbols   { ... }
 my class X::Redeclaration { ... }
 my class X::Inheritance::SelfInherit { ... }
 my class X::Comp::Trait::Unknown { ... }
+my class X::Comp::Trait::Invalid { ... }
 my class X::Experimental { ... }
 my class Pod::Block::Declarator { ... }
 
@@ -109,7 +110,7 @@ multi sub trait_mod:<is>(Attribute:D $attr, |c ) {
       line       => $?LINE,
       type       => 'is',
       subtype    => c.hash.keys[0],
-      declaring  => 'n attribute',
+      declaring  => 'an attribute',
       highexpect => <rw readonly box_target leading_docs trailing_docs>,
     ).throw;
 }
@@ -149,27 +150,31 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$trailing_docs!) {
     Rakudo::Internals.SET_TRAILING_DOCS($attr, $trailing_docs);
 }
 
-multi sub trait_mod:<is>(Routine:D $r, |c ) {
+
+multi sub trait_mod:<is>(Routine:D $r, |c) {
     my $subtype = c.hash.keys[0];
-    $subtype eq 'cached'
-      ?? X::Experimental.new(
-        feature => "the 'is cached' trait",
-        use     => "cached",
-        ).throw
-      !! X::Comp::Trait::Unknown.new(
-        file       => $?FILE,
-        line       => $?LINE,
-        type       => 'is',
-        subtype    => $subtype,
-        declaring  => ' ' ~ $r.^name.split('+').head.lc,
-        highexpect => (
-            'rw raw hidden-from-backtrace hidden-from-USAGE pure default',
-            'implementation-detail DEPRECATED inlinable nodal prec equiv',
-            'tighter looser assoc leading_docs trailing_docs',
-            ('',"or did you forget to 'use NativeCall'?"
-              if $subtype eq 'native').Slip
-          ),
-        ).throw;
+
+    when $subtype eq 'cached' { # Return early for cached
+        die X::Experimental.new: :feature<the 'is cached' trait> :use<cached> }
+
+    my @traits =
+      &trait_mod:<is>.candidates.grep({.signature.params.[0].type ~~ Routine});
+
+    sub trait-name(&t) { &t.signature.params[1].named_names[0] }
+
+    my %info = :file($?FILE), :line($?LINE), :type<is>, :$subtype,
+               :declaring($r.^name.split('+').head.lc);
+
+    with @traits.first({.&trait-name eq $subtype}) -> &t {
+        my $reason = do { try t($r, |c);
+                          $!.message }
+        die X::Comp::Trait::Invalid.new: |%info, :$reason, :name($r.gist) }
+    else {
+        my @expected =
+          @traits.map(&trait-name).unique.Str.naive-word-wrapper.lines,
+          ('',"or did you forget to 'use NativeCall'?" if $subtype eq 'native');
+
+        die X::Comp::Trait::Unknown.new: |%info, :highexpect(@expected) }
 }
 multi sub trait_mod:<is>(Routine:D $r, :rw($)!) {
     $r.set_rw();
@@ -256,7 +261,7 @@ multi sub trait_mod:<is>(Parameter:D $param, |c ) {
       line       => $?LINE,
       type       => 'is',
       subtype    => c.hash.keys[0],
-      declaring  => ' parameter',
+      declaring  => 'a parameter',
       highexpect => <rw readonly copy required raw leading_docs trailing_docs>,
     ).throw;
 }
@@ -546,7 +551,7 @@ multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
       line       => $?LINE,
       type       => 'will',
       subtype    => c.hash.keys[0],
-      declaring  => 'n attribute',
+      declaring  => 'an attribute',
       highexpect => <lazy>,
     ).throw;
 }

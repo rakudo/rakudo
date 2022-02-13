@@ -1,5 +1,5 @@
 my role Array::Shaped3 does Array::Shaped {
-    multi method AT-POS(::?CLASS:D: int $one, int $two, int $three) is raw {
+    multi method AT-POS(::?CLASS:D: uint $one, uint $two, uint $three) is raw {
         nqp::ifnull(
           nqp::atpos3d(nqp::getattr(self,List,'$!reified'),$one,$two,$three),
           AT-POS-CONTAINER(self, $one, $two, $three)
@@ -13,7 +13,7 @@ my role Array::Shaped3 does Array::Shaped {
           AT-POS-CONTAINER(self, $one, $two, $three)
         )
     }
-    sub AT-POS-CONTAINER(\array, int $one, int $two, int $three) is raw {
+    sub AT-POS-CONTAINER(\array, uint $one, uint $two, uint $three) is raw {
         nqp::p6scalarfromdesc(
           ContainerDescriptor::BindArrayPos3D.new(
             nqp::getattr(array,Array,'$!descriptor'),
@@ -24,7 +24,7 @@ my role Array::Shaped3 does Array::Shaped {
     }
 
     multi method ASSIGN-POS(::?CLASS:D:
-      int $one, int $two, int $three, \value
+      uint $one, uint $two, uint $three, \value
     ) {
         my \reified := nqp::getattr(self,List,'$!reified');
         nqp::ifnull(
@@ -45,7 +45,7 @@ my role Array::Shaped3 does Array::Shaped {
     }
 
     multi method EXISTS-POS(::?CLASS:D:
-      int $one, int $two, int $three
+      uint $one, uint $two, uint $three
     --> Bool:D) {
         my \reified := nqp::getattr(self,List,'$!reified');
         my \dims := nqp::dimensions(reified);
@@ -74,7 +74,7 @@ my role Array::Shaped3 does Array::Shaped {
     }
 
     multi method DELETE-POS(::?CLASS:D:
-      int $one, int $two, int $three
+      uint $one, uint $two, uint $three
     ) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
         nqp::if(
@@ -100,7 +100,9 @@ my role Array::Shaped3 does Array::Shaped {
         )
     }
 
-    multi method BIND-POS(::?CLASS:D: int $one, int $two, int $three, \value) {
+    multi method BIND-POS(::?CLASS:D:
+        uint $one, uint $two, uint $three, \value
+    ) {
         nqp::bindpos3d(
           nqp::getattr(self,List,'$!reified'),$one,$two,$three,value
         )

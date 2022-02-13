@@ -100,7 +100,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
           nqp::iseq_i(nqp::elems(self),nqp::elems($other))
             && nqp::stmts(
                  (my int $i = -1),
-                 (my int $elems = nqp::elems(self)),
+                 (my uint $elems = nqp::elems(self)),
                  nqp::while(
                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
                      && nqp::iseq_i(
@@ -114,17 +114,15 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         )
     }
 
-    multi method EXISTS-POS(Uni:D: int $pos) {
-        nqp::hllbool(
-          nqp::islt_i($pos,nqp::elems(self)) && nqp::isge_i($pos,0)
-        );
+    multi method EXISTS-POS(Uni:D: uint $pos) {
+        nqp::hllbool(nqp::islt_i($pos,nqp::elems(self)))
     }
     multi method EXISTS-POS(Uni:D: Int:D $pos) {
         $pos < nqp::elems(self) && $pos >= 0;
     }
 
-    multi method AT-POS(Uni:D: int $pos) {
-        nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
+    multi method AT-POS(Uni:D: uint $pos) {
+        nqp::isge_i($pos,nqp::elems(self))
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),
                :got($pos),
@@ -183,9 +181,9 @@ my class NFKC is Uni {
 }
 
 multi sub infix:<cmp>(Uni:D $a, Uni:D $b) {
-    my int $elems-a = nqp::elems($a);
-    my int $elems-b = nqp::elems($b);
-    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+    my uint $elems-a = nqp::elems($a);
+    my uint $elems-b = nqp::elems($b);
+    my uint $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
 
     my int $i = -1;
     nqp::until(

@@ -1,5 +1,5 @@
 my role Array::Shaped1 does Array::Shaped {
-    multi method AT-POS(::?CLASS:D: int $one) is raw {
+    multi method AT-POS(::?CLASS:D: uint $one) is raw {
         nqp::ifnull(
           nqp::atpos(
             nqp::getattr(self,List,'$!reified'),
@@ -15,7 +15,7 @@ my role Array::Shaped1 does Array::Shaped {
           AT-POS-CONTAINER(self, $one)
         )
     }
-    sub AT-POS-CONTAINER(\array, int $one) is raw {
+    sub AT-POS-CONTAINER(\array, uint $one) is raw {
         nqp::p6scalarfromdesc(
           ContainerDescriptor::BindArrayPos.new(
            nqp::getattr(array,Array,'$!descriptor'),
@@ -25,7 +25,7 @@ my role Array::Shaped1 does Array::Shaped {
         )
     }
 
-    multi method ASSIGN-POS(::?CLASS:D: int $one, \value) {
+    multi method ASSIGN-POS(::?CLASS:D: uint $one, \value) {
         my \reified := nqp::getattr(self,List,'$!reified');
         nqp::ifnull(
           nqp::atpos(reified,$one),
@@ -46,7 +46,7 @@ my role Array::Shaped1 does Array::Shaped {
         ) = value
     }
 
-    multi method EXISTS-POS(::?CLASS:D: int $one --> Bool:D) {
+    multi method EXISTS-POS(::?CLASS:D: uint $one --> Bool:D) {
         my \reified := nqp::getattr(self,List,'$!reified');
         nqp::hllbool(
           nqp::islt_i($one,nqp::elems(reified))
@@ -61,7 +61,7 @@ my role Array::Shaped1 does Array::Shaped {
         )
     }
 
-    multi method DELETE-POS(::?CLASS:D: int $one) is raw {
+    multi method DELETE-POS(::?CLASS:D: uint $one) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
         nqp::if(
           nqp::isnull(my \value := nqp::atpos(reified,$one)),
@@ -84,7 +84,7 @@ my role Array::Shaped1 does Array::Shaped {
         )
     }
 
-    multi method BIND-POS(::?CLASS:D: int $one, \value) {
+    multi method BIND-POS(::?CLASS:D: uint $one, \value) {
         nqp::bindpos(nqp::getattr(self,List,'$!reified'),$one,value)
     }
     multi method BIND-POS(::?CLASS:D: Int:D $one, \value) {
@@ -109,7 +109,7 @@ my role Array::Shaped1 does Array::Shaped {
 
         nqp::if(
           nqp::iseq_i(
-            (my int $elems = nqp::elems(to)),nqp::elems(from)),
+            (my uint $elems = nqp::elems(to)),nqp::elems(from)),
           nqp::stmts(
             (my \desc := nqp::getattr(self,Array,'$!descriptor')),
             (my int $i = -1),
@@ -136,7 +136,7 @@ my role Array::Shaped1 does Array::Shaped {
         my \desc := nqp::getattr(self,Array,'$!descriptor');
         my \iter := in.iterator;
         my int $i = -1;
-        my int $elems = nqp::elems(list);
+        my uint $elems = nqp::elems(list);
         nqp::until(
           nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
             || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
@@ -201,7 +201,7 @@ my role Array::Shaped1 does Array::Shaped {
             nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!reified))
         }
         method push-all(\target --> IterationEnd) {
-            my int $elems = nqp::elems($!reified);
+            my uint $elems = nqp::elems($!reified);
             my int $i = $!pos;
 
             nqp::while(

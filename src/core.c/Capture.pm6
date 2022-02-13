@@ -42,14 +42,9 @@ my class Capture { # declared in BOOTSTRAP
         nqp::box_s(nqp::join('',$WHICH),ValueObjAt)
     }
 
-    multi method AT-KEY(Capture:D: Str:D \key) is raw {
+    multi method AT-KEY(Capture:D: Str() $key) is raw {
         nqp::isconcrete(%!hash)
-          ?? nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil)
-          !! Nil
-    }
-    multi method AT-KEY(Capture:D: \key) is raw {
-        nqp::isconcrete(%!hash)
-          ?? nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil)
+          ?? nqp::ifnull(nqp::atkey(%!hash,$key), Nil)
           !! Nil
     }
 
@@ -59,53 +54,48 @@ my class Capture { # declared in BOOTSTRAP
         )
     }
 
-    multi method AT-POS(Capture:D: Int:D $pos) is raw {
-        nqp::islt_i($pos,0)
-          ?? OUT_OF_RANGE($pos)
-          !! nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
+    multi method AT-POS(Capture:D: uint $pos) is raw {
+        nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
     }
-    multi method AT-POS(Capture:D: $pos) is raw {
+    multi method AT-POS(Capture:D: Int() $pos) is raw {
         nqp::islt_i($pos,0)
           ?? OUT_OF_RANGE($pos)
           !! nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
     }
 
     method hash(Capture:D:) {
-        (nqp::defined(%!hash) && nqp::elems(%!hash))
+        (nqp::isconcrete(%!hash) && nqp::elems(%!hash))
           ?? nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',%!hash)
           !! nqp::create(Map)
     }
 
-    multi method EXISTS-KEY(Capture:D: Str:D \key) {
-        nqp::isconcrete(%!hash)
-          ?? nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key)))
-          !! False
-    }
-    multi method EXISTS-KEY(Capture:D: \key) {
-        nqp::isconcrete(%!hash)
-          ?? nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str)))
-          !! False
+    multi method EXISTS-KEY(Capture:D: Str() $key) {
+        nqp::hllbool(
+          nqp::isconcrete(%!hash) && nqp::existskey(%!hash, $key)
+        )
     }
 
-    multi method EXISTS-POS(Capture:D: Int:D \pos) {
-        nqp::isconcrete(@!list)
-          ?? nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos)))
-          !! False
+    multi method EXISTS-POS(Capture:D: uint $pos) {
+        nqp::hllbool(
+          nqp::isconcrete(@!list) && nqp::existspos(@!list, $pos)
+        )
     }
-    multi method EXISTS-POS(Capture:D: \pos) {
-        nqp::isconcrete(@!list)
-          ?? nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos.Int)))
-          !! False
+    multi method EXISTS-POS(Capture:D: Int() $pos) {
+        nqp::islt_i($pos,0)
+          ?? OUT_OF_RANGE($pos)
+          !! nqp::hllbool(
+               nqp::isconcrete(@!list) && nqp::existspos(@!list, $pos)
+             )
     }
 
     method list(Capture:D:) {
-        nqp::defined(@!list) && nqp::elems(@!list)
+        nqp::isconcrete(@!list) && nqp::elems(@!list)
           ?? nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!list)
           !! nqp::create(List)
     }
 
     method elems(Capture:D:) {
-        nqp::isnull(@!list) ?? 0 !! nqp::p6box_i(nqp::elems(@!list))
+        nqp::isconcrete(@!list) && nqp::elems(@!list)
     }
 
     multi method Str(Capture:D:) {
@@ -193,7 +183,8 @@ my class Capture { # declared in BOOTSTRAP
 
     multi method Bool(Capture:D:) {
         nqp::hllbool(
-          nqp::elems(@!list) || nqp::elems(%!hash)
+          (nqp::isconcrete(@!list) && nqp::elems(@!list))
+            || (nqp::isconcrete(@!list) && nqp::elems(%!hash))
         )
     }
 

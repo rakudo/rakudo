@@ -3787,20 +3787,20 @@ class Perl6::Optimizer {
         $op.op('stmts');
         $op.push(QAST::Stmts.new(
 
-# my int $it := $start - $step
+# my uint $it := $start - $step
           QAST::Op.new( :op<bind>,
             QAST::Var.new(
-              :name($it_var), :scope<local>, :decl<var>, :returns(int)
+              :name($it_var), :scope<local>, :decl<var>, :returns(uint)
             ),
             nqp::istype($start, QAST::IVal)
                 ?? QAST::IVal.new( :value($start.value - $step) )
                 !! QAST::Op.new( :op<sub_i>, $start, QAST::IVal.new( :value($step)))
           ),
 
-# my int $last := $end
+# my uint $last := $end
           QAST::Op.new( :op<bind>,
             QAST::Var.new(
-              :name($last_var), :scope<local>, :decl<var>, :returns(int)
+              :name($last_var), :scope<local>, :decl<var>, :returns(uint)
             ),
             $end
           ),
@@ -3820,19 +3820,19 @@ class Perl6::Optimizer {
             QAST::Op.new(
               op => $step < 0 ?? "isge_i" !! "isle_i",
               QAST::Op.new( :op<bind>,
-                QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
+                QAST::Var.new(:name($it_var), :scope<local>, :returns(uint)),
                 QAST::Op.new( :op<add_i>,
-                  QAST::Var.new(:name($it_var),:scope<local>,:returns(int)),
+                  QAST::Var.new(:name($it_var),:scope<local>,:returns(uint)),
                   QAST::IVal.new( :value($step) )
                 )
               ),
-              QAST::Var.new(:name($last_var), :scope<local>, :returns(int))
+              QAST::Var.new(:name($last_var), :scope<local>, :returns(uint))
             ),
 
 #   nqp::call($callee, $it)
             QAST::Op.new( :op<call>,
               QAST::Var.new(:name($callee_var), :scope<local> ),
-              QAST::Var.new(:name($it_var), :scope<local>, :returns(int))
+              QAST::Var.new(:name($it_var), :scope<local>, :returns(uint))
             )
           ),
 

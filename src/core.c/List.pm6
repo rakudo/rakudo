@@ -475,9 +475,17 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
+    multi method AT-POS(List:D: uint $pos) is raw {
+        nqp::isconcrete($!reified)
+          ?? nqp::ifnull(
+               nqp::atpos($!reified,$pos),
+               self!AT_POS_SLOW($pos)
+             )
+          !! self!AT_POS_SLOW($pos)
+    }
     multi method AT-POS(List:D: Int:D $pos) is raw {
         nqp::isge_i($pos,0) && nqp::isconcrete($!reified)
-          ?? nqp::ifnull(
+          ?? nqp::ifnull(  # should just redispatch to uint when that inlines
                nqp::atpos($!reified,$pos),
                self!AT_POS_SLOW($pos)
              )
@@ -506,20 +514,36 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method ASSIGN-POS(List:D: Int:D $pos, \what) is raw {
-        nqp::iscont(self.AT-POS($pos))
-          ?? (nqp::atpos($!reified,$pos) = what)
+        nqp::iscont(my $target := self.AT-POS($pos))
+          ?? ($target = what)
           !! X::Assignment::RO.new(value => self).throw
     }
 
-    method BIND-POS(List:D: Int:D \pos, \what) {
+    method BIND-POS(List:D: Int:D $, \what) {
         X::Bind.new.throw
     }
 
+    multi method EXISTS-POS(List:D: uint $pos --> Bool:D) {
+        nqp::hllbool(
+          nqp::if(
+            nqp::isconcrete($!reified)
+              && nqp::islt_i($pos,nqp::elems($!reified)),
+            nqp::existspos($!reified,$pos),
+            nqp::if(
+              nqp::isconcrete($!todo),
+              nqp::stmts(
+                $!todo.reify-at-least(nqp::add_i($pos,1)),
+                nqp::existspos($!reified,$pos)
+              )
+            )
+          )
+        )
+    }
     multi method EXISTS-POS(List:D: Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::if(
             nqp::isge_i($pos,0),
-            nqp::if(
+            nqp::if(  # should just refer to uint candidate when that inlines
               nqp::isconcrete($!reified)
                 && nqp::islt_i($pos,nqp::elems($!reified)),
               nqp::existspos($!reified,$pos),

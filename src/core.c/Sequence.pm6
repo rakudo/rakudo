@@ -43,29 +43,21 @@ my role Sequence does PositionalBindFailover {
     multi method List(::?CLASS:D:)  { self.list.List }
     multi method Slip(::?CLASS:D:)  { self.list.Slip }
 
-    multi method Str(::?CLASS:D:) {
-        self.cache.Str
-    }
-
-    multi method Stringy(::?CLASS:D:) {
-        self.cache.Stringy
-    }
-
+    multi method Str(::?CLASS:D:) { self.cache.Str }
+    multi method Stringy(::?CLASS:D:) { self.cache.Stringy }
     method Numeric(::?CLASS:D:) { self.cache.elems }
 
+    multi method AT-POS(::?CLASS:D: uint $idx) is raw {
+        self.cache.AT-POS($idx)
+    }
     multi method AT-POS(::?CLASS:D: Int:D $idx) is raw {
         self.cache.AT-POS($idx)
     }
 
-    multi method AT-POS(::?CLASS:D: int $idx) is raw {
-        self.cache.AT-POS($idx)
-    }
-
-    multi method EXISTS-POS(::?CLASS:D: Int:D $idx) {
+    multi method EXISTS-POS(::?CLASS:D: uint $idx) {
         self.cache.EXISTS-POS($idx)
     }
-
-    multi method EXISTS-POS(::?CLASS:D: int $idx) {
+    multi method EXISTS-POS(::?CLASS:D: Int:D $idx) {
         self.cache.EXISTS-POS($idx)
     }
 

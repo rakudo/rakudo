@@ -110,12 +110,12 @@ my class Range is Cool does Iterable does Positional {
           ValueObjAt
         )
     }
-    multi method EXISTS-POS(Range:D: int \pos) {
-        0 <= pos < self.elems;
-    }
 
-    multi method EXISTS-POS(Range:D: Int \pos) {
-        0 <= pos < self.elems;
+    multi method EXISTS-POS(Range:D: uint $pos) {
+        $pos < self.elems;
+    }
+    multi method EXISTS-POS(Range:D: Int:D $pos) {
+        0 <= $pos < self.elems;
     }
 
     method elems {
@@ -337,20 +337,22 @@ my class Range is Cool does Iterable does Positional {
         }
     }
     method reverse(Range:D:) { Seq.new(self!reverse-iterator) }
-    method first (|c) {
-        if c<end> {
-            my \res := self.reverse.first(|c, :!end);
-            if c<k> and nqp::istype(res, Numeric) {
+    method first($test) {
+        if %_<end> {
+            my \res := self.reverse.first($test, |%_, :!end);
+            if %_<k> and nqp::istype(res, Numeric) {
                 self.elems - res - 1
             }
-            elsif c<p> and nqp::istype(res, Pair) {
+            elsif %_<p> and nqp::istype(res, Pair) {
                 Pair.new(self.elems - res.key - 1, res.value)
             }
             else {
                 res
             }
         }
-        else { nextsame };
+        else {
+            nextsame
+        }
     }
 
     method bounds() { ($!min, $!max) }
@@ -473,25 +475,22 @@ my class Range is Cool does Iterable does Positional {
 
     method ASSIGN-POS(Range:D: |) { X::Assignment::RO.new(value => self).throw }
 
-    multi method AT-POS(Range:D: int \pos) {
+    multi method AT-POS(Range:D: uint $pos) {
         $!is-int
-            ?? self.EXISTS-POS(pos)
-                ?? $!min + $!excludes-min + pos
-                !! pos < 0
-                    ?? Failure.new(X::OutOfRange.new(
-                        :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>
-                    )) !! Nil
-            !! self.list.AT-POS(pos);
+            ?? self.EXISTS-POS($pos)
+                ?? $!min + $!excludes-min + $pos
+                !! Nil
+            !! self.list.AT-POS($pos);
     }
-    multi method AT-POS(Range:D: Int:D \pos) {
+    multi method AT-POS(Range:D: Int:D $pos) {
         $!is-int
-            ?? self.EXISTS-POS(pos)
-                ?? $!min + $!excludes-min + pos
-                !! pos < 0
+            ?? self.EXISTS-POS($pos)
+                ?? $!min + $!excludes-min + $pos
+                !! $pos < 0
                     ?? Failure.new(X::OutOfRange.new(
-                        :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>
+                        :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>
                     )) !! Nil
-            !! self.list.AT-POS(nqp::unbox_i(pos));
+            !! self.list.AT-POS($pos)
     }
 
     multi method raku(Range:D:) {

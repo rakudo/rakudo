@@ -135,15 +135,17 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
           !! Nil
     }
 
-    multi method sort(::?CLASS:D: --> Seq:D) {
+    multi method sort(::?CLASS:D: Bool :$safe --> Seq:D) {
+        # With :safe we don't sort directly over the keys but stringify them appropriately first. This is necessary
+        # whenever a key could happen to be a Junction, in which case MERGESORT-REIFIED-LIST-AS would throw due to
+        # autothreading.
         Seq.new(
           Rakudo::Iterator.ReifiedList(
             Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
               self.IterationBuffer.List,
-              *.key
-            )
-          )
-        )
+              ($safe
+                ?? { ($_ ~~ Junction ?? .gist !! .Stringy) with .key }
+                !! *.key))))
     }
 
     my class Keys does Rakudo::Iterator::Mappy {
@@ -261,6 +263,15 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
                       !! "(my $TValue-perl %\{$TKey-perl\})"
                  )
         })
+    }
+
+    multi method gist(::?CLASS:D:) {
+        self.gistseen: self.^name, {
+            '{'
+              ~ self.sort(:safe).head(100).map(*.gist).join(', ')
+              ~ (', ...' if self.elems > 100)
+              ~ '}'
+        }
     }
 
     # gotta force capture keys to strings or binder fails

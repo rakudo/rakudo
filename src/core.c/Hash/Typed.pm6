@@ -23,7 +23,7 @@ my role Hash::Typed[::TValue] does Associative[TValue] {
           (existing = assignval)
         )
     }
-    method BIND-KEY(\key, TValue \value) is raw {
+    method BIND-KEY(Mu \key, TValue \value) is raw {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
           key.Str,

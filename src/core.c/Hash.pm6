@@ -274,7 +274,7 @@ my class Hash { # declared in BOOTSTRAP
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
         unless $value =:= IterationEnd {
-            my $tested := test($value);
+            my Mu $tested := test($value);
 
             # multi-level classify
             if nqp::istype($tested, Iterable) {
@@ -336,7 +336,7 @@ my class Hash { # declared in BOOTSTRAP
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
         unless $value =:= IterationEnd {
-            my $tested := test($value);
+            my Mu $tested := test($value);
 
             # multi-level categorize
             if nqp::istype($tested[0],Iterable) {
@@ -369,8 +369,10 @@ my class Hash { # declared in BOOTSTRAP
             # simple categorize
             else {
                 loop {
-                    self{$_}.push(&as ?? as($value) !! $value)
-                        for @$tested;
+                    my $tested-iter := $tested.iterator;
+                    until ($_ := $tested-iter.pull-one) =:= IterationEnd {
+                        self{$_}.push(&as ?? as($value) !! $value)
+                    }
                     last if ($value := iter.pull-one) =:= IterationEnd;
                     nqp::istype(($tested := test($value))[0], Iterable)
                         and X::Invalid::ComputedValue.new(

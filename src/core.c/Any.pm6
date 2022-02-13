@@ -155,7 +155,7 @@ my class Any { # declared in BOOTSTRAP
         ( $into // $into.new ).classify-list( $test, self, :&as);
     }
     multi method classify($test, :&as)   {
-        Hash.^parameterize(Any,Any).new.classify-list( $test, self, :&as );
+        Hash.^parameterize(Any,Mu).new.classify-list( $test, self, :&as );
     }
 
     proto method categorize(|) is nodal {*}
@@ -169,7 +169,7 @@ my class Any { # declared in BOOTSTRAP
         ( $into // $into.new ).categorize-list( $test, self.list, :&as );
     }
     multi method categorize($test, :&as) {
-        Hash.^parameterize(Any,Any).new.categorize-list($test, self.list, :&as);
+        Hash.^parameterize(Any,Mu).new.categorize-list($test, self.list, :&as);
     }
 
     method reverse() is nodal { self.list.reverse }
@@ -516,7 +516,7 @@ multi sub classify($test, +items, :$into!, *%named ) {
     ( $into // $into.new).classify-list($test, items, |%named)
 }
 multi sub classify($test, +items, *%named ) {
-    Hash.^parameterize(Any,Any).new.classify-list($test, items, |%named);
+    Hash.^parameterize(Any,Mu).new.classify-list($test, items, |%named);
 }
 
 proto sub categorize($, |) {*}
@@ -524,7 +524,7 @@ multi sub categorize($test, +items, :$into!, *%named ) {
     ( $into // $into.new).categorize-list($test, items, |%named)
 }
 multi sub categorize($test, +items, *%named ) {
-    Hash.^parameterize(Any,Any).new.categorize-list($test, items, |%named)
+    Hash.^parameterize(Any,Mu).new.categorize-list($test, items, |%named)
 }
 
 proto sub item(|) is pure {*}

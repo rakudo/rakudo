@@ -1,5 +1,5 @@
 my role Array::Shaped2 does Array::Shaped {
-    multi method AT-POS(::?CLASS:D: int $one, int $two) is raw {
+    multi method AT-POS(::?CLASS:D: uint $one, uint $two) is raw {
         nqp::ifnull(
           nqp::atpos2d(nqp::getattr(self,List,'$!reified'),$one,$two),
           AT-POS-CONTAINER(self, $one, $two)
@@ -11,7 +11,7 @@ my role Array::Shaped2 does Array::Shaped {
           AT-POS-CONTAINER(self, $one, $two)
         )
     }
-    sub AT-POS-CONTAINER(\array, int $one, int $two) is raw {
+    sub AT-POS-CONTAINER(\array, uint $one, uint $two) is raw {
         nqp::p6scalarfromdesc(
           ContainerDescriptor::BindArrayPos2D.new(
             nqp::getattr(array,Array,'$!descriptor'),
@@ -21,7 +21,7 @@ my role Array::Shaped2 does Array::Shaped {
         )
     }
 
-    multi method ASSIGN-POS(::?CLASS:D: int $one, int $two, \value) {
+    multi method ASSIGN-POS(::?CLASS:D: uint $one, uint $two, \value) {
         my \reified := nqp::getattr(self,List,'$!reified');
         nqp::ifnull(
           nqp::atpos2d(reified,$one,$two),
@@ -38,7 +38,7 @@ my role Array::Shaped2 does Array::Shaped {
         ) = value
     }
 
-    multi method EXISTS-POS(::?CLASS:D: int $one, int $two --> Bool:D) {
+    multi method EXISTS-POS(::?CLASS:D: uint $one, uint $two --> Bool:D) {
         my \reified := nqp::getattr(self,List,'$!reified');
         my \dims := nqp::dimensions(reified);
         nqp::hllbool(
@@ -57,7 +57,7 @@ my role Array::Shaped2 does Array::Shaped {
         )
     }
 
-    multi method DELETE-POS(::?CLASS:D: int $one, int $two) is raw {
+    multi method DELETE-POS(::?CLASS:D: uint $one, uint $two) is raw {
         my \reified := nqp::getattr(self,List,'$!reified');
         nqp::if(
           nqp::isnull(my \value := nqp::atpos2d(reified,$one,$two)),
@@ -80,7 +80,7 @@ my role Array::Shaped2 does Array::Shaped {
         )
     }
 
-    multi method BIND-POS(::?CLASS:D: int $one, int $two, \value) {
+    multi method BIND-POS(::?CLASS:D: uint $one, uint $two, \value) {
         nqp::bindpos2d(nqp::getattr(self,List,'$!reified'),$one,$two,value)
     }
     multi method BIND-POS(::?CLASS:D: Int:D $one, Int:D $two, \value) {

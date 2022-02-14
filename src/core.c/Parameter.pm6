@@ -325,7 +325,7 @@ my class Parameter { # declared in BOOTSTRAP
     # XXX Must be marked as DEPRECATED
     method coerce_type(Parameter:D: --> Mu) { $!type.HOW.archetypes.coercive ?? $!type.^target_type !! Mu }
 
-    method nominal_type(Parameter:D --> Mu) { $!type.HOW.archetypes.nominalizable ?? $!type.^nominalize !! $!type }
+    method nominal_type(Parameter:D: --> Mu) { $!type.HOW.archetypes.nominalizable ?? $!type.^nominalize !! $!type }
 
     method named_names(Parameter:D: --> List:D) {
         nqp::if(

@@ -513,7 +513,7 @@ my class Array { # declared in BOOTSTRAP
           )
         )
     }
-    method !AT_POS_CONTAINER(uint $pos) is raw {
+    method !AT_POS_CONTAINER(int $pos) is raw {
         my $desc := $!descriptor;
         my $scalar := nqp::create(Scalar);
         nqp::bindattr($scalar, Scalar, '$!value', nqp::isnull($desc)

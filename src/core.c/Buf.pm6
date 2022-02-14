@@ -880,37 +880,40 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
+#- start of generated part of Buf Signed role --------------------------------
+#- Generated on 2022-02-14T22:51:31+01:00 by ./tools/build/makeNATIVE_BLOB.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
     my role SignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-        multi method AT-POS(::?ROLE:D: int \pos) is raw {
-            nqp::islt_i(pos,0)
-              ?? Failure.new(X::OutOfRange.new(
-                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-              !! nqp::atposref_i(self, pos)
+        sub OOR(int $got) {
+            Failure.new(X::OutOfRange.new(
+              :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
+            ))
         }
-        multi method AT-POS(::?ROLE:D: Int:D \pos) is raw {
-            my int $pos = nqp::unbox_i(pos);
+        multi method AT-POS(::?ROLE:D: int $pos) is raw is default {
             nqp::islt_i($pos,0)
-              ?? Failure.new(X::OutOfRange.new(
-                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              ?? OOR($pos)
+              !! nqp::atposref_i(self,$pos)
+        }
+        multi method AT-POS(::?ROLE:D: Int:D $pos) is raw is default {
+            nqp::islt_i($pos,0)
+              ?? OOR($pos)
               !! nqp::atposref_i(self,$pos)
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \pos, Mu \assignee) {
-            nqp::islt_i(pos,0)
-              ?? Failure.new(X::OutOfRange.new(
-                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-              !! nqp::bindpos_i(self,pos,assignee)
-        }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \pos, Mu \assignee) {
-            my int $pos = nqp::unbox_i(pos);
+        multi method ASSIGN-POS(::?ROLE:D: int $pos, Mu \assignee) {
             nqp::islt_i($pos,0)
-              ?? Failure.new(X::OutOfRange.new(
-                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              ?? OOR($pos)
+              !! nqp::bindpos_i(self,$pos,assignee)
+        }
+        multi method ASSIGN-POS(::?ROLE:D: Int:D $pos, Mu \assignee) {
+            nqp::islt_i($pos,0)
+              ?? OOR($pos)
               !! nqp::bindpos_i(self,$pos,assignee)
         }
 
         multi method list(::?ROLE:D:) is default {
-            my int $elems = nqp::elems(self);
+            my uint $elems = nqp::elems(self);
 
             # presize memory, but keep it empty, so we can just push
             my $buffer := nqp::setelems(
@@ -991,38 +994,43 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
             $self
         }
     }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of Buf Signed role ----------------------------------
+
+#- start of generated part of Buf Unsigned role --------------------------------
+#- Generated on 2022-02-14T22:51:31+01:00 by ./tools/build/makeNATIVE_BLOB.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     my role UnsignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-        multi method AT-POS(::?ROLE:D: int \pos) is raw is default {
-            nqp::islt_i(pos,0)
-              ?? Failure.new(X::OutOfRange.new(
-                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-              !! nqp::atposref_u(self, pos)
+        sub OOR(int $got) {
+            Failure.new(X::OutOfRange.new(
+              :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
+            ))
         }
-        multi method AT-POS(::?ROLE:D: Int:D \pos) is raw is default {
-            my int $pos = nqp::unbox_i(pos);
+        multi method AT-POS(::?ROLE:D: int $pos) is raw is default {
             nqp::islt_i($pos,0)
-              ?? Failure.new(X::OutOfRange.new(
-                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              ?? OOR($pos)
+              !! nqp::atposref_u(self,$pos)
+        }
+        multi method AT-POS(::?ROLE:D: Int:D $pos) is raw is default {
+            nqp::islt_i($pos,0)
+              ?? OOR($pos)
               !! nqp::atposref_u(self,$pos)
         }
 
-        multi method ASSIGN-POS(::?CLASS:D: int \pos, Mu \assignee) {
-            nqp::islt_i(pos,0)
-              ?? Failure.new(X::OutOfRange.new(
-                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-              !! nqp::bindpos_u(self,pos,assignee)
-        }
-        multi method ASSIGN-POS(::?CLASS:D: Int:D \pos, Mu \assignee) {
-            my int $pos = nqp::unbox_i(pos);
+        multi method ASSIGN-POS(::?ROLE:D: int $pos, Mu \assignee) {
             nqp::islt_i($pos,0)
-              ?? Failure.new(X::OutOfRange.new(
-                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              ?? OOR($pos)
+              !! nqp::bindpos_u(self,$pos,assignee)
+        }
+        multi method ASSIGN-POS(::?ROLE:D: Int:D $pos, Mu \assignee) {
+            nqp::islt_i($pos,0)
+              ?? OOR($pos)
               !! nqp::bindpos_u(self,$pos,assignee)
         }
 
         multi method list(::?ROLE:D:) is default {
-            my int $elems = nqp::elems(self);
+            my uint $elems = nqp::elems(self);
 
             # presize memory, but keep it empty, so we can just push
             my $buffer := nqp::setelems(
@@ -1103,6 +1111,8 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
             $self
         }
     }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of Buf Unsigned role ----------------------------------
 
     $?CLASS.^add_role(T.^unsigned ?? UnsignedBuf[T] !! SignedBuf[T]);
 

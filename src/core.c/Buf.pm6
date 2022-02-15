@@ -881,7 +881,7 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
 #- start of generated part of Buf Signed role --------------------------------
-#- Generated on 2022-02-14T22:51:31+01:00 by ./tools/build/makeNATIVE_BLOB.raku
+#- Generated on 2022-02-15T10:11:13+01:00 by ./tools/build/makeBUF_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     my role SignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
@@ -998,7 +998,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 #- end of generated part of Buf Signed role ----------------------------------
 
 #- start of generated part of Buf Unsigned role --------------------------------
-#- Generated on 2022-02-14T22:51:31+01:00 by ./tools/build/makeNATIVE_BLOB.raku
+#- Generated on 2022-02-15T10:11:13+01:00 by ./tools/build/makeBUF_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     my role UnsignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {

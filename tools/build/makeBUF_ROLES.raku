@@ -56,7 +56,7 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
     my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-        sub OOR(int $got) {
+        sub OOR(int $got) is hidden-from-backtrace {
             Failure.new(X::OutOfRange.new(
               :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
             ))
@@ -84,7 +84,7 @@ while @lines {
         }
 
         multi method list(::?ROLE:D:) is default {
-            my uint $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);
 
             # presize memory, but keep it empty, so we can just push
             my $buffer := nqp::setelems(

@@ -881,11 +881,11 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
 #- start of generated part of Buf Signed role --------------------------------
-#- Generated on 2022-02-15T10:11:13+01:00 by ./tools/build/makeBUF_ROLES.raku
+#- Generated on 2022-02-15T10:19:32+01:00 by ./tools/build/makeBUF_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     my role SignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-        sub OOR(int $got) {
+        sub OOR(int $got) is hidden-from-backtrace {
             Failure.new(X::OutOfRange.new(
               :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
             ))
@@ -913,7 +913,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         }
 
         multi method list(::?ROLE:D:) is default {
-            my uint $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);
 
             # presize memory, but keep it empty, so we can just push
             my $buffer := nqp::setelems(
@@ -998,11 +998,11 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 #- end of generated part of Buf Signed role ----------------------------------
 
 #- start of generated part of Buf Unsigned role --------------------------------
-#- Generated on 2022-02-15T10:11:13+01:00 by ./tools/build/makeBUF_ROLES.raku
+#- Generated on 2022-02-15T10:19:32+01:00 by ./tools/build/makeBUF_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     my role UnsignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-        sub OOR(int $got) {
+        sub OOR(int $got) is hidden-from-backtrace {
             Failure.new(X::OutOfRange.new(
               :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
             ))
@@ -1030,7 +1030,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
         }
 
         multi method list(::?ROLE:D:) is default {
-            my uint $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);
 
             # presize memory, but keep it empty, so we can just push
             my $buffer := nqp::setelems(

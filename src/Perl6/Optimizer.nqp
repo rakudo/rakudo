@@ -2832,6 +2832,9 @@ class Perl6::Optimizer {
             # as appropriate, which may avoid a boxing. Same for QAST::WVal
             # if we can see the value is not containerized.
             my $last_stmt := get_last_stmt($value);
+            if nqp::istype($last_stmt, QAST::Want) {
+                $last_stmt := $last_stmt[0];
+            }
             if nqp::istype($last_stmt, QAST::Op) {
                 my str $last_op := $last_stmt.op;
                 if $last_op eq 'hllbool' || nqp::eqat($last_op, 'I', -1) {

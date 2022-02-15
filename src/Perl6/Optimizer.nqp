@@ -527,6 +527,8 @@ my class BlockVarOptimizer {
 
     method register_call() { $!calls++; }
 
+    method unregister_call() { $!calls--; }
+
     method register_getlexouter_usage($node) {
         nqp::push(@!getlexouter_usages, $node);
     }
@@ -3290,8 +3292,10 @@ class Perl6::Optimizer {
                             if $op.named {
                                 $want.named($op.named);
                             }
+                            $!block_var_stack.do('unregister_call');
                             return $want;
                         }
+                        $!block_var_stack.do('unregister_call');
                         return $wval;
                     } elsif $survived && nqp::istype($ret_value, $!symbols.Failure) {
                         # Disarm the failure so it doesn't output its warning during GC.
@@ -3401,6 +3405,7 @@ class Perl6::Optimizer {
             my $is-dec := nqp::eqat($op.name, '--', -3);
 
             if $primspec == 1 { # native int
+                $!block_var_stack.do('unregister_call');
                 my $one := QAST::IVal.new: :value(1);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
@@ -3420,6 +3425,7 @@ class Perl6::Optimizer {
                 }
             }
             elsif $primspec == 2 { # native num
+                $!block_var_stack.do('unregister_call');
                 my $one := QAST::NVal.new: :value(1.0);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
                     # we can just use (or ignore) the result
@@ -3439,6 +3445,7 @@ class Perl6::Optimizer {
                 }
             }
             elsif $primspec == 4 || $primspec == 5 { # 64bit int on 32bit backends
+                $!block_var_stack.do('unregister_call');
                 my str $assign_op := $primspec == 4 ?? 'assign_i64' !! 'assign_u64';
                 my $one := QAST::IVal.new: :value(1);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
@@ -3609,6 +3616,7 @@ class Perl6::Optimizer {
                 && nqp::objprimspec($assignee.returns);
 
             my $*NO-COMPILE-TIME-THROWAGE := 1;
+            $!block_var_stack.do('unregister_call');
             return self.visit_op: $op;
           }
         }
@@ -3691,6 +3699,7 @@ class Perl6::Optimizer {
             $op.unshift($name_node);
             $op.unshift($pkg);
             $op.unshift(QAST::SVal.new( :value('raku-meth-private') ));
+            $!block_var_stack.do('unregister_call');
             $op.op('dispatch');
             $op.name(NQPMu);
             return 1;
@@ -3736,6 +3745,7 @@ class Perl6::Optimizer {
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args
         ));
+        $!block_var_stack.do('unregister_call');
         return $op;
     }
 
@@ -3776,6 +3786,7 @@ class Perl6::Optimizer {
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args
         ));
+        $!block_var_stack.do('unregister_call');
         return $op;
     }
 
@@ -4357,6 +4368,8 @@ class Perl6::Optimizer {
         if nqp::can($code_obj, 'soft') && $code_obj.soft {
             return $call;
         }
+
+        $!block_var_stack.do('unregister_call');
 
         # Bind the arguments to temporaries, if they are used more than once.
         my $inlined := QAST::Stmts.new();

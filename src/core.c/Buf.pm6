@@ -13,6 +13,10 @@ enum Endian (
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
 
+#- start of generated part of Blob Signed role -------------------------------
+#- Generated on 2022-02-15T11:01:59+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
 my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
     method !push-list(\action,\to,\from) {
         if nqp::istype(from,List) {
@@ -143,7 +147,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         )
     }
 
-    method SAME(::?CLASS:D: ::?CLASS:D \other) is implementation-detail {
+    method SAME(::?CLASS:D: Blob:D \other) is implementation-detail {
         nqp::if(
           nqp::iseq_i(
             (my int $elems = nqp::elems(self)),
@@ -174,6 +178,12 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         nqp::join($delim.Str,$list)
     }
 }
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of Blob Signed role ---------------------------------
+#- start of generated part of Blob Unsigned role -------------------------------
+#- Generated on 2022-02-15T11:01:59+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
     method !push-list(\action,\to,\from) {
@@ -336,6 +346,9 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         nqp::join($delim.Str,$list)
     }
 }
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of Blob Unsigned role ---------------------------------
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     die "Can only parameterize with native int types, not '{T.^name}'."

@@ -143,7 +143,7 @@ my class Mu { # declared in BOOTSTRAP
         my int $i = -1;
 
         nqp::while(
-          nqp::islt_i($i = nqp::add_i($i,1),$count),
+          nqp::islt_i(++$i,$count),
 
           nqp::if(
             nqp::istype((my $task := nqp::atpos($bp,$i)),Callable),
@@ -466,7 +466,7 @@ my class Mu { # declared in BOOTSTRAP
             my int $i     = -1;
 
         nqp::while(
-          nqp::islt_i($i = nqp::add_i($i,1),$count),
+          nqp::islt_i(++$i,$count),
 
           nqp::if(
             nqp::istype((my $task := nqp::atpos($bp,$i)),Callable),
@@ -649,7 +649,7 @@ my class Mu { # declared in BOOTSTRAP
                                     nqp::atpos($task,2)
                                   ),
                                   nqp::while(        # 1000's flock together
-                                    nqp::islt_i(($i = nqp::add_i($i,1)),$count)
+                                    nqp::islt_i(++$i,$count)
                                       && nqp::islist($task := nqp::atpos($bp,$i))
                                       && nqp::iseq_i(nqp::atpos($task,0),1000),
                                     nqp::getattr(self,
@@ -657,7 +657,7 @@ my class Mu { # declared in BOOTSTRAP
                                       nqp::atpos($task,2)
                                     )
                                   ),
-                                  ($i = nqp::sub_i($i,1))
+                                  --$i,
                                 ),
 
                                 nqp::if(

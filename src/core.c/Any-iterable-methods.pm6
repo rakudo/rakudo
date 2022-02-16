@@ -947,12 +947,12 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::until(
               nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
                 || $!test($_),
-              ($!index = nqp::add_i($!index,1))
+              ++$!index
             );
 
             nqp::eqaddr($_,IterationEnd)
               ?? IterationEnd
-              !! nqp::p6box_i($!index = nqp::add_i($!index,1))
+              !! nqp::p6box_i(++$!index)
         }
         method push-all(\target --> IterationEnd) {
             my $iter := $!iter;  # lexicals faster than attrs
@@ -962,7 +962,7 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::until(
               nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
               nqp::stmts(
-                ($i = nqp::add_i($i,1)),
+                ++$i,
                 nqp::if(
                   $!test($_),
                   target.push(nqp::p6box_i($i))
@@ -999,14 +999,14 @@ Consider using a block if any of these are necessary for your mapping code."
                 nqp::until(
                   nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
                     || $!test($_),
-                  ($!index = nqp::add_i($!index,1))
+                  ++$!index
                 ),
                 nqp::if(
                   nqp::eqaddr($_,IterationEnd),
                   IterationEnd,
                   nqp::stmts(
                     ($!value := $_),
-                    nqp::p6box_i($!index = nqp::add_i($!index,1))
+                    nqp::p6box_i(++$!index)
                   )
                 )
               )
@@ -1016,7 +1016,7 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::until(
               nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
               nqp::stmts(
-                $!index = nqp::add_i($!index,1);
+                ++$!index,
                 nqp::if(
                   $!test($_),
                   nqp::stmts(  # doesn't sink
@@ -1046,12 +1046,12 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::until(
               nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
                 || $!test($_),
-              ($!index = nqp::add_i($!index,1))
+              ++$!index
             );
 
             nqp::eqaddr($_,IterationEnd)
               ?? IterationEnd
-              !! Pair.new(($!index = nqp::add_i($!index,1)),$_)
+              !! Pair.new(++$!index,$_)
         }
         method push-all(\target --> IterationEnd) {
             my $iter := $!iter;   # lexicals are faster than attrs
@@ -1061,7 +1061,7 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::until(
               nqp::eqaddr(($_ := $iter.pull-one),IterationEnd),
               nqp::stmts(
-                ($i = nqp::add_i($i,1)),
+                ++$i,
                 nqp::if(
                   $test($_),
                   target.push(Pair.new($i,$_))
@@ -1425,7 +1425,7 @@ Consider using a block if any of these are necessary for your mapping code."
         nqp::until(
           (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
             || $test($_)),
-          ($index = nqp::add_i($index,1))
+          ++$index
         );
 
         nqp::eqaddr($_,IterationEnd)
@@ -1439,7 +1439,7 @@ Consider using a block if any of these are necessary for your mapping code."
           nqp::stmts(
             (my int $index = $elems),
             nqp::while(
-              nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+              nqp::isge_i(--$index,0),
               nqp::if(
                 $test(self.AT-POS($index)),
                 return self!first-result(
@@ -1467,7 +1467,7 @@ Consider using a block if any of these are necessary for your mapping code."
                  ),
                  0
                ),
-          ($index = nqp::add_i($index,1))
+          ++$index
         );
 
         nqp::eqaddr($_,IterationEnd)
@@ -1481,7 +1481,7 @@ Consider using a block if any of these are necessary for your mapping code."
           nqp::stmts(
             (my int $index = $elems),
             nqp::while(
-              nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+              nqp::isge_i(--$index,0),
               nqp::if(
                 nqp::isge_i(
                   nqp::getattr_i(
@@ -1509,7 +1509,7 @@ Consider using a block if any of these are necessary for your mapping code."
         nqp::until(
           (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
             || $test.ACCEPTS($_)),
-          ($index = nqp::add_i($index,1))
+          ++$index
         );
 
         nqp::eqaddr($_,IterationEnd)
@@ -1523,7 +1523,7 @@ Consider using a block if any of these are necessary for your mapping code."
           nqp::stmts(
             (my int $index = $elems),
             nqp::while(
-              nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+              nqp::isge_i(--$index,0),
               nqp::if(
                 $test.ACCEPTS(self.AT-POS($index)),
                 return self!first-result(

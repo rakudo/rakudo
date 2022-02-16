@@ -29,7 +29,7 @@ my role Iterator {
         my int $todo = nqp::add_i($n,1);
 
         nqp::until(  # doesn't sink
-          nqp::not_i($todo = nqp::sub_i($todo,1))
+          nqp::not_i(--$todo)
             || nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
           target.push($pulled) # don't .sink $pulled here, it can be a Seq
         );
@@ -74,7 +74,7 @@ my role Iterator {
     method skip-at-least(int $toskip) {
         my int $left = $toskip;
         nqp::while(
-          nqp::isge_i(($left = nqp::sub_i($left,1)),0) && self.skip-one,
+          nqp::isge_i(--$left,0) && self.skip-one,
           nqp::null
         );
         nqp::islt_i($left,0)

@@ -48,7 +48,7 @@ multi sub infix:<(elem)>(Any \a, Map:D \b --> Bool:D) {
 multi sub infix:<(elem)>(Str:D $a, array[str] \b --> Bool:D) {
     my int $i = -1;
     nqp::while(
-      nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(b))
+      nqp::islt_i(++$i,nqp::elems(b))
         && nqp::isne_s($a,nqp::atpos_s(b,$i)),
       nqp::null
     );
@@ -58,7 +58,7 @@ multi sub infix:<(elem)>(Str:D $a, array[str] \b --> Bool:D) {
 multi sub infix:<(elem)>(Int:D $a, array[int] \b --> Bool:D) {
     my int $i = -1;
     nqp::while(
-      nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(b))
+      nqp::islt_i(++$i,nqp::elems(b))
         && nqp::isne_i($a,nqp::atpos_i(b,$i)),
       nqp::null
     );

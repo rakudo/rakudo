@@ -289,7 +289,7 @@ multi sub infix:<(^)>(+@p) {   # also Any
                 || nqp::eqaddr(p.WHAT,SetHash)
               )
             ),
-            ($pseen = nqp::add_i($pseen,1)),
+            ++$pseen,
             nqp::if(
               nqp::istype(p,Baggy),
 

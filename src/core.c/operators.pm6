@@ -353,7 +353,7 @@ multi sub infix:<andthen>(+a) {
             $els = $args.elems)),
         (my int $i),
         nqp::until(
-          nqp::iseq_i($els, $i = nqp::add_i($i, 1))
+          nqp::iseq_i($els,++$i)
           || ( # if $current not defined, set it to Empty and bail from the loop
             nqp::isfalse($current.defined)
             && nqp::stmts(($current := Empty), 1)
@@ -385,7 +385,7 @@ multi sub infix:<notandthen>(+a) {
             $els = $args.elems)),
         (my int $i),
         nqp::until(
-          nqp::iseq_i($els, $i = nqp::add_i($i, 1))
+          nqp::iseq_i($els,++$i)
           || ( # if $current is defined, set it to Empty and bail from the loop
             $current.defined
             && nqp::stmts(($current := Empty), 1)
@@ -417,7 +417,7 @@ multi sub infix:<orelse>(+$) {
             $els = $args.elems)),
         (my int $i),
         nqp::until(
-          nqp::iseq_i($els, $i = nqp::add_i($i, 1)) || $current.defined,
+          nqp::iseq_i($els,++$i) || $current.defined,
           ($current := nqp::if(
             nqp::istype(($_ := $args[$i]), Callable),
             nqp::if(.count, $_($current), $_()),

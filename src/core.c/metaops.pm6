@@ -257,15 +257,12 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 method pull-one() is raw {
                     nqp::if(
                       nqp::isnull($!result),
-                      ($!result := nqp::atpos(
-                        $!reified,
-                        ($!i = nqp::sub_i($!i,1))
-                      )),
+                      ($!result := nqp::atpos($!reified,--$!i)),
                       nqp::stmts(
                         (my $args := nqp::list($!result)),
                         nqp::until(
                           nqp::iseq_i(nqp::elems($args),$!count)
-                            || nqp::islt_i(($!i = nqp::sub_i($!i,1)),0),
+                            || nqp::islt_i(--$!i,0),
                           nqp::unshift($args,nqp::atpos($!reified,$!i))
                         ),
                         nqp::if(
@@ -307,12 +304,9 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 method pull-one() is raw {
                     nqp::if(
                       nqp::isnull($!result),
-                      ($!result := nqp::atpos(
-                        $!reified,
-                        ($!i = nqp::sub_i($!i,1))
-                      )),
+                      ($!result := nqp::atpos($!reified,--$!i)),
                       nqp::if(
-                        nqp::isge_i(($!i = nqp::sub_i($!i,1)),0),
+                        nqp::isge_i(--$!i,0),
                         ($!result := $!op.(nqp::atpos($!reified,$!i),$!result)),
                         IterationEnd
                       )
@@ -342,11 +336,11 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
               (my $args := nqp::list(
                 my $result := nqp::atpos(
                   (my $reified := nqp::getattr($v,List,'$!reified')),
-                  ($i = nqp::sub_i($i,1))
+                  --$i
                 )
               )),
               nqp::until(
-                nqp::islt_i(($i = nqp::sub_i($i,1)),0),
+                nqp::islt_i(--$i,0),
                 nqp::stmts(
                   nqp::unshift($args,nqp::atpos($reified,$i)),
                   nqp::if(
@@ -381,10 +375,10 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
             nqp::stmts(
               (my $result := nqp::atpos(
                 nqp::getattr($v,List,'$!reified'),
-                ($i = nqp::sub_i($i,1))
+                --$i
               )),
               nqp::while(
-                nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+                nqp::isge_i(--$i,0),
                 ($result := op.(
                   nqp::atpos(nqp::getattr($v,List,'$!reified'),$i),
                   $result

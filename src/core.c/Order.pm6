@@ -86,7 +86,7 @@ multi sub infix:<cmp>(List:D \a, List:D \b) {
           nqp::stmts(                                # elements to compare
             (my $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::eqaddr(
                      (my $order := infix:<cmp>(
                        nqp::atpos($list-a,$i),

@@ -122,7 +122,7 @@ multi sub infix:<&&>(+@a) {
         (my $reified := nqp::getattr(@a,List,'$!reified')),
         (my int $i    = -1),
         nqp::until(
-          nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::iseq_i(++$i,$elems)
             || nqp::isfalse(
                  nqp::if(
                    nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
@@ -150,7 +150,7 @@ multi sub infix:<||>(+@a) {
         (my $reified := nqp::getattr(@a,List,'$!reified')),
         (my int $i    = -1),
         nqp::until(
-          nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::iseq_i(++$i,$elems)
             || nqp::istrue(
                  nqp::if(
                    nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
@@ -195,7 +195,7 @@ multi sub infix:<//>(+@a) {
         (my $reified := nqp::getattr(@a,List,'$!reified')),
         (my int $i    = -1),
         nqp::until(
-          nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::iseq_i(++$i,$elems)
             || nqp::if(
                  nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
                  ($value := $value()),

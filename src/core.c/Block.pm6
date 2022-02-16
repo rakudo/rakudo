@@ -42,7 +42,7 @@ my class Block { # declared in BOOTSTRAP
             {
                 my int $i = -1;
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(phasers)),
+                  nqp::islt_i(++$i,nqp::elems(phasers)),
                   nqp::atpos(phasers,$i)(),
                   :nohandler
                 );
@@ -56,7 +56,7 @@ my class Block { # declared in BOOTSTRAP
         if nqp::ishash($!phasers) && nqp::atkey($!phasers,$name) -> \phasers {
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(phasers)),
+              nqp::islt_i(++$i,nqp::elems(phasers)),
               nqp::atpos(phasers,$i)(),
               :nohandler
             );
@@ -67,7 +67,7 @@ my class Block { # declared in BOOTSTRAP
         my \phasers := nqp::atkey($!phasers,$name);
         my int $i    = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(phasers)),
+          nqp::islt_i(++$i,nqp::elems(phasers)),
           nqp::atpos(phasers,$i)(),
           :nohandler
         );

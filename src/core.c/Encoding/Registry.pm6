@@ -29,7 +29,7 @@ my class Encoding::Registry {
         );
         my int $i = -1;
         my int $elems = nqp::elems($encodings);
-        while nqp::islt_i(($i = nqp::add_i($i,1)),$elems) {
+        while nqp::islt_i(++$i,$elems) {
             my $names := nqp::atpos($encodings,$i);
             my $builtin := nqp::create(Encoding::Builtin).SET-SELF(
               nqp::shift($names),nqp::clone($names));
@@ -49,7 +49,7 @@ my class Encoding::Registry {
             my int $elems = nqp::elems($names);
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::existskey($lookup,($key = nqp::atpos($names,$i).fc)),
                 X::Encoding::AlreadyRegistered.new(

@@ -886,7 +886,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my str $char;
         my int $ord;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$chars), # check all chars
+          nqp::islt_i(++$i,$chars),                    # check all chars
           nqp::stmts(
             ($char = nqp::substr(self,$i,1)),
             ($ord  = nqp::ord($char)),
@@ -944,12 +944,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         method new($string) { nqp::create(self)!SET-SELF($string) }
         method pull-one() {
-            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::chars($!str))
+            nqp::islt_i(++$!pos,nqp::chars($!str))
               ?? nqp::box_s(nqp::substr($!str,$!pos,1),$!what) #?js: NFG
               !! IterationEnd
         }
         method skip-one() {
-            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::chars($!str))
+            nqp::islt_i(++$!pos,nqp::chars($!str))
         }
         method push-all(\target --> IterationEnd) {
             my str $str   = $!str;      # locals are faster
@@ -957,7 +957,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $chars = nqp::chars($str);
             my Mu $what  := $!what;
             nqp::while(
-              nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
+              nqp::islt_i(++$pos,$chars),
               target.push(nqp::box_s(nqp::substr($str,$pos,1),$what)) #?js: NFG
             );
             $!pos = $pos;
@@ -995,7 +995,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               !! Rakudo::Iterator.Empty
         }
         method pull-one() {
-            ($!todo = nqp::sub_i($!todo,1))
+            --$!todo
               ?? nqp::box_s(
                    nqp::substr(                #?js: NFG
                      $!str,
@@ -1014,7 +1014,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my Mu  $what := $!what;
 
             nqp::while(
-              ($todo = nqp::sub_i($todo,1)),
+              --$todo,
               target.push(
                 nqp::box_s(
                   nqp::substr(                 #?js: NFG
@@ -1099,7 +1099,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               IterationEnd,
               nqp::stmts(
                 ($!pos  = nqp::add_i($found,1)),
-                ($!todo = nqp::sub_i($!todo,1)),
+                --$!todo,
                 nqp::box_s($!pat,$!what)
               )
             )
@@ -1220,7 +1220,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my $list     := nqp::getattr(@names,List,'$!reified');
         my int $i     = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::if(
             nqp::existskey(opts,nqp::unbox_s(nqp::atpos($list,$i))),
             (store = nqp::atkey(opts,nqp::unbox_s(nqp::atpos($list,$i)))),
@@ -1444,7 +1444,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::stmts(
               nqp::while(
                 nqp::isgt_i($skip,1) && iterator.skip-one,
-                ($skip = nqp::sub_i($skip,1))
+                --$skip
               ),
               nqp::if(
                 nqp::iseq_i($skip,1),
@@ -1467,7 +1467,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       nqp::setelems(nqp::create(IterationBuffer),$todo)),
                     (my int $i = -1),
                     nqp::until(
-                      nqp::iseq_i(($i = nqp::add_i($i,1)),$todo)
+                      nqp::iseq_i(++$i,$todo)
                         || nqp::eqaddr(
                              ($pulled := iterator.pull-one),IterationEnd),
                       nqp::bindpos($matches,$i,$pulled)
@@ -1541,7 +1541,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           (my int $todo = nqp::if($max == Inf, 0x7fffffff, $max)),
           (my $matches := nqp::create(IterationBuffer)),
           nqp::until(
-            nqp::islt_i(($todo = nqp::sub_i($todo,1)), 0) ||
+            nqp::islt_i(--$todo, 0) ||
               nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
             nqp::push($matches,$pulled)
           ),
@@ -2194,20 +2194,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
                           nqp::not_i(nqp::isne_i(
                             nqp::chars(nqp::atpos($matches,$i)),0)))
-                              while $i = nqp::sub_i($i,1);
+                              while --$i;
                         nqp::splice($matches,$empty,0,1)
                           unless nqp::chars(nqp::atpos($matches,0));
                     }
                     else {
                         nqp::splice($matches,$match-list,$i,0)
-                          while $i = nqp::sub_i($i,1);
+                          while --$i;
                     }
                 }
             }
             elsif $skip-empty {
                 my int $i = nqp::elems($matches);
                 my $match-list := nqp::list;
-                while nqp::isge_i($i = nqp::sub_i($i,1),0) {
+                while nqp::isge_i(--$i,0) {
                   nqp::splice($matches,$match-list,$i,1)
                     if nqp::iseq_i(nqp::chars(nqp::atpos($matches,$i)),0);
                 }
@@ -2431,7 +2431,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   nqp::stmts(
                     (my int $todo = $limit),
                     nqp::while(
-                      nqp::isge_i(($todo = nqp::sub_i($todo,1)),0)
+                      nqp::isge_i(--$todo,0)
                         && nqp::isge_i($i = nqp::index($str,$need,$pos),0),
                       nqp::stmts(
                         nqp::push($positions,nqp::list_i($i,$index)),
@@ -2452,7 +2452,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   nqp::add_i($fired,nqp::isge_i(nqp::elems($positions),$seen)))
               )
             );
-            $index = nqp::add_i($index, 1);
+            ++$index;
         }
 
         # no needle tried, assume we want chars
@@ -2485,7 +2485,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $pos;
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::islt_i($limited,$limit),
               nqp::if(
                 nqp::isge_i(   # not hidden by other needle
@@ -2493,7 +2493,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   $pos
                 ),
                 nqp::stmts(
-                  ($limited = nqp::add_i($limited,1)),
+                  ++$limited,
                   ($pos = nqp::add_i(
                     nqp::atpos_i(nqp::atpos($positions,$i),0),
                     nqp::atpos_i($needle-chars,
@@ -2516,7 +2516,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $i = -1;
             my int $elems = nqp::elems($positions);
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::isge_i( # not hidden by other needle
                   (my int $from = nqp::atpos_i(
@@ -2558,7 +2558,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my int $i = -1;
             my int $elems = nqp::elems($positions);
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::isge_i( # not hidden by other needle
                   (my int $from = nqp::atpos_i(
@@ -2616,7 +2616,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             )),
 
             nqp::while(                              # other chars in pattern
-              nqp::islt_i(($i = nqp::add_i($i,1)),$cases-chars),
+              nqp::islt_i(++$i,$cases-chars),
               nqp::stmts(
                 (my int $case = nqp::if(             # -1 =lc, 1 = uc, 0 = else
                   nqp::iscclass(nqp::const::CCLASS_LOWERCASE,$cases,$i),
@@ -2675,7 +2675,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             (my int $i = -1),
             nqp::while(                               # for all marks
-              nqp::islt_i(($i = nqp::add_i($i,1)),$marks-elems),
+              nqp::islt_i(++$i,$marks-elems),
               nqp::bindpos_s($result,$i,              # store the result of:
                 nqp::stmts(
                   (my $marks-nfd := nqp::strtocodes(  # char + accents of mark
@@ -2701,9 +2701,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               )
             ),
 
-            ($i = nqp::sub_i($i,1)),
+            --$i,
             nqp::while(                               # remaining base chars
-              nqp::islt_i(($i = nqp::add_i($i,1)),$base-elems),
+              nqp::islt_i(++$i,$base-elems),
               nqp::bindpos_s($result,$i,              # store the result of:
                 nqp::stmts(
                   ($marks-base := nqp::strtocodes(    # char+all accents of base

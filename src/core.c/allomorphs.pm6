@@ -327,7 +327,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
         my int $ch  = nqp::ord($str, $pos);
         my int $neg = nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 8722); # '-', '−'
         if $neg || nqp::iseq_i($ch, 43) {  # '-', '−', '+'
-            $pos = nqp::add_i($pos, 1);
+            ++$pos;
             $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
         }
 
@@ -360,7 +360,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
             my Int $frac := 0;
             my Int $base := 0;
             if nqp::iseq_i($ch, 46) {  # '.'
-                $pos    = nqp::add_i($pos, 1);
+                ++$pos;
                 $parse := nqp::radix_I($radix, $str, $pos,
                                        nqp::add_i($neg, 4), Int);
                 $p      = nqp::atpos($parse, 2);
@@ -378,16 +378,16 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
                 parse_fail "'E' or 'e' style exponent only allowed on decimal (base-10) numbers, not base-$radix"
                     unless nqp::iseq_i($radix, 10);
 
-                $pos = nqp::add_i($pos, 1);
+                ++$pos;
                 # handle the sign
                 # XXX TODO: teach radix_I to handle '−' (U+2212) minus?
                 my int $ch  = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
                 my int $neg-e = nqp::if(
                     nqp::iseq_i($ch, 43), # '+'
-                    nqp::stmts(($pos = nqp::add_i($pos, 1)), 0),
+                    nqp::stmts(++$pos,0),
                     nqp::if( # '-', '−'
                         nqp::iseq_i($ch, 45) || nqp::iseq_i($ch, 8722),
-                        nqp::stmts(($pos = nqp::add_i($pos, 1)), 1),
+                        nqp::stmts(++$pos,1),
                         0,
                     )
                 );
@@ -408,7 +408,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
             # get recursive multiplier parsing stupidity)
             if nqp::iseq_i($ch, 42)
             && nqp::isne_s(substr($str, $pos, 2), '**') {  # '*'
-                $pos           = nqp::add_i($pos, 1);
+                ++$pos;
                 my $mult_base := parse-simple-number();
 
                 parse_fail "'*' multiplier base must be an integer"
@@ -434,7 +434,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
         # Look for radix specifiers
         if nqp::iseq_i($ch, 58) {  # ':'
             # A string of the form :16<FE_ED.F0_0D> or :60[12,34,56]
-            $pos    = nqp::add_i($pos, 1);
+            ++$pos;
             $parse := nqp::radix_I(10, $str, $pos, 0, Int);
             $p      = nqp::atpos($parse, 2);
             parse_fail "radix (in decimal) expected after ':'"
@@ -444,7 +444,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
             $radix  = nqp::atpos($parse, 0);
             $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
             if nqp::iseq_i($ch, 60) {  # '<'
-                $pos = nqp::add_i($pos, 1);
+                ++$pos;
 
                 my $result := parse-int-frac-exp();
 
@@ -452,11 +452,11 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
                     unless nqp::islt_i($pos, $eos)
                         && nqp::iseq_i(nqp::ord($str, $pos), 62);  # '>'
 
-                $pos = nqp::add_i($pos, 1);
+                ++$pos;
                 return $result;
             }
             elsif nqp::iseq_i($ch, 171) {  # '«'
-                $pos = nqp::add_i($pos, 1);
+                ++$pos;
 
                 my $result := parse-int-frac-exp();
 
@@ -464,11 +464,11 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
                     unless nqp::islt_i($pos, $eos)
                         && nqp::iseq_i(nqp::ord($str, $pos), 187);  # '»'
 
-                $pos = nqp::add_i($pos, 1);
+                ++$pos;
                 return $result;
             }
             elsif nqp::iseq_i($ch, 91) {  # '['
-                $pos = nqp::add_i($pos, 1);
+                ++$pos;
                 my Int $result := 0;
                 my Int $digit  := 0;
                 while nqp::islt_i($pos, $eos)
@@ -484,14 +484,14 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
                         if nqp::isge_i($digit, $radix);
 
                     $result := $result * $radix + $digit;
-                    $pos     = nqp::add_i($pos, 1)
-                        if nqp::islt_i($pos, $eos)
-                        && nqp::iseq_i(nqp::ord($str, $pos), 44);  # ','
+                    ++$pos
+                      if nqp::islt_i($pos, $eos)
+                      && nqp::iseq_i(nqp::ord($str, $pos), 44);  # ','
                 }
                 parse_fail "malformed ':$radix[]' style radix number, expecting ']' after the body"
                     unless nqp::islt_i($pos, $eos)
                         && nqp::iseq_i(nqp::ord($str, $pos), 93);  # ']'
-                $pos = nqp::add_i($pos, 1);
+                ++$pos;
 
                 # XXXX: Handle fractions!
                 # XXXX: Handle exponents!
@@ -503,14 +503,14 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
         }
         elsif nqp::iseq_i($ch, 48)  # '0'
           and $radix = nqp::index('  b     o d     x',
-                                  nqp::substr($str, nqp::add_i($pos, 1), 1))
+                                  nqp::substr($str,nqp::add_i($pos,1),1))
           and nqp::isge_i($radix, 2) {
             # A string starting with 0x, 0d, 0o, or 0b,
             # followed by one optional '_'
             $pos   = nqp::add_i($pos, 2);
-            $pos   = nqp::add_i($pos, 1)
-                if nqp::islt_i($pos, $eos)
-                && nqp::iseq_i(nqp::ord($str, $pos), 95);  # '_'
+            ++$pos
+              if nqp::islt_i($pos, $eos)
+              && nqp::iseq_i(nqp::ord($str, $pos), 95);  # '_'
 
             parse-int-frac-exp();
         }
@@ -533,7 +533,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
 
         # Check for '/' indicating Rat denominator
         if nqp::iseq_i(nqp::ord($str, $pos), 47) {  # '/'
-            $pos = nqp::add_i($pos, 1);
+            ++$pos;
             parse_fail "denominator expected after '/'"
                 unless nqp::islt_i($pos, $eos);
 
@@ -557,7 +557,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
         parse_fail "Imaginary component of 'NaN' or 'Inf' must be followed by \\i"
             if nqp::isnanorinf($result.Num);
-        $pos = nqp::add_i($pos, 1);
+        ++$pos;
         $result := Complex.new(0, $result);
     }
     elsif nqp::eqat($str,'\\i',$pos) {
@@ -577,7 +577,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
         if nqp::iseq_i(nqp::ord($str, $pos), 105) {  # 'i'
             parse_fail "Imaginary component of 'NaN' or 'Inf' must be followed by \\i"
                 if nqp::isnanorinf($im.Num);
-            $pos = nqp::add_i($pos, 1);
+            ++$pos;
         }
         elsif nqp::eqat($str,'\\i',$pos) {
             $pos = nqp::add_i($pos, 2);

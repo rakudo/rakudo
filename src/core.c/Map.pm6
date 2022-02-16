@@ -68,7 +68,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             (my int $i = -1),
             nqp::while(
               iterator,
-              nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
+              nqp::bindpos(buffer,++$i,
                 Pair.new(
                   nqp::iterkey_s(nqp::shift(iterator)),
                   nqp::iterval(iterator)
@@ -114,7 +114,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         has int $!i = -1;
         method pull-one() {
             nqp::if(
-              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!keys)),
+              nqp::islt_i(++$!i,nqp::elems($!keys)),
               nqp::stmts(
                 (my \key := nqp::atpos_s($!keys,$!i)),
                 Pair.new(key,nqp::atkey($!map,key))
@@ -127,7 +127,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             my \keys := $!keys;
             my int $i = $!i;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(keys)),
+              nqp::islt_i(++$i,nqp::elems(keys)),
               nqp::stmts(
                 (my \key := nqp::atpos_s(keys,$i)),
                 $target.push(Pair.new(key,nqp::atkey(map,key)))
@@ -542,7 +542,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems($!storage))),1)),
             (my \iter := nqp::iterator($!storage)),
             nqp::while(
-              nqp::shift(iter) && ($i = nqp::sub_i($i,1)),
+              nqp::shift(iter) && --$i,
               nqp::null
             ),
             Pair.new(nqp::iterkey_s(iter),nqp::iterval(iter))
@@ -569,7 +569,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             $!pairs := nqp::setelems(nqp::list,$i);
 
             nqp::while(
-              nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+              nqp::isge_i(--$i,0),
               nqp::bindpos_s($!keys,$i,
                 nqp::iterkey_s(nqp::shift(iter)))
             );
@@ -653,7 +653,7 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
                     nqp::iterval(nqp::shift(iter)),
                     nqp::ifnull(nqp::atkey(bmap,nqp::iterkey_s(iter)),NotEQV)
                   ),
-                  ($elems = nqp::sub_i($elems,1))
+                  --$elems
                 ),
                 nqp::not_i($elems)               # ok if none left
               ),

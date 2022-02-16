@@ -120,8 +120,7 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
             (my int $i = -1),
             nqp::while(
               iterator,
-              nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
-                nqp::iterval(nqp::shift(iterator)))
+              nqp::bindpos(buffer,++$i,nqp::iterval(nqp::shift(iterator)))
             )
           )
         );
@@ -189,7 +188,7 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
               nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems(storage))),1)),
             (my \iter := nqp::iterator(storage)),
             nqp::while(
-              nqp::shift(iter) && ($i = nqp::sub_i($i,1)),
+              nqp::shift(iter) && --$i,
               nqp::null
             ),
             nqp::iterval(iter)

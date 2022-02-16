@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-02-13T00:23:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-16T09:55:17+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -108,7 +108,7 @@ my class array does Iterable does Positional {
 
             if $k {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_s(nqp::atpos_s(self,$i),$needle),
                     nqp::push($result,nqp::clone($i))
@@ -117,7 +117,7 @@ my class array does Iterable does Positional {
             }
             elsif $kv {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_s(nqp::atpos_s(self,$i),$needle),
                     nqp::stmts(
@@ -129,7 +129,7 @@ my class array does Iterable does Positional {
             }
             elsif $p {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_s(nqp::atpos_s(self,$i),$needle),
                     nqp::push($result,Pair.new($i,$needle))
@@ -138,7 +138,7 @@ my class array does Iterable does Positional {
             }
             else {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_s(nqp::atpos_s(self,$i),$needle),
                     nqp::push($result,$needle)
@@ -153,7 +153,7 @@ my class array does Iterable does Positional {
             my uint $elems = nqp::elems(self);
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::isne_s(nqp::atpos_s(self,$i),$needle),
               nqp::null()
             );
@@ -176,7 +176,7 @@ my class array does Iterable does Positional {
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::unless(
                 nqp::existskey($seen,nqp::atpos_s(self,$i)),
                 nqp::bindkey($seen,nqp::push_s($result,nqp::atpos_s(self,$i)),1)
@@ -193,7 +193,7 @@ my class array does Iterable does Positional {
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::existskey($seen,(my str $key = nqp::atpos_s(self,$i))),
                 nqp::push_s($result,$key),
@@ -211,7 +211,7 @@ my class array does Iterable does Positional {
                 my uint $i;
 
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isne_s(nqp::atpos_s(self,$i),$last),
                     nqp::push_s($result,$last = nqp::atpos_s(self,$i))
@@ -284,7 +284,7 @@ my class array does Iterable does Positional {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_s(self,$i,
                 nqp::if(
                   nqp::isnull(nqp::atpos(reified,$i)),
@@ -301,7 +301,7 @@ my class array does Iterable does Positional {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_s(self, $i,
                 nqp::unbox_s(@values.AT-POS($i)))
             );
@@ -484,7 +484,7 @@ my class array does Iterable does Positional {
                 (my uint $i),
                 (my str $min = nqp::atpos_s(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_s(nqp::atpos_s(self,$i),$min),
                     ($min = nqp::atpos_s(self,$i))
@@ -502,7 +502,7 @@ my class array does Iterable does Positional {
                 (my uint $i),
                 (my str $max = nqp::atpos_s(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isgt_s(nqp::atpos_s(self,$i),$max),
                     ($max = nqp::atpos_s(self,$i))
@@ -521,7 +521,7 @@ my class array does Iterable does Positional {
                 (my str $min =
                   my str $max = nqp::atpos_s(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_s(nqp::atpos_s(self,$i),$min),
                     ($min = nqp::atpos_s(self,$i)),
@@ -550,7 +550,7 @@ my class array does Iterable does Positional {
               (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_s($to,nqp::sub_i($last,$i),
                   nqp::atpos_s(self,$i))
               ),
@@ -567,7 +567,7 @@ my class array does Iterable does Positional {
             );
             $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_s(
                 $to,
                 ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -592,7 +592,7 @@ my class array does Iterable does Positional {
                   nqp::stmts(
                     (my int $i = -1),
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                      nqp::islt_i(++$i,$elems)
                         && nqp::iseq_s(
                              nqp::atpos_s(self,$i),
                              nqp::atpos_s(other,$i)
@@ -704,7 +704,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-02-13T00:23:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-16T09:55:17+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -714,7 +714,7 @@ my class array does Iterable does Positional {
 
             if $k {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_i(nqp::atpos_i(self,$i),$needle),
                     nqp::push($result,nqp::clone($i))
@@ -723,7 +723,7 @@ my class array does Iterable does Positional {
             }
             elsif $kv {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_i(nqp::atpos_i(self,$i),$needle),
                     nqp::stmts(
@@ -735,7 +735,7 @@ my class array does Iterable does Positional {
             }
             elsif $p {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_i(nqp::atpos_i(self,$i),$needle),
                     nqp::push($result,Pair.new($i,$needle))
@@ -744,7 +744,7 @@ my class array does Iterable does Positional {
             }
             else {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_i(nqp::atpos_i(self,$i),$needle),
                     nqp::push($result,$needle)
@@ -759,7 +759,7 @@ my class array does Iterable does Positional {
             my uint $elems = nqp::elems(self);
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::isne_i(nqp::atpos_i(self,$i),$needle),
               nqp::null()
             );
@@ -782,7 +782,7 @@ my class array does Iterable does Positional {
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::unless(
                 nqp::existskey($seen,nqp::atpos_i(self,$i)),
                 nqp::bindkey($seen,nqp::push_i($result,nqp::atpos_i(self,$i)),1)
@@ -799,7 +799,7 @@ my class array does Iterable does Positional {
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::existskey($seen,(my int $key = nqp::atpos_i(self,$i))),
                 nqp::push_i($result,$key),
@@ -817,7 +817,7 @@ my class array does Iterable does Positional {
                 my uint $i;
 
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isne_i(nqp::atpos_i(self,$i),$last),
                     nqp::push_i($result,$last = nqp::atpos_i(self,$i))
@@ -890,7 +890,7 @@ my class array does Iterable does Positional {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_i(self,$i,
                 nqp::if(
                   nqp::isnull(nqp::atpos(reified,$i)),
@@ -907,7 +907,7 @@ my class array does Iterable does Positional {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_i(self, $i,
                 nqp::unbox_i(@values.AT-POS($i)))
             );
@@ -1090,7 +1090,7 @@ my class array does Iterable does Positional {
                 (my uint $i),
                 (my int $min = nqp::atpos_i(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_i(nqp::atpos_i(self,$i),$min),
                     ($min = nqp::atpos_i(self,$i))
@@ -1108,7 +1108,7 @@ my class array does Iterable does Positional {
                 (my uint $i),
                 (my int $max = nqp::atpos_i(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isgt_i(nqp::atpos_i(self,$i),$max),
                     ($max = nqp::atpos_i(self,$i))
@@ -1127,7 +1127,7 @@ my class array does Iterable does Positional {
                 (my int $min =
                   my int $max = nqp::atpos_i(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_i(nqp::atpos_i(self,$i),$min),
                     ($min = nqp::atpos_i(self,$i)),
@@ -1156,7 +1156,7 @@ my class array does Iterable does Positional {
               (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_i($to,nqp::sub_i($last,$i),
                   nqp::atpos_i(self,$i))
               ),
@@ -1173,7 +1173,7 @@ my class array does Iterable does Positional {
             );
             $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_i(
                 $to,
                 ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -1198,7 +1198,7 @@ my class array does Iterable does Positional {
                   nqp::stmts(
                     (my int $i = -1),
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                      nqp::islt_i(++$i,$elems)
                         && nqp::iseq_i(
                              nqp::atpos_i(self,$i),
                              nqp::atpos_i(other,$i)
@@ -1352,7 +1352,7 @@ my class array does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2022-02-13T00:23:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-16T09:55:17+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1362,7 +1362,7 @@ my class array does Iterable does Positional {
 
             if $k {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_i(nqp::atpos_u(self,$i),$needle),
                     nqp::push($result,nqp::clone($i))
@@ -1371,7 +1371,7 @@ my class array does Iterable does Positional {
             }
             elsif $kv {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_i(nqp::atpos_u(self,$i),$needle),
                     nqp::stmts(
@@ -1383,7 +1383,7 @@ my class array does Iterable does Positional {
             }
             elsif $p {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_i(nqp::atpos_u(self,$i),$needle),
                     nqp::push($result,Pair.new($i,$needle))
@@ -1392,7 +1392,7 @@ my class array does Iterable does Positional {
             }
             else {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_i(nqp::atpos_u(self,$i),$needle),
                     nqp::push($result,$needle)
@@ -1407,7 +1407,7 @@ my class array does Iterable does Positional {
             my uint $elems = nqp::elems(self);
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::isne_i(nqp::atpos_u(self,$i),$needle),
               nqp::null()
             );
@@ -1430,7 +1430,7 @@ my class array does Iterable does Positional {
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::unless(
                 nqp::existskey($seen,nqp::atpos_u(self,$i)),
                 nqp::bindkey($seen,nqp::push_i($result,nqp::atpos_u(self,$i)),1)
@@ -1447,7 +1447,7 @@ my class array does Iterable does Positional {
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::existskey($seen,(my uint $key = nqp::atpos_u(self,$i))),
                 nqp::push_i($result,$key),
@@ -1465,7 +1465,7 @@ my class array does Iterable does Positional {
                 my uint $i;
 
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isne_i(nqp::atpos_u(self,$i),$last),
                     nqp::push_i($result,$last = nqp::atpos_u(self,$i))
@@ -1538,7 +1538,7 @@ my class array does Iterable does Positional {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_u(self,$i,
                 nqp::if(
                   nqp::isnull(nqp::atpos(reified,$i)),
@@ -1555,7 +1555,7 @@ my class array does Iterable does Positional {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_u(self, $i,
                 nqp::unbox_u(@values.AT-POS($i)))
             );
@@ -1738,7 +1738,7 @@ my class array does Iterable does Positional {
                 (my uint $i),
                 (my uint $min = nqp::atpos_u(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_i(nqp::atpos_u(self,$i),$min),
                     ($min = nqp::atpos_u(self,$i))
@@ -1756,7 +1756,7 @@ my class array does Iterable does Positional {
                 (my uint $i),
                 (my uint $max = nqp::atpos_u(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isgt_i(nqp::atpos_u(self,$i),$max),
                     ($max = nqp::atpos_u(self,$i))
@@ -1775,7 +1775,7 @@ my class array does Iterable does Positional {
                 (my uint $min =
                   my uint $max = nqp::atpos_u(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_i(nqp::atpos_u(self,$i),$min),
                     ($min = nqp::atpos_u(self,$i)),
@@ -1804,7 +1804,7 @@ my class array does Iterable does Positional {
               (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_u($to,nqp::sub_i($last,$i),
                   nqp::atpos_u(self,$i))
               ),
@@ -1821,7 +1821,7 @@ my class array does Iterable does Positional {
             );
             $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_u(
                 $to,
                 ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -1846,7 +1846,7 @@ my class array does Iterable does Positional {
                   nqp::stmts(
                     (my int $i = -1),
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                      nqp::islt_i(++$i,$elems)
                         && nqp::iseq_i(
                              nqp::atpos_u(self,$i),
                              nqp::atpos_u(other,$i)
@@ -2000,7 +2000,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-02-13T00:23:07+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-16T09:55:17+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -2010,7 +2010,7 @@ my class array does Iterable does Positional {
 
             if $k {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_n(nqp::atpos_n(self,$i),$needle),
                     nqp::push($result,nqp::clone($i))
@@ -2019,7 +2019,7 @@ my class array does Iterable does Positional {
             }
             elsif $kv {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_n(nqp::atpos_n(self,$i),$needle),
                     nqp::stmts(
@@ -2031,7 +2031,7 @@ my class array does Iterable does Positional {
             }
             elsif $p {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_n(nqp::atpos_n(self,$i),$needle),
                     nqp::push($result,Pair.new($i,$needle))
@@ -2040,7 +2040,7 @@ my class array does Iterable does Positional {
             }
             else {
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_n(nqp::atpos_n(self,$i),$needle),
                     nqp::push($result,$needle)
@@ -2055,7 +2055,7 @@ my class array does Iterable does Positional {
             my uint $elems = nqp::elems(self);
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::isne_n(nqp::atpos_n(self,$i),$needle),
               nqp::null()
             );
@@ -2078,7 +2078,7 @@ my class array does Iterable does Positional {
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::unless(
                 nqp::existskey($seen,nqp::atpos_n(self,$i)),
                 nqp::bindkey($seen,nqp::push_n($result,nqp::atpos_n(self,$i)),1)
@@ -2095,7 +2095,7 @@ my class array does Iterable does Positional {
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::existskey($seen,(my num $key = nqp::atpos_n(self,$i))),
                 nqp::push_n($result,$key),
@@ -2113,7 +2113,7 @@ my class array does Iterable does Positional {
                 my uint $i;
 
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isne_n(nqp::atpos_n(self,$i),$last),
                     nqp::push_n($result,$last = nqp::atpos_n(self,$i))
@@ -2186,7 +2186,7 @@ my class array does Iterable does Positional {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_n(self,$i,
                 nqp::if(
                   nqp::isnull(nqp::atpos(reified,$i)),
@@ -2203,7 +2203,7 @@ my class array does Iterable does Positional {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_n(self, $i,
                 nqp::unbox_n(@values.AT-POS($i)))
             );
@@ -2386,7 +2386,7 @@ my class array does Iterable does Positional {
                 (my uint $i),
                 (my num $min = nqp::atpos_n(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_n(nqp::atpos_n(self,$i),$min),
                     ($min = nqp::atpos_n(self,$i))
@@ -2404,7 +2404,7 @@ my class array does Iterable does Positional {
                 (my uint $i),
                 (my num $max = nqp::atpos_n(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isgt_n(nqp::atpos_n(self,$i),$max),
                     ($max = nqp::atpos_n(self,$i))
@@ -2423,7 +2423,7 @@ my class array does Iterable does Positional {
                 (my num $min =
                   my num $max = nqp::atpos_n(self,0)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_n(nqp::atpos_n(self,$i),$min),
                     ($min = nqp::atpos_n(self,$i)),
@@ -2452,7 +2452,7 @@ my class array does Iterable does Positional {
               (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_n($to,nqp::sub_i($last,$i),
                   nqp::atpos_n(self,$i))
               ),
@@ -2469,7 +2469,7 @@ my class array does Iterable does Positional {
             );
             $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_n(
                 $to,
                 ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -2494,7 +2494,7 @@ my class array does Iterable does Positional {
                   nqp::stmts(
                     (my int $i = -1),
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                      nqp::islt_i(++$i,$elems)
                         && nqp::iseq_n(
                              nqp::atpos_n(self,$i),
                              nqp::atpos_n(other,$i)
@@ -2656,7 +2656,7 @@ my class array does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2022-02-02T18:04:27+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-16T09:58:41+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2780,7 +2780,7 @@ my class array does Iterable does Positional {
                 nqp::stmts(
                   (my int $i = $!level),
                   nqp::while(
-                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::isle_i(++$i,$!maxdim),
                     nqp::if(
                       nqp::eqaddr((my \item :=      # exhausted ?
                         nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
@@ -2952,7 +2952,7 @@ my class array does Iterable does Positional {
               nqp::stmts(
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos_i(self,$i,nqp::atpos_i(from,$i))
                 ),
                 self
@@ -2967,7 +2967,7 @@ my class array does Iterable does Positional {
             my \iter := Rakudo::Iterator.TailWith(in.iterator,0);
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::islt_i(++$i,nqp::elems(self)),
               nqp::bindpos_i(self,$i,iter.pull-one)
             );
             # too many values? then throw by just accessing out of range
@@ -2991,19 +2991,19 @@ my class array does Iterable does Positional {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
                   ?? nqp::atposref_i($!list,$!pos)
                   !! IterationEnd
             }
             method skip-one() {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
             }
             method push-all(\target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),
                   (my int $pos = $!pos),
                   nqp::while(
-                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    nqp::islt_i(++$pos,$elems),
                     target.push(nqp::atpos_i($!list,$pos))
                   ),
                   ($!pos = $pos)
@@ -3029,7 +3029,7 @@ my class array does Iterable does Positional {
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
                 nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::bitand_i($i,1),
                     nqp::atposref_i(self,nqp::bitshiftr_i($i,1)),
@@ -3043,7 +3043,7 @@ my class array does Iterable does Positional {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                nqp::islt_i(++$i,$elems)
                   ?? Pair.new($i,nqp::atposref_i(self,$i))
                   !! IterationEnd
             }))
@@ -3058,7 +3058,7 @@ my class array does Iterable does Positional {
               (my int $i     = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_i($to,nqp::sub_i($last,$i),
                   nqp::atpos_i(self,$i))
               ),
@@ -3074,7 +3074,7 @@ my class array does Iterable does Positional {
                 nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
               nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_i(
                   $to,
                   ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -3159,7 +3159,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapeduintarray role -----------------------------
-#- Generated on 2022-02-02T18:04:27+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-16T09:58:41+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapeduintarray does shapedarray {
@@ -3283,7 +3283,7 @@ my class array does Iterable does Positional {
                 nqp::stmts(
                   (my int $i = $!level),
                   nqp::while(
-                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::isle_i(++$i,$!maxdim),
                     nqp::if(
                       nqp::eqaddr((my \item :=      # exhausted ?
                         nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
@@ -3455,7 +3455,7 @@ my class array does Iterable does Positional {
               nqp::stmts(
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos_u(self,$i,nqp::atpos_u(from,$i))
                 ),
                 self
@@ -3470,7 +3470,7 @@ my class array does Iterable does Positional {
             my \iter := Rakudo::Iterator.TailWith(in.iterator,0);
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::islt_i(++$i,nqp::elems(self)),
               nqp::bindpos_u(self,$i,iter.pull-one)
             );
             # too many values? then throw by just accessing out of range
@@ -3494,19 +3494,19 @@ my class array does Iterable does Positional {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
                   ?? nqp::atposref_u($!list,$!pos)
                   !! IterationEnd
             }
             method skip-one() {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
             }
             method push-all(\target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),
                   (my int $pos = $!pos),
                   nqp::while(
-                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    nqp::islt_i(++$pos,$elems),
                     target.push(nqp::atpos_u($!list,$pos))
                   ),
                   ($!pos = $pos)
@@ -3532,7 +3532,7 @@ my class array does Iterable does Positional {
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
                 nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::bitand_i($i,1),
                     nqp::atposref_u(self,nqp::bitshiftr_i($i,1)),
@@ -3546,7 +3546,7 @@ my class array does Iterable does Positional {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                nqp::islt_i(++$i,$elems)
                   ?? Pair.new($i,nqp::atposref_u(self,$i))
                   !! IterationEnd
             }))
@@ -3561,7 +3561,7 @@ my class array does Iterable does Positional {
               (my int $i     = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_u($to,nqp::sub_i($last,$i),
                   nqp::atpos_u(self,$i))
               ),
@@ -3577,7 +3577,7 @@ my class array does Iterable does Positional {
                 nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
               nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_u(
                   $to,
                   ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -3662,7 +3662,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapeduintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2022-02-02T18:04:27+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-16T09:58:41+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -3786,7 +3786,7 @@ my class array does Iterable does Positional {
                 nqp::stmts(
                   (my int $i = $!level),
                   nqp::while(
-                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::isle_i(++$i,$!maxdim),
                     nqp::if(
                       nqp::eqaddr((my \item :=      # exhausted ?
                         nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
@@ -3958,7 +3958,7 @@ my class array does Iterable does Positional {
               nqp::stmts(
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos_n(self,$i,nqp::atpos_n(from,$i))
                 ),
                 self
@@ -3973,7 +3973,7 @@ my class array does Iterable does Positional {
             my \iter := Rakudo::Iterator.TailWith(in.iterator,0e0);
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::islt_i(++$i,nqp::elems(self)),
               nqp::bindpos_n(self,$i,iter.pull-one)
             );
             # too many values? then throw by just accessing out of range
@@ -3997,19 +3997,19 @@ my class array does Iterable does Positional {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
                   ?? nqp::atposref_n($!list,$!pos)
                   !! IterationEnd
             }
             method skip-one() {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
             }
             method push-all(\target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),
                   (my int $pos = $!pos),
                   nqp::while(
-                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    nqp::islt_i(++$pos,$elems),
                     target.push(nqp::atpos_n($!list,$pos))
                   ),
                   ($!pos = $pos)
@@ -4035,7 +4035,7 @@ my class array does Iterable does Positional {
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
                 nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::bitand_i($i,1),
                     nqp::atposref_n(self,nqp::bitshiftr_i($i,1)),
@@ -4049,7 +4049,7 @@ my class array does Iterable does Positional {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                nqp::islt_i(++$i,$elems)
                   ?? Pair.new($i,nqp::atposref_n(self,$i))
                   !! IterationEnd
             }))
@@ -4064,7 +4064,7 @@ my class array does Iterable does Positional {
               (my int $i     = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_n($to,nqp::sub_i($last,$i),
                   nqp::atpos_n(self,$i))
               ),
@@ -4080,7 +4080,7 @@ my class array does Iterable does Positional {
                 nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
               nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_n(
                   $to,
                   ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -4165,7 +4165,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2022-02-02T18:04:27+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-02-16T09:58:41+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -4289,7 +4289,7 @@ my class array does Iterable does Positional {
                 nqp::stmts(
                   (my int $i = $!level),
                   nqp::while(
-                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::isle_i(++$i,$!maxdim),
                     nqp::if(
                       nqp::eqaddr((my \item :=      # exhausted ?
                         nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
@@ -4461,7 +4461,7 @@ my class array does Iterable does Positional {
               nqp::stmts(
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos_s(self,$i,nqp::atpos_s(from,$i))
                 ),
                 self
@@ -4476,7 +4476,7 @@ my class array does Iterable does Positional {
             my \iter := Rakudo::Iterator.TailWith(in.iterator,"");
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::islt_i(++$i,nqp::elems(self)),
               nqp::bindpos_s(self,$i,iter.pull-one)
             );
             # too many values? then throw by just accessing out of range
@@ -4500,19 +4500,19 @@ my class array does Iterable does Positional {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
                   ?? nqp::atposref_s($!list,$!pos)
                   !! IterationEnd
             }
             method skip-one() {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
             }
             method push-all(\target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),
                   (my int $pos = $!pos),
                   nqp::while(
-                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    nqp::islt_i(++$pos,$elems),
                     target.push(nqp::atpos_s($!list,$pos))
                   ),
                   ($!pos = $pos)
@@ -4538,7 +4538,7 @@ my class array does Iterable does Positional {
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
                 nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::bitand_i($i,1),
                     nqp::atposref_s(self,nqp::bitshiftr_i($i,1)),
@@ -4552,7 +4552,7 @@ my class array does Iterable does Positional {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                nqp::islt_i(++$i,$elems)
                   ?? Pair.new($i,nqp::atposref_s(self,$i))
                   !! IterationEnd
             }))
@@ -4567,7 +4567,7 @@ my class array does Iterable does Positional {
               (my int $i     = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_s($to,nqp::sub_i($last,$i),
                   nqp::atpos_s(self,$i))
               ),
@@ -4583,7 +4583,7 @@ my class array does Iterable does Positional {
                 nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
               nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_s(
                   $to,
                   ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -4860,7 +4860,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2022-02-12T20:29:54+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-16T09:56:05+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5042,11 +5042,7 @@ multi sub postcircumfix:<[ ]>(
         ) && nqp::isge_i($got,0),
         nqp::push_s(
           @result,
-          nqp::bindpos_s(
-            $self,
-            $got,
-            nqp::atpos_s($values,$i = nqp::add_i($i,1))
-          )
+          nqp::bindpos_s($self,$got,nqp::atpos_s($values,++$i))
         ),
         nqp::if(
           nqp::istype($got,Int),
@@ -5110,7 +5106,7 @@ multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
 
     my int $i = -1;
     nqp::until(
-      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+      nqp::isge_i(++$i,$elems)
         || (my $res = nqp::cmp_s(nqp::atpos_s(a,$i),nqp::atpos_s(b,$i))),
       nqp::null
     );
@@ -5121,7 +5117,7 @@ multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2022-02-12T20:29:54+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-16T09:56:05+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5303,11 +5299,7 @@ multi sub postcircumfix:<[ ]>(
         ) && nqp::isge_i($got,0),
         nqp::push_n(
           @result,
-          nqp::bindpos_n(
-            $self,
-            $got,
-            nqp::atpos_n($values,$i = nqp::add_i($i,1))
-          )
+          nqp::bindpos_n($self,$got,nqp::atpos_n($values,++$i))
         ),
         nqp::if(
           nqp::istype($got,Int),
@@ -5371,7 +5363,7 @@ multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
 
     my int $i = -1;
     nqp::until(
-      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+      nqp::isge_i(++$i,$elems)
         || (my $res = nqp::cmp_n(nqp::atpos_n(a,$i),nqp::atpos_n(b,$i))),
       nqp::null
     );
@@ -5382,7 +5374,7 @@ multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2022-02-12T20:29:54+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-16T09:56:05+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5564,11 +5556,7 @@ multi sub postcircumfix:<[ ]>(
         ) && nqp::isge_i($got,0),
         nqp::push_i(
           @result,
-          nqp::bindpos_i(
-            $self,
-            $got,
-            nqp::atpos_i($values,$i = nqp::add_i($i,1))
-          )
+          nqp::bindpos_i($self,$got,nqp::atpos_i($values,++$i))
         ),
         nqp::if(
           nqp::istype($got,Int),
@@ -5632,7 +5620,7 @@ multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
 
     my int $i = -1;
     nqp::until(
-      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+      nqp::isge_i(++$i,$elems)
         || (my $res = nqp::cmp_i(nqp::atpos_i(a,$i),nqp::atpos_i(b,$i))),
       nqp::null
     );
@@ -5643,7 +5631,7 @@ multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of postcircumfix candidates of uintarray -------------------------------
-#- Generated on 2022-02-12T20:29:54+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-02-16T09:56:05+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5825,11 +5813,7 @@ multi sub postcircumfix:<[ ]>(
         ) && nqp::isge_i($got,0),
         nqp::push_i(
           @result,
-          nqp::bindpos_u(
-            $self,
-            $got,
-            nqp::atpos_u($values,$i = nqp::add_i($i,1))
-          )
+          nqp::bindpos_u($self,$got,nqp::atpos_u($values,++$i))
         ),
         nqp::if(
           nqp::istype($got,Int),
@@ -5893,7 +5877,7 @@ multi sub infix:<cmp>(array::uintarray:D \a, array::uintarray:D \b) {
 
     my int $i = -1;
     nqp::until(
-      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+      nqp::isge_i(++$i,$elems)
         || (my $res = nqp::cmp_i(nqp::atpos_u(a,$i),nqp::atpos_u(b,$i))),
       nqp::null
     );
@@ -5904,7 +5888,7 @@ multi sub infix:<cmp>(array::uintarray:D \a, array::uintarray:D \b) {
 #- end of postcircumfix candidates of uintarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
-#- Generated on 2021-06-11T22:51:08+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2022-02-16T10:10:08+01:00 by ./tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -6034,7 +6018,7 @@ multi sub postcircumfix:<[ ]>(
             $pulled(nqp::elems($self)),
             $pulled.Int
           ),
-          nqp::atpos_s($values,$i = nqp::add_i($i,1))
+          nqp::atpos_s($values,++$i)
         )
       )
     );
@@ -6046,7 +6030,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of shaped1 postcircumfix candidates of strarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of intarray -----------------------
-#- Generated on 2021-06-11T22:51:08+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2022-02-16T10:10:08+01:00 by ./tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -6176,7 +6160,7 @@ multi sub postcircumfix:<[ ]>(
             $pulled(nqp::elems($self)),
             $pulled.Int
           ),
-          nqp::atpos_i($values,$i = nqp::add_i($i,1))
+          nqp::atpos_i($values,++$i)
         )
       )
     );
@@ -6188,10 +6172,149 @@ multi sub postcircumfix:<[ ]>(
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of uintarray -----------------------
+#- Generated on 2022-02-16T10:10:08+01:00 by ./tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Int:D $pos
+) is default is raw {
+    nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Int:D $pos, UInt:D \assignee
+) is default is raw {
+    nqp::bindpos_u(nqp::decont(SELF),$pos,assignee)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Int:D $pos, :$exists!, *%_
+) is default {
+    my int $state =
+      nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
+    my $value := nqp::hllbool($exists ?? $state !! nqp::not_i($state));
+
+    $state
+      ?? nqp::elems(my $adverbs := nqp::getattr(%_,Map,'$!storage'))
+        ?? nqp::atkey($adverbs,'kv')
+          ?? ($pos,$value)
+          !! nqp::atkey($adverbs,'p')
+            ?? Pair.new($pos,$value)
+            !! Failure.new(
+                 X::Adverb.new(
+                   what   => "slice",
+                   source => "native shaped1 uint array",
+                   nogo   => ('exists', |%_.keys).sort
+                 )
+               )
+        !! $value
+      !! $value
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Int:D $pos, :$kv!
+) is default is raw {
+    $kv
+      ?? nqp::list($pos,nqp::atpos_u(nqp::decont(SELF),$pos))
+      !! nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Int:D $pos, :$p!
+) is default is raw {
+    $p
+      ?? Pair.new($pos,nqp::atpos_u(nqp::decont(SELF),$pos))
+      !! nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Int:D $pos, :$k!
+) is default is raw {
+    $k ?? $pos !! nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Int:D $pos, :$v!
+) is default is raw {
+    $v
+      ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::list(nqp::atpos_u(nqp::decont(SELF),$pos))
+        !! ()
+      !! nqp::atpos_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Iterable:D $pos is rw
+) is default is raw {
+    nqp::atposref_u(nqp::decont(SELF),$pos.Int)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Callable:D $pos
+) is default is raw {
+    nqp::atposref_u(
+      nqp::decont(SELF),
+      $pos(nqp::elems(nqp::decont(SELF)))
+    )
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Iterable:D $pos
+) is default is raw {
+    my $self     := nqp::decont(SELF);
+    my $iterator := $pos.iterator;
+    my uint @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::push_i(
+        @result,
+        nqp::atpos_u(
+          $self,
+          nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1uintarray:D \SELF, Iterable:D $pos, array::uintarray:D $values
+) is default is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my uint @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::push_i(
+        @result,
+        nqp::bindpos_u(
+          $self,
+          nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          ),
+          nqp::atpos_u($values,++$i)
+        )
+      )
+    );
+
+    @result
+}
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of uintarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
-#- Generated on 2021-06-11T22:51:08+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2022-02-16T10:10:08+01:00 by ./tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -6321,7 +6444,7 @@ multi sub postcircumfix:<[ ]>(
             $pulled(nqp::elems($self)),
             $pulled.Int
           ),
-          nqp::atpos_n($values,$i = nqp::add_i($i,1))
+          nqp::atpos_n($values,++$i)
         )
       )
     );

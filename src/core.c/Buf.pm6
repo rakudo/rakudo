@@ -14,7 +14,7 @@ enum Endian (
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
 
 #- start of generated part of Blob Signed role -------------------------------
-#- Generated on 2022-02-15T11:01:59+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2022-02-16T09:52:11+01:00 by ./tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
@@ -45,7 +45,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
                 nqp::istype(nqp::hllize($got),Int),
                 nqp::stmts(
                   nqp::push_i(to,$got),
-                  ($i = nqp::add_i($i,1))
+                  ++$i
                 ),
                 self!fail-typecheck-element(action,$i,$got).throw
               )
@@ -117,7 +117,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         my $reversed := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos_i($reversed,nqp::sub_i($last,$i),
             nqp::atpos_i(self,$i))
         );
@@ -133,7 +133,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
           nqp::stmts(                            # same number of elements
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::not_i(
                      nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
                    ),
@@ -156,7 +156,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
           nqp::stmts(                            # same number of elements
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i)),
               nqp::null
             ),
@@ -171,7 +171,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::push_s($list,nqp::atpos_i(self,$i))
         );
 
@@ -182,7 +182,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of Blob Signed role ---------------------------------
 #- start of generated part of Blob Unsigned role -------------------------------
-#- Generated on 2022-02-15T11:01:59+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2022-02-16T09:52:11+01:00 by ./tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
@@ -213,7 +213,7 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
                 nqp::istype(nqp::hllize($got),Int),
                 nqp::stmts(
                   nqp::push_i(to,my $ = $got),
-                  ($i = nqp::add_i($i,1))
+                  ++$i
                 ),
                 self!fail-typecheck-element(action,$i,$got).throw
               )
@@ -285,7 +285,7 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         my $reversed := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos_u($reversed,nqp::sub_i($last,$i),
             nqp::atpos_u(self,$i))
         );
@@ -301,7 +301,7 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
           nqp::stmts(                            # same number of elements
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::not_i(
                      nqp::cmp_i(nqp::atpos_u(self,$i),nqp::atpos_u($other,$i))
                    ),
@@ -324,7 +324,7 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
           nqp::stmts(                            # same number of elements
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::iseq_i(nqp::atpos_u(self,$i),nqp::atpos_u($other,$i)),
               nqp::null
             ),
@@ -339,7 +339,7 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::push_s($list,nqp::atpos_u(self,$i))
         );
 

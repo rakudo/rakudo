@@ -85,7 +85,7 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
                 nqp::istype(nqp::hllize($got),Int),
                 nqp::stmts(
                   nqp::push_i(to,#containerize#$got),
-                  ($i = nqp::add_i($i,1))
+                  ++$i
                 ),
                 self!fail-typecheck-element(action,$i,$got).throw
               )
@@ -157,7 +157,7 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
         my $reversed := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos_#postfix#($reversed,nqp::sub_i($last,$i),
             nqp::atpos_#postfix#(self,$i))
         );
@@ -173,7 +173,7 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
           nqp::stmts(                            # same number of elements
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::not_i(
                      nqp::cmp_i(nqp::atpos_#postfix#(self,$i),nqp::atpos_#postfix#($other,$i))
                    ),
@@ -196,7 +196,7 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
           nqp::stmts(                            # same number of elements
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::iseq_i(nqp::atpos_#postfix#(self,$i),nqp::atpos_#postfix#($other,$i)),
               nqp::null
             ),
@@ -211,7 +211,7 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
         my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::push_s($list,nqp::atpos_#postfix#(self,$i))
         );
 

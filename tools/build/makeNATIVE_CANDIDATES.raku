@@ -265,11 +265,7 @@ multi sub postcircumfix:<[ ]>(
         ) && nqp::isge_i($got,0),
         nqp::push_#postfix_push#(
           @result,
-          nqp::bindpos_#postfix#(
-            $self,
-            $got,
-            nqp::atpos_#postfix#($values,$i = nqp::add_i($i,1))
-          )
+          nqp::bindpos_#postfix#($self,$got,nqp::atpos_#postfix#($values,++$i))
         ),
         nqp::if(
           nqp::istype($got,Int),
@@ -333,7 +329,7 @@ multi sub infix:<cmp>(array::#type#array:D \a, array::#type#array:D \b) {
 
     my int $i = -1;
     nqp::until(
-      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+      nqp::isge_i(++$i,$elems)
         || (my $res = nqp::cmp_#postfix_cmp#(nqp::atpos_#postfix#(a,$i),nqp::atpos_#postfix#(b,$i))),
       nqp::null
     );

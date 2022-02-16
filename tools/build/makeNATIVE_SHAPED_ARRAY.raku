@@ -175,7 +175,7 @@ while @lines {
                 nqp::stmts(
                   (my int $i = $!level),
                   nqp::while(
-                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::isle_i(++$i,$!maxdim),
                     nqp::if(
                       nqp::eqaddr((my \item :=      # exhausted ?
                         nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
@@ -347,7 +347,7 @@ while @lines {
               nqp::stmts(
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos_#postfix#(self,$i,nqp::atpos_#postfix#(from,$i))
                 ),
                 self
@@ -362,7 +362,7 @@ while @lines {
             my \iter := Rakudo::Iterator.TailWith(in.iterator,#null#);
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::islt_i(++$i,nqp::elems(self)),
               nqp::bindpos_#postfix#(self,$i,iter.pull-one)
             );
             # too many values? then throw by just accessing out of range
@@ -386,19 +386,19 @@ while @lines {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
                   ?? nqp::atposref_#postfix#($!list,$!pos)
                   !! IterationEnd
             }
             method skip-one() {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                nqp::islt_i(++$!pos,nqp::elems($!list))
             }
             method push-all(\target --> IterationEnd) {
                 nqp::stmts(
                   (my int $elems = nqp::elems($!list)),
                   (my int $pos = $!pos),
                   nqp::while(
-                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    nqp::islt_i(++$pos,$elems),
                     target.push(nqp::atpos_#postfix#($!list,$pos))
                   ),
                   ($!pos = $pos)
@@ -424,7 +424,7 @@ while @lines {
             my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
             Seq.new(Rakudo::Iterator.Callable({
                 nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::bitand_i($i,1),
                     nqp::atposref_#postfix#(self,nqp::bitshiftr_i($i,1)),
@@ -438,7 +438,7 @@ while @lines {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                nqp::islt_i(++$i,$elems)
                   ?? Pair.new($i,nqp::atposref_#postfix#(self,$i))
                   !! IterationEnd
             }))
@@ -453,7 +453,7 @@ while @lines {
               (my int $i     = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_#postfix#($to,nqp::sub_i($last,$i),
                   nqp::atpos_#postfix#(self,$i))
               ),
@@ -469,7 +469,7 @@ while @lines {
                 nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
               nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_#postfix#(
                   $to,
                   ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),

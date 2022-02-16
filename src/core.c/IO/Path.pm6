@@ -96,7 +96,7 @@ my class IO::Path is Cool does IO {
         ),
         nqp::stmts(
           ($offset = $next-offset),
-          ($parts = nqp::add_i($parts, 1))
+          ++$parts
         ),
       );
       nqp::if(
@@ -270,7 +270,7 @@ my class IO::Path is Cool does IO {
           (my int $els = nqp::elems($p)),
           (my int $i = -1),
           nqp::while(
-            nqp::isne_i($els, $i = nqp::add_i($i, 1)),
+            nqp::isne_i($els,++$i),
             nqp::if(
               nqp::iseq_i(nqp::atpos_u($p, $i), $ord-sep),
               nqp::atposref_u($p, $i) = 0)),

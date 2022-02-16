@@ -35,7 +35,7 @@ my class IO::Handle {
         if nqp::elems($opened) -> int $elems {
             my int $i = 2;  # skip STDIN, STDOUT, STDERR
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::unless(
                 nqp::isnull(my $PIO := nqp::atpos($opened,$i)),
                 nqp::closefh($PIO)

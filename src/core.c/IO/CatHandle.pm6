@@ -314,7 +314,7 @@ my class IO::CatHandle is IO::Handle {
           (my int $i = -1),
           (my int $els = nqp::elems($!handles)),
           nqp::while(
-            nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
+            nqp::isgt_i($els,++$i),
             nqp::if(
               nqp::istype(($_ := nqp::atpos($!handles, $i)), IO::Handle),
               my $ = .close)),

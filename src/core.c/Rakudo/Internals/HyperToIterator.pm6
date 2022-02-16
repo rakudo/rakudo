@@ -34,7 +34,7 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
           nqp::isnull(nqp::atpos($!waiting,0)),
           nqp::stmts(
             $!batches.send(nqp::shift($!waiting)),
-            ($!offset = nqp::add_i($!offset,1))
+            ++$!offset
           )
         );
 

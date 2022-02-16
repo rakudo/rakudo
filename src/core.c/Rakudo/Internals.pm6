@@ -373,7 +373,7 @@ my class Rakudo::Internals {
             (my $values := nqp::getattr(values,List,'$!reified')),
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::istype(nqp::atpos($values,$i),type),
               nqp::null
             ),
@@ -390,7 +390,7 @@ my class Rakudo::Internals {
             (my $values := nqp::getattr(values,List,'$!reified')),
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::istype(nqp::atpos($values,$i),type)
                 && nqp::defined(nqp::atpos($values,$i)),
               nqp::null
@@ -408,7 +408,7 @@ my class Rakudo::Internals {
             (my $values := nqp::getattr(values,List,'$!reified')),
             (my int $i = -1),
             nqp::until(
-              nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::iseq_i(++$i,$elems)
                 || (nqp::istype(nqp::atpos($values,$i),type)
                      && nqp::defined(nqp::atpos($values,$i))),
               nqp::null
@@ -469,7 +469,7 @@ my class Rakudo::Internals {
             (my int $elems = nqp::elems($spec)),
             (my int $i     = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
                 NYI('Jagged array shapes').throw,
@@ -1021,7 +1021,7 @@ my class Rakudo::Internals {
             (my str $date = date),
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::isgt_s($date,nqp::atpos_s($dates,$i)),
               nqp::null
             ),
@@ -1035,7 +1035,7 @@ my class Rakudo::Internals {
         my int $i = -1;
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::isgt_i($p,nqp::atpos_i($posixes,$i)),
           nqp::null
         );
@@ -1054,7 +1054,7 @@ my class Rakudo::Internals {
         my int $t = $tai - $initial-offset;
         my int $i = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
           nqp::null
         );
@@ -1067,7 +1067,7 @@ my class Rakudo::Internals {
         my int $t = tai.floor - $initial-offset;
         my int $i = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
           nqp::null
         );
@@ -1079,7 +1079,7 @@ my class Rakudo::Internals {
         my int $t = tai.floor - $initial-offset;
         my int $i = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
           nqp::null
         );
@@ -1527,7 +1527,7 @@ my class Rakudo::Internals {
     # return -1 if string cannot support .succ, else index of last char
     method CAN-SUCC-INDEX(str \string, int \chars) {
         my int $i = chars;
-        Nil while nqp::isge_i($i = nqp::sub_i($i,1),0)
+        Nil while nqp::isge_i(--$i,0)
           && nqp::iseq_i(nqp::index($succ-nlook,nqp::substr(string,$i,1)),-1)
           && nqp::iseq_i(nqp::index($succ-blook,nqp::substr(string,$i,1)),-1);
         $i
@@ -1559,7 +1559,7 @@ my class Rakudo::Internals {
               nqp::substr($succ-bchrs,nqp::add_i($at,$at),2));
 
             # until we run out of chars to check
-            while nqp::isge_i($i = nqp::sub_i($i,1),0) {
+            while nqp::isge_i(--$i,0) {
 
                 # not an easy magical
                 $at = nqp::index($succ-nlook,nqp::substr($str,$i,1));
@@ -1610,7 +1610,7 @@ my class Rakudo::Internals {
               nqp::substr($pred-bchrs,$at,1));
 
             # until we run out of chars to check
-            while nqp::isge_i($i = nqp::sub_i($i,1),0) {
+            while nqp::isge_i(--$i,0) {
 
                 # not an easy magical
                 $at = nqp::index($pred-nlook,nqp::substr($str,$i,1));

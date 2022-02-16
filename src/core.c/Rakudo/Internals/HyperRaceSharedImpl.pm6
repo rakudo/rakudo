@@ -16,17 +16,17 @@ class Rakudo::Internals::HyperRaceSharedImpl {
               nqp::istype(&matcher,Callable)
                 && nqp::not_i(nqp::istype(&matcher,Regex)),
               nqp::while(
-                nqp::islt_i(($from = nqp::add_i($from,1)),$elems),
+                nqp::islt_i(++$from,$elems),
                 nqp::if(
                   matcher(my $item := nqp::atpos($items,$from)),
-                  nqp::bindpos($items,($to = nqp::add_i($to,1)),$item)
+                  nqp::bindpos($items,++$to,$item)
                 )
               ),
               nqp::while(
-                nqp::islt_i(($from = nqp::add_i($from,1)),$elems),
+                nqp::islt_i(++$from,$elems),
                 nqp::if(
                   &matcher.ACCEPTS($item := nqp::atpos($items,$from)),
-                  nqp::bindpos($items,($to = nqp::add_i($to,1)),$item)
+                  nqp::bindpos($items,++$to,$item)
                 )
               )
             );
@@ -59,7 +59,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             my int $i = -1;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$n),
+              nqp::islt_i(++$i,$n),
               nqp::if(
                 nqp::istype((my \val = mapper(nqp::atpos($items, $i))),Slip)
                   && nqp::not_i(nqp::iscont(val)),

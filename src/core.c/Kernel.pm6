@@ -128,7 +128,7 @@ class Kernel does Systemic {
                     nqp::while(
                       nqp::islt_i($i, $els),
                       nqp::bindpos(arr, $i, Signal($i) // Nil),
-                      $i = nqp::add_i($i, 1),
+                      ++$i
                     );
                     @!signals       = |arr;
                     $!signals-setup = True;
@@ -150,7 +150,7 @@ class Kernel does Systemic {
                     my int $i = -1;
 
                     nqp::while(
-                      nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
+                      nqp::isgt_i($els,++$i),
                       ($_ := @!signals.AT-POS($i)).defined
                         && %!signals-by-Str.ASSIGN-KEY(.Str, nqp::decont($i))
                     );

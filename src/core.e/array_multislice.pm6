@@ -11,7 +11,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
     my int $i;
     nqp::while(
       nqp::islt_i($i,$dims) && nqp::istype(nqp::atpos($indices,$i),Int),
-      ($i = nqp::add_i($i,1))
+      ++$i
     );
 
     nqp::iseq_i($i,$dims)                   # True if all indices are Int
@@ -43,7 +43,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is raw) is raw {
     my int $i;
     nqp::while(
       nqp::islt_i($i,$dims) && nqp::istype(nqp::atpos($indices,$i),Int),
-      ($i = nqp::add_i($i,1))
+      ++$i
     );
 
     nqp::iseq_i($i,$dims)                   # True if all indices are Int
@@ -101,7 +101,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
     my int $i;
     nqp::while(
       nqp::islt_i($i,$topdim) && nqp::istype(nqp::atpos($indices,$i),Int),
-      $i = nqp::add_i($i,1)
+      ++$i
     );
 
     # potential fast paths
@@ -215,7 +215,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         my int $i     = -1;
                         my int $elems = SELF.elems;
                         nqp::while(
-                          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                          nqp::islt_i(++$i,$elems),
                           EXISTS-POS-recursively(SELF.AT-POS($i), next-idx)
                         );
                     }
@@ -236,7 +236,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     my int $i     = -1;
                     my int $elems = SELF.elems;
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::islt_i(++$i,$elems),
                       nqp::push(target,$wantnot ?^ SELF.EXISTS-POS($i))
                     );
                 }
@@ -275,7 +275,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         my int $i     = -1;
                         my int $elems = SELF.elems;
                         nqp::while(
-                          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                          nqp::islt_i(++$i,$elems),
                           DELETE-POS-recursively(SELF.AT-POS($i), next-idx)
                         );
                     }
@@ -296,7 +296,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     my int $i     = -1;
                     my int $elems = SELF.elems;
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::islt_i(++$i,$elems),
                       nqp::push(
                         target,
                         SELF.EXISTS-POS($i)
@@ -467,7 +467,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                         my int $i     = -1;
                         my int $elems = SELF.elems;
                         nqp::while(
-                          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                          nqp::islt_i(++$i,$elems),
                           nqp::stmts(
                             nqp::push($keys,nqp::clone($i)),
                             PROCESS-POS-recursively(
@@ -502,7 +502,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     my int $i     = -1;
                     my int $elems = SELF.elems;
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::islt_i(++$i,$elems),
                       process(SELF, $i)
                     );
                 }
@@ -540,7 +540,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     my int $i     = -1;
                     my int $elems = SELF.elems;
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::islt_i(++$i,$elems),
                       AT-POS-recursively(SELF.AT-POS($i), next-idx)
                     );
                 }
@@ -561,7 +561,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                 my int $i     = -1;
                 my int $elems = SELF.elems;
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::push(target,SELF.AT-POS($i))
                 );
             }

@@ -86,7 +86,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 my int $i     = -1;
                 my int $elems = nqp::elems(target);
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos(target,$i,!nqp::atpos(target,$i))
                 );
             }
@@ -386,7 +386,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             my int $i     = -1;
             my int $elems = nqp::elems(target);
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos(target,$i,nqp::decont(nqp::atpos(target,$i)))
             );
         }

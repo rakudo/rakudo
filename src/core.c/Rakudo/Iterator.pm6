@@ -44,7 +44,7 @@ class Rakudo::Iterator {
             my int $i = $!i;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               target.push(nqp::atpos_i($blob,$i))
             );
             $!i = $i;
@@ -176,7 +176,7 @@ class Rakudo::Iterator {
             my int $i = -1;
 
             nqp::while(                # convert list_i to list
-              nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+              nqp::isle_i(++$i,$!maxdim),
               nqp::bindpos($buffer,$i,nqp::atpos_i($!dims,$i))
             );
             $buffer.List
@@ -192,7 +192,7 @@ class Rakudo::Iterator {
                 ($!dims := nqp::setelems(nqp::list_i,$dims)),
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                  nqp::islt_i(++$i,$dims),
                   nqp::bindpos_i($!dims,$i,
                     nqp::atpos(nqp::getattr($shape,List,'$!reified'),$i))
                 )
@@ -215,9 +215,8 @@ class Rakudo::Iterator {
                 (my $result := self.process),  # do the processing
                 (my int $level = $!maxdim),
                 nqp::until(                    # update indices
-                  nqp::islt_i(                 # exhausted ??
-                    ($level = nqp::sub_i($level,1)),0) # next level
-                    || nqp::stmts(
+                  nqp::islt_i(--$level,0)      # exhausted ??
+                    || nqp::stmts(             # next level
                     nqp::bindpos_i($!indices,nqp::add_i($level,1),0),  # reset
                     nqp::islt_i(
                       nqp::bindpos_i($!indices,$level, # increment this level
@@ -270,7 +269,7 @@ class Rakudo::Iterator {
             my int $i = -1;
 
             nqp::while(                # convert list_i to list
-              nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+              nqp::isle_i(++$i,$!maxdim),
               nqp::bindpos($result,$i,nqp::atpos_i($!indices,$i))
             );
             $result
@@ -285,7 +284,7 @@ class Rakudo::Iterator {
                 ($!dims := nqp::setelems(nqp::list_i,$dims)),
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+                  nqp::islt_i(++$i,$dims),
                   nqp::bindpos_i($!dims,$i,
                     nqp::atpos(nqp::getattr($shape,List,'$!reified'),$i))
                 )
@@ -316,8 +315,7 @@ class Rakudo::Iterator {
                   nqp::stmts(                             # done for now
                     (my int $level = $!maxdim),
                     nqp::until(                           # update indices
-                      nqp::islt_i(                        # exhausted ??
-                        ($level = nqp::sub_i($level,1)),0)
+                      nqp::islt_i(--$level,0)             # exhausted ??
                         || nqp::stmts(
                         nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
                         nqp::islt_i(
@@ -346,7 +344,7 @@ class Rakudo::Iterator {
               nqp::stmts(                                   # still iterating
                 (my int $i = nqp::atpos_i($!indices,$!maxdim)),
                 nqp::while(
-                  nqp::isle_i(($i = nqp::add_i($i,1)),$!max),
+                  nqp::isle_i(++$i,$!max),
                   nqp::stmts(
                     target.push(self.result),              # process
                     nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
@@ -354,8 +352,7 @@ class Rakudo::Iterator {
                 ),
                 (my int $level = $!maxdim),                 # done for now
                 nqp::until(                                 # update indices
-                  nqp::islt_i(                              # exhausted ??
-                    ($level = nqp::sub_i($level,1)),0)
+                  nqp::islt_i(--$level,0)                   # exhausted ??
                     || nqp::stmts(
                     nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
                     nqp::islt_i(
@@ -380,7 +377,7 @@ class Rakudo::Iterator {
               nqp::stmts(                                   # still iterating
                 (my int $i = nqp::atpos_i($!indices,$!maxdim)),
                 nqp::while(
-                  nqp::isle_i(($i = nqp::add_i($i,1)),$!max),
+                  nqp::isle_i(++$i,$!max),
                   nqp::stmts(
                     self.result,                            # process
                     nqp::bindpos_i($!indices,$!maxdim,$i),  # ready for next
@@ -388,8 +385,7 @@ class Rakudo::Iterator {
                 ),
                 (my int $level = $!maxdim),                 # done for now
                 nqp::until(                                 # update indices
-                  nqp::islt_i(                              # exhausted ??
-                    ($level = nqp::sub_i($level,1)),0)
+                  nqp::islt_i(--$level,0)                   # exhausted ??
                     || nqp::stmts(
                     nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
                     nqp::islt_i(
@@ -467,7 +463,7 @@ class Rakudo::Iterator {
             my \buffered := nqp::setelems(nqp::list,$size);
 
             nqp::while(                      # fill buffer to produce from
-              nqp::islt_i(($i = nqp::add_i($i,1)),$size)
+              nqp::islt_i(++$i,$size)
                 && nqp::not_i(nqp::eqaddr(
                      (my \pulled := iterator.pull-one),
                      IterationEnd
@@ -524,13 +520,13 @@ class Rakudo::Iterator {
         method pull-one() is raw {
             nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd)
               ?? IterationEnd
-              !! Pair.new(pulled,+($!key = nqp::add_i($!key,1)))
+              !! Pair.new(pulled,+(++$!key))
         }
         method push-all(\target --> IterationEnd) {
             my int $key = -1;
             nqp::until(
               nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd),
-              target.push(Pair.new(pulled,+($key = nqp::add_i($key,1))))
+              target.push(Pair.new(pulled,+(++$key)))
             )
         }
         method is-lazy() { $!iter.is-lazy }
@@ -816,10 +812,9 @@ class Rakudo::Iterator {
                   (nqp::islt_i($value,$n)
                     && nqp::islt_i($index,$k)),
                   nqp::stmts(
-                    nqp::bindpos($!combination,
-                      $index,nqp::clone($value)),
-                    ($index = nqp::add_i($index,1)),
-                    ($value = nqp::add_i($value,1)),
+                    nqp::bindpos($!combination,$index,nqp::clone($value)),
+                    ++$index,
+                    ++$value,
                     nqp::push_i($!stack,$value)
                   )
                 ),
@@ -830,7 +825,7 @@ class Rakudo::Iterator {
             nqp::if(
               nqp::iseq_i($index,$k),
               nqp::stmts(
-                ($!pulled-count = nqp::add_i($!pulled-count,1)),
+                ++$!pulled-count,
                 nqp::if(
                   $!b,
                   nqp::clone($!combination),
@@ -891,7 +886,7 @@ class Rakudo::Iterator {
             # loop over all iterables
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
 
               # set up initial value of index $i with...
               nqp::bindpos($!next,$i,nqp::if(
@@ -1020,7 +1015,7 @@ class Rakudo::Iterator {
                     # until we're at the bottom
                     (my int $level = $!top),
                     nqp::while(
-                      nqp::isge_i(($level = nqp::sub_i($level,1)),0),
+                      nqp::isge_i(--$level,0),
                       nqp::if(
                         nqp::isnull(nqp::atpos($!iterators,$level)),
 
@@ -1137,7 +1132,7 @@ class Rakudo::Iterator {
             # loop over all iterables
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
 
               # set up initial value of index $i with...
               nqp::bindpos($!next,$i,nqp::if(
@@ -1269,7 +1264,7 @@ class Rakudo::Iterator {
                     # until we're at the bottom
                     (my int $level = $!top),
                     nqp::while(
-                      nqp::isge_i(($level = nqp::sub_i($level,1)),0),
+                      nqp::isge_i(--$level,0),
                       nqp::if(
                         nqp::isnull(nqp::atpos($!iterators,$level)),
 
@@ -1663,7 +1658,7 @@ class Rakudo::Iterator {
                 ),
                 nqp::atpos($!buffer,            # not seen, so modulo repeat
                   nqp::mod_i(
-                    nqp::sub_i(($!i = nqp::add_i($!i,1)),1),
+                    nqp::sub_i(++$!i,1),
                     nqp::elems($!buffer)
                   )
                 )
@@ -1707,7 +1702,7 @@ class Rakudo::Iterator {
                 (my int $elems = nqp::elems($!buffer)),
                 nqp::until(
                   nqp::eqaddr($!source.pull-one,IterationEnd),
-                  $elems = nqp::add_i($elems,1)
+                  ++$elems
                 ),
                 $elems
               )
@@ -1744,7 +1739,7 @@ class Rakudo::Iterator {
         has &!callable;
         method pull-one() is raw {
             nqp::if(
-              nqp::isle_i($!n, ($!i = nqp::add_i($!i, 1))),
+              nqp::isle_i($!n,++$!i),
               nqp::if(
                 nqp::iseq_i($!i, $!n),
                 nqp::stmts(
@@ -2055,10 +2050,10 @@ class Rakudo::Iterator {
                 (my int $i = 0),
                 (my int $n = $!wanted),
                 nqp::while(  # doesn't sink
-                  nqp::islt_i($i = nqp::add_i($i,1),$n),
+                  nqp::islt_i(++$i,$n),
                   nqp::if(
                     nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                    last
+                    last   #  XXX this probably doesn't do what is intended
                   ),
                   $!push-target.push($value)
                 ),
@@ -2072,7 +2067,7 @@ class Rakudo::Iterator {
             my int $n = $!wanted;
             my $value;
             nqp::while(
-              nqp::islt_i($i = nqp::add_i($i,1),$n),
+              nqp::islt_i(++$i,$n),
               nqp::stmts(  # doesn't sink
                 nqp::if(
                   nqp::eqaddr(($value := self.slip-one),IterationEnd),
@@ -2098,7 +2093,7 @@ class Rakudo::Iterator {
         method !SET-SELF(int $i) { $!i = nqp::sub_i($i,1); self }
         method new(int $from) { nqp::create(self)!SET-SELF($from) }
 
-        method pull-one() { $!i = nqp::add_i($!i,1) }
+        method pull-one() { ++$!i }
         method push-exactly(\target, int $batch-size) {
             target.push(self.pull-one) for ^$batch-size;
             $batch-size
@@ -2118,19 +2113,18 @@ class Rakudo::Iterator {
         method new(\f,\t) { nqp::create(self)!SET-SELF(f,t) }
 
         method pull-one() {
-            nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last)
+            nqp::isle_i(++$!i,$!last)
               ?? $!i
               !! IterationEnd
         }
-        method skip-one() { nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last) }
+        method skip-one() { nqp::isle_i(++$!i,$!last) }
         method push-exactly(\target, int $batch-size) {
             my int $todo = nqp::add_i($batch-size,1);
             my int $i    = $!i;      # lexicals are faster than attrs
             my int $last = $!last;
 
             nqp::while(
-              ($todo = nqp::sub_i($todo,1))
-                && nqp::isle_i(($i = nqp::add_i($i,1)),$last),
+              --$todo && nqp::isle_i(++$i,$last),
               target.push(nqp::p6box_i($i))
             );
 
@@ -2142,7 +2136,7 @@ class Rakudo::Iterator {
             my int $last = $!last;
 
             nqp::while(
-              nqp::isle_i(($i = nqp::add_i($i,1)),$last),
+              nqp::isle_i(++$i,$last),
               target.push(nqp::p6box_i($i))
             );
             $!i = $i;                # make sure pull-one ends
@@ -2249,7 +2243,7 @@ class Rakudo::Iterator {
             ($!on-key = nqp::not_i($!on-key))
               ?? nqp::eqaddr(($!pulled := $!iter.pull-one),IterationEnd)
                 ?? IterationEnd
-                !! nqp::p6box_i(($!key = nqp::add_i($!key,1)))
+                !! nqp::p6box_i(++$!key)
               !! $!pulled
         }
         method push-all(\target --> IterationEnd) {
@@ -2260,7 +2254,7 @@ class Rakudo::Iterator {
                 IterationEnd
               ),
               nqp::stmts(
-                target.push(nqp::p6box_i(($key = nqp::add_i($key,1)))),
+                target.push(nqp::p6box_i(++$key)),
                 target.push(pulled),
               )
             )
@@ -2312,7 +2306,7 @@ class Rakudo::Iterator {
         method next() is raw {
             my int $index = $!index;
             $!index = nqp::mod_i(nqp::add_i($!index,1),$!size);
-            $!todo  = nqp::sub_i($!todo,1);
+            --$!todo;
             nqp::atpos($!lastn,$index)
         }
         method pull-one() is raw {
@@ -2437,7 +2431,7 @@ class Rakudo::Iterator {
                 (my int $elems = nqp::elems(buffer)),
                 (my int $i = -1),
                 nqp::while(           # repurpose buffer for result
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos(buffer,$i,
                     nqp::atpos($!list,nqp::atpos(buffer,$i))
                   )
@@ -2631,7 +2625,7 @@ class Rakudo::Iterator {
         }
         method pull-one() is raw {
             nqp::if(
-              ($!todo = nqp::sub_i($!todo,1))
+              --$!todo
                 && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               nqp::stmts(
                 (my $current := $!cursor),
@@ -2643,7 +2637,7 @@ class Rakudo::Iterator {
         }
         method skip-one() is raw {
             nqp::if(
-              ($!todo = nqp::sub_i($!todo,1))
+              --$!todo
                 && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
               ($!cursor := $!mover($!cursor)),
             )
@@ -2907,12 +2901,12 @@ class Rakudo::Iterator {
                   nqp::stmts(                      # possibly valid index
                     nqp::while(
                       nqp::islt_i($!next,$index) && $!source.skip-one,
-                      ($!next = nqp::add_i($!next,1))
+                      ++$!next
                     ),
                     (return-rw nqp::if(
                       nqp::iseq_i($!next,$index),
                       nqp::stmts(
-                        ($!next = nqp::add_i($!next,1)),
+                        ++$!next,
                         $!source.pull-one
                       ),
                       IterationEnd
@@ -2945,7 +2939,7 @@ class Rakudo::Iterator {
         method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
 
         method pull-one() is raw {
-            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+            nqp::islt_i(++$!i,nqp::elems($!list))
               ?? nqp::atposref_s($!list,$!i)
               !! IterationEnd
         }
@@ -2954,14 +2948,14 @@ class Rakudo::Iterator {
             my $list := $!list;
             my int $i = $!i;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($list)),
+              nqp::islt_i(++$i,nqp::elems($list)),
               target.push(nqp::atposref_s($list,$i))
             );
             $!i = $i;
         }
 
         method skip-one() {
-            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+            nqp::islt_i(++$!i,nqp::elems($!list))
         }
 
         method skip-at-least(int $toskip) {
@@ -2995,7 +2989,7 @@ class Rakudo::Iterator {
         method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
 
         method pull-one() is raw {
-            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+            nqp::islt_i(++$!i,nqp::elems($!list))
               ?? nqp::atposref_i($!list,$!i)
               !! IterationEnd
         }
@@ -3004,14 +2998,14 @@ class Rakudo::Iterator {
             my $list := $!list;
             my int $i = $!i;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($list)),
+              nqp::islt_i(++$i,nqp::elems($list)),
               target.push(nqp::atposref_i($list,$i))
             );
             $!i = $i;
         }
 
         method skip-one() {
-            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+            nqp::islt_i(++$!i,nqp::elems($!list))
         }
 
         method skip-at-least(int $toskip) {
@@ -3045,7 +3039,7 @@ class Rakudo::Iterator {
         method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
 
         method pull-one() is raw {
-            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+            nqp::islt_i(++$!i,nqp::elems($!list))
               ?? nqp::atposref_u($!list,$!i)
               !! IterationEnd
         }
@@ -3054,14 +3048,14 @@ class Rakudo::Iterator {
             my $list := $!list;
             my int $i = $!i;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($list)),
+              nqp::islt_i(++$i,nqp::elems($list)),
               target.push(nqp::atposref_u($list,$i))
             );
             $!i = $i;
         }
 
         method skip-one() {
-            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+            nqp::islt_i(++$!i,nqp::elems($!list))
         }
 
         method skip-at-least(int $toskip) {
@@ -3095,7 +3089,7 @@ class Rakudo::Iterator {
         method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
 
         method pull-one() is raw {
-            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+            nqp::islt_i(++$!i,nqp::elems($!list))
               ?? nqp::atposref_n($!list,$!i)
               !! IterationEnd
         }
@@ -3104,14 +3098,14 @@ class Rakudo::Iterator {
             my $list := $!list;
             my int $i = $!i;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($list)),
+              nqp::islt_i(++$i,nqp::elems($list)),
               target.push(nqp::atposref_n($list,$i))
             );
             $!i = $i;
         }
 
         method skip-one() {
-            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+            nqp::islt_i(++$!i,nqp::elems($!list))
         }
 
         method skip-at-least(int $toskip) {
@@ -3155,7 +3149,7 @@ class Rakudo::Iterator {
                     !! nqp::create(self)!SET-SELF(iterator,times.Int)
         }
         method pull-one() is raw {
-            ($!times = nqp::sub_i($!times,1))
+            --$!times
               ?? nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd)
                 ?? IterationEnd
                 !! pulled
@@ -3165,7 +3159,7 @@ class Rakudo::Iterator {
             my $iterator := $!iterator;
             my int $times = $!times;
             nqp::until(
-              nqp::not_i($times = nqp::sub_i($times,1))
+              nqp::not_i(--$times)
                 || nqp::eqaddr((my \pulled := $iterator.pull-one),IterationEnd),
               target.push(pulled)
             );
@@ -3280,14 +3274,14 @@ class Rakudo::Iterator {
         method pull-one() is raw {
             nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
               ?? IterationEnd
-              !! Pair.new(($!key = nqp::add_i($!key,1)),$pulled)
+              !! Pair.new(++$!key,$pulled)
         }
         method push-all(\target --> IterationEnd) {
             my $pulled;
             my int $key = -1;
             nqp::until(
               nqp::eqaddr(($pulled := $!iter.pull-one),IterationEnd),
-              target.push(Pair.new(($key = nqp::add_i($key,1)),$pulled))
+              target.push(Pair.new(++$key,$pulled))
             )
         }
         method is-lazy() { $!iter.is-lazy }
@@ -3311,7 +3305,7 @@ class Rakudo::Iterator {
             my int $i = 1;
 
             nqp::while(
-              nqp::isle_i(($i = nqp::add_i($i,1)),$n),
+              nqp::isle_i(++$i,$n),
               ($!todo = nqp::mul_i($!todo,$i))
             );
 
@@ -3320,7 +3314,7 @@ class Rakudo::Iterator {
             $i = -1;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$n),
+              nqp::islt_i(++$i,$n),
               nqp::bindpos($!next,$i,nqp::clone($i))
             );
             self
@@ -3328,7 +3322,7 @@ class Rakudo::Iterator {
         method new(\n,\b) { nqp::create(self)!SET-SELF(n,b) }
         method pull-one {
             nqp::if(
-              nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0),
+              nqp::isge_i(--$!todo,0),
               nqp::stmts(
                 (my $permuted := nqp::clone($!next)),
                 nqp::if(
@@ -3340,7 +3334,7 @@ class Rakudo::Iterator {
                         nqp::atpos($!next,$k),
                         nqp::atpos($!next,nqp::add_i($k,1))
                       ),
-                      ($k = nqp::sub_i($k,1)),
+                      --$k
                     ),
                     (my int $l = nqp::sub_i($!n,1)),
                     nqp::until(
@@ -3348,7 +3342,7 @@ class Rakudo::Iterator {
                         nqp::atpos($!next,$k),
                         nqp::atpos($!next,$l)
                       ),
-                      ($l = nqp::sub_i($l,1))
+                      --$l,
                     ),
                     (my $tmp := nqp::atpos($!next,$k)),
                     nqp::bindpos($!next,$k,nqp::atpos($!next,$l)),
@@ -3357,10 +3351,7 @@ class Rakudo::Iterator {
                 ),
                 ($l = $!n),
                 nqp::until(
-                  nqp::isge_i(
-                    ($k = nqp::add_i($k,1)),
-                    ($l = nqp::sub_i($l,1))
-                  ),
+                  nqp::isge_i(++$k,--$l),
                   nqp::stmts(
                     ($tmp := nqp::atpos($!next,$k)),
                     nqp::bindpos($!next,$k,nqp::atpos($!next,$l)),
@@ -3413,7 +3404,7 @@ class Rakudo::Iterator {
         }
         method pull-one() is raw {
             nqp::ifnull(
-              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::atpos($!reified,++$!i),
               nqp::if(
                 nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
                 self!hole($!i),
@@ -3427,8 +3418,7 @@ class Rakudo::Iterator {
             my int $elems = nqp::elems($!reified);
 
             nqp::while(
-              ($todo = nqp::sub_i($todo,1))
-                && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              --$todo && nqp::islt_i(++$i,$elems),
               target.push(
                 nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
               )
@@ -3444,7 +3434,7 @@ class Rakudo::Iterator {
             my int $i = $!i;
 
             nqp::while(   # doesn't sink
-              nqp::islt_i($i = nqp::add_i($i,1),$elems),
+              nqp::islt_i(++$i,$elems),
               target.push(
                 nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
               )
@@ -3452,10 +3442,7 @@ class Rakudo::Iterator {
             $!i = $i;
         }
         method skip-one() {
-            nqp::islt_i(
-              ($!i = nqp::add_i($!i,1)),
-              nqp::elems($!reified)
-            )
+            nqp::islt_i(++$!i,nqp::elems($!reified))
         }
         method skip-at-least(Int:D $toskip) {
             nqp::unless(
@@ -3499,7 +3486,7 @@ class Rakudo::Iterator {
 
         method pull-one() is raw {
             nqp::ifnull(
-              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::atpos($!reified,++$!i),
               nqp::if(
                 nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
                 nqp::null,                              # it's a hole
@@ -3513,8 +3500,7 @@ class Rakudo::Iterator {
             my int $elems = nqp::elems($!reified);
 
             nqp::while(
-              ($todo = nqp::sub_i($todo,1))
-                && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              --$todo && nqp::islt_i(++$i,$elems),
               target.push(nqp::atpos($!reified,$i))
             );
 
@@ -3527,16 +3513,13 @@ class Rakudo::Iterator {
             my int $i = $!i;   # lexicals are faster than attributes
 
             nqp::while(  # doesn't sink
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               target.push(nqp::atpos($!reified,$i))
             );
             $!i = $i;
         }
         method skip-one() {
-            nqp::islt_i(
-              ($!i = nqp::add_i($!i,1)),
-              nqp::elems($!reified)
-            )
+            nqp::islt_i(++$!i,nqp::elems($!reified))
         }
         method skip-at-least(Int:D $toskip) {
             nqp::unless(
@@ -3593,7 +3576,7 @@ class Rakudo::Iterator {
         }
 
         method pull-one() is raw {
-            nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
+            nqp::isge_i(--$!i,0)
               ?? nqp::ifnull(nqp::atpos($!reified,$!i),self!hole($!i))
               !! IterationEnd
         }
@@ -3601,12 +3584,12 @@ class Rakudo::Iterator {
             my $reified := $!reified; # lexicals are faster than attributes
             my int $i    = $!i;
             nqp::while(  # doesn't sink
-              nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+              nqp::isge_i(--$i,0),
               target.push(nqp::ifnull(nqp::atpos($reified,$i),self!hole($i)))
             );
             $!i = $i;
         }
-        method skip-one() { nqp::isge_i(($!i = nqp::sub_i($!i,1)),0) }
+        method skip-one() { nqp::isge_i(--$!i,0) }
         method count-only(--> Int:D) { $!i + nqp::islt_i($!i,0) }
         method sink-all(--> IterationEnd) { $!i = -1 }
     }
@@ -3659,7 +3642,7 @@ class Rakudo::Iterator {
         }
 
         method pull-one() is raw {
-            nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0)
+            nqp::isge_i(--$!todo,0)
               ?? nqp::ifnull(
                    nqp::atpos(
                      $!reified,
@@ -3676,7 +3659,7 @@ class Rakudo::Iterator {
             my int $i     = $!i;
 
             nqp::while(  # doesn't sink
-              nqp::isge_i(($todo = nqp::sub_i($todo,1)),0),
+              nqp::isge_i(--$todo,0),
               target.push(
                 nqp::ifnull(
                   nqp::atpos(
@@ -3691,7 +3674,7 @@ class Rakudo::Iterator {
         }
         method skip-one() {
             $!i = nqp::mod_i(nqp::add_i($!i,1),nqp::elems($!reified));
-            nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0)
+            nqp::isge_i(--$!todo,0)
         }
         method count-only(--> Int:D) { $!todo + nqp::islt_i($!todo,0) }
         method sink-all(--> IterationEnd) { $!todo = -1 }
@@ -3745,10 +3728,7 @@ class Rakudo::Iterator {
               nqp::eqaddr($!iterator,IterationEnd),
               nqp::atpos(                # supplying from cache
                 $!reified,
-                nqp::mod_i(
-                  ($!i = nqp::add_i($!i,1)),
-                  nqp::elems($!reified)
-                )
+                nqp::mod_i(++$!i,nqp::elems($!reified))
               ),
               nqp::if(                   # supplying from iterator
                 nqp::eqaddr(
@@ -4081,7 +4061,7 @@ class Rakudo::Iterator {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos($!iters,$i,
                 nqp::if(
                   nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
@@ -4105,7 +4085,7 @@ class Rakudo::Iterator {
                 (my int $elems = nqp::elems($!iters)),
                 (my $buf := nqp::create(IterationBuffer)),
                 nqp::until(
-                  nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::iseq_i(++$i,$elems),
                   nqp::if(
                     nqp::eqaddr(
                       (my $pulled := nqp::atpos($!iters,$i).pull-one),
@@ -4113,8 +4093,8 @@ class Rakudo::Iterator {
                     ),
                     nqp::stmts(          # remove exhausted iterator
                       nqp::splice($!iters,$empty,$i,1),
-                      ($i = nqp::sub_i($i,1)),
-                      ($elems = nqp::sub_i($elems,1))
+                      --$i,
+                      --$elems
                     ),
                     nqp::push($buf,$pulled)
                   )
@@ -4148,7 +4128,7 @@ class Rakudo::Iterator {
 
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos($!iters,$i,
                 nqp::if(
                   nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
@@ -4244,7 +4224,7 @@ class Rakudo::Iterator {
             my int $i = -1;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
+              nqp::islt_i(++$i,$dims),
               nqp::bindpos($!indices,$i,0)
             );
 
@@ -4268,8 +4248,7 @@ class Rakudo::Iterator {
                   nqp::stmts(                             # done for now
                     (my int $level = $!maxdim),
                     nqp::until(                           # update indices
-                      nqp::islt_i(                        # exhausted ??
-                        ($level = nqp::sub_i($level,1)),0)
+                      nqp::islt_i(--$level,0)             # exhausted ??
                         || nqp::stmts(
                         nqp::bindpos($!indices,nqp::add_i($level,1),0),
                         nqp::islt_i(
@@ -4665,7 +4644,7 @@ class Rakudo::Iterator {
                 (my int $elems = nqp::elems($!seen)),
                 (my $target := as($needle)),
                 nqp::until(
-                  nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                  nqp::iseq_i(++$i,$elems)
                     || with($target,nqp::atpos($seen,$i)),
                   nqp::null
                 ),
@@ -4723,7 +4702,7 @@ class Rakudo::Iterator {
                 (my int $i = -1),
                 (my int $elems = nqp::elems($!seen)),
                 nqp::until(
-                  nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+                  nqp::iseq_i(++$i,$elems)
                     || with($needle,nqp::atpos($seen,$i)),
                   nqp::null
                 ),
@@ -4957,7 +4936,7 @@ class Rakudo::Iterator {
             my int $i = -1;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos($!iters,$i,
                 nqp::if(
                   nqp::iscont(my \elem := nqp::atpos(iterables,$i)),
@@ -4985,7 +4964,7 @@ class Rakudo::Iterator {
                 (my int $is_iterend = 0),
                 (my \buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::eqaddr(
                       (my \pulled := nqp::atpos($!iters,$i).pull-one), IterationEnd
@@ -5028,7 +5007,7 @@ class Rakudo::Iterator {
             my int $i = -1;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos($!iters,$i,
                 nqp::if(
                   nqp::iscont(my \elem := nqp::atpos(iterables,$i)),
@@ -5057,7 +5036,7 @@ class Rakudo::Iterator {
                 (my $list :=
                   nqp::setelems(nqp::create(IterationBuffer),$elems)),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::eqaddr(
                       (my \pulled := nqp::atpos($!iters,$i).pull-one),

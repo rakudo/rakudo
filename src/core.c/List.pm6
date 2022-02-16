@@ -279,7 +279,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             (my int $i   = -1),
             (my int $b   = 0),
             nqp::while(
-              nqp::islt_i($i = nqp::add_i($i,1),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::iscont(my $consider := nqp::atpos($vm-tuple,$i)),
                 nqp::bindpos($future,$i,$consider),
@@ -292,7 +292,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   ),
                   nqp::stmts(
                     nqp::bindpos($future,$i,$consider),
-                    ($b = nqp::add_i($b,1))
+                    ++$b
                   )
                 )
               )
@@ -380,7 +380,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               (my $sum  := 0),
               (my int $i = -1),
               nqp::while(
-                nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                nqp::islt_i(++$i,$elems),
                 ($sum := $sum + nqp::ifnull(nqp::atpos($!reified,$i),0))
               ),
               $sum
@@ -398,7 +398,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             (my $strings := nqp::setelems(nqp::list_s,$elems)),
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_s($strings,$i,nqp::atpos($list,$i).Str)
             ),
             nqp::p6box_s(nqp::join(' ',$strings))
@@ -430,7 +430,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                        2
                      ),
                 nqp::while(                           # only a single %s
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos_s($strings,$i,
                     nqp::if(
                       nqp::istype((my $elem := nqp::atpos($list,$i)),List),
@@ -440,7 +440,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                   )
                 ),
                 nqp::while(                           # something else
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos_s($strings,$i,
                     nqp::if(
                       nqp::istype(($elem := nqp::atpos($list,$i)),List),
@@ -592,7 +592,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         method pull-one() is raw {
             nqp::ifnull(
-              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::atpos($!reified,++$!i),
               nqp::if(
                 nqp::isconcrete($!todo),
                 nqp::if(
@@ -618,7 +618,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::stmts(                # something to reify still
                 (my int $elems = $!todo.reify-until-lazy),
                 nqp::while(  # doesn't sink
-                  nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                  nqp::islt_i(++$!i,$elems),
                   target.push(nqp::atpos($!reified,$!i))
                 ),
                 nqp::if(
@@ -633,7 +633,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::stmts(                # already fully reified
                 ($elems = nqp::elems($!reified)),
                 nqp::while(  # doesn't sink
-                  nqp::islt_i($!i = nqp::add_i($!i,1),$elems),
+                  nqp::islt_i(++$!i,$elems),
                   target.push(nqp::atpos($!reified,$!i))
                 ),
                 IterationEnd
@@ -716,7 +716,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.is-lazy,
           nqp::stmts(
             (my int $i = -1),
-            Rakudo::Iterator.Callable( { $i = nqp::add_i($i,1) }, True )
+            Rakudo::Iterator.Callable( { ++$i }, True )
           ),
           Rakudo::Iterator.IntRange(0, self.elems - 1)
         ))
@@ -906,7 +906,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::istype(($v := nqp::atpos($!reified, $i)),Pair)
               ?? nqp::bindkey($hash, $v.key.Str, $v.value)
               !! nqp::push($list,$v)
-              while nqp::islt_i($i = nqp::add_i($i,1),$elems);
+              while nqp::islt_i(++$i,$elems);
             nqp::bindattr($capture,Capture,'@!list',$list) if nqp::elems($list);
             nqp::bindattr($capture,Capture,'%!hash',$hash) if nqp::elems($hash);
             $capture
@@ -977,17 +977,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
         method pull-one() {
             nqp::if(
-              ($!number = nqp::sub_i($!number,1)),
+              --$!number,
               nqp::stmts(
                 (my \tmp = nqp::atpos(
                   $!list,
                   my int $i = nqp::floor_n(nqp::rand_n($!elems))
                 )),
-                nqp::bindpos(
-                  $!list,
-                  $i,
-                  nqp::atpos($!list,($!elems = nqp::sub_i($!elems,1)))
-                ),
+                nqp::bindpos($!list,$i,nqp::atpos($!list,--$!elems)),
                 tmp
               ),
               IterationEnd
@@ -999,17 +995,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               (my int $number = $!number),
               (my int $elems  = $!elems),
               nqp::while(
-                ($number = nqp::sub_i($number,1)),
+                --$number,
                 nqp::stmts(  # doesn't sink
                   target.push(nqp::atpos(
                     $list,
                     (my int $i = nqp::floor_n(nqp::rand_n($elems)))
                   )),
-                  nqp::bindpos(
-                    $list,
-                    $i,
-                    nqp::atpos($list,($elems = nqp::sub_i($elems,1)))
-                  )
+                  nqp::bindpos($list,$i,nqp::atpos($list,--$elems))
                 )
               ),
               ($!number = $number),
@@ -1071,7 +1063,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::create(self)!SET-SELF(list, $todo)
         }
         method pull-one() is raw {
-            ($!todo = nqp::sub_i($!todo,1))
+            --$!todo
               ?? nqp::atpos($!list,nqp::floor_n(nqp::rand_n($!elems)))
               !! IterationEnd
         }
@@ -1080,7 +1072,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               (my int $todo  = $!todo),
               (my int $elems = $!elems),
               nqp::while(
-                ($todo = nqp::sub_i($todo,1)),
+                --$todo,
                 target.push(nqp::atpos(
                   $!list,
                  nqp::floor_n(nqp::rand_n($elems))
@@ -1126,7 +1118,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(
           Rakudo::Iterator.SequentialIterators(
             Rakudo::Iterator.Callable( {
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                nqp::islt_i(++$i,$elems)
                   ?? Rakudo::Iterator.ListIndexes( #  .combinations($i)
                        self,
                        Rakudo::Iterator.Combinations($elems, $i, 1)
@@ -1177,7 +1169,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             Rakudo::Iterator.SequentialIterators(
               Rakudo::Iterator.Callable( {
                   nqp::if(
-                    nqp::isle_i(($i = nqp::add_i($i,1)),$to),
+                    nqp::isle_i(++$i,$to),
                     Rakudo::Iterator.ListIndexes( # basically .combinations($i)
                       self,
                       Rakudo::Iterator.Combinations($elems, $i, 1)
@@ -1217,7 +1209,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               (my $strings := nqp::list_s),
               (my int $i = -1),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::stmts(                      # something left to check
                   (my $tmp := nqp::ifnull(
                     nqp::atpos($!reified,$i),
@@ -1496,7 +1488,7 @@ multi sub infix:<,>(|) {
     my int $i     = -1;
     my int $elems = nqp::elems(in);
     nqp::while(
-      (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+      (nqp::islt_i(++$i,$elems)
         && nqp::not_i(nqp::istype(nqp::atpos(in,$i),Slip))),
       nqp::null
     );
@@ -1509,7 +1501,7 @@ multi sub infix:<,>(|) {
         ($i     = -1),
         (my $reified := nqp::setelems(nqp::create(IterationBuffer),$elems)),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos($reified,$i,nqp::shift(in))
         ),
         # now set up the List with a future
@@ -1570,7 +1562,7 @@ multi sub infix:<xx>(&x, Int:D $n) {
     my int $todo = $n;
     my Mu $list := nqp::create(IterationBuffer);
     nqp::while(
-      nqp::isgt_i($todo = nqp::sub_i($todo,1),-1),
+      nqp::isgt_i(--$todo,-1),
       nqp::if(
         nqp::istype((my $pulled := x()),Slip),
         $pulled.iterator.push-all($list),

@@ -103,7 +103,7 @@ my class Array { # declared in BOOTSTRAP
 
         method pull-one() is raw {
             nqp::ifnull(
-              nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
+              nqp::atpos($!reified,++$!i),
               nqp::if(
                 nqp::islt_i($!i,nqp::elems($!reified)),
                 self!hole($!i),
@@ -139,7 +139,7 @@ my class Array { # declared in BOOTSTRAP
                 (my int $elems = $!todo.reify-until-lazy),
                 (my int $i = $!i),   # lexicals faster than attributes
                 nqp::while(   # doesn't sink
-                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                  nqp::islt_i(++$i,$elems),
                   target.push(nqp::atpos($!reified,$i))
                 ),
                 nqp::if(
@@ -158,7 +158,7 @@ my class Array { # declared in BOOTSTRAP
                 ($elems = nqp::elems($!reified)),
                 ($i = $!i),
                 nqp::while(   # doesn't sink
-                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                  nqp::islt_i(++$i,$elems),
                   target.push(
                     nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                   )
@@ -212,7 +212,7 @@ my class Array { # declared in BOOTSTRAP
         my int $i     = -1;
         my \reified  := nqp::create(IterationBuffer);
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos(
             reified, $i,
             nqp::p6scalarwithvalue(
@@ -391,7 +391,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::stmts(
                   (my int $i = -1),
                   nqp::while(
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                    nqp::islt_i(++$i,$elems),
                     nqp::if(
                       nqp::isnull(nqp::atpos($reified,$i)),
                       nqp::bindpos(
@@ -444,7 +444,7 @@ my class Array { # declared in BOOTSTRAP
                 (my $cow := nqp::setelems(nqp::create(IterationBuffer),$elems)),
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::bindpos($cow,$i,nqp::ifnull(nqp::decont(nqp::atpos($reified,$i)),Nil)),
                 ),
                 $cow.List
@@ -651,13 +651,14 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method !remove-nulls-from-end(uint $i is copy --> Nil) {
+    method !remove-nulls-from-end(uint $from --> Nil) {
+        my int $i = $from;
         nqp::unless(
           nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
           nqp::stmts(
             (my $reified := nqp::getattr(self,List,'$!reified')),
             nqp::while(
-              (nqp::isge_i(($i = nqp::sub_i($i,1)),0)
+              (nqp::isge_i(--$i,0)
                 && nqp::not_i(nqp::existspos($reified,$i))),
               nqp::null
             ),
@@ -1242,7 +1243,7 @@ my class Array { # declared in BOOTSTRAP
               (my int $elems = nqp::elems($new)),
               (my int $i = -1),
               nqp::while(
-                (nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                (nqp::islt_i(++$i,$elems)
                   && nqp::istype(nqp::atpos($new,$i),$expected)),
                 nqp::null
               ),
@@ -1336,7 +1337,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::if(
               $!count && nqp::elems(nqp::getattr($!array,List,'$!reified')),
               nqp::stmts(
-                ($!count = nqp::sub_i($!count,1)),
+                --$!count,
                 $!array.GRAB_ONE
               ),
               IterationEnd

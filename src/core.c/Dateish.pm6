@@ -68,7 +68,7 @@ my role Dateish {
         nqp::if(
           nqp::islt_i($m,3),
           nqp::stmts(
-            ($y = nqp::sub_i($y,1)),
+            --$y,
             ($m = nqp::add_i($m,12))
           )
         );
@@ -198,7 +198,7 @@ my role Dateish {
         my int $i     = -1;
         nqp::while(
           nqp::bitand_i(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::islt_i(++$i,$elems),
             nqp::istype((my $pair := nqp::decont(nqp::atpos($reified,$i))),Pair)
           ),
           $dateish := $dateish.move-by-unit(
@@ -229,7 +229,7 @@ my role Dateish {
         my int $i     = -1;
         nqp::while(
           nqp::bitand_i(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::islt_i(++$i,$elems),
             nqp::istype((my $pair := nqp::decont(nqp::atpos($reified,$i))),Pair)
           ),
           $dateish := $dateish.move-by-unit(

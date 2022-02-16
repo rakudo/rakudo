@@ -664,7 +664,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $unsigned = T.^unsigned;
 
         nqp::while(
-          nqp::islt_i($i = nqp::add_i($i,1),$todo),
+          nqp::islt_i(++$i,$todo),
           nqp::stmts(
             (my int $elem   = $unsigned ?? nqp::atpos_u(self,$i) !! nqp::atpos_i(self,$i)),
             (my     $chunk := nqp::list_s),
@@ -856,7 +856,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
               nqp::stmts(
                 (my int $i = -1),
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  nqp::islt_i(++$i,$elems)
                     && (self[$i] == other[$i]),
                   nqp::null
                 ),

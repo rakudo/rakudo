@@ -47,7 +47,7 @@ my class Rakudo::Sorting {
                     #                 $A[i+width .. i+2*width-1]
                     # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                     nqp::while(
-                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::islt_i(++$k,$end),
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
@@ -61,11 +61,11 @@ my class Rakudo::Sorting {
                         ),
                         nqp::stmts(
                           (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
-                          ($i = nqp::add_i($i,1))
+                          ++$i
                         ),
                         nqp::stmts(
                           (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
-                          ($j = nqp::add_i($j,1))
+                          ++$j
                         )
                       )
                     ),
@@ -140,7 +140,7 @@ my class Rakudo::Sorting {
                     #                 $A[i+width .. i+2*width-1]
                     # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                     nqp::while(
-                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::islt_i(++$k,$end),
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
@@ -157,11 +157,11 @@ my class Rakudo::Sorting {
                         ),
                         nqp::stmts(
                           (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
-                          ($i = nqp::add_i($i,1))
+                          ++$i
                         ),
                         nqp::stmts(
                           (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
-                          ($j = nqp::add_i($j,1))
+                          ++$j
                         )
                       )
                     ),
@@ -229,7 +229,7 @@ my class Rakudo::Sorting {
                     #                 $A[i+width .. i+2*width-1]
                     # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                     nqp::while(
-                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::islt_i(++$k,$end),
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
@@ -243,11 +243,11 @@ my class Rakudo::Sorting {
                         ),
                         nqp::stmts(
                           (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
-                          ($i = nqp::add_i($i,1))
+                          ++$i
                         ),
                         nqp::stmts(
                           (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
-                          ($j = nqp::add_i($j,1))
+                          ++$j
                         )
                       )
                     ),
@@ -322,7 +322,7 @@ my class Rakudo::Sorting {
                     #                 $A[i+width .. i+2*width-1]
                     # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                     nqp::while(
-                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::islt_i(++$k,$end),
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
@@ -337,11 +337,11 @@ my class Rakudo::Sorting {
                         ),
                         nqp::stmts(
                           (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
-                          ($i = nqp::add_i($i,1))
+                          ++$i
                         ),
                         nqp::stmts(
                           (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
-                          ($j = nqp::add_i($j,1))
+                          ++$j
                         )
                       )
                     ),
@@ -420,7 +420,7 @@ my class Rakudo::Sorting {
                     #                 $A[i+width .. i+2*width-1]
                     # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                     nqp::while(
-                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::islt_i(++$k,$end),
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
@@ -431,11 +431,11 @@ my class Rakudo::Sorting {
                         ),
                         nqp::stmts(
                           (nqp::bindpos_s($B,$k,nqp::atpos_s($A,$i))),
-                          ($i = nqp::add_i($i,1))
+                          ++$i
                         ),
                         nqp::stmts(
                           (nqp::bindpos_s($B,$k,nqp::atpos_s($A,$j))),
-                          ($j = nqp::add_i($j,1))
+                          ++$j
                         )
                       )
                     ),
@@ -508,7 +508,7 @@ my class Rakudo::Sorting {
                     #                 $A[i+width .. i+2*width-1]
                     # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                     nqp::while(
-                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::islt_i(++$k,$end),
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
@@ -519,11 +519,11 @@ my class Rakudo::Sorting {
                         ),
                         nqp::stmts(
                           (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
-                          ($i = nqp::add_i($i,1))
+                          ++$i
                         ),
                         nqp::stmts(
                           (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
-                          ($j = nqp::add_i($j,1))
+                          ++$j
                         )
                       )
                     ),
@@ -596,7 +596,7 @@ my class Rakudo::Sorting {
                     #                 $A[i+width .. i+2*width-1]
                     # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                     nqp::while(
-                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::islt_i(++$k,$end),
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
@@ -606,12 +606,12 @@ my class Rakudo::Sorting {
                                )
                         ),
                         nqp::stmts(
-                          (nqp::bindpos_u($B,$k,nqp::atpos_u($A,$i))),
-                          ($i = nqp::add_i($i,1))
+                          nqp::bindpos_u($B,$k,nqp::atpos_u($A,$i)),
+                          ++$i
                         ),
                         nqp::stmts(
-                          (nqp::bindpos_u($B,$k,nqp::atpos_u($A,$j))),
-                          ($j = nqp::add_i($j,1))
+                          nqp::bindpos_u($B,$k,nqp::atpos_u($A,$j)),
+                          ++$j
                         )
                       )
                     ),
@@ -684,7 +684,7 @@ my class Rakudo::Sorting {
                     #                 $A[i+width .. i+2*width-1]
                     # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
                     nqp::while(
-                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::islt_i(++$k,$end),
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
@@ -695,11 +695,11 @@ my class Rakudo::Sorting {
                         ),
                         nqp::stmts(
                           (nqp::bindpos_n($B,$k,nqp::atpos_n($A,$i))),
-                          ($i = nqp::add_i($i,1))
+                          ++$i
                         ),
                         nqp::stmts(
                           (nqp::bindpos_n($B,$k,nqp::atpos_n($A,$j))),
-                          ($j = nqp::add_i($j,1))
+                          ++$j
                         )
                       )
                     ),

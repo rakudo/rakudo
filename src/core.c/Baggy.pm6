@@ -170,7 +170,7 @@ my role Baggy does QuantHash {
             nqp::if(
               $!times,
               nqp::stmts(
-                ($!times = nqp::sub_i($!times,1)),
+                --$!times,
                 $!key
               ),
               nqp::if(
@@ -204,7 +204,7 @@ my role Baggy does QuantHash {
                 ($!times =
                   nqp::add_i(nqp::getattr(pair,Pair,'$!value'),1)),
                 nqp::while(  # doesn't sink
-                  ($!times = nqp::sub_i($!times,1)),
+                  --$!times,
                   target.push($!key)
                 )
               )

@@ -67,7 +67,7 @@ my class Rakudo::QuantHash {
         my $iter := nqp::iterator(elems);
 
         nqp::while(
-          nqp::shift($iter) && ($i = nqp::sub_i($i,1)),
+          nqp::shift($iter) && --$i,
           nqp::null
         );
         $iter
@@ -82,7 +82,7 @@ my class Rakudo::QuantHash {
         my int $i = -1;
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos_s($keys,$i,nqp::iterkey_s(nqp::shift($iter)))
         );
 
@@ -90,14 +90,12 @@ my class Rakudo::QuantHash {
         $i = -1;
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$count),
+          nqp::islt_i(++$i,$count),
           nqp::stmts(
             nqp::bindpos_s($picked,$i,
               nqp::atpos_s($keys,(my int $pick = $elems.rand.floor))
             ),
-            nqp::bindpos_s($keys,$pick,
-              nqp::atpos_s($keys,($elems = nqp::sub_i($elems,1)))
-            )
+            nqp::bindpos_s($keys,$pick,nqp::atpos_s($keys,--$elems))
           )
         );
         $picked

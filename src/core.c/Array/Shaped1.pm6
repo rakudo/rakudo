@@ -114,7 +114,7 @@ my role Array::Shaped1 does Array::Shaped {
             (my \desc := nqp::getattr(self,Array,'$!descriptor')),
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               # always create a new container in case the from list
               # contains containers already existing in the to list
               # e.g. after having done a .reverse or .rotate
@@ -139,7 +139,7 @@ my role Array::Shaped1 does Array::Shaped {
         my uint $elems = nqp::elems(list);
         nqp::until(
           nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
-            || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
+            || nqp::iseq_i(++$i,$elems),
           nqp::ifnull(
             nqp::atpos(list,$i),
             nqp::bindpos(list,$i,nqp::p6scalarfromdesc(desc))
@@ -185,10 +185,7 @@ my role Array::Shaped1 does Array::Shaped {
         method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
         method pull-one() is raw {
             nqp::if(
-              nqp::islt_i(
-                ($!pos = nqp::add_i($!pos,1)),
-                nqp::elems($!reified)
-              ),
+              nqp::islt_i(++$!pos,nqp::elems($!reified)),
               nqp::ifnull(
                 nqp::atpos($!reified,$!pos),
                 nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
@@ -198,14 +195,14 @@ my role Array::Shaped1 does Array::Shaped {
             )
         }
         method skip-one() {
-            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!reified))
+            nqp::islt_i(++$!pos,nqp::elems($!reified))
         }
         method push-all(\target --> IterationEnd) {
             my uint $elems = nqp::elems($!reified);
             my int $i = $!pos;
 
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               target.push(
                 nqp::ifnull(
                   nqp::atpos($!reified,$i),

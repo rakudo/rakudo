@@ -61,7 +61,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
     my \idxs := nqp::list_i;
 
     nqp::while(
-      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+      nqp::islt_i(++$i,$elems),
       nqp::if(
         nqp::istype((my $index = nqp::atpos(indices,$i)),Int),
         nqp::push_i(idxs,$index),               # it's an Int, use that
@@ -105,7 +105,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
     my int $i = -1;
 
     nqp::while(
-      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+      nqp::islt_i(++$i,$elems)
         && nqp::istype(nqp::atpos(indices,$i),Int),
       nqp::null
     );
@@ -140,7 +140,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
     my int $i = -1;
 
     nqp::while(
-      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+      nqp::islt_i(++$i,$elems)
         && nqp::istype(nqp::atpos(indices,$i),Int),
       nqp::null
     );
@@ -177,7 +177,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
         (my \indices := nqp::getattr(@indices,List,'$!reified')),
         (my int $i = -1),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::istype(nqp::atpos(indices,$i),Int),
           nqp::null
         ),
@@ -214,7 +214,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
         (my \indices := nqp::getattr(@indices,List,'$!reified')),
         (my int $i = -1),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::istype(nqp::atpos(indices,$i),Int),
           nqp::null
         ),
@@ -251,7 +251,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$kv!) is raw {
         (my \indices := nqp::getattr(@indices,List,'$!reified')),
         (my int $i = -1),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::istype(nqp::atpos(indices,$i),Int),
           nqp::null
         ),
@@ -307,7 +307,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$p!) is raw {
         (my \indices := nqp::getattr(@indices,List,'$!reified')),
         (my int $i = -1),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::istype(nqp::atpos(indices,$i),Int),
           nqp::null
         ),
@@ -363,7 +363,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$k!) is raw {
         (my \indices := nqp::getattr(@indices,List,'$!reified')),
         (my int $i = -1),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::istype(nqp::atpos(indices,$i),Int),
           nqp::null
         ),
@@ -412,7 +412,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$v!) is raw {
         (my \indices := nqp::getattr(@indices,List,'$!reified')),
         (my int $i = -1),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+          nqp::islt_i(++$i,$elems)
             && nqp::istype(nqp::atpos(indices,$i),Int),
           nqp::null
         ),

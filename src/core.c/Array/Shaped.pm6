@@ -29,7 +29,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
             (my \indices := nqp::getattr(@indices,List,'$!reified')),
             (my \idxs := nqp::list_i),
             nqp::while(                        # native index list
-              nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+              nqp::isge_i(--$numdims,0),
               nqp::push_i(idxs,nqp::shift(indices))
             ),
             (my \element := nqp::ifnull(
@@ -63,7 +63,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
           nqp::stmts(                          # more than enough indices
             (my \idxs := nqp::list_i),
             nqp::while(                        # native index list
-              nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+              nqp::isge_i(--$numdims,0),
               nqp::push_i(idxs,nqp::shift(indices))
             ),
             (my \element := nqp::ifnull(
@@ -102,9 +102,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
               nqp::stmts(                          # same or more indices
                 (my \idxs := nqp::list_i),
                 nqp::while(
-                  nqp::islt_i(                     # still indices left
-                    ($i = nqp::add_i($i,1)),
-                    $numind)
+                  nqp::islt_i(++$i,$numind)        # still indices left
                     && nqp::islt_i(                # within range?
                          (my $idx = nqp::shift(indices)),
                          nqp::atpos_i(dims,$i)),
@@ -122,7 +120,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
               ),
               nqp::stmts(                          # fewer inds than dims
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$numind)
+                  nqp::islt_i(++$i,$numind)
                     && nqp::islt_i(
                          nqp::atpos(indices,$i),
                          nqp::atpos_i(dims,$i)),
@@ -157,8 +155,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
           nqp::stmts(                          # same or more indices
             (my \idxs := nqp::list_i),
             nqp::while(
-              nqp::islt_i(                     # still indices left
-                ($i = nqp::add_i($i,1)),$numind),
+              nqp::islt_i(++$i,$numind),       # still indices left
               nqp::push_i(idxs,nqp::shift(indices)),
             ),
             nqp::if(
@@ -207,8 +204,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
           nqp::stmts(                               # same or more indices
             (my \idxs := nqp::list_i),
             nqp::while(
-              nqp::islt_i(                          # still indices left
-                ($i = nqp::add_i($i,1)),$numind),
+              nqp::islt_i(++$i,$numind),            # still indices left
               nqp::push_i(idxs,nqp::shift(indices))
             ),
             nqp::if(
@@ -345,7 +341,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         method process(--> Nil) {
             my int $i = $!level;
             nqp::while(
-              nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+              nqp::isle_i(++$i,$!maxdim),
               nqp::if(
                 nqp::eqaddr((my $item :=      # exhausted ?
                   nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),

@@ -80,7 +80,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                 # simpLy reify all the cursors
                 my int $i = -1;
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($cs)),
+                  nqp::islt_i(++$i,nqp::elems($cs)),
                   nqp::stmts(
                     (my $cursor := nqp::atpos($cs,$i)),
                     nqp::unless(
@@ -95,7 +95,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             else {
                 my int $i = -1;
                 nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($cs)),
+                  nqp::islt_i(++$i,nqp::elems($cs)),
                   nqp::stmts(                               # handle this cursor
                     (my $cursor := nqp::atpos($cs,$i)),
                     (my str $name = nqp::getattr_s($cursor,$?CLASS,'$!name')),

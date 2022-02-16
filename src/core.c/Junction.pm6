@@ -132,7 +132,7 @@ my class Junction { # declared in BOOTSTRAP
                 nqp::while(
                   nqp::islt_i($i,$elems)
                     && nqp::isfalse(nqp::atpos($!eigenstates,$i)),
-                  ($i = nqp::add_i($i,1))
+                  ++$i
                 ),
                 nqp::islt_i($i,$elems)
               ),
@@ -142,7 +142,7 @@ my class Junction { # declared in BOOTSTRAP
                   nqp::while(
                     nqp::islt_i($i,$elems)
                       && nqp::atpos($!eigenstates,$i),
-                    ($i = nqp::add_i($i,1))
+                    ++$i
                   ),
                   nqp::iseq_i($i,$elems)
                 ),
@@ -152,19 +152,19 @@ my class Junction { # declared in BOOTSTRAP
                     nqp::while(
                       nqp::islt_i($i,$elems)
                         && nqp::isfalse(nqp::atpos($!eigenstates,$i)),
-                      ($i = nqp::add_i($i,1))
+                      ++$i
                     ),
                     nqp::iseq_i($i,$elems)
                   ),
                   nqp::stmts(    # $!type eq 'one'
                     (my int $seen = 0),
-                    ($i = nqp::sub_i($i,1)),  # increment in condition
+                    --$i,  # increment in condition
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                      nqp::islt_i(++$i,$elems)
                         && nqp::isle_i($seen,1),
                       nqp::if(
                         nqp::atpos($!eigenstates,$i),
-                        ($seen = nqp::add_i($seen,1))
+                        ++$seen
                       )
                     ),
                     nqp::iseq_i($seen,1)
@@ -207,7 +207,7 @@ my class Junction { # declared in BOOTSTRAP
                 nqp::while(
                   nqp::islt_i($i,$elems)
                     && nqp::isfalse(nqp::atpos($!eigenstates,$i).ACCEPTS(topic)),
-                  ($i = nqp::add_i($i,1))
+                  ++$i
                 ),
                 nqp::islt_i($i,$elems)
               ),
@@ -217,7 +217,7 @@ my class Junction { # declared in BOOTSTRAP
                   nqp::while(
                     nqp::islt_i($i,$elems)
                       && nqp::atpos($!eigenstates,$i).ACCEPTS(topic),
-                    ($i = nqp::add_i($i,1))
+                    ++$i
                   ),
                   nqp::iseq_i($i,$elems)
                 ),
@@ -229,19 +229,19 @@ my class Junction { # declared in BOOTSTRAP
                         && nqp::isfalse(
                              nqp::atpos($!eigenstates,$i).ACCEPTS(topic)
                            ),
-                      ($i = nqp::add_i($i,1))
+                      ++$i
                     ),
                     nqp::iseq_i($i,$elems)
                   ),
                   nqp::stmts(    # $!type eq 'one'
                     (my int $seen),
-                    ($i = nqp::sub_i($i,1)),  # increment in condition
+                    --$i,  # increment in condition
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                      nqp::islt_i(++$i,$elems)
                         && nqp::isle_i($seen,1),
                       nqp::if(
                         nqp::atpos($!eigenstates,$i).ACCEPTS(topic),
-                        ($seen = nqp::add_i($seen,1))
+                        ++$seen
                       )
                     ),
                     nqp::iseq_i($seen,1)
@@ -264,7 +264,7 @@ my class Junction { # declared in BOOTSTRAP
         my int $i = -1;
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::unless(
             nqp::istype(nqp::atpos(storage,$i),Str),
             nqp::bindpos(storage,$i,nqp::atpos(storage,$i).Str)
@@ -310,7 +310,7 @@ my class Junction { # declared in BOOTSTRAP
         my \result      := nqp::setelems(nqp::list, $elems);
         my int $i        = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i, 1)), $elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos(result, $i, nqp::atpos(storage, $i)(|c))
         );
         nqp::p6bindattrinvres(
@@ -348,7 +348,7 @@ my class Junction { # declared in BOOTSTRAP
             my \result   := nqp::setelems(nqp::list,$elems);
             my int $i     = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               # Next line is Officially Naughty, since captures are
               # meant to be immutable. But hey, it's our capture to
               # be naughty with...
@@ -441,7 +441,7 @@ my class Junction { # declared in BOOTSTRAP
 #?if moar
                     && nqp::dispatch('raku-smartmatch', nqp::atpos($!eigenstates, $i), matcher, nqp::unbox_i(-1)),
 #?endif
-                  ($i = nqp::add_i($i,1))
+                  ++$i
                 ),
                 nqp::islt_i($i,$elems)
               ),
@@ -456,7 +456,7 @@ my class Junction { # declared in BOOTSTRAP
 #?if moar
                       && nqp::dispatch('raku-smartmatch', nqp::atpos($!eigenstates, $i), matcher, nqp::unbox_i(1)),
 #?endif
-                    ($i = nqp::add_i($i,1))
+                    ++$i
                   ),
                   nqp::iseq_i($i,$elems)
                 ),
@@ -471,16 +471,15 @@ my class Junction { # declared in BOOTSTRAP
 #?if moar
                         && nqp::dispatch('raku-smartmatch', nqp::atpos($!eigenstates, $i), matcher, nqp::unbox_i(-1)),
 #?endif
-                      ($i = nqp::add_i($i,1))
+                      ++$i
                     ),
                     nqp::iseq_i($i,$elems)
                   ),
                   nqp::stmts(    # $!type eq 'one'
                     (my int $seen = 0),
-                    ($i = nqp::sub_i($i,1)),  # increment in condition
+                    --$i,  # increment in condition
                     nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                        && nqp::isle_i($seen,1),
+                      nqp::islt_i(++$i,$elems) && nqp::isle_i($seen,1),
                       nqp::if(
 #?if !moar
                         matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).Bool,
@@ -488,7 +487,7 @@ my class Junction { # declared in BOOTSTRAP
 #?if moar
                         nqp::dispatch('raku-smartmatch', nqp::atpos($!eigenstates, $i), matcher, nqp::unbox_i(1)),
 #?endif
-                        ($seen = nqp::add_i($seen,1))
+                        ++$seen
                       )
                     ),
                     nqp::iseq_i($seen,1)
@@ -539,7 +538,7 @@ multi sub infix:<~>(Str:D $a, Junction:D $b) {
         (my int $elems = nqp::elems(storage)),
         (my int $i = -1),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos(storage,$i,
             nqp::if(
               nqp::istype((my \value := nqp::atpos(storage,$i)),Junction),
@@ -567,7 +566,7 @@ multi sub infix:<~>(Junction:D $a, Str:D $b) {
         (my int $elems = nqp::elems(storage)),
         (my int $i = -1),
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::bindpos(storage,$i,
             nqp::if(
               nqp::istype((my \value := nqp::atpos(storage,$i)),Junction),
@@ -602,7 +601,7 @@ multi sub infix:<~>(Junction:D \a, Junction:D \b) {
     );
 
     nqp::while(                                # outer loop
-      nqp::islt_i(($i = nqp::add_i($i,1)),$aelems),
+      nqp::islt_i(++$i,$aelems),
       nqp::stmts(
         (my \aval := nqp::if(
           nqp::istype(nqp::atpos(astor,$i),Str),
@@ -613,7 +612,7 @@ multi sub infix:<~>(Junction:D \a, Junction:D \b) {
         nqp::if(
           $mergable,
           nqp::while(                          # merge eigenstates
-            nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
+            nqp::islt_i(++$j,$belems),
             nqp::unless(
               nqp::existskey(
                 seen,
@@ -638,7 +637,7 @@ multi sub infix:<~>(Junction:D \a, Junction:D \b) {
               nqp::setelems(nqp::list,$belems)
             )),
             nqp::while(
-              nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
+              nqp::islt_i(++$j,$belems),
               nqp::bindpos(
                 inner,
                 $j,
@@ -671,7 +670,7 @@ Mu.HOW.setup_junction_fallback(Junction, -> $name, |c {
     my int $i        = -1;
     nqp::shift(positionals); # remove Junction
     nqp::while(
-      nqp::islt_i(($i = nqp::add_i($i, 1)), $elems),
+      nqp::islt_i(++$i,$elems),
       nqp::bindpos(result, $i, nqp::atpos(storage, $i)."$name"(|c))
     );
     nqp::p6bindattrinvres(

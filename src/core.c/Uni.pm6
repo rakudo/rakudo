@@ -38,19 +38,19 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         }
         method new (\uni) { nqp::create(self)!SET-SELF: uni }
         method pull-one {
-            nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els)
+            nqp::islt_i(++$!i,$!els)
               ?? nqp::atpos_u($!uni, $!i)
               !! IterationEnd
         }
         method skip-one {
-            nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els)
+            nqp::islt_i(++$!i,$!els)
         }
         method push-all(\target --> IterationEnd) {
             my     $uni := $!uni; # lexicals faster than attrs
             my int $els  = $!els;
             my int $i    = $!i;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i, 1)), $els),
+              nqp::islt_i(++$i,$els),
               target.push: nqp::atpos_u($uni, $i)
             );
             $!i = $i;
@@ -102,7 +102,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
                  (my int $i = -1),
                  (my uint $elems = nqp::elems(self)),
                  nqp::while(
-                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                   nqp::islt_i(++$i,$elems)
                      && nqp::iseq_i(
                           nqp::atpos_u(self,$i),
                           nqp::atpos_u($other,$i)
@@ -187,7 +187,7 @@ multi sub infix:<cmp>(Uni:D $a, Uni:D $b) {
 
     my int $i = -1;
     nqp::until(
-      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+      nqp::isge_i(++$i,$elems)
         || (my $res = nqp::cmp_i(nqp::atpos_u($a,$i),nqp::atpos_u($b,$i))),
       nqp::null
     );

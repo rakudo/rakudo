@@ -12,7 +12,7 @@ my class Rakudo::Unicodey is implementation-detail {
         my int $i     = -1;
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$chars),
+          nqp::islt_i(++$i,$chars),
           nqp::push_i(@ords,nqp::ord($str,$i))
         );
 
@@ -575,7 +575,7 @@ augment class List {
             (my int $elems = self.elems),    # reifies
             (my $result   := nqp::setelems(nqp::list_s,$elems)),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::istype((my $value := nqp::atpos($!reified,$i)),Int),
                 nqp::bindpos_s($result,$i,nqp::chr(my uint $ = $value)),

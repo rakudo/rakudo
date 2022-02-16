@@ -334,7 +334,7 @@ my class Parameter { # declared in BOOTSTRAP
             (my $buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos($buf,$i,nqp::atpos_s(@!named_names,$i))
             ),
             $buf.List
@@ -395,7 +395,7 @@ my class Parameter { # declared in BOOTSTRAP
             (my $buf := nqp::setelems(nqp::create(IterationBuffer),$elems)),
             (my int $i = -1),
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos($buf,$i,nqp::atpos_s(@!type_captures,$i))
             ),
             $buf.List

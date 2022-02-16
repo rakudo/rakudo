@@ -426,10 +426,7 @@ my class ThreadPoolScheduler does Scheduler {
           # find an empty queue, return it immediately.
           (my int $i = -1),
           nqp::while(
-            nqp::islt_i(
-              ($i = nqp::add_i($i,1)),
-              nqp::elems($cur-affinity-workers)
-            ),
+            nqp::islt_i(++$i,nqp::elems($cur-affinity-workers)),
             nqp::if(
               nqp::isconcrete(my $most-free-worker),
               nqp::stmts(
@@ -896,7 +893,7 @@ my class ThreadPoolScheduler does Scheduler {
               (my @async_handles),
               (my int $i = -1),
               nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$times),
+                nqp::islt_i(++$i,$times),
                 @async_handles.push(
                   nqp::timer(self!timer-queue,&run,$delay,0,TimerCancellation)
                 )
@@ -953,7 +950,7 @@ my class ThreadPoolScheduler does Scheduler {
                   ($interval-is-nil || nqp::isgt_i($times,1)),
                   nqp::stmts(                              # create our own stopper
                     (my int $todo = nqp::add_i(nqp::if($interval-is-nil,1,$times),1)),
-                    sub { nqp::not_i($todo = nqp::sub_i($todo,1)) }
+                    sub { nqp::not_i(--$todo) }
                   ),
                   nqp::atkey($args,"stop")
                 )),
@@ -1075,7 +1072,7 @@ my class ThreadPoolScheduler does Scheduler {
         my int $completed;
         my int $i = -1;
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::stmts(
             (my $w := nqp::atpos(workers,$i)),
             ($completed = nqp::add_i(
@@ -1117,7 +1114,7 @@ my class ThreadPoolScheduler does Scheduler {
             my int $queued;
             my int $i = -1;
             nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::stmts(
                 (my $w := nqp::atpos(workers,$i)),
                 ($completed = nqp::add_i(

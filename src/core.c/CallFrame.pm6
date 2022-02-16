@@ -14,7 +14,7 @@ my class CallFrame {
           )),
           (my $ctx := ctx),
           nqp::while(
-            nqp::isgt_i(($i = nqp::sub_i($i,1)),0),
+            nqp::isgt_i(--$i,0),
             nqp::ifnull(
                 ($ctx := nqp::ctxcallerskipthunks($ctx)),
                 fail "No callframe at level {level}"

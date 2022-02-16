@@ -72,7 +72,7 @@ augment class Uni {
         my int $code;
 
         nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::islt_i(++$i,$elems),
           nqp::if(nqp::isgt_i($code = nqp::atpos_i(codepoints,$i), 0x10ffff)
                   || (nqp::isle_i(0xd800, $code) && nqp::isle_i($code, 0xdfff))
                   || nqp::islt_i($code, 0),

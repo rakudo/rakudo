@@ -633,7 +633,7 @@ while @lines {
                 nqp::if(
                   $!count && nqp::elems($!array),
                   nqp::stmts(
-                    ($!count = nqp::sub_i($!count,1)),
+                    --$!count,
                     $!array.GRAB_ONE
                   ),
                   IterationEnd

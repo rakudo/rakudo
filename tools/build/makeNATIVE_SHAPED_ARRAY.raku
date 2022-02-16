@@ -65,7 +65,7 @@ while @lines {
                 (my $indices := nqp::getattr(@indices,List,'$!reified')),
                 (my $idxs := nqp::list_i),
                 nqp::while(                          # native index list
-                  nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                  nqp::isge_i(--$numdims,0),
                   nqp::push_i($idxs,nqp::shift($indices))
                 ),
                 nqp::multidimref_#postfix#(self,$idxs)
@@ -94,7 +94,7 @@ while @lines {
                   (my $indices := nqp::getattr(@indices,List,'$!reified')),
                   (my $idxs := nqp::list_i),
                   nqp::while(                          # native index list
-                    nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                    nqp::isge_i(--$numdims,0),
                     nqp::push_i($idxs,nqp::shift($indices))
                   ),
                   nqp::bindposnd_#postfix#(self, $idxs, $value)

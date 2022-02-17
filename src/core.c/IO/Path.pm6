@@ -362,18 +362,16 @@ my class IO::Path is Cool does IO {
               !! self
         }
     }
-    multi method parent(IO::Path:D:) {    # XXX needs work
-        my $curdir := $!SPEC.curdir;
-        my $updir  := $!SPEC.updir;
+    multi method parent(IO::Path:D:) {
+        my $curdir   := $!SPEC.curdir;
+        my $updir    := $!SPEC.updir;
+        my $basename := $.basename;
 
-        nqp::clone(self).cloned-with-path: self.is-absolute
-          ?? $!SPEC.join($.volume, $.dirname, '')
-          !! $.dirname eq $curdir && $.basename eq $curdir
-            ?? $!SPEC.join($.volume,$curdir,$updir)
-            !! ($.dirname eq $curdir && $.basename eq $updir)
-                 || !$!SPEC.splitdir($.dirname).first(* ne $updir)
-              ?? $!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$.basename)
-              !! $!SPEC.join($.volume, $.dirname, '')
+        nqp::clone(self).cloned-with-path: $basename eq $curdir
+            ?? $!SPEC.join($.volume,$.dirname,$updir)
+            !! $basename eq $updir
+              ?? $!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$updir)
+                !! $!SPEC.join($.volume, $.dirname, '')
     }
 
     method child (IO::Path:D: \child) {

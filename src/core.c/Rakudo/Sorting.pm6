@@ -377,6 +377,9 @@ my class Rakudo::Sorting {
           )
         )
     }
+#- start of generated part of sorting strarray logic --------------------------
+#- Generated on 2022-02-17T16:35:04+01:00 by ./tools/build/makeNATIVE_SORTING.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # Sort a native str array (or nqp::list_s) and return the result.
@@ -430,11 +433,11 @@ my class Rakudo::Sorting {
                                )
                         ),
                         nqp::stmts(
-                          (nqp::bindpos_s($B,$k,nqp::atpos_s($A,$i))),
+                          nqp::bindpos_s($B,$k,nqp::atpos_s($A,$i)),
                           ++$i
                         ),
                         nqp::stmts(
-                          (nqp::bindpos_s($B,$k,nqp::atpos_s($A,$j))),
+                          nqp::bindpos_s($B,$k,nqp::atpos_s($A,$j)),
                           ++$j
                         )
                       )
@@ -465,6 +468,12 @@ my class Rakudo::Sorting {
           )
         )
     }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of sorting strarray logic ----------------------------
+
+#- start of generated part of sorting intarray logic --------------------------
+#- Generated on 2022-02-17T16:35:04+01:00 by ./tools/build/makeNATIVE_SORTING.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # Sort a native int array (or nqp::list_i) and return the result.
@@ -518,11 +527,11 @@ my class Rakudo::Sorting {
                                )
                         ),
                         nqp::stmts(
-                          (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),
+                          nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i)),
                           ++$i
                         ),
                         nqp::stmts(
-                          (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j))),
+                          nqp::bindpos_i($B,$k,nqp::atpos_i($A,$j)),
                           ++$j
                         )
                       )
@@ -553,6 +562,12 @@ my class Rakudo::Sorting {
           )
         )
     }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of sorting intarray logic ----------------------------
+
+#- start of generated part of sorting uintarray logic --------------------------
+#- Generated on 2022-02-17T16:35:04+01:00 by ./tools/build/makeNATIVE_SORTING.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # Sort a native uint array (or nqp::list_i) and return the result.
@@ -641,6 +656,12 @@ my class Rakudo::Sorting {
           )
         )
     }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of sorting uintarray logic ----------------------------
+
+#- start of generated part of sorting numarray logic --------------------------
+#- Generated on 2022-02-17T16:35:04+01:00 by ./tools/build/makeNATIVE_SORTING.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # Sort a native num array (or nqp::list_n) and return the result.
@@ -694,11 +715,11 @@ my class Rakudo::Sorting {
                                )
                         ),
                         nqp::stmts(
-                          (nqp::bindpos_n($B,$k,nqp::atpos_n($A,$i))),
+                          nqp::bindpos_n($B,$k,nqp::atpos_n($A,$i)),
                           ++$i
                         ),
                         nqp::stmts(
-                          (nqp::bindpos_n($B,$k,nqp::atpos_n($A,$j))),
+                          nqp::bindpos_n($B,$k,nqp::atpos_n($A,$j)),
                           ++$j
                         )
                       )
@@ -729,6 +750,8 @@ my class Rakudo::Sorting {
           )
         )
     }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of sorting numarray logic ----------------------------
 }
 
 # vim: expandtab shiftwidth=4

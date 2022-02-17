@@ -320,7 +320,7 @@ do {
             self.?teardown-line-editor;
         }
 
-        method repl-eval($code, \exception, *%adverbs) {
+        method repl-eval($code, \exception, $*LAST-OUTPUT, *%adverbs) {
 
             CATCH {
                 when X::Syntax::Missing {
@@ -351,7 +351,7 @@ do {
                 return $!control-not-allowed;
             }
 
-            self.compiler.eval($code, |%adverbs);
+            self.compiler.eval('$_ := $*LAST-OUTPUT;' ~ $code, |%adverbs);
         }
 
         method interactive_prompt() { '> ' }
@@ -380,6 +380,7 @@ do {
             }
             reset;
 
+            my $last-output;
             REPL: loop {
                 my $newcode = self.repl-read(~$prompt);
                 last if $no-exit and $newcode and $newcode eq 'exit';
@@ -404,6 +405,7 @@ do {
                 my $output is default(Nil) = self.repl-eval(
                     $code,
                     my $exception,
+                    $last-output,
                     :outer_ctx($!save_ctx),
                     |%adverbs);
 
@@ -434,6 +436,7 @@ do {
                 elsif $initial_out_position == $*OUT.tell
                     or nqp::istype($output, Failure) and not $output.handled {
                     self.repl-print($output);
+                    $last-output := $output;
                 }
 
                 # Why doesn't the catch-default in repl-eval catch all?

@@ -14,84 +14,100 @@ enum Endian (
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
 
 #- start of generated part of Blob Signed role -------------------------------
-#- Generated on 2022-02-16T09:52:11+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2022-02-17T14:05:50+01:00 by ./tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-    method !push-list(\action,\to,\from) {
-        if nqp::istype(from,List) {
-            my Mu $from := nqp::getattr(from,List,'$!reified');
-            if nqp::defined($from) {
-                my int $elems = nqp::elems($from);
-                my int $j     = nqp::elems(to);
-                nqp::setelems(to, $j + $elems);  # presize for efficiency
-                my int $i = -1;
-                my $got;
-                nqp::while(
-                  nqp::islt_i(++$i,$elems),
-                  nqp::stmts(
-                    ($got = nqp::atpos($from,$i)),
-                    nqp::istype(nqp::hllize($got),Int)
-                      ?? nqp::bindpos_i(to,$j++,$got)
-                      !! self!fail-typecheck-element(action,$i,$got).throw))
-            }
+    method !push-List(str $action, ::?CLASS:D $to, \from) {
+        my Mu $reified := nqp::getattr(from,List,'$!reified');
+        if nqp::isconcrete($reified) {
+            my int $elems = nqp::elems($reified);
+            my int $j     = nqp::elems($to);
+            nqp::setelems($to, $j + $elems);  # presize for efficiency
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::stmts(
+                (my $got := nqp::atpos($reified,$i)),
+                nqp::if(
+                  nqp::istype(nqp::hllize($got),Int),
+                  nqp::bindpos_i($to,$j++,$got),
+                  self!throw-typecheck-element($action, $i, $got)
+                )
+              )
+            );
+        }
+        $to
+    }
+    method !push-iterator(str $action, ::?CLASS:D $to, Iterator:D $iter) {
+        my int $i;
+        nqp::until(
+          nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype(nqp::hllize($got),Int),
+            nqp::stmts(
+              nqp::push_i($to,$got),
+              ++$i
+            ),
+            self!throw-typecheck-element($action,$i,$got)
+          )
+        );
+        $to
+    }
+    method !push-list(str $action, ::?CLASS:D $to, \from) {
+        nqp::istype(from,List)
+          ?? self!push-List($action, $to, from)
+          !! self!push-iterator($action, $to, from.iterator)
+    }
+
+    method !spread-rest(
+      int        $i     is copy,
+      int        $elems is copy,
+      int        $values,
+      ::?CLASS:D $to,
+                 \from
+    ) {
+        --$i;  # went one too far
+        $elems = $elems + $values;
+        my int $j = -1;
+        if from.^array_type.^unsigned {
+            nqp::bindpos_i($to,$i,nqp::atpos_u(from, ++$j % $values))
+              while nqp::islt_i(++$i,$elems);
         }
         else {
-            my $iter := from.iterator;
-            my int $i = 0;
-            nqp::until(
-              nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
-              nqp::if(
-                nqp::istype(nqp::hllize($got),Int),
-                nqp::stmts(
-                  nqp::push_i(to,$got),
-                  ++$i
-                ),
-                self!fail-typecheck-element(action,$i,$got).throw
-              )
-            )
+            nqp::bindpos_i($to,$i,nqp::atpos_i(from, ++$j % $values))
+              while nqp::islt_i(++$i,$elems);
         }
-        to
+        $to
     }
-    method !spread(\to,\from) {
-        if nqp::elems(from) -> int $values { # something to init with
-            my int $elems = nqp::elems(to) - $values;
-            my int $i     = -$values;
-            nqp::splice(to,from,$i,$values)
-              while nqp::isle_i($i = $i + $values,$elems);
+    method !spread(::?CLASS:D $to, \from) {
+        my int $values = nqp::elems(from);
+        my int $elems = nqp::elems($to) - $values;
+        my int $i     = -$values;
+        nqp::splice($to,from,$i,$values)
+          while nqp::isle_i($i = $i + $values,$elems);
 
-            if nqp::isgt_i($i,$elems) {  # something left to init
-                --$i;                    # went one too far
-                $elems = $elems + $values;
-                my int $j = -1;
-                if from.^array_type.^unsigned {
-                    nqp::bindpos_i(to,$i,nqp::atpos_u(from, $j = ($j + 1) % $values))
-                      while nqp::islt_i(++$i,$elems);
-                }
-                else {
-                    nqp::bindpos_i(to,$i,nqp::atpos_i(from, $j = ($j + 1) % $values))
-                      while nqp::islt_i(++$i,$elems);
-                }
-            }
-        }
-        to
+        nqp::isgt_i($i,$elems)  # something left to init
+          ?? self!spread-rest($i, $elems, $values, $to, from)
+          !! $to
     }
     multi method allocate(::?CLASS:U: Int:D $elements, int $value) {
         my int $elems = $elements;
         my $blob     := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
-        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i(++$i,$elems);
-        $blob;
+        nqp::bindpos_i($blob,$i,$value)
+          while nqp::islt_i(++$i,$elems);
+        $blob
     }
-    multi method AT-POS(::?ROLE:D: int \pos) {
-        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
-          ?? self!fail-range(pos)
-          !! nqp::atpos_i(self,pos)
+    multi method AT-POS(::?ROLE:D: uint $pos) {
+        nqp::isge_i($pos,nqp::elems(self))
+          ?? self!fail-range($pos)
+          !! nqp::atpos_i(self,$pos)
     }
-    multi method AT-POS(::?ROLE:D: Int:D \pos) {
-        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
-          ?? self!fail-range(pos)
-          !! nqp::atpos_i(self,pos)
+    multi method AT-POS(::?ROLE:D: Int:D $pos) {
+        nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
+          ?? self!fail-range($pos)
+          !! nqp::atpos_i(self,$pos)
     }
 
     multi method list(::?ROLE:D:) {
@@ -104,10 +120,8 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         );
 
         my int $i = -1;
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::push($buffer,nqp::atpos_i(self,$i))
-        );
+        nqp::push($buffer,nqp::atpos_i(self,$i))
+          while nqp::islt_i(++$i,$elems);
         $buffer.List
     }
 
@@ -116,11 +130,11 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         my int $last  = nqp::sub_i($elems,1);
         my $reversed := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::bindpos_i($reversed,nqp::sub_i($last,$i),
-            nqp::atpos_i(self,$i))
-        );
+
+        nqp::bindpos_i($reversed,nqp::sub_i($last,$i),
+          nqp::atpos_i(self,$i))
+          while nqp::islt_i(++$i,$elems);
+
         $reversed
     }
 
@@ -170,10 +184,8 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         my int $i     = -1;
         my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::push_s($list,nqp::atpos_i(self,$i))
-        );
+        nqp::push_s($list,nqp::atpos_i(self,$i))
+          while nqp::islt_i(++$i,$elems);
 
         nqp::join($delim.Str,$list)
     }
@@ -182,84 +194,100 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of Blob Signed role ---------------------------------
 #- start of generated part of Blob Unsigned role -------------------------------
-#- Generated on 2022-02-16T09:52:11+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2022-02-17T14:05:50+01:00 by ./tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-    method !push-list(\action,\to,\from) {
-        if nqp::istype(from,List) {
-            my Mu $from := nqp::getattr(from,List,'$!reified');
-            if nqp::defined($from) {
-                my int $elems = nqp::elems($from);
-                my int $j     = nqp::elems(to);
-                nqp::setelems(to, $j + $elems);  # presize for efficiency
-                my int $i = -1;
-                my $got;
-                nqp::while(
-                  nqp::islt_i(++$i,$elems),
-                  nqp::stmts(
-                    ($got = nqp::atpos($from,$i)),
-                    nqp::istype(nqp::hllize($got),Int)
-                      ?? nqp::bindpos_u(to,$j++,$got)
-                      !! self!fail-typecheck-element(action,$i,$got).throw))
-            }
+    method !push-List(str $action, ::?CLASS:D $to, \from) {
+        my Mu $reified := nqp::getattr(from,List,'$!reified');
+        if nqp::isconcrete($reified) {
+            my int $elems = nqp::elems($reified);
+            my int $j     = nqp::elems($to);
+            nqp::setelems($to, $j + $elems);  # presize for efficiency
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::stmts(
+                (my $got := nqp::atpos($reified,$i)),
+                nqp::if(
+                  nqp::istype(nqp::hllize($got),Int),
+                  nqp::bindpos_u($to,$j++,$got),
+                  self!throw-typecheck-element($action, $i, $got)
+                )
+              )
+            );
+        }
+        $to
+    }
+    method !push-iterator(str $action, ::?CLASS:D $to, Iterator:D $iter) {
+        my int $i;
+        nqp::until(
+          nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype(nqp::hllize($got),Int),
+            nqp::stmts(
+              nqp::push_i($to,my $ = $got),
+              ++$i
+            ),
+            self!throw-typecheck-element($action,$i,$got)
+          )
+        );
+        $to
+    }
+    method !push-list(str $action, ::?CLASS:D $to, \from) {
+        nqp::istype(from,List)
+          ?? self!push-List($action, $to, from)
+          !! self!push-iterator($action, $to, from.iterator)
+    }
+
+    method !spread-rest(
+      int        $i     is copy,
+      int        $elems is copy,
+      int        $values,
+      ::?CLASS:D $to,
+                 \from
+    ) {
+        --$i;  # went one too far
+        $elems = $elems + $values;
+        my int $j = -1;
+        if from.^array_type.^unsigned {
+            nqp::bindpos_u($to,$i,nqp::atpos_u(from, ++$j % $values))
+              while nqp::islt_i(++$i,$elems);
         }
         else {
-            my $iter := from.iterator;
-            my int $i = 0;
-            nqp::until(
-              nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
-              nqp::if(
-                nqp::istype(nqp::hllize($got),Int),
-                nqp::stmts(
-                  nqp::push_i(to,my $ = $got),
-                  ++$i
-                ),
-                self!fail-typecheck-element(action,$i,$got).throw
-              )
-            )
+            nqp::bindpos_u($to,$i,nqp::atpos_i(from, ++$j % $values))
+              while nqp::islt_i(++$i,$elems);
         }
-        to
+        $to
     }
-    method !spread(\to,\from) {
-        if nqp::elems(from) -> int $values { # something to init with
-            my int $elems = nqp::elems(to) - $values;
-            my int $i     = -$values;
-            nqp::splice(to,from,$i,$values)
-              while nqp::isle_i($i = $i + $values,$elems);
+    method !spread(::?CLASS:D $to, \from) {
+        my int $values = nqp::elems(from);
+        my int $elems = nqp::elems($to) - $values;
+        my int $i     = -$values;
+        nqp::splice($to,from,$i,$values)
+          while nqp::isle_i($i = $i + $values,$elems);
 
-            if nqp::isgt_i($i,$elems) {  # something left to init
-                --$i;                    # went one too far
-                $elems = $elems + $values;
-                my int $j = -1;
-                if from.^array_type.^unsigned {
-                    nqp::bindpos_u(to,$i,nqp::atpos_u(from, $j = ($j + 1) % $values))
-                      while nqp::islt_i(++$i,$elems);
-                }
-                else {
-                    nqp::bindpos_u(to,$i,nqp::atpos_i(from, $j = ($j + 1) % $values))
-                      while nqp::islt_i(++$i,$elems);
-                }
-            }
-        }
-        to
+        nqp::isgt_i($i,$elems)  # something left to init
+          ?? self!spread-rest($i, $elems, $values, $to, from)
+          !! $to
     }
     multi method allocate(::?CLASS:U: Int:D $elements, int $value) {
         my int $elems = $elements;
         my $blob     := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
-        nqp::bindpos_u($blob,$i,$value) while nqp::islt_i(++$i,$elems);
-        $blob;
+        nqp::bindpos_u($blob,$i,$value)
+          while nqp::islt_i(++$i,$elems);
+        $blob
     }
-    multi method AT-POS(::?ROLE:D: int \pos) {
-        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
-          ?? self!fail-range(pos)
-          !! nqp::atpos_u(self,pos)
+    multi method AT-POS(::?ROLE:D: uint $pos) {
+        nqp::isge_i($pos,nqp::elems(self))
+          ?? self!fail-range($pos)
+          !! nqp::atpos_u(self,$pos)
     }
-    multi method AT-POS(::?ROLE:D: Int:D \pos) {
-        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
-          ?? self!fail-range(pos)
-          !! nqp::atpos_u(self,pos)
+    multi method AT-POS(::?ROLE:D: Int:D $pos) {
+        nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
+          ?? self!fail-range($pos)
+          !! nqp::atpos_u(self,$pos)
     }
 
     multi method list(::?ROLE:D:) {
@@ -272,10 +300,8 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         );
 
         my int $i = -1;
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::push($buffer,nqp::atpos_u(self,$i))
-        );
+        nqp::push($buffer,nqp::atpos_u(self,$i))
+          while nqp::islt_i(++$i,$elems);
         $buffer.List
     }
 
@@ -284,11 +310,11 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         my int $last  = nqp::sub_i($elems,1);
         my $reversed := nqp::setelems(nqp::create(self),$elems);
         my int $i     = -1;
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::bindpos_u($reversed,nqp::sub_i($last,$i),
-            nqp::atpos_u(self,$i))
-        );
+
+        nqp::bindpos_u($reversed,nqp::sub_i($last,$i),
+          nqp::atpos_u(self,$i))
+          while nqp::islt_i(++$i,$elems);
+
         $reversed
     }
 
@@ -338,10 +364,8 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         my int $i     = -1;
         my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::push_s($list,nqp::atpos_u(self,$i))
-        );
+        nqp::push_s($list,nqp::atpos_u(self,$i))
+          while nqp::islt_i(++$i,$elems);
 
         nqp::join($delim.Str,$list)
     }

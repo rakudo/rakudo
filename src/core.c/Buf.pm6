@@ -918,34 +918,25 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
 #- start of generated part of Buf Signed role --------------------------------
-#- Generated on 2022-02-15T10:19:32+01:00 by ./tools/build/makeBUF_ROLES.raku
+#- Generated on 2022-02-17T17:11:17+01:00 by ./tools/build/makeBUF_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     my role SignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-        sub OOR(int $got) is hidden-from-backtrace {
-            Failure.new(X::OutOfRange.new(
-              :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
-            ))
-        }
-        multi method AT-POS(::?ROLE:D: int $pos) is raw is default {
-            nqp::islt_i($pos,0)
-              ?? OOR($pos)
-              !! nqp::atposref_i(self,$pos)
+        multi method AT-POS(::?ROLE:D: uint $pos) is raw is default {
+            nqp::atposref_i(self,$pos)
         }
         multi method AT-POS(::?ROLE:D: Int:D $pos) is raw is default {
             nqp::islt_i($pos,0)
-              ?? OOR($pos)
+              ?? self!fail-range($pos)
               !! nqp::atposref_i(self,$pos)
         }
 
-        multi method ASSIGN-POS(::?ROLE:D: int $pos, Mu \assignee) {
-            nqp::islt_i($pos,0)
-              ?? OOR($pos)
-              !! nqp::bindpos_i(self,$pos,assignee)
+        multi method ASSIGN-POS(::?ROLE:D: uint $pos, Mu \assignee) {
+            nqp::bindpos_i(self,$pos,assignee)
         }
         multi method ASSIGN-POS(::?ROLE:D: Int:D $pos, Mu \assignee) {
             nqp::islt_i($pos,0)
-              ?? OOR($pos)
+              ?? self!fail-range($pos)
               !! nqp::bindpos_i(self,$pos,assignee)
         }
 
@@ -1035,34 +1026,25 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 #- end of generated part of Buf Signed role ----------------------------------
 
 #- start of generated part of Buf Unsigned role --------------------------------
-#- Generated on 2022-02-15T10:19:32+01:00 by ./tools/build/makeBUF_ROLES.raku
+#- Generated on 2022-02-17T17:11:17+01:00 by ./tools/build/makeBUF_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     my role UnsignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-        sub OOR(int $got) is hidden-from-backtrace {
-            Failure.new(X::OutOfRange.new(
-              :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
-            ))
-        }
-        multi method AT-POS(::?ROLE:D: int $pos) is raw is default {
-            nqp::islt_i($pos,0)
-              ?? OOR($pos)
-              !! nqp::atposref_u(self,$pos)
+        multi method AT-POS(::?ROLE:D: uint $pos) is raw is default {
+            nqp::atposref_u(self,$pos)
         }
         multi method AT-POS(::?ROLE:D: Int:D $pos) is raw is default {
             nqp::islt_i($pos,0)
-              ?? OOR($pos)
+              ?? self!fail-range($pos)
               !! nqp::atposref_u(self,$pos)
         }
 
-        multi method ASSIGN-POS(::?ROLE:D: int $pos, Mu \assignee) {
-            nqp::islt_i($pos,0)
-              ?? OOR($pos)
-              !! nqp::bindpos_u(self,$pos,assignee)
+        multi method ASSIGN-POS(::?ROLE:D: uint $pos, Mu \assignee) {
+            nqp::bindpos_u(self,$pos,assignee)
         }
         multi method ASSIGN-POS(::?ROLE:D: Int:D $pos, Mu \assignee) {
             nqp::islt_i($pos,0)
-              ?? OOR($pos)
+              ?? self!fail-range($pos)
               !! nqp::bindpos_u(self,$pos,assignee)
         }
 

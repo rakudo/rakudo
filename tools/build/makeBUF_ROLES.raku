@@ -56,30 +56,21 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
     my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-        sub OOR(int $got) is hidden-from-backtrace {
-            Failure.new(X::OutOfRange.new(
-              :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
-            ))
-        }
-        multi method AT-POS(::?ROLE:D: int $pos) is raw is default {
-            nqp::islt_i($pos,0)
-              ?? OOR($pos)
-              !! nqp::atposref_#postfix#(self,$pos)
+        multi method AT-POS(::?ROLE:D: uint $pos) is raw is default {
+            nqp::atposref_#postfix#(self,$pos)
         }
         multi method AT-POS(::?ROLE:D: Int:D $pos) is raw is default {
             nqp::islt_i($pos,0)
-              ?? OOR($pos)
+              ?? self!fail-range($pos)
               !! nqp::atposref_#postfix#(self,$pos)
         }
 
-        multi method ASSIGN-POS(::?ROLE:D: int $pos, Mu \assignee) {
-            nqp::islt_i($pos,0)
-              ?? OOR($pos)
-              !! nqp::bindpos_#postfix#(self,$pos,assignee)
+        multi method ASSIGN-POS(::?ROLE:D: uint $pos, Mu \assignee) {
+            nqp::bindpos_#postfix#(self,$pos,assignee)
         }
         multi method ASSIGN-POS(::?ROLE:D: Int:D $pos, Mu \assignee) {
             nqp::islt_i($pos,0)
-              ?? OOR($pos)
+              ?? self!fail-range($pos)
               !! nqp::bindpos_#postfix#(self,$pos,assignee)
         }
 

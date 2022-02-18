@@ -351,7 +351,7 @@ do {
                 return $!control-not-allowed;
             }
 
-            self.compiler.eval('$_ := $*LAST-OUTPUT;' ~ $code, |%adverbs);
+            self.compiler.eval('$_ = $*LAST-OUTPUT;' ~ $code, |%adverbs);
         }
 
         method interactive_prompt() { '> ' }

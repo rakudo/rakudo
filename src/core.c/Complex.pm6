@@ -45,21 +45,40 @@ my class Complex is Cool does Numeric {
         self.re.isNaN || self.im.isNaN;
     }
 
-    method coerce-to-real(Complex:D: $exception-target) {
+    method !coerce-to-real-failed($target) {
+        Failure.new(
+          X::Numeric::Real.new(
+            :$target,
+            reason => "imaginary part not zero",
+            source => self
+          )
+        )
+    }
+    method !coerce-to-real($target) {
         $!im ≅ 0e0
           ?? $!re
-          !! Failure.new(X::Numeric::Real.new(target => $exception-target, reason => "imaginary part not zero", source => self))
+          !! self!coerce-to-real-failed($target)
     }
-    multi method Real(Complex:D:) { self.coerce-to-real(Real); }
+    multi method Real(Complex:D:) { self!coerce-to-real(Real) }
 
     # should probably be eventually supplied by role Numeric
-    method Num(Complex:D:) { self.coerce-to-real(Num).Num; }
-    method Int(Complex:D:) { self.coerce-to-real(Int).Int; }
-    method Rat(Complex:D: $epsilon?) {
-        self.coerce-to-real(Rat).Rat( |($epsilon // Empty) );
+    method Num(Complex:D:) { self!coerce-to-real(Num).Num }
+    method Int(Complex:D:) { self!coerce-to-real(Int).Int }
+
+    proto method Rat(|) {*}
+    multi method Rat(Complex:D:) {
+        self!coerce-to-real(Rat).Rat
     }
-    method FatRat(Complex:D: $epsilon?) {
-        self.coerce-to-real(FatRat).FatRat( |($epsilon // Empty) );
+    multi method Rat(Complex:D: $epsilon) {
+        self!coerce-to-real(Rat).Rat: $epsilon
+    }
+
+    proto method FatRat(|) {*}
+    multi method FatRat(Complex:D:) {
+        self!coerce-to-real(FatRat).FatRat
+    }
+    multi method FatRat(Complex:D: $epsilon?) {
+        self!coerce-to-real(FatRat).FatRat: $epsilon
     }
 
     multi method Bool(Complex:D:) {

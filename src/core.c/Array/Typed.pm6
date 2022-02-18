@@ -56,28 +56,22 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     proto method BIND-POS(|) {*}
 
     # these BIND-POSses are identical to Array's, except for bindval
-    multi method BIND-POS(Array:D: int $pos, TValue \bindval) is raw {
+    multi method BIND-POS(Array:D: uint $pos, TValue \bindval) is raw {
         nqp::if(
-          nqp::islt_i($pos,0),
-          self!out-of-range($pos),
-          nqp::stmts(
-            nqp::if(
-              nqp::isconcrete(
-                my $reified := nqp::getattr(self,List,'$!reified')
-              ),
-              nqp::if(
-                nqp::isge_i($pos,nqp::elems($reified))
-                  && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-                nqp::getattr(self,List,'$!todo').reify-at-least(
-                  nqp::add_i($pos,1)),
-              ),
-              ($reified := nqp::bindattr(
-                self,List,'$!reified',nqp::create(IterationBuffer)
-              ))
-            ),
-            nqp::bindpos($reified,$pos,bindval)
-          )
-        )
+          nqp::isconcrete(
+            my $reified := nqp::getattr(self,List,'$!reified')
+          ),
+          nqp::if(
+            nqp::isge_i($pos,nqp::elems($reified))
+              && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
+            nqp::getattr(self,List,'$!todo').reify-at-least(
+              nqp::add_i($pos,1)),
+          ),
+          ($reified := nqp::bindattr(
+            self,List,'$!reified',nqp::create(IterationBuffer)
+          ))
+        );
+        nqp::bindpos($reified,$pos,bindval)
     }
     # because this is a very hot path, we copied the code from the int candidate
     multi method BIND-POS(Array:D: Int:D $pos, TValue \bindval) is raw {

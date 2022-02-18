@@ -552,14 +552,12 @@ multi sub infix:«<=>»(Complex:D $a, Complex:D $b) {
 multi sub infix:«<=>»(Num(Real) $a, Complex:D $b) { $a.Complex <=> $b }
 multi sub infix:«<=>»(Complex:D $a, Num(Real) $b) { $a <=> $b.Complex }
 
-proto sub postfix:<i>($, *%        --> Complex:D) is pure {*}
-multi sub postfix:<i>(Real      $a --> Complex:D) { Complex.new(0e0, $a)       }
-multi sub postfix:<i>(Complex:D $a --> Complex:D) { Complex.new(-$a.im, $a.re) }
-multi sub postfix:<i>(Numeric   $a --> Complex:D) { $a * Complex.new(0e0, 1e0) }
-multi sub postfix:<i>(Cool      $a --> Complex:D) {
-    $a.Numeric * Complex.new(0e0, 1e0)
-}
-
 constant i = Complex.new(0e0, 1e0);
+
+proto sub postfix:<i>($, *%        --> Complex:D) is pure {*}
+multi sub postfix:<i>(Real:D    $a --> Complex:D) { Complex.new(0e0, $a)       }
+multi sub postfix:<i>(Complex:D $a --> Complex:D) { Complex.new(-$a.im, $a.re) }
+multi sub postfix:<i>(Numeric   $a --> Complex:D) { $a * i }
+multi sub postfix:<i>(Cool:D    $a --> Complex:D) { $a.Numeric * i }
 
 # vim: expandtab shiftwidth=4

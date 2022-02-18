@@ -3,24 +3,17 @@ my class Complex is Cool does Numeric {
     has num $.re;
     has num $.im;
 
+    method !SET-SELF($!re, $!im) { self }
+
     proto method new(|) {*}
     multi method new() {
-        my $complex := nqp::create(self);
-        nqp::bindattr_n($complex,Complex,'$!re',0e0);
-        nqp::bindattr_n($complex,Complex,'$!im',0e0);
-        $complex
+        nqp::create(self)!SET-SELF(0e0, 0e0)
     }
-    multi method new(Num:D $re, Num:D $im) {
-        my $complex := nqp::create(self);
-        nqp::bindattr_n($complex,Complex,'$!re',$re);
-        nqp::bindattr_n($complex,Complex,'$!im',$im);
-        $complex
+    multi method new(Num $re, Num $im) {
+        nqp::create(self)!SET-SELF($re, $im)
     }
     multi method new(Real:D $re, Real:D $im) {
-        my $complex := nqp::create(self);
-        nqp::bindattr_n($complex,Complex,'$!re',$re.Num);
-        nqp::bindattr_n($complex,Complex,'$!im',$im.Num);
-        $complex
+        nqp::create(self)!SET-SELF($re.Num, $im.Num)
     }
 
     multi method WHICH(Complex:D: --> ValueObjAt:D) {

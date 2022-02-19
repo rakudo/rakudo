@@ -19,7 +19,8 @@ my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 
 my %type_mapper = (
-  int => ( :iseq_postfix<i>,
+  int => ( :coerce<nqp::coerce_is>,
+           :iseq_postfix<i>,
            :postfix<i>,
            :list_postfix<i>, 
            :nullval("0"),
@@ -29,7 +30,8 @@ my %type_mapper = (
            :value<int>,
            :Value<Int>,
          ).Map,
-  num => ( :iseq_postfix<n>,
+  num => ( :coerce(''),
+           :iseq_postfix<n>,
            :postfix<n>,
            :list_postfix<n>, 
            :nullval("0e0"),
@@ -39,7 +41,8 @@ my %type_mapper = (
            :value<num>,
            :Value<Num>,
          ).Map,
-  str => ( :iseq_postfix<s>,
+  str => ( :coerce(''),
+           :iseq_postfix<s>,
            :postfix<s>,
            :list_postfix<s>, 
            :nullval('""'),
@@ -49,7 +52,8 @@ my %type_mapper = (
            :value<str>,
            :Value<Str>,
          ).Map,
-  uint => ( :iseq_postfix<i>,
+  uint => ( :coerce<nqp::coerce_us>,
+            :iseq_postfix<i>,
             :postfix<u>,
             :list_postfix<i>, 
             :nullval("0"),
@@ -172,8 +176,16 @@ while @lines {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::unless(
-                nqp::existskey($seen,nqp::atpos_#postfix#(self,$i)),
-                nqp::bindkey($seen,nqp::push_#push_postfix#($result,nqp::atpos_#postfix#(self,$i)),1)
+                nqp::existskey(
+                  $seen,
+                  (my str $key = #coerce#(
+                    my #type# $value = nqp::atpos_#postfix#(self,$i)
+                  ))
+                ),
+                nqp::stmts(
+                  nqp::push_#push_postfix#($result,$value),
+                  nqp::bindkey($seen,$key,1),
+                )
               )
             );
 
@@ -189,8 +201,13 @@ while @lines {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::if(
-                nqp::existskey($seen,(my #type# $key = nqp::atpos_#postfix#(self,$i))),
-                nqp::push_#push_postfix#($result,$key),
+                nqp::existskey(
+                  $seen,
+                  (my str $key = #coerce#(
+                    my #type# $value = nqp::atpos_#postfix#(self,$i)
+                  ))
+                ),
+                nqp::push_#push_postfix#($result,$value),
                 nqp::bindkey($seen,$key,1)
               )
             );

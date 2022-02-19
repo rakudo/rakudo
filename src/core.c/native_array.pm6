@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-02-16T12:08:20+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-19T17:20:15+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -178,8 +178,16 @@ my class array does Iterable does Positional {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::unless(
-                nqp::existskey($seen,nqp::atpos_s(self,$i)),
-                nqp::bindkey($seen,nqp::push_s($result,nqp::atpos_s(self,$i)),1)
+                nqp::existskey(
+                  $seen,
+                  (my str $key = (
+                    my str $value = nqp::atpos_s(self,$i)
+                  ))
+                ),
+                nqp::stmts(
+                  nqp::push_s($result,$value),
+                  nqp::bindkey($seen,$key,1),
+                )
               )
             );
 
@@ -195,8 +203,13 @@ my class array does Iterable does Positional {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::if(
-                nqp::existskey($seen,(my str $key = nqp::atpos_s(self,$i))),
-                nqp::push_s($result,$key),
+                nqp::existskey(
+                  $seen,
+                  (my str $key = (
+                    my str $value = nqp::atpos_s(self,$i)
+                  ))
+                ),
+                nqp::push_s($result,$value),
                 nqp::bindkey($seen,$key,1)
               )
             );
@@ -704,7 +717,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-02-16T12:08:20+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-19T17:20:15+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -784,8 +797,16 @@ my class array does Iterable does Positional {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::unless(
-                nqp::existskey($seen,nqp::atpos_i(self,$i)),
-                nqp::bindkey($seen,nqp::push_i($result,nqp::atpos_i(self,$i)),1)
+                nqp::existskey(
+                  $seen,
+                  (my str $key = nqp::coerce_is(
+                    my int $value = nqp::atpos_i(self,$i)
+                  ))
+                ),
+                nqp::stmts(
+                  nqp::push_i($result,$value),
+                  nqp::bindkey($seen,$key,1),
+                )
               )
             );
 
@@ -801,8 +822,13 @@ my class array does Iterable does Positional {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::if(
-                nqp::existskey($seen,(my int $key = nqp::atpos_i(self,$i))),
-                nqp::push_i($result,$key),
+                nqp::existskey(
+                  $seen,
+                  (my str $key = nqp::coerce_is(
+                    my int $value = nqp::atpos_i(self,$i)
+                  ))
+                ),
+                nqp::push_i($result,$value),
                 nqp::bindkey($seen,$key,1)
               )
             );
@@ -1352,7 +1378,7 @@ my class array does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2022-02-16T12:08:20+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-19T17:20:15+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1432,8 +1458,16 @@ my class array does Iterable does Positional {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::unless(
-                nqp::existskey($seen,nqp::atpos_u(self,$i)),
-                nqp::bindkey($seen,nqp::push_i($result,nqp::atpos_u(self,$i)),1)
+                nqp::existskey(
+                  $seen,
+                  (my str $key = nqp::coerce_us(
+                    my uint $value = nqp::atpos_u(self,$i)
+                  ))
+                ),
+                nqp::stmts(
+                  nqp::push_i($result,$value),
+                  nqp::bindkey($seen,$key,1),
+                )
               )
             );
 
@@ -1449,8 +1483,13 @@ my class array does Iterable does Positional {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::if(
-                nqp::existskey($seen,(my uint $key = nqp::atpos_u(self,$i))),
-                nqp::push_i($result,$key),
+                nqp::existskey(
+                  $seen,
+                  (my str $key = nqp::coerce_us(
+                    my uint $value = nqp::atpos_u(self,$i)
+                  ))
+                ),
+                nqp::push_i($result,$value),
                 nqp::bindkey($seen,$key,1)
               )
             );
@@ -2000,7 +2039,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-02-16T12:08:20+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-02-19T17:20:15+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -2080,8 +2119,16 @@ my class array does Iterable does Positional {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::unless(
-                nqp::existskey($seen,nqp::atpos_n(self,$i)),
-                nqp::bindkey($seen,nqp::push_n($result,nqp::atpos_n(self,$i)),1)
+                nqp::existskey(
+                  $seen,
+                  (my str $key = (
+                    my num $value = nqp::atpos_n(self,$i)
+                  ))
+                ),
+                nqp::stmts(
+                  nqp::push_n($result,$value),
+                  nqp::bindkey($seen,$key,1),
+                )
               )
             );
 
@@ -2097,8 +2144,13 @@ my class array does Iterable does Positional {
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::if(
-                nqp::existskey($seen,(my num $key = nqp::atpos_n(self,$i))),
-                nqp::push_n($result,$key),
+                nqp::existskey(
+                  $seen,
+                  (my str $key = (
+                    my num $value = nqp::atpos_n(self,$i)
+                  ))
+                ),
+                nqp::push_n($result,$value),
                 nqp::bindkey($seen,$key,1)
               )
             );

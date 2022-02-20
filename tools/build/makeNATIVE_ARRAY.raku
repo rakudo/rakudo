@@ -30,7 +30,7 @@ my %type_mapper = (
            :value<int>,
            :Value<Int>,
          ).Map,
-  num => ( :coerce(''),
+  num => ( :coerce('nqp::coerce_ns'),
            :iseq_postfix<n>,
            :postfix<n>,
            :list_postfix<n>, 

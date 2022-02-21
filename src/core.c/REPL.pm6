@@ -320,7 +320,7 @@ do {
             self.?teardown-line-editor;
         }
 
-        method repl-eval($code, \exception, $*LAST-OUTPUT, *%adverbs) {
+        method repl-eval($code, \exception, @*_, *%adverbs) {
 
             CATCH {
                 when X::Syntax::Missing {
@@ -351,13 +351,18 @@ do {
                 return $!control-not-allowed;
             }
 
-            self.compiler.eval('$_ = $*LAST-OUTPUT;' ~ $code, |%adverbs);
+            my $*_ := @*_[0];
+            self.compiler.eval(
+              $code.subst(/ '$*' \d+ /, { '@*_[' ~ $/.substr(2) ~ ']' }, :g),
+              |%adverbs
+            )
         }
 
         method interactive_prompt() { '> ' }
 
         method repl-loop(:$no-exit, *%adverbs) {
-            my int $stopped;   # did we press CTRL-c just now?
+            my int $stopped;     # did we press CTRL-c just now?
+            my @previous-evals;  # the previously calculated values
 #?if !jvm
             signal(SIGINT).tap: {
                 exit if $stopped++;
@@ -380,7 +385,6 @@ do {
             }
             reset;
 
-            my $last-output;
             REPL: loop {
                 my $newcode = self.repl-read(~$prompt);
                 last if $no-exit and $newcode and $newcode eq 'exit';
@@ -405,7 +409,7 @@ do {
                 my $output is default(Nil) = self.repl-eval(
                     $code,
                     my $exception,
-                    $last-output,
+                    @previous-evals,
                     :outer_ctx($!save_ctx),
                     |%adverbs);
 
@@ -436,7 +440,7 @@ do {
                 elsif $initial_out_position == $*OUT.tell
                     or nqp::istype($output, Failure) and not $output.handled {
                     self.repl-print($output);
-                    $last-output := $output;
+                    @previous-evals.unshift: $output;
                 }
 
                 # Why doesn't the catch-default in repl-eval catch all?

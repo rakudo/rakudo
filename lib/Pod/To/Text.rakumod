@@ -19,8 +19,8 @@ sub pod2text($pod) is export {
         when Pod::Block::Table      { table2text($pod)               }
         when Pod::Block::Declarator { declarator2text($pod)          }
         when Pod::Item              { item2text($pod)                }
-        when Pod::Defn              { pod2text($pod.contents[0]) ~ "\n"
-                                      ~ pod2text($pod.contents[1..*-1]) }
+        when Pod::Defn              { pod2text($pod.term) ~ "\n"
+                                      ~ pod2text($pod.contents) }
 
         when Pod::FormattingCode    { formatting2text($pod)          }
         when Positional             { .flat».&pod2text.grep(?*).join: "\n\n" }

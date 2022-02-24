@@ -22,9 +22,9 @@ my class RoleToRoleApplier {
                 for @meth_names -> $name {
                     my $meth := nqp::shift($meth_iterator);
                     # Only transfer submethods from pre-6.e roles into pre-6.e classes.
-                    next unless !nqp::istype($meth, $submethod_type)
-                                || ($with_submethods
-                                    && $role.HOW.lang-rev-before($role, 'e'));
+                    next if nqp::istype($meth, $submethod_type)
+                            && !($with_submethods
+                                && $role.HOW.lang-rev-before($role, 'e'));
                     my @meth_list;
                     my @meth_providers;
                     if nqp::existskey(%meth_info_to_use, $name) {
@@ -159,9 +159,9 @@ my class RoleToRoleApplier {
                 for $how.multi_methods_to_incorporate($role) {
                     my $name := $_.name;
                     my $to_add := $_.code;
-                    next unless nqp::istype($to_add, $submethod_type)
-                                || ($with_submethods
-                                    && $role.HOW.lang-rev-before($role, 'e'));
+                    next if nqp::istype($to_add, $submethod_type)
+                            && !($with_submethods
+                                && $role.HOW.lang-rev-before($role, 'e'));
                     my $yada := 0;
                     try { $yada := $to_add.yada; }
                     if $yada {

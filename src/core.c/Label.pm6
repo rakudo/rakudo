@@ -15,13 +15,23 @@ my class Label {
         nqp::bindattr($obj, Label, '$!postmatch', nqp::p6box_s($postmatch));
         $obj
     }
+
     method name() {
         $!name
+    }
+    method file() {
+        $!file
+    }
+    method line() {
+        $!line
     }
 
     method goto(*@)  { NYI("{self.^name}.goto()").throw; }
     method leave(*@) { NYI("{self.^name}.leave()").throw; }
 
+    method Str(Label:D:) {
+        "$!name $!file:$!line"
+    }
     multi method gist(Label:D:) {
         my ($red,$clear,$green,$yellow,$eject) = Rakudo::Internals.error-rcgye;
         "Label<$!name>(at $!file:$!line, '$green$!prematch$yellow$eject$red$!name$green$!postmatch$clear')"

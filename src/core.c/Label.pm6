@@ -1,7 +1,7 @@
 my class Label {
-    has Str $!name;
-    has Str $!file;
-    has Int $!line;
+    has Str $.name;
+    has Str $.file;
+    has Int $.line;
     has Str $!prematch;
     has Str $!postmatch;
     method new(:$name, :$line, :$prematch, :$postmatch) {
@@ -15,13 +15,11 @@ my class Label {
         nqp::bindattr($obj, Label, '$!postmatch', nqp::p6box_s($postmatch));
         $obj
     }
-    method name() {
-        $!name
-    }
 
     method goto(*@)  { NYI("{self.^name}.goto()").throw; }
     method leave(*@) { NYI("{self.^name}.leave()").throw; }
 
+    multi method Str(Label:D:) { "$!name $!file:$!line" }
     multi method gist(Label:D:) {
         my ($red,$clear,$green,$yellow,$eject) = Rakudo::Internals.error-rcgye;
         "Label<$!name>(at $!file:$!line, '$green$!prematch$yellow$eject$red$!name$green$!postmatch$clear')"

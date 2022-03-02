@@ -8862,11 +8862,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ));
             $right.push(WANTED($<sibble><right>.ast,'quote:s'));
         }
-        my $rep_block := $*SUBST_RHS_BLOCK;
-        $rep_block.push(QAST::Stmts.new($right, :node($<sibble><right>)));
-        my $closure := block_closure(reference_to_code_object(
-            $*W.create_code_obj_and_add_child($rep_block, 'Code'),
-            $rep_block));
+        my $replacement;
+        if $right.has_compile_time_value {
+            $replacement := QAST::SVal.new( :value($right.compile_time_value) );
+        }
+        else {
+            my $rep_block := $*SUBST_RHS_BLOCK;
+            $rep_block.push(QAST::Stmts.new($right, :node($<sibble><right>)));
+            $replacement := block_closure(reference_to_code_object(
+                $*W.create_code_obj_and_add_child($rep_block, 'Code'),
+                $rep_block));
+        }
 
         # self.match($rx_coderef, |%options);
         my $past := QAST::Op.new( :node($/), :op('callmethod'), :name('match'),
@@ -8909,7 +8915,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::SVal.new( :value('APPLY-MATCHES') ),
             QAST::WVal.new( :value($*W.find_single_symbol('Str')) ),
             QAST::Var.new( :name($result), :scope('local') ),
-            $closure,
+            $replacement,
             QAST::Var.new( :name('$/'), :scope('lexical') ), # caller dollar slash
             QAST::IVal.new( :value(1) ),                     # set dollar slash
             QAST::IVal.new( :value($sigspace) ),

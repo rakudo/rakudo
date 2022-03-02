@@ -1812,7 +1812,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             # fast path for something like `s:g[ \w+ ] = "foo"`
             if !fancy && !callable {
                 for flat matches -> $m {
-                    try cds = $m;
+                    cds = $m;
                     nqp::push_s(
                       $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                     );
@@ -1823,7 +1823,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             else {
                 for flat matches -> $m {
-                    try cds = $m if SDS;
+                    cds = $m if SDS;
                     nqp::push_s(
                       $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                     );

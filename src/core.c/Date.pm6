@@ -56,8 +56,24 @@ my class Date does Dateish {
 
     proto method new(|) {*}
     multi method new(Date:
+      Int:D() $year, Int:D() $month, &day, :&formatter
+    --> Date:D) {
+        my $day := day(self!DAYS-IN-MONTH($year, $month));
+        nqp::eqaddr(self.WHAT,Date)
+          ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
+          !! self!bless($year, $month, $day, &formatter, %_)
+    }
+    multi method new(Date:
       Int:D() $year, Int:D() $month, Int:D() $day, :&formatter
     --> Date:D) {
+        nqp::eqaddr(self.WHAT,Date)
+          ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
+          !! self!bless($year, $month, $day, &formatter, %_)
+    }
+    multi method new(Date:
+      Int:D() :$year!, Int:D() :$month = 1, :&day!, :&formatter
+    --> Date:D) {
+        my $day := day(self!DAYS-IN-MONTH($year, $month));
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
           !! self!bless($year, $month, $day, &formatter, %_)

@@ -3489,7 +3489,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         nqp::dispatch('raku-boolify', $rhs.ACCEPTS($topic))
     });
     my &negate-smartmatch-code := nqp::getstaticcode(-> $topic, $rhs {
-        $rhs.ACCEPTS($topic).not
+        nqp::hllizefor($rhs.ACCEPTS($topic), 'Raku').not
     });
     my &nominalizable-sm-code := nqp::getstaticcode(-> $topic, $rhs {
         nqp::hllboolfor(nqp::istype($topic, $rhs), 'Raku')

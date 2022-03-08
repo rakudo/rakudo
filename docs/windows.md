@@ -42,7 +42,10 @@ Clone rakudo; in the VS command prompt:
 
 Configure rakudo:
     C:\Users\user cd rakudo
-    C:\Users\user perl Configure.pl --backends=moar --gen-moar --moar-option="--cc=cl" --moar-option="--ld=link" --moar-option="--make=nmake"
+    C:\Users\user perl Configure.pl --backends=moar --gen-moar --moar-option=--nomimalloc
+
+The configure system should correctly detect your Visual Studio tools. We disable
+mimalloc for now on windows.
 
 This will git clone nqp & MoarVM, then build MoarVM, nqp.
 To build rakudo itself (and install it into a local ./install directory):

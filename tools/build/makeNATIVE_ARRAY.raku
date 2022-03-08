@@ -277,9 +277,9 @@ while @lines {
             nqp::setelems(self,nqp::elems(values));
             nqp::splice(self,values,0,nqp::elems(values))
         }
-        multi method STORE(#type#array:D: Seq:D \seq --> #type#array:D) {
+        multi method STORE(#type#array:D: Seq:D $seq --> #type#array:D) {
             nqp::if(
-              (my $iterator := seq.iterator).is-lazy,
+              (my $iterator := $seq.iterator).is-lazy,
               self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
@@ -290,7 +290,7 @@ while @lines {
         }
         multi method STORE(#type#array:D: List:D \values --> #type#array:D) {
             my uint $elems = values.elems;    # reifies
-            my \reified   := nqp::getattr(values,List,'$!reified');
+            my $reified   := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
             my int $i = -1;
@@ -298,9 +298,9 @@ while @lines {
               nqp::islt_i(++$i,$elems),
               nqp::bindpos_#postfix#(self,$i,
                 nqp::if(
-                  nqp::isnull(nqp::atpos(reified,$i)),
+                  nqp::isnull(nqp::atpos($reified,$i)),
                   #nullval#,
-                  nqp::unbox_#postfix#(nqp::atpos(reified,$i))
+                  nqp::unbox_#postfix#(nqp::atpos($reified,$i))
                 )
               )
             );
@@ -393,19 +393,17 @@ while @lines {
             nqp::setelems(self,0);
             $splice
         }
-        multi method splice(#type#array:D: Int:D \offset --> #type#array:D) {
+        multi method splice(#type#array:D: Int:D $got --> #type#array:D) {
             nqp::if(
-              nqp::islt_i(offset,0) || nqp::isgt_i(
-                (my uint $offset = offset),
+              nqp::islt_i($got,0) || nqp::isgt_i(
+                (my uint $offset = $got),
                 (my uint $elems = nqp::elems(self))
               ),
               Failure.new(X::OutOfRange.new(
-                :what('Offset argument to splice'),
-                :got($offset),
-                :range("0..{nqp::elems(array)}")
+                :what('Offset argument to splice'), :$got, :range("0..$elems")
               )),
               nqp::if(
-                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::iseq_i($offset,$elems),
                 nqp::create(self.WHAT),
                 nqp::stmts(
                   (my $slice := nqp::slice(self,$offset,-1)),
@@ -413,7 +411,7 @@ while @lines {
                     self,
                     $empty_#postfix#,
                     $offset,
-                    nqp::sub_i(nqp::elems(self),$offset)
+                    nqp::sub_i($elems,$offset)
                   ),
                   $slice
                 )
@@ -445,9 +443,9 @@ while @lines {
             );
             $slice
         }
-        multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq --> #type#array:D) {
+        multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D $seq --> #type#array:D) {
             nqp::if(
-              seq.is-lazy,
+              $seq.is-lazy,
               self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
@@ -455,7 +453,7 @@ while @lines {
                     (my $slice := CLONE_SLICE(self,$offset,$size)),
                     Failure
                   ),
-                  nqp::splice(self,nqp::create(self).STORE(seq),$offset,$size)
+                  nqp::splice(self,nqp::create(self).STORE($seq),$offset,$size)
                 ),
                 $slice
               )
@@ -594,11 +592,11 @@ while @lines {
         multi method ACCEPTS(#type#array:D: #type#array:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,my \other := nqp::decont(o)),
+                nqp::eqaddr(self,my $other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my uint $elems = nqp::elems(self)),
-                    nqp::elems(other)
+                    nqp::elems($other)
                   ),
                   nqp::stmts(
                     (my int $i = -1),
@@ -606,7 +604,7 @@ while @lines {
                       nqp::islt_i(++$i,$elems)
                         && nqp::iseq_#iseq_postfix#(
                              nqp::atpos_#postfix#(self,$i),
-                             nqp::atpos_#postfix#(other,$i)
+                             nqp::atpos_#postfix#($other,$i)
                            ),
                       nqp::null
                     ),

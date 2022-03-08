@@ -262,7 +262,7 @@ multi sub die(|cap ( *@msg ) --> Nil) {
 
 proto sub warn(|) {*}
 multi sub warn(*@msg) {
-    my $msg = @msg.join || "Warning: something's wrong";
+    my $msg := @msg.join || "Warning: something's wrong";
     my $ex := nqp::newexception();
     nqp::setmessage($ex, nqp::unbox_s($msg));
     nqp::setextype($ex, nqp::const::CONTROL_WARN);

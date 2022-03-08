@@ -68,9 +68,9 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::stmts(
-                (my $got := nqp::atpos($reified,$i)),
+                (my $got = nqp::hllize(nqp::atpos($reified,$i))),
                 nqp::if(
-                  nqp::istype(nqp::hllize($got),Int),
+                  nqp::istype($got,Int),
                   nqp::bindpos_#postfix#($to,$j++,$got),
                   self!throw-typecheck-element($action, $i, $got)
                 )

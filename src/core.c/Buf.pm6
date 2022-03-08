@@ -14,7 +14,7 @@ enum Endian (
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
 
 #- start of generated part of Blob Signed role -------------------------------
-#- Generated on 2022-02-17T14:05:50+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2022-03-08T14:31:37+01:00 by ./tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
@@ -28,9 +28,9 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::stmts(
-                (my $got := nqp::atpos($reified,$i)),
+                (my $got = nqp::hllize(nqp::atpos($reified,$i))),
                 nqp::if(
-                  nqp::istype(nqp::hllize($got),Int),
+                  nqp::istype($got,Int),
                   nqp::bindpos_i($to,$j++,$got),
                   self!throw-typecheck-element($action, $i, $got)
                 )
@@ -194,7 +194,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of Blob Signed role ---------------------------------
 #- start of generated part of Blob Unsigned role -------------------------------
-#- Generated on 2022-02-17T14:05:50+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2022-03-08T14:31:37+01:00 by ./tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
@@ -208,9 +208,9 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
             nqp::while(
               nqp::islt_i(++$i,$elems),
               nqp::stmts(
-                (my $got := nqp::atpos($reified,$i)),
+                (my $got = nqp::hllize(nqp::atpos($reified,$i))),
                 nqp::if(
-                  nqp::istype(nqp::hllize($got),Int),
+                  nqp::istype($got,Int),
                   nqp::bindpos_u($to,$j++,$got),
                   self!throw-typecheck-element($action, $i, $got)
                 )

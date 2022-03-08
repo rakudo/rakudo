@@ -42,7 +42,7 @@ Clone rakudo; in the VS command prompt:
 
 Configure rakudo:
     C:\Users\user cd rakudo
-    C:\Users\user perl Configure.pl --backends=moar --gen-moar --moar-option=--nomimalloc
+    C:\Users\user perl Configure.pl --backends=moar --gen-moar --moar-option=--no-mimalloc
 
 The configure system should correctly detect your Visual Studio tools. We disable
 mimalloc for now on windows.

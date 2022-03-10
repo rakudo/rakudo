@@ -1037,33 +1037,33 @@ my class X::Worry::Precedence::Range is X::Worry {
     }
 }
 
-my class X::Trait::Invalid is Exception {
+my role X::Trait is Exception {
     has $.type;       # is, will, of etc.
     has $.subtype;    # wrong subtype being tried
-    has $.declaring;  # variable, sub, parameter, etc.
-    has $.name;       # '$foo', '@bar', etc.
+    has $.declaring;  # variable, sub, parameter, etc. (optional)
+}
+my class X::Trait::Invalid does X::Trait {
+    has $.name;       # target of trait, e.g., '$foo' in `$foo is rw`
+    has $.reason;     # reason the trait was invalid (optional)
     method message () {
-        "Cannot use '$.type $.subtype' on $.declaring '$.name'."
+        "Cannot use '$.type $.subtype' on $.declaring '$.name'"
+         ~($!reason ?? " because:\n$!reason.indent(4)" !! '.');
     }
 }
+my class X::Comp::Trait::Invalid is X::Trait::Invalid does X::Comp { };
 
-my class X::Trait::Unknown is Exception {
-    has $.type;       # is, will, of etc.
-    has $.subtype;    # wrong subtype being tried
-    has $.declaring;  # variable, sub, parameter, etc.
+my class X::Trait::Unknown does X::Trait {
     method message () {
         "Can't use unknown trait '{
             try { $.type } // "unknown type"
         }' -> '{
             try { $.subtype } // "unknown subtype"
-        }' in a$.declaring declaration."
+        }' in $.declaring declaration."
     }
 }
 my class X::Comp::Trait::Unknown is X::Trait::Unknown does X::Comp { };
 
-my class X::Trait::NotOnNative is Exception {
-    has $.type;       # is, will, of etc.
-    has $.subtype;    # wrong subtype being tried
+my class X::Trait::NotOnNative does X::Trait {
     has $.native;     # type of native (optional)
     method message () {
         "Can't use trait '$.type $.subtype' on a native"
@@ -1072,10 +1072,7 @@ my class X::Trait::NotOnNative is Exception {
 }
 my class X::Comp::Trait::NotOnNative is X::Trait::NotOnNative does X::Comp { };
 
-my class X::Trait::Scope is Exception {
-    has $.type;       # is, will, of etc.
-    has $.subtype;    # export
-    has $.declaring;  # type name of the object
+my class X::Trait::Scope does X::Trait {
     has $.scope;      # not supported (but used) scope
     has $.supported;  # hint about what is allowed instead
     method message () {

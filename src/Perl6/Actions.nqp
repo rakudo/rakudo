@@ -1471,10 +1471,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $doc := %*COMPILING<%?OPTIONS><doc>;
         if $doc {
             my $block := $*W.push_lexpad($/);
+            my $rx := /
+                       ^
+                       $<name> = ( [ \w | '::' ] + )
+                       [ ':' $<part> = ( [ 'ver' | 'auth' | 'api' ] )
+                        \< ~ \> $<val> = ( .*? ) ]*
+                       $
+                      /;
+            my $s := match($doc, $rx);
+            my %opts := nqp::hash();
+            my @parts := nqp::atkey($s,'part');
+            my @vals := nqp::atkey($s,'val');
+            my $e := nqp::elems(@parts);
 
-            my $renderer := "Pod::To::$doc";
+            my $i := 0;
+            while $i < $e { nqp::bindkey( %opts, ~ @parts[$i], ~ @vals[$i++] ) };
 
-            my $module := $*W.load_module($/, $renderer, {}, $block);
+            my $renderer := 'Pod::To::' ~ nqp::atkey($s,'name');
+            my $module := $*W.load_module($/, $renderer, %opts, $block);
 
             my $pod2text := QAST::Op.new(
                 :op<callmethod>, :name<render>, :node($/),

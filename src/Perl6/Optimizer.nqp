@@ -1720,7 +1720,7 @@ my class SmartmatchOptimizer {
                     :op<callmethod>,
                     :name($method),
                     QAST::Var.new( :name($topic_name), :scope($topic_scope), :wanted(1) ) ),
-                    QAST::WVal.new( :value($!symbols.Failure) ));
+                QAST::WVal.new( :value($!symbols.Failure) ));
 
         # We don't need/want `val()` to `fail()` if `Numeric()` ends up calling it
         # and it doesn't succeed, that creates an expensive Backtrace that we just

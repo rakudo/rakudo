@@ -223,26 +223,20 @@ multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
     0;
 }
 # three other trait_mod sub for equiv/tighter/looser in operators.pm6
-multi sub trait_mod:<is>(Routine:D $r, :&equiv!) {
-    nqp::can(&equiv, 'prec')
-        ?? trait_mod:<is>($r, :prec(&equiv.prec))
-        !! die "Routine given to equiv does not appear to be an operator";
+multi sub trait_mod:<is>(Routine:D $r, Code :$equiv!) {
+    trait_mod:<is>($r, :prec($equiv.prec));
     $r.prec<assoc>:delete;
 }
-multi sub trait_mod:<is>(Routine:D $r, :&tighter!) {
-    die "Routine given to tighter does not appear to be an operator"
-        unless nqp::can(&tighter, 'prec');
-    if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
-        trait_mod:<is>($r, :prec(&tighter.prec))
+multi sub trait_mod:<is>(Routine:D $r, Code :$tighter!) {
+    if $r.prec<prec> !~~ /<[@:]>/ {
+        trait_mod:<is>($r, :prec($tighter.prec))
     }
     $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', '@=');
     $r.prec<assoc>:delete;
 }
-multi sub trait_mod:<is>(Routine:D $r, :&looser!) {
-    die "Routine given to looser does not appear to be an operator"
-        unless nqp::can(&looser, 'prec');
-    if !nqp::can($r, 'prec') || ($r.prec<prec> // "") !~~ /<[@:]>/ {
-        trait_mod:<is>($r, :prec(&looser.prec))
+multi sub trait_mod:<is>(Routine:D $r, Code :$looser!) {
+    if $r.prec<prec> !~~ /<[@:]>/ {
+        trait_mod:<is>($r, :prec($looser.prec))
     }
     $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', ':=');
     $r.prec<assoc>:delete;

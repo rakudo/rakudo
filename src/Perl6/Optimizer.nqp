@@ -1728,7 +1728,29 @@ my class SmartmatchOptimizer {
         if $method eq 'Numeric' {
             my $fail-or-nil := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
             $fail-or-nil.named('fail-or-nil');
-            $method_call.push($fail-or-nil);
+            $method_call[0].push($fail-or-nil);
+
+            # Rewrite the `$LHS.Numeric` into `my $tmp := $LHS.Numeric(:fail-or-nil); $LHS := nqp::istype($tmp, Nil) ?? NaN !! $tmp;`
+            # Since we already explicitly handle the RHS being NaN above, this is safe because NaN isn't == to anything, so
+            # when we do `$LHS == $RHS` it will always be False
+            my $tmp := QAST::Node.unique('nilee');
+            $method_call[0] :=
+                QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+                        $method_call[0]
+                    ),
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype'),
+                            QAST::Var.new( :name($tmp), :scope('local') ),
+                            QAST::WVal.new( :value($!symbols.Nil) ),
+                        ),
+                        QAST::NVal.new( :value(nqp::nan) ),
+                        QAST::Var.new( :name($tmp), :scope('local') )
+                    ))
         }
 
         # Make sure we're not comparing against a type object, since those could

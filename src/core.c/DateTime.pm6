@@ -256,6 +256,9 @@ my class DateTime does Dateish {
           :second($dt.second + $p % 1 + $leap-second), |%_
         ).in-timezone($timezone)
     }
+    multi method new(DateTime: Allomorph:D $epoch, |c) {
+        self.new: $epoch.Numeric, |c
+    }
     multi method new(DateTime:
       Numeric:D $epoch is copy, :$timezone = 0, :&formatter, *%_
     --> DateTime:D) {

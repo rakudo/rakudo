@@ -164,19 +164,25 @@ my class DateTime does Dateish {
     method !new-from-positional(DateTime:
       Int() $year,
       Int() $month,
-      Int() $day,
+            $day is copy,  # can also be a Callable / Whatever
       Int() $hour,
       Int() $minute,
-            $second,  # can have fractional seconds
+            $second,       # can have fractional seconds
       Int() $timezone,
             &formatter,
             %extra,
     --> DateTime:D) {
+        my $DIM := self!DAYS-IN-MONTH($year,$month);
+        $day = nqp::istype($day,Whatever)
+          ?? $DIM
+          !! nqp::istype($day,Callable)
+            ?? $day($DIM)
+            !! $day.Int;
+
         self!oor("Month",$month,"1..12")
           if nqp::islt_I(nqp::decont($month),1)
           || nqp::isgt_I(nqp::decont($month),12);
 
-        my $DIM := self!DAYS-IN-MONTH($year,$month);
         self!oor("Day",$day,"1..$DIM")
           if nqp::islt_I(nqp::decont($day),1)
           || nqp::isgt_I(nqp::decont($day),$DIM);

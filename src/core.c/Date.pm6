@@ -54,17 +54,30 @@ my class Date does Dateish {
           !! self!wrong-oor($year, $month, $day)
     }
 
+    method !day-not-Int($year, $month, $day --> Int:D) {
+        my $DIM := self!DAYS-IN-MONTH($year,$month);
+        nqp::istype($day,Whatever)
+          ?? $DIM
+          !! nqp::istype($day,Callable)
+            ?? $day($DIM) 
+            !! $day.Int
+    }
+
     proto method new(|) {*}
     multi method new(Date:
-      Int:D() $year, Int:D() $month, Int:D() $day, :&formatter
+      Int:D() $year, Int:D() $month, $day is copy, :&formatter
     --> Date:D) {
+        $day = self!day-not-Int($year, $month, $day)
+          unless nqp::istype($day,Int);
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
           !! self!bless($year, $month, $day, &formatter, %_)
     }
     multi method new(Date:
-      Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter
+      Int:D() :$year!, Int:D() :$month = 1, :$day is copy = 1, :&formatter
     --> Date:D) {
+        $day = self!day-not-Int($year, $month, $day)
+          unless nqp::istype($day,Int);
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
           !! self!bless($year, $month, $day, &formatter, %_)

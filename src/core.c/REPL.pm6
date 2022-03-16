@@ -361,12 +361,12 @@ do {
 
         method repl-loop(:$no-exit, *%adverbs) {
             my int $stopped;     # did we press CTRL-c just now?
-            my @previous-evals;  # the previously calculated values
+            my $previous-evals := IterationBuffer.new;  # previous values
 #?if !jvm
             signal(SIGINT).tap: {
                 exit if $stopped++;
                 say "Pressed CTRL-c, press CTRL-c again to exit";
-                print self.interactive_prompt(@previous-evals.elems);
+                print self.interactive_prompt($previous-evals.elems);
             }
 #?endif
 
@@ -380,7 +380,7 @@ do {
             my $code;
             sub reset(--> Nil) {
                 $code = '';
-                $prompt = self.interactive_prompt(@previous-evals.elems);
+                $prompt = self.interactive_prompt($previous-evals.elems);
             }
             reset;
 
@@ -408,7 +408,7 @@ do {
                 my $output is default(Nil) = self.repl-eval(
                     $code,
                     my $exception,
-                    @previous-evals,
+                    $previous-evals.List,
                     :outer_ctx($!save_ctx),
                     |%adverbs);
 
@@ -437,7 +437,7 @@ do {
                 elsif $initial_out_position == $*OUT.tell
                     or nqp::istype($output, Failure) and not $output.handled {
                     self.repl-print($output);
-                    @previous-evals.push: $output;
+                    $previous-evals.push: $output<>;
                 }
                 reset;
 

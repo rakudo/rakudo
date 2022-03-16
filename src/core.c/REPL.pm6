@@ -351,14 +351,13 @@ do {
                 return $!control-not-allowed;
             }
 
-            my $*_ := @*_[0];
             self.compiler.eval(
               $code.subst(/ '$*' \d+ /, { '@*_[' ~ $/.substr(2) ~ ']' }, :g),
               |%adverbs
             )
         }
 
-        method interactive_prompt() { '> ' }
+        method interactive_prompt($index) { "[$index] > " }
 
         method repl-loop(:$no-exit, *%adverbs) {
             my int $stopped;     # did we press CTRL-c just now?
@@ -367,7 +366,7 @@ do {
             signal(SIGINT).tap: {
                 exit if $stopped++;
                 say "Pressed CTRL-c, press CTRL-c again to exit";
-                print self.interactive_prompt;
+                print self.interactive_prompt(@previous-evals.elems);
             }
 #?endif
 
@@ -381,7 +380,7 @@ do {
             my $code;
             sub reset(--> Nil) {
                 $code = '';
-                $prompt = self.interactive_prompt;
+                $prompt = self.interactive_prompt(@previous-evals.elems);
             }
             reset;
 
@@ -428,8 +427,6 @@ do {
                     $!save_ctx := $*MAIN_CTX;
                 }
 
-                reset;
-
                 # Print the result if:
                 # - there wasn't some other output
                 # - the result is an *unhandled* Failure
@@ -440,8 +437,9 @@ do {
                 elsif $initial_out_position == $*OUT.tell
                     or nqp::istype($output, Failure) and not $output.handled {
                     self.repl-print($output);
-                    @previous-evals.unshift: $output;
+                    @previous-evals.push: $output;
                 }
+                reset;
 
                 # Why doesn't the catch-default in repl-eval catch all?
                 CATCH {

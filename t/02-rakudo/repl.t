@@ -7,15 +7,16 @@ plan 47;
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
-    $_ = .lines.skip(4).join("\n");
-    s/^^ "You may want to `zef install Readline`, `zef install Linenoise`,"
+    .lines
+      .skip(4)
+      .join("\n")
+      .subst( /^^ "You may want to `zef install Readline`, `zef install Linenoise`,"
         " or `zef install Terminal::LineEditor`"
-        " or use rlwrap for a line editor\n\n"//;
-    s/^^ "To exit type 'exit' or $eof\n"//;
-    s:g/ ^^ "> "  //; # Strip out the prompts
-    s:g/    ">" $ //; # Strip out the final prompt
-    s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
-    $_
+        " or use rlwrap for a line editor\n\n"/)
+      .subst( /^^ "To exit type 'exit' or $eof\n"/ )
+      .subst( /^^ '[' \d+ '] > '  /, :global)  # Strip out the prompts
+      .subst( /^^ "* "+ /,           :global)  # Strip out the continuation-prompts
+      .subst( /    ">" $ /,          :global)  # Strip out the final prompt
 }
 
 {

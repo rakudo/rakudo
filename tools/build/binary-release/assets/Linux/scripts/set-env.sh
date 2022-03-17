@@ -70,11 +70,11 @@ echo 'Rakudo provides an interactive command line interpreter (a so called Read 
 echo 'Print Loop, REPL for short) you can use to quickly try out pieces of Raku code.';
 echo 'Start it by typing:';
 echo '';
-echo '    raku.exe';
+echo '    raku';
 echo '';
 echo 'If you already have a Raku program in a file, you can run it by typing:';
 echo '';
-echo '    raku.exe path\to\my\program.raku';
+echo '    raku path/to/my/program.raku';
 echo '';
 echo 'To install additional modules you can use the Zef module manager:';
 echo '';

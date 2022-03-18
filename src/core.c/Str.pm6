@@ -1811,7 +1811,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # fast path for something like `s:g[ \w+ ] = "foo"`
             if !fancy && !callable {
-                for flat matches -> $m {
+                for (nqp::istype(matches, Capture) ?? flat matches !! matches.list) -> $m {
                     cds = $m;
                     nqp::push_s(
                       $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
@@ -1822,7 +1822,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::p6box_s(nqp::join(nqp::unbox_s(~$replacement),$result));
             }
             else {
-                for flat matches -> $m {
+                for (nqp::istype(matches, Capture) ?? flat matches !! matches.list) -> $m {
                     cds = $m if SDS;
                     nqp::push_s(
                       $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
@@ -1872,7 +1872,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # simple string replacement
         else {
-            for flat matches -> $m {
+            for (nqp::istype(matches, Capture) ?? flat matches !! matches.list) -> $m {
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                 );

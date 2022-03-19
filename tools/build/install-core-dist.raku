@@ -1,8 +1,3 @@
-use v6.d;
-
-use lib <lib>;
-use CompUnit::Repository::Staging;
-
 my %provides = 
     "Test"                          => "lib/Test.rakumod",
     "NativeCall"                    => "lib/NativeCall.rakumod",
@@ -12,7 +7,6 @@ my %provides =
     "Pod::To::Text"                 => "lib/Pod/To/Text.rakumod",
     "newline"                       => "lib/newline.rakumod",
     "experimental"                  => "lib/experimental.rakumod",
-    "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
     "Telemetry"                     => "lib/Telemetry.rakumod",
     "snapper"                       => "lib/snapper.rakumod",
     "safe-snapper"                  => "lib/safe-snapper.rakumod",
@@ -54,24 +48,6 @@ $REPO.install(
         prefix => $*CWD,
     ),
     :force,
-);
-
-# Precompile CompUnit::Repository::Staging again to give it a source path relative to perl#
-my $core-dist := $REPO.resolve(
-    CompUnit::DependencySpecification.new(
-      :short-name<CompUnit::Repository::Staging>)
-).distribution;
-
-my $source-id :=
-  $core-dist.meta<provides><CompUnit::Repository::Staging>.values.head<file>;
-my $source      := $REPO.prefix.child('sources').child($source-id);
-my $source-file := $source.relative($REPO.prefix);
-
-$REPO.precomp-repository.precompile(
-        $source,
-        CompUnit::PrecompilationId.new($source-id),
-        :source-name("core#$source-file (CompUnit::Repository::Staging)"),
-        :force,
 );
 
 note "    Installed {%provides.elems} core modules in {now - INIT now} seconds!";

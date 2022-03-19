@@ -30,10 +30,6 @@ It is recommended to set the environment variable 'RAKUDO_RERESOLVE_DEPENDENCIES
 
 =end pod
 
-
-use v6.c;
-use CompUnit::Repository::Staging;
-
 # Distribution::Path ignores META.info files, but we can manually set it
 sub find-meta-file($dir) {
     ('META6.json', 'META.info').map({$dir.child($_)}).first: {$_ ~~ :f}

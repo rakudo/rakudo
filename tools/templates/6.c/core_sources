@@ -223,6 +223,7 @@ src/core.c/CompUnit/Repository/Installation.pm6
 src/core.c/CompUnit/Repository/AbsolutePath.pm6
 src/core.c/CompUnit/Repository/NQP.pm6
 src/core.c/CompUnit/Repository/Perl5.pm6
+src/core.c/CompUnit/Repository/Staging.pm6
 src/core.c/CompUnit/Repository/Unknown.pm6
 src/core.c/WalkList.pm6
 @if(backend==jvm

@@ -4,7 +4,6 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
 
     submethod BUILD(Str :$!name --> Nil) {
         $!parent = CompUnit::RepositoryRegistry.repository-for-name($!name);
-        note "$!parent.prefix() for $!name";
         CompUnit::RepositoryRegistry.register-name($!name, self);
     }
 

@@ -2,16 +2,12 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
     has Str $.name;
     has CompUnit::Repository $!parent;
 
-    submethod BUILD(Str :$!name --> Nil) {
+    submethod TWEAK(--> Nil) {
         $!parent = CompUnit::RepositoryRegistry.repository-for-name($!name);
         CompUnit::RepositoryRegistry.register-name($!name, self);
     }
 
     method short-id() { 'staging' }
-
-    method name(--> Str) {
-        $!name
-    }
 
     method path-spec(CompUnit::Repository::Staging:D:) {
         self.^name ~ '#name(' ~ $!name ~ ')#' ~ $.prefix.absolute;

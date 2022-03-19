@@ -283,12 +283,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my %done;
 
             my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
-            for %provides.sort {
+            my @provides = %provides.sort(*.key).reverse;
+            for @provides {
                 my $id = CompUnit::PrecompilationId.new-without-check($_.value.values[0]<file>);
                 $precomp.store.delete($compiler-id, $id);
             }
 
-            for %provides.sort {
+            for @provides {
                 my $id = $_.value.values[0]<file>;
                 my $source = $sources-dir.add($id);
                 my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;

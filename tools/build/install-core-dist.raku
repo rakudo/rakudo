@@ -1,7 +1,4 @@
-use v6.d;
-
-use lib <lib>;
-use CompUnit::Repository::Staging;
+my constant Staging = "lib/CompUnit/Repository/Staging.rakumod".IO.slurp.EVAL;
 
 my %provides = 
     "Test"                          => "lib/Test.rakumod",
@@ -32,7 +29,7 @@ if Compiler.backend eq 'moar' {
 }
 
 my $prefix := @*ARGS[0];
-my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
+my $REPO := PROCESS::<$REPO> := Staging.new(
     :$prefix
     :next-repo(
         # Make CompUnit::Repository::Staging available to precomp processes

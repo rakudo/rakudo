@@ -23,6 +23,18 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
             ?? callsame() # we have the dist, so it's safe to access the resource the normal way
             !! $!parent.resource($dist-id, $key) # lookup failed, so it's probably not installed here
     }
+
+    method deploy() {
+        my $from    := $.prefix.absolute;
+        my $relpath := $from.chars;
+        my $to      := $!parent.prefix;
+
+        for Rakudo::Internals.DIR-RECURSE($from) -> $path {
+            my $destination := $to.add($path.substr($relpath));
+            $destination.parent.mkdir;
+            $destination.spurt: $path.IO.slurp(:bin);
+        }
+    }
 }
 
 # vim: expandtab shiftwidth=4

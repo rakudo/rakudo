@@ -1809,56 +1809,70 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my \fancy         := space || case || mark || word_by_word;
             my \case-and-mark := case && mark;
 
-            for flat matches -> $m {
-                try cds = $m if SDS;
-                nqp::push_s(
-                  $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
-                );
-
-                if fancy {
-                    my $mstr := $m.Str;
-                    my $it := ~(callable
-                      ?? (noargs ?? $replacement() !! $replacement($m))
-                      !! $replacement
+            # fast path for something like `s:g[ \w+ ] = "foo"`
+            if !fancy && !callable {
+                for (nqp::istype(matches, Capture) ?? flat matches !! matches.list) -> $m {
+                    cds = $m;
+                    nqp::push_s(
+                      $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                     );
-                    if word_by_word {  # all spacers delegated to word-by-word
-                        my &filter :=
-                        case-and-mark
-                        ?? -> $w,$p { $w.samemark($p).samecase($p) }
-                        !! case
-                            ?? -> $w,$p { $w.samecase($p) }
-                            !! -> $w,$p { $w.samemark($p) }
-                        nqp::push_s($result,nqp::unbox_s(
-                          $it!word-by-word($mstr,&filter,:samespace(?space))
-                        ) );
-                    }
-                    elsif case-and-mark {
-                        nqp::push_s($result,nqp::unbox_s(
-                          $it.samecase($mstr).samemark($mstr)
-                        ) );
-                    }
-                    elsif case {
-                        nqp::push_s($result,nqp::unbox_s($it.samecase(~$m)));
-                    }
-                    else { # mark
-                        nqp::push_s($result,nqp::unbox_s($it.samemark(~$m)));
-                    }
+                    $prev = nqp::unbox_i($m.to);
                 }
-                else {
-                    nqp::push_s($result,nqp::unbox_s( ~(callable
-                      ?? (noargs ?? $replacement() !! $replacement($m))
-                      !! $replacement
-                    ) ) );
-                }
-                $prev = nqp::unbox_i($m.to);
+                nqp::push_s($result,nqp::substr($str,$prev));
+                nqp::p6box_s(nqp::join(nqp::unbox_s(~$replacement),$result));
             }
-            nqp::push_s($result,nqp::substr($str,$prev));
-            nqp::p6box_s(nqp::join('',$result));
+            else {
+                for (nqp::istype(matches, Capture) ?? flat matches !! matches.list) -> $m {
+                    cds = $m if SDS;
+                    nqp::push_s(
+                      $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
+                    );
+
+                    if fancy {
+                        my $mstr := $m.Str;
+                        my $it := ~(callable
+                          ?? (noargs ?? $replacement() !! $replacement($m))
+                          !! $replacement
+                        );
+                        if word_by_word {  # all spacers delegated to word-by-word
+                            my &filter :=
+                            case-and-mark
+                            ?? -> $w,$p { $w.samemark($p).samecase($p) }
+                            !! case
+                                ?? -> $w,$p { $w.samecase($p) }
+                                !! -> $w,$p { $w.samemark($p) }
+                            nqp::push_s($result,nqp::unbox_s(
+                              $it!word-by-word($mstr,&filter,:samespace(?space))
+                            ) );
+                        }
+                        elsif case-and-mark {
+                            nqp::push_s($result,nqp::unbox_s(
+                              $it.samecase($mstr).samemark($mstr)
+                            ) );
+                        }
+                        elsif case {
+                            nqp::push_s($result,nqp::unbox_s($it.samecase(~$m)));
+                        }
+                        else { # mark
+                            nqp::push_s($result,nqp::unbox_s($it.samemark(~$m)));
+                        }
+                    }
+                    else {
+                        nqp::push_s($result,nqp::unbox_s( ~(callable
+                          ?? (noargs ?? $replacement() !! $replacement($m))
+                          !! $replacement
+                        ) ) );
+                    }
+                    $prev = nqp::unbox_i($m.to);
+                }
+                nqp::push_s($result,nqp::substr($str,$prev));
+                nqp::p6box_s(nqp::join('',$result));
+            }
         }
 
         # simple string replacement
         else {
-            for flat matches -> $m {
+            for (nqp::istype(matches, Capture) ?? flat matches !! matches.list) -> $m {
                 nqp::push_s(
                   $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
                 );

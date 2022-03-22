@@ -24,7 +24,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
             !! $!parent.resource($dist-id, $key) # lookup failed, so it's probably not installed here
     }
 
-    method remove-artefacts() {
+    method remove-artifacts() {
         my $io := $.prefix;
         $io.child($_).unlink for <
           version repo.lock precomp/.lock

@@ -1,10 +1,10 @@
 my class Instant { ... }
 
 class IO::Special does IO {
-    has Str $.what;
+    has Str $.what is built(False);
 
-    method new(Str:D \what --> IO::Special:D) {
-        nqp::p6bindattrinvres(nqp::create(self),self,'$!what',what)
+    method new(str $what --> IO::Special:D) {
+        nqp::p6bindattrinvres(nqp::create(self),self,'$!what',$what)
     }
     multi method WHICH(IO::Special:D: --> ValueObjAt) {
         nqp::box_s(

@@ -1,5 +1,5 @@
 class CompUnit::PrecompilationId {
-    has $.id;
+    has Str $.id is built(False) handles <Str IO substr>;
 
     method new(str $id --> CompUnit::PrecompilationId:D) {
         nqp::atpos(nqp::radix_I(16,$id,0,0,Int),2) == 40
@@ -24,10 +24,6 @@ class CompUnit::PrecompilationId {
           ValueObjAt
         )
     }
-
-    method Str()      { $!id }
-    method IO()       { $!id.IO }
-    method substr(|c) { $!id.substr(|c) }
 }
 
 # vim: expandtab shiftwidth=4

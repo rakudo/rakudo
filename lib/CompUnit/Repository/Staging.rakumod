@@ -24,6 +24,13 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
             !! $!parent.resource($dist-id, $key) # lookup failed, so it's probably not installed here
     }
 
+    method remove-artefacts() {
+        my $io := $.prefix;
+        $io.child($_).unlink for <
+          version repo.lock precomp/.lock
+        >;
+    }
+
     method deploy() {
         my $from    := $.prefix.absolute;
         my $relpath := $from.chars;

@@ -35,6 +35,12 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
             $path.IO.copy: $destination;
         }
     }
+
+    sub self-destruct($io) {
+        .d ?? self-destruct($_) !! .unlink for $io.dir;
+        $io.rmdir;
+    }
+    method self-destruct() { self-destruct($.prefix) }
 }
 
 # vim: expandtab shiftwidth=4

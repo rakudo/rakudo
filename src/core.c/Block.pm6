@@ -10,10 +10,9 @@ my class Block { # declared in BOOTSTRAP
 
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
-    method add_phaser(Str:D \name, &block --> Nil) {
+    method add_phaser(str $name, &block --> Nil) {
         $!phasers := nqp::hash unless nqp::ishash($!phasers);
 
-        my str $name = name;
         nqp::bindkey($!phasers,$name,nqp::create(PhasersList))
           unless nqp::existskey($!phasers,$name);
 

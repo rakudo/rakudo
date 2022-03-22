@@ -32,7 +32,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
         for Rakudo::Internals.DIR-RECURSE($from) -> $path {
             my $destination := $to.add($path.substr($relpath));
             $destination.parent.mkdir;
-            $destination.spurt: $path.IO.slurp(:bin);
+            $path.IO.copy: $destination;
         }
     }
 }

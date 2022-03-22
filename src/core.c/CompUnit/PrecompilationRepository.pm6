@@ -47,8 +47,7 @@ class CompUnit::PrecompilationRepository::Default
      --> CompUnit::Handle:D) {
 
         my $id := $dependency.id;
-        $!RMD("try-load $id: $source")
-          if $!RMD;
+        $!RMD("try-load source at $source") if $!RMD;
 
         # Even if we may no longer precompile, we should use already loaded files
         $loaded-lock.protect: {
@@ -100,23 +99,45 @@ class CompUnit::PrecompilationRepository::Default
         $handle
     }
 
+    method !load-repo-id(
+      CompUnit::PrecompilationStore @precomp-stores,
+      CompUnit::PrecompilationId:D $id,
+    ) {
+        $!RMD("Trying to load $id.repo-id") if $!RMD;
+        for @precomp-stores -> $store {
+            with $store.load-repo-id($compiler-id, $id) {
+                $!RMD("  Loaded from $store.prefix()") if $!RMD;
+                return $_;
+            }
+        }
+        Nil
+    }
+
     method !load-file(
       CompUnit::PrecompilationStore @precomp-stores,
       CompUnit::PrecompilationId:D $id,
-      Bool :$repo-id,
-      Bool :$refresh,
     ) {
+        $!RMD("Trying to load $id") if $!RMD;
         for @precomp-stores -> $store {
-            $!RMD("Trying to load {
-                $id ~ ($repo-id ?? '.repo-id' !! '')
-            } from $store.prefix()")
-              if $!RMD;
+            with $store.load-unit($compiler-id, $id) {
+                $!RMD("  Loaded from $store.prefix()") if $!RMD;
+                return $_;
+            }
+        }
+        Nil
+    }
 
-            $store.remove-from-cache($id) if $refresh;
-            my $file := $repo-id
-                ?? $store.load-repo-id($compiler-id, $id)
-                !! $store.load-unit($compiler-id, $id);
-            return $file if $file;
+    method !load-refreshed-file(
+      CompUnit::PrecompilationStore @precomp-stores,
+      CompUnit::PrecompilationId:D $id,
+    ) {
+        $!RMD("Trying to load refreshed $id") if $!RMD;
+        for @precomp-stores -> $store {
+            $store.remove-from-cache($id);
+            with $store.load-unit($compiler-id, $id) {
+                $!RMD("  Loaded from $store.prefix()") if $!RMD;
+                return $_;
+            }
         }
         Nil
     }
@@ -129,8 +150,7 @@ class CompUnit::PrecompilationRepository::Default
         my $REPO       := $*REPO;
         my $REPO-id    := $REPO.id;
         $first-repo-id := $REPO-id unless $first-repo-id;
-        my $unit-id    := self!load-file(
-                            @precomp-stores, $precomp-unit.id, :repo-id);
+        my $unit-id    := self!load-repo-id(@precomp-stores, $precomp-unit.id);
 
         if $unit-id ne $REPO-id {
             $!RMD("Repo changed:
@@ -266,8 +286,7 @@ Need to re-check dependencies.")
             return precomped if precomped;
         }
 
-        my $unit := self!load-file(@precomp-stores, $id);
-        if $unit {
+        if self!load-file(@precomp-stores, $id) -> $unit {
             if (not $since or $unit.modified > $since)
                 and (not $source or ($checksum //= $source.CHECKSUM) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
@@ -291,7 +310,7 @@ Need to re-check dependencies.")
                   if $!RMD;
 
                 $unit.close;
-                Failure.new("Outdated precompiled $unit");
+                Failure.new("Outdated precompiled $unit")
             }
         }
         else {
@@ -349,7 +368,7 @@ Need to re-check dependencies.")
         if $force {
             return self!already-precompiled($path,$source-name,$io,1)
               if $precomp-stores
-              and my $unit := self!load-file($precomp-stores, $id, :refresh)
+              and my $unit := self!load-refreshed-file($precomp-stores, $id)
               and do {
                          LEAVE $unit.close;
                          $path.CHECKSUM eq $unit.source-checksum

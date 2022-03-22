@@ -85,16 +85,17 @@ my class Block { # declared in BOOTSTRAP
         )
     }
 
-    method has-phaser(Str:D \name) {
-        nqp::hllbool(nqp::ishash($!phasers)
-          && nqp::existskey($!phasers,nqp::unbox_s(name)))
+    method has-phaser(str $name) {
+        nqp::hllbool(
+          nqp::ishash($!phasers) && nqp::existskey($!phasers,$name)
+        )
     }
 
-    method phasers(Str:D $name) {
+    method phasers(str $name) {
         nqp::ishash($!phasers)
-          && nqp::existskey($!phasers,nqp::unbox_s($name))
+          && nqp::existskey($!phasers,$name)
           ?? nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-               nqp::atkey($!phasers,nqp::unbox_s($name)))
+               nqp::atkey($!phasers,$name))
           !! ()
     }
 

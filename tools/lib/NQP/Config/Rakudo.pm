@@ -797,7 +797,7 @@ sub _specs_iterate {
                     push @all_sources,
                       File::Spec->abs2rel(
                         File::Spec->catfile( $File::Find::dir, $_ ), $base_dir )
-                      if /\.(nqp|pm6)\z/;
+                      if /\.(nqp|pm6|rakumod)\z/;
                 },
                 File::Spec->catdir( $base_dir, "src" )
             );

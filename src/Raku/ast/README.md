@@ -42,7 +42,7 @@ quite a few other things to do that will be helpful. Specifically:
   new symbols (which, well, there are). (done, for now at least)
 * Get the compiler ID to factor in the AST nodes, so that a re-compile with
   only AST changes will invalidate previous pre-comps, so we don't have to
-  remove `lib/.precomp/` after such a build. (Difficulty: probably easy.)
+  remove `lib/.precomp/` after such a build. (done)
 * Fix build system issues (doesn't rebuild if the AST compiler changes, etc.)
   (Difficulty: well, it involves a build system...)
 * Get the AST compiler to support roles, and gradually transition the things

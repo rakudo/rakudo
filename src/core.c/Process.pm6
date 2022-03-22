@@ -2,9 +2,15 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
     PROCESS::<$RAKUDO_MODULE_DEBUG> := ?%*ENV<RAKUDO_MODULE_DEBUG>
       ?? -> *@str --> Nil {
             state $level = %*ENV<RAKUDO_MODULE_DEBUG>++;
+            state $root  = $*CWD.Str;
             my $indent = (($level - 1) * 4) + 1;
-            my $str = @str>>.indent(7 + $indent).join("\n").substr(7 + $indent);
-            note sprintf "%2d%sRMD: %s", $level, " " x $indent, $str;
+            note sprintf "%2d%sRMD: %s",
+              $level,
+              " " x $indent,
+              @str>>.indent(7 + $indent)
+                .join("\n")
+                .substr(7 + $indent)
+                .subst($root, '.');
          }
       !! ?%*ENV<RAKUDO_PRECOMPILATION_PROGRESS>
         ?? -> $note --> Nil {

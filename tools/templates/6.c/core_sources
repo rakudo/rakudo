@@ -208,6 +208,9 @@ src/core.c/Distribution.pm6
 src/core.c/CompUnit/DependencySpecification.pm6
 src/core.c/CompUnit/Handle.pm6
 src/core.c/CompUnit/Loader.pm6
+src/core.c/CompUnit/PrecompilationId.pm6
+src/core.c/CompUnit/PrecompilationDependency.pm6
+src/core.c/CompUnit/PrecompilationDependency/File.pm6
 src/core.c/CompUnit/PrecompilationUnit.pm6
 src/core.c/CompUnit/PrecompilationUnit/File.pm6
 src/core.c/CompUnit/PrecompilationStore.pm6

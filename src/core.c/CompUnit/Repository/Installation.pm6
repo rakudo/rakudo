@@ -168,7 +168,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $!version = 2;
     }
 
-    method install(Distribution $distribution, Bool :$force) {
+    method install(
+      Distribution:D $distribution,
+      Bool          :$force,
+      Bool          :$precompile = True,
+    ) {
         my $dist  = CompUnit::Repository::Distribution.new($distribution);
         my %files = $dist.meta<files>.grep(*.defined).map: -> $link {
             $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])
@@ -229,7 +233,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             next unless $name-path.starts-with('bin/');
             my $name        = $name-path.subst(/^bin\//, '');
             my $id          = self!file-id(~$file, $dist-id);
-            my $destination = $resources-dir.add($id); # wrappers are put in bin/; originals in resources/
+            # wrappers are put in bin/; originals in resources/
+            my $destination = $resources-dir.add($id);
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m', '-js' -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
@@ -273,7 +278,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         # identity changes with every installation of a dist.
         $!id = Any;
 
-        {
+        if $precompile {
             my $head = $*REPO;
             PROCESS::<$REPO> := self; # Precomp files should only depend on downstream repos
             my $precomp = $*REPO.precomp-repository;

@@ -1174,8 +1174,12 @@ my class X::Undeclared does X::Comp {
         my $message := "$.what '$.symbol' is not declared";
         if +@.suggestions == 1 {
             $message := "$message. Did you mean '@.suggestions[0]'?";
-        } elsif +@.suggestions > 1 {
+        }
+        elsif +@.suggestions > 1 {
             $message := "$message. Did you mean any of these: { @.suggestions.map( { "'$_'" } ).join(", ") }?";
+        }
+        elsif $.what eq 'Variable' {
+            $message := "$message. Perhaps you forgot a 'sub' if this was intended to be part of a signature?";
         }
         $message.naive-word-wrapper
     }

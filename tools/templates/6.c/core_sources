@@ -205,6 +205,11 @@ src/core.c/Compiler.pm6
 src/core.c/Raku.pm6
 src/core.c/Rakudo/Internals/JSON.pm6
 src/core.c/Distribution.pm6
+src/core.c/Distribution/Locally.pm6
+src/core.c/Distribution/Hash.pm6
+src/core.c/Distribution/Path.pm6
+src/core.c/Distribution/Resource.pm6
+src/core.c/Distribution/Resources.pm6
 src/core.c/CompUnit/DependencySpecification.pm6
 src/core.c/CompUnit/Handle.pm6
 src/core.c/CompUnit/Loader.pm6
@@ -222,6 +227,7 @@ src/core.c/CompUnit/Repository/Installable.pm6
 src/core.c/CompUnit.pm6
 src/core.c/CompUnit/RepositoryRegistry.pm6
 src/core.c/CompUnit/Repository/Locally.pm6
+src/core.c/CompUnit/Repository/Distribution.pm6
 src/core.c/CompUnit/Repository/FileSystem.pm6
 src/core.c/CompUnit/Repository/Installation.pm6
 src/core.c/CompUnit/Repository/AbsolutePath.pm6

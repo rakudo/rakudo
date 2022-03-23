@@ -1,8 +1,10 @@
 role Distribution::Locally does Distribution {
     has IO::Path $.prefix;
-    method content($address) {
-        my $path   = IO::Path.new($.meta<files>{$address} // $address, :CWD($!prefix.absolute // $*CWD.absolute));
-        my $handle = IO::Handle.new(:$path);
+
+    method content(Str:D $address --> IO::Handle:D) {
+        my $handle := IO::Handle.new: path => IO::Path.new:
+          $.meta<files>{$address}  // $address,
+          CWD => $!prefix.absolute // $*CWD.absolute;
         $handle // $handle.throw;
     }
 }

@@ -320,7 +320,7 @@ do {
             self.?teardown-line-editor;
         }
 
-        method repl-eval($code, \exception, *%adverbs) {
+        method repl-eval($code, \exception, @*_, *%adverbs) {
 
             CATCH {
                 when X::Syntax::Missing {
@@ -351,18 +351,22 @@ do {
                 return $!control-not-allowed;
             }
 
-            self.compiler.eval($code, |%adverbs);
+            self.compiler.eval(
+              $code.subst(/ '$*' \d+ /, { '@*_[' ~ $/.substr(2) ~ ']' }, :g),
+              |%adverbs
+            )
         }
 
-        method interactive_prompt() { '> ' }
+        method interactive_prompt($index) { "[$index] > " }
 
         method repl-loop(:$no-exit, *%adverbs) {
-            my int $stopped;   # did we press CTRL-c just now?
+            my int $stopped;     # did we press CTRL-c just now?
+            my $previous-evals := IterationBuffer.new;  # previous values
 #?if !jvm
             signal(SIGINT).tap: {
                 exit if $stopped++;
                 say "Pressed CTRL-c, press CTRL-c again to exit";
-                print self.interactive_prompt;
+                print self.interactive_prompt($previous-evals.elems);
             }
 #?endif
 
@@ -376,7 +380,7 @@ do {
             my $code;
             sub reset(--> Nil) {
                 $code = '';
-                $prompt = self.interactive_prompt;
+                $prompt = self.interactive_prompt($previous-evals.elems);
             }
             reset;
 
@@ -404,6 +408,7 @@ do {
                 my $output is default(Nil) = self.repl-eval(
                     $code,
                     my $exception,
+                    $previous-evals.List,
                     :outer_ctx($!save_ctx),
                     |%adverbs);
 
@@ -422,8 +427,6 @@ do {
                     $!save_ctx := $*MAIN_CTX;
                 }
 
-                reset;
-
                 # Print the result if:
                 # - there wasn't some other output
                 # - the result is an *unhandled* Failure
@@ -434,7 +437,9 @@ do {
                 elsif $initial_out_position == $*OUT.tell
                     or nqp::istype($output, Failure) and not $output.handled {
                     self.repl-print($output);
+                    $previous-evals.push: $output<>;
                 }
+                reset;
 
                 # Why doesn't the catch-default in repl-eval catch all?
                 CATCH {

@@ -55,7 +55,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
         $io.rmdir;
     }
     method self-destruct(CompUnit::Repository::Staging:D: --> Nil) {
-        self-destruct: self.prefix;
+        self-destruct self.prefix;
     }
 }
 

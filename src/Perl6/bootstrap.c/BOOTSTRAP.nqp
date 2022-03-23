@@ -3323,7 +3323,6 @@ BEGIN {
                         if $got_prim == $BIND_VAL_OBJ {
                             # Object; won't do.
                             $type_mismatch := 1;
-                            $type_match_possible := 0;
                             last;
                         }
 

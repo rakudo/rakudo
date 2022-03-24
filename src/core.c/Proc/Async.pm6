@@ -151,7 +151,7 @@ my class Proc::Async {
         type         = value;
         the-supply //= Supplier::Preserving.new;
 
-        if nqp::iscont(fd-vow) {
+        if nqp::isrwcont(fd-vow) {
             my $native-descriptor := Promise.new;
             fd-vow = $native-descriptor.vow;
             Pipe.new(the-supply.Supply.Tappable, $native-descriptor, |self!pipe-cbs(permit-channel))
@@ -164,7 +164,7 @@ my class Proc::Async {
     method !wrap-decoder(Supply:D $bin-supply, $enc, \fd-vow, \permit-channel, :$translate-nl) {
         my \sup = Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc,
             :translate-nl($translate-nl // $!translate-nl));
-        if nqp::iscont(fd-vow) {
+        if nqp::isrwcont(fd-vow) {
             my $native-descriptor := Promise.new;
             fd-vow = $native-descriptor.vow;
             Pipe.new(sup.Supply.Tappable, $native-descriptor, |self!pipe-cbs(permit-channel))

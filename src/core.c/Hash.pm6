@@ -438,7 +438,7 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::bindkey(
                     new-storage,
                     nqp::iterkey_s(iter),
-                    nqp::if( nqp::iscont(v),
+                    nqp::if( nqp::isrwcont(v),
                              nqp::p6assign(nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')), v),
                              v ))));
         handle

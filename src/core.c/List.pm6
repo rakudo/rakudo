@@ -514,7 +514,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method ASSIGN-POS(List:D: Int:D $pos, \what) is raw {
-        nqp::iscont(my $target := self.AT-POS($pos))
+        nqp::isrwcont(my $target := self.AT-POS($pos))
           ?? ($target = what)
           !! X::Assignment::RO.new(value => self).throw
     }

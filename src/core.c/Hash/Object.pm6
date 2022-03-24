@@ -306,7 +306,7 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
                     nqp::iterkey_s(iter),
                     Pair.new(
                         p.key,
-                        nqp::if( nqp::iscont(my \v = p.value),
+                        nqp::if( nqp::isrwcont(my \v = p.value),
                                  nqp::p6assign(nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')), v),
                                  v )))));
         handle

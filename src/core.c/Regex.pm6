@@ -30,7 +30,7 @@ my class Regex { # declared in BOOTSTRAP
           nqp::ctxcallerskipthunks(nqp::ctx()),
           '$/'
         );
-        nqp::iscont($slash)
+        nqp::isrwcont($slash)
           ?? nqp::decont($slash = SELF!ACCEPTS-Any(topic))
           !! SELF!ACCEPTS-Any(topic)
     }

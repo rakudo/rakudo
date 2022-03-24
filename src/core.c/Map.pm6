@@ -292,7 +292,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method ASSIGN-KEY(Map:D: \key, Mu \new) {
         nqp::isnull(my \old := nqp::atkey($!storage,key.Str))
           ?? die("Cannot add key '{key}' to an immutable {self.^name}")
-          !! nqp::iscont(old)
+          !! nqp::isrwcont(old)
             ?? (old = new)
             !! die("Cannot change key '{key}' in an immutable {self.^name}")
     }

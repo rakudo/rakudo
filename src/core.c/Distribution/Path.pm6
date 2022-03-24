@@ -3,8 +3,8 @@ class Distribution::Path does Distribution::Locally {
     has IO::Path $.meta-file;
 
     method new(
-      IO::Path  $prefix,
-      IO::Path :$meta-file = $prefix.add('META6.json'),
+      IO::Path:D  $prefix,
+      IO::Path:D :$meta-file = $prefix.add('META6.json'),
     ) {
         self.bless(:$prefix, :$meta-file)
     }

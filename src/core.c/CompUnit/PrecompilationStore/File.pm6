@@ -177,7 +177,7 @@ class CompUnit::PrecompilationStore::File
         # attempt to rename until succeeds at .1 second intervals
         # needed on Windows because it can easily race and fail there
         until $from.rename($to) -> $failure {
-            --$n == 0
+            !Rakudo::Internals.IS-WIN || --$n == 0
               ?? $failure.throw
               !! $failure.Bool;  # disable Failure for cleaner DESTROY
             sleep .1;

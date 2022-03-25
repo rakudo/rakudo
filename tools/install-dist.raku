@@ -1,7 +1,5 @@
 #!/usr/bin/env raku
 
-use CompUnit::Repository::Staging;
-
 # packagers preference candidate
 multi sub MAIN(
   IO() :from(:$dist-prefix) = '.',

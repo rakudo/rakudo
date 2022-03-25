@@ -2,6 +2,7 @@ class CompUnit::Repository::FileSystem   { ... }
 class CompUnit::Repository::Installation { ... }
 class CompUnit::Repository::AbsolutePath { ... }
 class CompUnit::Repository::Unknown      { ... }
+class CompUnit::Repository::Staging      { ... }
 class CompUnit::Repository::NQP { ... }
 class CompUnit::Repository::Perl5 { ... }
 
@@ -384,6 +385,7 @@ class CompUnit::RepositoryRegistry {
       'ap',     CompUnit::Repository::AbsolutePath,
       'nqp',    CompUnit::Repository::NQP,
       'perl5',  CompUnit::Repository::Perl5,
+      'staging', CompUnit::Repository::Staging,
 #?if js
       'nodejs', CompUnit::Repository::NodeJs,
 #?endif

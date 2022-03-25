@@ -83,12 +83,7 @@ class CompUnit::PrecompilationRepository::Default
           if $!RMD;
 
         my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
-#?if !jvm
         my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
-#?endif
-#?if jvm
-        my $handle := CompUnit::Loader.load-precompilation($unit.bytecode);
-#?endif
         nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
         CATCH {
             default {

@@ -1,6 +1,7 @@
 class CompUnit::Loader is repr('Uninstantiable') {
+
     # Load a file from source and compile it
-    method load-source-file(IO::Path $path --> CompUnit::Handle) {
+    method load-source-file(IO::Path:D $path --> CompUnit::Handle:D) {
         # Get the compiler and compile the code, then run it
         # (which runs the mainline and captures UNIT).
         my $?FILES   := $path.Str;
@@ -9,52 +10,57 @@ class CompUnit::Loader is repr('Uninstantiable') {
 
     # Decode the specified byte buffer as source code, and compile it
     method load-source(Blob:D $bytes --> CompUnit::Handle:D) {
-        my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), Mu);
 
-        my $handle   := CompUnit::Handle.new;
-        my $*CTXSAVE := $handle;
-        my $eval     := nqp::getcomp('Raku').compile($bytes.decode);
-
-        $eval();
-
-        nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
-
+        my $original-GLOBAL := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
         CATCH {
             default {
-                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
+                nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
                 .throw;
             }
         }
 
+        my $handle   := CompUnit::Handle.new;
+        my $*CTXSAVE := $handle;
+        nqp::getcomp('Raku').compile($bytes.decode)();      # compile *and* run
+
+        nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
         $handle
     }
 
     # Load a pre-compiled file
     proto method load-precompilation-file(|) {*}
-    multi method load-precompilation-file(IO::Path $path --> CompUnit::Handle:D) {
-        my $handle     := CompUnit::Handle.new;
-        my $*CTXSAVE   := $handle;
-        nqp::loadbytecode($path.Str);
+    multi method load-precompilation-file(
+      IO::Path:D $precompiled-file
+    --> CompUnit::Handle:D) {
+        my $handle := my $*CTXSAVE := CompUnit::Handle.new;
+        nqp::loadbytecode($precompiled-file.Str);
         $handle
     }
 
-    multi method load-precompilation-file(IO::Handle $file --> CompUnit::Handle:D) {
-        my $handle     := CompUnit::Handle.new;
-        my $*CTXSAVE   := $handle;
-#?if !jvm
+    multi method load-precompilation-file(
+      IO::Handle:D $precompiled-handle
+    --> CompUnit::Handle:D) {
+        my $compunit-handle := my $*CTXSAVE := CompUnit::Handle.new;
+
         # Switch file handle to binary mode before passing it off to the VM,
         # so we don't lose things hanging around in the decoder.
-        $file.encoding(Nil);
-        nqp::loadbytecodefh(nqp::getattr($file, IO::Handle, '$!PIO'), $file.path.Str);
+        $precompiled-handle.encoding(Nil);
+#?if jvm
+        nqp::loadbytecodebuffer($precompiled-handle.slurp(:bin, :close));
 #?endif
-        $handle
+#?if !jvm
+        nqp::loadbytecodefh(
+          nqp::getattr($precompiled-handle,IO::Handle,'$!PIO'),
+          $precompiled-handle.path.Str
+        );
+#?endif
+        $compunit-handle
     }
 
     # Load the specified byte buffer as if it was the contents of a
     # precompiled file
     method load-precompilation(Blob:D $bytes --> CompUnit::Handle:D) {
-        my $handle     := CompUnit::Handle.new;
-        my $*CTXSAVE   := $handle;
+        my $handle := my $*CTXSAVE := CompUnit::Handle.new;
         nqp::loadbytecodebuffer($bytes);
         $handle
     }

@@ -25,17 +25,18 @@ if Compiler.backend eq 'moar' {
     %provides<SIL>              = "lib/SIL.rakumod";
 }
 
-my $core-repo = CompUnit::RepositoryRegistry.repository-for-name('core');
-my $core-repo-prefix = $core-repo.prefix;
-my $staging-prefix = $*TMPDIR.add('staging');
-
+my $prefix := @*ARGS[0];
 my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
-    :prefix($staging-prefix),
-    :next-repo($core-repo), # Make CompUnit::Repository::Staging available to precomp processes
+    :$prefix
+    :next-repo(
+        # Make CompUnit::Repository::Staging available to precomp processes
+        CompUnit::Repository::Installation.new(
+            :$prefix
+            :next-repo(CompUnit::RepositoryRegistry.repository-for-name('core')),
+        )
+    ),
     :name('core'),
 );
-
-$REPO.self-destruct();
 
 $REPO.install(
     Distribution::Hash.new(
@@ -49,10 +50,6 @@ $REPO.install(
     ),
     :force,
 );
-
-$REPO.remove-artifacts();
-$REPO.deploy();
-$REPO.self-destruct();
 
 note "    Installed {%provides.elems} core modules in {now - INIT now} seconds!";
 

@@ -337,7 +337,7 @@ class CompUnit::RepositoryRegistry {
             if nqp::istype($repo,CompUnit::Repository::Unknown) {
                 my $next-repo := $repo.next-repo;
 
-                my $head := PROCESS<$REPO>;
+                my $head := PROCESS::<$REPO>;
                 PROCESS::<$REPO> := $next-repo;
                 my $comp_unit := $next-repo.need(
                   CompUnit::DependencySpecification.new(

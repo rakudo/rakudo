@@ -74,7 +74,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
     else {
         CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
     }
-    PROCESS::<$REPO>
+    $repo
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {

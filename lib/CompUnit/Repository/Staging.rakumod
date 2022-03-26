@@ -31,11 +31,27 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
           !! $!parent.resource($dist-id, $key)
     }
 
+    my sub really-unlink(IO::Path:D $io) {
+        # attempt to unlink until succeeds at .1 second intervals
+        # needed on Windows because it can easily race and fail there
+        if Rakudo::Internals.IS-WIN {
+            for ^10 {
+                .throw without $io.unlink;  # throw actual failures
+                last unless $io.e;
+                sleep .1;
+            }
+        }
+        else {
+            .throw without $io.unlink;      # throw actual failures
+        }
+    }
+
     method remove-artifacts(CompUnit::Repository::Staging:D: --> Nil) {
         my $io := self.prefix;
-        $io.child($_).unlink for <
-          version repo.lock precomp/.lock
-        >;
+        really-unlink($io.child("version"));
+        really-unlink(.IO) for Rakudo::Internals.DIR-RECURSE(
+          $io.absolute, :file(*.ends-with(".lock"))
+        );
     }
 
     method deploy(CompUnit::Repository::Staging:D: --> Nil) {

@@ -7,6 +7,7 @@ class Compiler does Systemic {
 
     my Mu $compiler := nqp::gethllsym('default', 'SysConfig')
         .rakudo-build-config();
+    method cver() is implementation-detail { nqp::atkey($compiler,'version') }
 
     # XXX Various issues with this stuff on JVM
     has $.id is built(:bind) = nqp::ifnull(nqp::atkey($compiler,'id'),$id);
@@ -19,8 +20,7 @@ class Compiler does Systemic {
         nqp::bind($!auth,'The Perl Foundation');
 
         # looks like: 2018.01-50-g8afd791c1
-        nqp::bind($!version,Version.new(nqp::p6box_s(nqp::atkey($compiler,'version'))))
-          unless $!version;
+        nqp::bind($!version,self.cver.Version) unless $!version;
     }
 
     method backend() {

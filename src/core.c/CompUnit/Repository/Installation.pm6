@@ -1,6 +1,5 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
     has $!lock = Lock.new;
-    has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('default', 'SysConfig').rakudo-build-config(), 'version'));
     has %!loaded; # cache compunit lookup for self.need(...)
     has %!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
@@ -214,7 +213,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             %provides{ $name } = ~$file => {
                 :file($id),
                 :time(try $file.IO.modified.Num),
-                :$!cver
             };
             note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
             $destination.spurt($content);

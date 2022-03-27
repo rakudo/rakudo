@@ -303,7 +303,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$export!, :$SYMBOL = '&' ~ $r.name) {
                         ~ "'$export.^name()' in trait 'is export'. Use a Pair "
                         ~ 'or a list of Pairs, with keys as tag names.'
     );
-    Rakudo::Internals.EXPORT_SYMBOL(nqp::decont($SYMBOL), @tags, $to_export);
+    Rakudo::Internals.EXPORT_SYMBOL($SYMBOL, @tags, $to_export);
 }
 multi sub trait_mod:<is>(Mu:U \type, :$export!) {
     my $exp_name := type.^shortname;

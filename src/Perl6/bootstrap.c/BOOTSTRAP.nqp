@@ -1443,10 +1443,10 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
     method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
     method assigned($scalar) {
         my $target := $!target;
-        my $array := nqp::isconcrete($target)
+        my $hash := nqp::isconcrete($target)
             ?? $target
             !! nqp::assign($target, Hash.new);
-        $array.BIND-KEY($!key, $scalar);
+        $hash.BIND-KEY($!key, $scalar);
     }
 }
 # Attributes that are either required or have a default need us to detect if

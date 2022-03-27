@@ -155,35 +155,38 @@ my class Rakudo::Internals {
         }
     }
 
+    my $export-lock := Lock.new;
     method EXPORT_SYMBOL(\exp_name, @tags, Mu \sym) {
-        my @export_packages = $*EXPORT;
-        for nqp::hllize(@*PACKAGES).list {
-            unless .WHO.EXISTS-KEY('EXPORT') {
-                .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
-                .WHO<EXPORT>.^compose;
+        $export-lock.protect: {
+            my @export_packages = $*EXPORT;
+            for nqp::hllize(@*PACKAGES).list {
+                unless .WHO.EXISTS-KEY('EXPORT') {
+                    .WHO<EXPORT> := Metamodel::PackageHOW.new_type(:name('EXPORT'));
+                    .WHO<EXPORT>.^compose;
+                }
+                @export_packages.append: .WHO<EXPORT>;
             }
-            @export_packages.append: .WHO<EXPORT>;
-        }
-        for @export_packages -> $p {
-            for @tags -> $tag {
-                my $install_in;
-                if $p.WHO.EXISTS-KEY($tag) {
-                    $install_in := $p.WHO.{$tag};
-                }
-                else {
-                    $install_in := Metamodel::PackageHOW.new_type(:name($tag));
-                    $install_in.^compose;
-                    $p.WHO{$tag} := $install_in;
-                }
-                if $install_in.WHO.EXISTS-KEY(exp_name) {
-                    unless ($install_in.WHO){exp_name} =:= sym {
-                        X::Export::NameClash.new(symbol => exp_name).throw;
+            for @export_packages -> $p {
+                for @tags -> $tag {
+                    my $install_in;
+                    if $p.WHO.EXISTS-KEY($tag) {
+                        $install_in := $p.WHO.{$tag};
                     }
+                    else {
+                        $install_in := Metamodel::PackageHOW.new_type(:name($tag));
+                        $install_in.^compose;
+                        $p.WHO{$tag} := $install_in;
+                    }
+                    if $install_in.WHO.EXISTS-KEY(exp_name) {
+                        unless ($install_in.WHO){exp_name} =:= sym {
+                            X::Export::NameClash.new(symbol => exp_name).throw;
+                        }
+                    }
+                    $install_in.WHO{exp_name} := sym;
                 }
-                $install_in.WHO{exp_name} := sym;
             }
+            0
         }
-        0;
     }
 
     method createENV() {

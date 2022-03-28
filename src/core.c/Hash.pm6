@@ -28,7 +28,7 @@ my class Hash { # declared in BOOTSTRAP
 
     method !AT_KEY_CONTAINER(Str:D $key) is raw {
         nqp::p6scalarfromcertaindesc(
-          ContainerDescriptor::BindHashPos.new($!descriptor,self,$key)
+          ContainerDescriptor::BindHashKey.new($!descriptor,self,$key)
         )
     }
 

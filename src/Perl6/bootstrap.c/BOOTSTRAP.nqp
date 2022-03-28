@@ -1353,17 +1353,17 @@ class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
         nqp::bindposnd($!target, $!idxs, $scalar);
     }
 }
-class ContainerDescriptor::BindHashPos does ContainerDescriptor::Whence {
+class ContainerDescriptor::BindHashKey does ContainerDescriptor::Whence {
     has $!target;
     has $!key;
 
     method new($desc, $target, $key) {
         my $self := nqp::create(self);
-        nqp::bindattr($self, ContainerDescriptor::BindHashPos,
+        nqp::bindattr($self, ContainerDescriptor::BindHashKey,
             '$!next-descriptor', $desc);
-        nqp::bindattr($self, ContainerDescriptor::BindHashPos,
+        nqp::bindattr($self, ContainerDescriptor::BindHashKey,
             '$!target', $target);
-        nqp::bindattr($self, ContainerDescriptor::BindHashPos,
+        nqp::bindattr($self, ContainerDescriptor::BindHashKey,
             '$!key', $key);
         $self
     }

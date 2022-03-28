@@ -12,7 +12,7 @@ my class Stash { # declared in BOOTSTRAP
         nqp::existskey(storage,$key)
           ?? nqp::atkey(storage,$key)
           !! nqp::p6scalarfromdesc(
-               ContainerDescriptor::BindHashPos.new(Mu, self, $key)
+               ContainerDescriptor::BindHashKey.new(Mu, self, $key)
              )
     }
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback!) is raw {
@@ -28,7 +28,7 @@ my class Stash { # declared in BOOTSTRAP
               Failure.new("Could not find symbol '$key' in '{self}'")
             ),
             nqp::p6scalarfromdesc(
-              ContainerDescriptor::BindHashPos.new(Mu, self, $key)
+              ContainerDescriptor::BindHashKey.new(Mu, self, $key)
             )
           )
         )

@@ -30,29 +30,29 @@ my class MixHash { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class Lock::Async { ... }
 
-sub DYNAMIC(\name) is raw {  # is implementation-detail
+sub DYNAMIC(str $name) is raw {  # is implementation-detail
 # Please leave this code here to be enable only for tracing calls to
 # dynamic variables in the setting and during setting compilation.
 #my $frame := callframe(1);
 #nqp::say(name ~ ": " ~ $frame.file ~ "(" ~ $frame.line ~ ")");
     nqp::ifnull(
-      nqp::getlexdyn(name),
+      nqp::getlexdyn($name),
       nqp::stmts(
         nqp::unless(
           nqp::isnull(my \promise := nqp::getlexdyn('$*PROMISE')),
           (my Mu \value := nqp::getlexreldyn(
-            nqp::getattr(promise,Promise,'$!dynamic_context'),name)
+            nqp::getattr(promise,Promise,'$!dynamic_context'),$name)
           )
         ),
         nqp::ifnull(
           value,
           nqp::stmts(
-            (my str $pkgname = nqp::replace(name,1,1,'')),
+            (my str $pkgname = nqp::replace($name,1,1,'')),
             nqp::ifnull(
               nqp::atkey(GLOBAL.WHO,$pkgname),
               nqp::ifnull(
                 nqp::atkey(PROCESS.WHO,$pkgname),
-                Rakudo::Internals.INITIALIZE-DYNAMIC(name)
+                Rakudo::Internals.INITIALIZE-DYNAMIC($name)
               )
             )
           )

@@ -635,7 +635,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method installed(--> Iterable:D) {
         my $dist-dir = self.prefix.add('dist');
         $dist-dir.e
-            ?? $dist-dir.dir.map({ self.distribution($_.basename) })
+            ?? $dist-dir.dir(:test(!*.starts-with("."))).map: {
+                   self.distribution(.basename)
+               }
             !! Nil
     }
 

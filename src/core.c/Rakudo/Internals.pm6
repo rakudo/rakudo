@@ -194,23 +194,6 @@ my class Rakudo::Internals {
         }
     }
 
-    method createENV() {
-        my $hash := nqp::hash;
-        my $iter := nqp::iterator(nqp::getenvhash);
-        nqp::while(
-          $iter,
-          nqp::bindkey(
-            $hash,
-            nqp::iterkey_s(nqp::shift($iter)),
-            nqp::assign(
-              nqp::p6scalarfromdesc(nqp::null),
-              val(nqp::box_s(nqp::iterval($iter),Str))
-            )
-          )
-        );
-        $hash
-    }
-
     # Helper method for prefix:<let>/prefix:<temp>, which really do the same
     # thing apart from where they store data.  Takes the IterationBuffer in
     # which to save data, the container to be inspected, and the type of op

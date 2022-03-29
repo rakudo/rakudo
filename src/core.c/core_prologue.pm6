@@ -75,7 +75,22 @@ my class Rakudo::Internals::IterationSet is repr('VMHash') {
 my constant $?NL = "\x0A";
 
 # Make sure we have an environment
-PROCESS::<%ENV> := Rakudo::Internals.createENV;
+PROCESS::<%ENV> := do {
+    my $env := nqp::hash;
+    my $iter := nqp::iterator(nqp::getenvhash);
+    nqp::while(
+      $iter,
+      nqp::bindkey(
+        $env,
+        nqp::iterkey_s(nqp::shift($iter)),
+        nqp::assign(
+          nqp::p6scalarfromdesc(nqp::null),
+          val(nqp::box_s(nqp::iterval($iter),Str))
+        )
+      )
+    );
+    nqp::p6bindattrinvres(nqp::create(Hash),Map,'$!storage',$env)
+}
 
 # This thread pool scheduler will be the default one.
 #?if !js

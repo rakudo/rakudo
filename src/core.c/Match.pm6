@@ -330,7 +330,10 @@ multi sub infix:<eqv>(Match:D $a, Match:D $b) {
 
 
 sub make(Mu \made) {
-    nqp::bindattr(nqp::decont(nqp::getlexcaller('$/')),Match,'$!made',made)
+    my $slash := nqp::decont(nqp::getlexcaller('$/'));
+    nqp::istype($slash, Match)
+        ?? nqp::bindattr($slash,Match,'$!made',made)
+        !! X::Make::MatchRequired.new(:got($slash)).throw
 }
 
 

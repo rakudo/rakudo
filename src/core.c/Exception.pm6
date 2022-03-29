@@ -2902,6 +2902,14 @@ my class X::Item is Exception {
     method message { "Cannot index {$.aggregate.^name} with $.index" }
 }
 
+my class X::Make::MatchRequired is Exception {
+    has $!got is built(:bind) is default(Nil);
+    method got() { $!got }
+    method message() {
+        "The make function expects \$/ to contain a Match, but it contains $!got.^name()"
+    }
+}
+
 my class X::Multi::Ambiguous is Exception {
     has $.dispatcher;
     has @.ambiguous;

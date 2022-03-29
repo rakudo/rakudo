@@ -1,8 +1,6 @@
 # Bind the HOWs into the EXPORTHOW package under the package declarator
 # names.
-my $EXPORTHOW-lock := NQPLock.new;
 my module EXPORTHOW {
-    nqp::lock($EXPORTHOW-lock);
     my %who := $?PACKAGE.WHO;
     %who<package>      := Perl6::Metamodel::PackageHOW;
     %who<module>       := Perl6::Metamodel::ModuleHOW;
@@ -19,7 +17,6 @@ my module EXPORTHOW {
     %who<enum>         := Perl6::Metamodel::EnumHOW;
     %who<coercion>     := Perl6::Metamodel::CoercionHOW;
     %who<definite>     := Perl6::Metamodel::DefiniteHOW;
-    nqp::unlock($EXPORTHOW-lock);
 };
 
 # vim: expandtab sw=4

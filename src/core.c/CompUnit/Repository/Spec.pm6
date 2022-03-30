@@ -33,7 +33,7 @@ class CompUnit::Repository::Spec {
                               if nqp::atpos($parts,$i).match: / ^
                                 (<[\w-]>+)
                                 <[ <([{ ]>
-                                (<[\w-]>+)
+                                (<-[ >)\]} ]>+)
                                 <[ >)\]} ]>
                               $ /;
                         }

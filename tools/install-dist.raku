@@ -7,7 +7,8 @@ multi sub MAIN(
   IO() :from(:$dist-prefix) = '.',
   IO() :to(:$repo-prefix)!,
        :for(:$repo-name)!,
-  Bool :$build = True,
+  Bool :$build      = True,
+  Bool :$precompile = True,
 ) {
     if fetch-dist-and-build($dist-prefix, $build) -> $dist {
         my $staging := CompUnit::Repository::Staging.new(
@@ -15,7 +16,7 @@ multi sub MAIN(
           :next-repo(CompUnit::RepositoryRegistry.repository-for-name($repo-name)),
           :name($repo-name),
         );
-        $staging.install: $dist;
+        $staging.install: $dist, :$precompile;
         $staging.remove-artifacts;
     }
     else {
@@ -27,15 +28,16 @@ multi sub MAIN(
 multi sub MAIN(
   IO() :from(:$dist-prefix) = '.',
        :to(:$repo-id)       = 'site',
-  Bool :$force = False,
-  Bool :$build = True,
+  Bool :$force      = False,
+  Bool :$build      = True,
+  Bool :$precompile = True,
 ) {
     with (
       CompUnit::RepositoryRegistry.repository-for-name($repo-id),
       CompUnit::RepositoryRegistry.repository-for-spec($repo-id),
     ).first(* ~~ CompUnit::Repository::Installable) -> $repo {
         if fetch-dist-and-build($dist-prefix, $build) -> $dist {
-            $repo.install: $dist, :$force;
+            $repo.install: $dist, :$precompile, :$force;
         }
         else {
             meh "Could not find distribution at '$dist-prefix'";

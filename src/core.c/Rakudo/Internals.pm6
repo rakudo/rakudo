@@ -1092,7 +1092,8 @@ my class Rakudo::Internals {
       str $version = '6.c',
       :$override
     --> Nil) {
-#nqp::say("Registering $name");
+#my $id := nqp::p6box_i(nqp::threadid(nqp::currentthread));
+#nqp::say("$id: Registering $name");
         $initializers := nqp::hash unless $initializers;
         my str $with   = nqp::concat($version,nqp::concat("\0",$name));
 
@@ -1115,23 +1116,34 @@ my class Rakudo::Internals {
           )
         )
     }
+    sub dynamic-not-found(str $key, str $name) {
+#nqp::say("failed: $name");
+        PROCESS::.BIND-KEY(
+          $key,
+          Failure.new(X::Dynamic::NotFound.new(:$name))
+        )
+    }
     my $DYNAMIC-INITIALIZATION-LOCK := Lock.new;
     method INITIALIZE-DYNAMIC(str $name) is raw {
-#nqp::say("Initializing $name");
+        my str $key = nqp::replace($name,1,1,'');
         $DYNAMIC-INITIALIZATION-LOCK.protect: {
-            nqp::ifnull(
-              nqp::atkey(
-                $initializers,
-                nqp::concat(
-                  nqp::getcomp('Raku').language_version,
-                  nqp::concat("\0",$name)
-                )
-              ),
-              nqp::ifnull(
-                nqp::atkey($initializers,$name),
-                { Failure.new(X::Dynamic::NotFound.new(:$name)) }
-              )
-            )();
+#my $id := nqp::p6box_i(nqp::threadid(nqp::currentthread));
+#nqp::say("$id: Initializing $name");
+            PROCESS::.EXISTS-KEY($key)   # beat another thread us to it?
+              ?? PROCESS::.AT-KEY($key)  # yes, so just return that
+              !! nqp::isnull(
+                   my $code := nqp::ifnull(
+                     nqp::atkey(
+                       $initializers,
+                       nqp::concat(
+                         nqp::getcomp('Raku').language_version,
+                         nqp::concat("\0",$name)
+                       )
+                     ),
+                     nqp::atkey($initializers,$name)
+                   )
+                 ) ?? dynamic-not-found($key, $name)
+                   !! $code()
         }
     }
 

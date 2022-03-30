@@ -333,6 +333,7 @@ class CompUnit::RepositoryRegistry {
     method resolve-unknown-repos($first-repo --> Nil) {
         my $repo := $first-repo;
         my $prev-repo;
+        my $world := $*W;
         while nqp::isconcrete($repo) {
             if nqp::istype($repo,CompUnit::Repository::Unknown) {
                 my $next-repo := $repo.next-repo;
@@ -346,8 +347,8 @@ class CompUnit::RepositoryRegistry {
                 PROCESS::<$REPO> := $head;
 
                 # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
-                $*W.find_single_symbol("GLOBAL").WHO.merge-symbols(
-                  $comp_unit.handle.globalish-package);
+                ($world ?? $world.find_single_symbol("GLOBAL").WHO !! GLOBAL.WHO)
+                  .merge-symbols($comp_unit.handle.globalish-package);
 
                 $repo := self.repository-for-spec($repo.path-spec, :$next-repo);
                 nqp::isconcrete($prev-repo)

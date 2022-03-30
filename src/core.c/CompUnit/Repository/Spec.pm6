@@ -29,7 +29,7 @@ class CompUnit::Repository::Spec {
                         my $options := nqp::hash;
                         my int $i = -1;
                         nqp::while(
-                          nqp::islt_i(++$i,$nr-options),
+                          ++$i < $nr-options,
                           nqp::stmts(
                             (my str $option = nqp::atpos($parts,$i)),
                             (my int $index = nqp::index($option,'(')),

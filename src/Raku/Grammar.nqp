@@ -1497,7 +1497,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <args(1)>
         {
             if !$<args><invocant> {
-                self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1));
                 if $*BORG<block> {
                     unless $*BORG<name> {
                         $*BORG<name> := ~$<identifier>;
@@ -2514,6 +2513,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token comment:sym<#> {
        '#' {} \N*
+    }
+
+    token comment:sym<#`(...)> {
+        '#`' <?opener>
+        <.quibble(self.slang_grammar('Quote'))>
+    }
+    token comment:sym<#`> {
+        '#`' <!after \s> <!opener>
+        <.typed_panic: 'X::Syntax::Comment::Embedded'>
     }
 
     ##

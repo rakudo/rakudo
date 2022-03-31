@@ -223,10 +223,13 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         return self.previous_setting_name($setting_name, base => 'NULL');
     }
 
+    my $setting-lock := NQPLock.new;
     method load_setting($setting_name) {
         my $setting;
 
         if $setting_name ne 'NULL.c' {
+            nqp::lock($setting-lock);
+
             DEBUG("Requested for settings $setting_name") if $DEBUG;
             $setting_name := self.transform_setting_name($setting_name);
 
@@ -247,21 +250,28 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 # Load it.
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), NQPMu);
-                nqp::scwbdisable();
+                my $preserve_global :=
+                  nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),NQPMu);
+
                 DEBUG("Loading bytecode from $path") if $DEBUG;
+                nqp::scwbdisable();
                 nqp::loadbytecode($path);
                 nqp::scwbenable();
                 nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
+
                 unless nqp::defined($*MAIN_CTX) {
+                    nqp::unlock($setting-lock);
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
-                nqp::forceouterctx(nqp::ctxcode($*MAIN_CTX), $prev_setting) if nqp::defined($prev_setting);
+                nqp::forceouterctx(nqp::ctxcode($*MAIN_CTX),$prev_setting)
+                  if nqp::defined($prev_setting);
                 %settings_loaded{$setting_name} := $*MAIN_CTX;
+
                 DEBUG("Settings $setting_name loaded") if $DEBUG;
             }
 
             $setting := %settings_loaded{$setting_name};
+            nqp::unlock($setting-lock);
         }
 
         return $setting;

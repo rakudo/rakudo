@@ -255,11 +255,11 @@ role Raku::Common {
     }
 
     method typed_panic($type_str, *%opts) {
-        $*R.panic($*R.build-exception($type_str, |%opts));
+        $*R.panic(self.build_exception($type_str, |%opts));
     }
     method typed_sorry($type_str, *%opts) {
         if $*SORRY_REMAINING-- {
-            $*R.add-sorry($*R.build-exception($type_str, |%opts));
+            $*R.add-sorry(self.build_exception($type_str, |%opts));
             self
         }
         else {
@@ -267,8 +267,53 @@ role Raku::Common {
         }
     }
     method typed_worry($type_str, *%opts) {
-        $*R.add-worry($*R.build-exception($type_str, |%opts));
+        $*R.add-worry(self.build_exception($type_str, |%opts));
         self
+    }
+
+    method build_exception($type_str, *%opts) {
+        my $c := self;
+        if %opts<precursor> {
+            $c := self.PRECURSOR;
+        }
+
+        my $file := nqp::getlexdyn('$?FILES');
+        if nqp::isnull($file) {
+            $file := '<unknown file>';
+        }
+        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
+            $file := nqp::cwd ~ '/' ~ $file;
+        }
+
+        my @locprepost := self.'!locprepost'($c);
+        $*R.build-exception: $type_str,
+            line => HLL::Compiler.lineof($c.orig, $c.pos, :cache(1)),
+            pos => $c.pos,
+            pre => @locprepost[0],
+            post => @locprepost[1],
+            file => $file,
+            |%opts
+    }
+
+    method !locprepost($c) {
+        my $orig := $c.orig;
+        my $marked := $c.MARKED('ws');
+        my $pos  := $marked && nqp::index(" }])>»", nqp::substr($orig, $c.pos, 1)) < 0
+            ?? $marked.from
+            !! $c.pos;
+
+        my $prestart := $pos - 40;
+        $prestart := 0 if $prestart < 0;
+        my $pre := nqp::substr($orig, $prestart, $pos - $prestart);
+        $pre    := subst($pre, /.*\n/, "", :global);
+        $pre    := '<BOL>' if $pre eq '';
+
+        my $postchars := $pos + 40 > nqp::chars($orig) ?? nqp::chars($orig) - $pos !! 40;
+        my $post := nqp::substr($orig, $pos, $postchars);
+        $post    := subst($post, /\n.*/, "", :global);
+        $post    := '<EOL>' if $post eq '';
+
+        [$pre, $post]
     }
 
     method FAILGOAL($goal, $dba?) {

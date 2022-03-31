@@ -228,6 +228,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         my $setting;
 
         if $setting_name ne 'NULL.c' {
+            CATCH {
+                nqp::unlock($setting-lock);
+                $_.rethrow;
+            }
             nqp::lock($setting-lock);
 
             DEBUG("Requested for settings $setting_name") if $DEBUG;
@@ -242,7 +246,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
 
             # Unless we already did so, locate and load the setting.
-            unless nqp::defined(%settings_loaded{$setting_name}) {
+            if nqp::defined(%settings_loaded{$setting_name}) {
+                DEBUG("Settings $setting_name already loaded") if $DEBUG;
+            }
+            else {
                 DEBUG("Loading settings $setting_name") if $DEBUG;
                 # Find it.
                 my $path := self.find_setting($setting_name);
@@ -260,7 +267,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
 
                 unless nqp::defined($*MAIN_CTX) {
-                    nqp::unlock($setting-lock);
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
                 nqp::forceouterctx(nqp::ctxcode($*MAIN_CTX),$prev_setting)

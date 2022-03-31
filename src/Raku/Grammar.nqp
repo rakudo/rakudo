@@ -369,6 +369,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my %*QUOTE_LANGS;                         # quote language cache
         my $*LASTQUOTE := [0,0];                  # for runaway quote detection
         my $*SORRY_REMAINING := 10;               # decremented on each sorry; panic when 0
+        my $*BORG := {};                          # who gets blamed for a missing block
 
         # Variables used for Pod parsing.
         my $*VMARGIN := 0;
@@ -502,6 +503,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token pblock {
         :dba('block or pointy block')
+        :my $borg := $*BORG;
+        :my $has_mystery := 0; # TODO
+        { $*BORG := {} }
         :my $*BLOCK;
         [
         | <lambda>
@@ -514,23 +518,29 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <.enter-block-scope('Block')>
           <blockoid>
           <.leave-block-scope>
-        || <.missing_block()>
+        || <.missing_block($borg, $has_mystery)>
         ]
     }
 
     token block {
-        :dba('block or pointy block')
+        :dba('scoped block')
+        :my $borg := $*BORG;
+        :my $has_mystery := 0; # TODO
+        { $*BORG := {} }
         :my $*BLOCK;
         [
         || <?[{]>
            <.enter-block-scope('Block')>
            <blockoid>
            <.leave-block-scope>
-        || <.missing_block()>
+        || <.missing_block($borg, $has_mystery)>
         ]
     }
 
     token blockoid {
+        :my $borg := $*BORG;
+        :my $has_mystery := 0; # TODO
+        { $*BORG := {} }
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
@@ -538,7 +548,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <statementlist>
           '}'
           <?ENDSTMT>
-        || <.missing_block()>
+        || <.missing_block($borg, $has_mystery)>
         ]
     }
 
@@ -550,6 +560,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_control:sym<if> {
         $<sym>=[if|with]<.kok> {}
         :my $*GOAL := '{';
+        :my $*BORG := {};
         <condition=.EXPR>
         <then=.pblock>
         [
@@ -570,6 +581,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_control:sym<unless> {
         $<sym>='unless'<.kok>
         :my $*GOAL := '{';
+        :my $*BORG := {};
         <EXPR>
         <pblock>
         [ <!before [els[e|if]|orwith]» >
@@ -583,6 +595,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_control:sym<without> {
         $<sym>='without'<.kok>
         :my $*GOAL := '{';
+        :my $*BORG := {};
         <EXPR>
         <pblock>
         [ <!before [els[e|if]|orwith]» >
@@ -596,6 +609,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_control:sym<while> {
         $<sym>=[while|until]<.kok> {}
         :my $*GOAL := '{';
+        :my $*BORG := {};
         <EXPR>
         <pblock>
     }
@@ -605,6 +619,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | $<wu>=[while|until]<.kok>
           :my $*GOAL := '{';
+          :my $*BORG := {};
           <EXPR>
           <pblock>
         | <pblock>
@@ -646,6 +661,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
             <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
         :my $*GOAL := '{';
+        :my $*BORG := {};
         <EXPR>
         <pblock>
     }
@@ -653,6 +669,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_control:sym<given> {
         <sym><.kok>
         :my $*GOAL := '{';
+        :my $*BORG := {};
         <EXPR>
         <pblock>
     }
@@ -660,6 +677,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_control:sym<when> {
         <sym><.kok>
         :my $*GOAL := '{';
+        :my $*BORG := {};
         <EXPR>
         <pblock>
     }
@@ -1310,6 +1328,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token circumfix:sym<{ }> {
         <?[{]> <pblock>
+        { $*BORG<block> := $<pblock> }
     }
 
     token circumfix:sym<ang> {
@@ -1423,7 +1442,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<*>                  { <sym> }
     token term:sym<**>                 { <sym> }
-    token term:sym<lambda>             { <?lambda> <pblock> }
+    token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> } }
     token term:sym<value>              { <value> }
 
     token term:sym<identifier> {
@@ -1431,16 +1450,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!{ $*R.is-identifier-type(~$<identifier>) }>
         [ <?before <.unsp>? '('> | \\ <?before '('> ]
         <args(1)>
-#        {
-#            if !$<args><invocant> {
-#                self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1));
-#                if $*BORG<block> {
-#                    unless $*BORG<name> {
-#                        $*BORG<name> := ~$<identifier>;
-#                    }
-#                }
-#            }
-#        }
+        {
+            if !$<args><invocant> {
+                self.add_mystery($<identifier>, $<args>.from, nqp::substr(~$<args>, 0, 1));
+                if $*BORG<block> {
+                    unless $*BORG<name> {
+                        $*BORG<name> := ~$<identifier>;
+                    }
+                }
+            }
+        }
     }
 
     token term:sym<name> {
@@ -1450,6 +1469,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || <?{ $*R.is-name-known($<longname>.ast) }>
            { $*is-type := $*R.is-name-type($<longname>.ast) }
         || [ \\ <?before '('> ]? <args(1)>
+           {
+                if !$<args><invocant> {
+                    my $name := ~$<longname>;
+                    if $*BORG<block> {
+                        unless $*BORG<name> {
+                            $*BORG<name> := $*BORG<name> // $name;
+                        }
+                    }
+                }
+            }
         ]
     }
 
@@ -1600,6 +1629,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule package_def($*PKGDECL) {
+        :my $*BORG := {};
         :my $*BLOCK;
         :my $*PACKAGE;
         <longname>? {}
@@ -1723,6 +1753,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule routine_def($declarator) {
+        :my $*BORG := {};
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
@@ -1734,6 +1765,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule method_def($declarator) {
+        :my $*BORG := {};
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>

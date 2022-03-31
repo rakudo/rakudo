@@ -106,42 +106,43 @@ sub wanted($ast,$by) {
         $ast.wanted(1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' && (
-                !$ast.name ||
-                $ast.name eq '&infix:<,>' ||
-                $ast.name eq '&infix:<andthen>' ||
-                $ast.name eq '&infix:<orelse>' ||
-                $ast.name eq '&infix:<notandthen>' ||
-                $ast.name eq '&infix:<xx>') {
+        my $op := $ast.op;
+        if $op eq 'call' && (
+                !(my $name := $ast.name) ||
+                $name eq '&infix:<,>' ||
+                $name eq '&infix:<andthen>' ||
+                $name eq '&infix:<orelse>' ||
+                $name eq '&infix:<notandthen>' ||
+                $name eq '&infix:<xx>') {
             WANTALL($ast,$byby);
         }
-        elsif $ast.op eq 'callmethod' {
+        elsif $op eq 'callmethod' {
             WANTALL($ast,$byby);
         }
-        elsif $ast.op eq 'p6capturelex' {
+        elsif $op eq 'p6capturelex' {
             $ast.annotate('past_block', wanted($ast.ann('past_block'), $byby));
             $ast.wanted(1);
         }
-        elsif $ast.op eq 'call' ||
-              $ast.op eq 'callstatic' ||
-              $ast.op eq 'handle' ||
-              $ast.op eq 'locallifetime' ||
-              $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'handlepayload' {
+        elsif $op eq 'call' ||
+              $op eq 'callstatic' ||
+              $op eq 'handle' ||
+              $op eq 'locallifetime' ||
+              $op eq 'p6typecheckrv' ||
+              $op eq 'handlepayload' {
             $ast[0] := WANTED($ast[0], $byby) if nqp::elems(@($ast));
             $ast.wanted(1);
         }
-        elsif $ast.op eq 'p6decontrv' || $ast.op eq 'p6decontrv_6c' {
+        elsif $op eq 'p6decontrv' || $op eq 'p6decontrv_6c' {
             $ast[1] := WANTED($ast[1], $byby) if nqp::elems(@($ast));
             $ast.wanted(1);
         }
-        elsif $ast.op eq 'while' ||
-              $ast.op eq 'until' ||
-              $ast.op eq 'repeat_while' ||
-              $ast.op eq 'repeat_until' {
+        elsif $op eq 'while' ||
+              $op eq 'until' ||
+              $op eq 'repeat_while' ||
+              $op eq 'repeat_until' {
 
-            my $repeat := nqp::eqat($ast.op,'repeat',0);
-            my $while := nqp::index($ast.op,'while',0) >= 0;
+            my $repeat := nqp::eqat($op,'repeat',0);
+            my $while := nqp::index($op,'while',0) >= 0;
 
             # we always have a body
             my $cond := WANTED($ast[0],$byby);
@@ -207,10 +208,10 @@ sub wanted($ast,$by) {
             $ast := $past;
             $ast.wanted(1);
         }
-        elsif $ast.op eq 'if' ||
-              $ast.op eq 'unless' ||
-              $ast.op eq 'with' ||
-              $ast.op eq 'without' {
+        elsif $op eq 'if' ||
+              $op eq 'unless' ||
+              $op eq 'with' ||
+              $op eq 'without' {
             $ast[1] := WANTED($ast[1], $byby);
             $ast[2] := WANTED($ast[2], $byby)
                 if nqp::elems(@($ast)) > 2 && nqp::istype($ast[2],QAST::Node);
@@ -221,36 +222,37 @@ sub wanted($ast,$by) {
         $ast.wanted(1);
         my $node := $ast[0];
         if nqp::istype($node,QAST::Op) {
-            if $node.op eq 'call' && (!$node.name || $node.name eq '&infix:<xx>') {
+            my $op := $node.op;
+            if $op eq 'call' && (!$node.name || $node.name eq '&infix:<xx>') {
                 $node := $node[0];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
                 }
             }
-            elsif $node.op eq 'call' || $node.op eq 'handle' {
+            elsif $op eq 'call' || $op eq 'handle' {
                 $ast[0] := WANTED($node,$byby);
             }
-            elsif $node.op eq 'callstatic' || $node.op eq 'hllize' {
+            elsif $op eq 'callstatic' || $op eq 'hllize' {
                 $node[0] := WANTED($node[0], $byby);
             }
-            elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
+            elsif $op eq 'p6for' || $op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     $node.annotate('past_block', WANTED($node.ann('past_block'), $byby));
                 }
             }
-            elsif $node.op eq 'while' ||
-                  $node.op eq 'until' ||
-                  $node.op eq 'repeat_while' ||
-                  $node.op eq 'repeat_until' {
+            elsif $op eq 'while' ||
+                  $op eq 'until' ||
+                  $op eq 'repeat_while' ||
+                  $op eq 'repeat_until' {
                 return WANTED($node,$byby) if !$*COMPILING_CORE_SETTING;
                 $node[1] := WANTED($node[1], $byby);
                 $node.wanted(1);
             }
-            elsif $node.op eq 'if' ||
-                  $node.op eq 'unless' ||
-                  $node.op eq 'with' ||
-                  $node.op eq 'without' {
+            elsif $op eq 'if' ||
+                  $op eq 'unless' ||
+                  $op eq 'with' ||
+                  $op eq 'without' {
                 $node[1] := WANTED($node[1], $byby);
                 $node[2] := WANTED($node[2], $byby)
                     if nqp::elems(@($node)) > 2

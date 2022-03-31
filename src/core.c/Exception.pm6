@@ -2523,10 +2523,13 @@ my class X::TypeCheck is Exception {
             !! $raku
     }
     method expectedn() {
+        my $why := $!expected.WHY;
         nqp::eqaddr($!got.WHAT, $!expected.WHAT)
           ?? Rakudo::Internals.MAYBE-STRING($!expected, :method<raku>)
           !! nqp::can($!expected.HOW, 'name')
-            ?? $!expected.^name
+            ?? $why
+              ?? $!expected.^name ~ ": ($why)"
+              !! $!expected.^name
             !! '?'
     }
     method priors() {
@@ -2577,7 +2580,9 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         my $what-check = $.what // ($.constraint ?? 'Constraint type' !! 'Type');
-        self.priors() ~ "$what-check check failed in $.operation$to; $expected";
+        (self.priors()
+          ~ "$what-check check failed in $.operation$to; $expected"
+        ).naive-word-wrapper
     }
 }
 my class X::TypeCheck::Return is X::TypeCheck {

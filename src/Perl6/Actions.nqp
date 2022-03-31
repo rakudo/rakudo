@@ -8118,9 +8118,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub make_hyperop($/) {
         my $base     := $<infixish>;
         my $basesym  := ~ $base<OPER>;
-        my $basepast := $base.ast
-                          ?? $base.ast[0]
-                          !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
+        my $basepast := $base.ast && $basesym ne '!='
+          ?? $base.ast[0]
+          !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),
                                            :scope<lexical>);
         my $hpast    := QAST::Op.new(:op<call>, :name<&METAOP_HYPER>, WANTED($basepast,'hyperop'));
         if $<opening> eq '<<' || $<opening> eq '«' {

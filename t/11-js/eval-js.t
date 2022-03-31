@@ -40,11 +40,11 @@ class Foo {
   }
 
   setAttr(value) {
-    this.attr = value; 
+    this.attr = value;
   }
 
   getAttr() {
-    return this.attr; 
+    return this.attr;
   }
 
   getAttrFromArg(arg) {

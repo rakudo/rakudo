@@ -11,7 +11,7 @@ plan 2;
 # https://github.com/Raku/old-issue-tracker/issues/4480
 subtest '.roll' => {
     plan 3;
-    
+
     throws-like { <a b c d e>.roll(-9999999999999999999999999999999999999999999999999).raku },
         Exception, :message{ .contains: <unbox native>.all }, '(1)';
 

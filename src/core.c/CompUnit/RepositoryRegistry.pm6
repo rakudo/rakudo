@@ -162,7 +162,7 @@ class CompUnit::RepositoryRegistry {
 
         unless $precomp-specs {
             $next-repo := self!register-custom-lib-repository(
-              'core', $core, 
+              'core', $core,
               CompUnit::Repository::Installation.new(
                 :prefix("$prefix/core"),
                 :$next-repo

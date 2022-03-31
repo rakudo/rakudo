@@ -19,7 +19,7 @@ class Distribution::Path does Distribution::Locally {
 
         # set up scripts in bin from file system (not in META)
         for Rakudo::Internals.DIR-RECURSE($!prefix.add('bin').absolute) {
-            my $io  := .IO; 
+            my $io  := .IO;
             my $script := forward-slash
               $io.is-relative ?? $io !! $io.relative($!prefix);
             %files{$script} := $script;

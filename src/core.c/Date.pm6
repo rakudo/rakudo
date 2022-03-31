@@ -59,7 +59,7 @@ my class Date does Dateish {
         nqp::istype($day,Whatever)
           ?? $DIM
           !! nqp::istype($day,Callable)
-            ?? $day($DIM) 
+            ?? $day($DIM)
             !! $day.Int
     }
 

@@ -10,7 +10,7 @@ plan 30;
 
     ok 1, "alive after 'use java::lang::String:from<JavaRuntime>'";
 
-    is String."method/valueOf/(Z)Ljava/lang/String;"(True), "true", 
+    is String."method/valueOf/(Z)Ljava/lang/String;"(True), "true",
         "calling explicit static methods works";
 
     is String.valueOf(True), "true", "calling multi static methods works";
@@ -35,7 +35,7 @@ else {
         }
         is $crc32.getValue, 1072431491, "(I)V candidate for CRC32 is recognized correctly";
     }
-    
+
     {
         my $crc32 = CRC32.new;
         $crc32.update('Hello, Java'.encode('utf-8'));

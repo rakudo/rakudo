@@ -310,29 +310,31 @@ sub unwanted($ast, $by) {
         $ast.sunk(1);
     }
     elsif nqp::istype($ast,QAST::Op) {
-        if $ast.op eq 'call' {
-            if $ast.name eq '&infix:<,>' || $ast.name eq '&infix:<xx>' {
+        my $op := $ast.op;
+        if $op eq 'call' {
+            my $name := $ast.name;
+            if $name eq '&infix:<,>' || $name eq '&infix:<xx>' {
                 UNWANTALL($ast,$byby);
             }
-            elsif $ast.name eq '&term:<now>' {
+            elsif $name eq '&term:<now>' {
                 $ast.node.worry("Useless use of 'now' in sink context");
             }
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'p6capturelex' {
+        elsif $op eq 'p6capturelex' {
             $ast.annotate('past_block', unwanted($ast.ann('past_block'), $byby));
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'callstatic' ||
-              $ast.op eq 'handle' ||
-              $ast.op eq 'locallifetime' ||
-              $ast.op eq 'p6typecheckrv' ||
-              $ast.op eq 'handlepayload' ||
-              $ast.op eq 'ifnull' {
+        elsif $op eq 'callstatic' ||
+              $op eq 'handle' ||
+              $op eq 'locallifetime' ||
+              $op eq 'p6typecheckrv' ||
+              $op eq 'handlepayload' ||
+              $op eq 'ifnull' {
             $ast[0] := UNWANTED($ast[0], $byby) if nqp::elems(@($ast));
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'hllize' {
+        elsif $op eq 'hllize' {
             my $node := $ast[0];
             if $node.op eq 'callmethod' && !$ast.nosink {
                 if !$node.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$node.name} {
@@ -344,7 +346,7 @@ sub unwanted($ast, $by) {
             }
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'callmethod' {
+        elsif $op eq 'callmethod' {
             if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
                 return $ast if $*ALREADY_ADDED_SINK_CALL;
                 $ast.sunk(1);
@@ -355,14 +357,14 @@ sub unwanted($ast, $by) {
             $ast[0] := UNWANTED($ast[0], $byby) if nqp::elems(@($ast));
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'p6decontrv' || $ast.op eq 'p6decontrv_6c' {
+        elsif $op eq 'p6decontrv' || $op eq 'p6decontrv_6c' {
             $ast[1] := UNWANTED($ast[1], $byby) if nqp::elems(@($ast));
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'while' ||
-              $ast.op eq 'until' ||
-              $ast.op eq 'repeat_while' ||
-              $ast.op eq 'repeat_until' {
+        elsif $op eq 'while' ||
+              $op eq 'until' ||
+              $op eq 'repeat_while' ||
+              $op eq 'repeat_until' {
             # Do we need to force loop to produce return values for internal reasons?
             if !$*COMPILING_CORE_SETTING && $ast[1].ann('WANTMEPLEASE') {
                 $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($ast, $byby));
@@ -372,19 +374,19 @@ sub unwanted($ast, $by) {
             $ast[1] := UNWANTED($ast[1], $byby);
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'if' ||
-              $ast.op eq 'unless' ||
-              $ast.op eq 'with' ||
-              $ast.op eq 'without' {
+        elsif $op eq 'if' ||
+              $op eq 'unless' ||
+              $op eq 'with' ||
+              $op eq 'without' {
             $ast[1] := UNWANTED($ast[1], $byby);
             $ast[2] := UNWANTED($ast[2], $byby)
                 if nqp::elems(@($ast)) > 2 && nqp::istype($ast[2],QAST::Node);
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'bind' {
+        elsif $op eq 'bind' {
             $ast.sunk(1);
         }
-        elsif $ast.op eq 'xor' {
+        elsif $op eq 'xor' {
             my int $i := 1;
             my int $elems := nqp::elems($ast);
             while $i <= $e {
@@ -403,7 +405,8 @@ sub unwanted($ast, $by) {
             $ast[2].sunk(1);
         }
         elsif nqp::istype($node,QAST::Op) {
-            if $node.op eq 'call' {
+            my $op := $node.op;
+            if $op eq 'call' {
                 $node.sunk(1);
                 if !$node.name {
                     my $node0 := $node[0];
@@ -455,10 +458,10 @@ sub unwanted($ast, $by) {
                     }
                 }
             }
-            elsif $node.op eq 'hllize' {
+            elsif $op eq 'hllize' {
                 $ast[0] := UNWANTED($node,$byby);
             }
-            elsif $node.op eq 'callmethod' {
+            elsif $op eq 'callmethod' {
                 if !$node.nosink && !%nosink{$node.name} {
                     $ast := QAST::Op.new(:op<p6sink>, unwanted($node, $byby));
                     $ast.sunk(1);
@@ -466,7 +469,7 @@ sub unwanted($ast, $by) {
                 }
                 $node.sunk(1);
             }
-            elsif $node.op eq 'p6for' || $node.op eq 'p6forstmt' {
+            elsif $op eq 'p6for' || $op eq 'p6forstmt' {
                 $node := $node[1];
                 if nqp::istype($node,QAST::Op) && $node.op eq 'p6capturelex' {
                     unless $*COMPILING_CORE_SETTING {
@@ -476,7 +479,7 @@ sub unwanted($ast, $by) {
                     }
                 }
             }
-            elsif $node.op eq 'while' || $node.op eq 'until' {
+            elsif $op eq 'while' || $op eq 'until' {
                 if !$*COMPILING_CORE_SETTING && $node[1].ann('WANTMEPLEASE') {
                     $ast := QAST::Op.new(:op<callmethod>, :name<sink>, WANTED($node, $byby));
                     $ast.sunk(1);
@@ -485,7 +488,7 @@ sub unwanted($ast, $by) {
                 $node[1] := UNWANTED($node[1], $byby);
                 $node.sunk(1);
             }
-            elsif $node.op eq 'if' || $node.op eq 'unless' || $node.op eq 'with' || $node.op eq 'without' {
+            elsif $op eq 'if' || $op eq 'unless' || $op eq 'with' || $op eq 'without' {
                 for 1,2 {
                     if nqp::elems(@($node)) > $_
                     && nqp::istype($node[$_],QAST::Node) {

@@ -1131,6 +1131,15 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
             }
             True
         }
+        elsif $name eq 'MONKEY-SEE-NO-EVAL' {
+            True
+        }
+        elsif $name eq 'MONKEY-GUTS' {
+            True
+        }
+        elsif $name eq 'nqp' {
+            True
+        }
         else {
             False
         }

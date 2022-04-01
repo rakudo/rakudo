@@ -11186,8 +11186,6 @@ class Perl6::QActions is HLL::Actions does STDActions {
                 my $result := $*W.find_single_symbol('&val')($qast.compile_time_value);
                 $*W.add_object_if_no_sc($result);
                 $qast := QAST::WVal.new(:value($result));
-
-                CATCH { }
             }
         } else { # no compile time value, resort to the run-time call
             $qast := QAST::Op.new(:name('&val'), :op('call'), :node($/), $qast);

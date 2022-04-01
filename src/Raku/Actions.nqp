@@ -1003,6 +1003,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method scope_declarator:sym<HAS>($/)   { self.attach: $/, $<scoped>.ast; }
     method scope_declarator:sym<anon>($/)  { self.attach: $/, $<scoped>.ast; }
     method scope_declarator:sym<state>($/) { self.attach: $/, $<scoped>.ast; }
+    method scope_declarator:sym<unit>($/)  { self.attach: $/, $<scoped>.ast; }
 
     method scoped($/) {
         self.attach: $/, $<DECL>.ast;

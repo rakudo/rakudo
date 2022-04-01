@@ -13,6 +13,24 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
         self.^name ~ '#name(' ~ $!name ~ ')#' ~ self.prefix.absolute
     }
 
+    # make sure we include any candidates of the repo being shadowed
+    method candidates(|c) {
+        if callsame() -> @staging_candidates {
+            if $!parent.candidates(|c) -> @installed_candidates {
+                (|@installed_candidates, |@staging_candidates)
+                  .sort(*.meta<ver>)
+                  .sort(*.meta<api>)
+                  .reverse
+            }
+            else {
+                @staging_candidates
+            }
+        }
+        else {
+            $!parent.candidates(|c)
+        }
+    }
+
     method source-file(CompUnit::Repository::Staging:D:
       Str:D $name
     --> IO::Path) {

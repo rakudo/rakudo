@@ -122,14 +122,14 @@ class RakuAST::StatementModifier::Loop is RakuAST::StatementModifier {
 class RakuAST::StatementModifier::While is RakuAST::StatementModifier::Loop {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
         if $sink {
-            nqp::die('non-sink statement modifier until NYI');
-        }
-        else {
             QAST::Op.new(
                 :op('while'),
                 self.expression.IMPL-TO-QAST($context),
                 $statement-qast
             )
+        }
+        else {
+            nqp::die('non-sink statement modifier while NYI');
         }
     }
 }
@@ -138,14 +138,14 @@ class RakuAST::StatementModifier::While is RakuAST::StatementModifier::Loop {
 class RakuAST::StatementModifier::Until is RakuAST::StatementModifier::Loop {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
         if $sink {
-            nqp::die('non-sink statement modifier until NYI');
-        }
-        else {
             QAST::Op.new(
                 :op('until'),
                 self.expression.IMPL-TO-QAST($context),
                 $statement-qast
             )
+        }
+        else {
+            nqp::die('non-sink statement modifier until NYI');
         }
     }
 }

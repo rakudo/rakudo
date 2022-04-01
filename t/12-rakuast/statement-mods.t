@@ -162,7 +162,7 @@ subtest 'The postfix given statement works with defined expression' => {
         infix => RakuAST::Infix.new('*'),
         right => RakuAST::IntLiteral.new(2)
       ),
-      condition-modifier => RakuAST::StatementModifier::Given.new(
+      loop-modifier => RakuAST::StatementModifier::Given.new(
         RakuAST::Statement::Expression.new(
           expression => RakuAST::IntLiteral.new(42)
         )
@@ -182,7 +182,7 @@ subtest 'The postfix given statement works with a type object' => {
           name => RakuAST::Name.from-identifier('Str')
         )
       ),
-      condition-modifier => RakuAST::StatementModifier::Given.new(
+      loop-modifier => RakuAST::StatementModifier::Given.new(
         RakuAST::Statement::Expression.new(
           expression => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('Int')
@@ -204,7 +204,7 @@ subtest 'The postfix while statement works' => {
         prefix => RakuAST::Prefix.new('++'),
         operand => RakuAST::Var::Lexical.new('$foo')
       ),
-      condition-modifier => RakuAST::StatementModifier::While.new(
+      loop-modifier => RakuAST::StatementModifier::While.new(
         RakuAST::Statement::Expression.new(
           expression => RakuAST::ApplyInfix.new(
             left => RakuAST::Var::Lexical.new('$foo'),
@@ -233,7 +233,7 @@ subtest 'The postfix until statement works' => {
         prefix => RakuAST::Prefix.new('++'),
         operand => RakuAST::Var::Lexical.new('$foo')
       ),
-      condition-modifier => RakuAST::StatementModifier::Until.new(
+      loop-modifier => RakuAST::StatementModifier::Until.new(
         RakuAST::Statement::Expression.new(
           expression => RakuAST::ApplyInfix.new(
             left => RakuAST::Var::Lexical.new('$foo'),
@@ -262,7 +262,7 @@ subtest 'The postfix for statement works' => {
         prefix => RakuAST::Prefix.new('++'),
         operand => RakuAST::Var::Lexical.new('$foo')
       ),
-      condition-modifier => RakuAST::StatementModifier::For.new(
+      loop-modifier => RakuAST::StatementModifier::For.new(
         RakuAST::Statement::Expression.new(
           expression => RakuAST::ApplyInfix.new(
             left => RakuAST::IntLiteral.new(1),

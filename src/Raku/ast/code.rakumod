@@ -13,7 +13,7 @@ class RakuAST::Blockoid is RakuAST::SinkPropagator {
         $!statement-list.propagate-sink($is-sunk, :has-block-parent(True))
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         $!statement-list.IMPL-TO-QAST($context)
     }
 

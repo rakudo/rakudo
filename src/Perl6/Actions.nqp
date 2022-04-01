@@ -1338,11 +1338,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $world := $*W;
 
         # Finish up code object for the mainline.
-        if $*DECLARAND {
-            $world.attach_signature($*DECLARAND, $world.create_signature(
+        if $*DECLARAND -> $declarand {
+            $world.attach_signature($declarand, $world.create_signature(
                 nqp::hash('parameter_objects', [])));
-            $world.finish_code_object($*DECLARAND, $*UNIT);
-            $world.add_phasers_handling_code($*DECLARAND, $*UNIT);
+            $world.finish_code_object($declarand, $*UNIT);
+            $world.add_phasers_handling_code($declarand, $*UNIT);
         }
 
         # Checks.
@@ -4158,18 +4158,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Finish code object, associating it with the routine body.
-        my $code := $*DECLARAND;
-        $world.attach_signature($code, $signature);
-        $world.finish_code_object($code, $block, $*MULTINESS eq 'proto', :yada(is_yada($/)));
+        my $declarand := $*DECLARAND;
+        $world.attach_signature($declarand, $signature);
+        $world.finish_code_object($declarand, $block, $*MULTINESS eq 'proto', :yada(is_yada($/)));
 
         # attach return type
         if $*OFTYPE {
-            my $sig := $code.signature;
+            my $sig := $declarand.signature;
             if $sig.has_returns {
                 my $prev_returns := $sig.returns;
                 $world.throw($*OFTYPE, 'X::Redeclaration',
                     what    => 'return type for',
-                    symbol  => $code.name,
+                    symbol  => $declarand.name,
                     postfix => "(previous return type was "
                                 ~ $prev_returns.HOW.name($prev_returns)
                                 ~ ')',
@@ -4180,13 +4180,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # and mixin the parameterize callable for type checks
         if $signature.has_returns {
             my $callable := $world.find_single_symbol('Callable');
-            $code.HOW.mixin($code, $callable.HOW.parameterize($callable, $signature.returns));
+            $declarand.HOW.mixin($declarand, $callable.HOW.parameterize($callable, $signature.returns));
         }
 
         # Document it
-        Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);
+        Perl6::Pod::document($/, $declarand, $*POD_BLOCK, :leading);
         if ~$*POD_BLOCK ne '' {
-            $*POD_BLOCK.set_docee($code);
+            $*POD_BLOCK.set_docee($declarand);
         }
 
         # Install PAST block so that it gets capture_lex'd correctly and also
@@ -4242,7 +4242,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
 
                 # Install the candidate.
-                $world.add_dispatchee_to_proto($proto, $code);
+                $world.add_dispatchee_to_proto($proto, $declarand);
             }
             elsif $scope eq 'anon' {
                 # don't install anything
@@ -4260,12 +4260,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         );
                     }
                 }
-                $world.install_lexical_symbol($outer, $name, $code, :$clone);
+                $world.install_lexical_symbol($outer, $name, $declarand, :$clone);
 
                 if $scope eq 'our' || $scope eq 'unit' {
                     # Also install in package, and set up code to
                     # re-bind it per invocation of its outer.
-                    $world.install_lexical_symbol($outer, $name, $code, :$clone);
+                    $world.install_lexical_symbol($outer, $name, $declarand, :$clone);
                     my $package := $/.package;
                     if nqp::existskey($package.WHO, $name) {
                         $world.throw($/, ['X', 'Redeclaration'],
@@ -4274,7 +4274,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             postfix => '(already defined in package ' ~ $package.HOW.name($package) ~ ')'
                         );
                     }
-                    $world.install_package_symbol($/, $package, $name, $code, 'sub');
+                    $world.install_package_symbol($/, $package, $name, $declarand, 'sub');
                     $outer[0].push(QAST::Op.new(
                         :op('bindkey'),
                         QAST::Op.new( :op('who'), QAST::WVal.new( :value($package) ) ),
@@ -4295,7 +4295,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Apply traits.
-        $world.apply_traits($<trait>, $code);
+        $world.apply_traits($<trait>, $declarand);
         if $<onlystar> {
             # Protect with try; won't work when declaring the initial
             # trait_mod proto in CORE.setting!
@@ -4303,26 +4303,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Handle any phasers.
-        $world.add_phasers_handling_code($code, $block);
+        $world.add_phasers_handling_code($declarand, $block);
 
         # Add inlining information if it's inlinable; also mark soft if the
         # appropriate pragma is in effect.
         if $<deflongname> {
             if $/.pragma('soft') {
-                $world.find_single_symbol('&infix:<does>')($code, $world.find_single_symbol('SoftRoutine', :setting-only));
+                $world.find_single_symbol('&infix:<does>')($declarand, $world.find_single_symbol('SoftRoutine', :setting-only));
             }
             else {
-                self.maybe_add_inlining_info($/, $code, $signature, $block, @params);
+                self.maybe_add_inlining_info($/, $declarand, $signature, $block, @params);
             }
         }
 
         # If it's a proto, add it to the sort-at-CHECK-time queue.
         if $*MULTINESS eq 'proto' {
-            $world.add_proto_to_sort($code);
+            $world.add_proto_to_sort($declarand);
         }
 
         make block_closure(
-            reference_to_code_object($code, $block)
+            reference_to_code_object($declarand, $block)
         ).annotate_self('sink_ast', QAST::Op.new( :op('null') ));
     }
 
@@ -4723,12 +4723,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<deflongname> {
             $block.name(~$<deflongname>.ast);
         }
-        my $code := $*DECLARAND;
-        $world.attach_signature($code, $signature);
-        $world.finish_code_object($code, $block, $*MULTINESS eq 'proto');
+        my $declarand := $*DECLARAND;
+        $world.attach_signature($declarand, $signature);
+        $world.finish_code_object($declarand, $block, $*MULTINESS eq 'proto');
 
         # Document it
-        Perl6::Pod::document($/, $code, $*POD_BLOCK, :leading);
+        Perl6::Pod::document($/, $declarand, $*POD_BLOCK, :leading);
 
         # Install PAST block so that it gets capture_lex'd correctly and also
         # install it in the lexpad.
@@ -4744,13 +4744,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             my $scope := $*SCOPE;
             if $scope eq '' || $scope eq 'my' {
-                $world.install_lexical_symbol($outer, $name, $code);
+                $world.install_lexical_symbol($outer, $name, $declarand);
             }
             elsif $scope eq 'our' {
                 # Install in lexpad and in package, and set up code to
                 # re-bind it per invocation of its outer.
-                $world.install_lexical_symbol($outer, $name, $code);
-                $world.install_package_symbol($/, $/.package, $name, $code, 'macro');
+                $world.install_lexical_symbol($outer, $name, $declarand);
+                $world.install_package_symbol($/, $/.package, $name, $declarand, 'macro');
                 $outer[0].push(QAST::Op.new(
                     :op('bind'),
                     $world.symbol_lookup([$name], $/, :package_only(1)),
@@ -4766,11 +4766,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Apply traits.
-        $world.apply_traits($<trait>, $code);
-        $world.add_phasers_handling_code($code, $block);
+        $world.apply_traits($<trait>, $declarand);
+        $world.add_phasers_handling_code($declarand, $block);
 
         make block_closure(
-            reference_to_code_object($code, $block)
+            reference_to_code_object($declarand, $block)
         ).annotate_self('sink_ast', QAST::Op.new( :op('null') ))
     }
 
@@ -4937,6 +4937,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $*CURPAD.blocktype('declaration_static');
         my %sig_info := $<signature> ?? $<signature>[0].ast !! hash(parameters => []);
 
+        my $declarand := $*DECLARAND;
         if $*MULTINESS eq 'proto' {
             unless $<onlystar> {
                 $/.PRECURSOR.panic("Proto regex body must be \{*\} (or <*> or <...>, which are deprecated)");
@@ -4945,18 +4946,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 :op('callmethod'), :name('!protoregex'),
                 QAST::Var.new( :name('self'), :scope('local') ),
                 QAST::SVal.new( :value($name) ));
-            $coderef := regex_coderef($/, $*DECLARAND, $proto_body, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>, :proto(1));
+            $coderef := regex_coderef($/, $declarand, $proto_body, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>, :proto(1));
         } elsif $<nibble>.ast {
-            $coderef := regex_coderef($/, $*DECLARAND, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
+            $coderef := regex_coderef($/, $declarand, $<nibble>.ast, $*SCOPE, $name, %sig_info, $*CURPAD, $<trait>);
         }
         else {
             $/.typed_panic("X::Syntax::Regex::NullRegex");
         }
 
         # Document it
-        Perl6::Pod::document($/, $*DECLARAND, $*POD_BLOCK, :leading);
+        Perl6::Pod::document($/, $declarand, $*POD_BLOCK, :leading);
         if ~$*POD_BLOCK ne '' {
-            $*POD_BLOCK.set_docee($*DECLARAND);
+            $*POD_BLOCK.set_docee($declarand);
         }
 
         # Return closure if not in sink context.

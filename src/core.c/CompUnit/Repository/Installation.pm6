@@ -434,31 +434,35 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     })
             );
 
-        my $version-matcher = ($spec.version-matcher ~~ Bool)
+        my $auth-matcher := $spec.auth-matcher;
+        my $version-matcher := ($spec.version-matcher ~~ Bool)
             ?? $spec.version-matcher # fast path for matching Version.new(*)
             !! Version.new($spec.version-matcher);
-        my $api-matcher = ($spec.api-matcher ~~ Bool)
+        my $api-matcher := ($spec.api-matcher ~~ Bool)
             ?? $spec.api-matcher
             !! Version.new($spec.api-matcher);
 
-        # $metas has already been filtered by name via $lookup, so do remaining filtering on fast lookup fields
-        my $matching-metas := $metas.grep: {
-            $_.value<auth> ~~ $spec.auth-matcher
-            and $_.value<ver> ~~ $version-matcher
-            and $_.value<api> ~~ $api-matcher
-        }
+        # $metas has already been filtered by name via $lookup, so do
+        # remaining filtering on fast lookup fields
+        $metas.grep({
+            my %meta := .value;
+               %meta<auth> ~~ $auth-matcher
+            and %meta<ver> ~~ $version-matcher
+            and %meta<api> ~~ $api-matcher
+        })
 
         # Sort from highest to lowest by version and api
-        my $sorted-metas := $matching-metas.sort(*.value<ver>).sort(*.value<api>).reverse;
+          .sort(*.value<ver>)
+          .sort(*.value<api>)
+          .reverse
 
-        # There is nothing left to do with the subset of meta data, so initialize a lazy distribution with it
-        my $distributions := $sorted-metas.map(*.kv).map: -> ($dist-id, $meta) { self!lazy-distribution($dist-id, :$meta) }
+        # There is nothing left to do with the subset of meta data, so
+        # initialize a lazy distribution with it
+          .map: { self!lazy-distribution(.key, meta => .value) }
 
         # A different policy might wish to implement additional/alternative filtering or sorting at this point,
         # with the caveat that calling a non-lazy field will require parsing json for each matching distribution.
-        # my $policy-okd-dists := $distributions.grep({ .meta<license> eq 'Artistic-2.0' }).sort(-*.meta<production>)`
-
-        return $distributions;
+        #  .grep({.meta<license> eq 'Artistic-2.0'}).sort(-*.meta<production>)`
     }
 
     # An equivalent of self.candidates($spec).head that caches the best match

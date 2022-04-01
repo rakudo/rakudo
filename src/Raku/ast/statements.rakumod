@@ -118,7 +118,7 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         nqp::push($!statements, $statement);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $stmts := QAST::Stmts.new;
         my @statements := $!statements;
         for @statements {

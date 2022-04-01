@@ -1683,6 +1683,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-package-scope>
         [
         || <?[{]> <block>
+        || ';'
+            {
+                unless $*SCOPE eq 'unit' {
+                    $/.panic("Semicolon form of '$*PKGDECL' without 'unit' is illegal. You probably want to use 'unit $*PKGDECL'");
+                }
+            }
+            { $*IN_DECL := ''; }
+            <statementlist>
         || <.panic("Unable to parse $*PKGDECL definition")>
         ]
         <.leave-package-scope>

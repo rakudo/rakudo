@@ -1699,6 +1699,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token scope_declarator:sym<HAS>   { <sym> <scoped('HAS')> }
     token scope_declarator:sym<anon>  { <sym> <scoped('anon')> }
     token scope_declarator:sym<state> { <sym> <scoped('state')> }
+    token scope_declarator:sym<unit>  { <sym> <scoped('unit')> }
 
     token scoped($*SCOPE) {
         <.end_keyword>

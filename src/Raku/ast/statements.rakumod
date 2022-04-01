@@ -250,7 +250,8 @@ class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookup
 # expression. It may have modifiers also, and the expression may consist of a
 # single term.
 class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropagator
-                                     is RakuAST::Sinkable is RakuAST::BlockStatementSensitive {
+                                     is RakuAST::Sinkable is RakuAST::BlockStatementSensitive
+                                     is RakuAST::CheckTime {
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
     has RakuAST::StatementModifier::Loop $.loop-modifier;
@@ -307,6 +308,13 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
         nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
         if nqp::istype($!expression, RakuAST::BlockStatementSensitive) {
             $!expression.mark-block-statement();
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+        if $!loop-modifier {
+            my $thunk := $!loop-modifier.expression-thunk;
+            $!expression.wrap-with-thunk($thunk) if $thunk;
         }
     }
 

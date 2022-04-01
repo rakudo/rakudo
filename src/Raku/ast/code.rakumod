@@ -1393,4 +1393,8 @@ class RakuAST::SubstitutionReplacementThunk is RakuAST::ExpressionThunk {
             $qast
         }
     }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix) if $!infix;
+    }
 }

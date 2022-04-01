@@ -249,6 +249,8 @@ do {
         }
 
         sub mixin-line-editor($self) {
+            return $self but FallbackBehavior if  %*ENV<INSIDE_EMACS>;
+
             my %editor-to-mixin = (
                 :Linenoise(&mixin-linenoise),
                 :Readline(&mixin-readline),

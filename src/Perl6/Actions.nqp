@@ -8006,6 +8006,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $metasym  := ~$<infix_prefix_meta_operator><sym>;
             my $base     := $<infix_prefix_meta_operator><infixish>;
             my $basesym  := ~$base<OPER>;
+            if $metasym eq '!' && $basesym eq '=' {
+                $basesym := '==';
+            }
             my $basepast := $base.ast
                               ?? $base.ast[0]
                               !! QAST::Var.new(:name("&infix" ~ $*W.canonicalize_pair('', $basesym)),

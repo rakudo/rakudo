@@ -75,12 +75,12 @@ class RakuAST::Name::Part::Simple is RakuAST::Name::Part {
         $obj
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final) {
+    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
         QAST::Op.new(
             :op('callmethod'),
             :name($is-final ?? 'AT-KEY' !! 'package_at_key'),
             $stash-qast,
-            QAST::SVal.new( :value($!name) )
+            QAST::SVal.new( :value($is-final && $sigil ?? $sigil ~ $!name !! $!name) )
         )
     }
 }

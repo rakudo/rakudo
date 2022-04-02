@@ -42,7 +42,7 @@ want to avoid the recommendation message upon REPL startup.
 
 =item INSIDE_EMACS
 
-This disables line editor while execcuting REPL inside Emacs, see for further
+This disables line editor while executing REPL inside Emacs, see for further
 reference:
 https://www.gnu.org/software/emacs/manual/html_node/emacs/Interactive-Shell.html
 

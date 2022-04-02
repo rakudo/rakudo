@@ -370,3 +370,43 @@ class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
         $visitor($!index);
     }
 }
+
+# A package variable, i.e. $Foo::bar
+class RakuAST::Var::Package is RakuAST::Var is RakuAST::Lookup {
+    has str $.sigil;
+    has RakuAST::Name $.name;
+
+    method new(RakuAST::Name $name, :$sigil) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Var::Package, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::Var::Package, '$!sigil', $sigil);
+        $obj
+    }
+
+    method sigil() { $!sigil }
+
+    method can-be-bound-to() {
+        self.is-resolved ?? self.resolution.can-be-bound-to !! False
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my str $sigil := $!sigil;
+        my $resolved := $resolver.resolve-name($!name, :$sigil);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @parts := self.IMPL-UNWRAP-LIST($!name.parts);
+        my $final := @parts[nqp::elems(@parts) - 1];
+        my $result := QAST::Var.new(:name(nqp::shift(@parts).name), :scope<lexical>);
+        for @parts {
+            $result := QAST::Op.new( :op('who'), $result );
+            my str $sigil := $!sigil;
+            $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);
+        }
+        $result
+    }
+}

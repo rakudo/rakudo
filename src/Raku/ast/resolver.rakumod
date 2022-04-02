@@ -115,13 +115,13 @@ class RakuAST::Resolver {
         else {
             # All package name installations happen via the symbol table as
             # BEGIN-time effects, so chase it down as if it were a constant.
-            self.resolve-name-constant($name)
+            self.resolve-name-constant($name, :$sigil)
         }
     }
 
     # Resolve a RakuAST::Name to a constant.
-    method resolve-name-constant(RakuAST::Name $name) {
-        self.IMPL-RESOLVE-NAME-CONSTANT($name)
+    method resolve-name-constant(RakuAST::Name $name, str :$sigil) {
+        self.IMPL-RESOLVE-NAME-CONSTANT($name, :$sigil)
     }
 
     # Resolve a RakuAST::Name to a constant looking only in the setting.
@@ -129,7 +129,7 @@ class RakuAST::Resolver {
         self.IMPL-RESOLVE-NAME-CONSTANT($name, :setting)
     }
 
-    method IMPL-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting) {
+    method IMPL-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {
         if $name.is-identifier {
             my str $identifier := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
             $setting
@@ -157,7 +157,8 @@ class RakuAST::Resolver {
             my int $n := nqp::elems(@parts);
             while $i < $n {
                 my %hash := self.IMPL-STASH-HASH($cur-symbol);
-                $cur-symbol := nqp::atkey(%hash, @parts[$i].name);
+                my $name := @parts[$i].name;
+                $cur-symbol := nqp::atkey(%hash, $i < $n - 1 ?? $name !! $sigil ~ $name);
                 return Nil if nqp::isnull($cur-symbol);
                 $i++;
             }

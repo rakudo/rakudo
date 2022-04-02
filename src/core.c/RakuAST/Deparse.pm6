@@ -419,7 +419,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::CompUnit:D $ast --> str) {
-        self.deparse($ast.statement-list)
+        my str $deparsed = self.deparse($ast.statement-list);
+        with $ast.finish-content {
+            $deparsed ~= "\n=finish\n$_";
+        }
+        $deparsed
     }
 
     multi method deparse(RakuAST::Contextualizer $ast --> str) {

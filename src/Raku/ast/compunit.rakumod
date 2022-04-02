@@ -4,6 +4,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     has RakuAST::StatementList $.statement-list;
     has Str $.comp-unit-name;
     has Str $.setting-name;
+    has Mu $.finish-content;
     has Mu $!sc;
     has int $!is-sunk;
     has int $!is-eval;
@@ -38,6 +39,12 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     # Replace the statement list of the compilation unit.
     method replace-statement-list(RakuAST::StatementList $statement-list) {
         nqp::bindattr(self, RakuAST::CompUnit, '$!statement-list', $statement-list);
+        Nil
+    }
+
+    # Replace the finish content (text after =finish) of the compilation unit.
+    method replace-finish-content(Mu $finish-content) {
+        nqp::bindattr(self, RakuAST::CompUnit, '$!finish-content', $finish-content);
         Nil
     }
 

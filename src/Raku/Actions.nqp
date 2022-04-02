@@ -910,6 +910,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $*R.declare-lexical($decl);
                 self.attach: $/, $decl;
             }
+            elsif $twigil eq '=' {
+                if $name eq '$=finish' {
+                    self.attach: $/, self.r('Var', 'Pod', 'Finish').new;
+                }
+                else {
+                    $/.typed_sorry('X::Comp::NYI', feature => 'Pod variable ' ~ $name);
+                }
+            }
             else {
                 nqp::die("Lookup with twigil '$twigil' NYI");
             }
@@ -1656,6 +1664,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method defterm($/) {
         self.attach: $/, self.r('Name').from-identifier(~$/);
+    }
+
+    method pod_block:sym<finish>($/) {
+        $*CU.replace-finish-content($*LITERALS.intern-str(~$<finish>));
     }
 }
 

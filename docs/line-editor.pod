@@ -40,6 +40,12 @@ This specifies the preferred line editor to use; valid values are C<Readline>,
 C<Linenoise>, C<LineEditor>, and C<none>.  A value of C<none> is useful if you
 want to avoid the recommendation message upon REPL startup.
 
+=item INSIDE_EMACS
+
+This disables line editor while execcuting REPL inside Emacs, see for further
+reference:
+https://www.gnu.org/software/emacs/manual/html_node/emacs/Interactive-Shell.html
+
 =back
 
 =cut

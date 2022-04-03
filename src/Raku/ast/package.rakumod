@@ -2,7 +2,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                        is RakuAST::IMPL::ImmediateBlockUser
                        is RakuAST::Declaration is RakuAST::AttachTarget
                        is RakuAST::BeginTime is RakuAST::TraitTarget
-                       is RakuAST::LexicalScope is RakuAST::ImplicitDeclarations {
+                       is RakuAST::ImplicitBlockSemanticsProvider {
     has Str $.package-declarator;
     has Mu $.how;
     has Mu $.attribute-type;
@@ -132,21 +132,19 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         $type
     }
 
-    method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST([
+    method apply-implicit-block-semantics() {
+        $!body.add-generated-lexical-declaration(
             RakuAST::VarDeclaration::Implicit::Constant.new(
                 name => '$?PACKAGE', value => self.meta-object
             )
-        ])
+        )
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
-        my $block := $!body.IMPL-TO-QAST($context, :immediate);
-        nqp::unshift($block[0], self.IMPL-QAST-DECLS($context));
         QAST::Stmts.new(
-            $block,
+            $!body.IMPL-QAST-FORM-BLOCK($context, 'immediate'),
             QAST::WVal.new( :value($type-object) )
         )
     }

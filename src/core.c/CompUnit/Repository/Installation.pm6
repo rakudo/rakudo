@@ -71,11 +71,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
 }';
 
-    method !sources-dir   { $.prefix.add('sources').mkdir   }
-    method !resources-dir { $.prefix.add('resources').mkdir }
-    method !dist-dir      { $.prefix.add('dist').mkdir      }
-    method !bin-dir       { $.prefix.add('bin').mkdir       }
-    method !short-dir     { $.prefix.add('short').mkdir     }
+    method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }
+    method !resources-dir { with $.prefix.add('resources') { once { .mkdir unless .e }; $_ } }
+    method !dist-dir      { with $.prefix.add('dist')      { once { .mkdir unless .e }; $_ } }
+    method !bin-dir       { with $.prefix.add('bin')       { once { .mkdir unless .e }; $_ } }
+    method !short-dir     { with $.prefix.add('short')     { once { .mkdir unless .e }; $_ } }
 
     method !add-short-name($name, $dist, $source = "", $checksum = "" --> Nil) {
         my %meta := $dist.meta;

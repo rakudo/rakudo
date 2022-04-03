@@ -71,22 +71,24 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
 }';
 
-    method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }
-    method !resources-dir { with $.prefix.add('resources') { once { .mkdir unless .e }; $_ } }
-    method !dist-dir      { with $.prefix.add('dist')      { once { .mkdir unless .e }; $_ } }
-    method !bin-dir       { with $.prefix.add('bin')       { once { .mkdir unless .e }; $_ } }
-    method !short-dir     { with $.prefix.add('short')     { once { .mkdir unless .e }; $_ } }
+    method !sources-dir   { $.prefix.add('sources').mkdir   }
+    method !resources-dir { $.prefix.add('resources').mkdir }
+    method !dist-dir      { $.prefix.add('dist').mkdir      }
+    method !bin-dir       { $.prefix.add('bin').mkdir       }
+    method !short-dir     { $.prefix.add('short').mkdir     }
 
-    method !add-short-name($name, $dist, $source?, $checksum?) {
-        my $id = nqp::sha1($name);
-        my $lookup = self!short-dir.add($id) andthen { .mkdir unless .e }
-        $lookup.add($dist.id).spurt(
-                "{$dist.meta<ver>  // ''}\n"
-            ~   "{$dist.meta<auth> // ''}\n"
-            ~   "{$dist.meta<api>  // ''}\n"
-            ~   "{$source // ''}\n"
-            ~   "{$checksum // ''}\n"
-        );
+    method !add-short-name($name, $dist, $source = "", $checksum = "" --> Nil) {
+        my %meta := $dist.meta;
+        self!short-dir
+          .add(nqp::sha1($name))  # add the id derived from the name
+          .mkdir                  # make sure there's a dir for it
+          .add($dist.id)          # a file for this distribution
+          .spurt(                 # make sure it contains the right data
+              (%meta<ver>  // "") ~ "\n"
+            ~ (%meta<auth> // "") ~ "\n"
+            ~ (%meta<api>  // "") ~ "\n"
+            ~ "$source\n$checksum\n"
+          );
     }
 
     method !remove-dist-from-short-name-lookup-files($dist --> Nil) {

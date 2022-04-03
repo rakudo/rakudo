@@ -278,7 +278,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) ),
-                $name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package.meta-object)))
+                $name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package.stubbed-meta-object)))
             )
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {

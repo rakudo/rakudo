@@ -135,7 +135,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     method apply-implicit-block-semantics() {
         $!body.add-generated-lexical-declaration(
             RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => '$?PACKAGE', value => self.meta-object
+                name => '$?PACKAGE', value => self.stubbed-meta-object
             )
         )
     }

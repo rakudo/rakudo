@@ -28,6 +28,16 @@ my class Slip { # is List
           if nqp::isconcrete(nqp::getattr(self,List,'$!reified'));
         $list
     }
+
+    multi method map(Slip:D: &code) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method grep(Slip:D: &code) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method first(Slip:D: &code) {
+        nqp::eqaddr(self,Empty) ?? Nil !! nextsame
+    }
 }
 
 # The slip(...) function creates a Slip.

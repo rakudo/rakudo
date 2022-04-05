@@ -3,7 +3,7 @@ class CompUnit::DependencySpecification {
     has str $.from        is built(:bind) = 'Perl6';    # must be native
     has str $!stringified;
 
-    # The matcher methods will return True if implicitely or explicitely
+    # The matcher methods will return True if implicitly or explicitly
     # initialized with an undefined value.  In the case of version and
     # API, a Version object for the given defined value, will be returned
     # if it was not already specified as a Version object.  This does
@@ -13,7 +13,7 @@ class CompUnit::DependencySpecification {
     has $.version-matcher is built(:bind);  # either True or Version
     has $.api-matcher     is built(:bind);  # either True or Version
 
-    # Sadly this is needed because we have a spectest that explicitely
+    # Sadly this is needed because we have a spectest that explicitly
     # passes True for unspecified matchers.  Hopefully this can go when
     # we accept that an undefined value indicates no interest in matching.
     method TWEAK() {

@@ -230,7 +230,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         if $setting_name ne 'NULL.c' {
             CATCH {
                 nqp::unlock($setting-lock);
-                $_.rethrow;
+                nqp::rethrow($_);
             }
             nqp::lock($setting-lock);
 

@@ -1,7 +1,7 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
-    has $!lock = Lock.new;
+    has $!lock;
     has %!loaded; # cache compunit lookup for self.need(...)
-    has %!seen;   # cache distribution lookup for self!matching-dist(...)
+    has $!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
     has $!id;
     has Int $!version;
@@ -11,6 +11,11 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!prefix-writeable-cache;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
+
+    method TWEAK() {
+        $!lock := Lock.new;
+        $!seen := nqp::hash;
+    }
 
     my class InstalledDistribution is Distribution::Hash {
         method content($address) {
@@ -464,16 +469,17 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     # An equivalent of self.candidates($spec).head that caches the best match
-    method !matching-dist(CompUnit::DependencySpecification $spec) {
+    method !matching-dist(CompUnit::DependencySpecification:D $spec) {
         $!lock.protect: {
-            return $_ with %!seen{~$spec};
+            nqp::ifnull(
+              nqp::atkey($!seen,~$spec),
+              nqp::if(
+                (my $candidate := self.candidates($spec).head),
+                nqp::bindkey($!seen,~$spec,$candidate),
+                Nil
+              )
+            )
         }
-
-        with self.candidates($spec).head {
-            $!lock.protect: { return %!seen{~$spec} //= $_ }
-        }
-
-        Nil
     }
 
     # A distribution that provides a subset of its meta data without parsing the full original

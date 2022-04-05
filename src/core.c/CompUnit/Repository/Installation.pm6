@@ -2,10 +2,10 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!lock;
     has $!loaded; # cache compunit lookup for self.need(...)
     has $!seen;   # cache distribution lookup for self!matching-dist(...)
+    has $!dist-metas;  # cache for .resource
     has $!precomp;
     has $!id;
     has Int $!version;
-    has %!dist-metas;
     has $!precomp-stores;
     has $!precomp-store;
     has $!prefix-writeable-cache;
@@ -13,9 +13,10 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
     method TWEAK() {
-        $!lock := Lock.new;
-        $!loaded := nqp::hash;
-        $!seen   := nqp::hash;
+        $!lock       := Lock.new;
+        $!loaded     := nqp::hash;
+        $!seen       := nqp::hash;
+        $!dist-metas := nqp::hash;
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -273,7 +274,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         my %meta = %($dist.meta);
         %meta<files>    = %links;    # add our new name-path => content-id mapping
         %meta<provides> = %provides; # new meta data added to provides
-        %!dist-metas{$dist-id} = %meta;
+        nqp::bindkey($!dist-metas,$dist-id,%meta);
         $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
 
         # reset cached id so it's generated again on next access.
@@ -658,10 +659,16 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
     }
 
-    method resource($dist-id, $key) {
-        my $meta = %!dist-metas{$dist-id} //= Rakudo::Internals::JSON.from-json(self!dist-dir.add($dist-id).slurp);
-        # need to strip the leading resources/ on old repositories
-        self!resources-dir.add($meta<files>{$key.substr(self!repository-version < 2 ?? 10 !! 0)})
+    method resource(str $dist-id, str $key) {
+        self!resources-dir.add: ($!lock.protect: {
+            nqp::ifnull(
+              nqp::atkey($!dist-metas,$dist-id),
+              nqp::bindkey($!dist-metas,$dist-id,
+                Rakudo::Internals::JSON.from-json:
+                  self!dist-dir.add($dist-id).slurp
+              )
+            )
+        })<files>{$key}
     }
 
     method id() {

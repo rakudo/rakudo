@@ -1,6 +1,6 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
     has $!lock;
-    has %!loaded; # cache compunit lookup for self.need(...)
+    has $!loaded; # cache compunit lookup for self.need(...)
     has $!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
     has $!id;
@@ -14,7 +14,8 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     method TWEAK() {
         $!lock := Lock.new;
-        $!seen := nqp::hash;
+        $!loaded := nqp::hash;
+        $!seen   := nqp::hash;
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -574,51 +575,87 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
         --> CompUnit:D)
     {
-        with self!matching-dist($spec) {
-            my $meta = .meta;
-            my $source-file-name = $meta<source>;
+
+        # found a distribution for this spec
+        if self!matching-dist($spec) -> $distribution {
+            my %meta             := $distribution.meta;
+            my $source-file-name := %meta<source>;
             X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw
-                unless $source-file-name;
-            my $loader = $.prefix.add('sources').add($source-file-name);
-            my $id     = $loader.basename;
+              unless $source-file-name;
+            my $loader     := $.prefix.add('sources').add($source-file-name);
+            my str $repo-id = $loader.basename;
+
+            # already loaded before, fast path
             $!lock.protect: {
-                return $_ with %!loaded{$id};
+                return $_ if $_ := nqp::atkey($!loaded,$repo-id);
             }
 
-            my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($_, :repo(self), :dist-id(.dist-id));
-            my $*RESOURCES  = Distribution::Resources.new(:repo(self), :dist-id(.dist-id));
-            my $repo-prefix = self!repo-prefix;
-            my $handle      = $precomp.try-load(
-                CompUnit::PrecompilationDependency::File.new(
-                    :id(CompUnit::PrecompilationId.new-without-check($id)),
-                    :src($repo-prefix ?? $repo-prefix ~ $loader.relative($.prefix) !! $loader.absolute),
-                    :checksum(.meta<checksum> // Str),
-                    :$spec,
-                ),
-                :source($loader),
-                :@precomp-stores,
-            );
+            # Set up dynamics for compilation
+            my $dist-id := $distribution.id;
+            my $*DISTRIBUTION := CompUnit::Repository::Distribution.new:
+              $distribution, :repo(self), :$dist-id;
+            my $*RESOURCES := Distribution::Resources.new:
+              :repo(self), :$dist-id;
 
-            my $precompiled = defined $handle;
-            $handle //= CompUnit::Loader.load-source-file($loader);
+            # could load precompiled (the fast path in production)
+            my $repo-prefix := self!repo-prefix;
+            if $precomp.try-load(
+              CompUnit::PrecompilationDependency::File.new(
+                :id(CompUnit::PrecompilationId.new-without-check($repo-id)),
+                :src($repo-prefix
+                       ?? $repo-prefix ~ $loader.relative($!prefix)
+                       !! $loader.absolute
+                    ),
+                :checksum(%meta<checksum> // Str),
+                :$spec,
+              ),
+              :source($loader),
+              :@precomp-stores,
+            ) -> $handle {
+                $!lock.protect: {
+                    nqp::bindkey($!loaded,$repo-id,CompUnit.new:
+                      :$handle,
+                      :short-name($spec.short-name),
+                      :version(%meta<ver>),
+                      :auth(%meta<auth> // Str),
+                      :repo(self),
+                      :$repo-id,
+                      :precompiled,
+                      :$distribution,
+                    )
+                }
+            }
 
-            my $compunit = CompUnit.new(
-                :$handle,
-                :short-name($spec.short-name),
-                :version($meta<ver>),
-                :auth($meta<auth> // Str),
-                :repo(self),
-                :repo-id($id),
-                :$precompiled,
-                :distribution($_),
-            );
+            # could load from source? (slower path)
+            elsif CompUnit::Loader.load-source-file($loader) -> $handle {
+                $!lock.protect: {
+                    nqp::bindkey($!loaded,$repo-id,CompUnit.new:
+                      :$handle,
+                      :short-name($spec.short-name),
+                      :version(%meta<ver>),
+                      :auth(%meta<auth> // Str),
+                      :repo(self),
+                      :$repo-id,
+                      :$distribution,
+                    )
+                }
+            }
 
-            $!lock.protect: {
-                return %!loaded{$id} //= $compunit;
+            # just in case?
+            else {
+                die "Could not loaded $spec from source";
             }
         }
-        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
-        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+
+        # not in this repo, maybe the next?
+        elsif self.next-repo -> $next-repo {
+            $next-repo.need($spec, $precomp, :@precomp-stores)
+        }
+
+        # alas
+        else {
+            X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+        }
     }
 
     method resource($dist-id, $key) {
@@ -639,7 +676,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     method loaded(--> Iterable:D) {
         $!lock.protect: {
-            return %!loaded.values;
+            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$!loaded)
+              .values;
         }
     }
 

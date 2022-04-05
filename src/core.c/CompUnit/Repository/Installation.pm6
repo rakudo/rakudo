@@ -541,24 +541,25 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         )
     }
 
-    method resolve(
-        CompUnit::DependencySpecification $spec,
-        --> CompUnit:D)
-    {
+    method resolve(CompUnit::DependencySpecification:D $spec --> CompUnit:D) {
         with self!matching-dist($spec) {
-            my $meta = .meta;
-            return CompUnit.new(
-                :handle(CompUnit::Handle),
-                :short-name($spec.short-name),
-                :version($meta<ver>),
-                :auth($meta<auth> // Str),
-                :repo(self),
-                :repo-id($meta<source>),
-                :distribution($_),
-            );
+            my %meta := .meta;
+            CompUnit.new(
+              :handle(CompUnit::Handle),
+              :short-name($spec.short-name),
+              :version(%meta<ver>),
+              :auth(%meta<auth> // Str),
+              :repo(self),
+              :repo-id(%meta<source>),
+              :distribution($_),
+            )
         }
-        return self.next-repo.resolve($spec) if self.next-repo;
-        Nil
+        elsif self.next-repo -> $next-repo {
+            $next-repo.resolve($spec)
+        }
+        else {
+            Nil
+        }
     }
 
     method !precomp-stores() {

@@ -1477,13 +1477,12 @@ class Perl6::World is HLL::World {
         $RMD("  Late loading '$module_name'") if $RMD;
 
         # Immediate loading.
-        my $true := self.find_single_symbol('True', :setting-only);
         my $spec := self.find_symbol(['CompUnit', 'DependencySpecification'], :setting-only).new(
             :short-name($module_name),
             :from(%opts<from> // 'Perl6'),
-            :auth-matcher(%opts<auth> // $true),
-            :api-matcher(%opts<api> // $true),
-            :version-matcher(%opts<ver> // $true),
+            :auth-matcher(%opts<auth>),
+            :api-matcher(%opts<api>),
+            :version-matcher(%opts<ver>),
         );
         self.add_object_if_no_sc($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);

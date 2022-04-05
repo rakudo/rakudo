@@ -162,9 +162,9 @@ class CompUnit::Repository::FileSystem
     multi method candidates(Str:D $name, :$auth, :$ver, :$api) {
         return samewith(CompUnit::DependencySpecification.new(
             short-name      => $name,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         ));
     }
     multi method candidates(CompUnit::DependencySpecification $spec) {
@@ -185,16 +185,9 @@ class CompUnit::Repository::FileSystem
             $distribution = self!distribution;
         }
 
-        my $version-matcher = ($spec.version-matcher ~~ Bool)
-            ?? $spec.version-matcher
-            !! Version.new($spec.version-matcher);
-        my $api-matcher = ($spec.api-matcher ~~ Bool)
-            ?? $spec.api-matcher
-            !! Version.new($spec.api-matcher);
-
         return Empty unless (($distribution.meta<auth> // '') eq '' || ($distribution.meta<auth> // '') ~~ $spec.auth-matcher)
-            and (($distribution.meta<ver> // '*') eq '*' || Version.new($distribution.meta<ver> // 0) ~~ $version-matcher)
-            and (($distribution.meta<api> // '*') eq '*' || Version.new($distribution.meta<api> // 0) ~~ $api-matcher);
+            and (($distribution.meta<ver> // '*') eq '*' || Version.new($distribution.meta<ver> // 0) ~~ $spec.version-matcher)
+            and (($distribution.meta<api> // '*') eq '*' || Version.new($distribution.meta<api> // 0) ~~ $spec.api-matcher);
 
         return ($distribution,);
     }
@@ -203,9 +196,9 @@ class CompUnit::Repository::FileSystem
     multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $name,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         );
 
         with self.candidates($spec) {
@@ -223,9 +216,9 @@ class CompUnit::Repository::FileSystem
     multi method files($file, :$auth, :$ver, :$api) {
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $file,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         );
 
         with self.candidates($spec) {

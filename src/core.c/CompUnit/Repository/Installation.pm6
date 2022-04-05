@@ -363,9 +363,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $name,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         );
 
         with self.candidates($spec) {
@@ -385,9 +385,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $file,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         );
 
         with self.candidates($spec) {
@@ -405,9 +405,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     multi method candidates(Str:D $name, :$auth, :$ver, :$api) {
         return samewith(CompUnit::DependencySpecification.new(
             short-name      => $name,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         ));
     }
     multi method candidates(CompUnit::DependencySpecification $spec) {
@@ -436,13 +436,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     })
             );
 
-        my $auth-matcher := $spec.auth-matcher;
-        my $version-matcher := ($spec.version-matcher ~~ Bool)
-            ?? $spec.version-matcher # fast path for matching Version.new(*)
-            !! Version.new($spec.version-matcher);
-        my $api-matcher := ($spec.api-matcher ~~ Bool)
-            ?? $spec.api-matcher
-            !! Version.new($spec.api-matcher);
+        my $auth-matcher    := $spec.auth-matcher;
+        my $version-matcher := $spec.version-matcher;
+        my $api-matcher     := $spec.api-matcher;
 
         # $metas has already been filtered by name via $lookup, so do
         # remaining filtering on fast lookup fields

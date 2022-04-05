@@ -1,23 +1,62 @@
 class CompUnit::DependencySpecification {
     has str $.short-name  is built(:bind) is required;  # must be native
     has str $.from        is built(:bind) = 'Perl6';    # must be native
-    has $.version-matcher is built(:bind) = True;
-    has $.auth-matcher    is built(:bind) = True;
-    has $.api-matcher     is built(:bind) = True;
+    has str $!stringified;
 
-    # Oddly enough, the exact format of this method can make / break
-    # dependency testing.  This should probably depend on the .WHICH.
-    method Str(CompUnit::DependencySpecification:D: --> Str:D) {
+    # The matcher methods will return True if implicitely or explicitely
+    # initialized with an undefined value.  In the case of version and
+    # API, a Version object for the given defined value, will be returned
+    # if it was not already specified as a Version object.  This does
+    # *not* cause an issue with stringification, as the stringification
+    # of a Version object returns its original string.
+    has $.auth-matcher    is built(:bind);  # either True or smartmatchee
+    has $.version-matcher is built(:bind);  # either True or Version
+    has $.api-matcher     is built(:bind);  # either True or Version
+
+    # Sadly this is needed because we have a spectest that explicitely
+    # passes True for unspecified matchers.  Hopefully this can go when
+    # we accept that an undefined value indicates no interest in matching.
+    method TWEAK() {
+        $!version-matcher := Any if nqp::eqaddr($!version-matcher,True);
+        $!auth-matcher    := Any if nqp::eqaddr($!auth-matcher,True);
+        $!api-matcher     := Any if nqp::eqaddr($!api-matcher,True);
+    }
+
+    method auth-matcher() {
+        $!auth-matcher // True
+    }
+    method version-matcher() {
+        nqp::defined($!version-matcher)
+          ?? nqp::istype($!version-matcher,Version)
+            ?? $!version-matcher
+            !! ($!version-matcher := Version.new($!version-matcher))
+          !! True
+    }
+    method api-matcher() {
+        nqp::defined($!api-matcher)
+          ?? nqp::istype($!api-matcher,Version)
+            ?? $!api-matcher
+            !! ($!api-matcher := Version.new($!api-matcher))
+          !! True
+    }
+
+    method !stringify() {
         my $parts := nqp::list_s($!short-name);
         nqp::push_s($parts,":from<$!from>")
           if $!from ne 'Perl6';
         nqp::push_s($parts,":ver<$!version-matcher>")
-          unless nqp::eqaddr($!version-matcher,True);
+          if nqp::defined($!version-matcher);
         nqp::push_s($parts,":auth<$!auth-matcher>")
-          unless nqp::eqaddr($!auth-matcher,True);
+          if nqp::defined($!auth-matcher);
         nqp::push_s($parts,":api<$!api-matcher>")
-          unless nqp::eqaddr($!api-matcher,True);
-        nqp::join('',$parts)
+          if nqp::defined($!api-matcher);
+        $!stringified = nqp::join('',$parts)
+    }
+
+    # Oddly enough, the exact format of this method can make / break
+    # dependency testing.  This should probably depend on the .WHICH.
+    method Str(CompUnit::DependencySpecification:D: --> str) {
+        $!stringified ?? $!stringified !! self!stringify
     }
 
     multi method raku(CompUnit::DependencySpecification:D: --> Str:D) {
@@ -27,11 +66,11 @@ class CompUnit::DependencySpecification {
         nqp::push_s($parts,",:from<$!from>")
           if $!from ne 'Perl6';
         nqp::push_s($parts,",:version-matcher<$!version-matcher>")
-          unless nqp::eqaddr($!version-matcher,True);
+          if nqp::defined($!version-matcher);
         nqp::push_s($parts,",:auth-matcher<$!auth-matcher>")
-          unless nqp::eqaddr($!auth-matcher,True);
+          if nqp::defined($!auth-matcher);
         nqp::push_s($parts,",:api-matcher<$!api-matcher>")
-          unless nqp::eqaddr($!api-matcher,True);
+          if nqp::defined($!api-matcher);
         nqp::push_s($parts,')');
         nqp::join('',$parts)
     }

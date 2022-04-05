@@ -29,15 +29,29 @@ my class Slip { # is List
         $list
     }
 
-    multi method map(Slip:D: &code) {
+    # shortcutting methods for better performance on Empty
+    multi method map(Slip:D: &) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
-    multi method grep(Slip:D: &code) {
+    multi method grep(Slip:D: &) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
-    multi method first(Slip:D: &code) {
+    multi method first(Slip:D: &) {
         nqp::eqaddr(self,Empty) ?? Nil !! nextsame
     }
+    multi method head(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Nil !! nextsame
+    }
+    multi method head(Slip:D: $) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method tail(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Nil !! nextsame
+    }
+    multi method tail(Slip:D: $) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+
 }
 
 # The slip(...) function creates a Slip.

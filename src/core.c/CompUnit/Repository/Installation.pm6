@@ -358,47 +358,47 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     # Ideally this would return Distributions, but it'd break older bin/ scripts
     proto method files(|) {*}
-    multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
-        # if we have to include :$name then we take the slow path
 
-        my $spec = CompUnit::DependencySpecification.new(
+    # if we have to include :$name then we take the slow path
+    multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
+        self.candidates(
+          CompUnit::DependencySpecification.new:
             short-name      => $name,
             auth-matcher    => $auth,
             version-matcher => $ver,
             api-matcher     => $api,
-        );
-
-        with self.candidates($spec) {
-            my $matches := $_.grep: { .meta<files>{$file}:exists }
-
-            my $absolutified-metas := $matches.map: {
-                my $meta      = $_.meta;
-                $meta<source> = self!resources-dir.add($meta<files>{$file});
-                $meta;
+        ).map: {
+            my %meta := .meta;
+            if %meta<files> -> %files {
+                if %files{$file} -> $source {
+                    my $io := self!resources-dir.add($source);
+                    if $io.e {
+                        %meta<source> := $io;
+                        %meta
+                    }
+                }
             }
-
-            return $absolutified-metas.grep(*.<source>.e);
-        }
+        } 
     }
-    multi method files($file, :$auth, :$ver, :$api) {
-        # avoid parsing json if we don't need to know the short-name
 
-        my $spec = CompUnit::DependencySpecification.new(
+    # avoid parsing json if we don't need to know the short-name
+    multi method files($file, :$auth, :$ver, :$api) {
+        self.candidates(
+          CompUnit::DependencySpecification.new:
             short-name      => $file,
             auth-matcher    => $auth,
             version-matcher => $ver,
             api-matcher     => $api,
-        );
-
-        with self.candidates($spec) {
-            my $absolutified-metas := $_.map: {
-                my $meta      = $_.meta;
-                $meta<source> = self!resources-dir.add($meta<source> || $meta<files>{$file});
-                $meta;
+        ).map: {
+            my %meta := .meta;
+            if %meta<source> || %meta<files>{$file} -> $source {
+                my $io := self!resources-dir.add($source);
+                if $io.e {
+                    %meta<source> := $io;
+                    %meta
+                }
             }
-
-            return $absolutified-metas.grep(*.<source>.e);
-        }
+        } 
     }
 
     proto method candidates(|) {*}
@@ -486,6 +486,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     my role MetaAssigner {
         has $.meta-writer;
         method ASSIGN-KEY($key, $value) { $!meta-writer($key, $value) }
+        method BIND-KEY($key, $value) { $!meta-writer($key, $value) }
     }
     my class LazyDistribution does Distribution::Locally {
         has $.dist-id;

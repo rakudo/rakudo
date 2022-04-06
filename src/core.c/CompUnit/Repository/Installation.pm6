@@ -3,11 +3,11 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!loaded; # cache compunit lookup for self.need(...)
     has $!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!dist-metas;  # cache for .resource
-    has $!precomp;     
+    has $!precomp;
     has $!id;
     has Int $!version;
+    has $!precomp-store;   # cache for .precomp-store
     has $!precomp-stores;  # cache for !precomp-stores
-    has $!precomp-store;
     has $!prefix-writeable-cache;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
@@ -17,7 +17,8 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
-        $!precomp-stores := nqp::null;
+        $!precomp-store :=
+          $!precomp-stores := nqp::null;
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -439,7 +440,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     }
                 }
             }
-        } 
+        }
     }
 
     # avoid parsing json if we don't need to know the short-name
@@ -459,7 +460,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     %meta
                 }
             }
-        } 
+        }
     }
 
     proto method candidates(|) {*}
@@ -560,7 +561,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             Nil
         }
     }
-    
+
     method !find-precomp-stores() {
         my CompUnit::PrecompilationStore @stores = self.precomp-store;
 
@@ -713,8 +714,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method precomp-store(--> CompUnit::PrecompilationStore:D) {
-        $!precomp-store //= CompUnit::PrecompilationStore::File.new(
-            :prefix(self.prefix.add('precomp')),
+        nqp::ifnull(
+          $!precomp-store,
+          $!precomp-store := CompUnit::PrecompilationStore::File.new(
+            :prefix($.prefix.add('precomp'))
+          )
         )
     }
 

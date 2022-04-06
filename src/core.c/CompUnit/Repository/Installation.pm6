@@ -155,14 +155,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method !remove-dist-from-short-name-lookup-files($dist --> Nil) {
-        my $short-dir = self!short-dir;
-        return unless $short-dir.e;
-
-        my $id = $dist.id;
-
-        for $short-dir.dir -> $dir {
-            $dir.add($id).unlink;
-            $dir.rmdir unless $dir.dir.elems;
+        my $short-dir := self!short-dir;
+        if $short-dir.e {
+            my $id := $dist.id;
+            for $short-dir.dir -> $dir {
+                $dir.add($id).unlink;
+                $dir.rmdir unless $dir.dir.elems;  # dir-with-entries PR 4848
+            }
         }
     }
 

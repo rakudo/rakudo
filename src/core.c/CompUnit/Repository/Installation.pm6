@@ -3,10 +3,10 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!loaded; # cache compunit lookup for self.need(...)
     has $!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!dist-metas;  # cache for .resource
-    has $!precomp;
+    has $!precomp;     
     has $!id;
     has Int $!version;
-    has $!precomp-stores;
+    has $!precomp-stores;  # cache for !precomp-stores
     has $!precomp-store;
     has $!prefix-writeable-cache;
 
@@ -17,6 +17,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
+        $!precomp-stores := nqp::null;
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -559,11 +560,25 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             Nil
         }
     }
+    
+    method !find-precomp-stores() {
+        my CompUnit::PrecompilationStore @stores = self.precomp-store;
+
+        my $repo := self;
+        nqp::while(
+          ($repo := $repo.next-repo).defined,
+          nqp::stmts(
+            nqp::if(
+              (my $store := $repo.precomp-store).defined,
+              @stores.push($store)
+            )
+          )
+        );
+        $!precomp-stores := @stores
+    }
 
     method !precomp-stores() {
-        $!precomp-stores //= Array[CompUnit::PrecompilationStore].new(
-            self.repo-chain.map(*.precomp-store).grep(*.defined)
-        )
+        nqp::ifnull($!precomp-stores,self!find-precomp-stores)
     }
 
     method need(

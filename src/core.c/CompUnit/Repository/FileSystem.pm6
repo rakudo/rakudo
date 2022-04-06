@@ -2,9 +2,9 @@ class CompUnit::Repository::FileSystem
   does CompUnit::Repository::Locally
   does CompUnit::Repository
 {
-    has $!lock = Lock.new;
+    has $!lock;
     has %!loaded; # cache compunit lookup for self.need(...)
-    has %!seen;   # cache distribution lookup for self!matching-dist(...)
+    has $!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
     has $!id;
     has $!precomp-stores;
@@ -14,18 +14,23 @@ class CompUnit::Repository::FileSystem
 
     my constant @extensions = <.rakumod .pm6 .pm>;
 
-    method !matching-dist(CompUnit::DependencySpecification $spec) {
+    method TWEAK(--> Nil) {
+        $!lock := Lock.new;
+        $!seen := nqp::hash;
+    }
+
+    # An equivalent of self.candidates($spec).head that caches the best match
+    method !matching-dist(CompUnit::DependencySpecification:D $spec) {
         $!lock.protect: {
-            return $_ with %!seen{~$spec};
+            nqp::ifnull(
+              nqp::atkey($!seen,~$spec),
+              nqp::if(
+                (my $candidate := self.candidates($spec).head),
+                nqp::bindkey($!seen,~$spec,$candidate),
+                Nil
+              )
+            )
         }
-
-        with self.candidates($spec).head {
-            $!lock.protect: {
-                return %!seen{~$spec} //= $_;
-            }
-        }
-
-        Nil
     }
 
     method !comp-unit-id($name) {

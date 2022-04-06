@@ -30,6 +30,59 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         }
     }
 
+    # A distribution that provides a subset of its meta data without parsing
+    # the full original original json version, while lazily parsing once
+    # fields outside of that subset are used.
+    my role LazyMetaReader {
+        has $.meta-reader;
+        method AT-KEY($key)     { $!meta-reader($key) }
+        method EXISTS-KEY($key) { $!meta-reader($key).defined }
+    }
+    my role MetaAssigner {
+        has $.meta-writer;
+        method ASSIGN-KEY($key, $value) { $!meta-writer($key, $value) }
+        method BIND-KEY($key, $value) { $!meta-writer($key, $value) }
+    }
+    my class LazyDistribution does Distribution::Locally {
+        has $.dist-id;
+        has $.read-dist;
+        has $!installed-dist;
+        has $.meta;
+
+        # Parses dist info from json and populates $.meta with any new fields
+        method !dist {
+            unless $!installed-dist.defined {
+                $!installed-dist = InstalledDistribution.new($.read-dist()($!dist-id), :$.prefix);
+
+                # Keep fields of the meta data subset that do not exist in
+                # the full meta data (source, default values for versions, etc)
+                my %hash = $!installed-dist.meta.hash;
+                %hash{$_} //= $!meta{$_} for $!meta.hash.keys;
+                $!meta = %hash;
+            }
+            $!installed-dist;
+        }
+
+        method meta(--> Hash:D) {
+            my %hash = $!meta.hash;
+            unless $!installed-dist.defined {
+                # Allow certain meta fields to be read without a full parsing,
+                # and fallback to calling self!dist to populate the entire
+                # meta data from json.
+                %hash does LazyMetaReader({ $!meta.hash{$^a} // self!dist.meta.{$^a} });
+
+                # Allows absolutifying paths in .meta<files source> to keep
+                # .files() happy
+                %hash does MetaAssigner({ $!meta.ASSIGN-KEY($^a, $^b) });
+            }
+
+            %hash;
+        }
+        method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
+        method Str { CompUnit::Repository::Distribution.new(self).Str }
+        method id { $.dist-id }
+    }
+
     method !prefix-writeable(--> Bool:D) {
         $!prefix-writeable-cache //= do
           if Rakudo::Internals.IS-WIN {
@@ -463,7 +516,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         # There is nothing left to do with the subset of meta data, so
         # initialize a lazy distribution with it
-          .map: { self!lazy-distribution(.key, meta => .value) }
+          .map({
+              LazyDistribution.new:
+                :dist-id(.key),
+                :meta(.value),
+                :read-dist(-> $dist { self!read-dist($dist) }),
+                :$.prefix
+          })
 
         # A different policy might wish to implement additional/alternative filtering or sorting at this point,
         # with the caveat that calling a non-lazy field will require parsing json for each matching distribution.
@@ -482,65 +541,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
               )
             )
         }
-    }
-
-    # A distribution that provides a subset of its meta data without parsing the full original
-    # original json version, while lazily parsing once fields outside of that subset are used.
-    my role LazyMetaReader {
-        has $.meta-reader;
-        method AT-KEY($key)     { $!meta-reader($key) }
-        method EXISTS-KEY($key) { $!meta-reader($key).defined }
-    }
-    my role MetaAssigner {
-        has $.meta-writer;
-        method ASSIGN-KEY($key, $value) { $!meta-writer($key, $value) }
-        method BIND-KEY($key, $value) { $!meta-writer($key, $value) }
-    }
-    my class LazyDistribution does Distribution::Locally {
-        has $.dist-id;
-        has $.read-dist;
-        has $!installed-dist;
-        has $.meta;
-
-        # Parses dist info from json and populates $.meta with any new fields
-        method !dist {
-            unless $!installed-dist.defined {
-                $!installed-dist = InstalledDistribution.new($.read-dist()($!dist-id), :$.prefix);
-
-                # Keep fields of the meta data subset that do not exist in the full meta data
-                # (source, default values for versions, etc)
-                my %hash = $!installed-dist.meta.hash;
-                %hash{$_} //= $!meta{$_} for $!meta.hash.keys;
-                $!meta = %hash;
-            }
-            $!installed-dist;
-        }
-
-        method meta(--> Hash:D) {
-            my %hash = $!meta.hash;
-            unless $!installed-dist.defined {
-                # Allow certain meta fields to be read without a full parsing, and fallback
-                # to calling self!dist to populate the entire meta data from json.
-                %hash does LazyMetaReader({ $!meta.hash{$^a} // self!dist.meta.{$^a} });
-
-                # Allows absolutifying paths in .meta<files source> to keep .files() happy
-                %hash does MetaAssigner({ $!meta.ASSIGN-KEY($^a, $^b) });
-            }
-
-            return %hash;
-        }
-        method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
-        method Str { CompUnit::Repository::Distribution.new(self).Str }
-        method id { $.dist-id }
-    }
-
-    method !lazy-distribution($dist-id, :$meta) {
-        LazyDistribution.new(
-            :$dist-id,
-            :read-dist(-> $_ { self!read-dist($_) }),
-            :$meta,
-            :$.prefix,
-        )
     }
 
     method resolve(CompUnit::DependencySpecification:D $spec --> CompUnit:D) {

@@ -11,6 +11,8 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp-stores;   # cache for !precomp-stores
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
+    my constant @script-extensions =
+      '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
 
     method TWEAK() {
         $!lock       := Lock.new;
@@ -152,17 +154,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             ~ (%meta<api>  // "") ~ "\n"
             ~ "$source\n$checksum\n"
           );
-    }
-
-    method !remove-dist-from-short-name-lookup-files($dist --> Nil) {
-        my $short-dir := self!short-dir;
-        if $short-dir.e {
-            my $id := $dist.id;
-            for $short-dir.dir -> $dir {
-                $dir.add($id).unlink;
-                $dir.rmdir unless $dir.dir.elems;  # dir-with-entries PR 4848
-            }
-        }
     }
 
     method !file-id(str $name, str $dist-id) { nqp::sha1($name ~ $dist-id) }
@@ -374,48 +365,61 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $lock.unlock;
     } ) }
 
-    method uninstall(Distribution $distribution) {
-        my $repo-version = self!repository-version;
-        self.upgrade-repository unless $repo-version == 2;
+    my sub unlink-if-exists(IO::Path:D $io) { $io.unlink if $io.e }
 
-        # xxx: currently needs to be passed in a distribution object that
+    method uninstall(Distribution:D $distribution --> True) {
+        # XXX: currently needs to be passed in a distribution object that
         # has meta<files> pointing at content-ids, so you cannot yet just
         # pass in the original meta data and have it discovered and deleted
         # (i.e. update resolve to return such a ::Installation::Distribution)
-        my $dist  = CompUnit::Repository::Distribution.new($distribution);
-        my %provides      = $dist.meta<provides>;
-        my %files         = $dist.meta<files>;
-        my $sources-dir   = self.prefix.add('sources');
-        my $resources-dir = self.prefix.add('resources');
-        my $bin-dir       = self.prefix.add('bin');
-        my $dist-dir      = self.prefix.add('dist');
+        my $dist    := CompUnit::Repository::Distribution.new($distribution);
+        my $dist-id := $dist.id;
+        my %meta    := $dist.meta;
+        my $prefix  := $.prefix;
 
-        self!remove-dist-from-short-name-lookup-files($dist);
-        my sub unlink-if-exists($path) { unlink($path) if $path.IO.e }
+        # remove dist from short-name lookup files
+        my $short-dir := $prefix.add('short');
+        if $short-dir.e {
+            for $short-dir.dir -> $dir {
+                $dir.add($dist-id).unlink;
+                $dir.rmdir unless $dir.dir.elems;  # dir-with-entries PR 4848
+            }
+        }
 
         # delete special directory files
-        for %files.kv -> $name-path, $file {
-            given $name-path {
-                when /^bin\/(.*)/ {
-                    # wrappers are located in $bin-dir (only delete if no other versions use wrapper)
-                    unless self.files($name-path, :name($dist.meta<name>)).elems {
-                        unlink-if-exists( $bin-dir.add("$0$_") ) for '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
+        if %meta<files> -> %files {
+            my $resources-dir := $prefix.add('resources');
+
+            for %files.kv -> $name-path, $file {
+                if $name-path.starts-with('bin/') {
+                    # wrappers are located in $bin-dir (only delete if no other
+                    # versions use wrapper)
+
+                    unless self.files($name-path, :name(%meta<name>)).elems {
+                        my $basename := $name-path.substr(4);  # skip bin/
+                        my $bin-dir  := $prefix.add('bin');
+                        unlink-if-exists($bin-dir.add($basename ~ $_))
+                          for @script-extensions;
                     }
 
                     # original bin scripts are in $resources-dir
-                    unlink-if-exists( $resources-dir.add($file) )
+                    unlink-if-exists($resources-dir.add($file))
                 }
-                when /^resources\// {
-                    unlink-if-exists( $resources-dir.add($file) )
+                elsif $name-path.starts-with('resources/') {
+                    unlink-if-exists($resources-dir.add($file))
                 }
             }
         }
 
-        # delete sources
-        unlink-if-exists( $sources-dir.add($_) ) for %provides.values.flatmap(*.values.map(*.<file>));
+        # delete any sources
+        if %meta<provides> -> %provides {
+            my $sources-dir := $prefix.add('sources');
+            unlink-if-exists($sources-dir.add($_))
+              for %provides.values.flatmap(*.values.map(*<file>));
+        }
 
         # delete the meta file
-        unlink( $dist-dir.add($dist.id) )
+        $prefix.add('dist').add($dist-id).unlink;
     }
 
     # Ideally this would return Distributions, but it'd break older bin/ scripts

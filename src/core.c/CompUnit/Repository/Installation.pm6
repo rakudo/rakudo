@@ -463,70 +463,65 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     proto method candidates(|) {*}
     multi method candidates(Str:D $name, :$auth, :$ver, :$api) {
-        return samewith(CompUnit::DependencySpecification.new(
+        self.candidates:
+          CompUnit::DependencySpecification.new:
             short-name      => $name,
             auth-matcher    => $auth,
             version-matcher => $ver,
             api-matcher     => $api,
-        ));
     }
-    multi method candidates(CompUnit::DependencySpecification $spec) {
-        return Empty unless $spec.from eq 'Perl6';
+    multi method candidates(CompUnit::DependencySpecification:D $spec) {
+        if $spec.from eq 'Perl6'
+          # $lookup is a file system resource that acts as a fast meta data
+          # lookup for a given module short name.
+          && (my $lookup = self!short-dir.add(nqp::sha1($spec.short-name))).e {
 
-        # $lookup is a file system resource that acts as a fast meta data lookup for a given module short name.
-        my $lookup = self!short-dir.add(nqp::sha1($spec.short-name));
-        return Empty unless $lookup.e;
+            my $auth-matcher    := $spec.auth-matcher;
+            my $version-matcher := $spec.version-matcher;
+            my $api-matcher     := $spec.api-matcher;
 
-        # Each item contains a subset of meta data - notably items needed `use "Foo:ver<*>"`
-        # All items match the given module short name, but may differ in ver, auth, api, etc.
-        my $metas := (
-                self!repository-version < 1
-                ?? $lookup.lines.unique.map({
-                        $_ => self!read-dist($_)
-                    })
-                !! $lookup.dir.map({
-                        my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
-                        $_.basename => {
-                            auth     => $auth,
-                            api      => Version.new( $api || 0 ), # Create the Version objects once
-                            ver      => Version.new( $ver || 0 ), # (used to compare, and then sort)
-                            source   => $source || Any,
-                            checksum => $checksum || Str,
+            # Each item contains a subset of meta data - notably items needed
+            # `use "Foo:ver<*>"`. All items match the given module short name,
+            $lookup.dir.map(-> $entry {
+                my ($ver,$auth,$api,$source,$checksum) = $entry.slurp.lines;
+                if ($ver := Version.new($ver || 0)) ~~ $version-matcher {
+                    if $auth ~~ $auth-matcher {
+                        if ($api := Version.new($api || 0)) ~~ $api-matcher {
+                            Pair.new:
+                              $entry.basename,
+                              Map.new((
+                                :$ver,
+                                :$auth,
+                                :$api,
+                                :source($source || Any),
+                                :checksum($checksum || Str),
+                              ))
                         }
-                    })
-            );
+                    }
+                }
+            })
 
-        my $auth-matcher    := $spec.auth-matcher;
-        my $version-matcher := $spec.version-matcher;
-        my $api-matcher     := $spec.api-matcher;
+            # Sort from highest to lowest by version and api
+              .sort(*.value<ver>)
+              .sort(*.value<api>)
+              .reverse
 
-        # $metas has already been filtered by name via $lookup, so do
-        # remaining filtering on fast lookup fields
-        $metas.grep({
-            my %meta := .value;
-               %meta<auth> ~~ $auth-matcher
-            and %meta<ver> ~~ $version-matcher
-            and %meta<api> ~~ $api-matcher
-        })
+            # There is nothing left to do with the subset of meta data, so
+            # initialize a lazy distribution with it
+              .map({
+                  LazyDistribution.new:
+                    :dist-id(.key),
+                    :meta(.value),
+                    :read-dist(-> $dist { self!read-dist($dist) }),
+                    :$.prefix
+              })
 
-        # Sort from highest to lowest by version and api
-          .sort(*.value<ver>)
-          .sort(*.value<api>)
-          .reverse
-
-        # There is nothing left to do with the subset of meta data, so
-        # initialize a lazy distribution with it
-          .map({
-              LazyDistribution.new:
-                :dist-id(.key),
-                :meta(.value),
-                :read-dist(-> $dist { self!read-dist($dist) }),
-                :$.prefix
-          })
-
-        # A different policy might wish to implement additional/alternative filtering or sorting at this point,
-        # with the caveat that calling a non-lazy field will require parsing json for each matching distribution.
-        #  .grep({.meta<license> eq 'Artistic-2.0'}).sort(-*.meta<production>)`
+            # A different policy might wish to implement additional/alternative
+            # filtering or sorting at this point, with the caveat that calling
+            # a non-lazy field will require parsing json for each matching
+            # distribution.
+            #  .grep({.meta<license> eq 'Artistic-2.0'}).sort(-*.meta<production>)`
+        }
     }
 
     # An equivalent of self.candidates($spec).head that caches the best match

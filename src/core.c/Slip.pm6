@@ -51,7 +51,12 @@ my class Slip { # is List
     multi method tail(Slip:D: $) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
-
+    multi method sort(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method sort(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
 }
 
 # The slip(...) function creates a Slip.

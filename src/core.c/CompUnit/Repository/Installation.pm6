@@ -31,8 +31,8 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     }
 
     # A distribution that provides a subset of its meta data without parsing
-    # the full original original json version, while lazily parsing once
-    # fields outside of that subset are used.
+    # the full original json version, while lazily parsing once fields outside
+    # of that subset are used.
     my role LazyMetaReader {
         has $.meta-reader;
         method AT-KEY($key)     { $!meta-reader($key) }

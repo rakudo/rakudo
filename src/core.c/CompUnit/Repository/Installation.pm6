@@ -545,17 +545,16 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method resolve(CompUnit::DependencySpecification:D $spec --> CompUnit:D) {
-        if self!matching-dist($spec) -> $distribution {
-            my %meta := $distribution.meta;
+        with self!matching-dist($spec) {
+            my %meta := .meta;
             CompUnit.new(
               :handle(CompUnit::Handle),
               :short-name($spec.short-name),
               :version(%meta<ver>),
               :auth(%meta<auth> // Str),
-              :api(%meta<api> // Version),
               :repo(self),
               :repo-id(%meta<source>),
-              :$distribution,
+              :distribution($_),
             )
         }
         elsif self.next-repo -> $next-repo {

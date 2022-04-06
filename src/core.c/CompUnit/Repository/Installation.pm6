@@ -165,9 +165,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
     }
 
-    method !file-id(Str $name, Str $dist-id) {
-        nqp::sha1($name ~ $dist-id)
-    }
+    method !file-id(str $name, str $dist-id) { nqp::sha1($name ~ $dist-id) }
 
     method name(--> Str:D) {
         CompUnit::RepositoryRegistry.name-for-repository(self)
@@ -177,10 +175,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         self.name ?? (self.name ~ '#') !! ''
     }
 
-    method !read-dist($id) {
-        my $meta = Rakudo::Internals::JSON.from-json(self!dist-dir.add($id).slurp);
-        $meta<ver> = $meta<ver> ?? Version.new( ~$meta<ver> ) !! Version.new('0');
-        $meta
+    method !read-dist(Str:D $id) {
+        my %meta := Rakudo::Internals::JSON.from-json:
+          self!dist-dir.add($id).slurp;
+        %meta<ver> := Version.new: %meta<ver> // '0';
+        %meta<api> := Version.new: %meta<api> // '0';
+        %meta
     }
 
     method !repository-version(--> Int:D) {

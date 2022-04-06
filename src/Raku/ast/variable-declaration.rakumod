@@ -51,7 +51,8 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     has str $.name;
     has str $!storage-name;
     has RakuAST::Initializer $.initializer;
-    has RakuAST::Package $!package;
+    has RakuAST::Package $!attribute-package;
+    has Mu $!package;
 
     method new(str :$name!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
                str :$scope) {
@@ -137,18 +138,18 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     method attach(RakuAST::Resolver $resolver) {
         my str $scope := self.scope;
         if $scope eq 'has' || $scope eq 'HAS' {
-            my $package := $resolver.find-attach-target('package');
-            if $package {
-                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
-                    $package);
-                $package.ATTACH-ATTRIBUTE(self);
+            my $attribute-package := $resolver.find-attach-target('package');
+            if $attribute-package {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
+                    $attribute-package);
+                $attribute-package.ATTACH-ATTRIBUTE(self);
             }
             else {
                 # TODO check-time error
             }
         }
         elsif $scope eq 'our' {
-            my $package := $resolver.find-attach-target('package');
+            my $package := $resolver.current-package;
             # There is always a package, even if it's just GLOBALish
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
                 $package);
@@ -184,12 +185,12 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
-            $!package.attribute-type.new(
+            $!attribute-package.attribute-type.new(
                 name => self.sigil ~ '!' ~ self.desigilname,
                 type => $of,
                 has_accessor => self.twigil eq '.',
                 auto_viv_container => self.IMPL-CONTAINER($of),
-                package => $!package.compile-time-value
+                package => $!attribute-package.compile-time-value
             )
         }
 
@@ -278,7 +279,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) ),
-                $name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package.stubbed-meta-object)))
+                $name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package)))
             )
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {

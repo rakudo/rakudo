@@ -55,7 +55,7 @@ class CompUnit::DependencySpecification {
 
     # Oddly enough, the exact format of this method can make / break
     # dependency testing.  This should probably depend on the .WHICH.
-    method Str(CompUnit::DependencySpecification:D: --> str) {
+    method Str(CompUnit::DependencySpecification:D: --> Str:D) {
         $!stringified ?? $!stringified !! self!stringify
     }
 

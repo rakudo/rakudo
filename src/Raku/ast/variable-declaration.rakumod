@@ -377,7 +377,8 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                         QAST::Op.new(
                             :op('if'),
                             QAST::Op.new( :op('p6stateinit') ),
-                            $perform-init-qast
+                            $perform-init-qast,
+                            $var-access
                         )
                     }
                     else {

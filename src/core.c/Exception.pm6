@@ -85,8 +85,8 @@ my class Exception {
     method fail(Exception:D:) {
         try self.throw;
         my $fail := Failure.new($!);
-        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
         CATCH { $fail.exception.throw }
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
     }
 
     method is-compile-time(--> False) { }

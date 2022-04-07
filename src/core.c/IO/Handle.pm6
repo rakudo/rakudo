@@ -629,10 +629,6 @@ my class IO::Handle {
     method lock(IO::Handle:D:
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
-#?if moar
-        self!forget-about-closing;
-#?endif
-        nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
 #?if moar
             self!remember-to-close;
@@ -641,6 +637,10 @@ my class IO::Handle {
                 :lock-type( 'non-' x $non-blocking ~ 'blocking, '
                     ~ ($shared ?? 'shared' !! 'exclusive') );
         }}
+#?if moar
+        self!forget-about-closing;
+#?endif
+        nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
     }
 
     method unlock(IO::Handle:D: --> True) {

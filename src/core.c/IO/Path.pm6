@@ -437,19 +437,23 @@ my class IO::Path is Cool does IO {
     }
 
     method rename(IO::Path:D: IO() $to, :$createonly --> True) {
+        CATCH { default {
+            fail X::IO::Rename.new:
+                :from($!os-path), :to($to.absolute), :os-error(.Str);
+        }}
         $createonly and $to.e and fail X::IO::Rename.new:
             :from($.absolute),
             :to($to.absolute),
             :os-error(':createonly specified and destination exists');
 
         nqp::rename($.absolute, nqp::unbox_s($to.absolute));
-        CATCH { default {
-            fail X::IO::Rename.new:
-                :from($!os-path), :to($to.absolute), :os-error(.Str);
-        }}
     }
 
     method copy(IO::Path:D: IO() $to, :$createonly --> True) {
+        CATCH { default {
+            fail X::IO::Copy.new:
+                :from($!os-path), :to($to.absolute), :os-error(.Str)
+        }}
         # add fix for issue #3971 where attempt to copy a dir
         # to a file clobbers the file.
         self.d and $to.f and fail X::IO::Copy.new:
@@ -470,11 +474,6 @@ my class IO::Path is Cool does IO {
             X::IO::Copy.new(:from($from-abs), :to($to-abs),
                 :os-error('source and target are the same')).fail,
             nqp::copy($from-abs, $to-abs));
-
-        CATCH { default {
-            fail X::IO::Copy.new:
-                :from($!os-path), :to($to.absolute), :os-error(.Str)
-        }}
     }
 
     method move(IO::Path:D: |c --> True) {
@@ -485,33 +484,33 @@ my class IO::Path is Cool does IO {
     }
 
     method chmod(IO::Path:D: Int() $mode --> True) {
-        nqp::chmod($.absolute, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(
               :path($!os-path), :$mode, :os-error(.Str) );
         }}
+        nqp::chmod($.absolute, nqp::unbox_i($mode));
     }
     method unlink(IO::Path:D: --> True) {
-        nqp::unlink($.absolute);
         CATCH { default {
             fail X::IO::Unlink.new( :path($!os-path), os-error => .Str );
         }}
+        nqp::unlink($.absolute);
     }
 
     method symlink(IO::Path:D: IO() $name, Bool :$absolute = True --> True) {
-        nqp::symlink($absolute ?? $.absolute !! ~self , nqp::unbox_s($name.absolute));
         CATCH { default {
             fail X::IO::Symlink.new:
                 :target($!os-path), :name($name.absolute), :os-error(.Str);
         }}
+        nqp::symlink($absolute ?? $.absolute !! ~self , nqp::unbox_s($name.absolute));
     }
 
     method link(IO::Path:D: IO() $name --> True) {
-        nqp::link($.absolute, $name.absolute);
         CATCH { default {
             fail X::IO::Link.new:
                 :target($!os-path), :name($name.absolute), :os-error(.Str);
         }}
+        nqp::link($.absolute, $name.absolute);
     }
 
     method mkdir(IO::Path:D: Int() $mode = 0o777) {
@@ -527,10 +526,10 @@ my class IO::Path is Cool does IO {
     }
 
     method rmdir(IO::Path:D: --> True) {
-        nqp::rmdir($.absolute);
         CATCH { default {
             fail X::IO::Rmdir.new(:path($!os-path), os-error => .Str);
         }}
+        nqp::rmdir($.absolute);
     }
 
 

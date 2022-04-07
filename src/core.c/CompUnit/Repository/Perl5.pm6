@@ -5,6 +5,11 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
         --> CompUnit:D)
     {
         if $spec.from eq 'Perl5' {
+            CATCH {
+                when X::CompUnit::UnsatisfiedDependency {
+                    X::NYI::Available.new(:available('Inline::Perl5'), :feature('Perl 5')).throw;
+                }
+            }
             my $compunit = $*REPO.need(CompUnit::DependencySpecification.new(:short-name<Inline::Perl5>));
             my $perl5 := $compunit.handle.globalish-package<Inline>.WHO<Perl5>.default_perl5;
 
@@ -23,12 +28,6 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
                 :repo-id($spec.short-name),
                 :from($spec.from),
             );
-
-            CATCH {
-                when X::CompUnit::UnsatisfiedDependency {
-                    X::NYI::Available.new(:available('Inline::Perl5'), :feature('Perl 5')).throw;
-                }
-            }
         }
 
         return self.next-repo.need($spec, $precomp) if self.next-repo;

@@ -35,12 +35,22 @@ my class Thread {
       Str()  :$!name         = "<anon>"
       --> Nil
     ) {
+        constant THREAD_ERROR = 'Could not create a new Thread: ';
+        CATCH {
+            when X::AdHoc {
+                .payload.starts-with(THREAD_ERROR)
+                  ?? X::Exhausted.new(
+                       :what<thread>,
+                       :reason(.payload.substr(THREAD_ERROR.chars))
+                     ).throw
+                  !! .rethrow
+            }
+        }
 
         # Make sure we have at least called nqp::cpucores once before
         # we start any thread.  This to avoid issues on MacOS Monterey
         Kernel.cpu-cores-but-one;
 
-        constant THREAD_ERROR = 'Could not create a new Thread: ';
         my $entry := anon sub THREAD-ENTRY() {
             my $*THREAD = self;
             CONTROL {
@@ -72,17 +82,6 @@ my class Thread {
 #?if jvm
             $highest_id = nqp::threadid($!vm_thread);
 #?endif
-
-        CATCH {
-            when X::AdHoc {
-                .payload.starts-with(THREAD_ERROR)
-                  ?? X::Exhausted.new(
-                       :what<thread>,
-                       :reason(.payload.substr(THREAD_ERROR.chars))
-                     ).throw
-                  !! .rethrow
-            }
-        }
     }
 
     method start(Thread:U: &code, *%adverbs) {

@@ -103,19 +103,19 @@ class Rakudo::Supply {
         }
 
         method teardown(--> Nil) {
-            my $to-close := nqp::create(IterationBuffer);
             $!lock.protect: {
+                my $to-close := nqp::create(IterationBuffer);
                 %!active-taps.values.iterator.push-all($to-close);
                 %!active-taps = ();
                 $!active = 0;
-            }
-            my int $n = nqp::elems($to-close);
-            loop (my int $i = 0; $i < $n; $i++) {
-                nqp::atpos($to-close, $i).close();
-            }
-            my @close-phasers := @!close-phasers;
-            while @close-phasers {
-                @close-phasers.pop()();
+                my int $n = nqp::elems($to-close);
+                loop (my int $i = 0; $i < $n; $i++) {
+                    nqp::atpos($to-close, $i).close();
+                }
+                my @close-phasers := @!close-phasers;
+                while @close-phasers {
+                    @close-phasers.pop()();
+                }
             }
         }
 

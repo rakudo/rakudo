@@ -839,7 +839,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         else {
-            nqp::die('non-key colonpair compilation NYI');
+            make $<coloncircumfix>.ast;
         }
     }
 

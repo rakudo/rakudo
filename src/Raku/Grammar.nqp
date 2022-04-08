@@ -1555,6 +1555,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <identifier>
             { $*key := $<identifier>.Str }
             [ <.unsp>? :dba('pair value') <coloncircumfix($*key)> ]?
+        | <coloncircumfix('')>
+            { $*key := ""; }
         | <var=.colonpair_variable>
             { $*key := $<var><desigilname>.Str; self.check_variable($<var>); }
         ]
@@ -2382,7 +2384,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token deflongname($*DEFAULT-SCOPE) {
         :dba('new name to be defined')
         <name>
-#       <colonpair>*
+        <colonpair>*
     }
 
     token defterm {

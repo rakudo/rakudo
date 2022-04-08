@@ -321,11 +321,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 
     sub stash_hash($pkg) {
-        my $hash := $pkg;
-        unless nqp::ishash($hash) {
-            $hash := $hash.FLATTENABLE_HASH();
-        }
-        $hash
+        nqp::ishash($pkg) ?? $pkg !! $pkg.FLATTENABLE_HASH()
     }
 }
 

@@ -329,6 +329,7 @@ class BuiltinOperatorProperties {
         my constant PROPERTIES := nqp::hash(
 
           '*',   'multiplicative',
+          '×',   'multiplicative',
           '/',   'multiplicative',
           'div', 'multiplicative',
           'gcd', 'multiplicative',
@@ -411,6 +412,8 @@ class BuiltinOperatorProperties {
           '(>+)',   'chaining',
           '≽',      'chaining',
           '==',     'chaining',
+          '=~=',    'chaining',
+          '≅',      'chaining',
           '!=',     'chaining',
           'eq',     'chaining',
           'ne',     'chaining',

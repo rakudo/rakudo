@@ -677,6 +677,36 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
     }
 }
 
+# The postfix exponentiation operator (2⁴⁵).
+class RakuAST::Postfix::Power is RakuAST::Postfixish is RakuAST::Lookup {
+    has Int $.power;
+
+    method new(Int $power) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Postfix::Power, '$!power', $power);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-postfix('ⁿ');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name := self.resolution.lexical-name;
+        $context.ensure-sc($!power);
+        QAST::Op.new:
+            :op('call'), :$name,
+            $operand-qast,
+            QAST::WVal.new( :value($!power) )
+    }
+
+    method can-be-used-with-hyper() { False }
+}
+
 # A marker for all postcircumfixes. These each have relatively special
 # compilation, so they get distinct nodes.
 class RakuAST::Postcircumfix is RakuAST::Postfixish {

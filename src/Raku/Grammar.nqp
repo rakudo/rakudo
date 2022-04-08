@@ -1114,6 +1114,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postfix:sym<--> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<⚛++> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<⚛--> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<ⁿ> { <sign=[⁻⁺¯]>? <dig=[⁰¹²³⁴⁵⁶⁷⁸⁹]>+ <O(|%autoincrement)> }
 
     token infix:sym<**>   { <sym>  <O(|%exponentiation)> }
 

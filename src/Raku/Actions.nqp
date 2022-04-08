@@ -1008,7 +1008,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # etc.)
         $*PACKAGE.ensure-begin-performed($*R);
 
-        # Let the resovler know which package we're in.
+        # Let the resolver know which package we're in.
         $*R.push-package($*PACKAGE);
     }
 

@@ -18,6 +18,9 @@ class RakuAST::Resolver {
     # Nodes with check-time problems to report.
     has Mu $!nodes-with-check-time-problems;
 
+    # Nodes that are unresolved after check time.
+    has Mu $!nodes-unresolved-after-check-time;
+
     # Push an attachment target, so children can attach to it.
     method push-attach-target(RakuAST::AttachTarget $target) {
         $target.clear-attachments();
@@ -332,10 +335,8 @@ class RakuAST::Resolver {
                 }
             }
 
-            # TODO file, line, loads of other things
-            %opts<is-compile-time> := True;
-
             # Construct the exception object and return it.
+            %opts<is-compile-time> := True;
             $type.new(|%opts)
         }
         else {
@@ -351,6 +352,15 @@ class RakuAST::Resolver {
             nqp::bindattr(self, RakuAST::Resolver, '$!nodes-with-check-time-problems', []);
         }
         nqp::push($!nodes-with-check-time-problems, $node);
+        Nil
+    }
+
+    # Add a node to the list of those unresolved at check time.
+    method add-node-unresolved-after-check-time(RakuAST::Lookup $node) {
+        unless $!nodes-unresolved-after-check-time {
+            nqp::bindattr(self, RakuAST::Resolver, '$!nodes-unresolved-after-check-time', []);
+        }
+        nqp::push($!nodes-unresolved-after-check-time, $node);
         Nil
     }
 
@@ -410,6 +420,9 @@ class RakuAST::Resolver {
                 }
             }
         }
+        for RakuAST::Node.IMPL-UNWRAP-LIST(self.unresolved-symbol-exceptions()) {
+            @sorries.push($_);
+        }
         RakuAST::Node.IMPL-WRAP-LIST(@sorries)
     }
 
@@ -425,6 +438,28 @@ class RakuAST::Resolver {
             }
         }
         RakuAST::Node.IMPL-WRAP-LIST(@worries)
+    }
+
+    # Form an undeclared symbols exception for all undeclared routines and
+    # types, along with any other unresolved symbol exceptions.
+    method unresolved-symbol-exceptions() {
+        my %types;
+        my %routines;
+        my @exceptions;
+        if $!nodes-unresolved-after-check-time {
+            for $!nodes-unresolved-after-check-time -> $node {
+                my $problem := $node.undeclared-symbol-details();
+                if $problem {
+                    $problem.IMPL-REPORT($node, %types, %routines, @exceptions);
+                }
+            }
+        }
+        if %routines || %types {
+            @exceptions.push: self.build-exception: 'X::Undeclared::Symbols',
+                :unk_types(nqp::hllizefor(%types, 'Raku')),
+                :unk_routines(nqp::hllizefor(%routines, 'Raku'));
+        }
+        RakuAST::Node.IMPL-WRAP-LIST(@exceptions)
     }
 }
 

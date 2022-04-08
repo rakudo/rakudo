@@ -475,6 +475,29 @@ class RakuAST::Lookup is RakuAST::Node {
     method set-resolution(RakuAST::Declaration $resolution) {
         nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $resolution)
     }
+
+    # Returns information to report in an X::Undeclared::Symbols exception.
+    # Returns Nil if it should not be reported there, otherwise should be
+    # an instance of RakuAST::UndeclaredSymbolDescription.
+    method undeclared-symbol-details() {
+        Nil
+    }
+}
+
+# Details about an undeclared symbol.
+class RakuAST::UndeclaredSymbolDescription {
+    has str $.name;
+
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::UndeclaredSymbolDescription, '$!name', $name);
+        $obj
+    }
+}
+class RakuAST::UndeclaredSymbolDescription::Routine is RakuAST::UndeclaredSymbolDescription {
+    method IMPL-REPORT(RakuAST::Lookup $node, Mu $types, Mu $routines, Mu $other) {
+        nqp::bindkey($routines, self.name, ['unknown']);
+    }
 }
 
 # Some program elements are not really lookups, but require the resolution

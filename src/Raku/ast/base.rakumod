@@ -54,6 +54,9 @@ class RakuAST::Node {
         # Perform resolutions.
         if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {
             self.resolve-with($resolver);
+            if !$resolve-only && !self.is-resolved && self.needs-resolution {
+                $resolver.add-node-unresolved-after-check-time(self);
+            }
         }
         if nqp::istype(self, RakuAST::ImplicitLookups) {
             self.resolve-implicit-lookups-with($resolver);

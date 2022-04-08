@@ -310,17 +310,18 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @implicit;
-        unless self.signature || self.placeholder-signature {
-            if $!implicit-topic-mode == 1 {
-                @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new;
-            }
-            elsif $!implicit-topic-mode == 2 {
-                @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new(:required);
-            }
-            elsif $!implicit-topic-mode == 3 {
-                @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new(:required,
-                    :exception);
-            }
+        if $!implicit-topic-mode == 1 {
+            @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
+                parameter => self.signature ?? False !! True;
+        }
+        elsif $!implicit-topic-mode == 2 {
+            @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
+                :required,
+                parameter => self.signature ?? False !! True;
+        }
+        elsif $!implicit-topic-mode == 3 {
+            @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new(:required,
+                :exception);
         }
         if $!fresh-match {
             nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
@@ -334,10 +335,15 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
     method is-begin-performed-before-children() { False }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
-        # Make sure that our placeholder signature has resolutions performed.
+        # Make sure that our placeholder signature has resolutions performed,
+        # and that we don't produce a topic parameter.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
             $placeholder-signature.IMPL-CHECK($resolver, True);
+            if $!implicit-topic-mode {
+                my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0];
+                $topic.set-parameter(False);
+            }
         }
         Nil
     }

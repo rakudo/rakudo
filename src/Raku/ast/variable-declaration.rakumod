@@ -603,20 +603,32 @@ class RakuAST::VarDeclaration::Implicit::Special is RakuAST::VarDeclaration::Imp
     }
 }
 
-# Implicit topic parameter declaration.
-class RakuAST::VarDeclaration::Implicit::TopicParameter is RakuAST::VarDeclaration::Implicit {
+# Implicit block topic declaration. By default it is an optional parameter,
+# but can be configured to be either a non-parameter (always from outer), a
+# required parameter, or to obtain the current exception (for when it is a
+# CATCH or CONTROL block);
+class RakuAST::VarDeclaration::Implicit::BlockTopic is RakuAST::VarDeclaration::Implicit {
+    has Bool $.parameter;
     has Bool $.required;
     has Bool $.exception;
 
-    method new(Bool :$required, Bool :$exception) {
+    method new(Bool :$parameter, Bool :$required, Bool :$exception) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$_');
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::TopicParameter, '$!required',
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!parameter',
+            $parameter // True);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!required',
             $required // False);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::TopicParameter, '$!exception',
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!exception',
             $exception // False);
         $obj
+    }
+
+    method set-parameter(Bool $parameter) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::BlockTopic, '$!parameter',
+            $parameter);
+        Nil
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
@@ -638,12 +650,18 @@ class RakuAST::VarDeclaration::Implicit::TopicParameter is RakuAST::VarDeclarati
                 )
             )
         }
-        else {
+        elsif $!parameter {
             my $param := QAST::Var.new( :decl('param'), :scope('lexical'), :name('$_') );
             unless $!required {
-                $param.default(QAST::Op.new(:op('getlexouter'), QAST::SVal.new(:value('$_'))));
+                $param.default(QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) ));
             }
             $param
+        }
+        else {
+            QAST::Op.new:
+                :op('bind'),
+                QAST::Var.new( :decl('var'), :scope('lexical'), :name('$_') ),
+                QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$_') ) )
         }
     }
 }

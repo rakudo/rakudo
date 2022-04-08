@@ -581,6 +581,14 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         my $routine := nqp::create(self.IMPL-META-OBJECT-TYPE);
         my $signature := self.placeholder-signature || self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
+
+        my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
+            nqp::die('stub called - BEGIN time call not yet implemented');
+        });
+        nqp::setcodename($stub, $!name.canonicalize) if $!name;
+        nqp::bindattr($routine, Code, '$!do', $stub);
+        nqp::setcodeobj($stub, $routine);
+
         $routine
     }
 

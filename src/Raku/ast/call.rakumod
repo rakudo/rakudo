@@ -163,6 +163,10 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         Nil
     }
 
+    method undeclared-symbol-details() {
+        RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $call := QAST::Op.new( :op('call') );
         if $!name.is-identifier {

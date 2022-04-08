@@ -606,6 +606,15 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         if $placeholder-signature {
             $placeholder-signature.IMPL-CHECK($resolver, True);
         }
+        # Make sure that our signature has resolutions performed.
+        if $!signature {
+            $!signature.set-default-type(
+                RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier('Any'),
+                ),
+            );
+            $!signature.IMPL-CHECK($resolver, True);
+        }
         # Apply any traits.
         self.apply-traits($resolver, self)
     }
@@ -808,6 +817,27 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
                 # TODO check-time problem
             }
         }
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        # Make sure that our placeholder signature has resolutions performed.
+        my $placeholder-signature := self.placeholder-signature;
+        if $placeholder-signature {
+            $placeholder-signature.IMPL-CHECK($resolver, True);
+        }
+        # Make sure that our signature has resolutions performed.
+        my $signature := self.signature;
+        if $signature {
+            $signature.set-default-type(
+                RakuAST::Type::Simple.new(
+                    RakuAST::Name.from-identifier('Any'),
+                ),
+            );
+            $signature.set-is-on-method(True);
+            $signature.IMPL-CHECK($resolver, True);
+        }
+        # Apply any traits.
+        self.apply-traits($resolver, self)
     }
 }
 

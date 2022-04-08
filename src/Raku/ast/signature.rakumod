@@ -13,23 +13,23 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         nqp::bindattr($obj, RakuAST::Signature, '$!parameters',
             self.IMPL-WRAP-LIST($parameters // []));
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
+        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
         $obj
     }
 
     method attach(RakuAST::Resolver $resolver) {
         # If we're the signature for a method...
-        my $owner := $resolver.find-attach-target('block');
-        if nqp::istype($owner, RakuAST::Methodish) {
-            # Stash away the fact we should generate implicit parameters, and
-            # also retrieve the enclosing package so we can set an implicit
+        if $!is-on-method {
+            # ... retrieve the enclosing package so we can set an implicit
             # invocant parameter up correctly.
-            nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', 1);
             nqp::bindattr(self, RakuAST::Signature, '$!method-package',
                 $resolver.find-attach-target('package'));
         }
-        else {
-            nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', 0);
-        }
+    }
+
+    method set-is-on-method(Bool $is-on-method) {
+        # Stash away the fact whether we should generate implicit parameters
+        nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', $is-on-method ?? 1 !! 0);
     }
 
     method provides-return-value() {
@@ -109,6 +109,12 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         $bindings
     }
 
+    method set-default-type(RakuAST::Type $type) {
+        for self.IMPL-UNWRAP-LIST($!parameters) {
+            $_.set-default-type($type);
+        }
+    }
+
     method arity() {
         my int $arity := 0;
         for self.IMPL-UNWRAP-LIST($!parameters) {
@@ -176,6 +182,15 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 
     method set-type(RakuAST::Type $type) {
         nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
+        Nil
+    }
+
+    method set-default-type(RakuAST::Type $type) {
+        my str $sigil := $!target.sigil;
+        unless $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
+            nqp::bindattr(self, RakuAST::Parameter, '$!type', $type)
+                unless $!type;
+        }
         Nil
     }
 
@@ -342,7 +357,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         else {
             $!type
                 ?? $!type.resolution.compile-time-value
-                !! nqp::istype($!owner, RakuAST::Routine) ?? Any !! Mu
+                !! Mu
         }
     }
 

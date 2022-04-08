@@ -137,34 +137,34 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         for sorted_keys(%source) -> $sym {
             my $value := %source{$sym};
             if !%known_symbols{$sym} {
-                ($target){$sym} := $value;
+                $target{$sym} := $value;
             }
-            elsif nqp::decont(($target){$sym}) =:= nqp::decont($value) { # Stash entries are containerized
+            elsif nqp::decont($target{$sym}) =:= nqp::decont($value) { # Stash entries are containerized
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
                 my $source_is_stub := is_stub($value.HOW);
-                my $target_is_stub := is_stub(($target){$sym}.HOW);
+                my $target_is_stub := is_stub($target{$sym}.HOW);
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
-                    self.merge_globals(($target){$sym}.WHO, $value.WHO);
+                    self.merge_globals($target{$sym}.WHO, $value.WHO);
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
-                    self.merge_globals(($target){$sym}.WHO, $value.WHO);
+                    self.merge_globals($target{$sym}.WHO, $value.WHO);
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($value.WHO, ($target){$sym}.WHO);
-                    ($target){$sym} := $value;
+                    self.merge_globals($value.WHO, $target{$sym}.WHO);
+                    $target{$sym} := $value;
                 }
                 elsif nqp::eqat($sym, '&', 0) {
                     # "Latest wins" semantics for functions
-                    ($target){$sym} := $value;
+                    $target{$sym} := $value;
                 }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");

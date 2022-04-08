@@ -83,6 +83,13 @@ class RakuAST::Resolver {
         Nil
     }
 
+    # Current package stack as NQP list
+    method packages() {
+        my $result := nqp::create(List);
+        nqp::bindattr($result, List, '$!reified', $!packages);
+        $result
+    }
+
     # Name-mangle an infix operator and resolve it.
     method resolve-infix(Str $operator-name) {
         self.resolve-lexical('&infix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))

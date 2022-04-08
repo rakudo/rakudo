@@ -166,7 +166,7 @@ my class Rakudo::Internals {
     method EXPORT_SYMBOL(Str:D $name, @tags, Mu \sym) {
         $export-symbol-lock.protect: {
             my @export_packages = $*EXPORT;
-            for nqp::hllize(@*PACKAGES).list {
+            for $*R ?? $*R.packages !! nqp::hllize(@*PACKAGES).list {
                 my $who := .WHO;
                 @export_packages.append: $who.EXISTS-KEY('EXPORT')
                   ?? $who.AT-KEY('EXPORT')

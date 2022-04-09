@@ -1484,6 +1484,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<package_declarator> { <package_declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
+    token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<*>                  { <sym> }
@@ -1736,6 +1737,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     proto token multi_declarator { <...> }
+    token multi_declarator:sym<multi> {
+        <sym><.kok>
+        :my $*MULTINESS := 'multi';
+        [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
+        [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
+    }
     token multi_declarator:sym<null> {
         :my $*MULTINESS := '';
         <declarator>

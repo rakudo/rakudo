@@ -761,6 +761,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<routine_declarator>.ast;
     }
 
+    method term:sym<multi_declarator>($/) {
+        self.attach: $/, $<multi_declarator>.ast;
+    }
+
     method term:sym<regex_declarator>($/){
         self.attach: $/, $<regex_declarator>.ast;
     }
@@ -1039,6 +1043,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method scoped($/) {
         self.attach: $/, $<DECL>.ast;
+    }
+
+    method multi_declarator:sym<multi>($/) {
+        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
     }
 
     method multi_declarator:sym<null>($/) {

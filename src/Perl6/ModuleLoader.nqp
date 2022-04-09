@@ -121,25 +121,23 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     # than this, but that would seem to involve copying too, and the
     # details of exactly what that entails are a bit hazy to me at the
     # moment. We'll see how far this takes us.
-    my $stub_how := 'Perl6::Metamodel::PackageHOW';
-    my $nqp_stub_how := 'KnowHOW';
-    sub is_stub($how) {
-         (my $HOW := $how.HOW.name($how)) eq $stub_how || $HOW eq $nqp_stub_how
-    }
-    sub symbol_map($target) {
-        my %map;
-        my $iter := nqp::iterator(stash_hash($target));
-        nqp::while(
-          $iter,
-          nqp::bindkey(%map,nqp::iterkey_s(nqp::shift($iter)),1)
-        );
-        %map
+    my $stub_how_name := 'Perl6::Metamodel::PackageHOW';
+    my $nqp_stub_how_name := 'KnowHOW';
+    sub is_HOW_stub($target) {
+         my $how  := $target.HOW;
+         my $name := $how.HOW.name($how);
+         $name eq $stub_how_name || $name eq $nqp_stub_how_name
     }
     method merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
         if stash_hash($source) -> %source {
-            my %known_symbols := symbol_map($target);
+            my %known_symbols;
+            my $iter := nqp::iterator(stash_hash($target));
+            nqp::while(
+              $iter,
+              nqp::bindkey(%known_symbols,nqp::iterkey_s(nqp::shift($iter)),1)
+            );
             for sorted_keys(%source) -> $sym {
                 my $value := %source{$sym};
                 if nqp::not_i(%known_symbols{$sym}) {
@@ -149,13 +147,13 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                   nqp::decont($value) { # Stash entries are containerized
                     # No problemo; a symbol can't conflict with itself.
                 }
-                elsif is_stub($value.HOW) {
+                elsif is_HOW_stub($value) {
                     # Since the source is a stub, it doesn't matter whether
                     # the target is also a stub or not.  In either case,
                     # it is fine to merge source symbols into target.
                     self.merge_globals($target_sym.WHO, $value.WHO);
                 }
-                elsif is_stub($target_sym.HOW) {
+                elsif is_HOW_stub($target_sym) {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
@@ -174,63 +172,59 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
     method merge_globals_lexically($world, $target, $source) {
-        # Start off merging top-level symbols. Easy when there's no
-        # overlap. Otherwise, we need to recurse.
-        my %known_symbols;
-        for $target.symtable {
-            %known_symbols{$_.key} := $_.value<value>;
-        }
-        my %source := stash_hash($source);
-        for sorted_keys(%source) -> $sym {
-            my $value := %source{$sym};
-            my $outer := 0;
-            if !nqp::existskey(%known_symbols, $sym) {
-                try {
-                    %known_symbols{$sym} := $world.find_single_symbol($sym);
-                    $outer := 1;
+        if stash_hash($source) -> %source {
+            # Start off merging top-level symbols. Easy when there's no
+            # overlap. Otherwise, we need to recurse.
+            for sorted_keys(%source) -> $sym {
+                my %known_symbols;
+                my $iter := nqp::iterator(stash_hash($target.symtable));
+                nqp::while(
+                  $iter,
+                  nqp::bindkey(
+                    %known_symbols,
+                    nqp::iterkey_s(nqp::shift($iter)),
+                    nqp::iterval($iter)<value>
+                  )
+                );
+                my $value := %source{$sym};
+                my $outer := 0;
+                if nqp::not_i(nqp::existskey(%known_symbols, $sym)) {
+                    try {
+                        %known_symbols{$sym} := $world.find_single_symbol($sym);
+                        $outer := 1;
+                    }
                 }
-            }
-            if !nqp::existskey(%known_symbols, $sym) {
-                $target.symbol($sym, :scope('lexical'), :value($value));
-                $target[0].push(QAST::Var.new(
-                    :scope('lexical'), :name($sym), :decl('static'), :value($value)
-                ));
-                $world.add_object_if_no_sc($value);
-            }
-            elsif nqp::decont(%known_symbols{$sym}) =:= nqp::decont($value) { # Stash entries are containerized
-                # No problemo; a symbol can't conflict with itself.
-            }
-            else {
-                my $existing := %known_symbols{$sym};
-                my $source_is_stub := is_stub($value.HOW);
-                my $target_is_stub := is_stub($existing.HOW);
-                if $source_is_stub && $target_is_stub {
-                    # Both stubs. We can safely merge the symbols from
-                    # the source into the target that's importing them.
-                    self.merge_globals($existing.WHO, $value.WHO);
+                if nqp::not_i(nqp::existskey(%known_symbols, $sym)) {
+                    $target.symbol($sym, :scope<lexical>, :$value);
+                    $target[0].push(QAST::Var.new(
+                      :scope<lexical>, :name($sym), :decl<static>, :$value
+                    ));
+                    $world.add_object_if_no_sc($value);
                 }
-                elsif $source_is_stub {
-                    # The target has a real package, but the source is a
-                    # stub. Also fine to merge source symbols into target.
-                    self.merge_globals($existing.WHO, $value.WHO);
+                elsif nqp::decont(my $known_sym := %known_symbols{$sym}) =:=
+                  nqp::decont($value) { # Stash entries are containerized
+                    # No problemo; a symbol can't conflict with itself.
                 }
-                elsif $target_is_stub {
+                elsif is_HOW_stub($value) {
+                    # Since the source is a stub, it doesn't matter whether
+                    # the target is also a stub or not.  In either case,
+                    # it is fine to merge source symbols into target.
+                    self.merge_globals($known_sym.WHO, $value.WHO);
+                }
+                elsif is_HOW_stub($known_sym) {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($value.WHO, $existing.WHO);
-                    $target.symbol($sym, :scope('lexical'), :value($value));
+                    self.merge_globals($value.WHO, $known_sym.WHO);
+                    $target.symbol($sym, :scope<lexical>, :$value);
                 }
-                elsif nqp::eqat($sym, '&', 0) {
-                    # "Latest wins" semantics for functions
-                    $target.symbol($sym, :scope('lexical'), :value($value));
-                }
-                elsif $outer {
-                    # It's ok to overwrite non-stub symbols of outer lexical scopes
-                    $target.symbol($sym, :scope('lexical'), :value($value));
+                elsif $outer || nqp::eqat($sym, '&', 0) {
+                    # ok to overwrite non-stub symbols of outer lexical scopes
+                    # or "latest wins" semantics for functions
+                    $target.symbol($sym, :scope<lexical>, :$value);
                 }
                 else {
-                    nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }
             }
         }

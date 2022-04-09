@@ -1015,7 +1015,7 @@ sub can-use-p6forstmt($block) {
     my $count := $past_block.ann('count');
     return 0 unless nqp::isconcrete($count) && $count == 1;
     my $code := $block.ann('code_object');
-    my $block_type := $*W.find_single_symbol('Block', :setting-only);
+    my $block_type := $*W.find_single_symbol_in_setting('Block');
     return 1 unless nqp::istype($code, $block_type);
     my $p := nqp::getattr($code, $block_type, '$!phasers');
     !nqp::ishash($p) ||
@@ -2152,7 +2152,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         # Handle phasers.
         my $code := $loop[1].ann('code_object');
-        my $block_type := $world.find_single_symbol('Block', :setting-only);
+        my $block_type := $world.find_single_symbol_in_setting('Block');
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');
         if !nqp::ishash($phasers) {
             $loop[1] := pblock_immediate($loop[1]);
@@ -2881,7 +2881,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub make_pair($/, $key_str, $value, :$no-sink = 1) {
         my $key := $*W.add_string_constant($key_str);
-        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
+        my $Pair := $*W.find_single_symbol_in_setting('Pair');
         my $pair := QAST::Op.new(
             :op('callmethod'), :name('new'), :returns($Pair), :node($/),
             QAST::WVal.new( :value($Pair), :node($/) ),
@@ -3184,7 +3184,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                   additional => " because it is reserved",
                 );
             }
-            my $Routine := $world.find_single_symbol('Routine', :setting-only);
+            my $Routine := $world.find_single_symbol_in_setting('Routine');
             if $name eq '&?BLOCK' || nqp::istype($*CODE_OBJECT, $Routine) {
                 # Just need current code object.
                 $past := QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) );
@@ -4251,7 +4251,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Always install in lexpad unless predeclared.
                 my $predeclared := $outer.symbol($name);
                 if $predeclared {
-                    my $Routine := $world.find_single_symbol('Routine', :setting-only);
+                    my $Routine := $world.find_single_symbol_in_setting('Routine');
                     unless nqp::istype($predeclared<value>, $Routine)
                         && $predeclared<value>.yada {
                         $world.throw($/, ['X', 'Redeclaration'],
@@ -4309,7 +4309,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # appropriate pragma is in effect.
         if $<deflongname> {
             if $/.pragma('soft') {
-                $world.find_single_symbol('&infix:<does>')($declarand, $world.find_single_symbol('SoftRoutine', :setting-only));
+                $world.find_single_symbol('&infix:<does>')($declarand, $world.find_single_symbol_in_setting('SoftRoutine'));
             }
             else {
                 self.maybe_add_inlining_info($/, $declarand, $signature, $block, @params);
@@ -4347,7 +4347,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Var.new(
                         :name('$!dispatch_cache'), :scope('attribute'),
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                        QAST::WVal.new( :value($world.find_single_symbol('Routine', :setting-only)) ),
+                        QAST::WVal.new( :value($world.find_single_symbol_in_setting('Routine')) ),
                     ),
                     QAST::Op.new( :op('usecapture') )
                 ),
@@ -4385,7 +4385,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method maybe_add_inlining_info($/, $code, $sig, $past, @params) {
         # Cannot inline things with custom invocation handler or phasers.
         return 0 if nqp::can($code, 'CALL-ME');
-        my $phasers := nqp::getattr($code,$*W.find_single_symbol('Block', :setting-only),'$!phasers');
+        my $phasers := nqp::getattr($code,$*W.find_single_symbol_in_setting('Block'),'$!phasers');
         return 0 unless !nqp::ishash($phasers) || !$phasers;
 
         # Make sure the block has the common structure we expect
@@ -4397,8 +4397,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         return 0 unless @params;
 
         my $world := $*W;
-        my $Param  := $world.find_single_symbol('Parameter', :setting-only);
-        my @p_objs := nqp::getattr($sig, $world.find_single_symbol('Signature', :setting-only), '@!params');
+        my $Param  := $world.find_single_symbol_in_setting('Parameter');
+        my @p_objs := nqp::getattr($sig, $world.find_single_symbol_in_setting('Signature'), '@!params');
         my %arg_placeholders;
         my int $n  := nqp::elems(@params);
         my int $i  := -1;
@@ -4901,7 +4901,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Var.new(
                         :name('$!dispatch_cache'), :scope('attribute'),
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                        QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
+                        QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Routine')) ),
                     ),
                     QAST::Op.new( :op('usecapture') )
                 ),
@@ -5027,7 +5027,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         install_method($/, $name, $scope, $code, $outer) if $name ne '';
 
         # Bind original source to $!source
-        my $Regex  := $world.find_single_symbol('Regex', :setting-only);
+        my $Regex  := $world.find_single_symbol_in_setting('Regex');
         my str $source := ($*METHODTYPE ?? $*METHODTYPE ~ ' ' !! '') ~ $/;
         my $match  := $source ~~ /\s+$/;
 
@@ -5093,7 +5093,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Get list of either values or pairs; fail if we can't.
-        my $Pair := $world.find_single_symbol('Pair', :setting-only);
+        my $Pair := $world.find_single_symbol_in_setting('Pair');
         my @values;
         my $term_ast := $<term>.ast;
 
@@ -5718,7 +5718,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Attach the dummy param we set up in Grammar::param_var to PARAM_INFO,
         # so we can access it later on.  The dummy param may have goodies like
         # trailing docs!
-        my $par_type := $world.find_single_symbol('Parameter', :setting-only);
+        my $par_type := $world.find_single_symbol_in_setting('Parameter');
         if nqp::istype($*PRECEDING_DECL, $par_type) {
             %param_info<dummy> := $*PRECEDING_DECL;
         }
@@ -6689,7 +6689,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new(
                             :name('$!dispatch_cache'), :scope('attribute'),
                             QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                            QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
+                            QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Routine')) ),
                         ),
                         QAST::Var.new( :name($dc_name), :scope('local') )
                     ),
@@ -6732,7 +6732,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub migrate_colonpairs($/, @qast) {
-        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
+        my $Pair := $*W.find_single_symbol_in_setting('Pair');
         my $ridx1 := 0;
         my $sidx1 := 1;
         while $ridx1 < +@qast {
@@ -6775,7 +6775,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method arglist($/) {
-        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
+        my $Pair := $*W.find_single_symbol_in_setting('Pair');
         my $past := QAST::Op.new( :op('call'), :node($/) );
         my @names;
         if $<EXPR> {
@@ -6971,7 +6971,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If it is completely empty or consists of a single list, the first
         # element of which is either a hash or a pair, it's a hash constructor.
         # Note that if it declares any symbols it is also not one.
-        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
+        my $Pair := $*W.find_single_symbol_in_setting('Pair');
         my int $is_hash   := 0;
         my int $has_stuff := 1;
         my $stmts := nqp::elems($<pblock><blockoid><statementlist><statement>);
@@ -7002,7 +7002,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 && $subelem.op eq 'callmethod' && $subelem.name eq 'clone' {
                     $subelem := $subelem[0];
                     if nqp::istype($subelem, QAST::WVal)
-                    && nqp::istype($subelem.value, $*W.find_single_symbol('WhateverCode', :setting-only)) {
+                    && nqp::istype($subelem.value, $*W.find_single_symbol_in_setting('WhateverCode')) {
                         $/.malformed("double closure; WhateverCode is already a closure without curlies, so either remove the curlies or use valid parameter syntax instead of *");
                     }
                 }
@@ -7524,7 +7524,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Op.new(
                         :op('istype'),
                         $rhs_var,
-                        QAST::WVal.new( :value($*W.find_single_symbol('Regex', :setting-only)) )),
+                        QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Regex')) )),
                     $rvar,
                     QAST::Op.new(
                         :op('bind'),
@@ -7656,7 +7656,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif nqp::istype($target, QAST::WVal)
         && nqp::istype($target.value,
-          $world.find_single_symbol('Signature', :setting-only)) {
+          $world.find_single_symbol_in_setting('Signature')) {
             make QAST::Op.new(
                 :op('p6bindcaptosig'),
                 $target,
@@ -8888,7 +8888,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Prep our .trans() call QAST
         # $_.trans( Pair.new: left tribble, right tribble )
         my $world := $*W;
-        my $Pair := $world.find_single_symbol('Pair', :setting-only);
+        my $Pair := $world.find_single_symbol_in_setting('Pair');
         my $trans := QAST::Op.new: :node($/),
             WANTED(QAST::Var.new(:name<$_>, :scope<lexical>), 'tr/call'),
             :op<callmethod>, :name<trans>,
@@ -9282,9 +9282,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @result;
         my $clear_topic_bind;
         my $saw_slurpy;
-        my $Code     := $world.find_single_symbol('Code', :setting-only);
-        my $Sig      := $world.find_single_symbol('Signature', :setting-only);
-        my $Param    := $world.find_single_symbol('Parameter', :setting-only);
+        my $Code     := $world.find_single_symbol_in_setting('Code');
+        my $Sig      := $world.find_single_symbol_in_setting('Signature');
+        my $Param    := $world.find_single_symbol_in_setting('Parameter');
         my $Iterable := $world.find_single_symbol('Iterable');
         my $Scalar := $world.find_single_symbol('Scalar');
         my @p_objs := nqp::getattr($sig, $Sig, '@!params');

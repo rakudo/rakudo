@@ -113,7 +113,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     }
 
     method can-install() {
-        self!prefix-writeable || ($.prefix.mkdir && $.prefix.e)
+        self!prefix-writeable || (!$.prefix.e && ?$.prefix.mkdir)
     }
 
     my $windows_wrapper = '@rem = \'--*-Perl-*--

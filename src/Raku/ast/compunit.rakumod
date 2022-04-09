@@ -296,9 +296,10 @@ class RakuAST::LiteralBuilder {
         }
         elsif nqp::chars($fractional-part) {
             $partf := nqp::radix_I(10, $fractional-part, 0, 4, Int);
-            $parti := nqp::mul_I($parti, $partf[1], Int);
+            my $base := nqp::pow_I(nqp::box_i(10, Int), $partf[1], Num, Int);
+            $parti := nqp::mul_I($parti, $base, Int);
             $parti := nqp::add_I($parti, $partf[0], Int);
-            $partf := $partf[1];
+            $partf := $base;
         } else {
             $partf := self.intern-int(1, 10);
         }

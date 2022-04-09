@@ -178,6 +178,50 @@ class RakuAST::Resolver {
         }
     }
 
+    # Resolve a RakuAST::Name to a constant.
+    method partially-resolve-name-constant(RakuAST::Name $name, str :$sigil) {
+        self.IMPL-PARTIALLY-RESOLVE-NAME-CONSTANT($name, :$sigil)
+    }
+
+    method IMPL-PARTIALLY-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {
+        if $name.is-identifier {
+            my str $identifier := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
+            $setting
+                ?? self.resolve-lexical-constant-in-setting($identifier)
+                !! self.resolve-lexical-constant($identifier)
+        }
+        else {
+            # Obtain parts.
+            my @parts := $name.IMPL-UNWRAP-LIST($name.parts);
+            if nqp::elems(@parts) == 0 {
+                nqp::die('0-part name lookup not possible as a constant');
+            }
+
+            # See if we can obtain the first part lexically.
+            # TODO pseudo-packages
+            # TODO GLOBALish fallback
+            my $first-resolved := $setting
+                ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
+                !! self.resolve-lexical-constant(@parts[0].name);
+            return Nil unless $first-resolved;
+
+            # Now chase down through the packages until we find something.
+            my $cur-symbol := $first-resolved.compile-time-value;
+            @parts := nqp::clone(@parts); # make manipulations safe
+            while @parts {
+                my $part := nqp::shift(@parts);
+                my %hash := self.IMPL-STASH-HASH($cur-symbol);
+                my $name-part := $part.name;
+                my $next-symbol := nqp::atkey(%hash, @parts ?? $name-part !! $sigil ~ $name-part);
+                return ($cur-symbol, $name.IMPL-WRAP-LIST(@parts)) if nqp::isnull($next-symbol);
+                $cur-symbol := $next-symbol;
+            }
+
+            # Wrap it.
+            (RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $cur-symbol), List.new)
+        }
+    }
+
     method IMPL-STASH-HASH(Mu $pkg) {
         my $hash := $pkg.WHO;
         unless nqp::ishash($hash) {

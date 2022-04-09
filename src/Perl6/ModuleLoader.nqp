@@ -124,7 +124,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     my $stub_how := 'Perl6::Metamodel::PackageHOW';
     my $nqp_stub_how := 'KnowHOW';
     sub is_stub($how) {
-        $how.HOW.name($how) eq $stub_how || $how.HOW.name($how) eq $nqp_stub_how
+         (my $HOW := $how.HOW.name($how)) eq $stub_how || $HOW eq $nqp_stub_how
     }
     method merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no

@@ -5056,13 +5056,17 @@ class Perl6::World is HLL::World {
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
-    method find_single_symbol(str $name, :$setting-only, :$upgrade_to_global, :$cur-package) {
-        if $setting-only && nqp::existskey(%!setting_symbols, $name) {
-            my $value := %!setting_symbols{$name};
+    method find_single_symbol(
+      str $name, :$setting-only, :$upgrade_to_global, :$cur-package
+    ) {
+
+        if $setting-only && nqp::not_i(
+          nqp::isnull(my $value := nqp::atkey(%!setting_symbols,$name))
+        ){
             if $upgrade_to_global {
                 ($*GLOBALish.WHO){$name} := $value;
             }
-            return $value
+            return $value;
         }
 
         unless $!setting_loaded {
@@ -5075,7 +5079,6 @@ class Perl6::World is HLL::World {
         }
 
         # Look through the lexical scopes and try the current package.
-
         my $scope := $*WANTEDOUTERBLOCK;
         if $scope {
             while $scope {
@@ -5111,23 +5114,22 @@ class Perl6::World is HLL::World {
                 }
             }
         }
-        nqp::die("find_symbol1") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LEAF.package);
-        $cur-package := $*LEAF.package unless $cur-package;
-        if nqp::existskey($cur-package.WHO, $name) {
-            return nqp::atkey($cur-package.WHO, $name);
-        }
+
+        nqp::die("find_symbol1")
+          unless nqp::objectid($*PACKAGE) ==
+                 nqp::objectid(my $LEAF_package := $*LEAF.package);
+
+        if nqp::isnull(
+          $value := nqp::atkey(($cur-package || $LEAF_package).WHO, $name)
 
         # Fall back to looking in GLOBALish
-        my $result := $*GLOBALish;
         # Try to chase down the parts of the name.
-        if nqp::existskey($result.WHO, $name) {
-            $result := ($result.WHO){$name};
-        }
-        else {
+        ) && nqp::isnull($value := nqp::atkey($*GLOBALish.WHO,$name)) {
             nqp::die("Could not locate compile-time value for symbol " ~ $name);
         }
 
-        $result;
+        $value
+
     }
     method find_symbol(@name, :$setting-only, :$upgrade_to_global, :$cur-package) {
         my $fullname := join("::", @name);

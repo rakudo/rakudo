@@ -129,9 +129,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
          $name eq $stub_how_name || $name eq $nqp_stub_how_name
     }
     method merge_globals($target, $source) {
-        # Start off merging top-level symbols. Easy when there's no
-        # overlap. Otherwise, we need to recurse.
         if stash_hash($source) -> %source {
+            # Start off merging top-level symbols. Easy when there's no
+            # overlap. Otherwise, we need to recurse.
             my %known_symbols;
             my $iter := nqp::iterator(stash_hash($target));
             nqp::while(
@@ -231,13 +231,13 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 
     # Transforms NULL.<release> into CORE.<previous-release>, CORE.<release> into CORE.<previous-release>
-    method previous_setting_name ($setting_name, :$base = 'CORE') {
-        nqp::gethllsym('default', 'SysConfig').rakudo-build-config()<prev-setting-name>{$setting_name}
-            // nqp::die("Don't know setting $setting_name")
+    method previous_setting_name($setting_name) {
+        nqp::gethllsym('default','SysConfig').rakudo-build-config()<prev-setting-name>{$setting_name}
+          // nqp::die("Don't know setting $setting_name")
     }
 
     method transform_setting_name ($setting_name) {
-        return self.previous_setting_name($setting_name, base => 'NULL');
+        self.previous_setting_name($setting_name)
     }
 
     my $setting-lock := NQPLock.new;

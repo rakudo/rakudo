@@ -126,14 +126,20 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     sub is_stub($how) {
          (my $HOW := $how.HOW.name($how)) eq $stub_how || $HOW eq $nqp_stub_how
     }
+    sub symbol_map($target) {
+        my %map;
+        my $iter := nqp::iterator(stash_hash($target));
+        nqp::while(
+          $iter,
+          nqp::bindkey(%map,nqp::iterkey_s(nqp::shift($iter)),1)
+        );
+        %map
+    }
     method merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
         if stash_hash($source) -> %source {
-            my %known_symbols;
-            for stash_hash($target) {
-                %known_symbols{$_.key} := 1;
-            }
+            my %known_symbols := symbol_map($target);
             for sorted_keys(%source) -> $sym {
                 my $value := %source{$sym};
                 if nqp::not_i(%known_symbols{$sym}) {

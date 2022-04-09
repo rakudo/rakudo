@@ -4985,9 +4985,9 @@ class Perl6::World is HLL::World {
         }
     }
 
-    method find_single_symbol_in_setting($name) {
-        if nqp::existskey(%!setting_symbols, $name) {
-            return %!setting_symbols{$name}
+    method find_single_symbol_in_unloaded_setting($name) {
+        unless nqp::isnull(my $symbol := nqp::atkey(%!setting_symbols, $name)) {
+            return $symbol;
         }
         my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
         my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
@@ -5070,7 +5070,7 @@ class Perl6::World is HLL::World {
         }
 
         unless $!setting_loaded {
-            return self.find_single_symbol_in_setting($name);
+            return self.find_single_symbol_in_unloaded_setting($name);
         }
 
         # GLOBAL is current view of global.

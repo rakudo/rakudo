@@ -13,6 +13,7 @@ sub DEBUG(*@strs) {
 }
 
 class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
+    my %prev-setting-name;
     my %modules_loaded;
     my %settings_loaded;
     my $absolute_path_func;
@@ -23,7 +24,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     method register_language_module_loader($lang, $loader, :$force) {
         nqp::die("Language loader already registered for $lang")
-            if ! $force && nqp::existskey(%language_module_loaders, $lang);
+          if ! $force && nqp::existskey(%language_module_loaders, $lang);
         %language_module_loaders{$lang} := $loader;
     }
 
@@ -230,10 +231,16 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
 
-    # Transforms NULL.<release> into CORE.<previous-release>, CORE.<release> into CORE.<previous-release>
+    # Transforms NULL.<release> into CORE.<previous-release>
     method previous_setting_name($setting_name) {
-        nqp::gethllsym('default','SysConfig').rakudo-build-config()<prev-setting-name>{$setting_name}
-          // nqp::die("Don't know setting $setting_name")
+        nqp::ifnull(
+          nqp::atkey(
+            %prev-setting-name
+              || (%prev-setting-name := nqp::gethllsym('default','SysConfig').rakudo-build-config()<prev-setting-name>),
+            $setting_name
+          ),
+          nqp::die("Don't know setting $setting_name")
+        )
     }
 
     method transform_setting_name ($setting_name) {
@@ -242,57 +249,52 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     my $setting-lock := NQPLock.new;
     method load_setting($setting_name) {
-        my $setting;
-
-        if $setting_name ne 'NULL.c' {
-            CATCH {
-                nqp::unlock($setting-lock);
-                nqp::rethrow($_);
-            }
-            nqp::lock($setting-lock);
-
-            DEBUG("Requested for settings $setting_name") if $DEBUG;
-            $setting_name := self.transform_setting_name($setting_name);
-            if nqp::isnull($setting := nqp::atkey(%settings_loaded,$setting_name)) {
-
-                # Pre-load previous setting.
-                my $prev_name := self.previous_setting_name($setting_name);
-                my $prev_setting;
-                # Don't do this for .c for which $setting_name doesn't change
-                unless nqp::iseq_s($prev_name, $setting_name) {
-                    $prev_setting := self.load_setting($prev_name);
-                }
-
-                DEBUG("Loading settings $setting_name") if $DEBUG;
-                # Find it.
-                my $path := self.find_setting($setting_name);
-
-                # Load it.
-                my $*CTXSAVE := self;
-                my $*MAIN_CTX;
-                my $preserve_global :=
-                  nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),NQPMu);
-
-                DEBUG("Loading bytecode from $path") if $DEBUG;
-                nqp::scwbdisable();
-                nqp::loadbytecode($path);
-                nqp::scwbenable();
-                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
-
-                unless nqp::defined($*MAIN_CTX) {
-                    nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
-                }
-                nqp::forceouterctx(nqp::ctxcode($*MAIN_CTX),$prev_setting)
-                  if nqp::defined($prev_setting);
-                $setting := %settings_loaded{$setting_name} := $*MAIN_CTX;
-
-                DEBUG("Settings $setting_name loaded") if $DEBUG;
-            }
-            else {
-                DEBUG("Settings $setting_name already loaded") if $DEBUG;
-            }
+        CATCH {
             nqp::unlock($setting-lock);
+            nqp::rethrow($_);
         }
+        nqp::lock($setting-lock);
+
+        my $setting;
+        if nqp::isnull($setting := nqp::atkey(%settings_loaded,$setting_name)) {
+            DEBUG("Requested for settings $setting_name") if $DEBUG;
+
+            # Pre-load previous setting.
+            my $prev_name := self.previous_setting_name($setting_name);
+            my $prev_setting;
+            # Don't do this for .c for which $setting_name doesn't change
+            unless nqp::iseq_s($prev_name, $setting_name) {
+                $prev_setting := self.load_setting($prev_name);
+            }
+
+            DEBUG("Loading settings $setting_name") if $DEBUG;
+            # Find it.
+            my $path := self.find_setting($setting_name);
+
+            # Load it.
+            my $*CTXSAVE  := self;
+            my $*MAIN_CTX := nqp::null;
+            my $GLOBAL    := nqp::gethllsym('Raku','GLOBAL');
+
+            DEBUG("Loading bytecode from $path") if $DEBUG;
+            nqp::scwbdisable();
+            nqp::loadbytecode($path);
+            nqp::scwbenable();
+            nqp::bindhllsym('Raku','GLOBAL',nqp::ifnull($GLOBAL,NQPMu));
+
+            %settings_loaded{$setting_name} := $setting := nqp::ifnull(
+              $*MAIN_CTX,
+              nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?")
+            );
+            nqp::forceouterctx(nqp::ctxcode($setting),$prev_setting)
+              if nqp::defined($prev_setting);
+
+            DEBUG("Settings $setting_name loaded") if $DEBUG;
+        }
+        else {
+            DEBUG("Settings $setting_name already loaded") if $DEBUG;
+        }
+        nqp::unlock($setting-lock);
 
         $setting
     }

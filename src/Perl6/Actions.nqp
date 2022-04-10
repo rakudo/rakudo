@@ -166,14 +166,15 @@ sub wanted($ast,$by) {
             }
 
             # make sure from-loop knows about existing label
-            my $label := QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Any')), :named('label') );
+            my $world := $*W;
+            my $label := QAST::WVal.new( :value($world.find_single_symbol_in_setting('Any')), :named('label') );
             for @($ast) {
-                $label := $_ if nqp::istype($_, QAST::WVal) && nqp::istype($_.value, $*W.find_single_symbol_in_setting('Label'));
+                $label := $_ if nqp::istype($_, QAST::WVal) && nqp::istype($_.value, $world.find_single_symbol_in_setting('Label'));
             }
 
             my $past := QAST::Op.new: :node($body.node),
                 :op<callmethod>, :name<from-loop>,
-                QAST::WVal.new(:value($*W.find_single_symbol_in_setting('Seq'))),
+                QAST::WVal.new(:value($world.find_single_symbol_in_setting('Seq'))),
                 $block-closure,
                 $label;
 
@@ -200,7 +201,7 @@ sub wanted($ast,$by) {
             }
 
             if $repeat {
-                my $wval := QAST::WVal.new( :value($*W.find_single_symbol_in_setting('True')) );
+                my $wval := QAST::WVal.new( :value($world.find_single_symbol_in_setting('True')) );
                 $wval.named('repeat');
                 $past.push($wval);
             }
@@ -1063,7 +1064,8 @@ role STDActions {
         my int $actualchars := nqp::chars($ws);
         my int $indent := -$actualchars;
 
-        my int $tabstop := $*W.find_single_symbol_in_setting('$?TABSTOP');
+        my $world := $*W;
+        my int $tabstop := $world.find_single_symbol_in_setting('$?TABSTOP');
         my int $checkidx := -1;
         while ++$checkidx < $actualchars {
             if nqp::eqat($ws, "\t", $checkidx) {
@@ -1074,7 +1076,7 @@ role STDActions {
         my $docast := $doc.MATCH.ast;
         if $docast.has_compile_time_value {
             my str $dedented := nqp::unbox_s($docast.compile_time_value.indent($indent));
-            $origast.push($*W.add_string_constant($dedented));
+            $origast.push($world.add_string_constant($dedented));
         }
         else {
             # we need to remove spaces from the beginnings of only textual lines,
@@ -1089,14 +1091,14 @@ role STDActions {
                         my $strval := $node[0].compile_time_value;
                         if !$in-fresh-line {
                             if $strval ~~ /\n/ {
-                                my $strbox := nqp::box_s(nqp::x(" ", -$indent) ~ nqp::unbox_s($strval), $*W.find_single_symbol_in_setting("Str"));
+                                my $strbox := nqp::box_s(nqp::x(" ", -$indent) ~ nqp::unbox_s($strval), $world.find_single_symbol_in_setting("Str"));
                                 $strval := nqp::unbox_s($strbox.indent($indent));
                                 $in-fresh-line := 1;
-                                return $*W.add_string_constant($strval);
+                                return $world.add_string_constant($strval);
                             }
                         } else {
                             $strval := nqp::unbox_s($strval.indent($indent));
-                            return $*W.add_string_constant($strval);
+                            return $world.add_string_constant($strval);
                         }
                     }
                 } elsif nqp::istype($node, QAST::Op) && $node.op eq 'call' && $node.name eq '&infix:<~>' {
@@ -1312,10 +1314,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             block_closure(make_topic_block_ref($/, $code, copy => 1)),
         );
         if can-use-p6forstmt($fornode[1]) {
+            my $world := $*W;
             $fornode.op('p6forstmt');
-            $fornode.annotate('IterationEnd', $*W.find_single_symbol_in_setting('IterationEnd'));
-            $fornode.annotate('Nil', $*W.find_single_symbol_in_setting('Nil'));
-            $fornode.annotate('Code', $*W.find_single_symbol_in_setting('Code'));
+            $fornode.annotate('IterationEnd', $world.find_single_symbol_in_setting('IterationEnd'));
+            $fornode.annotate('Nil', $world.find_single_symbol_in_setting('Nil'));
+            $fornode.annotate('Code', $world.find_single_symbol_in_setting('Code'));
         }
         return $fornode;
     }
@@ -1595,11 +1598,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Produces a LoL from a semicolon list
     method semilist($/) {
         if $<statement> -> $statements {
+            my $Nil := $*W.find_single_symbol_in_setting('Nil');
             my $past := QAST::Stmts.new( :node($/) );
             if nqp::elems($statements) > 1 {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
                 for $statements {
-                    my $sast := $_.ast || QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Nil')) );
+                    my $sast := $_.ast || QAST::WVal.new( :value($Nil) );
                     $l.push(wanted($sast, 'semilist'));
                 }
                 $past.push($l);
@@ -1627,7 +1631,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
 
-                $past.push($ast || QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Nil')) ));
+                $past.push($ast || QAST::WVal.new( :value($Nil) ));
             }
             make $past;
         }
@@ -1649,6 +1653,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method statement($/) {
         my $past;
+        my $world := $*W;
         if $<EXPR> {
             my $mc := $<statement_mod_cond>;
             my $ml := $<statement_mod_loop>;
@@ -1665,7 +1670,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $mc_ast := $mc.ast;
                 if $past.ann('bare_block') {
                     my $cond_block := $past.ann('past_block');
-                    remove_block($*W.cur_lexpad(), $cond_block);
+                    remove_block($world.cur_lexpad(), $cond_block);
                     $cond_block.blocktype('immediate');
                     unless $cond_block.ann('placeholder_sig') {
                         $cond_block.arity(0);
@@ -1674,7 +1679,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past := $cond_block;
                 }
                 $mc_ast.push($past);
-                $mc_ast.push(QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Empty')) ));
+                $mc_ast.push(QAST::WVal.new( :value($world.find_single_symbol_in_setting('Empty')) ));
                 $past := $mc_ast;
             }
             if $ml {
@@ -1705,9 +1710,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past.annotate('statement_level', -> {
                         UNWANTED($sinkee, 'force for mod');
                         $fornode.op('p6forstmt') if can-use-p6forstmt($fornode[1]);
-                        $fornode.annotate('IterationEnd', $*W.find_single_symbol_in_setting('IterationEnd'));
-                        $fornode.annotate('Nil', $*W.find_single_symbol_in_setting('Nil'));
-                        $fornode.annotate('Code', $*W.find_single_symbol_in_setting('Code'));
+                        $fornode.annotate('IterationEnd', $world.find_single_symbol_in_setting('IterationEnd'));
+                        $fornode.annotate('Nil', $world.find_single_symbol_in_setting('Nil'));
+                        $fornode.annotate('Code', $world.find_single_symbol_in_setting('Code'));
                     });
                 }
                 else {
@@ -1724,7 +1729,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past.annotate('statement_id', $id);
 
             # only trace when running in source
-            if $/.pragma('trace') && !$*W.is_precompilation_mode {
+            if $/.pragma('trace') && !$world.is_precompilation_mode {
                 my $code := ~$/;
 
                 # don't bother putting ops for activating it
@@ -1734,8 +1739,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # need to generate code
                 else {
-                    my $line := $*W.current_line($/);
-                    my $file := $*W.current_file;
+                    my $line := $world.current_line($/);
+                    my $file := $world.current_file;
                     $code    := subst($code, /\s+$/, ''); # chomp!
                     $past := QAST::Stmts.new(:node($/),
                         QAST::Op.new(
@@ -1747,7 +1752,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 QAST::SVal.new(:value('utf8')),
                                 QAST::Op.new(
                                     :op('callmethod'), :name('new'),
-                                    QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Blob')) )
+                                    QAST::WVal.new( :value($world.find_single_symbol_in_setting('Blob')) )
                                 )
                             )
                         ),
@@ -10757,14 +10762,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # Works out how to look up a type. If it's not generic and is in an SC, we
     # statically resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
+        my $world := $*W;
         CATCH {
-            $*W.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
+            $world.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
         }
-        my $type := $*W.find_symbol(@name);
+        my $type := $world.find_symbol(@name);
         my $is_generic := nqp::can($type.HOW, "archetypes") && nqp::can($type.HOW.archetypes, "generic") && $type.HOW.archetypes.generic;
         my $past;
         if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
-            $past := $*W.symbol_lookup(@name, $/);
+            $past := $world.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
         }
         else {
@@ -10967,19 +10973,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $<code> eq 'V' {
             make ~$<contents>;
         } elsif $<code> eq 'E' {
+            my $world := $*W;
             my @contents := [];
             my @meta    := [];
             for $/[0] {
                 if $_<html_ref> {
 #?if !jvm
                     my $s := Perl6::Pod::str_from_entity(~$_);
-                    $s ?? @contents.push($s) && @meta.push($*W.add_string_constant(~$_).compile_time_value)
+                    $s ?? @contents.push($s) && @meta.push($world.add_string_constant(~$_).compile_time_value)
                        !! $/.worry("\"$_\" is not a valid HTML5 entity.");
 #?endif
 #?if jvm
                     # Java 64K method limit can't compile Perl6::Pod::str_from_entity
                     @contents.push(~$_);
-                    @meta.push($*W.add_string_constant(~$_).compile_time_value);
+                    @meta.push($world.add_string_constant(~$_).compile_time_value);
 #?endif
                 } else {
                     my $n := $_<integer>
@@ -10997,7 +11004,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             @meta    := Perl6::Pod::serialize_array(@meta).compile_time_value;
             make Perl6::Pod::serialize_object(
                 'Pod::FormattingCode',
-                :type($*W.add_string_constant(~$<code>).compile_time_value),
+                :type($world.add_string_constant(~$<code>).compile_time_value),
                 :@contents,
                 :@meta,
             ).compile_time_value;
@@ -11108,6 +11115,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
         self.charname-panic($/);
     }
     method nibbler($/) {
+        my $world := $*W;
         my @asts;
         my $lastlit := '';
         my $atom;
@@ -11116,7 +11124,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
             if nqp::istype($_, NQPMatch) {
                 if nqp::istype($_.ast, QAST::Node) {
                     if $lastlit ne '' {
-                        @asts.push($*W.add_string_constant($lastlit));
+                        @asts.push($world.add_string_constant($lastlit));
                         $lastlit := '';
                     }
                     $atom := $_.ast.ann('ww_atom');
@@ -11132,7 +11140,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
         }
 
         if $lastlit ne '' || !@asts {
-            @asts.push($*W.add_string_constant($lastlit));
+            @asts.push($world.add_string_constant($lastlit));
         }
 
         # make sure single var interpolation actually stringifies
@@ -11161,14 +11169,15 @@ class Perl6::QActions is HLL::Actions does STDActions {
     }
 
     method postprocess_val($/, $qast) {
+        my $world := $*W;
         if nqp::istype($qast, QAST::Stmts) && nqp::istype($qast[0], QAST::Op) && $qast[0].name eq '&infix:<,>' { # qw/qqww list
             my @results := [];
 
             for $qast[0].list -> $thisq {
                 if $thisq.has_compile_time_value {
                     try {
-                        my $result := $*W.find_single_symbol_in_setting('&val')($thisq.compile_time_value);
-                        $*W.add_object_if_no_sc($result);
+                        my $result := $world.find_single_symbol_in_setting('&val')($thisq.compile_time_value);
+                        $world.add_object_if_no_sc($result);
                         nqp::push(@results, QAST::WVal.new(:value($result), :node($/)));
 
                         CATCH { nqp::push(@results, $thisq) }
@@ -11183,8 +11192,8 @@ class Perl6::QActions is HLL::Actions does STDActions {
             $qast[0].annotate("qw",1);
         } elsif $qast.has_compile_time_value { # a single string that we can handle
             try {
-                my $result := $*W.find_single_symbol_in_setting('&val')($qast.compile_time_value);
-                $*W.add_object_if_no_sc($result);
+                my $result := $world.find_single_symbol_in_setting('&val')($qast.compile_time_value);
+                $world.add_object_if_no_sc($result);
                 $qast := QAST::WVal.new(:value($result));
             }
         } else { # no compile time value, resort to the run-time call
@@ -11196,15 +11205,16 @@ class Perl6::QActions is HLL::Actions does STDActions {
 
     method postprocess_words($/, $past) {
         if $past.has_compile_time_value {
+            my $world := $*W;
             my @words := HLL::Grammar::split_words($/,
                 nqp::unbox_s($past.compile_time_value));
             if +@words != 1 {
                 $past := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/) );
-                for @words { $past.push($*W.add_string_constant(~$_)); }
+                for @words { $past.push($world.add_string_constant(~$_)); }
                 $past := QAST::Stmts.new($past);
             }
             else {
-                $past := $*W.add_string_constant(~@words[0]);
+                $past := $world.add_string_constant(~@words[0]);
             }
         }
         else {
@@ -11230,9 +11240,10 @@ class Perl6::QActions is HLL::Actions does STDActions {
             }
             # (can't just use postprocess_words here because it introduces spurious comma operations)
             elsif $node.has_compile_time_value {
+                my $world := $*W;
                 my @words := HLL::Grammar::split_words($/,
                     nqp::unbox_s($node.compile_time_value));
-                for @words { $result.push($*W.add_string_constant(~$_)); }
+                for @words { $result.push($world.add_string_constant(~$_)); }
             }
             else {
                 $result.push(
@@ -11437,6 +11448,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
     }
 
     method metachar:sym<rakvar>($/) {
+        my $world := $*W;
         my $varast := $<var>.ast;
         if nqp::istype($varast, QAST::Var) {
             # See if it's a constant Scalar, in which case we can turn it to
@@ -11444,7 +11456,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             if nqp::eqat($varast.name, '$', 0) {
                 my $constant;
                 try {
-                    my $found := $*W.find_single_symbol($varast.name);
+                    my $found := $world.find_single_symbol($varast.name);
                     $constant := $found.Str if nqp::isconcrete($found);
                 }
                 if nqp::isconcrete($constant) {
@@ -11457,7 +11469,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
 
             # If it's a variable, but statically typed as a string, we know
             # it's a simple interpolation; use LITERAL.
-            if nqp::istype($varast.returns, $*W.find_single_symbol_in_setting('Str')) {
+            if nqp::istype($varast.returns, $world.find_single_symbol_in_setting('Str')) {
                 make QAST::Regex.new(QAST::NodeList.new(
                         QAST::SVal.new( :value('!LITERAL') ),
                         $varast,
@@ -11481,7 +11493,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                 QAST::IVal.new( :value($*SEQ ?? 1 !! 0) ),
                 QAST::IVal.new( :value(0) ),
                 QAST::Op.new( :op<callmethod>, :name<new>,
-                    QAST::WVal.new( :value($*W.find_single_symbol_in_setting('PseudoStash'))),
+                    QAST::WVal.new( :value($world.find_single_symbol_in_setting('PseudoStash'))),
                 )
             ),
             :rxtype<subrule>, :subtype<method>, :node($/));
@@ -11595,17 +11607,18 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
             }
             else {
+                my $world := $*W;
                 if nqp::elems(@parts) {
-                    my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
+                    my $gref := QAST::WVal.new( :value($world.find_symbol(@parts)) );
                     $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
                                              :node($/), QAST::NodeList.new(
                                                 QAST::SVal.new( :value('OTHERGRAMMAR') ),
                                                 $gref, QAST::SVal.new( :value($name) )),
                                              :name(~$<longname>) );
-                } elsif $*W.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
+                } elsif $world.regex_in_scope('&' ~ $name) && nqp::substr($c.orig, $/.from - 1, 1) ne '.' {
                     # The lookbehind for . is because we do not yet call $~MAIN's methodop, and our recognizer for
                     # . <assertion>, which is a somewhat bogus recursion, comes from QRegex, not our own grammar.
-                    my $coderef := $*W.find_single_symbol('&' ~ $name);
+                    my $coderef := $world.find_single_symbol('&' ~ $name);
                     my $var := QAST::Var.new( :name('&' ~ $name), :scope<lexical> );
                     $var.annotate('coderef',$coderef);
                     my $c := $var.ann('coderef');

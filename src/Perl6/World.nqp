@@ -953,7 +953,7 @@ class Perl6::World is HLL::World {
 
             # Add a fixup and deserialization task also.
             $!setting_fixup_task := QAST::Stmt.new(
-                self.perl6_module_loader_code(),
+                self.raku_module_loader_code(),
                 QAST::Op.new(
                     :op('forceouterctx'),
                     QAST::BVal.new( :value($*UNIT_OUTER) ),
@@ -1455,7 +1455,7 @@ class Perl6::World is HLL::World {
         if self.is_precompilation_mode() {
             $RMD("  Pre-compiling '$module_name'") if $RMD;
             self.add_load_dependency_task(:deserialize_ast(QAST::Stmts.new(
-                self.perl6_module_loader_code(),
+                self.raku_module_loader_code(),
                 QAST::Op.new(
                    :op('callmethod'), :name('load_module'),
                    QAST::Op.new( :op('getcurhllsym'),
@@ -1498,7 +1498,7 @@ class Perl6::World is HLL::World {
 
     # Uses the NQP module loader to load Perl6::ModuleLoader, which
     # is a normal NQP module.
-    method perl6_module_loader_code() {
+    method raku_module_loader_code() {
         QAST::Stmt.new(
             QAST::Op.new(
                 :op('loadbytecode'),

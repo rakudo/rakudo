@@ -1594,8 +1594,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token colonpair_variable {
         <sigil> {}
         [
-        # TODO twigil
-        | <desigilname>
+        | <twigil>? <desigilname>
         | $<capvar>='<' <desigilname> '>'
         ]
     }

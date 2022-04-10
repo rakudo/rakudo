@@ -858,7 +858,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, self.r('Var', 'NamedCapture').new($*LITERALS.intern-str(~$<desigilname>));
         }
         else {
-            self.attach: $/, self.r('Var', 'Lexical').new(~$/);
+            my str $sigil := ~$<sigil>;
+            my str $twigil := $<twigil> ?? ~$<twigil> !! '';
+            my str $desigilname := ~$<desigilname>;
+            self.compile_variable_access($/, $sigil, $twigil, $desigilname);
         }
     }
 
@@ -878,75 +881,80 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             my str $sigil := ~$<sigil>;
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
-            my str $name := $sigil ~ $twigil ~ $<desigilname>;
-            if $name eq $sigil {
-                # Generate an anonymous state variable.
-                self.attach: $/, self.r('VarDeclaration', 'Anonymous').new(:$sigil, :scope('state'));
+            my str $desigilname := ~$<desigilname>;
+            self.compile_variable_access($/, $sigil, $twigil, $desigilname);
+        }
+    }
+
+    method compile_variable_access($/, $sigil, $twigil, $desigilname) {
+        my str $name := $sigil ~ $twigil ~ $<desigilname>;
+        if $name eq $sigil {
+            # Generate an anonymous state variable.
+            self.attach: $/, self.r('VarDeclaration', 'Anonymous').new(:$sigil, :scope('state'));
+        }
+        elsif $name eq '@_' {
+            my $decl := self.r('VarDeclaration', 'Placeholder', 'SlurpyArray').new();
+            $*R.declare-lexical($decl);
+            self.attach: $/, $decl;
+        }
+        elsif $name eq '%_' {
+            my $decl := self.r('VarDeclaration', 'Placeholder', 'SlurpyHash').new();
+            $*R.declare-lexical($decl);
+            self.attach: $/, $decl;
+        }
+        elsif $twigil eq '' {
+            my $longname := $<desigilname><longname>;
+            if !$longname || $longname<name>.ast.is-identifier {
+                self.attach: $/, self.r('Var', 'Lexical').new($name);
             }
-            elsif $name eq '@_' {
-                my $decl := self.r('VarDeclaration', 'Placeholder', 'SlurpyArray').new();
-                $*R.declare-lexical($decl);
-                self.attach: $/, $decl;
+            else { # package variable
+                self.attach: $/, self.r('Var', 'Package').new(
+                    $longname<name>.ast,
+                    :$sigil
+                );
             }
-            elsif $name eq '%_' {
-                my $decl := self.r('VarDeclaration', 'Placeholder', 'SlurpyHash').new();
-                $*R.declare-lexical($decl);
-                self.attach: $/, $decl;
+        }
+        elsif $twigil eq '*' {
+            self.attach: $/, self.r('Var', 'Dynamic').new($name);
+        }
+        elsif $twigil eq '!' {
+            self.attach: $/, self.r('Var', 'Attribute').new($name);
+        }
+        elsif $twigil eq '?' {
+            if $name eq '$?FILE' {
+                my str $file := self.current_file();
+                self.attach: $/, self.r('Var', 'Compiler', 'File').new($*LITERALS.intern-str($file));
             }
-            elsif $twigil eq '' {
-                my $longname := $<desigilname><longname>;
-                if !$longname || $longname<name>.ast.is-identifier {
-                    self.attach: $/, self.r('Var', 'Lexical').new($name);
-                }
-                else { # package variable
-                    self.attach: $/, self.r('Var', 'Package').new(
-                        $longname<name>.ast,
-                        :$sigil
-                    );
-                }
-            }
-            elsif $twigil eq '*' {
-                self.attach: $/, self.r('Var', 'Dynamic').new($name);
-            }
-            elsif $twigil eq '!' {
-                self.attach: $/, self.r('Var', 'Attribute').new($name);
-            }
-            elsif $twigil eq '?' {
-                if $name eq '$?FILE' {
-                    my str $file := self.current_file();
-                    self.attach: $/, self.r('Var', 'Compiler', 'File').new($*LITERALS.intern-str($file));
-                }
-                elsif $name eq '$?LINE' {
-                    my int $line := self.current_line($/);
-                    self.attach: $/, self.r('Var', 'Compiler', 'Line').new($*LITERALS.intern-int($line, 10));
-                }
-                else {
-                    self.attach: $/, self.r('Var', 'Compiler', 'Lookup').new($name);
-                }
-            }
-            elsif $twigil eq '^' {
-                my $decl := self.r('VarDeclaration', 'Placeholder', 'Positional').new:
-                        $sigil ~ $<desigilname>;
-                $*R.declare-lexical($decl);
-                self.attach: $/, $decl;
-            }
-            elsif $twigil eq ':' {
-                my $decl := self.r('VarDeclaration', 'Placeholder', 'Named').new:
-                        $sigil ~ $<desigilname>;
-                $*R.declare-lexical($decl);
-                self.attach: $/, $decl;
-            }
-            elsif $twigil eq '=' {
-                if $name eq '$=finish' {
-                    self.attach: $/, self.r('Var', 'Pod', 'Finish').new;
-                }
-                else {
-                    $/.typed_sorry('X::Comp::NYI', feature => 'Pod variable ' ~ $name);
-                }
+            elsif $name eq '$?LINE' {
+                my int $line := self.current_line($/);
+                self.attach: $/, self.r('Var', 'Compiler', 'Line').new($*LITERALS.intern-int($line, 10));
             }
             else {
-                nqp::die("Lookup with twigil '$twigil' NYI");
+                self.attach: $/, self.r('Var', 'Compiler', 'Lookup').new($name);
             }
+        }
+        elsif $twigil eq '^' {
+            my $decl := self.r('VarDeclaration', 'Placeholder', 'Positional').new:
+                    $sigil ~ $<desigilname>;
+            $*R.declare-lexical($decl);
+            self.attach: $/, $decl;
+        }
+        elsif $twigil eq ':' {
+            my $decl := self.r('VarDeclaration', 'Placeholder', 'Named').new:
+                    $sigil ~ $<desigilname>;
+            $*R.declare-lexical($decl);
+            self.attach: $/, $decl;
+        }
+        elsif $twigil eq '=' {
+            if $name eq '$=finish' {
+                self.attach: $/, self.r('Var', 'Pod', 'Finish').new;
+            }
+            else {
+                $/.typed_sorry('X::Comp::NYI', feature => 'Pod variable ' ~ $name);
+            }
+        }
+        else {
+            nqp::die("Lookup with twigil '$twigil' NYI");
         }
     }
 

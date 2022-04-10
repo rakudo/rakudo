@@ -4886,19 +4886,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method onlystar($/) {
-        my $BLOCK := $*CURPAD;
+        my $BLOCK       := $*CURPAD;
+        my @pad_entries := $BLOCK[0];
 
         # Remove special variables; no need for them in onlystar.
-        my int $n := +@($BLOCK[0]);
+        my int $n := +@pad_entries;
         my int $i := -1;
+        my $null  := QAST::Op.new(:op('null'));
         while ++$i < $n {
-            my $consider := $BLOCK[0][$i];
-            if nqp::istype($consider, QAST::Var) {
-                my $name := $consider.name;
-                if $name eq '$_' || $name eq '$/' || $name eq '$!' || $name eq '$¢' {
-                    $BLOCK[0][$i] := QAST::Op.new( :op('null') );
-                }
-            }
+            @pad_entries[$i] := $null
+              if nqp::istype((my $consider := @pad_entries[$i]), QAST::Var)
+              && ((my $name := $consider.name) eq '$_'
+                     || $name eq '$/'
+                     || $name eq '$!'
+                     || $name eq '$¢'
+                 )
         }
 
         # Add dispatching code.

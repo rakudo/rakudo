@@ -14,7 +14,11 @@ class RakuAST::Blockoid is RakuAST::SinkPropagator {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
-        $!statement-list.IMPL-TO-QAST($context)
+        my $stmts := $!statement-list.IMPL-TO-QAST($context);
+        if nqp::elems($stmts.list) == 0 {
+            $stmts.push(QAST::WVal.new( :value(Nil) ));
+        }
+        $stmts
     }
 
     method visit-children(Code $visitor) {

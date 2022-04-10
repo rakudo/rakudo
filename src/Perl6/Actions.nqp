@@ -1335,7 +1335,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $fornode.annotate('Nil', $world.find_single_symbol_in_setting('Nil'));
             $fornode.annotate('Code', $world.find_single_symbol_in_setting('Code'));
         }
-        return $fornode;
+        $fornode
     }
 
     # Turn $code into "for lines() { $code; say $_ }"
@@ -2571,7 +2571,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
         }
-        return 0;
+        0
     }
 
     method statement_prefix:sym<react>($/) {
@@ -4879,13 +4879,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub is_yada($/) {
-        if $<blockoid><statementlist> && nqp::elems($<blockoid><statementlist><statement>) == 1 {
-            my $btxt := ~$<blockoid><statementlist><statement>[0];
-            if $btxt ~~ /^ \s* ['...'|'???'|'!!!'|'…'] \s* $/ {
-                return 1;
-            }
-        }
-        0
+        $<blockoid><statementlist>
+          && nqp::elems($<blockoid><statementlist><statement>) == 1
+          && ~$<blockoid><statementlist><statement>[0]
+               ~~ /^ \s* ['...'|'???'|'!!!'|'…'] \s* $/;
     }
 
     method onlystar($/) {

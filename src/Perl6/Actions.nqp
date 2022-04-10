@@ -9289,7 +9289,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 return $only<default_from_outer> ?? 'optional' !! 'required';
             }
         }
-        return '';
+        ''
     }
     my $SIG_ELEM_IS_RW       := 256;
     my $SIG_ELEM_IS_RAW      := 1024;
@@ -9341,9 +9341,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my %info      := @params[$i];
             my $param_obj := @p_objs[$i];
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
-            return 0 if nqp::existskey(%info, 'sub_signature');
-            return 0 if %info<bind_accessor>;                   # XXX Support later
-            return 0 if %info<default_from_outer>;
+            return 0
+              if nqp::existskey(%info,'sub_signature')
+              || %info<bind_accessor>                   # XXX Support later
+              || %info<default_from_outer>;
 
             # Generate a var to bind into.
             my $name := QAST::Node.unique("__lowered_param_");
@@ -9463,7 +9464,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Var.new( :name($name), :scope('local') )
                         )));
                 }
-                return $decont_name;
+                $decont_name
             }
             if !$is_generic && $spec {
                 if $is_rw {
@@ -10063,12 +10064,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
         @result
     }
     sub find_var_decl($block, $name) {
-        for $block[0].list {
-            if nqp::istype($_, QAST::Var) && $_.name eq $name && $_.decl {
-                return $_;
-            }
-        }
-        nqp::die("Internal error: find_var_decl could not find $name");
+        my $declaration;
+        my @pad_entries := $block[0];
+        my int $elems   := +@pad_entries;
+
+        my int $i := -1;
+        nqp::until(
+          ++$i == $elems || (
+            nqp::istype((my $entry := @pad_entries[$i]), QAST::Var)
+              && $entry.name eq $name    # found the name
+              && $entry.decl             # and it has a declaration
+          ),
+          nqp::null
+        );
+
+        $i == $elems
+          ?? nqp::die("Internal error: find_var_decl could not find $name")
+          !! $entry
     }
 
     # Adds a placeholder parameter to this block's signature.

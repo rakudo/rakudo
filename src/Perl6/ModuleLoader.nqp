@@ -243,10 +243,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         )
     }
 
-    method transform_setting_name ($setting_name) {
-        self.previous_setting_name($setting_name)
-    }
-
     my $setting-lock := NQPLock.new;
     method load_setting($setting_name) {
         CATCH {

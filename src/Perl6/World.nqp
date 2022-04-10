@@ -939,13 +939,12 @@ class Perl6::World is HLL::World {
 
     # Loads a setting.
     method load_setting($/, $setting_name) {
-        # We don't load setting for EVAL
         if $*INSIDE-EVAL && $!have_outer {
-            return
+            # We don't load setting for EVAL
         }
         # Do nothing for the NULL.c setting.
-        if $setting_name ne 'NULL.c' {
-            $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
+        elsif $setting_name ne 'NULL.c' {
+            $setting_name := Perl6::ModuleLoader.previous_setting_name($setting_name);
             # Load it immediately, so the compile time info is available.
             # Once it's loaded, set it as the outer context of the code
             # being compiled unless being loaded as another core dependency.
@@ -953,7 +952,7 @@ class Perl6::World is HLL::World {
                             Perl6::ModuleLoader.load_setting($setting_name);
 
             # Add a fixup and deserialization task also.
-            my $fixup := QAST::Stmt.new(
+            $!setting_fixup_task := QAST::Stmt.new(
                 self.perl6_module_loader_code(),
                 QAST::Op.new(
                     :op('forceouterctx'),
@@ -968,9 +967,8 @@ class Perl6::World is HLL::World {
                     )
                 )
             );
-            $!setting_fixup_task := $fixup;
 
-            return nqp::ctxlexpad($setting);
+            nqp::ctxlexpad($setting);
         }
     }
 
@@ -4992,17 +4990,16 @@ class Perl6::World is HLL::World {
         unless nqp::isnull(my $symbol := nqp::atkey(%!setting_symbols, $name)) {
             return $symbol;
         }
-        my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
-        my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+        my $ctx := Perl6::ModuleLoader.load_setting($!setting_name);
 
         while $ctx {
             my $pad := nqp::ctxlexpad($ctx);
-            if nqp::existskey($pad, $name) {
+            if nqp::existskey($pad, $name) {  # cannot be nqp::ifnull
                 return %!setting_symbols{$name} := nqp::atkey($pad, $name);
             }
             $ctx := nqp::ctxouter($ctx);
         }
-        nqp::die("Cannot find symbol $name in $setting_name");
+        nqp::die("Cannot find symbol $name in $!setting_name");
     }
     method find_symbol_in_setting(@name) {
         my str $fullname := nqp::join("::", @name);
@@ -5026,7 +5023,6 @@ class Perl6::World is HLL::World {
             }
         }
 
-        $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
         my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
 
         my $components := +@name;

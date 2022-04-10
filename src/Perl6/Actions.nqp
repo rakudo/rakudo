@@ -10472,7 +10472,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $name eq 'sink' {
             return $args;   # Note that sink itself wants its args, to eat 'em...
         }
-        if $name eq 'return' {
+        elsif $name eq 'return' {
             my $ret := %*SIG_INFO<returns>;
             if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil' {
                 if nqp::elems($args) {
@@ -10762,13 +10762,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub wrap_return_type_check($wrappee, $code_obj) {
         my $ret := %*SIG_INFO<returns>;
-        return $wrappee if nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil';
-        QAST::Op.new(
-            :op('p6typecheckrv'),
-            $wrappee,
-            QAST::WVal.new( :value($code_obj) ),
-            QAST::WVal.new( :value($*W.find_single_symbol_in_setting('Nil')) )
-        );
+        nqp::isconcrete($ret) || $ret.HOW.name($ret) eq 'Nil'
+          ?? $wrappee
+          !! QAST::Op.new(
+               :op('p6typecheckrv'),
+               $wrappee,
+               QAST::WVal.new(:value($code_obj)),
+               QAST::WVal.new(:value($*W.find_single_symbol_in_setting('Nil')))
+             )
     }
 
     sub wrap_return_handler($past) {

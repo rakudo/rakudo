@@ -1016,15 +1016,26 @@ register_op_desugar('time_n', -> $qast {
 }
 
 sub can-use-p6forstmt($block) {
-    my $past_block := $block.ann('past_block');
-    my $count := $past_block.ann('count');
-    return 0 unless nqp::isconcrete($count) && $count == 1;
-    my $code := $block.ann('code_object');
-    my $block_type := $*W.find_single_symbol_in_setting('Block');
-    return 1 unless nqp::istype($code, $block_type);
-    my $p := nqp::getattr($code, $block_type, '$!phasers');
-    !nqp::ishash($p) ||
-        !(nqp::existskey($p, 'FIRST') || nqp::existskey($p, 'LAST') || nqp::existskey($p, 'NEXT'))
+    my $count := $block.ann('past_block').ann('count');
+    if nqp::isconcrete($count) && $count == 1 {
+        my $code := $block.ann('code_object');
+        my $block_type := $*W.find_single_symbol_in_setting('Block');
+
+        if nqp::istype($code, $block_type) {
+            my $p := nqp::getattr($code, $block_type, '$!phasers');
+            !nqp::ishash($p)
+              || !(nqp::existskey($p, 'FIRST')
+                    || nqp::existskey($p, 'LAST')
+                    || nqp::existskey($p, 'NEXT')
+                  )
+        }
+        else {
+            1
+        }
+    }
+    else {
+        0
+    }
 }
 
 sub monkey_see_no_eval($/) {

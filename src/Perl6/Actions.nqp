@@ -75,11 +75,13 @@ sub UNWANTALL($ast, $by) {
 
 sub wanted($ast,$by) {
 #    $wantwant := nqp::getenvhash<RAKUDO_WANT> unless nqp::isconcrete($wantwant);
+    return $ast 
+      if nqp::not_i(nqp::can($ast,'ann'))
+      || $ast.wanted  # already marked from here down
+      || $ast.sunk;   # already marked from here down
+
     my $byby := $wantwant ?? $by ~ ' u' !! $by;
-    return $ast unless nqp::can($ast,'ann');
     my $addr := nqp::where($ast);
-    return $ast if $ast.wanted;  # already marked from here down
-    return $ast if $ast.sunk; # already marked from here down
     note('wanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if $wantwant;
 #    if $ast.sunk {
 #        note("Oops, already sunk node is now wanted!?! \n" ~ $ast.dump);
@@ -282,11 +284,13 @@ sub WANTED($ast, $by) {
 my %nosink := nqp::hash('sink',1,'push',1,'append',1,'unshift',1,'prepend',1,'splice',1);
 
 sub unwanted($ast, $by) {
+    return $ast 
+      if nqp::not_i(nqp::can($ast,'ann'))
+      || $ast.sunk
+      || $ast.wanted;  # probably a loose thunk just stashed somewhere random
+
     my $byby := $by ~ ' u';
-    return $ast unless nqp::can($ast,'ann');
     my $addr := nqp::where($ast);
-    return $ast if $ast.sunk;
-    return $ast if $ast.wanted;  # probably a loose thunk just stashed somewhere random
     $ast.annotate('BY',$byby) if $wantwant;
     my $e := nqp::elems(@($ast)) - 1;
     note('unwanted ' ~ $addr ~ ' by ' ~ $by ~ "\n" ~ $ast.dump) if $wantwant;

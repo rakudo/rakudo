@@ -1680,6 +1680,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BORG := {};
         :my $*BLOCK;
         :my $*PACKAGE;
+        <!!{ $/.clone_braid_from(self) }>
         <longname>? {}
         <.stub-package($<longname>)>
        { $/.set_package($*PACKAGE) }

@@ -268,6 +268,8 @@ class RakuAST::BracketedInfix is RakuAST::Infixish {
         $visitor($!infix);
     }
 
+    method reducer-name() { $!infix.reducer-name }
+
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right) {
         $!infix.IMPL-INFIX-COMPILE($context, $left, $right)
@@ -295,6 +297,8 @@ class RakuAST::FunctionInfix is RakuAST::Infixish {
     method visit-children(Code $visitor) {
         $visitor($!function);
     }
+
+    method reducer-name() { '&METAOP_REDUCE_LEFT' }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         QAST::Op.new:

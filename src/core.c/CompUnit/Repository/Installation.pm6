@@ -6,7 +6,6 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp;
     has $!id;
     has Int $!version;
-    has $!prefix-writeable; # cache for !prefix-writeable
     has $!precomp-store;    # cache for .precomp-store
     has $!precomp-stores;   # cache for !precomp-stores
 
@@ -19,7 +18,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
-        $!prefix-writeable := $!precomp-store := $!precomp-stores := nqp::null;
+        $!precomp-store := $!precomp-stores := nqp::null;
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -86,22 +85,19 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         method id { $.dist-id }
     }
 
-    method !initialize-prefix-writeable() {
-          $!prefix-writeable := do if Rakudo::Internals.IS-WIN {
-              if $.prefix.add('test-file').open(:create, :w) -> $handle {
-                  $handle.close;
-                  $handle.path.unlink  # always True
-              }
-              else {
-                  False
-              }
-          }
-          else {
-              $.prefix.w
-          }
-    }
     method !prefix-writeable(--> Bool:D) {
-        nqp::ifnull($!prefix-writeable,self!initialize-prefix-writeable)
+        if Rakudo::Internals.IS-WIN {
+            if $.prefix.add('test-file').open(:create, :w) -> $handle {
+                $handle.close;
+                $handle.path.unlink  # always True
+            }
+            else {
+                False
+            }
+        }
+        else {
+            $.prefix.w
+        }
     }
 
     method writeable-path {

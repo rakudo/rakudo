@@ -367,6 +367,66 @@ class RakuAST::MetaInfix::Reverse is RakuAST::Infixish {
     }
 }
 
+# A cross meta-operator.
+class RakuAST::MetaInfix::Cross is RakuAST::Infixish {
+    has RakuAST::Infixish $.infix;
+
+    method new(RakuAST::Infixish $infix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Cross, '$!infix', $infix);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+    }
+
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+        for $operands {
+            $op.push($_);
+        }
+        $op
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_CROSS'),
+            $!infix.IMPL-HOP-INFIX-QAST($context),
+            QAST::Var.new( :name($!infix.reducer-name), :scope('lexical') )
+    }
+}
+
+# A zip meta-operator.
+class RakuAST::MetaInfix::Zip is RakuAST::Infixish {
+    has RakuAST::Infixish $.infix;
+
+    method new(RakuAST::Infixish $infix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Zip, '$!infix', $infix);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+    }
+
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        my $op := QAST::Op.new( :op('call'), self.IMPL-HOP-INFIX-QAST($context) );
+        for $operands {
+            $op.push($_);
+        }
+        $op
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_ZIP'),
+            $!infix.IMPL-HOP-INFIX-QAST($context),
+            QAST::Var.new( :name($!infix.reducer-name), :scope('lexical') )
+    }
+}
+
 # An infix hyper operator.
 class RakuAST::MetaInfix::Hyper is RakuAST::Infixish {
     has RakuAST::Infixish $.infix;

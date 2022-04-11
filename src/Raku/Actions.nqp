@@ -667,6 +667,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $O;
     }
 
+    method infix_prefix_meta_operator:sym<X>($/) {
+        self.attach: $/, self.r('MetaInfix', 'Cross').new($<infixish>.ast);
+    }
+
+    method infix_prefix_meta_operator:sym<Z>($/) {
+        self.attach: $/, self.r('MetaInfix', 'Zip').new($<infixish>.ast);
+    }
+
     method infix_postfix_meta_operator:sym<=>($/) {
         self.attach: $/, self.r('MetaInfix', 'Assign');
     }

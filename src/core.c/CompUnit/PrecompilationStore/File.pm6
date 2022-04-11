@@ -1,4 +1,4 @@
-class CompUnit::PrecompilationStore::FileSystem
+class CompUnit::PrecompilationStore::File
   does CompUnit::PrecompilationStore
 {
     has IO::Path:D $.prefix is built(:bind) is required;

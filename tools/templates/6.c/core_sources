@@ -219,7 +219,7 @@ src/core.c/CompUnit/PrecompilationDependency/File.pm6
 src/core.c/CompUnit/PrecompilationUnit.pm6
 src/core.c/CompUnit/PrecompilationUnit/File.pm6
 src/core.c/CompUnit/PrecompilationStore.pm6
-src/core.c/CompUnit/PrecompilationStore/FileSystem.pm6
+src/core.c/CompUnit/PrecompilationStore/File.pm6
 src/core.c/CompUnit/PrecompilationRepository.pm6
 src/core.c/CompUnit/Repository.pm6
 src/core.c/CompUnit/Repository/Spec.pm6

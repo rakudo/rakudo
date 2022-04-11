@@ -719,7 +719,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method precomp-store(--> CompUnit::PrecompilationStore:D) {
         nqp::ifnull(
           $!precomp-store,
-          $!precomp-store := CompUnit::PrecompilationStore::FileSystem.new(
+          $!precomp-store := CompUnit::PrecompilationStore::File.new(
             :prefix($.prefix.add('precomp'))
           )
         )

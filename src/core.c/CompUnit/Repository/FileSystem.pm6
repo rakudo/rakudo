@@ -328,7 +328,7 @@ class CompUnit::Repository::FileSystem
     }
 
     method precomp-store(--> CompUnit::PrecompilationStore:D) {
-        $!precomp-store //= CompUnit::PrecompilationStore::FileSystem.new(
+        $!precomp-store //= CompUnit::PrecompilationStore::File.new(
             :prefix(self.prefix.add('.precomp')),
         )
     }

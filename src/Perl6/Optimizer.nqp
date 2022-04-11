@@ -3998,7 +3998,8 @@ class Perl6::Optimizer {
                         my $stmts_def := QAST::Stmts.new( $default );
                         if nqp::istype($default, QAST::Op) && $default.op eq 'getlexouter' {
                             $!block_var_stack.do('register_getlexouter_usage', $stmts_def);
-                            $var.default($stmts_def);
+                            # Don't modify the declaration in dry run, only collect the data.
+                            $var.default($stmts_def) unless $!block_var_stack.in-dry-run;
                         }
                         else {
                             self.visit_children($stmts_def);

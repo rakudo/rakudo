@@ -905,6 +905,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <?>
     }
 
+    token infix_prefix_meta_operator:sym<X> {
+        <sym> <infixish('X')> {}
+        <.can_meta($<infixish>, "cross with")>
+        <O(|%list_infix)>
+    }
+
+    token infix_prefix_meta_operator:sym<Z> {
+        <sym> <infixish('Z')> {}
+        <.can_meta($<infixish>, "zip with")>
+        <O(|%list_infix)>
+    }
+
     proto token infix_postfix_meta_operator { <...> }
 
     token infix_postfix_meta_operator:sym<=> {

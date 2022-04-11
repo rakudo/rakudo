@@ -28,6 +28,83 @@ my class Slip { # is List
           if nqp::isconcrete(nqp::getattr(self,List,'$!reified'));
         $list
     }
+
+    # shortcutting methods for better performance on Empty
+    multi method are(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Nil !! nextsame
+    }
+    multi method batch(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method batch(Slip:D: $) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method deepmap(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method duckmap(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method map(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method first(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Nil !! nextsame
+    }
+    multi method grep(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method head(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Nil !! nextsame
+    }
+    multi method head(Slip:D: $) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method maxpairs(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method minpairs(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method nodemap(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method pairup(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method repeated(Slip:D: |) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method rotor(Slip:D: |) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method skip(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Nil !! nextsame
+    }
+    multi method skip(Slip:D: $) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method sort(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method sort(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method squish(Slip:D: |) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method tail(Slip:D:) {
+        nqp::eqaddr(self,Empty) ?? Nil !! nextsame
+    }
+    multi method tail(Slip:D: $) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method toggle(Slip:D: &) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
+    multi method unique(Slip:D: |) {
+        nqp::eqaddr(self,Empty) ?? Empty !! nextsame
+    }
 }
 
 # The slip(...) function creates a Slip.

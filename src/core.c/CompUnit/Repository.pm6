@@ -51,8 +51,8 @@ role CompUnit::Repository {
         my $buffer := nqp::create(IterationBuffer);
         nqp::push($buffer,my $repo := self);
         nqp::while(
-          (my $next := $repo.next-repo).defined,
-          nqp::push($buffer,$repo := $next)
+          ($repo := $repo.next-repo).defined,
+          nqp::push($buffer,$repo)
         );
         $buffer.List
     }

@@ -68,7 +68,7 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
       $dist-id, $key
     ) {
         # check if the dist is installed here
-        try self.distribution($dist-id)
+        (try self.distribution($dist-id))
           # we have the dist, so it's safe to access the resource the normal way
           ?? callsame()
           # lookup failed, so it's probably not installed here but in the parent

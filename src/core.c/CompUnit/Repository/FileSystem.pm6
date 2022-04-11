@@ -2,9 +2,9 @@ class CompUnit::Repository::FileSystem
   does CompUnit::Repository::Locally
   does CompUnit::Repository
 {
-    has $!lock = Lock.new;
+    has $!lock;
     has %!loaded; # cache compunit lookup for self.need(...)
-    has %!seen;   # cache distribution lookup for self!matching-dist(...)
+    has $!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
     has $!id;
     has $!precomp-stores;
@@ -14,18 +14,23 @@ class CompUnit::Repository::FileSystem
 
     my constant @extensions = <.rakumod .pm6 .pm>;
 
-    method !matching-dist(CompUnit::DependencySpecification $spec) {
+    method TWEAK(--> Nil) {
+        $!lock := Lock.new;
+        $!seen := nqp::hash;
+    }
+
+    # An equivalent of self.candidates($spec).head that caches the best match
+    method !matching-dist(CompUnit::DependencySpecification:D $spec) {
         $!lock.protect: {
-            return $_ with %!seen{~$spec};
+            nqp::ifnull(
+              nqp::atkey($!seen,~$spec),
+              nqp::if(
+                (my $candidate := self.candidates($spec).head),
+                nqp::bindkey($!seen,~$spec,$candidate),
+                Nil
+              )
+            )
         }
-
-        with self.candidates($spec).head {
-            $!lock.protect: {
-                return %!seen{~$spec} //= $_;
-            }
-        }
-
-        Nil
     }
 
     method !comp-unit-id($name) {
@@ -162,9 +167,9 @@ class CompUnit::Repository::FileSystem
     multi method candidates(Str:D $name, :$auth, :$ver, :$api) {
         return samewith(CompUnit::DependencySpecification.new(
             short-name      => $name,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         ));
     }
     multi method candidates(CompUnit::DependencySpecification $spec) {
@@ -185,16 +190,9 @@ class CompUnit::Repository::FileSystem
             $distribution = self!distribution;
         }
 
-        my $version-matcher = ($spec.version-matcher ~~ Bool)
-            ?? $spec.version-matcher
-            !! Version.new($spec.version-matcher);
-        my $api-matcher = ($spec.api-matcher ~~ Bool)
-            ?? $spec.api-matcher
-            !! Version.new($spec.api-matcher);
-
         return Empty unless (($distribution.meta<auth> // '') eq '' || ($distribution.meta<auth> // '') ~~ $spec.auth-matcher)
-            and (($distribution.meta<ver> // '*') eq '*' || Version.new($distribution.meta<ver> // 0) ~~ $version-matcher)
-            and (($distribution.meta<api> // '*') eq '*' || Version.new($distribution.meta<api> // 0) ~~ $api-matcher);
+            and (($distribution.meta<ver> // '*') eq '*' || Version.new($distribution.meta<ver> // 0) ~~ $spec.version-matcher)
+            and (($distribution.meta<api> // '*') eq '*' || Version.new($distribution.meta<api> // 0) ~~ $spec.api-matcher);
 
         return ($distribution,);
     }
@@ -203,9 +201,9 @@ class CompUnit::Repository::FileSystem
     multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $name,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         );
 
         with self.candidates($spec) {
@@ -223,9 +221,9 @@ class CompUnit::Repository::FileSystem
     multi method files($file, :$auth, :$ver, :$api) {
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $file,
-            auth-matcher    => $auth // True,
-            version-matcher => $ver  // True,
-            api-matcher     => $api  // True,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
         );
 
         with self.candidates($spec) {

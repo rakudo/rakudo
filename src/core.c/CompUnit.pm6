@@ -1,3 +1,5 @@
+class CompUnit::Repository::Distribution { ... }
+
 class CompUnit {
     has Str:D   $.from       is built(:bind) = 'Perl6';
     has Str:D   $.short-name is built(:bind) is required;

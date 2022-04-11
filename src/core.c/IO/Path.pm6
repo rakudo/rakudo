@@ -515,10 +515,14 @@ my class IO::Path is Cool does IO {
     }
 
     method mkdir(IO::Path:D: Int() $mode = 0o777) {
-        nqp::mkdir($.absolute, $mode);
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!os-path), :$mode, os-error => .Str);
         }}
+        nqp::unless(
+          nqp::stat((my str $abspath = $.absolute),nqp::const::STAT_EXISTS)
+            && nqp::stat($abspath,nqp::const::STAT_ISDIR),
+          nqp::mkdir($abspath,$mode)
+        );
         self
     }
 

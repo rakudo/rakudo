@@ -348,6 +348,7 @@ class BuiltinOperatorProperties {
 
           '+',  'additive',
           '-',  'additive',
+          '−',  'additive',
           '+|', 'additive',
           '+^', 'additive',
           '~|', 'additive',

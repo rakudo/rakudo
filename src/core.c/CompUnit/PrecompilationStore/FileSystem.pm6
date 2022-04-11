@@ -241,4 +241,16 @@ class CompUnit::PrecompilationStore::FileSystem
     }
 }
 
+class CompUnit::PrecompilationStore::File
+  is CompUnit::PrecompilationStore::FileSystem {
+
+    method new(|) {
+        DEPRECATED(
+          "the 'CompUnit::PrecompilationStore::FileSystem' class",
+          :what("Use of the 'CompUnit::PrecompilationStore::File' class")
+        );
+        nextsame;
+    }
+}
+
 # vim: expandtab shiftwidth=4

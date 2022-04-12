@@ -482,7 +482,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         if $spec.from eq 'Perl6'
           # $lookup is a file system resource that acts as a fast meta data
           # lookup for a given module short name.
-          && (my $lookup = self!short-dir.add(nqp::sha1($spec.short-name))).e {
+          && (my $lookup = self!short-dir.add($spec.lookup-id)).e {
 
             my $auth-matcher    := $spec.auth-matcher;
             my $version-matcher := $spec.version-matcher;

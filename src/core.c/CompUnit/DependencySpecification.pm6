@@ -84,6 +84,9 @@ class CompUnit::DependencySpecification {
           ValueObjAt
         )
     }
+
+    # basename inside the short-dir
+    method lookup-id(--> Str:D) { nqp::sha1($!short-name) }
 }
 
 # vim: expandtab shiftwidth=4

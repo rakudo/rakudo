@@ -135,26 +135,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         self!prefix-writeable || (!$.prefix.e && ?$.prefix.mkdir)
     }
 
-    my $windows_wrapper = '@rem = \'--*-Perl-*--
-@echo off
-if "%OS%" == "Windows_NT" goto WinNT
-#raku# "%~dpn0" %1 %2 %3 %4 %5 %6 %7 %8 %9
-goto endofraku
-:WinNT
-#raku# "%~dpn0" %*
-if NOT "%COMSPEC%" == "%SystemRoot%\system32\cmd.exe" goto endofraku
-if %errorlevel% == 9009 echo You do not have Rakudo in your PATH.
-if errorlevel 1 goto script_failed_so_exit_with_non_zero_val 2>nul
-goto endofraku
-@rem \';
-__END__
-:endofraku
-';
-    my $raku_wrapper = '#!/usr/bin/env #raku#
-sub MAIN(:$name, :$auth, :$ver, *@, *%) {
-    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
-}';
-
     method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }
     method !resources-dir { with $.prefix.add('resources') { once { .mkdir unless .e }; $_ } }
     method !dist-dir      { with $.prefix.add('dist')      { once { .mkdir unless .e }; $_ } }

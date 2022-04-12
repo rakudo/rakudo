@@ -327,9 +327,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $!id = Any;
 
         if $precompile {
-            my $head = $*REPO;
-            PROCESS::<$REPO> := self; # Precomp files should only depend on downstream repos
-            my $precomp = $*REPO.precomp-repository;
+            my $head := $*REPO;
+            CATCH { PROCESS::<$REPO> := $head }
+            # Precomp files should only depend on downstream repos
+            PROCESS::<$REPO> := self;
+
+            my $precomp = $head.precomp-repository;
             my $repo-prefix = self!repo-prefix;
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);

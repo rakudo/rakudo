@@ -4634,7 +4634,7 @@ class Perl6::World is HLL::World {
                     return 1;
                 }
             }
-            return 0;
+            0
         }
 
         # Fetches an array of components provided they are all known

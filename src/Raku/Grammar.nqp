@@ -585,6 +585,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token blockoid {
         :my $borg := $*BORG;
         :my $has_mystery := 0; # TODO
+        :my $*MULTINESS := '';
         { $*BORG := {} }
         [
         | '{YOU_ARE_HERE}' <you_are_here>
@@ -1754,6 +1755,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*MULTINESS := 'multi';
         [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
         [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
+    }
+    token multi_declarator:sym<proto> {
+        <sym><.kok>
+        :my $*MULTINESS := 'proto';
+        [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
+        [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
     token multi_declarator:sym<null> {
         :my $*MULTINESS := '';

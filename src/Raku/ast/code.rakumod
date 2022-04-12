@@ -566,6 +566,12 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                        is RakuAST::BeginTime is RakuAST::TraitTarget {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
+    has str $!multiness;
+
+    method multiness() {
+        my $multiness := $!multiness;
+        nqp::isnull_s($multiness) ?? '' !! $multiness
+    }
 
     method replace-name(RakuAST::Name $new-name) {
         nqp::bindattr(self, RakuAST::Routine, '$!name', $new-name);
@@ -619,6 +625,61 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             );
             $!signature.IMPL-CHECK($resolver, True);
         }
+
+        if self.multiness eq 'multi' {
+            my $name := '&' ~ self.name.canonicalize;
+            my $proto := $resolver.resolve-lexical($name, :current-scope-only);
+            if $proto {
+                $proto := $proto.compile-time-value;
+            }
+            elsif $proto := $resolver.resolve-lexical($name) {
+                $proto := $proto.compile-time-value.derive_dispatcher;
+            }
+            elsif $proto := $resolver.resolve-lexical-constant-in-outer($name) {
+                $proto := $proto.compile-time-value.derive_dispatcher;
+            }
+            else {
+                my $whatever := RakuAST::Term::Whatever.new;
+                $whatever.attach($resolver);
+                my $proto-ast := RakuAST::Sub.new(
+                    :scope<my>,
+                    :name(self.name),
+                    :signature(RakuAST::Signature.new(
+                        :parameters(self.IMPL-WRAP-LIST([
+                            RakuAST::Parameter.new(
+                                :slurpy(RakuAST::Parameter::Slurpy::Capture),
+                            )
+                        ])),
+                    )),
+                    :body(RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            $whatever,
+                        ),
+                    )),
+                    :multiness<proto>,
+                );
+
+                $proto := $proto-ast.meta-object;
+                $proto.set_onlystar;
+                nqp::bindattr($proto, Routine, '@!dispatchees', []);
+
+                my $outer := $resolver.find-attach-target('block', :outer(True));
+                unless $outer {
+                    $outer := $resolver.find-attach-target('compunit');
+                }
+                $outer.add-generated-lexical-declaration(
+                    RakuAST::VarDeclaration::Implicit::Block.new(:$name, :block($proto-ast))
+                );
+                $outer.add-generated-lexical-declaration(
+                    RakuAST::VarDeclaration::Implicit::Constant.new(:$name, :value($proto))
+                );
+            }
+            $proto.add_dispatchee(self.meta-object);
+        }
+        elsif self.multiness eq 'proto' {
+            nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
+        }
+
         # Apply any traits.
         self.apply-traits($resolver, self)
     }
@@ -698,7 +759,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         # If we're a named lexical thing, install us in the block.
         my $name := self.lexical-name;
-        if $name && self.scope eq 'my' {
+        if $name && self.scope eq 'my' && self.multiness ne 'multi' {
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
@@ -758,13 +819,14 @@ class RakuAST::Sub is RakuAST::Routine is RakuAST::SinkBoundary {
     has RakuAST::Blockoid $.body;
 
     method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
-            List :$traits, RakuAST::Blockoid :$body) {
+            List :$traits, RakuAST::Blockoid :$body, str :$multiness) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
             // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Sub, '$!body', $body // RakuAST::Blockoid.new);
+        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness // '');
         $obj.set-traits($traits);
         $obj
     }
@@ -850,13 +912,14 @@ class RakuAST::Method is RakuAST::Methodish is RakuAST::SinkBoundary {
     has RakuAST::Blockoid $.body;
 
     method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
-            List :$traits, RakuAST::Blockoid :$body) {
+            List :$traits, RakuAST::Blockoid :$body, str :$multiness) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
             // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Method, '$!body', $body // RakuAST::Blockoid.new);
+        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness // '');
         $obj.set-traits($traits);
         $obj
     }

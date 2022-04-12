@@ -13,12 +13,6 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::gethllsym('default', 'SysConfig').rakudo-build-config();
     }
 
-    method compilation-id() {
-        my class IDHolder { }
-        BEGIN { (IDHolder.WHO)<$ID> := $*W.handle }
-        $IDHolder::ID
-    }
-
     method version() {
         nqp::say(self.version_string);
         nqp::exit(0);

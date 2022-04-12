@@ -1,9 +1,3 @@
-my constant $?COMPILATION-ID :=
-  nqp::p6box_s(nqp::sha1(nqp::concat(
-    $*W.handle,
-    nqp::getcomp('Raku').compilation-id
-  )));
-
 class VM does Systemic {
 #?if moar
     has $.config         is built(:bind) = nqp::backendconfig;

@@ -553,6 +553,15 @@ multi sub trait_mod:<will>(Attribute $attr, Mu :$build!) {  # internal usage
     $attr.set_build($build)
 }
 
+multi sub trait_mod:<will>(Mu:U \type, &complainee, :complain($)!) {
+    type.HOW does Metamodel::Explaining unless nqp::istype(type.HOW, Metamodel::Explaining);
+    type.HOW.SET-COMPLAINEE(&complainee);
+}
+multi sub trait_mod:<will>(Mu:D \obj, &complainee, :complain($)!) {
+    obj does Metamodel::Explaining unless nqp::istype(obj, Metamodel::Explaining);
+    obj.SET-COMPLAINEE(&complainee);
+}
+
 proto sub trait_mod:<trusts>(Mu, Mu, *%) {*}
 multi sub trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
     $truster.^add_trustee($trustee);

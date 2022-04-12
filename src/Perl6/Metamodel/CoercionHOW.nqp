@@ -6,6 +6,7 @@
 class Perl6::Metamodel::CoercionHOW
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Nominalizable
+    does Perl6::Metamodel::Explaining
 {
     has $!target_type;
     has $!nominal_target;

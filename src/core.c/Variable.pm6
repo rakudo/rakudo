@@ -200,5 +200,16 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :compose($)! ) {
       feature => "Variable trait 'will compose {...}'",
     );
 }
+multi sub trait_mod:<will>(Variable:D $v, &complainee, :complain($)!) {
+    my $var := $v.var;
+    my $what := $var.VAR.WHAT;
+    my $descriptor := nqp::getattr($var, $what, '$!descriptor');
+
+    unless nqp::istype($descriptor, Metamodel::Explaining) {
+        $descriptor.^mixin(Metamodel::Explaining);
+    }
+
+    $descriptor.SET-COMPLAINEE(&complainee);
+}
 
 # vim: expandtab shiftwidth=4

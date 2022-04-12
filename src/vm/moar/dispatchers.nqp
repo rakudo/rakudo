@@ -297,7 +297,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         Perl6::Metamodel::Configuration.throw_or_die(
             'X::TypeCheck::Assignment',
             "Type check failed in assignment",
-            :symbol($desc.name),
+            :$desc,
             :got($value),
             :expected($desc.of)
         );

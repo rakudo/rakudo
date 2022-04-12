@@ -4,6 +4,7 @@ class Perl6::Metamodel::SubsetHOW
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Nominalizable
+    does Perl6::Metamodel::Explaining
 {
     # The subset type or nominal type that we refine.
     has $!refinee;

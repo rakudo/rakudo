@@ -2542,22 +2542,33 @@ my class X::TypeCheck is Exception {
           ?? "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n "
           !! ''
     }
+    method complainee-message($complainee = $!expected.HOW.complainee) {
+        $complainee ~~ Callable || $complainee.^can('CALL-ME')
+            ?? $complainee($!got)
+            !! $complainee.Str
+    }
+    method explain {
+        nqp::istype($!expected.HOW, Metamodel::Explaining)
+            ?? self.complainee-message
+            !! "expected $.expectedn but got $.gotn"
+    }
     method message() {
         self.priors() ~
-        "Type check failed in $.operation; expected $.expectedn but got $.gotn";
+        "Type check failed in $.operation; " ~ $.explain
     }
 }
 
 my class X::TypeCheck::Binding is X::TypeCheck {
-    has $.symbol;
+    has $.desc;
     method operation { 'binding' }
     method message() {
-        my $to = $.symbol.defined && $.symbol ne '$'
-            ?? " to '$.symbol'"
+        my $symbol := $.desc.name;
+        my $to = $symbol.defined && $symbol ne '$'
+            ?? " to '$symbol'"
             !! "";
         my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected type $.expectedn cannot be itself"
-            !! "expected $.expectedn but got $.gotn";
+            !! self.explain;
         self.priors() ~ "Type check failed in $.operation$to; $expected";
     }
 }
@@ -2577,13 +2588,18 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
             ?? "none"
             !! callsame()
     }
+    method explain {
+        nqp::istype($!parameter, Metamodel::Explaining)
+            ?? self.complainee-message($!parameter.complainee)
+            !! callsame()
+    }
     method message() {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to parameter '$.symbol'"
             !! " to anonymous parameter";
         my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected type $.expectedn cannot be itself"
-            !! "expected $.expectedn but got $.gotn";
+            !! self.explain;
         my $what-check = $.what // ($.constraint ?? 'Constraint type' !! 'Type');
         self.priors() ~ "$what-check check failed in $.operation$to; $expected";
     }
@@ -2594,21 +2610,24 @@ my class X::TypeCheck::Return is X::TypeCheck {
         my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected return type $.expectedn cannot be itself " ~
                "(perhaps $.operation a :D type object?)"
-            !! "expected $.expectedn but got $.gotn";
+            !! self.explain;
         self.priors() ~
         "Type check failed for return value; $expected";
     }
 }
 my class X::TypeCheck::Assignment is X::TypeCheck {
-    has $.symbol;
+    has $.desc;
     method operation { 'assignment' }
     method message {
-        my $to = $.symbol.defined && $.symbol ne '$'
-            ?? " to $.symbol" !! "";
+        my $symbol := $!desc.name;
+        my $to = $symbol.defined && $symbol ne '$'
+            ?? " to $symbol" !! "";
         my $is-itself := nqp::eqaddr(self.expected, self.got);
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"
-            !! "expected $.expectedn but got $.gotn";
+            !! (nqp::istype($!desc, Metamodel::Explaining)
+                ?? self.complainee-message($!desc.complainee)
+                !! self.explain);
         my $maybe-Nil := $is-itself
           || nqp::istype(self.expected.HOW, Metamodel::DefiniteHOW)
           && nqp::eqaddr(self.expected.^base_type, self.got)
@@ -2637,7 +2656,9 @@ my class X::TypeCheck::Attribute::Default is X::TypeCheck does X::Comp {
     has $.operation;
     method message {
         self.priors() ~
-        "Can never $.operation default value $.gotn to attribute '$.name', it expects: $.expectedn"
+        (nqp::istype($.expected.HOW, Metamodel::Explaining)
+            ?? "Can never $.operation default value to attribute '$.name': $.explain"
+            !! "Can never $.operation default value $.gotn to attribute '$.name', it expects: $.expectedn")
     }
 }
 
@@ -2645,7 +2666,7 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
     has $.action;
     method message {
         self.priors() ~
-        "Type check failed in {$.action}; expected $.expectedn but got $.gotn";
+        "Type check failed in {$.action}; $.explain"
     }
 
 }
@@ -3114,8 +3135,8 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
       X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter, :$constraint).throw;
   },
   'X::TypeCheck::Assignment',
-  -> Mu $symbol is raw, Mu $got is raw, Mu $expected is raw {
-      X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
+  -> Mu $desc is raw, Mu $got is raw, Mu $expected is raw {
+      X::TypeCheck::Assignment.new(:$desc, :$got, :$expected).throw;
   },
   'X::TypeCheck::Return',
   -> Mu $got is raw, Mu $expected is raw {

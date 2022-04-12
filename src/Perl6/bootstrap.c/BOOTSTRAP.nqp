@@ -1843,7 +1843,7 @@ BEGIN {
                         Perl6::Metamodel::Configuration.throw_or_die(
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
-                            :symbol($desc.name),
+                            :$desc,
                             :got($val),
                             :expected($type)
                         );
@@ -1876,7 +1876,7 @@ BEGIN {
                         Perl6::Metamodel::Configuration.throw_or_die(
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
-                            :symbol($desc.name),
+                            :$desc,
                             :got($val),
                             :expected($type)
                         );
@@ -1898,7 +1898,7 @@ BEGIN {
                         Perl6::Metamodel::Configuration.throw_or_die(
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
-                            :symbol($desc.name),
+                            :$desc,
                             :got($val),
                             :expected($type)
                         );

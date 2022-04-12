@@ -226,7 +226,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method enter-block-scope($/) {
-        my $block := self.r($*SCOPE-KIND).new;
+        my $block := $*MULTINESS
+            ?? self.r($*SCOPE-KIND).new(:multiness($*MULTINESS))
+            !! self.r($*SCOPE-KIND).new;
         $*R.enter-scope($block);
         $*BLOCK := $block;
     }
@@ -1065,6 +1067,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
     }
 
+    method multi_declarator:sym<proto>($/) {
+        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
+    }
+
     method multi_declarator:sym<null>($/) {
         self.attach: $/, $<declarator>.ast;
     }
@@ -1700,11 +1706,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Register it with the resolver.
         my $scope := $*SCOPE || $*DEFAULT-SCOPE;
         $*BLOCK.replace-scope($scope);
-        if $scope eq 'my' {
-            $*R.declare-lexical-in-outer($*BLOCK);
-        }
-        elsif $*DEFAULT-SCOPE ne 'has' {
-            $*R.declare-lexical($*BLOCK);
+        if $*MULTINESS ne 'multi' {
+            if $scope eq 'my' {
+                $*R.declare-lexical-in-outer($*BLOCK);
+            }
+            elsif $*DEFAULT-SCOPE ne 'has' {
+                $*R.declare-lexical($*BLOCK);
+            }
         }
     }
 

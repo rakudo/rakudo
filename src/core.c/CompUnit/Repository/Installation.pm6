@@ -10,8 +10,31 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp-stores;   # cache for !precomp-stores
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
-    my constant @script-extensions =
-      '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
+    my constant @script-postfixes = '', '-m', '-j', '-js';
+    my constant @all-script-extensions =
+        '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
+
+    my constant $windows-wrapper = Q/@rem = '--*-Perl-*--
+@echo off
+if "%OS%" == "Windows_NT" goto WinNT
+#raku# "%~dpn0" %1 %2 %3 %4 %5 %6 %7 %8 %9
+goto endofraku
+:WinNT
+#raku# "%~dpn0" %*
+if NOT "%COMSPEC%" == "%SystemRoot%\system32\cmd.exe" goto endofraku
+if %errorlevel% == 9009 echo You do not have Rakudo in your PATH.
+if errorlevel 1 goto script_failed_so_exit_with_non_zero_val 2>nul
+goto endofraku
+@rem ';
+__END__
+:endofraku
+/;
+
+    my constant $raku-wrapper = '#!/usr/bin/env #raku#
+sub MAIN(:$name, :$auth, :$ver, *@, *%) {
+    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
+}';
+
 
     method TWEAK() {
         $!lock       := Lock.new;
@@ -281,12 +304,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             # wrappers are put in bin/; originals in resources/
             my $destination = $resources-dir.add($id);
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
-            for '', '-j', '-m', '-js' -> $be {
+            for @script-postfixes -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
-                    $raku_wrapper.subst('#name#', $name, :g).subst('#raku#', "rakudo$be");
+                    $raku-wrapper.subst('#name#', $name, :g).subst('#raku#', "rakudo$be");
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
-                        $windows_wrapper.subst('#raku#', "rakudo$be", :g);
+                        $windows-wrapper.subst('#raku#', "rakudo$be", :g);
                 }
                 else {
                     $.prefix.add("$withoutext$be").IO.chmod(0o755);
@@ -395,7 +418,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         my $basename := $name-path.substr(4);  # skip bin/
                         my $bin-dir  := $prefix.add('bin');
                         unlink-if-exists($bin-dir.add($basename ~ $_))
-                          for @script-extensions;
+                          for @all-script-extensions;
                     }
 
                     # original bin scripts are in $resources-dir

@@ -842,6 +842,28 @@ my class IO::Path is Cool does IO {
         }
     }
 
+    proto method dir-with-entries(|) {*}
+    multi method dir-with-entries(IO::Path:D: --> Bool:D) {
+        my $handle := nqp::opendir(self.absolute);
+        nqp::while(
+          (my str $entry = nqp::nextfiledir($handle))
+            && (nqp::iseq_s($entry,'.') || nqp::iseq_s($entry,'..')),
+          nqp::null()
+        );
+        nqp::closedir($handle);
+        nqp::hllbool(nqp::chars($entry))
+    }
+    multi method dir-with-entries(IO::Path:D: :$test! --> Bool:D) {
+        my $handle := nqp::opendir(self.absolute);
+        nqp::while(
+          (my str $entry = nqp::nextfiledir($handle))
+            && !$test.ACCEPTS($entry),
+          nqp::null()
+        );
+        nqp::closedir($handle);
+        nqp::hllbool(nqp::chars($entry))
+    }
+
     method CHECKSUM(IO::Path:D: --> Str:D) is implementation-detail {
         my \slurped := self.slurp(:enc<iso-8859-1>);
         nqp::istype(slurped,Failure)

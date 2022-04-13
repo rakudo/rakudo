@@ -2542,7 +2542,7 @@ my class X::TypeCheck is Exception {
           ?? "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n "
           !! ''
     }
-    method complainee-message($complainee = $!expected.HOW.complainee) {
+    method complainee-message(Mu $complainee = $!expected.HOW.complainee) {
         $complainee ~~ Callable || $complainee.^can('CALL-ME')
             ?? $complainee($!got)
             !! $complainee.Str
@@ -2559,12 +2559,11 @@ my class X::TypeCheck is Exception {
 }
 
 my class X::TypeCheck::Binding is X::TypeCheck {
-    has $.desc;
+    has $.symbol;
     method operation { 'binding' }
     method message() {
-        my $symbol := $.desc.name;
-        my $to = $symbol.defined && $symbol ne '$'
-            ?? " to '$symbol'"
+        my $to = $!symbol.defined && $!symbol ne '$'
+            ?? " to '$!symbol'"
             !! "";
         my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected type $.expectedn cannot be itself"
@@ -2589,7 +2588,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
             !! callsame()
     }
     method explain {
-        nqp::istype($!parameter, Metamodel::Explaining)
+        nqp::istype(nqp::decont($!parameter), Metamodel::Explaining) && nqp::defined($!parameter.complainee)
             ?? self.complainee-message($!parameter.complainee)
             !! callsame()
     }
@@ -2616,16 +2615,17 @@ my class X::TypeCheck::Return is X::TypeCheck {
     }
 }
 my class X::TypeCheck::Assignment is X::TypeCheck {
-    has $.desc;
+    has Mu $.desc;
+    has $.symbol;
     method operation { 'assignment' }
     method message {
-        my $symbol := $!desc.name;
+        my $symbol := $!symbol // $!desc.name;
         my $to = $symbol.defined && $symbol ne '$'
             ?? " to $symbol" !! "";
         my $is-itself := nqp::eqaddr(self.expected, self.got);
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"
-            !! (nqp::istype($!desc, Metamodel::Explaining)
+            !! (nqp::defined($!desc) && nqp::istype($!desc, Metamodel::Explaining) && nqp::defined($!desc.complainee)
                 ?? self.complainee-message($!desc.complainee)
                 !! self.explain);
         my $maybe-Nil := $is-itself
@@ -3135,8 +3135,8 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
       X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter, :$constraint).throw;
   },
   'X::TypeCheck::Assignment',
-  -> Mu $desc is raw, Mu $got is raw, Mu $expected is raw {
-      X::TypeCheck::Assignment.new(:$desc, :$got, :$expected).throw;
+  -> Mu $symbol is raw, Mu $got is raw, Mu $expected is raw {
+      X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
   },
   'X::TypeCheck::Return',
   -> Mu $got is raw, Mu $expected is raw {

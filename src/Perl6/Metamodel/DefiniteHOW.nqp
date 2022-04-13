@@ -1,7 +1,6 @@
 class Perl6::Metamodel::DefiniteHOW
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Nominalizable
-    does Perl6::Metamodel::Explaining
 {
     my $archetypes := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable(1));
     method archetypes() {

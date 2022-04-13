@@ -202,14 +202,21 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :compose($)! ) {
 }
 multi sub trait_mod:<will>(Variable:D $v, &complainee, :complain($)!) {
     my $var := $v.var;
-    my $what := $var.VAR.WHAT;
-    my $descriptor := nqp::getattr($var, $what, '$!descriptor');
-
-    unless nqp::istype($descriptor, Metamodel::Explaining) {
-        $descriptor.^mixin(Metamodel::Explaining);
+    my $desc := try nqp::getattr($var, $var.VAR.^mixin_base, '$!descriptor');
+    unless nqp::defined($desc) && nqp::istype($desc, Metamodel::Explaining) {
+        X::Comp::Trait::Invalid.new(
+            file       => $?FILE,
+            line       => $?LINE,
+            type       => 'will',
+            subtype    => 'complain',
+            declaring  => 'variable',
+            name       => $var.name,
+            reason     => (nqp::defined($desc)
+                            ?? 'cannot apply to descriptor type ' ~ $desc.^name
+                            !! 'cannot apply to a ' ~ $var.VAR.^name ~ " variable")
+        ).throw
     }
-
-    $descriptor.SET-COMPLAINEE(&complainee);
+    $desc.SET-COMPLAINEE(&complainee);
 }
 
 # vim: expandtab shiftwidth=4

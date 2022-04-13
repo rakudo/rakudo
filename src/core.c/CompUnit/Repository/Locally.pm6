@@ -4,9 +4,8 @@ role CompUnit::Repository::Locally {
     has ValueObjAt $.WHICH     is built(False);
     has Str        $.path-spec is built(False);
 
-    my $instances;  # cache with instances, keyed on WHICH
-    my $lock;       # serializing access to instances hash
-    sub init-cache() { $instances := nqp::hash; $lock := Lock.new }
+    my $instances := nqp::hash;  # cache with instances, keyed on WHICH
+    my $lock      := Lock.new;   # serializing access to instances hash
 
     # handle a new object that wasn't cached before
     method !SET-SELF(Str:D $abspath, str $WHICH) {
@@ -28,7 +27,7 @@ role CompUnit::Repository::Locally {
           !! $*SPEC.rel2abs($prefix.Str);
         my str $WHICH = self.^name ~ '|' ~ $abspath;
 
-        ($lock // init-cache).protect: {
+        $lock.protect: {
             nqp::ifnull(
               nqp::atkey($instances,$WHICH),
               self.bless(

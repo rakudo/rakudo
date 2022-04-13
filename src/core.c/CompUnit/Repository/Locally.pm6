@@ -1,5 +1,5 @@
 role CompUnit::Repository::Locally {
-    has IO::Path   $.prefix    is built(False);
+    has IO::Path   $.prefix    is built(:bind);
     has Str        $.abspath   is built(False);
     has ValueObjAt $.WHICH     is built(False);
     has Str        $.path-spec is built(False);
@@ -9,8 +9,7 @@ role CompUnit::Repository::Locally {
     sub init-cache() { $instances := nqp::hash; $lock := Lock.new }
 
     # handle a new object that wasn't cached before
-    method !SET-SELF(Any:D $prefix, Str:D $abspath, str $WHICH) {
-        $!prefix    := nqp::istype($prefix,IO::Path) ?? $prefix !! $abspath.IO;
+    method !SET-SELF(Str:D $abspath, str $WHICH) {
         $!abspath   := $abspath;
         $!WHICH     := ValueObjAt.new($WHICH);
         $!path-spec := self.short-id ~ '#' ~ $abspath;
@@ -24,7 +23,7 @@ role CompUnit::Repository::Locally {
     # from the "prefix" parameter, will be *ignored* any subsequent
     # attempt at creating an object of that type on that prefix.
     method new(CompUnit::Repository::Locally: Any:D :$prefix) {
-        my str $abspath = nqp::istype($prefix,IO::Path)
+        my $abspath = nqp::istype($prefix,IO::Path)
           ?? $prefix.absolute
           !! $*SPEC.rel2abs($prefix.Str);
         my str $WHICH = self.^name ~ '|' ~ $abspath;
@@ -32,7 +31,11 @@ role CompUnit::Repository::Locally {
         ($lock // init-cache).protect: {
             nqp::ifnull(
               nqp::atkey($instances,$WHICH),
-              self.bless(|%_)!SET-SELF($prefix, $abspath, $WHICH)
+              self.bless(
+                :prefix(
+                  nqp::istype($prefix,IO::Path) ?? $prefix !! $abspath.IO
+                ), |%_
+              )!SET-SELF($abspath, $WHICH)
             )
         }
     }

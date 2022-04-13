@@ -1,58 +1,67 @@
 role CompUnit::Repository::Locally {
-    has Str        $.abspath;
-    has IO::Path   $.prefix is required;
-    has ValueObjAt $.WHICH  is required;
+    has IO::Path   $.prefix    is built(False);
+    has Str        $.abspath   is built(False);
+    has ValueObjAt $.WHICH     is built(False);
+    has Str        $.path-spec is built(False);
 
-    my $lock = Lock.new;
-    my %instances;
+    my $instances;  # cache with instances, keyed on WHICH
+    my $lock;       # serializing access to instances hash
+    sub init-cache() { $instances := nqp::hash; $lock := Lock.new }
 
-    method new(CompUnit::Repository::Locally: Any:D :$prefix is copy) {
+    # handle a new object that wasn't cached before
+    method !SET-SELF(Any:D $prefix, Str:D $abspath, str $WHICH) {
+        $!prefix    := nqp::istype($prefix,IO::Path) ?? $prefix !! $abspath.IO;
+        $!abspath   := $abspath;
+        $!WHICH     := ValueObjAt.new($WHICH);
+        $!path-spec := self.short-id ~ '#' ~ $abspath;
 
-        my $abspath;
-        if $prefix ~~ IO::Path {
-            $abspath := $prefix.absolute;
-        }
-        else {
-            $abspath := $*SPEC.rel2abs($prefix.Str);
-            $prefix = $abspath.IO;
-        }
-
-        my $WHICH := ValueObjAt.new(self.^name ~ '|' ~ $abspath);
-        $lock.protect: {
-            %instances{$WHICH} //= self.bless(:$abspath, :$prefix, :$WHICH, |%_)
-        }
+        nqp::bindkey($instances,$WHICH,self)
     }
 
-    multi method Str(CompUnit::Repository::Locally:D:) { $!abspath }
-    multi method gist(CompUnit::Repository::Locally:D:) {
-        self.path-spec
-    }
-    multi method raku(CompUnit::Repository::Locally:D:) {
-        $?CLASS.^name ~ '.new(prefix => ' ~ $!abspath.raku ~ ')';
+    # CompUnit::Repository::Locally objects are special in that there
+    # can only be one for each combination of class and directory that
+    # they consider their work space.  So any parameters passed apart
+    # from the "prefix" parameter, will be *ignored* any subsequent
+    # attempt at creating an object of that type on that prefix.
+    method new(CompUnit::Repository::Locally: Any:D :$prefix) {
+        my str $abspath = nqp::istype($prefix,IO::Path)
+          ?? $prefix.absolute
+          !! $*SPEC.rel2abs($prefix.Str);
+        my str $WHICH = self.^name ~ '|' ~ $abspath;
+
+        ($lock // init-cache).protect: {
+            nqp::ifnull(
+              nqp::atkey($instances,$WHICH),
+              self.bless(|%_)!SET-SELF($prefix, $abspath, $WHICH)
+            )
+        }
     }
 
     multi method WHICH(CompUnit::Repository::Locally:D: --> ValueObjAt:D) {
         $!WHICH
     }
-
-    method path-spec(CompUnit::Repository::Locally:D:) {
-        self.short-id ~ '#' ~ $!abspath
+    multi method Str(CompUnit::Repository::Locally:D: --> Str:D) {
+        $!abspath
+    }
+    multi method gist(CompUnit::Repository::Locally:D: --> Str:D) {
+        $!path-spec
+    }
+    multi method raku(CompUnit::Repository::Locally:D: --> Str:D) {
+        $?CLASS.^name ~ '.new(prefix => ' ~ $!abspath.raku ~ ')';
+    }
+    method source-file(Str:D $name --> IO::Path:D) {
+        $!prefix.add($name)
     }
 
-    method source-file(Str $name --> IO::Path:D) {
-        self.prefix.add($name)
-    }
-
-    method id() {
-        nqp::sha1(
-          self.next-repo
-            ?? self.path-spec ~ ',' ~ self.next-repo.id
-            !! self.path-spec
+    method id(--> Str:D) {
+        nqp::sha1(self.next-repo
+          ?? $!path-spec ~ ',' ~ self.next-repo.id
+          !! $!path-spec
         )
     }
 
     # stubs
-    method short-id(CompUnit::Repository::Locally:D:) { ... }
+    method short-id(CompUnit::Repository::Locally:D: --> Str:D) { ... }
 }
 
 # vim: expandtab shiftwidth=4

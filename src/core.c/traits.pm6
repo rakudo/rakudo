@@ -454,7 +454,12 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
 
         method add_delegator_method($attr: Mu $pkg, $meth_name, $call_name) {
             my $meth := method (|c) is rw {
-                $attr.get_value(self)."$call_name"(|c)
+                (nqp::isconcrete(self)
+                  ?? $attr.get_value(self)
+                  !! nqp::decont(nqp::getattr(
+                         nqp::decont($attr),Attribute,'$!auto_viv_container'
+                     ))
+                )."$call_name"(|c)
             };
             $meth.set_name($meth_name);
             $pkg.^add_method($meth_name, $meth);

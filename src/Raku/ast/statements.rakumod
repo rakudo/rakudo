@@ -282,11 +282,25 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $qast := $!expression.IMPL-TO-QAST($context);
-        if self.sunk && $!expression.needs-sink-call {
-            $qast := QAST::Op.new( :op('p6sink'), $qast );
+        # If there is a condition modifier, and the expression is a block
+        # with either an explicit signature or a placeholder signature,
+        # we should compile it immediate in order that the arity is set
+        # right and things like `{ say $^x } if $y` work. Blocks with no
+        # signature aren't handled this way, since the $_ should not be
+        # counted.
+        my $qast;
+        if $!condition-modifier && nqp::istype($!expression, RakuAST::Block) &&
+                ($!expression.signature || $!expression.placeholder-signature) {
+            $qast := $!condition-modifier.IMPL-WRAP-QAST($context,
+                $!expression.IMPL-TO-QAST($context, :immediate));
         }
-        $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier;
+        else {
+            $qast := $!expression.IMPL-TO-QAST($context);
+            if self.sunk && $!expression.needs-sink-call {
+                $qast := QAST::Op.new( :op('p6sink'), $qast );
+            }
+            $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier;
+        }
         if $!loop-modifier {
             my $sink := self.IMPL-DISCARD-RESULT;
             $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast, :$sink);

@@ -71,23 +71,36 @@ class RakuAST::StatementModifier::When is RakuAST::StatementModifier::Condition 
 # The with statement modifier.
 class RakuAST::StatementModifier::With is RakuAST::StatementModifier::Condition {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
-        my $tested := QAST::Node.unique('with_tested');
-        QAST::Op.new(
-            :op('if'),
+        if nqp::istype($statement-qast, QAST::Block) {
+            # It's a block, so just use the `with` compilation.
             QAST::Op.new(
-                :op('callmethod'), :name('defined'),
+                :op('with'),
+                self.expression.IMPL-TO-QAST($context),
+                $statement-qast,
+                self.IMPL-EMPTY($context)
+            )
+        }
+        else {
+            # A non-block statement. Compile more cheaply by making a temporary
+            # $_ to avoid a wrapping block.
+            my $tested := QAST::Node.unique('with_tested');
+            QAST::Op.new(
+                :op('if'),
                 QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($tested), :scope('local'), :decl('var') ),
-                    self.expression.IMPL-TO-QAST($context),
+                    :op('callmethod'), :name('defined'),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($tested), :scope('local'), :decl('var') ),
+                        self.expression.IMPL-TO-QAST($context),
+                    ),
                 ),
-            ),
-            self.IMPL-TEMPORARIZE-TOPIC(
-                QAST::Var.new( :name($tested), :scope('local') ),
-                $statement-qast
-            ),
-            self.IMPL-EMPTY($context)
-        )
+                self.IMPL-TEMPORARIZE-TOPIC(
+                    QAST::Var.new( :name($tested), :scope('local') ),
+                    $statement-qast
+                ),
+                self.IMPL-EMPTY($context)
+            )
+        }
     }
 }
 

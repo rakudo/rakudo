@@ -4,6 +4,8 @@ class Distribution::Resource {
     has $.dist-id;
     has $.key;
 
+    # NOTE: IO() **MUST** be determined at runtime. The result must not make
+    # it into a precomp file.  See also commits 67906e4 and d4d6a99
     method IO() {
         my $repo := self.repo-name
             ?? CompUnit::RepositoryRegistry.repository-for-name(self.repo-name)
@@ -13,7 +15,8 @@ class Distribution::Resource {
 
     method platform-library-name() {
         my $library = self.IO;
-        ($library ~~ /\.<.alpha>+$/ or $library ~~ /\.so(\.<.digit>+)+$/) #Already a full name?
+        # already a full name?
+        ($library ~~ /\.<.alpha>+$/ or $library ~~ /\.so(\.<.digit>+)+$/)
             ??  $library
             !!  $*VM.platform-library-name($library)
     }

@@ -2,7 +2,7 @@ class Distribution::Hash does Distribution::Locally {
     has $.meta is built(:bind);
 
     method new($meta, :$prefix) { self.bless(:$meta, :$prefix) }
-    method raku {
+    multi method raku(Distribution::Hash:D:) {
         self.^name ~ ".new($!meta.raku(), prefix => $!prefix.raku())";
     }
 }

@@ -2060,14 +2060,13 @@ class Perl6::World is HLL::World {
                 !! $v)
     }
 
-    # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
-    # avoid massive duplication of containers and container descriptors.
+    # Installs one of the magical lexicals ($_, $/, $! and $¢). Uses a cache
+    # to avoid massive duplication of containers and container descriptors.
     method install_lexical_magical($block, $name) {
         my %magical_cds := self.context().magical_cds();
 
-        if nqp::existskey(%magical_cds, $name) {
-            my $mcd := nqp::atkey(%magical_cds, $name);
-            self.install_lexical_container($block, $name, $mcd[0], $mcd[1], :cont($mcd[2]));
+        if nqp::atkey(%magical_cds, $name) -> @mcd {
+            self.install_lexical_container($block, $name, @mcd[0], @mcd[1], :cont(@mcd[2]));
         }
         else {
             my $Mu     := self.find_single_symbol_in_setting('Mu');
@@ -2082,7 +2081,7 @@ class Perl6::World is HLL::World {
                 'default_value',   $WHAT,
                 'scalar_value',    $WHAT,
             );
-            my $dynamic := $*W.lang-rev-before('d') || $name ne '$_';
+            my $dynamic := self.lang-rev-before('d') || $name ne '$_';
             my $desc := self.create_container_descriptor($Mu, $name, $WHAT, $dynamic);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);

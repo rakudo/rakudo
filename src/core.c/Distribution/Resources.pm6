@@ -18,7 +18,7 @@ class Distribution::Resources does Associative {
 
     # Alternate instantiator called from Actions.nqp during compilation
     # of %?RESOURCES
-    method from-precomp(Distribution::Resources:U:) {
+    method from-precomp(Distribution::Resources:U:) is implementation-detail {
         if %*ENV<RAKUDO_PRECOMP_DIST> -> $dist {
             my %data := Rakudo::Internals::JSON.from-json: $dist;
             self.new:

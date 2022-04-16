@@ -25,9 +25,9 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
             my $short-name := $spec.short-name;
             my $handle := $perl5.require(
               $short-name,
-              $spec.version-matcher !== True
-                ?? $spec.version-matcher.Numi
-                !! Num,
+              $spec.version-matcher =:= True
+                ?? Num
+                !! $spec.version-matcher.Num,
               :handle
             );
             CompUnit.new:

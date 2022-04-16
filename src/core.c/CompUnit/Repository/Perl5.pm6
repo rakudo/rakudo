@@ -1,5 +1,5 @@
 class CompUnit::Repository::Perl5 does CompUnit::Repository {
-    my $perl5-dependency :=
+    my constant $perl5-dependency =
       CompUnit::DependencySpecification.new(:short-name<Inline::Perl5>);
 
     method need(CompUnit::Repository::Perl5:D:

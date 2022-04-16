@@ -53,7 +53,7 @@ class CompUnit::Repository::Distribution does Distribution {
         }
     }
 
-    method serialize(--> Str:D) {
+    method serialize(--> Str:D) is implementation-detail {
         Rakudo::Internals::JSON.to-json: {:$.repo, :$.repo-name, :$.dist-id}
     }
 

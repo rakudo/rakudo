@@ -1,38 +1,36 @@
 class CompUnit::Repository::NQP does CompUnit::Repository {
-    method need(
-        CompUnit::DependencySpecification $spec,
-        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
-        --> CompUnit:D)
-    {
+    my constant %opts = :from<NQP>,;  # comma needed to make a Map
+
+    method need(CompUnit::Repository::NQP:D:
+      CompUnit::DependencySpecification $spec,
+      CompUnit::PrecompilationRepository $precomp?,
+    --> CompUnit:D) {
         if $spec.from eq 'NQP' {
-            my $nqp := nqp::gethllsym('Raku', 'ModuleLoader');
-
-            return CompUnit.new(
-                :short-name($spec.short-name),
-                :handle(CompUnit::Handle.new($nqp.load_module($spec.short-name, {:from<NQP>}))),
-                :repo(self),
-                :repo-id($spec.short-name),
-                :from($spec.from),
-            );
+            my $key := $spec.short-name;
+            CompUnit.new:
+              :short-name($key),
+              :handle(CompUnit::Handle.new(
+                 nqp::gethllsym('Raku','ModuleLoader').load_module($key, %opts)
+              )),
+              :repo(self),
+              :repo-id($key),
+              :from<NQP>;
         }
-
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
-        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+        elsif self.next-repo -> $repo {
+            $repo.need($spec, self.precomp-repository)
+        }
+        else {
+            X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+        }
     }
 
-    method loaded() {
-        []
-    }
+    method loaded(CompUnit::Repository::NQP:D: --> Empty) { }
 
-    method id() {
-        'NQP'
-    }
+    method id(--> Str:D) { 'NQP' }
 
-    method path-spec() {
-        'nqp#'
-    }
+    method path-spec(--> Str:D) { 'nqp#' }
 
-    multi method gist(CompUnit::Repository::NQP:D:) {
+    multi method gist(CompUnit::Repository::NQP:D: --> Str:D) {
         self.path-spec
     }
 }

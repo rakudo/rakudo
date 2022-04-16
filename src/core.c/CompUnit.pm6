@@ -5,6 +5,7 @@ class CompUnit {
     has Str:D   $.short-name is built(:bind) is required;
     has Version $.version    is built(:bind);
     has Str     $.auth       is built(:bind);
+    has Version $.api        is built(:bind);
 
     # The CompUnit::Repository that loaded this CompUnit.
     has CompUnit::Repository:D $.repo is built(:bind) is required;
@@ -32,6 +33,7 @@ class CompUnit {
           nqp::list_s($!from,$!short-name,$!repo-id,$!precompiled.Str);
         nqp::push_s($parts,$!version.Str)      if $!version;
         nqp::push_s($parts,$!auth)             if $!auth;
+        nqp::push_s($parts,$!api.Str)          if $!api;
         nqp::push_s($parts,$!distribution
           ?? CompUnit::Repository::Distribution.new(
                $!distribution,

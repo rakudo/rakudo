@@ -547,16 +547,17 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method resolve(CompUnit::DependencySpecification:D $spec --> CompUnit:D) {
-        with self!matching-dist($spec) {
-            my %meta := .meta;
+        if self!matching-dist($spec) -> $distribution {
+            my %meta := $distribution.meta;
             CompUnit.new(
               :handle(CompUnit::Handle),
               :short-name($spec.short-name),
               :version(%meta<ver>),
-              :auth(%meta<auth> // Str),
+              :auth(%meta<auth>),
+              :api(%meta<api>),
               :repo(self),
               :repo-id(%meta<source>),
-              :distribution($_),
+              :$distribution,
             )
         }
         elsif self.next-repo -> $next-repo {
@@ -635,7 +636,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                       :$handle,
                       :short-name($spec.short-name),
                       :version(%meta<ver>),
-                      :auth(%meta<auth> // Str),
+                      :auth(%meta<auth>),
+                      :api(%meta<api>),
                       :repo(self),
                       :$repo-id,
                       :precompiled,
@@ -651,7 +653,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                       :$handle,
                       :short-name($spec.short-name),
                       :version(%meta<ver>),
-                      :auth(%meta<auth> // Str),
+                      :auth(%meta<auth>),
+                      :api(%meta<api>),
                       :repo(self),
                       :$repo-id,
                       :$distribution,

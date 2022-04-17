@@ -15,7 +15,7 @@ role CompUnit::PrecompilationRepository {
 }
 
 BEGIN CompUnit::PrecompilationRepository::<None> :=
-  CompUnit::PrecompilationRepository.new;
+  CompUnit::PrecompilationRepository;
 
 class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default

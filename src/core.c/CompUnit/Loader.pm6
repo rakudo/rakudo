@@ -12,18 +12,10 @@ class CompUnit::Loader is repr('Uninstantiable') {
     method load-source(Blob:D $bytes --> CompUnit::Handle:D) {
 
         my $original-GLOBAL := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
-        CATCH {
-            default {
-                nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
-                .throw;
-            }
-        }
+        LEAVE nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
 
-        my $handle   := CompUnit::Handle.new;
-        my $*CTXSAVE := $handle;
+        my $handle := my $*CTXSAVE := CompUnit::Handle.new;
         nqp::getcomp('Raku').compile($bytes.decode)();      # compile *and* run
-
-        nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
         $handle
     }
 

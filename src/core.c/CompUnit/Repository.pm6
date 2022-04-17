@@ -56,11 +56,13 @@ role CompUnit::Repository {
         $buffer.List
     }
 
-    method not-found(str $file) is hidden-from-backtrace {
+    method not-found(
+      str $file
+    ) is hidden-from-backtrace is implementation-detail {
         die "Could not find $file in:\n" ~ self.not-found-list;
     }
 
-    method not-found-list(--> Str:D) {
+    method not-found-list(--> Str:D) is implementation-detail {
         my str $spaces = nqp::x(' ',4);
         $spaces ~ self.repo-chain.map(*.path-spec).join("\n" ~ $spaces)
     }

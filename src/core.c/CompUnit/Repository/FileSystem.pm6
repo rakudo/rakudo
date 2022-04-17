@@ -142,7 +142,8 @@ class CompUnit::Repository::FileSystem
         }
 
         return self.next-repo.load($file) if self.next-repo;
-        nqp::die("Could not find $file in:\n" ~ $*REPO.repo-chain.map(*.Str).join("\n").indent(4));
+
+        $*REPO.not-found($file)
     }
 
     method short-id() { 'file' }

@@ -48,8 +48,7 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
             $repo.load($file)
         }
         else {
-            die "Could not find $file in:\n"
-              ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4);
+            $*REPO.not-found($file);
         }
     }
 

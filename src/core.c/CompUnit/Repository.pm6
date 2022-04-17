@@ -27,8 +27,7 @@ role CompUnit::Repository {
     {
         self.next-repo
           ?? self.next-repo.load($file)
-          !! nqp::die("Could not find $file in:\n"
-              ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4));
+          !! self.not-found($file)
     }
 
     # Returns the CompUnit objects describing all of the compilation
@@ -55,6 +54,15 @@ role CompUnit::Repository {
           nqp::push($buffer,$repo)
         );
         $buffer.List
+    }
+
+    method not-found(str $file) is hidden-from-backtrace {
+        die "Could not find $file in:\n" ~ self.not-found-list;
+    }
+
+    method not-found-list(--> Str:D) {
+        my str $spaces = nqp::x(' ',4);
+        $spaces ~ self.repo-chain.map(*.path-spec).join("\n" ~ $spaces)
     }
 }
 

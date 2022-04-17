@@ -3400,7 +3400,7 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
         is-core($name)
             ?? "{$name} is a builtin type, not an external module"
             !! "Could not find $.specification in:\n"
-                ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4)
+                ~ $*REPO.not-found-list
                 ~ ($.specification ~~ / $<name>=.+ '::from' $ /
                     ?? "\n\nIf you meant to use the :from adverb, use"
                         ~ " a single colon for it: $<name>:from<...>\n"

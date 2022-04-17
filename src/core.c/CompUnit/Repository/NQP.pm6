@@ -17,7 +17,7 @@ class CompUnit::Repository::NQP does CompUnit::Repository {
               :from<NQP>;
         }
         elsif self.next-repo -> $repo {
-            $repo.need($spec, self.precomp-repository)
+            $repo.need($spec, $precomp // self.precomp-repository)
         }
         else {
             X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;

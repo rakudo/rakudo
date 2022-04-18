@@ -100,7 +100,8 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     }
 
     multi method raku(::?CLASS:D:) {
-        my $type := nqp::getattr(self,Array,'$!descriptor').of.^name;
+        my $type := (try TValue.raku)
+          // nqp::getattr(self,Array,'$!descriptor').of.^name;
         my $raku := self.map({
             nqp::isconcrete($_) ?? .raku(:arglist) !! $type
         }).join(', ');

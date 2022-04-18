@@ -592,10 +592,8 @@ my class Binder {
         # If it's attributive, now we assign it.
         if $is_attributive {
             # Find self.
-            my $self;
-            if nqp::existskey($lexpad, 'self') {
-                $self := nqp::atkey($lexpad, 'self');
-            } else {
+            my $self := nqp::atkey($lexpad, 'self');
+            if nqp::isnull($self) {
                 if nqp::defined($error) {
                     $error[0] := "Unable to bind attributive parameter '$varname'; could not find self";
                 }

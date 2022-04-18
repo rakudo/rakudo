@@ -145,7 +145,7 @@ my class X::NQP::NotFound is Exception {
         "Could not find nqp::$.op, did you forget 'use nqp;' ?"
     }
 }
-my class X::File::NotFound is Exception {
+my class X::NotFoundInRepository is Exception {
     has $.file;
     has @.repos;
     method message() {

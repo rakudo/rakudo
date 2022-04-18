@@ -143,7 +143,7 @@ class CompUnit::Repository::FileSystem
 
         return self.next-repo.load($file) if self.next-repo;
 
-        X::File::NotFound.new(:$file).throw;
+        X::NotFoundInRepository.new(:$file).throw;
     }
 
     method short-id() { 'file' }

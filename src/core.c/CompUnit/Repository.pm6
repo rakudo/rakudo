@@ -27,7 +27,7 @@ role CompUnit::Repository {
     {
         self.next-repo
           ?? self.next-repo.load($file)
-          !! X::File::NotFound.new(:$file).throw;
+          !! X::NotFoundInRepository.new(:$file).throw;
     }
 
     # Returns the CompUnit objects describing all of the compilation

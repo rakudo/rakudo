@@ -48,7 +48,7 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
             $repo.load($file)
         }
         else {
-            $*REPO.not-found($file);
+            X::File::NotFound.new(:$file).throw;
         }
     }
 

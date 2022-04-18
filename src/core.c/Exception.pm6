@@ -145,6 +145,14 @@ my class X::NQP::NotFound is Exception {
         "Could not find nqp::$.op, did you forget 'use nqp;' ?"
     }
 }
+my class X::File::NotFound is Exception {
+    has $.file;
+    has @.repos;
+    method message() {
+        "Could not find $.file in:\n"
+          ~ (@.repos || $*REPO.repo-chain).join("\n").indent(4)
+    }
+}
 my class X::Dynamic::NotFound is Exception {
     has $.name;
     method message() {
@@ -3400,7 +3408,7 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
         is-core($name)
             ?? "{$name} is a builtin type, not an external module"
             !! "Could not find $.specification in:\n"
-                ~ $*REPO.not-found-list
+                ~ $*REPO.repo-chain.join("\n").indent(4)
                 ~ ($.specification ~~ / $<name>=.+ '::from' $ /
                     ?? "\n\nIf you meant to use the :from adverb, use"
                         ~ " a single colon for it: $<name>:from<...>\n"

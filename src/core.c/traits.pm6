@@ -553,54 +553,6 @@ multi sub trait_mod:<will>(Attribute $attr, Mu :$build!) {  # internal usage
     $attr.set_build($build)
 }
 
-multi sub trait_mod:<will>(Mu:U \type, &complainee, :complain($)!) {
-    if type.HOW.archetypes.composable {
-        X::Comp::Trait::Invalid.new(
-            file       => $?FILE,
-            line       => $?LINE,
-            type       => 'will',
-            subtype    => 'complain',
-            declaring  => 'role',
-            name       => type.^name
-        ).throw
-    }
-    type.HOW does Metamodel::Explaining unless nqp::istype(type.HOW, Metamodel::Explaining);
-    type.HOW.SET-COMPLAINEE(&complainee);
-}
-multi sub trait_mod:<will>(Parameter:D $param, &complainee, :complain($)!) {
-    # Parameters often doesn't have an associated container descriptor.
-    # Therefore applying directly to the parameter object iyself.
-    $param does Metamodel::Explaining unless nqp::istype(nqp::decont($param), Metamodel::Explaining);
-    $param.SET-COMPLAINEE(&complainee)
-}
-multi sub trait_mod:<will>(Attribute:D $attr, &complainee, :complain($)!) {
-    my $desc = try $attr.container_descriptor;
-    unless $desc && nqp::istype($desc, Metamodel::Explaining) {
-        X::Comp::Trait::Invalid.new(
-            file       => $?FILE,
-            line       => $?LINE,
-            type       => 'will',
-            subtype    => 'complain',
-            declaring  => 'attribute',
-            name       => $attr.name,
-            reason     => (nqp::defined($desc)
-                            ?? 'cannot apply to descriptor type ' ~ $desc.^name
-                            !! 'cannot get descriptor')
-        ).throw
-    }
-    $desc.SET-COMPLAINEE(&complainee)
-}
-multi sub trait_mod:<will>(Mu \obj, &complainee, :complain($)!) {
-    X::Comp::Trait::Invalid.new(
-        file       => $?FILE,
-        line       => $?LINE,
-        type       => 'will',
-        subtype    => 'complain',
-        declaring  => 'a ' ~ obj.^shortname.lc,
-        name       => (nqp::can(obj, 'name') ?? obj.name !! '<anon>')
-    ).throw
-}
-
 proto sub trait_mod:<trusts>(Mu, Mu, *%) {*}
 multi sub trait_mod:<trusts>(Mu:U $truster, Mu:U $trustee) {
     $truster.^add_trustee($trustee);

@@ -298,6 +298,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
             'X::TypeCheck::Assignment',
             "Type check failed in assignment",
             :symbol($desc.name),
+            :$desc,
             :got($value),
             :expected($desc.of)
         );

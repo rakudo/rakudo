@@ -1204,7 +1204,7 @@ BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
 
 # Container descriptors come here so that they can refer to Raku types.
-class ContainerDescriptor {
+class ContainerDescriptor does Perl6::Metamodel::Explaining {
     has     $!of;
     has str $!name;
     has     $!default;
@@ -1844,6 +1844,7 @@ BEGIN {
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
                             :symbol($desc.name),
+                            :$desc,
                             :got($val),
                             :expected($type)
                         );
@@ -1877,6 +1878,7 @@ BEGIN {
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
                             :symbol($desc.name),
+                            :$desc,
                             :got($val),
                             :expected($type)
                         );
@@ -1899,6 +1901,7 @@ BEGIN {
                             'X::TypeCheck::Assignment',
                             "Type check failed in assignment",
                             :symbol($desc.name),
+                            :$desc,
                             :got($val),
                             :expected($type)
                         );

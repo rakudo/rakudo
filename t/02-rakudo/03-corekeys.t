@@ -13,6 +13,7 @@ my @allowed =
       Q{$/},
       Q{$=pod},
       Q{$?BITS},
+      Q{$?COMPILATION-ID},
       Q{$?NL},
       Q{$?TABSTOP},
       Q{$_},

@@ -36,8 +36,8 @@ class CompUnit::PrecompilationRepository::Default
     my $loaded-lock   := Lock.new;
     my $first-repo-id;
 
-    my $compiler-id :=
-      CompUnit::PrecompilationId.new-without-check(Compiler.id);
+    my constant $compiler-id =
+      CompUnit::PrecompilationId.new-without-check($?COMPILATION-ID);
 
     method try-load(
       CompUnit::PrecompilationDependency::File:D $dependency,

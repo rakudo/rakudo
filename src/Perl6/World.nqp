@@ -2600,7 +2600,7 @@ class Perl6::World is HLL::World {
 
             my $code_obj := nqp::getcodeobj(nqp::curcode());
 #?if !js
-            # Temporarly disabled for js untill we figure the bug out
+            # Temporarily disabled for js until we figure the bug out
             unless nqp::isnull($code_obj) {
                 return $code_obj(|@pos, |%named);
             }

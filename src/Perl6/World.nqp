@@ -175,8 +175,6 @@ sub levenshtein_candidate_heuristic(@candidates, $target) {
     }
 }
 
-my $backend-is-js := nqp::null;
-
 # This builds upon the HLL::World to add the specifics needed by Rakudo.
 class Perl6::World is HLL::World {
 
@@ -2601,15 +2599,12 @@ class Perl6::World is HLL::World {
             }
 
             my $code_obj := nqp::getcodeobj(nqp::curcode());
-            unless nqp::ifnull(
-              $backend-is-js,
-              $backend-is-js := nqp::getcomp('Raku').backend.name eq 'js'
-            ) {
-                # Temporarly disabled for js untill we figure the bug out
-                unless nqp::isnull($code_obj) {
-                    return $code_obj(|@pos, |%named);
-                }
+#?if !js
+            # Temporarly disabled for js untill we figure the bug out
+            unless nqp::isnull($code_obj) {
+                return $code_obj(|@pos, |%named);
             }
+#?endif
 
             $precomp(|@pos, |%named);
         });

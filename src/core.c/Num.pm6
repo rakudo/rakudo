@@ -374,23 +374,23 @@ multi sub infix:<*>(num $a, num $b --> num) {
 multi sub infix:</>(Num:D $a, Num:D $b) {
     $b
       ?? nqp::p6box_n(nqp::div_n($a,$b))
-      !! Failure.new(X::Numeric::DivideByZero.new(:using</>, :numerator($a)))
+      !! X::Numeric::DivideByZero.new(:using</>, :numerator($a)).Failure
 }
 multi sub infix:</>(num $a, num $b --> num) {
     $b
       ?? nqp::div_n($a, $b)
-      !! Failure.new(X::Numeric::DivideByZero.new(:using</>, :numerator($a)))
+      !! X::Numeric::DivideByZero.new(:using</>, :numerator($a)).Failure
 }
 
 multi sub infix:<%>(Num:D $a, Num:D $b) {
     $b
       ?? nqp::p6box_n(nqp::mod_n($a,$b))
-      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator($a)))
+      !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
 }
 multi sub infix:<%>(num $a, num $b --> num) {
     $b
       ?? nqp::mod_n($a, $b)
-      !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator($a)))
+      !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
 }
 
 # (If we get 0 here, must be underflow, since floating overflow provides Inf.)
@@ -398,13 +398,13 @@ multi sub infix:<**>(Num:D $a, Num:D $b) {
     nqp::p6box_n(nqp::pow_n($a,$b))
       or $a == 0e0 || $b.abs == Inf
         ?? 0e0
-        !! Failure.new(X::Numeric::Underflow.new)
+        !! X::Numeric::Underflow.new.Failure
 }
 multi sub infix:<**>(num $a, num $b --> num) {
     nqp::pow_n($a, $b)
       or $a == 0e0 || $b.abs == Inf
         ?? 0e0
-        !! Failure.new(X::Numeric::Underflow.new)
+        !! X::Numeric::Underflow.new.Failure
 }
 
 # Here we sort NaN in with string "NaN"

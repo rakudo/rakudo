@@ -48,7 +48,7 @@ my class Grammar is Match {
         %opts<post>            = @locprepost[1];
         %opts<highexpect>      = @expected if @expected;
         %opts<is-compile-time> = 1;
-        Failure.new($ex.new(|%opts))
+        $ex.new(|%opts).Failure
     }
 
     method SETFAIL($failed, :$filename) {

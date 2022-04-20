@@ -399,9 +399,9 @@ while @lines {
                 (my uint $offset = $got),
                 (my uint $elems = nqp::elems(self))
               ),
-              Failure.new(X::OutOfRange.new(
+              X::OutOfRange.new(
                 :what('Offset argument to splice'), :$got, :range("0..$elems")
-              )),
+              ).Failure,
               nqp::if(
                 nqp::iseq_i($offset,$elems),
                 nqp::create(self.WHAT),

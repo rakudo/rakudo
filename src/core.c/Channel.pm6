@@ -287,7 +287,7 @@ my class Channel does Awaitable {
     }
 
     method elems() {
-        Failure.new("Cannot determine number of elements on a {self.^name}")
+        ('Cannot determine number of elements on a ' ~ self.^name).Failure
     }
 
     method fail($error is copy) {

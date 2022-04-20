@@ -216,7 +216,7 @@ sub prefix:<let>(Mu \cont) is raw {
 # this implements the ::() indirect lookup
 sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
 
-    sub not-found($symbol = "") { Failure.new(X::NoSuchSymbol.new(:$symbol)) }
+    sub not-found($symbol = "") { X::NoSuchSymbol.new(:$symbol).Failure }
 
     # Note that each part of @chunks itself can contain double colons.
     # That's why joining and re-splitting is necessary

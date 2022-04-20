@@ -616,7 +616,7 @@ my class IO::Path is Cool does IO {
 
     # slurp given path with given normalized encoding
     sub slurp-path-with-encoding(str $path, str $encoding) {
-        CATCH { return Failure.new($_) }
+        CATCH { return $_.Failure }
 
         nqp::elems(my $blob := slurp-path-bin($path))
           ?? nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
@@ -700,7 +700,7 @@ my class IO::Path is Cool does IO {
     }
     multi method spurt(IO::Path:D: Blob:D \data, :$createonly! --> Bool:D) {
         nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!os-path
-          ?? Failure.new("Failed to open file $!os-path: File exists")
+          ?? "Failed to open file $!os-path: File exists".Failure
           !! spurt-blob($!os-path, 'w', data)
     }
     multi method spurt(IO::Path:D: Blob:D \data --> Bool:D) {
@@ -711,7 +711,7 @@ my class IO::Path is Cool does IO {
     }
     multi method spurt(IO::Path:D: \text, :$createonly!, :$enc --> Bool:D) {
         nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!os-path
-          ?? Failure.new("Failed to open file $!os-path: File exists")
+          ?? "Failed to open file $!os-path: File exists".Failure
           !! spurt-string($!os-path, 'w', text.Str, $enc)
     }
     multi method spurt(IO::Path:D: \text, :$enc --> Bool:D) {
@@ -744,7 +744,7 @@ my class IO::Path is Cool does IO {
     method !does-not-exist(
       Str:D $trying
     --> Failure) is hidden-from-backtrace {
-        Failure.new(X::IO::DoesNotExist.new(:path($!os-path),:$trying))
+        X::IO::DoesNotExist.new(:path($!os-path),:$trying).Failure
     }
 
     method e(IO::Path:D: --> Bool:D) {

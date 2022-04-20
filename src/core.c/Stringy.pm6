@@ -17,7 +17,7 @@ multi sub infix:<~>(--> '') { }
 multi sub infix:<~>($x --> Str:D) { $x.Stringy }
 
 proto sub infix:<x>($?, $?, *%) is pure {*}
-multi sub infix:<x>() { Failure.new("No zero-arg meaning for infix:<x>") }
+multi sub infix:<x>() { "No zero-arg meaning for infix:<x>".Failure }
 multi sub infix:<x>(\x)            { x.Stringy }
 multi sub infix:<x>($s, Num:D $n) {
     $n == Inf
@@ -69,7 +69,7 @@ multi sub infix:<~^>(\a    ) { a.Stringy }
 multi sub infix:<~^>(\a, \b) { a.Stringy ~^ b.Stringy }
 
 proto sub infix:<~&>($?, $?, *%) is pure {*}
-multi sub infix:<~&>() { Failure.new("No zero-arg meaning for infix:<~&>") }
+multi sub infix:<~&>() { "No zero-arg meaning for infix:<~&>".Failure }
 multi sub infix:<~&>(\a    ) { a.Stringy }
 multi sub infix:<~&>(\a, \b) { a.Stringy ~& b.Stringy }
 

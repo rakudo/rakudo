@@ -724,11 +724,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     sub subbuf-end(\SELF, int $start, int $end, int $elems) {
         nqp::if(
           nqp::islt_i($start,0) || nqp::isgt_i($start,$elems),
-          Failure.new( X::OutOfRange.new(
+          X::OutOfRange.new(
             what  => '"From argument to subbuf',
             got   => $start,
             range => "0.." ~ $elems
-          )),
+          ).Failure,
           nqp::if(
             nqp::isle_i(
               (my int $last = nqp::if(nqp::isge_i($end,$elems),$elems-1,$end)),
@@ -741,13 +741,11 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     sub subbuf-length(\SELF, int $from, int $length, int $elems) {
         nqp::islt_i($length,0)
-          ?? Failure.new(
-               X::OutOfRange.new(
-                 what  => 'Len element to subbuf',
-                 got   => $length,
-                 range => "0.." ~ $elems
-               )
-             )
+          ?? X::OutOfRange.new(
+               what  => 'Len element to subbuf',
+               got   => $length,
+               range => "0.." ~ $elems
+             ).Failure
           !! subbuf-end(SELF, $from, $from + $length - 1, $elems)
     }
 
@@ -766,9 +764,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             )),
             subbuf-end(self, $start, $end, nqp::elems(self))
           ),
-          Failure.new( X::AdHoc.new(
+          X::AdHoc.new(
             payload => "Must specify a Range with integer bounds to subbuf"
-          ))
+          ).Failure
         )
     }
     multi method subbuf(Blob:D: Int:D $From) {
@@ -852,21 +850,21 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         }
     }
     method !fail-range($got) {
-        Failure.new(X::OutOfRange.new(
+        X::OutOfRange.new(
           :what($*INDEX // 'Index'),
           :$got,
           :range("0..{nqp::elems(self)-1}")
-        ))
+        ).Failure
     }
     method !fail-typecheck-element(\action,\i,\got) {
         self!fail-typecheck(action ~ "ing element #" ~ i,got);
     }
     method !fail-typecheck($action,$got) {
-        Failure.new(X::TypeCheck.new(
+        X::TypeCheck.new(
           operation => $action ~ " to " ~ self.^name,
           got       => $got,
           expected  => T,
-        ))
+        ).Failure
     }
     multi method ACCEPTS(Blob:D: Blob:D \Other) {
         nqp::hllbool(

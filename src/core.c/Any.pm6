@@ -28,13 +28,13 @@ my class Any { # declared in BOOTSTRAP
     proto method DELETE-KEY(|) is nodal {*}
     multi method DELETE-KEY(Any:U: $ --> Nil) { }
     multi method DELETE-KEY(Any:D: $) {
-        Failure.new("Can not remove values from a {self.^name}")
+        ('Can not remove values from a ' ~ self.^name).Failure
     }
 
     proto method DELETE-POS(|) is nodal {*}
     multi method DELETE-POS(Any:U: $pos --> Nil) { }
     multi method DELETE-POS(Any:D: $pos) {
-        Failure.new("Can not remove elements from a {self.^name}")
+        ('Can not remove elements from a ' ~ self.^name).Failure
     }
     multi method DELETE-POS(Any:D: \one, \two) is raw {
         self.AT-POS(one).DELETE-POS(two)
@@ -281,7 +281,7 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
-          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
+          ?? X::Item.new(aggregate => self, index => pos).Failure
           !! self.AT-POS(nqp::unbox_i(pos.Int))
     }
     multi method AT-POS(Any:U: Any:D \pos) is raw {
@@ -290,13 +290,14 @@ my class Any { # declared in BOOTSTRAP
 
     multi method AT-POS(Any:D: Int:D \pos) is raw {
         pos
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'), :got(pos), :range<0..0>))
+          ?? X::OutOfRange.new(
+               :what($*INDEX // 'Index'), :got(pos), :range<0..0>
+             ).Failure
           !! self
     }
     multi method AT-POS(Any:D: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
-          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
+          ?? X::Item.new(aggregate => self, index => pos).Failure
           !! self.AT-POS(nqp::unbox_i(pos.Int))
     }
     multi method AT-POS(Any:D: Any:D \pos) is raw {
@@ -319,10 +320,11 @@ my class Any { # declared in BOOTSTRAP
     proto method ZEN-KEY(|) {*}
     multi method ZEN-KEY(*%unexpected) {
         %unexpected
-          ?? Failure.new(X::Adverb.new(
+          ?? X::Adverb.new(
                :what('{} slice'),
                :source(try { self.VAR.name } // self.WHAT.raku),
-               :unexpected(%unexpected.keys)))
+               :unexpected(%unexpected.keys)
+             ).Failure
           !! self
     }
 
@@ -336,7 +338,7 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method ASSIGN-POS(Any:D \SELF: Num:D \pos, Mu \assignee) is raw {
         nqp::isnanorinf(pos)
-          ?? Failure.new(X::Item.new(aggregate => SELF, index => pos))
+          ?? X::Item.new(aggregate => SELF, index => pos).Failure
           !! SELF.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D \SELF: Any:D \pos, Mu \assignee) is raw {
@@ -383,10 +385,10 @@ my class Any { # declared in BOOTSTRAP
     # internals
     proto method AT-KEY(|) is nodal {*}
     multi method AT-KEY(Any:D: $key) is raw {
-        Failure.new( self ~~ Associative
+        (self ~~ Associative
           ?? "Associative indexing implementation missing from type {self.WHAT.raku}"
           !! "Type {self.WHAT.raku} does not support associative indexing."
-        )
+        ).Failure
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
         nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyHash.new(SELF, key))

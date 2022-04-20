@@ -33,7 +33,7 @@ augment class Any {
     method fail-iterator-cannot-be-lazy(
       str $action, str $what = self.^name
     ) is hidden-from-backtrace is implementation-detail {
-        Failure.new(X::Cannot::Lazy.new(:$action, :$what))
+        X::Cannot::Lazy.new(:$action, :$what).Failure
     }
 
     # A helper method for throwing an exception because of an array being
@@ -51,7 +51,7 @@ augment class Any {
     method fail-cannot-be-empty(
       str $action, str $what = self.^name
     ) is hidden-from-backtrace is implementation-detail {
-        Failure.new(X::Cannot::Empty.new(:$action, :$what))
+        X::Cannot::Empty.new(:$action, :$what).Failure
     }
 
     my class IterateOneWithPhasers does Rakudo::SlippyIterator {
@@ -1284,11 +1284,12 @@ Consider using a block if any of these are necessary for your mapping code."
                           value,
                           nqp::if(
                             nqp::iseq_s($key,"v"),      # :!v
-                            Failure.new("Specified a negated :v adverb"),
-                            Failure.new(X::Adverb.new(  # :foo ??
+                            "Specified a negated :v adverb".Failure,
+                            X::Adverb.new(  # :foo ??
                               :$what,
                               :source(try { self.VAR.name } // self.WHAT.raku),
-                              :unexpected(%a.keys)))
+                              :unexpected(%a.keys)
+                            ).Failure
                           )
                         )
                       )
@@ -1296,11 +1297,12 @@ Consider using a block if any of these are necessary for your mapping code."
                   )
                 )
               ),
-              Failure.new(X::Adverb.new(                # multiple adverbs ??
+              X::Adverb.new(                # multiple adverbs ??
                 :$what,
                 :source(try { self.VAR.name } // self.WHAT.raku),
                 :nogo(%a.keys.grep: /k|v|p/),
-                :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
+                :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )
+              ).Failure
             ),
             value                                       # no adverb
           )
@@ -1392,7 +1394,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method first(|) is nodal {*}
     multi method first(Bool:D $t) {
-        Failure.new(X::Match::Bool.new( type => '.first' ))
+        X::Match::Bool.new( type => '.first' ).Failure
     }
     # need to handle Regex differently, since it is also Callable
     multi method first(Regex:D $test, :$end, *%a) is raw {
@@ -2408,7 +2410,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
     multi method nodemap(&op) {
         my $source := self.iterator;
-        return Failure.new(X::Cannot::Lazy.new(:action<nodemap>))
+        return X::Cannot::Lazy.new(:action<nodemap>).Failure
           if $source.is-lazy;
 
         my \buffer := nqp::create(IterationBuffer);
@@ -2623,7 +2625,7 @@ multi sub grep(Mu $test, +values, *%a) {
 multi sub grep(Bool:D $t, |) { X::Match::Bool.new(:type<grep>).throw }
 
 proto sub first(Mu, |) {*}
-multi sub first(Bool:D $t, |) { Failure.new(X::Match::Bool.new(:type<first>)) }
+multi sub first(Bool:D $t, |) { X::Match::Bool.new(:type<first>).Failure }
 multi sub first(Mu $test, +values, *%a) { values.first($test,|%a) }
 
 proto sub join($?, |) {*}

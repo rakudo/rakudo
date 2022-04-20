@@ -96,14 +96,14 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     sub BASE_OUT_OF_RANGE(int $got) {
-        Failure.new(
-          X::OutOfRange.new(:what('base argument to base'),:$got,:range<2..36>)
-        )
+        X::OutOfRange.new(
+          :what('base argument to base'), :$got, :range<2..36>
+        ).Failure
     }
     sub DIGITS_OUT_OF_RANGE(int $got) {
-        Failure.new(
-          X::OutOfRange.new(:what('digits argument to base'),:$got,:range<2..36>)
-        )
+        X::OutOfRange.new(
+          :what('digits argument to base'), :$got, :range<2..36>
+        ).Failure
     }
 
     proto method base(|) {*}
@@ -145,8 +145,9 @@ my class Int does Real { # declared in BOOTSTRAP
                     $more
                       ?? $mod
                         ?? take $more mod $mod
-                        !! Failure.new(X::Numeric::DivideByZero.new:
-                             using => 'polymod', numerator => $more)
+                        !! X::Numeric::DivideByZero.new(
+                             using => 'polymod', numerator => $more
+                           ).Failure
                       !! last;
                     $more = $more div $mod;
                 }
@@ -156,8 +157,9 @@ my class Int does Real { # declared in BOOTSTRAP
                 for @mods -> $mod {
                     $mod
                       ?? take $more mod $mod
-                      !! Failure.new(X::Numeric::DivideByZero.new:
-                           using => 'polymod', numerator => $more);
+                      !! X::Numeric::DivideByZero.new(
+                           using => 'polymod', numerator => $more
+                         ).Failure;
                     $more = $more div $mod;
                 }
                 take $more;
@@ -335,7 +337,7 @@ multi sub infix:<eqv>(int $a, int $b --> Bool:D) {
 multi sub infix:<div>(Int:D $a, Int:D $b --> Int:D) {
     $b
       ?? nqp::div_I($a,$b,Int)
-      !! Failure.new(X::Numeric::DivideByZero.new(:using<div>, :numerator($a)))
+      !! X::Numeric::DivideByZero.new(:using<div>, :numerator($a)).Failure
 }
 multi sub infix:<div>(int $a, int $b --> int) {
     # relies on opcode or hardware to detect division by 0
@@ -350,11 +352,11 @@ multi sub infix:<%>(Int:D $a, Int:D $b --> Int:D) {
     nqp::isbig_I($a) || nqp::isbig_I($b)
       ?? $b
         ?? nqp::mod_I($a,$b,Int)
-        !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator($a)))
+        !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
       !! nqp::isne_i($b,0)
         # quick fix https://github.com/Raku/old-issue-tracker/issues/4999
         ?? nqp::mod_i(nqp::add_i(nqp::mod_i($a,$b),$b),$b)
-        !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator($a)))
+        !! X::Numeric::DivideByZero.new(:using<%>, :numerator($a)).Failure
 }
 multi sub infix:<%>(int $a, int $b --> int) {
     # relies on opcode or hardware to detect division by 0
@@ -366,14 +368,14 @@ multi sub infix:<%%>(Int:D $a, Int:D $b) {
     nqp::isbig_I($a) || nqp::isbig_I($b)
       ?? $b
         ?? !nqp::mod_I($a,$b,Int)
-        !! Failure.new(
-             X::Numeric::DivideByZero.new(using => 'infix:<%%>', :numerator($a))
-           )
+        !! X::Numeric::DivideByZero.new(
+             using => 'infix:<%%>', :numerator($a)
+           ).Failure
       !! nqp::isne_i($b,0)
         ?? nqp::hllbool(nqp::not_i(nqp::mod_i($a,$b)))
-        !! Failure.new(
-             X::Numeric::DivideByZero.new(using => 'infix:<%%>', :numerator($a))
-           )
+        !! X::Numeric::DivideByZero.new(
+             using => 'infix:<%%>', :numerator($a)
+           ).Failure
 }
 multi sub infix:<%%>(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::iseq_i(nqp::mod_i($a, $b), 0))
@@ -383,13 +385,13 @@ multi sub infix:<**>(Int:D $a, Int:D $b --> Real:D) {
     my $power := nqp::pow_I($a,nqp::if($b >= 0,$b,-$b),Num,Int);
     # when a**b is too big nqp::pow_I returns Inf
     nqp::istype($power, Num)
-      ?? Failure.new(
+      ?? (
           $b >= 0 ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new
-         )
+         ).Failure
       !! $b >= 0
         ?? $power
         !! ($power := 1 / $power) == 0 && $a != 0
-          ?? Failure.new(X::Numeric::Underflow.new)
+          ?? X::Numeric::Underflow.new.Failure
           !! $power
 }
 

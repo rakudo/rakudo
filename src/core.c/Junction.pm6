@@ -21,7 +21,7 @@ my class Junction { # declared in BOOTSTRAP
             self
         }
         else {
-            Failure.new("Junction can only have 'any', 'all', 'none', 'one' type")
+            "Junction can only have 'any', 'all', 'none', 'one' type".Failure
         }
     }
 

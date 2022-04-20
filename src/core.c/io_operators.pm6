@@ -246,7 +246,7 @@ multi sub spurt(IO() $path, \text        ) { $path.spurt(text, :enc<utf8>) }
     sub chdir(IO() $path) {
         CATCH {
             default {
-                return Failure.new: X::IO::Chdir.new: :$path, :os-error(.Str);
+                return X::IO::Chdir.new(:$path, :os-error(.Str)).Failure
             }
         }
         nqp::chdir(nqp::unbox_s($path.absolute));

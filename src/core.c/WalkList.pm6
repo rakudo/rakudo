@@ -19,8 +19,7 @@ my class WalkList is List {
             method new(\wlist) { nqp::create(self)!SET-SELF(wlist) }
             method pull-one() {
                 CATCH {
-                    .rethrow unless $!is-quiet;
-                    return Failure.new($_)
+                    $!is-quiet ?? (return .Failure) !! .rethrow
                 }
                 nqp::eqaddr(
                   (my $method := nqp::decont($!wl-iterator.pull-one)),

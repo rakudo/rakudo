@@ -31,12 +31,12 @@ my class Rakudo::Internals {
             }
         }
 
-        Failure.new(X::Adverb.new(
+        X::Adverb.new(
           :what<slice>,
           :source(try { object.VAR.name } // object.^name),
           :unexpected(%d.keys),
           :nogo(@nogo),
-        ))
+        ).Failure
     }
 
     method Array-with-one-elem(Mu \type, Mu \value) {
@@ -1120,7 +1120,7 @@ my class Rakudo::Internals {
 #nqp::say("failed: $name");
         PROCESS::.BIND-KEY(
           $key,
-          Failure.new(X::Dynamic::NotFound.new(:$name))
+          X::Dynamic::NotFound.new(:$name).Failure
         )
     }
     my $DYNAMIC-INITIALIZATION-LOCK := Lock.new;
@@ -1633,7 +1633,7 @@ my class Rakudo::Internals {
                       nqp::substr($pred-nchrs,$at,1))
                 }
             }
-            Failure.new('Decrement out of range')
+            'Decrement out of range'.Failure
         }
     }
 
@@ -1683,7 +1683,7 @@ my class Rakudo::Internals {
         my $metaop_assign := nqp::create(Rakudo::Internals::IterationSet);
         for (
           &[+], -> Mu \a, Mu \b { a = a.DEFINITE ?? a + b !! +b },
-          &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! Failure.new("No zero-arg meaning for infix:<%>")},
+          &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! "No zero-arg meaning for infix:<%>".Failure },
           &[-], -> Mu \a, Mu \b { a = a.DEFINITE ?? a - b !! -b },
           &[*], -> Mu \a, Mu \b { a = a.DEFINITE ?? a * b !! +b },
           &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! ~b },

@@ -6,15 +6,15 @@ my role Mixy does Baggy  {
     multi method Hash(Mixy:D: --> Hash:D) { self!HASHIFY(Any) }
 
     multi method kxxv(Mixy:D:) {
-        Failure.new(".kxxv is not supported on a {self.^name}")
+        ".kxxv is not supported on a {self.^name}".Failure
     }
 
     multi method grab(Mixy:D: $count?) {
-        Failure.new(".grab is not supported on a {self.^name}")
+        ".grab is not supported on a {self.^name}".Failure
     }
 
     multi method pick(Mixy:D: $count?) {
-        Failure.new(".pick is not supported on a {self.^name}, maybe use .roll instead?")
+        ".pick is not supported on a {self.^name}, maybe use .roll instead?".Failure
     }
 
     multi method roll(Mixy:D:) {

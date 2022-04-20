@@ -743,11 +743,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # helper method for failing with out of range exception
     method !fail-oor($got) {
-        Failure.new(X::OutOfRange.new(
+        X::OutOfRange.new(
           :what("Position in calling '{ callframe(2).code.name }'"),
           :$got,
           :range("0..{ nqp::chars(self) }")
-        ))
+        ).Failure
     }
 
     multi method rindex(Str:D: Str:D $needle --> Int:D) {
@@ -790,13 +790,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method !combiners() {
-        Failure.new(
-          X::Str::Numeric.new(
-            source => self,
-            pos    => 1,
-            reason => "combining codepoints found at"
-         )
-        )
+        X::Str::Numeric.new(
+          source => self,
+          pos    => 1,
+          reason => "combining codepoints found at"
+        ).Failure
     }
     multi method Numeric(Str:D: Bool :$fail-or-nil --> Numeric:D) {
 #?if !jvm
@@ -1528,7 +1526,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               self!match-x-range(slash, $iterator, $x.min, $x.max),
               nqp::stmts(
                 (slash = Nil),
-                Failure.new(X::Str::Match::x.new(:got($x)))
+                X::Str::Match::x.new(:got($x)).Failure
               )
             )
           )
@@ -2082,16 +2080,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ?? nqp::atpos($r,0)
               !! self!slow-parse-base($radix,nqp::atpos($r,0),nqp::atpos($r,2))
             !! self!parse-fail($radix, 0)    # nothing to parse
-          !! Failure.new(X::Syntax::Number::RadixOutOfRange.new(:$radix))
+          !! X::Syntax::Number::RadixOutOfRange.new(:$radix).Failure
     }
 
     # Shortcut for generating parsing Failure
     method !parse-fail($radix, $pos --> Failure) {
-        Failure.new(X::Str::Numeric.new(
+        X::Str::Numeric.new(
           :source(self),
           :$pos,
           :reason("malformed base-$radix number"),
-        ))
+        ).Failure
     }
 
     # Slow path for non-simple integer values
@@ -3446,22 +3444,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method !SUBSTR-START-OOR($from) {
-        Failure.new(X::OutOfRange.new(
+        X::OutOfRange.new(
           :what('Start argument to substr'),
           :got($from.gist),
           :range("0.." ~ nqp::chars(self)),
           :comment( nqp::istype($from, Callable) || -$from > nqp::chars(self)
             ?? ''
             !! "use *-{abs $from} if you want to index relative to the end"),
-        ))
+        ).Failure
     }
     method !SUBSTR-CHARS-OOR($chars) {
-        Failure.new(X::OutOfRange.new(
+        X::OutOfRange.new(
           :what('Number of characters argument to substr'),
           :got($chars.gist),
           :range<0..^Inf>,
           :comment("use *-{abs $chars} if you want to index relative to the end"),
-        ))
+        ).Failure
     }
 
     multi method substr(Str:D: --> Str:D) { self }

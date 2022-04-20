@@ -457,7 +457,7 @@ augment class Rakudo::Internals {
     method FAIL_X_ADVERB(X::Adverb:D $x-adverb, str $what, \from) {
         $x-adverb.what   = $what;
         $x-adverb.source = try { from.VAR.name } // from.^name;
-        Failure.new($x-adverb)
+        $x-adverb.Failure
     }
 
     my constant $access-slice-dispatch = nqp::list(

@@ -46,6 +46,10 @@ my class Failure is Nil {
         nqp::create(self)!SET-SELF(X::AdHoc.from-slurpy(|cap))
     }
 
+    method Failure(Failure:D:) 
+      is implementation-detail 
+      is hidden-from-backtrace { self }
+
     submethod DESTROY () {
         note "WARNING: unhandled Failure detected in DESTROY. If you meant "
             ~ "to ignore it, you can mark it as handled by calling .Bool, "
@@ -131,7 +135,7 @@ my class Failure is Nil {
         self!throw()
     }
     method UPGRADE-RAT(Int $nu, Int $de) {
-        Failure.new("Upgrading of Rat $nu / $de not allowed")
+        "Upgrading of Rat $nu / $de not allowed".Failure
     }
 }
 

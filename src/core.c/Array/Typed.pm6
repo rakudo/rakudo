@@ -46,9 +46,7 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     }
 
     method !out-of-range(int $got) {
-        Failure.new(
-          X::OutOfRange.new(:what($*INDEX // 'Index'),:$got,:range<0..^Inf>)
-        )
+        X::OutOfRange.new(:what($*INDEX // 'Index'),:$got,:range<0..^Inf>).Failure
     }
 
     # must have a proto here to hide the candidates in Array

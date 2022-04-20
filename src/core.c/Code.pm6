@@ -320,7 +320,7 @@ my class Code { # declared in BOOTSTRAP
             (@clist ?? ',' !! '')
         );
 
-        $error ~~ Exception ?? $f but Failure.new($error) !! $f;
+        $error ~~ Exception ?? $f but $error.Failure !! $f;
     }
 }
 

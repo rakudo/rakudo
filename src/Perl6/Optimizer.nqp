@@ -3335,6 +3335,16 @@ class Perl6::Optimizer {
             && self.optimize-post-pre-inc-dec-ops($op) -> $qast {
                 return $qast;
             }
+
+            # Re-write `$foo ** 2` into `$foo * $foo`. Literals will be constant folded and
+            # we can't do it for non-VARs, since side effects could be duplicated (e.g.,
+            # `my $a = 3; say ($a += 3) ** 2; say $a` would give `89␤9` instead of `36␤6`).
+            if $!level >= 2 && ($op.name eq '&infix:<**>' || $op.name eq '&postfix:<ⁿ>') && $!symbols.is_from_core($op.name) &&
+              nqp::istype($op[0], QAST::Var) && $op[1].has_compile_time_value &&
+              nqp::istype((my $p := $op[1].compile_time_value), $!symbols.find_in_setting("Int")) && $p == 2 {
+                return QAST::Op.new(:op($op.op), :name('&infix:<*>'), $op[0], $op[0]);
+            }
+
             # If it's an onlystar proto, we have a couple of options.
             # The first is that we may be able to work out what to
             # call at compile time. Failing that, we can at least inline

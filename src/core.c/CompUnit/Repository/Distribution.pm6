@@ -28,6 +28,7 @@ class CompUnit::Repository::Distribution does Distribution {
     }
 
     method id(--> Str:D) { nqp::sha1(self.Str) }
+    method meta(CompUnit::Repository::Distribution:D:) { %!meta.item }
 
     # Alternate instantiator called from Actions.nqp during compilation
     # of $?DISTRIBUTION

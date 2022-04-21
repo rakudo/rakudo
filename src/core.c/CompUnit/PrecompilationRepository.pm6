@@ -159,7 +159,7 @@ Need to re-check dependencies.")
 
         if $REPO-id ne $first-repo-id {
             $!RMD("Repo chain changed:
-  $unit-id
+  $repo-id
   $first-repo-id
 Need to re-check dependencies.")
               if $!RMD;

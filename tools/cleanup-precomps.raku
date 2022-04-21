@@ -1,13 +1,5 @@
 #!/usr/bin/env raku
 
-use nqp;
-my int $block-size =
-  nqp::stat($*PROGRAM.absolute,nqp::const::STAT_PLATFORM_BLOCKSIZE);
-
-my sub gross-bytes(IO::Path:D $io) {
-    $block-size * nqp::stat($io.absolute,nqp::const::STAT_PLATFORM_BLOCKS)
-}
-
 my str $compilation-id = Compiler.id;
 
 #| Remove old precomp files from the repository chain

@@ -51,6 +51,7 @@ class Distribution::Path does Distribution::Locally {
         }
     }
 
+    method meta(Distribution::Path:D:) { %!meta.item }
     method raku(--> Str:D) {
        self.^name ~ ".new($!prefix.raku(), meta-file => $!meta-file.raku())"
     }

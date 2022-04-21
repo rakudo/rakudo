@@ -157,7 +157,7 @@ Need to re-check dependencies.")
             $resolve := True;
         }
 
-        if $unit-id ne $first-repo-id {
+        if $REPO-id ne $first-repo-id {
             $!RMD("Repo chain changed:
   $unit-id
   $first-repo-id

@@ -14,9 +14,7 @@ my class Exception {
             !! Nil
     }
 
-    method Failure(Exception:D:)
-      is implementation-detail
-      is hidden-from-backtrace { Failure.new: self }
+    method Failure(Exception:D:) is hidden-from-backtrace { Failure.new: self }
 
     # Only valid if .backtrace has not been called yet
     method vault-backtrace(Exception:D:) {

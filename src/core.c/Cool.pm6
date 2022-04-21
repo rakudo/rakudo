@@ -409,9 +409,7 @@ my class Cool { # declared in BOOTSTRAP
         EVAL(self, context => CALLER::, |%opts);
     }
 
-    method Failure(Cool:D:)
-      is implementation-detail
-      is hidden-from-backtrace { Failure.new(self) }
+    method Failure(Cool:D:) is hidden-from-backtrace { Failure.new(self) }
 
     multi method Real() {
         nqp::istype((my $numeric := self.Numeric),Failure)

@@ -46,9 +46,7 @@ my class Failure is Nil {
         nqp::create(self)!SET-SELF(X::AdHoc.from-slurpy(|cap))
     }
 
-    method Failure(Failure:D:) 
-      is implementation-detail 
-      is hidden-from-backtrace { self }
+    method Failure(Failure:D:) is hidden-from-backtrace { self }
 
     submethod DESTROY () {
         note "WARNING: unhandled Failure detected in DESTROY. If you meant "

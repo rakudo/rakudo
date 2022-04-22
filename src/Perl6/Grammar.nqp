@@ -4951,6 +4951,7 @@ if $*COMPILING_CORE_SETTING {
             }
             unless $*PRECEDING_DECL =:= Mu {
                 Perl6::Pod::document(self.MATCH, $*PRECEDING_DECL, $pod_block, :trailing);
+                $pod_block.set_docee($*PRECEDING_DECL);
             }
         }
     }

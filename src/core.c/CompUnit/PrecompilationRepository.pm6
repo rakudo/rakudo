@@ -247,7 +247,7 @@ Need to re-check dependencies.")
                 self.store.store-repo-id(
                   $compiler-id,
                   $precomp-unit.id,
-                  :repo-id($unit-id)
+                  :repo-id($REPO-id)
                 );
                 self.store.unlock;
             }

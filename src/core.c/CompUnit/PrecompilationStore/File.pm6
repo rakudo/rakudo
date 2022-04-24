@@ -213,10 +213,11 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $extension := ".repo-id" ~ self!tmp-extension;
         my $repo-id-file := self!file($compiler-id, $precomp-id, :$extension);
-        $repo-id-file.spurt($repo-id);
-        really-rename
-          $repo-id-file,
-          self!file($compiler-id, $precomp-id, :extension<.repo-id>);
+        with $repo-id-file.spurt($repo-id) {
+            really-rename
+              $repo-id-file,
+              self!file($compiler-id, $precomp-id, :extension<.repo-id>);
+        }
     }
 
     method delete(

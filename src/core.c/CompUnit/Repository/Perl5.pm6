@@ -36,7 +36,6 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
               :repo(self),
               :repo-id($short-name),
               :from<Perl5>;
-
         }
         elsif self.next-repo -> $repo {
             $repo.need($spec, $precomp // self.precomp-repository)

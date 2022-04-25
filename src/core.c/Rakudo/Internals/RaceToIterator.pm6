@@ -22,9 +22,6 @@ my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner d
     has IterationBuffer $!current-items = EMPTY_BUFFER;
     method pull-one() {
         until nqp::elems(nqp::decont($!current-items)) { # Handles empty batches
-            my $batch = $!batches.receive;
-            self.batch-used();
-            $!current-items = $batch.items;
             CATCH {
                 when X::Channel::ReceiveOnClosed {
                     return IterationEnd;
@@ -33,6 +30,9 @@ my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner d
                     ($_ but X::HyperRace::Died(Backtrace.new(5))).rethrow
                 }
             }
+            my $batch = $!batches.receive;
+            self.batch-used();
+            $!current-items = $batch.items;
         }
         nqp::shift(nqp::decont($!current-items))
     }

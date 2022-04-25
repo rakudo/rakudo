@@ -51,7 +51,6 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
 
     my $descriptor;
     {
-        $descriptor := nqp::getattr($var, $what.^mixin_base, '$!descriptor');
         CATCH {
             my $native = $v.native($what);
             $native
@@ -64,6 +63,7 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
               !! $v.throw('X::Comp::NYI',
                      :feature("is default on shaped $what.raku()"))
         }
+        $descriptor := nqp::getattr($var, $what.^mixin_base, '$!descriptor');
     }
 
     my $of := $descriptor.of;
@@ -83,7 +83,6 @@ multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
     my $var  := $v.var;
     my $what := $var.VAR.WHAT;
     {
-        nqp::getattr($var,$what.^mixin_base,'$!descriptor').set_dynamic($dynamic);
         CATCH {
             my $native = $v.native($what);
             $native
@@ -93,6 +92,7 @@ multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
               !! $v.throw('X::Comp::NYI',
                      :feature("is dynamic on shaped $what.raku()"))
         }
+        nqp::getattr($var,$what.^mixin_base,'$!descriptor').set_dynamic($dynamic);
     }
 }
 multi sub trait_mod:<is>(Variable:D $v, :$export!) {

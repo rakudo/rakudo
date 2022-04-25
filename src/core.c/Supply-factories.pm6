@@ -61,8 +61,8 @@
             $lock.protect: {
                 my $cancellation = $!scheduler.cue(
                     {
-                        $lock.protect: { emit $i++ };
                         CATCH { $cancellation.cancel if $cancellation }
+                        $lock.protect: { emit $i++ };
                     },
                     :every($!interval), :in($!delay)
                 );
@@ -373,13 +373,13 @@
                             {
                                 $lock.protect: { $last_cancellation = Nil; }
                                 try {
-                                    emit(value);
                                     CATCH {
                                         default {
                                             quit($_);
                                             self!cleanup($cleaned-up, $source-tap);
                                         }
                                     }
+                                    emit(value);
                                 }
                             });
                     }

@@ -278,6 +278,14 @@ my class Backtrace {
     method nice(Backtrace:D: :$oneline) {
         my $setting = %*ENV<RAKUDO_BACKTRACE_SETTING>;
         try {
+            CATCH {
+                default {
+                    return "<Internal error while creating backtrace: $_.message() $_.backtrace.full().\n"
+                        ~ "Please report this as a bug (mail to rakudobug@perl.org)\n",
+                        ~ "and re-run with the --ll-exception command line option\n"
+                        ~ "to get more information about your error>";
+                }
+            }
             my @frames;
             my Int $i = self.next-interesting-index(-1);
             while $i.defined {
@@ -297,14 +305,6 @@ my class Backtrace {
                 }
                 last if $oneline;
                 $i = self.next-interesting-index($i, :$setting);
-            }
-            CATCH {
-                default {
-                    return "<Internal error while creating backtrace: $_.message() $_.backtrace.full().\n"
-                        ~ "Please report this as a bug (mail to rakudobug@perl.org)\n",
-                        ~ "and re-run with the --ll-exception command line option\n"
-                        ~ "to get more information about your error>";
-                }
             }
             @frames.join;
         }

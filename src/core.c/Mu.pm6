@@ -1363,10 +1363,10 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) { # is implementation-detail
 
             my @pieces;
             {
+                CATCH { default { @pieces.push: '...' } }
                 for $topic.pairs {
                     @pieces.push: $_.key ~ ' => ' ~ DUMP($_.value, :$indent-step, :%ctx);
                 }
-                CATCH { default { @pieces.push: '...' } }
             }
 
             @pieces.DUMP-PIECES($id ~ '(', :$indent-step);

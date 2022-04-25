@@ -1724,16 +1724,16 @@ my class Rakudo::Internals {
     method PERL5() {
         $P5 //= do {
             {
+                CATCH {
+                    #X::Eval::NoSuchLang.new(:$lang).throw;
+                    .note;
+                }
                 my $compunit := $*REPO.need(
                   CompUnit::DependencySpecification.new(
                     :short-name<Inline::Perl5>
                   )
                 );
                 GLOBAL.WHO.merge-symbols($compunit.handle.globalish-package);
-                CATCH {
-                    #X::Eval::NoSuchLang.new(:$lang).throw;
-                    .note;
-                }
             }
             ::("Inline::Perl5").default_perl5
         }

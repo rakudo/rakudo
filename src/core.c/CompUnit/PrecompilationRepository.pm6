@@ -305,7 +305,7 @@ Need to re-check dependencies.")
                   if $!RMD;
 
                 $unit.close;
-                Failure.new("Outdated precompiled $unit")
+                "Outdated precompiled $unit".Failure
             }
         }
         else {

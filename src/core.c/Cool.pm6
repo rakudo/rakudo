@@ -409,6 +409,8 @@ my class Cool { # declared in BOOTSTRAP
         EVAL(self, context => CALLER::, |%opts);
     }
 
+    method Failure(Cool:D:) is hidden-from-backtrace { Failure.new(self) }
+
     multi method Real() {
         nqp::istype((my $numeric := self.Numeric),Failure)
           ?? $numeric
@@ -427,11 +429,11 @@ my class Cool { # declared in BOOTSTRAP
         nqp::istype((my $got := self.Int),Failure)
           ?? $got
           !! $got < 0
-            ?? Failure.new(X::OutOfRange.new(
+            ?? X::OutOfRange.new(
                  :what('Coercion to UInt'),
                  :$got,
                  :range<0..^Inf>
-               ))
+               ).Failure
             !! $got
     }
 

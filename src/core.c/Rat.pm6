@@ -41,7 +41,7 @@ my class FatRat is Cool does Rational[Int, Int] {
                ),
                Rat,'$!denominator',$!denominator
              )
-          !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
+          !! "Cannot convert from FatRat to Rat because denominator is too big".Failure
     }
     multi method raku(FatRat:D: --> Str:D) {
         (nqp::eqaddr(self.WHAT,FatRat) ?? 'FatRat' !! self.^name)
@@ -266,13 +266,13 @@ multi sub infix:<**>(Rational:D $a, Int:D $b) {
           ($nu := nqp::pow_I($a.numerator,$b,Num,Int)),
           Num
         ),
-        Failure.new(X::Numeric::Overflow.new),
+        X::Numeric::Overflow.new.Failure,
         nqp::if( # if we got Inf
           nqp::istype(
             ($de := nqp::pow_I($a.denominator,$b,Num,Int)),
             Num
           ),
-          Failure.new(X::Numeric::Overflow.new),
+          X::Numeric::Overflow.new.Failure,
           CREATE_RATIONAL_FROM_INTS($nu, $de, $a, $b)
         )
       ),
@@ -281,13 +281,13 @@ multi sub infix:<**>(Rational:D $a, Int:D $b) {
           ($nu := nqp::pow_I($a.numerator,nqp::neg_I($b,Int),Num,Int)),
           Num
         ),
-        Failure.new(X::Numeric::Underflow.new),
+        X::Numeric::Underflow.new.Failure,
         nqp::if( # if we got Inf
           nqp::istype(
             ($de := nqp::pow_I($a.denominator,nqp::neg_I($b,Int),Num,Int)),
             Num
           ),
-          Failure.new(X::Numeric::Underflow.new),
+          X::Numeric::Underflow.new.Failure,
           CREATE_RATIONAL_FROM_INTS($de, $nu, $a, $b)
         )
       )

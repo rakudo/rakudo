@@ -261,7 +261,7 @@ multi sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
 sub QX($cmd, :$cwd = $*CWD, :$env) is implementation-detail {
     my $proc := Proc.new(:out);
     $proc.shell($cmd, :$cwd, :$env);
-    $proc.out.slurp(:close) // Failure.new("Unable to read from '$cmd'")
+    $proc.out.slurp(:close) // "Unable to read from '$cmd'".Failure
 }
 
 # vim: expandtab shiftwidth=4

@@ -123,18 +123,20 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
 
     multi method AT-POS(Uni:D: uint $pos) {
         nqp::isge_i($pos,nqp::elems(self))
-          ?? Failure.new(X::OutOfRange.new(
+          ?? X::OutOfRange.new(
                :what($*INDEX // 'Index'),
                :got($pos),
-               :range("0..{nqp::elems(self)-1}")))
+               :range("0..{nqp::elems(self)-1}")
+             ).Failure
           !! nqp::atpos_u(self,$pos)
     }
     multi method AT-POS(Uni:D: Int:D $pos) {
         nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
-          ?? Failure.new(X::OutOfRange.new(
+          ?? X::OutOfRange.new(
                :what($*INDEX // 'Index'),
                :got($pos),
-               :range("0..{nqp::elems(self)-1}")))
+               :range("0..{nqp::elems(self)-1}")
+             ).Failure
           !! nqp::atpos_u(self,$pos)
     }
 

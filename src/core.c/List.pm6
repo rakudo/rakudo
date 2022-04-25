@@ -495,8 +495,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method !AT_POS_SLOW(int $pos) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
+          X::OutOfRange.new(
+            :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>
+          ).Failure,
           nqp::if(
             nqp::isconcrete($!reified),
             nqp::ifnull(
@@ -1547,7 +1548,7 @@ multi flat(**@list is raw) { @list.flat }
 multi flat(Iterable \a)    {     a.flat }
 
 proto sub infix:<xx>(Mu $?, $?, *%) {*}
-multi sub infix:<xx>() { Failure.new("No zero-arg meaning for infix:<xx>") }
+multi sub infix:<xx>() { "No zero-arg meaning for infix:<xx>".Failure }
 multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(&x, Num:D() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);

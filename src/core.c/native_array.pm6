@@ -61,9 +61,9 @@ my class array does Iterable does Positional {
     }
 
     sub SPLICE_OFFSET_OUT_OF_RANGE(int $got, int $end) {
-        Failure.new(X::OutOfRange.new(
+        X::OutOfRange.new(
           :what("Offset argument to splice"), :$got, :range("0..$end")
-        ))
+        ).Failure
     }
 
     sub SPLICE_SIZE_OUT_OF_RANGE(int $got, int $end) {
@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-03-08T11:48:36+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-04-20T21:09:16+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -401,9 +401,9 @@ my class array does Iterable does Positional {
                 (my uint $offset = $got),
                 (my uint $elems = nqp::elems(self))
               ),
-              Failure.new(X::OutOfRange.new(
+              X::OutOfRange.new(
                 :what('Offset argument to splice'), :$got, :range("0..$elems")
-              )),
+              ).Failure,
               nqp::if(
                 nqp::iseq_i($offset,$elems),
                 nqp::create(self.WHAT),
@@ -715,7 +715,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-03-08T11:48:36+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-04-20T21:09:16+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1018,9 +1018,9 @@ my class array does Iterable does Positional {
                 (my uint $offset = $got),
                 (my uint $elems = nqp::elems(self))
               ),
-              Failure.new(X::OutOfRange.new(
+              X::OutOfRange.new(
                 :what('Offset argument to splice'), :$got, :range("0..$elems")
-              )),
+              ).Failure,
               nqp::if(
                 nqp::iseq_i($offset,$elems),
                 nqp::create(self.WHAT),
@@ -1374,7 +1374,7 @@ my class array does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2022-03-08T11:48:36+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-04-20T21:09:16+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1677,9 +1677,9 @@ my class array does Iterable does Positional {
                 (my uint $offset = $got),
                 (my uint $elems = nqp::elems(self))
               ),
-              Failure.new(X::OutOfRange.new(
+              X::OutOfRange.new(
                 :what('Offset argument to splice'), :$got, :range("0..$elems")
-              )),
+              ).Failure,
               nqp::if(
                 nqp::iseq_i($offset,$elems),
                 nqp::create(self.WHAT),
@@ -2033,7 +2033,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-03-08T11:48:36+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-04-20T21:09:16+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -2336,9 +2336,9 @@ my class array does Iterable does Positional {
                 (my uint $offset = $got),
                 (my uint $elems = nqp::elems(self))
               ),
-              Failure.new(X::OutOfRange.new(
+              X::OutOfRange.new(
                 :what('Offset argument to splice'), :$got, :range("0..$elems")
-              )),
+              ).Failure,
               nqp::if(
                 nqp::iseq_i($offset,$elems),
                 nqp::create(self.WHAT),
@@ -4852,11 +4852,11 @@ my class array does Iterable does Positional {
     }
 
     method out_of_range(array:D \SELF: int $index) {
-        Failure.new(X::OutOfRange.new(
+        X::OutOfRange.new(
           :what('Index'),
           :got($index),
           :range("0..{nqp::elems(SELF)}")
-        ))
+        ).Failure
     }
 }
 
@@ -4904,7 +4904,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2022-02-16T09:56:05+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4952,13 +4952,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "a native str array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "a native str array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }
@@ -5161,7 +5159,7 @@ multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2022-02-16T09:56:05+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5209,13 +5207,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "a native num array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "a native num array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }
@@ -5418,7 +5414,7 @@ multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2022-02-16T09:56:05+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5466,13 +5462,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "a native int array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "a native int array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }
@@ -5675,7 +5669,7 @@ multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of postcircumfix candidates of uintarray -------------------------------
-#- Generated on 2022-02-16T09:56:05+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5723,13 +5717,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "a native uint array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "a native uint array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }
@@ -5932,7 +5924,7 @@ multi sub infix:<cmp>(array::uintarray:D \a, array::uintarray:D \b) {
 #- end of postcircumfix candidates of uintarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
-#- Generated on 2022-02-16T10:10:08+01:00 by ./tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2022-04-20T21:08:52+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5960,13 +5952,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "native shaped1 str array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "native shaped1 str array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }
@@ -6074,7 +6064,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of shaped1 postcircumfix candidates of strarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of intarray -----------------------
-#- Generated on 2022-02-16T10:10:08+01:00 by ./tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2022-04-20T21:08:52+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -6102,13 +6092,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "native shaped1 int array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "native shaped1 int array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }
@@ -6216,7 +6204,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of uintarray -----------------------
-#- Generated on 2022-02-16T10:10:08+01:00 by ./tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2022-04-20T21:08:52+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -6244,13 +6232,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "native shaped1 uint array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "native shaped1 uint array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }
@@ -6358,7 +6344,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of shaped1 postcircumfix candidates of uintarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
-#- Generated on 2022-02-16T10:10:08+01:00 by ./tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2022-04-20T21:08:52+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -6386,13 +6372,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "native shaped1 num array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "native shaped1 num array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }

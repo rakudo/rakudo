@@ -731,9 +731,9 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method !INDEX_OOR($pos) {
-      Failure.new(X::OutOfRange.new(
+      X::OutOfRange.new(
           :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>
-      ))
+      ).Failure
     }
 
     # MUST have a separate Slip variant to have it slip

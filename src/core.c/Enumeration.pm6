@@ -53,7 +53,7 @@ my role Enumeration {
         elsif nqp::isconcrete($dcval) {
             $res := self.^enum_from_value($dcval);
         }
-        $res // Failure.new(X::Enum::NoValue.new(:type(self.WHAT), :value($dcval)))
+        $res // X::Enum::NoValue.new(:type(self.WHAT), :value($dcval)).Failure
     }
 
     proto method CALL-ME(Mu) {*}

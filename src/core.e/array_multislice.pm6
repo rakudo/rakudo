@@ -441,11 +441,11 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                      nqp::push(target,non-assignable(SELF.AT-POS(key)))
                        if SELF.EXISTS-POS(key);
                  }
-            !! return Failure.new(X::Adverb.new(
+            !! return X::Adverb.new(
                  :what<slice>,
                  :source(try { initial-SELF.VAR.name } // initial-SELF.^name),
                  :nogo(nqp::split(':',nqp::substr($adverbs,1)))
-               ));
+               ).Failure;
 
             my sub PROCESS-POS-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {

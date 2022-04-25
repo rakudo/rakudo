@@ -198,7 +198,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         );
         nqp::if(
             nqp::isnull($found),
-            Failure.new(X::NoCoreRevision.new(lang-rev => $rev)),
+            X::NoCoreRevision.new(lang-rev => $rev).Failure,
             nqp::stmts(
                 ($stash := nqp::create(PseudoStash)),
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found)),
@@ -257,14 +257,16 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                 && nqp::bitand_i(nqp::getattr_i(self, PseudoStash6c, '$!mode'), REQUIRE_DYNAMIC)),
               nqp::if(
                 (try nqp::not_i($val.VAR.dynamic)),
-                ($val := Failure.new(X::Caller::NotDynamic.new(symbol => $key)))
+                ($val := X::Caller::NotDynamic.new(symbol => $key).Failure)
               )
             )
           )
         );
         nqp::isnull($val)
-            ?? Failure.new(X::NoSuchSymbol.new(symbol => $!package.^name ~ '::<' ~ $key ~ '>'))
-            !! $val
+          ?? X::NoSuchSymbol.new(
+               symbol => $!package.^name ~ '::<' ~ $key ~ '>'
+             ).Failure
+          !! $val
     }
 
     # Walks over contexts, respects combined chains (DYNAMIC_CHAIN +| STATIC_CHAIN). It latter case the inital context

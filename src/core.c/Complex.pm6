@@ -39,13 +39,11 @@ my class Complex is Cool does Numeric {
     }
 
     method !coerce-to-real-failed($target) {
-        Failure.new(
-          X::Numeric::Real.new(
-            :$target,
-            reason => "imaginary part not zero",
-            source => self
-          )
-        )
+        X::Numeric::Real.new(
+          :$target,
+          reason => "imaginary part not zero",
+          source => self
+        ).Failure
     }
     method !coerce-to-real($target) {
         $!im ≅ 0e0
@@ -553,13 +551,11 @@ multi sub infix:«<=>»(Complex:D $a, Complex:D $b) {
     # Fail unless imaginary parts are relatively negligible, compared to real parts.
     infix:<≅>($a.im, 0e0, :$tolerance) && infix:<≅>($b.im, 0e0, :$tolerance)
       ?? $a.re <=> $b.re
-      !! Failure.new(
-           X::Numeric::Real.new(
-             target => Real,
-             reason => "Complex is not numerically orderable",
-             source => "Complex"
-           )
-         )
+      !! X::Numeric::Real.new(
+           target => Real,
+           reason => "Complex is not numerically orderable",
+           source => "Complex"
+         ).Failure
 }
 multi sub infix:«<=>»(Num(Real) $a, Complex:D $b) { $a.Complex <=> $b }
 multi sub infix:«<=>»(Complex:D $a, Num(Real) $b) { $a <=> $b.Complex }

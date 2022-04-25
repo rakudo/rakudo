@@ -131,13 +131,11 @@ multi sub postcircumfix:<[ ]>(
           ?? ($pos,$value)
           !! nqp::atkey($adverbs,'p')
             ?? Pair.new($pos,$value)
-            !! Failure.new(
-                 X::Adverb.new(
-                   what   => "slice",
-                   source => "a native #type# array",
-                   nogo   => ('exists', |%_.keys).sort
-                 )
-               )
+            !! X::Adverb.new(
+                 what   => "slice",
+                 source => "a native #type# array",
+                 nogo   => ('exists', |%_.keys).sort
+               ).Failure
         !! $value
       !! $value
 }

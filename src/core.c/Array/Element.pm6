@@ -8,7 +8,7 @@ my class Array::Element {
           nqp::stmts(
             ($lookup.what   = "element access"),
             ($lookup.source = try { SELF.VAR.name } // SELF.^name),
-            Failure.new($lookup)
+            $lookup.Failure
           ),
           Rakudo::Internals.ACCESS-ELEMENT-DISPATCH-CLASS(
             $lookup
@@ -24,7 +24,7 @@ my class Array::Element {
           nqp::stmts(
             ($lookup.what   = "element access"),
             ($lookup.source = try { SELF.VAR.name } // SELF.^name),
-            Failure.new($lookup)
+            $lookup.Failure
           ),
           Rakudo::Internals.ACCESS-ELEMENT-ANY-DISPATCH-CLASS(
             $lookup

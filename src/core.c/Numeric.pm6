@@ -223,7 +223,7 @@ multi sub infix:<*>(\a, \b)    { a.Numeric * b.Numeric }
 my constant &infix:<×> = &infix:<*>;
 
 proto sub infix:</>($?, $?, *%) is pure {*}
-multi sub infix:</>() { Failure.new("No zero-arg meaning for infix:</>") }
+multi sub infix:</>() { "No zero-arg meaning for infix:</>".Failure }
 multi sub infix:</>($x)          { $x.Numeric }
 multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 # U+00F7 DIVISION SIGN
@@ -233,26 +233,26 @@ proto sub infix:<div>($, $, *%) is pure  {*}
 # rest of infix:<div> is in Int.pm6
 
 proto sub infix:<%>($?, $?, *%) is pure   {*}
-multi sub infix:<%>() { Failure.new("No zero-arg meaning for infix:<%>") }
+multi sub infix:<%>() { "No zero-arg meaning for infix:<%>".Failure }
 multi sub infix:<%>($x)          { $x }
 multi sub infix:<%>(\a, \b)    { a.Real % b.Real }
 
 proto sub infix:<%%>($?, $?, *%) is pure  {*}
-multi sub infix:<%%>() { Failure.new("No zero-arg meaning for infix:<%%>") }
+multi sub infix:<%%>() { "No zero-arg meaning for infix:<%%>".Failure }
 multi sub infix:<%%>($)         { Bool::True }
 multi sub infix:<%%>(\a, \b) {
     b
       ?? (a.Real % b.Real == 0)
-      !! Failure.new(
-           X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-         )
+      !! X::Numeric::DivideByZero.new(
+           using => 'infix:<%%>', numerator => a
+         ).Failure
 }
 
 proto sub infix:<lcm>($?, $?, *%) is pure  {*}
 multi sub infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
 proto sub infix:<gcd>($?, $?, *%) is pure {*}
-multi sub infix:<gcd>() { Failure.new('No zero-arg meaning for infix:<gcd>') }
+multi sub infix:<gcd>() { 'No zero-arg meaning for infix:<gcd>'.Failure }
 multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
 proto sub infix:<**>($?, $?, *%) is pure  {*}
@@ -330,12 +330,12 @@ multi sub infix:<+^>($x)         { $x }
 multi sub infix:<+^>($x, $y)     { $x.Numeric.Int +^ $y.Numeric.Int }
 
 proto sub infix:«+<»($?, $?, *%) is pure {*}
-multi sub infix:«+<»() { Failure.new("No zero-arg meaning for infix:«+<»") }
+multi sub infix:«+<»() { "No zero-arg meaning for infix:«+<»".Failure }
 multi sub infix:«+<»($x)         { $x }
 multi sub infix:«+<»($x,$y)      { $x.Numeric.Int +< $y.Numeric.Int }
 
 proto sub infix:«+>»($?, $?, *%) is pure {*}
-multi sub infix:«+>»() { Failure.new("No zero-arg meaning for infix:«+>»") }
+multi sub infix:«+>»() { "No zero-arg meaning for infix:«+>»".Failure }
 multi sub infix:«+>»($x)         { $x }
 multi sub infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
 

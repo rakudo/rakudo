@@ -23,8 +23,8 @@ my class Nil is Cool { # declared in BOOTSTRAP
 #    method ACCEPTS(*@ --> Nil) { }  # XXX spec says Nil, but makes install fail
 
     # interface methods that should fail
-    multi method BIND-POS(Nil: |)   { Failure.new(X::Bind.new(:target<Nil>)) }
-    multi method BIND-KEY(Nil: |)   { Failure.new(X::Bind.new(:target<Nil>)) }
+    multi method BIND-POS(Nil: |)   { X::Bind.new(:target<Nil>).Failure }
+    multi method BIND-KEY(Nil: |)   { X::Bind.new(:target<Nil>).Failure }
 
     # interface methods that should throw
     multi method ASSIGN-POS(Nil: |) { self!die: 'ASSIGN-POS' }

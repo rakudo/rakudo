@@ -25,7 +25,7 @@ my class Stash { # declared in BOOTSTRAP
             nqp::if(
               nqp::existskey(GLOBAL.WHO,$key),
               nqp::atkey(GLOBAL.WHO,$key),
-              Failure.new("Could not find symbol '$key' in '{self}'")
+              "Could not find symbol '$key' in '{self}'".Failure
             ),
             nqp::p6scalarfromdesc(
               ContainerDescriptor::BindHashKey.new(Mu, self, $key)

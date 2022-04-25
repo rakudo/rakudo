@@ -587,11 +587,11 @@ augment class List {
                     (return $value),
                     nqp::bindpos_s($result,$i,nqp::chr($value))
                   ),
-                  (return Failure.new(X::TypeCheck.new(
+                  (return X::TypeCheck.new(
                     operation => "converting element #$i to .chr",
                     got       => $value,
                     expected  => Int
-                  )))
+                  ).Failure)
                 )
               )
             ),

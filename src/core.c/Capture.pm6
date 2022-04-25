@@ -49,9 +49,9 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     sub OUT_OF_RANGE(int $got) {
-        Failure.new(
-          X::OutOfRange.new(:what($*INDEX // 'Index'), :$got, :range<0..^Inf>)
-        )
+        X::OutOfRange.new(
+          :what($*INDEX // 'Index'), :$got, :range<0..^Inf>
+        ).Failure
     }
 
     multi method AT-POS(Capture:D: uint $pos) is raw {

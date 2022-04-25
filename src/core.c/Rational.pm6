@@ -70,11 +70,9 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method !divide-by-zero(Str:D $what) {
-        Failure.new(
-          X::Numeric::DivideByZero.new(
-            :details("when calling .$what on Rational")
-          )
-        )
+        X::Numeric::DivideByZero.new(
+          :details("when calling .$what on Rational")
+        ).Failure
     }
 
     method floor(Rational:D: --> Int:D) {
@@ -179,14 +177,14 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     sub BASE_OUT_OF_RANGE(int $got) {
-        Failure.new(
-          X::OutOfRange.new(:what('base argument to base'),:$got,:range<2..36>)
-        )
+        X::OutOfRange.new(
+          :what('base argument to base'),:$got,:range<2..36>
+        ).Failure
     }
     sub DIGITS_OUT_OF_RANGE(int $got) {
-        Failure.new(
-          X::OutOfRange.new(:what('digits argument to base'),:$got,:range<2..36>)
-        )
+        X::OutOfRange.new(
+          :what('digits argument to base'),:$got,:range<2..36>
+        ).Failure
     }
 
     proto method base(|) {*}

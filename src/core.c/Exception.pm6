@@ -14,6 +14,8 @@ my class Exception {
             !! Nil
     }
 
+    method Failure(Exception:D:) is hidden-from-backtrace { Failure.new: self }
+
     # Only valid if .backtrace has not been called yet
     method vault-backtrace(Exception:D:) {
         nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! Nil
@@ -84,7 +86,7 @@ my class Exception {
     method die(Exception:D:) { self.throw }
     method fail(Exception:D:) {
         try self.throw;
-        my $fail := Failure.new($!);
+        my $fail := $!.Failure;
         CATCH { $fail.exception.throw }
         nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
     }
@@ -978,7 +980,7 @@ my class X::NYI is Exception {
     }
 }
 
-sub NYI(str $feature) { Failure.new: X::NYI.new: :$feature }
+sub NYI(str $feature) { X::NYI.new(:$feature).Failure }
 
 my class X::Comp::NYI is X::NYI does X::Comp { };
 my class X::NYI::Available is X::NYI {

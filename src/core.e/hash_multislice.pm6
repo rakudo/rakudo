@@ -260,11 +260,11 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                      nqp::push(target,nqp::decont(SELF.AT-KEY(key)))
                        if SELF.EXISTS-KEY(key);
                  }
-            !! return Failure.new(X::Adverb.new(
+            !! return X::Adverb.new(
                  :what<slice>,
                  :source(try { initial-SELF.VAR.name } // initial-SELF.^name),
                  :nogo(nqp::split(':',nqp::substr($adverbs,1)))
-               ));
+               ).Failure;
 
             sub PROCESS-KEY-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {

@@ -1668,6 +1668,23 @@ my class X::Syntax::Variable::Initializer does X::Syntax {
     method message() { "Cannot use variable $!name in declaration to initialize itself" }
 }
 
+my class X::Syntax::Variable::SignatureAssignment does X::Syntax {
+    method message() {
+        "Cannot use assignment when declaring a variable via signature binding.\n"
+        ~"    Did you mean to use binding?  If so, use `:=` instead of `=`.\n"
+        ~"    Or did you mean to use list assignment?  If so, don't use `:(...)`\n"
+        ~"      (the signature literal syntax) on the left-hand side."
+    }
+}
+
+my class X::Syntax::Variable::SignatureWithoutInitializer does X::Syntax {
+    method message {
+        "Variable declaration using a signature literal requires an initializer.\n"
+        ~"    Did you mean to declare a list of variables with `(...)` instead of\n"
+        ~"    a signature literal with `:(...)`?"
+    }
+}
+
 
 my class X::Syntax::Variable::Twigil does X::Syntax {
     has $.what = 'variable';

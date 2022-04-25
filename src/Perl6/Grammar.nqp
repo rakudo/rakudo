@@ -2222,6 +2222,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token declarator {
         :my $*LEFTSIGIL := '';
         :my $*VARIABLE := '';
+        :my $*IN_SIG_DECL := 0;
         [
         # STD.pm6 uses <defterm> here, but we need different
         # action methods
@@ -2232,7 +2233,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           || <?{ $*SCOPE eq 'has' }> <.newpad> [<.ws> <initializer>]? { $*ATTR_INIT_BLOCK := $*W.pop_lexpad() }
           || [<.ws> <initializer>]?
           ]
-        | '(' ~ ')' <signature('variable')> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+        |  '(' ~ ')' <signature('variable')> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+        | ':(' ~ ')' <signature('variable')> [ <.ws> <trait>+ ]? [
+            { $*IN_SIG_DECL := 1}
+            [<.ws> <initializer> ]
+            || <.typed_panic: "X::Syntax::Variable::SignatureWithoutInitializer"> ]
         | <routine_declarator>
         | <regex_declarator>
         | <type_declarator>
@@ -3003,6 +3008,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     proto token initializer { <...> }
     token initializer:sym<=> {
+            [<!{$*IN_SIG_DECL // 0 }> || <.typed_panic: "X::Syntax::Variable::SignatureAssignment"> ]
         <sym>
         [
             <.ws>

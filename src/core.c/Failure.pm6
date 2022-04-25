@@ -144,41 +144,41 @@ multi sub fail(--> Nil) {
 
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload !! X::AdHoc.new(:$payload));
+    CATCH { $fail.exception.throw }
 
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
-    CATCH { $fail.exception.throw }
 }
 multi sub fail(Exception:U $e --> Nil) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $e.^name))
     );
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
     CATCH { $fail.exception.throw }
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
 }
 multi sub fail($payload --> Nil) {
     my $fail := Failure.new( $payload ~~ Exception
       ?? $payload
       !! X::AdHoc.new(:$payload)
     );
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
     CATCH { $fail.exception.throw }
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
 }
 multi sub fail(|cap (*@msg) --> Nil) {
     my $fail := Failure.new(X::AdHoc.from-slurpy(|cap));
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
     CATCH { $fail.exception.throw }
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
 }
 multi sub fail(Failure:U $f --> Nil) {
     my $fail := Failure.new(
         X::AdHoc.new(:payload("Failed with undefined " ~ $f.^name))
     );
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
     CATCH { $fail.exception.throw }
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
 }
 multi sub fail(Failure:D $fail --> Nil) {
     $fail.handled = 0;
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
     CATCH { $fail.exception.throw }
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $fail);
 }
 
 multi sub die(Failure:D $f --> Nil) {

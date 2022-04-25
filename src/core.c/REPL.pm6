@@ -424,6 +424,10 @@ do {
             reset;
 
             REPL: loop {
+                # Why doesn't the catch-default in repl-eval catch all?
+                CATCH {
+                    default { say $_; reset }
+                }
                 my $newcode = self.repl-read(~$prompt);
                 last if $no-exit and $newcode and $newcode eq 'exit';
 
@@ -479,12 +483,6 @@ do {
                     $previous-evals.push: $output<>;
                 }
                 reset;
-
-                # Why doesn't the catch-default in repl-eval catch all?
-                CATCH {
-                    default { say $_; reset }
-                }
-
             }
 
             self.teardown;
@@ -508,13 +506,12 @@ do {
 
         method repl-print(Mu $value --> Nil) {
             my $method := %*ENV<RAKU_REPL_OUTPUT_METHOD> // "gist";
-            nqp::can($value,$method)
-              and say $value."$method"()
-              or say "(low-level object `$value.^name()`)";
-
             CATCH {
                 default { say ."$method"() }
             }
+            nqp::can($value,$method)
+              and say $value."$method"()
+              or say "(low-level object `$value.^name()`)";
         }
 
         method history-file(--> Str:D) {

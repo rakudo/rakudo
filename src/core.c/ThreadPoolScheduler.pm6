@@ -130,6 +130,11 @@ my class ThreadPoolScheduler does Scheduler {
                 my $l = Lock.new;
                 $l.lock;
                 {
+                    CATCH {
+                        # Unlock if we fail here, and let the exception
+                        # propagate outwards.
+                        $l.unlock();
+                    }
                     my int $remaining = $num-handles;
                     loop (my int $i = 0; $i < $num-handles; ++$i) {
                         my $handle := nqp::atpos(handles, $i);
@@ -157,11 +162,6 @@ my class ThreadPoolScheduler does Scheduler {
                                 });
                             }
                         });
-                    }
-                    CATCH {
-                        # Unlock if we fail here, and let the exception
-                        # propagate outwards.
-                        $l.unlock();
                     }
                 }
                 nqp::continuationcontrol(1, THREAD_POOL_PROMPT, nqp::getattr(-> Mu \c {
@@ -243,12 +243,10 @@ my class ThreadPoolScheduler does Scheduler {
             }
             else {
                 nqp::continuationreset(THREAD_POOL_PROMPT, nqp::getattr({
-                    if nqp::istype(task, List) {
-                        my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
-                        $code(|task);
-                    }
-                    else {
-                        task.();
+                    CATCH {
+                        default {
+                            $!scheduler.handle_uncaught($_)
+                        }
                     }
                     CONTROL {
                         default {
@@ -256,10 +254,12 @@ my class ThreadPoolScheduler does Scheduler {
                             nqp::getcomp('Raku').handle-control($vm-ex);
                         }
                     }
-                    CATCH {
-                        default {
-                            $!scheduler.handle_uncaught($_)
-                        }
+                    if nqp::istype(task, List) {
+                        my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
+                        $code(|task);
+                    }
+                    else {
+                        task.();
                     }
                 }, Code, '$!do'));
             }
@@ -597,6 +597,16 @@ my class ThreadPoolScheduler does Scheduler {
 
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
+                    CATCH {
+                        when X::Exhausted {
+                            $exhausted = 1;
+                            scheduler-debug .message;
+                            scheduler-debug "Refraining from trying to start new threads";
+                        }
+                        default {
+                            scheduler-debug .gist;
+                        }
+                    }
                     # Wait until the next time we should check how things
                     # are.
                     nqp::sleep(SUPERVISION_INTERVAL);
@@ -677,17 +687,6 @@ my class ThreadPoolScheduler does Scheduler {
                                       unless nqp::isnull($item);
                                 }
                             }
-                        }
-                    }
-
-                    CATCH {
-                        when X::Exhausted {
-                            $exhausted = 1;
-                            scheduler-debug .message;
-                            scheduler-debug "Refraining from trying to start new threads";
-                        }
-                        default {
-                            scheduler-debug .gist;
                         }
                     }
                 }
@@ -874,7 +873,7 @@ my class ThreadPoolScheduler does Scheduler {
         )
     }
     sub wrap-catch(&code, &catch) {
-        -> { code(); CATCH { default { catch($_) } } }
+        -> { CATCH { default { catch($_) } }; code() }
     }
 
     my class TimerCancellation is repr('AsyncTask') { }

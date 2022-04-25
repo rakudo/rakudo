@@ -466,13 +466,13 @@ class Rakudo::Supply {
             my $t := Tap.new;
             tap($t);
             try {
-                emit(&!block());
-                done();
                 CATCH {
                     default {
                         quit($_);
                     }
                 }
+                emit(&!block());
+                done();
             }
             $t
         }

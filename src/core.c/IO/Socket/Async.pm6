@@ -237,6 +237,13 @@ my class IO::Socket::Async {
             my $host-vow = $socket-host.vow;
             my $port-vow = $socket-port.vow;
             $lock.protect: {
+                CATCH {
+                    default {
+                        tap($tap = ListenSocket.new({ Nil },
+                            :$VMIO-tobe, :$socket-host, :$socket-port)) unless $tap;
+                        quit($_);
+                    }
+                }
                 my $cancellation := nqp::asynclisten(
                     $!scheduler.queue(:hint-affinity),
                     -> Mu \client-socket, Mu \err, Mu \peer-host, Mu \peer-port,
@@ -286,13 +293,6 @@ my class IO::Socket::Async {
                     $p
                 }, :$VMIO-tobe, :$socket-host, :$socket-port;
                 tap($tap);
-                CATCH {
-                    default {
-                        tap($tap = ListenSocket.new({ Nil },
-                            :$VMIO-tobe, :$socket-host, :$socket-port)) unless $tap;
-                        quit($_);
-                    }
-                }
             }
             $tap
         }

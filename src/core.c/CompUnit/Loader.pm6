@@ -10,12 +10,18 @@ class CompUnit::Loader is repr('Uninstantiable') {
 
     # Decode the specified byte buffer as source code, and compile it
     method load-source(Blob:D $bytes --> CompUnit::Handle:D) {
-
         my $original-GLOBAL := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
-        LEAVE nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
+        CATCH {  # use CATCH instead of LEAVE: makes the normal flow faster
+            default {
+                nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
+                .throw;
+            }
+        }
 
         my $handle := my $*CTXSAVE := CompUnit::Handle.new;
         nqp::getcomp('Raku').compile($bytes.decode)();      # compile *and* run
+
+        nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
         $handle
     }
 

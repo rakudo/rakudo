@@ -79,18 +79,18 @@ class CompUnit::PrecompilationRepository::Default
     }
 
     method !load-handle-for-path(CompUnit::PrecompilationUnit:D $unit) {
-        $!RMD("Loading precompiled\n$unit")
-          if $!RMD;
-
         my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
-        my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
-        nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
         CATCH {
             default {
                 nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
                 .throw;
             }
         }
+        $!RMD("Loading precompiled\n$unit")
+          if $!RMD;
+
+        my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
+        nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
         $handle
     }
 
@@ -247,7 +247,7 @@ Need to re-check dependencies.")
                 self.store.store-repo-id(
                   $compiler-id,
                   $precomp-unit.id,
-                  :repo-id($unit-id)
+                  :repo-id($REPO-id)
                 );
                 self.store.unlock;
             }

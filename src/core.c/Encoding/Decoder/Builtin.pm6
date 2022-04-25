@@ -69,10 +69,10 @@ augment class Rakudo::Internals {
                 $decoder.add-bytes($_);
                 my $available;
                 {
-                    $available = $decoder.consume-available-chars();
                     CATCH {
                         $valid = False;
                     }
+                    $available = $decoder.consume-available-chars();
                 }
                 emit $available if $available ne '';
                 LAST {

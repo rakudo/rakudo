@@ -49,15 +49,15 @@ my class Rakudo::Internals::HyperPipeline {
         start {
             my $AWAITER := $*AWAITER;
             loop {
-                $AWAITER.await($ready-channel);
-                my $batch := $stage.produce-batch($size);
-                $dest-channel.send($batch);
-                last if $batch.last;
                 CATCH {
                     default {
                         $dest-channel.fail($_);
                     }
                 }
+                $AWAITER.await($ready-channel);
+                my $batch := $stage.produce-batch($size);
+                $dest-channel.send($batch);
+                last if $batch.last;
             }
         }
     }
@@ -67,14 +67,6 @@ my class Rakudo::Internals::HyperPipeline {
         my $source-channel := Channel.new;
         for ^$degree {
             start {
-                my $AWAITER := $*AWAITER;
-                loop {
-                    my $batch := $AWAITER.await($source-channel);
-                    for @processors {
-                        .process-batch($batch);
-                    }
-                    $dest-channel.send($batch);
-                }
                 CATCH {
                     when X::Channel::ReceiveOnClosed {
                         $dest-channel.close;
@@ -83,6 +75,14 @@ my class Rakudo::Internals::HyperPipeline {
                         $dest-channel.fail($_);
                     }
                 }
+                my $AWAITER := $*AWAITER;
+                loop {
+                    my $batch := $AWAITER.await($source-channel);
+                    for @processors {
+                        .process-batch($batch);
+                    }
+                    $dest-channel.send($batch);
+                }
             }
         }
         return $source-channel;
@@ -90,10 +90,6 @@ my class Rakudo::Internals::HyperPipeline {
 
     method !join-worker(Rakudo::Internals::HyperJoiner $stage, Channel $source) {
         start {
-            my $AWAITER := $*AWAITER;
-            loop {
-                $stage.consume-batch($AWAITER.await($source));
-            }
             CATCH {
                 when X::Channel::ReceiveOnClosed {
                     # We got everything; quietly exit the start block.
@@ -110,6 +106,10 @@ my class Rakudo::Internals::HyperPipeline {
                         }
                     }
                 }
+            }
+            my $AWAITER := $*AWAITER;
+            loop {
+                $stage.consume-batch($AWAITER.await($source));
             }
         }
     }

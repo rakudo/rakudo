@@ -26,8 +26,8 @@ my class JavaScriptScheduler does Scheduler {
           self.uncaught_handler // -> $ex { self.handle_uncaught($ex) };
 
         for 1 .. $times {
-            code();
             CATCH { default { catch($_) } };
+            code();
         }
         class { method cancel() {} }
     }

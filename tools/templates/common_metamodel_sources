@@ -2,6 +2,7 @@ src/Perl6/Metamodel/Configuration.nqp
 src/Perl6/Metamodel/Archetypes.nqp
 src/Perl6/Metamodel/Naming.nqp
 src/Perl6/Metamodel/Documenting.nqp
+src/Perl6/Metamodel/Explaining.nqp
 src/Perl6/Metamodel/Stashing.nqp
 src/Perl6/Metamodel/Versioning.nqp
 src/Perl6/Metamodel/LanguageRevision.nqp

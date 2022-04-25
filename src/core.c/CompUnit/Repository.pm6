@@ -27,8 +27,7 @@ role CompUnit::Repository {
     {
         self.next-repo
           ?? self.next-repo.load($file)
-          !! nqp::die("Could not find $file in:\n"
-              ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4));
+          !! X::NotFoundInRepository.new(:$file).throw;
     }
 
     # Returns the CompUnit objects describing all of the compilation

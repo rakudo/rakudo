@@ -538,7 +538,7 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     0;
 }
 
-proto sub trait_mod:<will>($, |) {*}
+proto sub trait_mod:<will>(Mu $, |) {*}
 multi sub trait_mod:<will>(Attribute:D $attr, |c ) {
     X::Comp::Trait::Unknown.new(
       file       => $?FILE,

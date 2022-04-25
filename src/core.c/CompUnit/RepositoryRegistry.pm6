@@ -21,10 +21,21 @@ class CompUnit::RepositoryRegistry {
     my $custom-lib := nqp::hash();
 
     proto method repository-for-spec(|) { * }
-    multi method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
-        self.repository-for-spec(CompUnit::Repository::Spec.from-string($spec), :$next-repo)
+    multi method repository-for-spec(
+      Str:D                 $spec,
+      CompUnit::Repository :$next-repo
+    --> CompUnit::Repository:D) {
+        $spec
+          ?? self.repository-for-spec(
+               CompUnit::Repository::Spec.from-string($spec, 'file'),
+               :$next-repo
+             )
+          !! Nil
     }
-    multi method repository-for-spec(CompUnit::Repository::Spec $spec, CompUnit::Repository :$next-repo) {
+    multi method repository-for-spec(
+      CompUnit::Repository::Spec:D $spec,
+      CompUnit::Repository         :$next-repo,
+    --> CompUnit::Repository:D) {
         my $short-id := $spec.short-id;
         my %options  := $spec.options;
         my $path     := $spec.path;
@@ -431,7 +442,7 @@ class CompUnit::RepositoryRegistry {
     }
 
     sub parse-include-specS(Str:D $specs --> List:D) {
-        my $found := nqp::list();
+        my $found := nqp::create(IterationBuffer);
         my $default-short-id := 'file';
 
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Parsing specs: $specs") }
@@ -441,7 +452,8 @@ class CompUnit::RepositoryRegistry {
         while nqp::elems($spec-list) {
             if nqp::shift($spec-list).trim -> $spec {
                 if CompUnit::Repository::Spec.from-string(
-                     $spec, :$default-short-id) -> $repo-spec {
+                     $spec, $default-short-id
+                ) -> $repo-spec {
                     nqp::push($found,$repo-spec);
                     $default-short-id := $repo-spec.short-id;
                 }
@@ -450,7 +462,7 @@ class CompUnit::RepositoryRegistry {
                 }
             }
         }
-        nqp::hllize($found)
+        $found.List
     }
 }
 

@@ -322,8 +322,45 @@ do {
             self.?teardown-line-editor;
         }
 
-        method repl-eval($code, \exception, @*_, *%adverbs) {
+        # Calling this method is apparently being done by some ecosystem
+        # modules, while this should really be considered an implementation
+        # detail.  Keep the original state of the method for now, but
+        # this should probably be DEPRECATED and/or given a properly
+        # documented and tested API.
+        method repl-eval($code, \exception, *%adverbs) {
+            CATCH {
+                when X::Syntax::Missing {
+                    return $!need-more-input
+                      if $!multi-line-enabled && .pos == $code.chars;
+                    .throw;
+                }
 
+                when X::Comp::FailGoal {
+                    return $!need-more-input
+                      if $!multi-line-enabled && .pos == $code.chars;
+                    .throw;
+                }
+
+                when X::ControlFlow::Return {
+                    return $!control-not-allowed;
+                }
+
+                default {
+                    exception = $_;
+                    return;
+                }
+            }
+
+            CONTROL {
+                when CX::Emit | CX::Take { .rethrow; }
+                when CX::Warn { .gist.say; .resume;  }
+                return $!control-not-allowed;
+            }
+
+            self.compiler.eval($code, |%adverbs)
+        }
+
+        method new-repl-eval($code, \exception, @*_, *%adverbs) {
             CATCH {
                 when X::Syntax::Missing {
                     return $!need-more-input
@@ -411,7 +448,7 @@ do {
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
 
-                my $output is default(Nil) = self.repl-eval(
+                my $output is default(Nil) = self.new-repl-eval(
                     $code,
                     my $exception,
                     $previous-evals.List,

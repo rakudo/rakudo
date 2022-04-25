@@ -60,6 +60,9 @@ my class Slip { # is List
     multi method head(Slip:D: $) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }
+    method join(Slip:D: |) {
+        nqp::eqaddr(self,Empty) ?? "" !! nextsame
+    }
     multi method maxpairs(Slip:D:) {
         nqp::eqaddr(self,Empty) ?? Empty !! nextsame
     }

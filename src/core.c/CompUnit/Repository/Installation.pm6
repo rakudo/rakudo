@@ -6,20 +6,42 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has $!precomp;
     has $!id;
     has Int $!version;
-    has $!prefix-writeable; # cache for !prefix-writeable
     has $!precomp-store;    # cache for .precomp-store
     has $!precomp-stores;   # cache for !precomp-stores
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
-    my constant @script-extensions =
-      '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
+    my constant @script-postfixes = '', '-m', '-j', '-js';
+    my constant @all-script-extensions =
+        '', '-m', '-j', '-js', '.bat', '-m.bat', '-j.bat', '-js.bat';
+
+    my constant $windows-wrapper = Q/@rem = '--*-Perl-*--
+@echo off
+if "%OS%" == "Windows_NT" goto WinNT
+#raku# "%~dpn0" %1 %2 %3 %4 %5 %6 %7 %8 %9
+goto endofraku
+:WinNT
+#raku# "%~dpn0" %*
+if NOT "%COMSPEC%" == "%SystemRoot%\system32\cmd.exe" goto endofraku
+if %errorlevel% == 9009 echo You do not have Rakudo in your PATH.
+if errorlevel 1 goto script_failed_so_exit_with_non_zero_val 2>nul
+goto endofraku
+@rem ';
+__END__
+:endofraku
+/;
+
+    my constant $raku-wrapper = '#!/usr/bin/env #raku#
+sub MAIN(:$name, :$auth, :$ver, *@, *%) {
+    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
+}';
+
 
     method TWEAK() {
         $!lock       := Lock.new;
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
-        $!prefix-writeable := $!precomp-store := $!precomp-stores := nqp::null;
+        $!precomp-store := $!precomp-stores := nqp::null;
     }
 
     my class InstalledDistribution is Distribution::Hash {
@@ -86,22 +108,19 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         method id { $.dist-id }
     }
 
-    method !initialize-prefix-writeable() {
-          $!prefix-writeable := do if Rakudo::Internals.IS-WIN {
-              if $.prefix.add('test-file').open(:create, :w) -> $handle {
-                  $handle.close;
-                  $handle.path.unlink  # always True
-              }
-              else {
-                  False
-              }
-          }
-          else {
-              $.prefix.w
-          }
-    }
     method !prefix-writeable(--> Bool:D) {
-        nqp::ifnull($!prefix-writeable,self!initialize-prefix-writeable)
+        if Rakudo::Internals.IS-WIN {
+            if $.prefix.add('test-file').open(:create, :w) -> $handle {
+                $handle.close;
+                $handle.path.unlink  # always True
+            }
+            else {
+                False
+            }
+        }
+        else {
+            $.prefix.w
+        }
     }
 
     method writeable-path {
@@ -113,34 +132,14 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     }
 
     method can-install() {
-        self!prefix-writeable || ($.prefix.mkdir && $.prefix.e)
+        self!prefix-writeable || (!$.prefix.e && ?$.prefix.mkdir)
     }
 
-    my $windows_wrapper = '@rem = \'--*-Perl-*--
-@echo off
-if "%OS%" == "Windows_NT" goto WinNT
-#raku# "%~dpn0" %1 %2 %3 %4 %5 %6 %7 %8 %9
-goto endofraku
-:WinNT
-#raku# "%~dpn0" %*
-if NOT "%COMSPEC%" == "%SystemRoot%\system32\cmd.exe" goto endofraku
-if %errorlevel% == 9009 echo You do not have Rakudo in your PATH.
-if errorlevel 1 goto script_failed_so_exit_with_non_zero_val 2>nul
-goto endofraku
-@rem \';
-__END__
-:endofraku
-';
-    my $raku_wrapper = '#!/usr/bin/env #raku#
-sub MAIN(:$name, :$auth, :$ver, *@, *%) {
-    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
-}';
-
-    method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }
-    method !resources-dir { with $.prefix.add('resources') { once { .mkdir unless .e }; $_ } }
-    method !dist-dir      { with $.prefix.add('dist')      { once { .mkdir unless .e }; $_ } }
-    method !bin-dir       { with $.prefix.add('bin')       { once { .mkdir unless .e }; $_ } }
-    method !short-dir     { with $.prefix.add('short')     { once { .mkdir unless .e }; $_ } }
+    method !sources-dir   { with $.prefix.add('sources')   { .mkdir unless .e; $_ } }
+    method !resources-dir { with $.prefix.add('resources') { .mkdir unless .e; $_ } }
+    method !dist-dir      { with $.prefix.add('dist')      { .mkdir unless .e; $_ } }
+    method !bin-dir       { with $.prefix.add('bin')       { .mkdir unless .e; $_ } }
+    method !short-dir     { with $.prefix.add('short')     { .mkdir unless .e; $_ } }
 
     method !add-short-name($name, $dist, $source = "", $checksum = "" --> Nil) {
         my %meta := $dist.meta;
@@ -285,12 +284,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             # wrappers are put in bin/; originals in resources/
             my $destination = $resources-dir.add($id);
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
-            for '', '-j', '-m', '-js' -> $be {
+            for @script-postfixes -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
-                    $raku_wrapper.subst('#name#', $name, :g).subst('#raku#', "rakudo$be");
+                    $raku-wrapper.subst('#name#', $name, :g).subst('#raku#', "rakudo$be");
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
-                        $windows_wrapper.subst('#raku#', "rakudo$be", :g);
+                        $windows-wrapper.subst('#raku#', "rakudo$be", :g);
                 }
                 else {
                     $.prefix.add("$withoutext$be").IO.chmod(0o755);
@@ -328,9 +327,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         $!id = Any;
 
         if $precompile {
-            my $head = $*REPO;
-            PROCESS::<$REPO> := self; # Precomp files should only depend on downstream repos
-            my $precomp = $*REPO.precomp-repository;
+            my $head := $*REPO;
+            CATCH { PROCESS::<$REPO> := $head }
+            # Precomp files should only depend on downstream repos
+            PROCESS::<$REPO> := self;
+
+            my $precomp = $head.precomp-repository;
             my $repo-prefix = self!repo-prefix;
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
@@ -399,7 +401,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         my $basename := $name-path.substr(4);  # skip bin/
                         my $bin-dir  := $prefix.add('bin');
                         unlink-if-exists($bin-dir.add($basename ~ $_))
-                          for @script-extensions;
+                          for @all-script-extensions;
                     }
 
                     # original bin scripts are in $resources-dir
@@ -545,16 +547,17 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method resolve(CompUnit::DependencySpecification:D $spec --> CompUnit:D) {
-        with self!matching-dist($spec) {
-            my %meta := .meta;
+        if self!matching-dist($spec) -> $distribution {
+            my %meta := $distribution.meta;
             CompUnit.new(
               :handle(CompUnit::Handle),
               :short-name($spec.short-name),
               :version(%meta<ver>),
-              :auth(%meta<auth> // Str),
+              :auth(%meta<auth>),
+              :api(%meta<api>),
               :repo(self),
               :repo-id(%meta<source>),
-              :distribution($_),
+              :$distribution,
             )
         }
         elsif self.next-repo -> $next-repo {
@@ -633,7 +636,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                       :$handle,
                       :short-name($spec.short-name),
                       :version(%meta<ver>),
-                      :auth(%meta<auth> // Str),
+                      :auth(%meta<auth>),
+                      :api(%meta<api>),
                       :repo(self),
                       :$repo-id,
                       :precompiled,
@@ -649,7 +653,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                       :$handle,
                       :short-name($spec.short-name),
                       :version(%meta<ver>),
-                      :auth(%meta<auth> // Str),
+                      :auth(%meta<auth>),
+                      :api(%meta<api>),
                       :repo(self),
                       :$repo-id,
                       :$distribution,

@@ -1,3 +1,5 @@
+# Without the 'use experimental' there will be mismatch of &trait_mod:<will> proto and candidates
+use experimental :will-complain;
 use Test;
 
 BEGIN if $*VM.name eq 'jvm' {

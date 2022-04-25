@@ -1,17 +1,19 @@
 class Compiler does Systemic {
-    my constant $id = nqp::p6box_s(nqp::sha1(
-        $*W.handle.Str
-        ~ nqp::atkey(nqp::gethllsym(
-        'default', 'SysConfig').rakudo-build-config(), 'source-digest')
-    ));
-
-    my Mu $compiler := nqp::gethllsym('default', 'SysConfig')
-        .rakudo-build-config();
+    my constant $compiler = nqp::getcomp("Raku");
+    my constant $config =
+      nqp::gethllsym('default','SysConfig').rakudo-build-config;
+    my constant $compilation-id = nqp::box_s(
+      nqp::sha1($*W.handle.Str ~ nqp::atkey($config,'source-digest')),Str
+    );
+    my constant $backend = $compiler.backend;
+    my constant $name    = $backend.name;
 
     # XXX Various issues with this stuff on JVM
-    has $.id is built(:bind) = nqp::ifnull(nqp::atkey($compiler,'id'),$id);
-    has $.release is built(:bind) = nqp::atkey($compiler,'release-number');
-    has $.codename is built(:bind) = nqp::atkey($compiler, 'codename');
+    has $.id       is built(:bind) = $compilation-id;
+    has $.release  is built(:bind) =
+      BEGIN nqp::ifnull(nqp::atkey($config,'release-number'),"");
+    has $.codename is built(:bind) =
+      BEGIN nqp::ifnull(nqp::atkey($config,'codename'),"");
 
     submethod TWEAK(--> Nil) {
         # https://github.com/rakudo/rakudo/issues/3436
@@ -19,40 +21,38 @@ class Compiler does Systemic {
         nqp::bind($!auth,'Yet Another Society');
 
         # looks like: 2018.01-50-g8afd791c1
-        nqp::bind($!version,Version.new(nqp::p6box_s(nqp::atkey($compiler,'version'))))
-          unless $!version;
+        nqp::bind($!version,BEGIN Version.new(
+          nqp::box_s(nqp::atkey($config,'version'),Str)
+        )) unless $!version;
     }
 
-    method backend() {
-        nqp::getcomp("Raku").backend.name
-    }
+    method backend() { $name }
 
     proto method id(|) {*}
-    multi method id(Compiler:U:) { nqp::ifnull(nqp::atkey($compiler,'id'),$id) }
-    multi method id(Compiler:D:) { $!id }
+    multi method id(Compiler:U:) { $compilation-id }
+    multi method id(Compiler:D:) { $!id            }
 
     method verbose-config(:$say) {
-        my $compiler := nqp::getcomp("Raku");
-        my $backend  := $compiler.backend;
-        my $name     := $backend.name;
 
         my $items := nqp::list_s;
         nqp::push_s($items,$name ~ '::' ~ .key ~ '=' ~ .value)
-          for $backend.config;
+          for BEGIN $backend.config;
 
-        my $language := $compiler.language;
+        my $language := BEGIN $compiler.language;
         nqp::push_s($items,$language ~ '::' ~ .key ~ '=' ~ .value)
-          for $compiler.config;
+          for BEGIN $compiler.config;
 
         nqp::push_s(
           $items,
           'repo::chain=' ~ (try $*REPO.repo-chain.map( *.gist ).join(" ")) // ''
         );
 
-        nqp::push_s($items,"distro::$_={ $*DISTRO."$_"() // '' }")
+        my $distro := $*DISTRO;
+        nqp::push_s($items,"distro::$_=" ~ ($distro."$_"() // ''))
           for <auth desc is-win name path-sep release signature version>;
 
-        nqp::push_s($items,"kernel::$_={ $*KERNEL."$_"() // '' }")
+        my $kernel := $*KERNEL;
+        nqp::push_s($items,"kernel::$_=" ~ ($kernel."$_"() // ''))
           for <arch archname auth bits desc
                hardware name release signature version>;
 
@@ -86,9 +86,7 @@ class Compiler does Systemic {
         }
     }
 
-    method supports-op($opname) {
-        nqp::getcomp("Raku").supports-op($opname)
-    }
+    method supports-op(str $name) { $compiler.supports-op($name) }
 }
 
 # vim: expandtab shiftwidth=4

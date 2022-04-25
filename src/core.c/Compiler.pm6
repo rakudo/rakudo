@@ -16,7 +16,7 @@ class Compiler does Systemic {
     submethod TWEAK(--> Nil) {
         # https://github.com/rakudo/rakudo/issues/3436
         nqp::bind($!name,'rakudo');
-        nqp::bind($!auth,'The Perl Foundation');
+        nqp::bind($!auth,'Yet Another Society');
 
         # looks like: 2018.01-50-g8afd791c1
         nqp::bind($!version,Version.new(nqp::p6box_s(nqp::atkey($compiler,'version'))))

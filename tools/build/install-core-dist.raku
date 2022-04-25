@@ -40,12 +40,13 @@ my $REPO := PROCESS::<$REPO> := Staging.new(
     ),
     :name('core'),
 );
+my $compiler := Compiler.new;
 $REPO.install(
     Distribution::Hash.new(
         {
-            name     => 'CORE',
-            auth     => 'perl',
-            ver      => $*RAKU.version.Str,
+            name     => $compiler.name,
+            auth     => $compiler.auth,
+            ver      => $compiler.version,
             provides => %provides,
         },
         prefix => $*CWD,

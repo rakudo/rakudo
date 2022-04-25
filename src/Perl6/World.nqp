@@ -2599,12 +2599,12 @@ class Perl6::World is HLL::World {
             }
 
             my $code_obj := nqp::getcodeobj(nqp::curcode());
-            unless nqp::getcomp('Raku').backend.name eq 'js' {
-                # Temporarly disabled for js untill we figure the bug out
-                unless nqp::isnull($code_obj) {
-                    return $code_obj(|@pos, |%named);
-                }
+#?if !js
+            # Temporarily disabled for js until we figure the bug out
+            unless nqp::isnull($code_obj) {
+                return $code_obj(|@pos, |%named);
             }
+#?endif
 
             $precomp(|@pos, |%named);
         });

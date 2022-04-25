@@ -1,4 +1,4 @@
-class CompUnit::PrecompilationStore::File
+class CompUnit::PrecompilationStore::FileSystem
   does CompUnit::PrecompilationStore
 {
     has IO::Path:D $.prefix is built(:bind) is required;
@@ -238,6 +238,18 @@ class CompUnit::PrecompilationStore::File
 
     method !tmp-extension(--> Str:D) {
         '.' ~ (^2**128).pick.base(36) ~ '.tmp'
+    }
+}
+
+class CompUnit::PrecompilationStore::File
+  is CompUnit::PrecompilationStore::FileSystem {
+
+    method new(|) {
+        DEPRECATED(
+          "the 'CompUnit::PrecompilationStore::FileSystem' class",
+          :what("Use of the 'CompUnit::PrecompilationStore::File' class")
+        );
+        nextsame;
     }
 }
 

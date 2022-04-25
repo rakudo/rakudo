@@ -1,3 +1,60 @@
+New in 2022.04:
+
++ Changes:
+    + Improve error when `make` encounters non-Match $/ (#4834) [2da9eb22]
+      [540c7365]
+
++ Additions:
+    + Make previous values in REPL accessible with `$*N` [190e303d][1292357d]
+    + Add `INSIDE_EMACS` environment variable for better embedding of the REPL
+      inside Emacs [76035de0]
+    + Add an `IO::Path.dir-with-entries` method, returning a `Bool` indicating
+      if the directory has any entries (without danger of resource leaking)
+      [8a1e7788]
+    + Implement `will complain` trait [a203a5af][2c2c5306][beeb9ffc][2baf8bc6]
+
++ Removals:
+    + Remove the $?COMPILATION-ID constant as it was not documented and not
+      tested [b2a8bfc9]
+
++ Efficiency:
+    + Make IO::Path.mkdir 2x as fast if dir already exists [57a65562]
+    + Shortcut many methods on `Empty` (returning `Empty` without needing
+      to set up an iterator and a `Seq` [1b4977c6][8f5a07d0][943c443c]
+      [1afc3f4f][78ca49eb]
+    + Some optimizations for regex substitution [79cd9d97][55c833ad]
+      [72f2f400][4503faac]
+    + Micro-optimizations to make compilation of Raku code faster
+      [3b692b1b][9a860ca8][9b07b66c][f6d9e90f][6736bd74][2555660b][f00fa82a]
+      [a0303b18][0cb12fee][c74b1275][7c1e80c6][3187922b][5dfa9c4e][c891075f]
+      [91185079][0fe48931]
+    + Micro-optimizations to make module loading faster [f19d36b3][412c4625]
+      [ec20a3f0][173a75b0][97ad3f79][04c8bd6b][55685572][397145a6][83bf9d26]
+      [1c73cb8d][fc5ee2b0][1fd2d843]
+    + Micro-optimize creation of `IO::Special` objects a bit (3x at each
+      Raku startup) [3e217a0d]
+
++ Fixes:
+    + Add mention of 'sub' potentially missing [a56d239d]
+    + Revert "An object will never work if native is expected" compile-time
+      error [94d4820a]
+    + Only assign to caller's `$/` during a regex substitution if it's
+      writable [aed27864]
+    + Make sure we serialize exports [f4cba21c]
+    + Ignore any dot files in "dist" directory [07b4422b]
+    + Make `*CWD` initialization non-lazy, it is almost always needed and
+      making it non-lazy prevents a race-condition [e9575349]
+    + Don't initialize PROCESS:: variables more than once [e7143e00]
+    + Protect setting loading with a lock [5dd82a62][07d3030a][d53d2da9]
+    + Don't treat `!=` as a meta-op of `==` [f3b1e95d][12dd09e1]
+    + Fix race condition in Rakudo::Supply::BlockState [5658f4da]
+    + Fix for a lexical being localized while used in a nested scope [19c6c52f]
+    + Fix typed named argument arrays not reporting type correctly [dcb0ac09]
+    + Make `uniprop`/`uniprops` thread safe [2bd2ca0f]
+    + Correctly check for writeable containers [90d876a3]
+
++ Internal:
+
 New in 2022.03:
 
 + Deprecations:

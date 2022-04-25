@@ -135,11 +135,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         self!prefix-writeable || (!$.prefix.e && ?$.prefix.mkdir)
     }
 
-    method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }
-    method !resources-dir { with $.prefix.add('resources') { once { .mkdir unless .e }; $_ } }
-    method !dist-dir      { with $.prefix.add('dist')      { once { .mkdir unless .e }; $_ } }
-    method !bin-dir       { with $.prefix.add('bin')       { once { .mkdir unless .e }; $_ } }
-    method !short-dir     { with $.prefix.add('short')     { once { .mkdir unless .e }; $_ } }
+    method !sources-dir   { with $.prefix.add('sources')   { .mkdir unless .e; $_ } }
+    method !resources-dir { with $.prefix.add('resources') { .mkdir unless .e; $_ } }
+    method !dist-dir      { with $.prefix.add('dist')      { .mkdir unless .e; $_ } }
+    method !bin-dir       { with $.prefix.add('bin')       { .mkdir unless .e; $_ } }
+    method !short-dir     { with $.prefix.add('short')     { .mkdir unless .e; $_ } }
 
     method !add-short-name($name, $dist, $source = "", $checksum = "" --> Nil) {
         my %meta := $dist.meta;
@@ -724,7 +724,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method precomp-store(--> CompUnit::PrecompilationStore:D) {
         nqp::ifnull(
           $!precomp-store,
-          $!precomp-store := CompUnit::PrecompilationStore::File.new(
+          $!precomp-store := CompUnit::PrecompilationStore::FileSystem.new(
             :prefix($.prefix.add('precomp'))
           )
         )

@@ -13,7 +13,7 @@ use Test;
 use NativeCall; # precompile dependencies
 
 
-my $store = CompUnit::PrecompilationStore::File.new(
+my $store = CompUnit::PrecompilationStore::FileSystem.new(
     :prefix($*TMPDIR.child("rakudo-precomp" ~ (^2**128).pick.base(36)))
 );
 my $precompilation-repository = CompUnit::PrecompilationRepository::Default.new(:$store);

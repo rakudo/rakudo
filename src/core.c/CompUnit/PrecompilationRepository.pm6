@@ -36,7 +36,7 @@ class CompUnit::PrecompilationRepository::Default
     my $loaded-lock   := Lock.new;
     my $first-repo-id;
 
-    my $compiler-id :=
+    my constant $compiler-id =
       CompUnit::PrecompilationId.new-without-check(Compiler.id);
 
     method try-load(
@@ -157,9 +157,9 @@ Need to re-check dependencies.")
             $resolve := True;
         }
 
-        if $unit-id ne $first-repo-id {
+        if $REPO-id ne $first-repo-id {
             $!RMD("Repo chain changed:
-  $unit-id
+  $REPO-id
   $first-repo-id
 Need to re-check dependencies.")
               if $!RMD;

@@ -464,42 +464,40 @@ my class Binder {
                     # Just bind the thing as is into the lexpad.
                     nqp::bindkey($lexpad, $varname, $oval);
                 }
-                else {
-                    # If it's an array, copy means make a new one and store,
-                    # and a normal bind is a straightforward binding.
-                    if $flags +& $SIG_ELEM_ARRAY_SIGIL {
-                        if $flags +& $SIG_ELEM_IS_COPY {
-                            my $bindee := nqp::create(Array);
-                            $bindee.STORE(nqp::decont($oval));
-                            nqp::bindkey($lexpad, $varname, $bindee);
-                        }
-                        else {
-                            nqp::bindkey($lexpad, $varname, nqp::decont($oval));
-                        }
+                # If it's an array, copy means make a new one and store,
+                # and a normal bind is a straightforward binding.
+                elsif $flags +& $SIG_ELEM_ARRAY_SIGIL {
+                    if $flags +& $SIG_ELEM_IS_COPY {
+                        my $bindee := nqp::create(Array);
+                        $bindee.STORE(nqp::decont($oval));
+                        nqp::bindkey($lexpad, $varname, $bindee);
                     }
-
-                    # If it's a hash, similar approach to array.
-                    elsif $flags +& $SIG_ELEM_HASH_SIGIL {
-                        if $flags +& $SIG_ELEM_IS_COPY {
-                            my $bindee := nqp::create(Hash);
-                            $bindee.STORE(nqp::decont($oval));
-                            nqp::bindkey($lexpad, $varname, $bindee);
-                        }
-                        else {
-                            nqp::bindkey($lexpad, $varname, nqp::decont($oval));
-                        }
-                    }
-
-                    # If it's a scalar, we always need to wrap it into a new
-                    # container and store it; the container descriptor will be
-                    # provided and make it rw if it's an `is copy`.
                     else {
-                        my $new_cont := nqp::create(Scalar);
-                        nqp::bindattr($new_cont, Scalar, '$!descriptor',
-                            nqp::getattr($param, Parameter, '$!container_descriptor'));
-                        nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
-                        nqp::bindkey($lexpad, $varname, $new_cont);
+                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
                     }
+                }
+
+                # If it's a hash, similar approach to array.
+                elsif $flags +& $SIG_ELEM_HASH_SIGIL {
+                    if $flags +& $SIG_ELEM_IS_COPY {
+                        my $bindee := nqp::create(Hash);
+                        $bindee.STORE(nqp::decont($oval));
+                        nqp::bindkey($lexpad, $varname, $bindee);
+                    }
+                    else {
+                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
+                    }
+                }
+
+                # If it's a scalar, we always need to wrap it into a new
+                # container and store it; the container descriptor will be
+                # provided and make it rw if it's an `is copy`.
+                else {
+                    my $new_cont := nqp::create(Scalar);
+                    nqp::bindattr($new_cont, Scalar, '$!descriptor',
+                        nqp::getattr($param, Parameter, '$!container_descriptor'));
+                    nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
+                    nqp::bindkey($lexpad, $varname, $new_cont);
                 }
             }
         }
@@ -636,16 +634,14 @@ my class Binder {
             if $flags +& $SIG_ELEM_IS_CAPTURE {
                 $capture := $oval;
             }
+            elsif nqp::can($oval, 'Capture') {
+                $capture := $oval.Capture;
+            }
             else {
-                if nqp::can($oval, 'Capture') {
-                    $capture := $oval.Capture;
+                if nqp::defined($error) {
+                    $error[0] := "Could not turn argument into capture";
                 }
-                else {
-                    if nqp::defined($error) {
-                        $error[0] := "Could not turn argument into capture";
-                    }
-                    return $BIND_RESULT_FAIL;
-                }
+                return $BIND_RESULT_FAIL;
             }
 
             # Recurse into signature binder.
@@ -877,21 +873,19 @@ my class Binder {
                         return $bind_fail if $bind_fail;
                         ++$cur_pos_arg;
                     }
+                    # No value. If it's optional, fetch a default and bind that;
+                    # if not, we're screwed. Note that we never nominal type check
+                    # an optional with no value passed.
+                    elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
+                        $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
+                            0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
+                        return $bind_fail if $bind_fail;
+                    }
                     else {
-                        # No value. If it's optional, fetch a default and bind that;
-                        # if not, we're screwed. Note that we never nominal type check
-                        # an optional with no value passed.
-                        if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
-                            return $bind_fail if $bind_fail;
+                        if nqp::defined($error) {
+                            $error[0] := arity_fail(@params, $num_params, $num_pos_args, 0, $lexpad);
                         }
-                        else {
-                            if nqp::defined($error) {
-                                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 0, $lexpad);
-                            }
-                            return $BIND_RESULT_FAIL;
-                        }
+                        return $BIND_RESULT_FAIL;
                     }
                 }
             }

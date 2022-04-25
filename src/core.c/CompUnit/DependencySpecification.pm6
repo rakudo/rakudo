@@ -1,7 +1,7 @@
 class CompUnit::DependencySpecification {
     has str $.short-name  is built(:bind) is required;  # must be native
     has str $.from        is built(:bind) = 'Perl6';    # must be native
-    has str $!stringified;
+    has str $.stringified;  # needs to be public for the JVM
 
     # The matcher methods will return True if implicitly or explicitly
     # initialized with an undefined value.  In the case of version and

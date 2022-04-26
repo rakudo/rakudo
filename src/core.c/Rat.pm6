@@ -31,6 +31,8 @@ my class Rat is Cool does Rational[Int, Int] {
     }
 }
 
+my constant UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
+
 my class FatRat is Cool does Rational[Int, Int] {
     method FatRat(FatRat:D:) { self }
     method Rat(FatRat:D:) {

@@ -389,7 +389,7 @@ multi sub infix:<**>(Int:D $a, Int:D $b --> Real:D) {
         !! X::Numeric::Overflow.new.Failure
       # when a**b is too big nqp::pow_I returns Inf
       !! nqp::istype(($power := nqp::pow_I($a,nqp::neg_I($b,Int),Num,Int)),Num) ||
-         (($power := CREATE_RATIONAL_FROM_INTS(1, $power, Int, Int)) == 0 && nqp::isne_I($a,0))
+         (nqp::istype(($power := CREATE_RATIONAL_FROM_INTS(1, $power, Int, Int)),Num) && nqp::iseq_n($power,0e0) && nqp::isne_I($a,0))
         ?? X::Numeric::Underflow.new.Failure
         !! $power
 }

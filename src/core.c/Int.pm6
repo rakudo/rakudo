@@ -381,24 +381,17 @@ multi sub infix:<%%>(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::iseq_i(nqp::mod_i($a, $b), 0))
 }
 
-my constant UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
-
 multi sub infix:<**>(Int:D $a, Int:D $b --> Real:D) {
-    my $power;
-    if nqp::isge_I($b, 0) {
-        $power := nqp::pow_I($a, $b, Num, Int);
-        # when a**b is too big nqp::pow_I returns Inf
-        nqp::istype($power, Int)
-            ?? $power
-            !! Failure.new(X::Numeric::Overflow.new)
-    }
-    else {
-        $power := nqp::pow_I($a, nqp::neg_I($b, Int), Num, Int);
-        # when a**b is too big nqp::pow_I returns Inf
-        nqp::istype($power, Num) || (nqp::isge_I($power, UINT64_UPPER) && nqp::isne_I($a, 0))
-            ?? Failure.new(X::Numeric::Underflow.new)
-            !! 1 / $power
-    }
+    nqp::isge_I($b,0)
+      # when a**b is too big nqp::pow_I returns Inf
+      ?? nqp::istype((my $power := nqp::pow_I($a,$b,Num,Int)),Int)
+        ?? $power
+        !! X::Numeric::Overflow.new.Failure
+      # when a**b is too big nqp::pow_I returns Inf
+      !! nqp::istype(($power := nqp::pow_I($a,nqp::neg_I($b,Int),Num,Int)),Num) ||
+         (nqp::istype(($power := CREATE_RATIONAL_FROM_INTS(1, $power, Int, Int)),Num) && nqp::iseq_n($power,0e0) && nqp::isne_I($a,0))
+        ?? X::Numeric::Underflow.new.Failure
+        !! $power
 }
 
 multi sub infix:<**>(int $a, int $b --> int) {

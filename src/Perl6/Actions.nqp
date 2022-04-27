@@ -75,7 +75,7 @@ sub UNWANTALL($ast, $by) {
 
 sub wanted($ast,$by) {
 #    $wantwant := nqp::getenvhash<RAKUDO_WANT> unless nqp::isconcrete($wantwant);
-    return $ast 
+    return $ast
       if nqp::not_i(nqp::can($ast,'ann'))
       || $ast.wanted  # already marked from here down
       || $ast.sunk;   # already marked from here down
@@ -284,7 +284,7 @@ sub WANTED($ast, $by) {
 my %nosink := nqp::hash('sink',1,'push',1,'append',1,'unshift',1,'prepend',1,'splice',1);
 
 sub unwanted($ast, $by) {
-    return $ast 
+    return $ast
       if nqp::not_i(nqp::can($ast,'ann'))
       || $ast.sunk
       || $ast.wanted;  # probably a loose thunk just stashed somewhere random
@@ -9500,7 +9500,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         return 0 unless %info<is_invocant>;
                     }
                     else {
-                        if $param_type =:= $world.find_single_symbol_in_setting('Positional') {
+                        if nqp::istype($param_type, $world.find_single_symbol_in_setting('Positional')) {
                             $var.push(QAST::Op.new(
                                 :op('if'),
                                 QAST::Op.new(

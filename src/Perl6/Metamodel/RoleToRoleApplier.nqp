@@ -224,6 +224,25 @@ my class RoleToRoleApplier {
             }
         }
 
+        my %cur-attrs;
+
+        my class AttrReg {
+            has $!attr;
+            has $!from;
+            method attr() { $!attr }
+            method from() { $!from }
+        }
+
+        sub reg-cur-attr($attr, $from) {
+            %cur-attrs{$attr.name} := AttrReg.new(:$attr, :$from);
+        }
+
+        my @cur_attrs := $target.HOW.attributes($target, :local(1));
+        for @cur_attrs {
+            reg-cur-attr($_, $target);
+        }
+
+
         # Now do the other bits.
         for @roles -> $r {
             my $how := $r.HOW;
@@ -232,25 +251,35 @@ my class RoleToRoleApplier {
             my @attributes := $how.attributes($r, :local(1));
             for @attributes -> $add_attr {
                 my $skip := 0;
-                my @cur_attrs := $target.HOW.attributes($target, :local(1));
-                for @cur_attrs {
-                    # If $add_attr doesn't know its original attribute object then fallback to the old object address
-                    # match.
-                    if (nqp::can($add_attr, 'original')
-                        && nqp::decont($_.original) =:= nqp::decont($add_attr.original)
-                        && nqp::decont($_.type) =:= nqp::decont($add_attr.type))
-                       || (nqp::decont($_) =:= nqp::decont($add_attr))
-                    {
-                        $skip := 1;
-                    }
-                    else {
-                        if $_.name eq $add_attr.name {
-                            nqp::die("Attribute '" ~ $_.name ~ "' conflicts in role composition");
+
+                if nqp::can($add_attr, 'original') {
+                    my $name := $add_attr.name;
+                    if nqp::existskey(%cur-attrs, $name) {
+                        my $cur-attr := %cur-attrs{$name}.attr;
+                        if (nqp::decont($cur-attr.original) =:= nqp::decont($add_attr.original)
+                            && nqp::decont($cur-attr.type) =:= nqp::decont($add_attr.type))
+                            || (nqp::decont($cur-attr) =:= nqp::decont($add_attr))
+                        {
+                            $skip := 1;
+                        }
+                        else {
+                            if $cur-attr.name eq $add_attr.name {
+                                Perl6::Metamodel::Configuration.throw_or_die(
+                                    'X::Role::Attribute::Conflicts',
+                                    "Attribute '" ~ $cur-attr.name ~ "' conflicts in role composition",
+                                    :$target,
+                                    :attribute($cur-attr),
+                                    :from1(%cur-attrs{$name}.from),
+                                    :from2($r)
+                                )
+                            }
                         }
                     }
                 }
+
                 unless $skip {
                     $target.HOW.add_attribute($target, $add_attr);
+                    reg-cur-attr($add_attr, $r);
                 }
             }
 

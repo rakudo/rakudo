@@ -1750,6 +1750,79 @@ my class X::Role::Group::Documenting is Exception {
     }
 }
 
+my role X::RoleApplier is Exception {
+    has Mu $.target is required;
+}
+
+my role X::RoleApplier::Method {
+    # This attribute could either be of MultiToIncorporate or Collisions classes, depending on particular exception
+    # kind. Both a MOP classes without `item` method.  Thefore the attribute must be accessed either as $!method or as
+    # self.method, not $.method.
+    has Mu $.method is required;
+}
+
+my class X::Role::Unimplemented::Multi does X::RoleApplier does X::RoleApplier::Method {
+    method message() {
+        "Multi method '" ~ self.method.name
+        ~ "' with signature " ~ self.method.code.signature.raku
+        ~ " must be implemented by " ~ self.target.^name
+        ~ " because it is required by a role"
+    }
+}
+
+my class X::Role::Unresolved does X::RoleApplier does X::RoleApplier::Method {
+    method must-be-resolved {
+        ~ "' must be resolved by class " ~ $!target.^name
+        ~ " because it exists in multiple roles ("
+        ~ nqp::hllizefor($!method.roles, 'Raku').join(", ")
+        ~ ")"
+    }
+}
+
+my class X::Role::Unresolved::Private is X::Role::Unresolved {
+    method message {
+        "Private method '" ~ self.method.name ~ self.must-be-resolved
+    }
+}
+
+my class X::Role::Unresolved::Multi is X::Role::Unresolved {
+    method message {
+        "Multi method '" ~ self.method.name
+        ~ "' with signature " ~ self.method.multi.signature.raku
+        ~ self.must-be-resolved
+    }
+}
+
+my class X::Role::Unresolved::Method is X::Role::Unresolved {
+    method message {
+        "Method '" ~ self.method.name ~ self.must-be-resolved
+    }
+}
+
+my role X::Role::Attribute does X::RoleApplier {
+    has Attribute:D $.attribute is required;
+}
+
+my class X::Role::Attribute::Exists does X::Role::Attribute {
+    method message {
+        "Attribute '" ~ $!attribute.name
+        ~ "' already exists in the class '" ~ self.target.^name
+        ~ "', but a role also wishes to compose it"
+    }
+}
+
+my class X::Role::Attribute::Conflicts does X::Role::Attribute {
+    # Conflicting roles
+    has Mu $.from1 is required;
+    has Mu $.from2 is required;
+    method message {
+        "Attribute '" ~ $!attribute.name
+        ~ "' conflicts in role '" ~ self.target.^name
+        ~ "' composition: declared in both '" ~ $!from1.^name
+        ~ "' and '" ~ $!from2.^name ~ "'"
+    }
+}
+
 my class X::Syntax::Comment::Embedded does X::Syntax {
     method message() { "Opening bracket required for #` comment" }
 }

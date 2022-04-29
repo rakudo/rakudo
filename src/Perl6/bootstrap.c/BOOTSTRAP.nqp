@@ -2310,11 +2310,12 @@ BEGIN {
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
             if nqp::isconcrete($dcself) {
-                my $cloned    := nqp::clone($dcself);
-                my $do        := nqp::getattr($dcself, Code, '$!do');
-                my $do_cloned := nqp::clone($do);
-                nqp::bindattr($cloned, Code, '$!do', $do_cloned);
-                nqp::setcodeobj($do_cloned, $cloned);
+                my $cloned := nqp::clone($dcself);
+                my $do     := nqp::getattr($dcself, Code, '$!do');
+                nqp::setcodeobj(
+                  nqp::bindattr($cloned, Code, '$!do', nqp::clone($do)),
+                  $cloned
+                );
 #?if !jvm
                 my $phasers := nqp::getattr($dcself, Block, '$!phasers');
                 if nqp::isconcrete($phasers) {
@@ -2322,15 +2323,13 @@ BEGIN {
                 }
 #?endif
                 my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
-                unless nqp::isnull($compstuff) {
-                    nqp::atpos($compstuff, 2)($do, $cloned);
-                }
+                nqp::atpos($compstuff, 2)($do, $cloned) unless nqp::isnull($compstuff);
+
                 # XXX this should probably be done after the clone that installs
                 #     the sub
                 my $why := nqp::getattr($dcself, Block, '$!why');
-                unless nqp::isnull($why) {
-                    $why.set_docee($cloned);
-                }
+                $why.set_docee($cloned) unless nqp::isnull($why);
+
                 $cloned
             }
             else {

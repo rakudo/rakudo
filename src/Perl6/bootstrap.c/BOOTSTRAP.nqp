@@ -2258,8 +2258,7 @@ BEGIN {
         }));
     Code.HOW.add_method(Code, 'is_generic', nqp::getstaticcode(sub ($self) {
             # Delegate to signature, since it contains all the type info.
-            my $dc_self := nqp::decont($self);
-            nqp::getattr($dc_self, Code, '$!signature').is_generic()
+            nqp::getattr(nqp::decont($self), Code, '$!signature').is_generic()
         }));
     Code.HOW.add_method(Code, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone the code object, then instantiate the generic signature. Also

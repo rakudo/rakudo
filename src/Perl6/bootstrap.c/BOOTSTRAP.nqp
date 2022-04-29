@@ -2242,19 +2242,23 @@ BEGIN {
 
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
-            my $dcself    := nqp::decont($self);
-            return $dcself unless nqp::isconcrete($dcself);
+            my $dcself := nqp::decont($self);
+            if nqp::isconcrete($dcself) {
+                my $cloned := nqp::clone($dcself);
+                my $do     := nqp::getattr($dcself, Code, '$!do');
+                nqp::setcodeobj(
+                  nqp::bindattr($cloned, Code, '$!do', nqp::clone($do)),
+                  $cloned
+                );
 
-            my $cloned    := nqp::clone($dcself);
-            my $do        := nqp::getattr($dcself, Code, '$!do');
-            my $do_cloned := nqp::clone($do);
-            nqp::bindattr($cloned, Code, '$!do', $do_cloned);
-            nqp::setcodeobj($do_cloned, $cloned);
-            my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
-            unless nqp::isnull($compstuff) {
-                $compstuff[2]($do, $cloned);
+                my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
+                $compstuff[2]($do, $cloned) unless nqp::isnull($compstuff);
+
+                $cloned
             }
-            $cloned
+            else {
+                $dcself
+            }
         }));
     Code.HOW.add_method(Code, 'is_generic', nqp::getstaticcode(sub ($self) {
             # Delegate to signature, since it contains all the type info.

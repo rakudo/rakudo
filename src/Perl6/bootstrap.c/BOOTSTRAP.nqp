@@ -2244,17 +2244,16 @@ BEGIN {
     Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
             if nqp::isconcrete($dcself) {
-                my $cloned := nqp::clone($dcself);
+                my $clself := nqp::clone($dcself);
                 my $do     := nqp::getattr($dcself, Code, '$!do');
-                nqp::setcodeobj(
-                  nqp::bindattr($cloned, Code, '$!do', nqp::clone($do)),
-                  $cloned
-                );
+                my $cldo   := nqp::clone($do);
+                nqp::bindattr($clself, Code, '$!do', $cldo);
+                nqp::setcodeobj($cldo, $clself);
 
                 my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
-                $compstuff[2]($do, $cloned) unless nqp::isnull($compstuff);
+                $compstuff[2]($do, $clself) unless nqp::isnull($compstuff);
 
-                $cloned
+                $clself
             }
             else {
                 $dcself

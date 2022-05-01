@@ -34,6 +34,7 @@ my class Stash { # declared in BOOTSTRAP
         )
     }
 
+    proto method ASSIGN-KEY(Stash:D: $, $) {*}
     multi method ASSIGN-KEY(Stash:D: Str:D $key, Mu \assignval) is raw {
         my $storage := nqp::getattr(self,Map,'$!storage');
         my \existing-key := nqp::atkey($storage, $key);
@@ -50,7 +51,7 @@ my class Stash { # declared in BOOTSTRAP
                             nqp::getattr(self, Hash, '$!descriptor')),
                         assignval)
                 );
-                nqp::bindattr(self, Map, '$!storage', $storage);
+                nqp::atomicbindattr(self, Map, '$!storage', $storage);
                 scalar
             };
         }

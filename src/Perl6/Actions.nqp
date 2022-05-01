@@ -2300,9 +2300,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $lexpad := $world.cur_lexpad();
         my $block := $lexpad.ann('code_object');
         $block := $world.blocks[+$world.blocks - 2] if $block.HOW.name($block) eq 'Code';
-        if !$lexpad.symbol('%REQUIRE_SYMBOLS') {
-            declare_variable($/, $past, '%', '', 'REQUIRE_SYMBOLS', []);
-            $world.mark_lexical_used_implicitly($lexpad, '%REQUIRE_SYMBOLS');
+        if !$lexpad.symbol('%?REQUIRE-SYMBOLS') {
+            my $Stash := $world.find_single_symbol_in_setting('Stash');
+            $world.install_lexical_symbol($lexpad, '%?REQUIRE-SYMBOLS', $Stash.new, :clone);
+            $world.mark_lexical_used_implicitly($lexpad, '%?REQUIRE-SYMBOLS');
         }
         my $require_past := WANTED(QAST::Op.new(:node($/), :op<call>,
                                         :name<&REQUIRE_IMPORT>,

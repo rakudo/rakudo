@@ -62,25 +62,25 @@ augment class Any {
         has $!NEXT;
         has $!LAST;
 
-        method new(\block, \source, \label) {
+        method new(&block, Iterator:D $source, $label) {
             nqp::if(
-              nqp::eqaddr((my $pulled := source.pull-one),IterationEnd),
+              nqp::eqaddr((my $pulled := $source.pull-one),IterationEnd),
               Rakudo::Iterator.Empty,  # nothing to do
               nqp::stmts(              # iterate at least once
                 (my $iter := nqp::create(self)),
                 nqp::bindattr($iter,self,'$!slipper',nqp::null),
                 nqp::bindattr($iter,self,'$!pulled',$pulled),
                 nqp::if(       # set up FIRST phaser execution if needed
-                  block.has-phaser('FIRST');
-                  nqp::p6setfirstflag(nqp::getattr(block, Code, '$!do'))
+                  &block.has-phaser('FIRST');
+                  nqp::p6setfirstflag(nqp::getattr(&block, Code, '$!do'))
                 ),
-                nqp::bindattr($iter,self,'&!block',block),
-                nqp::bindattr($iter,self,'$!source',source),
-                nqp::bindattr($iter,self,'$!label',nqp::decont(label)),
+                nqp::bindattr($iter,self,'&!block',&block),
+                nqp::bindattr($iter,self,'$!source',$source),
+                nqp::bindattr($iter,self,'$!label',nqp::decont($label)),
                 nqp::bindattr($iter,self,'$!NEXT',
-                  block.callable_for_phaser('NEXT') // nqp::null),
+                  &block.callable_for_phaser('NEXT') // nqp::null),
                 nqp::bindattr($iter,self,'$!LAST',
-                  block.callable_for_phaser('LAST')),
+                  &block.callable_for_phaser('LAST')),
                 $iter
               )
             )
@@ -312,12 +312,12 @@ augment class Any {
         has $!source;
         has $!label;
 
-        method new(&block,$source,\label) {
+        method new(&block, Iterator:D $source, $label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
             $iter
         }
 
@@ -418,12 +418,12 @@ augment class Any {
         has $!source;
         has $!label;
 
-        method new(&block,$source,\label) {
+        method new(&block, Iterator:D $source, $label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
             $iter
         }
 
@@ -599,12 +599,12 @@ augment class Any {
         has $!label;
         has int $!count;
 
-        method new(&block, \source, int $count, \label) {
+        method new(&block, Iterator:D $source, int $count, $label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
-            nqp::bindattr($iter, self, '$!source', source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
+            nqp::bindattr($iter, self, '$!source', $source);
+            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
             nqp::bindattr_i($iter, self, '$!count', $count);
             $iter
         }
@@ -759,13 +759,13 @@ augment class Any {
         has $!NEXT;
         has $!CAN_FIRE_PHASERS;
 
-        method new(&block, $source, $count, \label) {
+        method new(&block, Iterator:D $source, $count, $label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!count', $count);
-            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
             $iter
         }
 

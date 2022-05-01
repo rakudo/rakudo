@@ -18,7 +18,7 @@ my class Attribute { # declared in BOOTSTRAP
     #     has $!required;
     #     has Mu $!container_initializer;
     #     has Attribute $!original;
-    #     has Attribute $!composed;
+    #     has int $!composed;
 
     method compose(Mu $package, :$compiler_services) {
         return if $!composed;

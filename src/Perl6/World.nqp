@@ -2043,7 +2043,7 @@ class Perl6::World is HLL::World {
     method maybe-definite-how-base($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
-        ! self.lang-rev-before('d') && nqp::eqaddr($v.HOW,
+        ! self.lang-rev-before('d') && nqp::istype($v.HOW,
             self.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
         ) ?? $v.HOW.base_type: $v !! $v
     }
@@ -4198,6 +4198,7 @@ class Perl6::World is HLL::World {
        # Create the meta-object and add to root objects.
         my $mo := $how.new_type(:$base_type, :$definite);
 
+        if nqp::isnull(nqp::getobjsc($mo.HOW)) { self.add_object_if_no_sc($mo.HOW); }
         if nqp::isnull(nqp::getobjsc($mo)) { self.add_object_if_no_sc($mo); }
 
         return $mo;

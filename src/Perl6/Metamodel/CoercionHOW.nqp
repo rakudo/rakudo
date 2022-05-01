@@ -37,7 +37,7 @@ class Perl6::Metamodel::CoercionHOW
 
     method set_target_type($target_type) {
         $!target_type := $target_type;
-        $!nominal_target := $!target_type.HOW.archetypes.nominalizable
+        $!nominal_target := $!target_type.HOW.archetypes.nominalizable && !$!target_type.HOW.archetypes.generic
                                 ?? $!target_type.HOW.nominalize($!target_type)
                                 !! $!target_type;
     }
@@ -114,7 +114,10 @@ class Perl6::Metamodel::CoercionHOW
 
     # Coercion protocol method.
     method coerce($obj, $value) {
+        my $target_how := $!target_type.HOW;
         if nqp::istype($value, $!target_type) {
+            return $target_how.coerce($!target_type, $value)
+                if $target_how.archetypes.coercive;
             return $value
         }
 
@@ -183,9 +186,10 @@ class Perl6::Metamodel::CoercionHOW
         my $coerced_decont := nqp::decont($coerced_value);
         # Fail for either no coercion method found or wrong type returned, except for Failure kind of return which we
         # must bypass as it carries some useful information about another error.
+        my $Failure := nqp::gethllsym('Raku', 'Failure');
         if nqp::isnull($coerced_value)
             || !(nqp::istype($coerced_decont, $!target_type)
-                || nqp::istype($coerced_decont, nqp::gethllsym('Raku', 'Failure')))
+                || nqp::istype($coerced_decont, $Failure))
         {
             my $target_type_name := $!target_type.HOW.name($!target_type);
             my $value_type_name := $value_type.HOW.name($value_type);
@@ -212,7 +216,9 @@ class Perl6::Metamodel::CoercionHOW
             )
         }
 
-        $coerced_value
+        !nqp::istype($coerced_value, $Failure) && $target_how.archetypes.coercive
+            ?? $target_how.coerce($!target_type, $coerced_value)
+            !! $coerced_value
     }
 
     # Methods needed by Perl6::Metamodel::Nominalizable
@@ -221,7 +227,6 @@ class Perl6::Metamodel::CoercionHOW
 }
 BEGIN {
     my $root := nqp::newtype(Perl6::Metamodel::CoercionHOW.new, 'Uninstantiable');
-    nqp::settypehll($root, 'Raku');
     nqp::setdebugtypename(nqp::settypehll($root, 'Raku'), 'CoercionHOW root');
     nqp::setparameterizer($root, sub ($type, $params) {
         my $metaclass := $type.HOW.new();

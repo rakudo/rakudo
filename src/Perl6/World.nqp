@@ -4403,7 +4403,7 @@ class Perl6::World is HLL::World {
         if $phaser eq 'BEGIN' {
             # BEGIN phasers get run immediately.
             my $result := self.handle-begin-time-exceptions($/, 'evaluating a BEGIN', $block);
-            return self.add_constant_folded_result($result);
+            self.add_constant_folded_result($result)
         }
         elsif $phaser eq 'CHECK' {
             my $handled_block := -> {
@@ -4411,7 +4411,7 @@ class Perl6::World is HLL::World {
             }
             my $result_node := QAST::Stmt.new( QAST::Var.new( :name('Nil'), :scope('lexical') ) );
             self.add_check([$handled_block, $result_node]);
-            return $result_node;
+            $result_node
         }
         elsif $phaser eq 'INIT' {
             unless $*UNIT.symbol('!INIT_VALUES') {
@@ -4431,11 +4431,11 @@ class Perl6::World is HLL::World {
                     :op('call'),
                     QAST::WVal.new( :value($block) )
                 )));
-            return QAST::Op.new(
+            QAST::Op.new(
                 :op('callmethod'), :name('AT-KEY'),
                 QAST::Var.new( :name('!INIT_VALUES'), :scope('lexical') ),
                 QAST::SVal.new( :value($phaser_past.cuid) )
-            );
+            )
         }
         elsif $phaser eq 'END' {
             $*UNIT[0].push(QAST::Op.new(
@@ -4446,7 +4446,7 @@ class Perl6::World is HLL::World {
                 ),
                 QAST::WVal.new( :value($block) )
             ));
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            QAST::Var.new(:name('Nil'), :scope('lexical'))
         }
         elsif $phaser eq 'PRE' || $phaser eq 'POST' {
             my $what := self.add_string_constant($phaser);
@@ -4491,7 +4491,7 @@ class Perl6::World is HLL::World {
             }
 
             self.context().cur_code_object().add_phaser($phaser, $block);
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            QAST::Var.new(:name('Nil'), :scope('lexical'))
         }
         elsif $phaser eq 'ENTER' {
             self.context().cur_code_object().add_phaser($phaser, $block);
@@ -4502,11 +4502,11 @@ class Perl6::World is HLL::World {
             @pres.push($block);
             @pres.push(my $var := QAST::Var.new( :name($enter_tmp), :scope('lexical') ));
             $var.wanted(1);  # don't really know if wanted, but suppress warning
-            return $var;
+            $var
         }
         else {
             self.context().cur_code_object().add_phaser($phaser, $block);
-            return QAST::Var.new(:name('Nil'), :scope('lexical'));
+            QAST::Var.new(:name('Nil'), :scope('lexical'))
         }
     }
 

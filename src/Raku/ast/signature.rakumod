@@ -319,6 +319,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 
     method IMPL-FLAGS() {
         my constant SIG_ELEM_INVOCANT            := 64;
+        my constant SIG_ELEM_MULTI_INVOCANT      := 128;
         my constant SIG_ELEM_IS_RAW              := 1024;
         my constant SIG_ELEM_IS_OPTIONAL         := 2048;
         my constant SIG_ELEM_ARRAY_SIGIL         := 4096;
@@ -327,6 +328,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         my $sigil := $!target.sigil;
         my int $flags;
         $flags := $flags +| SIG_ELEM_INVOCANT if $!invocant;
+        $flags := $flags +| SIG_ELEM_MULTI_INVOCANT;
         $flags := $flags +| SIG_ELEM_IS_OPTIONAL if self.is-optional;
         if $sigil eq '@' {
             $flags := $flags +| SIG_ELEM_ARRAY_SIGIL;

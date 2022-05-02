@@ -603,6 +603,16 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         });
         nqp::setcodename($stub, $!name.canonicalize) if $!name;
         nqp::bindattr($routine, Code, '$!do', $stub);
+        if nqp::istype(self.body, RakuAST::Blockoid) {
+            my $statements := self.body.statement-list.statements;
+            if $statements.elems == 1 && nqp::istype($statements.AT-POS(0), RakuAST::Statement::Expression) {
+                my $expression := $statements.AT-POS(0);
+                $routine.set_onlystar
+                    if nqp::istype($expression.expression, RakuAST::Term::Whatever)
+                    && !$expression.condition-modifier
+                    && !$expression.loop-modifier;
+            }
+        }
         nqp::setcodeobj($stub, $routine);
 
         $routine
@@ -653,14 +663,13 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                     )),
                     :body(RakuAST::Blockoid.new(
                         RakuAST::StatementList.new(
-                            $whatever,
+                            RakuAST::Statement::Expression.new(:expression($whatever)),
                         ),
                     )),
                     :multiness<proto>,
                 );
 
                 $proto := $proto-ast.meta-object;
-                $proto.set_onlystar;
                 nqp::bindattr($proto, Routine, '@!dispatchees', []);
 
                 my $outer := $resolver.find-attach-target('block', :outer(True));

@@ -4056,7 +4056,7 @@ nqp::sethllconfig('Raku', nqp::hash(
         unless nqp::p6inpre() {
             # when we get here, we assume the $!phasers attribut is concrete.
             # if it is *not* a hash, it is a lone LEAVE phaser, the most
-            # commenly used phaser (in the core at least).
+            # commonly used phaser (in the core at least).
             my $phasers := nqp::getattr(
               nqp::getcodeobj($coderef),Block,'$!phasers'
             );

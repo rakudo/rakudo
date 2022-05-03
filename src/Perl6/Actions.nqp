@@ -4418,7 +4418,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # them. No parameters also means no inlining.
         return 0 unless @params;
 
-        my $world   := $*W;
+        my $world  := $*W;
         my $Param  := $world.find_single_symbol_in_setting('Parameter');
         my @p_objs := nqp::getattr($sig, $world.find_single_symbol_in_setting('Signature'), '@!params');
         my %arg_placeholders;

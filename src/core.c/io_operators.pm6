@@ -1,6 +1,6 @@
 my class IO::ArgFiles { ... }
 
-augment class Rakudo::Internals {
+{
     # Set up the skeletons of the IO::Handle objects that can be setup
     # at compile time.  Then, when running the mainline of the setting
     # at startup, plug in the low level handles and set up the encoder
@@ -9,10 +9,34 @@ augment class Rakudo::Internals {
     my constant NL-OUT   = "\n";
     my constant ENCODING = "utf8";
 
-    my sub setup-handle(str $what) {
+    my $in := BEGIN {
         my $handle := nqp::p6bindattrinvres(
           nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
-            nqp::create(IO::Special),IO::Special,'$!what',$what
+            nqp::create(IO::Special),IO::Special,'$!what','<STDIN>'
+          )
+        );
+        nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
+        nqp::getattr($handle,IO::Handle,'$!nl-in')    = NL-IN;
+        nqp::getattr($handle,IO::Handle,'$!nl-out')   = NL-OUT;
+        nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
+        $handle
+    }
+    my $out := BEGIN {
+        my $handle := nqp::p6bindattrinvres(
+          nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
+            nqp::create(IO::Special),IO::Special,'$!what','<STDOUT>'
+          )
+        );
+        nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
+        nqp::getattr($handle,IO::Handle,'$!nl-in')    = NL-IN;
+        nqp::getattr($handle,IO::Handle,'$!nl-out')   = NL-OUT;
+        nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
+        $handle
+    }
+    my $err := BEGIN {
+        my $handle := nqp::p6bindattrinvres(
+          nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
+            nqp::create(IO::Special),IO::Special,'$!what','<STDERR>'
           )
         );
         nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
@@ -22,37 +46,25 @@ augment class Rakudo::Internals {
         $handle
     }
 
-    # Set up the skeletons at compile time
-#?if !js
-    my constant $skeletons = nqp::hash(
-#?endif
-#?if js
-    my $skeletons := nqp::hash(
-#?endif
-      'IN',  setup-handle('<STDIN>'),
-      'OUT', setup-handle('<STDOUT>'),
-      'ERR', setup-handle('<STDERR>')
-    );
-
     my $encoding := Encoding::Registry.utf8;
     my $encoder  := $encoding.encoder(:translate-nl);
     my $decoder  := $encoding.decoder(:translate-nl);
-    method activate-std(str $name, Mu \PIO) {
-        my $handle := nqp::atkey($skeletons,$name);
-        nqp::setbuffersizefh(PIO,8192) unless nqp::isttyfh(PIO);
 
+    sub activate-std(IO::Handle:D $handle, Mu \PIO) {
+        nqp::setbuffersizefh(PIO,8192) unless nqp::isttyfh(PIO);
         nqp::bindattr(
           $handle,IO::Handle,'$!decoder',$decoder
         ).set-line-separators(NL-IN);
         nqp::bindattr($handle,IO::Handle,'$!encoder',$encoder);
-        nqp::p6bindattrinvres($handle,IO::Handle,'$!PIO',PIO)
+        nqp::bindattr($handle,IO::Handle,'$!PIO',PIO);
+        $handle
     }
-}
 
-# Activate the standard handle skeletons at runtime
-PROCESS::<$IN>  = Rakudo::Internals.activate-std('IN',  nqp::getstdin);
-PROCESS::<$OUT> = Rakudo::Internals.activate-std('OUT', nqp::getstdout);
-PROCESS::<$ERR> = Rakudo::Internals.activate-std('ERR', nqp::getstderr);
+    # Activate the standard handle skeletons at runtime
+    PROCESS::<$IN>  = activate-std($in,  nqp::getstdin);
+    PROCESS::<$OUT> = activate-std($out, nqp::getstdout);
+    PROCESS::<$ERR> = activate-std($err, nqp::getstderr);
+}
 
 proto sub printf($, |) {*}
 multi sub printf(Str(Cool) $format, Junction:D \j) {

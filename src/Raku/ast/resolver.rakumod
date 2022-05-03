@@ -688,8 +688,8 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
         my $scope := nqp::pop($!scopes);
         $scope.batch-mode &&
             nqp::die('leave-scope should never be used on batch mode scopes');
-        if nqp::istype($scope, RakuAST::AttachTarget) {
-            self.pop-attach-target($scope);
+        if nqp::istype($scope.scope, RakuAST::AttachTarget) {
+            self.pop-attach-target($scope.scope);
         }
         Nil
     }

@@ -1,4 +1,3 @@
-my class PhasersList is repr('VMArray') {}
 my class Block { # declared in BOOTSTRAP
     # class Block is Code
     #     has Mu $!phasers;
@@ -10,21 +9,63 @@ my class Block { # declared in BOOTSTRAP
 
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
+    # These methods cannot be private methods as private method dispatch is
+    # not working yet this early in the setting.
+    method unshift-phaser(str $name, &block --> Nil) is implementation-detail {
+        nqp::unshift(
+          nqp::ifnull(
+            nqp::atkey($!phasers,$name),
+            nqp::bindkey($!phasers,$name,nqp::create(IterationBuffer))
+          ),
+          &block
+        )
+    }
+    method push-phaser(str $name, &block --> Nil) is implementation-detail {
+        nqp::push(
+          nqp::ifnull(
+            nqp::atkey($!phasers,$name),
+            nqp::bindkey($!phasers,$name,nqp::create(IterationBuffer))
+          ),
+          &block
+        )
+    }
+
     method add_phaser(str $name, &block --> Nil) {
-        $!phasers := nqp::hash unless nqp::ishash($!phasers);
+        # $!phasers is either a Block (which indicates the fast path for
+        # handling an only LEAVE phaser), or a hash (indicating one or more
+        # other phasers) or not concrete (no phasers at all).
 
-        nqp::bindkey($!phasers,$name,nqp::create(PhasersList))
-          unless nqp::existskey($!phasers,$name);
-
-        if nqp::iseq_s($name,'LEAVE') || nqp::iseq_s($name,'KEEP') || nqp::iseq_s($name,'UNDO') {
-            nqp::unshift(nqp::atkey($!phasers,$name),&block);
-            self.add_phaser('!LEAVE-ORDER', &block);
+        # adding another phaser after a lone LEAVE phaser?
+        if nqp::isconcrete($!phasers) && nqp::not_i(nqp::ishash($!phasers)) {
+            my &leave := $!phasers;
+            $!phasers := nqp::hash;
+            self.unshift-phaser('!LEAVE-ORDER', &leave);
+            self.unshift-phaser('LEAVE', &leave);
         }
-        elsif nqp::iseq_s($name,'NEXT') || nqp::iseq_s($name,'!LEAVE-ORDER') || nqp::iseq_s($name,'POST') {
-            nqp::unshift(nqp::atkey($!phasers,$name),&block);
+
+        # NOTE: nqp::iseq_s is needed as it is too early in the setting to
+        # have eq work on native strings
+        if nqp::iseq_s($name,'LEAVE') {
+            if nqp::isconcrete($!phasers) {
+                self.unshift-phaser('!LEAVE-ORDER', &block);  # slow leaving
+                self.unshift-phaser($name, &block);           # introspection
+            }
+            else {
+                $!phasers := &block;  # fast path for an only LEAVE phaser
+            }
         }
         else {
-            nqp::push(nqp::atkey($!phasers,$name),&block);
+            $!phasers := nqp::hash unless nqp::isconcrete($!phasers);
+
+            if nqp::iseq_s($name,'KEEP') || nqp::iseq_s($name,'UNDO') {
+                self.unshift-phaser('!LEAVE-ORDER', &block);
+                self.unshift-phaser($name, &block);
+            }
+            else {
+                nqp::iseq_s($name,'NEXT') || nqp::iseq_s($name,'POST')
+                  ?? self.unshift-phaser($name, &block)
+                  !! self.push-phaser($name, &block);
+            }
         }
     }
 
@@ -32,48 +73,57 @@ my class Block { # declared in BOOTSTRAP
     # Block.  Returns Nil if there are no phasers, the only phaser if
     # there only is one, or a Callable that will call all of the phasers.
     method callable_for_phaser(str $name) {
-        nqp::if(
-          nqp::ishash($!phasers)
-            && (my \phasers := nqp::atkey($!phasers,$name)),
-          nqp::if(
-            nqp::iseq_i(nqp::elems(phasers),1),
-            nqp::atpos(phasers,0),
-            {
-                my int $i = -1;
-                nqp::while(
-                  nqp::islt_i(++$i,nqp::elems(phasers)),
-                  nqp::atpos(phasers,$i)(),
-                  :nohandler
-                );
-            }
-          ),
-          Nil
-        )
+        nqp::ishash($!phasers) && (my \blocks := nqp::atkey($!phasers,$name))
+          ?? nqp::iseq_i(nqp::elems(blocks),1)
+            ?? nqp::atpos(blocks,0)
+            !! {
+                   my int $i = -1;
+                   nqp::while(
+                     ++$i < nqp::elems(blocks),
+                     nqp::atpos(blocks,$i)(),
+                     :nohandler
+                   );
+               }
+          !! nqp::isconcrete($!phasers) && nqp::iseq_s($name,'LEAVE')
+            ?? $!phasers  # lone LEAVE phaser
+            !! Nil
     }
 
     method fire_if_phasers(str $name --> Nil) {
-        if nqp::ishash($!phasers) && nqp::atkey($!phasers,$name) -> \phasers {
-            my int $i = -1;
-            nqp::while(
-              nqp::islt_i(++$i,nqp::elems(phasers)),
-              nqp::atpos(phasers,$i)(),
-              :nohandler
-            );
+        if nqp::isconcrete($!phasers) {
+            if nqp::ishash($!phasers)
+              && nqp::atkey($!phasers,$name) -> \blocks {
+                my int $i = -1;
+                nqp::while(
+                  ++$i < nqp::elems(blocks),
+                  nqp::atpos(blocks,$i)(),
+                  :nohandler
+                );
+            }
+            elsif nqp::iseq_s($name,'LEAVE') {
+                $!phasers();  # lone LEAVE phaser
+            }
         }
     }
 
     method fire_phasers(str $name --> Nil) {
-        my \phasers := nqp::atkey($!phasers,$name);
-        my int $i    = -1;
-        nqp::while(
-          nqp::islt_i(++$i,nqp::elems(phasers)),
-          nqp::atpos(phasers,$i)(),
-          :nohandler
-        );
+        if nqp::ishash($!phasers) {
+            if nqp::atkey($!phasers,$name) -> \blocks {
+                my int $i   = -1;
+                nqp::while(
+                  ++$i < nqp::elems(blocks),
+                  nqp::atpos(blocks,$i)(),
+                  :nohandler
+                );
+            }
+        }
+        elsif nqp::isconcrete($!phasers) && nqp::iseq_s($name,'LEAVE') {
+            $!phasers();
+        }
     }
 
     method has-phasers() {
-        nqp::hllbool(nqp::ishash($!phasers))
+        nqp::hllbool(nqp::isconcrete($!phasers))
     }
     method has-loop-phasers() {
         nqp::hllbool(
@@ -87,16 +137,19 @@ my class Block { # declared in BOOTSTRAP
 
     method has-phaser(str $name) {
         nqp::hllbool(
-          nqp::ishash($!phasers) && nqp::existskey($!phasers,$name)
+          (nqp::ishash($!phasers) && nqp::existskey($!phasers,$name))
+            || (nqp::iseq_s($name,'LEAVE') && nqp::isconcrete($!phasers))
         )
     }
 
     method phasers(str $name) {
         nqp::ishash($!phasers)
-          && nqp::existskey($!phasers,$name)
-          ?? nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-               nqp::atkey($!phasers,$name))
-          !! ()
+          ?? nqp::existskey($!phasers,$name)
+            ?? nqp::atkey($!phasers,$name).List
+            !! ()
+          !! nqp::iseq_s($name,'LEAVE') && nqp::isconcrete($!phasers)
+            ?? ($!phasers,)
+            !! ()
     }
 
     multi method raku(Block:D:) {

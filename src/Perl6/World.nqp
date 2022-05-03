@@ -2739,23 +2739,24 @@ class Perl6::World is HLL::World {
 
     # Adds any extra code needing for handling phasers.
     method add_phasers_handling_code($code, $code_past) {
-        my $block_type := self.find_single_symbol_in_setting('Block');
-        if nqp::istype($code, $block_type) {
-            my %phasers := nqp::getattr($code, $block_type, '$!phasers');
-            if nqp::ishash(%phasers) {
+        my $Block := self.find_single_symbol_in_setting('Block');
+        if nqp::istype($code, $Block) {
+            my $phasers := nqp::getattr($code, $Block, '$!phasers');
+            if nqp::ishash($phasers) {
+                my %phasers := $phasers;
                 if nqp::existskey(%phasers, 'PRE') {
                     $code_past[0].push(QAST::Op.new( :op('p6setpre') ));
-                    $code_past[0].push(self.run_phasers_code($code, $code_past, $block_type, 'PRE'));
+                    $code_past[0].push(self.run_phasers_code($code, $code_past, $Block, 'PRE'));
                     $code_past[0].push(QAST::Op.new( :op('p6clearpre') ));
                 }
                 if nqp::existskey(%phasers, 'FIRST') {
                     $code_past[0].push(QAST::Op.new(
                         :op('if'),
                         QAST::Op.new( :op('p6takefirstflag') ),
-                        self.run_phasers_code($code, $code_past, $block_type, 'FIRST')));
+                        self.run_phasers_code($code, $code_past, $Block, 'FIRST')));
                 }
                 if nqp::existskey(%phasers, 'ENTER') {
-                    $code_past[0].push(self.run_phasers_code($code, $code_past, $block_type, 'ENTER'));
+                    $code_past[0].push(self.run_phasers_code($code, $code_past, $Block, 'ENTER'));
                 }
                 if nqp::existskey(%phasers, '!LEAVE-ORDER') || nqp::existskey(%phasers, 'POST') {
                     $code_past.has_exit_handler(1);
@@ -2770,6 +2771,9 @@ class Perl6::World is HLL::World {
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
                     ));
                 }
+            }
+            elsif nqp::isconcrete($phasers) {  # lone LEAVE phaser
+                $code_past.has_exit_handler(1);
             }
         }
     }

@@ -2170,17 +2170,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*LABEL {
             $loop.push(QAST::WVal.new( :value($world.find_single_symbol($*LABEL)), :named('label') ));
         }
-        # Handle phasers.
-        my $code := $loop[1].ann('code_object');
-        my $block_type := $world.find_single_symbol_in_setting('Block');
-        my $phasers := nqp::getattr($code, $block_type, '$!phasers');
-        if !nqp::ishash($phasers) {
-            $loop[1] := pblock_immediate($loop[1]);
-        }
-        else {
+        # Handle any loopy phasers.
+        my $code    := $loop[1].ann('code_object');
+        my $Block   := $world.find_single_symbol_in_setting('Block');
+        my $phasers := nqp::getattr($code, $Block, '$!phasers');
+        if nqp::ishash($phasers) {
             my $node := $loop.node;
             if nqp::existskey($phasers, 'NEXT') {
-                my $phascode := $world.run_phasers_code($code, $loop[1], $block_type, 'NEXT');
+                my $phascode := $world.run_phasers_code($code, $loop[1], $Block, 'NEXT');
                 if +@($loop) == 2 {
                     $loop.push($phascode);
                 }
@@ -2203,8 +2200,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if nqp::existskey($phasers, 'LAST') {
                 $loop := QAST::Stmts.new(:$node, :resultchild(0), $loop,
-                  $world.run_phasers_code: $code, $loop[1], $block_type, 'LAST');
+                  $world.run_phasers_code: $code, $loop[1], $Block, 'LAST');
             }
+        }
+        else {  # no phasers or a lone LEAVE phaser
+            $loop[1] := pblock_immediate($loop[1]);
         }
         $loop
     }
@@ -4405,8 +4405,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method maybe_add_inlining_info($/, $code, $sig, $past, @params) {
         # Cannot inline things with custom invocation handler or phasers.
         return 0 if nqp::can($code, 'CALL-ME');
-        my $phasers := nqp::getattr($code,$*W.find_single_symbol_in_setting('Block'),'$!phasers');
-        return 0 unless !nqp::ishash($phasers) || !$phasers;
+
+        return 0 if nqp::isconcrete(nqp::getattr(
+          $code, $*W.find_single_symbol_in_setting('Block'), '$!phasers'
+        ));
 
         # Make sure the block has the common structure we expect
         # (decls then statements).
@@ -4416,7 +4418,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # them. No parameters also means no inlining.
         return 0 unless @params;
 
-        my $world := $*W;
+        my $world   := $*W;
         my $Param  := $world.find_single_symbol_in_setting('Parameter');
         my @p_objs := nqp::getattr($sig, $world.find_single_symbol_in_setting('Signature'), '@!params');
         my %arg_placeholders;

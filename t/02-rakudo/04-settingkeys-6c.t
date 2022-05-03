@@ -611,7 +611,6 @@ my %allowed = (
     Q{ParallelSequence},
     Q{Parameter},
     Q{Perl},
-    Q{PhasersList},
     Q{Planned},
     Q{Pod},
     Q{Positional},

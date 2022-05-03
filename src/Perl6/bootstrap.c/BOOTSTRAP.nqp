@@ -2312,9 +2312,8 @@ BEGIN {
                 nqp::setcodeobj($do_cloned, $cloned);
 #?if !jvm
                 my $phasers := nqp::getattr($dcself, Block, '$!phasers');
-                if nqp::isconcrete($phasers) {
-                    $dcself."!clone_phasers"($cloned, $phasers);
-                }
+                $dcself."!clone_phasers"($cloned, $phasers)
+                  if nqp::ishash($phasers);
 #?endif
                 my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
                 unless nqp::isnull($compstuff) {
@@ -2383,10 +2382,10 @@ BEGIN {
 #?endif
         }));
     Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
-            my $dcself    := nqp::decont($self);
+            my $dcself  := nqp::decont($self);
 #?if !jvm
-            my $phasers   := nqp::getattr($dcself, Block, '$!phasers');
-            if nqp::isconcrete($phasers) {
+            my $phasers := nqp::getattr($dcself, Block, '$!phasers');
+            if nqp::ishash($phasers) {
                 my @next := nqp::atkey($phasers, 'NEXT');
                 if nqp::islist(@next) {
                     my int $i := -1;
@@ -4055,93 +4054,114 @@ nqp::sethllconfig('Raku', nqp::hash(
     },
     'exit_handler', -> $coderef, $resultish {
         unless nqp::p6inpre() {
-            my %phasers :=
-              nqp::getattr(nqp::getcodeobj($coderef),Block,'$!phasers');
-            my @leaves := nqp::atkey(%phasers, '!LEAVE-ORDER');
-            my @posts  := nqp::atkey(%phasers, 'POST');
-            my @exceptions;
-            unless nqp::isnull(@leaves) {
+            # when we get here, we assume the $!phasers attribut is concrete.
+            # if it is *not* a hash, it is a lone LEAVE phaser, the most
+            # commenly used phaser (in the core at least).
+            my $phasers := nqp::getattr(
+              nqp::getcodeobj($coderef),Block,'$!phasers'
+            );
 
-                # only have a single LEAVEish phaser, so no frills needed
-                if nqp::elems(@leaves) == 1 && nqp::elems(%phasers) == 1 {
-#?if jvm
-                    nqp::decont(nqp::atpos(@leaves,0))();
-#?endif
-#?if !jvm
-                    nqp::p6capturelexwhere(
-                      nqp::decont(nqp::atpos(@leaves,0)).clone)();
-#?endif
-                    # don't bother to CATCH, there can only be one exception
-                }
-
-                # slow path here
-                else {
-                    my @keeps  := nqp::atkey(%phasers, 'KEEP');
-                    my @undos  := nqp::atkey(%phasers, 'UNDO');
+            # slow path here
+            if nqp::ishash($phasers) {
+                my @leaves := nqp::atkey($phasers, '!LEAVE-ORDER');
+                my @posts  := nqp::atkey($phasers, 'POST');
+                my @exceptions;
+                unless nqp::isnull(@leaves) {
+                    my @keeps  := nqp::atkey($phasers, 'KEEP');
+                    my @undos  := nqp::atkey($phasers, 'UNDO');
                     my int $n := nqp::elems(@leaves);
                     my int $i := -1;
-                    my int $run;
-                    my $phaser;
-                    while ++$i < $n {
-                        $phaser := nqp::decont(nqp::atpos(@leaves, $i));
-                        $run := 1;
-                        unless nqp::isnull(@keeps) {
-                            for @keeps {
-                                if nqp::eqaddr(nqp::decont($_),$phaser) {
-                                    $run := !nqp::isnull($resultish) &&
-                                             nqp::isconcrete($resultish) &&
-                                             $resultish.defined;
-                                    last;
-                                }
-                            }
-                        }
-                        unless nqp::isnull(@undos) {
-                            for @undos {
-                                if nqp::eqaddr(nqp::decont($_),$phaser) {
-                                    $run := nqp::isnull($resultish) ||
-                                            !nqp::isconcrete($resultish) ||
-                                            !$resultish.defined;
-                                    last;
-                                }
-                            }
-                        }
-                        if $run {
+
+                    # fast leave path
+                    if nqp::isnull(@leaves) && nqp::isnull(@undos) {
+                        while ++$i < $n {
+                            CATCH { nqp::push(@exceptions, $_) }
 #?if jvm
-                            $phaser();
+                            nqp::atpos(@leaves, $i))();
 #?endif
 #?if !jvm
-                            nqp::p6capturelexwhere($phaser.clone())();
+                            nqp::p6capturelexwhere(
+                              nqp::atpos(@leaves, $i).clone()
+                            )();
 #?endif
-                            CATCH { nqp::push(@exceptions, $_) }
+                        }
+                    }
+
+                    # slow leave paths
+                    else {
+                        my int $run;
+                        my $phaser;
+                        while ++$i < $n {
+                            $phaser := nqp::atpos(@leaves, $i);
+                            $run := 1;
+                            unless nqp::isnull(@keeps) {
+                                for @keeps {
+                                    if nqp::eqaddr($_,$phaser) {
+                                        $run := !nqp::isnull($resultish) &&
+                                                 nqp::isconcrete($resultish) &&
+                                                 $resultish.defined;
+                                        last;
+                                    }
+                                }
+                            }
+                            unless nqp::isnull(@undos) {
+                                for @undos {
+                                    if nqp::eqaddr($_,$phaser) {
+                                        $run := nqp::isnull($resultish) ||
+                                                !nqp::isconcrete($resultish) ||
+                                                !$resultish.defined;
+                                        last;
+                                    }
+                                }
+                            }
+                            if $run {
+                                CATCH { nqp::push(@exceptions, $_) }
+#?if jvm
+                                $phaser();
+#?endif
+#?if !jvm
+                                nqp::p6capturelexwhere($phaser.clone())();
+#?endif
+                            }
                         }
                     }
                 }
-            }
 
-            unless nqp::isnull(@posts) {
-                my $value := nqp::ifnull($resultish,Mu);
-                my int $n := nqp::elems(@posts);
-                my int $i := -1;
-                while ++$i < $n {
+                unless nqp::isnull(@posts) {
+                    my $value := nqp::ifnull($resultish,Mu);
+                    my int $n := nqp::elems(@posts);
+                    my int $i := -1;
+                    while ++$i < $n {
 #?if jvm
-                    nqp::atpos(@posts, $i)($value);
+                        nqp::atpos(@posts, $i)($value);
 #?endif
 #?if !jvm
-                    nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);
+                        nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);
 #?endif
-                    CATCH { nqp::push(@exceptions, $_); last; }
+                        CATCH { nqp::push(@exceptions, $_); last; }
+                    }
+                }
+
+                if @exceptions {
+                    nqp::elems(@exceptions) > 1
+                      ?? Perl6::Metamodel::Configuration.throw_or_die(
+                           'X::PhaserExceptions',
+                           "Multiple exceptions were thrown by LEAVE/POST phasers",
+                           :exceptions(@exceptions)
+                         )
+                      !! nqp::rethrow(@exceptions[0]);
                 }
             }
 
-            if @exceptions {
-                if nqp::elems(@exceptions) > 1 {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::PhaserExceptions',
-                        "Multiple exceptions were thrown by LEAVE/POST phasers",
-                        :exceptions(@exceptions)
-                    );
-                }
-                nqp::rethrow(@exceptions[0]);
+            # only have a lone LEAVE phaser, so no frills needed
+            # don't bother to CATCH, there can only be one exception
+            else {
+#?if jvm
+                $phasers();
+#?endif
+#?if !jvm
+                nqp::p6capturelexwhere($phasers.clone)();
+#?endif
             }
         }
     },

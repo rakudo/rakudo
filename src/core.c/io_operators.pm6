@@ -34,18 +34,18 @@ augment class Rakudo::Internals {
       'ERR', setup-handle('<STDERR>')
     );
 
+    my $encoding := Encoding::Registry.utf8;
+    my $encoder  := $encoding.encoder(:translate-nl);
+    my $decoder  := $encoding.decoder(:translate-nl);
     method activate-std(str $name, Mu \PIO) {
-        my \HANDLE = nqp::atkey($skeletons,$name);
+        my $handle := nqp::atkey($skeletons,$name);
         nqp::setbuffersizefh(PIO,8192) unless nqp::isttyfh(PIO);
 
-        my $encoding = Encoding::Registry.find(ENCODING);
         nqp::bindattr(
-          HANDLE,IO::Handle,'$!decoder',$encoding.decoder(:translate-nl)
+          $handle,IO::Handle,'$!decoder',$decoder
         ).set-line-separators(NL-IN);
-        nqp::bindattr(
-          HANDLE,IO::Handle,'$!encoder',$encoding.encoder(:translate-nl)
-        );
-        nqp::p6bindattrinvres(HANDLE,IO::Handle,'$!PIO',PIO)
+        nqp::bindattr($handle,IO::Handle,'$!encoder',$encoder);
+        nqp::p6bindattrinvres($handle,IO::Handle,'$!PIO',PIO)
     }
 }
 

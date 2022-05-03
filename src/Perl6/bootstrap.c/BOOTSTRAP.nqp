@@ -4077,7 +4077,7 @@ nqp::sethllconfig('Raku', nqp::hash(
                         while ++$i < $n {
                             CATCH { nqp::push(@exceptions, $_) }
 #?if jvm
-                            nqp::atpos(@leaves, $i))();
+                            nqp::atpos(@leaves, $i)();
 #?endif
 #?if !jvm
                             nqp::p6capturelexwhere(

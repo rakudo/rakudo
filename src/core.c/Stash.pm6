@@ -7,6 +7,14 @@ my class Stash { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock.new)
     }
 
+    method clone(Stash:D:) is raw {
+        nqp::p6bindattrinvres(
+            nqp::p6bindattrinvres(
+                callsame(),
+                Stash, '$!longname', nqp::getattr(self, Stash, '$!longname')),
+            Stash, '$!lock', Lock.new)
+    }
+
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::existskey(storage,$key)

@@ -7,7 +7,12 @@
     my constant NL-OUT   = "\n";
     my constant ENCODING = "utf8";
 
+#?if jvm
+    my $in := do {
+#?endif
+#?if !jvm
     my $in := BEGIN {
+#?endif
         my $handle := nqp::p6bindattrinvres(
           nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
             nqp::create(IO::Special),IO::Special,'$!what','<STDIN>'
@@ -19,7 +24,12 @@
         nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
         $handle
     }
+#?if jvm
+    my $out := do {
+#?endif
+#?if !jvm
     my $out := BEGIN {
+#?endif
         my $handle := nqp::p6bindattrinvres(
           nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
             nqp::create(IO::Special),IO::Special,'$!what','<STDOUT>'
@@ -31,7 +41,12 @@
         nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
         $handle
     }
+#?if jvm
+    my $err := do {
+#?endif
+#?if !jvm
     my $err := BEGIN {
+#?endif
         my $handle := nqp::p6bindattrinvres(
           nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
             nqp::create(IO::Special),IO::Special,'$!what','<STDERR>'

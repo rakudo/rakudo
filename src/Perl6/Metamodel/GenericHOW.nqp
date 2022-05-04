@@ -23,7 +23,8 @@ class Perl6::Metamodel::GenericHOW
         my $meta := self.new();
         my $obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
         $meta.set_name($obj, $name);
-        $obj
+        nqp::settypecheckmode($obj,
+            nqp::const::TYPE_CHECK_NEEDS_ACCEPTS)
     }
 
     method instantiate_generic($obj, $type_environment) {
@@ -35,8 +36,8 @@ class Perl6::Metamodel::GenericHOW
     method compose($obj) {
     }
 
-    method type_check($obj, $checkee) {
-        0
+    method accepts_type($obj, $checkee) {
+        1
     }
 }
 

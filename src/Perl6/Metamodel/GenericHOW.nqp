@@ -4,6 +4,7 @@
 # of these confers genericity on the holder.
 class Perl6::Metamodel::GenericHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::MethodDelegation
 {
     my $archetypes := Perl6::Metamodel::Archetypes.new( :generic(1) );
     method archetypes() {
@@ -32,10 +33,6 @@ class Perl6::Metamodel::GenericHOW
     }
 
     method compose($obj) {
-    }
-
-    method find_method($obj, $name) {
-        nqp::null()
     }
 
     method type_check($obj, $checkee) {

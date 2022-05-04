@@ -130,7 +130,12 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
          $name eq $stub_how_name || $name eq $nqp_stub_how_name
     }
     method merge_globals($target, $source) {
-        if stash_hash($source) -> %source {
+        my $metamodel-configuration := nqp::gethllsym('Raku', 'METAMODEL_CONFIGURATION');
+        if !nqp::isnull($metamodel-configuration) && nqp::istype($target, $metamodel-configuration.stash_type()) {
+            # merge-symbols will loop back on this method again, but would lock-protect itself first.
+            $target.merge-symbols($source);
+        }
+        elsif stash_hash($source) -> %source {
             # Start off merging top-level symbols. Easy when there's no
             # overlap. Otherwise, we need to recurse.
             my %known_symbols;

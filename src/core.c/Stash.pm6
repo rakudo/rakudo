@@ -71,15 +71,31 @@ my class Stash { # declared in BOOTSTRAP
         nextwith(key.Str, assignval)
     }
 
+    proto method BIND-KEY(|) {*}
+    multi method BIND-KEY(Stash:D: Str:D $key, Mu \bindval) is raw {
+        $!lock.protect: {
+            my $storage := nqp::clone(nqp::getattr(self,Map,'$!storage'));
+            nqp::bindkey($storage, $key, bindval);
+            nqp::atomicbindattr(self, Map, '$!storage', $storage);
+        }
+        bindval
+    }
+    multi method BIND-KEY(Stash:D: \key, Mu \bindval) is raw {
+        nextwith(key.Str, bindval)
+    }
+
     method package_at_key(Stash:D: str $key) {
-        my \storage := nqp::getattr(self,Map,'$!storage');
+        my $storage := nqp::getattr(self,Map,'$!storage');
         nqp::ifnull(
-          nqp::atkey(storage,$key),
-          nqp::stmts(
-            (my $pkg := Metamodel::PackageHOW.new_type(:name("{$!longname}::$key"))),
-            $pkg.^compose,
-            nqp::bindkey(storage,$key,$pkg)
-          )
+          nqp::atkey($storage,$key),
+          $!lock.protect({
+            my $pkg := Metamodel::PackageHOW.new_type(:name("{$!longname}::$key"));
+            $pkg.^compose;
+            $storage := nqp::clone($storage);
+            nqp::bindkey($storage,$key,$pkg);
+            nqp::atomicbindattr(self, Map, '$!storage', $storage);
+            $pkg
+          })
         )
     }
 
@@ -91,9 +107,20 @@ my class Stash { # declared in BOOTSTRAP
         nqp::isnull_s($!longname) ?? '<anon>' !! $!longname
     }
 
-    method merge-symbols(Stash:D: Hash $globalish) { # NQP gives a Hash, not a Stash
-        nqp::gethllsym('Raku','ModuleLoader').merge_globals(self,$globalish)
-          if $globalish.defined;
+    method merge-symbols(Stash:D: Mu \globalish) { # NQP gives a Hash, not a Stash
+        if nqp::defined(globalish) {
+            $!lock.protect: {
+                # For thread safety, ModuleLoader's merge_globals is calling this method when its target is a Stash.
+                # Therefore we call it on cloned symbol hash. This prevents recursion and works slightly faster.
+                nqp::gethllsym('Raku','ModuleLoader').merge_globals(
+                    (my $storage := nqp::clone(my $old-storage := nqp::getattr(self,Map,'$!storage'))),
+                    globalish
+                );
+                # XXX We cannot use atomic bind for now because it breaks MoarVM serialization.
+                # nqp::atomicbindattr(self, Map, '$!storage', $storage);
+                nqp::bindattr(self, Map, '$!storage', $storage);
+            }
+        }
     }
 }
 

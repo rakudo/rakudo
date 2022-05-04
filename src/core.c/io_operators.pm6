@@ -1,5 +1,3 @@
-my class IO::ArgFiles { ... }
-
 {
     # Set up the skeletons of the IO::Handle objects that can be setup
     # at compile time.  Then, when running the mainline of the setting

@@ -1078,6 +1078,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%methodcall)>
     }
 
+    token dotty:sym<.?> {
+        <sym> <dottyop('.?')>
+        <O(|%methodcall)>
+    }
+
     token dottyop($special?) {
         :dba('dotty method or postfix')
         <.unsp>?

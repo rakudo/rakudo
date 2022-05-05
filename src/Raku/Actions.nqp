@@ -1687,7 +1687,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, self.r('Name', 'Part', 'Simple').new(~$<identifier>);
         }
         else {
-            nqp::die('Complex name parts NYI');
+            my $expr := $<EXPR>.ast;
+            self.attach: $/, self.r('Name', 'Part', 'Expression').new($expr);
         }
     }
 

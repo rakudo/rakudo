@@ -58,7 +58,14 @@ my class Block { # declared in BOOTSTRAP
             $!phasers := nqp::hash unless nqp::isconcrete($!phasers);
 
             if nqp::iseq_s($name,'KEEP') || nqp::iseq_s($name,'UNDO') {
-                self.unshift-phaser('!LEAVE-ORDER', &block);
+                nqp::unshift(
+                  nqp::ifnull(
+                    nqp::atkey($!phasers,'!LEAVE-ORDER'),
+                    nqp::bindkey(
+                      $!phasers,'!LEAVE-ORDER',nqp::create(IterationBuffer))
+                  ),
+                  nqp::list($name,&block)
+                );
                 self.unshift-phaser($name, &block);
             }
             else {

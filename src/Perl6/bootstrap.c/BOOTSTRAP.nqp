@@ -4063,75 +4063,47 @@ nqp::sethllconfig('Raku', nqp::hash(
 
             # slow path here
             if nqp::ishash($phasers) {
-                my @leaves := nqp::atkey($phasers, '!LEAVE-ORDER');
-                my @posts  := nqp::atkey($phasers, 'POST');
                 my @exceptions;
+
+                my @leaves := nqp::atkey($phasers, '!LEAVE-ORDER');
                 unless nqp::isnull(@leaves) {
-                    my @keeps  := nqp::atkey($phasers, 'KEEP');
-                    my @undos  := nqp::atkey($phasers, 'UNDO');
+                    my $valid :=
+                      !nqp::isnull($resultish)
+                        && nqp::isconcrete($resultish)
+                        && $resultish.defined;
 
-                    # fast leave path
-                    if nqp::isnull(@keeps) && nqp::isnull(@undos) {
-                        for @leaves -> $block {
-                            CATCH { nqp::push(@exceptions, $_) }
-#?if jvm
-                            $block();
-#?endif
-#?if !jvm
-                            nqp::p6capturelexwhere($block.clone)();
-#?endif
-                        }
-                    }
-
-                    # slow leave paths
-                    else {
-                        my int $run;
-                        my $phaser;
-                        for @leaves {
-                            $phaser := $_;
-                            $run    := 1;
-                            unless nqp::isnull(@keeps) {
-                                for @keeps {
-                                    if nqp::eqaddr($_,$phaser) {
-                                        $run := !nqp::isnull($resultish) &&
-                                                 nqp::isconcrete($resultish) &&
-                                                 $resultish.defined;
-                                        last;
-                                    }
-                                }
+                    for @leaves -> $phaser {
+                        CATCH { nqp::push(@exceptions, $_) }
+                        if nqp::islist($phaser) {
+                            my $name := nqp::atpos($phaser,0);
+                            if ($name eq 'KEEP' && $valid)
+                              || ($name eq 'UNDO' && !$valid) {
+                                $phaser := nqp::atpos($phaser,1);
                             }
-                            unless nqp::isnull(@undos) {
-                                for @undos {
-                                    if nqp::eqaddr($_,$phaser) {
-                                        $run := nqp::isnull($resultish) ||
-                                                !nqp::isconcrete($resultish) ||
-                                                !$resultish.defined;
-                                        last;
-                                    }
-                                }
-                            }
-                            if $run {
-                                CATCH { nqp::push(@exceptions, $_) }
-#?if jvm
-                                $phaser();
-#?endif
-#?if !jvm
-                                nqp::p6capturelexwhere($phaser.clone())();
-#?endif
+                            else {
+                                next;
                             }
                         }
+
+                        # an ordinary LEAVE phaser, or firing KEEP/UNDO phaser
+#?if jvm
+                        $phaser();
+#?endif
+#?if !jvm
+                        nqp::p6capturelexwhere($phaser.clone)();
+#?endif
                     }
                 }
 
+                my @posts := nqp::atkey($phasers, 'POST');
                 unless nqp::isnull(@posts) {
                     my $value := nqp::ifnull($resultish,Mu);
-                    for @posts -> $block {
-                        CATCH { nqp::push(@exceptions, $_); last; }
+                    for @posts -> $phaser {
 #?if jvm
-                        $block($value);
+                        $phaser($value);
 #?endif
 #?if !jvm
-                        nqp::p6capturelexwhere($block.clone)($value);
+                        nqp::p6capturelexwhere($phaser.clone)($value);
 #?endif
                     }
                 }

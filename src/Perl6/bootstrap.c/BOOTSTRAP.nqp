@@ -4054,7 +4054,7 @@ nqp::sethllconfig('Raku', nqp::hash(
     },
     'exit_handler', -> $coderef, $resultish {
         unless nqp::p6inpre() {
-            # when we get here, we assume the $!phasers attribut is concrete.
+            # when we get here, we assume the $!phasers attribute is concrete.
             # if it is *not* a hash, it is a lone LEAVE phaser, the most
             # commonly used phaser (in the core at least).
             my $phasers := nqp::getattr(
@@ -4069,20 +4069,16 @@ nqp::sethllconfig('Raku', nqp::hash(
                 unless nqp::isnull(@leaves) {
                     my @keeps  := nqp::atkey($phasers, 'KEEP');
                     my @undos  := nqp::atkey($phasers, 'UNDO');
-                    my int $n := nqp::elems(@leaves);
-                    my int $i := -1;
 
                     # fast leave path
-                    if nqp::isnull(@leaves) && nqp::isnull(@undos) {
-                        while ++$i < $n {
+                    if nqp::isnull(@keeps) && nqp::isnull(@undos) {
+                        for @leaves -> $block {
                             CATCH { nqp::push(@exceptions, $_) }
 #?if jvm
-                            nqp::atpos(@leaves, $i)();
+                            $block();
 #?endif
 #?if !jvm
-                            nqp::p6capturelexwhere(
-                              nqp::atpos(@leaves, $i).clone()
-                            )();
+                            nqp::p6capturelexwhere($block.clone)();
 #?endif
                         }
                     }
@@ -4091,9 +4087,9 @@ nqp::sethllconfig('Raku', nqp::hash(
                     else {
                         my int $run;
                         my $phaser;
-                        while ++$i < $n {
-                            $phaser := nqp::atpos(@leaves, $i);
-                            $run := 1;
+                        for @leaves {
+                            $phaser := $_;
+                            $run    := 1;
                             unless nqp::isnull(@keeps) {
                                 for @keeps {
                                     if nqp::eqaddr($_,$phaser) {
@@ -4129,16 +4125,14 @@ nqp::sethllconfig('Raku', nqp::hash(
 
                 unless nqp::isnull(@posts) {
                     my $value := nqp::ifnull($resultish,Mu);
-                    my int $n := nqp::elems(@posts);
-                    my int $i := -1;
-                    while ++$i < $n {
+                    for @posts -> $block {
+                        CATCH { nqp::push(@exceptions, $_); last; }
 #?if jvm
-                        nqp::atpos(@posts, $i)($value);
+                        $block($value);
 #?endif
 #?if !jvm
-                        nqp::p6capturelexwhere(nqp::atpos(@posts,$i).clone)($value);
+                        nqp::p6capturelexwhere($block.clone)($value);
 #?endif
-                        CATCH { nqp::push(@exceptions, $_); last; }
                     }
                 }
 

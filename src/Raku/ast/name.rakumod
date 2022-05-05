@@ -1,6 +1,6 @@
 # A name. Names range from simple (a single identifier) up to rather more
 # complex (including pseudo-packages, interpolated parts, etc.)
-class RakuAST::Name is RakuAST::Node {
+class RakuAST::Name is RakuAST::ImplicitLookups {
     has List $!parts;
 
     method new(*@parts) {
@@ -36,6 +36,13 @@ class RakuAST::Name is RakuAST::Node {
         nqp::elems($!parts) ?? False !! True
     }
 
+    method is-simple() {
+        for $!parts {
+            return False unless nqp::istype($_, RakuAST::Name::Part::Simple);
+        }
+        True
+    }
+
     method canonicalize() {
         my $canon-parts := nqp::list_s();
         for $!parts {
@@ -47,6 +54,17 @@ class RakuAST::Name is RakuAST::Node {
             }
         }
         nqp::join('::', $canon-parts)
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST(
+            self.is-simple
+                ?? []
+                !! [
+                    RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&INDIRECT_NAME_LOOKUP')),
+                    RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
+                ]
+        )
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package) {
@@ -82,5 +100,32 @@ class RakuAST::Name::Part::Simple is RakuAST::Name::Part {
             $stash-qast,
             QAST::SVal.new( :value($is-final && $sigil ?? $sigil ~ $!name !! $!name) )
         )
+    }
+
+    method IMPL-QAST-INDIRECT-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+        QAST::SVal.new( :value($is-final && $sigil ?? $sigil ~ $!name !! $!name) )
+    }
+}
+
+class RakuAST::Name::Part::Expression is RakuAST::Name::Part {
+    has RakuAST::Expression $.expr;
+
+    method new(RakuAST::Expression $expr) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Name::Part::Expression, '$!expr', $expr);
+        $obj
+    }
+
+    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+        QAST::Op.new(
+            :op('callmethod'),
+            :name($is-final ?? 'AT-KEY' !! 'package_at_key'),
+            $stash-qast,
+            $!expr.IMPL-TO-QAST($context),
+        )
+    }
+
+    method IMPL-QAST-INDIRECT-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+        $!expr.IMPL-TO-QAST($context)
     }
 }

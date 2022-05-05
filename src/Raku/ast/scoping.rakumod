@@ -518,9 +518,11 @@ class RakuAST::ImplicitLookups is RakuAST::Node {
 
     # Get a list of the implicit lookups.
     method get-implicit-lookups() {
-        $!implicit-lookups-cache //
-            nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache',
-                self.PRODUCE-IMPLICIT-LOOKUPS())
+        nqp::isconcrete(self)
+            ?? $!implicit-lookups-cache //
+                nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache',
+                    self.PRODUCE-IMPLICIT-LOOKUPS())
+            !! self.IMPL-WRAP-LIST([])
     }
 
     # Resolve the implicit lookups if needed.

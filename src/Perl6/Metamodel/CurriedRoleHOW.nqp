@@ -242,7 +242,7 @@ class Perl6::Metamodel::CurriedRoleHOW
         }
         if nqp::can($checkee.HOW, 'role_typecheck_list') {
             for $checkee.HOW.role_typecheck_list($checkee) {
-                if nqp::istype($_.HOW, self.WHAT) && !$_.HOW.archetypes.generic {
+                if nqp::istype($_.HOW, self.WHAT) {
                     if nqp::decont($_.HOW.curried_role($_)) =:= $crdc {
                         @cands.push($_);
                     }

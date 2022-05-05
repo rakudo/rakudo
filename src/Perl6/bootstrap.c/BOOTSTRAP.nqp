@@ -4074,24 +4074,32 @@ nqp::sethllconfig('Raku', nqp::hash(
 
                     for @leaves -> $phaser {
                         CATCH { nqp::push(@exceptions, $_) }
+
+                        # a KEEP/UNDO phaser
                         if nqp::islist($phaser) {
                             my $name := nqp::atpos($phaser,0);
                             if ($name eq 'KEEP' && $valid)
                               || ($name eq 'UNDO' && !$valid) {
-                                $phaser := nqp::atpos($phaser,1);
-                            }
-                            else {
-                                next;
+#?if jvm
+                                nqp::atpos($phaser,1)();
+#?endif
+#?if !jvm
+                                nqp::p6capturelexwhere(
+                                  nqp::atpos($phaser,1).clone
+                                )();
+#?endif
                             }
                         }
 
-                        # an ordinary LEAVE phaser, or firing KEEP/UNDO phaser
+                        # an ordinary LEAVE phaser
+                        else {
 #?if jvm
-                        $phaser();
+                            $phaser();
 #?endif
 #?if !jvm
-                        nqp::p6capturelexwhere($phaser.clone)();
+                            nqp::p6capturelexwhere($phaser.clone)();
 #?endif
+                        }
                     }
                 }
 

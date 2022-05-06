@@ -20,10 +20,16 @@ my class Variable {
         $*W.throw( self.slash, |c );
     }
 
-    submethod willdo(&block, $caller-levels = 3) {
-        $caller-levels == 3
-            ?? -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctxcaller(nqp::ctxcaller(nqp::ctx()))), self.name)) }
-            !! -> { block(nqp::atkey(nqp::ctxcaller(nqp::ctx()), self.name)) }
+    submethod willdo(&block) {
+        my str $name = self.name;
+        -> {
+            my $ctx := nqp::ctxcaller(nqp::ctx);
+            nqp::until(
+              nqp::existskey($ctx,$name),
+              $ctx := nqp::ctxcaller($ctx)
+            );
+            block(nqp::atkey($ctx,$name))
+        }
     }
 
     submethod native(Mu $what) {
@@ -161,7 +167,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :end($)! ) {
     $*W.add_phaser($v.slash, 'END', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :enter($)! ) {
-    $v.block.add_phaser('ENTER', $v.willdo($block, 1) );
+    $v.block.add_phaser('ENTER', $v.willdo($block) );
     $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :leave($)! ) {
@@ -177,7 +183,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :undo($)! ) {
     $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :first($)! ) {
-    $v.block.add_phaser('FIRST', $v.willdo($block, 1));
+    $v.block.add_phaser('FIRST', $v.willdo($block));
     $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :next($)! ) {
@@ -187,7 +193,7 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :last($)! ) {
     $v.block.add_phaser('LAST', $block);
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :pre($)! ) {
-    $v.block.add_phaser('PRE', $v.willdo($block, 1));
+    $v.block.add_phaser('PRE', $v.willdo($block));
     $v.implicit-lexical-usage = True;
 }
 multi sub trait_mod:<will>(Variable:D $v, $block, :post($)! ) {

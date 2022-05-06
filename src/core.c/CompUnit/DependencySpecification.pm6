@@ -43,7 +43,7 @@ class CompUnit::DependencySpecification {
     method !stringify() {
         my $parts := nqp::list_s($!short-name);
         nqp::push_s($parts,":from<$!from>")
-          if $!from ne 'Perl6';
+          if $!from ne 'Raku' && $!from ne 'Perl6';
         nqp::push_s($parts,":ver<$!version-matcher>")
           if nqp::defined($!version-matcher);
         nqp::push_s($parts,":auth<$!auth-matcher>")
@@ -64,7 +64,7 @@ class CompUnit::DependencySpecification {
           "CompUnit::DependencySpecification.new(:short-name<$!short-name>"
         );
         nqp::push_s($parts,",:from<$!from>")
-          if $!from ne 'Perl6';
+          if $!from ne 'Raku' && $!from ne 'Perl6';
         nqp::push_s($parts,",:version-matcher<$!version-matcher>")
           if nqp::defined($!version-matcher);
         nqp::push_s($parts,",:auth-matcher<$!auth-matcher>")

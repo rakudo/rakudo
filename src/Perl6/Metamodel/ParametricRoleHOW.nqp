@@ -49,7 +49,9 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method parameterize($obj, *@pos_args, *%named_args) {
-        $currier.new_type($obj, |@pos_args, |%named_args)
+        $!in_group
+            ?? nqp::how_nd($!group).parameterize($!group, |@pos_args, |%named_args)
+            !! $currier.new_type($obj, |@pos_args, |%named_args)
     }
 
     method set_body_block($obj, $block) {

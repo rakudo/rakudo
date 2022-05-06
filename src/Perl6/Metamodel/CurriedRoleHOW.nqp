@@ -168,7 +168,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                 $_.value.HOW.instantiate_generic($_.value, $type_env) !!
                 $_.value;
         }
-        self.new_type($!curried_role, |@new_pos, |%new_named)
+        $!curried_role.HOW.parameterize($!curried_role, |@new_pos, |%new_named)
     }
 
     method specialize($obj, $first_arg) {

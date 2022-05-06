@@ -672,7 +672,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                 $proto := $proto-ast.meta-object;
                 nqp::bindattr($proto, Routine, '@!dispatchees', []);
 
-                my $outer := $resolver.find-attach-target('block', :outer(True));
+                my $outer := $resolver.find-attach-target('block');
                 unless $outer {
                     $outer := $resolver.find-attach-target('compunit');
                 }

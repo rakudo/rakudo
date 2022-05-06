@@ -47,13 +47,11 @@ class RakuAST::Resolver {
     }
 
     # Find an attachment target with the specified name.
-    method find-attach-target(str $name, Bool :$outer) {
+    method find-attach-target(str $name) {
         my @stack := $!attach-targets{$name};
         if nqp::isconcrete(@stack) {
             my int $n := nqp::elems(@stack);
-            $outer
-                ?? $n > 1 ?? @stack[$n - 2] !! Nil
-                !! $n > 0 ?? @stack[$n - 1] !! Nil
+            $n > 0 ?? @stack[$n - 1] !! Nil
         }
         else {
             Nil

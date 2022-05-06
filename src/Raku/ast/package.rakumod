@@ -119,7 +119,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                     }
 
                     my %stash := $resolver.IMPL-STASH-HASH($target);
-                    %stash{$longname ~ '::' ~ $final} := $type-object;
+                    %stash{$final} := $type-object;
                 }
                 else {
                     nqp::die('multi-part package declarations with non-existing first part NYI');

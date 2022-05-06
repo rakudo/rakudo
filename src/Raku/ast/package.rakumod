@@ -99,9 +99,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                 }
             }
             else {
-                my $resolved := self.IMPL-UNWRAP-LIST($resolver.partially-resolve-name-constant($name));
+                my $resolved := $resolver.partially-resolve-name-constant($name);
 
                 if $resolved { # first parts of the name found
+                    $resolved := self.IMPL-UNWRAP-LIST($resolved);
                     my $target := $resolved[0];
                     my $parts  := $resolved[1];
                     my @parts := self.IMPL-UNWRAP-LIST($parts);

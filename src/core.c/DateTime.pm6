@@ -428,12 +428,10 @@ my class DateTime does Dateish {
     }
 
     proto method posix(|) {*}
-    multi method posix(DateTime:D: $ignore-timezone --> Real:D) {
-        $ignore-timezone
-          ?? (self.posix + $!timezone)
-          !! self.posix
+    multi method posix(DateTime:D: $ignore-timezone, :$real --> Real:D) {
+        self.posix(:$real) + ($!timezone if $ignore-timezone)
     }
-    multi method posix(DateTime:D: --> Real:D) {
+    multi method posix(DateTime:D: :$real --> Real:D) {
         # algorithm from Claus Tøndering
         my int $a = (14 - $!month) div 12;
         my int $y = $!year + 4800 - $a;
@@ -444,7 +442,7 @@ my class DateTime does Dateish {
           + $!hour      * 3600
           + $!minute    * 60
           - $!timezone
-          + self.whole-second
+          + ($real ?? $!second !! self.whole-second)
     }
 
     method offset(DateTime:D:            --> Int:D) { $!timezone        }

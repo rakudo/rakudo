@@ -212,7 +212,7 @@ class Perl6::Metamodel::CurriedRoleHOW
             return 1
         }
         for @!parent_typecheck_list -> $parent {
-            if nqp::istype($decont, $parent) {
+            if nqp::istype($parent, $decont) {
                 return 1
             }
         }

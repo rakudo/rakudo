@@ -114,7 +114,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     # $checkee must always be decont'ed
     method type_check_parents($obj, $checkee) {
         for self.parents($obj, :local) -> $parent {
-            if nqp::istype($checkee, $parent) {
+            if nqp::istype($parent, $checkee) {
                 return 1;
             }
         }
@@ -135,7 +135,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         for self.roles_to_compose($obj) {
-            if nqp::istype($decont, $_) {
+            if nqp::istype($_, $decont) {
                 return 1;
             }
         }

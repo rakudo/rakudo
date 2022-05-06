@@ -40,16 +40,18 @@ sub p6ize_recursive($x) {
         for $x {
             nqp::push(@copy, p6ize_recursive($_));
         }
-        return nqp::hllizefor(@copy, 'Raku');
+        nqp::hllizefor(@copy, 'Raku')
     }
     elsif nqp::ishash($x) {
         my %copy := nqp::hash();
         for $x {
             %copy{$_.key} := p6ize_recursive($_.value);
         }
-        return nqp::hllizefor(%copy, 'Raku').item;
+        nqp::hllizefor(%copy, 'Raku').item
     }
-    nqp::hllizefor($x, 'Raku');
+    else {
+        nqp::hllizefor($x, 'Raku')
+    }
 }
 
 # Helper sub that turns a list of items into an NQPArray. This is needed when
@@ -1466,7 +1468,7 @@ class Perl6::World is HLL::World {
                 ))));
         }
 
-        return $module;
+        $module
     }
 
     # Loads a module immediately, and also makes sure we load it
@@ -1493,7 +1495,7 @@ class Perl6::World is HLL::World {
             self.rethrow($/, $_);
         }
 
-        return $comp_unit;
+        $comp_unit
     }
 
     # Uses the NQP module loader to load Perl6::ModuleLoader, which
@@ -1825,8 +1827,7 @@ class Perl6::World is HLL::World {
             !! ['ContainerDescriptor'];
         my $cd_type := self.find_symbol($cd_type_name, :setting-only);
         my $cd := $cd_type.new( :$of, :$name, :$default, :$dynamic );
-        self.add_object_if_no_sc($cd);
-        $cd
+        self.add_object_if_no_sc($cd)
     }
 
     sub is_dynamic($name) {
@@ -1878,8 +1879,7 @@ class Perl6::World is HLL::World {
     # Builds a container and adds it to the SC.
     method build_container_and_add_to_sc(%cont_info, $descriptor) {
         my $cont := self.build_container(%cont_info, $descriptor);
-        self.add_object_if_no_sc($cont);
-        $cont;
+        self.add_object_if_no_sc($cont)
     }
 
     # Given a sigil and the value type specified, works out the
@@ -2494,9 +2494,9 @@ class Perl6::World is HLL::World {
     }
 
     method compile_time_evaluate($/, $ast, :$mark-wanted) {
-        return $ast.compile_time_value if $ast.has_compile_time_value;
-        my $thunk := self.create_thunk($/, $ast, :$mark-wanted);
-        $thunk();
+        $ast.has_compile_time_value
+          ?? $ast.compile_time_value
+          !! self.create_thunk($/, $ast, :$mark-wanted)()
     }
 
     # Turn a QAST tree into a code object, to be called immediately.
@@ -2519,7 +2519,7 @@ class Perl6::World is HLL::World {
             self.cur_lexpad()[0].push($block);
         }
         my $sig := self.create_signature(nqp::hash('parameter_objects', []));
-        return self.create_code_object($block, $type, $sig);
+        self.create_code_object($block, $type, $sig)
     }
 
     # Creates a code object of the specified type, attached the passed signature
@@ -2537,8 +2537,7 @@ class Perl6::World is HLL::World {
         my $type_obj := self.find_single_symbol_in_setting($type);
         my $code     := nqp::create($type_obj);
         self.context().push_code_object($code);
-        self.add_object_if_no_sc($code);
-        $code
+        self.add_object_if_no_sc($code)
     }
 
     # Attaches a signature to a code object, and gives the
@@ -2851,9 +2850,7 @@ class Perl6::World is HLL::World {
     # Derives a proto to get a dispatch.
     method derive_dispatcher($proto) {
         # Immediately do so and add to SC.
-        my $derived := $proto.derive_dispatcher();
-        self.add_object_if_no_sc($derived);
-        return $derived;
+        self.add_object_if_no_sc($proto.derive_dispatcher())
     }
 
     # Helper to make PAST for setting an attribute to a value. Value should
@@ -2872,11 +2869,10 @@ class Perl6::World is HLL::World {
 
     # Wraps a value in a scalar container
     method scalar_wrap($obj) {
-        my $scalar_type := self.find_single_symbol_in_setting('Scalar');
-        my $scalar      := nqp::create($scalar_type);
-        self.add_object_if_no_sc($scalar);
-        nqp::bindattr($scalar, $scalar_type, '$!value', $obj);
-        $scalar;
+        my $Scalar := self.find_single_symbol_in_setting('Scalar');
+        my $scalar := nqp::create($Scalar);
+        nqp::bindattr($scalar, $Scalar, '$!value', $obj);
+        self.add_object_if_no_sc($scalar)
     }
 
     # Takes a QAST::Block and compiles it for running during "compile time".
@@ -3006,12 +3002,13 @@ class Perl6::World is HLL::World {
     }
     method try_add_to_sc($value, $fallback) {
         if nqp::isnull($value) {
-            return $fallback;
+            $fallback
         }
-
-        self.add_object($value);
-        CATCH { $value := $fallback; }
-        $value
+        else {
+            CATCH { $value := $fallback; }
+            self.add_object($value);
+            $value
+        }
     }
 
     # Adds a constant value to the constants table. Returns PAST to do
@@ -3075,7 +3072,7 @@ class Perl6::World is HLL::World {
         if !$nocache {
             %const_cache{$cache_key} := $constant;
         }
-        return $qast;
+        $qast
     }
 
     # Adds a numeric constant value (int or num) to the constants table.
@@ -3104,7 +3101,7 @@ class Perl6::World is HLL::World {
                        QAST::NVal.new: :$node, :$value;
         }
         $past.returns($const.returns);
-        $past;
+        $past
     }
 
     # Adds a string constant value to the constants table.
@@ -3113,7 +3110,8 @@ class Perl6::World is HLL::World {
         my $const := self.add_constant('Str', 'str', $value);
         QAST::Want.new(
             $const, :returns($const.returns),
-            'Ss', QAST::SVal.new( :value($value) ));
+            'Ss', QAST::SVal.new( :value($value) )
+        )
     }
 
     method whatever() {
@@ -3296,11 +3294,9 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%extra, 'signatured') {
             %args<signatured> := %extra<signatured>;
         }
-        my $mo := $how.new_type(|%args);
-        self.add_object_if_no_sc($mo);
 
         # Result is just the object.
-        return $mo;
+        self.add_object_if_no_sc($how.new_type(|%args))
     }
 
     # Constructs a meta-attribute and adds it to a meta-object. Expects to
@@ -3315,8 +3311,7 @@ class Perl6::World is HLL::World {
         my $cont := self.build_container(%cont_info, $descriptor);
         my $attr := $meta_attr.new(:auto_viv_container($cont), |%args);
         $obj.HOW.add_attribute($obj, $attr);
-        self.add_object_if_no_sc($attr);
-        $attr
+        self.add_object_if_no_sc($attr)
     }
 
     # Tries to locate an attribute meta-object; optionally panic right
@@ -4180,20 +4175,20 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::AdHoc', payload => $curried)
             }
 
-            self.add_object_if_no_sc($curried);
-            return $curried;
+            self.add_object_if_no_sc($curried)
         }
-        $role;
+        else {
+            $role
+        }
     }
 
     # Creates a subset type meta-object/type object pair.
     method create_subset($how, $refinee, $refinement, :$name) {
         # Create the meta-object and add to root objects.
-        my %args := hash(:$refinee, :$refinement);
-        if nqp::defined($name) { %args<name> := $name; }
-        my $mo := $how.new_type(|%args);
-        self.add_object_if_no_sc($mo);
-        return $mo;
+        self.add_object_if_no_sc(nqp::defined($name)
+          ?? $how.new_type(:$refinee, :$refinement, :$name)
+          !! $how.new_type(:$refinee, :$refinement)
+        )
     }
 
     # Gets a definite type (possibly freshly created, possibly an
@@ -4201,10 +4196,9 @@ class Perl6::World is HLL::World {
     method create_definite_type($how, $base_type, $definite) {
        # Create the meta-object and add to root objects.
         my $mo := $how.new_type(:$base_type, :$definite);
-
-        if nqp::isnull(nqp::getobjsc($mo)) { self.add_object_if_no_sc($mo); }
-
-        return $mo;
+        nqp::isnull(nqp::getobjsc($mo))
+          ?? self.add_object_if_no_sc($mo)
+          !! $mo
     }
 
     # Adds a value to an enumeration.
@@ -4228,8 +4222,9 @@ class Perl6::World is HLL::World {
     method create_coercion_type($/, $target, $constraint) {
         self.ex-handle($/, {
             my $type := $/.how('coercion').new_type($target, $constraint);
-            if nqp::isnull(nqp::getobjsc($type)) { self.add_object_if_no_sc($type); }
-            $type
+            nqp::isnull(nqp::getobjsc($type))
+              ?? self.add_object_if_no_sc($type)
+              !! $type
         })
     }
 
@@ -4925,9 +4920,11 @@ class Perl6::World is HLL::World {
             my %sym := $curpad.symbol($first_name);
             if %sym {
                 my $value := self.force_value(%sym, $first_name, 0);
-                return $value.HOW.HOW.name($value.HOW) ne 'Perl6::Metamodel::PackageHOW';
+                $value.HOW.HOW.name($value.HOW) ne 'Perl6::Metamodel::PackageHOW'
             }
-            return 0;
+            else {
+                0
+            }
         }
         else {
             # Does the current lexpad or package declare the first
@@ -4949,10 +4946,10 @@ class Perl6::World is HLL::World {
             if +@name > 1 {
                 my @restname := nqp::clone(@name);
                 @restname.shift;
-                return self.already_declared('our', $first_sym, QAST::Block.new(), @restname);
+                self.already_declared('our', $first_sym, QAST::Block.new(), @restname)
             }
             else {
-                return $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW';
+                $first_sym.HOW.HOW.name($first_sym.HOW) ne 'Perl6::Metamodel::PackageHOW'
             }
         }
     }

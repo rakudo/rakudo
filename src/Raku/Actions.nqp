@@ -1693,9 +1693,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<identifier> {
             self.attach: $/, self.r('Name', 'Part', 'Simple').new(~$<identifier>);
         }
-        else {
+        elsif $<EXPR> {
             my $expr := $<EXPR>.ast;
             self.attach: $/, self.r('Name', 'Part', 'Expression').new($expr);
+        }
+        else {
+            self.attach: $/, self.r('Name', 'Part', 'Empty');
         }
     }
 

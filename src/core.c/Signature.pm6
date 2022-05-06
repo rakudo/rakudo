@@ -43,10 +43,13 @@ my class Signature { # declared in BOOTSTRAP
         }
 
         method AT-KEY(::?CLASS:D: Parameter:D $param is copy) {
-            my $topic := $param.type;
-            nqp::while(
-              ($topic.HOW.archetypes.generic),
-              ($topic := nqp::atkey(self, (my $type := $topic).^name)));
+            self.ACCEPTS: $param.type
+        }
+
+        method ACCEPTS(::?CLASS:D: Mu $topic is raw is copy) {
+            nqp::repeat_until(
+              (nqp::isnull($topic) || not my $type.HOW.archetypes.generic),
+              ($topic := nqp::atkey(self, ($type := $topic).^name)));
             $type
         }
 
@@ -171,7 +174,13 @@ my class Signature { # declared in BOOTSTRAP
 
         return False unless .optional && .untyped for %r-named-queue.values;
 
-        self.returns =:= $topic.returns
+        # Return types typecheck similarly to a parameter, only instead of a
+        # Parameter:D to smartmatch with, we depend on any given constant.
+        nqp::isnull($!returns)
+            ?? nqp::hllbool(nqp::isnull(nqp::getattr(nqp::decont($topic), Signature, '$!returns')))
+            !! ($!returns.ACCEPTS(my $l-returns := $topic.returns)
+                and not $!returns.HOW.archetypes.generic || $l-returns.HOW.archetypes.generic
+                    or %r-generics.ACCEPTS($!returns).ACCEPTS(%l-generics.ACCEPTS($l-returns)))
     }
 
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }

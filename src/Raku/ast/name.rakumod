@@ -129,3 +129,18 @@ class RakuAST::Name::Part::Expression is RakuAST::Name::Part {
         $!expr.IMPL-TO-QAST($context)
     }
 }
+
+# An empty name part, implying .WHO
+class RakuAST::Name::Part::Empty is RakuAST::Name::Part {
+
+    method new() {
+        nqp::create(self);
+    }
+
+    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+        QAST::Op.new(
+            :op('who'),
+            $stash-qast,
+        )
+    }
+}

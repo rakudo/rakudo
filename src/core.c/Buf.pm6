@@ -14,12 +14,13 @@ enum Endian (
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
 
 #- start of generated part of Blob Signed role -------------------------------
-#- Generated on 2022-03-08T14:31:37+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2022-05-06T08:15:00-03:00 by tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-    method !push-List(str $action, ::?CLASS:D $to, \from) {
+    method !push-List(str $action, ::?CLASS:D \to, \from) {
         my Mu $reified := nqp::getattr(from,List,'$!reified');
+        my Mu $to      := nqp::decont(to);
         if nqp::isconcrete($reified) {
             my int $elems = nqp::elems($reified);
             my int $j     = nqp::elems($to);
@@ -39,8 +40,9 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         }
         $to
     }
-    method !push-iterator(str $action, ::?CLASS:D $to, Iterator:D $iter) {
+    method !push-iterator(str $action, ::?CLASS:D \to, Iterator:D $iter) {
         my int $i;
+        my Mu  $to := nqp::decont(to);
         nqp::until(
           nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
           nqp::if(
@@ -64,12 +66,13 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
       int        $i     is copy,
       int        $elems is copy,
       int        $values,
-      ::?CLASS:D $to,
+      ::?CLASS:D \to,
                  \from
     ) {
         --$i;  # went one too far
         $elems = $elems + $values;
-        my int $j = -1;
+        my int $j   = -1;
+        my Mu  $to := nqp::decont(to);
         if from.^array_type.^unsigned {
             nqp::bindpos_i($to,$i,nqp::atpos_u(from, ++$j % $values))
               while nqp::islt_i(++$i,$elems);
@@ -80,10 +83,11 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
         }
         $to
     }
-    method !spread(::?CLASS:D $to, \from) {
-        my int $values = nqp::elems(from);
-        my int $elems = nqp::elems($to) - $values;
-        my int $i     = -$values;
+    method !spread(::?CLASS:D \to, \from) {
+        my int $values  = nqp::elems(from);
+        my Mu  $to     := nqp::decont(to);
+        my int $elems   = nqp::elems($to) - $values;
+        my int $i       = -$values;
         nqp::splice($to,from,$i,$values)
           while nqp::isle_i($i = $i + $values,$elems);
 
@@ -194,12 +198,13 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of Blob Signed role ---------------------------------
 #- start of generated part of Blob Unsigned role -------------------------------
-#- Generated on 2022-03-08T14:31:37+01:00 by ./tools/build/makeBLOB_ROLES.raku
+#- Generated on 2022-05-06T08:15:00-03:00 by tools/build/makeBLOB_ROLES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-    method !push-List(str $action, ::?CLASS:D $to, \from) {
+    method !push-List(str $action, ::?CLASS:D \to, \from) {
         my Mu $reified := nqp::getattr(from,List,'$!reified');
+        my Mu $to      := nqp::decont(to);
         if nqp::isconcrete($reified) {
             my int $elems = nqp::elems($reified);
             my int $j     = nqp::elems($to);
@@ -219,8 +224,9 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         }
         $to
     }
-    method !push-iterator(str $action, ::?CLASS:D $to, Iterator:D $iter) {
+    method !push-iterator(str $action, ::?CLASS:D \to, Iterator:D $iter) {
         my int $i;
+        my Mu  $to := nqp::decont(to);
         nqp::until(
           nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
           nqp::if(
@@ -244,12 +250,13 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
       int        $i     is copy,
       int        $elems is copy,
       int        $values,
-      ::?CLASS:D $to,
+      ::?CLASS:D \to,
                  \from
     ) {
         --$i;  # went one too far
         $elems = $elems + $values;
-        my int $j = -1;
+        my int $j   = -1;
+        my Mu  $to := nqp::decont(to);
         if from.^array_type.^unsigned {
             nqp::bindpos_u($to,$i,nqp::atpos_u(from, ++$j % $values))
               while nqp::islt_i(++$i,$elems);
@@ -260,10 +267,11 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
         }
         $to
     }
-    method !spread(::?CLASS:D $to, \from) {
-        my int $values = nqp::elems(from);
-        my int $elems = nqp::elems($to) - $values;
-        my int $i     = -$values;
+    method !spread(::?CLASS:D \to, \from) {
+        my int $values  = nqp::elems(from);
+        my Mu  $to     := nqp::decont(to);
+        my int $elems   = nqp::elems($to) - $values;
+        my int $i       = -$values;
         nqp::splice($to,from,$i,$values)
           while nqp::isle_i($i = $i + $values,$elems);
 

@@ -479,7 +479,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             api-matcher     => $api,
     }
     multi method candidates(CompUnit::DependencySpecification:D $spec) {
-        if $spec.from eq 'Perl6'
+        if $spec.from eq 'Raku' | 'Perl6'
           # $lookup is a file system resource that acts as a fast meta data
           # lookup for a given module short name.
           && (my $lookup = self!short-dir.add(nqp::sha1($spec.short-name))).e {

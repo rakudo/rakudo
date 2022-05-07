@@ -65,6 +65,7 @@ sub MAIN(*@ARGS) {
             %defaults := $res.options;
         }
     }
+    my $*STACK-ID := 0;
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'), |%defaults);
 
     # do all the necessary actions at the end, if any

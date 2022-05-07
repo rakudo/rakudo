@@ -1766,6 +1766,15 @@ my class Rakudo::Internals {
           |@*ARGS
         )
     }
+
+    # NEXT-ID must generate a unique never repeating integer ID. We don't use atomicint here first, because it is not
+    # available yet; second, because Int provides virtually unlimited pool of IDs.
+    # Start with 1024 to preserve lower values for compiler-specific needs. For example, $*STACK-ID of the program
+    # mainline is always 0.
+    my Int:D $next-id = 1024;
+    method NEXT-ID(--> Int:D) {
+        cas $next-id, { nqp::add_I(nqp::decont($_), 1, Int) }
+    }
 }
 
 # expose the number of bits a native int has

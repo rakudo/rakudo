@@ -254,6 +254,8 @@ my class ThreadPoolScheduler does Scheduler {
                             nqp::getcomp('Raku').handle-control($vm-ex);
                         }
                     }
+                    # Consider $*STACK-ID as a kind of thread logical ID.
+                    my $*STACK-ID := Rakudo::Internals.NEXT-ID;
                     if nqp::istype(task, List) {
                         my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
                         $code(|task);

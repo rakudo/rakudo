@@ -216,12 +216,8 @@ class Perl6::Metamodel::CurriedRoleHOW
                 return 1
             }
         }
-        for @!role_typecheck_list {
-            my $dr := nqp::decont($_);
-            if $decont =:= $dr {
-                return 1;
-            }
-            if nqp::istype($dr, $decont) {
+        for @!role_typecheck_list -> $role {
+            if nqp::istype($role, $decont) {
                 return 1;
             }
         }
@@ -259,9 +255,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                     my int $i := -1;
                     my int $ok := 1;
                     while ($i := $i + 1) < $num_args {
-                        unless    nqp::eqaddr(nqp::decont(@!pos_args[$i]), nqp::decont(@try_args[$i]))
-                               || @!pos_args[$i].ACCEPTS(@try_args[$i])
-                        {
+                        unless @!pos_args[$i].ACCEPTS(@try_args[$i]) {
                             $ok := 0;
                             $i := $num_args;
                         }

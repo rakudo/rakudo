@@ -363,12 +363,12 @@ class RakuAST::Call::MetaMethod is RakuAST::Call::Methodish {
 }
 
 # A safe call to a method, i.e. returns Nil if no method was found by that name.
-class RakuAST::Call::Safe is RakuAST::Call::Methodish {
+class RakuAST::Call::MaybeMethod is RakuAST::Call::Methodish {
     has str $.name;
 
     method new(str :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Call::Safe, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::Call::MaybeMethod, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
         $obj
     }

@@ -576,6 +576,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<dottyop>.ast;
     }
 
+    method dotty:sym<.&>($/) {
+        self.attach: $/, $<dottyop>.ast;
+    }
+
     method dottyop($/) {
         if $<methodop> {
             self.attach: $/, $<methodop>.ast;
@@ -602,6 +606,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
                 elsif $*special eq '.?' {
                     self.attach: $/, self.r('Call', 'MaybeMethod').new(:$name, :$args);
+                }
+                elsif $*special eq '.&' {
+                    self.attach: $/, self.r('Call', 'VarMethod').new(:name($<longname>.ast), :$args);
                 }
                 else {
                     nqp::die("Missing compilation of $*special");

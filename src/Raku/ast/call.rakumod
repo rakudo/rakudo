@@ -389,6 +389,48 @@ class RakuAST::Call::MaybeMethod is RakuAST::Call::Methodish {
     }
 }
 
+class RakuAST::Call::VarMethod is RakuAST::Call::Methodish is RakuAST::Lookup {
+    has RakuAST::Name $.name;
+
+    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Call::VarMethod, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+        $visitor(self.args);
+    }
+
+    method needs-resolution() { $!name.is-identifier }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-name($!name, :sigil('&'));
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method undeclared-symbol-details() {
+        RakuAST::UndeclaredSymbolDescription::Routine.new($!name.canonicalize())
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        my $call := QAST::Op.new(:op<call>, $invocant-qast);
+        if $!name.is-identifier {
+            $call.name(self.resolution.lexical-name);
+        }
+        else {
+            nqp::die('compiling complex call names NYI')
+        }
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
+    }
+}
+
 # Base role for all stubs
 class RakuAST::Stub is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
     method new(RakuAST::ArgList :$args) {

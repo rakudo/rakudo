@@ -75,10 +75,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $setting-name := $loader.transform_setting_name("$name.$version");
 
         # Set up the resolver.
+        my %options := %*COMPILING<%?OPTIONS>;
         my $resolver_type := self.r('Resolver', 'Compile');
-        my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
+        my $outer_ctx := %options<outer_ctx>;
+        my $precompilation-mode := %options<precomp>;
         if nqp::isconcrete($outer_ctx) {
-            my $global := %*COMPILING<%?OPTIONS><global>;
+            my $global := %options<global>;
             $*R := $resolver_type.from-context(:context($outer_ctx), :$global);
         }
         else {
@@ -96,13 +98,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if nqp::isconcrete($outer_ctx) {
             # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
             my $comp-unit-name := nqp::sha1($file ~ $/.target() ~ SerializationContextId.next-id());
-            $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name, :eval);
+            $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name, :eval, :$precompilation-mode);
         }
         else {
             # Top-level compilation. Create a GLOBAL using the correct package meta-object.
             my $comp-unit-name := nqp::sha1($file ~ $/.target());
             $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name,
-                :global-package-how($*LANG.how('package')));
+                :global-package-how($*LANG.how('package')), :$precompilation-mode);
             $*R.set-global($*CU.generated-global);
         }
 

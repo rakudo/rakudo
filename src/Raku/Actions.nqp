@@ -601,7 +601,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     self.attach: $/, self.r('Call', 'MetaMethod').new(:$name, :$args);
                 }
                 elsif $*special eq '.?' {
-                    self.attach: $/, self.r('Call', 'Safe').new(:$name, :$args);
+                    self.attach: $/, self.r('Call', 'MaybeMethod').new(:$name, :$args);
                 }
                 else {
                     nqp::die("Missing compilation of $*special");

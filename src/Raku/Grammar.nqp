@@ -2216,6 +2216,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             nqp::eqat(~$<longname>, '::', 0) || $*R.is-name-known($<longname>.ast)
           }>
         ]
+        # parametric/coercion type?
+        <.unsp>? [
+            <?[[]>
+            :my %*MYSTERY;
+            '[' ~ ']' <arglist>
+            <.explain_mystery> <.cry_sorrows>
+        ]?
+        <.unsp>? [ <?before '{'> {
+            $/.typed_panic('X::NYI', feature => 'Autovivifying object closures');
+        } <whence=.postcircumfix> ]?
+        <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
+        [<.ws> 'of' <.ws> <typename> ]?
     }
 
     ##

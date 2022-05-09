@@ -138,9 +138,6 @@ class RakuAST::Name::Part::Empty is RakuAST::Name::Part {
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
-        QAST::Op.new(
-            :op('who'),
-            $stash-qast,
-        )
+        $stash-qast
     }
 }

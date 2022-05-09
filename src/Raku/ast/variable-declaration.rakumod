@@ -413,6 +413,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                     if nqp::objprimspec($of) {
                         $scope := 'lexicalref';
                     }
+                    return QAST::Var.new( :name($!name), :$scope, :returns($of) );
                 }
             }
             QAST::Var.new( :name($!name), :$scope )

@@ -12,9 +12,10 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     has Mu $!end-phasers;
     has Mu $!singleton-whatever;
     has Mu $!singleton-hyper-whatever;
+    has int $.precompilation-mode;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
-            Str :$setting-name, Bool :$eval, Mu :$global-package-how) {
+            Str :$setting-name, Bool :$eval, Mu :$global-package-how, Bool :$precompilation-mode) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
             $statement-list // RakuAST::StatementList.new);
@@ -25,6 +26,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
             $global-package-how =:= NQPMu ?? Perl6::Metamodel::PackageHOW !! $global-package-how);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
+        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode ?? 1 !! 0);
         $obj
     }
 
@@ -133,7 +135,13 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
 
         # Compile into a QAST::CompUnit.
         $top-level.push(self.IMPL-TO-QAST($context));
-        QAST::CompUnit.new: $top-level, :hll('Raku'), :sc($!sc),
+        QAST::CompUnit.new:
+            $top-level,
+            :hll('Raku'),
+            :sc($!sc),
+            :code_ref_blocks(self.IMPL-UNWRAP-LIST([])),
+            :compilation_mode($!precompilation-mode),
+            :pre_deserialize(self.IMPL-UNWRAP-LIST([])),
             :post_deserialize($context.post-deserialize()),
     }
 

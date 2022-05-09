@@ -1,5 +1,6 @@
 # A compilation unit is the main lexical scope of a program.
 class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
+                        is RakuAST::ImplicitLookups
                         is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget {
     has RakuAST::StatementList $.statement-list;
     has Str $.comp-unit-name;
@@ -109,6 +110,14 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
 
     method singleton-hyper-whatever() { $!singleton-hyper-whatever }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
+                'CompUnit', 'RepositoryRegistry',
+            ))
+        ])
+    }
+
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         # If we're not in an EVAL, we should produce a GLOBAL package and set
         # it as the current package.
@@ -146,6 +155,9 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             :compilation_mode($!precompilation-mode),
             :pre_deserialize(self.IMPL-UNWRAP-LIST([])),
             :post_deserialize($context.post-deserialize()),
+            :repo_conflict_resolver(QAST::Op.new(
+                :op('callmethod'), :name('resolve_repossession_conflicts'),
+                self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].IMPL-TO-QAST($context) )),
     }
 
     method IMPL-ADD-SETTING-LOADING(RakuAST::IMPL::QASTContext $context, Mu $top-level, Str $name) {

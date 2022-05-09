@@ -1798,6 +1798,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $*IN_DECL := '';
             $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL;
         }
+        [ <.ws> <trait>+ ]?
         [<.ws> <initializer>]?
     }
 

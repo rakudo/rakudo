@@ -21,7 +21,10 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             $statement-list // RakuAST::StatementList.new);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name', $comp-unit-name);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!setting-name', $setting-name // Str);
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', nqp::createsc($comp-unit-name));
+        my $sc := nqp::createsc($comp-unit-name);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
+        my $file := nqp::getlexdyn('$?FILES');
+        nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', $eval ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
             $global-package-how =:= NQPMu ?? Perl6::Metamodel::PackageHOW !! $global-package-how);

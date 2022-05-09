@@ -46,6 +46,7 @@ class RakuAST::Initializer::Bind is RakuAST::Initializer {
 
 # A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::ImplicitLookups
+                                      is RakuAST::TraitTarget
                                       is RakuAST::Meta is RakuAST::Attaching {
     has RakuAST::Type $.type;
     has str $.name;

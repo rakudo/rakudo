@@ -1125,14 +1125,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $initializer := $<initializer>
             ?? $<initializer>.ast
             !! self.r('Initializer');
+        my $decl;
         if $<desigilname> {
             my str $name := $<sigil> ~ ($<twigil> || '') ~ $<desigilname>;
-            my $decl := self.r('VarDeclaration', 'Simple').new:
+            $decl := self.r('VarDeclaration', 'Simple').new:
                 :$scope, :$type, :$name, :$initializer;
             if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
                 $*R.declare-lexical($decl);
             }
-            self.attach: $/, $decl;
         }
         else {
             if $scope ne 'my' && $scope ne 'state' {
@@ -1141,9 +1141,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $<twigil> {
                 $/.panic("Cannot declare an anonymous variable with a twigil");
             }
-            self.attach: $/, self.r('VarDeclaration', 'Anonymous').new:
+            $decl := self.r('VarDeclaration', 'Anonymous').new:
                 :$scope, :$type, :sigil(~$<sigil>), :$initializer;
         }
+        for $<trait> {
+            $decl.add-trait($_.ast);
+        }
+        self.attach: $/, $decl;
     }
 
     method routine_declarator:sym<sub>($/) {

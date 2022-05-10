@@ -112,6 +112,25 @@ class RakuAST::LexicalScope is RakuAST::Node {
         Nil
     }
 
+    method merge-generated-lexical-declaration(RakuAST::Declaration $declaration) {
+        unless $!generated-lexical-declarations {
+            nqp::bindattr(self, RakuAST::LexicalScope, '$!generated-lexical-declarations', []);
+        }
+        for $!generated-lexical-declarations {
+            if $_.lexical-name eq $declaration.lexical-name {
+                if $_.compile-time-value =:= $declaration.compile-time-value {
+                    return Nil
+                }
+                else {
+                    nqp::die("Cannot merge values yet");
+                }
+            }
+        }
+        nqp::push($!generated-lexical-declarations, $declaration);
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!generated-lexical-lookup-hash', Mu);
+        Nil
+    }
+
     # Find a lexical, only considering those that are declared by AST nodes.
     # The lookup table is cached.
     method find-ast-lexical(Str $name) {

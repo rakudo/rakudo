@@ -1225,8 +1225,7 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
             if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
                 $value := nqp::decont($value);
             }
-            # TODO decide where conflict handling lives
-            $target-scope.add-generated-lexical-declaration:
+            $target-scope.merge-generated-lexical-declaration:
                 RakuAST::Declaration::Import.new:
                     :lexical-name($key), :compile-time-value($value);
         }

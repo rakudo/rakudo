@@ -49,6 +49,9 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
             if nqp::istype($_, RakuAST::Name::Part::Simple) {
                 nqp::push_s($canon-parts, $_.name);
             }
+            elsif nqp::istype($_, RakuAST::Name::Part::Empty) {
+                nqp::push_s($canon-parts, '');
+            }
             else {
                 nqp::die('canonicalize NYI for non-simple name parts');
             }

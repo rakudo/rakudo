@@ -140,6 +140,7 @@ class RakuAST::Call {
 # A call to a named sub.
 class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
     has RakuAST::Name $.name;
+    has Mu $!package;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
@@ -156,6 +157,7 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
     method needs-resolution() { $!name.is-identifier }
 
     method resolve-with(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::Call::Name, '$!package', $resolver.current-package);
         my $resolved := $resolver.resolve-name($!name, :sigil('&'));
         if $resolved {
             self.set-resolution($resolved);
@@ -173,7 +175,13 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
             $call.name(self.resolution.lexical-name);
         }
         else {
-            nqp::die('compiling complex call names NYI')
+            my @parts := self.IMPL-UNWRAP-LIST($!name.parts);
+            if nqp::elems(@parts) && nqp::istype(@parts[nqp::elems(@parts) - 1], RakuAST::Name::Part::Empty) {
+                return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package)));
+            }
+            else {
+                nqp::die('compiling complex call names NYI ' ~ $!name.canonicalize)
+            }
         }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call

@@ -65,6 +65,7 @@ my class Thread {
                     nqp::getcomp('Raku').handle-control($vm-ex);
                 }
             }
+            my $*STACK-ID = Rakudo::Internals.NEXT-ID;
             code();
 #?if !jvm
             ++⚛$completed;

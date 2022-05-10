@@ -2289,15 +2289,28 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
         <.ws>
         <trait>*
+        <post_constraint('param')>*
         [
             <default_value>
             [ <modifier=.trait> {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default_value>
             }]?
-#            [ <modifier=.post_constraint('param')> {
-#                self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
-#            }]?
+            [ <modifier=.post_constraint('param')> {
+                self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
+            }]?
         ]?
+    }
+
+    rule post_constraint($*CONSTRAINT_USAGE) {
+        :my $*IN_DECL := '';
+        :my $*HAS_SELF := $*CONSTRAINT_USAGE eq 'var' && $*SCOPE eq 'has'
+            ?? nqp::null !! nqp::getlexdyn('$*HAS_SELF');
+        :dba('constraint')
+        [
+        | '[' ~ ']' <signature>
+        | '(' ~ ')' <signature>
+        | where <EXPR('i=')>
+        ]
     }
 
     token param_var {

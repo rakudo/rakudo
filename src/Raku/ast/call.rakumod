@@ -175,8 +175,10 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
             $call.name(self.resolution.lexical-name);
         }
         else {
-            my @parts := self.IMPL-UNWRAP-LIST($!name.parts);
-            if nqp::elems(@parts) && nqp::istype(@parts[nqp::elems(@parts) - 1], RakuAST::Name::Part::Empty) {
+            if my $op := $!name.IMPL-IS-NQP-OP {
+                $call.op($op);
+            }
+            elsif $!name.is-package-lookup {
                 return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package)));
             }
             else {

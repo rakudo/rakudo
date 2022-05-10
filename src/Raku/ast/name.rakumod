@@ -43,6 +43,10 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         True
     }
 
+    method is-package-lookup() {
+        nqp::elems($!parts) && nqp::istype($!parts[nqp::elems($!parts) - 1], RakuAST::Name::Part::Empty)
+    }
+
     method canonicalize() {
         my $canon-parts := nqp::list_s();
         for $!parts {
@@ -61,6 +65,12 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
 
     method is-pseudo-package() {
         nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
+    }
+
+    method IMPL-IS-NQP-OP() {
+        nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'nqp'
+            ?? $!parts[1].name
+            !! ''
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

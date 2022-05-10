@@ -44,7 +44,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
         DEBUG("going to load $module_name") if $DEBUG;
         if nqp::eqat($module_name, 'Perl6::BOOTSTRAP::v6', 0) {
-            my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), NQPMu);
+            my $preserve_global := nqp::gethllsym('Raku', 'GLOBAL');
             my %*COMPILING := {};
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
@@ -257,8 +257,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 # Load it.
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                my $preserve_global :=
-                  nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),NQPMu);
+                my $preserve_global := nqp::gethllsym('Raku','GLOBAL');
 
                 DEBUG("Loading bytecode from $path") if $DEBUG;
                 nqp::scwbdisable();

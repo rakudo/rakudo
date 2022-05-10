@@ -3804,8 +3804,8 @@ multi sub infix:<gt>(str $a, str $b --> Bool:D) {
 multi sub infix:<ge>(Str:D $a, Str:D $b --> Bool:D) {
     nqp::hllbool(nqp::isge_s(nqp::unbox_s($a),nqp::unbox_s($b)))
 }
-multi sub infix:<le>(str $a, str $b --> Bool:D) {
-    nqp::hllbool(nqp::isle_s($a, $b))
+multi sub infix:<ge>(str $a, str $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_s($a, $b))
 }
 
 multi sub infix:<~|>(Str:D $a, Str:D $b --> Str:D) {

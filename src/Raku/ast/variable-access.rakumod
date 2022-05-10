@@ -390,9 +390,8 @@ class RakuAST::Var::Package is RakuAST::Var is RakuAST::Lookup {
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
-        my str $sigil := $!sigil;
         my @parts := self.IMPL-UNWRAP-LIST($!name.parts);
-        my $resolved := $resolver.resolve-name(RakuAST::Name.new(@parts[0]), :$sigil);
+        my $resolved := $resolver.resolve-name(RakuAST::Name.new(@parts[0]));
         if $resolved {
             self.set-resolution($resolved);
         }

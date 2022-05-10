@@ -44,9 +44,53 @@ class RakuAST::Initializer::Bind is RakuAST::Initializer {
     }
 }
 
+class RakuAST::ContainerCreator {
+    method IMPL-CONTAINER(Mu $of) {
+        # If it's a natively typed scalar, no container.
+        my str $sigil := self.sigil;
+        my int $is-native := nqp::objprimspec($of);
+        if $sigil eq '$' && $is-native {
+            return Nil;
+        }
+
+        # Form container descriptor.
+        my $default := self.type ?? $of !! Any;
+        my int $dynamic := self.twigil eq '*' ?? 1 !! 0;
+        my $cont-desc := ContainerDescriptor.new(:$of, :$default, :$dynamic,
+            :name(self.lexical-name));
+
+        # Form the container.
+        my $container-base-type;
+        my $container-type;
+        if $sigil eq '@' {
+            $container-base-type := Array;
+            $container-type := self.type
+                ?? Array.HOW.parameterize(Array, $of)
+                !! Array;
+        }
+        elsif $sigil eq '%' {
+            $container-base-type := Hash;
+            $container-type := self.type
+                ?? Hash.HOW.parameterize(Hash, $of)
+                !! Hash;
+        }
+        else {
+            $container-base-type := Scalar;
+            $container-type := Scalar;
+        }
+        my $container := nqp::create($container-type);
+        nqp::bindattr($container, $container-base-type, '$!descriptor', $cont-desc);
+        unless $sigil eq '@' || $sigil eq '%' {
+            nqp::bindattr($container, $container-base-type, '$!value', $default);
+        }
+
+        $container
+    }
+}
+
 # A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::ImplicitLookups
-                                      is RakuAST::TraitTarget
+                                      is RakuAST::TraitTarget is RakuAST::ContainerCreator
                                       is RakuAST::Meta is RakuAST::Attaching {
     has RakuAST::Type $.type;
     has str $.name;
@@ -200,48 +244,6 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         else {
             self.IMPL-CONTAINER($of)
         }
-    }
-
-    method IMPL-CONTAINER(Mu $of) {
-        # If it's a natively typed scalar, no container.
-        my str $sigil := self.sigil;
-        my int $is-native := nqp::objprimspec($of);
-        if $sigil eq '$' && $is-native {
-            return Nil;
-        }
-
-        # Form container descriptor.
-        my $default := $!type ?? $of !! Any;
-        my int $dynamic := self.twigil eq '*' ?? 1 !! 0;
-        my $cont-desc := ContainerDescriptor.new(:$of, :$default, :$dynamic,
-            :name($!name));
-
-        # Form the container.
-        my $container-base-type;
-        my $container-type;
-        if $sigil eq '@' {
-            $container-base-type := Array;
-            $container-type := $!type
-                ?? Array.HOW.parameterize(Array, $of)
-                !! Array;
-        }
-        elsif $sigil eq '%' {
-            $container-base-type := Hash;
-            $container-type := $!type
-                ?? Hash.HOW.parameterize(Hash, $of)
-                !! Hash;
-        }
-        else {
-            $container-base-type := Scalar;
-            $container-type := Scalar;
-        }
-        my $container := nqp::create($container-type);
-        nqp::bindattr($container, $container-base-type, '$!descriptor', $cont-desc);
-        unless $sigil eq '@' || $sigil eq '%' {
-            nqp::bindattr($container, $container-base-type, '$!value', $default);
-        }
-
-        $container
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
@@ -434,6 +436,129 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             QAST::Var.new( :name($!name), :scope('lexical') ),
             $source.IMPL-TO-QAST($context)
         )
+    }
+
+    method needs-sink-call() { False }
+}
+
+class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::ImplicitLookups
+                                      is RakuAST::TraitTarget is RakuAST::CheckTime
+                                      is RakuAST::Attaching {
+    has RakuAST::Signature $.signature;
+    has RakuAST::Type $.type;
+    has RakuAST::Initializer $.initializer;
+    has RakuAST::Package $!attribute-package;
+    has Mu $!package;
+
+    method new(RakuAST::Signature :$signature!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
+               str :$scope) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!signature', $signature);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!type', $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!initializer',
+            $initializer // RakuAST::Initializer);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!signature);
+        my $type := $!type;
+        $visitor($type) if nqp::isconcrete($type);
+        my $initializer := $!initializer;
+        $visitor($initializer) if nqp::isconcrete($initializer);
+    }
+
+    method default-scope() {
+        'my'
+    }
+
+    method allowed-scopes() {
+        self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has', 'HAS'])
+    }
+
+    method is-simple-lexical-declaration() {
+        # The ParameterTargets in our signature will take care of declarations
+        False
+    }
+
+    method is-lexical() {
+        # Overridden here because our-scoped variables are really lexical aliases.
+        my str $scope := self.scope;
+        $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        my str $scope := self.scope;
+        if $scope eq 'has' || $scope eq 'HAS' {
+            my $attribute-package := $resolver.find-attach-target('package');
+            if $attribute-package {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Signature, '$!attribute-package',
+                    $attribute-package);
+                $attribute-package.ATTACH-ATTRIBUTE(self);
+            }
+            else {
+                # TODO check-time error
+            }
+        }
+        elsif $scope eq 'our' {
+            my $package := $resolver.current-package;
+            # There is always a package, even if it's just GLOBALish
+            nqp::bindattr(self, RakuAST::VarDeclaration::Signature, '$!package',
+                $package);
+        }
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        my @lookups;
+        # If it's our-scoped, we need the package to bind it from.
+        my str $scope := self.scope;
+        if $scope eq 'our' {
+            @lookups.push(RakuAST::Var::Compiler::Lookup.new('$?PACKAGE'));
+        }
+        # If we have a type, we need to resolve that.
+        elsif $!type {
+            @lookups.push($!type);
+        }
+        # If we're has/HAS scope, we need Nil to evaluate to.
+        if $scope eq 'has' || $scope eq 'HAS' {
+            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
+        }
+        self.IMPL-WRAP-LIST(@lookups)
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+        # tell the parameter targets to create containers
+        my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
+
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+        my $type := $!type // RakuAST::Type::Setting.new('Mu');
+
+        for @params {
+            $_.target.set-container-type($type, $of);
+        }
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        if nqp::isconcrete($!initializer) {
+            if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
+                my $list   := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+                my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
+
+                for @params {
+                    $list.push: $_.target.IMPL-LOOKUP-QAST($context);
+                }
+                my $init-qast := $!initializer.IMPL-TO-QAST($context);
+                $list := QAST::Op.new( :op('p6store'), $list, $init-qast);
+                return $list;
+            }
+            else {
+                nqp::die('Not yet supported signature initializer: ' ~ $!initializer.HOW.name($!initializer));
+            }
+        }
+
+        QAST::Op.new(:op<null>);
     }
 
     method needs-sink-call() { False }

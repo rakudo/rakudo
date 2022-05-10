@@ -601,12 +601,17 @@ class RakuAST::ParameterTarget is RakuAST::Node {
 }
 
 # A binding of a parameter into a lexical variable (with sigil).
-class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Declaration {
+class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Declaration
+                                    is RakuAST::Meta is RakuAST::ContainerCreator {
     has str $.name;
+    has RakuAST::Type $.type;
+    has Mu $!of;
 
     method new(str $name!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!of', Mu);
         $obj
     }
 
@@ -629,8 +634,28 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
         nqp::substr($!name, 0, 1)
     }
 
+    method twigil() {
+        ''
+    }
+
+    method set-container-type(Mu $type, Mu $of) {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);
+    }
+
+    method PRODUCE-META-OBJECT() {
+        self.IMPL-CONTAINER($!of)
+    }
+
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name) )
+        if $!type {
+            my $container := self.meta-object;
+            $context.ensure-sc($container);
+            QAST::Var.new( :decl('contvar'), :scope('lexical'), :name($!name), :value($container) )
+        }
+        else {
+            QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name) )
+        }
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {

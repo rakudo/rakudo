@@ -1630,7 +1630,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         | <sigil> $<index>=[\d+]
         | <sigil> <?[<]> <postcircumfix>
-        | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <contextualizer>
+        | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN_DECL }> <contextualizer>
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
@@ -1784,6 +1784,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | '\\' <defterm>
             [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
+        | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine_declarator>
         ]
     }

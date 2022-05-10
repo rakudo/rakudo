@@ -391,7 +391,8 @@ class RakuAST::Var::Package is RakuAST::Var is RakuAST::Lookup {
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my str $sigil := $!sigil;
-        my $resolved := $resolver.resolve-name($!name, :$sigil);
+        my @parts := self.IMPL-UNWRAP-LIST($!name.parts);
+        my $resolved := $resolver.resolve-name(RakuAST::Name.new(@parts[0]), :$sigil);
         if $resolved {
             self.set-resolution($resolved);
         }
@@ -399,12 +400,19 @@ class RakuAST::Var::Package is RakuAST::Var is RakuAST::Lookup {
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @parts := self.IMPL-UNWRAP-LIST($!name.parts);
+        my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($!name.parts));
         my $final := @parts[nqp::elems(@parts) - 1];
         my $result;
         my str $sigil := $!sigil;
         if $!name.is-simple {
-            $result := QAST::Var.new(:name(nqp::shift(@parts).name), :scope<lexical>);
+            if self.is-resolved {
+                my $name := self.resolution.lexical-name;
+                nqp::shift(@parts);
+                $result := QAST::Var.new(:$name, :scope<lexical>);
+            }
+            else {
+                $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
+            }
             for @parts {
                 $result := QAST::Op.new( :op('who'), $result );
                 $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);

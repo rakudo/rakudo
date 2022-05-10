@@ -59,9 +59,13 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         nqp::join('::', $canon-parts)
     }
 
+    method is-pseudo-package() {
+        nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST(
-            self.is-simple
+            self.is-simple && !self.is-pseudo-package
                 ?? []
                 !! [
                     RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&INDIRECT_NAME_LOOKUP')),
@@ -73,10 +77,31 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package) {
         my $result := $start-package;
         my $final := $!parts[nqp::elems($!parts) - 1];
-        for $!parts {
-            # We do .WHO on the current package, followed by the index into it.
-            $result := QAST::Op.new( :op('who'), $result );
-            $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
+        if self.is-pseudo-package {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+            my $PseudoStash := @lookups[1];
+            $result := QAST::Op.new(
+                :op<callmethod>,
+                :name<new>,
+                $PseudoStash.IMPL-TO-QAST($context),
+            );
+            my int $first := 1;
+            for $!parts {
+                if $first { # don't call .WHO on the pseudo package itself, index into it instead
+                    $first := 0;
+                }
+                else { # get the Stash from all real packages
+                    $result := QAST::Op.new( :op('who'), $result );
+                }
+                $result := $_.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
+            }
+        }
+        else {
+            for $!parts {
+                # We do .WHO on the current package, followed by the index into it.
+                $result := QAST::Op.new( :op('who'), $result );
+                $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
+            }
         }
         $result
     }
@@ -96,10 +121,35 @@ class RakuAST::Name::Part::Simple is RakuAST::Name::Part {
         $obj
     }
 
+    method is-pseudo-package() {
+        my $name := $!name;
+           $name eq 'CALLER'
+        || $name eq 'CALLERS'
+        || $name eq 'CLIENT'
+        || $name eq 'DYNAMIC'
+        || $name eq 'CORE'
+        || $name eq 'LEXICAL'
+        || $name eq 'MY'
+        || $name eq 'OUR'
+        || $name eq 'OUTER'
+        || $name eq 'OUTERS'
+        || $name eq 'SETTING'
+        || $name eq 'UNIT'
+    }
+
     method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
         QAST::Op.new(
             :op('callmethod'),
             :name($is-final ?? 'AT-KEY' !! 'package_at_key'),
+            $stash-qast,
+            QAST::SVal.new( :value($is-final && $sigil ?? $sigil ~ $!name !! $!name) )
+        )
+    }
+
+    method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+        QAST::Op.new(
+            :op('call'),
+            :name('&postcircumfix:<{ }>'),
             $stash-qast,
             QAST::SVal.new( :value($is-final && $sigil ?? $sigil ~ $!name !! $!name) )
         )
@@ -117,6 +167,15 @@ class RakuAST::Name::Part::Expression is RakuAST::Name::Part {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Name::Part::Expression, '$!expr', $expr);
         $obj
+    }
+
+    method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+        QAST::Op.new(
+            :op('call'),
+            :name('&postcircumfix:<{ }>'),
+            $stash-qast,
+            $!expr.IMPL-TO-QAST($context),
+        )
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
@@ -138,6 +197,10 @@ class RakuAST::Name::Part::Empty is RakuAST::Name::Part {
 
     method new() {
         nqp::create(self);
+    }
+
+    method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+        $stash-qast
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {

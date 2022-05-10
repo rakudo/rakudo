@@ -145,6 +145,22 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         my $top-level := QAST::Block.new;
         self.IMPL-ADD-SETTING-LOADING($context, $top-level, $!setting-name) if $!setting-name;
 
+        unless $!is-eval {
+            my $global_install := QAST::Op.new(
+                :op<ifnull>,
+                QAST::Op.new(
+                    :op<getcurhllsym>,
+                    QAST::SVal.new(:value('GLOBAL'))
+                ),
+                QAST::Op.new(
+                    :op('bindcurhllsym'),
+                    QAST::SVal.new( :value('GLOBAL') ),
+                    QAST::WVal.new( :value(self.generated-global) )
+                )
+            );
+            $context.add-fixup-and-deserialize-task(QAST::Stmt.new($global_install));
+        }
+
         # Compile into a QAST::CompUnit.
         $top-level.push(self.IMPL-TO-QAST($context));
         QAST::CompUnit.new:

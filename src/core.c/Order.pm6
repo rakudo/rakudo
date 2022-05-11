@@ -149,14 +149,14 @@ multi sub infix:«<=>»(int $a, int $b) {
 
 proto sub infix:<before>($?, $?, *% --> Bool:D) is pure {*}
 multi sub infix:<before>($? --> True) { }
-multi sub infix:<before>(\a, \b) {
-    nqp::hllbool(nqp::eqaddr((a cmp b),Order::Less))
+multi sub infix:<before>($a, $b) {
+    nqp::hllbool(nqp::eqaddr(($a cmp $b),Order::Less))
 }
 
 proto sub infix:<after>($?, $?, *% --> Bool:D) is pure {*}
 multi sub infix:<after>($x? --> True) { }
-multi sub infix:<after>(\a, \b) {
-    nqp::hllbool(nqp::eqaddr((a cmp b),Order::More))
+multi sub infix:<after>($a, $b) {
+    nqp::hllbool(nqp::eqaddr(($a cmp $b),Order::More))
 }
 
 proto sub infix:<leg>($, $, *% --> Order:D) is pure {*}

@@ -436,6 +436,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*CU;
         :my $*R;
         :my $*LITERALS;
+        :my $*EXPORT;
         <.lang_setup>
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }

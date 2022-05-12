@@ -2228,6 +2228,10 @@ BEGIN {
                 $why
             }
         }));
+    Parameter.HOW.add_method(Parameter, 'container_descriptor', nqp::getstaticcode(sub ($self) {
+            nqp::getattr(nqp::decont($self),
+                Parameter, '$!container_descriptor');
+        }));
     Parameter.HOW.add_method(Parameter, 'coercive', nqp::getstaticcode(sub ($self) {
             #my int $SIG_ELEM_IS_COERCIVE  := 67108864;
             nqp::if(nqp::bitand_i(nqp::getattr(nqp::decont($self), Parameter, '$!flags'), 67108864), 1, 0)

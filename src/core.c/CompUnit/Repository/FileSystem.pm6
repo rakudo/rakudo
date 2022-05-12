@@ -16,8 +16,8 @@ class CompUnit::Repository::FileSystem
     my constant @extensions = <.rakumod .pm6 .pm>;
 
     method TWEAK(--> Nil) {
-        $!loaded-lock := Lock.new;
-        $!seen-lock := Lock.new;
+        $!loaded-lock := Lock::Soft.new;
+        $!seen-lock := Lock::Soft.new;
         $!seen := nqp::hash;
     }
 
@@ -101,7 +101,7 @@ class CompUnit::Repository::FileSystem
                 }
             }
         }
-        return $_ ~~ Promise ?? await $_ !! $_ with $loaded-cu;
+        return $_ ~~ Promise ?? $*AWAITER.await($_) !! $_ with $loaded-cu;
 
         with $matching-dist {
             my $name = $spec.short-name;
@@ -120,16 +120,16 @@ class CompUnit::Repository::FileSystem
 
             $!loaded-lock.protect: {
                 CATCH { $spec-promise.break: $_; .rethrow }
-                $spec-promise.keep: %!loaded{$spec-key} = CompUnit.new(
-                    :short-name($name),
-                    :handle($precomp-handle // CompUnit::Loader.load-source($source-handle.open(:bin).slurp(:close))),
-                    :repo(self),
-                    :repo-id($id.Str),
-                    :precompiled($precomp-handle.defined),
-                    :distribution($_),
-                );
-                return %!loaded{$spec-key}
+                $spec-promise.keep(
+                    %!loaded{$spec-key} = CompUnit.new(
+                        :short-name($name),
+                        :handle($precomp-handle // CompUnit::Loader.load-source($source-handle.open(:bin).slurp(:close))),
+                        :repo(self),
+                        :repo-id($id.Str),
+                        :precompiled($precomp-handle.defined),
+                        :distribution($_)));
             }
+            return %!loaded{$spec-key}
         }
 
         return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
@@ -145,7 +145,7 @@ class CompUnit::Repository::FileSystem
 
             if $path.f {
                 $!loaded-lock.protect: {
-                    return %!loaded{$file.Str} //= CompUnit.new(
+                    %!loaded{$file.Str} //= CompUnit.new(
                         :handle(
                             $precompiled
                                 ?? CompUnit::Loader.load-precompilation-file($path)
@@ -158,6 +158,7 @@ class CompUnit::Repository::FileSystem
                         :distribution(self!distribution),
                     );
                 }
+                return %!loaded{$file.Str}
             }
         }
 
@@ -169,9 +170,7 @@ class CompUnit::Repository::FileSystem
     method short-id() { 'file' }
 
     method loaded(--> Iterable:D) {
-        $!loaded-lock.protect: {
-            return %!loaded.values.grep(* !~~ Promise);
-        }
+        $!loaded-lock.protect: { %!loaded.values.grep(* !~~ Promise) }
     }
 
     # This allows -Ilib to find resources/ ( and by extension bin/ ) for %?RESOURCES.

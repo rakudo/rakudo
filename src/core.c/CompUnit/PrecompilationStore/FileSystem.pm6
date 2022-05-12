@@ -13,10 +13,10 @@ class CompUnit::PrecompilationStore::FileSystem
     has $!loaded;
     has $!dir-cache;
     has $!compiler-cache;
-    has Lock $!update-lock;
+    has Lock::Soft $!update-lock;
 
     submethod TWEAK(--> Nil) {
-        $!update-lock := Lock.new;
+        $!update-lock := Lock::Soft.new;
         $!loaded         := nqp::hash;
         $!dir-cache      := nqp::hash;
         $!compiler-cache := nqp::hash;
@@ -60,8 +60,8 @@ class CompUnit::PrecompilationStore::FileSystem
         $!lock := "$path.lock".IO.open(:create, :rw)
           unless $!lock;
 #?if moar
-        $!lock-count⚛++;
-        $!lock.lock if ⚛$!lock-count == 1;
+        $!lock.lock if ⚛$!lock-count == 0;
+        ++⚛$!lock-count;
 #?endif
 #?if !moar
         $!lock.lock if $!lock-count++ == 0;

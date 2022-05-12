@@ -1,10 +1,11 @@
+my class Lock::Soft {...}
 my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash
     #     has str $!longname;
     #     has $!lock;
 
     multi method new(Stash: --> Map:D) {
-        nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock.new)
+        nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock::Soft.new)
     }
 
     method clone(Stash:D:) is raw {
@@ -12,7 +13,7 @@ my class Stash { # declared in BOOTSTRAP
             nqp::p6bindattrinvres(
                 callsame(),
                 Stash, '$!longname', nqp::getattr(self, Stash, '$!longname')),
-            Stash, '$!lock', Lock.new)
+            Stash, '$!lock', Lock::Soft.new)
     }
 
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
@@ -42,6 +43,10 @@ my class Stash { # declared in BOOTSTRAP
         )
     }
 
+    # New proto is introduced here in order to cut off Hash candidates completely. There are few reasons to do so:
+    # 1. Hash is not thread-safe whereas Stash claims to be
+    # 2. Stash candidates are fully overriding their counterparts from Hash
+    # 3. Minor: could result in some minor improvement in multi-dispatch lookups due to lesser number of candidates
     proto method ASSIGN-KEY(Stash:D: $, $) {*}
     multi method ASSIGN-KEY(Stash:D: Str:D $key, Mu \assignval) is raw {
         my $storage := nqp::getattr(self,Map,'$!storage');
@@ -71,6 +76,7 @@ my class Stash { # declared in BOOTSTRAP
         nextwith(key.Str, assignval)
     }
 
+    # See the comment for ASSIGN-KEY on proto.
     proto method BIND-KEY(|) {*}
     multi method BIND-KEY(Stash:D: Str:D $key, Mu \bindval) is raw {
         $!lock.protect: {
@@ -116,9 +122,7 @@ my class Stash { # declared in BOOTSTRAP
                     (my $storage := nqp::clone(my $old-storage := nqp::getattr(self,Map,'$!storage'))),
                     globalish
                 );
-                # XXX We cannot use atomic bind for now because it breaks MoarVM serialization.
-                # nqp::atomicbindattr(self, Map, '$!storage', $storage);
-                nqp::bindattr(self, Map, '$!storage', $storage);
+                nqp::atomicbindattr(self, Map, '$!storage', $storage);
             }
         }
     }

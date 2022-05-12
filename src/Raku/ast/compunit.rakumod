@@ -234,7 +234,8 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
             self.IMPL-QAST-DECLS($context),
             self.IMPL-QAST-END-PHASERS($context),
-            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context))
+            self.IMPL-QAST-CTXSAVE($context),
+            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
         )
     }
 
@@ -251,6 +252,32 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             ));
         }
         $end-setup
+    }
+
+    method IMPL-QAST-CTXSAVE(RakuAST::IMPL::QASTContext $context) {
+        QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('ctxsave'), :scope('local'), :decl('var') ),
+                QAST::Var.new( :name('$*CTXSAVE'), :scope('contextual') )
+            ),
+            QAST::Op.new(
+                :op('unless'),
+                QAST::Op.new(
+                    :op('isnull'),
+                    QAST::Var.new( :name('ctxsave'), :scope('local') )
+                ),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('can'),
+                        QAST::Var.new( :name('ctxsave'), :scope('local') ),
+                        QAST::SVal.new( :value('ctxsave') )
+                    ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('ctxsave'),
+                        QAST::Var.new( :name('ctxsave'), :scope('local')
+                    )))))
     }
 
     method generated-global() {

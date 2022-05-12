@@ -1,5 +1,5 @@
 # Some kind of type (done by all kinds of things that result in a type).
-class RakuAST::Type is RakuAST::Term {
+class RakuAST::Type is RakuAST::Term is RakuAST::Meta {
     # Checks if the type is statically known to be some particular type
     # (provided as the type object, not as another RakuAST node).
     method is-known-to-be(Mu $type) {
@@ -32,6 +32,10 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
         Nil
     }
 
+    method PRODUCE-META-OBJECT() {
+        self.resolution.compile-time-value
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.resolution.compile-time-value;
         $context.ensure-sc($value);
@@ -51,4 +55,49 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
 # setting.
 class RakuAST::Type::Setting is RakuAST::Type::Simple {
     # TODO limit lookup to setting
+}
+
+class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup {
+    has RakuAST::Name $.name;
+    has RakuAST::Type $!constraint;
+
+    method new(RakuAST::Name $name, Mu $constraint) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Type::Coercion, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Coercion, '$!constraint', $constraint);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-name-constant($!name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method PRODUCE-META-OBJECT() {
+        Perl6::Metamodel::CoercionHOW.new_type(
+            self.resolution.compile-time-value,
+            $!constraint.meta-object,
+        );
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := self.meta-object;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        self.is-resolved && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.meta-object
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!constraint);
+    }
 }

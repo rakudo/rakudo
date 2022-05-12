@@ -1539,7 +1539,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $base-name := $<longname>
             ?? $<longname>.ast
             !! self.r('Name').from-identifier(~$<identifier>);
-        self.attach: $/, self.r('Type', 'Simple').new($base-name);
+        if $<accept> {
+            self.attach: $/, self.r('Type', 'Coercion').new($base-name, $<accept>.ast);
+        }
+        elsif $<accept_any> {
+            my $Any := self.r('Type', 'Setting').new(RakuAST::Name.from-identifier('Any'));
+            self.attach: $/, self.r('Type', 'Coercion').new($base-name, $Any);
+        }
+        else {
+            self.attach: $/, self.r('Type', 'Simple').new($base-name);
+        }
     }
 
     ##

@@ -312,7 +312,13 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             nqp::bindattr($parameter, Parameter, '@!named_names', $names-str-list);
         }
         nqp::bindattr_i($parameter, Parameter, '$!flags', self.IMPL-FLAGS());
-        nqp::bindattr($parameter, Parameter, '$!type', self.IMPL-NOMINAL-TYPE());
+        my $type := self.IMPL-NOMINAL-TYPE();
+        nqp::bindattr($parameter, Parameter, '$!type', $type);
+        if $!target {
+            my $name := $!target.introspection-name;
+            my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
+            nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
+        }
         # TODO further setup
         $parameter
     }
@@ -485,6 +491,8 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             }
         }
 
+        $context.ensure-sc(nqp::getattr($param-obj, Parameter, '$!container_descriptor'));
+
         # Bind parameter into its target.
         if self.invocant {
             $param-qast.push(QAST::Op.new(
@@ -499,8 +507,33 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                 $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast-var));
             }
             else {
+                my $value := $get-decont-var();
+
+                if $flags +& SIG_ELEM_IS_COPY {
+                    my $container_descriptor := $param-obj.container_descriptor;
+                    if $container_descriptor {
+                        $value := QAST::Op.new(
+                            :op<p6scalarwithvalue>,
+                            QAST::WVal.new(:value($container_descriptor)),
+                            $value
+                        );
+                    }
+                    else {
+                        $value := QAST::Op.new(
+                            :op('p6bindattrinvres'),
+                            QAST::Op.new(
+                                :op('create'),
+                                QAST::WVal.new( :value(Scalar) )
+                            ),
+                            QAST::WVal.new( :value(Scalar) ),
+                            QAST::SVal.new( :value('$!value') ),
+                            $value
+                        );
+                    }
+                }
+
                 # Give the decontainerized thing.
-                $param-qast.push($!target.IMPL-BIND-QAST($context, $get-decont-var()));
+                $param-qast.push($!target.IMPL-BIND-QAST($context, $value));
             }
         }
 

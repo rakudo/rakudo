@@ -358,7 +358,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         }
         else {
             $!type
-                ?? $!type.resolution.compile-time-value
+                ?? $!type.meta-object
                 !! Mu
         }
     }

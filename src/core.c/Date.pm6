@@ -82,7 +82,8 @@ my class Date does Dateish {
           ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
           !! self!bless($year, $month, $day, &formatter, %_)
     }
-    multi method new(Date: Str:D $date, :&formatter --> Date:D) {
+    multi method new(Date: Str:D $Date, :&formatter --> Date:D) {
+        my str $date = $Date;
 
         # do we have non-ascii chars in there?
         if nqp::chars($date) == nqp::codes($date) {
@@ -108,7 +109,7 @@ my class Date does Dateish {
             }
 
             # no, can we use regex?
-            elsif $date.match(/^
+            elsif $Date.match(/^
                   (<[+-]>? \d**4 \d*)  # year
                   '-'
                   (\d\d)               # month

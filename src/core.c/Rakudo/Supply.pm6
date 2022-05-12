@@ -501,7 +501,7 @@ sub REACT(&block) is implementation-detail {
         { warn "Useless use of emit in react" },
         done => { $p.keep(Nil) },
         quit => { $p.break($_) });
-    await $p;
+    $*AWAITER.await($p);
 }
 
 sub SUPPLY-ONE-EMIT(&block) is implementation-detail {
@@ -519,7 +519,7 @@ sub REACT-ONE-WHENEVER(&block) is implementation-detail {
         { warn "Useless use of emit in react" },
         done => { $p.keep(Nil) },
         quit => { $p.break($_) });
-    await $p;
+    $*AWAITER.await($p);
 }
 
 # vim: expandtab shiftwidth=4

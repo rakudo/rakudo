@@ -1179,7 +1179,8 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
             RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')
         ).compile-time-value;
         my $comp-unit := $registry.head.need($spec);
-        # TODO global merging
+        my $globalish := $comp-unit.handle.globalish-package;
+        self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($globalish));
         $comp-unit
     }
 
@@ -1211,7 +1212,7 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
             }
             for @to-import -> str $tag {
                 if nqp::existskey($EXPORT, $tag) {
-                    self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($EXPORT{$tag}));
+                    self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($EXPORT{$tag}.WHO));
                 }
             }
         }
@@ -1232,7 +1233,7 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
     }
 
     method IMPL-STASH-HASH(Mu $pkg) {
-        my $hash := $pkg.WHO;
+        my $hash := $pkg;
         unless nqp::ishash($hash) {
             $hash := $hash.FLATTENABLE_HASH();
         }

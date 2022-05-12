@@ -1220,6 +1220,7 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
     method IMPL-IMPORT-ONE(RakuAST::Resolver $resolver, Mu $stash, Bool :$need-decont) {
         my $target-scope := $resolver.current-scope;
         for self.IMPL-SORTED-KEYS($stash) -> $key {
+            next if $key eq 'EXPORT';
             my $value := $stash{$key};
             if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
                 $value := nqp::decont($value);

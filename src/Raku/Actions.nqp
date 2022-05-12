@@ -93,6 +93,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*LANG.set_how($_.key, $_.value);
         }
 
+        my $package-how := $*LANG.how('package');
+        my $export-package := $package-how.new_type(name => 'EXPORT');
+        $export-package.HOW.compose($export-package);
+
+        $*R.set-export-package($export-package);
+        $*EXPORT := $export-package;
+
         # Create a compilation unit.
         my $file := nqp::getlexdyn('$?FILES');
         if nqp::isconcrete($outer_ctx) {
@@ -104,7 +111,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Top-level compilation. Create a GLOBAL using the correct package meta-object.
             my $comp-unit-name := nqp::sha1($file ~ $/.target());
             $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name,
-                :global-package-how($*LANG.how('package')), :$precompilation-mode);
+                :global-package-how($package-how), :$precompilation-mode,
+                :$export-package);
             $*R.set-global($*CU.generated-global);
         }
 

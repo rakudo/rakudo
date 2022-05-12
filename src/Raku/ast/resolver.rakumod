@@ -21,6 +21,9 @@ class RakuAST::Resolver {
     # Nodes that are unresolved after check time.
     has Mu $!nodes-unresolved-after-check-time;
 
+    # The current comp unit's EXPORT package.
+    has Mu $!export-package;
+
     # Push an attachment target, so children can attach to it.
     method push-attach-target(RakuAST::AttachTarget $target) {
         $target.clear-attachments();
@@ -62,6 +65,12 @@ class RakuAST::Resolver {
     method set-global(Mu $global) {
         nqp::die("This resovler's GLOBAL is already set") unless nqp::eqaddr($!global, Mu);
         nqp::bindattr(self, RakuAST::Resolver, '$!global', $global);
+        Nil
+    }
+
+    method set-export-package(Mu $export-package) {
+        nqp::die("This resovler's EXPORT is already set") unless nqp::eqaddr($!export-package, Mu);
+        nqp::bindattr(self, RakuAST::Resolver, '$!export-package', $export-package);
         Nil
     }
 
@@ -156,13 +165,19 @@ class RakuAST::Resolver {
             # See if we can obtain the first part lexically.
             # TODO pseudo-packages
             # TODO GLOBALish fallback
-            my $first-resolved := $setting
-                ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
-                !! self.resolve-lexical-constant(@parts[0].name);
-            return Nil unless $first-resolved;
+            my $cur-symbol;
+            if @parts[0].name eq 'EXPORT' {
+                $cur-symbol := $!export-package;
+            }
+            else {
+                my $first-resolved := $setting
+                    ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
+                    !! self.resolve-lexical-constant(@parts[0].name);
+                return Nil unless $first-resolved;
+                $cur-symbol := $first-resolved.compile-time-value;
+            }
 
             # Now chase down through the packages until we find something.
-            my $cur-symbol := $first-resolved.compile-time-value;
             my int $i := 1;
             my int $n := nqp::elems(@parts);
             while $i < $n {
@@ -200,13 +215,19 @@ class RakuAST::Resolver {
             # See if we can obtain the first part lexically.
             # TODO pseudo-packages
             # TODO GLOBALish fallback
-            my $first-resolved := $setting
-                ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
-                !! self.resolve-lexical-constant(@parts[0].name);
-            return Nil unless $first-resolved;
+            my $cur-symbol;
+            if @parts[0].name eq 'EXPORT' {
+                $cur-symbol := $!export-package;
+            }
+            else {
+                my $first-resolved := $setting
+                    ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
+                    !! self.resolve-lexical-constant(@parts[0].name);
+                return Nil unless $first-resolved;
+                $cur-symbol := $first-resolved.compile-time-value;
+            }
 
             # Now chase down through the packages until we find something.
-            my $cur-symbol := $first-resolved.compile-time-value;
             @parts := nqp::clone(@parts); # make manipulations safe
             while @parts {
                 my $part := nqp::shift(@parts);

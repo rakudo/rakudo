@@ -14,9 +14,11 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     has Mu $!singleton-whatever;
     has Mu $!singleton-hyper-whatever;
     has int $.precompilation-mode;
+    has Mu $!export-package;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
-            Str :$setting-name, Bool :$eval, Mu :$global-package-how, Bool :$precompilation-mode) {
+            Str :$setting-name, Bool :$eval, Mu :$global-package-how,
+            Bool :$precompilation-mode, Mu :$export-package) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
             $statement-list // RakuAST::StatementList.new);
@@ -29,6 +31,8 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', $eval ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
             $global-package-how =:= NQPMu ?? Perl6::Metamodel::PackageHOW !! $global-package-how);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
+            $export-package =:= NQPMu ?? Mu !! $export-package);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode ?? 1 !! 0);
         $obj
@@ -128,6 +132,10 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
                     how => $!global-package-how,
                     name => RakuAST::Name.from-identifier('GLOBALish');
             nqp::push(@decls, $global);
+            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
+                name => 'GLOBALish', value => $global.compile-time-value));
+            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
+                name => 'EXPORT', value => $!export-package)) unless $!export-package =:= Mu;
             nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
                 name => '$?PACKAGE', value => $global.compile-time-value
             ));

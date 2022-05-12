@@ -122,7 +122,8 @@ class RakuAST::LexicalScope is RakuAST::Node {
                     return Nil
                 }
                 else {
-                    nqp::die("Cannot merge values yet");
+                    $_.merge($declaration);
+                    return;
                 }
             }
         }
@@ -370,10 +371,32 @@ class RakuAST::Declaration::External is RakuAST::Declaration {
     }
 }
 
+class RakuAST::Declaration::Mergeable {
+    method is-stub() {
+        self.type.HOW.HOW.name(self.type.HOW) eq 'Perl6::Metamodel::PackageHOW'
+    }
+
+    method merge(RakuAST::Declaration $other) {
+        my $target := self.compile-time-value;
+        my $source := $other.compile-time-value;
+
+        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+        if $other.is-stub {
+            $loader.merge_globals($target, $source);
+        }
+        elsif self.is-stub {
+            nqp::die('Swapping source and target when merging packages NYI');
+        }
+        else {
+            nqp::die('Unsupported case trying to merge symbols or duplicate definition');
+        }
+    }
+}
+
 # A lexical declaration that comes with an external symbol, which has a fixed
 # value available during compilation.
 class RakuAST::Declaration::External::Constant is RakuAST::Declaration::External
-        is RakuAST::CompileTimeValue {
+        is RakuAST::CompileTimeValue is RakuAST::Declaration::Mergeable {
     has Mu $.compile-time-value;
 
     method new(str :$lexical-name!, Mu :$compile-time-value!) {
@@ -407,7 +430,7 @@ class RakuAST::Declaration::Import is RakuAST::Declaration::External::Constant {
 # A lexical declaration that points to a package. Generated as part of package
 # installation in RakuAST::Package, and installed as a generated lexical in a
 # RakuAST::LexicalScope.
-class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration is RakuAST::CompileTimeValue {
+class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration is RakuAST::CompileTimeValue is RakuAST::Declaration::Mergeable {
     has str $.lexical-name;
     has Mu $.compile-time-value;
 

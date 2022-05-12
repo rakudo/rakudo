@@ -603,6 +603,9 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         });
         nqp::setcodename($stub, $!name.canonicalize) if $!name;
         nqp::bindattr($routine, Code, '$!do', $stub);
+        nqp::markcodestatic($stub);
+        nqp::markcodestub($stub);
+
         if nqp::istype(self.body, RakuAST::Blockoid) {
             my $statements := self.body.statement-list.statements;
             if $statements.elems == 1 && nqp::istype($statements.AT-POS(0), RakuAST::Statement::Expression) {
@@ -761,6 +764,9 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             my $canon-name := $!name.canonicalize;
             $block.name($canon-name);
         }
+
+        my $code-obj := self.meta-object;
+        $context.add-code-ref(nqp::getattr($code-obj, Code, '$!do'), $block);
 
         $block
     }

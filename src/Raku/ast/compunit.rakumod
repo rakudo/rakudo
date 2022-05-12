@@ -167,7 +167,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             $top-level,
             :hll('Raku'),
             :sc($!sc),
-            :code_ref_blocks(self.IMPL-UNWRAP-LIST([])),
+            :code_ref_blocks($context.code-ref-blocks),
             :compilation_mode($!precompilation-mode),
             :pre_deserialize(self.IMPL-UNWRAP-LIST([])),
             :post_deserialize($context.post-deserialize()),

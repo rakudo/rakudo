@@ -3,11 +3,15 @@
 class RakuAST::IMPL::QASTContext {
     has Mu $.sc;
     has Mu $.post-deserialize;
+    has Mu $.code-ref-blocks;
+    has int $!num-code-refs;
 
     method new(Mu :$sc!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!code-ref-blocks', []);
+        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!num-code-refs', 0);
         $obj
     }
 
@@ -33,6 +37,13 @@ class RakuAST::IMPL::QASTContext {
             nqp::scsetobj($sc, $idx, $obj);
         }
         $obj
+    }
+
+    method add-code-ref(Mu $code-ref, Mu $block) {
+        my int $code-ref-idx := $!num-code-refs;
+        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!num-code-refs', $code-ref-idx + 1);
+        nqp::push($!code-ref-blocks, $block);
+        nqp::scsetcode($!sc, $code-ref-idx, $code-ref);
     }
 
     # Run the passed fixup producer and add the QAST it returns to fixup tasks

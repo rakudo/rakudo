@@ -252,19 +252,13 @@ my class Lock::Soft {
 #?endif
     }
 
-    method protect(::?CLASS:D: &code) is raw {
+    proto method protect(|) {*}
+    multi method protect(::?CLASS:D: &code --> Mu) is raw {
 #?if !js
-        my int $unlocked = 0;
         self.lock;
-        CATCH { self.unlock unless $unlocked; .rethrow }
-        my $rc := code();
-        $unlocked = 1;
-        self.unlock;
-        $rc
+        LEAVE self.unlock;
 #?endif
-#?if js
         code()
-#?endif
     }
 
     method condition {

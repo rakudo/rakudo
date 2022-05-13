@@ -157,12 +157,13 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     has Bool $!optional;
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression $.default;
+    has RakuAST::Expression $.where;
     has RakuAST::Node $!owner;
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
             List :$names, Bool :$invocant, Bool :$optional,
             RakuAST::Parameter::Slurpy :$slurpy, List :$traits,
-            RakuAST::Expression :$default) {
+            RakuAST::Expression :$default, RakuAST::Expression :$where) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
@@ -177,6 +178,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                 !! RakuAST::Parameter::Slurpy);
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Parameter, '$!default', $default // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!where', $where // RakuAST::Expression);
         $obj
     }
 
@@ -238,6 +240,11 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         Nil
     }
 
+    method set-where(RakuAST::Expression $where) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!where', $where);
+        Nil
+    }
+
     # Tests if the parameter is a simple positional parameter.
     method is-positional() {
         $!names || !($!slurpy =:= RakuAST::Parameter::Slurpy) ?? False !! True
@@ -284,6 +291,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         $visitor($!type) if $!type;
         $visitor($!target) if $!target;
         $visitor($!default) if $!default;
+        $visitor($!where) if $!where;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -318,6 +326,9 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             my $name := $!target.introspection-name;
             my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
             nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
+        }
+        if $!where {
+            nqp::bindattr($parameter, Parameter, '@!post_constraints', nqp::list($!where.meta-object));
         }
         # TODO further setup
         $parameter
@@ -370,7 +381,34 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
-        self.apply-traits($resolver, self)
+        self.apply-traits($resolver, self);
+
+        if $!where && ! nqp::istype($!where, RakuAST::Code) {
+            nqp::bindattr(self, RakuAST::Parameter, '$!where',
+                RakuAST::Block.new(
+                    body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                expression => RakuAST::ApplyPostfix.new(
+                                    operand => RakuAST::ApplyPostfix.new(
+                                        operand => $!where,
+                                        postfix => RakuAST::Call::Method.new(
+                                            name => RakuAST::Name.from-identifier('ACCEPTS'),
+                                            args => RakuAST::ArgList.new(
+                                                RakuAST::Var::Lexical.new('$_'),
+                                            ),
+                                        ),
+                                    ),
+                                    postfix => RakuAST::Call::Method.new(
+                                        name => RakuAST::Name.from-identifier('Bool'),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            );
+        }
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver) {
@@ -489,6 +527,18 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                 # TODO non-Scalar sigil and native types
                 $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
             }
+        }
+
+        if $!where {
+            $param-qast.push(
+                QAST::ParamTypeCheck.new(
+                    QAST::Op.new(
+                        :op('call'),
+                        $!where.IMPL-TO-QAST($context),
+                        $temp-qast-var
+                    )
+                )
+            );
         }
 
         $context.ensure-sc(nqp::getattr($param-obj, Parameter, '$!container_descriptor'));

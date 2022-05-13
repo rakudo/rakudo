@@ -1605,6 +1605,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<default_value> {
             $parameter.set-default($<default_value>.ast);
         }
+        if $<post_constraint> {
+            $parameter.set-where($<post_constraint>[0].ast);
+        }
         self.attach: $/, $parameter;
     }
 
@@ -1661,6 +1664,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method type_constraint($/) {
         self.attach: $/, $<typename>.ast;
+    }
+
+    method post_constraint($/) {
+        make $<EXPR>.ast;
     }
 
     ##

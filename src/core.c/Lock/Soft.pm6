@@ -102,7 +102,12 @@ my class Lock::Soft {
 
         has Lock::Soft $.lock is built(:bind);
         has Mu $!wait-list;
+#?if moar
         has atomicint $!signals;
+#?endif
+#?if !moar
+        has $!signals;
+#?endif
 
         method !SET-SELF($!lock) {
             $!wait-list := nqp::list();
@@ -129,7 +134,12 @@ my class Lock::Soft {
 
             X::Lock::ConditionVariable::WrongThread.new.throw unless $owner.stack-id == $stack-id;
 
+#?if moar
             $!signals ⚛= 0 unless nqp::elems($!wait-list);
+#?endif
+#?if !moar
+            cas $!signals, { 0 } unless nqp::elems($!wait-list);
+#?endif
 
             my $cnode = CondNode.new($owner, &predicate);
             nqp::push($!wait-list, $cnode);
@@ -139,11 +149,21 @@ my class Lock::Soft {
         }
 
         method signal {
+#?if moar
             ++⚛$!signals unless ⚛$!signals < 0;
+#?endif
+#?if !moar
+            cas $!signals, { $_ < 0 ?? $_ !! ++$_ };
+#?endif
             self!release-waiting if nqp::elems($!wait-list) && $!lock!Lock::Soft::try-acquire-lock;
         }
         method signal_all {
+#?if moar
             $!signals ⚛= -1;
+#?endif
+#?if !moar
+            cas $!signals, { -1 };
+#?endif
             self!release-waiting if nqp::elems($!wait-list) && $!lock!Lock::Soft::try-acquire-lock;
         }
 
@@ -161,7 +181,12 @@ my class Lock::Soft {
                 if !$cnode.predicate || $cnode.predicate.() {
                     $!wait-list := nqp::splice($!wait-list, nqp::list(), $i, 1);
                     $!lock!Lock::Soft::replace-owner($cnode.node);
+#?if moar
                     --⚛$!signals if $!signals > 0;
+#?endif
+#?if !moar
+                    cas $!signals, { $_ > 0 ?? --$_ !! $_ };
+#?endif
                     # Release the waiting thread
                     $cnode.promise.keep(True);
                     return True;

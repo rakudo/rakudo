@@ -33,20 +33,23 @@ my class Lock::Soft {
     trusts ConditionVariable;
 
     my class Node {
-        has $.promise;
-        has $.vow;
-        has Int $.stack-id;
-        has int $.holders;
+        has $!promise;
+        has Int $!stack-id;
+        has int $!holders;
 
-        method !SET-SELF {
-            $!stack-id = +$*STACK-ID;
+        my $KEPT-PROMISE := nqp::null();
+        method !SET-SELF($kept is raw) {
+            $!stack-id := +$*STACK-ID;
             $!holders = 1;
-            $!vow = ($!promise = Promise.new).vow;
+            $!promise :=
+                nqp::if($kept,
+                    nqp::ifnull($KEPT-PROMISE, ($KEPT-PROMISE := Promise.kept)),
+                    Promise.new);
             self
         }
 
-        method new {
-            nqp::create(self)!SET-SELF
+        method new($kept is raw) {
+            nqp::create(self)!SET-SELF($kept)
         }
 
         method acquire {
@@ -57,32 +60,8 @@ my class Lock::Soft {
             die "Too many calls to release: " ~ nqp::abs_i($!holders) if --$!holders < 0;
             $!holders
         }
-    }
 
-    my class Threads {
-        has $!queue is built(:bind) = nqp::list();
-
-        method push(Node:D $node) is raw {
-            my $queue := nqp::clone($!queue);
-            nqp::push($queue, $node);
-            nqp::p6bindattrinvres(nqp::create(Threads), Threads, '$!queue', $queue)
-        }
-
-        method shift is raw {
-            my $queue := nqp::clone($!queue);
-            nqp::shift($queue);
-            nqp::p6bindattrinvres(nqp::create(Threads), Threads, '$!queue', $queue)
-        }
-
-        method replace-head(Node:D $node) is raw {
-            my $queue := nqp::clone($!queue);
-            nqp::bindpos($queue, 0, $node);
-            nqp::p6bindattrinvres(nqp::create(Threads), Threads, '$!queue', $queue)
-        }
-
-        method head is raw { nqp::atpos($!queue, 0) }
-
-        method elems { nqp::elems($!queue) }
+        method keep-promise { $!promise.keep(True) }
     }
 
     my class ConditionVariable {
@@ -94,13 +73,13 @@ my class Lock::Soft {
             has $.promise;
 
             method !SET-SELF($!node, &!predicate) {
-                $!promise = Promise.new;
+                $!promise := Promise.new;
                 self
             }
             method new($node, &predicate) { nqp::create(self)!SET-SELF($node, &predicate) }
         }
 
-        has Lock::Soft $.lock is built(:bind);
+        has Lock::Soft $.lock;
         has Mu $!wait-list;
 #?if moar
         has atomicint $!signals;
@@ -109,7 +88,8 @@ my class Lock::Soft {
         has $!signals;
 #?endif
 
-        method !SET-SELF($!lock) {
+        method !SET-SELF($lock is raw) {
+            $!lock := $lock;
             $!wait-list := nqp::list();
             $!signals = 0;
             self
@@ -123,16 +103,18 @@ my class Lock::Soft {
         # Since wait can only be called from within a held mutex there is no need to protect condition variable
         # structure integrity.
         method wait(&predicate?) {
-            my $stack-id = +$*STACK-ID;
+            my $stack-id := +$*STACK-ID;
 
-            X::Lock::ConditionVariable::NoMutex.new.throw unless $!lock!Lock::Soft::thread-elems;
+            my $queue := nqp::getattr($!lock, Lock::Soft, '$!queue');
+            X::Lock::ConditionVariable::NoMutex.new.throw unless nqp::elems($queue);
 
             # We need to do nothing if the predicate is already true.
             return if &predicate andthen .();
 
-            my $owner := $!lock!Lock::Soft::owner;
+            my $owner := nqp::atpos($queue, 0 );
 
-            X::Lock::ConditionVariable::WrongThread.new.throw unless $owner.stack-id == $stack-id;
+            X::Lock::ConditionVariable::WrongThread.new.throw
+                unless nqp::getattr($owner, Node, '$!stack-id') == $stack-id;
 
 #?if moar
             $!signals ⚛= 0 unless nqp::elems($!wait-list);
@@ -141,7 +123,7 @@ my class Lock::Soft {
             cas $!signals, { 0 } unless nqp::elems($!wait-list);
 #?endif
 
-            my $cnode = CondNode.new($owner, &predicate);
+            my $cnode := CondNode.new($owner, &predicate);
             nqp::push($!wait-list, $cnode);
             # This thread will be awaiting for the condition, release the next one in the queue
             $!lock!Lock::Soft::shift-node(:unlock);
@@ -171,12 +153,12 @@ my class Lock::Soft {
         # signall_all has been called. In the latter case we rely upon unlocking of a previously released mutext to
         # release the next one in the waiting list. And so on until there is any releasable remaining.
         method !release-waiting {
-            my $waiting = nqp::elems($!wait-list);
+            my $waiting := nqp::elems($!wait-list);
 
             return False unless $waiting && $!signals;
 
             loop (my $i = 0; $i < $waiting; ++$i) {
-                my $cnode = nqp::atpos($!wait-list, $i);
+                my $cnode := nqp::atpos($!wait-list, $i);
 
                 if !$cnode.predicate || $cnode.predicate.() {
                     $!wait-list := nqp::splice($!wait-list, nqp::list(), $i, 1);
@@ -197,61 +179,78 @@ my class Lock::Soft {
         }
     }
 
-    has Threads $!threads .= new;
-    has ConditionVariable $!cond is built(:bind);
+    has $!queue;
+    has ConditionVariable $!cond;
+
+    method !SET-SELF {
+        $!queue := nqp::list();
+        self
+    }
+
+    method new {
+        nqp::create(nqp::what(self))!SET-SELF
+    }
 
     method !shift-node(:$unlock) {
         loop {
-            my $updated := (my $threads := ⚛$!threads).shift;
-            if nqp::eqaddr(nqp::cas($!threads, $threads, $updated), $threads) {
+            my $queue := $!queue;
+            nqp::shift(my $updated := nqp::clone($queue));
+            if nqp::eqaddr(nqp::casattr(self, ::?CLASS, '$!queue', $queue, $updated), $queue) {
                 if $unlock {
-                    .vow.keep(True) with $updated.head;
+                    nqp::if(
+                        nqp::elems($updated),
+                        nqp::getattr(nqp::atpos($updated,0), Node, '$!promise').keep);
                 }
-                return $threads.head
+                return nqp::atpos($queue, 0);
             }
         }
     }
 
-    method !replace-owner($node) {
+    method !replace-owner($node is raw) {
         loop {
-            my $updated := (my $threads := ⚛$!threads).replace-head($node);
-            if nqp::eqaddr(nqp::cas($!threads, $threads, $updated), $threads) {
+            my $queue := $!queue;
+            my $updated := nqp::clone($queue);
+            nqp::bindpos($updated, 0, $node);
+            if nqp::eqaddr(nqp::casattr(self, ::?CLASS, '$!queue', $queue, $updated), $queue) {
                 return
             }
         }
     }
 
     method !try-acquire-lock {
-        my $threads := ⚛$!threads;
-        return 0 if $threads.elems;
-        my $node = Node.new;
-        my $updated := $threads.push($node);
-        nqp::eqaddr(nqp::cas($!threads, $threads, $updated), $threads)
+        my $queue := $!queue;
+        return 0 if nqp::elems($queue);
+        my $node := Node.new;
+        my $updated := nqp::clone($queue);
+        nqp::push($updated, $node);
+        nqp::eqaddr(nqp::casattr(self, ::?CLASS, '$!queue', $queue, $updated), $queue)
     }
-
-    method !thread-elems { (⚛$!threads).elems }
-
-    method !owner { (⚛$!threads).head }
 
     # Note that the meaning of returned promise is different from Lock::Async
     method lock(--> Nil) {
 #?if !js
-        my $stack-id = +$*STACK-ID; # Reduce dynamic lookups by caching
-        my $node;
+        my $stack-id := +$*STACK-ID; # Reduce dynamic lookups by caching
+        my $node-kept := nqp::null();
+        my $node-unkept := nqp::null();
         my $promise;
         until nqp::defined($promise) {
-            my $threads := ⚛$!threads;
-            my $owner = $threads.head;
-            if nqp::defined($owner) and $owner.stack-id == $stack-id {
+            my $queue := $!queue;
+            my $elems := nqp::elems($queue);
+            my $owner := nqp::atpos($queue, 0);
+            if $elems and nqp::getattr($owner, Node, '$!stack-id') == $stack-id {
                 # Recursive lock
                 $owner.acquire;
                 return
             }
-            $node //= Node.new;
-            my $updated := $threads.push($node);
-            if nqp::eqaddr(nqp::cas($!threads, $threads, $updated), $threads) {
-                $promise = $node.promise;
-                $node.vow.keep(True) unless $threads.elems;
+            my $updated := nqp::clone($queue);
+            nqp::push($updated,
+                nqp::if(
+                    $elems,
+                    nqp::ifnull($node-unkept, ($node-unkept := Node.new(0))),
+                    nqp::ifnull($node-kept, ($node-kept := Node.new(1)))));
+            if nqp::eqaddr(nqp::casattr(self, Lock::Soft, '$!queue', $queue, $updated), $queue) {
+                $promise :=
+                    nqp::getattr(nqp::if($elems, $node-unkept, $node-kept), Node, '$!promise');
             }
         }
         # Await for our turn unless we're first on the queue
@@ -261,11 +260,12 @@ my class Lock::Soft {
 
     method unlock(--> Nil) {
 #?if !js
-        my $stack-id = +$*STACK-ID;
-        my $threads := ⚛$!threads;
-        X::Lock::Unlock::NoMutex.new.throw unless $threads.elems;
-        my $owner = $threads.head;
-        X::Lock::Unlock::WrongThread.new.throw unless $stack-id == $owner.stack-id;
+        my $stack-id := +$*STACK-ID;
+        my $queue := $!queue;
+        X::Lock::Unlock::NoMutex.new.throw unless nqp::elems($queue);
+        my $owner := nqp::atpos($queue, 0);
+        X::Lock::Unlock::WrongThread.new.throw
+            unless nqp::getattr($owner, Node, '$!stack-id') == $stack-id;
         unless $owner.release {
             # We only pull the owner from the list when no condition is to be fulfilled. In the later case the owner
             # item will be replaced with a waiting thread.
@@ -292,11 +292,11 @@ my class Lock::Soft {
             nqp::cas($!cond, ConditionVariable, ConditionVariable.new(self));
         }
         $!cond
+    }
 #?endif
 #?if js
         $!cond //= ConditionVariable.new(self)
 #?endif
-    }
 }
 
 # vim: expandtab shiftwidth=4

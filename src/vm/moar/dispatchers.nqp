@@ -816,22 +816,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
             $capture);
     }
     else {
-        # See if we're making the method lookup on a pun; if so, rewrite the args
-        # to do the call on the pun.
-        if nqp::istype($how, Perl6::Metamodel::RolePunning) &&
-                $how.is_method_call_punned($obj, $name) {
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
-                nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
-            $obj := $how.pun($obj);
-            $how := $obj.HOW;
-            $capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-                0, $obj);
-            $capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2),
-                2, $obj);
-        }
-
         # Try to resolve the method call.
         # TODO Assorted optimizations are possible here later on to speed up some
         # kinds of dispatch, including:

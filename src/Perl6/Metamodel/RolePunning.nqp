@@ -66,11 +66,13 @@ role Perl6::Metamodel::RolePunning {
             $!pun := self.make_pun($obj);
             $!made_pun := 1;
         }
-        unless nqp::can($!pun, $name) {
+
+        my $meth := $!pun.HOW.find_method($!pun, $name);
+        unless nqp::isconcrete($meth) {
             return nqp::null();
         }
         -> $inv, *@pos, *%named {
-            $!pun."$name"(|@pos, |%named)
+            $meth($!pun, |@pos, |%named);
         }
     }
 

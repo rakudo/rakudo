@@ -4422,7 +4422,10 @@ nqp::bindhllsym('Raku', 'Scalar', Scalar);
 nqp::bindhllsym('Raku', 'ScalarVAR', ScalarVAR);
 nqp::bindhllsym('Raku', 'default_cont_spec',
     Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
+
+# Stash types that may be instantiated by the Metamodel
 nqp::bindhllsym('Raku', 'Capture', Capture);
+nqp::bindhllsym('Raku', 'Proxy', Proxy);
 
 #?if jvm
 # On JVM, set up JVM interop bits.

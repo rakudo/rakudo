@@ -57,6 +57,24 @@ role Perl6::Metamodel::RolePunning {
         self.pun($obj)
     }
 
+    my $proxy_type := nqp::null();
+    method !make_proxy($cont) {
+        if nqp::isnull($proxy_type) {
+            $proxy_type := nqp::gethllsym('Raku', 'Proxy');
+        }
+
+        my $proxy   := nqp::create($proxy_type);
+        my $updated := 0;
+        nqp::bindattr($proxy, $proxy_type, '&!FETCH', -> $var {
+            $updated ?? nqp::decont($cont) !! $!pun;
+        });
+        nqp::bindattr($proxy, $proxy_type, '&!STORE', -> $var, $val {
+            nqp::assign($cont, $val);
+            $updated := 1;
+        });
+        $proxy;
+    }
+
     # Do a pun-based dispatch. If we pun, return a thunk that will delegate.
     method find_method($obj, $name, *%c) {
         if nqp::existskey(%exceptions, $name) {
@@ -72,7 +90,10 @@ role Perl6::Metamodel::RolePunning {
             return nqp::null();
         }
         -> $inv, *@pos, *%named {
-            $meth($!pun, |@pos, |%named);
+            # If called on a container, delegate to a Proxy that fetches the pun
+            # until something is stored in the container
+            my $proxy := nqp::iscont($inv) ?? self.'!make_proxy'($inv) !! $!pun;
+            $meth($proxy, |@pos, |%named);
         }
     }
 

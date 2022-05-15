@@ -85,7 +85,7 @@ role Perl6::Metamodel::RolePunning {
             $!made_pun := 1;
         }
 
-        my $meth := $!pun.HOW.find_method($!pun, $name);
+        my $meth := $!pun.HOW.find_method($!pun, $name, |%c);
         unless nqp::isconcrete($meth) {
             return nqp::null();
         }

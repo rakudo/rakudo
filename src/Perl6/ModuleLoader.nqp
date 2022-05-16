@@ -62,8 +62,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
 
         DEBUG("Loading bootstrap $bootstrap") if $DEBUG;
-        my $preserve_global :=
-          nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),NQPMu);
+        my $preserve_global := nqp::gethllsym('Raku','GLOBAL');
         my %*COMPILING := {};
         my $*CTXSAVE := self;
         my $*MAIN_CTX;

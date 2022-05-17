@@ -47,7 +47,7 @@ class RakuAST::Initializer::Bind is RakuAST::Initializer {
 # A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::ImplicitLookups
                                       is RakuAST::TraitTarget
-                                      is RakuAST::Meta is RakuAST::Attaching {
+                                      is RakuAST::Meta is RakuAST::Attaching is RakuAST::Term {
     has RakuAST::Type $.type;
     has str $.name;
     has str $!storage-name;
@@ -482,7 +482,7 @@ class RakuAST::VarDeclaration::Anonymous is RakuAST::VarDeclaration::Simple {
 }
 
 # The declaration of a term (sigilless) variable.
-class RakuAST::VarDeclaration::Term is RakuAST::Declaration {
+class RakuAST::VarDeclaration::Term is RakuAST::Declaration is RakuAST::Term {
     has RakuAST::Type $.type;
     has RakuAST::Name $.name;
     has RakuAST::Initializer $.initializer;
@@ -537,6 +537,37 @@ class RakuAST::VarDeclaration::Term is RakuAST::Declaration {
     method visit-children(Code $visitor) {
         $visitor($!type) if $!type;
         $visitor($!name);
+        $visitor($!initializer) if $!initializer;
+    }
+}
+
+# A declaration by signature of the form `my SomeType ($foo, $bar) = @a`.
+class RakuAST::VarDeclaration::Signature is RakuAST::Term {
+    has str $.scope;
+    has RakuAST::Type $.type;
+    has RakuAST::Signature $.signature;
+    has RakuAST::Initializer $.initializer;
+
+    method new(str :$scope, RakuAST::Type :$type, RakuAST::Signature :$signature!,
+            RakuAST::Initializer :$initializer) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Signature, '$!scope', $scope || 'my');
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!type', $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!signature', $signature);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Signature, '$!initializer',
+            $initializer // RakuAST::Initializer);
+        $obj
+    }
+
+    method needs-sink-call() { False }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        nqp::die('nyi')
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!type) if $!type;
+        $visitor($!signature);
         $visitor($!initializer) if $!initializer;
     }
 }

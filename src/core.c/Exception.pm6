@@ -239,7 +239,7 @@ my class X::Method::NotFound is Exception {
             # $!invocant can be a KnowHOW which method `methods` returns a hash, not a list.
             my $invocant_methods :=
               Set.new: $!invocant.^methods(:local).map: { code-name($_) };
-            my \type = ::($.typename);
+            my \type = try ::($.typename);
 
             my $found-types := SetHash.new;
             for $!invocant.^methods(:all) -> $method_candidate {

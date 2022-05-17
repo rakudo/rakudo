@@ -1782,8 +1782,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*LEFTSIGIL := '';
         [
         | '\\' <defterm>
-            [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
+            [ <.ws> <term_init=.initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
+        | '(' ~ ')' <signature('variable')> [ <.ws> <signature_init=.initializer> ]?
         | <routine_declarator>
         ]
     }
@@ -2235,7 +2236,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ## Signatures
     ##
 
-    token signature {
+    token signature($*IN_DECL = 'sig') {
         :my $*zone := 'posreq';
         :my $*multi_invocant := 1;
         :my @*seps := nqp::list();

@@ -101,3 +101,44 @@ class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup {
         $visitor($!constraint);
     }
 }
+
+class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup {
+    has RakuAST::Name $.name;
+    has Bool $!definite;
+
+    method new(RakuAST::Name $name, Bool $definite) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Type::Definedness, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Definedness, '$!definite', $definite ?? True !! False);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-name-constant($!name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method PRODUCE-META-OBJECT() {
+        Perl6::Metamodel::DefiniteHOW.new_type(
+            :base_type(self.resolution.compile-time-value),
+            :definite($!definite),
+        );
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := self.meta-object;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        self.is-resolved && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.meta-object
+    }
+}

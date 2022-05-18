@@ -1559,6 +1559,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $Any := self.r('Type', 'Setting').new(RakuAST::Name.from-identifier('Any'));
             self.attach: $/, self.r('Type', 'Coercion').new($base-name, $Any);
         }
+        elsif $base-name.has-colonpair('D') {
+            self.attach: $/, self.r('Type', 'Definedness').new($base-name, 1);
+        }
+        elsif $base-name.has-colonpair('U') {
+            self.attach: $/, self.r('Type', 'Definedness').new($base-name, 0);
+        }
         else {
             self.attach: $/, self.r('Type', 'Simple').new($base-name);
         }
@@ -1753,8 +1759,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method longname($/) {
-        # TODO add colonpairs
-        self.attach: $/, $<name>.ast;
+        my $name := $<name>.ast;
+        for $<colonpair> {
+            $name.add-colonpair($_.ast);
+        }
+        self.attach: $/, $name;
     }
 
     method deflongname($/) {

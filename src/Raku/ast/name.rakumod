@@ -2,10 +2,12 @@
 # complex (including pseudo-packages, interpolated parts, etc.)
 class RakuAST::Name is RakuAST::ImplicitLookups {
     has List $!parts;
+    has List $.colonpairs;
 
     method new(*@parts) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Name, '$!parts', @parts);
+        nqp::bindattr($obj, RakuAST::Name, '$!colonpairs', []);
         $obj
     }
 
@@ -22,6 +24,10 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
             @parts.push(RakuAST::Name::Part::Simple.new($_));
         }
         self.new(|@parts)
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!colonpairs.push: $pair;
     }
 
     method parts() {
@@ -45,6 +51,13 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
 
     method is-package-lookup() {
         nqp::elems($!parts) && nqp::istype($!parts[nqp::elems($!parts) - 1], RakuAST::Name::Part::Empty)
+    }
+
+    method has-colonpair($key) {
+        for $!colonpairs {
+            return True if $_.key eq $key;
+        }
+        False
     }
 
     method canonicalize() {

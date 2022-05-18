@@ -1855,7 +1855,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <deflongname('my')>?
         [ '(' <signature> ')' ]?
         <trait($*BLOCK)>* :!s
-        <blockoid>
+        [
+        || <onlystar>
+        || <blockoid>
+        ]
         <.leave-block-scope>
     }
 
@@ -1866,8 +1869,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('has')>?
         [ '(' <signature> ')' ]?
-        <blockoid>
+        [
+        || <onlystar>
+        || <blockoid>
+        ]
         <.leave-block-scope>
+    }
+
+    token onlystar {
+        <?{ $*MULTINESS eq 'proto' }>
+        '{' <.ws> '*' <.ws> '}'
+        <?ENDSTMT>
     }
 
     proto token regex_declarator { <...> }

@@ -235,6 +235,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Blockoid').new($<statementlist>.ast);
     }
 
+    method onlystar($/) {
+        self.attach: $/, self.r('OnlyStar').new;
+    }
+
     method enter-block-scope($/) {
         my $block := $*MULTINESS
             ?? self.r($*SCOPE-KIND).new(:multiness($*MULTINESS))
@@ -1184,7 +1188,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<signature> {
             $routine.replace-signature($<signature>.ast);
         }
-        $routine.replace-body($<blockoid>.ast);
+        $routine.replace-body($<onlystar> ?? $<onlystar>.ast !! $<blockoid>.ast);
         $routine.ensure-begin-performed($*R);
         self.attach: $/, $routine;
     }

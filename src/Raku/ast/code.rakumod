@@ -26,6 +26,24 @@ class RakuAST::Blockoid is RakuAST::SinkPropagator {
     }
 }
 
+class RakuAST::OnlyStar is RakuAST::Blockoid {
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Blockoid, '$!statement-list',
+            RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(:expression(RakuAST::Term::Whatever.new)),
+            ));
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
+        QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('boot-resume') ),
+            QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) ));
+    }
+}
+
 # Marker for all code-y things.
 class RakuAST::Code is RakuAST::Node {
     method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
@@ -606,15 +624,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         nqp::markcodestatic($stub);
         nqp::markcodestub($stub);
 
-        if nqp::istype(self.body, RakuAST::Blockoid) {
-            my $statements := self.body.statement-list.statements;
-            if $statements.elems == 1 && nqp::istype($statements.AT-POS(0), RakuAST::Statement::Expression) {
-                my $expression := $statements.AT-POS(0);
-                $routine.set_onlystar
-                    if nqp::istype($expression.expression, RakuAST::Term::Whatever)
-                    && !$expression.condition-modifier
-                    && !$expression.loop-modifier;
-            }
+        if nqp::istype(self.body, RakuAST::OnlyStar) {
+            $routine.set_onlystar;
         }
         nqp::setcodeobj($stub, $routine);
 
@@ -652,8 +663,6 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                 $proto := $proto.compile-time-value.derive_dispatcher;
             }
             else {
-                my $whatever := RakuAST::Term::Whatever.new;
-                $whatever.attach($resolver);
                 my $proto-ast := RakuAST::Sub.new(
                     :scope<my>,
                     :name(self.name),
@@ -664,11 +673,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                             )
                         ])),
                     )),
-                    :body(RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(:expression($whatever)),
-                        ),
-                    )),
+                    :body(RakuAST::OnlyStar.new),
                     :multiness<proto>,
                 );
 

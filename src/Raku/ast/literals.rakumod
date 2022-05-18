@@ -259,7 +259,14 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
         my $literal-value := self.literal-value;
         if nqp::isconcrete($literal-value) {
             $context.ensure-sc($literal-value);
-            return QAST::WVal.new( :value($literal-value) );
+            my $wval := QAST::WVal.new( :value($literal-value) );
+            return nqp::istype($literal-value, Str)
+                ?? QAST::Want.new(
+                    $wval,
+                    'Ss',
+                    QAST::SVal.new( :value(nqp::unbox_s($literal-value)) )
+                )
+                !! $wval;
         }
 
         # Otherwise, needs compilation.

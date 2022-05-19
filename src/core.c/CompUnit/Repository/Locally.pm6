@@ -5,7 +5,12 @@ role CompUnit::Repository::Locally {
     has Str        $.path-spec is built(False);
 
     my $instances := nqp::hash;  # cache with instances, keyed on WHICH
+#?if moar
+    my $lock      := Lock::Soft.new;   # serializing access to instances hash
+#?endif
+#?if !moar
     my $lock      := Lock.new;   # serializing access to instances hash
+#?endif
 
     # handle a new object that wasn't cached before
     method !SET-SELF(Str:D $abspath, str $WHICH) {

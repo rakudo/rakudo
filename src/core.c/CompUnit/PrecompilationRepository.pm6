@@ -33,7 +33,12 @@ class CompUnit::PrecompilationRepository::Default
 
     my $loaded        := nqp::hash;
     my $resolved      := nqp::hash;
+#?if moar
+    my $loaded-lock   := Lock::Soft.new;
+#?endif
+#?if !moar
     my $loaded-lock   := Lock.new;
+#?endif
     my $first-repo-id;
 
     my constant $compiler-id =
@@ -50,10 +55,7 @@ class CompUnit::PrecompilationRepository::Default
         $!RMD("try-load source at $source") if $!RMD;
 
         # Even if we may no longer precompile, we should use already loaded files
-        $loaded-lock.protect: {
-            my \precomped := nqp::atkey($loaded,$id.Str);
-            return precomped if precomped;
-        }
+        return $_ if $_ := $loaded-lock.protect: { nqp::atkey($loaded,$id.Str) };
 
         my ($handle, $checksum) = (
             self.may-precomp and (
@@ -175,25 +177,20 @@ Need to re-check dependencies.")
               if $!RMD;
 
             if $resolve {
-                $loaded-lock.protect: {
-                    my str $serialized-id = $dependency.serialize;
-                    nqp::ifnull(
-                      nqp::atkey($resolved,$serialized-id),
-                      nqp::bindkey($resolved,$serialized-id, do {
+                my str $serialized-id = $dependency.serialize;
+                nqp::ifnull(
+                  nqp::atkey($resolved,$serialized-id),
+                  nqp::if(do {
                         my $comp-unit := $REPO.resolve($dependency.spec);
                         $!RMD("Old id: $dependency.id(), new id: {
                             $comp-unit and $comp-unit.repo-id
                         }")
                           if $!RMD;
 
-                        return False
-                          unless $comp-unit
-                             and $comp-unit.repo-id eq $dependency.id;
-
-                        True
-                      })
-                    );
-                }
+                        $comp-unit and $comp-unit.repo-id eq $dependency.id
+                    },
+                    $loaded-lock.protect({ nqp::bindkey($resolved,$serialized-id, 1) }),
+                    (return False)));
             }
 
             my $dependency-precomp := @precomp-stores
@@ -276,10 +273,7 @@ Need to re-check dependencies.")
       CompUnit::PrecompilationStore :@precomp-stores =
         Array[CompUnit::PrecompilationStore].new($.store),
     ) {
-        $loaded-lock.protect: {
-            my \precomped := nqp::atkey($loaded,$id.Str);
-            return precomped if precomped;
-        }
+        return $_ if $_ := $loaded-lock.protect: { nqp::atkey($loaded,$id.Str) };
 
         if self!load-file(@precomp-stores, $id) -> $unit {
             if (not $since or $unit.modified > $since)

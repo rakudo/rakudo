@@ -1,10 +1,30 @@
+my class Lock::Soft {...}
 my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash
     #     has str $!longname;
     #     has $!lock;
 
-    multi method new(Stash: --> Map:D) {
+    multi method new(Stash: --> Stash:D) {
+#?if moar
+        nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock::Soft.new)
+#?endif
+#?if !moar
         nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock.new)
+#?endif
+    }
+
+    method clone(Stash:D:) is raw {
+        my $cloned := callsame();
+        nqp::bindattr_s(
+            $cloned, Stash, '$!longname',
+            nqp::getattr_s(self, Stash, '$!longname'));
+#?if moar
+        nqp::bindattr($cloned, Stash, '$!lock', Lock::Soft.new);
+#?endif
+#?if !moar
+        nqp::bindattr($cloned, Stash, '$!lock', Lock.new);
+#?endif
+        $cloned
     }
 
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
@@ -34,6 +54,11 @@ my class Stash { # declared in BOOTSTRAP
         )
     }
 
+    # New proto is introduced here in order to cut off Hash candidates completely. There are few reasons to do so:
+    # 1. Hash is not thread-safe whereas Stash claims to be
+    # 2. Stash candidates are fully overriding their counterparts from Hash
+    # 3. Minor: could result in some minor improvement in multi-dispatch lookups due to lesser number of candidates
+    proto method ASSIGN-KEY(Stash:D: $, $) {*}
     multi method ASSIGN-KEY(Stash:D: Str:D $key, Mu \assignval) is raw {
         my $storage := nqp::getattr(self,Map,'$!storage');
         my \existing-key := nqp::atkey($storage, $key);
@@ -50,7 +75,16 @@ my class Stash { # declared in BOOTSTRAP
                             nqp::getattr(self, Hash, '$!descriptor')),
                         assignval)
                 );
+#?if moar
+                nqp::atomicbindattr(self, Map, '$!storage', $storage);
+#?endif
+#?if !moar
+                # XXX Here and below: nqp::atomicbindattr works on JVM but still breaks building CORE.d. Guess, it is
+                # not serializing properly, but a quick fix, similar to MoarVM's
+                # https://github.com/MoarVM/MoarVM/commit/a9fcd5a74e8c530b4baa8fdc348b82a71bc0824d, where this problem
+                # was observed too, didn't fix the situation. So, let's stick to the unsafe path for now.
                 nqp::bindattr(self, Map, '$!storage', $storage);
+#?endif
                 scalar
             };
         }
@@ -62,15 +96,42 @@ my class Stash { # declared in BOOTSTRAP
         nextwith(key.Str, assignval)
     }
 
+    # See the comment for ASSIGN-KEY on proto.
+    proto method BIND-KEY(|) {*}
+    multi method BIND-KEY(Stash:D: Str:D $key, Mu \bindval) is raw {
+        $!lock.protect: {
+            my $storage := nqp::clone(nqp::getattr(self,Map,'$!storage'));
+            nqp::bindkey($storage, $key, bindval);
+#?if moar
+                nqp::atomicbindattr(self, Map, '$!storage', $storage);
+#?endif
+#?if !moar
+                nqp::bindattr(self, Map, '$!storage', $storage);
+#?endif
+        }
+        bindval
+    }
+    multi method BIND-KEY(Stash:D: \key, Mu \bindval) is raw {
+        nextwith(key.Str, bindval)
+    }
+
     method package_at_key(Stash:D: str $key) {
-        my \storage := nqp::getattr(self,Map,'$!storage');
+        my $storage := nqp::getattr(self,Map,'$!storage');
         nqp::ifnull(
-          nqp::atkey(storage,$key),
-          nqp::stmts(
-            (my $pkg := Metamodel::PackageHOW.new_type(:name("{$!longname}::$key"))),
-            $pkg.^compose,
-            nqp::bindkey(storage,$key,$pkg)
-          )
+          nqp::atkey($storage,$key),
+          $!lock.protect({
+            my $pkg := Metamodel::PackageHOW.new_type(:name("{$!longname}::$key"));
+            $pkg.^compose;
+            $storage := nqp::clone($storage);
+            nqp::bindkey($storage,$key,$pkg);
+#?if moar
+                nqp::atomicbindattr(self, Map, '$!storage', $storage);
+#?endif
+#?if !moar
+                nqp::bindattr(self, Map, '$!storage', $storage);
+#?endif
+            $pkg
+          })
         )
     }
 
@@ -82,9 +143,23 @@ my class Stash { # declared in BOOTSTRAP
         nqp::isnull_s($!longname) ?? '<anon>' !! $!longname
     }
 
-    method merge-symbols(Stash:D: Hash $globalish) { # NQP gives a Hash, not a Stash
-        nqp::gethllsym('Raku','ModuleLoader').merge_globals(self,$globalish)
-          if $globalish.defined;
+    method merge-symbols(Stash:D: Mu \globalish) { # NQP gives a Hash, not a Stash
+        if nqp::defined(globalish) {
+            $!lock.protect: {
+                # For thread safety, ModuleLoader's merge_globals is calling this method when its target is a Stash.
+                # Therefore we call it on cloned symbol hash. This prevents recursion and works slightly faster.
+                nqp::gethllsym('Raku','ModuleLoader').merge_globals(
+                    (my $storage := nqp::clone(my $old-storage := nqp::getattr(self,Map,'$!storage'))),
+                    globalish
+                );
+#?if moar
+                nqp::atomicbindattr(self, Map, '$!storage', $storage);
+#?endif
+#?if !moar
+                nqp::bindattr(self, Map, '$!storage', $storage);
+#?endif
+            }
+        }
     }
 }
 

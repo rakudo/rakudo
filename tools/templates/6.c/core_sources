@@ -170,6 +170,7 @@ src/core.c/Deprecations.pm6
 src/core.c/Thread.pm6
 src/core.c/Lock.pm6
 src/core.c/Lock/Async.pm6
+src/core.c/Lock/Soft.pm6
 src/core.c/Semaphore.pm6
 src/core.c/Cancellation.pm6
 src/core.c/Awaitable.pm6

@@ -35,6 +35,7 @@ my class CurrentThreadScheduler does Scheduler {
         &catch //=
           (self && self.uncaught_handler) // -> $ex { self.handle_uncaught($ex) };
 
+        # Don't set $*STACK-ID here because this scheduler doesn't start a new stack, as ThreadPoolScheduler does.
         for 1 .. $times {
             CATCH { default { catch($_) } };
             code();

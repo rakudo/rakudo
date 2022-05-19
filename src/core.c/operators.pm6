@@ -244,8 +244,8 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
             )
         }
 
-        my Mu $thing := $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
-          && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
+        my Mu $thing := $root.EXISTS-KEY('%?REQUIRE-SYMBOLS')
+          && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%?REQUIRE-SYMBOLS'))
           && $REQUIRE_SYMBOLS.EXISTS-KEY($first)
           ?? $REQUIRE_SYMBOLS.AT-KEY($first)
           !! $root.EXISTS-KEY($first)
@@ -280,7 +280,7 @@ sub REQUIRE_IMPORT(
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;
     my @missing;
-    my $block := CALLER::.EXISTS-KEY('%REQUIRE_SYMBOLS')
+    my $block := CALLER::.EXISTS-KEY('%?REQUIRE-SYMBOLS')
         ?? CALLER::MY::
         !! CALLER::OUTER::;
     my $merge-globals-target := $block;
@@ -330,7 +330,7 @@ sub REQUIRE_IMPORT(
     ) if $stubname;
     # Merge GLOBAL from compunit.
     nqp::gethllsym('Raku','ModuleLoader').merge_globals(
-        $block<%REQUIRE_SYMBOLS>,
+        $block<%?REQUIRE-SYMBOLS>,
         $GLOBALish,
     );
 }

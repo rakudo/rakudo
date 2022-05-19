@@ -16,7 +16,12 @@ class CompUnit::Repository::NodeJs { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
+#?if moar
+    my $lock := Lock::Soft.new;
+#?endif
+#?if !moar
     my $lock := Lock.new;
+#?endif
     my $include-spec2cur := nqp::hash;
     my $custom-lib := nqp::hash();
 
@@ -282,15 +287,16 @@ class CompUnit::RepositoryRegistry {
 
     method name-for-repository(CompUnit::Repository $repo) {
         $*REPO; # initialize if not yet done
+        my $found := Nil;
         $lock.protect: {
             my $iter := nqp::iterator($custom-lib);
-            while $iter {
+            while $iter && $found =:= Nil {
                 my \pair = nqp::shift($iter);
-                return nqp::iterkey_s(pair)
-                  if nqp::iterval(pair).prefix eq $repo.prefix;
+                $found := nqp::iterkey_s(pair)
+                    if nqp::iterval(pair).prefix eq $repo.prefix;
             }
         }
-        Nil
+        $found
     }
 
     method file-for-spec(Str $spec) {
@@ -407,7 +413,12 @@ class CompUnit::RepositoryRegistry {
       'filerecording', CompUnit::Repository::FileSystemWithRecording,
 #?endif
     );
+#?if moar
+    my $sid-lock := Lock::Soft.new;
+#?endif
+#?if !moar
     my $sid-lock := Lock.new;
+#?endif
 
     sub short-id2class(Str:D $short-id) is rw {
         Proxy.new(

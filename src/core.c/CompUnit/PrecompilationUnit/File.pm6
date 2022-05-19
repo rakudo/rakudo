@@ -9,7 +9,7 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
 
     has Bool $!initialized;
     has IO::Handle $!handle;
-    has Lock $!update-lock;
+    has $!update-lock;
 
     submethod TWEAK(--> Nil) {
         if $!bytecode {
@@ -19,7 +19,12 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
         else {
             $!initialized := False;
         }
+#?if moar
+        $!update-lock := Lock::Soft.new;
+#?endif
+#?if !moar
         $!update-lock := Lock.new;
+#?endif
     }
 
     method modified(--> Instant:D) {
@@ -28,22 +33,23 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
 
     method !read-dependencies(--> Nil) {
         $!initialized || $!update-lock.protect: {
-            return if $!initialized;  # another thread beat us
-            $!handle := $!path.open(:r) unless $!handle;
+            unless $!initialized {  # another thread beat us
+                $!handle := $!path.open(:r) unless $!handle;
 
-            $!checksum        = $!handle.get;
-            $!source-checksum = $!handle.get;
-            my $dependency   := $!handle.get;
-            my $dependencies := nqp::create(IterationBuffer);
-            while $dependency {
-                nqp::push(
-                  $dependencies,
-                  CompUnit::PrecompilationDependency::File.deserialize($dependency)
-                );
-                $dependency := $!handle.get;
+                $!checksum        = $!handle.get;
+                $!source-checksum = $!handle.get;
+                my $dependency   := $!handle.get;
+                my $dependencies := nqp::create(IterationBuffer);
+                while $dependency {
+                    nqp::push(
+                      $dependencies,
+                      CompUnit::PrecompilationDependency::File.deserialize($dependency)
+                    );
+                    $dependency := $!handle.get;
+                }
+                nqp::bindattr(@!dependencies,List,'$!reified',$dependencies);
+                $!initialized := True;
             }
-            nqp::bindattr(@!dependencies,List,'$!reified',$dependencies);
-            $!initialized := True;
         }
     }
 

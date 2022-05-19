@@ -2,8 +2,9 @@ class CompUnit::Repository::FileSystem
   does CompUnit::Repository::Locally
   does CompUnit::Repository
 {
-    has $!lock;
+    has $!loaded-lock;
     has %!loaded; # cache compunit lookup for self.need(...)
+    has $!seen-lock;
     has $!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
     has $!id;
@@ -15,13 +16,20 @@ class CompUnit::Repository::FileSystem
     my constant @extensions = <.rakumod .pm6 .pm>;
 
     method TWEAK(--> Nil) {
-        $!lock := Lock.new;
+#?if moar
+        $!loaded-lock := Lock::Soft.new;
+        $!seen-lock := Lock::Soft.new;
+#?endif
+#?if !moar
+        $!loaded-lock := Lock.new;
+        $!seen-lock := Lock.new;
+#?endif
         $!seen := nqp::hash;
     }
 
     # An equivalent of self.candidates($spec).head that caches the best match
     method !matching-dist(CompUnit::DependencySpecification:D $spec) {
-        $!lock.protect: {
+        $!seen-lock.protect: {
             nqp::ifnull(
               nqp::atkey($!seen,~$spec),
               nqp::if(
@@ -38,26 +46,30 @@ class CompUnit::Repository::FileSystem
     }
 
     method !precomp-stores() {
-        $!precomp-stores //= Array[CompUnit::PrecompilationStore].new(
-            gather {
-                my $repo = $*REPO;
-                while $repo {
-                    my \store = $repo.precomp-store;
-                    take store if store.defined;
-                    $repo = $repo.next-repo;
+        ⚛$!precomp-stores // cas $!precomp-stores, {
+            $_ // Array[CompUnit::PrecompilationStore].new(
+                gather {
+                    my $repo = $*REPO;
+                    while $repo {
+                        my \store = $repo.precomp-store;
+                        take store if store.defined;
+                        $repo = $repo.next-repo;
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 
     method id() {
-        $!id //= do with self!distribution -> $distribution {
-            my $parts :=
-                grep { .defined }, (.id with self.next-repo), slip # slip next repo id into hash parts to be hashed together
-                map  { nqp::sha1($_) },
-                map  { $distribution.content($_).open(:enc<iso-8859-1>).slurp(:close) },
-                $distribution.meta<provides>.values.unique.sort;
-            nqp::sha1($parts.join(''));
+        ⚛$!id // cas $!id, {
+            $_ // do with self!distribution -> $distribution {
+                my $parts :=
+                    grep { .defined }, (.id with self.next-repo), slip # slip next repo id into hash parts to be hashed together
+                    map  { nqp::sha1($_) },
+                    map  { $distribution.content($_).open(:enc<iso-8859-1>).slurp(:close) },
+                    $distribution.meta<provides>.values.unique.sort;
+                nqp::sha1($parts.join(''));
+            }
         }
     }
 
@@ -81,11 +93,23 @@ class CompUnit::Repository::FileSystem
 
         --> CompUnit:D)
     {
-        $!lock.protect: {
-            return $_ with %!loaded{~$spec};
+        my $spec-key = ~$spec;
+        my $spec-promise;
+        my $loaded-cu;
+        my $matching-dist;
+        $!loaded-lock.protect: {
+            with %!loaded{$spec-key} {
+                $loaded-cu = $_;
+            }
+            else {
+                with $matching-dist = self!matching-dist($spec) {
+                    %!loaded{$spec-key} = $spec-promise = Promise.new;
+                }
+            }
         }
+        return $_ ~~ Promise ?? $*AWAITER.await($_) !! $_ with $loaded-cu;
 
-        with self!matching-dist($spec) {
+        with $matching-dist {
             my $name = $spec.short-name;
             my $id   = self!comp-unit-id($name);
             my $*DISTRIBUTION  = $_;
@@ -100,16 +124,18 @@ class CompUnit::Repository::FileSystem
                 :@precomp-stores,
             );
 
-            $!lock.protect: {
-                return %!loaded{~$spec} = CompUnit.new(
-                    :short-name($name),
-                    :handle($precomp-handle // CompUnit::Loader.load-source($source-handle.open(:bin).slurp(:close))),
-                    :repo(self),
-                    :repo-id($id.Str),
-                    :precompiled($precomp-handle.defined),
-                    :distribution($_),
-                );
+            $!loaded-lock.protect: {
+                CATCH { $spec-promise.break: $_; .rethrow }
+                $spec-promise.keep(
+                    %!loaded{$spec-key} = CompUnit.new(
+                        :short-name($name),
+                        :handle($precomp-handle // CompUnit::Loader.load-source($source-handle.open(:bin).slurp(:close))),
+                        :repo(self),
+                        :repo-id($id.Str),
+                        :precompiled($precomp-handle.defined),
+                        :distribution($_)));
             }
+            return %!loaded{$spec-key}
         }
 
         return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
@@ -124,8 +150,8 @@ class CompUnit::Repository::FileSystem
             my $path = $!prefix.add($file);
 
             if $path.f {
-                $!lock.protect: {
-                    return %!loaded{$file.Str} //= CompUnit.new(
+                $!loaded-lock.protect: {
+                    %!loaded{$file.Str} //= CompUnit.new(
                         :handle(
                             $precompiled
                                 ?? CompUnit::Loader.load-precompilation-file($path)
@@ -138,6 +164,7 @@ class CompUnit::Repository::FileSystem
                         :distribution(self!distribution),
                     );
                 }
+                return %!loaded{$file.Str}
             }
         }
 
@@ -149,9 +176,7 @@ class CompUnit::Repository::FileSystem
     method short-id() { 'file' }
 
     method loaded(--> Iterable:D) {
-        $!lock.protect: {
-            return %!loaded.values;
-        }
+        $!loaded-lock.protect: { %!loaded.values.grep(* !~~ Promise) }
     }
 
     # This allows -Ilib to find resources/ ( and by extension bin/ ) for %?RESOURCES.
@@ -161,7 +186,11 @@ class CompUnit::Repository::FileSystem
     #                                                           packages/../resources?
     #                                                           packages/resources?
     method !files-prefix {
-        $!files-prefix //= $!prefix.child('META6.json').e ?? $!prefix !! $!prefix.parent
+        ⚛$!files-prefix // cas $!files-prefix, {
+            $_ // ($!prefix.child('META6.json').e
+                ?? $!prefix
+                !! $!prefix.parent)
+        }
     }
 
     proto method candidates(|) {*}
@@ -329,16 +358,19 @@ class CompUnit::Repository::FileSystem
     }
 
     method precomp-store(--> CompUnit::PrecompilationStore:D) {
-        $!precomp-store //= CompUnit::PrecompilationStore::FileSystem.new(
-            :prefix(self.prefix.add('.precomp')),
-        )
+        ⚛$!precomp-store // cas $!precomp-store, {
+            $_ // CompUnit::PrecompilationStore::FileSystem.new(
+                :prefix(self.prefix.add('.precomp')),
+            )
+        }
     }
 
     method precomp-repository(--> CompUnit::PrecompilationRepository:D) {
-        $!precomp := CompUnit::PrecompilationRepository::Default.new(
-            :store(self.precomp-store),
-        ) unless $!precomp;
-        $!precomp
+        ⚛$!precomp // cas $!precomp, {
+            $_ // CompUnit::PrecompilationRepository::Default.new(
+                :store(self.precomp-store),
+            )
+        }
     }
 }
 

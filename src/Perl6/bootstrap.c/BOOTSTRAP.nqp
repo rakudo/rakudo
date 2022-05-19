@@ -3546,8 +3546,8 @@ BEGIN {
 
         # Build a list of positional captures, or return a shared empty list if
         # there are none. This only populates the slots which need an array.
-        my $EMPTY-LIST;
-        my $EMPTY-HASH;
+        my @EMPTY-LIST;
+        my %EMPTY-HASH;
         method prepare-raku-list() {
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
@@ -3565,7 +3565,7 @@ BEGIN {
                 nqp::list()
 #?endif
 #?if !js
-                nqp::ifnull($EMPTY-LIST,$EMPTY-LIST := nqp::list);
+                @EMPTY-LIST
 #?endif
             }
         }
@@ -3592,7 +3592,7 @@ BEGIN {
                 nqp::hash()
 #?endif
 #?if !js
-                nqp::ifnull($EMPTY-HASH,$EMPTY-HASH := nqp::hash)
+                %EMPTY-HASH
 #?endif
             }
         }
@@ -3614,7 +3614,7 @@ BEGIN {
                 $result
             }
             else {
-                $EMPTY-LIST
+                @EMPTY-LIST
             }
         }
 
@@ -3635,7 +3635,7 @@ BEGIN {
                 $result
             }
             else {
-                $EMPTY-HASH
+                %EMPTY-HASH
             }
         }
 

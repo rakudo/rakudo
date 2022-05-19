@@ -756,7 +756,7 @@ my class Rakudo::Internals {
     my num $init-time-num = nqp::div_n(nqp::time,1000000000e0);
     method INITTIME() is raw { $init-time-num }
 
-#?if moar
+#?if !js
     my $init-thread := nqp::currentthread();
     method INITTHREAD() { $init-thread }
 #?endif

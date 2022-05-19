@@ -89,7 +89,8 @@ $lang = 'Raku' if $lang eq 'perl6';
         if $resolver.has-compilation-errors {
             $resolver.produce-compilation-exception.throw;
         }
-        $compiled := $compiler.compile: :from<optimize>, $comp-unit.IMPL-TO-QAST-COMP-UNIT;
+        my $from := $compiler.exists_stage('optimize') ?? 'optimize' !! 'qast';
+        $compiled := $compiler.compile: :$from, $comp-unit.IMPL-TO-QAST-COMP-UNIT;
     }
     else {
         $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;

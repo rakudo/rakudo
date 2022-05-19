@@ -495,11 +495,29 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         my $nominal-type := nqp::getattr($param-obj, Parameter, '$!type');
         unless $nominal-type =:= Mu {
             $context.ensure-sc($nominal-type);
-            $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                :op('istype_nd'),
-                $get-decont-var(),
-                QAST::WVal.new( :value($nominal-type) )
-            )));
+
+            if $nominal-type.HOW.archetypes.definite {
+                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                    :op('istype_nd'),
+                    $get-decont-var(),
+                    QAST::WVal.new( :value($nominal-type.HOW.base_type($nominal-type)) )
+                )));
+                my $concreteness := QAST::Op.new(
+                    :op('isconcrete_nd'),
+                    $get-decont-var(),
+                );
+                unless $nominal-type.HOW.definite($nominal-type) {
+                    $concreteness := QAST::Op.new(:op('not_i'), $concreteness);
+                }
+                $param-qast.push(QAST::ParamTypeCheck.new($concreteness));
+            }
+            else {
+                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                    :op('istype_nd'),
+                    $get-decont-var(),
+                    QAST::WVal.new( :value($nominal-type) )
+                )));
+            }
         }
 
         # If marked `is rw`, do rw check.

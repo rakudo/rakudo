@@ -155,14 +155,6 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
 
     method type_check($obj, $checkee) {
         my $decont := nqp::decont($checkee);
-        if $decont =:= $obj.WHAT {
-            return 1;
-        }
-        for self.pretending_to_be() {
-            if $decont =:= nqp::decont($_) {
-                return 1;
-            }
-        }
         for @!role_typecheck_list {
             if $decont =:= nqp::decont($_) {
                 return 1;

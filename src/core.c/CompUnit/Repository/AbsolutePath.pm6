@@ -1,10 +1,15 @@
 class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
-    has Lock::Soft $!lock;
-    has      $!loaded;
+    has $!lock;
+    has $!loaded;
 
     method TWEAK(--> Nil) {
         $!loaded := nqp::hash;
+#?if moar
         $!lock   := Lock::Soft.new;
+#?endif
+#?if !moar
+        $!lock   := Lock.new;
+#?endif
     }
 
     method need(CompUnit::Repository::AbsolutePath:D:

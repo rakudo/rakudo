@@ -37,7 +37,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
 
     method TWEAK() {
+#?if moar
         $!lock       := Lock::Soft.new;
+#?endif
+#?if !moar
+        $!lock       := Lock.new;
+#?endif
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;

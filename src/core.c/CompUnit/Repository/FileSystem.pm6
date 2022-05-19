@@ -16,8 +16,14 @@ class CompUnit::Repository::FileSystem
     my constant @extensions = <.rakumod .pm6 .pm>;
 
     method TWEAK(--> Nil) {
+#?if moar
         $!loaded-lock := Lock::Soft.new;
         $!seen-lock := Lock::Soft.new;
+#?endif
+#?if !moar
+        $!loaded-lock := Lock.new;
+        $!seen-lock := Lock.new;
+#?endif
         $!seen := nqp::hash;
     }
 

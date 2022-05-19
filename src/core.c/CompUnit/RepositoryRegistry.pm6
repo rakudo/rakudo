@@ -16,7 +16,12 @@ class CompUnit::Repository::NodeJs { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
+#?if moar
     my $lock := Lock::Soft.new;
+#?endif
+#?if !moar
+    my $lock := Lock.new;
+#?endif
     my $include-spec2cur := nqp::hash;
     my $custom-lib := nqp::hash();
 
@@ -408,7 +413,12 @@ class CompUnit::RepositoryRegistry {
       'filerecording', CompUnit::Repository::FileSystemWithRecording,
 #?endif
     );
+#?if moar
     my $sid-lock := Lock::Soft.new;
+#?endif
+#?if !moar
+    my $sid-lock := Lock.new;
+#?endif
 
     sub short-id2class(Str:D $short-id) is rw {
         Proxy.new(

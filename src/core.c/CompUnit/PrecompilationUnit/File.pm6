@@ -9,7 +9,7 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
 
     has Bool $!initialized;
     has IO::Handle $!handle;
-    has Lock::Soft $!update-lock;
+    has $!update-lock;
 
     submethod TWEAK(--> Nil) {
         if $!bytecode {
@@ -19,7 +19,12 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
         else {
             $!initialized := False;
         }
+#?if moar
         $!update-lock := Lock::Soft.new;
+#?endif
+#?if !moar
+        $!update-lock := Lock.new;
+#?endif
     }
 
     method modified(--> Instant:D) {

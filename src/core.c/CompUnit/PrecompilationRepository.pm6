@@ -33,7 +33,12 @@ class CompUnit::PrecompilationRepository::Default
 
     my $loaded        := nqp::hash;
     my $resolved      := nqp::hash;
+#?if moar
     my $loaded-lock   := Lock::Soft.new;
+#?endif
+#?if !moar
+    my $loaded-lock   := Lock.new;
+#?endif
     my $first-repo-id;
 
     my constant $compiler-id =

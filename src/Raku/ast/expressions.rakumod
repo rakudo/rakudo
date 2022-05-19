@@ -960,7 +960,12 @@ class RakuAST::ApplyPostfix is RakuAST::Termish {
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!postfix.IMPL-POSTFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
+        my $postfix-ast := $!postfix.IMPL-POSTFIX-QAST($context, $!operand.IMPL-TO-QAST($context));
+        # Method calls may be to a foreign language, and thus return
+        # values may need type mapping into Raku land.
+        nqp::istype($!postfix, RakuAST::Call::Methodish)
+            ?? QAST::Op.new(:op<hllize>, $postfix-ast)
+            !! $postfix-ast
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {

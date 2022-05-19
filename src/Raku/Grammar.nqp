@@ -1855,6 +1855,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <deflongname('my')>?
         [ '(' <signature> ')' ]?
         <trait($*BLOCK)>* :!s
+        { $*IN_DECL := ''; }
         [
         || <onlystar>
         || <blockoid>
@@ -1869,6 +1870,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('has')>?
         [ '(' <signature> ')' ]?
+        { $*IN_DECL := ''; }
         [
         || <onlystar>
         || <blockoid>

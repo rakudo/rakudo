@@ -154,7 +154,7 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
     }
 
     method IMPL-CHECK-PROCESSORS(Mu $processors) {
-        my constant VALID := nqp::hash('words', Mu, 'quotewords', Mu, 'val', Mu, 'exec', 'Mu');
+        my constant VALID := nqp::hash('words', Mu, 'quotewords', Mu, 'val', Mu, 'exec', Mu, 'heredoc', Mu);
         my @result;
         for self.IMPL-UNWRAP-LIST($processors // []) {
             if nqp::existskey(VALID, $_) {
@@ -228,6 +228,8 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
                 my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
                 my $val := @lookups[0].resolution.compile-time-value;
                 $result := $val($result);
+            }
+            elsif $_ eq 'heredoc' {
             }
             else {
                 return Nil;
@@ -323,6 +325,11 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
                     :op('call'), :name('&QX'), $qast
                 );
             }
+            elsif $_ eq 'heredoc' {
+                $qast := QAST::Op.new(
+                    :op('die_s'), QAST::SVal.new( :value("Premature heredoc consumption") )
+                );
+            }
             else {
                 nqp::die("Compiling processor '$_' is not implemented");
             }
@@ -343,6 +350,35 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.literal-value
+    }
+}
+
+class RakuAST::Heredoc is RakuAST::QuotedString {
+    has RakuAST::QuotedString $!stop;
+
+    method replace-segments-from(RakuAST::QuotedString $source) {
+        nqp::bindattr(
+            self,
+            RakuAST::QuotedString,
+            '$!segments',
+            nqp::getattr($source, RakuAST::QuotedString, '$!segments')
+        );
+    }
+
+    method set-stop(RakuAST::QuotedString $stop) {
+        nqp::bindattr(self, RakuAST::Heredoc, '$!stop', $stop);
+    }
+
+    method trim() {
+        # Remove heredoc postprocessor to defuse the "Premature heredoc consumption" error
+        my $processors := nqp::getattr(self, RakuAST::QuotedString, '$!processors');
+        my $new_processors := [];
+        nqp::bindattr(self, RakuAST::QuotedString, '$!processors', $new_processors);
+        for $processors {
+            nqp::push($new_processors, $_) if $_ ne 'heredoc';
+        }
+
+        #TODO actually trim there heredoc
     }
 }
 

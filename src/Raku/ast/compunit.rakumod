@@ -15,6 +15,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     has Mu $!singleton-hyper-whatever;
     has int $.precompilation-mode;
     has Mu $!export-package;
+    has Mu $.herestub-queue;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
             Str :$setting-name, Bool :$eval, Mu :$global-package-how,
@@ -35,6 +36,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             $export-package =:= NQPMu ?? Mu !! $export-package);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode ?? 1 !! 0);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
         $obj
     }
 
@@ -90,6 +92,10 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     method add-end-phaser(RakuAST::StatementPrefix::Phaser::End $phaser) {
         nqp::push($!end-phasers, $phaser);
         Nil
+    }
+
+    method queue-heredoc($herestub) {
+        nqp::push($!herestub-queue, $herestub);
     }
 
     method ensure-singleton-whatever(RakuAST::Resolver $resolver) {

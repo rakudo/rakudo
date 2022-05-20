@@ -1872,7 +1872,8 @@ class Raku::QActions is HLL::Actions does Raku::CommonActions {
         }
 
         my @processors := nqp::can($/, 'postprocessors') ?? $/.postprocessors !! [];
-        self.attach: $/, self.r('QuotedString').new(:@segments, :@processors);
+        my $node-class := nqp::can($/, 'herelang') ?? 'Heredoc' !! 'QuotedString';
+        self.attach: $/, self.r($node-class).new(:@segments, :@processors);
     }
 
     method escape:sym<\\>($/) { self.attach: $/, $<item>.ast; }

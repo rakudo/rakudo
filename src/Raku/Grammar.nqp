@@ -139,6 +139,65 @@ role Raku::Common {
         );
     }
 
+    my class Herestub {
+        has $!delim;
+        has $!orignode;
+        has $!grammar;
+        method delim() { $!delim }
+        method orignode() { $!orignode }
+        method grammar() { $!grammar }
+    }
+
+    role herestop {
+        token starter { <!> }
+        token stopper { ^^ {} $<ws>=(\h*) $*DELIM \h* $$ [\r\n | \v]? }
+        method parsing_heredoc() { 1 }
+    }
+
+    method heredoc () {
+        my $actions := self.actions;
+        if $*CU && my @herestub_queue := $*CU.herestub-queue {
+            my $here := self.'!cursor_start_cur'();
+            $here.'!cursor_pos'(self.pos);
+            while @herestub_queue {
+                my $herestub := nqp::shift(@herestub_queue);
+                my $*DELIM := $herestub.delim;
+                my $lang := $herestub.grammar.HOW.mixin($herestub.grammar, herestop);
+                for self.slangs {
+                    if nqp::istype($lang, $_.value) {
+                        $lang.set_actions(self.slang_actions($_.key));
+                        last;
+                    }
+                }
+                my $doc := $here.nibble($lang);
+                if $doc {
+                    # Match stopper.
+                    my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
+                    $stop.clone_braid_from(self);
+                    unless $stop {
+                        self.panic("Ending delimiter $*DELIM not found");
+                    }
+                    $here.'!cursor_pos'($stop.pos);
+
+                    # Get it trimmed and AST updated.
+                    my $heredoc := $herestub.orignode.MATCH.ast;
+                    $heredoc.replace-segments-from($doc.MATCH.ast);
+                    $heredoc.set-stop($stop);
+                    $heredoc.trim;
+                }
+                else {
+                    self.panic("Ending delimiter $*DELIM not found");
+                }
+            }
+            $here.'!cursor_pass'($here.pos);
+            $here.set_actions($actions);
+            $here
+        }
+        else {
+            self
+        }
+    }
+
     token quibble($l, *@base_tweaks) {
         :my $lang;
         :my $start;
@@ -156,31 +215,35 @@ role Raku::Common {
            }
         ]
 
-#        {
-#            nqp::can($lang, 'herelang') && self.queue_heredoc(
-#                $*W.nibble_to_str($/, $<nibble>.ast[1], -> { "Stopper '" ~ $<nibble> ~ "' too complex for heredoc" }),
-#                $lang.herelang)
-#        }
+        {
+            nqp::can($lang, 'herelang') && $*CU.queue-heredoc(
+                Herestub.new(
+                    :delim(
+                        $<nibble>.ast.literal-value
+                        // $/.panic("Stopper '" ~ $<nibble> ~ "' too complex for heredoc")
+                    ),
+                    :grammar($lang.herelang),
+                    :orignode(self),
+                )
+            );
+        }
     }
 
     token babble($l, @base_tweaks?) {
         :my @extra_tweaks;
 
-#        [ <quotepair> <.ws>
-#            {
-#                my $kv := $<quotepair>[-1].ast;
-#                my $k  := $kv.named;
-#                if nqp::istype($kv, QAST::Stmts) || nqp::istype($kv, QAST::Stmt) && +@($kv) == 1 {
-#                    $kv := $kv[0];
-#                }
-#                my $v := nqp::istype($kv, QAST::IVal)
-#                    ?? $kv.value
-#                    !! $kv.has_compile_time_value
-#                        ?? $kv.compile_time_value
-#                        !! self.panic("Invalid adverb value for " ~ $<quotepair>[-1].Str);
-#                nqp::push(@extra_tweaks, [$k, $v]);
-#            }
-#        ]*
+        [ <quotepair> <.ws>
+            {
+                my $pair := $<quotepair>[-1].ast;
+                my $k  := $pair.key;
+                my $v := $pair.value;
+                unless nqp::can($v, 'compile-time-value') {
+                    self.panic("Invalid adverb value for " ~ $<quotepair>[-1].Str ~ ': ' ~ $v.HOW.name($v));
+                }
+                $v := $v.compile-time-value;
+                nqp::push(@extra_tweaks, [$k, $v]);
+            }
+        ]*
 
         $<B>=[<?before .>]
         {
@@ -2559,7 +2622,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('whitespace')
         <!ww>
         [
-        | [\r\n || \v] # <.heredoc>
+        | [\r\n || \v] <.heredoc>
         | <.unv>
         | <.unsp>
         ]*
@@ -3163,6 +3226,11 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
     }
 
+    role to[$herelang] {
+        method herelang() { $herelang }
+        method postprocessors () { nqp::list_s('heredoc') } # heredoc strings are the only postproc when present
+    }
+
     role q {
         token starter { \' }
         token stopper { \' }
@@ -3242,6 +3310,20 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     method tweak_quotewords($v) { self.tweak_ww($v) }
     method tweak_v($v)          { $v ?? self.add-postproc("val") !! self }
     method tweak_val($v)        { self.tweak_v($v) }
+
+    method tweak_to($v) {
+        self.truly($v, ':to');
+        # the cursor_init is to ensure it's been initialized the same way
+        # 'self' was back in quote_lang
+        my $q := self.slang_grammar('Quote');
+        $q.HOW.mixin($q, to.HOW.curry(to, self)).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
+    }
+    method tweak_heredoc($v)    { self.tweak_to($v) }
+
+    method tweak_regex($v) {
+        self.truly($v, ':regex');
+        return self.slang_grammar('Regex');
+    }
 
     token nibbler {
         :my @*nibbles;

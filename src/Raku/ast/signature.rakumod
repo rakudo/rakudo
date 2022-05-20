@@ -94,17 +94,35 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$needs-full-binder) {
         self.IMPL-ENSURE-IMPLICITS();
         my $bindings := QAST::Stmts.new();
-        if $!implicit-invocant {
-            $bindings.push($!implicit-invocant.IMPL-TO-QAST($context));
+        my $parameters := self.IMPL-UNWRAP-LIST($!parameters);
+        if $needs-full-binder {
+            $bindings.push(QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('dispatch'),
+                    QAST::SVal.new( :value('boot-syscall') ),
+                    QAST::SVal.new( :value('bind-will-resume-on-failure') )
+                ),
+                QAST::Op.new(
+                    :op('assertparamcheck'),
+                    QAST::Op.new( :op('p6trybindsig') )
+                ),
+                QAST::Op.new( :op('p6bindsig') )
+            ));
         }
-        for self.IMPL-UNWRAP-LIST($!parameters) {
-            $bindings.push($_.IMPL-TO-QAST($context));
-        }
-        if $!implicit-slurpy-hash {
-            $bindings.push($!implicit-slurpy-hash.IMPL-TO-QAST($context));
+        else {
+            if $!implicit-invocant {
+                $bindings.push($!implicit-invocant.IMPL-TO-QAST($context));
+            }
+            for $parameters {
+                $bindings.push($_.IMPL-TO-QAST($context));
+            }
+            if $!implicit-slurpy-hash {
+                $bindings.push($!implicit-slurpy-hash.IMPL-TO-QAST($context));
+            }
         }
         $bindings
     }
@@ -159,11 +177,13 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     has RakuAST::Expression $.default;
     has RakuAST::Expression $.where;
     has RakuAST::Node $!owner;
+    has RakuAST::Signature $.sub-signature;
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
             List :$names, Bool :$invocant, Bool :$optional,
             RakuAST::Parameter::Slurpy :$slurpy, List :$traits,
-            RakuAST::Expression :$default, RakuAST::Expression :$where) {
+            RakuAST::Expression :$default, RakuAST::Expression :$where,
+            RakuAST::Signature :$sub-signature) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
@@ -179,6 +199,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Parameter, '$!default', $default // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Parameter, '$!where', $where // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!sub-signature', $sub-signature // RakuAST::Signature);
         $obj
     }
 
@@ -292,6 +313,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         $visitor($!target) if $!target;
         $visitor($!default) if $!default;
         $visitor($!where) if $!where;
+        $visitor($!sub-signature) if $!sub-signature;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -329,6 +351,9 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         }
         if $!where {
             nqp::bindattr($parameter, Parameter, '@!post_constraints', nqp::list($!where.meta-object));
+        }
+        if $!sub-signature {
+            nqp::bindattr($parameter, Parameter, '$!sub_signature', $!sub-signature.meta-object);
         }
         # TODO further setup
         $parameter
@@ -435,6 +460,10 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             unless nqp::istype($!default, RakuAST::CompileTimeValue) {
                 $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
             }
+        }
+
+        if $!sub-signature {
+            $!owner.set-custom-args;
         }
     }
 

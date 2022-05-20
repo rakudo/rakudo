@@ -46,6 +46,12 @@ class RakuAST::OnlyStar is RakuAST::Blockoid {
 
 # Marker for all code-y things.
 class RakuAST::Code is RakuAST::Node {
+    has Bool $.custom-args;
+
+    method set-custom-args() {
+        nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
+    }
+
     method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
         my $code-obj := self.meta-object;
         $context.ensure-sc($code-obj);
@@ -418,7 +424,8 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
             $!body.IMPL-TO-QAST($context));
         my $signature := self.signature || self.placeholder-signature;
         if $signature {
-            $block.push($signature.IMPL-TO-QAST($context));
+            $block.push($signature.IMPL-TO-QAST($context, :needs-full-binder(self.custom-args)));
+            $block.custom_args(1) if self.custom-args;
             $block.arity($signature.arity);
             $block.annotate('count', $signature.count);
         }
@@ -715,7 +722,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             self.IMPL-QAST-DECLS($context)
         );
         my $signature := self.placeholder-signature || $!signature;
-        $block.push($signature.IMPL-TO-QAST($context));
+        $block.push($signature.IMPL-TO-QAST($context, :needs-full-binder(self.custom-args)));
+        $block.custom_args(1) if self.custom-args;
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);
         $block.push(self.IMPL-COMPILE-BODY($context));

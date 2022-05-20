@@ -2392,8 +2392,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token param_var {
         :dba('formal parameter')
         [
-#        | '[' ~ ']' <signature>
-#        | '(' ~ ')' <signature>
+        | '[' ~ ']' <signature>
+        | '(' ~ ')' <signature>
         | $<declname>=[
             <sigil>
 #            <twigil>?

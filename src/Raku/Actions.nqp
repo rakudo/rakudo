@@ -1625,7 +1625,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $parameter.set-default($<default_value>.ast);
         }
         if $<post_constraint> {
-            $parameter.set-where($<post_constraint>[0].ast);
+            if $<post_constraint>[0]<EXPR> {
+                $parameter.set-where($<post_constraint>[0].ast);
+            }
         }
         self.attach: $/, $parameter;
     }
@@ -1637,6 +1639,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $decl := self.r('ParameterTarget', 'Var').new(~$<declname>);
             $*R.declare-lexical($decl);
             %args<target> := $decl;
+        }
+        elsif $<signature> {
+            %args<sub-signature> := $<signature>.ast;
         }
 
         # Build the parameter.
@@ -1686,7 +1691,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method post_constraint($/) {
-        make $<EXPR>.ast;
+        if $<EXPR> {
+            make $<EXPR>.ast;
+        }
+        elsif $<signature> {
+            make $<signature>.ast;
+        }
     }
 
     ##

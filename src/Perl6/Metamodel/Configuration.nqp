@@ -61,6 +61,24 @@ class Perl6::Metamodel::Configuration {
         }
     }
 
+    # A class providing some HLL core services. Normally it would be Rakudo::Internals.
+    my $utility_class := nqp::null();
+    method set_utility_class($type) {
+        $utility_class := $type;
+    }
+
+    # Produce a unique integer ID. When utility class is available then its NEXT-ID method is used. Otherwise the ID is
+    # generated using local means. In order to avoid conflicts with Rakudo::Internals.NEXT-ID, the local generator
+    # produces negative values.
+    my int $last_id := 0;
+    my $id_lock := NQPLock.new;
+    method next_id() {
+        if nqp::isnull($utility_class) {
+            return $id_lock.protect({ --$last_id })
+        }
+        $utility_class.NEXT-ID
+    }
+
     # Register HLL symbol for code which doesn't have direct access to this class. For example, moar/Perl6/Ops.nqp
     # relies on this symbol.
     nqp::bindhllsym('Raku', 'METAMODEL_CONFIGURATION', Perl6::Metamodel::Configuration);

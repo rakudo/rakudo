@@ -4224,6 +4224,12 @@ nqp::sethllconfig('Raku', nqp::hash(
         }
     },
     'finalize_handler', -> @objs {
+        # Reinstate $*STACK-ID if invoked in a specilized finalization thread.
+        # Preserve the current stack ID otherwise.
+        my $*STACK-ID :=
+            nqp::ifnull(
+                nqp::getlexreldyn(nqp::ctxcaller(nqp::ctx()), '$*STACK-ID'),
+                Perl6::Metamodel::Configuration.next_id );
         for @objs -> $o {
             for $o.HOW.destroyers($o) -> $d {
                 $d($o)

@@ -310,8 +310,8 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     # Initial and maximum threads allowed.
-    has uint $.initial_threads;
-    has uint $.max_threads;
+    has uint $.initial_threads is built(False);
+    has uint $!max_threads;
 
     # All of the worker and queue state below is guarded by this lock.
     has Lock $!state-lock = Lock.new;
@@ -772,13 +772,18 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
 
-    submethod BUILD(
-      Int() :$!initial_threads = 0,
-      Int() :$!max_threads =
-        %*ENV<RAKUDO_MAX_THREADS> // (Kernel.cpu-cores * 8 max 64)
-    --> Nil) {
+    submethod TWEAK(:$initial_threads, :$max_threads --> Nil) {
+        $!initial_threads = .Int with $initial_threads;
+        $!max_threads = nqp::istype($max_threads,Whatever)
+          ?? 9223372036854775807       # XXX should be -1
+          !! $max_threads.defined
+            ?? $max_threads == Inf
+              ?? 9223372036854775807   # XXX should be -1
+              !! $max_threads.Int
+            !! (%*ENV<RAKUDO_MAX_THREADS> // (Kernel.cpu-cores * 8 max 64)).Int;
+
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
-            if $!initial_threads > $!max_threads;
+          if $!initial_threads > $!max_threads;
 
         $!general-workers  := nqp::create(IterationBuffer);
         $!timer-workers    := nqp::create(IterationBuffer);
@@ -787,13 +792,10 @@ my class ThreadPoolScheduler does Scheduler {
         if $!initial_threads > 0 {
             # We've been asked to make some initial threads; we interpret this
             # as general workers.
-            $!general-queue   := nqp::create(Queue);
+            $!general-queue := nqp::create(Queue);
             nqp::push(
               $!general-workers,
-              GeneralWorker.new(
-                queue => $!general-queue,
-                scheduler => self
-             )
+              GeneralWorker.new(queue => $!general-queue, scheduler => self)
             ) for ^$!initial_threads;
             scheduler-debug "Created scheduler with $!initial_threads initial general workers";
             self!maybe-start-supervisor();
@@ -801,6 +803,10 @@ my class ThreadPoolScheduler does Scheduler {
         else {
             scheduler-debug "Created scheduler without initial general workers";
         }
+    }
+
+    method max_threads(ThreadPoolScheduler:D:) {
+        $!max_threads == 9223372036854775807 ?? Inf !! $!max_threads
     }
 
     method queue(Bool :$hint-time-sensitive, :$hint-affinity) {

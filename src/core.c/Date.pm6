@@ -26,22 +26,22 @@ my class Date does Dateish {
           unless 1 <= $day <= self!DAYS-IN-MONTH($year, $month);
     }
 
+    method !SET-SELF(int $year, int $month, int $day, &formatter --> Date:D) {
+        nqp::bindattr_i(self,Date,'$!year',$year);
+        nqp::bindattr_i(self,Date,'$!month',$month);
+        nqp::bindattr_i(self,Date,'$!day',$day);
+        nqp::bindattr(self,Date,'&!formatter',&formatter);
+        self
+    }
+
     # fast object creation with sanity check on month/day
-    method !SET-SELF(int $year, int $month, int $day, $formatter --> Date:D) {
-        nqp::if(
-          nqp::isge_i($month,1)
-            && nqp::isle_i($month,12)
-            && nqp::isge_i($day,1)
-            && nqp::isle_i($day, self!DAYS-IN-MONTH($year, $month)),
-          nqp::stmts(
-            nqp::bindattr_i(self,Date,'$!year',$year),
-            nqp::bindattr_i(self,Date,'$!month',$month),
-            nqp::bindattr_i(self,Date,'$!day',$day),
-            nqp::bindattr(self,Date,'&!formatter',$formatter),
-            self
-          ),
-          self!wrong-oor($year, $month, $day)
-        )
+    method !fast(int $year, int $month, int $day, &formatter --> Date:D) {
+        nqp::isge_i($month,1)
+          && nqp::isle_i($month,12)
+          && nqp::isge_i($day,1)
+          && nqp::isle_i($day, self!DAYS-IN-MONTH($year, $month))
+          ?? self!SET-SELF($year, $month, $day, &formatter)
+          !! self!wrong-oor($year, $month, $day)
     }
 
     # object creation for subclasses, with sanity check on month/day
@@ -70,7 +70,7 @@ my class Date does Dateish {
         $day = self!day-not-Int($year, $month, $day)
           unless nqp::istype($day,Int);
         nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
+          ?? nqp::create(self)!fast($year, $month, $day, &formatter)
           !! self!bless($year, $month, $day, &formatter, %_)
     }
     multi method new(Date:
@@ -79,7 +79,7 @@ my class Date does Dateish {
         $day = self!day-not-Int($year, $month, $day)
           unless nqp::istype($day,Int);
         nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
+          ?? nqp::create(self)!fast($year, $month, $day, &formatter)
           !! self!bless($year, $month, $day, &formatter, %_)
     }
     multi method new(Date: Str:D $Date, :&formatter --> Date:D) {
@@ -93,7 +93,7 @@ my class Date does Dateish {
               && nqp::eqat($date,'-',4)
               && nqp::eqat($date,'-',7) {
                 nqp::eqaddr(self.WHAT,Date)
-                 ?? nqp::create(self)!SET-SELF(
+                 ?? nqp::create(self)!fast(
                       nqp::substr($date,0,4).Int,
                       nqp::substr($date,5,2).Int,
                       nqp::substr($date,8,2).Int,
@@ -117,7 +117,7 @@ my class Date does Dateish {
                   (\d\d)               # day
                 $/) {
                 nqp::eqaddr(self.WHAT,Date)
-                  ?? nqp::create(self)!SET-SELF($0.Int,$1.Int,$2.Int,&formatter)
+                  ?? nqp::create(self)!fast($0.Int,$1.Int,$2.Int,&formatter)
                   !! self!bless($0.Int, $1.Int, $2.Int, &formatter, %_)
             }
 
@@ -134,7 +134,7 @@ my class Date does Dateish {
     }
     multi method new(Date: Dateish $d, :&formatter, *%_ --> Date:D) {
         nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF($d.year,$d.month,$d.day,&formatter)
+          ?? nqp::create(self)!fast($d.year,$d.month,$d.day,&formatter)
           !! self.bless(
                :year($d.year),:month($d.month),:day($d.day),:&formatter, |%_
              )!SET-DAYCOUNT
@@ -181,7 +181,7 @@ my class Date does Dateish {
     method today(:&formatter --> Date:D) {
         my $lt := nqp::decodelocaltime(time);
         nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF(
+          ?? nqp::create(self)!fast(
                nqp::atpos_i($lt,5),  # year
                nqp::atpos_i($lt,4),  # month
                nqp::atpos_i($lt,3),  # day
@@ -359,7 +359,7 @@ my class Date does Dateish {
     # A premature optimization.
     method !clone-without-validating(Date:D: *%_ --> Date:D) {
         my $h := nqp::getattr(%_,Map,'$!storage');
-        nqp::create(self)!SET-SELF(
+        nqp::create(self)!fast(
           nqp::ifnull(nqp::atkey($h,'year'), $!year),
           nqp::ifnull(nqp::atkey($h,'month'),$!month),
           nqp::ifnull(nqp::atkey($h,'day'),  $!day),
@@ -398,7 +398,11 @@ my class Date does Dateish {
         DateTime.new(:$!year, :$!month, :$!day)
     }
     multi method DateTime(Date:U: --> DateTime:U) { DateTime }
-    method Date() { self }
+    method Date() {
+        nqp::eqaddr(self.WHAT,Date)
+          ?? self
+          !! nqp::create(Date)!SET-SELF($!year, $!month, $!day, &!formatter)
+    }
 }
 
 multi sub infix:<+>(Date:D $date, Int:D $x --> Date:D) {

@@ -276,12 +276,9 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
     my class GeneralWorker does Worker {
-        has Queue $!queue;
-
-        submethod BUILD(Queue :$queue!, :$!scheduler!) {
-            $!queue := $queue;
+        submethod TWEAK(Queue:D :$queue!, :$!scheduler!) {
             $!thread = Thread.start(:app_lifetime, :name<GeneralWorker>, {
-                my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
+                my $*AWAITER := ThreadPoolAwaiter.new(:$queue);
                 loop {
                     self!run-one(nqp::shift($queue));
                 }
@@ -289,12 +286,9 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
     my class TimerWorker does Worker {
-        has Queue $!queue;
-
-        submethod BUILD(Queue :$queue!, :$!scheduler!) {
-            $!queue := $queue;
+        submethod TWEAK(Queue:D :$queue!, :$!scheduler!) {
             $!thread = Thread.start(:app_lifetime, :name<TimerWorker>, {
-                my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
+                my $*AWAITER := ThreadPoolAwaiter.new(:$queue);
                 loop {
                     self!run-one(nqp::shift($queue));
                 }
@@ -304,7 +298,7 @@ my class ThreadPoolScheduler does Scheduler {
     my class AffinityWorker does Worker {
         has Queue $.queue;
 
-        submethod BUILD(:$!scheduler!) {
+        submethod TWEAK(:$!scheduler!) {
             my $queue := $!queue := Queue.CREATE;
             $!thread = Thread.start(:app_lifetime, :name<AffinityWorker>, {
                 my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);

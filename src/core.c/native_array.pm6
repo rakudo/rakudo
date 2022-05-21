@@ -36,6 +36,19 @@ my class array does Iterable does Positional {
     multi method unshift(array:D: **@values) { self.unshift(@values) }
     multi method prepend(array:D:  *@values) { self.unshift(@values) }
 
+    multi method head(array:D: Int:D $n) {
+        my int $end = $n - 1;
+        nqp::isgt_i($end,nqp::elems(self))
+          ?? nqp::clone(self)
+          !! nqp::slice(self,0,$end)
+    }
+    multi method tail(array:D: Int:D $n) {
+        my int $start = nqp::elems(self) - $n;
+        nqp::islt_i($start,0)
+          ?? nqp::clone(self)
+          !! nqp::slice(self,$start,nqp::sub_i(nqp::elems(self),1))
+    }
+
     sub INDEX_OUT_OF_RANGE(Int:D $got --> Nil) {
         X::OutOfRange.new(what => "Index", :$got, range => "0..^Inf").throw
     }

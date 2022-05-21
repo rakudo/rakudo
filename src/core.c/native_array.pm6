@@ -38,14 +38,26 @@ my class array does Iterable does Positional {
 
     multi method head(array:D: Int:D $n) {
         my int $end = $n - 1;
-        nqp::isgt_i($end,nqp::elems(self))
+        nqp::isge_i($end,nqp::elems(self))
           ?? nqp::clone(self)
+          !! nqp::slice(self,0,$end)
+    }
+    multi method head(array:D: Callable:D $calculator) {
+        my int $end = $calculator(nqp::elems(self)) - 1;
+        nqp::islt_i($end,0)
+          ?? nqp::create(self.WHAT)
           !! nqp::slice(self,0,$end)
     }
     multi method tail(array:D: Int:D $n) {
         my int $start = nqp::elems(self) - $n;
         nqp::islt_i($start,0)
           ?? nqp::clone(self)
+          !! nqp::slice(self,$start,nqp::sub_i(nqp::elems(self),1))
+    }
+    multi method tail(array:D: Callable:D $calculator) {
+        my int $start = $calculator(nqp::elems(self));
+        nqp::isge_i($start,nqp::elems(self))
+          ?? nqp::create(self.WHAT)
           !! nqp::slice(self,$start,nqp::sub_i(nqp::elems(self),1))
     }
 

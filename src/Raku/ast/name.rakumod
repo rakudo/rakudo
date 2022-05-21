@@ -60,6 +60,14 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         False
     }
 
+    method visit-children(Code $visitor) {
+        if nqp::isconcrete(self) {
+            for $!colonpairs {
+                $visitor($_);
+            }
+        }
+    }
+
     method canonicalize() {
         my $canon-parts := nqp::list_s();
         for $!parts {
@@ -73,7 +81,19 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
                 nqp::die('canonicalize NYI for non-simple name parts');
             }
         }
-        nqp::join('::', $canon-parts)
+        my $name := nqp::join('::', $canon-parts);
+        for $!colonpairs {
+            if nqp::istype($_, RakuAST::ColonPair) {
+                $name := $name ~ ':' ~ $_.named-arg-name ~ '<' ~ $_.named-arg-value ~ '>';
+            }
+            elsif nqp::istype($_, RakuAST::QuotedString) {
+                $name := $name ~ ':<' ~ $_.literal-value ~ '>';
+            }
+            else {
+                nqp::die('canonicalize NYI for non-simple colonpairs');
+            }
+        }
+        $name
     }
 
     method is-pseudo-package() {

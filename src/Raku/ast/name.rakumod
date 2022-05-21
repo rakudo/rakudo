@@ -87,10 +87,19 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
                 $name := $name ~ ':' ~ $_.named-arg-name ~ '<' ~ $_.named-arg-value ~ '>';
             }
             elsif nqp::istype($_, RakuAST::QuotedString) {
-                $name := $name ~ ':<' ~ $_.literal-value ~ '>';
+                $name := $name ~ ':<' ~ ($_.literal-value // '') ~ '>';
+            }
+            elsif nqp::istype($_, RakuAST::Circumfix::ArrayComposer) {
+                $name := $name ~ ':[';
+                for self.IMPL-UNWRAP-LIST($_.semilist.statements) {
+                    nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_))
+                        unless nqp::istype($_, RakuAST::Statement::Expression);
+                    $name := $name ~ "'" ~ $_.expression.literal-value ~ "'";
+                }
+                $name := $name ~ ~ ']';
             }
             else {
-                nqp::die('canonicalize NYI for non-simple colonpairs');
+                nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_));
             }
         }
         $name

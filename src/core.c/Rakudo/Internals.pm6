@@ -1831,4 +1831,6 @@ proto sub exit($?, *%) {*}
 multi sub exit() { &*EXIT(0) }
 multi sub exit(Int(Any) $status) { &*EXIT($status) }
 
+Metamodel::Configuration.set_utility_class(Rakudo::Internals);
+
 # vim: expandtab shiftwidth=4

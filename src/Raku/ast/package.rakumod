@@ -151,6 +151,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
             $type.HOW.add_attribute($type, $_.meta-object);
         }
 
+        if $!package-declarator eq 'role' {
+            $type.HOW.set_body_block($type, $!body.meta-object);
+        }
+
         # Compose the meta-object and return it.
         $type.HOW.compose($type);
         $type
@@ -167,8 +171,12 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
+        my $body := $!body.IMPL-QAST-FORM-BLOCK($context, 'immediate');
+        if $!package-declarator eq 'role' {
+            $context.add-code-ref($type-object.HOW.body_block($type-object), $body);
+        }
         QAST::Stmts.new(
-            $!body.IMPL-QAST-FORM-BLOCK($context, 'immediate'),
+            $body,
             QAST::WVal.new( :value($type-object) )
         )
     }

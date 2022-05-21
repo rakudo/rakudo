@@ -1317,6 +1317,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<(-)>  { <sym> <O(|%junctive_or)> }
     token infix:sym«∖»    { <sym> <O(|%junctive_or)> }
 
+    token prefix:sym<let>  { <sym><.kok> <O(|%named_unary)> }
+    token prefix:sym<temp> { <sym><.kok> <O(|%named_unary)> }
+
     token infix:sym«=~=»  { <sym>  <O(|%chaining)> }
     token infix:sym«≅»    { <sym>  <O(|%chaining)> }
     token infix:sym«==»   { <sym>  <O(|%chaining)> }

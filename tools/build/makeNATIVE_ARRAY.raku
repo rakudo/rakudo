@@ -146,6 +146,12 @@ while @lines {
             $result.Seq
         }
 
+        multi method head(#type#array:D:) {
+            nqp::atpos_#postfix#(self,0)
+        }
+        multi method tail(#type#array:D:) {
+            nqp::atpos_#postfix#(self,nqp::sub_i(nqp::elems(self),1))
+        }
         multi method first(#type#array:D: #Value#:D $needle, :$k, :$kv, :$p, :$v) {
             my int  $i     = -1;
             my uint $elems = nqp::elems(self);

@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-04-20T21:09:16+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-05-21T12:11:45+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -148,6 +148,12 @@ my class array does Iterable does Positional {
             $result.Seq
         }
 
+        multi method head(strarray:D:) {
+            nqp::atpos_s(self,0)
+        }
+        multi method tail(strarray:D:) {
+            nqp::atpos_s(self,nqp::sub_i(nqp::elems(self),1))
+        }
         multi method first(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v) {
             my int  $i     = -1;
             my uint $elems = nqp::elems(self);
@@ -715,7 +721,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-04-20T21:09:16+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-05-21T12:11:45+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -765,6 +771,12 @@ my class array does Iterable does Positional {
             $result.Seq
         }
 
+        multi method head(intarray:D:) {
+            nqp::atpos_i(self,0)
+        }
+        multi method tail(intarray:D:) {
+            nqp::atpos_i(self,nqp::sub_i(nqp::elems(self),1))
+        }
         multi method first(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v) {
             my int  $i     = -1;
             my uint $elems = nqp::elems(self);
@@ -1374,7 +1386,7 @@ my class array does Iterable does Positional {
 
     role uintarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of uintarray role -----------------------------------
-#- Generated on 2022-04-20T21:09:16+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-05-21T12:11:45+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1424,6 +1436,12 @@ my class array does Iterable does Positional {
             $result.Seq
         }
 
+        multi method head(uintarray:D:) {
+            nqp::atpos_u(self,0)
+        }
+        multi method tail(uintarray:D:) {
+            nqp::atpos_u(self,nqp::sub_i(nqp::elems(self),1))
+        }
         multi method first(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v) {
             my int  $i     = -1;
             my uint $elems = nqp::elems(self);
@@ -2033,7 +2051,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-04-20T21:09:16+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-05-21T12:11:45+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -2083,6 +2101,12 @@ my class array does Iterable does Positional {
             $result.Seq
         }
 
+        multi method head(numarray:D:) {
+            nqp::atpos_n(self,0)
+        }
+        multi method tail(numarray:D:) {
+            nqp::atpos_n(self,nqp::sub_i(nqp::elems(self),1))
+        }
         multi method first(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v) {
             my int  $i     = -1;
             my uint $elems = nqp::elems(self);

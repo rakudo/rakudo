@@ -705,6 +705,26 @@ class RakuAST::ApplyPrefix is RakuAST::Termish {
 
 # Marker for all kinds of postfixish operators.
 class RakuAST::Postfixish is RakuAST::Node {
+    has List $.colonpairs;
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!colonpairs.push: $pair;
+    }
+
+    method visit-colonpairs(Code $visitor) {
+        for $!colonpairs {
+            $visitor($_);
+        }
+    }
+
+    method IMPL-ADD-COLONPAIRS-TO-OP(RakuAST::Impl::QASTContext $context, Mu $op) {
+        for $!colonpairs {
+            my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
+            $val-ast.named($_.named-arg-name);
+            $op.push($val-ast);
+        }
+    }
+
     method can-be-used-with-hyper() { False }
 }
 
@@ -715,6 +735,7 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
     method new(str $operator) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Postfix, '$!operator', $operator);
+        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
 
@@ -748,6 +769,7 @@ class RakuAST::Postfix::Power is RakuAST::Postfixish is RakuAST::Lookup {
     method new(Int $power) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postfix::Power, '$!power', $power);
+        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
 
@@ -783,6 +805,7 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
     method new(RakuAST::SemiList $index) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!index', $index);
+        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
 
@@ -803,6 +826,7 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
 
     method visit-children(Code $visitor) {
         $visitor($!index);
+        self.visit-colonpairs($visitor);
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
@@ -831,6 +855,7 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
     method new(RakuAST::SemiList $index) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::HashIndex, '$!index', $index);
+        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
 
@@ -851,11 +876,13 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
 
     method visit-children(Code $visitor) {
         $visitor($!index);
+        self.visit-colonpairs($visitor);
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
         $op
     }
@@ -865,6 +892,7 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         my $bind := $source.IMPL-TO-QAST($context);
         $bind.named('BIND');
         $op.push($bind);
@@ -879,6 +907,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
     method new(RakuAST::QuotedString $index) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::LiteralHashIndex, '$!index', $index);
+        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
 
@@ -896,12 +925,14 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
 
     method visit-children(Code $visitor) {
         $visitor($!index);
+        self.visit-colonpairs($visitor);
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
     }
 
@@ -910,6 +941,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         my $bind := $source.IMPL-TO-QAST($context);
         $bind.named('BIND');
         $op.push($bind);
@@ -924,6 +956,7 @@ class RakuAST::MetaPostfix::Hyper is RakuAST::Postfixish is RakuAST::CheckTime {
     method new(RakuAST::Postfixish $postfix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaPostfix::Hyper, '$!postfix', $postfix);
+        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
 
@@ -940,6 +973,7 @@ class RakuAST::MetaPostfix::Hyper is RakuAST::Postfixish is RakuAST::CheckTime {
 
     method visit-children(Code $visitor) {
         $visitor($!postfix);
+        self.visit-colonpairs($visitor);
     }
 }
 
@@ -953,6 +987,10 @@ class RakuAST::ApplyPostfix is RakuAST::Termish {
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!postfix', $postfix);
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!operand', $operand);
         $obj
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!postfix.add-colonpair($pair);
     }
 
     method can-be-bound-to() {

@@ -919,7 +919,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!infixstopper>
         :dba('infix')
         [
-#        | <!{ $*IN_REDUCE }> <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
+        | <!{ $*IN_REDUCE }> <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
         |   [
             | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
             | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
@@ -937,6 +937,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
         <OPER=.AS_MATCH($*OPER)>
         { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
+    }
+
+    token fake_infix {
+        <O(|%item_assignment, :assoc<unary>, :fake<1>, :dba<adverb>)>
     }
 
     regex infixstopper {

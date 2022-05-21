@@ -501,9 +501,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     operand => $/[0].ast;
             }
             elsif $KEY eq 'POSTFIX' {
-                self.attach: $/, self.r('ApplyPostfix').new:
-                    postfix => $ast // self.r('Postfix').new($<postfix><sym>),
-                    operand => $/[0].ast;
+                if $<colonpair> {
+                    $/[0].ast.add-colonpair($<colonpair>.ast);
+                    make $/[0].ast;
+                }
+                else {
+                    self.attach: $/, self.r('ApplyPostfix').new:
+                        postfix => $ast // self.r('Postfix').new($<postfix><sym>),
+                        operand => $/[0].ast;
+                }
             }
             else {
                 nqp::die("EXPR $KEY handling NYI");
@@ -654,6 +660,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method infixish($/) {
+        return 0 if $<fake_infix>;
+
         my $ast;
         if $<infix> {
             $ast := $<infix>.ast;

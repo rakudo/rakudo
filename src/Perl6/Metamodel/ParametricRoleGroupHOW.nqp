@@ -20,7 +20,6 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
 {
     has @!candidates;
     has $!selector;
-    has @!role_typecheck_list;
     has @!nonsignatured;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
@@ -138,6 +137,17 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $selected
     }
 
+    method bind($obj, $curry) {
+        my @pos_args := nqp::clone($curry.HOW.role_arguments($curry));
+        nqp::unshift(@pos_args, $curry);
+        my %named_args := $curry.HOW.role_named_arguments($curry);
+        my $binding := nqp::null();
+        try $binding := self.select_candidate($curry, @pos_args, %named_args);
+        nqp::isnull($binding)
+            ?? $curry
+            !! $binding.HOW.bind($binding, $curry)
+    }
+
     method specialize($obj, *@pos_args, *%named_args) {
         my $selected := self.select_candidate($obj, @pos_args, %named_args);
         # Having picked the appropriate one, specialize it.
@@ -145,24 +155,30 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method update_role_typecheck_list($obj) {
-        my $ns := self.'!get_nonsignatured_candidate'();
-        @!role_typecheck_list := $ns.HOW.role_typecheck_list($ns) unless nqp::isnull($ns);
+        self.role_typecheck_list($obj)
     }
 
     method role_typecheck_list($obj) {
-        @!role_typecheck_list
+        nqp::isnull(my $ns := self.'!get_nonsignatured_candidate'())
+            ?? []
+            !! $ns.HOW.role_typecheck_list($ns)
+    }
+
+    # $checkee must always be decont'ed
+    method type_check_parents($obj, $checkee) {
+        !nqp::isnull(my $ns := self.'!get_nonsignatured_candidate'())
+            && $ns.HOW.type_check_parents($ns, $checkee)
+    }
+
+    # $checkee must always be decont'ed
+    method type_check_roles($obj, $checkee) {
+        !nqp::isnull(my $ns := self.'!get_nonsignatured_candidate'())
+            && $ns.HOW.type_check_roles($ns, $checkee)
     }
 
     method type_check($obj, $checkee) {
-        my $decont := nqp::decont($checkee);
-        for @!role_typecheck_list {
-            if $decont =:= nqp::decont($_) {
-                return 1;
-            }
-        }
-        my $ns := self.'!get_nonsignatured_candidate'();
-        return $ns.HOW.type_check_parents($ns, $decont) unless nqp::isnull($ns);
-        0;
+        !nqp::isnull(my $ns := self.'!get_nonsignatured_candidate'())
+            && nqp::istype_nd($ns, $checkee)
     }
 
     method candidates($obj) { nqp::clone(@!candidates) }

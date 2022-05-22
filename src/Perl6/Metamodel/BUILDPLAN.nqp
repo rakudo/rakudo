@@ -13,6 +13,11 @@ role Perl6::Metamodel::BUILDPLAN {
     # further parameters.  If it is an array, then the first element
     # of each array is an "op" # representing the task to perform:
     #   code = call as method (for BUILD or TWEAK)
+    #
+    # NOTE: Any changes here, should also be reflected in the
+    #       lib/BUILDPLAN.rakumod module, to allow for easier
+    #       core debugging of BUILDPLAN issues.
+    #
     #    0 class name attr_name = set attribute from init hash
     #    1 class name attr_name = set a native int attribute from init hash
     #    2 class name attr_name = set a native num attribute from init hash

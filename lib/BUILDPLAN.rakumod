@@ -13,7 +13,11 @@
 use nqp;
 
 # primspec extensions to nqp::getattr
-my @ps = "","_i","_n","_s";
+my constant @ps = "","_i","_n","_s","","","","","","","_u";
+# primspec mapping to native name
+my constant @nn = "","int","num","str","","","","","","","uint";
+# primspec mapping to default value
+my constant @nv = "","0","0e0","null_s","","","","","","","0";
 
 # HOW name mapping to syntax
 my %HOW2syntax = (
@@ -86,17 +90,23 @@ sub build-description(@plan --> Str:D) is export {
 #    1 class name attr_name = set a native int attribute from init hash
 #    2 class name attr_name = set a native num attribute from init hash
 #    3 class name attr_name = set a native str attribute from init hash
-#    4 class attr_name code = call default value closure if needed
-#    5 class attr_name code = call default value closure if needed, int attr
-#    6 class attr_name code = call default value closure if needed, num attr
-#    7 class attr_name code = call default value closure if needed, str attr
-#    8 die if a required attribute is not present
-#    9 class attr_name code = run attribute container initializer
-#   10 class attr_name = touch/vivify attribute if part of mixin
-#   11 same as 0, but init to nqp::list if value absent (nqp only)
-#   12 same as 0, but init to nqp::hash if value absent (nqp only)
-#   13 same as 0 but *bind* the received value + optional type constraint
-#   14 same as 4 but *bind* the default value + optional type constraint
+#   10 class name attr_name = set a native uint attribute from init hash
+#  400 class attr_name code = call default value closure if needed
+#  401 class attr_name code = call default value closure if needed, int attr
+#  402 class attr_name code = call default value closure if needed, num attr
+#  403 class attr_name code = call default value closure if needed, str attr
+#  410 class attr_name code = call default value closure if needed, uint attr
+#  800 die if a required attribute is not present
+#  900 class attr_name code = run attribute container initializer
+# 1000 class attr_name = touch/vivify attribute if part of mixin
+# 1100 same as 0, but init to nqp::list if value absent (nqp only)
+# 1200 same as 0, but init to nqp::hash if value absent (nqp only)
+# 1300 same as 0 but *bind* the received value + optional type constraint
+# 1400 same as 400 but *bind* the default value + optional type constraint
+# 1501 die if a required int attribute is 0
+# 1502 die if a required num attribute is 0e0
+# 1503 die if a required str attribute is null_s (will be '' in the future)
+# 1510 die if a required uint attribute is 0
 #===================================================
 
 # description of the action of a single op
@@ -105,51 +115,50 @@ sub showop(@actions --> Str:D) {
     my $type := @actions[1].^name;
     my $attr := "'@actions[2]'";
 
-    if $op < 0 {
-        "Don't know how to handle: {@actions.raku}"
-    }
-    elsif $op == 0 {
+    if $op == 0 {
         "nqp::getattr(obj,$type,$attr) = :\$@actions[3] if possible"
     }
-    elsif $op < 4 {
+    elsif $op == 1 | 2 | 3 | 10 {
         "nqp::bindattr@ps[$op]\(obj,$type,$attr,:\$@actions[3]) if possible"
     }
-    elsif $op == 4 {
+    elsif $op == 400 {
         "nqp::getattr(obj,$type,$attr) = "
           ~ (nqp::istype(@actions[3],Callable)
               ?? "execute-code()"
               !! @actions[3].raku)
           ~ " if not set"
     }
-    elsif $op < 8 {
+    elsif $op == 401 | 402 | 403 | 410 {
         "nqp::bindattr@ps[$op - 4]\(obj,$type,$attr,"
           ~ (nqp::istype(@actions[3],Callable)
               ?? "execute-code()"
               !! @actions[3].raku)
           ~ ") if not set"
     }
-    elsif $op == 8 {
+    elsif $op == 800 {
         my $reason = @actions[3] === 1
           ?? "it is required"
           !! @actions[3];
         qq/die "because $reason" unless nqp::p6attrinited(nqp::getattr(obj,$type,$attr))/
     }
-    elsif $op == 9 {
+    elsif $op == 900 {
         "nqp::getattr(obj,$type,$attr) := initializer-code()"
     }
-    elsif $op == 10 {
+    elsif $op == 1000 {
         "vivify nqp::getattr(obj,$type,$attr) if part of a mixin"
     }
-    elsif $op < 13 {
-        "nqp::getattr@ps[$op]\(obj,$type,$attr) //:= nqp::"
-          ~ $op == 11 ?? 'list' !! 'hash'
+    elsif $op == 1100 {
+        "nqp::getattr\(obj,$type,$attr) //:= nqp::list"
     }
-    elsif $op == 13 {
+    elsif $op == 1200 {
+        "nqp::getattr\(obj,$type,$attr) //:= nqp::hash"
+    }
+    elsif $op == 1300 {
         @actions == 5
           ?? "nqp::bindattr\(obj,$type,{@actions[4].^name} $attr,:\$@actions[3]) if specified"
           !! "nqp::bindattr\(obj,$type,$attr,:\$@actions[3]) if specified"
     }
-    elsif $op == 14 {
+    elsif $op == 1400 {
         my $attrspec = @actions == 5
           ?? "{@actions[4].^name} $attr"
           !! $attr;
@@ -159,8 +168,14 @@ sub showop(@actions --> Str:D) {
               !! @actions[3].raku)
           ~ ") if not set"
     }
+    elsif $op = 1501 | 1502 | 1503 | 1510 {
+        my $reason = @actions[3] === 1
+          ?? "it is required"
+          !! @actions[3];
+        qq/die "because $reason" if @nn[$op-1500] is @nv[$op-1500]/
+    }
     else {
-        "Don't know how to handle: {@actions.raku}"
+        "Don't know how to handle: @actions.raku()"
     }
 }
 

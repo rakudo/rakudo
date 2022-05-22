@@ -37,12 +37,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
 
     method TWEAK() {
-#?if moar
-        $!lock       := Lock::Soft.new;
-#?endif
-#?if !moar
         $!lock       := Lock.new;
-#?endif
         $!loaded     := nqp::hash;
         $!seen       := nqp::hash;
         $!dist-metas := nqp::hash;
@@ -232,150 +227,145 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             $link ~~ Str ?? ($link => $link) !! ($link.keys[0] => $link.values[0])
         }
 
-        my $already-installed = False;
         $!lock.protect( {
-            my @*MODULES;
-            my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
-            my $lock = $.prefix.add('repo.lock').open(:create, :w);
-            $lock.lock;
+        my @*MODULES;
+        my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
+        my $lock = $.prefix.add('repo.lock').open(:create, :w);
+        $lock.lock;
 
-            my $version = self!repository-version;
-            self.upgrade-repository unless $version == 2;
+        my $version = self!repository-version;
+        self.upgrade-repository unless $version == 2;
 
-            my $dist-id = $dist.id;
-            my $dist-dir = self!dist-dir;
-            if not $force and $dist-dir.add($dist-id) ~~ :e {
-                $lock.unlock;
-                $already-installed = True;
+        my $dist-id = $dist.id;
+        my $dist-dir = self!dist-dir;
+        if not $force and $dist-dir.add($dist-id) ~~ :e {
+            $lock.unlock;
+            fail "$dist already installed";
+        }
+
+        my $sources-dir   = self!sources-dir;
+        my $resources-dir = self!resources-dir;
+        my $bin-dir       = self!bin-dir;
+        my $is-win        = Rakudo::Internals.IS-WIN;
+
+        self!add-short-name($dist.meta<name>, $dist); # so scripts can find their dist
+
+        my %links; # map name-path to new content address
+        my %provides; # meta data gets added, but the format needs to change to
+                      # only extend the structure, not change it
+
+        # the following 3 `for` loops should be a single loop, but has been
+        # left this way due to impeding precomp changes
+
+        # lib/ source files
+        for $dist.meta<provides>.kv -> $name, $file is copy {
+            # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
+            my $id          = self!file-id(~$name, $dist-id);
+            my $destination = $sources-dir.add($id);
+            my $handle      = $dist.content($file);
+            my $content     = $handle.open(:bin).slurp(:close);
+
+            self!add-short-name($name, $dist, $id,
+              nqp::sha1(nqp::join("\n", nqp::split("\r\n",
+                $content.decode('iso-8859-1')))));
+            %provides{ $name } = ~$file => {
+                :file($id),
+                :time(try $file.IO.modified.Num),
+            };
+            note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
+            $destination.spurt($content);
+        }
+
+        # bin/ scripts
+        for %files.kv -> $name-path, $file is copy {
+            next unless $name-path.starts-with('bin/');
+            my $name        = $name-path.subst(/^bin\//, '');
+            my $id          = self!file-id(~$file, $dist-id);
+            # wrappers are put in bin/; originals in resources/
+            my $destination = $resources-dir.add($id);
+            my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
+            for @script-postfixes -> $be {
+                $.prefix.add("$withoutext$be").IO.spurt:
+                    $raku-wrapper.subst('#name#', $name, :g).subst('#raku#', "rakudo$be");
+                if $is-win {
+                    $.prefix.add("$withoutext$be.bat").IO.spurt:
+                        $windows-wrapper.subst('#raku#', "rakudo$be", :g);
+                }
+                else {
+                    $.prefix.add("$withoutext$be").IO.chmod(0o755);
+                }
             }
-            else {
-                my $sources-dir   = self!sources-dir;
-                my $resources-dir = self!resources-dir;
-                my $bin-dir       = self!bin-dir;
-                my $is-win        = Rakudo::Internals.IS-WIN;
+            self!add-short-name($name-path, $dist, $id);
+            %links{$name-path} = $id;
+            my $handle  = $dist.content($file);
+            my $content = $handle.open.slurp(:bin,:close);
+            $destination.spurt($content);
+            $handle.close;
+        }
 
-                self!add-short-name($dist.meta<name>, $dist); # so scripts can find their dist
+        # resources/
+        for %files.kv -> $name-path, $file is copy {
+            next unless $name-path.starts-with('resources/');
+            # $name-path is 'resources/libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
+            my $id             = self!file-id(~$name-path, $dist-id) ~ '.' ~ $file.IO.extension;
+            my $destination    = $resources-dir.add($id);
+            %links{$name-path} = $id;
+            my $handle  = $dist.content($file);
+            my $content = $handle.open.slurp(:bin,:close);
+            $destination.spurt($content);
+            $handle.close;
+        }
 
-                my %links; # map name-path to new content address
-                my %provides; # meta data gets added, but the format needs to change to
-                              # only extend the structure, not change it
+        my %meta = %($dist.meta);
+        %meta<files>    = %links;    # add our new name-path => content-id mapping
+        %meta<provides> = %provides; # new meta data added to provides
+        nqp::bindkey($!dist-metas,$dist-id,%meta);
+        $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
 
-                # the following 3 `for` loops should be a single loop, but has been
-                # left this way due to impeding precomp changes
+        # reset cached id so it's generated again on next access.
+        # identity changes with every installation of a dist.
+        $!id = Any;
 
-                # lib/ source files
-                for $dist.meta<provides>.kv -> $name, $file is copy {
-                    # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
-                    my $id          = self!file-id(~$name, $dist-id);
-                    my $destination = $sources-dir.add($id);
-                    my $handle      = $dist.content($file);
-                    my $content     = $handle.open(:bin).slurp(:close);
+        if $precompile {
+            my $head := $*REPO;
+            CATCH { PROCESS::<$REPO> := $head }
+            # Precomp files should only depend on downstream repos
+            PROCESS::<$REPO> := self;
 
-                    self!add-short-name($name, $dist, $id,
-                      nqp::sha1(nqp::join("\n", nqp::split("\r\n",
-                        $content.decode('iso-8859-1')))));
-                    %provides{ $name } = ~$file => {
-                        :file($id),
-                        :time(try $file.IO.modified.Num),
-                    };
-                    note("Installing {$name} for {$dist.meta<name>}") if $verbose and $name ne $dist.meta<name>;
-                    $destination.spurt($content);
-                }
+            my $precomp = $head.precomp-repository;
+            my $repo-prefix = self!repo-prefix;
+            my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
+            my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
+            my %done;
 
-                # bin/ scripts
-                for %files.kv -> $name-path, $file is copy {
-                    next unless $name-path.starts-with('bin/');
-                    my $name        = $name-path.subst(/^bin\//, '');
-                    my $id          = self!file-id(~$file, $dist-id);
-                    # wrappers are put in bin/; originals in resources/
-                    my $destination = $resources-dir.add($id);
-                    my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
-                    for @script-postfixes -> $be {
-                        $.prefix.add("$withoutext$be").IO.spurt:
-                            $raku-wrapper.subst('#name#', $name, :g).subst('#raku#', "rakudo$be");
-                        if $is-win {
-                            $.prefix.add("$withoutext$be.bat").IO.spurt:
-                                $windows-wrapper.subst('#raku#', "rakudo$be", :g);
-                        }
-                        else {
-                            $.prefix.add("$withoutext$be").IO.chmod(0o755);
-                        }
-                    }
-                    self!add-short-name($name-path, $dist, $id);
-                    %links{$name-path} = $id;
-                    my $handle  = $dist.content($file);
-                    my $content = $handle.open.slurp(:bin,:close);
-                    $destination.spurt($content);
-                    $handle.close;
-                }
-
-                # resources/
-                for %files.kv -> $name-path, $file is copy {
-                    next unless $name-path.starts-with('resources/');
-                    # $name-path is 'resources/libraries/p5helper' while $file is 'resources/libraries/libp5helper.so'
-                    my $id             = self!file-id(~$name-path, $dist-id) ~ '.' ~ $file.IO.extension;
-                    my $destination    = $resources-dir.add($id);
-                    %links{$name-path} = $id;
-                    my $handle  = $dist.content($file);
-                    my $content = $handle.open.slurp(:bin,:close);
-                    $destination.spurt($content);
-                    $handle.close;
-                }
-
-                my %meta = %($dist.meta);
-                %meta<files>    = %links;    # add our new name-path => content-id mapping
-                %meta<provides> = %provides; # new meta data added to provides
-                nqp::bindkey($!dist-metas,$dist-id,%meta);
-                $dist-dir.add($dist-id).spurt: Rakudo::Internals::JSON.to-json(%meta, :sorted-keys);
-
-                # reset cached id so it's generated again on next access.
-                # identity changes with every installation of a dist.
-                $!id = Any;
-
-                if $precompile {
-                    my $head := $*REPO;
-                    CATCH { PROCESS::<$REPO> := $head }
-                    # Precomp files should only depend on downstream repos
-                    PROCESS::<$REPO> := self;
-
-                    my $precomp = $head.precomp-repository;
-                    my $repo-prefix = self!repo-prefix;
-                    my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
-                    my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
-                    my %done;
-
-                    my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
-                    for %provides.sort {
-                        my $id = CompUnit::PrecompilationId.new-without-check($_.value.values[0]<file>);
-                        $precomp.store.delete($compiler-id, $id);
-                    }
-
-                    for %provides.sort {
-                        my $id = $_.value.values[0]<file>;
-                        my $source = $sources-dir.add($id);
-                        my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
-
-                        if %done{$id} {
-                            note "(Already did $id)" if $verbose;
-                            next;
-                        }
-                        note("Precompiling $id ($_.key())") if $verbose;
-                        $precomp.precompile(
-                            $source,
-                            CompUnit::PrecompilationId.new-without-check($id),
-                            :source-name("$source-file ($_.key())"),
-                        );
-                        %done{$id} = 1;
-                    }
-                    PROCESS::<$REPO> := $head;
-                }
-
-                $lock.unlock;
+            my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
+            for %provides.sort {
+                my $id = CompUnit::PrecompilationId.new-without-check($_.value.values[0]<file>);
+                $precomp.store.delete($compiler-id, $id);
             }
-        } );
 
-        $already-installed ?? fail "$dist already installed" !! True
-    }
+            for %provides.sort {
+                my $id = $_.value.values[0]<file>;
+                my $source = $sources-dir.add($id);
+                my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
+
+                if %done{$id} {
+                    note "(Already did $id)" if $verbose;
+                    next;
+                }
+                note("Precompiling $id ($_.key())") if $verbose;
+                $precomp.precompile(
+                    $source,
+                    CompUnit::PrecompilationId.new-without-check($id),
+                    :source-name("$source-file ($_.key())"),
+                );
+                %done{$id} = 1;
+            }
+            PROCESS::<$REPO> := $head;
+        }
+
+        $lock.unlock;
+    } ) }
 
     my sub unlink-if-exists(IO::Path:D $io) { $io.unlink if $io.e }
 

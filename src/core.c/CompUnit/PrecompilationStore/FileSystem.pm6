@@ -16,12 +16,7 @@ class CompUnit::PrecompilationStore::FileSystem
     has $!update-lock;
 
     submethod TWEAK(--> Nil) {
-#?if moar
-        $!update-lock := Lock::Soft.new;
-#?endif
-#?if !moar
         $!update-lock := Lock.new;
-#?endif
         $!loaded         := nqp::hash;
         $!dir-cache      := nqp::hash;
         $!compiler-cache := nqp::hash;

@@ -19,12 +19,7 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
         else {
             $!initialized := False;
         }
-#?if moar
-        $!update-lock := Lock::Soft.new;
-#?endif
-#?if !moar
         $!update-lock := Lock.new;
-#?endif
     }
 
     method modified(--> Instant:D) {

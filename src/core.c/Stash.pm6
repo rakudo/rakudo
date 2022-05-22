@@ -1,16 +1,10 @@
-my class Lock::Soft {...}
 my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash
     #     has str $!longname;
     #     has $!lock;
 
     multi method new(Stash: --> Stash:D) {
-#?if moar
-        nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock::Soft.new)
-#?endif
-#?if !moar
         nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock.new)
-#?endif
     }
 
     method clone(Stash:D:) is raw {
@@ -18,12 +12,7 @@ my class Stash { # declared in BOOTSTRAP
         nqp::bindattr_s(
             $cloned, Stash, '$!longname',
             nqp::getattr_s(self, Stash, '$!longname'));
-#?if moar
-        nqp::bindattr($cloned, Stash, '$!lock', Lock::Soft.new);
-#?endif
-#?if !moar
         nqp::bindattr($cloned, Stash, '$!lock', Lock.new);
-#?endif
         $cloned
     }
 

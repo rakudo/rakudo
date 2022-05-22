@@ -14,10 +14,8 @@ use nqp;
 
 # primspec extensions to nqp::getattr
 my constant @ps = "","_i","_n","_s","","","","","","","_u";
-# primspec mapping to native name
-my constant @nn = "","int","num","str","","","","","","","uint";
-# primspec mapping to default value
-my constant @nv = "","0","0e0","null_s","","","","","","","0";
+# primspec mapping to reason for failure if absent
+my constant @nr = "","== 0","== 0e0","nqp::isnull_s","","","","","","","== 0";
 
 # HOW name mapping to syntax
 my %HOW2syntax = (
@@ -129,17 +127,17 @@ sub showop(@actions --> Str:D) {
           ~ " if not set"
     }
     elsif $op == 401 | 402 | 403 | 410 {
-        "nqp::bindattr@ps[$op - 4]\(obj,$type,$attr,"
+        "nqp::bindattr@ps[$op - 400]\(obj,$type,$attr,"
           ~ (nqp::istype(@actions[3],Callable)
               ?? "execute-code()"
               !! @actions[3].raku)
           ~ ") if not set"
     }
     elsif $op == 800 {
-        my $reason = @actions[3] === 1
+        my $reason = @actions[3] == 1
           ?? "it is required"
           !! @actions[3];
-        qq/die "because $reason" unless nqp::p6attrinited(nqp::getattr(obj,$type,$attr))/
+        qq/die "because $reason" if @actions[2] has not been initialized/
     }
     elsif $op == 900 {
         "nqp::getattr(obj,$type,$attr) := initializer-code()"
@@ -168,11 +166,11 @@ sub showop(@actions --> Str:D) {
               !! @actions[3].raku)
           ~ ") if not set"
     }
-    elsif $op = 1501 | 1502 | 1503 | 1510 {
-        my $reason = @actions[3] === 1
+    elsif $op == 1501 | 1502 | 1503 | 1510 {
+        my $reason = @actions[3] == 1
           ?? "it is required"
           !! @actions[3];
-        qq/die "because $reason" if @nn[$op-1500] is @nv[$op-1500]/
+        qq/die "because $reason" if @actions[2] @nr[$op - 1500]/
     }
     else {
         "Don't know how to handle: @actions.raku()"

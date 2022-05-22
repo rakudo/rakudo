@@ -19,7 +19,7 @@ class RakuAST::TraitTarget {
 
     # Add a trait to this declaration.
     method add-trait(RakuAST::Trait $trait) {
-        my $traits;
+        my $traits := $!traits;
         unless nqp::islist($traits) {
             $traits := [];
             nqp::bindattr(self, RakuAST::TraitTarget, '$!traits', $traits);

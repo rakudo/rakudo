@@ -1696,6 +1696,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token variable {
         :my $*IN_META := '';
         [
+        | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
         | <sigil> <twigil>? <desigilname>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         | <sigil> $<index>=[\d+]

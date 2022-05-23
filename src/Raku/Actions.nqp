@@ -907,7 +907,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my str $sigil := ~$<sigil>;
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
             my str $desigilname := ~$<desigilname>;
-            self.compile_variable_access($/, $sigil, $twigil, $desigilname);
+            self.compile_variable_access($/, $sigil, $twigil, $desigilname, $<desigilname><longname>);
         }
     }
 
@@ -921,6 +921,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<contextualizer> {
             self.attach: $/, $<contextualizer>.ast;
         }
+        elsif $<infixish> {
+            my $name := self.r('Name').from-identifier('infix');
+            $name.add-colonpair(
+                self.r('QuotedString').new(
+                    :segments($name.IMPL-WRAP-LIST([
+                        RakuAST::StrLiteral.new($<infixish>.Str)
+                    ]))
+                )
+            );
+            self.compile_variable_access($/, '&', '', $name.canonicalize, '');
+        }
         elsif $<desigilname><variable> {
             self.contextualizer-for-sigil($/, ~$<sigil>, $<desigilname><variable>.ast);
         }
@@ -928,12 +939,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my str $sigil := ~$<sigil>;
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
             my str $desigilname := ~$<desigilname>;
-            self.compile_variable_access($/, $sigil, $twigil, $desigilname);
+            self.compile_variable_access($/, $sigil, $twigil, $desigilname, $<desigilname><longname>);
         }
     }
 
-    method compile_variable_access($/, $sigil, $twigil, $desigilname) {
-        my str $name := $sigil ~ $twigil ~ $<desigilname>;
+    method compile_variable_access($/, $sigil, $twigil, $desigilname, $longname) {
+        my str $name := $sigil ~ $twigil ~ $desigilname;
         if $name eq $sigil {
             # Generate an anonymous state variable.
             self.attach: $/, self.r('VarDeclaration', 'Anonymous').new(:$sigil, :scope('state'));
@@ -949,7 +960,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, $decl;
         }
         elsif $twigil eq '' {
-            my $longname := $<desigilname><longname>;
             if !$longname || $longname<name>.ast.is-identifier {
                 self.attach: $/, self.r('Var', 'Lexical').new($name);
             }
@@ -981,13 +991,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $twigil eq '^' {
             my $decl := self.r('VarDeclaration', 'Placeholder', 'Positional').new:
-                    $sigil ~ $<desigilname>;
+                    $sigil ~ $desigilname;
             $*R.declare-lexical($decl);
             self.attach: $/, $decl;
         }
         elsif $twigil eq ':' {
             my $decl := self.r('VarDeclaration', 'Placeholder', 'Named').new:
-                    $sigil ~ $<desigilname>;
+                    $sigil ~ $desigilname;
             $*R.declare-lexical($decl);
             self.attach: $/, $decl;
         }

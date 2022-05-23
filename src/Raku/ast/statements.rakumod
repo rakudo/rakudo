@@ -1164,10 +1164,12 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
         my $dependency-specification := $resolver.resolve-name-constant(
             RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')
         ).compile-time-value;
-        # TODO options
         my $opts := nqp::hash();
+        for $!module-name.colonpairs {
+            $opts{$_.key} := $_.simple-compile-time-quote-value;
+        }
         my $spec := $dependency-specification.new(
-            :short-name($!module-name.canonicalize),
+            :short-name($!module-name.canonicalize(:colonpairs(False))),
             :from($opts<from> // 'Perl6'),
             :auth-matcher($opts<auth> // True),
             :api-matcher($opts<api> // True),

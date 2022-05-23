@@ -68,7 +68,7 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         }
     }
 
-    method canonicalize() {
+    method canonicalize(:$colonpairs) {
         my $canon-parts := nqp::list_s();
         for $!parts {
             if nqp::istype($_, RakuAST::Name::Part::Simple) {
@@ -82,12 +82,14 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
             }
         }
         my $name := nqp::join('::', $canon-parts);
-        for $!colonpairs {
-            if nqp::istype($_, RakuAST::ColonPairish) {
-                $name := $name ~ ':' ~ $_.canonicalize;
-            }
-            else {
-                nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_));
+        unless nqp::isconcrete($colonpairs) && !$colonpairs {
+            for $!colonpairs {
+                if nqp::istype($_, RakuAST::ColonPairish) {
+                    $name := $name ~ ':' ~ $_.canonicalize;
+                }
+                else {
+                    nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_));
+                }
             }
         }
         $name

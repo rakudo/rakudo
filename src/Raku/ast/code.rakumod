@@ -709,11 +709,24 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')),
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')),
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')),
-        ])
+        my $slash := 1;
+        my $exclamation-mark := 1;
+        my $underscore := 1;
+        if $!signature {
+            for self.IMPL-UNWRAP-LIST($!signature.parameters) {
+                if ($_.target) {
+                    my $name := $_.target.name;
+                    $slash := 0            if $name eq '$/';
+                    $exclamation-mark := 0 if $name eq '$!';
+                    $underscore := 0       if $name eq '$_';
+                }
+            }
+        }
+        my @declarations;
+        nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'))) if $slash;
+        nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!'))) if $exclamation-mark;
+        nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_'))) if $underscore;
+        self.IMPL-WRAP-LIST(@declarations)
     }
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context) {

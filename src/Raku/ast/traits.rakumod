@@ -131,9 +131,13 @@ class RakuAST::Trait::Is is RakuAST::Trait is RakuAST::BeginTime {
             @args.push($!resolved-name);
         }
         else {
-            @args.push(RakuAST::ColonPair::True.new(:key($!name.canonicalize())));
+            my $key := $!name.canonicalize;
+            @args.push(
+                $!argument
+                ?? RakuAST::ColonPair::Value.new(:$key, :value(self.IMPL-UNWRAP-LIST($!argument.semilist.statements)[0]))
+                !! RakuAST::ColonPair::True.new(:$key)
+            );
         }
-        @args.push($!argument) if $!argument;
         RakuAST::ArgList.new(|@args)
     }
 

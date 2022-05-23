@@ -310,8 +310,14 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     # Initial and maximum threads allowed.
+#?if moar
     has uint $.initial_threads;
     has uint $.max_threads;
+#?endif
+#?if !moar
+    has Int $.initial_threads;
+    has Int $.max_threads;
+#?endif
 
     # All of the worker and queue state below is guarded by this lock.
     has Lock $!state-lock = Lock.new;

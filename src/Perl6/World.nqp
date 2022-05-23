@@ -3743,7 +3743,7 @@ class Perl6::World is HLL::World {
                             );
                         }
 
-                        # 400 = set opaque with default if not set yet
+                        # 400 | 1400 = set opaque with default if not set yet
                         elsif $code == 400 || $code == 1400 {
 
 # nqp::getattr(self,Foo,'$!a')

@@ -26,7 +26,7 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         self.new(|@parts)
     }
 
-    method add-colonpair(RakuAST::ColonPair $pair) {
+    method add-colonpair(RakuAST::ColonPairish $pair) {
         $!colonpairs.push: $pair;
     }
 
@@ -83,20 +83,8 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         }
         my $name := nqp::join('::', $canon-parts);
         for $!colonpairs {
-            if nqp::istype($_, RakuAST::ColonPair) {
-                $name := $name ~ ':' ~ $_.named-arg-name ~ '<' ~ $_.named-arg-value ~ '>';
-            }
-            elsif nqp::istype($_, RakuAST::QuotedString) {
-                $name := $name ~ ':<' ~ ($_.literal-value // '') ~ '>';
-            }
-            elsif nqp::istype($_, RakuAST::Circumfix::ArrayComposer) {
-                $name := $name ~ ':[';
-                for self.IMPL-UNWRAP-LIST($_.semilist.statements) {
-                    nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_))
-                        unless nqp::istype($_, RakuAST::Statement::Expression);
-                    $name := $name ~ "'" ~ $_.expression.literal-value ~ "'";
-                }
-                $name := $name ~ ~ ']';
+            if nqp::istype($_, RakuAST::ColonPairish) {
+                $name := $name ~ ':' ~ $_.canonicalize;
             }
             else {
                 nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_));

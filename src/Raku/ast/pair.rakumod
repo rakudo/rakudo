@@ -44,8 +44,29 @@ class RakuAST::FatArrow is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST:
     }
 }
 
+# The base of all colonpair like constructs that can be added to a name.
+class RakuAST::ColonPairish {
+    method IMPL-QUOTE-VALUE($v) {
+        if $v ~~ /<[ < > ]>/ && !($v ~~ /<[ « » $ \\ " ' ]>/) {
+            '«' ~ $v ~ '»'
+        }
+        else {
+            my $new := '';
+            my int $e := nqp::chars($v);
+            my int $i := -1;
+            while ++$i < $e {
+                my $ch := nqp::substr($v,$i,1);
+                $new := $new ~ '\\' if $ch eq '<' || $ch eq '>';
+                $new := $new ~ $ch;
+            }
+            '<' ~ $new ~ '>';
+        }
+    }
+}
+
 # The base of all colonpair constructs.
-class RakuAST::ColonPair is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST::NamedArg {
+class RakuAST::ColonPair is RakuAST::ColonPairish is RakuAST::Term
+                         is RakuAST::ImplicitLookups is RakuAST::NamedArg {
     has Str $.key;
     
     method value() { nqp::die(self.HOW.name(self) ~ ' does not implement value') }
@@ -53,6 +74,10 @@ class RakuAST::ColonPair is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST
     method named-arg-name() { $!key }
 
     method named-arg-value() { self.value }
+
+    method canonicalize() {
+        $!key ~ self.IMPL-QUOTE-VALUE(self.simple-compile-time-quote-value)
+    }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -195,7 +220,12 @@ class RakuAST::ColonPair::Value is RakuAST::QuotePair {
 
     method simple-compile-time-quote-value() {
         # TODO various cases we can handle here
-        Nil
+        if nqp::istype(self.value, RakuAST::QuotedString) {
+            self.value.literal-value
+        }
+        else {
+            Nil
+        }
     }
 
     method IMPL-CAN-INTERPRET() { $!value.IMPL-CAN-INTERPRET }

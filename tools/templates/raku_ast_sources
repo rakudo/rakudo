@@ -11,8 +11,8 @@ src/Raku/ast/meta.rakumod
 src/Raku/ast/statements.rakumod
 src/Raku/ast/operator-properties.rakumod
 src/Raku/ast/expressions.rakumod
-src/Raku/ast/circumfix.rakumod
 src/Raku/ast/pair.rakumod
+src/Raku/ast/circumfix.rakumod
 src/Raku/ast/call.rakumod
 src/Raku/ast/term.rakumod
 src/Raku/ast/name.rakumod

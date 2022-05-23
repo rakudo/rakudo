@@ -140,7 +140,8 @@ class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
 # (if needed) and concatenated. Processing may be applied to the result (these
 # are "words", "quotewords", "val", and "exec", and are applied in the order
 # that they are specified here).
-class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
+class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
+                            is RakuAST::ImplicitLookups {
     has Mu $!segments;
     has Mu $!processors;
 
@@ -173,6 +174,10 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
 
     method processors() {
         self.IMPL-WRAP-LIST($!processors)
+    }
+
+    method canonicalize() {
+        self.IMPL-QUOTE-VALUE(self.literal-value // '')
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

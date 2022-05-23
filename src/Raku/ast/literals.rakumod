@@ -311,6 +311,40 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
         self.IMPL-QAST-PROCESSORS($context, $qast)
     }
 
+    method IMPL-WALK($context, $node, $result) {
+        if $node.ann('ww_atom') {
+            $result.push($node);
+        }
+        elsif nqp::istype($node, QAST::Op) && $node.name eq '&infix:<~>' {
+            self.IMPL-WALK($context, $node[0], $result);
+            self.IMPL-WALK($context, $node[1], $result);
+        }
+        # (can't just use postprocess_words here because it introduces spurious comma operations)
+        elsif $node.has_compile_time_value {
+            my @words := HLL::Grammar.split_words(nqp::unbox_s($node.compile_time_value));
+            for @words {
+                $result.push(RakuAST::StrLiteral.new($_).IMPL-EXPR-QAST($context));
+            }
+        }
+        else {
+            $result.push(
+                QAST::Op.new(
+                    :op('callmethod'),
+                    :name('Slip'),
+                    QAST::Op.new(
+                        :op('callmethod'),
+                        :name('WORDS_AUTODEREF'),
+                        QAST::Op.new(
+                            :op('callmethod'),
+                            :name('Stringy'),
+                            $node
+                        )
+                    )
+                )
+            );
+        }
+    }
+
     method IMPL-QAST-PROCESSORS(RakuAST::IMPL::QASTContext $context, Mu $qast) {
         # Non-optimized handling of processors.
         for $!processors {
@@ -318,6 +352,17 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
                 $qast := QAST::Op.new(
                     :op('callmethod'), :name('WORDS_AUTODEREF'), $qast
                 );
+            }
+            elsif $_ eq 'quotewords' {
+                my $result := QAST::Op.new( :op('call'), :name('&infix:<,>') );
+                self.IMPL-WALK($context, $qast, $result);
+
+                # Strip out list op and possible Slip if only one resulting word
+                $qast := nqp::elems($result) == 1
+                    ?? nqp::istype($result[0], QAST::Op) && $result[0].name eq 'Slip'
+                        ?? $result[0][0]
+                        !! $result[0]
+                    !! QAST::Stmts.new( $result );
             }
             elsif $_ eq 'val' {
                 my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);

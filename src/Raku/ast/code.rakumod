@@ -951,9 +951,11 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
 # A method.
 class RakuAST::Method is RakuAST::Methodish is RakuAST::SinkBoundary {
     has RakuAST::Blockoid $.body;
+    has Bool $.meta;
+    has Bool $.private;
 
     method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
-            List :$traits, RakuAST::Blockoid :$body, str :$multiness) {
+            List :$traits, RakuAST::Blockoid :$body, str :$multiness, Bool :$meta, Bool :$private) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
@@ -961,6 +963,8 @@ class RakuAST::Method is RakuAST::Methodish is RakuAST::SinkBoundary {
             // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Method, '$!body', $body // RakuAST::Blockoid.new);
         nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness // '');
+        nqp::bindattr($obj, RakuAST::Method, '$!meta', $meta ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Method, '$!private', $private ?? True !! False);
         $obj.set-traits($traits);
         $obj
     }
@@ -968,6 +972,14 @@ class RakuAST::Method is RakuAST::Methodish is RakuAST::SinkBoundary {
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Method, '$!body', $new-body);
         Nil
+    }
+
+    method set-meta(Bool $meta) {
+        nqp::bindattr(self, RakuAST::Method, '$!meta', $meta ?? True !! False);
+    }
+
+    method set-private(Bool $private) {
+        nqp::bindattr(self, RakuAST::Method, '$!private', $private ?? True !! False);
     }
 
     method IMPL-META-OBJECT-TYPE() { Method }

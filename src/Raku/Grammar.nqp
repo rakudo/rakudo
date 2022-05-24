@@ -1948,7 +1948,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
-        <deflongname('has')>?
+        $<specials>=[<[ ! ^ ]>?]<deflongname('has')>?
         [ '(' <signature> ')' ]?
         <trait($*BLOCK)>* :!s
         { $*IN_DECL := ''; }
@@ -2315,9 +2315,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # parametric/coercion type?
         <.unsp>? [
             <?[[]>
-            :my %*MYSTERY;
             '[' ~ ']' <arglist>
-            <.explain_mystery> <.cry_sorrows>
         ]?
         <.unsp>? [ <?before '{'> {
             $/.typed_panic('X::NYI', feature => 'Autovivifying object closures');

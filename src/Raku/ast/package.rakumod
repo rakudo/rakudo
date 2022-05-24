@@ -185,7 +185,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
-        my $body := $!body.IMPL-QAST-FORM-BLOCK($context, 'immediate');
+        my $body := $!body.IMPL-QAST-FORM-BLOCK(
+            $context,
+            $!package-declarator eq 'role' ?? 'declaration_static' !! 'immediate'
+        );
         if $!package-declarator eq 'role' {
             $context.add-code-ref($type-object.HOW.body_block($type-object), $body);
         }

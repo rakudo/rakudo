@@ -1244,23 +1244,42 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method trait($/) {
         my $trait := $<trait_mod>.ast;
-        if $*TARGET {
-            # Already have the target to apply it to.
-            $*TARGET.add-trait($trait);
-        }
-        else {
-            # Will be added to a target later, so attach to the match.
-            self.attach: $/, $trait;
+        if $trait { # is repr(...) won't be handled as a trait
+            if $*TARGET {
+                # Already have the target to apply it to.
+                $*TARGET.add-trait($trait);
+            }
+            else {
+                # Will be added to a target later, so attach to the match.
+                self.attach: $/, $trait;
+            }
         }
     }
 
     method trait_mod:sym<is>($/) {
-        my $ast-type := self.r('Trait', 'Is');
-        my $trait := $<circumfix>
-            ?? $ast-type.new(:name($<longname>.ast), :argument($<circumfix>.ast))
-            !! $ast-type.new(:name($<longname>.ast));
-        $trait.ensure-begin-performed($*R);
-        self.attach: $/, $trait;
+        if ~$<longname> eq 'repr' {
+            if $<circumfix> {
+                my $repr := $<circumfix>.ast.IMPL-UNWRAP-LIST($<circumfix>.ast.semilist.statements)[0];
+                unless $repr.IMPL-CAN-INTERPRET {
+                    $/.typed_panic('X::Value::Dynamic', :what('is repr(...) trait'));
+                }
+                $repr := $repr.IMPL-INTERPRET(self.r('IMPL', 'InterpContext').new);
+                $*PACKAGE.set-repr($repr);
+                return;
+            }
+            else {
+                $/.panic("is repr(...) trait needs a parameter");
+            }
+        }
+        else
+        {
+            my $ast-type := self.r('Trait', 'Is');
+            my $trait := $<circumfix>
+                ?? $ast-type.new(:name($<longname>.ast), :argument($<circumfix>.ast))
+                !! $ast-type.new(:name($<longname>.ast));
+            $trait.ensure-begin-performed($*R);
+            self.attach: $/, $trait;
+        }
     }
 
     method trait_mod:sym<hides>($/) {

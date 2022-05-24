@@ -41,6 +41,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         Nil
     }
 
+    method set-repr(Str $repr) {
+        nqp::bindattr(self, RakuAST::Package, '$!repr', $repr);
+    }
+
     method default-scope() { 'our' }
 
     # While a package may be declared `my`, its installation semantics are

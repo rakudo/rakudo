@@ -1586,6 +1586,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> } }
     token term:sym<value>              { <value> }
 
+    token term:sym<::?IDENT> {
+        $<sym> = [ '::?' <identifier> ] »
+    }
+
     token term:sym<identifier> {
         <identifier>
         <!{ $*R.is-identifier-type(~$<identifier>) }>

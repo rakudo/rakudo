@@ -761,6 +761,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Terms
     ##
 
+    method term:sym<::?IDENT>($/) {
+        self.attach: $/, self.r('Var', 'Lexical', 'Constant').new(~$/);
+    }
+
     method term:sym<self>($/) {
         self.attach: $/, self.r('Term', 'Self').new();
     }

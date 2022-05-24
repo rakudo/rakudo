@@ -1221,6 +1221,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $routine.replace-signature($<signature>.ast);
         }
         $routine.replace-body($<onlystar> ?? $<onlystar>.ast !! $<blockoid>.ast);
+        $routine.ensure-begin-performed($*R);
         self.attach: $/, $routine;
     }
 

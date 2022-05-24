@@ -149,7 +149,12 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
 
         # Add methods and attributes.
         for $!attached-methods {
-            $type.HOW.add_method($type, $_.name.canonicalize, $_.meta-object);
+            if $_.multiness eq 'multi' {
+                $type.HOW.add_multi_method($type, $_.name.canonicalize, $_.meta-object);
+            }
+            else {
+                $type.HOW.add_method($type, $_.name.canonicalize, $_.meta-object);
+            }
         }
         for $!attached-attributes {
             $type.HOW.add_attribute($type, $_.meta-object);

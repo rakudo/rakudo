@@ -665,12 +665,9 @@ multi sub infix:<eqv>(Parameter:D $a, Parameter:D $b) {
     my \btype = nqp::getattr($b,Parameter,'$!type');
     # (atype is btype) && (btype is atype) ensures type equivalence. Works for different curryings of a parametric role
     # which are parameterized with the same argument. nqp::eqaddr is not applicable here because if coming from
-    # different compunits the curryings would be different typeobject instances.
-    return False
-        unless
-            (atype.HOW.archetypes.generic && btype.HOW.archetypes.generic)
-            || (nqp::istype(atype, btype)
-                && nqp::istype(btype, atype));
+    # different compunits the curryings would be different typeobject instances. In other words, we have an invariant
+    # typecheck.
+    return False unless (nqp::istype(atype, btype) && nqp::istype(btype, atype));
 
     # different flags
     return False

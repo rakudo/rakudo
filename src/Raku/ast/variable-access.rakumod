@@ -399,11 +399,11 @@ class RakuAST::Var::Package is RakuAST::Var is RakuAST::Lookup {
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($!name.parts));
-        my $final := @parts[nqp::elems(@parts) - 1];
-        my $result;
         my str $sigil := $!sigil;
         if $!name.is-simple {
+            my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($!name.parts));
+            my $final := @parts[nqp::elems(@parts) - 1];
+            my $result;
             if self.is-resolved {
                 my $name := self.resolution.lexical-name;
                 nqp::shift(@parts);
@@ -416,25 +416,10 @@ class RakuAST::Var::Package is RakuAST::Var is RakuAST::Lookup {
                 $result := QAST::Op.new( :op('who'), $result );
                 $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);
             }
+            $result
         }
         else {
-            my @lookups := self.IMPL-UNWRAP-LIST($!name.get-implicit-lookups());
-            my $indirect_name_lookup := @lookups[0];
-            my $PseudoStash := @lookups[1];
-            $result := QAST::Op.new(
-                :op<call>,
-                $indirect_name_lookup.IMPL-TO-QAST($context),
-                QAST::Op.new(
-                    :op<callmethod>,
-                    :name<new>,
-                    $PseudoStash.IMPL-TO-QAST($context),
-                ),
-                QAST::SVal.new(:value($sigil)),
-            );
-            for @parts {
-                nqp::push($result, $_.IMPL-QAST-INDIRECT-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil));
-            }
+            $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :$sigil)
         }
-        $result
     }
 }

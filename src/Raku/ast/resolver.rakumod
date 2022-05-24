@@ -165,31 +165,39 @@ class RakuAST::Resolver {
             # See if we can obtain the first part lexically.
             # TODO pseudo-packages
             # TODO GLOBALish fallback
-            my $cur-symbol;
-            if @parts[0].name eq 'EXPORT' {
-                $cur-symbol := $!export-package;
+            if nqp::istype(@parts[0], RakuAST::Name::Part::Empty) {
+                return Nil;
+            }
+            elsif nqp::istype(@parts[0], RakuAST::Name::Part::Expression) {
+                return Nil;
             }
             else {
-                my $first-resolved := $setting
-                    ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
-                    !! self.resolve-lexical-constant(@parts[0].name);
-                return Nil unless $first-resolved;
-                $cur-symbol := $first-resolved.compile-time-value;
-            }
+                my $cur-symbol;
+                if @parts[0].name eq 'EXPORT' {
+                    $cur-symbol := $!export-package;
+                }
+                else {
+                    my $first-resolved := $setting
+                        ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
+                        !! self.resolve-lexical-constant(@parts[0].name);
+                    return Nil unless $first-resolved;
+                    $cur-symbol := $first-resolved.compile-time-value;
+                }
 
-            # Now chase down through the packages until we find something.
-            my int $i := 1;
-            my int $n := nqp::elems(@parts);
-            while $i < $n {
-                my %hash := self.IMPL-STASH-HASH($cur-symbol);
-                my $name := @parts[$i].name;
-                $cur-symbol := nqp::atkey(%hash, $i < $n - 1 ?? $name !! $sigil ~ $name);
-                return Nil if nqp::isnull($cur-symbol);
-                $i++;
-            }
+                # Now chase down through the packages until we find something.
+                my int $i := 1;
+                my int $n := nqp::elems(@parts);
+                while $i < $n {
+                    my %hash := self.IMPL-STASH-HASH($cur-symbol);
+                    my $name := @parts[$i].name;
+                    $cur-symbol := nqp::atkey(%hash, $i < $n - 1 ?? $name !! $sigil ~ $name);
+                    return Nil if nqp::isnull($cur-symbol);
+                    $i++;
+                }
 
-            # Wrap it.
-            RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $cur-symbol)
+                # Wrap it.
+                RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $cur-symbol)
+            }
         }
     }
 

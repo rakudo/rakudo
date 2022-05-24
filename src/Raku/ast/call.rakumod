@@ -181,6 +181,9 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
             elsif $!name.is-package-lookup {
                 return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package)));
             }
+            elsif $!name.is-indirect-lookup {
+                return $!name.IMPL-QAST-INDIRECT-LOOKUP($context);
+            }
             else {
                 nqp::die('compiling complex call names NYI ' ~ $!name.canonicalize)
             }

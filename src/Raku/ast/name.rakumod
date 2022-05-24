@@ -53,6 +53,10 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         nqp::elems($!parts) && nqp::istype($!parts[nqp::elems($!parts) - 1], RakuAST::Name::Part::Empty)
     }
 
+    method is-indirect-lookup() {
+        nqp::elems($!parts) == 1 && nqp::istype($!parts[0], RakuAST::Name::Part::Expression)
+    }
+
     method has-colonpair($key) {
         for $!colonpairs {
             return True if $_.key eq $key;
@@ -144,6 +148,27 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
                 $result := QAST::Op.new( :op('who'), $result );
                 $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
             }
+        }
+        $result
+    }
+
+    method IMPL-QAST-INDIRECT-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
+        my $final := $!parts[nqp::elems($!parts) - 1];
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $indirect_name_lookup := @lookups[0];
+        my $PseudoStash := @lookups[1];
+        my $result := QAST::Op.new(
+            :op<call>,
+            $indirect_name_lookup.IMPL-TO-QAST($context),
+            QAST::Op.new(
+                :op<callmethod>,
+                :name<new>,
+                $PseudoStash.IMPL-TO-QAST($context),
+            ),
+        );
+        nqp::push($result, QAST::SVal.new(:value($sigil))) if $sigil;
+        for $!parts {
+            nqp::push($result, $_.IMPL-QAST-INDIRECT-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil));
         }
         $result
     }

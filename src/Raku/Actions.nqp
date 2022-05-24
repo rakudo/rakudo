@@ -1594,6 +1594,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $base-name := $<longname>
             ?? $<longname>.ast
             !! self.r('Name').from-identifier(~$<identifier>);
+        for $<colonpair> {
+            $base-name.add-colonpair($_.ast);
+        }
         if $<accept> {
             self.attach: $/, self.r('Type', 'Coercion').new($base-name, $<accept>.ast);
         }

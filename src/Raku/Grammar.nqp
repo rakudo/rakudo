@@ -2300,8 +2300,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token typename {
         [
         | # parse ::?CLASS as special case
-          # TODO colonpairs
-          '::?'<identifier>
+          '::?'<identifier> <colonpair>*
         | <longname>
           <?{
             # ::T introduces a type, so always is one

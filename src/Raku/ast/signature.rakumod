@@ -47,8 +47,15 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
             my @param-asts := self.IMPL-UNWRAP-LIST($!parameters);
             unless @param-asts && @param-asts[0].invocant {
                 # TODO set type of this
+                my $type;
+                if nqp::isconcrete($!method-package) {
+                    my $package := $!method-package.stubbed-meta-object;
+                    my $package-name := $package.HOW.name($package);
+                    $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($package-name));
+                    $type.set-resolution(RakuAST::VarDeclaration::Implicit::Constant.new(:name($package-name), :value($package), :scope<lexical>));
+                }
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant',
-                    RakuAST::Parameter.new(:invocant));
+                    RakuAST::Parameter.new(:invocant, :$type));
             }
             # TODO implicit slurpy hash
         }

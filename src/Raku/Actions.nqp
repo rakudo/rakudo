@@ -1606,11 +1606,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method typename($/) {
         my $base-name := $<longname>
             ?? $<longname>.ast
-            !! self.r('Name').from-identifier(~$<identifier>);
+            !! self.r('Name').from-identifier('::?' ~ $<identifier>);
         for $<colonpair> {
             $base-name.add-colonpair($_.ast);
         }
-        if $<accept> {
+        my str $str_longname := ~$<longname>;
+        if nqp::eqat($str_longname, '::', 0) {
+            if $<arglist> || $<typename> {
+                $/.panic("Cannot put type parameters on a type capture");
+            }
+            if $<accepts> || $<accepts_any> {
+                $/.panic("Cannot base a coercion type on a type capture");
+            }
+            if $str_longname eq '::' {
+                $/.panic("Cannot use :: as a type name");
+            }
+            my $type-capture := self.r('Type', 'Capture').new($base-name);
+            self.attach: $/, $type-capture;
+
+            # Declare the lexical so it is available right away (e.g. for traits)
+            $*R.declare-lexical($type-capture);
+        }
+        elsif $<accept> {
             self.attach: $/, self.r('Type', 'Coercion').new($base-name, $<accept>.ast);
         }
         elsif $<accept_any> {
@@ -1660,8 +1677,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                          $<named_param> ?? $<named_param>.ast !!
                          $<param_term>  ?? $<param_term>.ast  !!
                          self.r('Parameter').new;
-        if $<type_constraint> {
-            $parameter.set-type($<type_constraint>.ast);
+        my $capture := self.r('Type', 'Capture');
+        for $<type_constraint> {
+            my $type-constraint := $_.ast;
+            if nqp::istype($type-constraint, $capture) {
+                $parameter.add-type-capture($type-constraint);
+            }
+            else {
+                $parameter.set-type($type-constraint);
+            }
         }
         if $<quant> {
             my str $q := ~$<quant>;

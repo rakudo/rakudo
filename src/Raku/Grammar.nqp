@@ -2363,7 +2363,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token parameter {
         [
-        | <type_constraint>
+        | <type_constraint>+
           [
           | $<quant>=['**'|'*'|'+'] <param_var>
           | $<quant>=['\\'|'|'] <param_var> {

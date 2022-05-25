@@ -142,3 +142,67 @@ class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup {
         self.meta-object
     }
 }
+
+class RakuAST::Type::Capture is RakuAST::Type is RakuAST::Declaration {
+    has RakuAST::Name $.name;
+
+    method new(RakuAST::Name $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Type::Capture, '$!name', $name);
+        $obj
+    }
+
+    method lexical-name() {
+        $!name.canonicalize
+    }
+
+    method generate-lookup() {
+        my $lookup := RakuAST::Term::Name.new($!name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
+    method default-scope() { 'my' }
+
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+
+    method PRODUCE-META-OBJECT() {
+        Perl6::Metamodel::GenericHOW.new_type(
+            :name($!name.canonicalize),
+        );
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := self.meta-object;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :scope('lexical'), :name($!name.canonicalize) ),
+            QAST::Op.new(:op('what'), $source-qast)
+        )
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        True
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.meta-object
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+    }
+}

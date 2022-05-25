@@ -712,7 +712,16 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         my $slash := 1;
         my $exclamation-mark := 1;
         my $underscore := 1;
+        my @declarations;
         if $!signature {
+            $!signature.IMPL-ENSURE-IMPLICITS;
+            my $implicit-invocant := $!signature.implicit-invocant;
+            if $implicit-invocant {
+                my $type-captures := self.IMPL-UNWRAP-LIST($implicit-invocant.type-captures);
+                for $type-captures {
+                    nqp::push(@declarations, $_);
+                }
+            }
             for self.IMPL-UNWRAP-LIST($!signature.parameters) {
                 if ($_.target) {
                     my $name := $_.target.name;
@@ -720,9 +729,12 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                     $exclamation-mark := 0 if $name eq '$!';
                     $underscore := 0       if $name eq '$_';
                 }
+                my $type-captures := self.IMPL-UNWRAP-LIST($_.type-captures);
+                for $type-captures {
+                    nqp::push(@declarations, $_);
+                }
             }
         }
-        my @declarations;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'))) if $slash;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!'))) if $exclamation-mark;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_'))) if $underscore;

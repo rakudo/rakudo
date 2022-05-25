@@ -5,7 +5,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     has RakuAST::Node $.returns;
     has int $!is-on-method;
     has RakuAST::Package $!method-package;
-    has RakuAST::Parameter $!implicit-invocant;
+    has RakuAST::Parameter $.implicit-invocant;
     has RakuAST::Parameter $!implicit-slurpy-hash;
 
     method new(List :$parameters, RakuAST::Node :$returns) {
@@ -185,12 +185,13 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     has RakuAST::Expression $.where;
     has RakuAST::Node $!owner;
     has RakuAST::Signature $.sub-signature;
+    has List $!type-captures;
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
             List :$names, Bool :$invocant, Bool :$optional,
             RakuAST::Parameter::Slurpy :$slurpy, List :$traits,
             RakuAST::Expression :$default, RakuAST::Expression :$where,
-            RakuAST::Signature :$sub-signature) {
+            RakuAST::Signature :$sub-signature, List :$type-captures) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
@@ -207,6 +208,9 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         nqp::bindattr($obj, RakuAST::Parameter, '$!default', $default // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Parameter, '$!where', $where // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Parameter, '$!sub-signature', $sub-signature // RakuAST::Signature);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!type-captures', nqp::defined($type-captures)
+            ?? self.IMPL-TYPE-CAPTURES($type-captures)
+            !! []);
         $obj
     }
 
@@ -273,6 +277,20 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         Nil
     }
 
+    method set-type-captures(List $type-captures) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!type-captures',
+            self.IMPL-TYPE-CAPTURES($type-captures));
+    }
+
+    method add-type-capture(RakuAST::Type::Capture $type-capture) {
+        nqp::push($!type-captures, $type-capture);
+        Nil
+    }
+
+    method type-captures() {
+        self.IMPL-WRAP-LIST($!type-captures)
+    }
+
     # Tests if the parameter is a simple positional parameter.
     method is-positional() {
         $!names || !($!slurpy =:= RakuAST::Parameter::Slurpy) ?? False !! True
@@ -308,6 +326,21 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             }
         }
         @names
+    }
+
+    method IMPL-TYPE-CAPTURES(Mu $type-captures) {
+        my @type-captures;
+        if $type-captures {
+            for self.IMPL-UNWRAP-LIST($type-captures) {
+                if nqp::istype($_, RakuAST::Type::Capture) {
+                    @type-captures.push($_);
+                }
+                else {
+                    nqp::die('Parameter type-captures list must be a list of RakuAST::Type::Captures');
+                }
+            }
+        }
+        @type-captures
     }
 
     method attach(RakuAST::Resolver $resolver) {
@@ -361,6 +394,13 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         }
         if $!sub-signature {
             nqp::bindattr($parameter, Parameter, '$!sub_signature', $!sub-signature.meta-object);
+        }
+        if $!type-captures {
+            my @type-captures := nqp::list_s;
+            for $!type-captures {
+                nqp::push_s(@type-captures, $_.lexical-name);
+            }
+            nqp::bindattr($parameter, Parameter, '@!type_captures', @type-captures);
         }
         # TODO further setup
         $parameter
@@ -639,6 +679,9 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                 # Give the decontainerized thing.
                 $param-qast.push($!target.IMPL-BIND-QAST($context, $value));
             }
+        }
+        for $!type-captures {
+            $param-qast.push($_.IMPL-BIND-QAST($context, $temp-qast-var));
         }
 
         @prepend ?? QAST::Stmts.new( |@prepend, $param-qast ) !! $param-qast

@@ -87,8 +87,12 @@ class Perl6::Metamodel::CurriedRoleHOW
 
     method parameterize_roles($obj) {
         my $binding_how := nqp::how_nd(my $binding := self.bind($obj));
+        if $binding_how =:= self {
+            $binding := nqp::null();
+        }
+        else {
+            self.set_language_revision($obj, $binding_how.language-revision($binding));
 
-        unless $binding_how =:= self {
             my $type_env := nqp::null();
             try {
                 my @result := $binding_how.body_block($binding)($obj, |@!pos_args, |%!named_args);
@@ -120,21 +124,10 @@ class Perl6::Metamodel::CurriedRoleHOW
                 nqp::push(@ptl, $parent);
             }
             @!parent_typecheck_list := @ptl;
-        }
 
-        if $binding_how =:= self {
-            $!binding := nqp::null();
-        }
-        else {
-            self.set_language_revision($obj, $binding_how.language-revision($binding));
             $!binding := $binding;
         }
-
         self.update_role_typecheck_list($obj)
-    }
-
-    method is_composite($obj) {
-        nqp::isconcrete($!binding // nqp::null())
     }
 
     method update_role_typecheck_list($obj) {

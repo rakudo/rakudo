@@ -1124,7 +1124,7 @@ my class Rakudo::Internals {
         )
     }
     my $DYNAMIC-INITIALIZATION-LOCK := Lock.new;
-    method INITIALIZE-DYNAMIC(str $name) is raw {
+    method INITIALIZE-DYNAMIC(str $name, @deprecation?) is raw {
         my str $key = nqp::replace($name,1,1,'');
         $DYNAMIC-INITIALIZATION-LOCK.protect: {
 #my $id := nqp::p6box_i(nqp::threadid(nqp::currentthread));
@@ -1143,7 +1143,15 @@ my class Rakudo::Internals {
                      nqp::atkey($initializers,$name)
                    )
                  ) ?? dynamic-not-found($key, $name)
-                   !! $code()
+                   !! do {
+                       Rakudo::Deprecations.DEPRECATED(@deprecation[1],
+                                                       '6.' ~ @deprecation[0],
+                                                       :what($name),
+                                                       :file(@deprecation[2]),
+                                                       :line(@deprecation[3]))
+                        if @deprecation;
+                       $code()
+                   }
         }
     }
 

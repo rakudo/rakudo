@@ -3058,10 +3058,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make_variable_from_parts($/, @name, ~$<sigil>, ~$<twigil>, ~$<desigilname>);
     }
 
+    # System variables which are considered deprecated. Keys are variable names, values are list of revision which
+    # deprecates the variable, and alternative to be used instead.
+    my %variable_deprecations := nqp::hash(
+        '$*PERL', nqp::list('e', '$*RAKU'),
+    );
+
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
         my $past := QAST::Var.new( :name(@name[+@name - 1]), :node($/));
         my $name := $past.name();
         my $world := $*W;
+        my @deprecation;
+
+        if nqp::existskey(%variable_deprecations, $name)
+            && nqp::isge_s(
+                nqp::getcomp('Raku').language_revision,
+                %variable_deprecations{$name}[0])
+        {
+            @deprecation := nqp::clone(%variable_deprecations{$name});
+            nqp::push(@deprecation, $world.current_file);
+            nqp::push(@deprecation, $world.current_line($/));
+        }
 
         if $twigil eq '*' {
             if +@name > 1 {
@@ -3070,6 +3087,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := QAST::Op.new(
                 :op('call'), :name('&DYNAMIC'),
                 $world.add_string_constant($name));
+            if +@deprecation {
+                $world.add_object_if_no_sc(@deprecation);
+                $past.push(QAST::WVal.new(:value(@deprecation)));
+            }
         }
         elsif $twigil eq '?' && $*IN_DECL eq 'variable' && !$*COMPILING_CORE_SETTING {
             $world.throw($/, 'X::Syntax::Variable::Twigil',

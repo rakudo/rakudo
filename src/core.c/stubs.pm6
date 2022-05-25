@@ -30,7 +30,7 @@ my class MixHash { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class Lock::Async { ... }
 
-sub DYNAMIC(str $name) is raw {  # is implementation-detail
+sub DYNAMIC(str $name, @deprecation?) is raw {  # is implementation-detail
 # Please leave this code here to be enable only for tracing calls to
 # dynamic variables in the setting and during setting compilation.
 #my $frame := callframe(1);
@@ -52,7 +52,7 @@ sub DYNAMIC(str $name) is raw {  # is implementation-detail
               nqp::atkey(GLOBAL.WHO,$pkgname),
               nqp::ifnull(
                 nqp::atkey(PROCESS.WHO,$pkgname),
-                Rakudo::Internals.INITIALIZE-DYNAMIC($name)
+                Rakudo::Internals.INITIALIZE-DYNAMIC($name, @deprecation)
               )
             )
           )

@@ -25,6 +25,7 @@ src/Perl6/Metamodel/MultipleInheritance.nqp
 src/Perl6/Metamodel/DefaultParent.nqp
 src/Perl6/Metamodel/BaseType.nqp
 src/Perl6/Metamodel/C3MRO.nqp
+src/Perl6/Metamodel/MROMember.nqp
 src/Perl6/Metamodel/MROBasedMethodDispatch.nqp
 src/Perl6/Metamodel/MROBasedTypeChecking.nqp
 src/Perl6/Metamodel/Trusting.nqp

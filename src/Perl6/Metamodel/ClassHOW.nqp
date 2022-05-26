@@ -8,10 +8,8 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
     does Perl6::Metamodel::MetaMethodContainer
-    does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::MultipleInheritance
+    does Perl6::Metamodel::MROMember
     does Perl6::Metamodel::DefaultParent
-    does Perl6::Metamodel::C3MRO
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
     does Perl6::Metamodel::Trusting

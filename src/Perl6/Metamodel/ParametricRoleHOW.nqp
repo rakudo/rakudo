@@ -103,8 +103,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         @!role_typecheck_list := @rtl;
     }
 
-    method roles($obj, :$transitive = 1, :$mro) {
-        self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro);
+    method roles($obj, :$local = 1, :$transitive = 1, :$mro) {
+        self.roles-ordered($obj, self.roles_to_compose($obj), :$local, :$transitive, :$mro)
     }
 
     method role_typecheck_list($obj) {
@@ -267,7 +267,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         return $conc;
     }
 
-    method mro($obj, :$roles, :$concretizations, :$unhidden) {
+    method mro($obj, *%named) {
         [$obj]
     }
 }

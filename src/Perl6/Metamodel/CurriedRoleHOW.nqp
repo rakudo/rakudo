@@ -20,6 +20,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::RoleContainer
+    does Perl6::Metamodel::MultipleInheritance
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::InvocationProtocol
 {
@@ -28,7 +29,6 @@ class Perl6::Metamodel::CurriedRoleHOW
     has @!pos_args;
     has %!named_args;
     has @!role_typecheck_list;
-    has @!parent_typecheck_list;    # Only for parents instantiated from generics
     has $!is_complete;
     has $!archetypes;
 
@@ -99,7 +99,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                 $type_env := @result[1] // nqp::null();
             }
 
-            for $binding_how.roles($binding, :!transitive) -> $role {
+            for nqp::hllize($binding_how.roles($binding, :!transitive)) -> $role {
                 if nqp::isconcrete($type_env) && $role.HOW.archetypes.generic {
                     $role := $role.HOW.instantiate_generic($role, $type_env);
                 }
@@ -116,18 +116,21 @@ class Perl6::Metamodel::CurriedRoleHOW
                 self.add_role($obj, $role);
             }
 
-            my @ptl;
             for $binding_how.parents($binding, :local) -> $parent {
+                my $hides := $binding_how.hides_parent($binding, $parent);
                 if nqp::isconcrete($type_env) && $parent.HOW.archetypes.generic {
                     $parent := $parent.HOW.instantiate_generic($parent, $type_env);
                 }
-                nqp::push(@ptl, $parent);
+                self.add_parent($obj, $parent, :$hides);
             }
-            @!parent_typecheck_list := @ptl;
 
             $!binding := $binding;
         }
         self.update_role_typecheck_list($obj)
+    }
+
+    method is_composed($obj) {
+        !($!binding =:= NQPMu)
     }
 
     method update_role_typecheck_list($obj) {
@@ -179,9 +182,9 @@ class Perl6::Metamodel::CurriedRoleHOW
         %!named_args
     }
 
-    method roles($obj, :$transitive = 1, :$mro = 0) {
+    method roles($obj, :$local = 1, :$transitive = 1, :$mro = 0) {
         self.complete_parameterization($obj);
-        self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro)
+        self.roles-ordered($obj, self.roles_to_compose($obj), :$local, :$transitive, :$mro)
     }
 
     method role_typecheck_list($obj) {
@@ -201,7 +204,7 @@ class Perl6::Metamodel::CurriedRoleHOW
 
     # $checkee must always be decont'ed
     method type_check_parents($obj, $checkee) {
-        for @!parent_typecheck_list -> $parent {
+        for self.parents($obj, :local) -> $parent {
             if nqp::istype_nd(nqp::decont($parent), $checkee) {
                 return 1;
             }
@@ -279,7 +282,7 @@ class Perl6::Metamodel::CurriedRoleHOW
         $!curried_role.is-implementation-detail($obj)
     }
 
-    method mro($obj) {
+    method mro($obj, *%named) {
         [$obj]
     }
 }

@@ -92,8 +92,8 @@ my class Set does Setty {
     multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
-    multi method STORE(Set:D: Iterable:D \iterable, :INITIALIZE($)! --> Set:D) {
-        (my \iterator := iterable.iterator).is-lazy
+    multi method STORE(Set:D: Any:D \keys, :INITIALIZE($)! --> Set:D) {
+        (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet),

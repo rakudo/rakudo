@@ -192,8 +192,8 @@ my class SetHash does Setty {
     multi method Mixy (SetHash:D:) { self.MixHash }
 
 #--- interface methods
-    multi method STORE(SetHash:D: Iterable:D \iterable --> SetHash:D) {
-        (my \iterator := iterable.iterator).is-lazy
+    multi method STORE(SetHash:D: Any:D \keys --> SetHash:D) {
+        (my \iterator := keys.iterator).is-lazy
           ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(

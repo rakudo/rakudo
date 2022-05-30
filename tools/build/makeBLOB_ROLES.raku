@@ -58,9 +58,8 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
 my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail {
-    method !push-List(str $action, ::?CLASS:D \to, \from) {
+    method !push-List(str $action, ::?CLASS:D $to, \from) {
         my Mu $reified := nqp::getattr(from,List,'$!reified');
-        my Mu $to      := nqp::decont(to);
         if nqp::isconcrete($reified) {
             my int $elems = nqp::elems($reified);
             my int $j     = nqp::elems($to);
@@ -80,9 +79,8 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
         }
         $to
     }
-    method !push-iterator(str $action, ::?CLASS:D \to, Iterator:D $iter) {
+    method !push-iterator(str $action, ::?CLASS:D $to, Iterator:D $iter) {
         my int $i;
-        my Mu  $to := nqp::decont(to);
         nqp::until(
           nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
           nqp::if(
@@ -106,13 +104,12 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
       int        $i     is copy,
       int        $elems is copy,
       int        $values,
-      ::?CLASS:D \to,
+      ::?CLASS:D $to,
                  \from
     ) {
         --$i;  # went one too far
         $elems = $elems + $values;
-        my int $j   = -1;
-        my Mu  $to := nqp::decont(to);
+        my int $j = -1;
         if from.^array_type.^unsigned {
             nqp::bindpos_#postfix#($to,$i,nqp::atpos_u(from, ++$j % $values))
               while nqp::islt_i(++$i,$elems);
@@ -123,11 +120,10 @@ my role #name#[::T] is repr('VMArray') is array_type(T) is implementation-detail
         }
         $to
     }
-    method !spread(::?CLASS:D \to, \from) {
-        my int $values  = nqp::elems(from);
-        my Mu  $to     := nqp::decont(to);
-        my int $elems   = nqp::elems($to) - $values;
-        my int $i       = -$values;
+    method !spread(::?CLASS:D $to, \from) {
+        my int $values = nqp::elems(from);
+        my int $elems = nqp::elems($to) - $values;
+        my int $i     = -$values;
         nqp::splice($to,from,$i,$values)
           while nqp::isle_i($i = $i + $values,$elems);
 

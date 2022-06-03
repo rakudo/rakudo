@@ -313,11 +313,9 @@ my class ThreadPoolScheduler does Scheduler {
 
     # Initial and maximum threads allowed.
 #?if moar
-    has uint $.initial_threads;
     has uint $!max_threads;
 #?endif
 #?if !moar
-    has Int $.initial_threads;
     has Int $!max_threads;
 #?endif
 
@@ -781,7 +779,6 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     method !SET-SELF($initial_threads, $max_threads) {
-        $!initial_threads = .Int with $initial_threads;
         my $default_max = (Kernel.cpu-cores * 8) max 64;
         with $max_threads // %*ENV<RAKUDO_MAX_THREADS> {
             $!max_threads = nqp::istype($_,Whatever)
@@ -800,23 +797,23 @@ my class ThreadPoolScheduler does Scheduler {
             $!max_threads = $default_max;
         }
 
-        die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
-          if $!initial_threads > $!max_threads;
+        die "Initial thread pool threads ($initial_threads) must be less than or equal to maximum threads ($!max_threads)"
+          if $initial_threads > $!max_threads;
 
         $!general-workers  := nqp::create(IterationBuffer);
         $!timer-workers    := nqp::create(IterationBuffer);
         $!affinity-workers := nqp::create(IterationBuffer);
         $!state-lock       := Lock.new;
 
-        if $!initial_threads > 0 {
+        if $initial_threads > 0 {
             # We've been asked to make some initial threads; we interpret this
             # as general workers.
             $!general-queue := nqp::create(Queue);
             nqp::push(
               $!general-workers,
               GeneralWorker.new(queue => $!general-queue, scheduler => self)
-            ) for ^$!initial_threads;
-            scheduler-debug "Created scheduler with $!initial_threads initial general workers";
+            ) for ^$initial_threads;
+            scheduler-debug "Created scheduler with $initial_threads initial general workers";
             self!maybe-start-supervisor();
         }
         else {
@@ -825,7 +822,7 @@ my class ThreadPoolScheduler does Scheduler {
         self
     }
 
-    method new(:$initial_threads, :$max_threads) {
+    method new(Int:D() :$initial_threads = 0, :$max_threads) {
         nqp::create(self)!SET-SELF($initial_threads, $max_threads)
     }
 

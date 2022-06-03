@@ -9,6 +9,8 @@ my class ThreadPoolScheduler does Scheduler {
     # specifically wrt GH #1202.
     PROCESS::<$PID> := nqp::p6box_i(my int $pid = nqp::getpid);
 
+    my constant UNLIMITED_THREADS = 9223372036854775807; # 2⁶³-1
+
     # Scheduler defaults controlled by environment variables
     my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
     my int $scheduler-debug;
@@ -312,15 +314,15 @@ my class ThreadPoolScheduler does Scheduler {
     # Initial and maximum threads allowed.
 #?if moar
     has uint $.initial_threads;
-    has uint $.max_threads;
+    has uint $!max_threads;
 #?endif
 #?if !moar
     has Int $.initial_threads;
-    has Int $.max_threads;
+    has Int $!max_threads;
 #?endif
 
     # All of the worker and queue state below is guarded by this lock.
-    has Lock $!state-lock = Lock.new;
+    has Lock $!state-lock;
 
     # The general queue and timer queue, if created.
     has Queue $!general-queue;
@@ -778,15 +780,25 @@ my class ThreadPoolScheduler does Scheduler {
         }
     }
 
-    submethod TWEAK(:$initial_threads, :$max_threads --> Nil) {
+    method !SET-SELF($initial_threads, $max_threads) {
         $!initial_threads = .Int with $initial_threads;
-        $!max_threads = nqp::istype($max_threads,Whatever)
-          ?? 9223372036854775807       # XXX should be -1
-          !! $max_threads.defined
-            ?? $max_threads == Inf
-              ?? 9223372036854775807   # XXX should be -1
-              !! $max_threads.Int
-            !! (%*ENV<RAKUDO_MAX_THREADS> // (Kernel.cpu-cores * 8 max 64)).Int;
+        my $default_max = (Kernel.cpu-cores * 8) max 64;
+        with $max_threads // %*ENV<RAKUDO_MAX_THREADS> {
+            $!max_threads = nqp::istype($_,Whatever)
+              ?? UNLIMITED_THREADS
+              !! nqp::istype($_, Numeric) && $_ == Inf
+                ?? UNLIMITED_THREADS
+                !! nqp::istype($_, Int)
+                  ?? ($_ < 0 ?? UNLIMITED_THREADS !! (.Int || $default_max))
+                  !! nqp::istype($_, Str)
+                    ?? (.lc eq any <unlimited inf>)
+                      ?? UNLIMITED_THREADS
+                      !! die "Cannot use '$_' as a value for maximum threads"
+                    !! die "Cannot use a '" ~ $_.^name ~ "' for maximum threads value"
+        }
+        else {
+            $!max_threads = $default_max;
+        }
 
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
           if $!initial_threads > $!max_threads;
@@ -794,6 +806,7 @@ my class ThreadPoolScheduler does Scheduler {
         $!general-workers  := nqp::create(IterationBuffer);
         $!timer-workers    := nqp::create(IterationBuffer);
         $!affinity-workers := nqp::create(IterationBuffer);
+        $!state-lock       := Lock.new;
 
         if $!initial_threads > 0 {
             # We've been asked to make some initial threads; we interpret this
@@ -809,10 +822,15 @@ my class ThreadPoolScheduler does Scheduler {
         else {
             scheduler-debug "Created scheduler without initial general workers";
         }
+        self
+    }
+
+    method new(:$initial_threads, :$max_threads) {
+        nqp::create(self)!SET-SELF($initial_threads, $max_threads)
     }
 
     method max_threads(ThreadPoolScheduler:D:) {
-        $!max_threads == 9223372036854775807 ?? Inf !! $!max_threads
+        $!max_threads == UNLIMITED_THREADS ?? Inf !! $!max_threads
     }
 
     method queue(Bool :$hint-time-sensitive, :$hint-affinity) {

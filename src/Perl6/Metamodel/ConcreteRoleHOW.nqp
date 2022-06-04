@@ -88,8 +88,10 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     # It makes sense for concretizations to default to MRO order of roles.
-    method roles($obj, :$local = 1, :$transitive = 1, :$mro = 1) {
-        self.roles-ordered($obj, @!roles, :$local, :$transitive, :$mro)
+    method roles($obj, :$transitive = 1, :$mro = 1) {
+        $transitive
+            ?? self.roles-ordered($obj, @!roles, :transitive, :$mro)
+            !! @!roles
     }
 
     method add_to_role_typecheck_list($obj, $type) {

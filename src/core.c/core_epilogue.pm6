@@ -18,6 +18,7 @@ BEGIN {
     Perl6::Metamodel::MultiDispatcher.HOW.compose(Perl6::Metamodel::MultiDispatcher);
     Perl6::Metamodel::WrapDispatcher.HOW.compose(Perl6::Metamodel::WrapDispatcher);
 #?endif
+    Perl6::Metamodel::MonicMachine.HOW.reparent(Perl6::Metamodel::MonicMachine, Any);
 }
 
 BEGIN {

@@ -130,3 +130,5 @@ class Perl6::Metamodel::MonicMachine is repr('VMArray') {
 #       @members
 #   }
 }
+
+my $monic_machine := Perl6::Metamodel::MonicMachine;

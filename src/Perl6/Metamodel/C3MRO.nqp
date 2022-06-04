@@ -23,35 +23,15 @@ role Perl6::Metamodel::C3MRO {
             @immediate_roles := $class.HOW.concretizations($class, :local, :transitive);
         }
 
-        # Provided we have immediate parents...
         my @all;        # MRO with classes and roles as groups
         my @all_conc;   # MRO with classes and roles as concretizations
         my @no_roles;   # MRO with classes only
-        if +@immediate_parents {
-            if (+@immediate_parents == 1) && (+@immediate_roles == 0) {
-                my $parent := @immediate_parents[0];
-                @all_conc := nqp::clone(
-                                nqp::istype($parent.HOW, Perl6::Metamodel::C3MRO)
-                                ?? $parent.HOW.mro($parent, :concretizations)
-                                !! $parent.HOW.mro($parent));
-            }
-            else {
-                # Build merge list of linearizations of all our parents, add
-                # immediate parents and merge.
-                my @merge_list;
-                @merge_list.push(@immediate_roles);
-                for @immediate_parents {
-                    @merge_list.push(
-                        nqp::istype($_.HOW, Perl6::Metamodel::C3MRO) ?? $_.HOW.mro($_, :concretizations) !! $_.HOW.mro($_)
-                    );
-                }
-                @merge_list.push(@immediate_parents);
-                @all_conc := self.c3_merge(@merge_list);
-            }
-        }
 
-        # Put this class on the start of the list, and we're done.
-        @all_conc.unshift($class);
+        nqp::push(@all_conc, $class);
+        my @hier := $monic_machine.new;
+        @hier.emboss(|@immediate_roles);
+        @hier.emboss(|$_.HOW.mro($_, :concretizations)) for @immediate_parents;
+        @hier.beckon(@all_conc);
 
         for @all_conc {
             if $_.HOW.archetypes.inheritable || nqp::istype($_.HOW, Perl6::Metamodel::NativeHOW) { # I.e. classes or natives

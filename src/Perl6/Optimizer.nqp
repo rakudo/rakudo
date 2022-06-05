@@ -1408,6 +1408,7 @@ my class Operand {
             for ['new', 'bless'] -> $constructor {
                 if nqp::defined(my $meth := nqp::tryfindmethod($type, $constructor)) {
                     for $!optimizer.routine_candidates($meth) -> $cand {
+                        next unless nqp::can($cand, 'package');
                         my $cand-pkg := $cand.package;
                         my $cand-ok := 0;
                         for @ok-types -> $ok-type {
@@ -4544,7 +4545,7 @@ class Perl6::Optimizer {
                 self.routine_candidates($wrapper, @candidates);
             }
         }
-        elsif $routine.is_dispatcher {
+        elsif nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher {
             my @dispatchees := nqp::istype($routine, NQPRoutine)
                                 ?? nqp::getattr($routine, NQPRoutine, '$!dispatchees')
                                 !! nqp::getattr($routine, $!symbols.Routine, '@!dispatchees');

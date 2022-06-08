@@ -955,6 +955,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
         my $block := QAST::Block.new(
+            :name(self.name ?? self.name.canonicalize !! ''),
             :blocktype('declaration_static'),
             self.IMPL-QAST-DECLS($context)
         );

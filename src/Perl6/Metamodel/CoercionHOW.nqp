@@ -112,10 +112,12 @@ class Perl6::Metamodel::CoercionHOW
 
     # Coercion protocol method.
     method coerce($obj, $value) {
-        if nqp::istype($value, $!target_type) {
-            return $value
-        }
+        nqp::istype($value, $!target_type)
+          ?? $value
+          !! self.actually_coerce($obj, $value)
+    }
 
+    method actually_coerce($obj, $value) {
         # Support nested coercions
         if nqp::can($!constraint_type.HOW.archetypes, 'coercive')
             && $!constraint_type.HOW.archetypes.coercive

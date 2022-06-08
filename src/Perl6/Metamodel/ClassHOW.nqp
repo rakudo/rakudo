@@ -253,21 +253,8 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
 
-    method roles($obj, :$local, :$transitive = 1, :$mro = 0) {
-        my @result := self.roles-ordered($obj, @!roles, :$transitive, :$mro);
-        unless $local {
-            my $first := 1;
-            for self.mro($obj) {
-                if $first {
-                    $first := 0;
-                    next;
-                }
-                for $_.HOW.roles($_, :$transitive, :$mro, :local(1)) {
-                    @result.push($_);
-                }
-            }
-        }
-        @result
+    method roles($obj, :$local = 0, :$transitive = 1, :$mro = 0) {
+        self.roles-ordered($obj, @!roles, :$local, :$transitive, :$mro)
     }
 
     method role_typecheck_list($obj) {

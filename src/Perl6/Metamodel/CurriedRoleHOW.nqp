@@ -179,9 +179,9 @@ class Perl6::Metamodel::CurriedRoleHOW
         %!named_args
     }
 
-    method roles($obj, :$transitive = 1, :$mro = 0) {
+    method roles($obj, :$local = 1, :$transitive = 1, :$mro = 0) {
         self.complete_parameterization($obj);
-        self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro)
+        self.roles-ordered($obj, self.roles_to_compose($obj), :$local, :$transitive, :$mro)
     }
 
     method role_typecheck_list($obj) {

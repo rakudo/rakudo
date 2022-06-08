@@ -63,13 +63,13 @@ class RakuAST::Resolver {
 
     # Set the global package when we're starting a fresh compilation unit.
     method set-global(Mu $global) {
-        nqp::die("This resovler's GLOBAL is already set") unless nqp::eqaddr($!global, Mu);
+        nqp::die("This resolver's GLOBAL is already set") unless nqp::eqaddr($!global, Mu);
         nqp::bindattr(self, RakuAST::Resolver, '$!global', $global);
         Nil
     }
 
     method set-export-package(Mu $export-package) {
-        nqp::die("This resovler's EXPORT is already set") unless nqp::eqaddr($!export-package, Mu);
+        nqp::die("This resolver's EXPORT is already set") unless nqp::eqaddr($!export-package, Mu);
         nqp::bindattr(self, RakuAST::Resolver, '$!export-package', $export-package);
         Nil
     }

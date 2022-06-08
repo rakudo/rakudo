@@ -20,11 +20,11 @@ src/Perl6/Metamodel/MethodContainer.nqp
 src/Perl6/Metamodel/PrivateMethodContainer.nqp
 src/Perl6/Metamodel/MultiMethodContainer.nqp
 src/Perl6/Metamodel/MetaMethodContainer.nqp
+src/Perl6/Metamodel/MonicMachine.nqp
 src/Perl6/Metamodel/RoleContainer.nqp
 src/Perl6/Metamodel/MultipleInheritance.nqp
 src/Perl6/Metamodel/DefaultParent.nqp
 src/Perl6/Metamodel/BaseType.nqp
-src/Perl6/Metamodel/MonicMachine.nqp
 src/Perl6/Metamodel/C3MRO.nqp
 src/Perl6/Metamodel/MROMember.nqp
 src/Perl6/Metamodel/MROBasedMethodDispatch.nqp

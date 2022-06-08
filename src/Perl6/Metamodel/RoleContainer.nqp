@@ -9,31 +9,22 @@ role Perl6::Metamodel::RoleContainer {
         @!roles_to_compose
     }
 
-    method roles-ordered($obj, $roles, :$transitive = 1, :$mro = 0) {
-        $transitive
-            ?? $mro
-                ?? self.visit_roles_in_mro($obj, $roles, nqp::list())
-                !! self.visit_roles($obj, $roles, nqp::list())
-            !! $roles
-    }
+    my &ROLES-TRANSITIVE := nqp::getstaticcode(anon sub ROLES-TRANSITIVE(@self, $obj) {
+        @self.accept($obj).veneer($obj.HOW.roles($obj, :transitive, :!mro))
+    });
 
-    method visit_roles($obj, $roles, @result) {
-        for nqp::hllize($roles) -> $role {
-            my @role_roles := nqp::hllize($role.HOW.roles($role, :transitive, :!mro));
-            nqp::push(@result, $role);
-            nqp::splice(@result, @role_roles, nqp::elems(@result), 0);
-        }
-        @result
-    }
+    my &ROLES-MRO := nqp::getstaticcode(anon sub ROLES-MRO(@self, $obj) {
+        @self.accept(nqp::splice([$obj], $obj.HOW.roles($obj, :transitive, :!mro), 1, 0))
+    });
 
-    method visit_roles_in_mro($obj, $roles, @result) {
-        for nqp::hllize($roles) -> $role {
-            my @role_roles := nqp::hllize($role.HOW.roles($role, :transitive, :!mro));
-            my @todo := nqp::clone(@role_roles);
-            nqp::unshift(@todo, $role);
-            nqp::push(@result, @todo);
+    method roles-ordered($obj, @roles, :$transitive = 1, :$mro = 0) {
+        if $transitive {
+            @roles := $monic_machine.new.veneer(@roles);
+            @roles := $mro
+                ?? @roles.summon(&ROLES-MRO).beckon(nqp::list())
+                !! @roles.banish(&ROLES-TRANSITIVE, nqp::list());
         }
-        self.c3_merge(@result)
+        @roles
     }
 }
 

@@ -84,20 +84,6 @@ class Perl6::Metamodel::ClassHOW
         @!fallbacks[+@!fallbacks] := %desc;
     }
 
-    sub has_method($target, $name) {
-        for $target.HOW.mro($target) {
-            my %mt := nqp::hllize($_.HOW.method_table($_));
-            if nqp::existskey(%mt, $name) {
-                return 1;
-            }
-            %mt := nqp::hllize($_.HOW.submethod_table($_));
-            if nqp::existskey(%mt, $name) {
-                return 1;
-            }
-        }
-        return 0;
-    }
-
     method compose($the-obj, :$compiler_services) {
         my $obj := nqp::decont($the-obj);
 
@@ -168,13 +154,67 @@ class Perl6::Metamodel::ClassHOW
         self.setup_finalization($obj);
 
         # Test the remaining stubs
+        my %still-stubbed;
+        my int $still-stubbed;
         for @stubs -> %data {
-            if !has_method(%data<target>, %data<name>) {
-                nqp::die("Method '" ~ %data<name> ~ "' must be implemented by " ~
-                         %data<target>.HOW.name(%data<target>) ~
-                         " because it is required by roles: " ~
-                         nqp::join(", ", %data<needed>) ~ ".");
+            my $target := %data<target>;
+            my $name   := %data<name>;
+            next if nqp::existskey(             # exists as method?
+              nqp::hllize($target.HOW.method_table($target)),
+              $name
+            ) || nqp::existskey(                # exists as submethod?
+                   nqp::hllize($target.HOW.submethod_table($target)),
+                   $name
+                 );
+
+            # method stubbed but not implemented
+            my $target-name := $target.HOW.name($target);
+            my $needed      := nqp::join(', ', %data<needed>);
+
+            my %needed := nqp::ishash(%still-stubbed{$target-name})
+              ?? %still-stubbed{$target-name}
+              !! (%still-stubbed{$target-name} := nqp::hash);
+
+            (nqp::islist(%needed{$needed})
+              ?? %needed{$needed}
+              !! (%needed{$needed} := nqp::list)
+            ).push($name);
+            ++$still-stubbed;
+        }
+
+        if $still-stubbed {
+            if $still-stubbed == 1 {
+                for %still-stubbed {
+                    my $target-name := $_.key;
+                    for $_.value {
+                        nqp::die("Method '"
+                          ~ $_.value[0]
+                          ~ "' must be implemented for class '"
+                          ~ $target-name
+                          ~ "' because it is required by role '"
+                          ~ $_.key
+                          ~ "'"
+                        );
+                    }
+                }
             }
+
+            my $message := "The following methods must be implemented:";
+            for %still-stubbed {
+                $message := $message ~ "\n  for class '" ~ $_.key ~ "':";
+
+                my %needed := $_.value;
+                for %needed {
+                    $message := $message
+                      ~ "\n    '"
+                      ~ nqp::join("', '", $_.value)
+                      ~ "' required by role '"
+                      ~ $_.key
+                      ~ "'";
+                }
+            }
+
+            nqp::die($message);
         }
 
         # See if we have a Bool method other than the one in the top type.

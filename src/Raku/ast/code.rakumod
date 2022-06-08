@@ -963,6 +963,11 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
             $signature.set-is-on-method(True);
             $signature.IMPL-CHECK($resolver, $context, True);
         }
+
+        if self.multiness eq 'proto' {
+            nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
+        }
+
         # Apply any traits.
         self.apply-traits($resolver, $context, self)
     }

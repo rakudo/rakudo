@@ -9,6 +9,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     has RakuAST::Name $.name;
     has Str $.repr;
     has RakuAST::Block $.body;
+    has Mu $!role-group;
 
     # Methods and attributes are not directly added, but rather thorugh the
     # RakuAST::Attaching mechanism. Attribute usages are also attached for
@@ -32,6 +33,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         nqp::bindattr($obj, RakuAST::Package, '$!attached-methods', []);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attributes', []);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attribute-usages', []);
+        nqp::bindattr($obj, RakuAST::Package, '$!role-group', Mu);
         $obj.set-traits($traits);
         $obj
     }
@@ -86,7 +88,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         my str $scope := self.scope;
         $scope := 'our' if $scope eq 'unit';
         my $name := $!name;
-        if $name && !$name.is-empty && ($scope eq 'my' || $scope eq 'our') {
+        if $name && !$name.is-empty && ($scope eq 'my' || $scope eq 'our') && $!package-declarator ne 'role' {
             # Need to install the package somewhere.
             my $type-object := self.stubbed-meta-object;
             if $name.is-identifier {
@@ -132,6 +134,33 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
             }
         }
 
+        elsif $name && !$name.is-empty && $!package-declarator eq 'role' {
+            # Find an appropriate existing role group
+            my $group-name := $name.canonicalize(:colonpairs(0));
+            my $group := $resolver.resolve-lexical-constant($group-name);
+            if $group {
+                $group := $group.compile-time-value;
+            }
+            else {
+                # No existing one found - create a role group
+                $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
+                    :name($group-name),
+                    :repr($!repr)
+                );
+                my $outer := $resolver.find-attach-target('block') // $resolver.find-attach-target('compunit');
+                $outer.add-generated-lexical-declaration(
+                    RakuAST::VarDeclaration::Implicit::Constant.new(
+                        :name($group-name),
+                        :value($group)
+                    )
+                );
+            }
+            # Add ourselves to the role group
+            my $type-object := self.stubbed-meta-object;
+            $type-object.HOW.set_group($type-object, $group);
+            nqp::bindattr(self, RakuAST::Package, '$!role-group', $group);
+        }
+
         # Apply traits.
         self.apply-traits($resolver, self);
     }
@@ -171,6 +200,9 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
 
         if $!package-declarator eq 'role' {
             $type.HOW.set_body_block($type, $!body.meta-object);
+
+            my $group := $!role-group;
+            $group.HOW.add_possibility($group, $type) unless $group =:= Mu;
         }
 
         # Compose the meta-object and return it.

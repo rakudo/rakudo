@@ -84,6 +84,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
         # Install the symbol.
         my str $scope := self.scope;
+        $scope := 'our' if $scope eq 'unit';
         my $name := $!name;
         if $name && !$name.is-empty && ($scope eq 'my' || $scope eq 'our') {
             # Need to install the package somewhere.

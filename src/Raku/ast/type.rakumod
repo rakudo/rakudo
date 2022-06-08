@@ -104,7 +104,7 @@ class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup {
 
 class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup {
     has RakuAST::Name $.name;
-    has Bool $!definite;
+    has Bool $.definite;
 
     method new(RakuAST::Name $name, Bool $definite) {
         my $obj := nqp::create(self);

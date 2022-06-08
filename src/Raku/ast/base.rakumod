@@ -45,12 +45,12 @@ class RakuAST::Node {
 
     # Resolves all nodes beneath this one, recursively, using the specified
     # resolver.
-    method resolve-all(RakuAST::Resolver $resolver) {
-        self.IMPL-CHECK($resolver, True);
+    method resolve-all(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-CHECK($resolver, $context, True);
     }
 
     # Perform CHECK-time activities on this node.
-    method IMPL-CHECK(RakuAST::Resolver $resolver, Bool $resolve-only) {
+    method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Bool $resolve-only) {
         # Perform resolutions.
         if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {
             self.resolve-with($resolver);
@@ -73,7 +73,7 @@ class RakuAST::Node {
         my int $needs-begin-after;
         if nqp::istype(self, RakuAST::BeginTime) {
             if self.is-begin-performed-before-children() {
-                self.ensure-begin-performed($resolver);
+                self.ensure-begin-performed($resolver, $context);
             }
             else {
                 $needs-begin-after := 1;
@@ -85,13 +85,13 @@ class RakuAST::Node {
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $resolve-only) });
+        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
         # Perform any after-children BEGIN-time effects.
         if $needs-begin-after {
-            self.ensure-begin-performed($resolver);
+            self.ensure-begin-performed($resolver, $context);
         }
 
         # Unless in resolve-only mode, do other check-time activities.

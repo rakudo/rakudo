@@ -362,12 +362,12 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 
     method is-begin-performed-before-children() { False }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Make sure that our placeholder signature has resolutions performed,
         # and that we don't produce a topic parameter.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
-            $placeholder-signature.IMPL-CHECK($resolver, True);
+            $placeholder-signature.IMPL-CHECK($resolver, $context, True);
             if $!implicit-topic-mode {
                 my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0];
                 $topic.set-parameter(False);
@@ -641,11 +641,11 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
     method is-begin-performed-before-children() { False }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
-            $placeholder-signature.IMPL-CHECK($resolver, True);
+            $placeholder-signature.IMPL-CHECK($resolver, $context, True);
         }
         # Make sure that our signature has resolutions performed.
         if $!signature {
@@ -654,7 +654,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                     RakuAST::Name.from-identifier('Any'),
                 ),
             );
-            $!signature.IMPL-CHECK($resolver, True);
+            $!signature.IMPL-CHECK($resolver, $context, True);
         }
 
         if self.multiness eq 'multi' {
@@ -705,7 +705,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         }
 
         # Apply any traits.
-        self.apply-traits($resolver, self)
+        self.apply-traits($resolver, $context, self)
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -938,11 +938,11 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
         }
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
-            $placeholder-signature.IMPL-CHECK($resolver, True);
+            $placeholder-signature.IMPL-CHECK($resolver, $context, True);
         }
         # Make sure that our signature has resolutions performed.
         my $signature := self.signature;
@@ -953,10 +953,10 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
                 ),
             );
             $signature.set-is-on-method(True);
-            $signature.IMPL-CHECK($resolver, True);
+            $signature.IMPL-CHECK($resolver, $context, True);
         }
         # Apply any traits.
-        self.apply-traits($resolver, self)
+        self.apply-traits($resolver, $context, self)
     }
 }
 

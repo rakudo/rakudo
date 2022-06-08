@@ -16,6 +16,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     has int $.precompilation-mode;
     has Mu $!export-package;
     has Mu $.herestub-queue;
+    has RakuAST::IMPL::QASTContext $.context;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
             Str :$setting-name, Bool :$eval, Mu :$global-package-how,
@@ -37,6 +38,10 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
+
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!context', RakuAST::IMPL::QASTContext.new(
+            :sc($sc)));
+
         $obj
     }
 
@@ -45,7 +50,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     # any CHECK-time error checking. This may also produce information useful
     # during optimization, though will not do any transforms in and of itself.
     method check(RakuAST::Resolver $resolver) {
-        self.IMPL-CHECK($resolver, False);
+        self.IMPL-CHECK($resolver, $!context, False);
     }
 
     # Replace the statement list of the compilation unit.
@@ -154,8 +159,8 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
 
     method IMPL-TO-QAST-COMP-UNIT(*%options) {
         # Create compilation context.
+        my $context := $!context;
         nqp::pushcompsc($!sc);
-        my $context := RakuAST::IMPL::QASTContext.new(:sc($!sc));
         my $top-level := QAST::Block.new;
         self.IMPL-ADD-SETTING-LOADING($context, $top-level, $!setting-name) if $!setting-name;
 

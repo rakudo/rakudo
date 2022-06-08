@@ -1115,10 +1115,10 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
         ])
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Evaluate the argument to the module load, if any.
         my $arglist := $!argument
-            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver).List.FLATTENABLE_LIST
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
             !! Nil;
 
         # See if it's a pragma of some kind.

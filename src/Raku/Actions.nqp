@@ -220,14 +220,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $block.replace-signature($<signature>.ast);
         }
         $block.replace-body($<blockoid>.ast);
-        $block.ensure-begin-performed($*R);
+        $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }
 
     method block($/) {
         my $block := $*BLOCK;
         $block.replace-body($<blockoid>.ast);
-        $block.ensure-begin-performed($*R);
+        $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }
 
@@ -340,7 +340,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                    argument => $<arglist><EXPR>.ast
                )
             !! self.r('Statement', 'Use').new(module-name => $<module_name>.ast);
-        $ast.ensure-begin-performed($*R);
+        $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;
     }
 
@@ -387,7 +387,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method statement_prefix:sym<BEGIN>($/) {
         my $ast := self.r('StatementPrefix', 'Phaser', 'Begin').new($<blorst>.ast);
-        $ast.ensure-begin-performed($*R);
+        $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;
     }
 
@@ -1096,7 +1096,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method enter-package-scope($/) {
         # Perform BEGIN-time effects (declaring the package, applying traits,
         # etc.)
-        $*PACKAGE.ensure-begin-performed($*R);
+        $*PACKAGE.ensure-begin-performed($*R, $*CU.context);
 
         # Let the resolver know which package we're in.
         $*R.push-package($*PACKAGE);
@@ -1216,7 +1216,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $routine.replace-signature($<signature>.ast);
         }
         $routine.replace-body($<onlystar> ?? $<onlystar>.ast !! $<blockoid>.ast);
-        $routine.ensure-begin-performed($*R);
+        $routine.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $routine;
     }
 
@@ -1234,7 +1234,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         $routine.replace-body($<onlystar> ?? $<onlystar>.ast !! $<blockoid>.ast);
-        $routine.ensure-begin-performed($*R);
+        $routine.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $routine;
     }
 
@@ -1256,7 +1256,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $regex.replace-signature($<signature>.ast);
         }
         $regex.replace-body($<nibble>.ast);
-        $regex.ensure-begin-performed($*R);
+        $regex.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $regex;
     }
 
@@ -1295,7 +1295,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $trait := $<circumfix>
                 ?? $ast-type.new(:name($<longname>.ast), :argument($<circumfix>.ast))
                 !! $ast-type.new(:name($<longname>.ast));
-            $trait.ensure-begin-performed($*R);
+            $trait.ensure-begin-performed($*R, $*CU.context);
             self.attach: $/, $trait;
         }
     }

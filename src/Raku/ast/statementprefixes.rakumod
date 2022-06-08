@@ -266,9 +266,9 @@ class RakuAST::StatementPrefix::Phaser::Begin is RakuAST::StatementPrefix::Phase
     has Mu $!produced-value;
 
     # Perform BEGIN-time evaluation.
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
-            '$!produced-value', self.IMPL-BEGIN-TIME-EVALUATE(self.blorst, $resolver));
+            '$!produced-value', self.IMPL-BEGIN-TIME-EVALUATE(self.blorst, $resolver, $context));
         Nil
     }
 

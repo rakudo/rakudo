@@ -83,7 +83,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     # We install the name before parsing the class body.
     method is-begin-performed-before-children() { True }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Install the symbol.
         my str $scope := self.scope;
         $scope := 'our' if $scope eq 'unit';
@@ -162,7 +162,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         }
 
         # Apply traits.
-        self.apply-traits($resolver, self);
+        self.apply-traits($resolver, $context, self);
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {

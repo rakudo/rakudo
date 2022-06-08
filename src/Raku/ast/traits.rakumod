@@ -35,10 +35,10 @@ class RakuAST::TraitTarget {
     }
 
     # Apply all traits (and already applied will not be applied again).
-    method apply-traits(RakuAST::Resolver $resolver, RakuAST::TraitTarget $target) {
+    method apply-traits(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target) {
         if $!traits {
             for $!traits {
-                $_.apply($resolver, $target) unless $_.applied;
+                $_.apply($resolver, $context, $target) unless $_.applied;
             }
         }
         Nil
@@ -83,14 +83,14 @@ class RakuAST::Trait is RakuAST::ImplicitLookups {
 
     # Apply the trait to the specified target. Checks if it has been applied,
     # and then applies it.
-    method apply(RakuAST::Resolver $resolver, RakuAST::TraitTarget $target) {
+    method apply(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target) {
         unless self.applied {
-            self.IMPL-CHECK($resolver, False);
+            self.IMPL-CHECK($resolver, $context, False);
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $decl-target := RakuAST::Declaration::ResolvedConstant.new:
                 compile-time-value => $target.compile-time-value;
             my $args := self.IMPL-TRAIT-ARGS($resolver, $decl-target);
-            $target.IMPL-BEGIN-TIME-CALL(@lookups[0], $args, $resolver);
+            $target.IMPL-BEGIN-TIME-CALL(@lookups[0], $args, $resolver, $context);
             self.mark-applied;
         }
     }
@@ -110,7 +110,7 @@ class RakuAST::Trait::Is is RakuAST::Trait is RakuAST::BeginTime {
         $obj
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # See if the name resolves as a type and commit to that.
         my $resolution := $resolver.resolve-name-constant($!name);
         if nqp::istype($resolution, RakuAST::CompileTimeValue) &&

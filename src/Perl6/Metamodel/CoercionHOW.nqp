@@ -102,10 +102,8 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method type_check($coercion_type, $checkee) {
-        if $coercion_type =:= $checkee {
-            return 1;
-        }
-        $!target_type.HOW.type_check($!target_type, $checkee);
+        $coercion_type =:= $checkee
+          || $!target_type.HOW.type_check($!target_type, $checkee);
     }
 
     method accepts_type($coercion_type, $checkee) {

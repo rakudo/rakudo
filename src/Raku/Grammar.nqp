@@ -2040,10 +2040,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token bad_trait_typename {
         || <longname> {
-                my $name := $*W.dissect_longname($<longname>);
-                $*W.throw($/, ['X', 'InvalidType'],
-                    :typename($name.name),
-                    :suggestions($*W.suggest_typename($name.name)));
+                my $name := $<longname>.ast;
+                $/.typed_panic('X::InvalidType',
+                    :typename($name.canonicalize(:colonpairs(0))),
+                    :suggestions([])); #TODO suggestions
             }
         || <.malformed: 'trait'>
     }

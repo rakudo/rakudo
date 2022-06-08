@@ -24,6 +24,14 @@ class RakuAST::Blockoid is RakuAST::SinkPropagator {
     method visit-children(Code $visitor) {
         $visitor($!statement-list);
     }
+
+    method IMPL-CAN-INTERPRET() {
+        $!statement-list.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        $!statement-list.IMPL-INTERPRET($ctx)
+    }
 }
 
 class RakuAST::OnlyStar is RakuAST::Blockoid {

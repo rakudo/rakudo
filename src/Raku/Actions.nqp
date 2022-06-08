@@ -1627,6 +1627,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Declare the lexical so it is available right away (e.g. for traits)
             $*R.declare-lexical($type-capture);
         }
+        elsif $<arglist> {
+            self.attach: $/, self.r('Type', 'Parameterized').new($base-name, $<arglist>.ast);
+        }
         elsif $<accept> {
             self.attach: $/, self.r('Type', 'Coercion').new($base-name, $<accept>.ast);
         }

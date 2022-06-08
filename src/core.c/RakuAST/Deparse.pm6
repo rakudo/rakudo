@@ -1223,6 +1223,10 @@ class RakuAST::Deparse {
         self.deparse($ast.name)
     }
 
+    multi method deparse(RakuAST::Type::Parameterized:D $ast --> str) {
+        self.deparse($ast.name) ~ '[' ~ self.deparse($ast.args) ~ ']'
+    }
+
     multi method deparse(RakuAST::Var:D $ast --> str) {
         $ast.name
     }

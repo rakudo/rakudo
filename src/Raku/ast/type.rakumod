@@ -206,3 +206,52 @@ class RakuAST::Type::Capture is RakuAST::Type is RakuAST::Declaration {
         $visitor($!name);
     }
 }
+
+class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup {
+    has RakuAST::Name $.name;
+    has RakuAST::ArgList $.args;
+
+    method new(RakuAST::Name $name, RakuAST::ArgList $args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Type::Parameterized, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Parameterized, '$!args', $args);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-name-constant($!name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+        $visitor($!args);
+    }
+
+    method PRODUCE-META-OBJECT() {
+        my $role := self.resolution.compile-time-value;
+        my $args := $!args.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+        my @pos := $args[0];
+        my %named := $args[1];
+        $role.HOW.parameterize($role, |@pos, |%named)
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := self.meta-object;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        self.is-resolved
+            && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+            && $!args.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.meta-object
+    }
+}

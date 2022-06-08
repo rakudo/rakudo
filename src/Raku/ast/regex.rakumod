@@ -307,7 +307,7 @@ class RakuAST::Regex::CapturingGroup is RakuAST::Regex::Atom is RakuAST::RegexTh
         # avoid closure-cloning it per time we enter it, for example if it is
         # quantified.
         my str $name := self.IMPL-UNIQUE-NAME;
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
         self.IMPL-LINK-META-OBJECT($context, $block);
         QAST::Stmts.new(
             $block,
@@ -1040,7 +1040,7 @@ class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::N
         # avoid closure-cloning it per time we enter it, which may help if we
         # are scanning or it's in a quantified thing.
         my str $name := self.IMPL-UNIQUE-NAME;
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
         self.IMPL-LINK-META-OBJECT($context, $block);
         QAST::Stmts.new(
             $block,

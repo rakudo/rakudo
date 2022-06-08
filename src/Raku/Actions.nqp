@@ -1081,6 +1081,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             );
         }
         $package.replace-body: $body;
+        $package.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $package;
     }
 

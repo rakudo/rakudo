@@ -55,6 +55,7 @@ class RakuAST::OnlyStar is RakuAST::Blockoid {
 # Marker for all code-y things.
 class RakuAST::Code is RakuAST::Node {
     has Bool $.custom-args;
+    has Mu $!qast-block;
 
     method set-custom-args() {
         nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
@@ -71,22 +72,206 @@ class RakuAST::Code is RakuAST::Node {
         QAST::Op.new( :op('p6capturelex'), $clone )
     }
 
+    method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
+        unless ($!qast-block) {
+            self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype);
+        }
+        $!qast-block
+    }
+
+    method IMPL-FINISH-CODE-OBJECT(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, :$blocktype);
+        self.IMPL-LINK-META-OBJECT($context, $block);
+        nqp::bindattr(self, RakuAST::Code, '$!qast-block', $block);
+    }
+
+    method IMPL-STUB-CODE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $code-obj := self.meta-object;
+
+        my $precomp;
+        my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
+            if self.IMPL-CAN-INTERPRET {
+                self.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+            }
+            else {
+                my $code-obj := nqp::getcodeobj(nqp::curcode());
+                unless $precomp {
+                    my $block := self.IMPL-QAST-BLOCK($context);
+                    #self.IMPL-COMPILE-DYNAMICALLY($context, $block);
+                    $precomp := nqp::getattr($code-obj, Code, '@!compstuff')[1]();
+                }
+                unless nqp::isnull($code-obj) {
+                    return $code-obj(|@pos, |%named);
+                }
+            }
+        });
+
+        nqp::bindattr($code-obj, Code, '$!do', $stub);
+        nqp::markcodestatic($stub);
+        nqp::markcodestub($stub);
+        nqp::setcodeobj($stub, $code-obj);
+
+        $stub
+    }
+
     method IMPL-LINK-META-OBJECT(RakuAST::IMPL::QASTContext $context, Mu $block) {
         # Obtain the meta-object and connect it to the code block.
         my $code-obj := self.meta-object;
         $context.ensure-sc($code-obj);
+
+        # Associate QAST block with code object, which will ensure it is
+        # fixed up as needed.
         $block.code_object($code-obj);
 
-        # We need to do a fixup of the code block for the non-precompiled case.
-        $context.add-fixup-task(-> {
-            QAST::Op.new(
-                :op('bindattr'),
-                QAST::WVal.new( :value($code-obj) ),
-                QAST::WVal.new( :value(Code) ),
-                QAST::SVal.new( :value('$!do') ),
-                QAST::BVal.new( :value($block) )
-            )
+        # Stash it under the QAST block unique ID.
+        my str $cuid := $block.cuid();
+        $context.sub-id-to-code-object(){$cuid} := $code-obj;
+
+        # Create the compiler stuff array and stick it in the code object.
+        # Also add clearup task to remove it again later.
+        my @compstuff;
+        nqp::bindattr($code-obj, Code, '@!compstuff', @compstuff);
+        $context.add-cleanup-task(sub () {
+            nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
         });
+
+        if $context.is-precompilation-mode {
+            @compstuff[2] := sub ($orig, $clone) {
+                my $do := nqp::getattr($clone, Code, '$!do');
+                nqp::markcodestub($do);
+                $context.add-cleanup-task(sub () {
+                    nqp::bindattr($clone, Code, '@!compstuff', nqp::null());
+                });
+                $context.add-clone-for-cuid($clone, $cuid);
+            }
+        }
+
+        my $fixups := QAST::Stmts.new();
+        unless $context.is-precompilation-mode {
+            # We need to do a fixup of the code block for the non-precompiled case.
+            $fixups.push(
+                QAST::Op.new(
+                    :op('bindattr'),
+                    QAST::WVal.new( :value($code-obj) ),
+                    QAST::WVal.new( :value(Code) ),
+                    QAST::SVal.new( :value('$!do') ),
+                    QAST::BVal.new( :value($block) )
+                )
+            );
+            @compstuff[2] := sub ($orig, $clone) {
+                $context.ensure-sc($clone);
+                $context.add-cleanup-task(sub () {
+                    nqp::bindattr($clone, Code, '@!compstuff', nqp::null());
+                });
+                $context.add-clone-for-cuid($clone, $cuid);
+
+                my $tmp := $fixups.unique('tmp_block_fixup');
+                $fixups.push(QAST::Stmt.new(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+                        QAST::Op.new( :op('clone'), QAST::BVal.new( :value($block) ) )
+                    ),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new(
+                            :name('$!do'), :scope('attribute'),
+                            QAST::WVal.new( :value($clone) ),
+                            QAST::WVal.new( :value(Code) )
+                        ),
+                        QAST::Var.new( :name($tmp), :scope('local') ),
+                    ),
+                    QAST::Op.new(
+                        :op('setcodeobj'),
+                        QAST::Var.new( :name($tmp), :scope('local') ),
+                        QAST::WVal.new( :value($clone) )
+                    )));
+            }
+            @compstuff[3] := $fixups;
+        }
+
+        @compstuff[0] := $block;
+
+        my $compiler-thunk := {
+            self.IMPL-COMPILE-DYNAMICALLY($block, $context)
+        };
+        @compstuff[1] := $compiler-thunk;
+
+        $context.add-code-ref(nqp::getattr($code-obj, Code, '$!do'), $block);
+
+        $context.add-fixup-task(-> {
+            $fixups
+        });
+    }
+
+    method IMPL-COMPILE-DYNAMICALLY(Mu $block, Mu $context) {
+        my $wrapper := QAST::Block.new(QAST::Stmts.new(), $block);
+        $wrapper.annotate('DYN_COMP_WRAPPER', 1);
+
+        my $compunit := QAST::CompUnit.new(
+            :hll('Raku'),
+            :sc($context.sc()),
+            :compilation_mode(0),
+            $wrapper
+        );
+        my $comp := nqp::getcomp('Raku');
+        my $precomp := $comp.compile($compunit, :from<qast>, :compunit_ok(1));
+        my $mainline := $comp.backend.compunit_mainline($precomp);
+        $mainline();
+
+        # Fix up Code object associations (including nested blocks).
+        # We un-stub any code objects for already-compiled inner blocks
+        # to avoid wasting re-compiling them, and also to help make
+        # parametric role outer chain work out. Also set up their static
+        # lexpads, if they have any.
+        my @coderefs := $comp.backend.compunit_coderefs($precomp);
+        my int $num-subs := nqp::elems(@coderefs);
+        my int $i := -1;
+        my $result;
+        while ++$i < $num-subs {
+            my $subid := nqp::getcodecuid(@coderefs[$i]);
+
+            # un-stub code objects for blocks we just compiled:
+            my %sub-id-to-code-object := $context.sub-id-to-code-object();
+            if nqp::existskey(%sub-id-to-code-object, $subid) {
+                my $code-obj := %sub-id-to-code-object{$subid};
+                nqp::setcodeobj(@coderefs[$i], $code-obj);
+                nqp::bindattr($code-obj, Code, '$!do', @coderefs[$i]);
+                my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
+                if $fixups {
+                    $fixups.pop() while $fixups.list;
+                }
+                nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
+            }
+
+            # un-stub clones of code objects for blocks we just compiled:
+            my %sub-id-to-cloned-code-objects := $context.sub-id-to-cloned-code-objects();
+            if nqp::existskey(%sub-id-to-cloned-code-objects, $subid) {
+                for %sub-id-to-cloned-code-objects{$subid} -> $code-obj {
+                    my $clone := nqp::clone(@coderefs[$i]);
+                    nqp::setcodeobj($clone, $code-obj);
+                    nqp::bindattr($code-obj, Code, '$!do', $clone);
+                    my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
+                    if $fixups {
+                        $fixups.pop() while $fixups.list;
+                    }
+                    nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
+                }
+            }
+
+            my %sub-id-to-sc-idx := $context.sub-id-to-sc-idx();
+            if nqp::existskey(%sub-id-to-sc-idx, $subid) {
+                nqp::markcodestatic(@coderefs[$i]);
+                nqp::scsetcode($context.sc, %sub-id-to-sc-idx{$subid}, @coderefs[$i]);
+            }
+
+            if $subid eq $block.cuid {
+                # Remember the VM coderef that maps to the thing we were originally
+                # asked to compile.
+                $result := @coderefs[$i];
+            }
+        }
+        $result
     }
 
     method IMPL-APPEND-SIGNATURE-RETURN(RakuAST::IMPL::QASTContext $context, Mu $qast-stmts) {
@@ -381,6 +566,9 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
                 $topic.set-parameter(False);
             }
         }
+
+        self.IMPL-STUB-CODE($resolver, $context);
+
         Nil
     }
 
@@ -419,7 +607,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         $block
     }
 
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str $blocktype) {
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
         # Form block with declarations.
         my $block := QAST::Block.new(
             :$blocktype,
@@ -453,7 +641,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself and link it with the meta-object.
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
         self.IMPL-LINK-META-OBJECT($context, $block);
         $block
     }
@@ -462,7 +650,9 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         if $immediate {
             # For now, assume we never need a code object for such a block. The
             # closure clone is done for us by the QAST compiler.
-            self.IMPL-QAST-FORM-BLOCK($context, 'immediate')
+            my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('immediate'));
+            self.IMPL-LINK-META-OBJECT($context, $block);
+            $block
         }
         else {
             # Not immediate, so already produced as a declaration above; just
@@ -589,6 +779,26 @@ class RakuAST::PointyBlock is RakuAST::Block {
         $visitor($!signature);
         $visitor(self.body);
     }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Make sure that our placeholder signature has resolutions performed,
+        # and that we don't produce a topic parameter.
+        if $!signature {
+            $!signature.IMPL-CHECK($resolver, $context, True);
+        }
+        my $placeholder-signature := self.placeholder-signature;
+        if $placeholder-signature {
+            $placeholder-signature.IMPL-CHECK($resolver, $context, True);
+            if nqp::getattr(self, RakuAST::Block, '$!implicit-topic-mode') {
+                my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0];
+                $topic.set-parameter(False);
+            }
+        }
+
+        self.IMPL-STUB-CODE($resolver, $context);
+
+        Nil
+    }
 }
 
 # Done by all kinds of Routine.
@@ -631,18 +841,9 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         my $signature := self.placeholder-signature || self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
 
-        my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
-            nqp::die('stub called - BEGIN time call not yet implemented');
-        });
-        nqp::setcodename($stub, $!name.canonicalize) if $!name;
-        nqp::bindattr($routine, Code, '$!do', $stub);
-        nqp::markcodestatic($stub);
-        nqp::markcodestub($stub);
-
         if nqp::istype(self.body, RakuAST::OnlyStar) {
             $routine.set_onlystar;
         }
-        nqp::setcodeobj($stub, $routine);
 
         $routine
     }
@@ -712,6 +913,9 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
         }
 
+        my $stub := self.IMPL-STUB-CODE($resolver, $context);
+        nqp::setcodename($stub, $!name.canonicalize) if $!name;
+
         # Apply any traits.
         self.apply-traits($resolver, $context, self)
     }
@@ -749,7 +953,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         self.IMPL-WRAP-LIST(@declarations)
     }
 
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
         my $block := QAST::Block.new(
             :blocktype('declaration_static'),
             self.IMPL-QAST-DECLS($context)
@@ -802,17 +1006,13 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the QAST block itself and link it with the meta-object.
-        my $block := self.IMPL-QAST-FORM-BLOCK($context);
-        self.IMPL-LINK-META-OBJECT($context, $block);
+        my $block := self.IMPL-QAST-BLOCK($context);
 
         # Set a name, if there is one.
         if $!name {
             my $canon-name := $!name.canonicalize;
             $block.name($canon-name);
         }
-
-        my $code-obj := self.meta-object;
-        $context.add-code-ref(nqp::getattr($code-obj, Code, '$!do'), $block);
 
         $block
     }
@@ -968,6 +1168,9 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
         }
 
+        my $stub := self.IMPL-STUB-CODE($resolver, $context);
+        nqp::setcodename($stub, self.name.canonicalize) if self.name;
+
         # Apply any traits.
         self.apply-traits($resolver, $context, self)
     }
@@ -1105,7 +1308,7 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
         $regex
     }
 
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str $blocktype) {
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
         my $slash := RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'));
         QAST::Block.new(
             :blocktype('declaration_static'),
@@ -1281,7 +1484,7 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::QuotedMatchConstru
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself and link it with the meta-object.
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
         self.IMPL-LINK-META-OBJECT($context, $block);
         $block
     }
@@ -1425,7 +1628,7 @@ class RakuAST::Substitution is RakuAST::RegexThunk is RakuAST::QuotedMatchConstr
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself and link it with the meta-object.
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
         self.IMPL-LINK-META-OBJECT($context, $block);
         $block
     }

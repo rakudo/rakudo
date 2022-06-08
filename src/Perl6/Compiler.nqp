@@ -141,7 +141,9 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method qast($rakuast, *%adverbs) {
-        $rakuast.IMPL-TO-QAST-COMP-UNIT
+        my $comp_unit := $rakuast.IMPL-TO-QAST-COMP-UNIT;
+        $rakuast.cleanup();
+        $comp_unit;
     }
 
     method verbose-config() {

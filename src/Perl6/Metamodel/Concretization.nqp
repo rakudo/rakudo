@@ -9,29 +9,32 @@ role Perl6::Metamodel::Concretization {
         @!concretizations[+@!concretizations] := [$role, $concrete];
     }
 
+    my &CONCRETE-LOCAL := nqp::getstaticcode(
+        anon sub CONCRETE-LOCAL(@self, @c) {
+            @self.accept(@c[1])
+        });
+
+    my &CONCRETE-REMOTE := nqp::getstaticcode(
+        anon sub CONCRETE-REMOTE(@self, $obj) {
+            nqp::can($obj.HOW, 'concretizations')
+                ?? @self.veneer($obj.HOW.concretizations($obj, :!local, :!transitive))
+                !! @self
+        });
+
+    my &CONCRETE-TRANSITIVE := nqp::getstaticcode(
+        anon sub CONCRETE-TRANSITIVE(@self, $obj) {
+            nqp::can($obj.HOW, 'concretizations')
+                ?? @self.emboss($obj, |$obj.HOW.concretizations($obj, :local, :transitive))
+                !! @self.emboss($obj)
+        });
+
     method concretizations($obj, :$local = 0, :$transitive = 1) {
-        my @conc;
-        for @!concretizations {
-            my @c := $transitive ?? [] !! @conc;
-            nqp::push(@c, $_[1]);
-            if $transitive && nqp::can($_[1].HOW, 'concretizations') {
-                for $_[1].HOW.concretizations($_[1], :$local) {
-                    nqp::push(@c, $_);
-                }
-            }
-            nqp::push(@conc, @c) if $transitive;
-        }
-        @conc := self.c3_merge(@conc) if $transitive;
-        unless $local {
-            for self.parents($obj, :local) {
-                if nqp::can($_.HOW, 'concretizations') {
-                    for $_.HOW.concretizations($_, :$local, :$transitive) {
-                        nqp::push(@conc, $_)
-                    }
-                }
-            }
-        }
-        @conc
+        my @conc := $monic_machine.new;
+        @conc.veneer(@!concretizations).summon(&CONCRETE-LOCAL);
+        @conc.new.veneer(self.parents($obj, :local)).banish(&CONCRETE-REMOTE, @conc) unless $local;
+        $transitive
+            ?? @conc.summon(&CONCRETE-TRANSITIVE).beckon(nqp::list())
+            !! @conc.list()
     }
 
     method !maybe_rebuild_table() {

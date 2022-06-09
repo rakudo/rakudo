@@ -600,7 +600,13 @@ my class DateTime does Dateish {
     proto method Date() {*}
     multi method Date(DateTime:D: --> Date:D) { Date.new($!year,$!month,$!day) }
     multi method Date(DateTime:U: --> Date:U) { Date }
-    method DateTime() { self }
+    method DateTime() { 
+        nqp::eqaddr(self.WHAT,DateTime)
+          ?? self
+          !! nqp::create(DateTime)!SET-SELF:
+               $!year, $!month, $!day, $!hour, $!minute, $!second,
+               $!timezone, &!formatter
+    }
 
     multi method raku(DateTime:D: --> Str:D) {
         self.^name

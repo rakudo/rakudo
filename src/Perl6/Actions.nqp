@@ -9532,7 +9532,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         return 0 unless %info<is_invocant>;
                     }
                     else {
-                        if nqp::istype($param_type, $world.find_single_symbol_in_setting('Positional')) {
+                        if $param_type =:= $world.find_single_symbol_in_setting('Positional') {
                             $var.push(QAST::Op.new(
                                 :op('if'),
                                 QAST::Op.new(

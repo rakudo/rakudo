@@ -308,54 +308,144 @@ my class DateTime does Dateish {
                :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
              )!SET-DAYCOUNT;
     }
-    multi method new(DateTime:
-      Str:D $datetime, :$timezone is copy, :&formatter, *%_
-    --> DateTime:D) {
-        self!tif(
+
+    method !non-iso($datetime) {
+        self!tif:
           $datetime,
           'DateTime',
           'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)'
-        ) unless $datetime.chars == $datetime.codes and $datetime ~~ /^
-          (<[+-]>? \d**4 \d*)                            # year
-          '-'
-          (\d\d)                                         # month
-          '-'
-          (\d\d)                                         # day
-          <[Tt]>                                         # time separator
-          (\d\d)                                         # hour
-          ':'
-          (\d\d)                                         # minute
-          ':'
-          (\d\d[<[\.,]>\d ** 1..12]?)                    # second
-          [<[Zz]> | (<[\-\+]> \d\d) [':'? (\d\d)]? ]?    # timezone
-        $/;
+    }
+    method !timezone-oor($seconds) {
+        X::OutOfRange.new(
+          what  => "minutes of timezone",
+          got   => $seconds / 60,
+          range => "0..^60",
+        ).throw;
+    }
 
-        my $string := $5.Str;
-        my $second := $string.Numeric;
-        $second := $string.subst(",",".").Numeric
-          if nqp::istype($second,Failure);
+    multi method new(DateTime:
+      Str:D $iso8601, :timezone($given-timezone), :&formatter, *%_
+    --> DateTime:D) {
+        my str $datetime = $iso8601;
+        if nqp::chars($datetime) == nqp::codes($datetime) {  # no weird chars
+            my str $year;
+            my str $month;
+            my str $day;
+            my str $rest;
 
-        if $6 {
-            X::DateTime::TimezoneClash.new.throw with $timezone;
-            my $seconds := $7 ?? $7.Int * 60 !! 0;
-            X::OutOfRange.new(
-              what  => "minutes of timezone",
-              got   => $seconds / 60,
-              range => "0..^60",
-            ).throw if $seconds >= 3600;
+            if nqp::chars($datetime) >= 10
+              && nqp::eqat($datetime,'-',4)
+              && nqp::eqat($datetime,'-',7) {                # YYYY-MM-DD
+                $year  = nqp::substr($datetime,0,4);
+                $month = nqp::substr($datetime,5,2);
+                $day   = nqp::substr($datetime,8,2);
+                $rest  = nqp::substr($datetime,10);
+            }
+            elsif $datetime.match: /
+              ^
+              <[+-]>? \d ** 4..*            # year
+              '-'
+              \d\d                          # month
+              '-'
+              \d\d                          # day
+            / {
+                my int $chars = $/.chars;
+                my str $date  = nqp::substr($datetime,0,$chars);
+                $year  = nqp::substr($date,0,$chars - 6);
+                $month = nqp::substr($date,$chars - 5,2);
+                $day   = nqp::substr($date,$chars - 2);
+                $rest  = nqp::substr($datetime,$chars);
+            }
+            else {  # alas, date seems wrong
+                self!non-iso($datetime);
+            }
 
-            $timezone := $6.Int * 3600;
-            $timezone := $timezone < 0
-              || $timezone == 0 && $6.Str.starts-with('-')
-              ?? $timezone - $seconds
-              !! $timezone + $seconds;
+            if nqp::chars($rest) {
+                if $rest.match: /
+                  ^
+                  <[Tt]>                    # time separator
+                  \d\d                      # hour
+                  ':'
+                  \d\d                      # minute
+                  ':'
+                  \d\d[<[\.,]>\d ** 1..12]? # second
+                / {
+                    my int $chars  = $/.chars;
+                    my str $time   = nqp::substr($rest,0,$chars);
+                    my str $hour   = nqp::substr($time,1,2);
+                    my str $minute = nqp::substr($time,4,2);
+                    my $second := nqp::substr($time,7).subst(",", ".").Numeric;
+
+                    my int $timezone;
+                    my str $offset = nqp::substr($rest,$chars);
+                    if nqp::not_i(nqp::chars($offset))
+                      || nqp::iseq_s($offset,'Z')
+                      || nqp::iseq_s($offset,'z') {
+                        $timezone = $given-timezone // 0;
+                    }
+                    elsif $given-timezone.defined {
+                        X::DateTime::TimezoneClash.new.throw;
+                    }
+                    elsif $offset.match: /^
+                       ^
+                       (<[\-\+]> \d\d) [':'? (\d\d)]?  # timezone
+                       $
+                    / {
+                        my int $seconds = ($1 // 0).Int * 60;
+                        self!timezone-oor($seconds) if $seconds >= 3600;
+
+                        $timezone = $0.Int * 3600;
+                        $timezone = $timezone < 0
+                          || $timezone == 0 && $0.Str.starts-with('-')
+                          ?? $timezone - $seconds
+                          !! $timezone + $seconds;
+                    }
+                    else {  # alas, some issue with timezone
+                        self!non-iso($datetime);
+                    }
+
+                    self!new-from-positional:
+                      $year, $month, $day, $hour, $minute, $second, $timezone,
+                      &formatter, %_
+                }
+                else {  # alas, some issue with time
+                    self!non-iso($datetime);
+                }
+            }
+            else {                              # fast path midnight
+                my int $YEAR  = $year.Int;
+                my int $MONTH = $month.Int;
+                my int $DIM   = self!DAYS-IN-MONTH($YEAR, $MONTH);
+                my int $DAY   = $day.Int;
+
+                self!oor("Month",$month,"1..12")
+                  if nqp::islt_i($MONTH,1)
+                  || nqp::isgt_i($MONTH,12);
+                self!oor("Day",$day,"1..$DIM")
+                  if nqp::islt_i($DAY,1)
+                  || nqp::isgt_i($DAY,$DIM);
+
+                nqp::eqaddr(self.WHAT,DateTime)
+                  ?? nqp::create(self)!SET-SELF(
+                        $YEAR, $MONTH, $DAY, 0, 0, 0,
+                        $given-timezone // 0, &formatter
+                     )
+                  !! self.bless(
+                       year      => $YEAR,
+                       month     => $MONTH,
+                       day       => $DAY,
+                       hour      => 0,
+                       minute    => 0,
+                       second    => 0,
+                       timezone  => $given-timezone // 0,
+                       formatter => &formatter,
+                       |%_
+                     )
+            }
         }
         else {
-            $timezone := 0 unless nqp::isconcrete($timezone);
+            self!non-iso($datetime);
         }
-
-        self!new-from-positional(
-          $0,$1,$2,$3,$4,$second,$timezone,&formatter,%_)
     }
 
     method now(:$timezone, :&formatter --> DateTime:D) {

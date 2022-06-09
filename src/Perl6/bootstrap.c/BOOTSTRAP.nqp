@@ -322,7 +322,7 @@ my class Binder {
 
                 # If the expected type is Positional, see if we need to do the
                 # positional bind failover.
-                if nqp::istype($param_type, $Positional) && nqp::istype($oval, $PositionalBindFailover) {
+                if nqp::eqaddr($param_type, $Positional) && nqp::istype($oval, $PositionalBindFailover) {
                     $oval := $oval.cache;
                 }
 

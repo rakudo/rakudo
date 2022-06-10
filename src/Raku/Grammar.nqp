@@ -1584,6 +1584,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<*>                  { <sym> }
     token term:sym<**>                 { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> } }
+    token term:sym<type_declarator>    { <type_declarator> }
     token term:sym<value>              { <value> }
 
     token term:sym<::?IDENT> {
@@ -1866,6 +1867,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <variable_declarator>
         | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine_declarator>
+        | <type_declarator>
         ]
     }
 
@@ -2015,6 +2017,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           '}'<!RESTRICTED><?ENDSTMT>
           <.leave-block-scope>
         ] || <.malformed('regex')>
+    }
+
+    proto token type_declarator { <...> }
+
+    token type_declarator:sym<constant> {
+        :my $*IN_DECL := 'constant';
+        <sym><.kok>
+        [
+        | '\\'? <defterm>
+        | <variable>  # for new &infix:<foo> synonyms
+        | <?>
+        ]
+        { $*IN_DECL := ''; }
+        <.ws>
+
+        <trait>*
+
+        [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
     }
 
     rule trait($*TARGET?) {

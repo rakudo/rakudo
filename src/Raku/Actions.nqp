@@ -815,8 +815,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<multi_declarator>.ast;
     }
 
-    method term:sym<regex_declarator>($/){
+    method term:sym<regex_declarator>($/) {
         self.attach: $/, $<regex_declarator>.ast;
+    }
+
+    method term:sym<type_declarator>($/) {
+        self.attach: $/, $<type_declarator>.ast;
     }
 
     method term:sym<statement_prefix>($/) {
@@ -1145,6 +1149,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<variable_declarator> {
             self.attach: $/, $<variable_declarator>.ast;
         }
+        elsif $<type_declarator> {
+            self.attach: $/, $<type_declarator>.ast;
+        }
         elsif $<signature> {
             my str $scope := $*SCOPE;
             my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
@@ -1269,6 +1276,56 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $regex.replace-body($<nibble>.ast);
         $regex.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $regex;
+    }
+
+    method type_declarator:sym<constant>($/) {
+        my $value := $<initializer><EXPR>.ast;
+        my $sigil := '';
+
+        # Provided it's named, install it.
+        my $name;
+        if $<defterm> {
+            $name := $<defterm>.ast.canonicalize;
+        }
+        elsif $<variable> {
+            if $<variable><sigil> {
+                $sigil := ~$<variable><sigil>;
+            }
+            if $<variable><twigil> {
+                my $twigil := ~$<variable><twigil>;
+
+                if $twigil eq '?' {
+                    unless $*COMPILING_CORE_SETTING {
+                        $/.typed_panic('X::Comp::NYI',
+                          feature => "Constants with a '$twigil' twigil"
+                        );
+                    }
+                }
+                elsif $twigil eq '*' {
+                    $/.typed_panic('X::Syntax::Variable::Twigil',
+                      name       => ~$<variable>,
+                      what       => 'constant',
+                      twigil     => $twigil,
+                      scope      => $*SCOPE,
+                      additional => ' because values cannot be constant and dynamic at the same time',
+                    );
+                }
+                # Don't handle other twigil'd case yet.
+                else {
+                    $/.typed_panic('X::Comp::NYI',
+                      feature => "Constants with a '$twigil' twigil");
+                }
+            }
+
+            $name := ~$<variable>;
+        }
+
+        my $decl := self.r('VarDeclaration', 'Implicit', 'Constant').new(
+            :$name,
+            :value($value.IMPL-INTERPRET(self.r('IMPL', 'InterpContext').new)),
+            :scope($*SCOPE));
+        $*R.declare-lexical($decl);
+        self.attach: $/, $decl;
     }
 
     method trait($/) {

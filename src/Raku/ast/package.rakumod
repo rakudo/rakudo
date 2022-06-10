@@ -256,12 +256,16 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
         my $body := $!body.IMPL-QAST-BLOCK($context, :blocktype<immediate>);
-        if $!package-declarator eq 'role' {
-        }
-        QAST::Stmts.new(
+        my $result := QAST::Stmts.new(
             $body,
             QAST::WVal.new( :value($type-object) )
-        )
+        );
+        if $!package-declarator eq 'role' {
+            $body.push(
+                QAST::Op.new(:op<list>, QAST::WVal.new(:value($type-object)), QAST::Op.new(:op<curlexpad>))
+            );
+        }
+        $result
     }
 
     method IMPL-CAN-INTERPRET() {

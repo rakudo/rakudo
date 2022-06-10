@@ -129,7 +129,30 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                     %stash{$final} := $type-object;
                 }
                 else {
-                    nqp::die('multi-part package declarations with non-existing first part NYI');
+                    my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
+                    my $first := nqp::shift(@parts).name;
+                    my $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
+                    $target.HOW.compose($target);
+
+                    if $scope eq 'our' {
+                        # TODO conflicts, claiming of packages
+                        my %stash := $resolver.IMPL-STASH-HASH($resolver.current-package);
+                        %stash{$first} := $target;
+                    }
+
+                    my $final := nqp::pop(@parts).name;
+                    my $longname := $first;
+                    for @parts {
+                        $longname := $longname ~ '::' ~ $_.name;
+                        my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
+                        $package.HOW.compose($package);
+                        my %stash := $resolver.IMPL-STASH-HASH($target);
+                        %stash{$longname} := $package;
+                        $target := $package;
+                    }
+
+                    my %stash := $resolver.IMPL-STASH-HASH($target);
+                    %stash{$final} := $type-object;
                 }
             }
         }

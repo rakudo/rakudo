@@ -184,6 +184,12 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
             nqp::bindattr(self, RakuAST::Package, '$!role-group', $group);
         }
 
+        $resolver.declare-lexical(
+            RakuAST::VarDeclaration::Implicit::Constant.new(
+                name => '::?CLASS', value => self.stubbed-meta-object
+            )
+        );
+
         # Apply traits.
         self.apply-traits($resolver, $context, self);
     }

@@ -220,7 +220,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
             RakuAST::VarDeclaration::Implicit::Constant.new(
                 name => '::?CLASS', value => self.stubbed-meta-object
             )
-        );
+        ) if $!package-declarator eq 'class';
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

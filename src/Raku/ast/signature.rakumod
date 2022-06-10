@@ -4,6 +4,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     has List $.parameters;
     has RakuAST::Node $.returns;
     has int $!is-on-method;
+    has int $!is-on-role-body;
     has RakuAST::Package $!method-package;
     has RakuAST::Parameter $.implicit-invocant;
     has RakuAST::Parameter $!implicit-slurpy-hash;
@@ -14,6 +15,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
             self.IMPL-WRAP-LIST($parameters // []));
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
+        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
         $obj
     }
 
@@ -30,6 +32,11 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     method set-is-on-method(Bool $is-on-method) {
         # Stash away the fact whether we should generate implicit parameters
         nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', $is-on-method ?? 1 !! 0);
+    }
+
+    method set-is-on-role-body(Bool $is-on-role-body) {
+        # Stash away the fact whether we should generate implicit parameters
+        nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-role-body', $is-on-role-body ?? 1 !! 0);
     }
 
     method provides-return-value() {
@@ -58,6 +65,16 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
                     RakuAST::Parameter.new(:invocant, :$type));
             }
             # TODO implicit slurpy hash
+        }
+        if $!is-on-role-body && !$!implicit-invocant {
+            my @param-asts := self.IMPL-UNWRAP-LIST($!parameters);
+            unless @param-asts && @param-asts[0].invocant {
+                my $invocant := RakuAST::Parameter.new();
+                $invocant.add-type-capture(
+                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('::?CLASS'))
+                );
+                nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);
+            }
         }
     }
 

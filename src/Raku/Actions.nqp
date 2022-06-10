@@ -1071,6 +1071,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $signature;
             if $<signature> {
                 $signature := $<signature>.ast;
+                $signature.set-is-on-role-body(1);
             }
             # upgrade body to a sub with a signature
             $body := self.r('Sub').new(

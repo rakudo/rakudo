@@ -209,13 +209,12 @@ my class Binder {
     sub bind_one_param($lexpad, $sig, $param, int $no_param_type_check, $error,
                        int $got_native, $oval, int $ival, num $nval, str $sval) {
         # Grab flags and variable name.
-        my int $flags       := nqp::getattr_i($param, Parameter, '$!flags');
-        my str $varname     := nqp::getattr_s($param, Parameter, '$!variable_name');
-        my int $has_varname := 1;
-        if nqp::isnull_s($varname) {
-            $varname := '<anon>';
-            $has_varname := 0;
-        }
+        my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
+        my str $varname := nqp::getattr_s($param, Parameter, '$!variable_name');
+        my int $has_varname;
+        nqp::isnull_s($varname)
+          ?? ($varname := '<anon>')
+          !! ($has_varname := 1);
 
         # Check if boxed/unboxed expectations are met.
         my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;

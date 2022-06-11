@@ -232,7 +232,7 @@ my class Binder {
             elsif $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE {
                 unless !$got_native && nqp::iscont_u($oval) {
                     if nqp::defined($error) {
-                        $error[0] := "Expected a modifiable native int argument for '$varname'";
+                        $error[0] := "Expected a modifiable native unsigned int argument for '$varname'";
                     }
                     return $BIND_RESULT_FAIL;
                 }

@@ -382,14 +382,19 @@ class RakuAST::Declaration::Mergeable {
 
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
         if $other.is-stub {
-            $loader.merge_globals($target, $source);
+            $loader.merge_globals($target.WHO, $source.WHO);
         }
         elsif self.is-stub {
-            nqp::die('Swapping source and target when merging packages NYI');
+            $loader.merge_globals($source.WHO, $target.WHO);
+            self.set-value($source);
         }
         else {
             nqp::die('Unsupported case trying to merge symbols or duplicate definition');
         }
+    }
+
+    method set-value(Mu $value) {
+        nqp::die('set-value not implemented on ' ~ self.HOW.name(self));
     }
 }
 
@@ -405,6 +410,11 @@ class RakuAST::Declaration::External::Constant is RakuAST::Declaration::External
         nqp::bindattr($obj, RakuAST::Declaration::External::Constant,
             '$!compile-time-value', $compile-time-value);
         $obj
+    }
+
+    method set-value(Mu $compile-time-value) {
+        nqp::bindattr(self, RakuAST::Declaration::External::Constant,
+            '$!compile-time-value', $compile-time-value);
     }
 
     method type() { $!compile-time-value.WHAT }
@@ -430,7 +440,8 @@ class RakuAST::Declaration::Import is RakuAST::Declaration::External::Constant {
 # A lexical declaration that points to a package. Generated as part of package
 # installation in RakuAST::Package, and installed as a generated lexical in a
 # RakuAST::LexicalScope.
-class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration is RakuAST::CompileTimeValue is RakuAST::Declaration::Mergeable {
+class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration
+        is RakuAST::CompileTimeValue is RakuAST::Declaration::Mergeable {
     has str $.lexical-name;
     has Mu $.compile-time-value;
 
@@ -441,6 +452,11 @@ class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration is RakuAST::C
         nqp::bindattr($obj, RakuAST::Declaration::LexicalPackage,
             '$!compile-time-value', $compile-time-value);
         $obj
+    }
+
+    method set-value(Mu $compile-time-value) {
+        nqp::bindattr(self, RakuAST::Declaration::LexicalPackage,
+            '$!compile-time-value', $compile-time-value);
     }
 
     method type() { $!compile-time-value.WHAT }

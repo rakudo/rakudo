@@ -3346,7 +3346,7 @@ my class X::StubCode is Exception {
     has $.message = 'Stub code executed';
 }
 
-my class X::TooLateForREPR is X::Comp  {
+my class X::TooLateForREPR does X::Comp  {
     has $.type;
     method message() {
         "Cannot change REPR of $!type.^name() now (must be set at initial declaration)";

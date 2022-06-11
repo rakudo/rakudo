@@ -220,34 +220,22 @@ my class Binder {
         my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;
         my int $is_rw          := $flags +& $SIG_ELEM_IS_RW;
         if $is_rw && $desired_native {
-            if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
-                unless !$got_native && nqp::iscont_i($oval) {
+            if $got_native {
+                my $expected := $desired_native == $SIG_ELEM_NATIVE_INT_VALUE
+                  && !nqp::iscont_i($oval)
+                  ?? "int"
+                  !! $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE
+                       && !nqp::iscont_u($oval)
+                    ?? "unsigned int"
+                    !! $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE
+                         && !nqp::iscont_n($oval)
+                      ?? "num"
+                      !! !nqp::iscont_s($oval)  # SIG_ELEM_NATIVE_STR_VALUE
+                        ?? "str"
+                        !! "";
+                if $expected {
                     if nqp::defined($error) {
-                        $error[0] := "Expected a modifiable native int argument for '$varname'";
-                    }
-                    return $BIND_RESULT_FAIL;
-                }
-            }
-            elsif $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE {
-                unless !$got_native && nqp::iscont_u($oval) {
-                    if nqp::defined($error) {
-                        $error[0] := "Expected a modifiable native unsigned int argument for '$varname'";
-                    }
-                    return $BIND_RESULT_FAIL;
-                }
-            }
-            elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
-                unless !$got_native && nqp::iscont_n($oval) {
-                    if nqp::defined($error) {
-                        $error[0] := "Expected a modifiable native num argument for '$varname'";
-                    }
-                    return $BIND_RESULT_FAIL;
-                }
-            }
-            elsif $desired_native == $SIG_ELEM_NATIVE_STR_VALUE {
-                unless !$got_native && nqp::iscont_s($oval) {
-                    if nqp::defined($error) {
-                        $error[0] := "Expected a modifiable native str argument for '$varname'";
+                        $error[0] := "Expected a modifiable native $expected argument for '$varname'";
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -265,7 +253,7 @@ my class Binder {
                 elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     $oval := nqp::box_n($nval, Num);
                 }
-                else {
+                else {  # assume SIG_ELEM_NATIVE_STR_VALUE
                     $oval := nqp::box_s($sval, Str);
                 }
                 $got_native := 0;

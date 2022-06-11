@@ -430,9 +430,10 @@ class RakuAST::Declaration::External::Constant is RakuAST::Declaration::External
 # lexical slot for itself in the scope it is installed in.
 class RakuAST::Declaration::Import is RakuAST::Declaration::External::Constant {
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $value := self.compile-time-value;
+        $context.ensure-sc($value);
         QAST::Var.new(
-            :scope('lexical'), :decl('static'), :name(self.lexical-name),
-            :value(self.compile-time-value)
+            :scope('lexical'), :decl('static'), :name(self.lexical-name), :$value
         )
     }
 }

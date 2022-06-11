@@ -91,18 +91,22 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         if $name && !$name.is-empty && ($scope eq 'my' || $scope eq 'our') && $!package-declarator ne 'role' {
             # Need to install the package somewhere.
             my $type-object := self.stubbed-meta-object;
+            my $target;
+            my $final;
+            my $lexical;
             if $name.is-identifier {
+                $final := $name.canonicalize;
+                $lexical := $resolver.resolve-lexical-constant($final);
                 # We always install it as a lexical symbol.
-                $resolver.current-scope.add-generated-lexical-declaration:
+                $resolver.current-scope.merge-generated-lexical-declaration:
                     RakuAST::Declaration::LexicalPackage.new:
                         :lexical-name($name.canonicalize),
                         :compile-time-value($type-object);
 
                 # If `our`-scoped, also put it into the current package.
                 if $scope eq 'our' {
-                    # TODO conflicts, claiming of packages
-                    my %stash := $resolver.IMPL-STASH-HASH($resolver.current-package);
-                    %stash{$name.canonicalize} := $type-object;
+                    # TODO conflicts
+                    $target := $resolver.current-package;
                 }
             }
             else {
@@ -110,10 +114,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
 
                 if $resolved { # first parts of the name found
                     $resolved := self.IMPL-UNWRAP-LIST($resolved);
-                    my $target := $resolved[0];
+                    $target := $resolved[0];
                     my $parts  := $resolved[1];
                     my @parts := self.IMPL-UNWRAP-LIST($parts);
-                    my $final := nqp::pop(@parts).name;
+                    $final := nqp::pop(@parts).name;
                     my $longname := $target.HOW.name($target);
 
                     for @parts {
@@ -124,23 +128,20 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                         %stash{$longname} := $package;
                         $target := $package;
                     }
-
-                    my %stash := $resolver.IMPL-STASH-HASH($target);
-                    %stash{$final} := $type-object;
                 }
                 else {
                     my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
                     my $first := nqp::shift(@parts).name;
-                    my $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
+                    $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
                     $target.HOW.compose($target);
 
                     if $scope eq 'our' {
-                        # TODO conflicts, claiming of packages
+                        # TODO conflicts
                         my %stash := $resolver.IMPL-STASH-HASH($resolver.current-package);
                         %stash{$first} := $target;
                     }
 
-                    my $final := nqp::pop(@parts).name;
+                    $final := nqp::pop(@parts).name;
                     my $longname := $first;
                     for @parts {
                         $longname := $longname ~ '::' ~ $_.name;
@@ -150,11 +151,19 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                         %stash{$longname} := $package;
                         $target := $package;
                     }
-
-                    my %stash := $resolver.IMPL-STASH-HASH($target);
-                    %stash{$final} := $type-object;
                 }
+                $lexical := $resolver.resolve-lexical-constant($final);
             }
+
+            my %stash := $resolver.IMPL-STASH-HASH($target);
+            # upgrade a lexically imported package stub to package scope if it exists
+            if $lexical {
+                %stash{$final} := $lexical.compile-time-value;
+            }
+            if nqp::existskey(%stash, $final) {
+                nqp::setwho($type-object, %stash{$final}.WHO);
+            }
+            %stash{$final} := $type-object;
         }
 
         elsif $name && !$name.is-empty && $!package-declarator eq 'role' {

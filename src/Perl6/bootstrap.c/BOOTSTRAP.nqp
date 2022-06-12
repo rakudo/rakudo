@@ -393,24 +393,20 @@ my class Binder {
             $oval := $coercion_type.HOW.coerce($coercion_type, $oval);
         }
 
-        # If it's not got attributive binding, we'll go about binding it into the
-        # lex pad.
+        # If it's not got attributive binding, we'll go about binding it into
+        # the lex pad.
         my int $is_attributive := $flags +& $SIG_ELEM_BIND_ATTRIBUTIVE;
         unless $is_attributive {
             # Is it native? If so, just go ahead and bind it.
             if $got_native {
-                if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
-                    nqp::bindkey_i($lexpad, $varname, $ival);
-                }
-                if $got_native == $SIG_ELEM_NATIVE_UINT_VALUE {
-                    nqp::bindkey_i($lexpad, $varname, $ival); #FIXME bindkey_u missing
-                }
-                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
-                    nqp::bindkey_n($lexpad, $varname, $nval);
-                }
-                else {
-                    nqp::bindkey_s($lexpad, $varname, $sval);
-                }
+                $got_native == $SIG_ELEM_NATIVE_INT_VALUE
+                  ?? nqp::bindkey_i($lexpad, $varname, $ival)
+                  !! $got_native == $SIG_ELEM_NATIVE_UINT_VALUE
+                    ?? nqp::bindkey_i($lexpad, $varname, $ival) #FIXME bindkey_u missing
+                    !! $got_native == $SIG_ELEM_NATIVE_NUM_VALUE
+                      ?? nqp::bindkey_n($lexpad, $varname, $nval)
+                      # assume SIG_ELEM_NATIVE_STR_VALUE
+                      !! nqp::bindkey_s($lexpad, $varname, $sval);
             }
 
             # Otherwise it's some objecty case.

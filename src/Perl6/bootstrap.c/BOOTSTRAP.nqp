@@ -243,41 +243,28 @@ my class Binder {
         elsif $desired_native != $got_native {
             # Maybe we need to box the native.
             if $desired_native == 0 {
-                if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
-                    $oval := nqp::box_i($ival, Int);
-                }
-                elsif $got_native == $SIG_ELEM_NATIVE_UINT_VALUE {
-                    $oval := nqp::box_u($ival, Int);
-                }
-                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
-                    $oval := nqp::box_n($nval, Num);
-                }
-                else {  # assume SIG_ELEM_NATIVE_STR_VALUE
-                    $oval := nqp::box_s($sval, Str);
-                }
-                $got_native := 0;
+                $got_native == $SIG_ELEM_NATIVE_INT_VALUE
+                  ?? ($oval := nqp::box_i($ival, Int))
+                  !! $got_native == $SIG_ELEM_NATIVE_UINT_VALUE
+                    ?? ($oval := nqp::box_u($ival, Int))
+                    !! $got_native == $SIG_ELEM_NATIVE_NUM_VALUE
+                      ?? ($oval := nqp::box_n($nval, Num))
+                      # assume SIG_ELEM_NATIVE_STR_VALUE
+                      !! ($oval := nqp::box_s($sval, Str));
             }
 
             # Otherwise, maybe we need to unbox.
             elsif !$got_native {
                 # XXX Probably want to do this a little differently to get a
                 # better error.
-                if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
-                    $ival := nqp::unbox_i($oval);
-                    $got_native := $SIG_ELEM_NATIVE_INT_VALUE;
-                }
-                elsif $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE {
-                    $ival := nqp::unbox_u($oval);
-                    $got_native := $SIG_ELEM_NATIVE_UINT_VALUE;
-                }
-                elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
-                    $nval := nqp::unbox_n($oval);
-                    $got_native := $SIG_ELEM_NATIVE_NUM_VALUE;
-                }
-                else {
-                    $sval := nqp::unbox_s($oval);
-                    $got_native := $SIG_ELEM_NATIVE_STR_VALUE;
-                }
+                $desired_native == $SIG_ELEM_NATIVE_INT_VALUE
+                  ?? ($ival := nqp::unbox_i($oval))
+                  !! $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE
+                    ?? ($ival := nqp::unbox_u($oval))
+                    !! $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE
+                      ?? ($nval := nqp::unbox_n($oval))
+                      # assume  SIG_ELEM_NATIVE_STR_VALUE
+                      !! ($sval := nqp::unbox_s($oval));
             }
 
             # Otherwise, incompatible native types.
@@ -287,6 +274,7 @@ my class Binder {
                 }
                 return $BIND_RESULT_FAIL;
             }
+            $got_native := $desired_native;
         }
 
         # By this point, we'll either have an object that we might be able to

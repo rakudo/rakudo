@@ -221,7 +221,7 @@ my class Binder {
         my int $is_rw          := $flags +& $SIG_ELEM_IS_RW;
         if $is_rw && $desired_native {
             if $got_native {
-                my $expected := $desired_native == $SIG_ELEM_NATIVE_INT_VALUE
+                if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE
                   && !nqp::iscont_i($oval)
                   ?? "int"
                   !! $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE
@@ -232,8 +232,7 @@ my class Binder {
                       ?? "num"
                       !! !nqp::iscont_s($oval)  # SIG_ELEM_NATIVE_STR_VALUE
                         ?? "str"
-                        !! "";
-                if $expected {
+                        !! 0 -> $expected {
                     if nqp::defined($error) {
                         $error[0] := "Expected a modifiable native $expected argument for '$varname'";
                     }

@@ -882,37 +882,40 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             if $proto {
                 $proto := $proto.compile-time-value;
             }
-            elsif $proto := $resolver.resolve-lexical($name) {
-                $proto := $proto.compile-time-value.derive_dispatcher;
-            }
-            elsif $proto := $resolver.resolve-lexical-constant-in-outer($name) {
-                $proto := $proto.compile-time-value.derive_dispatcher;
-            }
             else {
-                my $proto-ast := RakuAST::Sub.new(
-                    :scope<my>,
-                    :name(self.name),
-                    :signature(RakuAST::Signature.new(
-                        :parameters(self.IMPL-WRAP-LIST([
-                            RakuAST::Parameter.new(
-                                :slurpy(RakuAST::Parameter::Slurpy::Capture),
-                            )
-                        ])),
-                    )),
-                    :body(RakuAST::OnlyStar.new),
-                    :multiness<proto>,
-                );
-
-                $proto := $proto-ast.meta-object;
-                nqp::bindattr($proto, Routine, '@!dispatchees', []);
-
                 my $outer := $resolver.find-attach-target('block');
                 unless $outer {
                     $outer := $resolver.find-attach-target('compunit');
                 }
-                $outer.add-generated-lexical-declaration(
-                    RakuAST::VarDeclaration::Implicit::Block.new(:$name, :block($proto-ast))
-                );
+
+                if $proto := $resolver.resolve-lexical($name) {
+                    $proto := $proto.compile-time-value.derive_dispatcher;
+                }
+                elsif $proto := $resolver.resolve-lexical-constant-in-outer($name) {
+                    $proto := $proto.compile-time-value.derive_dispatcher;
+                }
+                else {
+                    my $proto-ast := RakuAST::Sub.new(
+                        :scope<my>,
+                        :name(self.name),
+                        :signature(RakuAST::Signature.new(
+                            :parameters(self.IMPL-WRAP-LIST([
+                                RakuAST::Parameter.new(
+                                    :slurpy(RakuAST::Parameter::Slurpy::Capture),
+                                )
+                            ])),
+                        )),
+                        :body(RakuAST::OnlyStar.new),
+                        :multiness<proto>,
+                    );
+
+                    $proto := $proto-ast.meta-object;
+                    nqp::bindattr($proto, Routine, '@!dispatchees', []);
+
+                    $outer.add-generated-lexical-declaration(
+                        RakuAST::VarDeclaration::Implicit::Block.new(:$name, :block($proto-ast))
+                    );
+                }
                 $outer.add-generated-lexical-declaration(
                     RakuAST::VarDeclaration::Implicit::Constant.new(:$name, :value($proto))
                 );

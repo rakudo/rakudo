@@ -344,6 +344,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
+    method statement_control:sym<require>($/) {
+        #TODO non-trivial cases, args
+        self.attach: $/, self.r('Statement', 'Require').new(
+            module-name => $<module_name>.ast,
+        );
+    }
+
     ##
     ## Statement modifiers
     ##

@@ -1265,3 +1265,47 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
         self.visit-labels($visitor);
     }
 }
+
+# A require statement.
+class RakuAST::Statement::Require is RakuAST::Statement is RakuAST::ImplicitLookups {
+    has RakuAST::Name $.module-name;
+
+    method new(RakuAST::Name :$module-name!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Require, '$!module-name', $module-name);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $depspec  := @lookups[0].compile-time-value;
+        my $registry := @lookups[1].compile-time-value;
+        my $short-name := QAST::SVal.new(:value($!module-name.canonicalize));
+        $short-name.named('short-name');
+
+        my $spec := QAST::Op.new(
+            :op('callmethod'), :name('new'),
+            QAST::WVal.new(:value($depspec)),
+            $short-name,
+        );
+        my $compunit_past := QAST::Op.new(
+            :op('callmethod'), :name('need'),
+            QAST::Op.new(
+                :op('callmethod'), :name('head'),
+                QAST::WVal.new(:value($registry)),
+            ),
+            $spec,
+        );
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!module-name);
+    }
+}

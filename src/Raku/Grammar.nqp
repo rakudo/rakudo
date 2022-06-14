@@ -810,6 +810,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
+    rule statement_control:sym<require> {
+        <sym>
+        [
+        | <module_name=.longname>
+        | <file=.variable>
+        | <!sigil> <file=.term>
+        ]
+        <EXPR>?
+    }
+
     ##
     ## Statement modifiers
     ##

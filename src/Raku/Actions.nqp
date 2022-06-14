@@ -1334,6 +1334,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $name := ~$<variable>;
         }
 
+        $value.IMPL-CHECK($*R, $*C, False);
         my $decl := self.r('VarDeclaration', 'Implicit', 'Constant').new(
             :$name,
             :value($value.IMPL-INTERPRET(self.r('IMPL', 'InterpContext').new)),

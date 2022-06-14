@@ -220,17 +220,46 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
     }
 
     method IMPL-CAN-INTERPRET() {
-        $!name.is-identifier && self.is-resolved &&
-            nqp::istype(self.resolution, RakuAST::CompileTimeValue) &&
-            self.args.IMPL-CAN-INTERPRET
+        (
+            (my $op := $!name.IMPL-IS-NQP-OP) && ($op eq 'hash' || $op eq 'list_s' || $op eq 'atpos_s')
+            || $!name.is-identifier && self.is-resolved
+                && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+        )
+        && self.args.IMPL-CAN-INTERPRET
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my $resolved := self.resolution.compile-time-value;
-        my @args := self.args.IMPL-INTERPRET($ctx);
-        my @pos := @args[0];
-        my %named := @args[1];
-        return $resolved(|@pos, |%named);
+        my $op := $!name.IMPL-IS-NQP-OP;
+        if $op eq 'hash' {
+            my @args := self.args.IMPL-INTERPRET($ctx)[0];
+            my $result := nqp::hash;
+            while @args {
+                my $key := nqp::shift(@args);
+                my $val := nqp::shift(@args);
+                $result{$key} := $val;
+            }
+            $result
+        }
+        elsif $op eq 'list_s' {
+            my @args := self.args.IMPL-INTERPRET($ctx)[0];
+            my $result := nqp::list_s;
+            for @args {
+                nqp::push_s($result, $_);
+            }
+            $result
+        }
+        elsif $op eq 'atpos_s' {
+            my @args := self.args.IMPL-INTERPRET($ctx)[0];
+            nqp::atpos_s(@args[0], @args[1]);
+        }
+        else {
+            nqp::gethllsym('nqp', 'note')($!name.canonicalize);
+            my $resolved := self.resolution.compile-time-value;
+            my @args := self.args.IMPL-INTERPRET($ctx);
+            my @pos := @args[0];
+            my %named := @args[1];
+            $resolved(|@pos, |%named);
+        }
     }
 }
 

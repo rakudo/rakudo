@@ -72,15 +72,17 @@ class RakuAST::Code is RakuAST::Node {
         QAST::Op.new( :op('p6capturelex'), $clone )
     }
 
-    method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
+    method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
         unless ($!qast-block) {
-            self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype);
+            self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
         }
         $!qast-block
     }
 
-    method IMPL-FINISH-CODE-OBJECT(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, :$blocktype);
+    method IMPL-FINISH-CODE-OBJECT(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression);
         self.IMPL-LINK-META-OBJECT($context, $block);
         nqp::bindattr(self, RakuAST::Code, '$!qast-block', $block);
     }
@@ -308,6 +310,15 @@ class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta {
     # the expression itself should be compiled and used as the body.
     method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
             RakuAST::Expression $expression) {
+
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, :$expression);
+        # Link and push the produced code block.
+        self.IMPL-LINK-META-OBJECT($context, $block);
+        $target.push($block);
+    }
+
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
+            str :$blocktype, RakuAST::Expression :$expression!) {
         # From the block, compiling the signature.
         my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
         my $block := QAST::Block.new(
@@ -329,9 +340,7 @@ class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta {
                 $expression.IMPL-EXPR-QAST($context)));
         }
 
-        # Link and push the produced code block.
-        self.IMPL-LINK-META-OBJECT($context, $block);
-        $target.push($block);
+        $block
     }
 
     # Produces a Code object that corresponds to the thunk.
@@ -607,7 +616,8 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         $block
     }
 
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
         # Form block with declarations.
         my $block := QAST::Block.new(
             :$blocktype,
@@ -953,7 +963,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         self.IMPL-WRAP-LIST(@declarations)
     }
 
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
         my $block := QAST::Block.new(
             :name(self.name ?? self.name.canonicalize !! ''),
             :blocktype('declaration_static'),
@@ -1309,7 +1320,8 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
         $regex
     }
 
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype) {
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
         my $slash := RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'));
         QAST::Block.new(
             :blocktype('declaration_static'),

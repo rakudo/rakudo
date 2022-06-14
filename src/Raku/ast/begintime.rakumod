@@ -32,6 +32,13 @@ class RakuAST::BeginTime is RakuAST::Node {
         elsif nqp::istype($code, RakuAST::Code) {
             $code.meta-object()()
         }
+        elsif nqp::istype($code, RakuAST::Expression) {
+            my $thunk := RakuAST::ExpressionThunk.new;
+            $code.wrap-with-thunk($thunk);
+            $thunk.IMPL-STUB-CODE($resolver, $context);
+            $thunk.IMPL-QAST-BLOCK($context, :expression($code));
+            $thunk.meta-object()()
+        }
         else {
             nqp::die('BEGIN time evaluation only supported for simple constructs so far')
         }

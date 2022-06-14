@@ -186,6 +186,24 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
                     $call.name(@args[0].value);
                     return $call;
                 }
+                elsif $op eq 'dispatch' {
+                    # We generally want to send unboxed string/int values in for dispatch
+                    # arguments (although leave normal ones alone); we can't really
+                    # know which are which, but if we're writing out an `nqp::op`
+                    # just assume that they should all be unboxed; most situations
+                    # will see the dispatch op generated anyway.
+                    self.args.IMPL-ADD-QAST-ARGS($context, $call);
+                    my int $i := 0;
+                    my int $n := nqp::elems($call.list);
+                    while $i < $n {
+                        if nqp::istype($call[$i], QAST::Want) &&
+                                ($call[$i][1] eq 'Ss' || $call[$i][1] eq 'Ii') {
+                            $call[$i] := $call[$i][2];
+                        }
+                        $i++;
+                    }
+                    return $call
+                }
             }
             elsif $!name.is-package-lookup {
                 return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package)));

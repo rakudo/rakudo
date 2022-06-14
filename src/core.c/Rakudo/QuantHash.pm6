@@ -813,18 +813,12 @@ my class Rakudo::QuantHash {
               $value.throw         # value cannot be made Int, so throw
             ),
             nqp::if(               # not a Pair
-              nqp::existskey(
-                elems,
-                ($which := $pulled.WHICH)
-              ),
-              nqp::stmts(
-                ($pair := nqp::atkey(elems,$which)),
-                nqp::bindattr(     # seen before, so increment
-                  $pair,
-                  Pair,
-                  '$!value',
-                  nqp::getattr($pair,Pair,'$!value') + 1
-                )
+              ($pair := nqp::atkey(elems,($which := $pulled.WHICH))),
+              nqp::bindattr(     # seen before, so increment
+                $pair,
+                Pair,
+                '$!value',
+                nqp::getattr($pair,Pair,'$!value') + 1
               ),
               self.BIND-TO-TYPED-BAG(    # new, create new Pair
                 elems, $which, $pulled, 1, type

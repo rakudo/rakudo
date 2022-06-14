@@ -1067,7 +1067,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <OPER=postcircumfix>
         | '.' <?[ [ { < ]> <OPER=postcircumfix>
         | <OPER=dotty>
-#        | <OPER=privop>
+        | <OPER=privop>
         | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
             [
             || <?space> <.missing: "postfix">
@@ -1175,6 +1175,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <!alpha> <postop> $<O> = {$<postop><O>} $<sym> = {$<postop><sym>}
           <.dotty-non-ident($special)>
         ]
+    }
+
+    token privop {
+        '!' <methodop('!')>
+        <O(|%methodcall)>
     }
 
     token methodop($*special) {

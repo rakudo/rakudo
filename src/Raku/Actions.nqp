@@ -619,6 +619,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method privop($/) {
+        self.attach: $/, $<methodop>.ast;
+    }
+
     method methodop($/) {
         my $args := $<args> ?? $<args>.ast !! self.r('ArgList').new();
         if $<longname> {
@@ -628,7 +632,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $/.dotty-non-ident($*special);
                 }
                 my $name := $longname.canonicalize;
-                if $*special eq '.^' {
+                if $*special eq '!' {
+                    self.attach: $/, self.r('Call', 'PrivateMethod').new(:name($<longname>.ast), :$args);
+                }
+                elsif $*special eq '.^' {
                     self.attach: $/, self.r('Call', 'MetaMethod').new(:$name, :$args);
                 }
                 elsif $*special eq '.?' {

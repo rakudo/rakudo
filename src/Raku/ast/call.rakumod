@@ -409,6 +409,57 @@ class RakuAST::Call::QuotedMethod is RakuAST::Call::Methodish {
     }
 }
 
+# A call to a private method.
+class RakuAST::Call::PrivateMethod is RakuAST::Call::Methodish
+        is RakuAST::Lookup is RakuAST::ImplicitLookups {
+    has RakuAST::Name $.name;
+    has Mu $!package;
+
+    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Call::PrivateMethod, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor(self.args);
+    }
+
+    method needs-resolution() { False }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::Call::PrivateMethod, '$!package', $resolver.current-package);
+        Nil
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Var::Lexical::Constant.new('::?CLASS'),
+        ]);
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        if $!name.is-identifier {
+            my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+            my $call := QAST::Op.new(
+                :op('callmethod'),
+                :name('dispatch:<!>'),
+                $invocant-qast,
+                RakuAST::StrLiteral.new($name).IMPL-EXPR-QAST($context),
+                $!package.HOW.archetypes.parametric
+                    ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].IMPL-EXPR-QAST($context)
+                    !! QAST::WVal.new(:value($!package)),
+            );
+            self.args.IMPL-ADD-QAST-ARGS($context, $call);
+            $call
+        }
+        else {
+            nqp::die('Qualified private method calls NYI');
+        }
+    }
+}
+
 # A call to a meta-method.
 class RakuAST::Call::MetaMethod is RakuAST::Call::Methodish {
     has str $.name;

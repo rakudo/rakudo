@@ -1466,6 +1466,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<coll>   { <sym> >> <O(|%structural)> }
     token infix:sym«<=>»    { <sym> <O(|%structural)> }
 
+    token infix:sym<but>  { <sym> >> <O(|%structural)> }
+    token infix:sym<does> { <sym> >> <O(|%structural)> }
+
     token circumfix:sym<( )> {
         :dba('parenthesized expression')
         '(' ~ ')' <semilist>

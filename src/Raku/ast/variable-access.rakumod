@@ -34,6 +34,14 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
         self.resolution.IMPL-BIND-QAST($context, $source)
     }
+
+    method IMPL-CAN-INTERPRET() {
+        self.is-resolved && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.resolution.compile-time-value
+    }
 }
 
 # A lexical variable lookup, but assumed to resolve to a compile time

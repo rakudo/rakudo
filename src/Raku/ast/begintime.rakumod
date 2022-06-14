@@ -29,6 +29,9 @@ class RakuAST::BeginTime is RakuAST::Node {
         if $code.IMPL-CAN-INTERPRET {
             $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
         }
+        elsif nqp::istype($code, RakuAST::Code) {
+            $code.meta-object()()
+        }
         else {
             nqp::die('BEGIN time evaluation only supported for simple constructs so far')
         }

@@ -96,8 +96,7 @@ class RakuAST::Code is RakuAST::Node {
             else {
                 my $code-obj := nqp::getcodeobj(nqp::curcode());
                 unless $precomp {
-                    my $block := self.IMPL-QAST-BLOCK($context);
-                    #self.IMPL-COMPILE-DYNAMICALLY($context, $block);
+                    self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
                     $precomp := nqp::getattr($code-obj, Code, '@!compstuff')[1]();
                 }
                 unless nqp::isnull($code-obj) {
@@ -207,6 +206,7 @@ class RakuAST::Code is RakuAST::Node {
     method IMPL-COMPILE-DYNAMICALLY(Mu $block, Mu $context) {
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), $block);
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
+        $wrapper[0].push(QAST::Var.new(:name<$_>, :scope<lexical>, :decl<static>));
 
         my $compunit := QAST::CompUnit.new(
             :hll('Raku'),

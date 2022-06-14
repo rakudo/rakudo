@@ -856,6 +856,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             args => $<args>.ast; 
     }
 
+    method term:sym<nqp::const>($/) {
+        self.attach: $/, self.r('Call', 'Name').new:
+            name => self.r('Name').from-identifier-parts('nqp', 'const'),
+            args => self.r('ArgList').new:
+                self.r('StrLiteral').new: ~$<const>;
+    }
+
     method term:sym<name>($/) {
         if $<args> {
             self.attach: $/, self.r('Call', 'Name').new:

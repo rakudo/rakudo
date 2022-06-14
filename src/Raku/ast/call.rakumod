@@ -177,6 +177,15 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         else {
             if my $op := $!name.IMPL-IS-NQP-OP {
                 $call.op($op);
+
+                if $op eq 'const' {
+                    my @args := self.IMPL-UNWRAP-LIST(self.args.args);
+                    unless nqp::elems(@args) == 1 && nqp::istype(@args[0], RakuAST::StrLiteral) {
+                        nqp::die('Can only compile nqp::const with a string literal');
+                    }
+                    $call.name(@args[0].value);
+                    return $call;
+                }
             }
             elsif $!name.is-package-lookup {
                 return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package)));

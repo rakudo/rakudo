@@ -131,6 +131,10 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         }
     }
 
+    method record-precompilation-dependencies() {
+        $!precompilation-mode ?? True !! False
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(

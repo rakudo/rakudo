@@ -1227,6 +1227,10 @@ class RakuAST::Deparse {
         self.deparse($ast.name) ~ ($ast.definite ?? ':D' !! ':U')
     }
 
+    multi method deparse(RakuAST::Type::Coercion:D $ast --> str) {
+        self.deparse($ast.name) ~ '(' ~ self.deparse($ast.constraint) ~ ')'
+    }
+
     multi method deparse(RakuAST::Type::Parameterized:D $ast --> str) {
         self.deparse($ast.name) ~ '[' ~ self.deparse($ast.args) ~ ']'
     }

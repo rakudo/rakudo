@@ -59,7 +59,7 @@ class RakuAST::Type::Setting is RakuAST::Type::Simple {
 
 class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup {
     has RakuAST::Name $.name;
-    has RakuAST::Type $!constraint;
+    has RakuAST::Type $.constraint;
 
     method new(RakuAST::Name $name, Mu $constraint) {
         my $obj := nqp::create(self);

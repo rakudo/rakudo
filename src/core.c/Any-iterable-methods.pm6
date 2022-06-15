@@ -2646,7 +2646,7 @@ multi sub squish(+values, |c) { my $laze = values.is-lazy; values.squish(|c).laz
 proto sub repeated(|) {*}
 multi sub repeated(+values, |c) { my $laze = values.is-lazy; values.repeated(|c).lazy-if($laze) }
 
-proto sub sort(|) {*}
+proto sub sort(Mu, |) {*}
 multi sub sort(&by, @values) { @values.sort(&by) }
 multi sub sort(&by, +values) { values.sort(&by) }
 multi sub sort(@values)      { @values.sort }

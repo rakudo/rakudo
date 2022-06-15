@@ -394,6 +394,30 @@ class RakuAST::Declaration::Mergeable {
             self.set-value($source);
         }
         elsif nqp::can(self, 'lexical-name') && nqp::eqat(self.lexical-name, '&', 0) {
+            # There's already a symbol. However, we may be able to merge
+            # if both are multis and have onlystar dispatchers.
+            if nqp::can($target, 'is_dispatcher') && $target.is_dispatcher
+            && nqp::can($source, 'is_dispatcher') && $source.is_dispatcher
+            && $target.onlystar && $source.onlystar {
+                # Replace installed one with a derived one, to avoid any
+                # weird action at a distance.
+                $target := $target.derive_dispatcher;
+                self.set-value($target);
+
+                # Incorporate dispatchees of foreign proto, avoiding
+                # duplicates.
+                my %seen;
+                for $target.dispatchees {
+                    %seen{$_.static_id} := $_;
+                }
+                for $source.dispatchees {
+                    unless nqp::existskey(%seen, $_.static_id) {
+                        $target.add_dispatchee($_);
+                    }
+                }
+                return;
+            }
+
             # "Latest wins" semantics for functions
             self.set-value($source);
         }

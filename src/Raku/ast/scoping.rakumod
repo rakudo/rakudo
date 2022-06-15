@@ -382,14 +382,24 @@ class RakuAST::Declaration::Mergeable {
 
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
         if $other.is-stub {
+            # Source is a stub. We can safely merge the symbols
+            # from source into the target that's importing them.
             $loader.merge_globals($target.WHO, $source.WHO);
         }
         elsif self.is-stub {
+            # The tricky case: here the interesting package is the
+            # one in the module. So we merge the other way around
+            # and install that as the result.
             $loader.merge_globals($source.WHO, $target.WHO);
             self.set-value($source);
         }
+        elsif nqp::can(self, 'lexical-name') && nqp::eqat(self.lexical-name, '&', 0) {
+            # "Latest wins" semantics for functions
+            self.set-value($source);
+        }
         else {
-            nqp::die('Unsupported case trying to merge symbols or duplicate definition');
+            nqp::die('Unsupported case trying to merge symbols or duplicate definition'
+                ~~ (nqp::can(self, 'lexical-name') ?? ' trying to merge ' ~ self.lexical-name !! ''));
         }
     }
 

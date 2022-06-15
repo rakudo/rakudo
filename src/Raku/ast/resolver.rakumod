@@ -195,7 +195,9 @@ class RakuAST::Resolver {
                 my int $n := nqp::elems(@parts);
                 while $i < $n {
                     my %hash := self.IMPL-STASH-HASH($cur-symbol);
-                    my $name := @parts[$i].name;
+                    my $name := nqp::istype(@parts[$i], RakuAST::Name::Part::Simple)
+                        ?? @parts[$i].name
+                        !! '';
                     $cur-symbol := nqp::atkey(%hash, $i < $n - 1 ?? $name !! $sigil ~ $name);
                     return Nil if nqp::isnull($cur-symbol);
                     $i++;

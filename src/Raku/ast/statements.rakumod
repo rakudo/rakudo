@@ -1230,6 +1230,22 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
                     self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($EXPORT{$tag}.WHO));
                 }
             }
+
+            my &EXPORT := $handle.export-sub;
+            if nqp::isconcrete(&EXPORT) {
+                my $result := &EXPORT(|@positional-imports);
+                if nqp::istype($result, Map) {
+                    my $storage := $result.hash.FLATTENABLE_HASH();
+                    self.IMPL-IMPORT-ONE(
+                        $resolver,
+                        $storage,
+                        :need-decont(!(nqp::what($result) =:= Map)),
+                    );
+                }
+                else {
+                    nqp::die("&EXPORT sub did not return a Map");
+                }
+            }
         }
     }
 

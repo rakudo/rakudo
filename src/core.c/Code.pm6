@@ -12,6 +12,12 @@ my class Code { # declared in BOOTSTRAP
 
     method is-implementation-detail(--> False) { }
 
+#?if moar
+    method bytecode-size() {
+        nqp::dispatch('boot-syscall', 'code-bytecode-size', $!do)
+    }
+#?endif
+
     proto method POSITIONS(|) {*} #  is implementation-detail
 
     method arity(Code:D:) { nqp::getattr_i($!signature,Signature,'$!arity') }

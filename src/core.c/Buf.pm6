@@ -856,15 +856,24 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           :range("0..{nqp::elems(self)-1}")
         ).Failure
     }
-    method !fail-typecheck-element(\action,\i,\got) {
-        self!fail-typecheck(action ~ "ing element #" ~ i,got);
-    }
-    method !fail-typecheck($action,$got) {
+    method !typecheck($action, $got) {
         X::TypeCheck.new(
           operation => $action ~ " to " ~ self.^name,
           got       => $got,
           expected  => T,
-        ).Failure
+        )
+    }
+    method !fail-typecheck($action,$got) {
+        self!typecheck($action, $got).Failure
+    }
+    method !typecheck-element($action, $i, $got) {
+        self!typecheck($action ~ "ing element #" ~ $i, $got)
+    }
+    method !fail-typecheck-element($action, $i, $got) {
+        self!typecheck-element($action, $i, $got).Failure
+    }
+    method !throw-typecheck-element($action, $i, $got) {
+        self!typecheck-element($action, $i, $got).throw
     }
     multi method ACCEPTS(Blob:D: Blob:D \Other) {
         nqp::hllbool(

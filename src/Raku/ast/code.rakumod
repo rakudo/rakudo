@@ -1049,13 +1049,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        if self.scope eq 'my' {
-            my $canon-name := $!name.canonicalize;
-            QAST::Var.new( :scope<lexical>, :name('&' ~ $canon-name) )
-        }
-        else {
-            self.IMPL-CLOSURE-QAST($context)
-        }
+        self.IMPL-CLOSURE-QAST($context)
     }
 
     method lexical-name() {

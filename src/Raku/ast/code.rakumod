@@ -1008,6 +1008,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         # TODO also infer body type
         my $returns := nqp::ifnull($signature.returns, Mu);
         unless $returns =:= Mu || $returns =:= Nil || nqp::isconcrete($returns) {
+            $context.ensure-sc($returns);
             $result := QAST::Op.new(
                 :op('p6typecheckrv'),
                 $result,

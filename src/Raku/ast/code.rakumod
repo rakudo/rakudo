@@ -378,6 +378,7 @@ class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta {
         my $code := nqp::create(self.IMPL-THUNK-OBJECT-TYPE);
         my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
         nqp::bindattr($code, Code, '$!signature', $signature.meta-object);
+        nqp::bindattr($signature.meta-object, Signature, '$!code', $code);
         self.IMPL-THUNK-META-OBJECT-PRODUCED($code);
         $code
     }
@@ -588,6 +589,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         my $signature := self.signature || self.placeholder-signature;
         if $signature {
             nqp::bindattr($block, Code, '$!signature', $signature.meta-object);
+            nqp::bindattr($signature.meta-object, Signature, '$!code', $block);
         }
         elsif $!implicit-topic-mode {
             my constant REQUIRED-TOPIC-SIG := -> {
@@ -850,6 +852,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         my $routine := nqp::create(self.IMPL-META-OBJECT-TYPE);
         my $signature := self.placeholder-signature || self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
+        nqp::bindattr($signature.meta-object, Signature, '$!code', $routine);
 
         if nqp::istype(self.body, RakuAST::OnlyStar) {
             $routine.set_onlystar;
@@ -1315,6 +1318,7 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
         # Create Regex object.
         my $regex := nqp::create(Regex);
         nqp::bindattr($regex, Code, '$!signature', $signature);
+        nqp::bindattr($signature, Signature, '$!code', $regex);
         $regex
     }
 

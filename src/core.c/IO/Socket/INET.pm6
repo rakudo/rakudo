@@ -113,6 +113,7 @@ my class IO::Socket::INET does IO::Socket {
 #?endif
         }
         elsif $!type == SOCK_STREAM {
+            CATCH { return .Failure }
             nqp::connect($PIO, nqp::unbox_s($!host), nqp::unbox_i($!port), nqp::decont_i($!family));
         }
 

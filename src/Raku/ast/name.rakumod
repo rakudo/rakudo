@@ -103,6 +103,16 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
     }
 
+    method qualified-with(RakuAST::Name $target) {
+        my $qualified := nqp::clone(self);
+        my @parts := nqp::clone(nqp::getattr($target, RakuAST::Name, '$!parts'));
+        for $!parts {
+            nqp::push(@parts, $_);
+        }
+        nqp::bindattr($qualified, RakuAST::Name, '$!parts', @parts);
+        $qualified
+    }
+
     method IMPL-IS-NQP-OP() {
         nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'nqp'
             ?? $!parts[1].name

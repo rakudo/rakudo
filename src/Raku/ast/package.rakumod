@@ -164,40 +164,45 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         my str $scope := self.scope;
         $scope := 'our' if $scope eq 'unit';
         my $name := $!name;
-        if $name && !$name.is-empty && ($scope eq 'my' || $scope eq 'our') && $!package-declarator ne 'role' {
-            # Need to install the package somewhere.
+        if $name && !$name.is-empty {
             my $type-object := self.stubbed-meta-object;
-            self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $type-object);
-        }
+            my $current-package := $resolver.find-attach-target('package');
+            $type-object.HOW.set_name($type-object, $name.qualified-with($current-package.name).canonicalize(:colonpairs(0)))
+                if $current-package;
 
-        elsif $name && !$name.is-empty && $!package-declarator eq 'role' {
-            # Find an appropriate existing role group
-            my $group-name := $name.canonicalize(:colonpairs(0));
-            my $group := $resolver.resolve-lexical-constant($group-name);
-            if $group {
-                $group := $group.compile-time-value;
+            if ($scope eq 'my' || $scope eq 'our') && $!package-declarator ne 'role' {
+                # Need to install the package somewhere.
+                self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $type-object);
             }
-            else {
-                # No existing one found - create a role group
-                $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
-                    :name($group-name),
-                    :repr($!repr)
-                );
-                my $outer := $resolver.find-attach-target('block') // $resolver.find-attach-target('compunit');
-                $outer.add-generated-lexical-declaration(
-                    RakuAST::VarDeclaration::Implicit::Constant.new(
-                        :name($group-name),
-                        :value($group)
-                    )
-                );
-                if $scope eq 'our' {
-                    self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $group);
+
+            elsif $!package-declarator eq 'role' {
+                # Find an appropriate existing role group
+                my $group-name := $name.canonicalize(:colonpairs(0));
+                my $group := $resolver.resolve-lexical-constant($group-name);
+                if $group {
+                    $group := $group.compile-time-value;
                 }
+                else {
+                    # No existing one found - create a role group
+                    $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
+                        :name($group-name),
+                        :repr($!repr)
+                    );
+                    my $outer := $resolver.find-attach-target('block') // $resolver.find-attach-target('compunit');
+                    $outer.add-generated-lexical-declaration(
+                        RakuAST::VarDeclaration::Implicit::Constant.new(
+                            :name($group-name),
+                            :value($group)
+                        )
+                    );
+                    if $scope eq 'our' {
+                        self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $group);
+                    }
+                }
+                # Add ourselves to the role group
+                $type-object.HOW.set_group($type-object, $group);
+                nqp::bindattr(self, RakuAST::Package, '$!role-group', $group);
             }
-            # Add ourselves to the role group
-            my $type-object := self.stubbed-meta-object;
-            $type-object.HOW.set_group($type-object, $group);
-            nqp::bindattr(self, RakuAST::Package, '$!role-group', $group);
         }
 
         $resolver.declare-lexical(

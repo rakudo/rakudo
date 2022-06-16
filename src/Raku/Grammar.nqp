@@ -1635,6 +1635,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         || <?{ $*R.is-name-known($<longname>.ast) }>
            { $*is-type := $*R.is-name-type($<longname>.ast) }
+            [
+                <?[[]> <?{ $*is-type }>
+                :dba('type parameter') '[' ~ ']' <arglist>
+            ]?
         || [ \\ <?before '('> ]? <args(1)>
            {
                 if !$<args><invocant> {

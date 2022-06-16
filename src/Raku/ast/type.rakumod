@@ -232,17 +232,37 @@ class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup {
     }
 
     method PRODUCE-META-OBJECT() {
-        my $role := self.resolution.compile-time-value;
-        my $args := $!args.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
-        my @pos := $args[0];
-        my %named := $args[1];
-        $role.HOW.parameterize($role, |@pos, |%named)
+        if $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+            my $args := $!args.IMPL-COMPILE-TIME-VALUES;
+            my @pos := $args[0];
+            my %named := $args[1];
+            my $ptype := self.resolution.compile-time-value;
+            if nqp::getenvhash()<DEBUG> {
+                nqp::hllizefor($ptype.HOW.name($ptype), 'Raku').note;
+                for @pos {
+                    nqp::gethllsym('nqp', 'note')('    ' ~ $_.HOW.name($_));
+                }
+            }
+            $ptype.HOW.parameterize($ptype, |@pos, |%named)
+        }
+        else {
+            nqp::die('Cannot do compile time parameterization with these args');
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.meta-object;
-        $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        if $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+            my $value := self.meta-object;
+            $context.ensure-sc($value);
+            QAST::WVal.new( :$value )
+        }
+        else {
+            my $ptype := self.resolution.compile-time-value;
+            my $ptref := QAST::WVal.new( :value($ptype) );
+            my $qast := QAST::Op.new(:op<callmethod>, :name<parameterize>, QAST::Op.new(:op<how>, $ptref), $ptref);
+            $!args.IMPL-ADD-QAST-ARGS($context, $qast);
+            $qast
+        }
     }
 
     method IMPL-CAN-INTERPRET() {

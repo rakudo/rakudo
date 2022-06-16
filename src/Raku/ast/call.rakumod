@@ -129,6 +129,27 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
         }
         [@pos, %named]
     }
+
+    method IMPL-HAS-ONLY-COMPILE-TIME-VALUES() {
+        for $!args -> $arg {
+            return False unless nqp::istype($arg, RakuAST::CompileTimeValue);
+        }
+        True
+    }
+
+    method IMPL-COMPILE-TIME-VALUES() {
+        my @pos;
+        my %named;
+        for $!args -> $arg {
+            if nqp::istype($arg, RakuAST::NamedArg) {
+                %named{$arg.named-arg-name} := $arg.named-arg-value.compile-time-value;
+            }
+            else {
+                nqp::push(@pos, $arg.compile-time-value);
+            }
+        }
+        [@pos, %named]
+    }
 }
 
 # Base role for all kinds of calls (named sub calls, calling some term, and

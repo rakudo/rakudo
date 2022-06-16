@@ -40,7 +40,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
 
         nqp::bindattr($obj, RakuAST::CompUnit, '$!context', RakuAST::IMPL::QASTContext.new(
-            :sc($sc)));
+            :$sc, :$precompilation-mode));
 
         $obj
     }

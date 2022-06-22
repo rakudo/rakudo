@@ -205,11 +205,42 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
             }
         }
 
-        $resolver.declare-lexical(
-            RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => '::?CLASS', value => self.stubbed-meta-object
-            )
-        );
+        if $!package-declarator eq 'role' {
+            $resolver.declare-lexical(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?ROLE', value => self.stubbed-meta-object
+                )
+            );
+            $resolver.declare-lexical(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?ROLE', value => self.stubbed-meta-object
+                )
+            );
+        }
+        elsif $!package-declarator eq 'module' {
+            $resolver.declare-lexical(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?MODULE', value => self.stubbed-meta-object
+                )
+            );
+            $resolver.declare-lexical(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?MODULE', value => self.stubbed-meta-object
+                )
+            );
+        }
+        elsif $!package-declarator ne 'package' {
+            $resolver.declare-lexical(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?CLASS', value => self.stubbed-meta-object
+                )
+            );
+            $resolver.declare-lexical(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?CLASS', value => self.stubbed-meta-object
+                )
+            );
+        }
 
         # Apply traits.
         self.apply-traits($resolver, $context, self);
@@ -266,11 +297,42 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                 name => '$?PACKAGE', value => self.stubbed-meta-object
             )
         );
-        $!body.add-generated-lexical-declaration(
-            RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => '::?CLASS', value => self.stubbed-meta-object
-            )
-        ) if $!package-declarator eq 'class';
+        if $!package-declarator eq 'role' {
+            $!body.add-generated-lexical-declaration(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?ROLE', value => self.stubbed-meta-object
+                )
+            );
+            $!body.add-generated-lexical-declaration(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?ROLE', value => self.stubbed-meta-object
+                )
+            );
+        }
+        elsif $!package-declarator eq 'module' {
+            $!body.add-generated-lexical-declaration(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?MODULE', value => self.stubbed-meta-object
+                )
+            );
+            $!body.add-generated-lexical-declaration(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?MODULE', value => self.stubbed-meta-object
+                )
+            );
+        }
+        elsif $!package-declarator ne 'package' {
+            $!body.add-generated-lexical-declaration(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '$?CLASS', value => self.stubbed-meta-object
+                )
+            );
+            $!body.add-generated-lexical-declaration(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    name => '::?CLASS', value => self.stubbed-meta-object
+                )
+            );
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

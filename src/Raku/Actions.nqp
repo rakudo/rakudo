@@ -1119,11 +1119,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             ?? $<block>.ast
             !! self.r('Block').new(body => self.r('Blockoid').new($<statementlist>.ast));
         if $*PKGDECL eq 'role' {
-            my $signature;
-            if $<signature> {
-                $signature := $<signature>.ast;
-                $signature.set-is-on-role-body(1);
-            }
+            my $signature := $<signature> ?? $<signature>.ast !! self.r('Signature').new;
+            $signature.set-is-on-role-body(1);
             # upgrade body to a sub with a signature
             $body := self.r('Sub').new(
                 :name($package.name),

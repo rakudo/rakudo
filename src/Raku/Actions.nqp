@@ -1043,6 +1043,27 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $/.typed_sorry('X::Comp::NYI', feature => 'Pod variable ' ~ $name);
             }
         }
+        elsif $twigil eq '.' {
+            self.attach: $/, self.r('ApplyPostfix').new:
+                :postfix(
+                    self.r('Call', 'Method').new:
+                        # contextualize based on sigil
+                        :name(self.r('Name').from-identifier(
+                              $sigil eq '@' ?? 'list' !!
+                              $sigil eq '%' ?? 'hash' !!
+                              'item')),
+                        :args(self.r('ArgList').new)),
+                :operand(
+                    self.r('ApplyPostfix').new:
+                        :postfix(
+                            self.r('Call', 'Method').new(
+                                :name(self.r('Name').from-identifier($desigilname)),
+                                :args($<arglist> ?? $<arglist>.ast !! self.r('ArgList').new),
+                            )),
+                        :operand(
+                            self.r('Term', 'Self').new
+                        ));
+        }
         else {
             nqp::die("Lookup with twigil '$twigil' NYI");
         }

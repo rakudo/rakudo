@@ -71,6 +71,9 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
             unless @param-asts && @param-asts[0].invocant {
                 my $invocant := RakuAST::Parameter.new();
                 $invocant.add-type-capture(
+                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('$?CLASS'))
+                );
+                $invocant.add-type-capture(
                     RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('::?CLASS'))
                 );
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant', $invocant);

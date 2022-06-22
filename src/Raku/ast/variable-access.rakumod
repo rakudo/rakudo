@@ -176,7 +176,20 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Term::Self.new,
+            RakuAST::Var::Compiler::Lookup.new('$?CLASS'),
         ])
+    }
+
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::Impl::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        if @lookups[1].is-resolved && nqp::istype(@lookups[1].resolution, RakuAST::CompileTimeValue) {
+            my $type-object := @lookups[1].resolution.compile-time-value;
+            my $how := $type-object.HOW;
+            unless nqp::can($how, 'archetypes') && nqp::can($how.archetypes, 'generic') && $how.archetypes.generic {
+                return QAST::WVal.new(:value($type-object))
+            }
+        }
+        return QAST::Var.new(:scope<lexical>, :name('$?CLASS'))
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -186,7 +199,7 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
         QAST::Var.new(
             :scope('attribute'), :name($!name), :returns($attr-type),
             @lookups[0].IMPL-TO-QAST($context),
-            QAST::WVal.new( :value($package) ),
+            self.IMPL-QAST-PACKAGE-LOOKUP($context),
         )
     }
 
@@ -208,7 +221,7 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
             QAST::Var.new(
                 :scope('attribute'), :name($!name), :returns($attr-type),
                 @lookups[0].IMPL-TO-QAST($context),
-                QAST::WVal.new( :value($package) ),
+                self.IMPL-QAST-PACKAGE-LOOKUP($context),
             ),
             $source-qast
         )

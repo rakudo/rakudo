@@ -886,10 +886,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                 $proto := $proto.compile-time-value;
             }
             else {
-                my $outer := $resolver.find-attach-target('block');
-                unless $outer {
-                    $outer := $resolver.find-attach-target('compunit');
-                }
+                my $scope := $resolver.current-scope;
 
                 if $proto := $resolver.resolve-lexical($name) {
                     $proto := $proto.compile-time-value.derive_dispatcher;
@@ -915,11 +912,11 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                     $proto := $proto-ast.meta-object;
                     nqp::bindattr($proto, Routine, '@!dispatchees', []);
 
-                    $outer.add-generated-lexical-declaration(
+                    $scope.add-generated-lexical-declaration(
                         RakuAST::VarDeclaration::Implicit::Block.new(:$name, :block($proto-ast))
                     );
                 }
-                $outer.add-generated-lexical-declaration(
+                $scope.add-generated-lexical-declaration(
                     RakuAST::VarDeclaration::Implicit::Constant.new(:$name, :value($proto))
                 );
             }

@@ -2,7 +2,8 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                        is RakuAST::IMPL::ImmediateBlockUser
                        is RakuAST::Declaration is RakuAST::AttachTarget
                        is RakuAST::BeginTime is RakuAST::TraitTarget
-                       is RakuAST::ImplicitBlockSemanticsProvider {
+                       is RakuAST::ImplicitBlockSemanticsProvider
+                       is RakuAST::LexicalScope {
     has Str $.package-declarator;
     has Mu $.how;
     has Mu $.attribute-type;
@@ -205,41 +206,47 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
             }
         }
 
-        if $!package-declarator eq 'role' {
-            $resolver.declare-lexical(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '$?ROLE', value => self.stubbed-meta-object
-                )
-            );
-            $resolver.declare-lexical(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '::?ROLE', value => self.stubbed-meta-object
-                )
-            );
-        }
-        elsif $!package-declarator eq 'module' {
-            $resolver.declare-lexical(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '$?MODULE', value => self.stubbed-meta-object
-                )
-            );
-            $resolver.declare-lexical(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '::?MODULE', value => self.stubbed-meta-object
-                )
-            );
-        }
-        elsif $!package-declarator ne 'package' {
-            $resolver.declare-lexical(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '$?CLASS', value => self.stubbed-meta-object
-                )
-            );
-            $resolver.declare-lexical(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '::?CLASS', value => self.stubbed-meta-object
-                )
-            );
+        # TODO split off the above into a pre-begin handler, so the enter-scope
+        # and declarations can go back into RakuAST::Actions
+        if nqp::istype($resolver, RakuAST::Resolver::Compile) {
+            $resolver.enter-scope(self);
+
+            if $!package-declarator eq 'role' {
+                $resolver.declare-lexical(
+                    RakuAST::VarDeclaration::Implicit::Constant.new(
+                        name => '$?ROLE', value => self.stubbed-meta-object
+                    )
+                );
+                $resolver.declare-lexical(
+                    RakuAST::VarDeclaration::Implicit::Constant.new(
+                        name => '::?ROLE', value => self.stubbed-meta-object
+                    )
+                );
+            }
+            elsif $!package-declarator eq 'module' {
+                $resolver.declare-lexical(
+                    RakuAST::VarDeclaration::Implicit::Constant.new(
+                        name => '$?MODULE', value => self.stubbed-meta-object
+                    )
+                );
+                $resolver.declare-lexical(
+                    RakuAST::VarDeclaration::Implicit::Constant.new(
+                        name => '::?MODULE', value => self.stubbed-meta-object
+                    )
+                );
+            }
+            elsif $!package-declarator ne 'package' {
+                $resolver.declare-lexical(
+                    RakuAST::VarDeclaration::Implicit::Constant.new(
+                        name => '$?CLASS', value => self.stubbed-meta-object
+                    )
+                );
+                $resolver.declare-lexical(
+                    RakuAST::VarDeclaration::Implicit::Constant.new(
+                        name => '::?CLASS', value => self.stubbed-meta-object
+                    )
+                );
+            }
         }
 
         # Apply traits.

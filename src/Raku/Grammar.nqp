@@ -1828,6 +1828,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <statementlist>
         || <.panic("Unable to parse $*PKGDECL definition")>
         ]
+        <.leave-block-scope>
         <.leave-package-scope>
     }
 

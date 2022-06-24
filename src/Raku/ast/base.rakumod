@@ -101,7 +101,7 @@ class RakuAST::Node {
             }
             if nqp::istype(self, RakuAST::CheckTime) {
                 self.clear-check-time-problems();
-                self.PERFORM-CHECK($resolver);
+                self.PERFORM-CHECK($resolver, $context);
                 if self.has-check-time-problems {
                     $resolver.add-node-with-check-time-problems(self);
                 }

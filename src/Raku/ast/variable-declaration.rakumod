@@ -527,7 +527,7 @@ class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::Imp
         self.IMPL-WRAP-LIST(@lookups)
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # tell the parameter targets to create containers
         my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
 

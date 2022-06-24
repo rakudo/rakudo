@@ -503,7 +503,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         }
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::istype($!owner, RakuAST::Routine) {
             my $name := $!owner.name;
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
@@ -526,6 +526,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             # If it doesn't have a compile-time value, we'll need to thunk it.
             unless nqp::istype($!default, RakuAST::CompileTimeValue) {
                 $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
+                $!default.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
             }
         }
 

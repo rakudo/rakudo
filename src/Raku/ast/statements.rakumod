@@ -338,7 +338,7 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
         }
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!loop-modifier {
             my $thunk := $!loop-modifier.expression-thunk;
             $!expression.wrap-with-thunk($thunk) if $thunk;

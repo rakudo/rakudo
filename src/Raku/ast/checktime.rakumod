@@ -51,7 +51,7 @@ class RakuAST::CheckTime is RakuAST::Node {
 
     # Method to be implemented by nodes that perform CHECK-time checks. Should
     # call add-sorry and add-worry with the constructed exception objects.
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::die('Missing PERFORM-CHECK implementation for ' ~ self.HOW.name(self));
     }
 }

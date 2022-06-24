@@ -42,7 +42,7 @@ class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup is RakuAST::CheckT
         Nil
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless self.is-resolved {
             self.add-sorry($resolver.build-exception('X::Syntax::Self::WithoutObject'))
         }

@@ -98,8 +98,8 @@ class RakuAST::Code is RakuAST::Node {
             else {
                 my $code-obj := nqp::getcodeobj(nqp::curcode());
                 unless $precomp {
-                    self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
-                    $precomp := nqp::getattr($code-obj, Code, '@!compstuff')[1]();
+                    my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
+                    $precomp := self.IMPL-COMPILE-DYNAMICALLY($block, $context);
                 }
                 unless nqp::isnull($code-obj) {
                     return $code-obj(|@pos, |%named);
@@ -291,7 +291,7 @@ class RakuAST::Code is RakuAST::Node {
 
 # The base of all expression thunks, which produce a code object of some kind
 # that wraps the thunk.
-class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta {
+class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta is RakuAST::BeginTime {
     has RakuAST::ExpressionThunk $.next;
     has RakuAST::Signature $!signature;
 
@@ -304,6 +304,14 @@ class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta {
         self.HOW.name(self)
     }
 
+    method is-begin-performed-before-children() { False }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+
+        Nil
+    }
+
     # Called to produce the QAST::Block for the thunk, which should be pushed
     # into the passed `$target`. If there is a next thunk in `$!next` then it
     # should be compiled recursively and the expression passed along; otherwise,
@@ -311,9 +319,8 @@ class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta {
     method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
             RakuAST::Expression $expression) {
 
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, :$expression);
+        my $block := self.IMPL-QAST-BLOCK($context, :$expression);
         # Link and push the produced code block.
-        self.IMPL-LINK-META-OBJECT($context, $block);
         $target.push($block);
     }
 
@@ -1345,7 +1352,7 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
 
 # A language construct that does some kind of pattern matching. These all have
 # adverbs in common.
-class RakuAST::QuotedMatchConstruct is RakuAST::Term {
+class RakuAST::QuotedMatchConstruct is RakuAST::Term is RakuAST::BeginTime {
     has List $.adverbs;
 
     method replace-adverbs(List $adverbs) {
@@ -1427,6 +1434,14 @@ class RakuAST::QuotedMatchConstruct is RakuAST::Term {
             $visitor($_);
         }
     }
+
+    method is-begin-performed-before-children() { False }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+
+        Nil
+    }
 }
 
 # A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
@@ -1467,7 +1482,7 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::QuotedMatchConstru
             self.IMPL-IS-MULTIPLE-ADVERB($norm-adverb)
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Check adverbs
         for self.IMPL-UNWRAP-LIST(self.adverbs) {
             my str $key := $_.key;
@@ -1496,9 +1511,7 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::QuotedMatchConstru
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself and link it with the meta-object.
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
-        self.IMPL-LINK-META-OBJECT($context, $block);
-        $block
+        self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'));
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1607,7 +1620,7 @@ class RakuAST::Substitution is RakuAST::RegexThunk is RakuAST::QuotedMatchConstr
         self.IMPL-IS-POSITION-ADVERB($norm-adverb) || nqp::existskey(SUBST_OK, $norm-adverb)
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Check adverbs
         for self.IMPL-UNWRAP-LIST(self.adverbs) {
             my str $key := $_.key;

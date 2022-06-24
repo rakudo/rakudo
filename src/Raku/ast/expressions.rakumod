@@ -960,7 +960,7 @@ class RakuAST::MetaPostfix::Hyper is RakuAST::Postfixish is RakuAST::CheckTime {
         $obj
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!postfix.can-be-used-with-hyper {
             self.add-sorry: $resolver.build-exception: 'X::AdHoc',
                 payload => 'Cannot hyper this postfix'

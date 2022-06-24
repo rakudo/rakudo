@@ -1475,7 +1475,7 @@ class RakuAST::Regex::CharClassEnumerationElement::Range is RakuAST::CheckTime
         $obj
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!from > $!to {
             self.add-sorry: $resolver.build-exception: 'X::AdHoc',
                 payload => "Illegal reversed character range"
@@ -1559,7 +1559,7 @@ class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term is RakuAST::CheckTi
         $obj
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!atom.quantifiable {
             self.add-sorry($resolver.build-exception('X::Syntax::Regex::NonQuantifiable'));
         }

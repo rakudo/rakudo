@@ -91,7 +91,7 @@ class RakuAST::ContainerCreator {
 # A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::ImplicitLookups
                                       is RakuAST::TraitTarget is RakuAST::ContainerCreator
-                                      is RakuAST::Meta is RakuAST::Attaching {
+                                      is RakuAST::Meta is RakuAST::Attaching is RakuAST::BeginTime {
     has RakuAST::Type $.type;
     has str $.name;
     has str $!storage-name;
@@ -164,6 +164,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         $visitor($type) if nqp::isconcrete($type);
         my $initializer := $!initializer;
         $visitor($initializer) if nqp::isconcrete($initializer);
+        self.visit-traits($visitor);
     }
 
     method default-scope() {
@@ -199,6 +200,11 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
                 $package);
         }
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Apply any traits.
+        self.apply-traits($resolver, $context, self)
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

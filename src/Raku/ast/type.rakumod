@@ -237,12 +237,6 @@ class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup {
             my @pos := $args[0];
             my %named := $args[1];
             my $ptype := self.resolution.compile-time-value;
-            if nqp::getenvhash()<DEBUG> {
-                nqp::hllizefor($ptype.HOW.name($ptype), 'Raku').note;
-                for @pos {
-                    nqp::gethllsym('nqp', 'note')('    ' ~ $_.HOW.name($_));
-                }
-            }
             $ptype.HOW.parameterize($ptype, |@pos, |%named)
         }
         else {

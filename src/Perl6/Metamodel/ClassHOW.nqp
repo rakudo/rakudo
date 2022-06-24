@@ -314,7 +314,7 @@ class Perl6::Metamodel::ClassHOW
             while ++$i < +@mro {
                 my $parent := @mro[$i];
                 if nqp::can($parent.HOW, 'find_method_fallback') 
-                    && (my $fallback := $parent.HOW.find_method_fallback($obj, $name, :local)) {
+                    && !nqp::isnull(my $fallback := $parent.HOW.find_method_fallback($obj, $name, :local)) {
                     return $fallback
                 }
             }
@@ -325,10 +325,15 @@ class Perl6::Metamodel::ClassHOW
     }
 
     # Does the type have any fallbacks?
-    method has_fallbacks($obj) {
+    method has_fallbacks($obj, :$local = 0) {
         return 1 if nqp::istype($obj, $junction_type) || +@!fallbacks;
-        for self.mro($obj) {
-            return 1 if $_.HOW.has_fallbacks($obj)
+        unless $local {
+            my $i := 0;
+            my @mro := self.mro($obj);
+            while ++$i < +@mro {
+                my $parent := @mro[$i];
+                return 1 if nqp::can($parent.HOW, 'has_fallbacks') && $parent.HOW.has_fallbacks($obj, :local)
+            }
         }
         0
     }

@@ -274,7 +274,6 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
             nqp::atpos_s(@args[0], @args[1]);
         }
         else {
-            nqp::gethllsym('nqp', 'note')($!name.canonicalize);
             my $resolved := self.resolution.compile-time-value;
             my @args := self.args.IMPL-INTERPRET($ctx);
             my @pos := @args[0];

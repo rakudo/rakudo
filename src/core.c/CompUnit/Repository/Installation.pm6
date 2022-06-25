@@ -32,6 +32,9 @@ __END__
 
     my constant $raku-wrapper = '#!/usr/bin/env #raku#
 sub MAIN(:$name, :$auth, :$ver, *@, *%) {
+    my $vendor_dir = $*SPEC.catdir($?FILE.IO.dirname, '..').IO.resolve;
+    my $vendor_repo = CompUnit::Repository::Installation.new(prefix => $vendor_dir);
+    CompUnit::RepositoryRegistry.use-repository($vendor_repo);
     CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
 }';
 

@@ -100,7 +100,7 @@ class RakuAST::Trait is RakuAST::ImplicitLookups {
 class RakuAST::Trait::Is is RakuAST::Trait is RakuAST::BeginTime {
     has RakuAST::Name $.name;
     has RakuAST::Circumfix $.argument;
-    has RakuAST::Term::Name $!resolved-name;
+    has RakuAST::Term::Name $.resolved-name;
 
     method new(RakuAST::Name :$name!, RakuAST::Circumfix :$argument) {
         my $obj := nqp::create(self);

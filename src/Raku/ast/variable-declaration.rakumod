@@ -45,6 +45,12 @@ class RakuAST::Initializer::Bind is RakuAST::Initializer {
 }
 
 class RakuAST::ContainerCreator {
+    has Mu $!container-base-type;
+
+    method IMPL-SET-CONTAINER-BASE-TYPE(Mu $type) {
+        nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-base-type', $type);
+    }
+
     method IMPL-CONTAINER-DESCRIPTOR(Mu $of) {
         # If it's a natively typed scalar, no container.
         my str $sigil := self.sigil;
@@ -69,29 +75,33 @@ class RakuAST::ContainerCreator {
         my str $sigil := self.sigil;
         my $container-base-type;
         my $container-type;
-        if $sigil eq '@' {
-            $container-base-type := Array;
-            $container-type := self.type
-                ?? Array.HOW.parameterize(Array, $of)
-                !! Array;
-        }
-        elsif $sigil eq '%' {
-            $container-base-type := Hash;
-            $container-type := self.type
-                ?? Hash.HOW.parameterize(Hash, $of)
-                !! Hash;
+        if nqp::eqaddr($!container-base-type, Mu) {
+            if $sigil eq '@' {
+                $container-base-type := Array;
+                $container-type := self.type
+                    ?? Array.HOW.parameterize(Array, $of)
+                    !! Array;
+            }
+            elsif $sigil eq '%' {
+                $container-base-type := Hash;
+                $container-type := self.type
+                    ?? Hash.HOW.parameterize(Hash, $of)
+                    !! Hash;
+            }
+            else {
+                $container-base-type := Scalar;
+                $container-type := Scalar;
+            }
+            my $container := nqp::create($container-type);
+            nqp::bindattr($container, $container-base-type, '$!descriptor', $cont-desc);
+            unless $sigil eq '@' || $sigil eq '%' {
+                nqp::bindattr($container, $container-base-type, '$!value', $default);
+            }
+            $container
         }
         else {
-            $container-base-type := Scalar;
-            $container-type := Scalar;
+            $!container-base-type
         }
-        my $container := nqp::create($container-type);
-        nqp::bindattr($container, $container-base-type, '$!descriptor', $cont-desc);
-        unless $sigil eq '@' || $sigil eq '%' {
-            nqp::bindattr($container, $container-base-type, '$!value', $default);
-        }
-
-        $container
     }
 }
 
@@ -210,7 +220,29 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Process traits for `is Type` and `of Type`, which get special
+        # handling by the compiler.
+        my @late-traits;
+        my @traits := self.IMPL-UNWRAP-LIST(self.traits);
+
+        for @traits {
+            if nqp::istype($_, RakuAST::Trait::Of) {
+                npq::die('of trait not yet implemented on variables');
+            }
+            elsif nqp::istype($_, RakuAST::Trait::Is) {
+                my $type := $_.resolved-name;
+
+                # an actual type
+                if nqp::isconcrete($type) && $type.is-resolved {
+                    self.IMPL-SET-CONTAINER-BASE-TYPE($type.resolution.compile-time-value);
+                    next;
+                }
+            }
+            nqp::push(@late-traits, $_);
+        }
+
         # Apply any traits.
+        self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
         self.apply-traits($resolver, $context, self)
     }
 

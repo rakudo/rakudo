@@ -762,7 +762,8 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
     }
 
     method PRODUCE-META-OBJECT() {
-        self.IMPL-CONTAINER($!of)
+        my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($!of);
+        self.IMPL-CONTAINER($!of, $cont-desc)
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {

@@ -45,7 +45,7 @@ class RakuAST::Initializer::Bind is RakuAST::Initializer {
 }
 
 class RakuAST::ContainerCreator {
-    method IMPL-CONTAINER(Mu $of) {
+    method IMPL-CONTAINER-DESCRIPTOR(Mu $of) {
         # If it's a natively typed scalar, no container.
         my str $sigil := self.sigil;
         my int $is-native := nqp::objprimspec($of);
@@ -56,10 +56,17 @@ class RakuAST::ContainerCreator {
         # Form container descriptor.
         my $default := self.type ?? $of !! Any;
         my int $dynamic := self.twigil eq '*' ?? 1 !! 0;
-        my $cont-desc := ContainerDescriptor.new(:$of, :$default, :$dynamic,
-            :name(self.lexical-name));
+        (
+            nqp::eqaddr($of, Mu)
+            ?? ContainerDescriptor::Untyped
+            !! ContainerDescriptor
+        ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
+    }
 
+    method IMPL-CONTAINER(Mu $of, Mu $cont-desc) {
         # Form the container.
+        my $default := self.type ?? $of !! Any;
+        my str $sigil := self.sigil;
         my $container-base-type;
         my $container-type;
         if $sigil eq '@' {
@@ -236,11 +243,13 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
+            my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
             $!attribute-package.attribute-type.new(
                 name => self.sigil ~ '!' ~ self.desigilname,
                 type => $of,
                 has_accessor => self.twigil eq '.',
-                auto_viv_container => self.IMPL-CONTAINER($of),
+                container_descriptor => $cont-desc,
+                auto_viv_container => self.IMPL-CONTAINER($of, $cont-desc),
                 package => $!attribute-package.compile-time-value
             )
         }
@@ -248,7 +257,8 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         # Otherwise, it's lexically scoped, so the meta-object is just the
         # container, if any.
         else {
-            self.IMPL-CONTAINER($of)
+            my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
+            self.IMPL-CONTAINER($of, $cont-desc)
         }
     }
 

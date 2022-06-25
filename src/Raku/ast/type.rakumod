@@ -38,8 +38,13 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.resolution.compile-time-value;
-        $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        if $value.HOW.archetypes.generic {
+            QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+        }
+        else {
+            $context.ensure-sc($value);
+            QAST::WVal.new( :$value )
+        }
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -173,9 +178,7 @@ class RakuAST::Type::Capture is RakuAST::Type is RakuAST::Declaration {
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.meta-object;
-        $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        self.IMPL-LOOKUP-QAST($context)
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {

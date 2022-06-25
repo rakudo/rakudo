@@ -51,6 +51,14 @@ class RakuAST::ContainerCreator {
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-base-type', $type);
     }
 
+    method IMPL-HAS-CONTAINER-BASE-TYPE() {
+        !nqp::eqaddr($!container-base-type, Mu)
+    }
+
+    method IMPL-CONTAINER-BASE-TYPE() {
+        $!container-base-type
+    }
+
     method IMPL-CONTAINER-DESCRIPTOR(Mu $of) {
         # If it's a natively typed scalar, no container.
         my str $sigil := self.sigil;
@@ -102,6 +110,48 @@ class RakuAST::ContainerCreator {
         else {
             $!container-base-type
         }
+    }
+}
+
+class RakuAST::TraitTarget::Variable is RakuAST::TraitTarget is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST::BeginTime {
+    has str $!name;
+    has str $!scope;
+    has Mu $!cont;
+    has Mu $!code-object;
+    has Mu $!slash;
+
+    method new(str $name, str $scope, Mu $cont, Mu $code-object, Mu $slash) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::TraitTarget::Variable, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::TraitTarget::Variable, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::TraitTarget::Variable, '$!cont', $cont);
+        nqp::bindattr($obj, RakuAST::TraitTarget::Variable, '$!code-object', $code-object);
+        nqp::bindattr($obj, RakuAST::TraitTarget::Variable, '$!slash', $slash);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Variable')),
+        ])
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    }
+
+    method PRODUCE-META-OBJECT() {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $Variable  := @lookups[0].compile-time-value;
+        my $varvar := nqp::create($Variable);
+        nqp::bindattr_s($varvar, $Variable, '$!name', $!name);
+        nqp::bindattr_s($varvar, $Variable, '$!scope', $!scope);
+        nqp::bindattr($varvar, $Variable, '$!var', $!cont);
+        nqp::bindattr($varvar, $Variable, '$!block', $!code-object);
+        nqp::bindattr($varvar, $Variable, '$!slash', $!slash);
+        nqp::assign(
+            nqp::getattr($varvar, $Variable, '$!implicit-lexical-usage'),
+            True);
+        $varvar
     }
 }
 
@@ -233,7 +283,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                 my $type := $_.resolved-name;
 
                 # an actual type
-                if nqp::isconcrete($type) && $type.is-resolved {
+                if nqp::isconcrete($type) && !$_.argument && $type.is-resolved {
                     self.IMPL-SET-CONTAINER-BASE-TYPE($type.resolution.compile-time-value);
                     next;
                 }
@@ -242,8 +292,14 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         }
 
         # Apply any traits.
+        my $meta := self.meta-object;
+        my $target := RakuAST::TraitTarget::Variable.new($!name, nqp::getattr(self, RakuAST::Declaration, '$!scope'), $meta, Mu, Mu);
+        # Get around RakuAST compiler deconting all arguments:
+        nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
+        $target.IMPL-CHECK($resolver, $context, False);
+
         self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
-        self.apply-traits($resolver, $context, self)
+        self.apply-traits($resolver, $context, $target);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -317,10 +373,17 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                 # contvar, though we'll need an alternative for BEGIN.
                 my $container := self.meta-object;
                 $context.ensure-sc($container);
-                QAST::Var.new(
+                my $qast := QAST::Var.new(
                     :scope('lexical'), :decl('contvar'), :name($!name),
                     :value($container)
-                )
+                );
+                if self.IMPL-HAS-CONTAINER-BASE-TYPE {
+                    $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
+                        :op('callmethod'), :name('new'),
+                        QAST::WVal.new( :value(self.IMPL-CONTAINER-BASE-TYPE) )
+                    ) );
+                }
+                $qast
             }
         }
         elsif $scope eq 'our' {

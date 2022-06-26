@@ -292,14 +292,24 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         }
 
         # Apply any traits.
-        my $meta := self.meta-object;
-        my $target := RakuAST::TraitTarget::Variable.new($!name, nqp::getattr(self, RakuAST::Declaration, '$!scope'), $meta, Mu, Mu);
-        # Get around RakuAST compiler deconting all arguments:
-        nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
-        $target.IMPL-CHECK($resolver, $context, False);
-
         self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
-        self.apply-traits($resolver, $context, $target);
+
+        my str $scope := self.scope;
+        if $scope eq 'has' || $scope eq 'HAS' {
+            # For attributes our meta-object is an appropriate Attribute instance
+            self.apply-traits($resolver, $context, self);
+        }
+        else {
+            # For other variables the meta-object is just the container, but we
+            # need instances of Variable
+            my $meta := self.meta-object;
+            my $target := RakuAST::TraitTarget::Variable.new($!name, nqp::getattr(self, RakuAST::Declaration, '$!scope'), $meta, Mu, Mu);
+            # Get around RakuAST compiler deconting all arguments:
+            nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
+            $target.IMPL-CHECK($resolver, $context, False);
+
+            self.apply-traits($resolver, $context, $target);
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

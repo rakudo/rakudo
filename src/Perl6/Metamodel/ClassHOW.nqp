@@ -292,9 +292,9 @@ class Perl6::Metamodel::ClassHOW
     }
 
     # Handles the various dispatch fallback cases we have.
-    method find_method_fallback($obj, $name) {
+    method find_method_fallback($obj, $name, :$local = 0) {
         # If the object is a junction, need to do a junction dispatch.
-        if $obj.WHAT =:= $junction_type && $junction_autothreader {
+        if nqp::istype($obj.WHAT, $junction_type) && $junction_autothreader {
             my $p6name := nqp::hllizefor($name, 'Raku');
             return -> *@pos_args, *%named_args {
                 $junction_autothreader($p6name, |@pos_args, |%named_args)
@@ -308,13 +308,34 @@ class Perl6::Metamodel::ClassHOW
             }
         }
 
+        unless $local {
+            my @mro := self.mro($obj);
+            my $i := 0;
+            while ++$i < +@mro {
+                my $parent := @mro[$i];
+                if nqp::can($parent.HOW, 'find_method_fallback') 
+                    && !nqp::isnull(my $fallback := $parent.HOW.find_method_fallback($obj, $name, :local)) {
+                    return $fallback
+                }
+            }
+        }
+
         # Otherwise, didn't find anything.
         nqp::null()
     }
 
     # Does the type have any fallbacks?
-    method has_fallbacks($obj) {
-        return nqp::istype($obj, $junction_type) || +@!fallbacks;
+    method has_fallbacks($obj, :$local = 0) {
+        return 1 if nqp::istype($obj, $junction_type) || +@!fallbacks;
+        unless $local {
+            my $i := 0;
+            my @mro := self.mro($obj);
+            while ++$i < +@mro {
+                my $parent := @mro[$i];
+                return 1 if nqp::can($parent.HOW, 'has_fallbacks') && $parent.HOW.has_fallbacks($obj, :local)
+            }
+        }
+        0
     }
 
     method set_pun_source($obj, $role) {

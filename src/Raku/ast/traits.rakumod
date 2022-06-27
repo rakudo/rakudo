@@ -35,10 +35,10 @@ class RakuAST::TraitTarget {
     }
 
     # Apply all traits (and already applied will not be applied again).
-    method apply-traits(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target) {
+    method apply-traits(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         if $!traits {
             for $!traits {
-                $_.apply($resolver, $context, $target) unless $_.applied;
+                $_.apply($resolver, $context, $target, |%named) unless $_.applied;
             }
         }
         Nil
@@ -83,13 +83,19 @@ class RakuAST::Trait is RakuAST::ImplicitLookups {
 
     # Apply the trait to the specified target. Checks if it has been applied,
     # and then applies it.
-    method apply(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target) {
+    method apply(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         unless self.applied {
             self.IMPL-CHECK($resolver, $context, False);
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $decl-target := RakuAST::Declaration::ResolvedConstant.new:
                 compile-time-value => $target.compile-time-value;
             my $args := self.IMPL-TRAIT-ARGS($resolver, $decl-target);
+            for %named {
+                nqp::push(
+                    self.IMPL-UNWRAP-LIST($args.args),
+                    RakuAST::ColonPair::Value.new(:key(nqp::iterkey_s($_)), :value(nqp::iterval($_)))
+                );
+            }
             $target.IMPL-BEGIN-TIME-CALL(@lookups[0], $args, $resolver, $context);
             self.mark-applied;
         }

@@ -1368,6 +1368,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :$name,
             :value(self.r('BeginTime').IMPL-BEGIN-TIME-EVALUATE($value, $*R, $*CU.context)),
             :scope($*SCOPE));
+        for $<trait> {
+            $decl.add-trait($_.ast);
+        }
         $*R.declare-lexical($decl);
         self.attach: $/, $decl;
     }

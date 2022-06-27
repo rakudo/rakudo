@@ -917,7 +917,8 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic is RakuAST::VarDeclaration::
 # An implicitly declared constant variable - that is, one with a value that is
 # fixed at compile time. Used for $?PACKAGE and similar.
 class RakuAST::VarDeclaration::Implicit::Constant is RakuAST::VarDeclaration::Implicit
-                                                  is RakuAST::CompileTimeValue {
+                                                  is RakuAST::TraitTarget is RakuAST::BeginTime
+                                                  is RakuAST::Meta is RakuAST::CompileTimeValue {
     has Mu $.value;
 
     method new(str :$name!, Mu :$value!, str :$scope) {
@@ -933,6 +934,14 @@ class RakuAST::VarDeclaration::Implicit::Constant is RakuAST::VarDeclaration::Im
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         $context.ensure-sc($!value);
         QAST::Var.new( :decl('static'), :scope('lexical'), :name(self.name), :value($!value) )
+    }
+
+    method PRODUCE-META-OBJECT() {
+        self.compile-time-value
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.apply-traits($resolver, $context, self, :SYMBOL(RakuAST::StrLiteral.new(self.name)));
     }
 }
 

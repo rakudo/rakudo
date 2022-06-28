@@ -193,11 +193,6 @@ class RakuAST::Code is RakuAST::Node {
 
         @compstuff[0] := $block;
 
-        my $compiler-thunk := {
-            self.IMPL-COMPILE-DYNAMICALLY($block, $context)
-        };
-        @compstuff[1] := $compiler-thunk;
-
         $context.add-code-ref(nqp::getattr($code-obj, Code, '$!do'), $block);
 
         $context.add-fixup-task(-> {

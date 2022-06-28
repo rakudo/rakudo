@@ -916,8 +916,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                         :multiness<proto>,
                     );
 
+                    $proto-ast.ensure-begin-performed($resolver, $context);
                     $proto := $proto-ast.meta-object;
-                    nqp::bindattr($proto, Routine, '@!dispatchees', []);
 
                     $scope.add-generated-lexical-declaration(
                         RakuAST::VarDeclaration::Implicit::Block.new(:$name, :block($proto-ast))

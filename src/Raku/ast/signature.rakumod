@@ -1,9 +1,10 @@
 # A signature, typically part of a block though also contained within a
 # signature literal or a signature-based variable declarator.
-class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
+class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST::Attaching {
     has List $.parameters;
     has RakuAST::Node $.returns;
     has int $!is-on-method;
+    has int $!is-on-meta-method;
     has int $!is-on-role-body;
     has RakuAST::Package $!method-package;
     has RakuAST::Parameter $.implicit-invocant;
@@ -34,6 +35,11 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', $is-on-method ?? 1 !! 0);
     }
 
+    method set-is-on-meta-method(Bool $is-on-meta-method) {
+        # Stash away the fact whether we should put a type constraint on the implicit invocant
+        nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-meta-method', $is-on-meta-method ?? 1 !! 0);
+    }
+
     method set-is-on-role-body(Bool $is-on-role-body) {
         # Stash away the fact whether we should generate implicit parameters
         nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-role-body', $is-on-role-body ?? 1 !! 0);
@@ -49,17 +55,28 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         }
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Mu'))
+        ])
+    }
+
     method IMPL-ENSURE-IMPLICITS() {
         if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
             my @param-asts := self.IMPL-UNWRAP-LIST($!parameters);
             unless @param-asts && @param-asts[0].invocant {
-                # TODO set type of this
                 my $type;
-                if nqp::isconcrete($!method-package) {
-                    my $package := $!method-package.stubbed-meta-object;
-                    my $package-name := $package.HOW.name($package);
-                    $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($package-name));
-                    $type.set-resolution(RakuAST::VarDeclaration::Implicit::Constant.new(:name($package-name), :value($package), :scope<lexical>));
+                if $!is-on-meta-method {
+                    $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0];
+                }
+                else {
+                    if nqp::isconcrete($!method-package) {
+                        my $package := $!method-package.stubbed-meta-object;
+                        my $package-name := $package.HOW.name($package);
+                        $type := RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($package-name));
+                        $type.set-resolution(RakuAST::VarDeclaration::Implicit::Constant.new(
+                            :name($package-name), :value($package), :scope<lexical>));
+                    }
                 }
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant',
                     RakuAST::Parameter.new(:invocant, :$type));

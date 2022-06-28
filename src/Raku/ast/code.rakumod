@@ -1178,6 +1178,7 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
                 ),
             );
             $signature.set-is-on-method(True);
+            $signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
             $signature.IMPL-CHECK($resolver, $context, True);
         }
 

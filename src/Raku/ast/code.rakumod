@@ -99,7 +99,7 @@ class RakuAST::Code is RakuAST::Node {
                 my $code-obj := nqp::getcodeobj(nqp::curcode());
                 unless $precomp {
                     my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
-                    $precomp := self.IMPL-COMPILE-DYNAMICALLY($block, $context);
+                    $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
                 }
                 unless nqp::isnull($code-obj) {
                     return $code-obj(|@pos, |%named);
@@ -210,10 +210,9 @@ class RakuAST::Code is RakuAST::Node {
         });
     }
 
-    method IMPL-COMPILE-DYNAMICALLY(Mu $block, Mu $context) {
+    method IMPL-COMPILE-DYNAMICALLY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), $block);
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
-        $wrapper[0].push(QAST::Var.new(:name<$_>, :scope<lexical>, :decl<static>));
 
         my $compunit := QAST::CompUnit.new(
             :hll('Raku'),
@@ -223,6 +222,27 @@ class RakuAST::Code is RakuAST::Node {
         );
         my $comp := nqp::getcomp('Raku');
         my $precomp := $comp.compile($compunit, :from<qast>, :compunit_ok(1));
+        nqp::dispatch(
+            'boot-syscall',
+            'set-compunit-resolver',
+            $precomp,
+            -> $name {
+                my $result := $resolver.resolve-lexical-in-outer($name);
+                if $result {
+                    nqp::istype($result, RakuAST::CompileTimeValue)
+                        ?? $result.compile-time-value
+                        !! Mu
+                }
+                else {
+                    nqp::die("No lexical found with name $name via resolver");
+                }
+            },
+            -> $dyn-name {
+                my $dynamic-fallback := $resolver.resolve-lexical-in-outer('&DYNAMIC-FALLBACK');
+                my $without-star := nqp::replace($dyn-name, 1, 1, '');
+                $dynamic-fallback.compile-time-value()($dyn-name, $without-star)
+            }
+        );
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
 

@@ -1315,7 +1315,7 @@ class RakuAST::RegexDeclaration is RakuAST::Methodish {
 # a separate regex code object but without introducing a new lexical scope. This
 # includes quoted regexes like /.../, capturing groups, and calls of the form
 # `<?before foo>`, where `foo` is the thunked regex.
-class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
+class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta is RakuAST::BeginTime {
     method PRODUCE-META-OBJECT() {
         # Create default signature, receiving invocant only.
         my $signature := nqp::create(Signature);
@@ -1351,6 +1351,14 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
             ),
             self.IMPL-THUNKED-REGEX-QAST($context)
         )
+    }
+
+    method is-begin-performed-before-children() { False }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+
+        Nil
     }
 }
 

@@ -2624,6 +2624,15 @@ multi sub grep(Mu $test, +values, *%a) {
 }
 multi sub grep(Bool:D $t, |) { X::Match::Bool.new(:type<grep>).throw }
 
+proto sub head(Mu, |) {*}
+multi sub head($head, +values) { values.head($head) }
+
+proto sub tail(Mu, |) {*}
+multi sub tail($tail, +values) { values.tail($tail) }
+
+proto sub skip(Mu, |) {*}
+multi sub skip($skip, +values) { values.skip($skip) }
+
 proto sub first(Mu, |) {*}
 multi sub first(Bool:D $t, |) { X::Match::Bool.new(:type<first>).Failure }
 multi sub first(Mu $test, +values, *%a) { values.first($test,|%a) }

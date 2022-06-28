@@ -662,6 +662,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    token unit-block($decl) {
+        :my $*BLOCK;
+        {
+            unless $*SCOPE eq 'unit' {
+                $/.panic("Semicolon form of '$decl' without 'unit' is illegal. You probably want to use 'unit $decl'");
+            }
+        }
+        { $*IN_DECL := ''; }
+        <.enter-block-scope('Block')>
+        <statementlist>
+        <.leave-block-scope>
+    }
+
     token enter-block-scope($*SCOPE-KIND) { <?> }
     token leave-block-scope() { <?> }
 
@@ -1819,13 +1832,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         || <?[{]> <block>
         || ';'
-            {
-                unless $*SCOPE eq 'unit' {
-                    $/.panic("Semicolon form of '$*PKGDECL' without 'unit' is illegal. You probably want to use 'unit $*PKGDECL'");
-                }
-            }
-            { $*IN_DECL := ''; }
-            <statementlist>
+            <unit-block($*PKGDECL)>
         || <.panic("Unable to parse $*PKGDECL definition")>
         ]
         <.leave-block-scope>

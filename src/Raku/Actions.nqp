@@ -235,6 +235,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Blockoid').new($<statementlist>.ast);
     }
 
+    method unit-block($/) {
+        my $block := $*BLOCK;
+        $block.replace-body(self.r('Blockoid').new($<statementlist>.ast));
+        $block.ensure-begin-performed($*R, $*CU.context);
+        self.attach: $/, $block;
+    }
+
     method onlystar($/) {
         self.attach: $/, self.r('OnlyStar').new;
     }
@@ -1115,9 +1122,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method package_def($/) {
         my $package := $*PACKAGE;
-        my $body := $<block>
-            ?? $<block>.ast
-            !! self.r('Block').new(body => self.r('Blockoid').new($<statementlist>.ast));
+        my $body := $<block> ?? $<block>.ast !! $<unit-block>.ast;
         if $*PKGDECL eq 'role' {
             my $signature := $<signature> ?? $<signature>.ast !! self.r('Signature').new;
             $signature.set-is-on-role-body(1);

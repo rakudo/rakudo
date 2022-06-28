@@ -655,9 +655,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself and link it with the meta-object.
-        my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype('declaration_static'));
-        self.IMPL-LINK-META-OBJECT($context, $block);
-        $block
+        self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'));
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
@@ -1639,7 +1637,8 @@ class RakuAST::Substitution is RakuAST::RegexThunk is RakuAST::QuotedMatchConstr
 
         # Thunk the replacement part.
         $!replacement.wrap-with-thunk: RakuAST::SubstitutionReplacementThunk.new:
-            :infix($!infix)
+            :infix($!infix);
+        $!replacement.visit-thunks(-> $thunk { $thunk.ensure-begin-performed($resolver, $context) });
     }
 
     method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {

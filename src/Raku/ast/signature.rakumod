@@ -493,30 +493,30 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         self.apply-traits($resolver, $context, self);
 
         if $!where && ! nqp::istype($!where, RakuAST::Code) {
-            nqp::bindattr(self, RakuAST::Parameter, '$!where',
-                RakuAST::Block.new(
-                    body => RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                expression => RakuAST::ApplyPostfix.new(
-                                    operand => RakuAST::ApplyPostfix.new(
-                                        operand => $!where,
-                                        postfix => RakuAST::Call::Method.new(
-                                            name => RakuAST::Name.from-identifier('ACCEPTS'),
-                                            args => RakuAST::ArgList.new(
-                                                RakuAST::Var::Lexical.new('$_'),
-                                            ),
+            my $block := RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            expression => RakuAST::ApplyPostfix.new(
+                                operand => RakuAST::ApplyPostfix.new(
+                                    operand => $!where,
+                                    postfix => RakuAST::Call::Method.new(
+                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
+                                        args => RakuAST::ArgList.new(
+                                            RakuAST::Var::Lexical.new('$_'),
                                         ),
                                     ),
-                                    postfix => RakuAST::Call::Method.new(
-                                        name => RakuAST::Name.from-identifier('Bool'),
-                                    ),
+                                ),
+                                postfix => RakuAST::Call::Method.new(
+                                    name => RakuAST::Name.from-identifier('Bool'),
                                 ),
                             ),
                         ),
                     ),
                 ),
             );
+            $block.ensure-begin-performed($resolver, $context);
+            nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
         }
     }
 

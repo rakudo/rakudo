@@ -342,6 +342,7 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
         if $!loop-modifier {
             my $thunk := $!loop-modifier.expression-thunk;
             $!expression.wrap-with-thunk($thunk) if $thunk;
+            $thunk.ensure-begin-performed($resolver, $context);
         }
     }
 

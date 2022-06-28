@@ -112,6 +112,22 @@ class RakuAST::Code is RakuAST::Node {
         nqp::markcodestub($stub);
         nqp::setcodeobj($stub, $code-obj);
 
+        # Create the compiler stuff array and stick it in the code object.
+        # Also add clearup task to remove it again later.
+        my @compstuff;
+        nqp::bindattr($code-obj, Code, '@!compstuff', @compstuff);
+        $context.add-cleanup-task(sub () {
+            nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
+        });
+
+        @compstuff[2] := sub ($orig, $clone) {
+            my $do := nqp::getattr($clone, Code, '$!do');
+            nqp::markcodestub($do);
+            $context.add-cleanup-task(sub () {
+                nqp::bindattr($clone, Code, '@!compstuff', nqp::null());
+            });
+        }
+
         $stub
     }
 
@@ -128,13 +144,7 @@ class RakuAST::Code is RakuAST::Node {
         my str $cuid := $block.cuid();
         $context.sub-id-to-code-object(){$cuid} := $code-obj;
 
-        # Create the compiler stuff array and stick it in the code object.
-        # Also add clearup task to remove it again later.
-        my @compstuff;
-        nqp::bindattr($code-obj, Code, '@!compstuff', @compstuff);
-        $context.add-cleanup-task(sub () {
-            nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
-        });
+        my @compstuff := nqp::getattr($code-obj, Code, '@!compstuff');
 
         if $context.is-precompilation-mode {
             @compstuff[2] := sub ($orig, $clone) {

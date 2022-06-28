@@ -453,7 +453,11 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         my constant SIG_ELEM_IS_OPTIONAL         := 2048;
         my constant SIG_ELEM_ARRAY_SIGIL         := 4096;
         my constant SIG_ELEM_HASH_SIGIL          := 8192;
+        my constant SIG_ELEM_UNDEFINED_ONLY      := 65536;
+        my constant SIG_ELEM_DEFINED_ONLY        := 131072;
+        my constant SIG_ELEM_TYPE_GENERIC        := 524288;
         my constant SIG_ELEM_CODE_SIGIL          := 33554432;
+        my constant SIG_ELEM_IS_COERCIVE         := 67108864;
         my $sigil := $!target.sigil;
         my int $flags;
         $flags := $flags +| SIG_ELEM_INVOCANT if $!invocant;
@@ -471,6 +475,15 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         if nqp::istype($!target, RakuAST::ParameterTarget::Term) {
             $flags := $flags +| SIG_ELEM_IS_RAW;
         }
+        if nqp::istype($!type, RakuAST::Type::Definedness) {
+            $flags := $flags +| ($!type.definite ?? SIG_ELEM_DEFINED_ONLY !! SIG_ELEM_UNDEFINED_ONLY);
+        }
+        if nqp::istype($!type, RakuAST::Type::Coercion) {
+            $flags := $flags +| SIG_ELEM_IS_COERCIVE;
+        }
+        if $!type && $!type.meta-object.HOW.archetypes.generic {
+            $flags := $flags +| SIG_ELEM_TYPE_GENERIC;
+        }
         $flags := $flags +| $!slurpy.IMPL-FLAGS($sigil);
         $flags
     }
@@ -486,9 +499,17 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                 !! $sigil-type
         }
         else {
-            $!type
-                ?? $!type.meta-object
-                !! Mu
+            if $!type {
+                my $type := $!type.meta-object;
+                $type.HOW.archetypes.nominal || $type.HOW.archetypes.coercive || $type.HOW.archetypes.generic
+                    ?? $type
+                    !! $type.HOW.archetypes.nominalizable
+                        ?? $type.HOW.nominalize($type)
+                        !! $type
+            }
+            else {
+                Mu
+            }
         }
     }
 

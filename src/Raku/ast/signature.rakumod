@@ -179,6 +179,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST
 
     method arity() {
         my int $arity := 0;
+        $arity++ if $!implicit-invocant;
         for self.IMPL-UNWRAP-LIST($!parameters) {
             last unless $_.is-positional && !$_.is-optional;
             $arity++;
@@ -188,6 +189,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST
 
     method count() {
         my int $count := 0;
+        $count++ if $!implicit-invocant;
         for self.IMPL-UNWRAP-LIST($!parameters) {
             if $_.is-positional {
                 $count++;
@@ -200,6 +202,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST
     }
 
     method visit-children(Code $visitor) {
+        $visitor($!implicit-invocant) if $!implicit-invocant;
         for self.IMPL-UNWRAP-LIST($!parameters) {
             $visitor($_);
         }

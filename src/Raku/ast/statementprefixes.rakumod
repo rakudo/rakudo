@@ -160,7 +160,17 @@ class RakuAST::StatementPrefix::Try is RakuAST::StatementPrefix is RakuAST::Sink
 # Done by statement prefixes that insist on thunking expressions into a code
 # object.
 class RakuAST::StatementPrefix::Thunky is RakuAST::StatementPrefix
-                                       is RakuAST::Meta is RakuAST::Code {
+                                       is RakuAST::Meta is RakuAST::Code
+                                       is RakuAST::BeginTime {
+
+    method is-begin-performed-before-children() { False }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+
+        Nil
+    }
+
     method PRODUCE-META-OBJECT() {
         if nqp::istype(self.blorst, RakuAST::Block) {
             # Block, already has a meta-object.

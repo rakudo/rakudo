@@ -197,7 +197,8 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
         my $package := $!package.meta-object;
         my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
         QAST::Var.new(
-            :scope('attribute'), :name($!name), :returns($attr-type),
+            :scope(nqp::objprimspec($attr-type) ?? 'attributeref' !! 'attribute'),
+            :name($!name), :returns($attr-type),
             @lookups[0].IMPL-TO-QAST($context),
             self.IMPL-QAST-PACKAGE-LOOKUP($context),
         )

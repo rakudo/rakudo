@@ -1774,10 +1774,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method signature($/) {
         my @parameters;
+        my int $param_idx := 0;
         for $<parameter> {
             my $param := $_.ast;
-            # TODO have to twiddle based on sep
+            my $sep := @*seps[$param_idx];
+            if ~$sep eq ':' {
+                if $param_idx != 0 {
+                    $/.typed_sorry('X::Syntax::Signature::InvocantMarker');
+                }
+                unless $*ALLOW_INVOCANT {
+                    $/.typed_sorry('X::Syntax::Signature::InvocantNotAllowed');
+                }
+                $param.set-invocant(1);
+            }
             @parameters.push($param);
+            $param_idx := $param_idx + 1;
         }
         my $returns;
         if $<typename> {

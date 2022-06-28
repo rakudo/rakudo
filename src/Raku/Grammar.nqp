@@ -1985,7 +1985,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
         $<specials>=[<[ ! ^ ]>?]<deflongname('has')>?
-        [ '(' <signature> ')' ]?
+        [ '(' <signature(1)> ')' ]?
         <trait($*BLOCK)>* :!s
         { $*IN_DECL := ''; }
         [
@@ -2382,7 +2382,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ## Signatures
     ##
 
-    token signature {
+    token signature($*ALLOW_INVOCANT = 0) {
         :my $*zone := 'posreq';
         :my $*multi_invocant := 1;
         :my @*seps := nqp::list();

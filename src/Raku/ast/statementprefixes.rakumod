@@ -18,6 +18,7 @@ class RakuAST::StatementPrefix is RakuAST::Term {
 
     method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {
         if nqp::istype($!blorst, RakuAST::Block) {
+            $!blorst.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
             QAST::Op.new( :op('call'), $!blorst.IMPL-TO-QAST($context) )
         }
         else {

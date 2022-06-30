@@ -655,14 +655,15 @@ my class Binder {
 
         # Otherwise, go by sigil to pick the correct default type of value.
         else {
+            my $type := nqp::getattr($param, Parameter, '$!type');
             if $flags +& $SIG_ELEM_ARRAY_SIGIL {
-                nqp::create(Array)
+                nqp::create($type =:= Positional ?? Array !! Array.HOW.parameterize(Array, $type.of));
             }
             elsif $flags +& $SIG_ELEM_HASH_SIGIL {
-                nqp::create(Hash)
+                nqp::create($type =:= Associative ?? Hash !! Hash.HOW.parameterize(Hash, $type.of, $type.keyof));
             }
             else {
-                nqp::getattr($param, Parameter, '$!type');
+                $type
             }
         }
     }

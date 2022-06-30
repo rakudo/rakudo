@@ -841,6 +841,24 @@ my class IO::Path is Cool does IO {
         }
     }
 
+    method inode(IO::Path:D: --> Int:D) {
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_INODE)
+          !! self!does-not-exist("inode")
+    }
+
+    method dev(IO::Path:D: --> Int:D) {
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_DEV)
+          !! self!does-not-exist("inode")
+    }
+
+    method devtype(IO::Path:D: --> Int:D) {
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_DEVTYPE)
+          !! self!does-not-exist("inode")
+    }
+
     proto method dir-with-entries(|) {*}
     multi method dir-with-entries(IO::Path:D: --> Bool:D) {
         my $handle := nqp::opendir(self.absolute);

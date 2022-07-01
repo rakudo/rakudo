@@ -21,7 +21,7 @@ multi sub rotor(**@cycle-and-thing, *%_) {
 }
 
 proto sub span($, |) {*}
-multi sub span(&condition,  +values) { values.span(&condition)  }
+multi sub span(\condition,  +values) { values.span(condition)  }
 multi sub span(@conditions, +values) { values.span(@conditions) }
 
 # vim: expandtab shiftwidth=4

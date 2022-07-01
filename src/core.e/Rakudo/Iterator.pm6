@@ -30,10 +30,10 @@ augment class Rakudo::Iterator {
                 my $pulled;
                 
                 if nqp::elems($!tests) {
-                    my &test := nqp::shift($!tests);
+                    my $test := nqp::shift($!tests);
                     nqp::until(
                       nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd)
-                        || nqp::isfalse(test($pulled)),
+                        || nqp::isfalse($test.ACCEPTS($pulled)),
                       nqp::push($buffer,$pulled)
                     );
                 
@@ -52,8 +52,8 @@ augment class Rakudo::Iterator {
     }
 
     proto method Span(|) {*}
-    multi method Span(&test,  $iterator) { Span.new: (&test,), $iterator }
-    multi method Span(@tests, $iterator) { Span.new: @tests,   $iterator }
+    multi method Span(\test,  $iterator) { Span.new: (test,), $iterator }
+    multi method Span(@tests, $iterator) { Span.new: @tests,  $iterator }
 }
 
 # vim: expandtab shiftwidth=4

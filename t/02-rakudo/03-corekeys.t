@@ -798,6 +798,7 @@ my @allowed =
         Q{&postcircumfix:<[; ]>},
         Q{&postcircumfix:<{; }>},
         Q{&rotor},
+        Q{&span},
         Q{CORE-SETTING-REV},
         Q{Grammar},
         Q{PseudoStash},

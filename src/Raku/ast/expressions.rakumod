@@ -47,6 +47,33 @@ class RakuAST::Expression is RakuAST::Node {
         $thunk.IMPL-CHECK($resolver, $context, True);
         self.wrap-with-thunk($thunk);
     }
+
+    method IMPL-CURRIED() {
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            return True if nqp::istype($cur-thunk, RakuAST::CurryThunk);
+            $cur-thunk := $cur-thunk.next;
+        }
+        False
+    }
+
+    method IMPL-UNCURRY() {
+        my $prev-thunk;
+        my $cur-thunk := $!thunks;
+        while $cur-thunk {
+            if nqp::istype($cur-thunk, RakuAST::CurryThunk) {
+                if $prev-thunk {
+                    $prev-thunk.set-next($cur-thunk.next);
+                }
+                else {
+                    nqp::bindattr(self, RakuAST::Expression, '$!thunks', $cur-thunk.next);
+                }
+            }
+            $prev-thunk := $cur-thunk;
+            $cur-thunk := $cur-thunk.next;
+        }
+        False
+    }
 }
 
 # Everything that is termish (a term with prefixes or postfixes applied).
@@ -533,6 +560,16 @@ class RakuAST::ApplyInfix is RakuAST::Expression is RakuAST::BeginTime {
                 nqp::bindattr(self, RakuAST::ApplyInfix, '$!right', RakuAST::Var::Lexical.new('$_'));
                 self.IMPL-CURRY($resolver, $context);
                 $!right.resolve-with($resolver);
+            }
+        }
+        if nqp::bitand_i($!infix.IMPL-CURRIES, 2) {
+            if $!left.IMPL-CURRIED {
+                $!left.IMPL-UNCURRY;
+                self.IMPL-CURRY($resolver, $context);
+            }
+            if $!right.IMPL-CURRIED {
+                $!right.IMPL-UNCURRY;
+                self.IMPL-CURRY($resolver, $context);
             }
         }
     }
@@ -1054,6 +1091,12 @@ class RakuAST::ApplyPostfix is RakuAST::Termish is RakuAST::BeginTime {
                 nqp::bindattr(self, RakuAST::ApplyPostfix, '$!operand', RakuAST::Var::Lexical.new('$_'));
                 self.IMPL-CURRY($resolver, $context);
                 $!operand.resolve-with($resolver);
+            }
+        }
+        if nqp::bitand_i($!postfix.IMPL-CURRIES, 2) {
+            if $!operand.IMPL-CURRIED {
+                $!operand.IMPL-UNCURRY;
+                self.IMPL-CURRY($resolver, $context);
             }
         }
     }

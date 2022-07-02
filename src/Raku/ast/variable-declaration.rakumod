@@ -158,7 +158,8 @@ class RakuAST::TraitTarget::Variable is RakuAST::TraitTarget is RakuAST::Meta is
 # A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::ImplicitLookups
                                       is RakuAST::TraitTarget is RakuAST::ContainerCreator
-                                      is RakuAST::Meta is RakuAST::Attaching is RakuAST::BeginTime {
+                                      is RakuAST::Meta is RakuAST::Attaching is RakuAST::BeginTime
+                                      is RakuAST::Term {
     has RakuAST::Type $.type;
     has str $.name;
     has str $!storage-name;

@@ -1,13 +1,13 @@
 augment class Any {
-    proto method span(|) {*}
-    multi method span(Any:D: &condition) {
-        Seq.new: Rakudo::Iterator.Span(&condition, self.iterator)
+    proto method snip(|) {*}
+    multi method snip(Any:D: &condition) {
+        Seq.new: Rakudo::Iterator.Snip(&condition, self.iterator)
     }
-    multi method span(Any:D: @conditions) {
-        Seq.new: Rakudo::Iterator.Span(@conditions, self.iterator)
+    multi method snip(Any:D: @conditions) {
+        Seq.new: Rakudo::Iterator.Snip(@conditions, self.iterator)
     }
-    multi method span(Any:D: *@conditions) {
-        Seq.new: Rakudo::Iterator.Span(@conditions, self.iterator)
+    multi method snip(Any:D: *@conditions) {
+        Seq.new: Rakudo::Iterator.Snip(@conditions, self.iterator)
     }
 }
 
@@ -20,8 +20,8 @@ multi sub rotor(**@cycle-and-thing, *%_) {
     @cycle-and-thing.tail.rotor(@cycle-and-thing.head(*-1), |%_)
 }
 
-proto sub span($, |) {*}
-multi sub span(\condition,  +values) { values.span(condition)  }
-multi sub span(@conditions, +values) { values.span(@conditions) }
+proto sub snip($, |) {*}
+multi sub snip(\condition,  +values) { values.snip(condition)  }
+multi sub snip(@conditions, +values) { values.snip(@conditions) }
 
 # vim: expandtab shiftwidth=4

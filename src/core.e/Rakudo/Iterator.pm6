@@ -2,7 +2,7 @@ augment class Rakudo::Iterator {
     # Return an iterator that generates Lists of a given iterator
     # and one or Callables with conditions.  This is basically the
     # Haskell "span" functionality.
-    my class Span does Iterator {
+    my class Snip does Iterator {
         has $!tests;
         has $!iterator;
         has $!next;
@@ -51,9 +51,9 @@ augment class Rakudo::Iterator {
         }
     }
 
-    proto method Span(|) {*}
-    multi method Span(\test,  $iterator) { Span.new: (test,), $iterator }
-    multi method Span(@tests, $iterator) { Span.new: @tests,  $iterator }
+    proto method Snip(|) {*}
+    multi method Snip(\test,  $iterator) { Snip.new: (test,), $iterator }
+    multi method Snip(@tests, $iterator) { Snip.new: @tests,  $iterator }
 }
 
 # vim: expandtab shiftwidth=4

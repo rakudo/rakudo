@@ -1828,3 +1828,31 @@ class RakuAST::SubstitutionReplacementThunk is RakuAST::ExpressionThunk {
         $visitor($!infix) if $!infix;
     }
 }
+
+# Thunk for a curried Whatever expression.
+class RakuAST::CurryThunk is RakuAST::ExpressionThunk is RakuAST::ImplicitLookups {
+    method thunk-kind() {
+        'Curried Whatever'
+    }
+
+    method IMPL-THUNK-OBJECT-TYPE() {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        @lookups[0].compile-time-value
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('WhateverCode'))
+        ])
+    }
+
+    method IMPL-THUNK-SIGNATURE() {
+        RakuAST::Signature.new(
+            parameters => (
+                RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new('$_'),
+                ),
+            )
+        )
+    }
+}

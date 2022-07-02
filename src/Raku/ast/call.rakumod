@@ -304,6 +304,7 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
 
 # The base of all method call like things.
 class RakuAST::Call::Methodish is RakuAST::Call is RakuAST::Postfixish {
+    method IMPL-CURRIES() { 3 }
 }
 
 # A call to a method identified by a name. Some names (like WHAT and HOW) are

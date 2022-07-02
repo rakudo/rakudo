@@ -41,6 +41,12 @@ class RakuAST::Expression is RakuAST::Node {
             $cur-thunk := $cur-thunk.next;
         }
     }
+
+    method IMPL-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $thunk := RakuAST::CurryThunk.new;
+        $thunk.IMPL-CHECK($resolver, $context, True);
+        self.wrap-with-thunk($thunk);
+    }
 }
 
 # Everything that is termish (a term with prefixes or postfixes applied).
@@ -65,6 +71,8 @@ class RakuAST::Infixish is RakuAST::Node {
         self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
             $right.IMPL-TO-QAST($context)
     }
+
+    method IMPL-CURRIES() { 0 }
 }
 
 # A simple (non-meta) infix operator. Some of these are just function calls,
@@ -94,6 +102,30 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     }
 
     method reducer-name() { $!properties.reducer-name }
+
+    method IMPL-CURRIES() {
+        my constant CURRIED := nqp::hash(
+            '...'   , 0,
+            '…'     , 0,
+            '...^'  , 0,
+            '…^'    , 0,
+            '^...'  , 0,
+            '^…'    , 0,
+            '^...^' , 0,
+            '^…^'   , 0,
+            '='     , 0,
+            ':='    , 0,
+            '~~'    , 1,
+            '∘'     , 1,
+            'o'     , 1,
+            '..'    , 2,
+            '..^'   , 2,
+            '^..'   , 2,
+            '^..^'  , 2,
+            'xx'    , 2,
+        );
+        CURRIED{$!operator} // 3
+    }
 
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right) {
@@ -206,6 +238,8 @@ class RakuAST::MetaInfix::Assign is RakuAST::Infixish {
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
+
+    method IMPL-CURRIES() { 0 }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         # TODO case-analyzed assignments
@@ -474,7 +508,7 @@ class RakuAST::MetaInfix::Hyper is RakuAST::Infixish {
 }
 
 # Application of an infix operator.
-class RakuAST::ApplyInfix is RakuAST::Expression {
+class RakuAST::ApplyInfix is RakuAST::Expression is RakuAST::BeginTime {
     has RakuAST::Infixish $.infix;
     has RakuAST::Expression $.left;
     has RakuAST::Expression $.right;
@@ -486,6 +520,21 @@ class RakuAST::ApplyInfix is RakuAST::Expression {
         nqp::bindattr($obj, RakuAST::ApplyInfix, '$!left', $left);
         nqp::bindattr($obj, RakuAST::ApplyInfix, '$!right', $right);
         $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::bitand_i($!infix.IMPL-CURRIES, 1) {
+            if nqp::istype($!left, RakuAST::Term::Whatever) {
+                nqp::bindattr(self, RakuAST::ApplyInfix, '$!left', RakuAST::Var::Lexical.new('$_'));
+                self.IMPL-CURRY($resolver, $context);
+                $!left.resolve-with($resolver);
+            }
+            if nqp::istype($!right, RakuAST::Term::Whatever) {
+                nqp::bindattr(self, RakuAST::ApplyInfix, '$!right', RakuAST::Var::Lexical.new('$_'));
+                self.IMPL-CURRY($resolver, $context);
+                $!right.resolve-with($resolver);
+            }
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -724,6 +773,8 @@ class RakuAST::Postfixish is RakuAST::Node {
             $op.push($val-ast);
         }
     }
+
+    method IMPL-CURRIES() { 0 }
 
     method can-be-used-with-hyper() { False }
 }
@@ -978,7 +1029,7 @@ class RakuAST::MetaPostfix::Hyper is RakuAST::Postfixish is RakuAST::CheckTime {
 }
 
 # Application of a postfix operator.
-class RakuAST::ApplyPostfix is RakuAST::Termish {
+class RakuAST::ApplyPostfix is RakuAST::Termish is RakuAST::BeginTime {
     has RakuAST::Postfixish $.postfix;
     has RakuAST::Expression $.operand;
 
@@ -995,6 +1046,16 @@ class RakuAST::ApplyPostfix is RakuAST::Termish {
 
     method can-be-bound-to() {
         $!postfix.can-be-bound-to
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::bitand_i($!postfix.IMPL-CURRIES, 1) {
+            if nqp::istype($!operand, RakuAST::Term::Whatever) {
+                nqp::bindattr(self, RakuAST::ApplyPostfix, '$!operand', RakuAST::Var::Lexical.new('$_'));
+                self.IMPL-CURRY($resolver, $context);
+                $!operand.resolve-with($resolver);
+            }
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

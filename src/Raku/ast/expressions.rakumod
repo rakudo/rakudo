@@ -690,9 +690,9 @@ class RakuAST::ApplyDottyInfix is RakuAST::Expression {
     method new(RakuAST::DottyInfixish :$infix!, RakuAST::Expression :$left!,
             RakuAST::Postfixish :$right!) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!infix', $infix);
-        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!left', $left);
-        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!right', $right);
+        nqp::bindattr($obj, RakuAST::ApplyDottyInfix, '$!infix', $infix);
+        nqp::bindattr($obj, RakuAST::ApplyDottyInfix, '$!left', $left);
+        nqp::bindattr($obj, RakuAST::ApplyDottyInfix, '$!right', $right);
         $obj
     }
 

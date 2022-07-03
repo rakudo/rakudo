@@ -1000,7 +1000,7 @@ class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagat
     }
 
     method apply-implicit-block-semantics() {
-        $!body.set-implicit-topic(False);
+        $!body.set-implicit-topic(1);
     }
 
     method propagate-sink(Bool $is-sunk) {

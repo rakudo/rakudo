@@ -1791,7 +1791,12 @@ BEGIN {
                     if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
                         if $type.HOW.archetypes.coercive {
                             my $coercion_type := $type.HOW.wrappee($type, :coercion);
+#?if moar
+                            nqp::bindattr($cont, Scalar, '$!value', nqp::dispatch('raku-coercion', $coercion_type, $val));
+#?endif
+#?if !moar
                             nqp::bindattr($cont, Scalar, '$!value', $coercion_type.HOW.coerce($coercion_type, $val));
+#?endif
                         }
                         else {
                             nqp::bindattr($cont, Scalar, '$!value', $val);

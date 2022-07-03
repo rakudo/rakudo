@@ -112,30 +112,35 @@ class Perl6::Metamodel::CoercionHOW
 
     # Coercion protocol method.
     method coerce($obj, $value) {
+#?if moar
+        nqp::dispatch('raku-coercion', $obj, $value)
+#?endif
+#?if !moar
         nqp::istype($value, $!target_type)
           ?? $value                             # already done
           !! self."!coerce_TargetType"($obj, $value)
+#?endif
     }
 
     # Attempt coercion on TargetType
     method !coerce_TargetType($obj, $value) {
-        my $constraint    := $!constraint_type;
-        my $constraintHOW := $constraint.HOW;
-        $value := $constraintHOW.coerce($constraint, $value)
+        my $constraintHOW := $!constraint_type.HOW;
+        $value := $constraintHOW.coerce($!constraint_type, $value)
           if nqp::can((my $archetypes := $constraintHOW.archetypes), 'coercive')
           && $archetypes.coercive;
 
         my $nominal_target := $!nominal_target;
-        nqp::istype($value, $constraint)
+        nqp::istype($value, $!constraint_type)
           ?? nqp::defined(
                my $method := nqp::tryfindmethod(
                  nqp::what($value),
                  $nominal_target.HOW.name($nominal_target)
                )
-             ) && (nqp::istype((my $coerced := $method($value)),$!target_type)
-                    || nqp::istype($coerced, nqp::gethllsym('Raku', 'Failure'))
-                  )
-            ?? $coerced
+             ) 
+            ?? (nqp::istype((my $coerced := $method($value)),$!target_type)
+                || nqp::istype($coerced, nqp::gethllsym('Raku', 'Failure')))
+              ?? $coerced
+              !! self."!invalid_coercion"($value, $nominal_target.HOW.name($nominal_target), $coerced)
             !! self."!coerce_COERCE"($obj, $value, $nominal_target)
           !! self."!invalid_type"($value)
     }
@@ -212,7 +217,7 @@ class Perl6::Metamodel::CoercionHOW
             # because if method call ever throws then this is going to result
             # in an exception one way or another.
             my $exception;
-            my $coerced_value;
+            my $coerced_value := nqp::null();
             try {
                 CATCH {
                     my $exception_obj := nqp::getpayload($!);
@@ -234,13 +239,14 @@ class Perl6::Metamodel::CoercionHOW
                          nqp::gethllsym('Raku', 'Failure')
                        )
             }
-            nqp::defined($exception)
-              ?? nqp::rethrow($exception)
-              !! self."!invalid_coercion"($value, 'new', $coerced_value)
+            if nqp::defined($exception) { 
+                nqp::rethrow($exception); 
+            }
+            elsif !nqp::isnull($coerced_value) {
+                self."!invalid_coercion"($value, 'new', $coerced_value)
+            }
         }
-        else {
-            self."!invalid"($value, "no acceptable coercion method found")
-        }
+        self."!invalid"($value, "no acceptable coercion method found")
     }
 
     # Methods needed by Perl6::Metamodel::Nominalizable

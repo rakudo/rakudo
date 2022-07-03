@@ -326,7 +326,7 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!expression.apply-sink($is-sunk) if $is-sunk;
+        $!expression.apply-sink($is-sunk);
         $!condition-modifier.apply-sink(False) if $!condition-modifier;
         $!loop-modifier.apply-sink(False) if $!loop-modifier;
     }

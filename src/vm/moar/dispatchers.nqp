@@ -3743,22 +3743,22 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
     # Coercion protocol
 
     # Coerce by target method name. I.e. $value.TargetType.
-    my $coerce-by-type-method := -> $coercion, $value, $method, $nominal_target, $target_type {
+    my $coerce-by-type-method := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
         nqp::istype((my $coerced_value := $method($value)), $target_type)
             || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
             ?? $coerced_value
             !! nqp::how($coercion)."!invalid_coercion"(
                 $value, nqp::how_nd($nominal_target).name($nominal_target), $coerced_value)
-    }
+    });
 
-    my $coerce-COERCE := -> $coercion, $value, $method, $nominal_target, $target_type {
+    my $coerce-COERCE := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
         nqp::istype((my $coerced_value := $method($nominal_target, $value)), $target_type)
             || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
             ?? $coerced_value
             !! nqp::how($coercion)."!invalid_coercion"($value, 'COERCE', $coerced_value)
-    };
+    });
 
-    my $coerce-new := -> $coercion, $value, $method, $nominal_target, $target_type {
+    my $coerce-new := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
         my $exception;
         my $coerced_value := nqp::null();
         try {
@@ -3780,7 +3780,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
                 ?? $coerced_value
                 !! nqp::how($coercion)."!invalid_coercion"($value, 'new', $coerced_value)
-    };
+    });
 
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-coercion', -> $capture {
         # The dispatch receives:

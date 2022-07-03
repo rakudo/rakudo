@@ -99,6 +99,10 @@ class RakuAST::Infixish is RakuAST::Node {
             $right.IMPL-TO-QAST($context)
     }
 
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands) {
+    }
+
     method IMPL-CURRIES() { 0 }
 }
 
@@ -129,6 +133,29 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     }
 
     method reducer-name() { $!properties.reducer-name }
+
+    method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                               RakuAST::Expression $expression, str $type) {
+        if $type eq 'b' && !nqp::istype($expression, RakuAST::Code) {
+            my $thunk := RakuAST::BlockThunk.new;
+            $thunk.IMPL-CHECK($resolver, $context, True);
+            $expression.wrap-with-thunk($thunk);
+        }
+        # TODO implement other thunk types
+    }
+
+    method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
+                                RakuAST::Expression *@operands) {
+        my $thunky := $!properties.thunky;
+        my $i := 0;
+        for @operands {
+            my $type := nqp::substr($thunky, $i, $i + 1);
+            if $type && $type ne '.' {
+                self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
+            }
+            $i++;
+        }
+    }
 
     method IMPL-CURRIES() {
         my constant CURRIED := nqp::hash(
@@ -572,6 +599,8 @@ class RakuAST::ApplyInfix is RakuAST::Expression is RakuAST::BeginTime {
                 self.IMPL-CURRY($resolver, $context);
             }
         }
+
+        $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, $!left, $!right);
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -592,7 +621,7 @@ class RakuAST::ApplyInfix is RakuAST::Expression is RakuAST::BeginTime {
 }
 
 # Application of an list-precedence infix operator.
-class RakuAST::ApplyListInfix is RakuAST::Expression {
+class RakuAST::ApplyListInfix is RakuAST::Expression is RakuAST::BeginTime {
     has RakuAST::Infixish $.infix;
     has List $.operands;
 
@@ -617,6 +646,10 @@ class RakuAST::ApplyListInfix is RakuAST::Expression {
         for self.IMPL-UNWRAP-LIST($!operands) {
             $visitor($_);
         }
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, |self.IMPL-UNWRAP-LIST($!operands));
     }
 
     method IMPL-CAN-INTERPRET() {

@@ -1469,9 +1469,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<⚛−=> { <sym> <O(|%item_assignment)> }
 
     token infix:sym<and>  { <sym> >> <O(|%loose_and, :iffy(1))> }
+    token infix:sym<andthen> { <sym> >> <O(|%loose_andthen, :assoc<list>)> }
+    token infix:sym<notandthen> { <sym> >> <O(|%loose_andthen, :assoc<list>)> }
 
     token infix:sym<or>   { <sym> >> <O(|%loose_or, :iffy(1), :assoc<left>)> }
     token infix:sym<xor>  { <sym> >> <O(|%loose_or, :iffy(1))> }
+    token infix:sym<orelse> { <sym> >> <O(|%loose_orelse, :assoc<list>, :pasttype<defor>)> }
 
     token infix:sym<..>   { <sym> [<!{ $*IN_META }> <?[)\]]> <.panic: "Please use ..* for indefinite range">]? <O(|%structural)> }
     token infix:sym<^..>  { <sym> <O(|%structural)> }

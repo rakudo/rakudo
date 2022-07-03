@@ -1856,3 +1856,13 @@ class RakuAST::CurryThunk is RakuAST::ExpressionThunk is RakuAST::ImplicitLookup
         )
     }
 }
+
+class RakuAST::BlockThunk is RakuAST::ExpressionThunk {
+    method thunk-kind() {
+        'Block thunk'
+    }
+
+    method IMPL-THUNK-OBJECT-TYPE() {
+        Block
+    }
+}

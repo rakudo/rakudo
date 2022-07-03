@@ -1096,6 +1096,72 @@ class RakuAST::Statement::Control is RakuAST::Statement::ExceptionHandler is Rak
     }
 }
 
+# A no statement.
+class RakuAST::Statement::No is RakuAST::Statement is RakuAST::BeginTime
+                              is RakuAST::ImplicitLookups {
+    has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.argument;
+
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::No, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::Statement::No, '$!argument',
+            $argument // RakuAST::Expression);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+        ])
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Evaluate the argument to the module load, if any.
+        my $arglist := $!argument
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
+            !! Nil;
+
+        # See if it's a pragma of some kind.
+        unless self.IMPL-DO-PRAGMA($resolver, $arglist) {
+            nqp::die("Don't know how to 'no " ~ $!module-name.canonicalize ~ "' just yet");
+        }
+    }
+
+    method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
+        return False unless $!module-name.is-identifier;
+        my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
+        if $name eq 'lib' {
+            $resolver.build-exception('X::Pragma::CannotWhat', :what<no>, :$name).throw;
+        }
+        elsif $name eq 'MONKEY-SEE-NO-EVAL' {
+            True
+        }
+        elsif $name eq 'MONKEY-GUTS' {
+            True
+        }
+        elsif $name eq 'nqp' {
+            True
+        }
+        elsif $name eq 'fatal' {
+            True
+        }
+        else {
+            False
+        }
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        @lookups[0].IMPL-TO-QAST($context)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!module-name);
+        self.visit-labels($visitor);
+    }
+}
+
 # A use statement.
 class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
                               is RakuAST::ImplicitLookups {

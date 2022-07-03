@@ -812,6 +812,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_control:sym<CATCH> { <sym> <block> }
     rule statement_control:sym<CONTROL> { <sym> <block> }
 
+    token statement_control:sym<no> {
+        <sym> <.ws>
+        <module_name=.longname> [ <.spacey> <arglist> ]?
+        <.ws>
+    }
+
     token statement_control:sym<use> {
         # TODO this is massively simplified
         <sym> <.ws>

@@ -407,6 +407,19 @@ HELP
                     return $!control-not-allowed;
                 }
 
+                when X::Undeclared::Symbols {
+                    if .unk_routines -> %unk_routines {
+                        if %unk_routines<help> && $code.words -> @words {
+                            if @words.shift eq 'help' {
+                                (REPL.help)(|@words);
+                                return;
+                            }
+                        }
+                    }
+                    exception = $_;
+                    return;
+                }
+
                 default {
                     exception = $_;
                     return;
@@ -420,10 +433,7 @@ HELP
             }
 
             self.compiler.eval(
-              q/my &help := REPL.help;/
-              ~ $code
-                .subst(/^ help \s+ <( \w+ $$/, { "'$/'" })
-                .subst(/ '$*' \d+ /, { '@*_[' ~ $/.substr(2) ~ ']' }, :g),
+              $code.subst(/ '$*' \d+ /, { '@*_[' ~ $/.substr(2) ~ ']' }, :g),
               |%adverbs
             )
         }

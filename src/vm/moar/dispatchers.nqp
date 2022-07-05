@@ -3751,11 +3751,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 $value, nqp::how_nd($nominal_target).name($nominal_target), $coerced_value)
     });
 
-    my $coerce-COERCE := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
+    my $coerce-indirect-method := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
+        my $*COERCION-TYPE := $coercion;
         nqp::istype((my $coerced_value := $method($nominal_target, $value)), $target_type)
             || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
             ?? $coerced_value
-            !! nqp::how($coercion)."!invalid_coercion"($value, 'COERCE', $coerced_value)
+            !! nqp::how($coercion)."!invalid_coercion"($value, $method.name, $coerced_value)
     });
 
     my $coerce-new := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
@@ -3871,7 +3872,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                     $disp := nqp::create(nqp::what($method));
                     nqp::bindattr($disp, Routine, '@!dispatchees', nqp::list($method));
                 }
-                -> *@_ { nqp::istrue($disp.find_best_dispatchee( nqp::usecapture(), 1)) }(|@pos)
+                -> *@_ { $disp.find_best_dispatchee( nqp::usecapture(), 1) }(|@pos)
             }
 
             # Make sure none of the coercion method candidates uses run-time constraints.
@@ -3920,14 +3921,27 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                     && method-cando($method, $nominal_target, $value)
             {
                 # The target type can .COERCE
-                $coercer := $coerce-COERCE;
+                $coercer := $coerce-indirect-method;
             }
             elsif nqp::defined($method := nqp::tryfindmethod($nominal_target, 'new'))
                     && method-is-optimizable($method)
-                    && method-cando($method, $nominal_target, $value)
+                    && (my @cands := method-cando($method, $nominal_target, $value))
             {
                 # We can TargetType.new($value)
-                $coercer := $coerce-new;
+                if +@cands == 1 {
+                    if nqp::eqaddr(@cands[0].package, Mu) {
+                        # The only .new candidate for a single positional arg call comes from Mu. That one throws
+                        # "only named arguments" error which means no candidates are actually found. Simulate this by
+                        # resetting $method and pretend it's never been found.
+                        $method := nqp::null();
+                    }
+                    else {
+                        $coercer := $coerce-indirect-method;
+                    }
+                }
+                else {
+                    $coercer := $coerce-new;
+                }
             }
 
             if nqp::isconcrete($coercer) {

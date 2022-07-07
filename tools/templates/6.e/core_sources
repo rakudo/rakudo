@@ -1,6 +1,7 @@
 src/core.e/core_prologue.pm6
 src/core.e/control.pm6
 src/core.e/Any-iterable-methods.pm6
+src/core.e/Supply.pm6
 src/core.e/PseudoStash.pm6
 src/core.e/Grammar.pm6
 src/core.e/EXPORTHOW.pm6

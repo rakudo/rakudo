@@ -3706,30 +3706,32 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                         ?? ($nominal_target := nqp::how($nominal_target).pun($nominal_target))
                         !! $nominal_target),
                     'COERCE'))
-                && method-is-optimizable($method)
                 && method-cando($method, $nominal_target, $value)
         {
             # The target type can .COERCE
-            $coercer := $coerce-indirect-method;
+            if method-is-optimizable($method) {
+                $coercer := $coerce-indirect-method 
+            }
         }
         elsif nqp::defined($method := nqp::tryfindmethod($nominal_target, 'new'))
-                && method-is-optimizable($method)
                 && (my @cands := method-cando($method, $nominal_target, $value))
         {
-            # We can TargetType.new($value)
-            if +@cands == 1 {
-                if nqp::eqaddr(@cands[0].package, Mu) {
-                    # The only .new candidate for a single positional arg call comes from Mu. That one throws
-                    # "only named arguments" error which means no candidates are actually found. Simulate this by
-                    # resetting $method and pretend it's never been found.
-                    $method := nqp::null();
+            if method-is-optimizable($method) {
+                # We can TargetType.new($value)
+                if +@cands == 1 {
+                    if nqp::eqaddr(@cands[0].package, Mu) {
+                        # The only .new candidate for a single positional arg call comes from Mu. That one throws
+                        # "only named arguments" error which means no candidates are actually found. Simulate this by
+                        # resetting $method and pretend it's never been found.
+                        $method := nqp::null();
+                    }
+                    else {
+                        $coercer := $coerce-indirect-method;
+                    }
                 }
                 else {
-                    $coercer := $coerce-indirect-method;
+                    $coercer := $coerce-new;
                 }
-            }
-            else {
-                $coercer := $coerce-new;
             }
         }
         elsif $with-runtime && nqp::isconcrete($method) {

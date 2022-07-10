@@ -187,18 +187,42 @@ class RakuAST::StatementPrefix::Thunky is RakuAST::StatementPrefix
         }
     }
 
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
+            str :$blocktype, RakuAST::Expression :$expression) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
+        }
+        else {
+            my $block := QAST::Block.new(
+                :blocktype('declaration_static'),
+                QAST::Stmts.new(
+                    self.blorst.IMPL-TO-QAST($context)
+                ));
+            $block.arity(0);
+            $block
+        }
+    }
+
+    method IMPL-QAST-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-BLOCK($context, :$blocktype, :$expression)
+        }
+        else {
+            unless (nqp::getattr(self, RakuAST::Code, '$!qast-block')) {
+                self.IMPL-FINISH-CODE-OBJECT($context, :$blocktype, :$expression);
+            }
+            nqp::getattr(self, RakuAST::Code, '$!qast-block')
+        }
+    }
+
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         if nqp::istype(self.blorst, RakuAST::Block) {
             # Block already, so we need add nothing.
             QAST::Op.new( :op('null') )
         }
         else {
-            my $block := QAST::Block.new(
-                :blocktype('declaration_static'),
-                self.blorst.IMPL-TO-QAST($context)
-            );
-            self.IMPL-LINK-META-OBJECT($context, $block);
-            $block
+            self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'))
         }
     }
 }
@@ -273,13 +297,17 @@ class RakuAST::StatementPrefix::Phaser::Sinky is RakuAST::StatementPrefix::Phase
 
 # The BEGIN phaser.
 class RakuAST::StatementPrefix::Phaser::Begin is RakuAST::StatementPrefix::Phaser
+                                              is RakuAST::StatementPrefix::Thunky
                                               is RakuAST::BeginTime {
     has Mu $!produced-value;
 
     # Perform BEGIN-time evaluation.
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE($resolver, $context);
+
+        nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
-            '$!produced-value', self.IMPL-BEGIN-TIME-EVALUATE(self.blorst, $resolver, $context));
+            '$!produced-value', self.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context));
         Nil
     }
 

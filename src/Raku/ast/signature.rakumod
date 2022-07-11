@@ -4,6 +4,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST
     has List $.parameters;
     has RakuAST::Node $.returns;
     has int $!is-on-method;
+    has int $!is-on-named-method;
     has int $!is-on-meta-method;
     has int $!is-on-role-body;
     has RakuAST::Package $!method-package;
@@ -16,6 +17,8 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST
             self.IMPL-WRAP-LIST($parameters // []));
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
+        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-named-method', 0);
+        nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-meta-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
         $obj
     }
@@ -33,6 +36,11 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST
     method set-is-on-method(Bool $is-on-method) {
         # Stash away the fact whether we should generate implicit parameters
         nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', $is-on-method ?? 1 !! 0);
+    }
+
+    method set-is-on-named-method(Bool $is-on-named-method) {
+        # Stash away the fact whether we should put a type constraint on the implicit invocant
+        nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-named-method', $is-on-named-method ?? 1 !! 0);
     }
 
     method set-is-on-meta-method(Bool $is-on-meta-method) {
@@ -69,7 +77,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST
                 if $!is-on-meta-method {
                     $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0];
                 }
-                else {
+                elsif $!is-on-named-method {
                     if nqp::isconcrete($!method-package) {
                         my $package := $!method-package.stubbed-meta-object;
                         my $package-name := $package.HOW.name($package);

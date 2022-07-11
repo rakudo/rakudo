@@ -3929,7 +3929,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             my sub runtime-only($t) {
                 return 0 if nqp::isnull($t);
                 nqp::isconcrete(nqp::how($t).refinement($t)) 
-                    || (nqp::how($t).archetypes.nominalizable && runtime-only(nqp::how($t).wrappee-lookup($t, :subset)))
+                    || nqp::how(my $refinee := nqp::how($t).refinee($t)).archetypes.nominalizable
+                        && runtime-only(nqp::how($refinee).wrappee-lookup($refinee, :subset))
             }
 
             my $rv := nqp::captureposarg($capture, 0);

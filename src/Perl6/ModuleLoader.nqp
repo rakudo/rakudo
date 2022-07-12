@@ -1,9 +1,6 @@
 my $rakudo-module-debug := nqp::atkey(nqp::getenvhash(), 'RAKUDO_MODULE_DEBUG');
-my $debug-radix := nqp::radix(10, $rakudo-module-debug, 0, 0);
-my $DEBUG := $debug-radix[2] != -1
-  ?? ?$debug-radix[0]
-  !! ?nqp::chars($rakudo-module-debug);
-
+my $DEBUG := nqp::stmts((my $debug-radix := nqp::radix(10, $rakudo-module-debug, 0, 0)),($debug-radix[2] != -1))
+?? ?$debug-radix[0] !! ?nqp::chars($rakudo-module-debug);
 sub DEBUG(*@strs) {
     my $err := stderr();
     $err.print(" " ~ $rakudo-module-debug ~ nqp::x(" ", ($rakudo-module-debug - 1) * 4) ~ " RMD: ");
@@ -13,7 +10,6 @@ sub DEBUG(*@strs) {
 }
 
 class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
-    my %prev-setting-name;
     my %modules_loaded;
     my %settings_loaded;
     my $absolute_path_func;
@@ -24,7 +20,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     method register_language_module_loader($lang, $loader, :$force) {
         nqp::die("Language loader already registered for $lang")
-          if ! $force && nqp::existskey(%language_module_loaders, $lang);
+            if ! $force && nqp::existskey(%language_module_loaders, $lang);
         %language_module_loaders{$lang} := $loader;
     }
 
@@ -45,74 +41,56 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         self.vm_search_paths()
     }
 
-    method load_bootstrap($bootstrap, @GLOBALish) {
-        my $file :=
-          nqp::join('/',nqp::split('::',$bootstrap)) ~ self.file-extension;
-        my @prefixes := self.search_path();
-        for @prefixes -> $prefix {
-            my $path := "$prefix/$file";
-            if nqp::existskey(%modules_loaded,$path) {
-                DEBUG("Bootstrap $bootstrap already loaded") if $DEBUG;
-                return nqp::ctxlexpad(%modules_loaded{$path});
+    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
+        DEBUG("going to load $module_name") if $DEBUG;
+        if nqp::eqat($module_name, 'Perl6::BOOTSTRAP::v6', 0) {
+            my $preserve_global := nqp::gethllsym('Raku', 'GLOBAL');
+            my %*COMPILING := {};
+            my $*CTXSAVE := self;
+            my $*MAIN_CTX;
+            my $file := nqp::join('/', nqp::split('::', $module_name)) ~ self.file-extension;
+
+            my @prefixes := self.search_path();
+            for @prefixes -> $prefix {
+                if nqp::stat("$prefix/$file", 0) {
+                    $file := "$prefix/$file";
+                    last;
+                }
             }
-            elsif nqp::stat($path,0) {
-                $file := $path;
-                last;   # needs loading still
+
+            if nqp::existskey(%modules_loaded, $file) {
+                return nqp::ctxlexpad(%modules_loaded{$file});
             }
-        }
 
-        DEBUG("Loading bootstrap $bootstrap") if $DEBUG;
-        my $preserve_global := nqp::gethllsym('Raku','GLOBAL');
-        my %*COMPILING := {};
-        my $*CTXSAVE := self;
-        my $*MAIN_CTX;
-
-        nqp::loadbytecode($file);
-        %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
-        nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
-        my $UNIT := nqp::ctxlexpad($module_ctx);
-        if +@GLOBALish {
-            DEBUG("  Merging globals") if $DEBUG;
-            unless nqp::isnull(my $UNIT_GLOBALish := $UNIT<GLOBALish>) {
-                self.merge_globals(@GLOBALish[0].WHO, $UNIT_GLOBALish.WHO);
+            nqp::loadbytecode($file);
+            %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
+            nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
+            my $UNIT := nqp::ctxlexpad($module_ctx);
+            if +@GLOBALish {
+                unless nqp::isnull($UNIT<GLOBALish>) {
+                    self.merge_globals(@GLOBALish[0].WHO, $UNIT<GLOBALish>.WHO);
+                }
             }
+            return $UNIT;
         }
-        $UNIT
-    }
-
-    method load_module(
-      $module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen
-    ) {
-        if nqp::eqat($module_name,'Perl6::BOOTSTRAP::v6',0) {
-            self.load_bootstrap($module_name, @GLOBALish)
-        }
-        else {
-            my $loader := nqp::ifnull(
-              nqp::atkey(
-                %language_module_loaders,
-                (my $from := %opts<from> // 'NQP')
-              ),
-              nqp::die("Do not know how to load code from $from")
-            );
-
-            DEBUG("going to load $module_name from $from") if $DEBUG;
+        if nqp::existskey(%language_module_loaders, %opts<from> // 'NQP') {
             # We expect that custom module loaders will accept a Stash, only
             # NQP expects a hash and therefor needs special handling.
-            if $from eq 'NQP' {
+            if %opts<from> eq 'NQP' {
                 if +@GLOBALish {
                     my $target := nqp::knowhow().new_type(:name('GLOBALish'));
                     nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
-                    $loader.load_module($module_name, $target);
+                    return %language_module_loaders<NQP>.load_module($module_name, $target);
                 }
                 else {
-                    $loader.load_module($module_name);
+                    return %language_module_loaders<NQP>.load_module($module_name);
                 }
             }
-            else {
-                $loader.load_module(
-                  $module_name, %opts, |@GLOBALish, :$line, :$file
-                )
-            }
+            return %language_module_loaders{%opts<from>}.load_module($module_name,
+                %opts, |@GLOBALish, :$line, :$file);
+        }
+        else {
+            nqp::die("Do not know how to load code from " ~ %opts<from>);
         }
     }
 
@@ -235,68 +213,73 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
 
-    # Transforms NULL.<release> into CORE.<previous-release>
-    method previous_setting_name($setting_name) {
-        nqp::ifnull(
-          nqp::atkey(
-            %prev-setting-name
-              || (%prev-setting-name := nqp::gethllsym('default','SysConfig').rakudo-build-config()<prev-setting-name>),
-            $setting_name
-          ),
-          nqp::die("Don't know setting $setting_name")
-        )
+    # Transforms NULL.<release> into CORE.<previous-release>, CORE.<release> into CORE.<previous-release>
+    method previous_setting_name ($setting_name, :$base = 'CORE') {
+        nqp::gethllsym('default', 'SysConfig').rakudo-build-config()<prev-setting-name>{$setting_name}
+            // nqp::die("Don't know setting $setting_name")
+    }
+
+    method transform_setting_name ($setting_name) {
+        return self.previous_setting_name($setting_name, base => 'NULL');
     }
 
     my $setting-lock := NQPLock.new;
     method load_setting($setting_name) {
-        CATCH {
-            nqp::unlock($setting-lock);
-            nqp::rethrow($_);
-        }
-        nqp::lock($setting-lock);
-
         my $setting;
-        if nqp::isnull($setting := nqp::atkey(%settings_loaded,$setting_name)) {
-            DEBUG("Requested for settings $setting_name") if $DEBUG;
 
-            # Pre-load previous setting.
-            my $prev_name := self.previous_setting_name($setting_name);
+        if $setting_name ne 'NULL.c' {
+            CATCH {
+                nqp::unlock($setting-lock);
+                $_.rethrow;
+            }
+            nqp::lock($setting-lock);
+
+            DEBUG("Requested for settings $setting_name") if $DEBUG;
+            $setting_name := self.transform_setting_name($setting_name);
+
+            # First, pre-load previous setting.
+            my $prev_setting_name := self.previous_setting_name($setting_name);
             my $prev_setting;
             # Don't do this for .c for which $setting_name doesn't change
-            unless nqp::iseq_s($prev_name, $setting_name) {
-                $prev_setting := self.load_setting($prev_name);
+            unless nqp::iseq_s($prev_setting_name, $setting_name) {
+                $prev_setting := self.load_setting($prev_setting_name);
             }
 
-            DEBUG("Loading settings $setting_name") if $DEBUG;
-            # Find it.
-            my $path := self.find_setting($setting_name);
+            # Unless we already did so, locate and load the setting.
+            if nqp::defined(%settings_loaded{$setting_name}) {
+                DEBUG("Settings $setting_name already loaded") if $DEBUG;
+            }
+            else {
+                DEBUG("Loading settings $setting_name") if $DEBUG;
+                # Find it.
+                my $path := self.find_setting($setting_name);
 
-            # Load it.
-            my $*CTXSAVE  := self;
-            my $*MAIN_CTX := nqp::null;
-            my $GLOBAL    := nqp::gethllsym('Raku','GLOBAL');
+                # Load it.
+                my $*CTXSAVE := self;
+                my $*MAIN_CTX;
+                my $preserve_global := nqp::gethllsym('Raku','GLOBAL');
 
-            DEBUG("Loading bytecode from $path") if $DEBUG;
-            nqp::scwbdisable();
-            nqp::loadbytecode($path);
-            nqp::scwbenable();
-            nqp::bindhllsym('Raku','GLOBAL',nqp::ifnull($GLOBAL,NQPMu));
+                DEBUG("Loading bytecode from $path") if $DEBUG;
+                nqp::scwbdisable();
+                nqp::loadbytecode($path);
+                nqp::scwbenable();
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
 
-            %settings_loaded{$setting_name} := $setting := nqp::ifnull(
-              $*MAIN_CTX,
-              nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?")
-            );
-            nqp::forceouterctx(nqp::ctxcode($setting),$prev_setting)
-              if nqp::defined($prev_setting);
+                unless nqp::defined($*MAIN_CTX) {
+                    nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
+                }
+                nqp::forceouterctx(nqp::ctxcode($*MAIN_CTX),$prev_setting)
+                  if nqp::defined($prev_setting);
+                %settings_loaded{$setting_name} := $*MAIN_CTX;
 
-            DEBUG("Settings $setting_name loaded") if $DEBUG;
+                DEBUG("Settings $setting_name loaded") if $DEBUG;
+            }
+
+            $setting := %settings_loaded{$setting_name};
+            nqp::unlock($setting-lock);
         }
-        else {
-            DEBUG("Settings $setting_name already loaded") if $DEBUG;
-        }
-        nqp::unlock($setting-lock);
 
-        $setting
+        return $setting;
     }
 
     # Handles any object repossession conflicts that occurred during module load,

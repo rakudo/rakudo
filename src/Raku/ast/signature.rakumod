@@ -405,15 +405,18 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
+        my @lookups;
         my str $sigil := $!target.sigil;
         my str $sigil-type;
-        if $sigil eq '@' { $sigil-type := 'Positional' }
-        elsif $sigil eq '%' { $sigil-type := 'Associative' }
-        elsif $sigil eq '&' { $sigil-type := 'Callable' }
-        else { $sigil-type := '' }
-        self.IMPL-WRAP-LIST($sigil-type
-            ?? [RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($sigil-type))]
-            !! [])
+        if $sigil eq '@' { nqp::push(@lookups, 'Positional'); nqp::push(@lookups, 'PositionalBindFailover') }
+        elsif $sigil eq '%' { nqp::push(@lookups, 'Associative') }
+        elsif $sigil eq '&' { nqp::push(@lookups, 'Callable') }
+
+        my @types;
+        for @lookups {
+            nqp::push(@types, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($_)));
+        }
+        self.IMPL-WRAP-LIST(@types)
     }
 
     method PRODUCE-META-OBJECT() {
@@ -658,6 +661,31 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                 $param-qast.push(QAST::ParamTypeCheck.new($concreteness));
             }
             else {
+                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+
+                if $!target.sigil eq '@' && $nominal-type =:= @lookups[0].resolution.compile-time-value {
+                    my $PositionalBindFailover := @lookups[1].resolution.compile-time-value;
+                    $param-qast.push(QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            $get-decont-var(),
+                            QAST::WVal.new( :value($PositionalBindFailover) )
+                        ),
+                        QAST::Op.new(
+                            :op('bind'),
+                            $get-decont-var(),
+                            QAST::Op.new(
+                                :op('decont'),
+                                QAST::Op.new(
+                                    :op('bind'),
+                                    $temp-qast-var,
+                                    QAST::Op.new(
+                                        :op('callmethod'), :name('cache'),
+                                        $get-decont-var()
+                                    ))))));
+                }
+
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                     :op('istype_nd'),
                     $get-decont-var(),

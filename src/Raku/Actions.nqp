@@ -72,7 +72,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $name := 'CORE';
         my $version := nqp::substr(nqp::getcomp('Raku').language_version, 2);
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
-        my $setting-name := $loader.transform_setting_name("$name.$version");
+        my $setting-name := $loader.previous_setting_name("$name.$version");
 
         # Set up the resolver.
         my %options := %*COMPILING<%?OPTIONS>;

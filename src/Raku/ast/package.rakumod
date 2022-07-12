@@ -11,6 +11,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     has Str $.repr;
     has RakuAST::Block $.body;
     has Mu $!role-group;
+    has Mu $!block-semantics-applied;
 
     # Methods and attributes are not directly added, but rather thorugh the
     # RakuAST::Attaching mechanism. Attribute usages are also attached for
@@ -60,8 +61,8 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
 
     method clear-attachments() {
-        nqp::setelems($!attached-methods, 0);
-        nqp::setelems($!attached-attributes, 0);
+        # Attributes and methods only attach once as a BEGIN effect, thus we
+        # don't have to deal with duplicates on them.
         Nil
     }
 
@@ -299,6 +300,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     }
 
     method apply-implicit-block-semantics() {
+        if $!block-semantics-applied {
+            return;
+        }
+        nqp::bindattr(self, RakuAST::Package, '$!block-semantics-applied', 1);
         $!body.add-generated-lexical-declaration(
             RakuAST::VarDeclaration::Implicit::Constant.new(
                 name => '$?PACKAGE', value => self.stubbed-meta-object

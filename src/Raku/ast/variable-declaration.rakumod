@@ -256,7 +256,6 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             if $attribute-package {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
                     $attribute-package);
-                $attribute-package.ATTACH-ATTRIBUTE(self);
             }
             else {
                 # TODO check-time error
@@ -271,6 +270,10 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!attribute-package {
+            $!attribute-package.ATTACH-ATTRIBUTE(self);
+        }
+
         # Process traits for `is Type` and `of Type`, which get special
         # handling by the compiler.
         my @late-traits;
@@ -565,7 +568,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
 
 class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::ImplicitLookups
                                       is RakuAST::TraitTarget is RakuAST::CheckTime
-                                      is RakuAST::Attaching {
+                                      is RakuAST::Attaching is RakuAST::BeginTime {
     has RakuAST::Signature $.signature;
     has RakuAST::Type $.type;
     has RakuAST::Initializer $.initializer;
@@ -617,7 +620,6 @@ class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::Imp
             if $attribute-package {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Signature, '$!attribute-package',
                     $attribute-package);
-                $attribute-package.ATTACH-ATTRIBUTE(self);
             }
             else {
                 # TODO check-time error
@@ -647,6 +649,12 @@ class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::Imp
             @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
         }
         self.IMPL-WRAP-LIST(@lookups)
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!attribute-package {
+            $!attribute-package.ATTACH-ATTRIBUTE(self);
+        }
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

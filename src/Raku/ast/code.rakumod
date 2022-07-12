@@ -1146,6 +1146,8 @@ class RakuAST::Sub is RakuAST::Routine is RakuAST::SinkBoundary {
 # The commonalities of method-like things, whichever language their body is in
 # (be it the main Raku language or the regex language).
 class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
+    has RakuAST::Package $!package;
+
     method default-scope() {
         self.name ?? 'has' !! 'anon'
     }
@@ -1158,15 +1160,19 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
         if self.scope eq 'has' {
             my $package := $resolver.find-attach-target('package');
             if $package {
-                $package.ATTACH-METHOD(self);
-            }
-            else {
-                # TODO check-time problem
+                nqp::bindattr(self, RakuAST::Methodish, '$!package', $package);
             }
         }
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!package {
+            $!package.ATTACH-METHOD(self);
+        }
+        elsif self.scope eq 'has' {
+            nqp::die('Did not find an attach target for method.');
+        }
+
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {

@@ -3695,15 +3695,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         elsif nqp::defined(
             $method := nqp::tryfindmethod(
                 nqp::what($value), 
-                nqp::how($nominal_target).name($nominal_target)))
+                nqp::how_nd($nominal_target).name($nominal_target)))
             && method-cando($method, $value)
         {
             # There is .TargetType method on the value, use it
             $coercer := $coerce-by-type-method;
         }
         elsif nqp::defined($method := nqp::tryfindmethod(
-                    (nqp::how($nominal_target).archetypes.composable
-                        ?? ($nominal_target := nqp::how($nominal_target).pun($nominal_target))
+                    (nqp::how_nd($nominal_target).archetypes.composable
+                        ?? ($nominal_target := nqp::how_nd($nominal_target).pun($nominal_target))
                         !! $nominal_target),
                     'COERCE'))
                 && method-cando($method, $nominal_target, $value)
@@ -3738,7 +3738,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             $coercer := $coerce-runtime;
         }
 
-        nqp::list($coercer, $method)
+        nqp::list($coercer, $method, $nominal_target)
     }
 
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-coercion', -> $capture {
@@ -3817,8 +3817,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             my @cdesc := select-coercer($coercion, $value);
             my $coercer := @cdesc[0]; # Code object to do the coercion
             my $method := @cdesc[1];
-            my $use-runtime := @cdesc[2];
-            my $nominal_target := $coercionHOW.nominal_target($coercion);
+            my $nominal_target := @cdesc[2];
 
             if nqp::isconcrete($coercer) {
                 # We found an acceptable coercer, use it
@@ -3886,29 +3885,33 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             !! return_error($ret, $type)
     }
 
-    my $check_type_typeobj_coerce := -> $ret, $type, $coercion, $coercer, $method {
+    # For @cdesc values see select-coercer sub
+    my $check_type_typeobj_coerce := -> $ret, $type, $coercion, @cdesc {
         !nqp::isconcrete($ret) && nqp::istype($ret, $type)
-            ?? $coercer(
-                $coercion, $ret, $method, 
-                nqp::how($coercion).nominal_target($coercion), 
+            ?? @cdesc[0]( # coercer code
+                $coercion, $ret, 
+                @cdesc[1], # coercing method
+                @cdesc[2], # nominal target
                 nqp::how($coercion).target_type($coercion))
             !! return_error($ret, $type)
     }
 
-    my $check_type_concrete_coerce := -> $ret, $type, $coercion, $coercer, $method {
+    my $check_type_concrete_coerce := -> $ret, $type, $coercion, @cdesc {
         nqp::isconcrete($ret) && nqp::istype($ret, $type)
-            ?? $coercer(
-                $coercion, $ret, $method, 
-                nqp::how($coercion).nominal_target($coercion), 
+            ?? @cdesc[0](
+                $coercion, $ret, 
+                @cdesc[1],
+                @cdesc[2],
                 nqp::how($coercion).target_type($coercion))
             !! return_error($ret, $type)
     }
 
-    my $check_type_coerce := -> $ret, $type, $coercion, $coercer, $method {
+    my $check_type_coerce := -> $ret, $type, $coercion, @cdesc {
         nqp::istype($ret, $type)
-            ?? $coercer(
-                $coercion, $ret, $method, 
-                nqp::how($coercion).nominal_target($coercion), 
+            ?? @cdesc[0](
+                $coercion, $ret, 
+                @cdesc[1],
+                @cdesc[2],
                 nqp::how($coercion).target_type($coercion))
             !! return_error($ret, $type)
     }
@@ -4039,11 +4042,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 my $checker-capture :=
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture,
-                                    2, $coercion-type),
-                                3, @cdesc[0]), # coercer code
-                            4, @cdesc[1]), # coercion method object
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture,
+                                2, $coercion-type),
+                            3, @cdesc), # coercer code
                         0, $checker);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant', $checker-capture);
             }

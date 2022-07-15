@@ -452,7 +452,6 @@ my @expected = (
   Q{&tanh},
   Q{&tc},
   Q{&tclc},
-  Q{&term:<nano>},
   Q{&term:<now>},
   Q{&term:<time>},
   Q{&to-json},

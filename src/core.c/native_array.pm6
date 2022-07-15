@@ -6532,4 +6532,7 @@ multi sub postcircumfix:<[ ]>(
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of numarray -------------------------
 
+multi sub elems(array:D \a) {            nqp::elems(a)    }
+multi sub end(array:D   \a) { nqp::sub_i(nqp::elems(a),1) }
+
 # vim: expandtab shiftwidth=4

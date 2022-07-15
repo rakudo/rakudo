@@ -9674,6 +9674,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Op.new(
                                 :op('bind'),
                                 QAST::Var.new(:name($name), :scope('local')),
+#?if moar
+                                QAST::Op.new(
+                                    :op<dispatch>,
+                                    QAST::SVal.new(:value<raku-coercion>),
+                                    QAST::Var.new(:name($low_param_type), :scope<local>),
+                                    QAST::Var.new(:name($name), :scope<local>))))));
+#?endif
+#?if !moar
                                 QAST::Op.new(
                                     :op('callmethod'),
                                     :name('coerce'),
@@ -9682,6 +9690,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         QAST::Var.new(:name($low_param_type), :scope('local'))),
                                     QAST::Var.new(:name($low_param_type), :scope('local')),
                                     QAST::Var.new(:name($name), :scope('local')))))));
+#?endif
             }
             elsif nqp::can($ptype_archetypes, 'coercive') && $ptype_archetypes.coercive {
                 $decont_name_invalid := 1;
@@ -9700,12 +9709,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(
                             :op('bind'),
                             QAST::Var.new( :name($name), :scope('local') ),
+#?if moar
+                            QAST::Op.new(
+                                :op<dispatch>,
+                                QAST::SVal.new(:value<raku-coercion>),
+                                QAST::WVal.new(:value($param_type)),
+                                QAST::Var.new(:name($name), :scope<local>)))));
+#?endif
+#?if !moar
                             QAST::Op.new(
                                 :op('callmethod'),
                                 :name('coerce'),
                                 QAST::WVal.new(:value($param_type.HOW)),
                                 QAST::WVal.new(:value($param_type)),
                                 QAST::Var.new( :name($name), :scope('local') )))));
+#?endif
             }
 
             # If it's optional, do any default handling.

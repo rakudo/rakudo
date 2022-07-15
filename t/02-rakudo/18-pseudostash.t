@@ -14,12 +14,11 @@ plan 3;
         is-run "use v6.$rev;\nmy \$foo = q<This is 6.$rev>;\n"
                 ~ q:to/TEST-CODE/,
                     my class C {
-                        method COERCE(Int $v) {
+                        method FALLBACK($,|) {
                             print CALLER::CLIENT::MY::<$foo>;
-                            C.new;
                         }
                     };
-                    C(42);
+                    C.fubar;
                     TEST-CODE
                 "CLIENT:: doesn't fail on NQP packages for 6.$rev",
                 :out("This is 6.$rev"),

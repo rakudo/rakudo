@@ -400,12 +400,13 @@ multi sub todo($reason, $count = 1) is export {
     $time_before = nqp::time;
 }
 
+proto  sub skip(|) is export {*}
 multi sub skip() {
     $time_after = nqp::time;
     proclaim(1, '', "# SKIP");
     $time_before = nqp::time;
 }
-multi sub skip($reason, $count = 1) is export {
+multi sub skip($reason, $count = 1) {
     $time_after = nqp::time;
     die "skip() was passed a non-integer number of tests.  Did you get the arguments backwards or use a non-integer number?" if $count !~~ Int;
     my $i = 1;

@@ -433,6 +433,7 @@ my @expected = (
     Q{&sleep-until},
     Q{&slip},
     Q{&slurp},
+    Q{&snip},
     Q{&so},
     Q{&sort},
     Q{&splice},

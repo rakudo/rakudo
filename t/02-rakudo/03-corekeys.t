@@ -802,6 +802,7 @@ my @allowed =
         Q{&postcircumfix:<[; ]>},
         Q{&postcircumfix:<{; }>},
         Q{&rotor},
+        Q{&snip},
         Q{&term:<nano>},
         Q{CORE-SETTING-REV},
         Q{Grammar},

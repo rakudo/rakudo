@@ -30,13 +30,17 @@ my role Iterable {
     }
 
     method hyper(
-      Int(Cool) :$batch  = 64,
-      Int(Cool) :$degree = Kernel.cpu-cores-but-one,
+      Int(Cool) :$batch,
+      Int(Cool) :$degree,
     ) {
 #?if !js
         HyperSeq.new:
           configuration =>
-            HyperConfiguration.new(:$degree, :$batch, :method<hyper>),
+            HyperConfiguration.new(
+              :batch($batch // 64),
+              :degree($degree // Kernel.cpu-cores-but-one),
+              :method<hyper>
+            ),
           work-stage-head =>
             Rakudo::Internals::HyperIteratorBatcher.new(:$.iterator)
 #?endif
@@ -46,13 +50,17 @@ my role Iterable {
     }
 
     method race(
-      Int(Cool) :$batch  = 64,
-      Int(Cool) :$degree = Kernel.cpu-cores-but-one,
+      Int(Cool) :$batch,
+      Int(Cool) :$degree,
     ) {
 #?if !js
         RaceSeq.new:
           configuration =>
-            HyperConfiguration.new(:$degree, :$batch, :method<race>),
+            HyperConfiguration.new(
+              :batch($batch // 64),
+              :degree($degree // Kernel.cpu-cores-but-one),
+              :method<race>
+            ),
           work-stage-head =>
             Rakudo::Internals::HyperIteratorBatcher.new(:$.iterator)
 #?endif

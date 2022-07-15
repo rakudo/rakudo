@@ -3898,6 +3898,10 @@ proto sub parse-base($, $, *%) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 
 proto sub substr($, $?, $?, *%) {*}
+multi sub substr(str $s) { $s }
+multi sub substr(str $s, int $f) { nqp::substr($s,$f) }
+multi sub substr(str $s, int $f, int $c) { nqp::substr($s,$f,$c) }
+
 multi sub substr(\what --> Str:D)                { what.substr             }
 multi sub substr(\what, \from --> Str:D)         { what.substr(from)       }
 multi sub substr(\what, \from, \chars --> Str:D) { what.substr(from,chars) }

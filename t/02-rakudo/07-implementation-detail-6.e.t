@@ -30,7 +30,7 @@ my @lower = ("",<<
   prompt push put rand redo reduce rename repeated repl return
   return-rw reverse rotor rindex rmdir roll roots rotate round roundrobin
   run samecase samemark samewith say sec sech set shell shift sign
-  signal sin sinh skip sleep sleep-timer sleep-until slip slurp so sort
+  signal sin sinh skip sleep sleep-timer sleep-until slip slurp snip so sort
   splice split sprintf spurt sqrt squish srand subbuf-rw substr
   substr-rw succeed sum symlink tail take take-rw tan tanh tc tclc trim
   trim-leading trim-trailing truncate uc unimatch uniname

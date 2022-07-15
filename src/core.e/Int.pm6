@@ -1,4 +1,3 @@
-use MONKEY;
 augment class Int {
     proto method roll(|) {*}
     multi method roll() { nqp::rand_I(self,Int) }

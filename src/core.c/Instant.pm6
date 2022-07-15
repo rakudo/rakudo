@@ -122,6 +122,9 @@ multi sub infix:<->(Instant:D $a, Real:D $b --> Instant:D) {
 }
 
 sub term:<time>(--> Int:D) { nqp::time() div 1000000000 }
+
+sub term:<nano>() { die "nano is available from 6.e upward" }
+
 # 37 is $initial-offset from Rakudo::Internals + # of years
 # that have had leap seconds so far. Will need to be incremented
 # when new leap seconds occur.

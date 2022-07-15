@@ -455,6 +455,7 @@ my @allowed =
       Q{&tanh},
       Q{&tc},
       Q{&tclc},
+      Q{&term:<nano>},
       Q{&term:<now>},
       Q{&term:<time>},
       Q{&to-json},
@@ -801,6 +802,7 @@ my @allowed =
         Q{&postcircumfix:<[; ]>},
         Q{&postcircumfix:<{; }>},
         Q{&rotor},
+        Q{&term:<nano>},
         Q{CORE-SETTING-REV},
         Q{Grammar},
         Q{PseudoStash},
@@ -839,7 +841,10 @@ my %nyi-for-backend = (
 );
 
 for @allowed -> (:key($rev), :value(@syms)) {
-    has-symbols(CORE::{"v6$rev"}.WHO, (@syms (-) %nyi-for-backend{$*VM.name}).keys, "Symbols in CORE::v6{$rev}");
+    has-symbols
+      CORE::{"v6$rev"}.WHO,
+      (@syms (-) %nyi-for-backend{$*VM.name}).keys,
+      "Symbols in CORE::v6{$rev}";
 }
 
 # vim: expandtab shiftwidth=4

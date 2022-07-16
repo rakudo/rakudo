@@ -225,6 +225,9 @@ my class X::Method::NotFound is Exception {
         elsif $.method eq 'ceil' {
             %suggestions<ceiling> = 0;
         }
+        elsif $.method eq 'last' {
+            %suggestions<tail> = 0;
+        }
 
         my sub code-name(Mu $meth) {
             # KnowHOW `methods` method returns a hash. Respectively, iteration over .^methods gives us Pairs.

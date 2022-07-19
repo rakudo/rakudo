@@ -69,6 +69,7 @@ sub MAIN(*@ARGS) {
     $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'), |%defaults);
 
     # do all the necessary actions at the end, if any
+    my $*DIED-NATURALLY := 1;
     if nqp::gethllsym('Raku', '&THE_END') -> $THE_END {
         $THE_END()
     }

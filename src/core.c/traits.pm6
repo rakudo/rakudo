@@ -531,16 +531,84 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
 }
 
 multi sub trait_mod:<handles>(Method:D $m, &thunk) {
-    my $pkg := $m.signature.params[0].type;
-    my $call_name := $m.name;
-    for flat thunk() -> $meth_name {
-        my $meth := method (|c) is rw {
-            self."$call_name"()."$meth_name"(|c);
+    $m does role {
+        has $.handles;
+
+        method set_handles($expr) {
+            $!handles := $expr;
         }
-        $meth.set_name($meth_name);
-        $pkg.^add_method($meth_name, $meth);
+
+        method add_delegator_method(&code_obj: Mu $pkg, $meth_name, $call_name) {
+            my $meth := method (|c) is rw {
+                &code_obj(self)."$call_name"(|c)
+            };
+            $meth.set_name($meth_name);
+            $pkg.^add_method($meth_name, $meth);
+        }
+
+        method apply_handles(&code_obj: Mu $pkg) {
+            sub applier($expr) {
+                if $expr.defined() {
+                    if nqp::istype($expr,Str) {
+                        self.add_delegator_method($pkg, $expr, $expr);
+                    }
+                    elsif nqp::istype($expr,Pair) {
+                        self.add_delegator_method($pkg, $expr.key, $expr.value);
+                    }
+                    elsif nqp::istype($expr,Positional) {
+                        for $expr.list {
+                            applier($_);
+                        }
+                        0;
+                    }
+                    elsif nqp::istype($expr, Whatever) {
+                        $pkg.^add_fallback(
+                            -> $obj, $name {
+                                nqp::can(nqp::decont(&code_obj($obj)), nqp::decont($name))
+                            },
+                            -> $obj, $name {
+                                -> $self, |c {
+                                    &code_obj($self)."$name"(|c)
+                                }
+                            });
+                    }
+                    elsif nqp::istype($expr, HyperWhatever) {
+                        $pkg.^add_fallback(
+                            -> $, $ --> True { },
+                            -> $obj, $name {
+                                -> $self, |c {
+                                    &code_obj($self)."$name"(|c)
+                                }
+                            });
+                    }
+                    else {
+                        $pkg.^add_fallback(
+                            -> $obj, $name {
+                                ?($name ~~ $expr)
+                            },
+                            -> $obj, $name {
+                                -> $self, |c {
+                                    &code_obj($self)."$name"(|c)
+                                }
+                            });
+                    }
+                }
+                else {
+                    $pkg.^add_fallback(
+                        -> $obj, $name {
+                            nqp::can(nqp::decont($expr), nqp::decont($name))
+                        },
+                        -> $obj, $name {
+                            -> $self, |c {
+                                &code_obj($self)."$name"(|c)
+                            }
+                        });
+                }
+            }
+            applier($!handles);
+        }
     }
-    0;
+    $m.set_handles(&thunk());
 }
 
 proto sub trait_mod:<will>(Mu $, |) {*}

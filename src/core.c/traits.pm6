@@ -15,7 +15,7 @@ my class Pod::Block::Declarator { ... }
 proto sub trait_mod:<is>(Mu $, |) {*}
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable()
-        || ($child.HOW.archetypes.parametric && $parent.HOW.archetypes.generic)
+        || ($child.HOW.archetypes.parametric && $parent.^archetypes.generic)
     {
         $child.^add_parent($parent);
     }

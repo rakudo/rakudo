@@ -17,7 +17,7 @@ role Perl6::Metamodel::Nominalizable {
 
             # If the immediate wrappee is a nominalizable then bypass the request
             return $my_wrappee.HOW."!find_wrappee"($my_wrappee, %kind_of, :$lookup)
-                if $my_wrappee.HOW.archetypes.nominalizable;
+                if $my_wrappee.HOW.archetypes($my_wrappee).nominalizable;
 
             # Don't be aggressive if it's about introspection purposes
             return nqp::null() if $lookup;

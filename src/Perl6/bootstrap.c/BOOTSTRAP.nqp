@@ -35,7 +35,7 @@ my class BOOTSTRAPATTR {
     method positional_delegate() { 0 }
     method associative_delegate() { 0 }
     method build() { }
-    method is_generic() { $!type.HOW.archetypes.generic }
+    method is_generic() { $!type.HOW.archetypes($!type).generic }
     method instantiate_generic($type_environment) {
         my $ins := $!type.HOW.instantiate_generic($!type, $type_environment);
         self.new(:name($!name), :box_target($!box_target), :type($ins))
@@ -1192,11 +1192,11 @@ class ContainerDescriptor does Perl6::Metamodel::Explaining {
     method set_dynamic($dynamic) { $!dynamic := $dynamic; self }
 
     method is_generic() {
-        $!of.HOW.archetypes.generic
+        $!of.HOW.archetypes($!of).generic
     }
 
     method is_default_generic() {
-        $!default.HOW.archetypes.generic
+        $!default.HOW.archetypes($!default).generic
     }
 
     method instantiate_generic($type_environment) {
@@ -1716,7 +1716,10 @@ BEGIN {
                 Attribute, '$!package');
             my $build := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!build_closure');
-            nqp::hllboolfor($type.HOW.archetypes.generic || $package.HOW.archetypes.generic || nqp::defined($build), "Raku");
+            nqp::hllboolfor(
+                $type.HOW.archetypes($type).generic 
+                || $package.HOW.archetypes($package).generic 
+                || nqp::defined($build), "Raku");
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             my $dcself   := nqp::decont($self);
@@ -1726,7 +1729,7 @@ BEGIN {
             my $avc      := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
             my $bc       := nqp::getattr($dcself, Attribute, '$!build_closure');
             my $ins      := nqp::clone($dcself);
-            if $type.HOW.archetypes.generic {
+            if $type.HOW.archetypes($type).generic {
                 nqp::bindattr($ins, Attribute, '$!type',
                     $type.HOW.instantiate_generic($type, $type_environment));
                 my $cd_ins := $cd.instantiate_generic($type_environment);
@@ -1738,7 +1741,7 @@ BEGIN {
                 nqp::bindattr($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins);
                 nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc_copy);
             }
-            if $pkg.HOW.archetypes.generic {
+            if $pkg.HOW.archetypes($pkg).generic {
                 nqp::bindattr($ins, Attribute, '$!package',
                     $pkg.HOW.instantiate_generic($pkg, $type_environment));
             }
@@ -1765,7 +1768,7 @@ BEGIN {
             nqp::getattr($dcself, Scalar, '$!descriptor').instantiate_generic(
                 $type_environment));
         my $val := nqp::getattr($dcself, Scalar, '$!value');
-        if $val.HOW.archetypes.generic {
+        if $val.HOW.archetypes($val).generic {
             nqp::bindattr($dcself, Scalar, '$!value',
                 $val.HOW.instantiate_generic($val, $type_environment));
         }
@@ -1789,7 +1792,7 @@ BEGIN {
                     $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
                     my $type := $desc.of;
                     if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
-                        if $type.HOW.archetypes.coercive {
+                        if $type.HOW.archetypes($type).coercive {
                             my $coercion_type := $type.HOW.wrappee($type, :coercion);
 #?if moar
                             nqp::bindattr($cont, Scalar, '$!value', nqp::dispatch('raku-coercion', $coercion_type, $val));
@@ -2026,7 +2029,7 @@ BEGIN {
             }
             nqp::bindattr($ins, Signature, '@!params', @ins_params);
             my $returns := nqp::getattr($self, Signature, '$!returns');
-            if !nqp::isnull($returns) && $returns.HOW.archetypes.generic {
+            if !nqp::isnull($returns) && $returns.HOW.archetypes($returns).generic {
                 nqp::bindattr($ins, Signature, '$!returns',
                     $returns.HOW.instantiate_generic($returns, $type_environment));
             }
@@ -2083,8 +2086,8 @@ BEGIN {
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
             my $sigc := nqp::getattr($self, Parameter, '$!signature_constraint');
             nqp::hllboolfor(
-                $type.HOW.archetypes.generic
-                || (!nqp::isnull($ap) && $ap.HOW.archetypes.generic)
+                $type.HOW.archetypes($type).generic
+                || (!nqp::isnull($ap) && $ap.HOW.archetypes($ap).generic)
                 || (nqp::defined($sigc) && $sigc.is_generic),
                 "Raku")
         }));
@@ -2099,12 +2102,12 @@ BEGIN {
             my $sigc     := nqp::getattr($self, Parameter, '$!signature_constraint');
             my $ins_type := $type;
             my $ins_cd   := $cd;
-            if $type.HOW.archetypes.generic {
+            if $type.HOW.archetypes($type).generic {
                 $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
                 $ins_cd   := nqp::isnull($cd) ?? $cd !! $cd.instantiate_generic($type_environment);
             }
             my $ins_ap :=
-                !nqp::isnull($ap) && $ap.HOW.archetypes.generic
+                !nqp::isnull($ap) && $ap.HOW.archetypes($ap).generic
                     ?? $ap.HOW.instantiate_generic($ap, $type_environment)
                     !! $ap;
             my $ins_sigc :=
@@ -2112,12 +2115,12 @@ BEGIN {
                     ?? $sigc.instantiate_generic($type_environment)
                     !! $sigc;
             my int $flags := nqp::getattr_i($ins, Parameter, '$!flags');
-            unless $ins_type.HOW.archetypes.generic {
+            unless $ins_type.HOW.archetypes($ins_type).generic {
                 if $flags +& $SIG_ELEM_TYPE_GENERIC {
                     nqp::bindattr_i($ins, Parameter, '$!flags', $flags - $SIG_ELEM_TYPE_GENERIC);
                 }
             }
-            my $archetypes := $ins_type.HOW.archetypes;
+            my $archetypes := $ins_type.HOW.archetypes($ins_type);
             if nqp::can($archetypes, 'coercive') && $archetypes.coercive {
                 nqp::bindattr_i($ins, Parameter, '$!flags', $flags +| $SIG_ELEM_IS_COERCIVE);
             }
@@ -2683,7 +2686,7 @@ BEGIN {
                     else {
                         my $ptype :=
                             nqp::getattr($param, Parameter, '$!type');
-                        if $ptype.HOW.archetypes.coercive {
+                        if $ptype.HOW.archetypes($ptype).coercive {
                             my $coercion_type := $ptype.HOW.wrappee($ptype, :coercion);
                             $ptype := $coercion_type.HOW.constraint_type($coercion_type);
                         }

@@ -25,7 +25,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     has $!specialize_lock;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
-    method archetypes() {
+    method archetypes($obj?) {
         $archetypes
     }
 
@@ -216,7 +216,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         # Roles done by this role need fully specializing also.
         for self.roles_to_compose($obj) {
             my $ins := my $r := $_;
-            if $_.HOW.archetypes.generic {
+            if $_.HOW.archetypes($_).generic {
                 $ins := $ins.HOW.instantiate_generic($ins, $type_env);
                 unless $ins.HOW.archetypes.parametric {
                     my $target-name := $obj.HOW.name($obj);
@@ -239,7 +239,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         # the case they're generic (role Foo[::T] is T { })
         for self.parents($obj, :local(1)) {
             my $p := $_;
-            if $p.HOW.archetypes.generic {
+            if $p.HOW.archetypes($p).generic {
                 $p := $p.HOW.instantiate_generic($p, $type_env);
             }
             $conc.HOW.add_parent($conc, $p, :hides(self.hides_parent($obj, $_)));
@@ -249,7 +249,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         # punning case, since roles are the way we get generic types).
         if self.is_array_type($obj) {
             my $at := self.array_type($obj);
-            if $at.HOW.archetypes.generic {
+            if $at.HOW.archetypes($at).generic {
                 $at := $at.HOW.instantiate_generic($at, $type_env);
             }
             $conc.HOW.set_array_type($conc, $at);

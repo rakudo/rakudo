@@ -13,7 +13,7 @@ class Perl6::Metamodel::NativeHOW
     has $!composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1) );
-    method archetypes() {
+    method archetypes($obj?) {
         $archetypes
     }
 

@@ -52,6 +52,11 @@ role Perl6::Metamodel::MethodContainer {
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
         @!method_names[+@!method_names] := $name;
+
+        # See if trait `handles` has been applied and we can use it on the target type
+        if nqp::can($code_obj, 'apply_handles') && nqp::can($obj.HOW, 'find_method_fallback') {
+            $code_obj.apply_handles($obj);
+        }
     }
 
     # Gets the method hierarchy.

@@ -453,7 +453,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
         }
 
         method add_delegator_method($attr: Mu $pkg, $meth_name, $call_name) {
-            my $meth := method (|c) is rw {
+            my $meth := anon method (|c) is rw {
                 (nqp::isconcrete(self)
                   ?? $attr.get_value(self)
                   !! nqp::decont(nqp::getattr(
@@ -539,7 +539,7 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
         }
 
         method add_delegator_method(&code_obj: Mu $pkg, $meth_name, $call_name) {
-            my $meth := method (|c) is rw {
+            my $meth := anon method (|c) is rw {
                 &code_obj(self)."$call_name"(|c)
             };
             $meth.set_name($meth_name);

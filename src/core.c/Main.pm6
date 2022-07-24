@@ -114,7 +114,10 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 else { $optstring = nqp::substr($passed-value, 2) }
             }
             # short option
-            elsif nqp::eqat($passed-value, '-', 0) || nqp::eqat($passed-value, ':', 0) {
+            elsif $passed-value ne '-'
+              && (nqp::eqat($passed-value, '-', 0)
+                   || nqp::eqat($passed-value, ':', 0)
+                 ) {
                 $short-opt = 1;
                 if nqp::eqat($passed-value, '/', 1) {
                     $optstring = nqp::substr($passed-value, 2);

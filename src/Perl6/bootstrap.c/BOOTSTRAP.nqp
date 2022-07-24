@@ -3998,6 +3998,7 @@ BEGIN {
 }
 EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
 EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
+EXPORT::DEFAULT.WHO<Counter> := Counter;
 
 #?if !moar
 # Set up various type mappings.

@@ -704,6 +704,8 @@ my class DateTime does Dateish {
           ~ (',' ~ :$!timezone.raku if $!timezone)
           ~ ')'
     }
+
+    method ACCEPTS(DateTime:D: DateTime:D \topic) { self == topic }
 }
 
 multi sub infix:«<»(DateTime:D $a, DateTime:D $b --> Bool:D) {

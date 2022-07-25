@@ -3636,6 +3636,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         nqp::how($coercion)."!coerce_TargetType"($coercion, $value)
     });
 
+    my $coerce-via-container := nqp::getstaticcode(-> $coercion, $value {
+        nqp::dispatch('raku-coercion', $coercion, nqp::decont($value))
+    });
+
     sub select-coercer($coercion, $value, :$with-runtime = 0) {
         my $target_type := nqp::how($coercion).target_type($coercion);
         my $constraint_type := nqp::how($coercion).constraint_type($coercion);
@@ -3787,7 +3791,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call', $method-capture);
         }
 
-        if nqp::istype_nd($value, $target_type) {
+        if nqp::iscont($value) {
+            # If despite our efforts the value is still a container then try deconting it first and then re-dispatch
+            my $code-capture :=
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj', $capture, 1, $value),
+                    0, $coerce-via-container);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant', $code-capture);
+        }
+        elsif nqp::istype_nd($value, $target_type) {
             # Just matches, use identity
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', 
                 nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0));

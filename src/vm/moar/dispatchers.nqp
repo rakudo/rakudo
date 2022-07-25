@@ -556,48 +556,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
     }
 });
 
-# Coercion dispatcher. The first argument is the value to coerce, the second
-# is what to coerce it into.
-{
-    sub coercion_error($from_name, $to_name) {
-        nqp::die("Unable to coerce the from $from_name to $to_name; " ~
-            "no coercion method defined");
-    }
-
-    nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-coerce', -> $capture {
-        my $to_coerce := nqp::captureposarg($capture, 0);
-        my $coerce_type := nqp::captureposarg($capture, 1);
-
-        # See if there is a method named for the type.
-        my str $to_name := nqp::how_nd($coerce_type).name($coerce_type);
-        my $coerce_method := nqp::decont(nqp::how_nd($to_coerce).find_method($to_coerce, $to_name));
-        if nqp::isconcrete($coerce_method) {
-            # Delegate to the resolved method call dispatcher. We need to drop
-            # the arg of the coercion type, then insert three args:
-            # 1. The method we resolved to.
-            # 2. The type object of the coercion type (used in deferral)
-            # 3. The name of the method (used in deferral)
-            my $without_coerce_type := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                    $capture, 1);
-            my $meth_capture := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg-literal-obj',
-                nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-obj',
-                    nqp::dispatch('boot-syscall',
-                        'dispatcher-insert-arg-literal-str',
-                        $without_coerce_type,
-                        0, $to_name),
-                    0, nqp::what(to_coerce)),
-                0, $coerce_method);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate',
-                    'raku-meth-call-resolved', $meth_capture);
-        }
-        else {
-            coercion_error(nqp::how_nd($to_coerce).name($to_coerce), $to_name);
-        }
-    });
-}
-
 # A standard call (such as `func($arg)`, `$obj($arg)`, etc.) It receives the
 # decontainerized callee as the first argument, followed by the arguments. Its
 # primary purpose is to deal with multi dispatch vs. single dispatch and then
@@ -3636,6 +3594,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         nqp::how($coercion)."!coerce_TargetType"($coercion, $value)
     });
 
+    my $coerce-via-container := nqp::getstaticcode(-> $coercion, $value {
+        nqp::dispatch('raku-coercion', $coercion, nqp::decont($value))
+    });
+
     sub select-coercer($coercion, $value, :$with-runtime = 0) {
         my $target_type := nqp::how($coercion).target_type($coercion);
         my $constraint_type := nqp::how($coercion).constraint_type($coercion);
@@ -3787,7 +3749,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call', $method-capture);
         }
 
-        if nqp::istype_nd($value, $target_type) {
+        if nqp::iscont($value) {
+            # If despite our efforts the value is still a container then try deconting it first and then re-dispatch
+            my $code-capture :=
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj', $capture, 1, $value),
+                    0, $coerce-via-container);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant', $code-capture);
+        }
+        elsif nqp::istype_nd($value, $target_type) {
             # Just matches, use identity
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', 
                 nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0));

@@ -18,7 +18,9 @@ BEGIN {
     Perl6::Metamodel::MultiDispatcher.HOW.compose(Perl6::Metamodel::MultiDispatcher);
     Perl6::Metamodel::WrapDispatcher.HOW.compose(Perl6::Metamodel::WrapDispatcher);
 #?endif
+#?if moar
     Counter.HOW.reparent(Counter, Cool);
+#?endif
 }
 
 BEGIN {

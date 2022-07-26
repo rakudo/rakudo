@@ -157,6 +157,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.chop($chopping.Int)
     }
 
+    multi method starts-with(Str:D: Str:D $needle, :$smartcase! --> Bool:D) {
+        self.starts-with(
+          $needle,
+          :ignorecase($smartcase && nqp::iseq_i(
+            nqp::chars($needle),
+            nqp::findcclass(                      #?js: NFG
+              nqp::const::CCLASS_UPPERCASE,
+              $needle,0,nqp::chars($needle)
+            )
+          ))
+        )
+    }
+
     multi method starts-with(Str:D:
       Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {

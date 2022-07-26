@@ -705,7 +705,7 @@ my class DateTime does Dateish {
           ~ ')'
     }
 
-    method ACCEPTS(DateTime:D: DateTime:D \topic) { self == topic }
+    multi method ACCEPTS(DateTime:D: DateTime:D \topic) { self == topic }
 }
 
 multi sub infix:«<»(DateTime:D $a, DateTime:D $b --> Bool:D) {

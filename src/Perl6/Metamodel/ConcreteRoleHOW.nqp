@@ -5,11 +5,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::MultiMethodContainer
     does Perl6::Metamodel::AttributeContainer
-    does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::MultipleInheritance
+    does Perl6::Metamodel::MROMember
     does Perl6::Metamodel::ArrayType
     does Perl6::Metamodel::Concretization
-    does Perl6::Metamodel::C3MRO
 {
     # Any collisions to resolve.
     has @!collisions;
@@ -90,10 +88,8 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     # It makes sense for concretizations to default to MRO order of roles.
-    method roles($obj, :$transitive = 1, :$mro = 1) {
-        $transitive
-            ?? self.roles-ordered($obj, @!roles, :transitive, :$mro)
-            !! @!roles
+    method roles($obj, :$local = 1, :$transitive = 1, :$mro = 1) {
+        self.roles-ordered($obj, @!roles, :$local, :$transitive, :$mro)
     }
 
     method add_to_role_typecheck_list($obj, $type) {

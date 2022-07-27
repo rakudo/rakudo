@@ -26,6 +26,38 @@ my class Signature { # declared in BOOTSTRAP
         self
     }
 
+    # A mapping of generic parameters to any known type signature.
+    my class Generics does Associative[Mu, Parameter:D] is repr<VMHash> {
+        method new(::?CLASS:_: --> ::?CLASS:D) {
+            nqp::create(self)
+        }
+
+        method STORE(::?CLASS:D: Parameter:D $param) {
+            my $type := $param.type;
+            nqp::bindkey(self, $_, $type) for $param.type_captures;
+            $type
+        }
+
+        method EXISTS-KEY(::?CLASS:D: Parameter:D $param --> Bool:D) {
+            $param.declared_generic
+        }
+
+        method AT-KEY(::?CLASS:D: Parameter:D $param is copy) {
+            self.ACCEPTS: $param.type
+        }
+
+        method ACCEPTS(::?CLASS:D: Mu $topic is raw is copy) {
+            nqp::repeat_until(
+              (nqp::isnull($topic) || not my $type.HOW.archetypes.generic),
+              ($topic := nqp::atkey(self, ($type := $topic).^name)));
+            $type
+        }
+
+        method elems(::?CLASS:D: --> Int:D) {
+            nqp::elems(self)
+        }
+    }
+
     multi method ACCEPTS(Signature:D: Mu \topic) {
         nqp::hllbool(nqp::istrue(try self.ACCEPTS: topic.Capture))
     }
@@ -42,10 +74,14 @@ my class Signature { # declared in BOOTSTRAP
         my @r-pos-queue;
         my %r-named-queue;
 
+        my %r-generics is Generics;
+        my %l-generics is Generics;
+
         my $r-pos-sink   := False;
         my $r-named-sink := False;
 
         for @r-params -> $r-param is raw {
+            %r-generics = $r-param;
             if $r-param.positional {
                 if $r-param.slurpy {
                     $r-pos-sink := True;
@@ -56,7 +92,11 @@ my class Signature { # declared in BOOTSTRAP
                     # predicted when such parameters exist in the topic too.
                     my $l-param := @l-params[$l-params - $todo];
                     if $l-param.positional and not $l-param.slurpy {
-                        return False unless $l-param ~~ $r-param;
+                        %l-generics = $l-param;
+                        return False
+                            if not $r-param.ACCEPTS($l-param)
+                               and not $r-param.declared_generic || $l-param.declared_generic
+                                   or not %r-generics.AT-KEY($r-param).ACCEPTS(%l-generics.AT-KEY: $l-param);
                         $todo := $todo - 1;
                     }
                     else {
@@ -81,13 +121,19 @@ my class Signature { # declared in BOOTSTRAP
         }
 
         for @l-params.tail: $todo -> $l-param is raw {
+            %l-generics = $l-param;
+
             state %r-to-l-named{Mu};
             if $l-param.positional {
                 if $l-param.slurpy {
                     return False unless $r-pos-sink;
                 }
                 elsif @r-pos-queue {
-                    return False unless $l-param ~~ @r-pos-queue.shift;
+                    my $r-param := @r-pos-queue.shift;
+                    return False
+                        if not $r-param.ACCEPTS($l-param)
+                           and not $r-param.declared_generic || $l-param.declared_generic
+                               or not %r-generics.AT-KEY($r-param).ACCEPTS(%l-generics.AT-KEY: $l-param);
                 }
                 else {
                     return False unless $r-pos-sink;
@@ -102,10 +148,13 @@ my class Signature { # declared in BOOTSTRAP
                     for $l-param.named_names -> $name is raw {
                         if %r-named-queue{$name}:exists {
                             my $r-param := %r-named-queue{$name}:delete;
-                            return False unless $l-param ~~ $r-param;
                             return False
-                                if %r-to-l-named{$r-param}:exists and not
-                                   %r-to-l-named{$r-param} =:= $l-param;
+                                if not $r-param.ACCEPTS($l-param)
+                                   and not $r-param.declared_generic || $l-param.declared_generic
+                                        or not %r-generics.AT-KEY($r-param).ACCEPTS(%l-generics.AT-KEY: $l-param);
+                            return False
+                                if %r-to-l-named{$r-param}:exists
+                                   and not %r-to-l-named{$r-param} =:= $l-param;
                             %r-to-l-named{$r-param} := $l-param;
                             $found := True;
                         }
@@ -125,7 +174,13 @@ my class Signature { # declared in BOOTSTRAP
 
         return False unless .optional && .untyped for %r-named-queue.values;
 
-        self.returns =:= $topic.returns
+        # Return types typecheck similarly to a parameter, only instead of a
+        # Parameter:D to smartmatch with, we depend on any given constant.
+        nqp::isnull($!returns)
+            ?? nqp::hllbool(nqp::isnull(nqp::getattr(nqp::decont($topic), Signature, '$!returns')))
+            !! ($!returns.ACCEPTS(my $l-returns := $topic.returns)
+                and not $!returns.HOW.archetypes.generic || $l-returns.HOW.archetypes.generic
+                    or %r-generics.ACCEPTS($!returns).ACCEPTS(%l-generics.ACCEPTS($l-returns)))
     }
 
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }

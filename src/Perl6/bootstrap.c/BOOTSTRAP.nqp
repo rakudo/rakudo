@@ -4370,6 +4370,9 @@ Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
 
+# Generics need ACCEPTS.
+Perl6::Metamodel::GenericHOW.delegate_methods_to(Mu);
+
 #?if !moar
 # Make roles handle invocations.
 my $role_invoke_handler := nqp::getstaticcode(sub ($self, *@pos, *%named) {

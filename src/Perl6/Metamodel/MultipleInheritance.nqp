@@ -55,39 +55,57 @@ role Perl6::Metamodel::MultipleInheritance {
         @!parents[+@!parents] := $parent;
     }
 
+    # If truthy, seals inheritance, at which point the MRO of a nascent type
+    # object should exist. This is optional, thus the ??? stub.
+    method is_composed($obj) {
+        0
+    }
+
     # Introspects the parents.
-    method parents($obj, :$local, :$tree, :$excl, :$all) {
-        if $local {
-            @!parents
-        }
-        elsif $tree {
-            my @result;
-            for @!parents {
-                my @pt := [$_];
-                my @recursive_parents := $_.HOW.parents($_, :tree(1));
-                @pt.push(@recursive_parents) if @recursive_parents;
-                @result.push(nqp::hllizefor(@pt, 'Raku').Array);
-            }
-            @result := @result[0] if nqp::elems(@result) == 1;
-            return nqp::hllizefor(@result, 'Raku');
-        }
-        else {
-            # All parents is MRO minus the first thing (which is us).
-            my @mro := self.mro($obj);
-            my @parents;
-            my $i := 1;
-            while $i < +@mro {
-                my $exclude := 0;
-                unless $all {
-                    for @excluded {
-                        $exclude := 1 if @mro[$i] =:= $_;
-                    }
-                }
-                @parents.push(@mro[$i]) unless $exclude;
-                $i := $i + 1;
-            }
-            @parents
-        }
+    method parents($obj, :$local = 0, :$tree = 0, :$all = 0, :$excl) {
+        $local
+            ?? @!parents
+            !! $tree
+                ?? self.parents-tree($obj, @!parents)
+                !! self.is_composed($obj)
+                    ?? self.parents-off-mro($obj, self.mro($obj), :$all)
+                    !! self.parents-ordered($obj, @!parents, :$all)
+    }
+
+    my &PARENTS-TREE := nqp::getstaticcode(
+        anon sub PARENTS-TREE(@self, $obj) {
+            (my @parents := $obj.HOW.parents($obj, :tree))
+                ?? @self.accept(nqp::list($obj, @parents))
+                !! @self.accept(nqp::list($obj))
+        });
+
+    # Produces the hierarchy of a type.
+    method parents-tree($obj, @parents) {
+        @parents := $monic_machine.new.veneer(@parents);
+        my @tree := @parents.banish(&PARENTS-TREE, nqp::list());
+        nqp::elems(@tree) == 1 ?? @tree[0] !! @tree
+    }
+
+    # Produces a cached ordering for the parents metamethod.
+    method parents-off-mro($obj, @mro, :$all = 0) {
+        nqp::shift(my @parents := nqp::clone(@mro));
+        $all
+            ?? @parents
+            !! $monic_machine.new.veneer(@parents).efface(@excluded, nqp::list())
+    }
+
+    my &PARENTS-ALL := nqp::getstaticcode(
+        anon sub PARENTS-ALL(@self, $obj) {
+            @self.accept(nqp::clone($obj.HOW.mro($obj)))
+        });
+
+    # Produces an ordering for the parents metamethod. By default, this is a C3
+    # linearization, but may be overridden for a different ordering.
+    method parents-ordered($obj, @parents, :$all = 0) {
+        @parents := $monic_machine.new.veneer(@parents);
+        $all
+            ?? @parents.summon(&PARENTS-ALL).beckon(nqp::list())
+            !! @parents.summon(&PARENTS-ALL).beckon(@parents.new).efface(@excluded, nqp::list())
     }
 
     method hides($obj) {

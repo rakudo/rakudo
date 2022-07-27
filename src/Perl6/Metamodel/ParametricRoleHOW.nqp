@@ -18,7 +18,7 @@ class Perl6::Metamodel::ParametricRoleHOW
 {
     has $!composed;
     has $!body_block;
-    has $!in_group;
+    has int $!in_group;
     has $!group;
     has $!signatured;
     has @!role_typecheck_list;
@@ -49,7 +49,9 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method parameterize($obj, *@pos_args, *%named_args) {
-        $currier.new_type($obj, |@pos_args, |%named_args)
+        $!in_group
+            ?? nqp::how_nd($!group).parameterize($!group, |@pos_args, |%named_args)
+            !! $currier.new_type($obj, |@pos_args, |%named_args)
     }
 
     method set_body_block($obj, $block) {
@@ -65,8 +67,8 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method set_group($obj, $group) {
-        $!group := $group;
         $!in_group := 1;
+        $!group := $group
     }
 
     method group($obj) {
@@ -77,21 +79,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         my $obj := nqp::decont($the-obj);
 
         self.set_language_version($obj);
-
-        my @rtl;
-        if $!in_group {
-            @rtl.push($!group);
-        }
-        for self.roles_to_compose($obj) {
-            my $how := $_.HOW;
-            if $how.archetypes.composable || $how.archetypes.composalizable {
-                @rtl.push($_);
-                for $_.HOW.role_typecheck_list($_) {
-                    @rtl.push($_);
-                }
-            }
-        }
-        @!role_typecheck_list := @rtl;
+        self.update_role_typecheck_list($obj);
 #?if !moar
         self.compose_invocation($obj);
 #?endif
@@ -103,8 +91,20 @@ class Perl6::Metamodel::ParametricRoleHOW
         $!composed
     }
 
-    method roles($obj, :$transitive = 1, :$mro) {
-        self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro);
+    method update_role_typecheck_list($obj) {
+        my @rtl := [$!group] if $!in_group;
+        for self.roles_to_compose($obj) -> $role {
+            my $how := $role.HOW;
+            if $how.archetypes.composable || $how.archetypes.composalizable {
+                nqp::push(@rtl, $role);
+                nqp::splice(@rtl, $role.HOW.role_typecheck_list($role), nqp::elems(@rtl), 0);
+            }
+        }
+        @!role_typecheck_list := @rtl;
+    }
+
+    method roles($obj, :$local = 1, :$transitive = 1, :$mro) {
+        self.roles-ordered($obj, self.roles_to_compose($obj), :$local, :$transitive, :$mro)
     }
 
     method role_typecheck_list($obj) {
@@ -112,9 +112,19 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     # $checkee must always be decont'ed
+    method type_check_roles($obj, $checkee) {
+        for self.roles_to_compose($obj) -> $role {
+            if nqp::istype_nd(nqp::decont($role), $checkee) {
+                return 1;
+            }
+        }
+        0
+    }
+
+    # $checkee must always be decont'ed
     method type_check_parents($obj, $checkee) {
         for self.parents($obj, :local) -> $parent {
-            if nqp::istype($checkee, $parent) {
+            if nqp::istype_nd(nqp::decont($parent), $checkee) {
                 return 1;
             }
         }
@@ -122,11 +132,8 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method type_check($obj, $checkee) {
-        my $decont := nqp::decont($checkee);
+        my $decont := $checkee.WHAT;
         if $decont =:= $obj.WHAT {
-            return 1;
-        }
-        if $!in_group && $decont =:= $!group {
             return 1;
         }
         for self.pretending_to_be() {
@@ -134,12 +141,13 @@ class Perl6::Metamodel::ParametricRoleHOW
                 return 1;
             }
         }
-        for self.roles_to_compose($obj) {
-            if nqp::istype($decont, $_) {
-                return 1;
-            }
-        }
-        self.type_check_parents($obj, $decont);
+        $!in_group && $decont =:= $!group
+            || self.type_check_roles($obj, $decont)
+            || self.type_check_parents($obj, $decont)
+    }
+
+    method bind($obj, $curry) {
+        $obj
     }
 
     method specialize($obj, *@pos_args, *%named_args) {

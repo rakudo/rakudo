@@ -29,6 +29,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_CAPTURE         = 1 +< 15;
     my constant $SIG_ELEM_UNDEFINED_ONLY     = 1 +< 16;
     my constant $SIG_ELEM_DEFINED_ONLY       = 1 +< 17;
+    my constant $SIG_ELEM_TYPE_GENERIC       = 1 +< 19;
     my constant $SIG_ELEM_DEFAULT_IS_LITERAL = 1 +< 20;
     my constant $SIG_ELEM_SLURPY_ONEARG      = 1 +< 24;
     my constant $SIG_ELEM_CODE_SIGIL         = 1 +< 25;
@@ -636,6 +637,10 @@ my class Parameter { # declared in BOOTSTRAP
           nqp::isnull(@!post_constraints) &&
           nqp::isnull($!sub_signature) &&
           nqp::isnull($!signature_constraint))
+    }
+
+    method declared_generic(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_TYPE_GENERIC))
     }
 
     method set_why(Parameter:D: $why --> Nil) {

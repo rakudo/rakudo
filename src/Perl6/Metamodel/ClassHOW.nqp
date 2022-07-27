@@ -8,10 +8,8 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
     does Perl6::Metamodel::MetaMethodContainer
-    does Perl6::Metamodel::RoleContainer
-    does Perl6::Metamodel::MultipleInheritance
+    does Perl6::Metamodel::MROMember
     does Perl6::Metamodel::DefaultParent
-    does Perl6::Metamodel::C3MRO
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
     does Perl6::Metamodel::Trusting
@@ -255,21 +253,8 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
 
-    method roles($obj, :$local, :$transitive = 1, :$mro = 0) {
-        my @result := self.roles-ordered($obj, @!roles, :$transitive, :$mro);
-        unless $local {
-            my $first := 1;
-            for self.mro($obj) {
-                if $first {
-                    $first := 0;
-                    next;
-                }
-                for $_.HOW.roles($_, :$transitive, :$mro, :local(1)) {
-                    @result.push($_);
-                }
-            }
-        }
-        @result
+    method roles($obj, :$local = 0, :$transitive = 1, :$mro = 0) {
+        self.roles-ordered($obj, @!roles, :$local, :$transitive, :$mro)
     }
 
     method role_typecheck_list($obj) {

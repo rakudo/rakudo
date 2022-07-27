@@ -229,8 +229,8 @@ public class RakudoJavaInterop extends BootJavaInterop {
                     if( obj.getClass().equals(Long.class) ) {
                         retVal = obj != null
                             ? ((Long) obj) == 0
-                                ? new Boolean(false)
-                                : new Boolean(true)
+                                ? Boolean.valueOf(false)
+                                : Boolean.valueOf(true)
                             : null;
                     }
                     else if( obj.getClass().equals(Boolean.class) ) {
@@ -278,28 +278,28 @@ public class RakudoJavaInterop extends BootJavaInterop {
                         retVal = obj;
                     }
                     else if( argType.equals(Boolean.class) && obj.getClass().equals(Long.class) ){
-                        retVal = new Boolean( ((Long)obj) == 0 ? false : true);
+                        retVal = Boolean.valueOf( ((Long)obj) == 0 ? false : true);
                     }
                     else if( argType.equals(Byte.class) && obj.getClass().equals(Long.class) ){
-                        retVal = new Byte( ((Long)obj).byteValue() );
+                        retVal = Byte.valueOf( ((Long)obj).byteValue() );
                     }
                     else if( argType.equals(Short.class) && obj.getClass().equals(Long.class) ){
-                        retVal = new Short( ((Long)obj).shortValue() );
+                        retVal = Short.valueOf( ((Long)obj).shortValue() );
                     }
                     else if( argType.equals(Integer.class) && obj.getClass().equals(Long.class) ){
-                        retVal = new Integer( ((Long)obj).intValue() );
+                        retVal = Integer.valueOf( ((Long)obj).intValue() );
                     }
                     else if( argType.equals(Long.class) && obj.getClass().equals(Long.class) ){
                         retVal = (Long) obj;
                     }
                     else if( argType.equals(Float.class) && obj.getClass().equals(Double.class) ){
-                        retVal = new Float( ((Double)obj).floatValue() );
+                        retVal = Float.valueOf( ((Double)obj).floatValue() );
                     }
                     else if( argType.equals(Double.class) && obj.getClass().equals(Double.class) ){
                         retVal = (Double) obj;
                     }
                     else if( argType.equals(Character.class) && obj.getClass().equals(String.class) ){
-                        retVal = new Character( ((String)obj).charAt(0));
+                        retVal = Character.valueOf( ((String)obj).charAt(0));
                     }
                     else if( argType.equals(String.class) && obj.getClass().equals(String.class) ){
                         retVal = (String) obj;
@@ -494,8 +494,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
             SixModelObject p6keyList = Ops.result_o(tc.curFrame);
             SixModelObject methAtPos = Ops.findmethod(p6keyList, "AT-POS", tc);
             SixModelObject methAtKey = Ops.findmethod(p6hash, "AT-KEY", tc);
-
-            out = new HashMap<String, Object>();
+            Map<String, Object> outHash = new HashMap< >();
             for(int i = 0; i < size; i++) {
                 Ops.invokeDirect(tc, methAtPos, Ops.storeCallSite, new Object[] { p6keyList, Ops.box_i((long)i, gcx.Int, tc) });
                 SixModelObject p6key = Ops.result_o(tc.curFrame);
@@ -511,7 +510,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 else {
                     value = parseSingleArg((SixModelObject) cur, tc);
                 }
-                ((HashMap) out).put(Ops.unbox_s(p6key, tc), value);
+                outHash.put(Ops.unbox_s(p6key, tc), value);
             }
         }
         // TODO associative types, which could for starters default to Map<Object> similar
@@ -564,11 +563,11 @@ public class RakudoJavaInterop extends BootJavaInterop {
         }
         else {
             if( Ops.istrue((SixModelObject) inArg, tc) == 1 ) {
-                Boolean value = new Boolean(true);
+                Boolean value = Boolean.valueOf(true);
                 outArg = value;
             }
             else if( Ops.isfalse((SixModelObject) inArg, tc) == 1 ) {
-                Boolean value = new Boolean(false);
+                Boolean value = Boolean.valueOf(false);
                 outArg = value;
             }
         }
@@ -606,12 +605,12 @@ public class RakudoJavaInterop extends BootJavaInterop {
             out = null;
         }
         else if(what == int.class || what == Integer.class) {
-            out = new Long((int) in);
+            out = Long.valueOf((int) in);
         }
         else if( what == short.class || what == Short.class) {
-            out = new Long((short) in);
+            out = Long.valueOf((short) in);
         } else if( what == byte.class || what == Byte.class) {
-            out = new Long((byte) in);
+            out = Long.valueOf((byte) in);
         } else if( what == boolean.class || what == Boolean.class) {
             out = (boolean) in ? gcx.True : gcx.False;
         }
@@ -619,7 +618,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
             out = in;
         }
         else if (what == float.class || what == Float.class) {
-            out = new Double((float) in);
+            out = Double.valueOf((float) in);
         }
         else if (what == char.class || what == Character.class) {
             out = String.valueOf((char) in);
@@ -842,7 +841,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
                 multiDescs.put(m.getName(), multiDescs.get(m.getName()) + 1);
             }
             else {
-                multiDescs.put(m.getName(), new Integer(1));
+                multiDescs.put(m.getName(), Integer.valueOf(1));
             }
         }
         HashMap<String, ArrayList<Method>> multiMethods = new HashMap< >();
@@ -928,9 +927,9 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         CompilationUnit adaptorUnit;
         try {
-            adaptorUnit = (CompilationUnit) adaptor.constructed.newInstance();
-        } catch (ReflectiveOperationException roe) {
-            throw new RuntimeException(roe);
+            adaptorUnit = (CompilationUnit) adaptor.constructed.getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw ExceptionHandling.dieInternal(tc, e);
         }
         adaptorUnit.initializeCompilationUnit(tc);
 

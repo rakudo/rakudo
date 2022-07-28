@@ -533,20 +533,32 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
 multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     $m does role {
         has $.handles;
+        has $!delegator_name;
 
         method set_handles($expr) {
             $!handles := $expr;
         }
 
         method add_delegator_method(&code_obj: Mu $pkg, $meth_name, $call_name) {
-            my $meth := anon method (|c) is rw {
-                &code_obj(self)."$call_name"(|c)
-            };
+            my $meth := nqp::defined(my $delegator_name = $!delegator_name)
+                ?? anon method (|c) is raw { self."$delegator_name"()."$call_name"(|c) }
+                !! anon method (|c) is raw { &code_obj(self)."$call_name"(|c) };
             $meth.set_name($meth_name);
             $pkg.^add_method($meth_name, $meth);
         }
 
-        method apply_handles(&code_obj: Mu $pkg) {
+        method !fallback-code(&code_obj: $name) {
+            nqp::defined(my $delegator_name = $!delegator_name)
+                ?? -> \SELF, |c is raw { SELF."$delegator_name"()."$name"(|c) }
+                !! -> \SELF, |c is raw { &code_obj(SELF)."$name"(|c) }
+        }
+
+        method apply_handles(&code_obj: Mu $pkg is raw) {
+            $!delegator_name := 
+                ($pkg.^language-revision // nqp::getcomp("Raku").language_revision) lt 'e' 
+                    ?? &code_obj.name 
+                    !! Nil;
+
             sub applier($expr) {
                 if $expr.defined() {
                     if nqp::istype($expr,Str) {
@@ -566,31 +578,19 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
                             -> $obj, $name {
                                 nqp::can(nqp::decont(&code_obj($obj)), nqp::decont($name))
                             },
-                            -> $obj, $name {
-                                -> $self, |c {
-                                    &code_obj($self)."$name"(|c)
-                                }
-                            });
+                            -> $obj, $name { self!fallback-code($name) } );
                     }
                     elsif nqp::istype($expr, HyperWhatever) {
                         $pkg.^add_fallback(
                             -> $, $ --> True { },
-                            -> $obj, $name {
-                                -> $self, |c {
-                                    &code_obj($self)."$name"(|c)
-                                }
-                            });
+                            -> $obj, $name { self!fallback-code($name) } );
                     }
                     else {
                         $pkg.^add_fallback(
                             -> $obj, $name {
                                 ?($name ~~ $expr)
                             },
-                            -> $obj, $name {
-                                -> $self, |c {
-                                    &code_obj($self)."$name"(|c)
-                                }
-                            });
+                            -> $obj, $name { self!fallback-code($name) } );
                     }
                 }
                 else {
@@ -598,13 +598,10 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
                         -> $obj, $name {
                             nqp::can(nqp::decont($expr), nqp::decont($name))
                         },
-                        -> $obj, $name {
-                            -> $self, |c {
-                                &code_obj($self)."$name"(|c)
-                            }
-                        });
+                        -> $obj, $name { self!fallback-code($name) } );
                 }
             }
+
             applier($!handles);
         }
     }

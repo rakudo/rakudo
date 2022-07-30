@@ -9,6 +9,13 @@ augment class Any {
     multi method snip(Any:D: *@conditions) {
         Seq.new: Rakudo::Iterator.Snip(@conditions, self.iterator)
     }
+
+    multi method skip(Iterable:D $skips) {
+        Seq.new: Rakudo::Iterator.Skipper: self.iterator, $skips.iterator
+    }
+    multi method skip(*@skips) {
+        self.skip(@skips)
+    }
 }
 
 proto sub rotor(|) {*}

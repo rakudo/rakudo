@@ -18,7 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2022-07-29   Rakudo #157 (jdv + Releasable)
+  2022-08-26   Rakudo #158 (jdv + Releasable)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -540,6 +540,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2022-03-20   Rakudo #154 "2022.03"           (jdv + Releasable)
   2022-04-24   Rakudo #155 "2022.04"           (jdv + Releasable)
   2022-06-05   Rakudo #156 "2022.06"           (jdv + Releasable)
+  2022-07-31   Rakudo #157 "2022.07"           (jdv + Releasable)
 
 =head1 COPYRIGHT
 

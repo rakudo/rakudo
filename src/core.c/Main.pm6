@@ -387,6 +387,11 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     my &*ARGS-TO-CAPTURE := &default-args-to-capture;
     my &*GENERATE-USAGE  := &default-generate-usage;
 
+    # Modify args if --no-foo is acceptable as an alternative to --/foo
+    if nqp::istrue(%sub-main-opts<allow-no>) {
+        $_ .= subst(/^ '--no-' /, '--/') for @*ARGS;
+    }
+
     # Process command line arguments
     my $capture := args-to-capture(&main, @*ARGS);
 

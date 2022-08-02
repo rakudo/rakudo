@@ -8,6 +8,8 @@ my $allowed = (
   Q{$CORE-SETTING-REV},
   Q{$DISTRO},
   Q{$ERR},
+  Q{$EXCEPTION},
+  Q{$EXIT},
   Q{$IN},
   Q{$OUT},
   Q{$PID},

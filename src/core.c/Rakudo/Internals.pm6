@@ -1825,10 +1825,13 @@ my constant $?BITS = nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 }
 
 # we need this to run *after* the mainline of Rakudo::Internals has run
+PROCESS::<$EXIT> = 0;
+PROCESS::<$EXCEPTION> = Exception;
 Rakudo::Internals.REGISTER-DYNAMIC: '&*EXIT', {
     PROCESS::<&EXIT> := sub exit($status) {
         state $exit = $status;  # first call to exit sets value
 
+        $*EXIT = $exit;
         nqp::getcurhllsym('&THE_END')()
           ?? $exit
           !! nqp::exit(nqp::unbox_i($exit.Int))

@@ -67,7 +67,7 @@ a problem using Raku, you probably want the “perl6-users@perl.org”
 mailing list or the [irc.libera.chat/#raku IRC
 channel](https://web.libera.chat/#raku). The perl6-users
 list is primarily for the people who want to use Raku to write
-programs, so newbie questions are welcomed there.  Newbie questions
+programs, so newbie questions are welcomed there. Newbie questions
 are also welcome on the #raku channel; the Rakudo and Raku
 development teams tend to hang out there and are generally glad
 to help. There's a Raku news aggregator at [Planet Raku](https://planet.raku.org/).
@@ -95,7 +95,7 @@ for more information.
 License
 =======
 
-Rakudo is Copyright © 2008-2021, The Perl Foundation. Rakudo is distributed
+Rakudo is Copyright © 2008-2022, The Perl Foundation. Rakudo is distributed
 under the terms of the Artistic License 2.0. For more details, see the full
 text of the license in the file LICENSE.
 

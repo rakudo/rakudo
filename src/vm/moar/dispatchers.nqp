@@ -170,7 +170,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
         my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes.coercive {
+            if nqp::how_nd($type).archetypes($type).coercive {
                 $value := nqp::dispatch('raku-coercion', $type, $value);
             }
             nqp::bindattr($cont, Scalar, '$!value', $value);
@@ -196,7 +196,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor');
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes.coercive {
+            if nqp::how_nd($type).archetypes($type).coercive {
                 $value := nqp::dispatch('raku-coercion', $type, $value);
             }
             nqp::bindattr($cont, Scalar, '$!value', $value);
@@ -225,7 +225,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
             '$!next-descriptor');
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes.coercive {
+            if nqp::how_nd($type).archetypes($type).coercive {
                 $value := nqp::dispatch('raku-coercion', $type, $value);
             }
             nqp::bindattr($cont, Scalar, '$!value', $value);
@@ -3477,11 +3477,11 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 my $can-archetypes := nqp::can($rhs-how, 'archetypes');
 
                 if !$can-archetypes
-                    || !$rhs-how.archetypes.nominalizable
+                    || !$rhs-how.archetypes($rhs).nominalizable
                     || nqp::isnull($rhs-how.wrappee-lookup($rhs, :subset))
                 {
                     nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-lhs);
-                    if $can-archetypes && $rhs-how.archetypes.definite {
+                    if $can-archetypes && $rhs-how.archetypes($rhs).definite {
                         # If RHS is a definite then concreteness of LHS must be considered
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-lhs);
                     }
@@ -3636,8 +3636,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
 
                 my $vparam := nqp::atpos(nqp::getattr($cand.signature, Signature, '@!params'), 1);
                 my $ptype := $vparam.type;
-                my $ptypeHOW := nqp::how($vparam.type);
-                return 0 if $ptypeHOW.archetypes.nominalizable 
+                my $ptypeHOW := nqp::how($ptype);
+                return 0 if $ptypeHOW.archetypes($ptype).nominalizable 
                             && !nqp::isnull(my $subset := $ptypeHOW.wrappee-lookup($ptype, :subset))
                             && nqp::isconcrete(nqp::how($subset).refinement($subset));
                 # XXX Retreat on any parameter postconstraint present. Some refinement is possible here, but to be
@@ -3649,7 +3649,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         }
 
         if $with-runtime
-            && nqp::can((my $archetypes := nqp::how($constraint_type).archetypes), 'coercive') 
+            && nqp::can((my $archetypes := nqp::how($constraint_type).archetypes($constraint_type)), 'coercive') 
             && $archetypes.coercive
         {
             $coercer := $coerce-runtime;
@@ -3774,7 +3774,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                     0, $coercionHOW);
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call', $method-capture);
         }
-        elsif nqp::can((my $archetypes := $constraintHOW.archetypes), 'coercive') 
+        elsif nqp::can((my $archetypes := $constraintHOW.archetypes($constraint)), 'coercive') 
             && $archetypes.coercive 
         { 
             # The constraint type is a coercion on its own. This is not a dispatchable case. Fallback to the metamodel
@@ -3902,7 +3902,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             my sub runtime-only($t) {
                 return 0 if nqp::isnull($t);
                 nqp::isconcrete(nqp::how_nd($t).refinement($t)) 
-                    || nqp::how_nd(my $refinee := nqp::how_nd($t).refinee($t)).archetypes.nominalizable
+                    || nqp::how_nd(my $refinee := nqp::how_nd($t).refinee($t)).archetypes($refinee).nominalizable
                         && runtime-only(nqp::how_nd($refinee).wrappee-lookup($refinee, :subset))
             }
 
@@ -3912,16 +3912,16 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             my $coercion-type;
             my $constraint-type := nqp::null();
             my $runtime-check := 0; # Is there a run-time constraint?
-            if $how.archetypes.nominalizable {
+            if $how.archetypes($type).nominalizable {
                 $runtime-check := runtime-only($how.wrappee-lookup($type, :subset));
                 unless nqp::isnull($coercion-type := $how.wrappee-lookup($type, :coercion)) {
                     unless nqp::isnull($constraint-type := nqp::how_nd($coercion-type).constraint_type($coercion-type)) {
                         $runtime-check := $runtime-check 
-                            || (nqp::how_nd($constraint-type).archetypes.nominalizable
+                            || (nqp::how_nd($constraint-type).archetypes($constraint-type).nominalizable
                                 && runtime-only(nqp::how_nd($constraint-type).wrappee-lookup($constraint-type, :subset)));
                     }
                 }
-                if $how.archetypes.definite {
+                if $how.archetypes($type).definite {
                     my $dtype := $how.wrappee($type, :definite);
                     $definite-check := nqp::how_nd($dtype).definite($dtype);
                 }
@@ -3940,7 +3940,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-value)
                 if $definite-check != -1;
 
-            my $need-coercion := $how.archetypes.coercive 
+            my $need-coercion := $how.archetypes($type).coercive 
                                     && !nqp::istype($rv, 
                                         nqp::how_nd($coercion-type).target_type($coercion-type));
             my $is-Nil := nqp::istype($rv, Nil);
@@ -3997,7 +3997,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 # The most expensive path: subset with constraints and coercion.
                 # First, we re-consider defininite check because now we going to use coercion constraint for that.
                 $definite-check := 
-                    nqp::how_nd($constraint-type).archetypes.definite
+                    nqp::how_nd($constraint-type).archetypes($constraint-type).definite
                         ?? nqp::how_nd(
                                 my $dt := nqp::how_nd($constraint-type).wrappee($constraint-type, :definite)
                             ).definite($dt)

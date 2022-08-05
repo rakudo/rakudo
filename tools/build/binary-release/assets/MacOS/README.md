@@ -22,6 +22,11 @@ Users of the Fish shell users type:
 
     eval (/path/to/this/folder/scripts/set-env.sh --fish)
 
+To automatically add the relevant paths to your shell on startup, add the
+following to `~/.bash_profile` or your equivalent:
+
+    eval "$(/path/to/this/folder/scripts/set-env.sh --quiet)"
+
 To start an interactive Raku environment call `raku` without an argument
 
     raku

@@ -148,4 +148,4 @@ my constant &infix:<≡> := &infix:<<(==)>>;
 proto sub infix:<≢>($, $, *%) is pure {*}
 multi sub infix:<≢>(\a, \b --> Bool:D) { not a (==) b }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

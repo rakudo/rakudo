@@ -8,4 +8,6 @@ augment class Int {
     multi method pick($count) { (^self).pick($count) }
 }
 
+sub term:<nano>() { nqp::time }
+
 # vim: expandtab shiftwidth=4

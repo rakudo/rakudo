@@ -122,6 +122,7 @@ multi sub infix:<->(Instant:D $a, Real:D $b --> Instant:D) {
 }
 
 sub term:<time>(--> Int:D) { nqp::time() div 1000000000 }
+
 # 37 is $initial-offset from Rakudo::Internals + # of years
 # that have had leap seconds so far. Will need to be incremented
 # when new leap seconds occur.

@@ -809,6 +809,12 @@ my class IO::Path is Cool does IO {
           !! self!does-not-exist("z")
     }
 
+    method created(IO::Path:D: --> Instant:D) {
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CREATED($!os-path))
+          !! self!does-not-exist("created")
+    }
+
     method modified(IO::Path:D: --> Instant:D) {
         Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
           ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!os-path))

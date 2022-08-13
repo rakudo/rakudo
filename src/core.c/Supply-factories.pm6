@@ -86,11 +86,16 @@
 
         my class IntervalCancellation is Cancellation {
             has $!delegate;
+#?if moar
             has atomicint $!cancelled;
+#?endif
+#?if !moar
+            has int $!cancelled;
+#?endif
             has $!lock;
 
             submethod BUILD(--> Nil) {
-                $!cancelled ⚛= 0;
+                $!cancelled = 0;
                 $!lock = Lock.new;
             }
 
@@ -99,14 +104,19 @@
             }
 
             method cancelled {
+#?if moar
                 ⚛$!cancelled > 0
+#?endif
+#?if !moar
+                $!cancelled > 0
+#?endif
             }
 
             method cancel() {
                 $!lock.protect: {
                     unless self.cancelled {
                         $!delegate.cancel with $!delegate;
-                        $!cancelled ⚛= 1;
+                        $!cancelled = 1;
                     }
                 }
             }

@@ -90,12 +90,11 @@
             has atomicint $!cancelled;
 #?endif
 #?if !moar
-            has int $!cancelled;
+            has Int:D $!cancelled is default(0);
 #?endif
             has $!lock;
 
             submethod BUILD(--> Nil) {
-                $!cancelled = 0;
                 $!lock = Lock.new;
             }
 
@@ -104,19 +103,14 @@
             }
 
             method cancelled {
-#?if moar
-                ⚛$!cancelled > 0
-#?endif
-#?if !moar
-                $!cancelled > 0
-#?endif
+                atomic-fetch($!cancelled) > 0
             }
 
             method cancel() {
                 $!lock.protect: {
                     unless self.cancelled {
                         $!delegate.cancel with $!delegate;
-                        $!cancelled = 1;
+                        atomic-assign($!cancelled, 1);
                     }
                 }
             }

@@ -367,6 +367,16 @@ class Perl6::World is HLL::World {
             0;
         }
 
+        method find_lexical(str $name) {
+            my int $i := +@!PADS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!PADS[$i].symbol($name);
+                return %sym if +%sym;
+            }
+            nqp::null()
+        }
+
         # Checks if the symbol is really an alias to an attribute.
         method is_attr_alias(str $name) {
             my int $i := +@!PADS;
@@ -4906,7 +4916,10 @@ class Perl6::World is HLL::World {
     method is_type(@name) {
         my $is_name := 0;
         try {
-            # This throws if it's not a known name.
+            # This throws if it's not a known name. This also includes cases where @name[0] happens not to be a str.
+            if +@name == 1 && +(my %sym := self.context().find_lexical(~@name[0])) {
+                return 0 if nqp::existskey(%sym, 'descriptor');
+            }
             $is_name := !nqp::isconcrete(self.find_symbol(@name))
         }
         $is_name

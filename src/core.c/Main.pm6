@@ -392,9 +392,9 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         $_ .= subst(/^ '--no-' /, '--/') for @*ARGS;
     }
 
-    # Modify args if --bar42 is acceptable as an alternative to --bar=42
+    # Modify args if -j42 is acceptable as an alternative to --j=42
     if nqp::istrue(%sub-main-opts<numeric-suffix-as-value>) {
-        $_ .= subst(/^ '-' (<alpha>+) (\d+)  /, { "--$0=$1" }) for @*ARGS;
+        $_ .= subst(/^ '-' (<alpha>) (\d+)  /, { "--$0=$1" }) for @*ARGS;
     }
 
     # Process command line arguments

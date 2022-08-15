@@ -732,7 +732,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token version {
-        <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' '+'?]
+        <?before v\d+\w*
+            [ '.' \d
+              || <!{ $*W.is_lexical(~$/) }> ]>
+        'v' $<vstr>=[<vnum>+ % '.' '+'?]
         <!before '-'|\'> # cheat because of LTM fail
     }
 

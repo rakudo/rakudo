@@ -392,6 +392,15 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         $_ .= subst(/^ '--no-' /, '--/') for @*ARGS;
     }
 
+    # Modify args if -abc is acceptable as an alternative to --a --b --c
+    if nqp::istrue(%sub-main-opts<expand-single-letter-options>) {
+        @*ARGS .= map: {
+            .match(/^ '-' <alpha>+ $/)
+              ?? .comb.skip.map({ "--$_"}).Slip
+              !! $_
+        }
+    }
+
     # Process command line arguments
     my $capture := args-to-capture(&main, @*ARGS);
 

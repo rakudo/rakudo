@@ -394,7 +394,9 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
     # Modify args if -j42 is acceptable as an alternative to --j=42
     if nqp::istrue(%sub-main-opts<numeric-suffix-as-value>) {
-        $_ .= subst(/^ '-' (<alpha>) (\d+) $/, { "--$0=$1" }) for @*ARGS;
+        for @*ARGS {
+            $_ = "-$_.substr(0,2)=$/" if .match: /^ '-' <.alpha> <( \d+ $/;
+        }
     }
 
     # Process command line arguments

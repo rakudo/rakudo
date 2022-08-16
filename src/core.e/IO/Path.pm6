@@ -1,13 +1,15 @@
 augment class IO::Path {
-    method stem(IO::Path:D: --> Str:D) {
+    method stem(IO::Path:D: $parts = * --> Str:D) {
         my str $basename = self.basename;
-        my int $index = nqp::index($basename,'.');
-        $index == -1 ?? $basename !! nqp::substr($basename,0,$index)
-    }
-    method suffix(IO::Path:D: --> Str:D) {
-        my str $basename = self.basename;
-        my int $index = nqp::index($basename,'.');
-        $index == -1 ?? '' !! nqp::substr($basename,$index + 1)
+        (my @indices := indices($basename, '.'))
+          ?? nqp::substr(
+               $basename,
+               0,
+               nqp::istype($parts,Whatever) || $parts > @indices
+                ?? @indices[0]
+                !! @indices[@indices - $parts]
+             )
+          !! $basename
     }
 }
 

@@ -16,6 +16,8 @@ augment class Any {
     multi method skip(*@skips) {
         self.skip(@skips)
     }
+
+    method snitch() { note self; self }
 }
 
 proto sub rotor(|) {*}

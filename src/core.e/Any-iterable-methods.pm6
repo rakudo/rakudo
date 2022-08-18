@@ -17,7 +17,10 @@ augment class Any {
         self.skip(@skips)
     }
 
-    method snitch() { note self; self }
+    method snitch(\SELF: &snitch-on = &note) is raw {
+        snitch-on SELF;
+        SELF
+    }
 }
 
 proto sub rotor(|) {*}

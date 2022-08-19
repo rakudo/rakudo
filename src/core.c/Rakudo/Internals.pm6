@@ -1464,6 +1464,9 @@ my class Rakudo::Internals {
         nqp::iseq_i(nqp::stat(abspath,nqp::const::STAT_FILESIZE),0)
     }
 
+    method FILETEST-CREATED(str \abspath) is raw {
+        nqp::stat_time(abspath,nqp::const::STAT_CREATETIME)
+    }
     method FILETEST-MODIFIED(str \abspath) is raw {
         nqp::stat_time(abspath,nqp::const::STAT_MODIFYTIME)
     }

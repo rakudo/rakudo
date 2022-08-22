@@ -3511,8 +3511,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token quote:sym</null/> {
-        <?{ nqp::getcomp('Raku').language_revision lt 'e' }>
-        '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
+        :my $rev := nqp::getcomp('Raku').language_revision;
+          <?{ $rev lt 'e' }>
+          '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
+        | <?{ $rev ge 'e' }>
+          '/' \s+ '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
     }
     token quote:sym</ />  {
         :my %*RX;

@@ -384,6 +384,7 @@ my %allowed = (
     Q{&prefix:<~>},
     Q{&prefix:<~^>},
     Q{&prefix:<−>},
+    Q{&prefix:<//>},
     Q{&prefix:<⚛>},
     Q{&prepend},
     Q{&print},

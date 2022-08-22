@@ -3510,7 +3510,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
+    token quote:sym</null/> {
+        <?{ nqp::getcomp('Raku').language_revision lt 'e' }>
+        '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
+    }
     token quote:sym</ />  {
         :my %*RX;
         :my $*INTERPOLATE := 1;
@@ -4096,6 +4099,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?before \d+ <?before \. <.?alpha> > <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
     }
     token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<//>  {
+        <?{ nqp::getcomp('Raku').language_revision ge 'e' }>
+        <sym> <O(|%symbolic_unary)>
+    }
 
     token infix:sym<*>    { <sym>  <O(|%multiplicative)> }
     token infix:sym<×>    { <sym>  <O(|%multiplicative)> }

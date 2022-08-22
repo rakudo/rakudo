@@ -79,6 +79,20 @@ class Perl6::Metamodel::Configuration {
         $utility_class.NEXT-ID
     }
 
+    # Because there is no way for a role to set an attribute at construction time, whenever a per-instance lock is 
+    # needed the safest way to get one is by using some kind of global lock first.
+    my $generator_lock := NQPLock.new;
+    method generate_lock($obj, $type, $lock-attribute) {
+        my $instance_lock;
+        $generator_lock.protect: {
+            unless nqp::defined($instance_lock := nqp::getattr($obj, $type, $lock-attribute)) {
+                $instance_lock := NQPLock.new;
+                nqp::bindattr($obj, $type, $lock-attribute, $instance_lock);
+            }
+        }
+        $instance_lock
+    }
+
     # Register HLL symbol for code which doesn't have direct access to this class. For example, moar/Perl6/Ops.nqp
     # relies on this symbol.
     nqp::bindhllsym('Raku', 'METAMODEL_CONFIGURATION', Perl6::Metamodel::Configuration);

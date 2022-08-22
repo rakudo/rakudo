@@ -4,6 +4,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     # megamorphic callsite involves the class, so calculated and cached on
     # demand.
     has $!cached_all_method_table;
+    has $!cache_is_valid;
 
     # Resolve a method. On MoarVM, with the generalized dispatch mechanism,
     # this is called to bootstrap callsites. On backends without that, it
@@ -96,30 +97,41 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     }
 
     method all_method_table($obj) {
-        my $table := $!cached_all_method_table;
-        unless nqp::isconcrete($table) {
-            $table := nqp::hash();
-            my @mro := self.mro($obj);
-            my int $i := nqp::elems(@mro);
-            while $i-- {
-                my $class := nqp::atpos(@mro, $i);
-                for nqp::hllize($class.HOW.method_table($class)) {
-                    $table{$_.key} := nqp::decont($_.value);
-                }
-            }
-            for nqp::hllize($obj.HOW.submethod_table($obj)) {
+        return $!cached_all_method_table if $!cache_is_valid;
+
+        my $table := nqp::hash();
+        my @mro := self.mro($obj);
+        my int $i := nqp::elems(@mro);
+        while $i-- {
+            my $class := nqp::atpos(@mro, $i);
+            for nqp::hllize($class.HOW.method_table($class)) {
                 $table{$_.key} := nqp::decont($_.value);
             }
-            nqp::scwbdisable();
-            $!cached_all_method_table := $table;
-            nqp::scwbenable();
         }
+        for nqp::hllize($obj.HOW.submethod_table($obj)) {
+            $table{$_.key} := nqp::decont($_.value);
+        }
+        nqp::scwbdisable();
+#?if moar
+        nqp::atomicbindattr(self, $?CLASS, '$!cached_all_method_table', $table);
+        nqp::atomicbindattr(self, $?CLASS, '$!cache_is_valid', 1);
+#?endif
+#?if !moar
+        $!cached_all_method_table := $table;
+        $!cache_is_valid := 1;
+#?endif
+        nqp::scwbenable();
         $table
     }
 
     method invalidate_method_caches($obj) {
         nqp::scwbdisable();
-        $!cached_all_method_table := nqp::null();
+#?if moar
+        nqp::atomicbindattr(self, $?CLASS, '$!cache_is_valid', 0);
+#?endif
+#?if !moar
+        $!cache_is_valid := 0;
+#?endif
         nqp::scwbenable();
 #?if !moar
         nqp::setmethcacheauth($obj, 0);

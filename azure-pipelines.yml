@@ -59,19 +59,19 @@ stages:
            MOAR_OPTIONS: '--relocatable'
 
          Mac_MVM:
-           IMAGE_NAME: 'macOS-10.15'
+           IMAGE_NAME: 'macOS-12'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
            MOAR_OPTIONS: ''
          Mac_JVM:
-           IMAGE_NAME: 'macOS-10.15'
+           IMAGE_NAME: 'macOS-12'
            BACKEND: 'JVM'
            MOAR_CHECKOUT_TYPE: 'none'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=jvm'
            MOAR_OPTIONS: ''
          Mac_MVM_reloc:
-           IMAGE_NAME: 'macOS-10.15'
+           IMAGE_NAME: 'macOS-12'
            RELOCATABLE: 'yes'
            RAKUDO_OPTIONS: '--relocatable'
            NQP_OPTIONS: '--backends=moar --relocatable'
@@ -266,7 +266,7 @@ stages:
     - job: macos
       displayName: MacOS x86_64 build
       pool:
-        vmImage: 'macOS-10.15'
+        vmImage: 'macOS-12'
       workspace:
         clean: all
       steps:

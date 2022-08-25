@@ -78,26 +78,26 @@ stages:
            MOAR_OPTIONS: '--relocatable'
 
          Lin_MVM:
-           IMAGE_NAME: 'ubuntu-18.04'
+           IMAGE_NAME: 'ubuntu-20.04'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
            MOAR_OPTIONS: ''
          Lin_JVM:
-           IMAGE_NAME: 'ubuntu-18.04'
+           IMAGE_NAME: 'ubuntu-20.04'
            BACKEND: 'JVM'
            MOAR_CHECKOUT_TYPE: 'none'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=jvm'
            MOAR_OPTIONS: ''
          Lin_MVM_reloc:
-           IMAGE_NAME: 'ubuntu-18.04'
+           IMAGE_NAME: 'ubuntu-20.04'
            RELOCATABLE: 'yes'
            RAKUDO_OPTIONS: '--relocatable'
            NQP_OPTIONS: '--backends=moar --relocatable'
            MOAR_OPTIONS: '--relocatable'
 
          Lin_MVM_spec:
-           IMAGE_NAME: 'ubuntu-18.04'
+           IMAGE_NAME: 'ubuntu-20.04'
            SPECTEST_ONLY: 'yes'
            RAKUDO_OPTIONS: ''
            NQP_OPTIONS: '--backends=moar'
@@ -242,7 +242,7 @@ stages:
     - job: linux
       displayName: Linux x86_64 build
       pool:
-        vmImage: 'ubuntu-18.04'
+        vmImage: 'ubuntu-20.04'
       container:
         image: centos:7
         options: "--name raku-build-container -v /usr/bin/docker:/tmp/docker:ro"
@@ -314,7 +314,7 @@ stages:
       - macos
       - windows
       pool:
-        vmImage: 'ubuntu-18.04'
+        vmImage: 'ubuntu-20.04'
       workspace:
         clean: all
       steps:

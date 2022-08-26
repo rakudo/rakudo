@@ -2730,7 +2730,8 @@ BEGIN {
                     if $param.coercive {
                         nqp::push(@coerce_type_idxs, $significant_param);
                         my $param_type := nqp::getattr($param, Parameter, '$!type');
-                        nqp::push(@coerce_type_objs, $param_type.HOW.target_type($param_type));
+                        my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
+                        nqp::push(@coerce_type_objs, $coercion_type.HOW.target_type($coercion_type));
                     }
 
                     ++$significant_param;

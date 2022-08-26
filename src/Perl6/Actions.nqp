@@ -9780,10 +9780,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         else {
                             # XXX This fails for generics because a generic has to be instantiated. I don't get this
                             # fixed because it'd take more than worth it considering the upcoming RakuAST. //vrurg
-                            $var.default(
-                                QAST::WVal.new( :value($is_coercive
-                                                        ?? $param_type.HOW.target_type($param_type)
-                                                        !! $nomtype)));
+                            my $default_type := $nomtype;
+                            if $is_coercive {
+                                my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
+                                $default_type := $coercion_type.HOW.target_type($coercion_type);
+                            }
+                            $var.default( QAST::WVal.new( :value($default_type)) );
                         }
                     }
                 }

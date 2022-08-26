@@ -6576,8 +6576,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $ast := $<arglist>.ast;
                 wantall($past, 'name');
                 for @($ast) {
-                    unless $_.has_compile_time_value {
+                    if !$_.has_compile_time_value
+                        || (my $value_type := nqp::what($_.compile_time_value)).HOW.archetypes($value_type).generic
+                    {
                         $all_compile_time := 0;
+                        last;
                     }
                 }
                 if $all_compile_time {

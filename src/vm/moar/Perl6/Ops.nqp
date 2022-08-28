@@ -413,11 +413,27 @@ $ops.add_hll_op('Raku', 'p6typecheckrv', -> $qastcomp, $op {
             $qastcomp.as_mast($op[0])
         }
         else {
+            my $is_generic := $type.HOW.archetypes($type).generic;
+            my $type_ast;
+            if $is_generic {
+                $type_ast :=
+                    QAST::Op.new(
+                        :op<callmethod>,
+                        :name<instantiate_generic>,
+                        QAST::Op.new(:op<how>, QAST::WVal.new(:value($type))),
+                        QAST::WVal.new(:value($type)),
+                        QAST::Op.new(:op<curlexpad>)
+                    );
+            }
+            else {
+                $type_ast := QAST::WVal.new( :value($type) );
+            }
             $qastcomp.as_mast(QAST::Op.new(
                 :op('dispatch'),
                 QAST::SVal.new( :value('raku-rv-typecheck') ),
                 QAST::Op.new( :op('p6box'), $op[0] ),
-                QAST::WVal.new( :value($type) )
+                $type_ast,
+                QAST::IVal.new(:value($is_generic))
             ))
         }
     }

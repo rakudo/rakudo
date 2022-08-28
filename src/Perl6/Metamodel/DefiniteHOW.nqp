@@ -68,9 +68,9 @@ class Perl6::Metamodel::DefiniteHOW
 
     method nominalize($obj) {
         my $base_type := $obj.HOW.base_type($obj);
-        $base_type.HOW.archetypes.nominal ??
-            $base_type !!
-            $base_type.HOW.nominalize($base_type)
+        $base_type.HOW.archetypes($base_type).nominalizable
+            ?? $base_type.HOW.nominalize($base_type)
+            !! $base_type
     }
 
     method instantiate_generic($definite_type, $type_env) {
@@ -83,9 +83,9 @@ class Perl6::Metamodel::DefiniteHOW
 
     #~ # Should have the same methods of the base type that we refine.
     #~ # (For the performance win, work out a way to steal its method cache.)
-    method find_method($definite_type, $name) {
+    method find_method($definite_type, $name, *%c) {
         my $base_type := self.base_type($definite_type);
-        $base_type.HOW.find_method($base_type, $name)
+        $base_type.HOW.find_method($base_type, $name, |%c)
     }
 
     method find_method_qualified($definite_type, $qtype, $name) {

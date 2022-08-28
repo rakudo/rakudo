@@ -105,8 +105,8 @@ class Perl6::Metamodel::SubsetHOW
     # Should have the same methods of the (eventually nominal) type
     # that we refine. (For the performance win, work out a way to
     # steal its method cache.)
-    method find_method($obj, $name) {
-        $!refinee.HOW.find_method($!refinee, $name)
+    method find_method($obj, $name, *%c) {
+        $!refinee.HOW.find_method($!refinee, $name, |%c)
     }
 
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).

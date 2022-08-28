@@ -3890,8 +3890,21 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         # Dispatcher arguments:
         # - return value
         # - type
+        # - "is generic" flag
         # If the type is Mu or unset, then nothing is needed except identity.
         my $type := nqp::captureposarg($capture, 1);
+        my $is_generic := nqp::captureposarg_i($capture, 2);
+
+        # If the type has been instantiated from a generic then we'd need to track over it too.
+        if $is_generic {
+            my $track-ret-type := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-ret-type);
+        }
+
+        # We will never need the $is_generic argument, but otherwise the captrue is used to call checker subs where the 
+        # third argument is not anticipated.
+        $capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2);
+
         if nqp::isnull($type) || $type =:= Mu {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
                 nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1))

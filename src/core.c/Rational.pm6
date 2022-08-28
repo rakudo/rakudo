@@ -91,7 +91,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         !! self!divide-by-zero('ceiling')
     }
 
-    method Int(--> Int:D) {
+    method Int(Rational:D: --> Int:D) {
         $!denominator
           ?? self.truncate
           !! self!divide-by-zero('Int')

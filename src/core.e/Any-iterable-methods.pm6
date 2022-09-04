@@ -36,4 +36,14 @@ proto sub snip($, |) {*}
 multi sub snip(\condition,  +values) { values.snip(condition)  }
 multi sub snip(@conditions, +values) { values.snip(@conditions) }
 
+proto sub snitch($, |) {*}
+multi sub snitch(\SELF) is raw {
+    note SELF;
+    SELF
+}
+multi sub snitch(&snitch-on, \SELF) is raw {
+    snitch-on SELF;
+    SELF
+}
+
 # vim: expandtab shiftwidth=4

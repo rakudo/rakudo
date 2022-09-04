@@ -387,6 +387,7 @@ my @expected = (
     Q{&prefix:<~>},
     Q{&prefix:<~^>},
     Q{&prefix:<−>},
+    Q{&prefix:<//>},
     Q{&prefix:<⚛>},
     Q{&prepend},
     Q{&print},

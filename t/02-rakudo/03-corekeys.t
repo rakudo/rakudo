@@ -803,6 +803,7 @@ my @allowed =
         Q{&prefix:<//>},
         Q{&rotor},
         Q{&snip},
+        Q{&snitch},
         Q{&term:<nano>},
         Q{CORE-SETTING-REV},
         Q{Grammar},

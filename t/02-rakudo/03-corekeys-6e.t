@@ -435,6 +435,7 @@ my @expected = (
     Q{&slip},
     Q{&slurp},
     Q{&snip},
+    Q{&snitch},
     Q{&so},
     Q{&sort},
     Q{&splice},

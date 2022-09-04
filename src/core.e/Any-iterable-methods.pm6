@@ -16,6 +16,11 @@ augment class Any {
     multi method skip(*@skips) {
         self.skip(@skips)
     }
+
+    method snitch(\SELF: &snitch-on = &note) is raw {
+        snitch-on SELF;
+        SELF
+    }
 }
 
 proto sub rotor(|) {*}
@@ -30,5 +35,15 @@ multi sub rotor(**@cycle-and-thing, *%_) {
 proto sub snip($, |) {*}
 multi sub snip(\condition,  +values) { values.snip(condition)  }
 multi sub snip(@conditions, +values) { values.snip(@conditions) }
+
+proto sub snitch($, |) {*}
+multi sub snitch(\SELF) is raw {
+    note SELF;
+    SELF
+}
+multi sub snitch(&snitch-on, \SELF) is raw {
+    snitch-on SELF;
+    SELF
+}
 
 # vim: expandtab shiftwidth=4

@@ -620,7 +620,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
               :repo(self), :$dist-id;
 
             my $repo-prefix := self!repo-prefix;
-            my $dist-src := $repo-prefix ~ $!prefix.add('dist/' ~ $dist-id).relative($!prefix);
+            my $dist-src :=
+                ($repo-prefix
+                    ?? $repo-prefix ~ .relative($!prefix)
+                    !! ~$_)
+                with $!prefix.add('dist/' ~ $dist-id);
 
             # could load precompiled (the fast path in production)
             if $precomp.try-load(

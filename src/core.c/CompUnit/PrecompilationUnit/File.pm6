@@ -3,6 +3,7 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
     has IO::Path                     $.path is built(:bind);
     has Str $!checksum        is built;
     has Str $!source-checksum is built;
+    has Str $!dist-checksum   is built(:bind);
     has CompUnit::PrecompilationDependency @!dependencies is built(:bind);
     has $!bytecode            is built(:bind);
     has $!store               is built(:bind);
@@ -33,6 +34,7 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
 
                 $!checksum        = $!handle.get;
                 $!source-checksum = $!handle.get;
+                $!dist-checksum  := $!handle.get;
                 my $dependency   := $!handle.get;
                 my $dependencies := nqp::create(IterationBuffer);
                 while $dependency {
@@ -78,6 +80,11 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
         $!checksum
     }
 
+    method dist-checksum() {
+        self!read-dependencies;
+        $!dist-checksum
+    }
+
     method Str(--> Str:D) {
         self.path.Str
     }
@@ -94,6 +101,7 @@ my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
         my $handle := $precomp-file.open(:w);
         $handle.print($!checksum ~ "\n");
         $handle.print($!source-checksum ~ "\n");
+        $handle.print($!dist-checksum ~ "\n");
         $handle.print($_.serialize ~ "\n") for @!dependencies;
         $handle.print("\n");
         $handle.write($!bytecode);

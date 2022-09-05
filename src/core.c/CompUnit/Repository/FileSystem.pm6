@@ -12,6 +12,7 @@ class CompUnit::Repository::FileSystem
     has $!precomp-store;
     has $!distribution;
     has $!files-prefix;
+    has $!meta-file;
 
     my constant @extensions = <.rakumod .pm6 .pm>;
 
@@ -113,6 +114,8 @@ class CompUnit::Repository::FileSystem
                 CompUnit::PrecompilationDependency::File.new(
                     :$id,
                     :src($source-handle.path.absolute),
+                    :dist-src(~$!meta-file),
+                    :dist-checksum(.checksum)
                     :$spec,
                 ),
                 :@precomp-stores,
@@ -181,9 +184,7 @@ class CompUnit::Repository::FileSystem
     #                                                           packages/resources?
     method !files-prefix {
         ⚛$!files-prefix // cas $!files-prefix, {
-            $_ // ($!prefix.child('META6.json').e
-                ?? $!prefix
-                !! $!prefix.parent)
+            $_ // (self!meta-file ?? $!prefix !! $!prefix.parent)
         }
     }
 
@@ -205,7 +206,7 @@ class CompUnit::Repository::FileSystem
             or ($distribution.meta<files>    && $distribution.meta<files>{$spec.short-name})
         {
             # Only break the cache if there is no inclusion authority (i.e. META6.json)
-            return Empty if $!prefix.child('META6.json').e;
+            return Empty if self!meta-file;
 
             # Break the !distribution cache if we failed to find a match using the cached distribution
             # but still found an existing file that matches the $spec.short-name
@@ -261,6 +262,15 @@ class CompUnit::Repository::FileSystem
         }
     }
 
+    # $!meta-file would be empty unless there is actual META6.json found
+    method !meta-file {
+        ⚛$!meta-file // cas $!meta-file, { 
+            with $!prefix.add('META6.json') {
+                .f ?? $_ !! ''
+            }
+        }
+    }
+
     method !distribution {
         if nqp::isconcrete($!distribution) {
             $!distribution
@@ -270,7 +280,7 @@ class CompUnit::Repository::FileSystem
         else {
             # Path contains a META6.json file, so only use paths/modules
             # explicitly declared therein ( -I ./ )
-            my $dist := $!prefix.add('META6.json').f
+            my $dist := self!meta-file
               ?? Distribution::Path.new($!prefix)
               !! self!dist-from-ls;
 

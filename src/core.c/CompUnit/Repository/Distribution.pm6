@@ -1,6 +1,6 @@
 # A distribution passed to `CURI.install()` will get encapsulated in this
 # class, which normalizes the meta6 data and adds identifiers/content-id
-class CompUnit::Repository::Distribution does Distribution {
+class CompUnit::Repository::Distribution does Distribution::Checksum {
     has Distribution $.dist      is built(:bind) handles <content prefix>;
     has              $.repo      is built(:bind);
     has              $.dist-id   is built(:bind);
@@ -28,7 +28,8 @@ class CompUnit::Repository::Distribution does Distribution {
     }
 
     method id(--> Str:D) { nqp::sha1(self.Str) }
-    method meta(CompUnit::Repository::Distribution:D:) { %!meta.item }
+    method meta(::?CLASS:D:) { %!meta.item }
+    method checksum(::?CLASS:D:) { $!dist.checksum }
 
     # Alternate instantiator called from Actions.nqp during compilation
     # of $?DISTRIBUTION

@@ -1,4 +1,4 @@
-role Distribution::Locally does Distribution {
+role Distribution::Locally does Distribution::Checksum {
     has IO::Path $.prefix is built(:bind);
 
     method content(Str:D $address --> IO::Handle:D) {

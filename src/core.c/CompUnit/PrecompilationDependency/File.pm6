@@ -4,6 +4,7 @@ class CompUnit::PrecompilationDependency::File
     has CompUnit::PrecompilationId        $.id   is built(:bind);
     has CompUnit::DependencySpecification $.spec is built(:bind);
     has Str $.src             is built(:bind);
+    has Str $.dist-src        is built(:bind);
     has Str $.checksum        is rw;
     has Str $!serialized-spec is built(:bind);
 
@@ -16,8 +17,9 @@ class CompUnit::PrecompilationDependency::File
         self.new(
           :id(CompUnit::PrecompilationId.new-without-check(nqp::atpos($parts,0))),
           :src(nqp::atpos($parts,1)),
-          :checksum(nqp::atpos($parts,2))
-          :serialized-spec(nqp::atpos($parts,3))
+          :checksum(nqp::atpos($parts,2)),
+          :dist-src(nqp::atpos($parts,3)),
+          :serialized-spec(nqp::atpos($parts,4))
         )
     }
 
@@ -46,17 +48,17 @@ class CompUnit::PrecompilationDependency::File
         for $.spec.^attributes {
             $specs ~= .name.substr(2) ~ ":" ~ $.spec."$(.name.substr(2))"() ~ "\0";
         }
-        "$!id\0$!src\0$!checksum\0$specs"
+        "$!id\0$!src\0$!checksum\0$!dist-src\0$specs"
 #?endif
 #?if !jvm
-        "$!id\0$!src\0$!checksum\0{
+        "$!id\0$!src\0$!checksum\0$!dist-src\0{
             $!serialized-spec ?? $!serialized-spec !! $!spec.raku
         }"
 #?endif
     }
 
     method Str() {
-        "$.id $.src $.checksum {$!serialized-spec ?? $!serialized-spec !! $!spec.raku}"
+        "$.id $.src $.checksum $.dist-src {$!serialized-spec ?? $!serialized-spec !! $!spec.raku}"
     }
 }
 

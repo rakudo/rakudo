@@ -1,6 +1,7 @@
 role CompUnit::PrecompilationDependency {
     method id(--> CompUnit::PrecompilationId:D) { ... }
     method src(--> Str:D) { ... }
+    method dist-src(--> Str:D) { ... }
     method spec(--> CompUnit::DependencySpecification:D) { ... }
     method checksum(--> Str:D) { ... }
     method Str() {

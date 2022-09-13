@@ -5,6 +5,24 @@ my role Mixy does Baggy  {
     multi method hash(Mixy:D: --> Hash:D) { self!HASHIFY(Real) }
     multi method Hash(Mixy:D: --> Hash:D) { self!HASHIFY(Any) }
 
+    # https://github.com/rakudo/rakudo/issues/5057
+    multi method deepmap(Mixy:D: &mapper) {
+        my $type  := self.WHAT;
+        my $elems := nqp::clone(nqp::getattr(self,self.WHAT,'$!elems'));
+        my $iter  := nqp::iterator($elems);
+
+        while $iter {
+            my $pair := nqp::iterval(nqp::shift($iter));
+            my $value = nqp::getattr($pair,Pair,'$!value');
+            mapper($value);
+            $value
+              ?? nqp::bindattr($pair,Pair,'$!value',nqp::decont($value))
+              !! nqp::deletekey($elems,nqp::iterkey_s($iter))
+        }
+
+        nqp::p6bindattrinvres(nqp::create($type),$type,'$!elems',$elems)
+    }
+
     multi method kxxv(Mixy:D:) {
         ".kxxv is not supported on a {self.^name}".Failure
     }

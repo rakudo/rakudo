@@ -54,6 +54,24 @@ my role Baggy does QuantHash {
         )
     }
 
+    # https://github.com/rakudo/rakudo/issues/5057
+    multi method deepmap(Baggy:D: &mapper) {
+        my $type  := self.WHAT;
+        my $elems := nqp::clone($!elems);
+        my $iter  := nqp::iterator($elems);
+
+        while $iter {
+            my $pair := nqp::iterval(nqp::shift($iter));
+            my $value = nqp::getattr($pair,Pair,'$!value');
+            mapper($value);
+            $value > 0
+              ?? nqp::bindattr($pair,Pair,'$!value',nqp::decont($value))
+              !! nqp::deletekey($elems,nqp::iterkey_s($iter))
+        }
+
+        nqp::p6bindattrinvres(nqp::create($type),$type,'$!elems',$elems)
+    }
+
 #--- object creation methods
 
     # helper method to create Bag from iterator, check for laziness

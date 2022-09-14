@@ -50,16 +50,20 @@ my role Setty does QuantHash {
     # https://github.com/rakudo/rakudo/issues/5057
     multi method deepmap(Setty:D: &mapper) {
         my $type  := self.WHAT;
-        my $elems := nqp::clone(nqp::getattr(self,self.WHAT,'$!elems'));
+        my $elems := $!elems;
+        my $clone := nqp::clone($elems);
         my $iter  := nqp::iterator($elems);
 
         while $iter {
             nqp::shift($iter);
-            mapper(my $value = 1);
+            my $value = 1;  # must be Scalar
+            $value := nqp::decont($value) if nqp::istype($type,Set);
+
+            nqp::deletekey($clone,nqp::iterkey_s($iter)) unless mapper($value);
             nqp::deletekey($elems,nqp::iterkey_s($iter)) unless $value;
         }
 
-        nqp::p6bindattrinvres(nqp::create($type),$type,'$!elems',$elems)
+        nqp::p6bindattrinvres(nqp::create($type),$type,'$!elems',$clone)
     }
 
     method default(--> False) { }

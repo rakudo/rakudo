@@ -57,19 +57,34 @@ my role Baggy does QuantHash {
     # https://github.com/rakudo/rakudo/issues/5057
     multi method deepmap(Baggy:D: &mapper) {
         my $type  := self.WHAT;
-        my $elems := nqp::clone($!elems);
+        my $elems := $!elems;
+        my $clone := nqp::clone($elems);
         my $iter  := nqp::iterator($elems);
 
         while $iter {
-            my $pair := nqp::iterval(nqp::shift($iter));
-            my $value = nqp::getattr($pair,Pair,'$!value');
-            mapper($value);
+            my str $key = nqp::iterkey_s(nqp::shift($iter));
+            my $pair   := nqp::iterval($iter);
+            my $value   = nqp::getattr($pair,Pair,'$!value');  # must be Scalar
+            $value := nqp::decont($value) if nqp::istype($type,Bag);
+
+            # update clone
+            my $returned := nqp::decont(mapper($value).Int);
+            $returned > 0
+              ?? nqp::bindkey(
+                   $clone,
+                   $key,
+                   nqp::p6bindattrinvres(
+                     nqp::clone($pair),Pair,'$!value',$returned
+                   )
+                 )
+              !! nqp::deletekey($clone,$key);
+
             $value > 0
               ?? nqp::bindattr($pair,Pair,'$!value',nqp::decont($value))
-              !! nqp::deletekey($elems,nqp::iterkey_s($iter))
+              !! nqp::deletekey($elems,$key)
         }
 
-        nqp::p6bindattrinvres(nqp::create($type),$type,'$!elems',$elems)
+        nqp::p6bindattrinvres(nqp::create($type),$type,'$!elems',$clone)
     }
 
 #--- object creation methods

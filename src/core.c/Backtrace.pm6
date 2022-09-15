@@ -227,14 +227,17 @@ my class Backtrace {
     }
 
     method next-interesting-index(Backtrace:D:
-      Int $idx is copy = 0, :$named, :$noproto, :$setting) {
+      Int $idx is copy = 0, :$named, :$noproto, :$setting, :$reveal) {
         ++$idx;
 
         while self.AT-POS($idx++) -> $cand {
-            next if $cand.is-hidden;          # hidden is never interesting
+            next if !$reveal                  # keep hidden
+              && $cand.is-hidden;             #  if hidden from backtrace
+
             next if $noproto                  # no proto's please
               && nqp::can($cand,"is_dispatcher")
               && $cand.code.is_dispatcher;    #  if a dispatcher
+
             next if !$setting                 # no settings please
               && $cand.is-setting;            #  and in setting
 

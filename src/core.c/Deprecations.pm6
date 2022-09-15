@@ -44,8 +44,9 @@ class Deprecation {
         my $package = $.package ?? "(from $.package) " !! "";
         my $message = $type ~ $name ~ $package ~ "seen at:\n";
         for %.callsites.kv -> $file, $lines {
-            $message ~=
-              "  $file, line{ 's' if +$lines > 1 } {$lines.keys.sort.join(',')}\n";
+            $message ~= "  $file, line{ 's' if +$lines > 1 } {
+                $lines.keys.sort(*.Int).join(',')
+            }\n";
             if $.from or $.removed {
                 $message ~= $.from
                   ?? "Deprecated since v$.from, will be removed"
@@ -85,10 +86,10 @@ class Rakudo::Deprecations {
         my $bt = Backtrace.new;
         my $deprecated =
 #?if !js
-          $bt[ my $index = $bt.next-interesting-index(1, :named, :setting) // 0 ];
+          $bt[ my $index = $bt.next-interesting-index(1, :named, :setting, :reveal) // 0 ];
 #?endif
 #?if js
-          $bt[ my $index = $bt.next-interesting-index(2, :named, :setting) // 0 ];
+          $bt[ my $index = $bt.next-interesting-index(2, :named, :setting, :reveal) // 0 ];
 #?endif
 
         if $up ~~ Whatever {

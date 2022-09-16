@@ -32,8 +32,7 @@ class CompUnit::Repository::Distribution does Distribution does Distribution::Ut
 
     # Alternate instantiator called from Actions.nqp during compilation
     # of $?DISTRIBUTION
-    method from-precomp(CompUnit::Repository::Distribution:U:
-    --> CompUnit::Repository::Distribution:D) is implementation-detail {
+    method from-precomp(CompUnit::Repository::Distribution:U: --> ::?CLASS:D) is implementation-detail {
         if %*ENV<RAKUDO_PRECOMP_DIST> -> $json {
             my %data := Rakudo::Internals::JSON.from-json: $json;
             my $name := %data<repo-name>;
@@ -59,8 +58,9 @@ class CompUnit::Repository::Distribution does Distribution does Distribution::Ut
 
     # Try to locate a distribution by a given file name. Only makes sense for CURFS.
     # $file is expected to be either absolute or relative to $*CWD.
-    method from-file(::?CLASS:U: $file, :$name, :$ver, :$auth, :$api --> ::?CLASS:D) {
-        my @fs-repos = $*REPO.repo-chain.grep(CompUnit::Repository::FileSystem);
+    method from-file(::?CLASS:U: $file, :$name, :$ver, :$auth, :$api --> ::?CLASS:D) is implementation-detail {
+        my @fs-repos = $*REPO.repo-chain.grep({ ($^repo ~~ CompUnit::Repository::Locally)
+                                                && !($repo ~~ CompUnit::Repository::Installable) });
         my $abs-file =
             (nqp::istype($file, IO::Path)
                 ?? $file.absolutre

@@ -17,6 +17,11 @@ multi sub atomic-assign($target is rw, \value) {
     nqp::atomicstore($target, value)
 }
 
+proto sub infix:<⚛=>($, $, *%) {*}
+multi sub infix:<⚛=>($target is rw, \value) {
+    nqp::atomicstore($target, value)
+}
+
 #-- atomic compare and swap
 proto sub cas(Mu $, Mu $, Mu $?, *%) {*}
 multi sub cas(Mu $target is rw, Mu \expected, Mu \value) {
@@ -33,6 +38,12 @@ multi sub cas(Mu $target is rw, &code) {
       $current := $seen
     );
     $updated
+}
+
+#-- provide full barrier semantics
+proto sub full-barrier(*%) {*}
+multi sub full-barrier(--> Nil) {
+    nqp::barrierfull()
 }
 
 #== Native integer atomics only available on MoarVM ============================
@@ -60,10 +71,6 @@ multi sub atomic-assign(atomicint $target is rw, $value) {
     nqp::atomicstore_i($target, $value.Int)
 }
 
-proto sub infix:<⚛=>($, $, *%) {*}
-multi sub infix:<⚛=>($target is rw, \value) {
-    nqp::atomicstore($target, value)
-}
 multi sub infix:<⚛=>(atomicint $target is rw, int $value) {
     nqp::atomicstore_i($target, $value)
 }
@@ -192,12 +199,6 @@ multi sub infix:<⚛-=>(atomicint $target is rw, $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
 }
 my constant &infix:<⚛−=> := &infix:<⚛-=>;
-
-#-- provide full barrier semantics
-proto sub full-barrier(*%) {*}
-multi sub full-barrier(--> Nil) {
-    nqp::barrierfull()
-}
 
 #-- atomic compare and swap a native integer
 multi sub cas(atomicint $target is rw, int $expected, int $value) {

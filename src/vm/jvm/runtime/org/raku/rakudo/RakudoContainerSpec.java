@@ -1,7 +1,6 @@
 package org.raku.rakudo;
 
 import java.lang.reflect.Field;
-import sun.misc.Unsafe;
 
 import org.raku.nqp.runtime.*;
 import org.raku.nqp.sixmodel.*;
@@ -91,25 +90,6 @@ public class RakudoContainerSpec extends ContainerSpec {
 
     /* Atomic operations. */
 
-    private Unsafe unsafe;
-    private long scalarValueOffset;
-
-    @SuppressWarnings("restriction")
-    private void ensureAtomicsReady(SixModelObject cont) {
-        if (unsafe == null) {
-            try {
-                Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-                unsafeField.setAccessible(true);
-                unsafe = (Unsafe)unsafeField.get(null);
-                scalarValueOffset = unsafe.objectFieldOffset(
-                    cont.getClass().getDeclaredField("field_1"));
-            }
-            catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
     public SixModelObject cas(ThreadContext tc, SixModelObject cont,
                               SixModelObject expected, SixModelObject value) {
         Ops.invokeDirect(tc, cas, CAS, new Object[] { cont, expected, value });
@@ -117,8 +97,7 @@ public class RakudoContainerSpec extends ContainerSpec {
     }
 
     public SixModelObject atomic_load(ThreadContext tc, SixModelObject cont) {
-        ensureAtomicsReady(cont);
-        return (SixModelObject)unsafe.getObjectVolatile(cont, scalarValueOffset);
+        return cont.atomic_load_attribute_boxed(tc, RakOps.key.getGC(tc).Scalar, "$!value");
     }
 
     public void atomic_store(ThreadContext tc, SixModelObject cont,

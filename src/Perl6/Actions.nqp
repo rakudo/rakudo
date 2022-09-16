@@ -7490,12 +7490,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {
-                my str $error := "Only routine calls or variables that can '.append' may appear on either side of feed operators.";
-                if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
-                && nqp::istype($stage[0], QAST::Var)
-                && nqp::eqat($stage[0].name, '&', 0) {
-                    $error := "A feed may not sink values into a code object. Did you mean a call like '"
-                            ~ nqp::substr($stage[0].name, 1) ~ "()' instead?";
+                my str $error := "Only routine calls or variables that can '.append' may appear on either side
+of feed operators.";
+                if nqp::istype($stage[0], QAST::Var) {
+                    if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
+                      && nqp::eqat($stage[0].name, '&', 0) {
+                        $error := "A feed may not sink values into a code object.
+Did you mean a call like '"
+                          ~ nqp::substr($stage[0].name, 1)
+                          ~ "()' instead?";
+                    }
+
+                    # Looks like an array, yet we wound up here (which we
+                    # wouldn't if it was an ordinary array.  Assume it's
+                    # a shaped array definition throwing a spanner into the
+                    # works.
+                    elsif nqp::eqat($stage[0].name, '@', 0) {
+                        $error := "Cannot feed into shaped arrays, as one cannot '.append' to them.";
+                    }
                 }
                 $_.PRECURSOR.panic($error);
             }

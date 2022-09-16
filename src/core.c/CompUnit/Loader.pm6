@@ -14,7 +14,7 @@ class CompUnit::Loader is repr('Uninstantiable') {
         CATCH {  # use CATCH instead of LEAVE: makes the normal flow faster
             default {
                 nqp::bindhllsym('Raku','GLOBAL',$original-GLOBAL);
-                .throw;
+                .rethrow;
             }
         }
 

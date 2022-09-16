@@ -1,6 +1,6 @@
 # A distribution passed to `CURI.install()` will get encapsulated in this
 # class, which normalizes the meta6 data and adds identifiers/content-id
-class CompUnit::Repository::Distribution does Distribution {
+class CompUnit::Repository::Distribution does Distribution does Distribution::Utils {
     has Distribution $.dist      is built(:bind) handles <content prefix>;
     has              $.repo      is built(:bind);
     has              $.dist-id   is built(:bind);
@@ -40,9 +40,12 @@ class CompUnit::Repository::Distribution does Distribution {
             my $spec := %data<repo>;  # XXX badly named field?
             my $id   := %data<dist-id>;
 
+            return Nil unless $name || $spec;
+
             my $repo := $name
               ?? CompUnit::RepositoryRegistry.repository-for-name($name)
               !! CompUnit::RepositoryRegistry.repository-for-spec($spec);
+
             self.bless:
               :dist($repo.distribution($id)),
               :repo($spec),
@@ -52,6 +55,24 @@ class CompUnit::Repository::Distribution does Distribution {
         else {
             Nil
         }
+    }
+
+    # Try to locate a distribution by a given file name. Only makes sense for CURFS.
+    # $file is expected to be either absolute or relative to $*CWD.
+    method from-file(::?CLASS:U: $file, :$name, :$ver, :$auth, :$api --> ::?CLASS:D) {
+        my @fs-repos = $*REPO.repo-chain.grep(CompUnit::Repository::FileSystem);
+        my $abs-file =
+            (nqp::istype($file, IO::Path)
+                ?? $file.absolutre
+                !! $file.Str.IO.absolute).IO.resolve;
+        return Nil unless $abs-file.f;
+        my @distros =
+            @fs-repos.map({
+                .files($abs-file.relative(.abspath), :$name, :$auth, :$api, :dist).head
+            }).grep(*.defined);
+        +@distros
+            ?? (@distros == 1 ?? @distros !! @distros.sort(*.meta<ver>).sort(*.meta<api>).reverse).head
+            !! Nil
     }
 
     method serialize(--> Str:D) is implementation-detail {

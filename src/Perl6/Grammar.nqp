@@ -1980,23 +1980,37 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
                 # Unless we're augmenting...
                 if $*SCOPE ne 'augment' {
-                    if $longname {
-                        for $longname.colonpairs_hash('class') -> $adverb {
-                            my str $key := $adverb.key;
-                            if $key eq 'ver' {
+                    unless $*COMPILING_CORE_SETTING {
+                        my $Version := $*W.find_single_symbol_in_setting('Version');
+                        if $longname {
+                            for $longname.colonpairs_hash('class') -> $adverb {
+                                my str $key := $adverb.key;
+                                if $key eq 'ver' {
+                                    $*VER := $*W.handle-begin-time-exceptions($/,
+                                        'parsing package version',
+                                        -> { $Version.new($adverb.value) });
+                                }
+                                elsif $key eq 'api' {
+                                    $*API := $adverb.value;
+                                }
+                                elsif $key eq 'auth' {
+                                    $*AUTH := $adverb.value;
+                                }
+                                else {
+                                    $/.typed_panic('X::Syntax::Type::Adverb', adverb => $adverb.key);
+                                }
+                            }
+                        }
+
+                        if my $distribution := $*W.current_distribution() {
+                            my $meta := nqp::decont($distribution.meta);
+                            if !nqp::isconcrete($*VER) && (my $ver := $meta<ver>) {
                                 $*VER := $*W.handle-begin-time-exceptions($/,
-                                    'parsing package version',
-                                    -> { $*W.find_single_symbol_in_setting('Version').new($adverb.value) });
+                                    'parsing package version from META6.json',
+                                        -> { $Version.new($ver) });
                             }
-                            elsif $key eq 'api' {
-                                $*API := $adverb.value;
-                            }
-                            elsif $key eq 'auth' {
-                                $*AUTH := $adverb.value;
-                            }
-                            else {
-                                $/.typed_panic('X::Syntax::Type::Adverb', adverb => $adverb.key);
-                            }
+                            $*API := $*API // $meta<api>;
+                            $*AUTH := $*AUTH // $meta<auth>;
                         }
                     }
 

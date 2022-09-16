@@ -507,6 +507,12 @@ class Perl6::World is HLL::World {
     # To temporarily keep fixup task QAST.
     has $!setting_fixup_task;
 
+    # What is being compiled
+    has $!current_file;
+
+    # Will be set to a Distribution instance if current compunit belongs to any
+    has $!distribution;
+
     has int $!in_unit_parse;
     has int $!have_outer;
     has int $!setting_loaded;
@@ -705,6 +711,12 @@ class Perl6::World is HLL::World {
                 nqp::getcomp('Raku').set_language_version($lang_ver);
             }
             $*UNIT.annotate('IN_DECL', 'mainline');
+        }
+
+        unless $*COMPILING_CORE_SETTING {
+            self.install_lexical_symbol(
+                $*UNIT, '$?DISTRIBUTION',
+                nqp::ifnull(self.current_distribution(), self.find_single_symbol_in_setting('Nil')));
         }
 
         # Unit compilation started
@@ -1386,18 +1398,44 @@ class Perl6::World is HLL::World {
     }
 
     method current_file() {
-        my $file := nqp::getlexdyn('$?FILES');
-        if nqp::isnull($file) {
-            $file := '<unknown file>';
+        unless nqp::isconcrete($!current_file) {
+            my $file := nqp::getlexdyn('$?FILES');
+            if nqp::isnull($file) {
+                $file := '<unknown file>';
+            }
+            elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
+                $file := nqp::cwd ~ '/' ~ $file;
+            }
+            $!current_file := $file;
         }
-        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
-            $file := nqp::cwd ~ '/' ~ $file;
-        }
-        $file;
+        $!current_file
     }
 
     method current_line($/) {
         HLL::Compiler.lineof($/.orig,$/.from,:cache(1));
+    }
+
+    method current_distribution() {
+        unless nqp::isconcrete($!distribution) || nqp::isnull($!distribution) {
+            my $distribution := nqp::null();
+            unless $*COMPILING_CORE_SETTING || nqp::getenvhash<RAKUDO_INSTALL_STAGING> {
+                # If this compunit is an EVALed code then its calling context must have the distribution object already
+                $distribution :=
+                    $*INSIDE-EVAL && nqp::isconcrete(%*COMPILING<%?OPTIONS><outer_ctx>)
+                        ?? nqp::getlexrel(%*COMPILING<%?OPTIONS><outer_ctx>, '$?DISTRIBUTION')
+                        !! nqp::getlexdyn('$*DISTRIBUTION');
+                # Locating distribution by file name makes no sense inside EVAL.
+                unless nqp::isconcrete($distribution) || $*INSIDE-EVAL {
+                    my $Distribution := self.find_symbol(['CompUnit', 'Repository', 'Distribution']);
+                    $distribution :=
+                        $Distribution.from-precomp()
+                        || $Distribution.from-file(self.current_file())
+                        || nqp::null();
+                }
+            }
+            $!distribution := $distribution;
+        }
+        $!distribution
     }
 
     method arglist($/) {
@@ -1488,16 +1526,8 @@ class Perl6::World is HLL::World {
         $RMD("  Late loading '$module_name'") if $RMD;
 
         # Immediate loading.
-        my $spec := self.find_symbol(['CompUnit', 'DependencySpecification'], :setting-only).new(
-            :short-name($module_name),
-            :from(%opts<from> // 'Perl6'),
-            :auth-matcher(%opts<auth>),
-            :api-matcher(%opts<api>),
-            :version-matcher(%opts<ver>),
-        );
-        self.add_object_if_no_sc($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);
-        my $comp_unit := $registry.head.need($spec);
+        my $comp_unit := $registry.NEED($module_name, %opts);
         my $globalish := $comp_unit.handle.globalish-package;
         nqp::gethllsym('Raku','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
 

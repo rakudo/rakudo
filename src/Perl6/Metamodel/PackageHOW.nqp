@@ -16,7 +16,7 @@ class Perl6::Metamodel::PackageHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
-    method new_type(:$name = '<anon>', :$repr, :$ver, :$auth) {
+    method new_type(:$name = '<anon>', :$repr, :$ver, :$auth, :$api) {
         if $repr { nqp::die("'package' does not support custom representations") }
         my $metaclass := nqp::create(self);
         my $obj := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'Raku');

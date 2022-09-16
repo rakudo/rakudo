@@ -302,15 +302,31 @@ class CompUnit::RepositoryRegistry {
         Nil
     }
 
+    # Find all candidate distributions for a given spec
+    proto method candidates(|) {*}
+    multi method candidates(Str:D $name, :$auth, :$ver, :$api) {
+        return samewith(CompUnit::DependencySpecification.new(
+            short-name      => $name,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
+        ));
+    }
+    multi method candidates(CompUnit::DependencySpecification:D $spec) {
+        $*REPO.repo-chain.map: {
+            (.?candidates($spec) andthen .head) orelse next
+        }
+    }
+
     method run-script($script, :$name, :$auth, :$ver, :$api) {
         shift @*ARGS if $name;
         shift @*ARGS if $auth;
         shift @*ARGS if $ver;
 
         my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
-        my @metas = @installations.map({ .files("bin/$script", :$name, :$auth, :$ver).head }).grep(*.defined);
-        unless +@metas {
-            @metas = flat @installations.map({ .files("bin/$script").Slip }).grep(*.defined);
+        my @distros = @installations.map({ .files("bin/$script", :$name, :$auth, :$ver, :dist).head }).grep(*.defined);
+        unless +@distros {
+            my @metas = flat @installations.map({ .files("bin/$script").Slip }).grep(*.defined);
             if +@metas {
                 note "===SORRY!===\n"
                     ~ "No candidate found for '$script' that match your criteria.\n"
@@ -332,13 +348,34 @@ class CompUnit::RepositoryRegistry {
             exit 1;
         }
 
-        my $meta = @metas.sort(*.<ver>).sort(*.<api>).reverse.head;
-        my $bin  = $meta<source>;
+        my $distro = @distros.sort(*.meta<ver>).sort(*.meta<api>).reverse.head;
+        my $bin  = $distro.meta<source>;
+        my $*DISTRIBUTION := $distro;
         require "$bin";
     }
 
     method head() { # mostly usefull for access from NQP
         $*REPO
+    }
+
+    method NEED(Str:D $module_name, %opts) is implementation-detail {
+        my $spec;
+        my %adverbs;
+        if %opts {
+            # If there is at least one user-specified adverb then use it/them as-is, no defaults
+            %adverbs := %opts;
+        }
+        elsif my $distribution := $*W.current_distribution {
+            # Otherwise try to find out if there is a distribtion for us and if it has a dependency we can use.
+            %adverbs = $distribution.module-dependency($module_name);
+        }
+        $*REPO.head.need:
+            CompUnit::DependencySpecification.new(
+                :short-name($module_name),
+                :from(%adverbs<from> // 'Perl6'),
+                :auth-matcher(%adverbs<auth>),
+                :api-matcher(%adverbs<api>),
+                :version-matcher(%adverbs<ver>))
     }
 
     method resolve-unknown-repos($first-repo --> Nil) {

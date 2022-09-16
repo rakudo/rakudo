@@ -72,6 +72,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         has $.dist-id;
         has $.read-dist;
         has $!installed-dist;
+        has $!repo-dist;
         has $.meta;
 
         # Parses dist info from json and populates $.meta with any new fields
@@ -88,7 +89,13 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             $!installed-dist;
         }
 
-        method meta(--> Hash:D) {
+        method !repo-dist {
+            ⚛$!repo-dist // cas $!repo-dist, {
+                $_ // CompUnit::Repository::Distribution.new(self)
+            }
+        }
+
+        method meta(::?CLASS:D: --> Hash:D) {
             my %hash = $!meta.hash;
             unless $!installed-dist.defined {
                 # Allow certain meta fields to be read without a full parsing,
@@ -103,9 +110,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
             %hash;
         }
-        method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
-        method Str { CompUnit::Repository::Distribution.new(self).Str }
-        method id { $.dist-id }
+        method content(::?CLASS:D: $content-id --> IO::Handle:D) { self!dist.content($content-id) }
+        method module-dependency(::?CLASS:D: Str:D $module_name) is implementation-detail {
+            self!repo-dist.module-dependency($module_name)
+        }
+        method Str(::?CLASS:D:) { self!repo-dist.Str }
+        method id(::?CLASS:D:) { $.dist-id }
     }
 
     method !prefix-writeable(--> Bool:D) {
@@ -428,21 +438,21 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     proto method files(|) {*}
 
     # if we have to include :$name then we take the slow path
-    multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
+    multi method files($file, Str:D :$name!, :$auth, :$ver, :$api, :$dist) {
         self.candidates(
           CompUnit::DependencySpecification.new:
             short-name      => $name,
             auth-matcher    => $auth,
             version-matcher => $ver,
             api-matcher     => $api,
-        ).map: {
-            my %meta := .meta;
+        ).map: -> $distribution {
+            my %meta := $distribution.meta;
             if %meta<files> -> %files {
                 if %files{$file} -> $source {
                     my $io := self!resources-dir.add($source);
                     if $io.e {
                         %meta<source> := $io;
-                        %meta
+                        $dist ?? $distribution !! %meta
                     }
                 }
             }
@@ -450,20 +460,20 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     # avoid parsing json if we don't need to know the short-name
-    multi method files($file, :$auth, :$ver, :$api) {
+    multi method files($file, :$auth, :$ver, :$api, :$dist) {
         self.candidates(
           CompUnit::DependencySpecification.new:
             short-name      => $file,
             auth-matcher    => $auth,
             version-matcher => $ver,
             api-matcher     => $api,
-        ).map: {
-            my %meta := .meta;
+        ).map: -> $distribution {
+            my %meta := $distribution.meta;
             if %meta<source> || %meta<files>{$file} -> $source {
                 my $io := self!resources-dir.add($source);
                 if $io.e {
                     %meta<source> := $io;
-                    %meta
+                    $dist ?? $distribution !! %meta
                 }
             }
         }

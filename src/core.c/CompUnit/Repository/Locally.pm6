@@ -22,9 +22,10 @@ role CompUnit::Repository::Locally {
     # from the "prefix" parameter, will be *ignored* any subsequent
     # attempt at creating an object of that type on that prefix.
     method new(CompUnit::Repository::Locally: Any:D :$prefix) {
-        my $abspath = nqp::istype($prefix,IO::Path)
-          ?? $prefix.absolute
-          !! $*SPEC.rel2abs($prefix.Str);
+        my $abspath =
+          (nqp::istype($prefix,IO::Path)
+              ?? $prefix.absolute
+              !! $*SPEC.rel2abs($prefix.Str)).IO.resolve.Str;
         my str $WHICH = self.^name ~ '|' ~ $abspath;
 
         $lock.protect: {

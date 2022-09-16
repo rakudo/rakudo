@@ -7490,7 +7490,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {
-                my str $error := "Only routine calls or variables that can '.push' may appear on either side of feed operators.";
+                my str $error := "Only routine calls or variables that can '.append' may appear on either side of feed operators.";
                 if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
                 && nqp::istype($stage[0], QAST::Var)
                 && nqp::eqat($stage[0].name, '&', 0) {

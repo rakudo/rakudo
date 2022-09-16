@@ -222,7 +222,7 @@ class CompUnit::Repository::FileSystem
     }
 
     proto method files(|) {*}
-    multi method files($file, Str:D :$name!, :$auth, :$ver, :$api, :$dist) {
+    multi method files($file, Str:D :$name!, :$auth, :$ver, :$api, Bool :$dist) {
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $name,
             auth-matcher    => $auth,
@@ -242,7 +242,7 @@ class CompUnit::Repository::FileSystem
             return $absolutified-metas
         }
     }
-    multi method files($file, :$auth, :$ver, :$api, :$dist) {
+    multi method files($file, :$auth, :$ver, :$api, Bool :$dist) {
         my $spec = CompUnit::DependencySpecification.new(
             short-name      => $file,
             auth-matcher    => $auth,

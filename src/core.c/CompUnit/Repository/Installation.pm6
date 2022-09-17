@@ -110,10 +110,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
             %hash;
         }
-        method content(::?CLASS:D: $content-id --> IO::Handle:D) { self!dist.content($content-id) }
-        method module-dependency(::?CLASS:D: Str:D $module_name) is implementation-detail {
-            self!repo-dist.module-dependency($module_name)
-        }
         method Str(::?CLASS:D:) { self!repo-dist.Str }
         method id(::?CLASS:D:) { $.dist-id }
     }
@@ -527,11 +523,12 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             # There is nothing left to do with the subset of meta data, so
             # initialize a lazy distribution with it
               .map({
-                  LazyDistribution.new:
-                    :dist-id(.key),
-                    :meta(.value),
-                    :read-dist(-> $dist { self!read-dist($dist) }),
-                    :$.prefix
+                CompUnit::Repository::Distribution.new(
+                    LazyDistribution.new:
+                        :dist-id(.key),
+                        :meta(.value),
+                        :read-dist(-> $dist { self!read-dist($dist) }),
+                        :$.prefix)
               })
 
             # A different policy might wish to implement additional/alternative

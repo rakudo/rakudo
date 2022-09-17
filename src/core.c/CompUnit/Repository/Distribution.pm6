@@ -68,7 +68,7 @@ class CompUnit::Repository::Distribution does Distribution does Distribution::Ut
         return Nil unless $abs-file.f;
         my @distros =
             @fs-repos.map({
-                .files($abs-file.relative(.abspath), :$name, :$auth, :$api, :dist).head
+                .distributions($abs-file.relative(.abspath), :$name, :$auth, :$api).head
             }).grep(*.defined);
         +@distros
             ?? (@distros == 1 ?? @distros !! @distros.sort(*.meta<ver>).sort(*.meta<api>).reverse).head

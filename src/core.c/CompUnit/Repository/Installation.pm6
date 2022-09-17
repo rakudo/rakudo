@@ -97,7 +97,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 %hash does LazyMetaReader({ $!meta.hash{$^a} // self!dist.meta.{$^a} });
 
                 # Allows absolutifying paths in .meta<files source> to keep
-                # .files()/.distributions() happy
+                # .files()/.candidates() happy
                 %hash does MetaAssigner({ $!meta.ASSIGN-KEY($^a, $^b) });
             }
 
@@ -397,7 +397,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     # wrappers are located in $bin-dir (only delete if no other
                     # versions use wrapper)
 
-                    unless self.distributions($name-path, :name(%meta<name>)).elems {
+                    unless self.candidates(:file($name-path), :name(%meta<name>)).elems {
                         my $basename := $name-path.substr(4);  # skip bin/
                         my $bin-dir  := $prefix.add('bin');
                         unlink-if-exists($bin-dir.add($basename ~ $_))
@@ -469,50 +469,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
     }
 
-    proto method distributions(|) {*}
-
-    # if we have to include :$name then we take the slow path
-    multi method distributions($file, Str:D :$name!, :$auth, :$ver, :$api) {
-        self.candidates(
-          CompUnit::DependencySpecification.new:
-            short-name      => $name,
-            auth-matcher    => $auth,
-            version-matcher => $ver,
-            api-matcher     => $api,
-        ).map: -> $distribution {
-            my %meta := $distribution.meta;
-            if %meta<files> -> %files {
-                if %files{$file} -> $source {
-                    my $io := self!resources-dir.add($source);
-                    if $io.e {
-                        %meta<source> := $io;
-                        $distribution
-                    }
-                }
-            }
-        }
-    }
-
-    # avoid parsing json if we don't need to know the short-name
-    multi method distributions($file, :$auth, :$ver, :$api) {
-        self.candidates(
-          CompUnit::DependencySpecification.new:
-            short-name      => $file,
-            auth-matcher    => $auth,
-            version-matcher => $ver,
-            api-matcher     => $api,
-        ).map: -> $distribution {
-            my %meta := $distribution.meta;
-            if %meta<source> || %meta<files>{$file} -> $source {
-                my $io := self!resources-dir.add($source);
-                if $io.e {
-                    %meta<source> := $io;
-                    $distribution
-                }
-            }
-        }
-    }
-
     proto method candidates(|) {*}
     multi method candidates(Str:D $name, :$auth, :$ver, :$api) {
         self.candidates:
@@ -574,6 +530,48 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             # a non-lazy field will require parsing json for each matching
             # distribution.
             #  .grep({.meta<license> eq 'Artistic-2.0'}).sort(-*.meta<production>)`
+        }
+    }
+
+    # if we have to include :$name then we take the slow path
+    multi method candidates(:$file!, Str:D :$name!, :$auth, :$ver, :$api) {
+        self.candidates(
+          CompUnit::DependencySpecification.new:
+            short-name      => $name,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
+        ).map: -> $distribution {
+            my %meta := $distribution.meta;
+            if %meta<files> -> %files {
+                if %files{$file} -> $source {
+                    my $io := self!resources-dir.add($source);
+                    if $io.e {
+                        %meta<source> := $io;
+                        $distribution
+                    }
+                }
+            }
+        }
+    }
+
+    # avoid parsing json if we don't need to know the short-name
+    multi method candidates(:$file!, :$auth, :$ver, :$api) {
+        self.candidates(
+          CompUnit::DependencySpecification.new:
+            short-name      => $file,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
+        ).map: -> $distribution {
+            my %meta := $distribution.meta;
+            if %meta<source> || %meta<files>{$file} -> $source {
+                my $io := self!resources-dir.add($source);
+                if $io.e {
+                    %meta<source> := $io;
+                    $distribution
+                }
+            }
         }
     }
 

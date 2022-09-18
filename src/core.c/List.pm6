@@ -190,6 +190,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(result,List,'$!todo',todo)
     }
 
+    method over-iterator(List:D: Iterator $iter --> List:D) {
+        # from-iterator only copies type-level information; here we copy
+        # everything bar the elements (e.g. container descriptors, shapes)
+        nqp::stmts(
+          (my \buffer := nqp::clone(self)),
+          (my \todo := nqp::create(Reifier)),
+          nqp::bindattr(buffer,$?CLASS,'$!reified',
+            nqp::bindattr(todo,Reifier,'$!reified',
+              nqp::bindattr(todo,Reifier,'$!reification-target',
+                nqp::create(IterationBuffer)))),
+          nqp::p6bindattrinvres(buffer,$?CLASS,'$!todo',
+            nqp::p6bindattrinvres(todo,Reifier,'$!current-iter',
+              $iter)))
+    }
+
     method from-slurpy(|) {
         my \result      := nqp::create(self);
         my Mu \vm-tuple := nqp::captureposarg(nqp::usecapture,1);

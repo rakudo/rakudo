@@ -206,6 +206,16 @@ my class Array { # declared in BOOTSTRAP
           )
         )
     }
+    method over-iterator(Array:D: Iterator $iter --> Array:D) {
+        my \result := callsame;
+        my \r-todo := nqp::getattr(result,List,'$!todo');
+        my \r-target := nqp::getattr(r-todo,List::Reifier,'$!reification-target');
+        nqp::bindattr(
+          r-todo,List::Reifier,'$!reification-target',
+          ArrayReificationTarget.new(r-target,$!descriptor)
+        );
+        result
+    }
     method from-list(Array:U: Mu \list --> Array:D) {
         my \params   := nqp::getattr(list,List,'$!reified');
         my int $elems = list.elems;  # reifies

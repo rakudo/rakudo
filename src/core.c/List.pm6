@@ -193,16 +193,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method over-iterator(List:D: Iterator $iter --> List:D) {
         # from-iterator only copies type-level information; here we copy
         # everything bar the elements (e.g. container descriptors, shapes)
-        nqp::stmts(
-          (my \result := nqp::clone(self)),
-          (my \todo := nqp::create(Reifier)),
-          nqp::bindattr(result,$?CLASS,'$!reified',
-            nqp::bindattr(todo,Reifier,'$!reified',
-              nqp::bindattr(todo,Reifier,'$!reification-target',
-                nqp::create(IterationBuffer)))),
-          nqp::p6bindattrinvres(result,$?CLASS,'$!todo',
-            nqp::p6bindattrinvres(todo,Reifier,'$!current-iter',
-              $iter)))
+        my \result := nqp::clone(self);
+        my \todo := nqp::create(Reifier);
+        nqp::bindattr(result,$?CLASS,'$!reified',
+          nqp::bindattr(todo,Reifier,'$!reified',
+            nqp::bindattr(todo,Reifier,'$!reification-target',
+              nqp::create(IterationBuffer))));
+        nqp::p6bindattrinvres(result,$?CLASS,'$!todo',
+          nqp::p6bindattrinvres(todo,Reifier,'$!current-iter',
+            $iter))
     }
 
     method from-slurpy(|) {

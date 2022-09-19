@@ -149,7 +149,7 @@ class CompUnit::RepositoryRegistry {
         my str $prefix = nqp::ifnull(
           nqp::atkey($ENV,'RAKUDO_PREFIX'),
           nqp::gethllsym('default', 'SysConfig').rakudo-home()
-        );
+        ).IO.absolute.IO.resolve.Str;
         $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
 
         # set up custom libs

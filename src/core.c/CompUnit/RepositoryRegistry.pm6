@@ -309,6 +309,14 @@ class CompUnit::RepositoryRegistry {
     --> CompUnit::Repository::Distribution:D) {
         my @distros =
             $*REPO.repo-chain.map({
+                # TODO This CATCH is better be removed when old ecosystem implementations of repositories are updated
+                # to support the new API. In particular these are: Raku::CompUnit::Repository::Tar,
+                # Raku::CompUnit::Repository::Lib, and Raku::CompUnit::Repository::Github.
+                CATCH {
+                    when X::Multi::NoMatch {
+                        .rethrow unless .dispatcher.name eq 'candidates';
+                    }
+                }
                 .?candidates(:file(.?normalize-path($file) // $file), :$name, :$auth, :$api).head
             }).grep(*.defined);
         +@distros

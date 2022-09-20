@@ -1426,10 +1426,11 @@ class Perl6::World is HLL::World {
                         !! nqp::getlexdyn('$*DISTRIBUTION');
                 # Locating distribution by file name makes no sense inside EVAL.
                 unless nqp::isconcrete($distribution) || $*INSIDE-EVAL {
-                    my $Distribution := self.find_symbol(['CompUnit', 'Repository', 'Distribution']);
+                    my $CURD := self.find_symbol(['CompUnit', 'Repository', 'Distribution']);
+                    my $CURR := self.find_symbol(['CompUnit', 'RepositoryRegistry']);
                     $distribution :=
-                        $Distribution.from-precomp()
-                        || $Distribution.from-file(self.current_file())
+                        $CURD.from-precomp()
+                        || $CURR.distribution-for-file(self.current_file())
                         || nqp::null();
                 }
             }

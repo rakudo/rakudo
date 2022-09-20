@@ -56,16 +56,6 @@ class CompUnit::Repository::Distribution does Distribution does Distribution::Ut
         }
     }
 
-    # Try to locate a distribution by a given file name. Only makes sense for CURFS.
-    # $file is expected to be either absolute or relative to $*CWD.
-    method from-file(::?CLASS:U: $file, :$name, :$ver, :$auth, :$api --> ::?CLASS:D) is implementation-detail {
-        my @distros =
-            $*REPO.repo-chain.map({ .?candidates(:file(.?normalize-path($file) // $file), :$name, :$auth, :$api).head }).grep(*.defined);
-        +@distros
-            ?? (@distros == 1 ?? @distros !! @distros.sort(*.meta<ver>).sort(*.meta<api>).reverse).head
-            !! Nil
-    }
-
     method serialize(--> Str:D) is implementation-detail {
         Rakudo::Internals::JSON.to-json: {:$.repo, :$.repo-name, :$.dist-id}
     }

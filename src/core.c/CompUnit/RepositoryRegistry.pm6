@@ -302,6 +302,20 @@ class CompUnit::RepositoryRegistry {
         Nil
     }
 
+    # Try to locate a distribution by a given file name. Only makes sense for CURFS.
+    # $file is expected to be either absolute or relative to $*CWD.
+    method distribution-for-file(::?CLASS:U:
+      $file, :$name, :$ver, :$auth, :$api
+    --> CompUnit::Repository::Distribution:D) {
+        my @distros =
+            $*REPO.repo-chain.map({
+                .?candidates(:file(.?normalize-path($file) // $file), :$name, :$auth, :$api).head
+            }).grep(*.defined);
+        +@distros
+            ?? (@distros == 1 ?? @distros !! @distros.sort(*.meta<ver>).sort(*.meta<api>).reverse).head
+            !! Nil
+    }
+
     # Find all candidate distributions for a given spec
     proto method candidates(|) {*}
     multi method candidates(Str:D $name, :$auth, :$ver, :$api) {

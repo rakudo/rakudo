@@ -59,17 +59,8 @@ class CompUnit::Repository::Distribution does Distribution does Distribution::Ut
     # Try to locate a distribution by a given file name. Only makes sense for CURFS.
     # $file is expected to be either absolute or relative to $*CWD.
     method from-file(::?CLASS:U: $file, :$name, :$ver, :$auth, :$api --> ::?CLASS:D) is implementation-detail {
-        my @fs-repos = $*REPO.repo-chain.grep({ ($^repo ~~ CompUnit::Repository::Locally)
-                                                && !($repo ~~ CompUnit::Repository::Installable) });
-        my $abs-file =
-            (nqp::istype($file, IO::Path)
-                ?? $file.absolutre
-                !! $file.Str.IO.absolute).IO.resolve;
-        return Nil unless $abs-file.f;
         my @distros =
-            @fs-repos.map({
-                .candidates(:file($abs-file.relative(.abspath)), :$name, :$auth, :$api).head
-            }).grep(*.defined);
+            $*REPO.repo-chain.map({ .?candidates(:$file, :$name, :$auth, :$api).head }).grep(*.defined);
         +@distros
             ?? (@distros == 1 ?? @distros !! @distros.sort(*.meta<ver>).sort(*.meta<api>).reverse).head
             !! Nil

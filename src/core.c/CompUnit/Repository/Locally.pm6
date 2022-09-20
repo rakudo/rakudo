@@ -65,6 +65,12 @@ role CompUnit::Repository::Locally {
 
     # stubs
     method short-id(CompUnit::Repository::Locally:D: --> Str:D) { ... }
+
+    method !normalize-path($path) {
+        (nqp::istype($path, IO::Path)
+            ?? $path.absolute
+            !! $path.Str.IO.absolute).IO.resolve.relative($.abspath)
+    }
 }
 
 # vim: expandtab shiftwidth=4

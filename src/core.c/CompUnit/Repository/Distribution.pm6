@@ -60,7 +60,7 @@ class CompUnit::Repository::Distribution does Distribution does Distribution::Ut
     # $file is expected to be either absolute or relative to $*CWD.
     method from-file(::?CLASS:U: $file, :$name, :$ver, :$auth, :$api --> ::?CLASS:D) is implementation-detail {
         my @distros =
-            $*REPO.repo-chain.map({ .?candidates(:$file, :$name, :$auth, :$api).head }).grep(*.defined);
+            $*REPO.repo-chain.map({ .?candidates(:file(.?normalize-path($file) // $file), :$name, :$auth, :$api).head }).grep(*.defined);
         +@distros
             ?? (@distros == 1 ?? @distros !! @distros.sort(*.meta<ver>).sort(*.meta<api>).reverse).head
             !! Nil

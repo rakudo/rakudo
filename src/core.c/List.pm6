@@ -749,86 +749,138 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
-    # Store in List targets containers with in the list. This handles list
-    # assignments, like ($a, $b) = foo().
-    proto method STORE(List:D: |) {*}
-    multi method STORE(List:D: Iterable:D \iterable, :INITIALIZE($)! --> List:D) {
-        my \buffer := nqp::create(IterationBuffer);
-        iterable.iterator.push-all(buffer);
-        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
-    }
-    multi method STORE(List:D: Mu \item, :INITIALIZE($)! --> List:D) {
-        self.STORE((item,), :INITIALIZE);
-    }
+    my class Structure does Iterator {
+        # nqp-ish (lies about its types for haste)
+        has $!target is required; # IterationBuffer:D
+        has $!source is required; # Iterator:D
+        has $!vision is required; # IterationBuffer:D
 
-    multi method STORE(List:D: Iterable:D \iterable --> List:D) {
-        # First pass -- scan lhs containers and pick out scalar versus list
-        # assignment. This also reifies the RHS values we need, and deconts
-        # them. The decont is needed so that we can do ($a, $b) = ($b, $a).
-        my \cv = nqp::list();
-        my \lhs-iter = self.iterator;
-        my \rhs-iter = iterable.iterator;
-        my int $rhs-done;
-        my Mu $v;
-        my Mu $c;
-        my Mu $sub-iter;
-        my Mu $sc;
+        method new(::?CLASS: List:D $list, Iterator:D $iter) {
+            nqp::create(self)!SET-SELF($list, $iter)
+        }
+        method !SET-SELF(::?CLASS: $list, $iter) { # new guards on type; trust nqp
+            # BUILD
+            $!target := nqp::getattr(nqp::decont($list),List,'$!reified');
+            $!source := nqp::decont($iter);
+            $!vision := nqp::create(IterationBuffer);
+            # TWEAK
+            # Eagerly decont elements for each reified element on the LHS.
+            # Required in order to handle ($a, $b) = ($b, $a).
+            # Must not process any more elements than the LHS is concerned with.
+            nqp::if(
+              (nqp::isconcrete($!target) && nqp::elems($!target)),
+              ($!source.push-exactly: $!vision, nqp::elems($!target)));
+            nqp::while(
+              nqp::islt_i((my uint $cursor),nqp::elems($!vision)),
+              nqp::bindpos($!vision,$cursor,nqp::decont(nqp::atpos($!vision,$cursor++))));
+            # blessed
+            self
+        }
 
-        nqp::until(
-          nqp::eqaddr(($c := lhs-iter.pull-one),IterationEnd),
-          nqp::if(          # Container: scalar assignment
-            nqp::iscont($c),
-            nqp::stmts(
-              nqp::push(cv,$c),
+        method pull-one(::?CLASS:D:) is raw {
+            nqp::if(
+              nqp::isconcrete($!target),
+              # Assign provided there be any reification on the left.
               nqp::if(
-                ($rhs-done || ($rhs-done =
-                  nqp::eqaddr(($v := rhs-iter.pull-one),IterationEnd))),
-                nqp::push(cv,Nil),
-                nqp::push(cv,nqp::decont($v)),
-              )
-            ),
-            nqp::if(        # Whatever: skip assigning value
-              nqp::istype($c,Whatever),
-              nqp::if(
-                (nqp::not_i($rhs-done)
-                  && nqp::eqaddr(rhs-iter.pull-one,IterationEnd)),
-                ($rhs-done = 1)
-              ),
-              nqp::if(      # List splice into current lhs
-                (nqp::istype($c,List) && nqp::not_i(nqp::istype($c,Array))),
+                nqp::elems($!target),
                 nqp::stmts(
-                  ($sub-iter := $c.iterator),
-                  nqp::until(
-                    nqp::eqaddr(($sc := $sub-iter.pull-one),IterationEnd),
-                    nqp::stmts(
-                      nqp::push(cv,$sc);
+                  # Skip past any intermediate Whatever.
+                  nqp::while(
+                    (nqp::istype_nd((my $lhs := nqp::shift($!target)),Whatever)
+                       && nqp::elems($!target)),
+                    (self.view-one)),
+                  # Continue past any terminating Whatever.
+                  nqp::if(
+                    nqp::istype_nd($lhs,Whatever),
+                    (self.view-one),
+                    nqp::if(
+                      # $ (Scalar | Proxy) takes its special assignment.
+                      # Let RO containers fail their assignment on this branch.
+                      nqp::iscont($lhs),
                       nqp::if(
-                        ($rhs-done = nqp::eqaddr(
-                          ($v := rhs-iter.pull-one),IterationEnd
-                        )),
-                        nqp::push(cv,Nil),
-                        nqp::push(cv,nqp::decont($v))
-                      )
-                    )
-                  )
-                ),
-                nqp::stmts( # Non-container: store entire remaining rhs
-                  nqp::push(cv,$c),
-                  nqp::push(cv,List.from-iterator(rhs-iter)),
-                  ($rhs-done = 1)
-                )
-              )
-            )
-          )
-        );
+                        nqp::eqaddr((my $rhs := self.view-one),IterationEnd),
+                        nqp::stmts(
+                          ($!target := nqp::null()),
+                          IterationEnd),
+                        ($lhs = $rhs)),
+                      # Everything else takes a generic STORE given a List.
+                      # This List behaves like a sink for our source.
+                      # This sink consumes all values given a lazy iteration.
+                      # This sink must make a STORE on a positional slice valid.
+                      # This sink must eagerly reify any known length of list.
+                      # Iterations can continue past this point! Take no more.
+                      # Perl6::Actions depends on us not sinking afterwards.
+                      nqp::stmts(
+                        ($rhs := List.from-iterator: $!source),
+                        nqp::splice(nqp::getattr($rhs,List,'$!reified'),$!vision,0,0),
+                        ($lhs.STORE: $rhs),
+                        nqp::splice(
+                          $!vision,
+                          (my constant EMPTY = nqp::list),
+                          0,
+                          ($lhs.elems // nqp::elems($!vision))),
+                        nqp::if(
+                          ($lhs.is-lazy),
+                          ($!target := nqp::null())),
+                        $lhs)))),
+                # We once had assignments, but not anymore; terminate.
+                IterationEnd),
+              # Bind when we run out of reified assignments to make.
+              (self.view-one))
+        }
 
-        # Second pass, perform the assignments.
-        nqp::shift(cv) = nqp::shift(cv) while nqp::elems(cv);
+        # Pulls a value from the future specifically.
+        method view-one(::?CLASS:D:) is raw {
+            nqp::if(
+              nqp::elems($!vision),
+              nqp::shift($!vision),
+              ($!source.pull-one))
+        }
 
+        method is-lazy(::?CLASS:D: --> Bool:D) {
+            # We are lazy if the RHS is bindable and lazy.
+            nqp::not_i(nqp::isconcrete($!target) && nqp::isge_i(nqp::elems($!vision),nqp::elems($!target)))
+              ?& $!source.is-lazy
+        }
+
+        method is-deterministic(::?CLASS:D: --> Bool:D) {
+            # We are deterministic if the RHS is bindable yet deterministic.
+            (nqp::isconcrete($!target) ?& nqp::isge_i(nqp::elems($!vision),nqp::elems($!target)))
+              or $!source.is-deterministic
+        }
+    }
+
+    # Store in list targets containers with in the list. This handles list
+    # assignments, like ($a, $b) = foo().
+    #
+    # FIXME: IterationEnd as input truncates!
+    proto method STORE(List:D: |) {*}
+    multi method STORE(List:D: Iterable:D $iterable;; :$INITIALIZE --> List:D) {
+        $!todo.reify-until-lazy if nqp::isconcrete($!todo);
+        my $iterator := $iterable.iterator;
+        my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! Structure.new: self, $iterator;
+        $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
+        $!todo := nqp::getattr($copy,$?CLASS,'$!todo');
+        $!todo := nqp::null() if $!todo.reify-until-lazy =:= IterationEnd;
         self
     }
-    multi method STORE(List:D: Mu \item --> List:D) {
-        self.STORE((item,));
+    multi method STORE(List:D: Iterable:D $item is rw;; :$INITIALIZE --> List:D) {
+        $!todo.reify-until-lazy if nqp::isconcrete($!todo);
+        my $iterator := Rakudo::Iterator.OneValue: $item;
+        my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! Structure.new: self, $iterator;
+        $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
+        $!todo := nqp::getattr($copy,$?CLASS,'$!todo');
+        $!todo := nqp::null() if $!todo.reify-until-lazy =:= IterationEnd;
+        self
+    }
+    multi method STORE(List:D: Mu $item is raw;; :$INITIALIZE --> List:D) {
+        $!todo.reify-until-lazy if nqp::isconcrete($!todo);
+        my $iterator := Rakudo::Iterator.OneValue: $item;
+        my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! Structure.new: self, $iterator;
+        $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
+        $!todo := nqp::getattr($copy,$?CLASS,'$!todo');
+        $!todo := nqp::null() if $!todo.reify-until-lazy =:= IterationEnd;
+        self
     }
 
     multi method gist(List:D: --> Str:D) {

@@ -1418,7 +1418,7 @@ class Perl6::World is HLL::World {
     method current_distribution() {
         unless nqp::isconcrete($!distribution) || nqp::isnull($!distribution) {
             my $distribution := nqp::null();
-            unless $*COMPILING_CORE_SETTING || nqp::getenvhash<RAKUDO_INSTALL_STAGING> {
+            unless $*COMPILING_CORE_SETTING || nqp::getenvhash<RAKUDO_NO_PRECOMP_DIST> {
                 # If this compunit is an EVALed code then its calling context must have the distribution object already
                 $distribution :=
                     $*INSIDE-EVAL && nqp::isconcrete(%*COMPILING<%?OPTIONS><outer_ctx>)

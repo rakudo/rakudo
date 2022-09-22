@@ -1,4 +1,4 @@
-BEGIN %*ENV<RAKUDO_INSTALL_STAGING> = 1;
+BEGIN %*ENV<RAKUDO_NO_PRECOMP_DIST> = 1;
 my constant Staging = "lib/CompUnit/Repository/Staging.rakumod".IO.slurp.EVAL;
 
 my %provides =

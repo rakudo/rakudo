@@ -72,6 +72,11 @@ my class Exception {
         nqp::setpayload($!ex, self);
         nqp::rethrow($!ex)
     }
+    method warn(Exception:D:) {
+        nqp::setmessage($!ex, nqp::unbox_s(self.message));
+        nqp::setextype($!ex, nqp::const::CONTROL_WARN);
+        nqp::rethrow($!ex);
+    }
 
     method !maybe-set-control(--> Nil) {
         if nqp::istype(self, X::Control) {

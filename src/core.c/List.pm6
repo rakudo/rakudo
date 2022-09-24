@@ -881,16 +881,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     #
     # FIXME: IterationEnd as input truncates!
     proto method STORE(List:D: |) {*}
-    multi method STORE(List:D: Iterable:D $iterable;; :$INITIALIZE --> List:D) {
-        my $iterator := $iterable.iterator;
-        my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! StructuredIterator.new: self, $iterator;
-        $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
-        $!todo := nqp::getattr($copy,$?CLASS,'$!todo');
-        $!todo := nqp::null() if $!todo.reify-until-lazy =:= IterationEnd;
-        self
-    }
-    multi method STORE(List:D: Iterable:D $item is rw;; :$INITIALIZE --> List:D) {
-        my $iterator := Rakudo::Iterator.OneValue: $item;
+    multi method STORE(List:D: Iterable:D $iterable is raw;; :$INITIALIZE --> List:D) {
+        my $iterator := nqp::iscont($iterable) ?? Rakudo::Iterator.OneValue($iterable) !! $iterable.iterator;
         my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! StructuredIterator.new: self, $iterator;
         $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
         $!todo := nqp::getattr($copy,$?CLASS,'$!todo');

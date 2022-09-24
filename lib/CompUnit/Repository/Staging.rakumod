@@ -91,7 +91,6 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
     }
     method remove-artifacts(CompUnit::Repository::Staging:D: --> Nil) {
         my $io := self.prefix;
-        really-unlink($io.child("version"));
         really-unlink(.IO) for Rakudo::Internals.DIR-RECURSE(
           $io.absolute, :file(*.ends-with(".lock"))
         );

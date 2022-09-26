@@ -878,8 +878,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     # Store in list targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
-    #
-    # FIXME: IterationEnd as input truncates!
     proto method STORE(List:D: |) {*}
     multi method STORE(List:D: Iterable:D $iterable is raw;; :$INITIALIZE --> List:D) {
         my $iterator := nqp::iscont($iterable) ?? Rakudo::Iterator.OneValue($iterable) !! $iterable.iterator;

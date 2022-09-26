@@ -886,7 +886,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! StructuredIterator.new: self, $iterator;
         $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
         $!todo := nqp::getattr($copy,$?CLASS,'$!todo');
-        $!todo := nqp::null() if $!todo.reify-until-lazy =:= IterationEnd;
+        $!todo.reify-until-lazy;
+        $!todo := nqp::null() if $!todo.fully-reified;
         self
     }
     multi method STORE(List:D: Mu $item is raw;; :$INITIALIZE --> List:D) {
@@ -894,7 +895,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! StructuredIterator.new: self, $iterator;
         $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
         $!todo := nqp::getattr($copy,$?CLASS,'$!todo');
-        $!todo := nqp::null() if $!todo.reify-until-lazy =:= IterationEnd;
+        $!todo.reify-until-lazy;
+        $!todo := nqp::null() if $!todo.fully-reified;
         self
     }
 

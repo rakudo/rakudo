@@ -206,14 +206,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method make-iterator(List:D: Iterator $iter --> List:D) {
         $!todo := nqp::create(Reifier);
-        $!reified := nqp::bindattr($!todo,Reifier,'$!reified',
-          nqp::bindattr($!todo,Reifier,'$!reification-target',
-            nqp::create(IterationBuffer)));
         nqp::bindattr($!todo,Reifier,'$!current-iter',$iter);
-        $!todo.reify-until-lazy;
-        $!todo.fully-reified
-          ?? nqp::p6bindattrinvres(self,$?CLASS,'$!todo',nqp::null())
-          !! self
+        nqp::p6bindattrinvres(self,$?CLASS,'$!reified',
+          nqp::bindattr($!todo,Reifier,'$!reified',
+            nqp::bindattr($!todo,Reifier,'$!reification-target',
+              nqp::create(IterationBuffer))))
     }
 
     method from-slurpy(|) {
@@ -893,11 +890,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     proto method STORE(List:D: |) {*}
     multi method STORE(List:D: Iterable:D $iterable is raw;; :$INITIALIZE --> List:D) {
         my $iter := nqp::iscont($iterable) ?? Rakudo::Iterator.OneValue($iterable) !! $iterable.iterator;
-        self.make-iterator: $INITIALIZE ?? $iter !! StructuredIterator.new: self, $iter
+        self.make-iterator($INITIALIZE ?? $iter !! StructuredIterator.new: self, $iter).imbue
     }
     multi method STORE(List:D: Mu $item is raw;; :$INITIALIZE --> List:D) {
         my $iter := Rakudo::Iterator.OneValue: $item;
-        self.make-iterator: $INITIALIZE ?? $iter !! StructuredIterator.new: self, $iter
+        self.make-iterator($INITIALIZE ?? $iter !! StructuredIterator.new: self, $iter).imbue
     }
 
     multi method gist(List:D: --> Str:D) {

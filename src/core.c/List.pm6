@@ -960,6 +960,22 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! Array.from-list(self)
     }
 
+    method imbue(List:D: --> List:D) {
+        nqp::stmts(
+          nqp::if(
+            nqp::isconcrete($!todo),
+            nqp::stmts(
+              $!todo.reify-until-lazy,
+              nqp::if(
+                $!todo.fully-reified,
+                ($!todo := nqp::null)
+              )
+            )
+          ),
+          self
+        )
+    }
+
     method eager(List:D: --> List:D) {
         nqp::stmts(
           nqp::if(

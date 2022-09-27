@@ -204,6 +204,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             $iter))
     }
 
+    method make-iterator(List:D: Iterator $iter --> List:D) {
+        $!todo := nqp::create(Reifier);
+        $!reified := nqp::bindattr($!todo,Reifier,'$!reified',
+          nqp::bindattr($!todo,Reifier,'$!reification-target',
+            nqp::create(IterationBuffer)));
+        nqp::bindattr($!todo,Reifier,'$!current-iter',$iter);
+        $!todo.reify-until-lazy;
+        $!todo.fully-reified
+          ?? nqp::p6bindattrinvres(self,$?CLASS,'$!todo',nqp::null())
+          !! self
+    }
+
     method from-slurpy(|) {
         my \result      := nqp::create(self);
         my Mu \vm-tuple := nqp::captureposarg(nqp::usecapture,1);
@@ -880,22 +892,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
     multi method STORE(List:D: Iterable:D $iterable is raw;; :$INITIALIZE --> List:D) {
-        my $iterator := nqp::iscont($iterable) ?? Rakudo::Iterator.OneValue($iterable) !! $iterable.iterator;
-        my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! StructuredIterator.new: self, $iterator;
-        $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
-        $!todo := nqp::getattr($copy,$?CLASS,'$!todo');
-        $!todo.reify-until-lazy;
-        $!todo := nqp::null() if $!todo.fully-reified;
-        self
+        my $iter := nqp::iscont($iterable) ?? Rakudo::Iterator.OneValue($iterable) !! $iterable.iterator;
+        self.make-iterator: $INITIALIZE ?? $iter !! StructuredIterator.new: self, $iter
     }
     multi method STORE(List:D: Mu $item is raw;; :$INITIALIZE --> List:D) {
-        my $iterator := Rakudo::Iterator.OneValue: $item;
-        my $copy := self.over-iterator: $INITIALIZE ?? $iterator !! StructuredIterator.new: self, $iterator;
-        $!reified := nqp::getattr($copy,$?CLASS,'$!reified');
-        $!todo := nqp::getattr($copy,$?CLASS,'$!todo');
-        $!todo.reify-until-lazy;
-        $!todo := nqp::null() if $!todo.fully-reified;
-        self
+        my $iter := Rakudo::Iterator.OneValue: $item;
+        self.make-iterator: $INITIALIZE ?? $iter !! StructuredIterator.new: self, $iter
     }
 
     multi method gist(List:D: --> Str:D) {

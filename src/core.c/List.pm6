@@ -177,34 +177,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method from-iterator(List:U: Iterator $iter --> List:D) {
-        my \buffer := nqp::create(IterationBuffer);
-        nqp::bindattr(
-          (my \result := nqp::create(self)),List,'$!reified',buffer);
-        nqp::bindattr(
-          (my \todo := nqp::create(Reifier)),Reifier,'$!reified',buffer);
-        nqp::bindattr(todo,Reifier,'$!current-iter',$iter);
-
-        # since Array has its own from-iterator, we don't need to
-        # call reification-target, because it is the same as buffer
-        nqp::bindattr(todo,Reifier,'$!reification-target',buffer);
-        nqp::p6bindattrinvres(result,List,'$!todo',todo)
+        nqp::create(self).make-iterator($iter)
     }
 
     method over-iterator(List:D: Iterator $iter --> List:D) {
         # from-iterator only copies type-level information; here we copy
         # everything bar the elements (e.g. container descriptors, shapes)
-        my \result := nqp::clone(self);
-        my \todo := nqp::create(Reifier);
-        nqp::bindattr(result,$?CLASS,'$!reified',
-          nqp::bindattr(todo,Reifier,'$!reified',
-            nqp::bindattr(todo,Reifier,'$!reification-target',
-              nqp::create(IterationBuffer))));
-        nqp::p6bindattrinvres(result,$?CLASS,'$!todo',
-          nqp::p6bindattrinvres(todo,Reifier,'$!current-iter',
-            $iter))
+        nqp::clone(self).make-iterator($iter)
     }
 
     method make-iterator(List:D: Iterator $iter --> List:D) {
+        # since Array has its own make-iterator, we don't need to call
+        # reification-target, because it is our reification buffer.
         $!todo := nqp::create(Reifier);
         nqp::bindattr($!todo,Reifier,'$!current-iter',$iter);
         nqp::p6bindattrinvres(self,$?CLASS,'$!reified',

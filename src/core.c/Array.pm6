@@ -181,31 +181,6 @@ my class Array { # declared in BOOTSTRAP
                )
             !! Rakudo::Iterator.Empty            # nothing now or in the future
     }
-    method from-iterator(Array:U: Iterator $iter --> Array:D) {
-        nqp::if(
-          nqp::eqaddr(
-            $iter.push-until-lazy(
-              my \target := ArrayReificationTarget.new(
-                (my \buffer := nqp::create(IterationBuffer)),
-                BEGIN nqp::getcurhllsym('default_cont_spec')
-              )
-            ),
-            IterationEnd
-          ),
-          nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',buffer),
-          nqp::stmts(
-            nqp::bindattr((my \result := nqp::create(self)),
-              List,'$!reified',buffer),
-            nqp::bindattr((my \todo := nqp::create(List::Reifier)),
-              List::Reifier,'$!current-iter',$iter),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reified',buffer),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reification-target',target),
-            nqp::p6bindattrinvres(result,List,'$!todo',todo)
-          )
-        )
-    }
     method make-iterator(Array:D: Iterator $iter --> Array:D) {
         my $todo := nqp::create(List::Reifier);
         nqp::bindattr($todo,List::Reifier,'$!current-iter',$iter);

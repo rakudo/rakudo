@@ -734,6 +734,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     my class StructuredBuffer is IterationBuffer is repr<VMArray> {
         my constant EMPTY = nqp::list();
 
+        constant Shift = nqp::create(Mu);
+
         method new(::?CLASS: List:D $list) {
             nqp::if(
               nqp::isconcrete((my $reified := nqp::getattr(nqp::decont($list),List,'$!reified'))),
@@ -771,28 +773,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                     nqp::splice(self,EMPTY,0,$cursor),
                     nqp::splice($vision,EMPTY,0,$cursor))),
                 # Continue past any terminating Whatever.
-                (self.assign-from: $vision, $source)),
+                nqp::if(
+                  nqp::elems(self),
+                  (assign nqp::shift(self), $vision, $source),
+                  IterationEnd)),
               # Bind one.
-              nqp::if(
-                nqp::elems($vision),
-                nqp::shift($vision),
-                ($source.pull-one)))
-        }
-
-        method assign-from(::?CLASS: $vision is raw, Iterator:D $source) is raw {
-            nqp::if(
-              nqp::isconcrete(self),
-              # Assign provided there be any reification on the LHS.
-              # Should we have had any, but not anymore, terminate.
-              nqp::if(
-                nqp::elems(self),
-                (assign nqp::shift(self), $vision, $source),
-                IterationEnd),
-              # Bind one.
-              nqp::if(
-                nqp::elems($vision),
-                nqp::shift($vision),
-                ($source.pull-one)))
+              Shift)
         }
 
         only assign(Mu $lhs is raw, $vision is raw, Iterator:D $source) is pure is raw {
@@ -823,51 +809,55 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::splice($vision,EMPTY,0,($lhs.elems // nqp::elems($vision))),
                 $lhs))
         }
-
-        method completes(::?CLASS: $vision is raw --> Bool:D) {
-            so nqp::isconcrete(self) && nqp::isle_i(nqp::elems(self),nqp::elems($vision))
-        }
-    }
-
-    my class StructuredIterator does Iterator {
-        # nqp-ish (lies about its types for haste)
-        has $!target is required; # StructuredBuffer:D
-        has $!vision is required; # IterationBuffer:D
-        has $!source is required; # Iterator:D
-
-        method new(::?CLASS: List:D $target, Iterator:D $source) {
-            nqp::create(self)!SET-SELF($target, $source)
-        }
-        method !SET-SELF(::?CLASS: $target, $source) { # new guards on type; trust nqp
-            $!target := StructuredBuffer.new: $target;
-            $!vision := $!target.project: $source;
-            $!source := $source;
-            self
-        }
-
-        method pull-one(::?CLASS:D:) is raw {
-            $!target.destructure-from: $!vision, $!source
-        }
-
-        method is-lazy(::?CLASS:D: --> Bool:D) {
-            $!target.completes($!vision).not && $!source.is-lazy
-        }
-
-        method is-deterministic(::?CLASS:D: --> Bool:D) {
-            $!target.completes($!vision) || $!source.is-deterministic
-        }
     }
 
     # Store in list targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
     multi method STORE(List:D: Iterable:D $iterable is raw;; :$INITIALIZE --> List:D) {
-        my $iter := nqp::iscont($iterable) ?? Rakudo::Iterator.OneValue($iterable) !! $iterable.iterator;
-        self.make-iterator($INITIALIZE ?? $iter !! StructuredIterator.new: self, $iter).imbue
+        $!reified := nqp::null() if $INITIALIZE;
+        nqp::iscont($iterable) ?? (self.make-itemized: $iterable) !! (self.make-iterable: $iterable)
     }
     multi method STORE(List:D: Mu $item is raw;; :$INITIALIZE --> List:D) {
-        my $iter := Rakudo::Iterator.OneValue: $item;
-        self.make-iterator($INITIALIZE ?? $iter !! StructuredIterator.new: self, $iter).imbue
+        $!reified := nqp::null() if $INITIALIZE;
+        self.make-itemized: $item
+    }
+
+    method make-itemized(List:D: Mu $item is raw --> List:D) {
+        nqp::if(
+          (nqp::isconcrete($!reified) && nqp::elems($!reified)),
+          nqp::push((my $target := nqp::create(StructuredBuffer)),nqp::atpos($!reified,0)),
+          ($target := StructuredBuffer));
+        nqp::push(($!reified := nqp::create(IterationBuffer)),nqp::decont($item));
+        nqp::if(
+          nqp::eqaddr(
+            (my $result := $target.destructure-from: $!reified, Rakudo::Iterator.Empty),
+            StructuredBuffer::Shift),
+          nqp::bindpos($!reified,0,$item),
+          nqp::bindpos($!reified,0,$result));
+        nqp::p6bindattrinvres(self,$?CLASS,'$!todo',nqp::null())
+    }
+
+    method make-iterable(List:D: Mu $iterable --> List:D) {
+        my $target := StructuredBuffer.new: self;
+        my $source := $iterable.iterator;
+        my $vision := $target.project: $source;
+        $!reified := nqp::create(IterationBuffer);
+        nqp::until(
+          (nqp::eqaddr((my $result := $target.destructure-from: $vision, $source),StructuredBuffer::Shift)
+            || nqp::eqaddr($result,IterationEnd)),
+          nqp::push($!reified,$result));
+        nqp::splice($!reified,$vision,nqp::elems($!reified),0);
+        nqp::if(
+          (nqp::eqaddr($result,IterationEnd)
+            || nqp::eqaddr(($source.push-until-lazy: $!reified),IterationEnd)),
+          nqp::p6bindattrinvres(self,$?CLASS,'$!todo',nqp::null()),
+          nqp::stmts(
+            nqp::bindattr((my $todo := nqp::create(Reifier)),Reifier,'$!current-iter',$source),
+            nqp::p6bindattrinvres(self,$?CLASS,'$!todo',
+              nqp::p6bindattrinvres($todo,Reifier,'$!reified',
+                nqp::bindattr($todo,Reifier,'$!reification-target',
+                  $!reified)))))
     }
 
     multi method gist(List:D: --> Str:D) {

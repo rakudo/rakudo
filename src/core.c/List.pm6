@@ -344,21 +344,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method new(List: **@things is raw --> List:D) {
-        nqp::p6bindattrinvres(
-          nqp::create(self),
-          List,
-          '$!reified',
-          nqp::if(
-            @things.elems,  # reifies
-            nqp::splice(
-              nqp::create(IterationBuffer),
-              nqp::getattr(@things,List,'$!reified'),
-              0,
-              0
-            ),
-            nqp::create(IterationBuffer),
-          )
-        )
+        nqp::eqaddr(self.WHAT,$?CLASS)
+          ?? @things.imbue # it is List and we are it lol
+          !! nqp::create(self).STORE(@things, :INITIALIZE)
     }
 
     multi method Bool(List:D: --> Bool:D) {

@@ -181,6 +181,10 @@ my class Array { # declared in BOOTSTRAP
                )
             !! Rakudo::Iterator.Empty            # nothing now or in the future
     }
+    method over-iterator(Array:D: Iterator $iter --> Array:D) {
+        my $result := nqp::create(self).make-iterator($iter);
+        nqp::p6bindattrinvres($result,$?CLASS,'$!descriptor',$!descriptor)
+    }
     method make-iterator(Array:D: Iterator $iter --> Array:D) {
         my $todo := nqp::create(List::Reifier);
         nqp::bindattr($todo,List::Reifier,'$!current-iter',$iter);

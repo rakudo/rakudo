@@ -182,8 +182,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method over-iterator(List:D: Iterator $iter --> List:D) {
         # from-iterator only copies type-level information; here we copy
-        # everything bar the elements (e.g. container descriptors, shapes)
-        nqp::clone(self).make-iterator($iter)
+        # everything bar the elements (e.g. container descriptors, shapes).
+        # List has none of these, so this is just a List:D from-iterator.
+        nqp::create(self).make-iterator($iter)
     }
 
     method make-iterator(List:D: Iterator $iter --> List:D) {

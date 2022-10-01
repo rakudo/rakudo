@@ -254,61 +254,40 @@ my class Array { # declared in BOOTSTRAP
     }
 
     proto method STORE(Array:D: |) {*}
-    multi method STORE(Array:D: Iterable:D \iterable --> Array:D) {
-        $!descriptor := $!descriptor.next
-            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
-        my \buffer = nqp::create(IterationBuffer);
+    multi method STORE(Array:D: Iterable:D $iterable is raw --> Array:D) {
         nqp::if(
-          nqp::iscont(iterable),
-          nqp::stmts(                          # only a single element
-            nqp::push(
-              buffer,
-              nqp::p6scalarwithvalue($!descriptor,iterable)
-            ),
-            nqp::bindattr(self,List,'$!todo',Mu)
-          ),
-          nqp::if(                             # a real iterator with N elems
-            nqp::eqaddr(
-              (my \iter = iterable.iterator).push-until-lazy(
-                (my \target = ArrayReificationTarget.new(
-                  buffer,nqp::decont($!descriptor)
-                ))
-              ),
-              IterationEnd
-            ),
-            nqp::bindattr(self,List,'$!todo',Mu),  # exhausted
-            nqp::stmts(                            # still left to do
-              nqp::bindattr(self,List,'$!todo',
-                my \todo = nqp::create(List::Reifier)),
-              nqp::bindattr(todo,List::Reifier,'$!reified',buffer),
-              nqp::bindattr(todo,List::Reifier,'$!current-iter',iter),
-              nqp::bindattr(todo,List::Reifier,'$!reification-target',target),
-            )
-          )
-        );
-        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+          nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute),
+          ($!descriptor := $!descriptor.next));
+        nqp::iscont($iterable) ?? (self.make-itemized: $iterable) !! (self.make-iterable: $iterable)
     }
-    multi method STORE(Array:D: QuantHash:D \qh --> Array:D) {
-        $!descriptor := $!descriptor.next
-            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
-        my \buffer = nqp::create(IterationBuffer);
-        nqp::iscont(qh)
-          ?? nqp::push(buffer,nqp::p6scalarwithvalue($!descriptor,qh))
-          !! qh.iterator.push-all(
-               ArrayReificationTarget.new(buffer,nqp::decont($!descriptor))
-             );
-        nqp::bindattr(self,List,'$!todo',Mu);  # exhausted
-        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+    multi method STORE(Array:D: Mu $item is raw --> Array:D) {
+        nqp::if(
+          nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute),
+          ($!descriptor := $!descriptor.next));
+        self.make-itemized: $item
     }
-    multi method STORE(Array:D: Mu \item --> Array:D) {
-        $!descriptor := $!descriptor.next
-            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
+
+    method make-itemized(Array:D: Mu $item is raw --> Array:D) {
         nqp::push(
-          (my \buffer = nqp::create(IterationBuffer)),
-          nqp::p6scalarwithvalue($!descriptor, item)
-        );
-        nqp::bindattr(self,List,'$!todo',Mu);
-        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+          (my $buffer := nqp::create(IterationBuffer)),
+          nqp::p6scalarwithvalue($!descriptor,$item));
+        nqp::bindattr(self,List,'$!todo',nqp::null());
+        nqp::p6bindattrinvres(self,List,'$!reified',$buffer)
+    }
+        
+    method make-iterable(Array:D: Mu $iterable --> Array:D) {
+        my $source := $iterable.iterator;
+        my $buffer := nqp::create(IterationBuffer);
+        my $target := ArrayReificationTarget.new: $buffer, $!descriptor;
+        nqp::bindattr(self,List,'$!todo',nqp::if(
+          nqp::eqaddr(($source.push-until-lazy: $target),IterationEnd),
+          nqp::null(),
+          nqp::stmts(
+            (my $todo := nqp::create(List::Reifier)),
+            nqp::bindattr($todo,List::Reifier,'$!current-iter',$source),
+            nqp::bindattr($todo,List::Reifier,'$!reified',$buffer),
+            nqp::p6bindattrinvres($todo,List::Reifier,'$!reification-target',$target))));
+        nqp::p6bindattrinvres(self,List,'$!reified',$buffer)
     }
 
     method reification-target(Array:D: --> ArrayReificationTarget:D) {

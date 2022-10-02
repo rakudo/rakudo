@@ -1,7 +1,7 @@
 $ENV{RAKUDO_HOME} = '@sq_escape(@base_dir@/gen/build_rakudo_home)@';
 
-@if(platform!=windows exec {'@java@'} ('@java@', '-Xss1m', '-Xms500m', '-Xmx3000m', '-cp', '@sq_escape(@classpath@)@', 'perl6', @ARGV);)@
-@if(platform==windows my $exit = system {'@java@'} ('@java@', '-Xss1m', '-Xms500m', '-Xmx3000m', '-cp', '@sq_escape(@classpath@)@', 'perl6', @ARGV);
+@if(platform!=windows exec {'@java@'} ('@java@', '-XX:+AggressiveHeap', '-XX:+AllowParallelDefineClass', '-cp', '@sq_escape(@classpath@)@', 'perl6', @ARGV);)@
+@if(platform==windows my $exit = system {'@java@'} ('@java@', '-XX:+AggressiveHeap', '-XX:+AllowParallelDefineClass', '-cp', '@sq_escape(@classpath@)@', 'perl6', @ARGV);
 if ($exit == -1) {
     print STDERR "Failed to execute: $!\n";
     exit(-2);

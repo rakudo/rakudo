@@ -8,11 +8,7 @@ multi sub circumfix:<[ ]>(Iterable:D \iterable) {
     nqp::if(
       nqp::iscont(iterable),
       Rakudo::Internals.Array-with-one-elem(Mu, iterable),
-      nqp::if(
-        nqp::istype(iterable,List) && nqp::isfalse(iterable.is-lazy),
-        Array.from-list(iterable),
-        Array.from-iterator(iterable.iterator)
-      )
+      Array.from-list(iterable)
     )
 }
 multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]

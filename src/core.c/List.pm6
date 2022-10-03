@@ -198,6 +198,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::create(IterationBuffer))))
     }
 
+    method from-list(List:U: Iterable:D $list --> List:D) {
+        # Unlike from-iterator, reify any eager segment of a list.
+        nqp::create(self).make-iterable($list)
+    }
+
     method from-slurpy(|) {
         my \result      := nqp::create(self);
         my Mu \vm-tuple := nqp::captureposarg(nqp::usecapture,1);
@@ -861,10 +866,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method Array(List:D: --> Array:D) {
-        # We need to populate the Array slots with Scalar containers
-        nqp::isconcrete($!todo)
-          ?? Array.from-iterator(self.iterator)
-          !! Array.from-list(self)
+        Array.from-list(self)
     }
 
     method imbue(List:D: --> List:D) {

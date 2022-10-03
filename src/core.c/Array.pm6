@@ -195,22 +195,9 @@ my class Array { # declared in BOOTSTRAP
           nqp::p6bindattrinvres($todo,List::Reifier,'$!reification-target',
             (self.reification-target)))
     }
-    method from-list(Array:U: Mu \list --> Array:D) {
-        my \params   := nqp::getattr(list,List,'$!reified');
-        my int $elems = list.elems;  # reifies
-        my int $i     = -1;
-        my \reified  := nqp::create(IterationBuffer);
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::bindpos(
-            reified, $i,
-            nqp::p6scalarwithvalue(
-              (BEGIN nqp::getcurhllsym('default_cont_spec')),
-              nqp::decont(nqp::atpos(params,$i))
-            )
-          )
-        );
-        nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',reified)
+    method from-list(Array:U: Iterable:D $list --> Array:D) {
+        # Lists like to be reified first in Array's case, so that we do.
+        nqp::create(self).make-iterable($list.imbue)
     }
 
     # handle non-straightforward shapes

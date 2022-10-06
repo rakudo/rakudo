@@ -1423,7 +1423,7 @@ multi sub prefix:<~>(Blob:D \a) {
 
 multi sub infix:<~>(Blob:D $a) { $a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
-    my $res := nqp::create(nqp::eqaddr($a.WHAT,$b.WHAT) ?? $a !! Buf.^pun);
+    my $res := nqp::create($a);
     my $adc := nqp::decont($a);
     my $bdc := nqp::decont($b);
     my int $alen = nqp::elems($adc);

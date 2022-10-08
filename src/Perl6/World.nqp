@@ -2065,8 +2065,8 @@ class Perl6::World is HLL::World {
         !$v-how.archetypes($v).coercive
         && (nqp::can($v-how, 'lang-rev-before') ?? $v-how.lang-rev-before($v, 'e') !! self.lang-rev-before('e'))
             ?? self.maybe-definite-how-base($v)
-            !! ($v.HOW.archetypes($v).nominalizable
-                ?? $v.HOW.nominalize($v)
+            !! ($v-how.archetypes($v).nominalizable
+                ?? $v-how.nominalize($v)
                 !! $v)
     }
 

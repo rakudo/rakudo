@@ -4953,7 +4953,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-10-08T21:06:55+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5191,13 +5191,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
-    my int $elems-a = nqp::elems(a);
-    my int $elems-b = nqp::elems(b);
-    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+    my uint $elems-a = nqp::elems(a);
+    my uint $elems-b = nqp::elems(b);
+    my uint $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
 
-    my int $i = -1;
+    my uint $i = -1;
     nqp::until(
-      nqp::isge_i(++$i,$elems)
+      nqp::isge_u(++$i,$elems)
         || (my $res = nqp::cmp_s(nqp::atpos_s(a,$i),nqp::atpos_s(b,$i))),
       nqp::null
     );
@@ -5208,7 +5208,7 @@ multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-10-08T21:06:55+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5446,13 +5446,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
-    my int $elems-a = nqp::elems(a);
-    my int $elems-b = nqp::elems(b);
-    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+    my uint $elems-a = nqp::elems(a);
+    my uint $elems-b = nqp::elems(b);
+    my uint $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
 
-    my int $i = -1;
+    my uint $i = -1;
     nqp::until(
-      nqp::isge_i(++$i,$elems)
+      nqp::isge_u(++$i,$elems)
         || (my $res = nqp::cmp_n(nqp::atpos_n(a,$i),nqp::atpos_n(b,$i))),
       nqp::null
     );
@@ -5463,7 +5463,7 @@ multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-10-08T21:06:55+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5701,13 +5701,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
-    my int $elems-a = nqp::elems(a);
-    my int $elems-b = nqp::elems(b);
-    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+    my uint $elems-a = nqp::elems(a);
+    my uint $elems-b = nqp::elems(b);
+    my uint $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
 
-    my int $i = -1;
+    my uint $i = -1;
     nqp::until(
-      nqp::isge_i(++$i,$elems)
+      nqp::isge_u(++$i,$elems)
         || (my $res = nqp::cmp_i(nqp::atpos_i(a,$i),nqp::atpos_i(b,$i))),
       nqp::null
     );
@@ -5718,7 +5718,7 @@ multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of postcircumfix candidates of uintarray -------------------------------
-#- Generated on 2022-04-20T21:09:40+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2022-10-08T21:06:55+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -5956,13 +5956,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub infix:<cmp>(array::uintarray:D \a, array::uintarray:D \b) {
-    my int $elems-a = nqp::elems(a);
-    my int $elems-b = nqp::elems(b);
-    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+    my uint $elems-a = nqp::elems(a);
+    my uint $elems-b = nqp::elems(b);
+    my uint $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
 
-    my int $i = -1;
+    my uint $i = -1;
     nqp::until(
-      nqp::isge_i(++$i,$elems)
+      nqp::isge_u(++$i,$elems)
         || (my $res = nqp::cmp_i(nqp::atpos_u(a,$i),nqp::atpos_u(b,$i))),
       nqp::null
     );

@@ -321,13 +321,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub infix:<cmp>(array::#type#array:D \a, array::#type#array:D \b) {
-    my int $elems-a = nqp::elems(a);
-    my int $elems-b = nqp::elems(b);
-    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+    my uint $elems-a = nqp::elems(a);
+    my uint $elems-b = nqp::elems(b);
+    my uint $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
 
-    my int $i = -1;
+    my uint $i = -1;
     nqp::until(
-      nqp::isge_i(++$i,$elems)
+      nqp::isge_u(++$i,$elems)
         || (my $res = nqp::cmp_#postfix_cmp#(nqp::atpos_#postfix#(a,$i),nqp::atpos_#postfix#(b,$i))),
       nqp::null
     );

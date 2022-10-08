@@ -415,7 +415,13 @@ multi sub infix:<==>(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::iseq_i($a,$b))
 }
 multi sub infix:<==>(uint $a, uint $b --> Bool:D) {
-    nqp::hllbool(nqp::iseq_i($a,$b))
+    nqp::hllbool(nqp::iseq_u($a,$b))
+}
+multi sub infix:<==>(int $a, uint $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_i($a,0) && nqp::iseq_u($a,$b))
+}
+multi sub infix:<==>(uint $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_i($b,0) && nqp::iseq_u($a,$b))
 }
 
 multi sub infix:<!=>(Int:D $a, Int:D $b --> Bool:D) {
@@ -425,7 +431,13 @@ multi sub infix:<!=>(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::isne_i($a,$b))
 }
 multi sub infix:<!=>(uint $a, uint $b --> Bool:D) {
-    nqp::hllbool(nqp::isne_i($a,$b))
+    nqp::hllbool(nqp::isne_u($a,$b))
+}
+multi sub infix:<!=>(int $a, uint $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_i($a,0) && nqp::isne_u($a,$b))
+}
+multi sub infix:<!=>(uint $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_i($b,0) && nqp::isne_u($a,$b))
 }
 
 multi sub infix:«<»(Int:D $a, Int:D $b --> Bool:D) {
@@ -435,7 +447,13 @@ multi sub infix:«<»(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::islt_i($a,$b))
 }
 multi sub infix:«<»(uint $a, uint $b --> Bool:D) {
-    nqp::hllbool(nqp::islt_i($a,$b))
+    nqp::hllbool(nqp::islt_u($a,$b))
+}
+multi sub infix:«<»(int $a, uint $b --> Bool:D) {
+    nqp::hllbool(nqp::islt_i($a,0) || nqp::islt_u($a,$b))
+}
+multi sub infix:«<»(uint $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_i($b,0) && nqp::islt_u($a,$b))
 }
 
 multi sub infix:«<=»(Int:D $a, Int:D $b --> Bool:D) {
@@ -445,7 +463,13 @@ multi sub infix:«<=»(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::isle_i($a,$b))
 }
 multi sub infix:«<=»(uint $a, uint $b --> Bool:D) {
-    nqp::hllbool(nqp::isle_i($a,$b))
+    nqp::hllbool(nqp::isle_u($a,$b))
+}
+multi sub infix:«<=»(int $a, uint $b --> Bool:D) {
+    nqp::hllbool(nqp::isle_i($a,0) || nqp::isle_u($a,$b))
+}
+multi sub infix:«<=»(uint $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_i($b,0) && nqp::isle_u($a,$b))
 }
 
 multi sub infix:«>»(Int:D $a, Int:D $b --> Bool:D) {
@@ -455,7 +479,13 @@ multi sub infix:«>»(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::isgt_i($a,$b))
 }
 multi sub infix:«>»(uint $a, uint $b --> Bool:D) {
-    nqp::hllbool(nqp::isgt_i($a,$b))
+    nqp::hllbool(nqp::isgt_u($a,$b))
+}
+multi sub infix:«>»(int $a, uint $b --> Bool:D) {
+    nqp::hllbool(nqp::isgt_i($a,0) && nqp::isgt_u($a,$b))
+}
+multi sub infix:«>»(uint $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::islt_i($b,0) || nqp::isgt_u($a,$b))
 }
 
 multi sub infix:«>=»(Int:D $a, Int:D $b --> Bool:D) {
@@ -465,7 +495,13 @@ multi sub infix:«>=»(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::isge_i($a,$b))
 }
 multi sub infix:«>=»(uint $a, uint $b --> Bool:D) {
-    nqp::hllbool(nqp::isge_i($a,$b))
+    nqp::hllbool(nqp::isge_u($a,$b))
+}
+multi sub infix:«>=»(int $a, uint $b --> Bool:D) {
+    nqp::hllbool(nqp::isge_i($a,0) && nqp::isge_u($a,$b))
+}
+multi sub infix:«>=»(uint $a, int $b --> Bool:D) {
+    nqp::hllbool(nqp::isle_i($b,0) || nqp::isge_u($a,$b))
 }
 
 multi sub infix:<+|>(Int:D $a, Int:D $b --> Int:D) { nqp::bitor_I($a,$b,Int) }

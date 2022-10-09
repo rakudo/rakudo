@@ -3185,11 +3185,12 @@ class Rakudo::Iterator {
             $!size  = $size < 1 ?? 1 !! $size;
             $!step  = $step < 1 ?? 1 !! $step;
             $!pos   = -$!step;
-            $!todo  = 1 + ((nqp::chars($!str) - 1) div $!step);
-            $!todo  = $!todo - $!size + $!step unless $partial;
+            $!todo  = (
+              nqp::chars($!str) + $!step - ($partial ?? 1 !! $!size)
+            ) div $!step;
             $!todo  = $limit
               unless nqp::istype($limit,Whatever) || $limit > $!todo;
-            $!todo  = $!todo + 1;
+            ++$!todo;  # starting with --
             self
         }
         method new($string, $size, $limit, $step, $partial) {

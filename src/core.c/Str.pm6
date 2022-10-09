@@ -970,72 +970,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method comb(Str:D: --> Seq:D) { Seq.new(CombAll.new(self)) }
 
-    my class CombN does PredictiveIterator {
-        has str $!str;
-        has Mu  $!what;
-        has int $!size;
-        has int $!pos;
-        has int $!todo;
-        method !SET-SELF($string, $size, $limit) {
-            $!str   = $string;
-            $!what := $string.WHAT;
-            $!size  = $size < 1 ?? 1 !! $size;
-            $!pos   = -$!size;
-            $!todo  = 1 + ((nqp::chars($!str) - 1) div $!size);
-            $!todo  = $limit
-              unless nqp::istype($limit,Whatever) || $limit > $!todo;
-            $!todo  = $!todo + 1;
-            self
-        }
-        method new($string, $size, $limit) {
-            $string
-              ?? nqp::create(self)!SET-SELF($string, $size, $limit)
-              !! Rakudo::Iterator.Empty
-        }
-        method pull-one() {
-            --$!todo
-              ?? nqp::box_s(
-                   nqp::substr(                #?js: NFG
-                     $!str,
-                     ($!pos = nqp::add_i($!pos,$!size)),
-                     $!size
-                   ),
-                   $!what
-                 )
-              !! IterationEnd
-        }
-        method push-all(\target --> IterationEnd) {
-            my str $str   = $!str;
-            my int $todo  = $!todo;
-            my int $pos   = $!pos;
-            my int $size  = $!size;
-            my Mu  $what := $!what;
-
-            nqp::while(
-              --$todo,
-              target.push(
-                nqp::box_s(
-                  nqp::substr(                 #?js: NFG
-                    $str,
-                    ($pos = nqp::add_i($pos,$size)),
-                    $size
-                  ),
-                  $what
-                )
-              )
-            );
-            $!todo = 0;
-        }
-        method count-only(--> Int:D) {
-            nqp::sub_i($!todo,nqp::isgt_i($!todo,0))
-        }
-        method sink-all(--> IterationEnd) { $!pos = nqp::chars($!str) }
-    }
-
     multi method comb(Str:D: Int:D $size, $limit = * --> Seq:D) {
         $size <= 1 && (nqp::istype($limit,Whatever) || $limit == Inf)
           ?? self.comb
-          !! Seq.new(CombN.new(self, $size, $limit))
+          !! Seq.new:
+               Rakudo::Iterator.NGrams: self, $size, $limit, $size, True
     }
 
     my class CombPat does Iterator {

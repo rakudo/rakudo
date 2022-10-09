@@ -3168,6 +3168,71 @@ class Rakudo::Iterator {
     }
     method NextNValues(\iterator, \times) { NextNValues.new(iterator, times) }
 
+    # Return an iterator that will produce N-grams of a given string,
+    # essentially a superset of capabilities that is needed for .comb(N)
+    # in 6.d, with 6.e allowing full access to these capabilities with
+    # .comb(size => step, :partial)
+    my class NGrams does PredictiveIterator {
+        has str $!str;
+        has Mu  $!what;
+        has int $!size;
+        has int $!step;
+        has int $!pos;
+        has int $!todo;
+        method !SET-SELF($string, $size, $limit, $step, $partial) {
+            $!str   = $string;
+            $!what := $string.WHAT;
+            $!size  = $size < 1 ?? 1 !! $size;
+            $!step  = $step < 1 ?? 1 !! $step;
+            $!pos   = -$!step;
+            $!todo  = 1 + ((nqp::chars($!str) - 1) div $!step);
+            $!todo  = $!todo - $!size + $!step unless $partial;
+            $!todo  = $limit
+              unless nqp::istype($limit,Whatever) || $limit > $!todo;
+            $!todo  = $!todo + 1;
+            self
+        }
+        method new($string, $size, $limit, $step, $partial) {
+            $string
+              ?? nqp::create(self)!SET-SELF($string,$size,$limit,$step,$partial)
+              !! Rakudo::Iterator.Empty
+        }
+        method pull-one() {
+            --$!todo
+              ?? nqp::box_s(
+                   nqp::substr($!str,($!pos = $!pos + $!step),$!size),
+                   $!what
+                 )
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my str $str   = $!str;
+            my int $todo  = $!todo;
+            my int $pos   = $!pos;
+            my int $size  = $!size;
+            my int $step  = $!step;
+            my Mu  $what := $!what;
+
+            nqp::while(
+              --$todo,
+              target.push(
+                nqp::box_s(
+                  nqp::substr($str,($pos = $pos + $step),$size),
+                  $what
+                )
+              )
+            );
+            $!todo = 0;
+        }
+        method count-only(--> Int:D) {
+            nqp::sub_i($!todo,nqp::isgt_i($!todo,0))
+        }
+        method sink-all(--> IterationEnd) { $!pos = nqp::chars($!str) }
+    }
+    method NGrams($string, $size, $limit, $step, $partial) {
+        NGrams.new($string, $size, $limit, $step, $partial)
+    }
+
     # Return an iterator that only will return the given value once.
     # Basically the same as 42 xx 1.
     my class OneValue does PredictiveIterator {

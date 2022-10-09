@@ -100,13 +100,13 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
         multi method grep(#type#array:D: #Value#:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result    := nqp::create(IterationBuffer);
 
             if $k {
                 nqp::while(
-                  nqp::islt_u(++$i,$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$needle),
                     nqp::push($result,nqp::clone($i))
@@ -115,7 +115,7 @@ while @lines {
             }
             elsif $kv {
                 nqp::while(
-                  nqp::islt_u(++$i,$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$needle),
                     nqp::stmts(
@@ -127,7 +127,7 @@ while @lines {
             }
             elsif $p {
                 nqp::while(
-                  nqp::islt_u(++$i,$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$needle),
                     nqp::push($result,Pair.new($i,$needle))
@@ -136,7 +136,7 @@ while @lines {
             }
             else {
                 nqp::while(
-                  nqp::islt_u(++$i,$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::iseq_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$needle),
                     nqp::push($result,$needle)
@@ -153,11 +153,11 @@ while @lines {
             nqp::atpos_#postfix#(self,nqp::sub_i(nqp::elems(self),1))
         }
         multi method first(#type#array:D: #Value#:D $needle, :$k, :$kv, :$p, :$v) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
 
             nqp::while(
-              nqp::islt_u(++$i,$elems)
+              nqp::islt_i(++$i,$elems)
                 && nqp::isne_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$needle),
               nqp::null()
             );
@@ -174,13 +174,13 @@ while @lines {
         }
 
         multi method unique(#type#array:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_u(++$i,$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::unless(
                 nqp::existskey(
                   $seen,
@@ -199,13 +199,13 @@ while @lines {
         }
 
         multi method repeated(#type#array:D:) {
-            my uint $i     = -1;
+            my int  $i     = -1;
             my uint $elems = nqp::elems(self);
             my $result := nqp::create(array[self.of]);
             my $seen   := nqp::hash;
 
             nqp::while(
-              nqp::islt_u(++$i,$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::if(
                 nqp::existskey(
                   $seen,
@@ -222,13 +222,13 @@ while @lines {
         }
 
         multi method squish(#type#array:D:) {
-            if nqp::elems(self) -> uint $elems {
+            if nqp::elems(self) -> int $elems {
                 my $result  := nqp::create(array[self.of]);
                 my #type# $last = nqp::push_#push_postfix#($result,nqp::atpos_#postfix#(self,0));
                 my uint $i;
 
                 nqp::while(
-                  nqp::islt_u(++$i,$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isne_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$last),
                     nqp::push_#push_postfix#($result,$last = nqp::atpos_#postfix#(self,$i))
@@ -299,9 +299,9 @@ while @lines {
             my $reified   := nqp::getattr(values,List,'$!reified');
             nqp::setelems(self, $elems);
 
-            my uint $i = -1;
+            my int $i = -1;
             nqp::while(
-              nqp::islt_u(++$i,$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_#postfix#(self,$i,
                 nqp::if(
                   nqp::isnull(nqp::atpos($reified,$i)),
@@ -316,9 +316,9 @@ while @lines {
             my uint $elems = @values.elems;   # reifies
             nqp::setelems(self, $elems);
 
-            my uint $i = -1;
+            my int $i = -1;
             nqp::while(
-              nqp::islt_u(++$i,$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_#postfix#(self, $i,
                 nqp::unbox_#postfix#(@values.AT-POS($i)))
             );
@@ -409,7 +409,7 @@ while @lines {
                 :what('Offset argument to splice'), :$got, :range("0..$elems")
               ).Failure,
               nqp::if(
-                nqp::iseq_u($offset,$elems),
+                nqp::iseq_i($offset,$elems),
                 nqp::create(self.WHAT),
                 nqp::stmts(
                   (my $slice := nqp::slice(self,$offset,-1)),
@@ -499,7 +499,7 @@ while @lines {
                 (my uint $i),
                 (my #type# $min = nqp::atpos_#postfix#(self,0)),
                 nqp::while(
-                  nqp::islt_u(++$i,$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$min),
                     ($min = nqp::atpos_#postfix#(self,$i))
@@ -517,7 +517,7 @@ while @lines {
                 (my uint $i),
                 (my #type# $max = nqp::atpos_#postfix#(self,0)),
                 nqp::while(
-                  nqp::islt_u(++$i,$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::isgt_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$max),
                     ($max = nqp::atpos_#postfix#(self,$i))
@@ -536,7 +536,7 @@ while @lines {
                 (my #type# $min =
                   my #type# $max = nqp::atpos_#postfix#(self,0)),
                 nqp::while(
-                  nqp::islt_u(++$i,$elems),
+                  nqp::islt_i(++$i,$elems),
                   nqp::if(
                     nqp::islt_#iseq_postfix#(nqp::atpos_#postfix#(self,$i),$min),
                     ($min = nqp::atpos_#postfix#(self,$i)),
@@ -561,11 +561,11 @@ while @lines {
         method reverse(#type#array:D: --> #type#array:D) is nodal {
             nqp::stmts(
               (my uint $elems = nqp::elems(self)),
-              (my uint $last  = nqp::sub_i($elems,1)),
-              (my uint $i     = -1),
+              (my int $last   = nqp::sub_i($elems,1)),
+              (my int $i      = -1),
               (my $to := nqp::clone(self)),
               nqp::while(
-                nqp::islt_u(++$i,$elems),
+                nqp::islt_i(++$i,$elems),
                 nqp::bindpos_#postfix#($to,nqp::sub_i($last,$i),
                   nqp::atpos_#postfix#(self,$i))
               ),
@@ -573,16 +573,16 @@ while @lines {
             )
         }
         method rotate(#type#array:D: Int(Cool) $rotate = 1 --> #type#array:D) is nodal {
-            my uint $elems = nqp::elems(self);
+            my int $elems = nqp::elems(self);
             my $to := nqp::clone(self);
-            my uint $i = -1;
+            my int $i = -1;
             my int $j = nqp::mod_i(
               nqp::sub_i(nqp::sub_i($elems,1),$rotate),
               $elems
             );
             $j = nqp::add_i($j,$elems) if nqp::islt_i($j,0);
             nqp::while(
-              nqp::islt_u(++$i,$elems),
+              nqp::islt_i(++$i,$elems),
               nqp::bindpos_#postfix#(
                 $to,
                 ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
@@ -605,9 +605,9 @@ while @lines {
                     nqp::elems($other)
                   ),
                   nqp::stmts(
-                    (my uint $i = -1),
+                    (my int $i = -1),
                     nqp::while(
-                      nqp::islt_u(++$i,$elems)
+                      nqp::islt_i(++$i,$elems)
                         && nqp::iseq_#iseq_postfix#(
                              nqp::atpos_#postfix#(self,$i),
                              nqp::atpos_#postfix#($other,$i)

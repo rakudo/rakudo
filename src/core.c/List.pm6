@@ -731,86 +731,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
-    my class StructuredBuffer is IterationBuffer is repr<VMArray> {
-        my constant EMPTY = nqp::list();
-
-        constant Shift = nqp::create(Mu);
-
-        method new(::?CLASS: List:D $list) {
-            nqp::if(
-              nqp::isconcrete((my $reified := nqp::getattr(nqp::decont($list),List,'$!reified'))),
-              nqp::splice(nqp::create(self),$reified,0,0),
-              self.WHAT)
-        }
-
-        method project(::?CLASS: Iterator:D $source) {
-            # Eagerly decont elements for each reified element on the LHS.
-            # Required in order to handle ($a, $b) = ($b, $a).
-            # Must not process any more elements than the LHS is concerned with.
-            nqp::if(
-              (nqp::isconcrete(self) && nqp::elems(self)),
-              nqp::stmts(
-                ($source.push-exactly: (my $vision := nqp::create(IterationBuffer)), nqp::elems(self)),
-                nqp::while(
-                  nqp::islt_i((my uint $cursor),nqp::elems($vision)),
-                  nqp::bindpos($vision,$cursor,nqp::decont(nqp::atpos($vision,$cursor++)))),
-                $vision),
-              # Allocate something or other so we can take its elems faster.
-              nqp::create(IterationBuffer))
-        }
-
-        method destructure-from(::?CLASS: $vision is raw, Iterator:D $source) is raw {
-            nqp::if(
-              nqp::isconcrete(self),
-              # Skip past any intermediate Whatever.
-              nqp::stmts(
-                nqp::while(
-                  (nqp::elems(self) && nqp::istype_nd(nqp::atpos(self,(my uint $cursor)),Whatever)),
-                  ($cursor++)),
-                nqp::if(
-                  $cursor,
-                  nqp::stmts(
-                    nqp::splice(self,EMPTY,0,$cursor),
-                    nqp::splice($vision,EMPTY,0,$cursor))),
-                # Continue past any terminating Whatever.
-                nqp::if(
-                  nqp::elems(self),
-                  (assign nqp::shift(self), $vision, $source),
-                  IterationEnd)),
-              # Bind one.
-              Shift)
-        }
-
-        only assign(Mu $lhs is raw, $vision is raw, Iterator:D $source) is pure is raw {
-            nqp::if(
-              nqp::iscont($lhs),
-              # $ (Scalar | Proxy) takes its special assignment.
-              # Let RO containers fail their assignment on this branch.
-              nqp::if(
-                nqp::eqaddr((my $rhs := nqp::if(
-                  nqp::elems($vision),
-                  nqp::shift($vision),
-                  ($source.pull-one))),IterationEnd),
-                IterationEnd,
-                ($lhs = $rhs)),
-              # Everything else takes a generic STORE given a List.
-              # This List behaves like a sink for our source.
-              # This sink consumes all values given a lazy iteration.
-              # This sink must make a STORE on a positional slice valid.
-              # This sink must eagerly reify any known length of list.
-              # Iterations can continue past this point! Take no more.
-              # Perl6::Actions depends on us not sinking afterwards.
-              nqp::stmts(
-                ($rhs := List.from-iterator: $source),
-                nqp::if(
-                  nqp::elems($vision),
-                  nqp::splice(nqp::getattr($rhs,List,'$!reified'),$vision,0,0)),
-                ($lhs.STORE: $rhs),
-                nqp::splice($vision,EMPTY,0,($lhs.elems // nqp::elems($vision))),
-                $lhs))
-        }
-    }
-
     # Store in list targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
@@ -826,31 +746,19 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method make-itemized(List:D: Mu $item is raw --> List:D) {
         nqp::if(
           (nqp::isconcrete($!reified) && nqp::elems($!reified)),
-          nqp::push((my $target := nqp::create(StructuredBuffer)),nqp::atpos($!reified,0)),
-          ($target := StructuredBuffer));
-        nqp::push(($!reified := nqp::create(IterationBuffer)),nqp::decont($item));
-        nqp::if(
-          nqp::eqaddr(
-            (my $result := $target.destructure-from: $!reified, Rakudo::Iterator.Empty),
-            StructuredBuffer::Shift),
-          nqp::bindpos($!reified,0,$item),
-          nqp::bindpos($!reified,0,$result));
+          (destructure self, Rakudo::Iterator.OneValue: $item),
+          nqp::push(($!reified := nqp::create(IterationBuffer)),$item));
         nqp::p6bindattrinvres(self,$?CLASS,'$!todo',nqp::null())
     }
 
     method make-iterable(List:D: Mu $iterable --> List:D) {
-        my $target := StructuredBuffer.new: self;
         my $source := $iterable.iterator;
-        my $vision := $target.project: $source;
-        $!reified := nqp::create(IterationBuffer);
-        nqp::until(
-          (nqp::eqaddr((my $result := $target.destructure-from: $vision, $source),StructuredBuffer::Shift)
-            || nqp::eqaddr($result,IterationEnd)),
-          nqp::push($!reified,$result));
-        nqp::splice($!reified,$vision,nqp::elems($!reified),0);
         nqp::if(
-          (nqp::eqaddr($result,IterationEnd)
-            || nqp::eqaddr(($source.push-until-lazy: $!reified),IterationEnd)),
+          nqp::eqaddr(nqp::if(
+            (nqp::isconcrete($!reified) && nqp::elems($!reified)),
+            (destructure self, $source),
+            ($source.push-until-lazy: $!reified := nqp::create(IterationBuffer))
+          ),IterationEnd),
           nqp::p6bindattrinvres(self,$?CLASS,'$!todo',nqp::null()),
           nqp::stmts(
             nqp::bindattr((my $todo := nqp::create(Reifier)),Reifier,'$!current-iter',$source),
@@ -858,6 +766,45 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::p6bindattrinvres($todo,Reifier,'$!reified',
                 nqp::bindattr($todo,Reifier,'$!reification-target',
                   $!reified)))))
+    }
+
+    only destructure($self is raw, Iterator:D $source --> IterationEnd) {
+        my $target := nqp::getattr($self,List,'$!reified');
+        my $keeper := nqp::create(nqp::bootintarray());
+        my $assign := nqp::create(IterationBuffer);
+        nqp::repeat_while(
+          # Assuming we already have non-empty input, scan for some assignments.
+          nqp::islt_i((my uint $offset),nqp::elems($target)),
+          nqp::stmts(
+            # Overlook whatever at the head, ignore matching offsets on the RHS.
+            nqp::while(
+              nqp::istype_nd(nqp::atpos($target,$offset),Whatever),
+              nqp::stmts(($offset++),($source.skip-one))),
+            # When the LHS has an item, we push a decontainerized element from
+            # the RHS to its buffer, otherwise try for a STORE call on the LHS.
+            # Should we run out of sourced values to assign, truncate and bail.
+            nqp::if(
+              nqp::islt_i($offset,nqp::elems($target)),
+              nqp::if(
+                nqp::iscont((my $lhs := nqp::atpos($target,$offset))),
+                nqp::if(
+                  nqp::eqaddr((my $rhs := $source.pull-one),IterationEnd),
+                  ($offset = nqp::elems($target)),
+                  nqp::stmts(
+                    nqp::push($assign,nqp::decont($rhs)),
+                    nqp::push_i($keeper,$offset++))),
+                nqp::stmts(
+                  ($lhs.STORE: nqp::create(List).make-iterator($source)),
+                  nqp::push_i($keeper,$offset++))))));
+        # Reify the elements at the offsets kept, assigning to unhandled items.
+        my $result := nqp::create($target);
+        nqp::while(
+          nqp::elems($keeper),
+          nqp::if(
+            nqp::iscont(($lhs := nqp::atpos($target,nqp::shift_i($keeper)))),
+            nqp::push($result,($lhs = nqp::shift($assign))),
+            nqp::push($result,$lhs)));
+        nqp::bindattr($self,List,'$!reified',$result)
     }
 
     multi method gist(List:D: --> Str:D) {

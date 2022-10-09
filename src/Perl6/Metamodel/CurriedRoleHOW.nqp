@@ -164,7 +164,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                 $_);
         }
         for %!named_args {
-            %new_named{$_.key} := $_.value.HOW.archetypes($_).generic ??
+            %new_named{$_.key} := $_.value.HOW.archetypes($_.value).generic ??
                 $_.value.HOW.instantiate_generic($_.value, $type_env) !!
                 $_.value;
         }

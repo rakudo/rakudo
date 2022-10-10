@@ -1,13 +1,13 @@
 augment class Any {
     proto method snip(|) {*}
     multi method snip(Any:D: \condition) {
-        Seq.new: Rakudo::Iterator.Snip(condition, self.iterator)
+        Seq.new: Rakudo::Iterator.Snip(condition.iterator, self.iterator)
     }
     multi method snip(Any:D: @conditions) {
-        Seq.new: Rakudo::Iterator.Snip(@conditions, self.iterator)
+        Seq.new: Rakudo::Iterator.Snip(@conditions.iterator, self.iterator)
     }
     multi method snip(Any:D: *@conditions) {
-        Seq.new: Rakudo::Iterator.Snip(@conditions, self.iterator)
+        Seq.new: Rakudo::Iterator.Snip(@conditions.iterator, self.iterator)
     }
 
     multi method skip(Iterable:D $skips) {

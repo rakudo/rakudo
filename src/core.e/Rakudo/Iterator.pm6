@@ -3,48 +3,48 @@ augment class Rakudo::Iterator {
     # and one or Callables with conditions.  This is basically the
     # Haskell "span" functionality.
     my class Snip does Iterator {
-        has $!tests;
-        has $!iterator;
-        has $!next;
-        
-        method !SET-SELF(@tests, $iterator) {
-            $!tests    := nqp::getattr(@tests,List,'$!reified');
-            $!iterator := $iterator;
-            $!next     := $iterator.pull-one;
+        has $!tests;   # Iterator producing smartmatch targets
+        has $!values;  # Iterator producing values
+        has $!next;    # next value to produce between pull-one calls
+
+        method !SET-SELF($!tests, $!values) {
+            $!next := $!values.pull-one;
             self
         }
-        
-        method new(@tests, $iterator) {
-            nqp::create(self)!SET-SELF(@tests, $iterator)
+
+        method new($tests, $values) {
+            nqp::create(self)!SET-SELF($tests, $values)
         }
-        
+
         method pull-one() {
             if nqp::eqaddr($!next,IterationEnd) {
                 IterationEnd
             }
-            else { 
+            else {
                 my $buffer := nqp::create(IterationBuffer);
                 nqp::push($buffer,$!next);
-                
-                my $iterator := $!iterator;
+
+                my $values := $!values;
+                my $test;
                 my $pulled;
-                
-                if nqp::elems($!tests) {
-                    my $test := nqp::shift($!tests);
+
+                # no more tests, produce the rest
+                if nqp::eqaddr(($test := $!tests.pull-one),IterationEnd) {
                     nqp::until(
-                      nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd)
+                      nqp::eqaddr(($pulled := $values.pull-one),IterationEnd),
+                      nqp::push($buffer,$pulled)
+                    );
+                }
+
+                # produce matching this test
+                else {
+                    nqp::until(
+                      nqp::eqaddr(($pulled := $values.pull-one),IterationEnd)
                         || nqp::isfalse($test.ACCEPTS($pulled)),
                       nqp::push($buffer,$pulled)
                     );
-                
                 }
-                else {
-                    nqp::until(
-                      nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd),
-                      nqp::push($buffer,$pulled)
-                    );
-                }
-                
+
                 $!next := $pulled;
                 $buffer.List
             }
@@ -52,8 +52,9 @@ augment class Rakudo::Iterator {
     }
 
     proto method Snip(|) {*}
-    multi method Snip(\test,  $iterator) { Snip.new: (test,), $iterator }
-    multi method Snip(@tests, $iterator) { Snip.new: @tests,  $iterator }
+    multi method Snip(Iterator:D $tests, Iterator:D $values) {
+        Snip.new: $tests, $values
+    }
 
     # Return an iterator that will skip / produce values as specified by
     # another iterator.

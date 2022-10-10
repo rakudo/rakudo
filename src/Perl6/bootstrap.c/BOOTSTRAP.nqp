@@ -4052,7 +4052,12 @@ nqp::sethllconfig('Raku', nqp::hash(
                     my $valid :=
                       !nqp::isnull($resultish)
                         && nqp::isconcrete($resultish)
+#?if jvm
+                        && nqp::hllizefor(nqp::decont($resultish),'Raku').defined;
+#?endif
+#?if !jvm
                         && $resultish.defined;
+#?endif
 
                     for @leaves -> $phaser {
                         CATCH { nqp::push(@exceptions, $_) }

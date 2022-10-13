@@ -222,6 +222,73 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         )
     }
 
+    # NOTE: This wraps should an iterator produce more elements than the shape
+    # can itself. Consider truncating input beforehand, e.g. via push-exactly.
+    my class RingShapedReificationTarget {
+        has $!framed;
+        has $!window;
+        has $!target;
+        has $!descriptor;
+
+        method new(::?CLASS: Mu $target is raw, Mu $descriptor is raw, List:D $shape --> ::?CLASS:D) {
+            nqp::bindattr((my $self := nqp::create(self)),$?CLASS,'$!descriptor',$descriptor);
+            nqp::bindattr($self,$?CLASS,'$!target',$target);
+            my $buffer := nqp::getattr($shape.eager,List,'$!reified');
+            my $framed := nqp::list_i();
+            my int $dim = nqp::elems($buffer);
+            nqp::while(($dim--),nqp::bindpos_i($framed,$dim,nqp::atpos($buffer,$dim)));
+            nqp::bindattr($self,$?CLASS,'$!window',nqp::setelems(nqp::list_i(),nqp::elems($framed)));
+            nqp::p6bindattrinvres($self,$?CLASS,'$!framed',$framed)
+        }
+
+        # Sanitizes the window, making it the target's next pushable offset.
+        # Expects an increment at the tail of the window to bump its offset.
+        method !unveil(::?CLASS:D: --> Nil) {
+            nqp::stmts(
+              (my int $marked = nqp::sub_i(nqp::elems($!window),1)),
+              nqp::while(
+                nqp::if(
+                  nqp::isge_i($marked,0),
+                  nqp::isge_i(
+                    nqp::atpos_i($!window,$marked),
+                    nqp::atpos_i($!framed,$marked))),
+                nqp::stmts(
+                  nqp::bindpos_i($!window,($marked--),0),
+                  nqp::if(
+                    nqp::isge_i($marked,0),
+                    nqp::bindpos_i($!window,$marked,
+                      nqp::add_i(nqp::atpos_i($!window,$marked),1))))));
+        }
+
+        method push(::?CLASS:D: Mu $value is raw --> Nil) {
+            nqp::stmts(
+              (self!unveil),
+              nqp::bindposnd($!target,$!window,
+                nqp::p6scalarwithvalue($!descriptor,$value)),
+              nqp::bindpos_i($!window,(my int $marked = nqp::sub_i(nqp::elems($!window),1)),
+                nqp::add_i(nqp::atpos_i($!window,$marked),1)))
+        }
+
+        method append(::?CLASS:D: Mu $buffer is raw --> Nil) {
+            nqp::while( # Lift the unshaped.
+              nqp::islt_i((my int $cursor),nqp::elems($buffer)),
+              nqp::stmts(
+                (self!unveil),
+                nqp::bindposnd($!target,$!window,
+                  nqp::p6scalarwithvalue($!descriptor,
+                    nqp::atpos($buffer,$cursor++))),
+                nqp::bindpos_i($!window,(my int $marked = nqp::sub_i(nqp::elems($!window),1)),
+                  nqp::add_i(nqp::atpos_i($!window,$marked),1))))
+        }
+    }
+
+    method reification-target(::?CLASS:D: --> RingShapedReificationTarget:D) {
+        RingShapedReificationTarget.new:
+            nqp::ifnull(nqp::getattr(self,List,'$!reified'),(self!RE-INITIALIZE)),
+            nqp::getattr(self,Array,'$!descriptor'),
+            $!shape
+    }
+
     my class MemCopy does Rakudo::Iterator::ShapeLeaf {
         has $!from;
         has $!desc;

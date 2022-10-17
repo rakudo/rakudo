@@ -472,7 +472,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     }
 
     multi method STORE(::?CLASS:D: Mu \item --> Nil) {
-        X::Assignment::ToShaped.new(shape => self.shape).throw
+        self.make-itemized: item
     }
 
     my class KV does Rakudo::Iterator::ShapeLeaf {

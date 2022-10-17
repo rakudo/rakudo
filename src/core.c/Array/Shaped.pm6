@@ -461,31 +461,9 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         self
     }
 
-    my class StoreIterator does Rakudo::Iterator::ShapeLeaf {
-        has Mu $!iterator;
-        has Mu $!desc;
-        method !INIT(\list,\iterator) {
-            $!iterator := iterator;
-            $!desc := nqp::getattr(list,Array,'$!descriptor');
-            self!SET-SELF(list)
-        }
-        method new(\list,\iter) { nqp::create(self)!INIT(list,iter) }
-        method result(--> Nil) {
-            nqp::unless(
-              nqp::eqaddr(
-                (my \pulled := $!iterator.pull-one),IterationEnd),
-              nqp::ifnull(
-                nqp::atposnd($!list,$!indices),
-                nqp::bindposnd($!list,$!indices,
-                  nqp::p6scalarfromdesc($!desc))
-              ) = pulled
-            )
-        }
-    }
     multi method STORE(::?CLASS:D: Iterator:D $iterator, :$INITIALIZE) {
         self!RE-INITIALIZE unless $INITIALIZE;
-        StoreIterator.new(self,$iterator).sink-all;
-        self
+        self.make-iterator: $iterator
     }
 
     multi method STORE(::?CLASS:D: Mu \item --> Nil) {

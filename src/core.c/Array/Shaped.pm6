@@ -289,6 +289,15 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
             $!shape
     }
 
+    method make-iterator(::?CLASS:D: Iterator:D $iterator --> ::?CLASS:D) {
+        nqp::unless(
+          (nqp::eqaddr(
+            ($iterator.push-exactly: self.reification-target, $!shape.reduce: * * *),
+            IterationEnd) || nqp::eqaddr(($iterator.pull-one),IterationEnd)),
+          (X::Assignment::ToShaped.new(:$!shape).throw));
+        self
+    }
+
     my class MemCopy does Rakudo::Iterator::ShapeLeaf {
         has $!from;
         has $!desc;

@@ -298,6 +298,11 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         self
     }
 
+    method make-itemized(::?CLASS:D: Mu $item is raw --> ::?CLASS:D) {
+        X::Assignment::ToShaped.new(:$!shape).throw;
+        self
+    }
+
     my class MemCopy does Rakudo::Iterator::ShapeLeaf {
         has $!from;
         has $!desc;

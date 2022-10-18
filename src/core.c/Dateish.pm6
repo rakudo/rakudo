@@ -23,21 +23,8 @@ my role Dateish {
         nqp::atpos_i($days-in-month,$month) ||
           ($month == 2 ?? 28 + IS-LEAP-YEAR($year) !! Nil );
     }
-
-    proto method days-in-month(|) {*}
-    multi method days-in-month(Dateish: Int:D $year, Int:D $month --> Int:D) {
-        self!DAYS-IN-MONTH($year,$month)
-    }
-    multi method days-in-month(Dateish:D: --> Int:D) {
+    method days-in-month(Dateish:D: --> Int:D) {
         self!DAYS-IN-MONTH($!year,$!month)
-    }
-
-    proto method days-in-year(|) {*}
-    multi method days-in-year(Dateish: Int:D $year --> Int:D) {
-        365 + IS-LEAP-YEAR($year)
-    }
-    multi method days-in-year(Dateish:D: --> Int:D) {
-        365 + IS-LEAP-YEAR($!year)
     }
 
     method !year-Str(--> Str:D) {

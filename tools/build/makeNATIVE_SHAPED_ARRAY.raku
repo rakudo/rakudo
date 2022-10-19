@@ -123,7 +123,7 @@ while @lines {
             method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
             method result(--> Nil) {
                 nqp::bindposnd_#postfix#($!list,$!indices,
-                  nqp::multidimref_#postfix#($!from,$!indices))
+                  nqp::atposnd_#postfix#($!from,$!indices))
             }
         }
         sub NATCPY(Mu \to, Mu \from) is raw {

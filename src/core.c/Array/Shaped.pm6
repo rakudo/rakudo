@@ -304,55 +304,52 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     }
 
     my class MemCopy does Rakudo::Iterator::ShapeLeaf {
-        has $!from;
         has $!desc;
+        has $!from;
         method !INIT(Mu \to, Mu \from) {
+            $!desc := nqp::getattr(to,Array,'$!descriptor');
             $!from := nqp::getattr(from,List,'$!reified');
-            $!desc := nqp::getattr(from,Array,'$!descriptor');
             self!SET-SELF(to)
         }
         method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
         method result(--> Nil) {
-            nqp::ifnull(
-              nqp::atposnd($!list,$!indices),
-              nqp::bindposnd($!list,$!indices,
-                nqp::p6scalarfromdesc($!desc))
-            ) = nqp::ifnull(
-                  nqp::atposnd($!from,$!indices),
-                  nqp::p6scalarfromdesc($!desc)
-                )
+            nqp::bindposnd($!list,$!indices,
+              nqp::p6scalarwithvalue($!desc,
+                nqp::ifnull(nqp::atposnd($!from,$!indices),Nil)))
         }
     }
     sub MEMCPY(Mu \to, Mu \from) { MemCopy.new(to,from).sink-all }
 
     my class IntCopy does Rakudo::Iterator::ShapeLeaf {
+        has $!desc;
         has $!from;
         method !INIT(Mu \to, Mu \from) {
+            $!desc := nqp::getattr(to,Array,'$!descriptor');
             $!from := from;
             self!SET-SELF(to)
         }
         method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
         method result(--> Nil) {
-            nqp::ifnull(
-              nqp::atposnd($!list,$!indices),
-              nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
-              ) = nqp::multidimref_i($!from,$!indices)
+            nqp::bindposnd($!list,$!indices,
+              nqp::p6scalarwithvalue($!desc,
+                nqp::atposnd_i($!from,$!indices)))
         }
     }
     sub INTCPY(Mu \to, Mu \from) { IntCopy.new(to,from).sink-all }
 
     my class NumCopy does Rakudo::Iterator::ShapeLeaf {
+        has $!desc;
         has $!from;
         method !INIT(Mu \to, Mu \from) {
+            $!desc := nqp::getattr(to,Array,'$!descriptor');
             $!from := from;
             self!SET-SELF(to)
         }
         method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
         method result(--> Nil) {
-            nqp::ifnull(
-              nqp::atposnd($!list,$!indices),
-              nqp::bindposnd($!list,$!indices,nqp::p6scalarfromdesc(Mu))
-              ) = nqp::multidimref_n($!from,$!indices)
+            nqp::bindposnd($!list,$!indices,
+              nqp::p6scalarwithvalue($!desc,
+                nqp::atposnd_n($!from,$!indices)))
         }
     }
     sub NUMCPY(Mu \to, Mu \from) { NumCopy.new(to,from).sink-all }
@@ -441,11 +438,8 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
               nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd)
                 || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
               nqp::stmts(
-                (nqp::ifnull(                 # containerize if needed
-                  nqp::atposnd($!list,$!indices),
-                  nqp::bindposnd($!list,$!indices,
-                    nqp::p6scalarfromdesc($!desc))
-                ) = $pulled),
+                nqp::bindposnd($!list,$!indices,
+                  nqp::p6scalarwithvalue($!desc,$pulled)),
                 nqp::bindpos_i($!indices,$!maxdim,  # increment index
                   nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
               )

@@ -3,26 +3,30 @@ class Perl6::Metamodel::DefiniteHOW
     does Perl6::Metamodel::Nominalizable
 {
     # ATypeN are used as parameterization arguments to have a definite report correct archetypes.
-    my class AType0 {
+    my class ArchetypeDefinite {
         my $type := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :!coercive, :!generic);
         method archetype() { $type }
     }
-    my class AType1 {
+    my class ArchetypeDefiniteGeneric {
         my $type := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :!coercive, :generic);
         method archetype() { $type }
     }
-    my class AType2 {
+    my class ArchetypeDefiniteCoercive {
         my $type := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :coercive, :!generic);
         method archetype() { $type }
     }
-    my class AType3 {
+    my class ArchetypeDefiniteCoerciveGeneric {
         my $type := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :coercive, :generic);
         method archetype() { $type }
     }
+    my @archetypes := nqp::list(ArchetypeDefinite,
+                                ArchetypeDefiniteGeneric,
+                                ArchetypeDefiniteCoercive,
+                                ArchetypeDefiniteCoerciveGeneric);
 
     method archetypes($definite_type = nqp::null()) {
         nqp::isnull($definite_type)
-            ?? AType0.archetype()
+            ?? ArchetypeDefinite.archetype()
             !! nqp::typeparameterat(nqp::decont($definite_type), 2).archetype()
     }
 
@@ -34,10 +38,10 @@ class Perl6::Metamodel::DefiniteHOW
     method new_type(:$base_type!, :$definite!) {
         my $base_archetypes := $base_type.HOW.archetypes($base_type);
         # Use generic and coercive as positional bits to form a numeric suffix for 'ATypeN' names.
-        my $atype :=
-            nqp::getlexouter('AType' ~
-                nqp::bitor_i(nqp::bitshiftl_i(nqp::istrue($base_archetypes.coercive), 1),
-                    nqp::istrue($base_archetypes.generic)));
+        my $atype := @archetypes[
+            nqp::bitor_i(
+                nqp::bitshiftl_i(nqp::istrue($base_archetypes.coercive), 1),
+                nqp::istrue($base_archetypes.generic))];
 
         my $root := nqp::parameterizetype((Perl6::Metamodel::DefiniteHOW.WHO)<root>,
             [$base_type, $definite ?? Definite !! NotDefinite, $atype]);

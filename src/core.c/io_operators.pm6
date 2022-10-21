@@ -85,9 +85,9 @@ multi sub printf(Str(Cool) $format, Junction:D \j) {
     j.THREAD: { $out.print: sprintf $format, |$_ }
 }
 multi sub printf(Str(Cool) $format, |) {
-   my $args := nqp::p6argvmarray;
-   nqp::shift($args);
-   $*OUT.print: sprintf $format, nqp::hllize($args)
+    my $args := nqp::p6argvmarray;
+    nqp::shift($args);
+    $*OUT.print: sprintf $format, nqp::hllize($args)
 }
 
 proto sub print(|) {*}

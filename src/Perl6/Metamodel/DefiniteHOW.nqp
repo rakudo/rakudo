@@ -2,14 +2,32 @@ class Perl6::Metamodel::DefiniteHOW
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Nominalizable
 {
-    # Use coercive and generic flags as bits of a binary representation of the array index
-    my @archetypes := nqp::list(
-            Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :!coercive, :!generic),
-            Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :!coercive, :generic),
-            Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :coercive, :!generic),
-            Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :coercive, :generic));
+    # ATypeN are used as parameterization arguments to have a definite report correct archetypes.
+    my class ArchetypeDefinite {
+        my $type := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :!coercive, :!generic);
+        method archetype() { $type }
+    }
+    my class ArchetypeDefiniteGeneric {
+        my $type := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :!coercive, :generic);
+        method archetype() { $type }
+    }
+    my class ArchetypeDefiniteCoercive {
+        my $type := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :coercive, :!generic);
+        method archetype() { $type }
+    }
+    my class ArchetypeDefiniteCoerciveGeneric {
+        my $type := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable, :coercive, :generic);
+        method archetype() { $type }
+    }
+    my @archetypes := nqp::list(ArchetypeDefinite,
+                                ArchetypeDefiniteGeneric,
+                                ArchetypeDefiniteCoercive,
+                                ArchetypeDefiniteCoerciveGeneric);
+
     method archetypes($definite_type = nqp::null()) {
-        @archetypes[ nqp::isnull($definite_type) ?? 0 !! nqp::typeparameterat(nqp::decont($definite_type), 2) ]
+        nqp::isnull($definite_type)
+            ?? ArchetypeDefinite.archetype()
+            !! nqp::typeparameterat(nqp::decont($definite_type), 2).archetype()
     }
 
     #~ has @!mro;
@@ -19,13 +37,14 @@ class Perl6::Metamodel::DefiniteHOW
 
     method new_type(:$base_type!, :$definite!) {
         my $base_archetypes := $base_type.HOW.archetypes($base_type);
-        # Use generic and coercive as positional bits in the @archetypes index value.
-        my $archetypes_idx := 
-            nqp::bitor_i(nqp::bitshiftl_i(nqp::istrue($base_archetypes.coercive), 1), 
-                nqp::istrue($base_archetypes.generic));
+        # Use generic and coercive as positional bits to form a numeric suffix for 'ATypeN' names.
+        my $atype := @archetypes[
+            nqp::bitor_i(
+                nqp::bitshiftl_i(nqp::istrue($base_archetypes.coercive), 1),
+                nqp::istrue($base_archetypes.generic))];
 
         my $root := nqp::parameterizetype((Perl6::Metamodel::DefiniteHOW.WHO)<root>,
-            [$base_type, $definite ?? Definite !! NotDefinite, $archetypes_idx]);
+            [$base_type, $definite ?? Definite !! NotDefinite, $atype]);
         nqp::setdebugtypename($root, self.name($root));
     }
 
@@ -77,7 +96,7 @@ class Perl6::Metamodel::DefiniteHOW
         my $base_type := $definite_type.HOW.base_type($definite_type);
         return $definite_type unless $base_type.HOW.archetypes($base_type).generic;
         self.new_type(
-            base_type => $base_type.HOW.instantiate_generic($base_type, $type_env), 
+            base_type => $base_type.HOW.instantiate_generic($base_type, $type_env),
             definite => $definite_type.HOW.definite($definite_type))
     }
 

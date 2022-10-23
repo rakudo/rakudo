@@ -261,7 +261,7 @@ my class Array { # declared in BOOTSTRAP
         nqp::bindattr(self,List,'$!todo',nqp::null());
         nqp::p6bindattrinvres(self,List,'$!reified',$buffer)
     }
-        
+
     method make-iterable(Array:D: Mu $iterable --> Array:D) {
         my $source := $iterable.iterator;
         my $buffer := nqp::create(IterationBuffer);

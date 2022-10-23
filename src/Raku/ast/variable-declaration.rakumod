@@ -955,12 +955,11 @@ class RakuAST::VarDeclaration::Implicit::Constant is RakuAST::VarDeclaration::Im
 }
 
 # An implicitly declared block (like an auto-generated proto)
-class RakuAST::VarDeclaration::Implicit::Block is RakuAST::VarDeclaration::Implicit {
+class RakuAST::VarDeclaration::Implicit::Block is RakuAST::Declaration {
     has Mu $.block;
 
-    method new(str :$name!, Mu :$block!, str :$scope) {
+    method new(Mu :$block!, str :$scope) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Block, '$!block', $block);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         $obj
@@ -969,6 +968,8 @@ class RakuAST::VarDeclaration::Implicit::Block is RakuAST::VarDeclaration::Impli
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         $!block.IMPL-QAST-DECL-CODE($context);
     }
+
+    method lexical-name() { '' }
 }
 
 # The implicit `self` term declaration for the invocant.

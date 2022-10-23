@@ -943,7 +943,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                     $proto := $proto-ast.meta-object;
 
                     $scope.add-generated-lexical-declaration(
-                        RakuAST::VarDeclaration::Implicit::Block.new(:$name, :block($proto-ast))
+                        RakuAST::VarDeclaration::Implicit::Block.new(:block($proto-ast))
                     );
                 }
                 $scope.add-generated-lexical-declaration(

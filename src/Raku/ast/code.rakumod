@@ -847,7 +847,7 @@ class RakuAST::PointyBlock is RakuAST::Block {
 class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code
                        is RakuAST::Meta is RakuAST::Declaration
                        is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget
-                       is RakuAST::PlaceholderParameterOwner
+                       is RakuAST::PlaceholderParameterOwner is RakuAST::ImplicitLookups
                        is RakuAST::BeginTime is RakuAST::TraitTarget {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
@@ -878,11 +878,26 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         Nil
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
+        ])
+    }
+
     method PRODUCE-META-OBJECT() {
         my $routine := nqp::create(self.IMPL-META-OBJECT-TYPE);
         my $signature := self.placeholder-signature || self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
         nqp::bindattr($signature.meta-object, Signature, '$!code', $routine);
+
+        if $signature.meta-object.has_returns {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $Callable := @lookups[0].compile-time-value;
+            $routine.HOW.mixin(
+                $routine,
+                $Callable.HOW.parameterize($Callable, $signature.meta-object.returns)
+            );
+        }
 
         if nqp::istype(self.body, RakuAST::OnlyStar) {
             $routine.set_onlystar;

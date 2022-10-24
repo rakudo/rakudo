@@ -348,14 +348,17 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
             my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
-            $!attribute-package.attribute-type.new(
+            my $meta-object := $!attribute-package.attribute-type.new(
                 name => self.sigil ~ '!' ~ self.desigilname,
                 type => $of,
                 has_accessor => self.twigil eq '.',
                 container_descriptor => $cont-desc,
                 auto_viv_container => self.IMPL-CONTAINER($of, $cont-desc),
                 package => $!attribute-package.compile-time-value
-            )
+            );
+            nqp::bindattr_i($meta-object, nqp::what($meta-object), '$!inlined', 1)
+                if $scope eq 'HAS';
+            $meta-object
         }
 
         # Otherwise, it's lexically scoped, so the meta-object is just the

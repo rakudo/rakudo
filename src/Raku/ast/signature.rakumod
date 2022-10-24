@@ -643,11 +643,16 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 
         # Do type checks.
         # TODO really more involved than this
-        my $nominal-type := nqp::getattr($param-obj, Parameter, '$!type');
+        my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
+        my $nominal-type := $param-type;
+        my int $spec  := nqp::objprimspec($nominal-type);
         unless $nominal-type =:= Mu {
             $context.ensure-sc($nominal-type);
 
-            if $nominal-type.HOW.archetypes.definite {
+            if $spec {
+                $param-qast.returns($param-type);
+            }
+            elsif $nominal-type.HOW.archetypes.definite {
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                     :op('istype_nd'),
                     $get-decont-var(),

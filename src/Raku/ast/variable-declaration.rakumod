@@ -164,11 +164,12 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     has str $.name;
     has str $!storage-name;
     has RakuAST::Initializer $.initializer;
+    has RakuAST::SemiList $.shape;
     has RakuAST::Package $!attribute-package;
     has Mu $!package;
 
     method new(str :$name!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
-               str :$scope) {
+               str :$scope, RakuAST::SemiList :$shape) {
         my $obj := nqp::create(self);
         if nqp::chars($name) < 2 {
             nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous varialbe; use RakuAST::VarDeclaration::Anonymous');
@@ -176,6 +177,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name', $name);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape', $shape // RakuAST::SemiList);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
         $obj
@@ -391,11 +393,16 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                     :scope('lexical'), :decl('contvar'), :name($!name),
                     :value($container)
                 );
-                if self.IMPL-HAS-CONTAINER-BASE-TYPE {
+                if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),
                         QAST::WVal.new( :value(self.IMPL-CONTAINER-BASE-TYPE) )
                     ) );
+                    if $!shape {
+                        my $shape_ast := $!shape.IMPL-TO-QAST($context);
+                        $shape_ast.named('shape');
+                        $qast[1].push($shape_ast);
+                    }
                 }
                 $qast
             }

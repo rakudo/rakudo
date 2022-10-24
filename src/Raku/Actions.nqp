@@ -1257,8 +1257,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $decl;
         if $<desigilname> {
             my str $name := $<sigil> ~ ($<twigil> || '') ~ $<desigilname>;
+            my $shape := $<semilist> ?? $<semilist>[0].ast !! self.r('SemiList');
             $decl := self.r('VarDeclaration', 'Simple').new:
-                :$scope, :$type, :$name, :$initializer;
+                :$scope, :$type, :$name, :$initializer, :$shape;
             if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
                 $*R.declare-lexical($decl);
             }

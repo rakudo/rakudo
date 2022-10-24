@@ -1916,6 +1916,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token variable_declarator {
         :my $*IN_DECL := 'variable';
+        :my $sigil;
         [
         | <sigil> <twigil>? <desigilname>?
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
@@ -1924,7 +1925,41 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {
             $*IN_DECL := '';
             $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL;
+            $sigil := $<sigil>.Str;
         }
+        [
+            <.unsp>?
+            $<shape>=[
+            | '(' ~ ')' <signature>
+                {
+                    if $sigil eq '&' {
+                        self.typed_sorry('X::Syntax::Reserved',
+                            reserved => '() shape syntax in routine declarations',
+                            instead => ' (maybe use :() to declare a longname?)'
+                        );
+                    }
+                    elsif $sigil eq '@' {
+                        self.typed_sorry('X::Syntax::Reserved',
+                            reserved => '() shape syntax in array declarations');
+                    }
+                    elsif $sigil eq '%' {
+                        self.typed_sorry('X::Syntax::Reserved',
+                            reserved => '() shape syntax in hash declarations');
+                    }
+                    else {
+                        self.typed_sorry('X::Syntax::Reserved',
+                            reserved => '() shape syntax in variable declarations');
+                    }
+                }
+            | :dba('shape definition') '[' ~ ']' <semilist>
+                { $sigil ne '@' && self.typed_sorry('X::Syntax::Reserved',
+                    reserved => '[] shape syntax with the ' ~ $sigil ~ ' sigil') }
+            | :dba('shape definition') '{' ~ '}' <semilist>
+                { $sigil ne '%' && self.typed_sorry('X::Syntax::Reserved',
+                    reserved => '{} shape syntax with the ' ~ $sigil ~ ' sigil') }
+            | <?[<]> <postcircumfix> <.NYI: "Shaped variable declarations">
+            ]+
+        ]?
         [ <.ws> <trait>+ ]?
         [<.ws> <initializer>]?
     }

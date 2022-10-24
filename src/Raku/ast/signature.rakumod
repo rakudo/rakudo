@@ -242,6 +242,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             RakuAST::Signature :$sub-signature, List :$type-captures) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
+        $target.set-type($type) if $target && nqp::can($target, 'set-type') && $type;
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
         nqp::bindattr($obj, RakuAST::Parameter, '$!names', self.IMPL-NAMES($names));
         nqp::bindattr($obj, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
@@ -264,6 +265,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 
     method set-type(RakuAST::Type $type) {
         nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
+        $!target.set-type($type) if $!target && nqp::can($!target, 'set-type');
         Nil
     }
 
@@ -833,12 +835,24 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
         ''
     }
 
+    method set-type(RakuAST::Type $type) {
+        nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
+        Nil
+    }
+
     method set-container-type(Mu $type, Mu $of) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);
     }
 
     method PRODUCE-META-OBJECT() {
+        nqp::bindattr(
+            self,
+            RakuAST::ParameterTarget::Var,
+            '$!of',
+            $!type.resolution.compile-time-value
+        ) if $!type && nqp::eqaddr($!of, Mu);
+
         my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($!of);
         self.IMPL-CONTAINER($!of, $cont-desc)
     }
@@ -847,7 +861,13 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
         if $!type {
             my $container := self.meta-object;
             $context.ensure-sc($container);
-            QAST::Var.new( :decl('contvar'), :scope('lexical'), :name($!name), :value($container) )
+            QAST::Var.new(
+                :decl(nqp::objprimspec($!of) ?? 'var' !! 'contvar'),
+                :scope('lexical'),
+                :name($!name),
+                :value($container),
+                :returns($!of)
+            )
         }
         else {
             QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name) )

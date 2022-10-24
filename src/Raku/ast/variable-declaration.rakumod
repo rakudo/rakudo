@@ -663,7 +663,11 @@ class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::Imp
 
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
-        my $type := $!type // RakuAST::Type::Setting.new('Mu');
+        my $type := $!type;
+        unless $type {
+            $type := RakuAST::Type::Setting.new('Mu');
+            $type.set-resolution($resolver.resolve-lexical-constant-in-setting('Mu'));
+        }
 
         for @params {
             $_.target.set-container-type($type, $of);

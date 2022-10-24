@@ -1412,7 +1412,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method trait_mod:sym<is>($/) {
         if ~$<longname> eq 'repr' {
             if $<circumfix> {
-                my $repr := $<circumfix>.ast.IMPL-UNWRAP-LIST($<circumfix>.ast.semilist.statements)[0];
+                my $circumfix := $<circumfix>.ast;
+                my $repr := nqp::istype($circumfix, self.r('Circumfix'))
+                    ?? $<circumfix>.ast.IMPL-UNWRAP-LIST($<circumfix>.ast.semilist.statements)[0]
+                    !! nqp::istype($circumfix, self.r('QuotedString'))
+                        ?? $circumfix
+                        !! nqp::die("NYI trait_mod circumfix " ~ $circumfix.HOW.name($circumfix));
                 unless $repr.IMPL-CAN-INTERPRET {
                     $/.typed_panic('X::Value::Dynamic', :what('is repr(...) trait'));
                 }

@@ -1717,8 +1717,8 @@ BEGIN {
             my $build := nqp::getattr(nqp::decont($dcself),
                 Attribute, '$!build_closure');
             nqp::hllboolfor(
-                $type.HOW.archetypes($type).generic 
-                || $package.HOW.archetypes($package).generic 
+                $type.HOW.archetypes($type).generic
+                || $package.HOW.archetypes($package).generic
                 || nqp::defined($build), "Raku");
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {

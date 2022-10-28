@@ -819,6 +819,12 @@ public final class Binder {
         return exploder.explodeFlattening(tc.curFrame, new Object[] { list, hash });
     }
 
+    private static final CallSiteDescriptor parameterizeArray = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor parameterizeHash = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ,
+            CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ
+        }, null);
     /* This takes a signature element and either runs the closure to get a default
      * value if there is one, or creates an appropriate undefined-ish thingy. */
     private static SixModelObject handleOptional(ThreadContext tc, RakOps.GlobalExt gcx, int flags, SixModelObject param, CallFrame cf) {
@@ -853,11 +859,61 @@ public final class Binder {
         /* Otherwise, go by sigil to pick the correct default type of value. */
         else {
             if ((flags & SIG_ELEM_ARRAY_SIGIL) != 0) {
-                SixModelObject res = gcx.Array.st.REPR.allocate(tc, gcx.Array.st);
+                SixModelObject paramType = param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
+                SixModelObject defaultType = null;
+
+                if (paramType == gcx.Positional) {
+                    defaultType = gcx.Array;
+                }
+                else {
+                    /* TODO: Find clean solution for handling @deprecation
+                     * during compiliation of setting. */
+                    param.get_attribute_native(tc, gcx.Parameter, "$!variable_name", HINT_variable_name);
+                    String varName = tc.native_s;
+                    if (varName.equals("@deprecation")) {
+                        SixModelObject compilingCoreSetting = Ops.getlexdyn("$*COMPILING_CORE_SETTING", tc);
+                        if (Ops.isnull(compilingCoreSetting) == 0)
+                            defaultType = gcx.Array;
+                    }
+
+                    if (defaultType == null) {
+                        SixModelObject ofMeth = Ops.findmethod(paramType, "of", tc);
+                        Ops.invokeDirect(tc, ofMeth, Ops.invocantCallSite, new Object[] { paramType });
+                        SixModelObject ofType = Ops.result_o(tc.curFrame);
+
+                        SixModelObject arrayHOW = gcx.Array.st.HOW;
+                        SixModelObject parameterizeMeth = Ops.findmethod(arrayHOW, "parameterize", tc);
+                        Ops.invokeDirect(tc, parameterizeMeth, parameterizeArray, new Object[] { arrayHOW, gcx.Array, ofType });
+                        defaultType = Ops.result_o(tc.curFrame);
+                    }
+                }
+
+                SixModelObject res = Ops.create(defaultType, tc);
                 return res;
             }
             else if ((flags & SIG_ELEM_HASH_SIGIL) != 0) {
-                SixModelObject res = gcx.Hash.st.REPR.allocate(tc, gcx.Hash.st);
+                SixModelObject paramType = param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
+                SixModelObject defaultType;
+
+                if (paramType == gcx.Associative) {
+                    defaultType = gcx.Hash;
+                }
+                else {
+                    SixModelObject ofMeth = Ops.findmethod(paramType, "of", tc);
+                    Ops.invokeDirect(tc, ofMeth, Ops.invocantCallSite, new Object[] { paramType });
+                    SixModelObject ofType = Ops.result_o(tc.curFrame);
+
+                    SixModelObject keyofMeth = Ops.findmethod(paramType, "keyof", tc);
+                    Ops.invokeDirect(tc, keyofMeth, Ops.invocantCallSite, new Object[] { paramType });
+                    SixModelObject keyofType = Ops.result_o(tc.curFrame);
+
+                    SixModelObject hashHOW = gcx.Hash.st.HOW;
+                    SixModelObject parameterizeMeth = Ops.findmethod(hashHOW, "parameterize", tc);
+                    Ops.invokeDirect(tc, parameterizeMeth, parameterizeHash, new Object[] { hashHOW, gcx.Hash, ofType, keyofType });
+                    defaultType = Ops.result_o(tc.curFrame);
+                }
+
+                SixModelObject res = Ops.create(defaultType, tc);
                 return res;
             }
             else {

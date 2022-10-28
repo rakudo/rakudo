@@ -212,16 +212,18 @@ class Rakudo::Iterator {
             nqp::if(
               nqp::isge_i($!level,0),
               nqp::stmts(                      # still iterating
-                (my $result := self.process),  # do the processing
+                (my $result := self.process),  # process a leaf
                 (my int $level = $!maxdim),
                 nqp::until(                    # update indices
-                  nqp::islt_i(--$level,0)      # exhausted ??
-                    || nqp::stmts(             # next level
-                    nqp::bindpos_i($!indices,nqp::add_i($level,1),0),  # reset
-                    nqp::islt_i(
-                      nqp::bindpos_i($!indices,$level, # increment this level
-                        nqp::add_i(nqp::atpos_i($!indices,$level),1)),
-                      nqp::atpos_i($!dims,$level)      # out of range?
+                  nqp::unless(
+                    nqp::islt_i(--$level,0),   # unless exhausted
+                    nqp::stmts(                # clear to next level
+                      nqp::bindpos_i($!indices,nqp::add_i($level,1),0),
+                      nqp::islt_i(             # if there is any
+                        nqp::bindpos_i($!indices,$level,
+                          nqp::add_i(nqp::atpos_i($!indices,$level),1)),
+                        nqp::atpos_i($!dims,$level)
+                      )
                     ),
                   ),
                   nqp::null

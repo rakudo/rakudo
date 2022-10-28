@@ -164,9 +164,11 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my $result;
         for $!statements {
-            $_.IMPL-INTERPRET($ctx);
+            $result := $_.IMPL-INTERPRET($ctx);
         }
+        $result
     }
 }
 

@@ -343,6 +343,14 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         }
     }
 
+    my class Copy:<uint> does Copy::Native {
+        method result(--> Nil) {
+            nqp::bindposnd($!list,$!indices,
+              nqp::p6scalarwithvalue($!desc,
+                nqp::atposnd_u($!from,$!indices)))
+        }
+    }
+
     my class Copy:<num> does Copy::Native {
         method result(--> Nil) {
             nqp::bindposnd($!list,$!indices,
@@ -367,7 +375,9 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
                 ?? Copy:<num>
                 !! nqp::iseq_i($spec,3)
                   ?? Copy:<str>
-                  !! Copy:<int> # TODO: uint?
+                  !! nqp::isge_i($spec,7)
+                    ?? Copy:<uint>
+                    !! Copy:<int>
         }
     }
 

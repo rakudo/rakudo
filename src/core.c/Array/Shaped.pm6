@@ -2,9 +2,6 @@
 my class X::Assignment::ArrayShapeMismatch { ... };
 my class X::NotEnoughDimensions { ... };
 
-# stub what we need now
-my class array is repr('VMArray') { ... };
-
 my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     has $.shape;
 

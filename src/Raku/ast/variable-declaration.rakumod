@@ -77,6 +77,34 @@ class RakuAST::ContainerCreator {
         ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
     }
 
+    method IMPL-CONTAINER-TYPE(Mu $of) {
+        # Form the container type.
+        my str $sigil := self.sigil;
+        my $container-type;
+        if nqp::eqaddr($!container-base-type, Mu) {
+            if $sigil eq '@' {
+                my $container-base-type := nqp::objprimspec($of) ?? array !! Array;
+                $container-type := self.type
+                    ?? $container-base-type.HOW.parameterize($container-base-type, $of)
+                    !! Array;
+            }
+            elsif $sigil eq '%' {
+                $container-type := self.type
+                    ?? Hash.HOW.parameterize(Hash, $of)
+                    !! Hash;
+            }
+            else {
+                $container-type := $of
+            }
+            $container-type;
+        }
+        else {
+            self.type
+                ?? $!container-base-type.HOW.parameterize($!container-base-type, $of)
+                !! $!container-base-type
+        }
+    }
+
     method IMPL-CONTAINER(Mu $of, Mu $cont-desc) {
         # Form the container.
         my $default := self.type ?? $of !! Any;
@@ -166,6 +194,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     has RakuAST::Initializer $.initializer;
     has RakuAST::SemiList $.shape;
     has RakuAST::Package $!attribute-package;
+    has Mu $!container-initializer;
     has Mu $!package;
 
     method new(str :$name!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
@@ -302,8 +331,44 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
 
         my str $scope := self.scope;
         if $scope eq 'has' || $scope eq 'HAS' {
+            if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
+                my $args := $!shape
+                    ?? RakuAST::ArgList.new(
+                        RakuAST::ColonPair::Value.new(:key<shape>, :value($!shape))
+                    )
+                    !! RakuAST::ArgList.new;
+                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+                my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+                my $container-initializer-ast := RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Declaration::ResolvedConstant.new(
+                        :compile-time-value(self.IMPL-CONTAINER-TYPE($of))
+                    ),
+                    postfix => RakuAST::Call::Method.new(
+                        name => RakuAST::Name.from-identifier('new'),
+                        :$args
+                    )
+                );
+                my $thunk := RakuAST::BlockThunk.new(:expression($container-initializer-ast));
+                $container-initializer-ast.wrap-with-thunk($thunk);
+                $thunk.ensure-begin-performed($resolver, $context);
+                $resolver.current-scope.add-generated-lexical-declaration(
+                    RakuAST::VarDeclaration::Implicit::Block.new(:block($thunk))
+                );
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!container-initializer',
+                    $thunk.meta-object);
+            }
+
             # For attributes our meta-object is an appropriate Attribute instance
             self.apply-traits($resolver, $context, self);
+
+            my $meta-object := self.meta-object;
+            if self.scope eq 'HAS' && $meta-object.type.REPR eq 'CArray' && $!shape {
+                my @dimensions := nqp::list_i();
+                my $shape := self.IMPL-BEGIN-TIME-EVALUATE($!shape, $resolver, $context);
+                my $elems := nqp::unbox_i(self.IMPL-BEGIN-TIME-EVALUATE($!shape, $resolver, $context));
+                nqp::push_i(@dimensions, $elems);
+                nqp::bindattr($meta-object, $meta-object.WHAT, '$!dimensions', @dimensions);
+            }
         }
         else {
             # For other variables the meta-object is just the container, but we
@@ -348,13 +413,15 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
             my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
+
             my $meta-object := $!attribute-package.attribute-type.new(
                 name => self.sigil ~ '!' ~ self.desigilname,
-                type => $of,
+                type => self.IMPL-CONTAINER-TYPE($of),
                 has_accessor => self.twigil eq '.',
                 container_descriptor => $cont-desc,
                 auto_viv_container => self.IMPL-CONTAINER($of, $cont-desc),
-                package => $!attribute-package.compile-time-value
+                package => $!attribute-package.compile-time-value,
+                container_initializer => $!container-initializer,
             );
             nqp::bindattr_i($meta-object, nqp::what($meta-object), '$!inlined', 1)
                 if $scope eq 'HAS';

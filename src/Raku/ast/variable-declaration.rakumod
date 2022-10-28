@@ -113,9 +113,9 @@ class RakuAST::ContainerCreator {
         my $container-type;
         if nqp::eqaddr($!container-base-type, Mu) {
             if $sigil eq '@' {
-                $container-base-type := Array;
+                $container-base-type := nqp::objprimspec($of) ?? array !! Array;
                 $container-type := self.type
-                    ?? Array.HOW.parameterize(Array, $of)
+                    ?? $container-base-type.HOW.parameterize($container-base-type, $of)
                     !! Array;
             }
             elsif $sigil eq '%' {
@@ -129,7 +129,7 @@ class RakuAST::ContainerCreator {
                 $container-type := Scalar;
             }
             my $container := nqp::create($container-type);
-            nqp::bindattr($container, $container-base-type, '$!descriptor', $cont-desc);
+            try nqp::bindattr($container, $container-base-type, '$!descriptor', $cont-desc);
             unless $sigil eq '@' || $sigil eq '%' {
                 nqp::bindattr($container, $container-base-type, '$!value', $default);
             }

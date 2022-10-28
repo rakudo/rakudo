@@ -485,12 +485,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Expression parsing and operators
     ##
 
+    my %infix_specials := nqp::hash(
+        '=', -> $actions, $/, $sym { assign_op($actions, $/, $/[0].ast, $/[1].ast) },
+    );
+
     method EXPR($/, $KEY?) {
         my $ast := $/.ast // $<OPER>.ast;
         if $KEY {
             my $key := nqp::lc($KEY);
             if $KEY eq 'INFIX' {
                 my $sym := $<infix><sym>;
+                if nqp::existskey(%infix_specials, $sym) {
+                    my $ast := %infix_specials{$sym}(self, $/, $sym);
+                    if $ast {
+                        self.attach: $/, $ast;
+                        return;
+                    }
+                }
                 if $sym && $sym eq '??' {
                     self.attach: $/, self.r('Ternary').new:
                         condition => $/[0].ast,
@@ -544,6 +555,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Just a term.
             self.attach: $/, $ast;
         }
+    }
+
+    sub assign_op($actions, $/, $lhs_ast, $rhs_ast, :$initialize) {
+        if (
+            nqp::istype($lhs_ast, $actions.r('ApplyPostfix'))
+            && nqp::istype($lhs_ast.postfix, $actions.r('Postcircumfix', 'ArrayIndex'))
+            && nqp::elems($lhs_ast.IMPL-UNWRAP-LIST($lhs_ast.postfix.index.statements)) == 1
+        ) {
+            $lhs_ast.postfix.set-assignee($rhs_ast);
+            return $lhs_ast;
+        }
+        return;
     }
 
     method prefixish($/) {

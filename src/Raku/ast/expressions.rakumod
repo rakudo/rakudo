@@ -922,12 +922,18 @@ class RakuAST::Postcircumfix is RakuAST::Postfixish {
 # A postcircumfix array index operator, possibly multi-dimensional.
 class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::Lookup {
     has RakuAST::SemiList $.index;
+    has RakuAST::Expression $.assignee;
 
-    method new(RakuAST::SemiList $index) {
+    method new(RakuAST::SemiList $index, RakuAST::Expression :$assignee) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!index', $index);
+        nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!assignee', $assignee // RakuAST::Expression);
         nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
+    }
+
+    method set-assignee(RakuAST::Expression $assignee) {
+        nqp::bindattr(self, RakuAST::Postcircumfix::ArrayIndex, '$!assignee', $assignee);
     }
 
     method can-be-bound-to() {
@@ -947,6 +953,7 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
 
     method visit-children(Code $visitor) {
         $visitor($!index);
+        $visitor($!assignee) if $!assignee;
         self.visit-colonpairs($visitor);
     }
 
@@ -954,6 +961,7 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
         $op
     }
 

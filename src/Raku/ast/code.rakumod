@@ -1900,11 +1900,24 @@ class RakuAST::CurryThunk is RakuAST::ExpressionThunk is RakuAST::ImplicitLookup
 }
 
 class RakuAST::BlockThunk is RakuAST::ExpressionThunk {
+    has RakuAST::Expression $!expression;
+
+    method new(RakuAST::Expression :$expression) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::BlockThunk, '$!expression', $expression) if $expression;
+        $obj
+    }
+
     method thunk-kind() {
         'Block thunk'
     }
 
     method IMPL-THUNK-OBJECT-TYPE() {
         Block
+    }
+
+    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
+        # Form the block itself and link it with the meta-object.
+        self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'), :expression($!expression));
     }
 }

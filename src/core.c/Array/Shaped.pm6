@@ -303,56 +303,63 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         self
     }
 
-    my class MemCopy does Rakudo::Iterator::ShapeLeaf {
-        has $!desc;
-        has $!from;
-        method !INIT(Mu \to, Mu \from) {
-            $!desc := nqp::getattr(to,Array,'$!descriptor');
-            $!from := nqp::getattr(from,List,'$!reified');
-            self!SET-SELF(to)
+    my package Copy { # is a class stub with a stash
+        role Object does Rakudo::Iterator::ShapeLeaf {
+            has $!desc;
+            has $!from;
+            method !INIT(Mu \to, List:D \from) {
+                $!desc := nqp::getattr(to,Array,'$!descriptor');
+                $!from := nqp::getattr(from,List,'$!reified');
+                self!SET-SELF(to)
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
         }
-        method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+
+        role Native does Rakudo::Iterator::ShapeLeaf {
+            has $!desc;
+            has $!from;
+            method !INIT(Mu \to, array:D \from) {
+                $!desc := nqp::getattr(to,Array,'$!descriptor');
+                $!from := from;
+                self!SET-SELF(to)
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+        }
+    }
+
+    my class Copy:<obj> does Copy::Object {
         method result(--> Nil) {
             nqp::bindposnd($!list,$!indices,
               nqp::p6scalarwithvalue($!desc,
                 nqp::ifnull(nqp::atposnd($!from,$!indices),Nil)))
         }
     }
-    sub MEMCPY(Mu \to, Mu \from) { MemCopy.new(to,from).sink-all }
 
-    my class IntCopy does Rakudo::Iterator::ShapeLeaf {
-        has $!desc;
-        has $!from;
-        method !INIT(Mu \to, Mu \from) {
-            $!desc := nqp::getattr(to,Array,'$!descriptor');
-            $!from := from;
-            self!SET-SELF(to)
-        }
-        method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+    my class Copy:<int> does Copy::Native {
         method result(--> Nil) {
             nqp::bindposnd($!list,$!indices,
               nqp::p6scalarwithvalue($!desc,
                 nqp::atposnd_i($!from,$!indices)))
         }
     }
-    sub INTCPY(Mu \to, Mu \from) { IntCopy.new(to,from).sink-all }
 
-    my class NumCopy does Rakudo::Iterator::ShapeLeaf {
-        has $!desc;
-        has $!from;
-        method !INIT(Mu \to, Mu \from) {
-            $!desc := nqp::getattr(to,Array,'$!descriptor');
-            $!from := from;
-            self!SET-SELF(to)
-        }
-        method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+    my class Copy:<num> does Copy::Native {
         method result(--> Nil) {
             nqp::bindposnd($!list,$!indices,
               nqp::p6scalarwithvalue($!desc,
                 nqp::atposnd_n($!from,$!indices)))
         }
     }
-    sub NUMCPY(Mu \to, Mu \from) { NumCopy.new(to,from).sink-all }
+
+    my class Copy {
+        method ^parameterize(Mu, Mu:U \T --> Iterator:U) is raw {
+            nqp::iseq_i((my int $spec = nqp::objprimspec(T)),0)
+              ?? Copy:<obj>
+              !! nqp::iseq_i($spec,2)
+                ?? Copy:<num>
+                !! Copy:<int> # XXX TODO: str? uint?
+        }
+    }
 
     method !RE-INITIALIZE(::?CLASS:D:) is raw {
         nqp::bindattr(self,List,'$!reified',
@@ -365,7 +372,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
           in.shape eqv self.shape,
           nqp::stmts(
             nqp::unless($INITIALIZE,self!RE-INITIALIZE),
-            MEMCPY(self,in),     # VM-supported memcpy-like thing?
+            Copy:<obj>.new(self,in).sink-all,  # VM-supported memcpy-like thing?
             self
           ),
           X::Assignment::ArrayShapeMismatch.new(
@@ -379,11 +386,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
           in.shape eqv self.shape,
           nqp::stmts(
             nqp::unless($INITIALIZE,self!RE-INITIALIZE),
-            nqp::if(
-              nqp::istype(in.of,Int),
-              INTCPY(self,in),     # copy from native int
-              NUMCPY(self,in)      # copy from native num
-            ),
+            Copy[in.of].new(self,in).sink-all,
             self
           ),
           X::Assignment::ArrayShapeMismatch.new(

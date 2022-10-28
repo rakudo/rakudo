@@ -2810,26 +2810,7 @@ my class array does Iterable does Positional {
             )
         }
 
-        my class NATCPY-int does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_i($!list,$!indices,
-                  nqp::atposnd_i($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-int.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-int does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -2843,9 +2824,20 @@ my class array does Iterable does Positional {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-int.new(to,from).sink-all;
-            to
+
+        my class Copy:<int> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_i($!list,$!indices,
+                  nqp::atposnd_i($!from,$!indices))
+            }
         }
 
         my class ITERCPY-int does Rakudo::Iterator::ShapeBranch {
@@ -2914,19 +2906,27 @@ my class array does Iterable does Positional {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<int>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,Int),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<int>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -2944,7 +2944,10 @@ my class array does Iterable does Positional {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape
@@ -3313,26 +3316,7 @@ my class array does Iterable does Positional {
             )
         }
 
-        my class NATCPY-uint does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_u($!list,$!indices,
-                  nqp::atposnd_u($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-uint.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-uint does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -3346,9 +3330,20 @@ my class array does Iterable does Positional {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-uint.new(to,from).sink-all;
-            to
+
+        my class Copy:<uint> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_u($!list,$!indices,
+                  nqp::atposnd_u($!from,$!indices))
+            }
         }
 
         my class ITERCPY-uint does Rakudo::Iterator::ShapeBranch {
@@ -3417,19 +3412,27 @@ my class array does Iterable does Positional {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<uint>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,UInt),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<uint>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -3447,7 +3450,10 @@ my class array does Iterable does Positional {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape
@@ -3816,26 +3822,7 @@ my class array does Iterable does Positional {
             )
         }
 
-        my class NATCPY-num does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_n($!list,$!indices,
-                  nqp::atposnd_n($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-num.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-num does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -3849,9 +3836,20 @@ my class array does Iterable does Positional {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-num.new(to,from).sink-all;
-            to
+
+        my class Copy:<num> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_n($!list,$!indices,
+                  nqp::atposnd_n($!from,$!indices))
+            }
         }
 
         my class ITERCPY-num does Rakudo::Iterator::ShapeBranch {
@@ -3920,19 +3918,27 @@ my class array does Iterable does Positional {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<num>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,Num),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<num>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -3950,7 +3956,10 @@ my class array does Iterable does Positional {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape
@@ -4319,26 +4328,7 @@ my class array does Iterable does Positional {
             )
         }
 
-        my class NATCPY-str does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_s($!list,$!indices,
-                  nqp::atposnd_s($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-str.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-str does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -4352,9 +4342,20 @@ my class array does Iterable does Positional {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-str.new(to,from).sink-all;
-            to
+
+        my class Copy:<str> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_s($!list,$!indices,
+                  nqp::atposnd_s($!from,$!indices))
+            }
         }
 
         my class ITERCPY-str does Rakudo::Iterator::ShapeBranch {
@@ -4423,19 +4424,27 @@ my class array does Iterable does Positional {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<str>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,Str),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<str>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -4453,7 +4462,10 @@ my class array does Iterable does Positional {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape

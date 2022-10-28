@@ -351,13 +351,23 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         }
     }
 
+    my class Copy:<str> does Copy::Native {
+        method result(--> Nil) {
+            nqp::bindposnd($!list,$!indices,
+              nqp::p6scalarwithvalue($!desc,
+                nqp::atposnd_s($!from,$!indices)))
+        }
+    }
+
     my class Copy {
         method ^parameterize(Mu, Mu:U \T --> Iterator:U) is raw {
             nqp::iseq_i((my int $spec = nqp::objprimspec(T)),0)
               ?? Copy:<obj>
               !! nqp::iseq_i($spec,2)
                 ?? Copy:<num>
-                !! Copy:<int> # XXX TODO: str? uint?
+                !! nqp::iseq_i($spec,3)
+                  ?? Copy:<str>
+                  !! Copy:<int> # TODO: uint?
         }
     }
 

@@ -1081,7 +1081,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         # If we're a named lexical thing, install us in the block.
         my $name := self.lexical-name;
-        if $name && self.scope eq 'my' && self.multiness ne 'multi' {
+        if $name && self.multiness ne 'multi' {
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
@@ -1105,6 +1105,11 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         else {
             Nil
         }
+    }
+
+    method is-lexical() {
+        my str $scope := self.scope;
+        $scope eq 'my' || $scope eq 'state' || $scope eq 'our' || $scope eq 'unit'
     }
 
     method generate-lookup() {

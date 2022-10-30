@@ -120,7 +120,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                     my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
                     $package.HOW.compose($package);
                     my %stash := $resolver.IMPL-STASH-HASH($target);
-                    %stash{$longname} := $package;
+                    %stash{$_.name} := $package;
                     $target := $package;
                 }
             }
@@ -143,7 +143,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                     my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
                     $package.HOW.compose($package);
                     my %stash := $resolver.IMPL-STASH-HASH($target);
-                    %stash{$longname} := $package;
+                    %stash{$_.name} := $package;
                     $target := $package;
                 }
             }

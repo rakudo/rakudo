@@ -845,13 +845,14 @@ class RakuAST::PointyBlock is RakuAST::Block {
 
 # Done by all kinds of Routine.
 class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code
-                       is RakuAST::Meta is RakuAST::Declaration
+                       is RakuAST::Meta is RakuAST::Declaration is RakuAST::Attaching
                        is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget
                        is RakuAST::PlaceholderParameterOwner is RakuAST::ImplicitLookups
                        is RakuAST::BeginTime is RakuAST::TraitTarget {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
     has str $!multiness;
+    has RakuAST::Package $!package;
 
     method multiness() {
         my $multiness := $!multiness;
@@ -870,6 +871,15 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
     method attach-target-names() {
         self.IMPL-WRAP-LIST(['routine', 'block'])
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        if self.scope eq 'our' {
+            my $package := $resolver.find-attach-target('package');
+            if $package {
+                nqp::bindattr(self, RakuAST::Routine, '$!package', $package);
+            }
+        }
     }
 
     method clear-attachments() {
@@ -1075,6 +1085,19 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             $block.name($canon-name);
         }
 
+        my $name := self.lexical-name;
+        if $name && (self.scope eq 'our' || self.scope eq 'unit') {
+            my $stmts := QAST::Stmts.new();
+            $stmts.push($block);
+            $stmts.push(QAST::Op.new(
+                :op('bindkey'),
+                QAST::Op.new( :op('who'), QAST::WVal.new( :value($!package.meta-object) ) ),
+                QAST::SVal.new( :value($name) ),
+                QAST::Var.new( :name($name), :scope('lexical') )
+            ));
+            return $stmts;
+        }
+
         $block
     }
 
@@ -1186,8 +1209,6 @@ class RakuAST::Sub is RakuAST::Routine is RakuAST::SinkBoundary {
 # The commonalities of method-like things, whichever language their body is in
 # (be it the main Raku language or the regex language).
 class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
-    has RakuAST::Package $!package;
-
     method default-scope() {
         self.name ?? 'has' !! 'anon'
     }
@@ -1197,17 +1218,17 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        if self.scope eq 'has' {
+        if self.scope eq 'has' || self.scope eq 'our' {
             my $package := $resolver.find-attach-target('package');
             if $package {
-                nqp::bindattr(self, RakuAST::Methodish, '$!package', $package);
+                nqp::bindattr(self, RakuAST::Routine, '$!package', $package);
             }
         }
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if $!package {
-            $!package.ATTACH-METHOD(self);
+        if nqp::getattr(self, RakuAST::Routine, '$!package') {
+            nqp::getattr(self, RakuAST::Routine, '$!package').ATTACH-METHOD(self);
         }
         elsif self.scope eq 'has' {
             nqp::die('Did not find an attach target for method.');

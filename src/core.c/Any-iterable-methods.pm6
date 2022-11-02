@@ -2364,6 +2364,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
 
     proto method are(|) {*}
+    multi method are(Any:U:) { self }
     multi method are(Any:D:) {
         my $iterator := self.iterator;
         nqp::if(

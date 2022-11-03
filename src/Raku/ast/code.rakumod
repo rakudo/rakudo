@@ -874,11 +874,9 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        if self.scope eq 'our' {
+        if self.scope eq 'our' || self.scope eq 'unit' {
             my $package := $resolver.find-attach-target('package');
-            if $package {
-                nqp::bindattr(self, RakuAST::Routine, '$!package', $package);
-            }
+            nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
         }
     }
 

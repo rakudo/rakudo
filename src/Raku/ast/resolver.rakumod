@@ -122,13 +122,16 @@ class RakuAST::Resolver {
         self.resolve-lexical('&term' ~ self.IMPL-CANONICALIZE-PAIR('', $term-name))
     }
 
+    method global-package() {
+        RakuAST::VarDeclaration::Implicit::Constant.new(
+            :name<GLOBAL>, :value(nqp::getattr(self, RakuAST::Resolver, '$!global')))
+    }
+
     # Resolve a RakuAST::Name, optionally adding the specified sigil to the
     # final component.
     method resolve-name(RakuAST::Name $name, Str :$sigil) {
         if $name.is-identifier {
-            return RakuAST::VarDeclaration::Implicit::Constant.new(
-                :name<GLOBAL>, :value(nqp::getattr(self, RakuAST::Resolver, '$!global')))
-                if $name.canonicalize eq 'GLOBAL';
+            return self.global-package() if $name.canonicalize eq 'GLOBAL';
             # Single-part name, so look lexically.
             my str $bare-name := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
             my str $lexical-name := $sigil ?? $sigil ~ $bare-name !! $bare-name;
@@ -154,9 +157,7 @@ class RakuAST::Resolver {
     method IMPL-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {
         if $name.is-identifier {
             my str $identifier := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
-            return RakuAST::VarDeclaration::Implicit::Constant.new(
-                :name<GLOBAL>, :value(nqp::getattr(self, RakuAST::Resolver, '$!global')))
-                if $identifier eq 'GLOBAL';
+            return self.global-package() if $identifier eq 'GLOBAL';
             $setting
                 ?? self.resolve-lexical-constant-in-setting($identifier)
                 !! self.resolve-lexical-constant($identifier)
@@ -599,8 +600,7 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
         }
 
         if $name eq 'GLOBAL' {
-            return RakuAST::VarDeclaration::Implicit::Constant.new(
-                :name<GLOBAL>, :value(nqp::getattr(self, RakuAST::Resolver, '$!global')));
+            return self.global-package;
         }
 
         # Walk active scopes, most nested first.
@@ -619,8 +619,7 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
     # compile-time value.
     method resolve-lexical-constant(Str $name) {
         if $name eq 'GLOBAL' {
-            return RakuAST::VarDeclaration::Implicit::Constant.new(
-                :name<GLOBAL>, :value(nqp::getattr(self, RakuAST::Resolver, '$!global')));
+            return self.global-package;
         }
 
         my @scopes := $!scopes;
@@ -763,8 +762,7 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
         }
 
         if $name eq 'GLOBAL' {
-            return RakuAST::VarDeclaration::Implicit::Constant.new(
-                :name<GLOBAL>, :value(nqp::getattr(self, RakuAST::Resolver, '$!global')));
+            return self.global-package;
         }
 
         # Walk active scopes, most nested first.
@@ -783,8 +781,7 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     # compile-time value.
     method resolve-lexical-constant(Str $name) {
         if $name eq 'GLOBAL' {
-            return RakuAST::VarDeclaration::Implicit::Constant.new(
-                :name<GLOBAL>, :value(nqp::getattr(self, RakuAST::Resolver, '$!global')));
+            return self.global-package;
         }
 
         # Walk active scopes, most nested first.

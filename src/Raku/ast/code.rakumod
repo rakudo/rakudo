@@ -911,6 +911,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             $routine.set_onlystar;
         }
 
+        nqp::bindattr($routine, Routine, '$!package', $!package.compile-time-value) if $!package;
+
         $routine
     }
 

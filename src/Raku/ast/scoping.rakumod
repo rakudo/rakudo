@@ -497,6 +497,7 @@ class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration
     method type() { $!compile-time-value.WHAT }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        $context.ensure-sc($!compile-time-value);
         QAST::Var.new(
             :scope('lexical'), :decl('static'), :name($!lexical-name),
             :value($!compile-time-value)

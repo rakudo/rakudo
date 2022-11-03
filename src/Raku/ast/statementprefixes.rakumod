@@ -115,7 +115,8 @@ class RakuAST::StatementPrefix::Try is RakuAST::StatementPrefix is RakuAST::Sink
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-            RakuAST::Var::Lexical.new('$!')
+            RakuAST::Var::Lexical.new('$!'),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Failure')),
         ])
     }
 
@@ -131,20 +132,41 @@ class RakuAST::StatementPrefix::Try is RakuAST::StatementPrefix is RakuAST::Sink
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $nil := @lookups[0].IMPL-TO-QAST($context);
             my $bang := @lookups[1].IMPL-TO-QAST($context);
+            my $Failure := @lookups[2].IMPL-TO-QAST($context);
+            my $tmp := QAST::Node.unique('fatalizee');
+            my $qast := self.IMPL-CALLISH-QAST($context);
             QAST::Op.new(
                 :op('handle'),
 
                 # Success path puts Nil into $! and evaluates to the block.
                 QAST::Stmt.new(
                     :resultchild(0),
-                    self.IMPL-CALLISH-QAST($context),
-                    QAST::Op.new( :op('p6assign'), $bang, $nil )
+                    QAST::Stmts.new(
+                        :resultchild(0),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($tmp), :scope('local'), :decl('var') ),
+                            $qast
+                        ),
+                        QAST::Op.new(
+                            :op('if'),
+                            QAST::Op.new(
+                                :op('istype'),
+                                QAST::Var.new( :name($tmp), :scope('local') ),
+                                $Failure,
+                            ),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('sink'),
+                                QAST::Var.new( :name($tmp), :scope('local') )
+                            )
+                        )),
+                    QAST::Op.new( :op('p6store'), $bang, $nil )
                 ),
 
                 # On failure, capture the exception object into $!.
                 'CATCH', QAST::Stmts.new(
                     QAST::Op.new(
-                        :op('p6assign'),
+                        :op('p6store'),
                         $bang,
                         QAST::Op.new(
                             :name<&EXCEPTION>, :op<call>,

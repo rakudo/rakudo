@@ -1103,12 +1103,14 @@ class RakuAST::Statement::No is RakuAST::Statement is RakuAST::BeginTime
                               is RakuAST::ImplicitLookups {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
+    has Bool $!precompilation-mode;
 
-    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, Bool :$precompilation-mode) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::No, '$!module-name', $module-name);
         nqp::bindattr($obj, RakuAST::Statement::No, '$!argument',
             $argument // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::Statement::No, '$!precompilation-mode', $precompilation-mode);
         $obj
     }
 
@@ -1146,6 +1148,14 @@ class RakuAST::Statement::No is RakuAST::Statement is RakuAST::BeginTime
             True
         }
         elsif $name eq 'fatal' {
+            True
+        }
+        elsif $name eq 'precompilation' {
+            if $!precompilation-mode {
+                my $automatic_precomp := nqp::ifnull(nqp::atkey(nqp::getenvhash, 'RAKUDO_PRECOMP_WITH'), 0);
+                nqp::exit(0) if $automatic_precomp;
+                $resolver.build-exception('X::Pragma::CannotPrecomp', :what<no>, :$name).throw;
+            }
             True
         }
         else {

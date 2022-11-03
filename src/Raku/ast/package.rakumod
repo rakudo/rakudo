@@ -130,6 +130,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                 $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
                 $target.HOW.compose($target);
 
+                $resolver.current-scope.merge-generated-lexical-declaration:
+                    RakuAST::Declaration::LexicalPackage.new:
+                        :lexical-name($first),
+                        :compile-time-value($target);
                 if $scope eq 'our' {
                     # TODO conflicts
                     my %stash := $resolver.IMPL-STASH-HASH($resolver.current-package);

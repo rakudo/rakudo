@@ -27,6 +27,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name', $comp-unit-name);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!setting-name', $setting-name // Str);
         my $sc := nqp::createsc($comp-unit-name);
+        nqp::pushcompsc($sc);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
         my $file := nqp::getlexdyn('$?FILES');
         nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
@@ -170,7 +171,6 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     method IMPL-TO-QAST-COMP-UNIT(*%options) {
         # Create compilation context.
         my $context := $!context;
-        nqp::pushcompsc($!sc);
         my $top-level := QAST::Block.new;
         self.IMPL-ADD-SETTING-LOADING($context, $top-level, $!setting-name) if $!setting-name;
 

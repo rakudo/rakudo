@@ -227,7 +227,7 @@ class RakuAST::Code is RakuAST::Node {
             'set-compunit-resolver',
             $precomp,
             -> $name {
-                my $result := $resolver.resolve-lexical-in-outer($name);
+                my $result := $resolver.resolve-lexical($name);
                 if $result {
                     nqp::istype($result, RakuAST::CompileTimeValue)
                         ?? $result.compile-time-value

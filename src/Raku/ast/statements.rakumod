@@ -1286,11 +1286,11 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
             my @to-import := ['MANDATORY'];
             my @positional-imports;
             if nqp::isconcrete($arglist) {
-                my $Pair := $resolver.resolve-lexical-constant-in-setting('Pair');
+                my $Pair := $resolver.resolve-lexical-constant-in-setting('Pair').compile-time-value;
                 for $arglist -> $tag {
                     if nqp::istype($tag, $Pair) {
                         my str $tag-name := nqp::unbox_s($tag.key);
-                        unless nqp::existskey($EXPORT, $tag) {
+                        unless nqp::existskey($EXPORT, $tag-name) {
                             # TODO X::Import::NoSuchTag
                             nqp::die('No such tag')
                         }

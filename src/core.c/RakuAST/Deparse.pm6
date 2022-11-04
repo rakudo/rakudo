@@ -934,6 +934,20 @@ class RakuAST::Deparse {
         self!quantifier($ast, '?')
     }
 
+    multi method deparse(RakuAST::Regex::Quantifier::Range:D $ast --> str) {
+        self!quantifier(
+            $ast,
+            ' ** '
+            ~ ($ast.min.defined
+                ??  $ast.min
+                    ~ ($ast.excludes-min ?? '^' !! '')
+                    ~ '..'
+                !! '')
+            ~ ($ast.excludes-max ?? '^' !! '')
+            ~ ($ast.max // '*')
+        )
+    }
+
     multi method deparse(RakuAST::Regex::Quote:D $ast --> str) {
         my str $quoted = self.deparse($ast.quoted);
         nqp::isgt_i(nqp::chars($quoted),2)

@@ -745,6 +745,10 @@ class RakuAST::Deparse {
         )
     }
 
+    multi method deparse(RakuAST::Regex::Assertion::Callable:D $ast --> str) {
+        '<' ~ $ast.callee.DEPARSE ~ ($ast.args ?? '(' ~ $ast.args.DEPARSE ~ ')' !! '') ~ '>'
+    }
+
     multi method deparse(RakuAST::Regex::Assertion::CharClass:D $ast --> str) {
         '<[' ~ $ast.elements.join ~ ']>'
     }

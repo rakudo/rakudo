@@ -823,6 +823,22 @@ class RakuAST::Deparse {
         self!branches($ast, $.regex-conjunction)
     }
 
+    multi method deparse(RakuAST::Regex::InternalModifier::IgnoreCase:D $ast --> str) {
+        $ast.negated ?? ':!i ' !! ':i '
+    }
+
+    multi method deparse(RakuAST::Regex::InternalModifier::IgnoreMark:D $ast --> str) {
+        $ast.negated ?? ':!m ' !! ':m '
+    }
+
+    multi method deparse(RakuAST::Regex::InternalModifier::Ratchet:D $ast --> str) {
+        $ast.negated ?? ':!r ' !! ':r '
+    }
+
+    multi method deparse(RakuAST::Regex::InternalModifier::Sigspace:D $ast --> str) {
+        $ast.negated ?? ':!s ' !! ':s '
+    }
+
     multi method deparse(RakuAST::Regex::Group:D $ast --> str) {
         nqp::concat(
           $.square-open,

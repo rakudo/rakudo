@@ -814,6 +814,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Regex::MatchTo:D $ast --> ')>') { }
 
+    multi method deparse(RakuAST::Regex::NamedCapture:D $ast --> str) {
+        '$<' ~ $ast.name ~ '>=' ~ $ast.regex.DEPARSE
+    }
+
     multi method deparse(RakuAST::Regex::QuantifiedAtom:D $ast --> str) {
         my $parts := nqp::list_s(
           self.deparse($ast.atom),

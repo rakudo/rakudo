@@ -819,6 +819,14 @@ class RakuAST::Deparse {
         '[' ~ $ast.elements.map(*.DEPARSE).join ~ ']'
     }
 
+    multi method deparse(RakuAST::Regex::CharClassElement::Property:D $ast --> str) {
+        my $res = ':';
+        $res ~= '!' if $ast.inverted;
+        $res ~= $ast.property;
+        $res ~= $ast.predicate.DEPARSE if $ast.predicate;
+        $res
+    }
+
     multi method deparse(RakuAST::Regex::CharClassEnumerationElement::Character:D $ast --> str) {
         $ast.character
     }

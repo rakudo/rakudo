@@ -885,8 +885,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Interpolation:D $ast --> str) {
-        die "DEPARSE of sequential interpolation NYI" if $ast.sequential;
-        $ast.var.DEPARSE
+        ($ast.sequential ?? '||' !! '') ~ $ast.var.DEPARSE
     }
 
     multi method deparse(RakuAST::Regex::Group:D $ast --> str) {

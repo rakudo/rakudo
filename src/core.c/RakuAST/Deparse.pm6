@@ -827,6 +827,10 @@ class RakuAST::Deparse {
         $res
     }
 
+    multi method deparse(RakuAST::Regex::CharClassElement::Rule:D $ast --> str) {
+        ($ast.negated ?? '!' !! '') ~ $ast.name
+    }
+
     multi method deparse(RakuAST::Regex::CharClassEnumerationElement::Character:D $ast --> str) {
         $ast.character
     }

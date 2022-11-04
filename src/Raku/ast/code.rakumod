@@ -1394,6 +1394,7 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta is RakuAST::BeginTim
         # Create Regex object.
         my $regex := nqp::create(Regex);
         nqp::bindattr($regex, Code, '$!signature', $signature);
+        nqp::bindattr_s($regex, Regex, '$!source', self.DEPARSE);
         nqp::bindattr($signature, Signature, '$!code', $regex);
         $regex
     }

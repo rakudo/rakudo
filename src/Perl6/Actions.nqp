@@ -7560,7 +7560,7 @@ Did you mean a call like '"
         my $sm_call;
         my $rhs_local := QAST::Node.unique('sm_rhs');
         # Will we need to forcingly boolify ACCEPTS return value? No if it's going to be negated anyway or if RHS is a
-        # regex-ish code like m//, s///, or tr///
+        # regex-ish code like m//, s///, or tr/// but NOT for S/// nor TR///
         my $boolify := !($negated || $rhs.ann('regex_match_code'));
 
 #?if !moar
@@ -9193,7 +9193,7 @@ Did you mean a call like '"
         $past.annotate_self(
             'is_S', $<sym> eq 'S'
         ).annotate(
-            'regex_match_code', 1
+            'regex_match_code', !($<sym> eq 'S')
         );
         make WANTED($past, 's///');  # never carp about s/// in sink context
     }

@@ -783,6 +783,15 @@ class RakuAST::Deparse {
         )
     }
 
+    multi method deparse(RakuAST::Regex::Assertion::InterpolatedBlock:D $ast --> str) {
+        die "DEPARSE of sequential interpolated block NYI" if $ast.sequential;
+        '<' ~ $ast.block.DEPARSE ~ '>'
+    }
+
+    multi method deparse(RakuAST::Regex::Assertion::PredicateBlock:D $ast --> str) {
+        '<' ~ ($ast.negated ?? '!' !! '?') ~ $ast.block.DEPARSE ~ '>'
+    }
+
     multi method deparse(RakuAST::Regex::Backtrack:U $ast --> '') { }
 
     multi method deparse(RakuAST::Regex::Backtrack::Frugal:U $ast --> '?') { }

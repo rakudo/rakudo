@@ -799,6 +799,18 @@ class RakuAST::Deparse {
         $ast.negated ?? '\\S' !! '\\s'
     }
 
+    multi method deparse(RakuAST::Regex::CharClassElement::Enumeration:D $ast --> str) {
+        '[' ~ $ast.elements.map(*.DEPARSE).join ~ ']'
+    }
+
+    multi method deparse(RakuAST::Regex::CharClassEnumerationElement::Character:D $ast --> str) {
+        $ast.character
+    }
+
+    multi method deparse(RakuAST::Regex::CharClassEnumerationElement::Range:D $ast --> str) {
+        $ast.from ~ '..' ~ $ast.to
+    }
+
     multi method deparse(RakuAST::Regex::Conjunction:D $ast --> str) {
         self!branches($ast, $.regex-conjunction)
     }

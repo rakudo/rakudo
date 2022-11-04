@@ -968,6 +968,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 self.attach: $/, self.r('ColonPair', 'True').new(:$key);
             }
         }
+        elsif $<fakesignature> {
+            make $<fakesignature>.ast;
+        }
         else {
             make $<coloncircumfix>.ast;
         }
@@ -1819,6 +1822,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ##
     ## Signatures
     ##
+
+    method fakesignature($/) {
+        make $<signature>.ast
+    }
 
     method signature($/) {
         my @parameters;

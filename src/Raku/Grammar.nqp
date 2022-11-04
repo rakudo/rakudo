@@ -1703,6 +1703,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <identifier>
             { $*key := $<identifier>.Str }
             [ <.unsp>? :dba('pair value') <coloncircumfix($*key)> ]?
+        | :dba('signature') '(' ~ ')' <fakesignature>
         | <coloncircumfix('')>
             { $*key := ""; }
         | <var=.colonpair_variable>
@@ -2425,6 +2426,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ##
     ## Signatures
     ##
+
+    token fakesignature {
+        <signature(1)>
+    }
 
     token signature($*ALLOW_INVOCANT = 0) {
         :my $*zone := 'posreq';

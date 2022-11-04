@@ -1,6 +1,7 @@
 # A signature, typically part of a block though also contained within a
 # signature literal or a signature-based variable declarator.
-class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST::Attaching {
+class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups
+                         is RakuAST::Attaching is RakuAST::Term {
     has List $.parameters;
     has RakuAST::Node $.returns;
     has int $!is-on-method;
@@ -146,7 +147,13 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$needs-full-binder) {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $signature := self.meta-object;
+        $context.ensure-sc($signature);
+        QAST::WVal.new(:value($signature))
+    }
+
+    method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder) {
         self.IMPL-ENSURE-IMPLICITS();
         my $bindings := QAST::Stmts.new();
         my $parameters := self.IMPL-UNWRAP-LIST($!parameters);

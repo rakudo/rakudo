@@ -356,7 +356,7 @@ class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta is RakuAST::Beg
         my $block := QAST::Block.new(
             :blocktype('declaration_static'),
             QAST::Stmts.new(
-                $signature.IMPL-TO-QAST($context)
+                $signature.IMPL-QAST-BINDINGS($context)
             ));
         $block.arity($signature.arity);
 
@@ -664,7 +664,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
             $!body.IMPL-TO-QAST($context));
         my $signature := self.signature || self.placeholder-signature;
         if $signature {
-            $block.push($signature.IMPL-TO-QAST($context, :needs-full-binder(self.custom-args)));
+            $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args)));
             $block.custom_args(1) if self.custom-args;
             $block.arity($signature.arity);
             $block.annotate('count', $signature.count);
@@ -1029,7 +1029,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             self.IMPL-QAST-DECLS($context)
         );
         my $signature := self.placeholder-signature || $!signature;
-        $block.push($signature.IMPL-TO-QAST($context, :needs-full-binder(self.custom-args)));
+        $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args)));
         $block.custom_args(1) if self.custom-args;
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);

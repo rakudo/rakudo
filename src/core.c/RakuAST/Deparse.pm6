@@ -718,6 +718,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Regex::Anchor::EndOfString:D $ast --> '$') { }
 
+    multi method deparse(RakuAST::Regex::Anchor::BeginningOfLine:D $ast --> '^^') { }
+
+    multi method deparse(RakuAST::Regex::Anchor::EndOfLine:D $ast --> '$$') { }
+
     multi method deparse(RakuAST::Regex::Anchor::LeftWordBoundary:D $ast --> '<<') { }
 
     multi method deparse(RakuAST::Regex::Anchor::RightWordBoundary:D $ast --> '>>') { }

@@ -788,6 +788,10 @@ class RakuAST::Deparse {
         '<' ~ $ast.block.DEPARSE ~ '>'
     }
 
+    multi method deparse(RakuAST::Regex::Assertion::Pass:D $ast --> '<?>') {}
+
+    multi method deparse(RakuAST::Regex::Assertion::Fail:D $ast --> '<!>') {}
+
     multi method deparse(RakuAST::Regex::Assertion::PredicateBlock:D $ast --> str) {
         '<' ~ ($ast.negated ?? '!' !! '?') ~ $ast.block.DEPARSE ~ '>'
     }

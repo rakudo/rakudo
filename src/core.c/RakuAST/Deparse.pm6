@@ -799,6 +799,14 @@ class RakuAST::Deparse {
         $ast.negated ?? '\\S' !! '\\s'
     }
 
+    multi method deparse(RakuAST::Regex::CharClass::HorizontalSpace:D $ast --> str) {
+        $ast.negated ?? '\\H' !! '\\h'
+    }
+
+    multi method deparse(RakuAST::Regex::CharClass::VerticalSpace:D $ast --> str) {
+        $ast.negated ?? '\\V' !! '\\v'
+    }
+
     multi method deparse(RakuAST::Regex::CharClassElement::Enumeration:D $ast --> str) {
         '[' ~ $ast.elements.map(*.DEPARSE).join ~ ']'
     }

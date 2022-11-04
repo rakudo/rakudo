@@ -796,6 +796,14 @@ class RakuAST::Deparse {
         '<' ~ ($ast.negated ?? '!' !! '?') ~ $ast.block.DEPARSE ~ '>'
     }
 
+    multi method deparse(RakuAST::Regex::BackReference::Positional:D $ast --> str) {
+        '$' ~ $ast.index
+    }
+
+    multi method deparse(RakuAST::Regex::BackReference::Named:D $ast --> str) {
+        '$<' ~ $ast.name ~ '>'
+    }
+
     multi method deparse(RakuAST::Regex::Backtrack:U $ast --> '') { }
 
     multi method deparse(RakuAST::Regex::Backtrack::Frugal:U $ast --> '?') { }

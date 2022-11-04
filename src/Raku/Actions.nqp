@@ -1892,6 +1892,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $<post_constraint>[0]<EXPR> {
                 $parameter.set-where($<post_constraint>[0].ast);
             }
+            elsif $<post_constraint>[0]<signature> {
+                $parameter.set-sub-signature($<post_constraint>[0].ast);
+            }
         }
         self.attach: $/, $parameter;
     }

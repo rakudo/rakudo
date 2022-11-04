@@ -327,6 +327,11 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         Nil
     }
 
+    method set-sub-signature(RakuAST::Expression $sub-signature) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!sub-signature', $sub-signature);
+        Nil
+    }
+
     method set-type-captures(List $type-captures) {
         nqp::bindattr(self, RakuAST::Parameter, '$!type-captures',
             self.IMPL-TYPE-CAPTURES($type-captures));

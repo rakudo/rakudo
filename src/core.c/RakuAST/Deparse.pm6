@@ -848,6 +848,10 @@ class RakuAST::Deparse {
         $ast.negated ?? '\\T' !! '\\t'
     }
 
+    multi method deparse(RakuAST::Regex::CharClass::Specified:D $ast --> str) {
+        ($ast.negated ?? '\\C' !! '\\c') ~ '[' ~ $ast.characters ~ ']';
+    }
+
     multi method deparse(RakuAST::Regex::CharClassElement::Enumeration:D $ast --> str) {
         '[' ~ $ast.elements.map(*.DEPARSE).join ~ ']'
     }

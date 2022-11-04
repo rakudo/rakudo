@@ -918,6 +918,16 @@ class RakuAST::Deparse {
         }
     }
 
+    multi method deparse(RakuAST::Substitution:D $ast --> str) {
+        my $res = $ast.immutable ?? 'S' !! 's';
+        $res ~= ':samespace' if $ast.samespace;
+        $res ~= ':' if $ast.adverbs;
+        $res ~= $_.DEPARSE for $ast.adverbs;
+        $res ~= "/$ast.pattern.DEPARSE()/$ast.replacement.DEPARSE()/";
+        die 'DEPARSE of infix on substitution NYI' if $ast.infix;
+        $res
+    }
+
     multi method deparse(RakuAST::Statement::Catch:D $ast --> str) {
         nqp::concat('CATCH ',self.deparse($ast.body))
     }

@@ -819,6 +819,10 @@ class RakuAST::Deparse {
         $ast.negated ?? '\\V' !! '\\v'
     }
 
+    multi method deparse(RakuAST::Regex::CharClass::Newline:D $ast --> str) {
+        $ast.negated ?? '\\N' !! '\\n'
+    }
+
     multi method deparse(RakuAST::Regex::CharClass::Tab:D $ast --> str) {
         $ast.negated ?? '\\T' !! '\\t'
     }

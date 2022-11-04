@@ -900,6 +900,10 @@ class RakuAST::Deparse {
         '$<' ~ $ast.name ~ '>=' ~ $ast.regex.DEPARSE
     }
 
+    multi method deparse(RakuAST::Regex::BacktrackModifiedAtom:D $ast --> str) {
+        $ast.atom.DEPARSE ~ $ast.backtrack.DEPARSE
+    }
+
     multi method deparse(RakuAST::Regex::QuantifiedAtom:D $ast --> str) {
         my $parts := nqp::list_s(
           self.deparse($ast.atom),

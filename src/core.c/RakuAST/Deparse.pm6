@@ -745,6 +745,10 @@ class RakuAST::Deparse {
         )
     }
 
+    multi method deparse(RakuAST::Regex::Assertion::CharClass:D $ast --> str) {
+        '<[' ~ $ast.elements.join ~ ']>'
+    }
+
     multi method deparse(RakuAST::Regex::Assertion::Lookahead:D $ast --> str) {
         nqp::concat(
           $ast.negated ?? '<!' !! '<?',

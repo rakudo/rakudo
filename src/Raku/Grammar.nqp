@@ -1609,6 +1609,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.end_keyword>
     }
 
+    token term:sym<...> {
+        [<sym>|'…']
+        [ <?after ','\h*<.[ . … ]>+> <.worry("Comma found before apparent sequence operator; please remove comma (or put parens around the ... call, or use 'fail' instead of ...)")> ]?
+        [ <?{ $*GOAL eq 'endargs' && !$*COMPILING_CORE_SETTING }> <?after <.:L + [\]]>\h*<[ . … ]>+> <.worry("Apparent sequence operator parsed as stubbed function argument; please supply any missing argument to the function or the sequence (or parenthesize the ... call, or use 'fail' instead of ...)")> ]?
+        <args>
+    }
+    token term:sym<???> { <sym> <args> }
+    token term:sym<!!!> { <sym> <args> }
+
     token term:sym<fatarrow> {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }

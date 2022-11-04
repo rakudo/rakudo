@@ -843,6 +843,11 @@ class RakuAST::Deparse {
         $ast.negated ?? ':!s ' !! ':s '
     }
 
+    multi method deparse(RakuAST::Regex::Interpolation:D $ast --> str) {
+        die "DEPARSE of sequential interpolation NYI" if $ast.sequential;
+        $ast.var.DEPARSE
+    }
+
     multi method deparse(RakuAST::Regex::Group:D $ast --> str) {
         nqp::concat(
           $.square-open,

@@ -789,6 +789,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Regex::Backtrack::Ratchet:U $ast --> ':') { }
 
+    multi method deparse(RakuAST::Regex::Block:D $ast --> str) {
+        $ast.block.DEPARSE
+    }
+
     multi method deparse(RakuAST::Regex::CapturingGroup:D $ast --> str) {
         nqp::concat('(',nqp::concat(self.deparse($ast.regex),')'))
     }

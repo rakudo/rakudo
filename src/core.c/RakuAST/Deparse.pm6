@@ -952,6 +952,10 @@ class RakuAST::Deparse {
         self!quantifier($ast, ' ** ' ~ $ast.block.DEPARSE)
     }
 
+    multi method deparse(RakuAST::Regex::WithSigspace:D $ast --> str) {
+        self.deparse($ast.regex)
+    }
+
     multi method deparse(RakuAST::Regex::Quote:D $ast --> str) {
         my str $quoted = self.deparse($ast.quoted);
         nqp::isgt_i(nqp::chars($quoted),2)

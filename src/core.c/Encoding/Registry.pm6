@@ -68,8 +68,6 @@ my class Encoding::Registry {
             )
         }
     }
-
-    method utf8() is implementation-detail { nqp::atkey($lookup,"utf8") }
 }
 
 # vim: expandtab shiftwidth=4

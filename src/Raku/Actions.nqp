@@ -1195,9 +1195,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method package_declarator:sym<knowhow>($/) { self.attach: $/, $<package_def>.ast; }
     method package_declarator:sym<native>($/)  { self.attach: $/, $<package_def>.ast; }
 
+    sub is-yada($/) {
+        $<blockoid><statementlist>
+          && nqp::elems($<blockoid><statementlist><statement>) == 1
+          && ~$<blockoid><statementlist><statement>[0]
+               ~~ /^ \s* ['...'|'???'|'!!!'|'…'] \s* $/;
+    }
+
     method package_def($/) {
         my $package := $*PACKAGE;
         my $body := $<block> ?? $<block>.ast !! $<unit-block>.ast;
+
+        if is-yada($<block> || $<unit-block>) {
+            return self.attach: $/, $package;
+        }
+
         if $*PKGDECL eq 'role' {
             my $signature := $<signature> ?? $<signature>.ast !! self.r('Signature').new;
             $signature.set-is-on-role-body(1);

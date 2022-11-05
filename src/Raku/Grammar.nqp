@@ -503,6 +503,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.lang_setup>
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
+        <load_command_line_modules>
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist')>
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         { $*R.leave-scope() }
@@ -513,6 +514,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule lang_setup {
         # TODO validate this and pay attention to it in actions
         [ <.ws>? 'use' <version> ';'? ]?
+    }
+
+    rule load_command_line_modules {
+        <?>
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Raku level grammar.

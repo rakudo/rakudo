@@ -367,6 +367,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
+    method load_command_line_modules($/) {
+        my $M := %*COMPILING<%?OPTIONS><M>;
+        my $ast := self.r('StatementList').new();
+        if nqp::defined($M) {
+            for nqp::islist($M) ?? $M !! [$M] -> $longname {
+                my $use := self.r('Statement', 'Use').new(
+                    module-name => self.r('Name').from-identifier-parts(
+                        |nqp::split('::', $longname)
+                    )
+                );
+                $use.ensure-begin-performed($*R, $*CU.context);
+                $ast.push: $use;
+            }
+        }
+        self.attach: $/, $ast;
+    }
+
     method statement_control:sym<require>($/) {
         #TODO non-trivial cases, args
         self.attach: $/, self.r('Statement', 'Require').new(

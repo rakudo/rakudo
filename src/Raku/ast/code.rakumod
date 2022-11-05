@@ -699,6 +699,9 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         else {
             # Not immediate, so already produced as a declaration above; just
             # closure clone it. Only invoke if it's a bare block.
+            # Ensure the block is linked when our outer block gets cloned before
+            # our IMPL-QAST-DECL-CODE is called.
+            self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'));
             my $ast := self.IMPL-CLOSURE-QAST($context);
             self.bare-block
                 ?? QAST::Op.new( :op('call'), $ast )

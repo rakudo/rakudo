@@ -801,7 +801,7 @@ my class X::IO::Chown does X::IO {
     has $.uid;
     has $.gid;
     method message() {
-        "Failed to owner of '$.path' to $.uid/$.gid: $.os-error"
+        "Failed to change owner of '$.path' to $.uid/$.gid: $.os-error"
     }
 }
 

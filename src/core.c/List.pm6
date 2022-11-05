@@ -468,7 +468,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ($!todo := nqp::null),
                 nqp::elems($!reified)
               ),
-              self.fail-iterator-cannot-be-lazy('.elems')
+              self.fail-iterator-cannot-be-lazy('.elems',"")
             )
           ),
           nqp::isconcrete($!reified) && nqp::elems($!reified),

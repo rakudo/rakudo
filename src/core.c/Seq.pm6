@@ -46,7 +46,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method elems() {
         self.is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('.elems')
+          ?? self.fail-iterator-cannot-be-lazy('.elems',"")
           !! nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator)
             ?? $!iter.count-only
             !! self.cache.elems

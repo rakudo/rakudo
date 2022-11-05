@@ -1675,10 +1675,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $past := $<EXPR>.ast;
             if $mc {
                 if ~$mc<sym> eq 'with' {
-                    $past := make thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<andthen>')),[$mc,$<EXPR>]);
+                    $past := thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<andthen>')),[$mc,$<EXPR>]);
                 }
                 elsif ~$mc<sym> eq 'without' {
-                    $past := make thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<notandthen>')),[$mc,$<EXPR>]);
+                    $past := thunkity_thunk($/,'.b',QAST::Op.new( :op('call'), :name('&infix:<notandthen>')),[$mc,$<EXPR>]);
                 }
                 else {
                     my $mc_ast := $mc.ast;

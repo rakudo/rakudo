@@ -314,6 +314,11 @@ multi sub chmod($mode, *@filenames) {
     @ok;
 }
 
+proto sub chown($, |) {*}
+multi sub chown(*@filenames, :$uid, :$gid) {
+    @filenames.grep: *.IO.chown(:$uid, :$gid)
+}
+
 proto sub unlink(|) {*}
 multi sub unlink(*@filenames) {
     my @ok;

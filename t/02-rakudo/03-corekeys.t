@@ -123,6 +123,7 @@ my @allowed =
       Q{&chmod},
       Q{&chomp},
       Q{&chop},
+      Q{&chown},
       Q{&chr},
       Q{&chrs},
       Q{&circumfix:<:{ }>},

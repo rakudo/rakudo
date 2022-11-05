@@ -796,6 +796,15 @@ my class X::IO::Chmod does X::IO {
     }
 }
 
+my class X::IO::Chown does X::IO {
+    has $.path;
+    has $.uid;
+    has $.gid;
+    method message() {
+        "Failed to owner of '$.path' to $.uid/$.gid: $.os-error"
+    }
+}
+
 my class X::IO::BinaryAndEncoding does X::IO {
     method message { "Cannot open a handle in binary mode (:bin) and also specify an encoding" }
 }

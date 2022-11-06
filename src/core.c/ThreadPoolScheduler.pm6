@@ -596,6 +596,9 @@ my class ThreadPoolScheduler does Scheduler {
                 my num $per-core;
                 my num $per-core-util;
                 my num $smooth-per-core-util = 0e0;
+                my int $ticks;
+                my int $gc-every =
+                  (%*ENV<RAKUDO_GC_EVERY> // 0x7fffffffffffffff).Int;
 
                 scheduler-debug "Supervisor thinks there are $cpu-cores CPU cores";
                 loop {
@@ -612,6 +615,7 @@ my class ThreadPoolScheduler does Scheduler {
                     # Wait until the next time we should check how things
                     # are.
                     nqp::sleep(SUPERVISION_INTERVAL);
+                    nqp::force_gc() unless nqp::mod_i(++$ticks,$gc-every);
 
                     # Work out the delta of CPU usage since last supervision
                     # and the time period that measurement spans.

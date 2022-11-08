@@ -420,79 +420,14 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
           ).throw
         )
     }
-
-    my class StoreIterable does Rakudo::Iterator::ShapeBranch {
-        has $!iterators;
-        has $!desc;
-        method !INIT(\to,\from) {
-            self!SET-SELF(to);
-            $!desc := nqp::getattr(to,Array,'$!descriptor');
-            $!iterators := nqp::setelems(
-                nqp::list(from.iterator),
-                nqp::add_i($!maxdim,1)
-            );
-            self
-        }
-        method new(\to,\from) { nqp::create(self)!INIT(to,from) }
-        method done(--> Nil) {
-            nqp::unless(                        # verify lowest
-              nqp::atpos($!iterators,0).is-lazy # finite iterator
-                || nqp::eqaddr(                 # and something there
-                     nqp::atpos($!iterators,0).pull-one,IterationEnd),
-              nqp::atposnd($!list,$!indices)    # boom!
-            )
-        }
-        method process(--> Nil) {
-            my int $i = $!level;
-            nqp::while(
-              nqp::isle_i(++$i,$!maxdim),
-              nqp::if(
-                nqp::eqaddr((my $item :=      # exhausted ?
-                  nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
-                  IterationEnd
-                ),
-                nqp::bindpos($!iterators,$i,  # add an empty one
-                  Rakudo::Iterator.Empty),
-                nqp::if(                      # is it an iterator?
-                  nqp::istype($item,Iterable) && nqp::isconcrete($item),
-                  nqp::bindpos($!iterators,$i,$item.iterator),
-                  X::Assignment::ToShaped.new(shape => self.dims).throw
-                )
-              )
-            );
-
-            my $iter := nqp::atpos($!iterators,$!maxdim);
-            nqp::until(                       # loop over highest dim
-              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd)
-                || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
-              nqp::stmts(
-                nqp::bindposnd($!list,$!indices,
-                  nqp::p6scalarwithvalue($!desc,$pulled)),
-                nqp::bindpos_i($!indices,$!maxdim,  # increment index
-                  nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
-              )
-            );
-
-            nqp::unless(
-              nqp::eqaddr($pulled,IterationEnd) # if not exhausted
-                || nqp::isle_i(                 # and index too high
-                     nqp::atpos_i($!indices,$!maxdim),$!maxind)
-                || $iter.is-lazy,               # and not lazy
-              nqp::atposnd($!list,$!indices)    # error
-            )
-        }
-    }
-    multi method STORE(::?CLASS:D: Iterable:D \in, :$INITIALIZE) {
+    multi method STORE(::?CLASS:D: Iterable:D $iterable, :$INITIALIZE) {
         self!RE-INITIALIZE unless $INITIALIZE;
-        StoreIterable.new(self,in).sink-all;
-        self
+        self.make-iterable: $iterable
     }
-
     multi method STORE(::?CLASS:D: Iterator:D $iterator, :$INITIALIZE) {
         self!RE-INITIALIZE unless $INITIALIZE;
         self.make-iterator: $iterator
     }
-
     multi method STORE(::?CLASS:D: Mu \item --> Nil) {
         self.make-itemized: item
     }

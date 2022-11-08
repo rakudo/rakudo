@@ -303,6 +303,11 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         self
     }
 
+    method make-iterable(::?CLASS:D: Mu $iterable --> ::?CLASS:D) {
+        Rakudo::Iterator::FrameIterable.new(self, $iterable).sink-all;
+        self
+    }
+
     my package Copy { # is a class stub with a stash
         role Object does Rakudo::Iterator::ShapeLeaf {
             has $!desc;

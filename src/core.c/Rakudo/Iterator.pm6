@@ -407,6 +407,91 @@ class Rakudo::Iterator {
         }
     }
 
+    # A specialization of ShapeBranch geared towards assignments of elements.
+    # This takes a reification target of an Array:D target, which pipes a push
+    # to its reification from an iterable source. In this case, the reification
+    # target is what allows for a push to exist to begin with, as shaped arrays
+    # typically want to bind instead, which is where the implementation lurks.
+    #
+    # While originally implemented as such, make-iterable, and thus an iterable
+    # STORE on a shaped array depends on this over ShapeBranch to deduplicate
+    # the offset counting involved in arrays' make-* constructors. ShapeBranch
+    # remains because it can perform more arbitrary algorithms cheap enough
+    our class FrameIterable does Iterator {
+        # The reification target.
+        has $!target;
+        # The target's shape.
+        has $!framed;
+        # A list of buffered iterables producing branches, pushed from the
+        # source ultimately. These interleave the dimensions of the target.
+        has $!pruned;
+        # An offset of the current branch to pipe from the cache.
+        has int $!branch;
+
+        method new(Mu \to, Mu \from) {
+            nqp::create(self)!SET-SELF(to, from)
+        }
+
+        method !SET-SELF(Mu \to, Mu \from) {
+            # BUILD
+            $!target := to.reification-target;
+            $!framed := nqp::setelems(
+              nqp::list_i(),
+              nqp::elems(my $shaped := nqp::getattr(to.shape.eager,List,'$!reified')));
+            nqp::while(
+              nqp::islt_i((my int $cursor),nqp::elems($shaped)),
+              nqp::bindpos_i($!framed,$cursor,nqp::atpos($shaped,($cursor++))));
+            $!pruned := nqp::list();
+            $cursor--; # Interleave.
+            nqp::while(
+              ($cursor--),
+              nqp::bindpos($!pruned,$cursor,nqp::create(IterationBuffer)));
+
+            # TWEAK
+            my $source := from.iterator;
+            nqp::unless(
+              (nqp::eqaddr(
+                ($source.push-exactly: nqp::atpos($!pruned,0), nqp::atpos_i($!framed,0)),
+                IterationEnd) || nqp::eqaddr($source.pull-one,IterationEnd)),
+              (X::Assignment::ToShaped.new(shape => to.shape).throw));
+            self
+        }
+
+        method shape() {
+            my $shape := nqp::list();
+            nqp::while(
+              nqp::islt_u((my uint $cursor),nqp::elems($!framed)),
+              nqp::bindpos($shape,$cursor,nqp::atpos_i($!framed,$cursor++)));
+            $shape # HLLizes to List.
+        }
+
+        method pull-one() {
+            nqp::if(
+              nqp::islt_i($!branch,0),
+              IterationEnd,
+              nqp::stmts(
+                nqp::repeat_while(
+                  (nqp::islt_i($!branch,(my int $end = nqp::elems($!pruned))) and nqp::eqaddr(
+                    (my $source.push-exactly: nqp::atpos($!pruned,$!branch), nqp::atpos_i($!framed,$!branch)),
+                    IterationEnd) || nqp::eqaddr($source.pull-one,IterationEnd)),
+                  nqp::if(
+                    (nqp::istype_nd(
+                      ($source := nqp::decont(nqp::shift(nqp::atpos($!pruned,($!branch++))))),
+                      Iterable) && nqp::isconcrete_nd($source)),
+                    ($source := $source.iterator),
+                    (X::Assignment::ToShaped.new(shape => self.shape).throw))),
+                nqp::unless(
+                  (nqp::iseq_i($!branch,$end) and nqp::eqaddr(
+                    ($source.push-exactly: $!target, nqp::atpos_i($!framed,$!branch)),
+                    IterationEnd) || nqp::eqaddr($source.pull-one,IterationEnd)),
+                  (X::Assignment::ToShaped.new(shape => self.shape).throw)), # FIXME: specced error, wat message
+                nqp::until(
+                  (nqp::islt_i((--$!branch),0) || nqp::elems(nqp::atpos($!pruned,$!branch))),
+                  nqp::null()),
+                Empty))
+        }
+    }
+
 #-------------------------------------------------------------------------------
 # Methods that generate an Iterator (in alphabetical order)
 

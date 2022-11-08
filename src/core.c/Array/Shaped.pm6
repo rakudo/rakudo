@@ -276,11 +276,9 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     }
     sub NUMCPY(Mu \to, Mu \from) { NumCopy.new(to,from).sink-all }
 
-    method !RE-INITIALIZE(::?CLASS:D: --> Nil) {
-        nqp::bindattr(  # this is a yucky way to re-init, but it works
-          self,List,'$!reified',
-          nqp::getattr(self.new(:shape(self.shape)),List,'$!reified')
-        )
+    method !RE-INITIALIZE(::?CLASS:D:) is raw {
+        nqp::bindattr(self,List,'$!reified',
+          (Rakudo::Internals.SHAPED-ARRAY-STORAGE: $!shape, nqp::knowhow, Mu))
     }
 
     proto method STORE(::?CLASS:D: |) {*}

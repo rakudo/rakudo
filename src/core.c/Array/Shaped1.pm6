@@ -91,17 +91,6 @@ my role Array::Shaped1 does Array::Shaped {
         nqp::bindpos(nqp::getattr(self,List,'$!reified'),$one,value)
     }
 
-    method !RE-INITIALIZE(::?CLASS:D:) {
-        my \list := nqp::getattr(self,List,'$!reified');
-        nqp::bind(   # rebind newly created list
-          list,
-          nqp::bindattr(
-            self,List,'$!reified',
-            nqp::setelems(nqp::create(list),nqp::elems(list))
-          )
-        )
-    }
-
     proto method STORE(::?CLASS:D: |) {*}
     multi method STORE(::?CLASS:D: ::?CLASS:D \from-array) {
         my \to   := nqp::getattr(self,List,'$!reified');

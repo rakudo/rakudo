@@ -179,7 +179,9 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         my $top-level := $!mainline.IMPL-QAST-FORM-BLOCK($context, :blocktype<declaration_static>);
         $top-level.name('<unit>');
         $top-level.annotate('IN_DECL', $!is-eval ?? 'eval' !! 'mainline');
-        self.IMPL-ADD-SETTING-LOADING($context, $top-level, $!setting-name) if $!setting-name;
+        my @pre-deserialize;
+        nqp::push(@pre-deserialize, self.IMPL-SETTING-LOADING-QAST($top-level, $!setting-name))
+            if $!setting-name;
 
         unless $!is-eval {
             my $global_install := QAST::Op.new(
@@ -207,7 +209,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             :sc($!sc),
             :code_ref_blocks($context.code-ref-blocks),
             :compilation_mode($!precompilation-mode),
-            :pre_deserialize(self.IMPL-UNWRAP-LIST([])),
+            :pre_deserialize(@pre-deserialize),
             :post_deserialize($context.post-deserialize()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
@@ -221,7 +223,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             )),
     }
 
-    method IMPL-ADD-SETTING-LOADING(RakuAST::IMPL::QASTContext $context, Mu $top-level, Str $name) {
+    method IMPL-SETTING-LOADING-QAST(Mu $top-level, Str $name) {
         # Use the NQP module loader to load Perl6::ModuleLoader, which
         # is a normal NQP module.
         my $module-loading := QAST::Stmt.new(
@@ -243,7 +245,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             ));
 
         # Load and put in place the setting after deserialization and on fixup.
-        $context.add-fixup-and-deserialize-task(QAST::Stmt.new(
+        QAST::Stmt.new(
             $module-loading,
             QAST::Op.new(
                 :op('forceouterctx'),
@@ -256,7 +258,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
                     ),
                     QAST::SVal.new( :value($name) )
                 )
-            )));
+            ));
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

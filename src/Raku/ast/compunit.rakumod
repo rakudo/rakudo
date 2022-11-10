@@ -3,6 +3,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
                         is RakuAST::ImplicitLookups
                         is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget {
     has RakuAST::StatementList $.statement-list;
+    has RakuAST::Block $!mainline;
     has Str $.comp-unit-name;
     has Str $.setting-name;
     has Mu $.finish-content;
@@ -24,6 +25,9 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
             $statement-list // RakuAST::StatementList.new);
+        my $mainline := RakuAST::Block.new();
+        $mainline.set-implicit-topic(0);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!mainline', $mainline);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name', $comp-unit-name);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!setting-name', $setting-name // Str);
         my $sc := nqp::createsc($comp-unit-name);
@@ -51,6 +55,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     # any CHECK-time error checking. This may also produce information useful
     # during optimization, though will not do any transforms in and of itself.
     method check(RakuAST::Resolver $resolver) {
+        $!mainline.IMPL-CHECK($resolver, $!context, False);
         self.IMPL-CHECK($resolver, $!context, False);
     }
 
@@ -171,7 +176,9 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     method IMPL-TO-QAST-COMP-UNIT(*%options) {
         # Create compilation context.
         my $context := $!context;
-        my $top-level := QAST::Block.new;
+        my $top-level := $!mainline.IMPL-QAST-FORM-BLOCK($context, :blocktype<declaration_static>);
+        $top-level.name('<unit>');
+        $top-level.annotate('IN_DECL', $!is-eval ?? 'eval' !! 'mainline');
         self.IMPL-ADD-SETTING-LOADING($context, $top-level, $!setting-name) if $!setting-name;
 
         unless $!is-eval {
@@ -192,6 +199,8 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
 
         # Compile into a QAST::CompUnit.
         $top-level.push(self.IMPL-TO-QAST($context));
+        $!mainline.IMPL-LINK-META-OBJECT($context, $top-level);
+
         QAST::CompUnit.new:
             $top-level,
             :hll('Raku'),

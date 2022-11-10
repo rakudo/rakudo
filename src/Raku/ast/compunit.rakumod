@@ -203,10 +203,12 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         $top-level.push(self.IMPL-TO-QAST($context));
         $!mainline.IMPL-LINK-META-OBJECT($context, $top-level);
 
+        $context.stop-nested if $!is-eval == 2;
         QAST::CompUnit.new:
             $top-level,
             :hll('Raku'),
             :sc($!sc),
+            :is_nested($!is-eval == 2),
             :code_ref_blocks($context.code-ref-blocks),
             :compilation_mode($!precompilation-mode),
             :pre_deserialize(@pre-deserialize),

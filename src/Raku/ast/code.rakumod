@@ -158,7 +158,7 @@ class RakuAST::Code is RakuAST::Node {
         }
 
         my $fixups := QAST::Stmts.new();
-        unless $context.is-precompilation-mode {
+        unless $context.is-precompilation-mode || $context.is-nested {
             # We need to do a fixup of the code block for the non-precompiled case.
             $fixups.push(
                 QAST::Op.new(

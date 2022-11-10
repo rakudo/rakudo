@@ -24,6 +24,8 @@ class RakuAST::IMPL::QASTContext {
     # Clean-up tasks, to do after CHECK time.
     has List $.cleanup-tasks;
 
+    has int $.is-nested;
+
     method new(Mu :$sc!, int :$precompilation-mode) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
@@ -35,7 +37,17 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-cloned-code-objects', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-sc-idx', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cleanup-tasks', []);
+        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!is-nested', 0);
         $obj
+    }
+
+    method start-nested() {
+        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!is-nested', $!is-nested + 1);
+    }
+
+    method stop-nested() {
+        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!is-nested', $!is-nested - 1);
+        nqp::die("Error counting nesting levels") if $!is-nested < 0;
     }
 
     # Get the handle of the serialization context.

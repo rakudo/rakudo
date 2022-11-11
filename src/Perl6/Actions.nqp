@@ -9098,10 +9098,12 @@ Did you mean a call like '"
             QAST::IVal.new( :value($samemark) ),
         );
 
+        my $Is_S := $<sym> eq 'S';
+
         $past := QAST::Op.new( :op('locallifetime'), :node($/),
             QAST::Stmt.new(
                 # var for final result string of S///
-                $<sym> eq 'S' ?? QAST::Var.new(
+                $Is_S ?? QAST::Var.new(
                     :name($S_result), :scope('local'), :decl('var')
                 ) !! QAST::Stmt.new(),
 
@@ -9137,7 +9139,7 @@ Did you mean a call like '"
                         )
                     ),
 
-                    $<sym> eq 'S'
+                    $Is_S
                     ?? QAST::Op.new( :op('bind'),
                         WANTED(QAST::Var.new( :name($S_result), :scope('local') ),'s/assign'),
                         $apply_matches
@@ -9146,7 +9148,7 @@ Did you mean a call like '"
                         $apply_matches
                     ),
 
-                    $<sym> eq 'S'
+                    $Is_S
                     ?? QAST::Op.new( :op('bind'),
                         QAST::Var.new( :name($S_result), :scope('local') ),
                         WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
@@ -9185,16 +9187,14 @@ Did you mean a call like '"
                 ),
 
                 # The result of this operation.
-                $<sym> eq 's'
-                ?? QAST::Var.new( :name('$/'), :scope('lexical') )
-                !! QAST::Var.new( :name($S_result), :scope('local') ),
+                $Is_S
+                ?? QAST::Var.new( :name($S_result), :scope('local') )
+                !! QAST::Var.new( :name('$/'), :scope('lexical') ),
             ),
         );
-        $past.annotate_self(
-            'is_S', $<sym> eq 'S'
-        ).annotate(
-            'regex_match_code', !($<sym> eq 'S')
-        );
+        $Is_S
+        ?? $past.annotate('is_S', 1)
+        !! $past.annotate('regex_match_code', 1);
         make WANTED($past, 's///');  # never carp about s/// in sink context
     }
 

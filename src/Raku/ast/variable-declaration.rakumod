@@ -194,6 +194,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     has RakuAST::Initializer $.initializer;
     has RakuAST::SemiList $.shape;
     has RakuAST::Package $!attribute-package;
+    has RakuAST::Method $!accessor;
     has Mu $!container-initializer;
     has Mu $!package;
 
@@ -209,6 +210,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape', $shape // RakuAST::SemiList);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor', RakuAST::Method);
         $obj
     }
 
@@ -263,6 +265,8 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         $visitor($type) if nqp::isconcrete($type);
         my $initializer := $!initializer;
         $visitor($initializer) if nqp::isconcrete($initializer);
+        my $accessor := $!accessor;
+        $visitor($accessor) if nqp::isconcrete($accessor);
         self.visit-traits($visitor);
     }
 
@@ -282,7 +286,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
 
     method attach(RakuAST::Resolver $resolver) {
         my str $scope := self.scope;
-        if $scope eq 'has' || $scope eq 'HAS' {
+        if $scope eq 'has' || $scope eq 'HAS' || self.twigil eq '.' {
             my $attribute-package := $resolver.find-attach-target('package');
             if $attribute-package {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
@@ -301,7 +305,8 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if $!attribute-package {
+        my str $scope := self.scope;
+        if $!attribute-package && ($scope eq 'has' || $scope eq 'HAS') {
             $!attribute-package.ATTACH-ATTRIBUTE(self);
         }
 
@@ -329,7 +334,6 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         # Apply any traits.
         self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
 
-        my str $scope := self.scope;
         if $scope eq 'has' || $scope eq 'HAS' {
             if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
                 my $args := $!shape
@@ -378,6 +382,22 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             # Get around RakuAST compiler deconting all arguments:
             nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
             $target.IMPL-CHECK($resolver, $context, False);
+
+            if self.twigil eq '.' {
+                my $variable-access := RakuAST::Var::Lexical.new(self.name);
+                $variable-access.set-resolution(self);
+                my $accessor := RakuAST::Method.new(
+                    :scope<has>,
+                    :name(RakuAST::Name.from-identifier(self.desigilname)),
+                    :body(RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            $variable-access,
+                        ),
+                    )),
+                );
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!accessor', $accessor);
+                $accessor.IMPL-CHECK($resolver, $context, False);
+            }
 
             self.apply-traits($resolver, $context, $target);
         }

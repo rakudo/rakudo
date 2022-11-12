@@ -1355,7 +1355,10 @@ my class Operand {
 
     method can-be($type) {
         return 1 if nqp::isnull(my $op-type := self.infer-type(:guaranteed));
+        # 'Can be' condition is a two-way thing. If we ask if something can be Int then if operand type is Real it can
+        # potentially be Int; yet, if it is IntStr then it is already an Int and the answer to 'can be' is 'yes' too.
         (nqp::istype($type, $op-type)
+            || nqp::istype($op-type, $type)
             || (($!value-kind == $OPERAND_VALUE_VAR || $!value-kind == $OPERAND_VALUE_RETURN)
                 && nqp::eqaddr($!value, $!symbols.Mu)))
     }
@@ -1991,14 +1994,15 @@ my class SmartmatchOptimizer {
 
             # If there is a chance that LHS can result in an Associative then a fallback to the default ACCEPTS+Bool
             # must be provided.
-            if $lhs.can-be($!symbols.Pair) {
+            my $Associative := $!symbols.find_in_setting('Associative');
+            if $lhs.can-be($Associative) {
                 my $accepts_bool_method := $sm_accepts_ast.ann('smartmatch_negated') ?? 'not' !! 'Bool';
                 $res_ast := QAST::Op.new(
                     :op<if>,
                     QAST::Op.new(
                         :op<istype>,
                         QAST::Var.new( :name('$_'), :scope<lexical> ),
-                        QAST::WVal.new( :value($!symbols.find_in_setting('Associative')) )
+                        QAST::WVal.new( :value($Associative) )
                     ),
                     QAST::Op.new(
                         :op<callmethod>,

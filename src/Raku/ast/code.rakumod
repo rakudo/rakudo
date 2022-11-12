@@ -146,15 +146,13 @@ class RakuAST::Code is RakuAST::Node {
 
         my @compstuff := nqp::getattr($code-obj, Code, '@!compstuff');
 
-        if $context.is-precompilation-mode {
-            @compstuff[2] := sub ($orig, $clone) {
-                my $do := nqp::getattr($clone, Code, '$!do');
-                nqp::markcodestub($do);
-                $context.add-cleanup-task(sub () {
-                    nqp::bindattr($clone, Code, '@!compstuff', nqp::null());
-                });
-                $context.add-clone-for-cuid($clone, $cuid);
-            }
+        @compstuff[2] := sub ($orig, $clone) {
+            my $do := nqp::getattr($clone, Code, '$!do');
+            nqp::markcodestub($do);
+            $context.add-cleanup-task(sub () {
+                nqp::bindattr($clone, Code, '@!compstuff', nqp::null());
+            });
+            $context.add-clone-for-cuid($clone, $cuid);
         }
 
         my $fixups := QAST::Stmts.new();

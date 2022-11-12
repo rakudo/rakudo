@@ -79,6 +79,7 @@ $lang = 'Raku' if $lang eq 'perl6';
                 RakuAST::StatementList.new($statement)
             }
             RakuAST::CompUnit.new:
+                :outer-cu($*CU // RakuAST::CompUnit),
                 :eval, :$statement-list,
                 :comp-unit-name($filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id)
         }

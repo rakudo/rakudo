@@ -21,7 +21,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
             Str :$setting-name, Bool :$eval, Mu :$global-package-how,
-            Bool :$precompilation-mode, Mu :$export-package) {
+            Bool :$precompilation-mode, Mu :$export-package, RakuAST::CompUnit :$outer-cu) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
             $statement-list // RakuAST::StatementList.new);
@@ -30,12 +30,8 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::bindattr($obj, RakuAST::CompUnit, '$!mainline', $mainline);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name', $comp-unit-name);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!setting-name', $setting-name // Str);
-        my $sc := nqp::createsc($comp-unit-name);
-        nqp::pushcompsc($sc);
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
         my $file := nqp::getlexdyn('$?FILES');
-        nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
-        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', $eval ?? 1 !! 0);
+        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', $eval ?? $outer-cu ?? 2 !! 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
             $global-package-how =:= NQPMu ?? Perl6::Metamodel::PackageHOW !! $global-package-how);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
@@ -44,8 +40,24 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
 
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!context', RakuAST::IMPL::QASTContext.new(
-            :$sc, :$precompilation-mode));
+        my $sc;
+        if $outer-cu {
+            my $context             := $outer-cu.context;
+            $context.start-nested;
+            $sc                     := $context.sc;
+            my $precompilation-mode := $outer-cu.precompilation-mode;
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!context', $context);
+            nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode);
+        }
+        else {
+            $sc := nqp::createsc($comp-unit-name);
+            nqp::pushcompsc($sc);
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!context', RakuAST::IMPL::QASTContext.new(
+                :$sc, :$precompilation-mode));
+        }
+        nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
 
         $obj
     }

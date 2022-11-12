@@ -105,7 +105,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if nqp::isconcrete($outer_ctx) {
             # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
             my $comp-unit-name := nqp::sha1($file ~ $/.target() ~ SerializationContextId.next-id());
-            $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name, :eval, :$precompilation-mode);
+            $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name, :eval, :$*outer-cu);
         }
         else {
             # Top-level compilation. Create a GLOBAL using the correct package meta-object.

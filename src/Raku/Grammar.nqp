@@ -488,10 +488,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*POD_ANGLE_COUNT := 0;
 
         # Parse a compilation unit.
-        self.comp_unit
+        self.comp_unit($*CU)
     }
 
-    token comp_unit {
+    token comp_unit($outer-cu) {
         <.bom>?
 
         # Set up compilation unit and symbol resolver according to the language
@@ -500,7 +500,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*R;
         :my $*LITERALS;
         :my $*EXPORT;
-        <.lang_setup>
+        <.lang_setup($outer-cu)>
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
         <load_command_line_modules>
@@ -511,7 +511,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token bom { \xFEFF }
 
-    rule lang_setup {
+    rule lang_setup($*outer-cu) {
         # TODO validate this and pay attention to it in actions
         [ <.ws>? 'use' <version> ';'? ]?
     }

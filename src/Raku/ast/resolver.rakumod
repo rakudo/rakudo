@@ -653,22 +653,29 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     has Mu $!sorries;
     has Mu $!worries;
 
-    method new(Mu :$setting!, Mu :$outer!, Mu :$global!) {
+    method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $outer);
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes', []);
+        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes', $scopes // []);
         $obj
     }
 
     # Create a resolver from a context and existing global. Used when we are
     # compiling a textual EVAL.
-    method from-context(Mu :$context!, Mu :$global!) {
-        my $setting := self.IMPL-SETTING-FROM-CONTEXT($context);
-        self.new(:$setting, :outer($context), :$global)
+    method from-context(Mu :$context!, Mu :$global!, RakuAST::Resolver :$resolver) {
+        my $setting := $resolver
+            ?? nqp::getattr($resolver, RakuAST::Resolver, '$!setting')
+            !! self.IMPL-SETTING-FROM-CONTEXT($context);
+        self.new(
+            :$setting,
+            :outer($resolver ?? $setting !! $context),
+            :$global,
+            :scopes($resolver ?? nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes') !! Mu)
+        )
     }
 
     # Create a resolver for a fresh compilation unit of the specified language

@@ -81,7 +81,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $precompilation-mode := %options<precomp>;
         if nqp::isconcrete($outer_ctx) {
             my $global := %options<global>;
-            $*R := $resolver_type.from-context(:context($outer_ctx), :$global);
+            $*R := $resolver_type.from-context(:context($outer_ctx), :$global, :resolver($*OUTER-RESOLVER));
         }
         else {
             $*R := $resolver_type.from-setting(:$setting-name);

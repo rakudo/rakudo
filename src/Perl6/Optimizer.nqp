@@ -1994,14 +1994,15 @@ my class SmartmatchOptimizer {
 
             # If there is a chance that LHS can result in an Associative then a fallback to the default ACCEPTS+Bool
             # must be provided.
-            if $lhs.can-be($!symbols.Pair) {
+            my $Associative := $!symbols.find_in_setting('Associative');
+            if $lhs.can-be($Associative) {
                 my $accepts_bool_method := $sm_accepts_ast.ann('smartmatch_negated') ?? 'not' !! 'Bool';
                 $res_ast := QAST::Op.new(
                     :op<if>,
                     QAST::Op.new(
                         :op<istype>,
                         QAST::Var.new( :name('$_'), :scope<lexical> ),
-                        QAST::WVal.new( :value($!symbols.find_in_setting('Associative')) )
+                        QAST::WVal.new( :value($Associative) )
                     ),
                     QAST::Op.new(
                         :op<callmethod>,

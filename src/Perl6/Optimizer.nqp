@@ -1355,7 +1355,10 @@ my class Operand {
 
     method can-be($type) {
         return 1 if nqp::isnull(my $op-type := self.infer-type(:guaranteed));
+        # 'Can be' condition is a two-way thing. If we ask if something can be Int then if operand type is Real it can
+        # potentially be Int; yet, if it is IntStr then it is already an Int and the answer to 'can be' is 'yes' too.
         (nqp::istype($type, $op-type)
+            || nqp::istype($op-type, $type)
             || (($!value-kind == $OPERAND_VALUE_VAR || $!value-kind == $OPERAND_VALUE_RETURN)
                 && nqp::eqaddr($!value, $!symbols.Mu)))
     }

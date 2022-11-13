@@ -4,29 +4,13 @@ my class X::TooManyDimensions { ... }
 my class X::TypeCheck::Assignment { ... }
 
 my class array does Iterable does Positional {
+    multi method new(array:)              { self.rub }
+    multi method new(array: Mu $v is raw) { self.rub.STORE($v) }
+    multi method new(array: **@v)         { self.rub.STORE(@v) }
 
-    multi method new(array:)      { self!create }
-    multi method new(array: @v)   { self!create.STORE(@v) }
-    multi method new(array: **@v) { self!create.STORE(@v) }
-
-    multi method new(array: :$shape!)       { self!create-ws($shape) }
-    multi method new(array: @v, :$shape!)   { self!create-ws($shape).STORE(@v) }
-    multi method new(array: **@v, :$shape!) { self!create-ws($shape).STORE(@v) }
-
-    method !create() {
-        nqp::isnull(nqp::typeparameterized(self))
-         ?? X::MustBeParametric.new(:type(self)).throw
-         !! nqp::create(self)
-    }
-    method !create-ws($shape) {
-        nqp::isnull(nqp::typeparameterized(self))
-          ?? X::MustBeParametric.new(:type(self)).throw
-          !! nqp::isconcrete($shape)
-            ?? self.set-shape($shape)
-            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
-              ?? self.set-shape($shape.^elems)
-              !! nqp::create(self)
-    }
+    multi method new(array: :$shape!)               { self.dim($shape) }
+    multi method new(array: Mu $v is raw, :$shape!) { self.dim($shape).STORE($v) }
+    multi method new(array: **@v, :$shape!)         { self.dim($shape).STORE(@v) }
 
     proto method STORE(array:D: |) {*}
     multi method STORE(array:D: *@values) { self.STORE(@values) }
@@ -4803,45 +4787,49 @@ my class array does Iterable does Positional {
         $what
     }
 
-    # poor man's 3x4 matrix
-    constant typedim2role := nqp::list(nqp::null,
-      nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
-      nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
-      nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray),
-      nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,
-      nqp::list(shapeduintarray,shaped1uintarray,shaped2uintarray,shaped3uintarray),
-    );
-
-    proto method set-shape(|) is implementation-detail {*}
-    multi method set-shape(Whatever) is raw {
-        nqp::create(self.WHAT)
+    method rub(array: --> array:D) {
+        # Despite an instance likely having its parameter, CREATE doesn't care.
+        nqp::ifnull(nqp::typeparameterized(self),(X::MustBeParametric.new(:type(self)).throw));
+        nqp::create(self)
     }
-    multi method set-shape(\shape) is raw {
-        self.set-shape(shape.List)
-    }
-    multi method set-shape(List:D \shape) is raw {
-        my int $dims = shape.elems;  # reifies
-        my $reified := nqp::getattr(nqp::decont(shape),List,'$!reified');
 
-        # just a list with Whatever, so no shape
-        if nqp::iseq_i($dims,1)
-          && nqp::istype(nqp::atpos($reified,0),Whatever) {
-            nqp::create(self.WHAT)
+    proto method dim(array: $ --> array:D) {*}
+    multi method dim(array: Whatever) {
+        self.rub
+    }
+    multi method dim(array: List:D(Mu) $shape is copy) {
+        my $reified := nqp::getattr(($shape := $shape.eager),List,'$!reified');
+        my int $dims = nqp::elems($reified);
+
+        # Just a list with Whatever, so no shape.
+        if nqp::iseq_i($dims,1) && nqp::istype(nqp::atpos($reified,0),Whatever) {
+            self.rub
         }
+        # We haz dimensions.
         elsif $dims {
+            my constant typedim2role := nqp::list(nqp::null,
+              nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
+              nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
+              nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray),
+              nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,
+              nqp::list(shapeduintarray,shaped1uintarray,shaped2uintarray,shaped3uintarray));
+
             # Calculate new meta-object (probably hitting caches in most cases).
-            my \shaped-type = self.WHAT.^mixin(
-              nqp::atpos(
-                nqp::atpos(typedim2role,nqp::objprimspec(my \T = self.of)),
-                nqp::isle_i($dims,3) && $dims
-              )
-            );
-            shaped-type.^set_name(self.WHAT.^name)        # set name if needed
-              if nqp::isne_s(shaped-type.^name,self.WHAT.^name);
+            # We need to take the base of any mixin to prevent overlapping of
+            # Shaped roles. This could perhaps be taken advantage of to enforce
+            # an order on our own mixins, but also means user mixins get erased.
+            nqp::ifnull(nqp::typeparameterized(self),(X::MustBeParametric.new(:type(self)).throw));
+            my $base := self.^mixin_base.^parameterize: my \T = self.of;
+            my $type := $base.^mixin: nqp::atpos(
+              nqp::atpos(typedim2role,nqp::objprimspec(T)),
+              (nqp::isle_i($dims,3) && $dims));
+            my $name := $base.^name;
+            $type.^set_name: $name unless $type.^name eq $name;
 
             # Allocate array storage for this shape, based on calculated type.
-            Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,shaped-type.HOW,T)
+            Rakudo::Internals.SHAPED-ARRAY-STORAGE: $shape, nqp::how_nd($type), T
         }
+        # Flatland.
         else {
             X::NotEnoughDimensions.new(
               operation         => 'create',
@@ -4849,6 +4837,19 @@ my class array does Iterable does Positional {
               needed-dimensions => '',
             ).throw
         }
+    }
+    multi method dim(array: Mu:U $shape) {
+        # Unlike Array, don't warn. In order to wind up attempting to type the
+        # shape of a native array, you need the native type on @ to begin with.
+        nqp::if(
+          nqp::istype_nd($shape.HOW,Metamodel::EnumHOW),
+          (samewith $shape.^elems),
+          (self.rub))
+    }
+
+    proto method set-shape(|) is implementation-detail {*}
+    multi method set-shape(array: |args) is raw {
+        self.dim: |args
     }
 
     method BIND-POS(|) {

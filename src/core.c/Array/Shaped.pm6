@@ -8,12 +8,6 @@ my class array is repr('VMArray') { ... };
 my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     has $.shape;
 
-    multi method new(::?CLASS:D:) {
-        nqp::istype(self,Array::Typed)
-          ?? Array[self.of].new(:$!shape)
-          !! Array.new(:$!shape)
-    }
-
     # Handle dimensions > 3 or more indices than dimensions.
     # If dimensions <= 3, then custom AT-POS should have caught
     # correct number of indices already.
@@ -531,6 +525,16 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     multi method sum(::?CLASS:D:) { self.Any::sum }
     multi method elems(::?CLASS:D:) {
         nqp::elems(nqp::getattr(self,List,'$!reified'))
+    }
+
+    method rub(::?CLASS: --> ::?CLASS:D) {
+        nqp::if(
+          nqp::isconcrete(self),
+          nqp::stmts(
+            nqp::bindattr((my $shaped := callsame),List,'$!reified',
+              (Rakudo::Internals.SHAPED-ARRAY-STORAGE: $!shape, nqp::knowhow, Mu)),
+            nqp::p6bindattrinvres($shaped,$?CLASS,'$!shape',$!shape)),
+          (callsame))
     }
 
     method clone(::?CLASS:D:) {

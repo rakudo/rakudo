@@ -184,44 +184,24 @@ my class Array { # declared in BOOTSTRAP
         nqp::create(self).make-iterable($list.imbue)
     }
 
-    # handle non-straightforward shapes
-    method !difficult-shape(\shape --> Array:D) {
-        nqp::if(
-          Metamodel::EnumHOW.ACCEPTS(shape.HOW),
-          self.set-shape(shape.^elems),
-          nqp::stmts(
-            warn("Ignoring [{ shape.^name }] as shape specification, did you mean 'my { shape.^name } @foo' ?"),
-            nqp::create(self)
-          )
-        )
-    }
-
     proto method new(|) {*}
-    multi method new(Array: :$shape! --> Array:D) {
-        nqp::isconcrete($shape)
-          ?? self.set-shape($shape)
-          !! self!difficult-shape($shape)
-    }
     multi method new(Array: --> Array:D) {
-        nqp::create(self)
+        self.rub
     }
-    multi method new(Array: \values, :$shape! --> Array:D) {
-        (nqp::isconcrete($shape)
-          ?? self.set-shape($shape)
-          !! self!difficult-shape($shape)
-        ).STORE(values)
+    multi method new(Array: :$shape! --> Array:D) {
+        self.dim($shape)
     }
-    multi method new(Array: \values --> Array:D) {
-        nqp::create(self).STORE(values)
+    multi method new(Array: Mu $values is raw --> Array:D) {
+        self.rub.STORE($values, :INITIALIZE)
     }
-    multi method new(Array: **@values is raw, :$shape! --> Array:D) {
-        (nqp::isconcrete($shape)
-          ?? self.set-shape($shape)
-          !! self!difficult-shape($shape)
-        ).STORE(@values)
+    multi method new(Array: Mu $values is raw, :$shape! --> Array:D) {
+        self.dim($shape).STORE($values, :INITIALIZE)
     }
     multi method new(Array: **@values is raw --> Array:D) {
-        nqp::create(self).STORE(@values)
+        self.rub.STORE(@values, :INITIALIZE)
+    }
+    multi method new(Array: **@values is raw, :$shape! --> Array:D) {
+        self.dim($shape).STORE(@values, :INITIALIZE)
     }
 
     proto method STORE(Array:D: |) {*}
@@ -1323,51 +1303,6 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method WHICH(Array:D: --> ObjAt:D) { self.Mu::WHICH }
 
-    my constant \dim2role =
-      nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
-
-    proto method set-shape(|) is implementation-detail {*}
-    multi method set-shape(Whatever) is raw {
-        nqp::create(self.WHAT)
-    }
-    multi method set-shape(\shape) is raw {
-        self.set-shape(shape.List)
-    }
-    multi method set-shape(List:D \shape) is raw {
-        my int $dims = shape.elems;  # reifies
-        my $reified := nqp::getattr(nqp::decont(shape),List,'$!reified');
-
-        # just a list with Whatever, so no shape
-        if nqp::iseq_i($dims,1)
-          && nqp::istype(nqp::atpos($reified,0),Whatever) {
-            nqp::create(self.WHAT)
-        }
-
-        # we haz dimensions
-        elsif $dims {
-            my $what := self.WHAT.^mixin(
-              nqp::atpos(dim2role,nqp::isle_i($dims,3) && $dims)
-            );
-            $what.^set_name(self.^name)           # correct name if needed
-              if nqp::isne_s($what.^name,self.^name);
-
-            my $array := nqp::p6bindattrinvres(
-              nqp::create($what),List,'$!reified',
-              Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,nqp::knowhow,Mu)
-            );
-            nqp::p6bindattrinvres($array,$what,'$!shape',nqp::decont(shape))
-        }
-
-        # flatland
-        else {
-            X::NotEnoughDimensions.new(
-              operation         => 'create',
-              got-dimensions    => 0,
-              needed-dimensions => '',
-            ).throw
-        }
-    }
-
     my class LTHandle {
         has Mu $!reified;
         has Mu $!todo;
@@ -1402,6 +1337,70 @@ my class Array { # declared in BOOTSTRAP
             $what.^set_name("{arr.^name}[{of.^name}]");
             $what
         }
+    }
+
+    method rub(Array: --> Array:D) {
+        nqp::if(
+          nqp::isconcrete(self),
+          nqp::p6bindattrinvres(nqp::create(self),$?CLASS,'$!descriptor',$!descriptor),
+          nqp::create(self))
+    }
+
+    proto method dim(Array: $ --> Array:D) {*}
+    multi method dim(Array: Whatever) {
+        self.rub
+    }
+    multi method dim(Array: List:D(Mu) $shape is copy) {
+        my $reified := nqp::getattr(($shape := $shape.eager),List,'$!reified');
+        my int $dims = nqp::elems($reified);
+
+        # Just a list with Whatever, so no shape.
+        if nqp::iseq_i($dims,1) && nqp::istype(nqp::atpos($reified,0),Whatever) {
+            self.rub
+        }
+        # We haz dimensions.
+        elsif $dims {
+            my constant \dim2role = nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
+
+            # Calculate new meta-object (probably hitting caches in most cases).
+            # We need to take the base of any mixin to prevent overlapping of
+            # Shaped roles. This could perhaps be taken advantage of to enforce
+            # an order on our own mixins, but also means user mixins get erased.
+            my $base := self.^mixin_base.^parameterize: self.of;
+            my $type := $base.^mixin: nqp::atpos(dim2role,(nqp::isle_i($dims,3) && $dims));
+            my $name := $base.^name;
+            $type.^set_name: $name unless $type.^name eq $name;
+
+            # Allocate array storage for this shape. We can't make a reification
+            # without a shape attached beforehand, but we need to produce this
+            # instance from a type object that does not carry that information.
+            # Albeit obtuse, we keep the proper metadata if we repeat ourselves.
+            nqp::bindattr((my $copy := $type.rub),$type,'$!shape',$shape);
+            nqp::if(nqp::isconcrete(self),nqp::bindattr($copy,Array,'$!descriptor',$!descriptor));
+            $copy.rub
+        }
+        # Flatland.
+        else {
+            X::NotEnoughDimensions.new(
+              operation         => 'create',
+              got-dimensions    => 0,
+              needed-dimensions => '',
+            ).throw
+        }
+    }
+    multi method dim(Array: Mu:U $shape) {
+        nqp::if(
+          nqp::istype_nd($shape.HOW,Metamodel::EnumHOW),
+          (samewith $shape.^elems),
+          nqp::stmts(
+            (my str $what = $shape.^name),
+            (warn "Ignoring [$what] as shape specification. Did you mean 'my $what @foo'?"),
+            (self.rub)))
+    }
+
+    proto method set-shape(|) is implementation-detail {*}
+    multi method set-shape(Array: |args) is raw {
+        self.dim: |args
     }
 }
 

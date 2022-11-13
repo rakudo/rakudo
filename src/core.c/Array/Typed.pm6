@@ -1,50 +1,4 @@
 my role Array::Typed[::TValue] does Positional[TValue] {
-
-    proto method new(|) {*}
-    multi method new(:$shape!) {
-        set-descriptor(
-          nqp::defined($shape)
-            ?? self.set-shape($shape)
-            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
-              ?? self.set-shape($shape.^elems)
-              !! nqp::create(self)
-        )
-    }
-    multi method new() {
-        set-descriptor(nqp::create(self))
-    }
-    multi method new(\values, :$shape!) {
-        set-descriptor(
-          nqp::defined($shape)
-            ?? self.set-shape($shape)
-            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
-              ?? self.set-shape($shape.^elems)
-              !! nqp::create(self)
-        ).STORE(values)
-    }
-    multi method new(\values) {
-        set-descriptor(nqp::create(self)).STORE(values)
-    }
-    multi method new(**@values is raw, :$shape!) {
-        set-descriptor(
-          nqp::defined($shape)
-            ?? self.set-shape($shape)
-            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
-              ?? self.set-shape($shape.^elems)
-              !! nqp::create(self)
-        ).STORE(@values)
-    }
-    multi method new(**@values is raw) {
-        set-descriptor(nqp::create(self)).STORE(@values)
-    }
-
-    sub set-descriptor(\list) is raw {
-        nqp::bindattr(list,Array,'$!descriptor',
-          ContainerDescriptor.new(:of(TValue), :default(TValue))
-        );
-        list
-    }
-
     method !out-of-range(int $got) {
         X::OutOfRange.new(:what($*INDEX // 'Index'),:$got,:range<0..^Inf>).Failure
     }
@@ -104,6 +58,14 @@ my role Array::Typed[::TValue] does Positional[TValue] {
             nqp::isconcrete($_) ?? .raku(:arglist) !! $type
         }).join(', ');
         'Array[' ~ $type ~ '].new(' ~ $raku ~ ')'
+    }
+
+    method rub(::?CLASS: --> ::?CLASS:D) {
+        nqp::if(
+          nqp::isconcrete(self),
+          (callsame),
+          nqp::p6bindattrinvres((callsame),Array,'$!descriptor',
+            (ContainerDescriptor.new: :of(TValue), :default(TValue))))
     }
 }
 

@@ -133,6 +133,11 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package) {
         my $result := $start-package;
         my $final := $!parts[nqp::elems($!parts) - 1];
+        my int $first := 0;
+        if nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL' {
+            $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
+            $first := 1;
+        }
         if self.is-pseudo-package {
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
             my $PseudoStash := @lookups[1];
@@ -141,7 +146,7 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
                 :name<new>,
                 $PseudoStash.IMPL-TO-QAST($context),
             );
-            my int $first := 1;
+            $first := 1;
             for $!parts {
                 if $first { # don't call .WHO on the pseudo package itself, index into it instead
                     $first := 0;
@@ -154,9 +159,14 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         }
         else {
             for $!parts {
-                # We do .WHO on the current package, followed by the index into it.
-                $result := QAST::Op.new( :op('who'), $result );
-                $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
+                if $first { # skip GLOBAL, already taken care of
+                    $first := 0;
+                }
+                else { # get the Stash from all real packages
+                    # We do .WHO on the current package, followed by the index into it.
+                    $result := QAST::Op.new( :op('who'), $result );
+                    $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
+                }
             }
         }
         $result

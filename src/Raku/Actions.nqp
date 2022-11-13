@@ -113,7 +113,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name,
                 :global-package-how($package-how), :$precompilation-mode,
                 :$export-package);
-            $*R.set-global($*CU.generated-global);
+            my $global := $*CU.generated-global;
+            $*R.set-global($global);
+            nqp::bindhllsym('Raku', 'GLOBAL', $global);
         }
 
         # Set up the literals builder, so we can produce and intern literal

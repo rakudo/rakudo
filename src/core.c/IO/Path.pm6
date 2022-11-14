@@ -494,12 +494,12 @@ my class IO::Path is Cool does IO {
 
         my str $path = self.absolute;
         $uid = $uid.defined
-          ?? $uid.Int
+          ?? $uid.UInt
           !! nqp::stat($path,nqp::const::STAT_UID);
         $uid.throw if nqp::istype($uid,Failure);
 
         $gid = $gid.defined
-          ?? $gid.Int
+          ?? $gid.UInt
           !! nqp::stat($path,nqp::const::STAT_GID);
         $gid.throw if nqp::istype($gid,Failure);
 
@@ -508,7 +508,7 @@ my class IO::Path is Cool does IO {
                 fail X::IO::Chown.new(
                   :path($!os-path), :$uid, :$gid, :os-error(.Str) );
             }}
-            nqp::chown($path, nqp::unbox_i($uid), nqp::unbox_i($gid))
+            nqp::chown($path, nqp::unbox_u($uid), nqp::unbox_u($gid))
         }
     }
     method unlink(IO::Path:D: --> True) {

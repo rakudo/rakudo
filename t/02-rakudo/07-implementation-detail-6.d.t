@@ -18,7 +18,7 @@ my @lower = ("",<<
   atomic-dec-fetch atomic-fetch atomic-fetch-add atomic-fetch-dec
   atomic-fetch-inc atomic-fetch-sub atomic-inc-fetch atomic-sub-fetch
   await bag cache callframe callsame callwith cas categorize ceiling
-  chars chdir chmod chomp chop chr chrs cis classify close comb
+  chars chdir chmod chomp chop chown chr chrs cis classify close comb
   combinations copy cos cosec cosech cosh cotan cotanh deepmap defined
   die dir done duckmap elems emit end exit exp expmod fail fc first
   flat flip floor full-barrier get getc gist goto grep hash head index

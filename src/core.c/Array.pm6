@@ -1393,6 +1393,9 @@ my class Array { # declared in BOOTSTRAP
         if nqp::isconcrete(of) {
             die "Can not parameterize {arr.^name} with {of.raku}"
         }
+        elsif nqp::eqaddr(of,Mu) {
+            arr
+        }
         else {
             my $what := arr.^mixin(Array::Typed[of]);
             # needs to be done in COMPOSE phaser when that works

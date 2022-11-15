@@ -339,7 +339,14 @@ class RakuAST::Resolver {
 
     method IMPL-SETTING-FROM-CONTEXT(Mu $context) {
         # TODO locate the setting frame
-        $context
+        until nqp::isnull($context) {
+            my $pad := nqp::ctxlexpad($context);
+            if nqp::existskey($pad, 'CORE-SETTING-REV') {
+                return $context;
+            }
+            $context := nqp::ctxouterskipthunks($context);
+        }
+        Nil
     }
 
     method IMPL-CANONICALIZE-PAIR(Str $k, Str $v) {

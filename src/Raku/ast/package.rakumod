@@ -114,6 +114,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                 my @parts := self.IMPL-UNWRAP-LIST($parts);
                 $final := nqp::pop(@parts).name;
                 my $longname := $target.HOW.name($target);
+                $scope := 'our'; # Ensure we install the package into the parent stash
 
                 for @parts {
                     $longname := $longname ~ '::' ~ $_.name;
@@ -139,6 +140,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                     my %stash := $resolver.IMPL-STASH-HASH($resolver.current-package);
                     %stash{$first} := $target;
                 }
+                $scope := 'our'; # Ensure we install the package into the generated stub
 
                 $final := nqp::pop(@parts).name;
                 my $longname := $first;
@@ -159,10 +161,12 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         if $lexical {
             %stash{$final} := $lexical.compile-time-value;
         }
-        if nqp::existskey(%stash, $final) {
-            nqp::setwho($type-object, %stash{$final}.WHO);
+        if $scope eq 'our' {
+            if nqp::existskey(%stash, $final) {
+                nqp::setwho($type-object, %stash{$final}.WHO);
+            }
+            %stash{$final} := $type-object;
         }
-        %stash{$final} := $type-object;
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

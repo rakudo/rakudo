@@ -590,6 +590,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $lhs_ast.postfix.set-assignee($rhs_ast);
             return $lhs_ast;
         }
+        if (
+            nqp::istype($lhs_ast, $actions.r('ApplyPostfix'))
+            && nqp::istype($lhs_ast.postfix, $actions.r('Postcircumfix', 'LiteralHashIndex'))
+        ) {
+            $lhs_ast.postfix.set-assignee($rhs_ast);
+            return $lhs_ast;
+        }
         return;
     }
 

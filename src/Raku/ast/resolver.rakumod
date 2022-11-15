@@ -85,7 +85,17 @@ class RakuAST::Resolver {
     # rather the type object of the package we are currently in.
     method current-package() {
         int $n := nqp::elems($!packages);
-        $n == 0 ?? $!global !! $!packages[$n - 1].compile-time-value
+        if $n == 0 {
+            my $current := $!outer;
+            while !nqp::eqaddr($current, $!setting) {
+                return nqp::atkey($current, '$?PACKAGE') if nqp::existskey($current, '$?PACKAGE');
+                $current := nqp::ctxouterskipthunks($current);
+            }
+            $!global
+        }
+        else {
+            $!packages[$n - 1].compile-time-value
+        }
     }
 
     # Pops a package, at the point we leave it.

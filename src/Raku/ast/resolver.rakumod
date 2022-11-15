@@ -68,6 +68,10 @@ class RakuAST::Resolver {
         Nil
     }
 
+    method get-global() {
+        $!global
+    }
+
     method set-export-package(Mu $export-package) {
         nqp::die("This resolver's EXPORT is already set") unless nqp::eqaddr($!export-package, Mu);
         nqp::bindattr(self, RakuAST::Resolver, '$!export-package', $export-package);

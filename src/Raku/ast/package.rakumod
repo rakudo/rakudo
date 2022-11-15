@@ -176,9 +176,15 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         my $name := $!name;
         if $name && !$name.is-empty {
             my $type-object := self.stubbed-meta-object;
-            my $current-package := $resolver.find-attach-target('package');
-            $type-object.HOW.set_name($type-object, $name.qualified-with($current-package.name).canonicalize(:colonpairs(0)))
-                if $current-package;
+            my $current-package := $resolver.current-package;
+            $type-object.HOW.set_name(
+                $type-object,
+                $name.qualified-with(
+                    RakuAST::Name.from-identifier-parts(
+                        |nqp::split('::', $current-package.HOW.name($current-package))
+                    )
+                ).canonicalize(:colonpairs(0))
+            ) if !nqp::eqaddr($current-package, $resolver.get-global);
 
             if ($scope eq 'my' || $scope eq 'our') && $!package-declarator ne 'role' {
                 # Need to install the package somewhere.

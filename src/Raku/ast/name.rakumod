@@ -53,6 +53,12 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         nqp::elems($!parts) && nqp::istype($!parts[nqp::elems($!parts) - 1], RakuAST::Name::Part::Empty)
     }
 
+    method base-name() {
+        my @parts := nqp::clone($!parts);
+        @parts.pop if self.is-package-lookup;
+        RakuAST::Name.new(|@parts)
+    }
+
     method is-indirect-lookup() {
         nqp::elems($!parts) == 1 && nqp::istype($!parts[0], RakuAST::Name::Part::Expression)
     }
@@ -130,13 +136,17 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         )
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package) {
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical) {
         my $result := $start-package;
         my $final := $!parts[nqp::elems($!parts) - 1];
         my int $first := 0;
         if nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL' {
             $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
             $first := 1;
+        }
+        elsif $lexical {
+            $first := 1;
+            $result := $lexical.IMPL-LOOKUP-QAST($context);
         }
         if self.is-pseudo-package {
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
@@ -159,7 +169,7 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         }
         else {
             for $!parts {
-                if $first { # skip GLOBAL, already taken care of
+                if $first { # skip GLOBAL or lexically found first part, already taken care of
                     $first := 0;
                 }
                 else { # get the Stash from all real packages

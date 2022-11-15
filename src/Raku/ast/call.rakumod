@@ -183,6 +183,14 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         if $resolved {
             self.set-resolution($resolved);
         }
+        elsif $!name.is-package-lookup {
+            my $name := $!name.base-name;
+            $resolved := $resolver.resolve-name($name);
+            if $resolved {
+                my $v := $resolved.compile-time-value;
+                self.set-resolution($resolved);
+            }
+        }
         Nil
     }
 
@@ -227,7 +235,16 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
                 }
             }
             elsif $!name.is-package-lookup {
-                return $!name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package)));
+                return self.is-resolved
+                    ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                        $context,
+                        QAST::WVal.new(:value($!package)),
+                        :lexical(self.resolution)
+                    )
+                    !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                        $context,
+                        QAST::WVal.new(:value($!package))
+                    );
             }
             elsif $!name.is-indirect-lookup {
                 return $!name.IMPL-QAST-INDIRECT-LOOKUP($context);

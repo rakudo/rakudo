@@ -1394,7 +1394,8 @@ my class Array { # declared in BOOTSTRAP
           (samewith $shape.^elems),
           nqp::stmts(
             (my str $what = $shape.^name),
-            (warn "Ignoring [$what] as shape specification. Did you mean 'my $what @foo'?"),
+            (my str $name = self.DEFINITE ?? self.name !! '@'),
+            (warn "Ignoring [$what] as shape specification. Did you mean 'my $what $name'?"),
             (self.rub)))
     }
 

@@ -180,13 +180,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         nqp::create(self).make-iterator($iter)
     }
 
-    method over-iterator(List:D: Iterator $iter --> List:D) {
-        # from-iterator only copies type-level information; here we copy
-        # everything bar the elements (e.g. container descriptors, shapes).
-        # List has none of these, so this is just a List:D from-iterator.
-        nqp::create(self).make-iterator($iter)
-    }
-
     method make-iterator(List:D: Iterator $iter --> List:D) {
         # since Array has its own make-iterator, we don't need to call
         # reification-target, because it is our reification buffer.

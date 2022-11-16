@@ -34,33 +34,12 @@ my class Array { # declared in BOOTSTRAP
     }
 
     multi method clone(Array:D: --> Array:D) {
-        my \iter := self.iterator;
-        my \result := nqp::p6bindattrinvres(
-          nqp::create(self),
-          Array,
-          '$!descriptor',
-          nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor)
-        );
-
-        nqp::if(
-          nqp::eqaddr(
-            IterationEnd,
-            iter.push-until-lazy:
-              my \target := ArrayReificationTarget.new(
-                (my \buffer := nqp::create(IterationBuffer)),
-                nqp::clone($!descriptor))),
-          nqp::p6bindattrinvres(result, List, '$!reified', buffer),
-          nqp::stmts(
-            nqp::bindattr(result, List, '$!reified', buffer),
-            nqp::bindattr((my \todo := nqp::create(List::Reifier)),
-              List::Reifier,'$!current-iter', iter),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reified', buffer),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reification-target', target),
-            nqp::p6bindattrinvres(result, List, '$!todo', todo)
-          )
-        )
+        # from-list seems apt until we need to copy information that rub does.
+        # This includes the state of initialization of variables or attributes!
+        nqp::stmts( # No sinkerino.
+          (my $copy := self.rub),
+          ($copy.STORE: self, :INITIALIZE),
+          $copy)
     }
 
     my class Todo does Iterator {

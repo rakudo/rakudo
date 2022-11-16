@@ -536,16 +536,6 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
             nqp::p6bindattrinvres($shaped,$?CLASS,'$!shape',$!shape)),
           (callsame))
     }
-
-    method clone(::?CLASS:D:) {
-        my \obj := nqp::create(self);
-        nqp::bindattr(obj,Array,'$!descriptor',
-          nqp::getattr(self,Array,'$!descriptor'));
-        nqp::bindattr(obj,::?CLASS,'$!shape',
-          nqp::getattr(self,::?CLASS,'$!shape'));
-        obj.STORE(self);
-        obj
-    }
 }
 
 # vim: expandtab shiftwidth=4

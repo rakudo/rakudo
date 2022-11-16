@@ -568,6 +568,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
+    method rub(List: --> List:D) {
+        nqp::create(self)
+    }
+
     my class Todo does Iterator {
         has int $!i;
         has $!list;

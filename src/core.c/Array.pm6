@@ -211,6 +211,12 @@ my class Array { # declared in BOOTSTRAP
           ($!descriptor := $!descriptor.next));
         nqp::iscont($iterable) ?? (self.make-itemized: $iterable) !! (self.make-iterable: $iterable)
     }
+    multi method STORE(Array:D: Iterator:D $iterator is raw --> Array:D) {
+        nqp::if(
+          nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute),
+          ($!descriptor := $!descriptor.next));
+        nqp::iscont($iterator) ?? (self.make-itemized: $iterator) !! (self.make-iterator: $iterator)
+    }
     multi method STORE(Array:D: Mu $item is raw --> Array:D) {
         nqp::if(
           nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute),

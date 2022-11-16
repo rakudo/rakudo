@@ -33,22 +33,6 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
-    my class ListReificationTarget {
-        has $!target;
-
-        method new(\target) {
-            nqp::p6bindattrinvres(nqp::create(self), self, '$!target', target);
-        }
-
-        method push(Mu \value --> Nil) {
-            nqp::push($!target,nqp::decont(value));
-        }
-
-        method append(IterationBuffer:D \buffer --> Nil) {
-            nqp::splice($!target,buffer,nqp::elems($!target),0)
-        }
-    }
-
     multi method clone(Array:D: --> Array:D) {
         my \iter := self.iterator;
         my \result := nqp::p6bindattrinvres(

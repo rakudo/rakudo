@@ -15,7 +15,7 @@ the type and version of the operating system (e.g. `Windows 10`)
 
 Contributions to Rakudo are very welcome.
 
-For those ambitious Raku coders see the [RakuAST](./RaluAST.md) project information.
+For those ambitious Raku coders see the [RakuAST](./RakuAST.md) project information.
 
 To make the process smoother for you and the contributors, please read the note
 below.

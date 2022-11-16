@@ -348,7 +348,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method new(List: **@things is raw --> List:D) {
+    proto method new(|) {*}
+    multi method new(List: --> List:D) {
+        nqp::create(self)
+    }
+    multi method new(List: **@things is raw --> List:D) {
         nqp::eqaddr(self.WHAT,$?CLASS)
           ?? @things.imbue # it is List and we are it lol
           !! nqp::create(self).STORE(@things, :INITIALIZE)

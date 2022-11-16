@@ -747,6 +747,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         $!reified := nqp::null() if $INITIALIZE;
         nqp::iscont($iterable) ?? (self.make-itemized: $iterable) !! (self.make-iterable: $iterable)
     }
+    multi method STORE(List:D: Iterator:D $iterator is raw;; :$INITIALIZE --> List:D) {
+        $!reified := nqp::null() if $INITIALIZE;
+        nqp::iscont($iterator) ?? (self.make-itemized: $iterator) !! (self.make-iterator: $iterator)
+    }
     multi method STORE(List:D: Mu $item is raw;; :$INITIALIZE --> List:D) {
         $!reified := nqp::null() if $INITIALIZE;
         self.make-itemized: $item

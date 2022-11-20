@@ -36,7 +36,8 @@ class RakuAST::Deparse {
     has str $.regex-close = ' /';
     has str $.regex-alternation = ' | ';
     has str $.regex-sequential-alternation = ' || ';
-    has str $.regex-conjunction = ' && ';
+    has str $.regex-conjunction = ' & ';
+    has str $.regex-sequential-conjunction = ' && ';
 
     has str $.before-infix = ' ';
     has str $.after-infix  = ' ';
@@ -990,6 +991,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Regex::SequentialAlternation:D $ast --> str) {
         self!branches($ast, $.regex-sequential-alternation)
+    }
+
+    multi method deparse(RakuAST::Regex::SequentialConjunction:D $ast --> str) {
+        self!branches($ast, $.regex-sequential-conjunction)
     }
 
     multi method deparse(RakuAST::Signature:D $ast --> str) {

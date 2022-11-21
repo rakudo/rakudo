@@ -4799,14 +4799,14 @@ my class array does Iterable does Positional {
     }
     multi method dim(array: List:D $shape is copy) {
         my $reified := nqp::getattr(($shape := $shape.eager),List,'$!reified');
-        my int $dims = nqp::elems($reified);
+        my int $dims = nqp::isconcrete($reified) && nqp::elems($reified);
 
         # Just a list with Whatever, so no shape.
         if nqp::iseq_i($dims,1) && nqp::istype(nqp::atpos($reified,0),Whatever) {
             self.rub
         }
         # We haz dimensions.
-        elsif $dims {
+        elsif nqp::isgt_i($dims,0) {
             my constant typedim2role := nqp::list(nqp::null,
               nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
               nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
@@ -4829,13 +4829,21 @@ my class array does Iterable does Positional {
             # Allocate array storage for this shape, based on calculated type.
             Rakudo::Internals.SHAPED-ARRAY-STORAGE: $shape, nqp::how_nd($type), T
         }
+        # We haz lotsa dimensions!
+        elsif $dims {
+            X::TooManyDimensions.new(
+                operation         => 'create',
+                got-dimensions    => (my uint $ = $dims),
+                needed-dimensions => 'positively signable',
+            ).throw;
+        }
         # Flatland.
         else {
             X::NotEnoughDimensions.new(
-              operation         => 'create',
-              got-dimensions    => $dims,
-              needed-dimensions => '',
-            ).throw
+                operation         => 'create',
+                got-dimensions    => 0,
+                needed-dimensions => 'positively signable',
+            ).throw;
         }
     }
     multi method dim(array: Mu:D $shape) {

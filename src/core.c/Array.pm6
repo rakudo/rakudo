@@ -1333,14 +1333,14 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method dim(Array: List:D $shape is copy) {
         my $reified := nqp::getattr(($shape := $shape.eager),List,'$!reified');
-        my int $dims = nqp::elems($reified);
+        my int $dims = nqp::isconcrete($reified) && nqp::elems($reified);
 
         # Just a list with Whatever, so no shape.
         if nqp::iseq_i($dims,1) && nqp::istype(nqp::atpos($reified,0),Whatever) {
             self.rub
         }
         # We haz dimensions.
-        elsif $dims {
+        elsif nqp::isgt_i($dims,0) {
             my constant \dim2role = nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
 
             # Calculate new meta-object (probably hitting caches in most cases).
@@ -1360,13 +1360,21 @@ my class Array { # declared in BOOTSTRAP
             nqp::if(nqp::isconcrete(self),nqp::bindattr($copy,Array,'$!descriptor',$!descriptor));
             $copy.rub
         }
+        # We haz lotsa dimensions!
+        elsif $dims {
+            X::TooManyDimensions.new(
+                operation         => 'create',
+                got-dimensions    => (my uint $ = $dims),
+                needed-dimensions => 'positively signable',
+            ).throw;
+        }
         # Flatland.
         else {
             X::NotEnoughDimensions.new(
-              operation         => 'create',
-              got-dimensions    => 0,
-              needed-dimensions => '',
-            ).throw
+                operation         => 'create',
+                got-dimensions    => 0,
+                needed-dimensions => 'positively signable',
+            ).throw;
         }
     }
     multi method dim(Array: Mu:D $shape) {

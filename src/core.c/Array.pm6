@@ -1358,7 +1358,8 @@ my class Array { # declared in BOOTSTRAP
             # Albeit obtuse, we keep the proper metadata if we repeat ourselves.
             nqp::bindattr((my $copy := $type.rub),$type,'$!shape',$shape);
             nqp::if(nqp::isconcrete(self),nqp::bindattr($copy,Array,'$!descriptor',$!descriptor));
-            $copy.rub
+            nqp::p6bindattrinvres($copy,List,'$!reified',
+              (Rakudo::Internals.SHAPED-ARRAY-STORAGE: $shape, nqp::knowhow, Mu))
         }
         # We haz lotsa dimensions!
         elsif $dims {

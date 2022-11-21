@@ -233,21 +233,24 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 
     method IMPL-SMARTMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast,
             Mu $right-qast, int $negate) {
+        my $rhs-local := QAST::Node.unique('sm-rhs');
         my $accepts-call := QAST::Op.new(
             :op('callmethod'), :name('ACCEPTS'),
-            $right-qast,
-            QAST::Var.new( :name('$_'), :scope('lexical') )
-        );
+            QAST::Var.new(:name($rhs-local), :scope<local>),
+            QAST::Var.new( :name('$_'), :scope('lexical') ));
         if $negate {
             $accepts-call := QAST::Op.new(
                 :op('hllbool'),
                 QAST::Op.new(
                     :op('not_i'),
-                    QAST::Op.new( :op('istrue'), $accepts-call )
-                )
-            );
+                    QAST::Op.new( :op('istrue'), $accepts-call )));
         }
-        self.IMPL-TEMPORARIZE-TOPIC($left-qast, $accepts-call)
+        QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new(:name($rhs-local), :scope<local>, :decl<var>),
+                $right-qast ),
+            self.IMPL-TEMPORARIZE-TOPIC($left-qast, $accepts-call))
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

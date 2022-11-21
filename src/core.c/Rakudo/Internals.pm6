@@ -424,71 +424,64 @@ my class Rakudo::Internals {
              )
     }
 
-    my constant \SHAPE-STORAGE-ROOT := do {
-        my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
-        nqp::setdebugtypename($root, 'MultiDimArray root');
-        Metamodel::Primitives.set_parameterizer($root, -> $, $key {
-            # We "steal" the meta-object for the multi-dim storage.
-            my $dims := $key.elems.pred;
-            my $meta := $key.AT-POS(0);
-            my $type := $key.AT-POS(1);
-            my $dim_type := nqp::newtype($meta, 'MultiDimArray');
-            nqp::composetype($dim_type, nqp::hash('array',
-                nqp::hash('dimensions', $dims, 'type', $type)));
-            nqp::settypehll($dim_type, 'Raku');
-            # Make sure the debug name and various caches are propagated
-            # for native arrays (where this type is exposed to userspace).
-            if nqp::objprimspec($type) {
-                nqp::setdebugtypename($dim_type, $meta.name($dim_type));
-                $meta.publish_method_cache($dim_type);
-                $meta.publish_type_cache($dim_type);
-            }
-            $dim_type
-        });
-        nqp::settypehll($root, 'Raku');
-        $root
+    # Formats a reification's shape in a way nqp::setdimensions can understand.
+    my class ArrayShape is repr<VMArray> is array_type(int) {
+        proto method expand(::?CLASS:D: Any --> Nil) {*}
+        multi method expand(Any $dim --> Nil) {
+            nextwith $dim.Int;
+        }
+        multi method expand(Int $dim is copy --> Nil) {
+            nqp::eqaddr(($dim := nqp::decont($dim)),nqp::what_nd($dim)) || nqp::isbig_I($dim) || nqp::isle_i($dim,0)
+              ?? (nextwith Failure.new: X::IllegalDimensionInShape.new: :$dim)
+              !! nqp::push_i(self,$dim);
+        }
+        multi method expand(Whatever --> Nil) {
+            nextwith Failure.new: NYI 'Jagged array shapes';
+        }
+        multi method expand(Failure:D $failure --> Nil) {
+            $failure.throw;
+        }
     }
 
-    method SHAPED-ARRAY-STORAGE(\spec, Mu \meta-obj, Mu \type) {
-        my $types := nqp::list(meta-obj);  # meta + type of each dimension
-        my $dims  := nqp::list_i;          # elems per dimension
+    my knowhow UniversalReification {
+        # We don't have BEGIN yet, but a local trait runs at an OK time.
+        multi sub trait_mod:<is>(Routine:D $routine, :parameterizer($)! --> Nil) {
+            Metamodel::Primitives.set_parameterizer: $?PACKAGE, $routine;
+        }
 
-        nqp::if(
-          nqp::istype(spec,List),
-          nqp::stmts(                        # potentially more than 1 dim
-            (my $spec  := nqp::getattr(nqp::decont(spec),List,'$!reified')),
-            (my int $elems = nqp::elems($spec)),
-            (my int $i     = -1),
-            nqp::while(
-              nqp::islt_i(++$i,$elems),
-              nqp::if(
-                nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
-                NYI('Jagged array shapes').throw,
-                nqp::if(
-                  nqp::istype(($dim := nqp::decont($dim.Int)),Failure),
-                  $dim.throw,
-                  nqp::if(
-                    nqp::isbig_I($dim) || nqp::isle_i($dim,0),
-                    X::IllegalDimensionInShape.new(:$dim).throw,
-                    nqp::stmts(
-                      nqp::push($types,type),
-                      nqp::push_i($dims,$dim)
-                    )
-                  )
-                )
-              )
-            )
-          ),
-          nqp::stmts(                        # only 1 dim
-            nqp::push($types,type),
-            nqp::push_i($dims,spec.Int)
-          )
-        );
+        sub DIMENSION(Mu, Any $key) is raw is parameterizer {
+            # We "steal" the HOW provided for the multi-dim reification to type.
+            # Because the parameterizer doesn't guarantee any deduplication of
+            # integers as objects, which is more inefficient to lock over in HLL
+            # land, the dimensions count is inferred from the number of args.
+            # The HOW may be left in a dirty state afterwards, in which case we
+            # need to partially recompose the reification's type when exposed.
+            my $how := $key.AT-POS: 0;
+            my $ety := $key.AT-POS: 1;
+            my $obj := nqp::settypehll(nqp::newtype($how,'MultiDimArray'),'Raku');
+            nqp::composetype($obj,nqp::hash('array',nqp::hash('type',$ety,'dimensions',nqp::sub_i(($key.elems),2))));
+            if nqp::objprimspec($ety) {
+                # Make sure the debug name and various caches are propagated
+                # for native arrays (where the reification is the final array).
+                nqp::setdebugtypename($obj,($how.name: $obj));
+                $how.publish_method_cache: $obj;
+                $how.publish_type_cache: $obj;
+            }
+            $obj
+        }
+    }
 
-        nqp::setdimensions(
-          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$types)),
-          $dims
-        )
+    method SHAPED-ARRAY-STORAGE(List:D \spec, Mu \meta, Mu \type) {
+        my $shape := nqp::create(ArrayShape);
+        my $reified := nqp::getattr(spec,List,'$!reified');
+        my int $dims = nqp::isconcrete($reified) && nqp::elems($reified);
+        nqp::while(
+          nqp::isne_i((my int $cursor),$dims),
+          ($shape.expand: nqp::atpos($reified,($cursor++))));
+        nqp::setdimensions(nqp::create(nqp::parameterizetype(
+          UniversalReification,
+          nqp::setelems(nqp::list(meta,type),nqp::add_i(nqp::elems($shape),2))
+        )),$shape)
     }
 
     our role ImplementationDetail {

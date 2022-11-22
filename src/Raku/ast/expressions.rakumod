@@ -126,7 +126,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Match')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Regex')),
         ])
     }
 
@@ -240,7 +240,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     method IMPL-SMARTMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast,
             Mu $right-qast, int $negate) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $match-type := @lookups[0].resolution.compile-time-value;
+        my $regex-type := @lookups[0].resolution.compile-time-value;
         my $rhs-local := QAST::Node.unique('sm-rhs');
         my $lhs-local := QAST::Node.unique('sm-lhs');
         my $lhs := QAST::Op.new(
@@ -255,25 +255,17 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
             $accepts-call := QAST::Op.new( :op<callmethod>, :name<not>, $accepts-call );
         }
         else {
-            my $result-local := QAST::Node.unique('sm-intermediate');
             $accepts-call := QAST::Op.new(
                 :op<if>,
                 QAST::Op.new(
                     :op<istype>,
-                    QAST::Op.new(
-                        :op<bind>,
-                        QAST::Var.new(:name($result-local), :scope<local>, :decl<var>),
-                        $accepts-call
-                    ),
-                    QAST::WVal.new( :value($match-type) )
-                ),
-                QAST::Var.new( :name($result-local), :scope<local> ),
+                    QAST::Var.new( :name($rhs-local), :scope<local> ),
+                    QAST::WVal.new( :value($regex-type) )),
+                $accepts-call,
                 QAST::Op.new(
                     :op<callmethod>,
                     :name<Bool>,
-                    QAST::Var.new( :name($result-local), :scope<local> ),
-                )
-            );
+                    $accepts-call ));
         }
         QAST::Stmts.new(
             QAST::Op.new(

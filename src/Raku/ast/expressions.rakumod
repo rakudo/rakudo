@@ -85,7 +85,7 @@ class RakuAST::Term is RakuAST::Termish {
 }
 
 # Marker for all kinds of infixish operators.
-class RakuAST::Infixish is RakuAST::Node {
+class RakuAST::Infixish is RakuAST::ImplicitLookups {
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
         nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
     }
@@ -122,6 +122,12 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
         nqp::bindattr($obj, RakuAST::Infix, '$!properties', $properties);
         $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Match')),
+        ])
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -233,24 +239,48 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 
     method IMPL-SMARTMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast,
             Mu $right-qast, int $negate) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $match-type := @lookups[0].resolution.compile-time-value;
         my $rhs-local := QAST::Node.unique('sm-rhs');
+        my $lhs-local := QAST::Node.unique('sm-lhs');
+        my $lhs := QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new(:name($lhs-local), :scope<local>, :decl<var>),
+                        $left-qast);
         my $accepts-call := QAST::Op.new(
             :op('callmethod'), :name('ACCEPTS'),
             QAST::Var.new(:name($rhs-local), :scope<local>),
-            QAST::Var.new( :name('$_'), :scope('lexical') ));
+            QAST::Var.new(:name($lhs-local), :scope<local>));
         if $negate {
+            $accepts-call := QAST::Op.new( :op<callmethod>, :name<not>, $accepts-call );
+        }
+        else {
+            my $result-local := QAST::Node.unique('sm-intermediate');
             $accepts-call := QAST::Op.new(
-                :op('hllbool'),
+                :op<if>,
                 QAST::Op.new(
-                    :op('not_i'),
-                    QAST::Op.new( :op('istrue'), $accepts-call )));
+                    :op<istype>,
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new(:name($result-local), :scope<local>, :decl<var>),
+                        $accepts-call
+                    ),
+                    QAST::WVal.new( :value($match-type) )
+                ),
+                QAST::Var.new( :name($result-local), :scope<local> ),
+                QAST::Op.new(
+                    :op<callmethod>,
+                    :name<Bool>,
+                    QAST::Var.new( :name($result-local), :scope<local> ),
+                )
+            );
         }
         QAST::Stmts.new(
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new(:name($rhs-local), :scope<local>, :decl<var>),
                 $right-qast ),
-            self.IMPL-TEMPORARIZE-TOPIC($left-qast, $accepts-call))
+            self.IMPL-TEMPORARIZE-TOPIC( $lhs, $accepts-call ))
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

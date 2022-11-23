@@ -12,6 +12,10 @@ my class Allomorph is Str {
     method succ(Allomorph:D:) { self.Numeric.succ }
     method pred(Allomorph:D:) { self.Numeric.pred }
 
+    method words(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').words(|c)
+    }
+
     method comb(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').comb(|c)
     }

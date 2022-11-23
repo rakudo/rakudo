@@ -285,8 +285,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
                     :name<Bool>,
                     $accepts-call ));
         }
-        QAST::Stmts.new(
-            self.IMPL-TEMPORARIZE-TOPIC( $left.IMPL-TO-QAST($context), $accepts-call ))
+        self.IMPL-TEMPORARIZE-TOPIC( $left.IMPL-TO-QAST($context), $accepts-call )
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

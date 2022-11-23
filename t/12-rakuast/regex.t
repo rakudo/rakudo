@@ -11,6 +11,22 @@ sub ast(RakuAST::Regex:D $body --> Nil) {
     diag $ast.DEPARSE.chomp;
 }
 
+sub match-ok($haystack, $expected) is test-assertion {
+  subtest "matches" => {
+    plan 2;
+    is $haystack ~~ EVAL($ast), $expected, 'EVAL over RakuAST';
+    is $haystack ~~ EVAL($ast.DEPARSE), $expected, 'EVAL over deparsed AST';
+  }
+}
+
+sub match-nok($haystack) is test-assertion {
+  subtest "doesn't match" => {
+    plan 2;
+    nok $haystack ~~ EVAL($ast), 'EVAL over RakuAST';
+    nok $haystack ~~ EVAL($ast.DEPARSE), 'EVAL over deparsed AST';
+  }
+}
+
 subtest 'Simple literal regex' => {
     # / foo /
     ast RakuAST::Regex::Literal.new('foo');
@@ -28,8 +44,7 @@ subtest 'Sequential alternation takes first match even if second is longer' => {
       RakuAST::Regex::Literal.new('bc')
     );
 
-    is "abcd" ~~ $_, 'b'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "abcd", "b";
 }
 
 subtest 'Sequential alternation takes second match if first fails' => {
@@ -39,8 +54,7 @@ subtest 'Sequential alternation takes second match if first fails' => {
       RakuAST::Regex::Literal.new('bc')
     );
 
-    is "abcd" ~~ $_, 'bc'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "abcd", "bc";
 }
 
 subtest 'Sequential alternation fails if no alternative matches' => {
@@ -50,8 +64,7 @@ subtest 'Sequential alternation fails if no alternative matches' => {
       RakuAST::Regex::Literal.new('y')
     );
 
-    nok "abcd" ~~ $_,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-nok "abcd";
 }
 
 subtest 'LTM alternation takes longest match even if it is not first' => {
@@ -61,8 +74,7 @@ subtest 'LTM alternation takes longest match even if it is not first' => {
       RakuAST::Regex::Literal.new('bc')
     );
 
-    is "abcd" ~~ $_, 'bc'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "abcd", "bc";
 }
 
 subtest 'Alternation takes second match if first fails' => {
@@ -72,8 +84,7 @@ subtest 'Alternation takes second match if first fails' => {
       RakuAST::Regex::Literal.new('bc')
     );
 
-    is "abcd" ~~ $_, 'bc'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "abcd", "bc";
 }
 
 subtest 'Alternation fails if no alternative matches' => {
@@ -83,8 +94,7 @@ subtest 'Alternation fails if no alternative matches' => {
       RakuAST::Regex::Literal.new('y')
     );
 
-    nok "abcd" ~~ $_,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-nok "abcd";
 }
 
 subtest 'Conjunction matches when both items match' => {
@@ -94,8 +104,7 @@ subtest 'Conjunction matches when both items match' => {
       RakuAST::Regex::Literal.new('c')
     );
 
-    is "abcd" ~~ $_, 'c'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "abcd", "c";
 }
 
 subtest 'Conjunction fails when one item does not match' => {
@@ -105,8 +114,7 @@ subtest 'Conjunction fails when one item does not match' => {
       RakuAST::Regex::Literal.new('x')
     );
 
-    nok "abcd" ~~ $_,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-nok "abcd";
 }
 
 subtest 'Conjunction fails when items match different lengths' => {
@@ -116,8 +124,7 @@ subtest 'Conjunction fails when items match different lengths' => {
       RakuAST::Regex::Literal.new('cd')
     );
 
-    nok "abcd" ~~ $_,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-nok "abcd";
 }
 
 subtest 'Sequence needs one thing to match after the other (pass case)' => {
@@ -127,8 +134,7 @@ subtest 'Sequence needs one thing to match after the other (pass case)' => {
       RakuAST::Regex::Literal.new('d')
     );
 
-    is "abcd" ~~ $_, 'cd'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "abcd", "cd";
 }
 
 subtest 'Sequence needs one thing to match after the other (failure case)' => {
@@ -138,8 +144,7 @@ subtest 'Sequence needs one thing to match after the other (failure case)' => {
       RakuAST::Regex::Literal.new('a')
     );
 
-    nok "abcd" ~~ $_,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-nok "abcd";
 }
 
 subtest 'Beginning of string anchor works (pass case)' => {
@@ -149,8 +154,7 @@ subtest 'Beginning of string anchor works (pass case)' => {
       RakuAST::Regex::CharClass::Any.new
     );
 
-    is "abcd" ~~ $_, 'a'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "abcd", "a";
 }
 
 subtest 'Beginning of string anchor works (failure case)' => {
@@ -160,8 +164,7 @@ subtest 'Beginning of string anchor works (failure case)' => {
       RakuAST::Regex::Literal.new('b')
     );
 
-    nok "abcd" ~~ $_,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-nok "abcd";
 }
 
 subtest 'End of string anchor works (pass case)' => {
@@ -171,8 +174,7 @@ subtest 'End of string anchor works (pass case)' => {
       RakuAST::Regex::Anchor::EndOfString.new
     );
 
-    is "abcde" ~~ $_, 'e'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "abcde", "e";
 }
 
 subtest 'End of string anchor works (failure case)' => {
@@ -182,8 +184,7 @@ subtest 'End of string anchor works (failure case)' => {
       RakuAST::Regex::Anchor::EndOfString.new
     );
 
-    nok "abcde" ~~ $_,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-nok "abcde";
 }
 
 subtest 'Right word boundary works' => {
@@ -221,8 +222,7 @@ subtest 'Quantified built-in character class matches' => {
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
     );
 
-    is "99cents" ~~ $_, '99'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "99cents", "99";
 }
 
 subtest 'Quantified negated built-in character class matches' => {
@@ -232,8 +232,7 @@ subtest 'Quantified negated built-in character class matches' => {
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
     );
 
-    is "99cents" ~~ $_, 'cents'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "99cents", "cents";
 }
 
 subtest 'Quantified built-in character class matches (frugal mode)' => {
@@ -245,8 +244,7 @@ subtest 'Quantified built-in character class matches (frugal mode)' => {
       )
     );
 
-    is "99cents" ~~ $_, '9'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "99cents", "9";
 }
 
 subtest 'Quantified negated built-in character class matches (frugal mode)' => {
@@ -258,8 +256,7 @@ subtest 'Quantified negated built-in character class matches (frugal mode)' => {
       )
     );
 
-    is "99cents" ~~ $_, 'c'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "99cents", 'c';
 }
 
 subtest 'Greedy quantifier will backtrack' => {
@@ -273,8 +270,7 @@ subtest 'Greedy quantifier will backtrack' => {
       RakuAST::Regex::Literal.new('9')
     );
 
-    is "99cents" ~~ $_, '99'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "99cents", '99';
 }
 
 subtest 'Ratchet quantifier will not backtrack' => {
@@ -290,24 +286,22 @@ subtest 'Ratchet quantifier will not backtrack' => {
       RakuAST::Regex::Literal.new('9')
     );
 
-    nok "99cents" ~~ $_,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-nok "99cents";
 }
 
 subtest 'Separator works (non-trailing case)' => {
-    # / \d+ % ',' / 
+    # / \d+ % ',' /
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(',')
     );
 
-    is "values: 1,2,3,4,stuff" ~~ $_, '1,2,3,4'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "values: 1,2,3,4,stuff", '1,2,3,4';
 }
 
 subtest 'Separator works (trailing case)' => {
-    # / \d+ %% ',' / 
+    # / \d+ %% ',' /
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
@@ -315,20 +309,18 @@ subtest 'Separator works (trailing case)' => {
       trailing-separator => True
     );
 
-    is "values: 1,2,3,4,stuff" ~~ $_, '1,2,3,4,'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "values: 1,2,3,4,stuff", '1,2,3,4,';
 }
 
 subtest 'Separator must be between every quantified item' => {
-    # / \d+ % ',' / 
+    # / \d+ % ',' /
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(',')
     );
 
-    is "values: 1,2,33,4,stuff" ~~ $_, '1,2,3'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "values: 1,2,33,4,stuff", '1,2,3';
 }
 
 subtest 'Regex groups compile correctly' => {
@@ -552,8 +544,7 @@ subtest 'Match from and match to markers works' => {
       RakuAST::Regex::Literal.new('c')
     );
 
-    is "a1b2c" ~~ $_, '2'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "a1b2c", '2';
 }
 
 subtest 'Match involving a quoted string literal works' => {
@@ -564,8 +555,7 @@ subtest 'Match involving a quoted string literal works' => {
       )
     );
 
-    is "believe" ~~ $_, 'lie'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "believe", 'lie';
 }
 
 subtest 'Match involving a quoted string with interpolation works' => {
@@ -581,8 +571,8 @@ subtest 'Match involving a quoted string with interpolation works' => {
       )
     );
 
-    is "believe" ~~ $_, 'eve'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    is "believe" ~~ EVAL($ast), 'eve', 'EVAL over RakuAST';
+    is "believe" ~~ EVAL($ast.DEPARSE), 'eve', 'EVAL over deparsed AST';
 }
 
 subtest 'Match involving quote words works' => {
@@ -594,8 +584,7 @@ subtest 'Match involving quote words works' => {
       )
     );
 
-    is "slinky sprint" ~~ $_, 'linky'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+    match-ok "slinky sprint", 'linky';
 }
 
 # vim: expandtab shiftwidth=4

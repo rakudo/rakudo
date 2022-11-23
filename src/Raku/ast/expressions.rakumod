@@ -254,25 +254,30 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
                     !! QAST::Op.new( :op<unless>, $rhs, QAST::WVal.new( :value(False) )));
         }
 
-        my $rhs-local := QAST::Node.unique('!sm-rhs');
-        my $lhs-local := QAST::Node.unique('!sm-lhs');
-        my $lhs := QAST::Op.new(
-                        :op<bind>,
-                        QAST::Var.new(:name($lhs-local), :scope<local>, :decl<var>),
-                        $left.IMPL-TO-QAST($context));
-        my $accepts-call := QAST::Op.new(
-            :op('callmethod'), :name('ACCEPTS'),
-            QAST::Var.new(:name($rhs-local), :scope<local>),
-            QAST::Var.new(:name($lhs-local), :scope<local>));
+        my $accepts-call;
         if $negate {
-            $accepts-call := QAST::Op.new( :op<callmethod>, :name<not>, $accepts-call );
+            $accepts-call := QAST::Op.new(
+                :op<callmethod>, :name<not>,
+                QAST::Op.new(
+                    :op('callmethod'), :name('ACCEPTS'),
+                    $right.IMPL-TO-QAST($context),
+                    QAST::Var.new(:name<$_>, :scope<lexical>)));
         }
         else {
+            my $rhs-local := QAST::Node.unique('!sm-rhs');
+            $accepts-call := QAST::Op.new(
+                :op('callmethod'), :name('ACCEPTS'),
+                QAST::Var.new( :name($rhs-local), :scope<local> ),
+                QAST::Var.new(:name<$_>, :scope<lexical>));
             $accepts-call := QAST::Op.new(
                 :op<if>,
                 QAST::Op.new(
                     :op<istype>,
-                    QAST::Var.new( :name($rhs-local), :scope<local> ),
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($rhs-local), :scope<local>, :decl<var> ),
+                        $right.IMPL-TO-QAST($context),
+                    ),
                     QAST::WVal.new( :value(Regex) )),
                 $accepts-call,
                 QAST::Op.new(
@@ -281,11 +286,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
                     $accepts-call ));
         }
         QAST::Stmts.new(
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new(:name($rhs-local), :scope<local>, :decl<var>),
-                $right.IMPL-TO-QAST($context) ),
-            self.IMPL-TEMPORARIZE-TOPIC( $lhs, $accepts-call ))
+            self.IMPL-TEMPORARIZE-TOPIC( $left.IMPL-TO-QAST($context), $accepts-call ))
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

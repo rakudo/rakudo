@@ -1327,6 +1327,27 @@ my class Array { # declared in BOOTSTRAP
           nqp::create(self))
     }
 
+    my knowhow UniversalArray {
+        sub DIMENSION(Mu, Any $args) is raw {
+            my constant \dim2role = nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
+
+            # Calculate new meta-object (probably hitting caches in most cases).
+            # We need to take the base of any mixin to prevent overlapping of
+            # Shaped roles. This could perhaps be taken advantage of to enforce
+            # an order on our own mixins, but also means user mixins get erased.
+            my \H := nqp::how_nd((my \T := $args.AT-POS: 0));
+            my int $d = nqp::sub_i(($args.elems),1);
+            my $base := H.mixin_base(T).^parameterize(T.of);
+            my $type := $base.^mixin: nqp::atpos(dim2role,(nqp::isle_i($d,3) && $d));
+            $type.^set_name: $base.^name;
+
+            # We're caching a definitive initial instance to clone sparingly.
+            $type.rub
+        }
+
+        BEGIN Metamodel::Primitives.set_parameterizer: $?PACKAGE, &DIMENSION;
+    }
+
     proto method dim(Array: $ --> Array:D) {*}
     multi method dim(Array: Whatever) {
         self.rub
@@ -1341,22 +1362,11 @@ my class Array { # declared in BOOTSTRAP
         }
         # We haz dimensions.
         elsif nqp::isgt_i($dims,0) {
-            my constant \dim2role = nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
-
-            # Calculate new meta-object (probably hitting caches in most cases).
-            # We need to take the base of any mixin to prevent overlapping of
-            # Shaped roles. This could perhaps be taken advantage of to enforce
-            # an order on our own mixins, but also means user mixins get erased.
-            my $base := self.^mixin_base.^parameterize: self.of;
-            my $type := $base.^mixin: nqp::atpos(dim2role,(nqp::isle_i($dims,3) && $dims));
-            my $name := $base.^name;
-            $type.^set_name: $name unless $type.^name eq $name;
-
-            # Allocate array storage for this shape. We can't make a reification
-            # without a shape attached beforehand, but we need to produce this
-            # instance from a type object that does not carry that information.
-            # Albeit obtuse, we keep the proper metadata if we repeat ourselves.
-            nqp::bindattr((my $copy := $type.rub),$type,'$!shape',$shape);
+            # Bind array storage for this shape to an instantiated template.
+            my $copy := nqp::clone(nqp::parameterizetype(
+              UniversalArray,
+              nqp::setelems(nqp::list(nqp::what_nd(self)),nqp::add_i($dims,1))));
+            nqp::bindattr($copy,nqp::what_nd($copy),'$!shape',$shape);
             nqp::if(nqp::isconcrete(self),nqp::bindattr($copy,Array,'$!descriptor',$!descriptor));
             nqp::p6bindattrinvres($copy,List,'$!reified',
               (Rakudo::Internals.SHAPED-ARRAY-STORAGE: $shape, nqp::knowhow, Mu))

@@ -85,7 +85,7 @@ class RakuAST::Term is RakuAST::Termish {
 }
 
 # Marker for all kinds of infixish operators.
-class RakuAST::Infixish is RakuAST::Node {
+class RakuAST::Infixish is RakuAST::ImplicitLookups {
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
         nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
     }
@@ -122,6 +122,12 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
         nqp::bindattr($obj, RakuAST::Infix, '$!properties', $properties);
         $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Match')),
+        ])
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -183,6 +189,8 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 
     method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
             RakuAST::Expression $left, RakuAST::Expression $right) {
+        # Hash value is negation flag
+        my constant OP-SMARTMATCH := nqp::hash( '~~', 0, '!~~', 1 );
         my str $op := $!operator;
         if $op eq ':=' {
             if $left.can-be-bound-to {
@@ -191,6 +199,9 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
             else {
                 nqp::die('Cannot compile bind to ' ~ $left.HOW.name($left));
             }
+        }
+        elsif nqp::existskey(OP-SMARTMATCH, $op) {
+            self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }
         else {
             self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
@@ -216,14 +227,6 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
             return QAST::Op.new( :op($qast-op), $left-qast, $right-qast );
         }
 
-        # Others are compiler special forms.
-        if $op eq '~~' {
-            return self.IMPL-SMARTMATCH-QAST($context, $left-qast, $right-qast, 0);
-        }
-        elsif $op eq '!~~' {
-            return self.IMPL-SMARTMATCH-QAST($context, $left-qast, $right-qast, 1);
-        }
-
         # Otherwise, it's called by finding the lexical sub to call, and
         # compiling it as chaining if required.
         my $name := self.resolution.lexical-name;
@@ -231,23 +234,59 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         QAST::Op.new( :op($call-op), :$name, $left-qast, $right-qast )
     }
 
-    method IMPL-SMARTMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast,
-            Mu $right-qast, int $negate) {
-        my $accepts-call := QAST::Op.new(
-            :op('callmethod'), :name('ACCEPTS'),
-            $right-qast,
-            QAST::Var.new( :name('$_'), :scope('lexical') )
-        );
+    method IMPL-SMARTMATCH-QAST( RakuAST::IMPL::QASTContext $context,
+                                 RakuAST::Expression $left,
+                                 RakuAST::Expression $right,
+                                 int $negate ) {
+        # Handle cases of s/// or m// separately. For a non-negating smartmatch this case could've been reduced to
+        # plain topic localization except that we must ensure a False returned when there is no match.
+        if nqp::istype($right, RakuAST::RegexThunk)
+            && (!nqp::can($right, 'match-immediately') || $right.match-immediately)
+        {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+            my $match-type := @lookups[0].resolution.compile-time-value;
+            my $result-local := QAST::Node.unique('!sm-result');
+            my $rhs := $right.IMPL-EXPR-QAST($context);
+            return self.IMPL-TEMPORARIZE-TOPIC(
+                $left.IMPL-TO-QAST($context),
+                $negate
+                    ?? QAST::Op.new( :op<callmethod>, :name<not>, $rhs)
+                    !! QAST::Op.new( :op<unless>, $rhs, QAST::WVal.new( :value(False) )));
+        }
+
+        my $accepts-call;
         if $negate {
             $accepts-call := QAST::Op.new(
-                :op('hllbool'),
+                :op<callmethod>, :name<not>,
                 QAST::Op.new(
-                    :op('not_i'),
-                    QAST::Op.new( :op('istrue'), $accepts-call )
-                )
-            );
+                    :op('callmethod'), :name('ACCEPTS'),
+                    $right.IMPL-TO-QAST($context),
+                    QAST::Var.new(:name<$_>, :scope<lexical>)));
         }
-        self.IMPL-TEMPORARIZE-TOPIC($left-qast, $accepts-call)
+        else {
+            my $rhs-local := QAST::Node.unique('!sm-rhs');
+            $accepts-call := QAST::Op.new(
+                :op('callmethod'), :name('ACCEPTS'),
+                QAST::Var.new( :name($rhs-local), :scope<local> ),
+                QAST::Var.new(:name<$_>, :scope<lexical>));
+            $accepts-call := QAST::Op.new(
+                :op<if>,
+                QAST::Op.new(
+                    :op<istype>,
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($rhs-local), :scope<local>, :decl<var> ),
+                        $right.IMPL-TO-QAST($context),
+                    ),
+                    QAST::WVal.new( :value(Regex) )),
+                $accepts-call,
+                QAST::Op.new(
+                    :op<callmethod>,
+                    :name<Bool>,
+                    $accepts-call ));
+        }
+        QAST::Stmts.new(
+            self.IMPL-TEMPORARIZE-TOPIC( $left.IMPL-TO-QAST($context), $accepts-call ))
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

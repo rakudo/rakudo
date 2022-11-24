@@ -4793,6 +4793,35 @@ my class array does Iterable does Positional {
         nqp::create(self)
     }
 
+    my knowhow UniversalArray {
+        sub DIMENSION(Mu, Any $args) is raw {
+            my constant typedim2role := nqp::list(nqp::null,
+              nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
+              nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
+              nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray),
+              nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,
+              nqp::list(shapeduintarray,shaped1uintarray,shaped2uintarray,shaped3uintarray));
+
+            # Calculate new meta-object (probably hitting caches in most cases).
+            # We need to take the base of any mixin to prevent overlapping of
+            # Shaped roles. This could perhaps be taken advantage of to enforce
+            # an order on our own mixins, but also means user mixins get erased.
+            my \H := nqp::how_nd((my \T := $args.AT-POS: 0));
+            my int $d = nqp::sub_i(($args.elems),1);
+            my $base := H.mixin_base(T).^parameterize((my \E := T.of));
+            my $type := $base.^mixin: nqp::atpos(
+              nqp::atpos(typedim2role,nqp::objprimspec(E)),
+              (nqp::isle_i($d,3) && $d));
+            my $meta := nqp::how_nd($type);
+            $meta.set_name: $type, $base.^name;
+
+            # We're caching a definitive initial HOW through which we can reify.
+            $meta
+        }
+
+        BEGIN Metamodel::Primitives.set_parameterizer: $?PACKAGE, &DIMENSION;
+    }
+
     proto method dim(array: $ --> array:D) {*}
     multi method dim(array: Whatever) {
         self.rub
@@ -4807,27 +4836,12 @@ my class array does Iterable does Positional {
         }
         # We haz dimensions.
         elsif nqp::isgt_i($dims,0) {
-            my constant typedim2role := nqp::list(nqp::null,
-              nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
-              nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
-              nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray),
-              nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,
-              nqp::list(shapeduintarray,shaped1uintarray,shaped2uintarray,shaped3uintarray));
-
-            # Calculate new meta-object (probably hitting caches in most cases).
-            # We need to take the base of any mixin to prevent overlapping of
-            # Shaped roles. This could perhaps be taken advantage of to enforce
-            # an order on our own mixins, but also means user mixins get erased.
+            # Allocate array storage for this shape based on the calculated HOW.
             nqp::ifnull(nqp::typeparameterized(self),(X::MustBeParametric.new(:type(self)).throw));
-            my $base := self.^mixin_base.^parameterize: my \T = self.of;
-            my $type := $base.^mixin: nqp::atpos(
-              nqp::atpos(typedim2role,nqp::objprimspec(T)),
-              (nqp::isle_i($dims,3) && $dims));
-            my $name := $base.^name;
-            $type.^set_name: $name unless $type.^name eq $name;
-
-            # Allocate array storage for this shape, based on calculated type.
-            Rakudo::Internals.SHAPED-ARRAY-STORAGE: $shape, nqp::how_nd($type), T
+            my $meta := nqp::parameterizetype(
+              UniversalArray,
+              nqp::setelems(nqp::list(nqp::what_nd(self)),nqp::add_i($dims,1)));
+            Rakudo::Internals.SHAPED-ARRAY-STORAGE: $shape, $meta, self.of
         }
         # We haz lotsa dimensions!
         elsif $dims {

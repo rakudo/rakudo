@@ -1331,7 +1331,7 @@ my class Array { # declared in BOOTSTRAP
     multi method dim(Array: Whatever) {
         self.rub
     }
-    multi method dim(Array: List:D(Mu) $shape is copy) {
+    multi method dim(Array: List:D $shape is copy) {
         my $reified := nqp::getattr(($shape := $shape.eager),List,'$!reified');
         my int $dims = nqp::elems($reified);
 
@@ -1369,10 +1369,14 @@ my class Array { # declared in BOOTSTRAP
             ).throw
         }
     }
+    multi method dim(Array: Mu:D $shape) {
+        # TODO: Should be combined with List:D as List:D(Mu) once performant.
+        self.dim: $shape.List
+    }
     multi method dim(Array: Mu:U $shape) {
         nqp::if(
           nqp::istype_nd($shape.HOW,Metamodel::EnumHOW),
-          (samewith $shape.^elems),
+          (self.dim: $shape.^elems.List),
           nqp::stmts(
             (my str $what = $shape.^name),
             (warn "Ignoring [$what] as shape specification. Did you mean 'my $what @'?"),

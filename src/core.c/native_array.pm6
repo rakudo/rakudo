@@ -4797,7 +4797,7 @@ my class array does Iterable does Positional {
     multi method dim(array: Whatever) {
         self.rub
     }
-    multi method dim(array: List:D(Mu) $shape is copy) {
+    multi method dim(array: List:D $shape is copy) {
         my $reified := nqp::getattr(($shape := $shape.eager),List,'$!reified');
         my int $dims = nqp::elems($reified);
 
@@ -4838,12 +4838,16 @@ my class array does Iterable does Positional {
             ).throw
         }
     }
+    multi method dim(array: Mu:D $shape) {
+        # TODO: Should be combined with List:D as List:D(Mu) once performant.
+        self.dim: $shape.List
+    }
     multi method dim(array: Mu:U $shape) {
         # Unlike Array, don't warn. In order to wind up attempting to type the
         # shape of a native array, you need the native type on @ to begin with.
         nqp::if(
           nqp::istype_nd($shape.HOW,Metamodel::EnumHOW),
-          (samewith $shape.^elems),
+          (self.dim: $shape.^elems.List),
           (self.rub))
     }
 

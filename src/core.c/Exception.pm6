@@ -2725,7 +2725,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method message {
         my $symbol := $!symbol // $!desc.name;
         my $to = $symbol.defined && $symbol ne '$'
-            ?? " to $symbol" !! "";
+            ?? " to {"an element of " if $symbol.starts-with("@" | "%")}$symbol" !! "";
         my $is-itself := nqp::eqaddr(self.expected, self.got);
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"

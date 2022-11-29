@@ -3083,7 +3083,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token term:sym<time> { <sym> <.tok> }
 
     token term:sym<nano> {
-        <?{ nqp::getcomp('Raku').language_revision ge 'e' }> <sym> <.tok>
+        <?{ (nqp::getcomp('Raku').language_revision ge 'e')
+            || $*W.is_name(['&term:<nano>']) }>
+        <sym> <.tok>
     }
 
     token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* '=>'> }

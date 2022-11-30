@@ -2724,8 +2724,11 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method operation { 'assignment' }
     method message {
         my $symbol := $!symbol // $!desc.name;
-        my $to = $symbol.defined && $symbol ne '$'
-            ?? " to {"an element of " if $symbol.starts-with("@" | "%")}$symbol" !! "";
+        my $location = !$symbol.defined || $symbol eq '$'
+            ?? "in assignment"
+            !! $symbol.starts-with("@" | "%") 
+                ?? "for an element of $symbol"
+                !! "in assignment to $symbol";
         my $is-itself := nqp::eqaddr(self.expected, self.got);
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"
@@ -2737,7 +2740,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
           && nqp::eqaddr(self.expected.^base_type, self.got)
           ?? ' (perhaps Nil was assigned to a :D which had no default?)' !! '';
 
-        self.priors() ~ "Type check failed in assignment$to; $expected$maybe-Nil"
+        self.priors() ~ "Type check failed $location; $expected$maybe-Nil"
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {

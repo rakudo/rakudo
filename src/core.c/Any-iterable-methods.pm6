@@ -1587,7 +1587,7 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::defined($min) ?? $min !! Inf
+        nqp::defined($min) ?? $min !! $*MOST
     }
     multi method min(&by) {
         my $cmp := nqp::if(
@@ -1606,7 +1606,7 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::defined($min) ?? $min !! Inf
+        nqp::defined($min) ?? $min !! $*MOST
     }
 
     proto method max (|) is nodal {*}
@@ -1622,7 +1622,7 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::defined($max) ??  $max !! -Inf
+        nqp::defined($max) ??  $max !! $*LEAST
     }
     multi method max(&by) {
         my $cmp := nqp::if(
@@ -1642,7 +1642,7 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::defined($max) ?? $max !! -Inf
+        nqp::defined($max) ?? $max !! $*LEAST
     }
 
     method !minmax-range-init(\value,\mi,\exmi,\ma,\exma --> Nil) {

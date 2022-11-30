@@ -59,6 +59,12 @@ BEGIN {
     Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKU', {
         PROCESS::<$RAKU> := Raku.new;
     }
+    Rakudo::Internals.REGISTER-DYNAMIC: '$*LEAST', {
+        PROCESS::<$LEAST> = -Inf;
+    }
+    Rakudo::Internals.REGISTER-DYNAMIC: '$*MOST', {
+        PROCESS::<$MOST> = Inf;
+    }
 }
 
 #?if moar

@@ -507,7 +507,7 @@ while @lines {
                 ),
                 $min
               ),
-              Inf
+              $*MOST
             )
         }
         multi method max(#type#array:D:) {
@@ -525,7 +525,7 @@ while @lines {
                 ),
                 $max
               ),
-              -Inf
+              $*LEAST
             )
         }
         multi method minmax(#type#array:D: --> Range:D) {

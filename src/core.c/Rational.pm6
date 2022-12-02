@@ -137,7 +137,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                          ?? 6
                          !! (nqp::chars(nqp::tostr_I($!denominator))
                               + nqp::chars(nqp::tostr_I(whole))
-                              + 1
+                              + 5
                             )
                    )
               !! nqp::islt_I($!numerator,0)                      # no fract val

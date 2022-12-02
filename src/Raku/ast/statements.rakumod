@@ -122,7 +122,11 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         my $stmts := QAST::Stmts.new;
         my @statements := $!statements;
         for @statements {
-            $stmts.push($_.IMPL-TO-QAST($context));
+            my $qast := $_.IMPL-TO-QAST($context);
+            # XXX When NQP compiler is capable of using .file()/.line() methods of RakuAST::Origin::Match this info
+            # will make it into the final bytecode.
+            $qast.node($_.origin.as-match()) if $_.origin.is-key();
+            $stmts.push($qast);
         }
         $stmts
     }

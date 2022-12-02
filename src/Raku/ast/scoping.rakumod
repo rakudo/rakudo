@@ -423,7 +423,7 @@ class RakuAST::Declaration::Mergeable {
         }
         else {
             nqp::die('Unsupported case trying to merge symbols or duplicate definition'
-                ~~ (nqp::can(self, 'lexical-name') ?? ' trying to merge ' ~ self.lexical-name !! ''));
+                ~ (nqp::can(self, 'lexical-name') ?? ' trying to merge ' ~ self.lexical-name !! ''));
         }
     }
 

@@ -78,10 +78,11 @@ grammar RakuASTParser {
         | <string>
         | ['/' <-[/]>+ '/' || '//' || '/' <?before \s* [\d | '$']>] # regex or // operator
         | $<numeric>=[ \d+ ['.' \d*]? [<[eE]> \d+]? ]
-        | $<paren>='(' <nqp-code> [ ')' || <.panic('Missing )')> ]
-        | $<brace>='{' <nqp-code> [ '}' || <.panic('Missing }')> ]
+        | $<paren>='(' <nqp-code> [ ')' || {} <.panic('Missing ) for opening ( at line ' ~ self.line-of($<paren>))> ]
+        | $<brace>='{' <nqp-code> [ '}' || {} <.panic('Missing } for opening { at line ' ~ self.line-of($<brace>))> ]
+        | $<brckt>='[' <nqp-code> [ ']' || {} <.panic('Missing ] for opening [ at line ' ~ self.line-of($<brckt>))> ]
         | <?[\s#]> <ws>
-        || $<other>=[<-[{}()'"\s\w$/]>+] # don't include in LTM as it'd win too much
+        || $<other>=[<-[{}()\[\]'"\s\w$/]>+] # don't include in LTM as it'd win too much
         )*
     }
 
@@ -298,6 +299,9 @@ class RakuASTActions {
             }
             elsif $<brace> {
                @chunks.push('{' ~ $<nqp-code>.ast ~ '}');
+            }
+            elsif $<brckt> {
+               @chunks.push('[' ~ $<nqp-code>.ast ~ ']');
             }
             else {
                 @chunks.push(~$/);

@@ -64,13 +64,17 @@ grammar RakuASTParser {
         [$<raw>=[is raw]]?
     }
 
+    token sigil {
+        '$' | '@' | '%'
+    }
+
     token nqp-code {
         # We want to do some minor transforms on the NQP code, so just sorta
         # tokenize it. If it's good enough for the C preproc... :-)
         (
         | <name>
         | <attribute>
-        | $<variable>=['$' '*'? <.identifier>]
+        | $<variable>=[<.sigil> '*'? <.identifier>]
         | <string>
         | ['/' <-[/]>+ '/' || '//' || '/' <?before \s* [\d | '$']>] # regex or // operator
         | $<numeric>=[ \d+ ['.' \d*]? [<[eE]> \d+]? ]

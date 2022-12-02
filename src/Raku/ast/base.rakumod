@@ -217,28 +217,68 @@ class RakuAST::Node {
         }
     }
 
-    method dump(int $indent?) {
-        my str $prefix := nqp::x(' ', $indent);
-        my $name := nqp::substr(self.HOW.name(self), nqp::chars('RakuAST::'));
-
+    method dump-markers() {
         my @markers;
         @markers.push('⚓') if nqp::istype(self, RakuAST::Sinkable) && self.sunk;
         @markers.push('▪') if nqp::istype(self, RakuAST::BlockStatementSensitive) && self.is-block-statement;
-        my $markers := @markers ?? ' ' ~ nqp::join('', @markers) !! '';
-
-        my $dump := "$prefix$name$markers\n";
-        if nqp::istype(self, RakuAST::Expression) {
-            self.visit-thunks(-> $thunk {
-                $dump := "$dump$prefix  🧠 " ~ $thunk.thunk-kind ~ "\n";
-                $thunk.visit-children(-> $child {
-                    $dump := $dump ~ $child.dump($indent + 4);
-                });
-            });
+        if nqp::isconcrete($!origin) {
+            @markers.push('𝄞') if $!origin.is-key();
         }
+        nqp::join('', @markers)
+    }
+
+    method dump-extras(int $indent) { '' }
+
+    method dump-children(int $indent) {
+        my @chunks;
         self.visit-children(-> $child {
-            $dump := $dump ~ $child.dump($indent + 2);
+            @chunks.push($child.dump($indent));
         });
-        $dump
+        nqp::join('', @chunks)
+    }
+
+    method dump-origin() {
+        my @chunks;
+        if nqp::isconcrete($!origin) {
+            my $from := $!origin.from;
+            my $orig-source := $!origin.source;
+            if $!origin.is-key {
+                my @location := $orig-source.location-of-pos($from);
+                @chunks.push(@location[2] ~ ':' ~ @location[0]);
+            }
+
+            my $src := nqp::escape(nqp::substr($orig-source.orig, $from, $!origin.to - $from));
+            if nqp::chars($src) > 50 {
+                $src := nqp::substr($src, 0, 49) ~ '…';
+            }
+            @chunks.push(' ⎡');
+            @chunks.push($src ~ '⎤');
+        }
+        nqp::join('', @chunks)
+    }
+
+    method dump(int $indent?) {
+        my @chunks := [
+            nqp::x(' ', $indent),
+            nqp::substr(self.HOW.name(self), nqp::chars('RakuAST::'))
+        ];
+
+        if (my $markers := self.dump-markers()) {
+            @chunks.push(' ' ~ $markers);
+        }
+
+        if (my $origin := self.dump-origin()) {
+            @chunks.push(' ' ~ $origin);
+        }
+
+        @chunks.push("\n");
+        if (my $extras := self.dump-extras($indent + 2)) {
+            @chunks.push($extras);
+        }
+        if (my $children := self.dump-children($indent + 2)) {
+            @chunks.push($children);
+        }
+        nqp::join('', @chunks)
     }
 
     # Hook into the Raku RakuAST::Deparse class (by default) or any other
@@ -252,7 +292,7 @@ class RakuAST::Node {
 
     method IMPL-SORTED-KEYS(Mu $hash) {
         # Due to these classes being pieced together at compile time we can't
-        # reach the sorted_hash sub in the NQP setting, so it's copied here. 
+        # reach the sorted_hash sub in the NQP setting, so it's copied here.
         my @keys;
         for $hash {
             nqp::push(@keys, $_.key);

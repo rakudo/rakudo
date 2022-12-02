@@ -1,5 +1,7 @@
 # The base of all RakuAST nodes.
 class RakuAST::Node {
+    has RakuAST::Origin $.origin;
+
     # What type does evaluating this node produce, if known?
     method type() { Mu }
 
@@ -47,6 +49,33 @@ class RakuAST::Node {
     # resolver.
     method resolve-all(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-CHECK($resolver, $context, True);
+    }
+
+    method set-origin(RakuAST::Origin $origin) {
+        nqp::bindattr(self, RakuAST::Node, '$!origin', $origin);
+    }
+
+    # Find the narrowest key origin node for an original position
+    method locate-node(int $pos, :$key) {
+        return Nil unless nqp::isconcrete($!origin) && $pos >= $!origin.from() && $pos < $!origin.to();
+        if $key && !$!origin.is-key {
+            nqp::die("Only a key node can search for key nodes")
+        }
+        if $key {
+            my @nestings := $!origin.nestings;
+            for @nestings {
+                my $cand := $_.locate-node($pos, :key);
+                return $cand if nqp::isconcrete($cand);
+            }
+        }
+        else {
+            self.visit-children(-> $child {
+                my $cand := $child.locate-node($pos);
+                return $cand if nqp::isconcrete($cand);
+            });
+        }
+        # If no nested key node gave a match then we are the one.
+        self
     }
 
     # Perform CHECK-time activities on this node.

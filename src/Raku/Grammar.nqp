@@ -451,6 +451,13 @@ role Raku::Common {
             }
         }
     }
+
+    # Provide parent's rule/token @*ORIGIN-NESTINGS to ease and unitfy creating a stack of key AST nodes.
+    method PARENT-NESTINGS() {
+        # Expect to be called immediately from the nesting token.
+        my $parent-ctx := nqp::ctxcallerskipthunks(nqp::ctxcaller(nqp::ctx()));
+        @*PARENT-NESTINGS := nqp::getlexreldyn($parent-ctx, '@*ORIGIN-NESTINGS');
+    }
 }
 
 grammar Raku::Grammar is HLL::Grammar does Raku::Common {
@@ -478,6 +485,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LASTQUOTE := [0,0];                  # for runaway quote detection
         my $*SORRY_REMAINING := 10;               # decremented on each sorry; panic when 0
         my $*BORG := {};                          # who gets blamed for a missing block
+        my $*ORIGIN-SOURCE;                       # where we get source code information from
+        my @*ORIGIN-NESTINGS := [];               # this will be used for the CompUnit object
 
         # Variables used for Pod parsing.
         my $*VMARGIN := 0;
@@ -492,6 +501,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.comp_unit($*CU)
     }
 
+    token comp_unit_stage0 { <?> }
+
     token comp_unit($outer-cu) {
         <.bom>?
 
@@ -501,6 +512,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*R;
         :my $*LITERALS;
         :my $*EXPORT;
+        <.comp_unit_stage0>
         <.lang_setup($outer-cu)>
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
@@ -556,7 +568,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ''
         [
         | <?before <.[)\]}]> >
-        | [<statement><.eat_terminator> ]*
+        | [<statement(:non-key)><.eat_terminator> ]*
         ]
     }
 
@@ -565,13 +577,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ''
         [
         | <?before <.[)\]}]> >
-        | [<statement><.eat_terminator> ]*
+        | [<statement(:non-key)><.eat_terminator> ]*
         ]
     }
 
-    token statement {
+    token statement(int :$non-key) {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
+        :my $*ORIGIN-IS-KEY := !$non-key;
+        :my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
+        :my @*ORIGIN-NESTINGS := $non-key ?? @*PARENT-NESTINGS !! [];
 
         :my $actions := self.slang_actions('MAIN');
         <!!{ $/.set_actions($actions); 1 }>
@@ -580,7 +595,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!!{ nqp::rebless($/, self.slang_grammar('MAIN')); 1 }>
 
         [
-        | <label> <statement>
+        | <label> <statement(:non-key)>
         | <statement_control>
         | <EXPR> :dba('statement end')
             [

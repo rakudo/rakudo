@@ -62,7 +62,7 @@ grammar RakuASTParser {
         (
         | <name>
         | <attribute>
-        | $<variable>=['$' <.identifier>]
+        | $<variable>=['$' '*'? <.identifier>]
         | <string>
         | ['/' <-[/]>+ '/' || '//' || '/' <?before \s* [\d | '$']>] # regex or // operator
         | $<numeric>=[ \d+ ['.' \d*]? [<[eE]> \d+]? ]

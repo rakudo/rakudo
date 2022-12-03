@@ -1133,21 +1133,33 @@ class RakuAST::Statement::No is RakuAST::Statement is RakuAST::BeginTime
     }
 
     method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
+        # pragmas without args that just set_pragma to true
+        my %just_set_pragma := nqp::hash(
+          'internals',          1,
+          'MONKEY-TYPING',      1,
+          'MONKEY-SEE-NO-EVAL', 1,
+          'MONKEY-BRAINS',      1,
+          'MONKEY-GUTS',        1,
+          'MONKEY-BUSINESS',    1,
+          'MONKEY-TRAP',        1,
+          'MONKEY-SHINE',       1,
+          'MONKEY-WRENCH',      1,
+          'MONKEY-BARS',        1,
+          'nqp',                1,
+          'trace',              1,
+          'worries',            1,
+        );
+
         return False unless $!module-name.is-identifier;
         my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
         if $name eq 'lib' {
             $resolver.build-exception('X::Pragma::CannotWhat', :what<no>, :$name).throw;
         }
-        elsif $name eq 'MONKEY-SEE-NO-EVAL' {
-            True
-        }
-        elsif $name eq 'MONKEY-GUTS' {
-            True
-        }
-        elsif $name eq 'nqp' {
-            True
-        }
         elsif $name eq 'fatal' {
+            True
+        }
+        elsif %just_set_pragma{$name} {
+            $*LANG.set_pragma($name, 0);
             True
         }
         elsif $name eq 'precompilation' {
@@ -1209,6 +1221,23 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
     }
 
     method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
+        # pragmas without args that just set_pragma to true
+        my %just_set_pragma := nqp::hash(
+          'internals',          1,
+          'MONKEY-TYPING',      1,
+          'MONKEY-SEE-NO-EVAL', 1,
+          'MONKEY-BRAINS',      1,
+          'MONKEY-GUTS',        1,
+          'MONKEY-BUSINESS',    1,
+          'MONKEY-TRAP',        1,
+          'MONKEY-SHINE',       1,
+          'MONKEY-WRENCH',      1,
+          'MONKEY-BARS',        1,
+          'nqp',                1,
+          'trace',              1,
+          'worries',            1,
+        );
+
         return False unless $!module-name.is-identifier;
         my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
         if $name eq 'lib' {
@@ -1237,13 +1266,8 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
             }
             True
         }
-        elsif $name eq 'MONKEY-SEE-NO-EVAL' {
-            True
-        }
-        elsif $name eq 'MONKEY-GUTS' {
-            True
-        }
-        elsif $name eq 'nqp' {
+        elsif %just_set_pragma{$name} {
+            $*LANG.set_pragma($name, 1);
             True
         }
         else {

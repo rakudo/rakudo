@@ -328,14 +328,6 @@ my class Code { # declared in BOOTSTRAP
 
         $error ~~ Exception ?? $f but $error.Failure !! $f;
     }
-
-    multi method raku(Code:D:) {
-        '-> '
-          ~ nqp::getattr(self,Code,'$!signature').raku
-          ~ ' { #`('
-          ~ self.WHICH
-          ~ ') ... }'
-    }
 }
 
 # vim: expandtab shiftwidth=4

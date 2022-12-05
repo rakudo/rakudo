@@ -507,12 +507,44 @@ class RakuAST::PlaceholderParameterOwner is RakuAST::Node {
     }
 }
 
+class RakuAST::ScopePhaser {
+    has List $!leave-phasers;
+
+    method add-leave-phaser(RakuAST::StatementPrefix::Phaser::Leave $phaser) {
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!leave-phasers', []) unless $!leave-phasers;
+
+        for $!leave-phasers {
+            if nqp::eqaddr($_, $phaser) {
+                return;
+            }
+        }
+        nqp::push($!leave-phasers, $phaser);
+    }
+
+    method add-phasers-to-code-object($code-object) {
+        my $leave-phasers := $!leave-phasers;
+        if $leave-phasers {
+            $code-object.add_phaser('LEAVE', $_.meta-object) for $leave-phasers;
+        }
+    }
+
+    method add-phasers-handling-code($qast) {
+        if $!leave-phasers && nqp::elems($!leave-phasers) {
+            $qast.has_exit_handler(1);
+        }
+    }
+
+    method clear-phaser-attachments() {
+        nqp::setelems($!leave-phasers, 0) if $!leave-phasers;
+    }
+}
+
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
                      is RakuAST::BlockStatementSensitive is RakuAST::SinkPropagator
                      is RakuAST::Blorst is RakuAST::ImplicitDeclarations
                      is RakuAST::AttachTarget is RakuAST::PlaceholderParameterOwner
-                     is RakuAST::BeginTime {
+                     is RakuAST::BeginTime is RakuAST::ScopePhaser {
     has RakuAST::Blockoid $.body;
 
     # Should this block have an implicit topic, in the absence of a (perhaps
@@ -562,6 +594,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
     method clear-attachments() {
         self.clear-handler-attachments();
         self.clear-placeholder-attachments();
+        self.clear-phaser-attachments();
         Nil
     }
 
@@ -645,6 +678,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
                 ?? OPTIONAL-TOPIC-SIG
                 !! REQUIRED-TOPIC-SIG);
         }
+        self.add-phasers-to-code-object($block);
         $block
     }
 
@@ -678,6 +712,9 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 
         my $is-handler := $!implicit-topic-mode == 3 ?? True !! False;
         $block.push(self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $body-qast, :$is-handler));
+
+        self.add-phasers-handling-code($block);
+
         $block
     }
 
@@ -849,7 +886,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
                        is RakuAST::Meta is RakuAST::Declaration is RakuAST::Attaching
                        is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget
                        is RakuAST::PlaceholderParameterOwner is RakuAST::ImplicitLookups
-                       is RakuAST::BeginTime is RakuAST::TraitTarget {
+                       is RakuAST::BeginTime is RakuAST::TraitTarget is RakuAST::ScopePhaser {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
     has str $!multiness;
@@ -884,6 +921,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     method clear-attachments() {
         self.clear-handler-attachments();
         self.clear-placeholder-attachments();
+        self.clear-phaser-attachments();
         Nil
     }
 
@@ -913,6 +951,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         }
 
         nqp::bindattr($routine, Routine, '$!package', $!package.compile-time-value) if $!package;
+
+        self.add-phasers-to-code-object($routine);
 
         $routine
     }
@@ -1035,6 +1075,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);
         $block.push(self.IMPL-COMPILE-BODY($context));
+        self.add-phasers-handling-code($block);
         $block
     }
 

@@ -737,14 +737,17 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             else {
                 my $sigil := $!target.sigil;
                 if (my $is-array := $sigil eq '@') || $sigil eq '%' {
-                    my $base-type := $is-array ?? Array      !! Hash;
+                    my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+                    my $role := @lookups[0].resolution.compile-time-value;
+                    my $base-type := $is-array ?? Array !! Hash;
+                    my $value := nqp::istype($nominal-type, $role) && nqp::can($nominal-type.HOW, 'role_arguments')
+                        ?? $base-type.HOW.parameterize($base-type, |$nominal-type.HOW.role_arguments($nominal-type))
+                        !! $base-type;
+                    $context.ensure-sc($value);
                     $param-qast.default(
                         QAST::Op.new(
                             :op<create>,
-                            QAST::WVal.new(
-                                #TODO parametric types
-                                value => $base-type,
-                            )
+                            QAST::WVal.new(value => $value)
                         )
                     );
                 }

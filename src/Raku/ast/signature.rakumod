@@ -752,8 +752,21 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                     );
                 }
                 else {
-                    # TODO native types
-                    $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
+                    if $spec == 1 {
+                        $param-qast.default(QAST::IVal.new( :value(0) ));
+                    }
+                    elsif $spec == 2 {
+                        $param-qast.default(QAST::NVal.new( :value(0.0) ));
+                    }
+                    elsif $spec == 3 {
+                        $param-qast.default(QAST::SVal.new( :value('') ));
+                    }
+                    elsif $spec == 10 {
+                        $param-qast.default(QAST::IVal.new( :value(0) ));
+                    }
+                    else {
+                        $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
+                    }
                 }
             }
         }

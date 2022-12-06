@@ -735,8 +735,23 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                 ));
             }
             else {
-                # TODO non-Scalar sigil and native types
-                $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
+                my $sigil := $!target.sigil;
+                if (my $is-array := $sigil eq '@') || $sigil eq '%' {
+                    my $base-type := $is-array ?? Array      !! Hash;
+                    $param-qast.default(
+                        QAST::Op.new(
+                            :op<create>,
+                            QAST::WVal.new(
+                                #TODO parametric types
+                                value => $base-type,
+                            )
+                        )
+                    );
+                }
+                else {
+                    # TODO native types
+                    $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
+                }
             }
         }
 

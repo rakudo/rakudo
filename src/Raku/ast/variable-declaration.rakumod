@@ -1102,7 +1102,7 @@ class RakuAST::VarDeclaration::Implicit::Cursor is RakuAST::VarDeclaration::Impl
 }
 
 # The commonalities for placeholder parameters.
-class RakuAST::VarDeclaration::Placeholder is RakuAST::Declaration is RakuAST::Attaching {
+class RakuAST::VarDeclaration::Placeholder is RakuAST::Declaration is RakuAST::Attaching is RakuAST::Term {
     method lexical-name() { nqp::die('Missing lexical-name implementation') }
 
     method generate-parameter() {

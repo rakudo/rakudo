@@ -187,7 +187,9 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     method IMPL-TO-QAST-COMP-UNIT(*%options) {
         # Create compilation context.
         my $context := $!context;
-        my $top-level := $!mainline.IMPL-QAST-FORM-BLOCK($context, :blocktype<declaration_static>);
+        my $top-level :=
+            self.IMPL-SET-NODE:
+                $!mainline.IMPL-QAST-FORM-BLOCK($context, :blocktype<declaration_static>);
         $top-level.name('<unit>');
         $top-level.annotate('IN_DECL', $!is-eval ?? 'eval' !! 'mainline');
         my @pre-deserialize;
@@ -274,13 +276,15 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Stmts.new(
-            QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
-            self.IMPL-QAST-DECLS($context),
-            self.IMPL-QAST-END-PHASERS($context),
-            self.IMPL-QAST-CTXSAVE($context),
-            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
-        )
+        my $*CU := self;
+        self.IMPL-SET-NODE:
+            QAST::Stmts.new(
+                QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
+                self.IMPL-QAST-DECLS($context),
+                self.IMPL-QAST-END-PHASERS($context),
+                self.IMPL-QAST-CTXSAVE($context),
+                self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
+            )
     }
 
     method IMPL-QAST-END-PHASERS(RakuAST::IMPL::QASTContext $context) {

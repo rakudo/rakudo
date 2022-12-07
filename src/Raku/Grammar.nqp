@@ -527,7 +527,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
         <load_command_line_modules>
-        <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist')>
+        <statementlist=.key-origin('FOREIGN_LANG', $*MAIN, 'statementlist')>
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         { $*R.leave-scope() }
     }
@@ -567,7 +567,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | $
         | <?before <.[\)\]\}]>>
-        | [ <statement> <.eat_terminator> ]*
+        | [ <statement=.key-origin('statement')> <.eat_terminator> ]*
         ]
         <.set_braid_from(self)>   # any language tweaks must not escape
         <!!{ nqp::rebless($/, self.WHAT); 1 }>
@@ -578,7 +578,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ''
         [
         | <?before <.[)\]}]> >
-        | [<statement(:non-key)><.eat_terminator> ]*
+        | [<statement><.eat_terminator> ]*
         ]
     }
 
@@ -587,16 +587,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ''
         [
         | <?before <.[)\]}]> >
-        | [<statement(:non-key)><.eat_terminator> ]*
+        | [<statement><.eat_terminator> ]*
         ]
     }
 
-    token statement(int :$non-key) {
+    token statement {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
-        :my $*ORIGIN-IS-KEY := !$non-key;
-        :my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
-        :my @*ORIGIN-NESTINGS := $non-key ?? @*PARENT-NESTINGS !! [];
 
         :my $actions := self.slang_actions('MAIN');
         <!!{ $/.set_actions($actions); 1 }>
@@ -605,7 +602,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!!{ nqp::rebless($/, self.slang_grammar('MAIN')); 1 }>
 
         [
-        | <label> <statement(:non-key)>
+        | <label> <statement>
         | <statement_control>
         | <EXPR> :dba('statement end')
             [
@@ -681,12 +678,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $borg := $*BORG;
         :my $has_mystery := 0; # TODO
         :my $*MULTINESS := '';
+        :my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
+        :my @*ORIGIN-NESTINGS := [];
         { $*BORG := {} }
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
           '{'
-          <statementlist>
+          <statementlist=.key-origin('statementlist')>
           '}'
           <?ENDSTMT>
         || <.missing_block($borg, $has_mystery)>
@@ -702,14 +701,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
         { $*IN_DECL := ''; }
         <.enter-block-scope('Block')>
-        <statementlist>
+        <statementlist=.key-origin('statementlist')>
         <.leave-block-scope>
     }
 
     token enter-block-scope($*SCOPE-KIND) { <?> }
     token leave-block-scope() { <?> }
 
-    proto rule statement_control { <...> }
+    proto rule statement_control {*}
 
     rule statement_control:sym<if> {
         $<sym>=[if|with]<.kok> {}
@@ -2038,15 +2037,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #        <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
 #    }
 
-    proto token routine_declarator { <...> }
+    proto token routine_declarator {*}
     token routine_declarator:sym<sub> {
-        <sym> <.end_keyword> <routine_def('sub')>
+        <sym> <.end_keyword> <routine_def=.key-origin('routine_def', 'sub')>
     }
     token routine_declarator:sym<method> {
-        <sym> <.end_keyword> <method_def('method')>
+        <sym> <.end_keyword> <method_def=.key-origin('method_def', 'method')>
     }
     token routine_declarator:sym<submethod> {
-        <sym> <.end_keyword> <method_def('submethod')>
+        <sym> <.end_keyword> <method_def=.key-origin('method_def', 'submethod')>
     }
 
     rule routine_def($declarator) {

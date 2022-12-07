@@ -225,10 +225,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $<statement_mod_loop> {
                 $statement.replace-loop-modifier($<statement_mod_loop>.ast);
             }
-            self.attach: $/, $statement, :as-key-origin($*ORIGIN-IS-KEY);
+            self.attach: $/, $statement;
         }
         elsif $<statement_control> {
-            self.attach: $/, $<statement_control>.ast, :as-key-origin($*ORIGIN-IS-KEY);
+            self.attach: $/, $<statement_control>.ast;
         }
         elsif $<label> {
             my $statement := $<statement>.ast;
@@ -264,7 +264,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method blockoid($/) {
-        self.attach: $/, self.r('Blockoid').new($<statementlist>.ast);
+        self.attach: $/, self.r('Blockoid').new($<statementlist>.ast), :as-key-origin;
     }
 
     method unit-block($/) {
@@ -961,7 +961,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<routine_declarator>($/) {
-        self.attach: $/, $<routine_declarator>.ast;
+        self.attach: $/, $<routine_declarator>.ast
     }
 
     method term:sym<multi_declarator>($/) {

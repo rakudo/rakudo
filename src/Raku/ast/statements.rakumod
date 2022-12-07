@@ -119,7 +119,7 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
-        my $stmts := QAST::Stmts.new;
+        my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
         my @statements := $!statements;
         for @statements {
             my $qast := $_.IMPL-TO-QAST($context);
@@ -231,7 +231,7 @@ class RakuAST::StatementSequence is RakuAST::StatementList is RakuAST::ImplicitL
             )
         }
         else {
-            my $stmts := QAST::Stmts.new;
+            my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
             for @statements {
                 $stmts.push($_.IMPL-TO-QAST($context));
             }
@@ -709,7 +709,7 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
 
             # Prepend setup code and evaluate to Nil if not sunk.
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $wrapper := QAST::Stmt.new();
+            my $wrapper := self.IMPL-SET-NODE(QAST::Stmt.new(), :key);
             if $!setup {
                 $wrapper.push($!setup.IMPL-TO-QAST($context));
             }
@@ -875,10 +875,10 @@ class RakuAST::Statement::For is RakuAST::Statement
         }
 
         # Apply after mode to the map result, and we're done.
-        QAST::Stmts.new(
-            $bind-source,
-            QAST::Op.new( :op<callmethod>, :name($after-mode), $map-call )
-        )
+        self.IMPL-SET-NODE(
+            QAST::Stmts.new(
+                $bind-source,
+                QAST::Op.new( :op<callmethod>, :name($after-mode), $map-call )), :key)
     }
 
     method visit-children(Code $visitor) {

@@ -77,7 +77,7 @@ class RakuAST::Origin::Source {
         nqp::bindattr_s($obj, RakuAST::Origin::Source, '$!orig', $orig);
 
         my $file := %*COMPILING<%?OPTIONS><source-name>;
-        if nqp::isnull($file) {
+        if !nqp::isconcrete($file) {
             if nqp::isnull($file := nqp::getlexdyn('$?FILES')) {
                 $file := '<unknown file>';
             }

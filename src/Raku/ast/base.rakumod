@@ -369,6 +369,26 @@ class RakuAST::Node {
             )
         )
     }
+
+    # Set QAST .node() from the origin. With :key named argument the narrowest parent key node would be used instead
+    # of node's own .origin.
+    # Origin information is not critical to the overall compilation process. Therefore no exceptions are thrown and any
+    # absence of information is treated as irrelevant. The only possible case when this dies is when key node is not
+    # found. But this is only possible as a side effect of a worse error somewhere else.
+    method IMPL-SET-NODE(Mu $qast, :$key) {
+        my $orig := self.origin;
+        if nqp::isconcrete($orig) {
+            if $key && !$orig.is-key {
+                my $comp-unit := $*CU;
+                if nqp::isconcrete($comp-unit) {
+                    my $key-node := $comp-unit.locate-node($orig.from, $orig.to, :key);
+                    $orig := $key-node.origin if nqp::isconcrete($key-node);
+                }
+            }
+            $qast.node($orig.as-match);
+        }
+        $qast
+    }
 }
 
 # Anything with a known compile time value does RakuAST::CompileTimeValue.

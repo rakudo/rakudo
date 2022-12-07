@@ -2173,7 +2173,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method comment:sym<line_directive>($/) {
         my $origin-source := $*ORIGIN-SOURCE;
-        my $orig-line := $origin-source.original-line($/.from());
         $origin-source.register-line-directive(
             $origin-source.original-line($/.from()),
             nqp::radix(10, $<line>, 0, 0)[0],

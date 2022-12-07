@@ -230,8 +230,9 @@ class RakuAST::Node {
         nqp::join('', @markers)
     }
 
-    # Dump any extra information about the node when it doesn't fit into the primary line. Extras are placed below
-    # the line and are expected to respect the indenation level provided with $indent.
+    # Dump any extra information about the node if there is any and when it doesn't fit into the primary line. Extras
+    # are placed below the line and are expected to respect the indentation level provided with $indent and be
+    # terminated with a new line. See RakuAST::Expression.dump-extras() as a reference implementation.
     method dump-extras(int $indent) { '' }
 
     method dump-children(int $indent) {

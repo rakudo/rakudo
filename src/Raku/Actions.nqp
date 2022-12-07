@@ -27,16 +27,32 @@ role Raku::CommonActions {
             $node.attach($*R);
         }
 
-        if nqp::istype($node, self.r('Node')) {
-            my $nestings;
-            if $as-key-origin {
-                $nestings := @*ORIGIN-NESTINGS;
-                @*PARENT-NESTINGS.push($node);
-            }
-            $node.set-origin( self.r('Origin').new(:from($/.from), :to($/.to), :source($*ORIGIN-SOURCE), :$nestings) );
-        }
+        self.SET-NODE-ORIGIN($/, $node, :$as-key-origin);
 
         make $node;
+    }
+
+    method SET-NODE-ORIGIN($/, $node, :$as-key-origin) {
+        if nqp::istype($node, self.r('Node')) {
+            unless nqp::isconcrete($node.origin) {
+                $node.set-origin(
+                    self.r('Origin').new(
+                        :from($/.from),
+                        :to($/.to),
+                        :source($*ORIGIN-SOURCE)));
+            }
+            if $as-key-origin {
+                my $nestings := @*ORIGIN-NESTINGS;
+                unless nqp::istype($node, self.r('CompUnit')) {
+                    @*PARENT-NESTINGS.push($node)
+                }
+                $node.origin.set-nestings($nestings);
+            }
+        }
+    }
+
+    method key-origin($/) {
+        self.SET-NODE-ORIGIN($/, $/.ast, :as-key-origin);
     }
 
     method quibble($/) {

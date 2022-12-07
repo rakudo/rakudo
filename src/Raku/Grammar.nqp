@@ -456,7 +456,17 @@ role Raku::Common {
     method PARENT-NESTINGS() {
         # Expect to be called immediately from the nesting token.
         my $parent-ctx := nqp::ctxcallerskipthunks(nqp::ctxcaller(nqp::ctx()));
-        @*PARENT-NESTINGS := nqp::getlexreldyn($parent-ctx, '@*ORIGIN-NESTINGS');
+        nqp::getlexreldyn($parent-ctx, '@*ORIGIN-NESTINGS');
+    }
+
+    method key-origin($subrule, *@pos, *%named) {
+        my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
+        my @*ORIGIN-NESTINGS := [];
+        my $rc := self."$subrule"(|@pos, |%named);
+        if $rc {
+            self.actions().key-origin($rc);
+        }
+        $rc
     }
 }
 

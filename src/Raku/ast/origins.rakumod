@@ -24,6 +24,10 @@ class RakuAST::Origin {
         $obj
     }
 
+    method set-nestings(Mu $nestings) {
+        nqp::bindattr(self, RakuAST::Origin, '$!nestings', $nestings);
+    }
+
     method is-key() { nqp::isconcrete($!nestings) ?? True !! False }
 
     method as-match() { $!source.match-from(self) }

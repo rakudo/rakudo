@@ -452,7 +452,7 @@ role Raku::Common {
         }
     }
 
-    # Provide parent's rule/token @*ORIGIN-NESTINGS to ease and unitfy creating a stack of key AST nodes.
+    # Provide parent's rule/token @*ORIGIN-NESTINGS to ease and unify creating a stack of key AST nodes.
     method PARENT-NESTINGS() {
         # Expect to be called immediately from the nesting token.
         my $parent-ctx := nqp::ctxcallerskipthunks(nqp::ctxcaller(nqp::ctx()));

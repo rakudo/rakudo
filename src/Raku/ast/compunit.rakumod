@@ -42,8 +42,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
 
         my $sc;
         if $outer-cu {
-            my $context             := $outer-cu.context;
-            $context.start-nested;
+            my $context             := $outer-cu.context.create-nested;
             $sc                     := $context.sc;
             my $precompilation-mode := $outer-cu.precompilation-mode;
             nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
@@ -215,7 +214,6 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         $top-level.push(self.IMPL-TO-QAST($context));
         $!mainline.IMPL-LINK-META-OBJECT($context, $top-level);
 
-        $context.stop-nested if $!is-eval == 2;
         QAST::CompUnit.new:
             $top-level,
             :hll('Raku'),

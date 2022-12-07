@@ -4,7 +4,6 @@ class RakuAST::IMPL::QASTContext {
     has Mu $.sc;
     has Mu $.post-deserialize;
     has Mu $.code-ref-blocks;
-    has int $!num-code-refs;
     has int $!precompilation-mode;
 
     # Mapping of sub IDs to their code objects; used for fixing up in
@@ -32,7 +31,6 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!precompilation-mode', $precompilation-mode);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!code-ref-blocks', []);
-        nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!num-code-refs', 0);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-code-object', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-cloned-code-objects', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-sc-idx', {});
@@ -41,13 +39,11 @@ class RakuAST::IMPL::QASTContext {
         $obj
     }
 
-    method start-nested() {
-        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!is-nested', $!is-nested + 1);
-    }
-
-    method stop-nested() {
-        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!is-nested', $!is-nested - 1);
-        nqp::die("Error counting nesting levels") if $!is-nested < 0;
+    method create-nested() {
+        my $context := nqp::clone(self);
+        nqp::bindattr($context, RakuAST::IMPL::QASTContext, '$!cleanup-tasks', []);
+        nqp::bindattr_i($context, RakuAST::IMPL::QASTContext, '$!is-nested', 1);
+        $context
     }
 
     # Get the handle of the serialization context.
@@ -79,8 +75,7 @@ class RakuAST::IMPL::QASTContext {
     }
 
     method add-code-ref(Mu $code-ref, Mu $block) {
-        my int $code-ref-idx := $!num-code-refs;
-        nqp::bindattr_i(self, RakuAST::IMPL::QASTContext, '$!num-code-refs', $code-ref-idx + 1);
+        my int $code-ref-idx := nqp::elems($!code-ref-blocks);
         nqp::push($!code-ref-blocks, $block);
         nqp::scsetcode($!sc, $code-ref-idx, $code-ref);
         $!sub-id-to-sc-idx{$block.cuid} := $code-ref-idx;

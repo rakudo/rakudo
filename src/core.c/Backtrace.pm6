@@ -200,33 +200,27 @@ my class Backtrace {
                 $!bt-next = $elems;
                 last;
             }
+            elsif $name ne '<unit-outer>' {
+                my $code;
+                try {
+                    $code := nqp::getcodeobj($do);
+                    $code := Any unless nqp::istype($code, Mu);
+                };
 
-            my $code;
-            try {
-                $code := nqp::getcodeobj($do);
-                $code := Any unless nqp::istype($code, Mu);
-            };
+                nqp::push($!frames,
+                    Backtrace::Frame.new(
+                        $file,
+                        $line.Int,
+                        $code,
+                        $name.starts-with("_block") ?? '<anon>' !! $name ));
+            }
 
-            nqp::push($!frames,
-              Backtrace::Frame.new(
-                $file,
-                $line.Int,
-                $code,
-                $name.starts-with("_block") ?? '<anon>' !! $name,
-              )
-            );
             last unless $todo = $todo - 1;
         }
 
         # found something
         if nqp::existspos($!frames,$pos) {
             nqp::atpos($!frames,$pos);
-        }
-
-        # we've reached the end, don't show the last <unit-outer> if there is one
-        else {
-            nqp::pop($!frames) if $!frames;
-            Nil;
         }
     }
 

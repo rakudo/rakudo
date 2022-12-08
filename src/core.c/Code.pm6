@@ -91,7 +91,7 @@ my class Code { # declared in BOOTSTRAP
         # (e.g. types set to or parameterized by captured types.)
         my sub strip_parm (Parameter:D $parm, :$make_optional = False) {
             my $type := $parm.type;
-            my $type_coercive := $type.HOW.archetypes.coercive;
+            my $type_coercive := $type.^archetypes.coercive;
             my @types = $type_coercive
                             ?? ($type.^target_type.^name, $type.^constraint_type.^name)
                             !! $type.^name;

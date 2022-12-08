@@ -1355,7 +1355,10 @@ my class Operand {
 
     method can-be($type) {
         return 1 if nqp::isnull(my $op-type := self.infer-type(:guaranteed));
+        # 'Can be' condition is a two-way thing. If we ask if something can be Int then if operand type is Real it can
+        # potentially be Int; yet, if it is IntStr then it is already an Int and the answer to 'can be' is 'yes' too.
         (nqp::istype($type, $op-type)
+            || nqp::istype($op-type, $type)
             || (($!value-kind == $OPERAND_VALUE_VAR || $!value-kind == $OPERAND_VALUE_RETURN)
                 && nqp::eqaddr($!value, $!symbols.Mu)))
     }
@@ -1580,10 +1583,10 @@ my class SmartmatchOptimizer {
         # - the type is a generic
         return nqp::null()
             if !nqp::can($sm_type_how, 'archetypes')
-                || $sm_type_how.archetypes.generic;
+                || $sm_type_how.archetypes($sm_type).generic;
 
         my $sm_is_subset :=
-            $sm_type_how.archetypes.nominalizable
+            $sm_type_how.archetypes($sm_type).nominalizable
             && !nqp::isnull($sm_type_how.wrappee-lookup($sm_type, :subset));
 
         note("Try typematch over RHS ", $sm_type.HOW.name($sm_type)) if $!debug;
@@ -1600,7 +1603,7 @@ my class SmartmatchOptimizer {
                 ", ast returns: ", $lhs.ast.returns.HOW.name($lhs.ast.returns),
                 "), constant substitution is possible") if $!debug;
 
-            return nqp::null() if $lhs.value.HOW.archetypes.generic;
+            return nqp::null() if $lhs.value.HOW.archetypes($lhs.value).generic;
 
             # Wrap into try because for if there a user-defined `where`-block involved into typematching it might throw.
             # Consider this case a failed typematch and proceed further.
@@ -1991,14 +1994,15 @@ my class SmartmatchOptimizer {
 
             # If there is a chance that LHS can result in an Associative then a fallback to the default ACCEPTS+Bool
             # must be provided.
-            if $lhs.can-be($!symbols.Pair) {
+            my $Associative := $!symbols.find_in_setting('Associative');
+            if $lhs.can-be($Associative) {
                 my $accepts_bool_method := $sm_accepts_ast.ann('smartmatch_negated') ?? 'not' !! 'Bool';
                 $res_ast := QAST::Op.new(
                     :op<if>,
                     QAST::Op.new(
                         :op<istype>,
                         QAST::Var.new( :name('$_'), :scope<lexical> ),
-                        QAST::WVal.new( :value($!symbols.find_in_setting('Associative')) )
+                        QAST::WVal.new( :value($Associative) )
                     ),
                     QAST::Op.new(
                         :op<callmethod>,
@@ -4571,7 +4575,7 @@ class Perl6::Optimizer {
 
                 my $invocant_type := $signature.params.AT-POS(0).type;
                 # Skip a method with :D if requested
-                next if $invocant_type.HOW.archetypes.definite
+                next if $invocant_type.HOW.archetypes($invocant_type).definite
                         && $invocant_type.HOW.definite($invocant_type);
             }
 

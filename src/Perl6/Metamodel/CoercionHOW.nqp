@@ -13,12 +13,14 @@ class Perl6::Metamodel::CoercionHOW
     has $!archetypes;
 
 
-    method archetypes() {
+    method archetypes($obj?) {
         unless nqp::isconcrete($!archetypes) {
-            my $generic := $!target_type.HOW.archetypes.generic || $!constraint_type.HOW.archetypes.generic;
+            my $generic := 
+                $!target_type.HOW.archetypes($!target_type).generic 
+                || $!constraint_type.HOW.archetypes($!constraint_type).generic;
             $!archetypes := Perl6::Metamodel::Archetypes.new(
                 :coercive, :nominalizable, :$generic,
-                definite => $!target_type.HOW.archetypes.definite,
+                definite => $!target_type.HOW.archetypes($!target_type).definite,
             );
         }
         $!archetypes
@@ -37,7 +39,7 @@ class Perl6::Metamodel::CoercionHOW
 
     method set_target_type($target_type) {
         $!target_type := $target_type;
-        $!nominal_target := $!target_type.HOW.archetypes.nominalizable
+        $!nominal_target := $!target_type.HOW.archetypes($!target_type).nominalizable
                                 ?? $!target_type.HOW.nominalize($!target_type)
                                 !! $!target_type;
     }
@@ -67,7 +69,7 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method nominalize($coercion_type) {
-        $!target_type.HOW.archetypes.nominalizable
+        $!target_type.HOW.archetypes($!target_type).nominalizable
             ?? $!target_type.HOW.nominalize($!target_type)
             !! $!target_type
     }
@@ -75,11 +77,11 @@ class Perl6::Metamodel::CoercionHOW
     method instantiate_generic($coercion_type, $type_env) {
         return $coercion_type unless $!archetypes.generic;
         my $ins_target :=
-            $!target_type.HOW.archetypes.generic
+            $!target_type.HOW.archetypes($!target_type).generic
                 ?? $!target_type.HOW.instantiate_generic($!target_type, $type_env)
                 !! $!target_type;
         my $ins_constraint :=
-            $!constraint_type.HOW.archetypes.generic
+            $!constraint_type.HOW.archetypes($!constraint_type).generic
                 ?? $!constraint_type.HOW.instantiate_generic($!constraint_type, $type_env)
                 !! $!constraint_type;
         self.new_type($ins_target, $ins_constraint);
@@ -113,7 +115,7 @@ class Perl6::Metamodel::CoercionHOW
     # Coercion protocol method.
     method coerce($obj, $value) {
 #?if moar
-        nqp::dispatch('raku-coercion', $obj, $value)
+        nqp::dispatch('raku-coercion', nqp::decont($obj), $value)
 #?endif
 #?if !moar
         nqp::istype($value, $!target_type)
@@ -126,7 +128,7 @@ class Perl6::Metamodel::CoercionHOW
     method !coerce_TargetType($obj, $value) {
         my $constraintHOW := $!constraint_type.HOW;
         $value := $constraintHOW.coerce($!constraint_type, $value)
-          if nqp::can((my $archetypes := $constraintHOW.archetypes), 'coercive')
+          if nqp::can((my $archetypes := $constraintHOW.archetypes($!constraint_type)), 'coercive')
           && $archetypes.coercive;
 
         my $nominal_target := $!nominal_target;

@@ -3588,7 +3588,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 elsif $past.ann('metaattr') -> $attr {
-                    if !$attr.required && !$attr.type.HOW.archetypes.generic {
+                    if !$attr.required && !$attr.type.HOW.archetypes($attr.type).generic {
                         check_default_value_type($/, $attr.container_descriptor, $attr.type, 'attribute');
                     }
                 }
@@ -3835,7 +3835,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $world.handle_OFTYPE_for_pragma($/, $*SCOPE eq 'has' ?? 'attributes' !! 'variables');
         if $*OFTYPE {
             $of_type := $*OFTYPE.ast;
-            my $archetypes := $of_type.HOW.archetypes;
+            my $archetypes := $of_type.HOW.archetypes($of_type);
             unless $archetypes.nominal
                 || $archetypes.nominalizable
                 || $archetypes.generic
@@ -4008,7 +4008,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past.name($name);
                 $past.returns($bind_type);
                 $past.scope(nqp::objprimspec($bind_type) ?? 'lexicalref' !! 'lexical');
-                if %cont_info<bind_constraint>.HOW.archetypes.generic {
+                if %cont_info<bind_constraint>.HOW.archetypes(%cont_info<bind_constraint>).generic {
                     $past := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $past ),
@@ -5906,7 +5906,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub dissect_type_into_parameter($/, $type) {
         my %param_info := %*PARAM_INFO;
-        my $archetypes := $type.HOW.archetypes;
+        my $archetypes := $type.HOW.archetypes($type);
         if nqp::isconcrete($type) {
             if nqp::istype($type, $*W.find_single_symbol_in_setting('Bool')) {
                 my $val := $type.gist;
@@ -5931,7 +5931,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $archetypes.definite && nqp::eqaddr($type.HOW.wrappee($type, :definite), $type) {
             dissect_type_into_parameter($/, $type.HOW.base_type($type));
         }
-        elsif $type.HOW.archetypes.generic {
+        elsif $type.HOW.archetypes($type).generic {
             %param_info<type> := $type;
         }
         elsif $archetypes.nominalizable {
@@ -6232,7 +6232,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my int $found_wval := 0;
                 try {
                     my $sym := $world.find_symbol(@parts);
-                    unless $sym.HOW.archetypes.generic {
+                    unless $sym.HOW.archetypes($sym).generic {
                         $past.unshift(QAST::WVal.new( :value($sym) ));
                         $found_wval := 1;
                     }
@@ -6322,6 +6322,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<time>($/) {
         make QAST::Op.new( :op('call'), :name('&term:<time>'), :node($/) );
+    }
+
+    method term:sym<nano>($/) {
+        make QAST::Op.new( :op('call'), :name('&term:<nano>'), :node($/) );
     }
 
     method term:sym<empty_set>($/) {
@@ -6572,8 +6576,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $ast := $<arglist>.ast;
                 wantall($past, 'name');
                 for @($ast) {
-                    unless $_.has_compile_time_value {
+                    if !$_.has_compile_time_value
+                        || (my $value_type := nqp::what($_.compile_time_value)).HOW.archetypes($value_type).generic
+                    {
                         $all_compile_time := 0;
+                        last;
                     }
                 }
                 if $all_compile_time {
@@ -7483,12 +7490,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
             }
             else {
-                my str $error := "Only routine calls or variables that can '.push' may appear on either side of feed operators.";
-                if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
-                && nqp::istype($stage[0], QAST::Var)
-                && nqp::eqat($stage[0].name, '&', 0) {
-                    $error := "A feed may not sink values into a code object. Did you mean a call like '"
-                            ~ nqp::substr($stage[0].name, 1) ~ "()' instead?";
+                my str $error := "Only routine calls or variables that can '.append' may appear on either side
+of feed operators.";
+                if nqp::istype($stage[0], QAST::Var) {
+                    if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
+                      && nqp::eqat($stage[0].name, '&', 0) {
+                        $error := "A feed may not sink values into a code object.
+Did you mean a call like '"
+                          ~ nqp::substr($stage[0].name, 1)
+                          ~ "()' instead?";
+                    }
+
+                    # Looks like an array, yet we wound up here (which we
+                    # wouldn't if it was an ordinary array.  Assume it's
+                    # a shaped array definition throwing a spanner into the
+                    # works.
+                    elsif nqp::eqat($stage[0].name, '@', 0) {
+                        $error := "Cannot feed into shaped arrays, as one cannot '.append' to them.";
+                    }
                 }
                 $_.PRECURSOR.panic($error);
             }
@@ -7541,7 +7560,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $sm_call;
         my $rhs_local := QAST::Node.unique('sm_rhs');
         # Will we need to forcingly boolify ACCEPTS return value? No if it's going to be negated anyway or if RHS is a
-        # regex-ish code like m//, s///, or tr///
+        # regex-ish code like m//, s///, or tr/// but NOT for S/// nor TR///
         my $boolify := !($negated || $rhs.ann('regex_match_code'));
 
 #?if !moar
@@ -9079,10 +9098,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::IVal.new( :value($samemark) ),
         );
 
+        my $Is_S := $<sym> eq 'S';
+
         $past := QAST::Op.new( :op('locallifetime'), :node($/),
             QAST::Stmt.new(
                 # var for final result string of S///
-                $<sym> eq 'S' ?? QAST::Var.new(
+                $Is_S ?? QAST::Var.new(
                     :name($S_result), :scope('local'), :decl('var')
                 ) !! QAST::Stmt.new(),
 
@@ -9118,7 +9139,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         )
                     ),
 
-                    $<sym> eq 'S'
+                    $Is_S
                     ?? QAST::Op.new( :op('bind'),
                         WANTED(QAST::Var.new( :name($S_result), :scope('local') ),'s/assign'),
                         $apply_matches
@@ -9127,7 +9148,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $apply_matches
                     ),
 
-                    $<sym> eq 'S'
+                    $Is_S
                     ?? QAST::Op.new( :op('bind'),
                         QAST::Var.new( :name($S_result), :scope('local') ),
                         WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'S'),
@@ -9166,16 +9187,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
 
                 # The result of this operation.
-                $<sym> eq 's'
-                ?? QAST::Var.new( :name('$/'), :scope('lexical') )
-                !! QAST::Var.new( :name($S_result), :scope('local') ),
+                $Is_S
+                ?? QAST::Var.new( :name($S_result), :scope('local') )
+                !! QAST::Var.new( :name('$/'), :scope('lexical') ),
             ),
         );
-        $past.annotate_self(
-            'is_S', $<sym> eq 'S'
-        ).annotate(
-            'regex_match_code', 1
-        );
+        $Is_S
+        ?? $past.annotate('is_S', 1)
+        !! $past.annotate('regex_match_code', 1);
         make WANTED($past, 's///');  # never carp about s/// in sink context
     }
 
@@ -9472,7 +9491,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Add type checks.
             my $param_type := %info<type>;
-            my $ptype_archetypes := $param_type.HOW.archetypes;
+            my $ptype_archetypes := $param_type.HOW.archetypes($param_type);
             my int $is_generic := %info<type_generic>;
             my int $is_coercive := $ptype_archetypes.coercive;
             my $nomtype    := !$is_generic && $ptype_archetypes.nominalizable
@@ -9773,10 +9792,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         else {
                             # XXX This fails for generics because a generic has to be instantiated. I don't get this
                             # fixed because it'd take more than worth it considering the upcoming RakuAST. //vrurg
-                            $var.default(
-                                QAST::WVal.new( :value($is_coercive
-                                                        ?? $param_type.HOW.target_type($param_type)
-                                                        !! $nomtype)));
+                            my $default_type := $nomtype;
+                            if $is_coercive {
+                                my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
+                                $default_type := $coercion_type.HOW.target_type($coercion_type);
+                            }
+                            $var.default( QAST::WVal.new( :value($default_type)) );
                         }
                     }
                 }
@@ -10058,7 +10079,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # If the type given for the attr_package is generic, we're
                 # dealing with a role and have to look up what type it's
                 # supposed to grab the attribute from during run-time.
-                if %info<attr_package>.HOW.archetypes.generic {
+                if %info<attr_package>.HOW.archetypes(%info<attr_package>).generic {
                     my $packagename := %info<attr_package>.HOW.name(%info<attr_package>);
                     $var.push(QAST::Op.new(
                         :op('p6store'),
@@ -10844,7 +10865,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $world.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
         }
         my $type := $world.find_symbol(@name);
-        my $is_generic := nqp::can($type.HOW, "archetypes") && nqp::can($type.HOW.archetypes, "generic") && $type.HOW.archetypes.generic;
+        my $is_generic := 
+            nqp::can($type.HOW, "archetypes") 
+            && nqp::can($type.HOW.archetypes($type), "generic") 
+            && $type.HOW.archetypes($type).generic;
         my $past;
         if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
             $past := $world.symbol_lookup(@name, $/);

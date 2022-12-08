@@ -16,9 +16,9 @@ class Perl6::Metamodel::SubsetHOW
 
     has $!archetypes;
 
-    method archetypes() {
+    method archetypes($obj?) {
         unless nqp::isconcrete($!archetypes) {
-            my $refinee_archetypes := $!refinee.HOW.archetypes;
+            my $refinee_archetypes := $!refinee.HOW.archetypes($!refinee);
             my $generic := $refinee_archetypes.generic
                             || (nqp::defined($!refinement)
                                 && nqp::can($!refinement, 'is_generic')
@@ -53,7 +53,7 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method set_of($obj, $refinee) {
-        my $archetypes := $refinee.HOW.archetypes;
+        my $archetypes := $refinee.HOW.archetypes($refinee);
         if $archetypes.generic {
             nqp::die("Use of a generic as 'of' type of a subset is not implemented yet")
         }
@@ -97,7 +97,7 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method nominalize($obj) {
-        $!refinee.HOW.archetypes.nominalizable
+        $!refinee.HOW.archetypes($!refinee).nominalizable
             ?? $!refinee.HOW.nominalize($!refinee)
             !! $!refinee
     }
@@ -105,8 +105,8 @@ class Perl6::Metamodel::SubsetHOW
     # Should have the same methods of the (eventually nominal) type
     # that we refine. (For the performance win, work out a way to
     # steal its method cache.)
-    method find_method($obj, $name) {
-        $!refinee.HOW.find_method($!refinee, $name)
+    method find_method($obj, $name, *%c) {
+        $!refinee.HOW.find_method($!refinee, $name, |%c)
     }
 
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
@@ -123,7 +123,7 @@ class Perl6::Metamodel::SubsetHOW
         nqp::hllboolfor(
             nqp::istype($checkee, $!refinee) &&
             (nqp::isnull($!refinement)
-             || ($!refinee.HOW.archetypes.coercive
+             || ($!refinee.HOW.archetypes($!refinee).coercive
                     ?? nqp::istrue($!refinement.ACCEPTS($!refinee.HOW.coerce($!refinee, $checkee)))
                     !! nqp::istrue($!refinement.ACCEPTS($checkee)))),
             "Raku")

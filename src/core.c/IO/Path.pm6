@@ -490,6 +490,27 @@ my class IO::Path is Cool does IO {
         }}
         nqp::chmod($.absolute, nqp::unbox_i($mode));
     }
+    method chown(IO::Path:D: :$uid is copy, :$gid is copy --> True) {
+
+        my str $path = self.absolute;
+        $uid = $uid.defined
+          ?? $uid.UInt
+          !! nqp::stat($path,nqp::const::STAT_UID);
+        $uid.throw if nqp::istype($uid,Failure);
+
+        $gid = $gid.defined
+          ?? $gid.UInt
+          !! nqp::stat($path,nqp::const::STAT_GID);
+        $gid.throw if nqp::istype($gid,Failure);
+
+        {
+            CATCH { default {
+                fail X::IO::Chown.new(
+                  :path($!os-path), :$uid, :$gid, :os-error(.Str) );
+            }}
+            nqp::chown($path, nqp::unbox_u($uid), nqp::unbox_u($gid))
+        }
+    }
     method unlink(IO::Path:D: --> True) {
         CATCH { default {
             fail X::IO::Unlink.new( :path($!os-path), os-error => .Str );
@@ -807,6 +828,12 @@ my class IO::Path is Cool does IO {
         Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
           ?? nqp::hllbool(Rakudo::Internals.FILETEST-Z($!os-path))
           !! self!does-not-exist("z")
+    }
+
+    method created(IO::Path:D: --> Instant:D) {
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CREATED($!os-path))
+          !! self!does-not-exist("created")
     }
 
     method modified(IO::Path:D: --> Instant:D) {

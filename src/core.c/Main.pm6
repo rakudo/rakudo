@@ -114,7 +114,10 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 else { $optstring = nqp::substr($passed-value, 2) }
             }
             # short option
-            elsif nqp::eqat($passed-value, '-', 0) || nqp::eqat($passed-value, ':', 0) {
+            elsif $passed-value ne '-'
+              && (nqp::eqat($passed-value, '-', 0)
+                   || nqp::eqat($passed-value, ':', 0)
+                 ) {
                 $short-opt = 1;
                 if nqp::eqat($passed-value, '/', 1) {
                     $optstring = nqp::substr($passed-value, 2);
@@ -383,6 +386,18 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     # set up other new style dynamic variables
     my &*ARGS-TO-CAPTURE := &default-args-to-capture;
     my &*GENERATE-USAGE  := &default-generate-usage;
+
+    # Modify args if --no-foo is acceptable as an alternative to --/foo
+    if nqp::istrue(%sub-main-opts<allow-no>) {
+        $_ .= subst(/^ '--no-' /, '--/') for @*ARGS;
+    }
+
+    # Modify args if -j42 is acceptable as an alternative to --j=42
+    if nqp::istrue(%sub-main-opts<numeric-suffix-as-value>) {
+        for @*ARGS {
+            $_ = "-$_.substr(0,2)=$/" if .match: /^ '-' <.alpha> <( \d+ $/;
+        }
+    }
 
     # Process command line arguments
     my $capture := args-to-capture(&main, @*ARGS);

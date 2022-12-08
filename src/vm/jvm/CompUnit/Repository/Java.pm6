@@ -56,4 +56,4 @@ class CompUnit::Repository::Java does CompUnit::Repository does CompUnit::Reposi
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

@@ -36,18 +36,18 @@ class Perl6::Metamodel::CurriedRoleHOW
     my $archetypes_ng := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method !choose_archetype() {
         for @!pos_args {
-            if $_.HOW.archetypes.generic {
+            if $_.HOW.archetypes($_).generic {
                 return $archetypes_g;
             }
         }
         for %!named_args {
-            if $_.value.HOW.archetypes.generic {
+            if $_.value.HOW.archetypes($_.value).generic {
                 return $archetypes_g;
             }
         }
         $archetypes_ng
     }
-    method archetypes() {
+    method archetypes($obj?) {
         if nqp::isconcrete(self) {
             $!archetypes := self.'!choose_archetype'() unless $!archetypes;
             return $!archetypes;
@@ -159,12 +159,12 @@ class Perl6::Metamodel::CurriedRoleHOW
         my @new_pos;
         my %new_named;
         for @!pos_args {
-            @new_pos.push($_.HOW.archetypes.generic ??
+            @new_pos.push($_.HOW.archetypes($_).generic ??
                 $_.HOW.instantiate_generic($_, $type_env) !!
                 $_);
         }
         for %!named_args {
-            %new_named{$_.key} := $_.value.HOW.archetypes.generic ??
+            %new_named{$_.key} := $_.value.HOW.archetypes($_.value).generic ??
                 $_.value.HOW.instantiate_generic($_.value, $type_env) !!
                 $_.value;
         }
@@ -242,7 +242,7 @@ class Perl6::Metamodel::CurriedRoleHOW
         }
         if nqp::can($checkee.HOW, 'role_typecheck_list') {
             for $checkee.HOW.role_typecheck_list($checkee) {
-                if nqp::istype($_.HOW, self.WHAT) && !$_.HOW.archetypes.generic {
+                if nqp::istype($_.HOW, self.WHAT) && !$_.HOW.archetypes($_).generic {
                     if nqp::decont($_.HOW.curried_role($_)) =:= $crdc {
                         @cands.push($_);
                     }

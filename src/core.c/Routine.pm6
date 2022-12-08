@@ -342,7 +342,7 @@ my class Routine { # declared in BOOTSTRAP
             if $U || $D {
                 next unless nqp::istype(&cand, Method) || nqp::istype(&cand, Submethod);
                 my $invocant-type := &cand.signature.params[0].type;
-                my $is-definite := $invocant-type.HOW.archetypes.definite && $invocant-type.^definite;
+                my $is-definite := $invocant-type.^archetypes.definite && $invocant-type.^definite;
                 next unless ($U && !$is-definite) || ($D && $is-definite);
             }
             return False unless &cand.file.starts-with: 'SETTING::';

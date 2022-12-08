@@ -1,4 +1,6 @@
-{
+my class IO::ArgFiles { ... }
+
+augment class Rakudo::Internals {
     # Set up the skeletons of the IO::Handle objects that can be setup
     # at compile time.  Then, when running the mainline of the setting
     # at startup, plug in the low level handles and set up the encoder
@@ -7,49 +9,10 @@
     my constant NL-OUT   = "\n";
     my constant ENCODING = "utf8";
 
-#?if jvm
-    my $in := do {
-#?endif
-#?if !jvm
-    my $in := BEGIN {
-#?endif
+    my sub setup-handle(str $what) {
         my $handle := nqp::p6bindattrinvres(
           nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
-            nqp::create(IO::Special),IO::Special,'$!what','<STDIN>'
-          )
-        );
-        nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
-        nqp::getattr($handle,IO::Handle,'$!nl-in')    = NL-IN;
-        nqp::getattr($handle,IO::Handle,'$!nl-out')   = NL-OUT;
-        nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
-        $handle
-    }
-#?if jvm
-    my $out := do {
-#?endif
-#?if !jvm
-    my $out := BEGIN {
-#?endif
-        my $handle := nqp::p6bindattrinvres(
-          nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
-            nqp::create(IO::Special),IO::Special,'$!what','<STDOUT>'
-          )
-        );
-        nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
-        nqp::getattr($handle,IO::Handle,'$!nl-in')    = NL-IN;
-        nqp::getattr($handle,IO::Handle,'$!nl-out')   = NL-OUT;
-        nqp::getattr($handle,IO::Handle,'$!encoding') = ENCODING;
-        $handle
-    }
-#?if jvm
-    my $err := do {
-#?endif
-#?if !jvm
-    my $err := BEGIN {
-#?endif
-        my $handle := nqp::p6bindattrinvres(
-          nqp::create(IO::Handle),IO::Handle,'$!path',nqp::p6bindattrinvres(
-            nqp::create(IO::Special),IO::Special,'$!what','<STDERR>'
+            nqp::create(IO::Special),IO::Special,'$!what',$what
           )
         );
         nqp::getattr($handle,IO::Handle,'$!chomp')    = True;
@@ -59,25 +22,37 @@
         $handle
     }
 
-    my $encoding := Encoding::Registry.utf8;
-    my $encoder  := $encoding.encoder(:translate-nl);
-    my $decoder  := $encoding.decoder(:translate-nl);
+    # Set up the skeletons at compile time
+#?if !js
+    my constant $skeletons = nqp::hash(
+#?endif
+#?if js
+    my $skeletons := nqp::hash(
+#?endif
+      'IN',  setup-handle('<STDIN>'),
+      'OUT', setup-handle('<STDOUT>'),
+      'ERR', setup-handle('<STDERR>')
+    );
 
-    sub activate-std(IO::Handle:D $handle, Mu \PIO) {
+    method activate-std(str $name, Mu \PIO) {
+        my \HANDLE = nqp::atkey($skeletons,$name);
         nqp::setbuffersizefh(PIO,8192) unless nqp::isttyfh(PIO);
-        nqp::bindattr(
-          $handle,IO::Handle,'$!decoder',$decoder
-        ).set-line-separators(NL-IN);
-        nqp::bindattr($handle,IO::Handle,'$!encoder',$encoder);
-        nqp::bindattr($handle,IO::Handle,'$!PIO',PIO);
-        $handle
-    }
 
-    # Activate the standard handle skeletons at runtime
-    PROCESS::<$IN>  = activate-std($in,  nqp::getstdin);
-    PROCESS::<$OUT> = activate-std($out, nqp::getstdout);
-    PROCESS::<$ERR> = activate-std($err, nqp::getstderr);
+        my $encoding = Encoding::Registry.find(ENCODING);
+        nqp::bindattr(
+          HANDLE,IO::Handle,'$!decoder',$encoding.decoder(:translate-nl)
+        ).set-line-separators(NL-IN);
+        nqp::bindattr(
+          HANDLE,IO::Handle,'$!encoder',$encoding.encoder(:translate-nl)
+        );
+        nqp::p6bindattrinvres(HANDLE,IO::Handle,'$!PIO',PIO)
+    }
 }
+
+# Activate the standard handle skeletons at runtime
+PROCESS::<$IN>  = Rakudo::Internals.activate-std('IN',  nqp::getstdin);
+PROCESS::<$OUT> = Rakudo::Internals.activate-std('OUT', nqp::getstdout);
+PROCESS::<$ERR> = Rakudo::Internals.activate-std('ERR', nqp::getstderr);
 
 proto sub printf($, |) {*}
 multi sub printf(Str(Cool) $format, Junction:D \j) {
@@ -85,9 +60,9 @@ multi sub printf(Str(Cool) $format, Junction:D \j) {
     j.THREAD: { $out.print: sprintf $format, |$_ }
 }
 multi sub printf(Str(Cool) $format, |) {
-   my $args := nqp::p6argvmarray;
-   nqp::shift($args);
-   $*OUT.print: sprintf $format, nqp::hllize($args)
+    my $args := nqp::p6argvmarray;
+    nqp::shift($args);
+    $*OUT.print: sprintf $format, nqp::hllize($args)
 }
 
 proto sub print(|) {*}
@@ -312,6 +287,11 @@ multi sub chmod($mode, *@filenames) {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.chmod($mode) }
     @ok;
+}
+
+proto sub chown($, |) {*}
+multi sub chown(*@filenames, :$uid, :$gid) {
+    @filenames.grep: *.IO.chown(:$uid, :$gid)
 }
 
 proto sub unlink(|) {*}

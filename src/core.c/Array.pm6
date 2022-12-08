@@ -1378,7 +1378,7 @@ my class Array { # declared in BOOTSTRAP
              '$' x nqp::iscont(SELF)  # self is always deconted
              ~ '['
              ~ self.map({nqp::decont($_).raku}).join(', ')
-             ~ ',' x (self.elems == 1 && nqp::istype(self.AT-POS(0),Iterable))
+             ~ ',' x ((try self.elems // Inf) == 1 && nqp::istype(self.AT-POS(0),Iterable))
              ~ ']'
         })
     }

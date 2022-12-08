@@ -9,7 +9,7 @@ class Perl6::Metamodel::ModuleHOW
     has $!composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( );
-    method archetypes() {
+    method archetypes($obj?) {
         $archetypes
     }
 

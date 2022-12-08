@@ -15,7 +15,7 @@ my class Pod::Block::Declarator { ... }
 proto sub trait_mod:<is>(Mu $, |) {*}
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable()
-        || ($child.HOW.archetypes.parametric && $parent.HOW.archetypes.generic)
+        || ($child.HOW.archetypes.parametric && $parent.^archetypes.generic)
     {
         $child.^add_parent($parent);
     }
@@ -436,7 +436,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
         }
 
         method add_delegator_method($attr: Mu $pkg, $meth_name, $call_name) {
-            my $meth := method (|c) is rw {
+            my $meth := anon method (|c) is rw {
                 (nqp::isconcrete(self)
                   ?? $attr.get_value(self)
                   !! nqp::decont(nqp::getattr(
@@ -514,16 +514,81 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
 }
 
 multi sub trait_mod:<handles>(Method:D $m, &thunk) {
-    my $pkg := $m.signature.params[0].type;
-    my $call_name := $m.name;
-    for flat thunk() -> $meth_name {
-        my $meth := method (|c) is rw {
-            self."$call_name"()."$meth_name"(|c);
+    $m does role {
+        has $.handles;
+        has $!delegator_name;
+
+        method set_handles($expr) {
+            $!handles := $expr;
         }
-        $meth.set_name($meth_name);
-        $pkg.^add_method($meth_name, $meth);
+
+        method add_delegator_method(&code_obj: Mu $pkg, $meth_name, $call_name) {
+            my $meth := nqp::defined(my $delegator_name = $!delegator_name)
+                ?? anon method (|c) is raw { self."$delegator_name"()."$call_name"(|c) }
+                !! anon method (|c) is raw { &code_obj(self)."$call_name"(|c) };
+            $meth.set_name($meth_name);
+            $pkg.^add_method($meth_name, $meth);
+        }
+
+        method !fallback-code(&code_obj: $name) {
+            nqp::defined(my $delegator_name = $!delegator_name)
+                ?? -> \SELF, |c is raw { SELF."$delegator_name"()."$name"(|c) }
+                !! -> \SELF, |c is raw { &code_obj(SELF)."$name"(|c) }
+        }
+
+        method apply_handles(&code_obj: Mu $pkg is raw) {
+            $!delegator_name := 
+                ($pkg.^language-revision // nqp::getcomp("Raku").language_revision) lt 'e' 
+                    ?? &code_obj.name 
+                    !! Nil;
+
+            sub applier($expr) {
+                if $expr.defined() {
+                    if nqp::istype($expr,Str) {
+                        self.add_delegator_method($pkg, $expr, $expr);
+                    }
+                    elsif nqp::istype($expr,Pair) {
+                        self.add_delegator_method($pkg, $expr.key, $expr.value);
+                    }
+                    elsif nqp::istype($expr,Positional) {
+                        for $expr.list {
+                            applier($_);
+                        }
+                        0;
+                    }
+                    elsif nqp::istype($expr, Whatever) {
+                        $pkg.^add_fallback(
+                            -> $obj, $name {
+                                nqp::can(nqp::decont(&code_obj($obj)), nqp::decont($name))
+                            },
+                            -> $obj, $name { self!fallback-code($name) } );
+                    }
+                    elsif nqp::istype($expr, HyperWhatever) {
+                        $pkg.^add_fallback(
+                            -> $, $ --> True { },
+                            -> $obj, $name { self!fallback-code($name) } );
+                    }
+                    else {
+                        $pkg.^add_fallback(
+                            -> $obj, $name {
+                                ?($name ~~ $expr)
+                            },
+                            -> $obj, $name { self!fallback-code($name) } );
+                    }
+                }
+                else {
+                    $pkg.^add_fallback(
+                        -> $obj, $name {
+                            nqp::can(nqp::decont($expr), nqp::decont($name))
+                        },
+                        -> $obj, $name { self!fallback-code($name) } );
+                }
+            }
+
+            applier($!handles);
+        }
     }
-    0;
+    $m.set_handles(&thunk());
 }
 
 proto sub trait_mod:<will>(Mu $, |) {*}

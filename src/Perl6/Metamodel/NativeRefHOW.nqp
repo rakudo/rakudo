@@ -14,7 +14,7 @@ class Perl6::Metamodel::NativeRefHOW
     has $!repr_composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
-    method archetypes() {
+    method archetypes($obj?) {
         $archetypes
     }
 

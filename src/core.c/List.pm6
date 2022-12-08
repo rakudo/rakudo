@@ -468,7 +468,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ($!todo := nqp::null),
                 nqp::elems($!reified)
               ),
-              self.fail-iterator-cannot-be-lazy('.elems')
+              self.fail-iterator-cannot-be-lazy('.elems',"")
             )
           ),
           nqp::isconcrete($!reified) && nqp::elems($!reified),
@@ -644,7 +644,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
     }
-    method iterator(List:D: --> Iterator:D) {
+    multi method iterator(List:D: --> Iterator:D) {
         nqp::isconcrete($!todo)
           ?? Todo.new(self)               # something to iterate in the future
           !! nqp::isconcrete($!reified)   # everything we need is already there

@@ -206,7 +206,7 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method contains(|) {*}
     multi method contains(List:D: Cool:D \needle) {  # Warn about newbie trap
-        self!list-as-string('needle (elem) list');
+        self!list-as-string('$item (elem) @list');
         self.Str.contains: needle.Str, |%_
     }
     multi method contains(Cool:D:

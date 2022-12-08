@@ -104,7 +104,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 }
             }
             else {
-                # Not containerizied, so identity shall do,
+                # Not containerized, so identity shall do.
                 # Unless it is null, then we map it to Mu.
                 if nqp::isnull($rv) {
                     nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
@@ -170,7 +170,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
         my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes.coercive {
+            if nqp::how_nd($type).archetypes($type).coercive {
                 $value := nqp::dispatch('raku-coercion', $type, $value);
             }
             nqp::bindattr($cont, Scalar, '$!value', $value);
@@ -196,7 +196,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor');
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes.coercive {
+            if nqp::how_nd($type).archetypes($type).coercive {
                 $value := nqp::dispatch('raku-coercion', $type, $value);
             }
             nqp::bindattr($cont, Scalar, '$!value', $value);
@@ -225,7 +225,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
             '$!next-descriptor');
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes.coercive {
+            if nqp::how_nd($type).archetypes($type).coercive {
                 $value := nqp::dispatch('raku-coercion', $type, $value);
             }
             nqp::bindattr($cont, Scalar, '$!value', $value);
@@ -476,12 +476,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-is-attr-inited', -> $
                 $track-attr, $base, '$!descriptor');
         }
 
-        # If we managed to track a descriptor, when we have a container to
+        # If we managed to track a descriptor, then we have a container to
         # see if was uninitialized. The attribute tracking above will have
         # established type/concreteness guards on the attribute, so don't
         # repeat them.
         if $track-desc {
-            # Guard on the descriptor type, then outcome depends on if if
+            # Guard on the descriptor type, then outcome depends on if
             # it's an uninitialized attribute descriptor. If it is, then
             # for arrays and hashes we also need an extra check.
             nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-desc);
@@ -556,48 +556,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
     }
 });
 
-# Coercion dispatcher. The first argument is the value to coerce, the second
-# is what to coerce it into.
-{
-    sub coercion_error($from_name, $to_name) {
-        nqp::die("Unable to coerce the from $from_name to $to_name; " ~
-            "no coercion method defined");
-    }
-
-    nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-coerce', -> $capture {
-        my $to_coerce := nqp::captureposarg($capture, 0);
-        my $coerce_type := nqp::captureposarg($capture, 1);
-
-        # See if there is a method named for the type.
-        my str $to_name := nqp::how_nd($coerce_type).name($coerce_type);
-        my $coerce_method := nqp::decont(nqp::how_nd($to_coerce).find_method($to_coerce, $to_name));
-        if nqp::isconcrete($coerce_method) {
-            # Delegate to the resolved method call dispatcher. We need to drop
-            # the arg of the coercion type, then insert three args:
-            # 1. The method we resolved to.
-            # 2. The type object of the coercion type (used in deferral)
-            # 3. The name of the method (used in deferral)
-            my $without_coerce_type := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                    $capture, 1);
-            my $meth_capture := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg-literal-obj',
-                nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-obj',
-                    nqp::dispatch('boot-syscall',
-                        'dispatcher-insert-arg-literal-str',
-                        $without_coerce_type,
-                        0, $to_name),
-                    0, nqp::what(to_coerce)),
-                0, $coerce_method);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate',
-                    'raku-meth-call-resolved', $meth_capture);
-        }
-        else {
-            coercion_error(nqp::how_nd($to_coerce).name($to_coerce), $to_name);
-        }
-    });
-}
-
 # A standard call (such as `func($arg)`, `$obj($arg)`, etc.) It receives the
 # decontainerized callee as the first argument, followed by the arguments. Its
 # primary purpose is to deal with multi dispatch vs. single dispatch and then
@@ -650,7 +608,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
 
 # A standard method call of the form $obj.meth($arg); also used for the
 # indirect form $obj."$name"($arg). It receives the decontainerized invocant,
-# the method name, and the the args (starting with the invocant including any
+# the method name, and the args (starting with the invocant including any
 # container).
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $capture {
     # See if this callsite is heading megamorphic due to loads of different
@@ -961,7 +919,7 @@ my class Exhausted {};
 # Thus, a callwith in the case there is an active wrap, multi, and method
 # dispatch, ends up with all the previous resumable dispatchers for these
 # marked as exhausted, and new ones created, with the updated arguments.
-# One all of these updated dispatchers are in place, then finally the next
+# Once all of these updated dispatchers are in place, then finally the next
 # candidate of the innermost dispatch is invoked.
 sub nil-or-callwith-propagation-terminal($capture) {
     unless nqp::dispatch('boot-syscall', 'dispatcher-next-resumption', $capture) {
@@ -1410,7 +1368,7 @@ sub simple-args-proto($callee, $capture) {
     return nqp::capturehasnameds($capture) ?? $accepts-any-named !! 1;
 }
 
-# We we invoke a multi with an argument that is a Proxy (or some other non-Scalar
+# If we invoke a multi with an argument that is a Proxy (or some other non-Scalar
 # container), we need to read the value(s) from the Proxy argument(s) and then go
 # on with the dispatch. The ProxyReaderFactory produces code objects that do
 # that. We key it on total positional arguments, whether there are nameds to
@@ -1445,7 +1403,7 @@ class ProxyReaderFactory {
     }
 
     method !produce-reader($num-args, $has-nameds, $indices) {
-        # Create a block taking each positional arg required, adding an
+        # Create a block taking each positional arg required, adding a
         # slurpy named if needed.
         my $block := QAST::Block.new(:is_thunk);
         my int $i := 0;
@@ -1630,7 +1588,7 @@ sub has-named-args-mismatch($capture, %info) {
 
     # If we don't accept all nameds, then check there are acceptable nameds.
     if $nameds-list && !%info<allows_all_names> {
-        # Check exit if there are no allowed nameds.
+        # Quick exit if there are no allowed nameds.
         my $allowed-names := %info<allowed_names>;
         return 1 unless $allowed-names;
 
@@ -1734,7 +1692,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                     if $got_prim == 0 && $want_prim == 0 {
                         # For a type that's exactly Mu we do not need a type
                         # guard, however if it's got a definedness constraint
-                        # we do, since we might then wrongly accepted a Scalar
+                        # we do, since we might then wrongly accept a Scalar
                         # container that meets the definedness property.
                         if $definedness || !$is-mu {
                             nqp::bindpos_i($need_type_guard, $i, 1);
@@ -2136,7 +2094,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
         else {
             # It's a non-trivial multi dispatch. Prefix the capture with
             # the dispatch plan, and also a DISP_NONE to indicate this
-            # is not a resumption of any kind. The delegate to the
+            # is not a resumption of any kind. Then delegate to the
             # non-trivial multi dispatcher.
             my $capture-with-plan := nqp::dispatch('boot-syscall',
                 'dispatcher-insert-arg-literal-obj', $capture, 0,
@@ -2549,7 +2507,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-remove-proxies'
                     $track_callee, Routine, '@!dispatchees'));
 
             # We now make the dispatch plan using the arguments with proxies
-            # removed, put pass along the original arg capture to, for use
+            # removed, put pass along the original arg capture too, for use
             # in `rw`-ness testing.
             my $no-proxy-arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
                 $capture, 0);
@@ -2610,7 +2568,7 @@ my $listy-coercion := -> $coercion-type, *@args {
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture {
     # Guard type and concreteness of code object, unless it is a literal one
     # (and also determine if it's a literal, as we can avoid some things in
-    # that case);
+    # that case).
     my $code := nqp::captureposarg($capture, 0);
     my int $code-constant := nqp::dispatch('boot-syscall', 'dispatcher-is-arg-literal',
         $capture, 0);
@@ -3268,7 +3226,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         elsif nqp::istype($routine, Code) {
             return nqp::istrue($routine.file.starts-with('SETTING::'));
         }
-        # Non-Raku code objects are considered coming from the setting
+        # Non-Raku code objects are considered coming from the setting.
         1
     }
 
@@ -3326,7 +3284,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             $explicit-call := 1;
         }
         if $explicit-call {
-            # There is no need to guard for type when fallback to method call
+            # There is no need to guard for type when fallback to method call.
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
                 nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0, nqp::what($arg)),
@@ -3414,7 +3372,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 $explicit-accepts := 0;
             }
             elsif nqp::isconcrete_nd($rhs) && nqp::istype_nd($rhs, List) {
-                # A list must be reified in order to fire up any code embedded into regexes
+                # A list must be reified in order to fire up any code embedded into regexes.
                 # nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-boolification);
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-rhs);
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
@@ -3513,19 +3471,19 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 }
             }
             elsif is-method-setting-only($rhs, 'ACCEPTS', :U) { # Non-concrete RHS
-                # A typeobject on RHS with default ACCEPTS can be reduced to nqp::istype, unless LHS is a concrete Junction
+                # A typeobject on RHS with default ACCEPTS can be reduced to nqp::istype, unless LHS is a concrete Junction.
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-rhs);
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
                 my $rhs-how := $rhs.HOW;
                 my $can-archetypes := nqp::can($rhs-how, 'archetypes');
 
                 if !$can-archetypes
-                    || !$rhs-how.archetypes.nominalizable
+                    || !$rhs-how.archetypes($rhs).nominalizable
                     || nqp::isnull($rhs-how.wrappee-lookup($rhs, :subset))
                 {
                     nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-lhs);
-                    if $can-archetypes && $rhs-how.archetypes.definite {
-                        # If RHS is a definite then concreteness of LHS must be considered
+                    if $can-archetypes && $rhs-how.archetypes($rhs).definite {
+                        # If RHS is a definite then concreteness of LHS must be considered.
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-lhs);
                     }
 
@@ -3555,9 +3513,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-rhs);
             nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-rhs);
             if $boolification == 0 || (nqp::isconcrete_nd($rhs) && $boolification > -1 && nqp::istype_nd($rhs, Regex)) {
-                # Do not boolify over a Regex RHS
+                # Do not boolify over a Regex RHS.
 
-                # First, drop everything except for LHS
+                # First, drop everything except for LHS.
                 my $method-capture :=
                         nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2); # boolification flag
                 $method-capture :=
@@ -3566,7 +3524,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                         nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1)); # Move RHS to the start
                 $method-capture :=
                     nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $method-capture, 2); # Old RHS
-                # Then prepare for raku-meth-call: deconted RHS, method name, RHS, LHS
+                # Then prepare for raku-meth-call: deconted RHS, method name, RHS, LHS.
                 $method-capture :=
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         $method-capture, 0, nqp::what($rhs));
@@ -3637,6 +3595,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         nqp::how($coercion)."!coerce_TargetType"($coercion, $value)
     });
 
+    my $coerce-via-container := nqp::getstaticcode(-> $coercion, $value {
+        nqp::dispatch('raku-coercion', $coercion, nqp::decont($value))
+    });
+
     sub select-coercer($coercion, $value, :$with-runtime = 0) {
         my $target_type := nqp::how($coercion).target_type($coercion);
         my $constraint_type := nqp::how($coercion).constraint_type($coercion);
@@ -3661,7 +3623,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
 
         # Make sure none of the coercion method candidates uses run-time constraints.
         my sub method-is-optimizable($method) {
-            # Can do no assumptions about a non-Routine
+            # Can do no assumptions about a non-Routine.
             return 0 unless nqp::istype($method, Routine);
             my @cands := $method.is_dispatcher
                             ?? nqp::getattr($method, Routine, '@!dispatchees')
@@ -3669,14 +3631,14 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             for @cands -> $cand {
                 my $signature := nqp::decont($cand.signature);
 
-                # Skip the candidate if it has to few positionals or requires too many of them.
+                # Skip the candidate if it has too few positionals or requires too many of them.
                 next if nqp::islt_n(nqp::decont($signature.count), 2) 
                         || nqp::isgt_n(nqp::decont($signature.arity), 2);
 
                 my $vparam := nqp::atpos(nqp::getattr($cand.signature, Signature, '@!params'), 1);
                 my $ptype := $vparam.type;
-                my $ptypeHOW := nqp::how($vparam.type);
-                return 0 if $ptypeHOW.archetypes.nominalizable 
+                my $ptypeHOW := nqp::how($ptype);
+                return 0 if $ptypeHOW.archetypes($ptype).nominalizable 
                             && !nqp::isnull(my $subset := $ptypeHOW.wrappee-lookup($ptype, :subset))
                             && nqp::isconcrete(nqp::how($subset).refinement($subset));
                 # XXX Retreat on any parameter postconstraint present. Some refinement is possible here, but to be
@@ -3688,7 +3650,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         }
 
         if $with-runtime
-            && nqp::can((my $archetypes := nqp::how($constraint_type).archetypes), 'coercive') 
+            && nqp::can((my $archetypes := nqp::how($constraint_type).archetypes($constraint_type)), 'coercive') 
             && $archetypes.coercive
         {
             $coercer := $coerce-runtime;
@@ -3696,20 +3658,20 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         elsif nqp::defined(
             $method := nqp::tryfindmethod(
                 nqp::what($value), 
-                nqp::how($nominal_target).name($nominal_target)))
+                nqp::how_nd($nominal_target).name($nominal_target)))
             && method-cando($method, $value)
         {
-            # There is .TargetType method on the value, use it
+            # There is .TargetType method on the value, use it.
             $coercer := $coerce-by-type-method;
         }
         elsif nqp::defined($method := nqp::tryfindmethod(
-                    (nqp::how($nominal_target).archetypes.composable
-                        ?? ($nominal_target := nqp::how($nominal_target).pun($nominal_target))
+                    (nqp::how_nd($nominal_target).archetypes.composable
+                        ?? ($nominal_target := nqp::how_nd($nominal_target).pun($nominal_target))
                         !! $nominal_target),
                     'COERCE'))
                 && method-cando($method, $nominal_target, $value)
         {
-            # The target type can .COERCE
+            # The target type can .COERCE.
             if method-is-optimizable($method) {
                 $coercer := $coerce-indirect-method 
             }
@@ -3718,7 +3680,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 && (my @cands := method-cando($method, $nominal_target, $value))
         {
             if method-is-optimizable($method) {
-                # We can TargetType.new($value)
+                # We can TargetType.new($value).
                 if +@cands == 1 {
                     if nqp::eqaddr(@cands[0].package, Mu) {
                         # The only .new candidate for a single positional arg call comes from Mu. That one throws
@@ -3739,7 +3701,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             $coercer := $coerce-runtime;
         }
 
-        nqp::list($coercer, $method)
+        nqp::list($coercer, $method, $nominal_target)
     }
 
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-coercion', -> $capture {
@@ -3788,13 +3750,21 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call', $method-capture);
         }
 
-        if nqp::istype_nd($value, $target_type) {
-            # Just matches, use identity
+        if nqp::iscont($value) {
+            # If despite our efforts the value is still a container then try deconting it first and then re-dispatch.
+            my $code-capture :=
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj', $capture, 1, $value),
+                    0, $coerce-via-container);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant', $code-capture);
+        }
+        elsif nqp::istype_nd($value, $target_type) {
+            # Just matches, use identity.
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', 
                 nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0));
         }
         elsif !nqp::eqaddr($constraint, Mu) && !nqp::istype_nd($value, $constraint) {
-            # The value doesn't match constraint type, throw
+            # The value doesn't match constraint type, throw.
             my $method-capture :=
                 nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
@@ -3805,7 +3775,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                     0, $coercionHOW);
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call', $method-capture);
         }
-        elsif nqp::can((my $archetypes := $constraintHOW.archetypes), 'coercive') 
+        elsif nqp::can((my $archetypes := $constraintHOW.archetypes($constraint)), 'coercive') 
             && $archetypes.coercive 
         { 
             # The constraint type is a coercion on its own. This is not a dispatchable case. Fallback to the metamodel
@@ -3818,11 +3788,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             my @cdesc := select-coercer($coercion, $value);
             my $coercer := @cdesc[0]; # Code object to do the coercion
             my $method := @cdesc[1];
-            my $use-runtime := @cdesc[2];
-            my $nominal_target := $coercionHOW.nominal_target($coercion);
+            my $nominal_target := @cdesc[2];
 
             if nqp::isconcrete($coercer) {
-                # We found an acceptable coercer, use it
+                # We found an acceptable coercer, use it.
                 my $code-capture :=
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
@@ -3835,7 +3804,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant', $code-capture);
             }
             elsif nqp::isconcrete($method) {
-                # We found a method but cannot reliably assume that it can be optimized. Let the run-time to handle it.
+                # We found a method but cannot reliably assume that it can be optimized. Let the run-time handle it.
                 runtime-fallback();
             }
             else {
@@ -3887,29 +3856,33 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             !! return_error($ret, $type)
     }
 
-    my $check_type_typeobj_coerce := -> $ret, $type, $coercion, $coercer, $method {
+    # For @cdesc values see select-coercer sub.
+    my $check_type_typeobj_coerce := -> $ret, $type, $coercion, @cdesc {
         !nqp::isconcrete($ret) && nqp::istype($ret, $type)
-            ?? $coercer(
-                $coercion, $ret, $method, 
-                nqp::how($coercion).nominal_target($coercion), 
+            ?? @cdesc[0]( # coercer code
+                $coercion, $ret, 
+                @cdesc[1], # coercing method
+                @cdesc[2], # nominal target
                 nqp::how($coercion).target_type($coercion))
             !! return_error($ret, $type)
     }
 
-    my $check_type_concrete_coerce := -> $ret, $type, $coercion, $coercer, $method {
+    my $check_type_concrete_coerce := -> $ret, $type, $coercion, @cdesc {
         nqp::isconcrete($ret) && nqp::istype($ret, $type)
-            ?? $coercer(
-                $coercion, $ret, $method, 
-                nqp::how($coercion).nominal_target($coercion), 
+            ?? @cdesc[0](
+                $coercion, $ret, 
+                @cdesc[1],
+                @cdesc[2],
                 nqp::how($coercion).target_type($coercion))
             !! return_error($ret, $type)
     }
 
-    my $check_type_coerce := -> $ret, $type, $coercion, $coercer, $method {
+    my $check_type_coerce := -> $ret, $type, $coercion, @cdesc {
         nqp::istype($ret, $type)
-            ?? $coercer(
-                $coercion, $ret, $method, 
-                nqp::how($coercion).nominal_target($coercion), 
+            ?? @cdesc[0](
+                $coercion, $ret, 
+                @cdesc[1],
+                @cdesc[2],
                 nqp::how($coercion).target_type($coercion))
             !! return_error($ret, $type)
     }
@@ -3918,8 +3891,21 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         # Dispatcher arguments:
         # - return value
         # - type
+        # - "is generic" flag
         # If the type is Mu or unset, then nothing is needed except identity.
         my $type := nqp::captureposarg($capture, 1);
+        my $is_generic := nqp::captureposarg_i($capture, 2);
+
+        # If the type has been instantiated from a generic then we'd need to track over it too.
+        if $is_generic {
+            my $track-ret-type := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-ret-type);
+        }
+
+        # We will never need the $is_generic argument, but otherwise the capture is used to call checker subs where the
+        # third argument is not anticipated.
+        $capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2);
+
         if nqp::isnull($type) || $type =:= Mu {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
                 nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1))
@@ -3930,7 +3916,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             my sub runtime-only($t) {
                 return 0 if nqp::isnull($t);
                 nqp::isconcrete(nqp::how_nd($t).refinement($t)) 
-                    || nqp::how_nd(my $refinee := nqp::how_nd($t).refinee($t)).archetypes.nominalizable
+                    || nqp::how_nd(my $refinee := nqp::how_nd($t).refinee($t)).archetypes($refinee).nominalizable
                         && runtime-only(nqp::how_nd($refinee).wrappee-lookup($refinee, :subset))
             }
 
@@ -3940,16 +3926,16 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             my $coercion-type;
             my $constraint-type := nqp::null();
             my $runtime-check := 0; # Is there a run-time constraint?
-            if $how.archetypes.nominalizable {
+            if $how.archetypes($type).nominalizable {
                 $runtime-check := runtime-only($how.wrappee-lookup($type, :subset));
                 unless nqp::isnull($coercion-type := $how.wrappee-lookup($type, :coercion)) {
                     unless nqp::isnull($constraint-type := nqp::how_nd($coercion-type).constraint_type($coercion-type)) {
                         $runtime-check := $runtime-check 
-                            || (nqp::how_nd($constraint-type).archetypes.nominalizable
+                            || (nqp::how_nd($constraint-type).archetypes($constraint-type).nominalizable
                                 && runtime-only(nqp::how_nd($constraint-type).wrappee-lookup($constraint-type, :subset)));
                     }
                 }
-                if $how.archetypes.definite {
+                if $how.archetypes($type).definite {
                     my $dtype := $how.wrappee($type, :definite);
                     $definite-check := nqp::how_nd($dtype).definite($dtype);
                 }
@@ -3968,7 +3954,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-value)
                 if $definite-check != -1;
 
-            my $need-coercion := $how.archetypes.coercive 
+            my $need-coercion := $how.archetypes($type).coercive 
                                     && !nqp::istype($rv, 
                                         nqp::how_nd($coercion-type).target_type($coercion-type));
             my $is-Nil := nqp::istype($rv, Nil);
@@ -3988,13 +3974,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                         nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1));
                 }
                 else {
-                    # Not passing the definedness check
+                    # Not passing the definedness check.
                     nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code', 
                         nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0, &return_error));
                 }
             }
             elsif $runtime-check && !$need-coercion {
-                # The case of subset with run-time constraints, no coercion
+                # The case of subset with run-time constraints, no coercion.
                 my $checker := 
                     $definite-check == 0
                         ?? $check_type_typeobj
@@ -4008,7 +3994,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 # Coercion only. Make sure we can coerce by matching the constraint type and then dispatch directly to
                 # the coercion dispatcher.
                 if nqp::eqaddr($constraint-type, Mu) || nqp::istype($rv, $constraint-type) {
-                    # Coercion dispatcher uses reverse order of arguments, same as the metamodel method `coerce`
+                    # Coercion dispatcher uses reverse order of arguments, same as the metamodel method `coerce`.
                     my $coercion-capture :=
                         nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                             nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1),
@@ -4023,9 +4009,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
             }
             else {
                 # The most expensive path: subset with constraints and coercion.
-                # First, we re-consider defininite check because now we going to use coercion constraint for that.
+                # First, we re-consider defininite check because now we're going to use coercion constraint for that.
                 $definite-check := 
-                    nqp::how_nd($constraint-type).archetypes.definite
+                    nqp::how_nd($constraint-type).archetypes($constraint-type).definite
                         ?? nqp::how_nd(
                                 my $dt := nqp::how_nd($constraint-type).wrappee($constraint-type, :definite)
                             ).definite($dt)
@@ -4040,11 +4026,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
                 my $checker-capture :=
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture,
-                                    2, $coercion-type),
-                                3, @cdesc[0]), # coercer code
-                            4, @cdesc[1]), # coercion method object
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture,
+                                2, $coercion-type),
+                            3, @cdesc), # coercer code
                         0, $checker);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant', $checker-capture);
             }

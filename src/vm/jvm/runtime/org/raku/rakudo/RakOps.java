@@ -347,6 +347,8 @@ public final class RakOps {
         return cont;
     }
 
+    private static final CallSiteDescriptor genIns = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor rvThrower = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     public static SixModelObject p6typecheckrv(SixModelObject rv, SixModelObject routine, SixModelObject bypassType, ThreadContext tc) {
@@ -354,6 +356,25 @@ public final class RakOps {
         SixModelObject sig = routine.get_attribute_boxed(tc, gcx.Code, "$!signature", HINT_CODE_SIG);
         SixModelObject rtype = sig.get_attribute_boxed(tc, gcx.Signature, "$!returns", HINT_SIG_RETURNS);
         if (rtype != null) {
+            /* The return type could be generic. In that case we have
+             * to call instantiate_generic before doing the type check. */
+            SixModelObject HOW = rtype.st.HOW;
+            SixModelObject archetypesMeth = Ops.findmethod(HOW, "archetypes", tc);
+            Ops.invokeDirect(tc, archetypesMeth, Ops.invocantCallSite, new Object[] { HOW, rtype });
+            SixModelObject Archetypes = Ops.result_o(tc.curFrame);
+            SixModelObject genericMeth = Ops.findmethodNonFatal(Archetypes, "generic", tc);
+            if (genericMeth != null) {
+                Ops.invokeDirect(tc, genericMeth, Ops.invocantCallSite, new Object[] { Archetypes });
+                if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 1) {
+                    SixModelObject ig = Ops.findmethod(HOW, "instantiate_generic", tc);
+                    SixModelObject ContextRef = tc.gc.ContextRef;
+                    SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
+                    ((ContextRefInstance)cc).context = tc.curFrame;
+                    Ops.invokeDirect(tc, ig, genIns, new Object[] { HOW, rtype, cc });
+                    rtype = Ops.result_o(tc.curFrame);
+                }
+            }
+
             SixModelObject decontValue = Ops.decont(rv, tc);
             if (Ops.istype(decontValue, rtype, tc) == 0) {
                 /* Straight type check failed, but it's possible we're returning

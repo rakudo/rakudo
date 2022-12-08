@@ -14,7 +14,7 @@ role Perl6::Metamodel::MethodContainer {
     has %!cache;
 
     # Add a method.
-    method add_method($obj, $name, $code_obj) {
+    method add_method($obj, $name, $code_obj, :$handles = 1) {
         # Ensure we haven't already got it.
         $code_obj := nqp::decont($code_obj);
         $name := nqp::decont_s($name);
@@ -43,6 +43,23 @@ role Perl6::Metamodel::MethodContainer {
         }
         else {
             %!methods{$name} := $code_obj;
+        }
+
+        # See if trait `handles` has been applied and we can use it on the target type.
+        # XXX Also skip this step if method is being added under a different name but the original code object has been
+        # installed earlier. This step is here until Method::Also incorporates support for :!handles argument.
+        if $handles
+            && nqp::can($code_obj, 'apply_handles') 
+            && nqp::can($obj.HOW, 'find_method_fallback') 
+        {
+            my $do_apply := 1;
+            for @!method_order {
+                if $_ =:= $code_obj {
+                    $do_apply := 0;
+                    last
+                }
+            }
+            $code_obj.apply_handles($obj) if $do_apply;
         }
 
         # Adding a method means any cache is no longer authoritative.

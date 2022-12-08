@@ -8,7 +8,7 @@ use lib $?FILE.IO.parent(2).add('packages');
 use Test;
 use Test::Helpers;
 
-subtest "Bisection" => {
+subtest "Locations" => {
     my $origins;
     my $target = q:to/ORIG/;
 my $line = 1;
@@ -111,11 +111,15 @@ ORIG
 
 subtest "Backtrace with line directive" => {
     temp %*ENV<RAKUDO_RAKUAST> = 1;
-    todo "backtrace is not ready yet";
-    is-run q:to/SCRIPT/, "die after a line directive", :out(''), :err('');
+    is-run q:to/SCRIPT/,
                 say "ok yet";
                 sub bad { die "and here we die..." }
                 #line 10 "test.raku"
+                # Intentionally skip a line of code
                 bad();
                 SCRIPT
+        "die after a line directive",
+        :exitcode(1),
+        :out("ok yet\n"),
+        :err("and here we die...\n  in sub bad at -e line 2\n  in block <unit> at \"test.raku\" line 11\n\n");
 }

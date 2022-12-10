@@ -21,6 +21,9 @@ augment class Any {
         snitch-on SELF;
         SELF
     }
+
+    proto method decont(|) {*}
+    multi method decont(Any:) { self }
 }
 
 proto sub rotor(|) {*}
@@ -45,5 +48,8 @@ multi sub snitch(&snitch-on, \SELF) is raw {
     snitch-on SELF;
     SELF
 }
+
+proto sub decont(|) {*}
+multi sub decont($value) { $value.decont }
 
 # vim: expandtab shiftwidth=4

@@ -19,10 +19,10 @@ my @lower = ("",<<
   atomic-fetch-inc atomic-fetch-sub atomic-inc-fetch atomic-sub-fetch
   await bag cache callframe callsame callwith cas categorize ceiling
   chars chdir chmod chomp chop chown chr chrs cis classify close comb
-  combinations copy cos cosec cosech cosh cotan cotanh deepmap defined
-  die dir done duckmap elems emit end exit exp expmod fail fc first
-  flat flip floor full-barrier get getc gist goto grep hash head index
-  indices indir is-prime item join keys kv last lastcall lc leave
+  combinations copy cos cosec cosech cosh cotan cotanh decont deepmap
+  defined die dir done duckmap elems emit end exit exp expmod fail fc
+  first flat flip floor full-barrier get getc gist goto grep hash head
+  index indices indir is-prime item join keys kv last lastcall lc leave
   lines link list log log10 log2 lsb make map max min minmax mix
   mkdir move msb next nextcallee nextsame nextwith nodemap none
   not note one open ord ords pair pairs parse-base parse-names

@@ -139,6 +139,7 @@ my %allowed = (
     Q{&cotanh},
     Q{&cross},
     Q{&dd},
+    Q{&decont},
     Q{&deepmap},
     Q{&defined},
     Q{&die},

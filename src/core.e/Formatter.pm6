@@ -249,7 +249,7 @@ class Formatter {
 
             # handle any prefixes
             my int $minus;
-            if has_hash($/) {
+            if $hash && has_hash($/) {
                 if $hash eq '0' {
                     # prefix-zero($ast)
                     $ast = ast-call-sub('prefix-zero', $ast);
@@ -550,7 +550,7 @@ class Formatter {
         my $value := $arg.Int;
 
         # number of args matches, check type
-        nqp::isle_I($value,0)
+        nqp::islt_I($value,0)
           ?? throw-type("u", "UInt", $arg.^name, $value)
           !! $value.Str
         }

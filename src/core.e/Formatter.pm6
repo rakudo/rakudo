@@ -227,7 +227,7 @@ class Formatter {
             my $precision = precision($/);
 
             if !$precision && $size {
-                if has_zero($/) {
+                if has_zero($/) && !has_minus($/) {
                     $precision = $size;
                     $size = Nil;
                 }
@@ -241,7 +241,9 @@ class Formatter {
 
             # $ast.(Str || .base($base))
             $ast = $base == 10
-              ?? ast-call-method($ast, 'Str')
+              ?? !$precision && $<precision><size>
+                ?? ast-call-sub('zero-stringifies-empty', $ast)
+                !! ast-call-method($ast, 'Str')
               !! ast-call-method($ast, 'base', literal-integer($base));
 
             # $ast.lc
@@ -573,6 +575,11 @@ class Formatter {
               ?? $string
               !! nqp::concat('-0',nqp::substr($string,1))
             !! nqp::concat('0',$string)
+    }
+
+    # RUNTIME stringify 0 to empty string
+    sub zero-stringifies-empty(Int:D $value) {
+        $value ?? $value.Str !! ""
     }
 
     # RUNTIME prefix plus if value is not negative

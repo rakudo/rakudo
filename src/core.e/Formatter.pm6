@@ -8,11 +8,6 @@
 # Actions class, which will create the RakuAST nodes for it and store the
 # Callable in the hash and then run that Callable.
 #
-# At about 100 times calling the sprintf with the same format, this code
-# is faster than the sprintf handling of nqp (as that runs the grammar
-# **every time** sprintf is called).  At about 10K times calling the same
-# format, it is about 10x as fast as the nqp equivalent.
-#
 # TODO:
 # - generate code that uses native ops and variables where possible
 
@@ -473,20 +468,34 @@ class Formatter {
         }
     }
 
+    # RUNTIME: wrong number of args thrower
+    sub throw-count(
+      int $args-have,
+      int $args-used
+    ) is hidden-from-backtrace {
+        X::Str::Sprintf::Directives::Count.new(
+          :$args-have, :$args-used
+        ).throw;
+    }
+
+    # RUNTIME: wrong type of arg thrower
+    sub throw-type(
+      str $directive, str $expected, $type, $value
+    ) is hidden-from-backtrace {
+        X::Str::Sprintf::Directives::BadType.new(
+          :$directive, :$expected, :$type, :$value
+        ).throw
+    }
+
     # RUNTIME number of arguments checker
     sub check-args(@args, @directives--> Nil) {
         my $args       := nqp::getattr(@args,List,'$!reified');
         my $directives := nqp::getattr(@directives,List,'$!reified');
-          nqp::elems(nqp::getattr(@directives,List,'$!reified'));
 
         # number of args doesn't match
-        if nqp::isne_i(nqp::elems($args),nqp::elems($directives)) {
-            Failure.new(
-              X::Str::Sprintf::Directives::Count.new(
-                args-have => nqp::elems($args),
-                args-used => nqp::elems($directives)
-              )
-            )
+        if nqp::not_i(nqp::isconcrete($args))
+          || nqp::isne_i(nqp::elems($args),nqp::elems($directives)) {
+            throw-count(nqp::elems($args), nqp::elems($directives))
         }
 
         # check types
@@ -496,13 +505,11 @@ class Formatter {
               nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($args)),
               nqp::unless(
                 Cool.ACCEPTS(nqp::atpos($args,$i)),
-                return Failure.new(
-                  X::Str::Sprintf::Directives::BadType.new(
-                    directive => nqp::atpos($directives,$_),
-                    expected  => "Cool",
-                    type      => nqp::atpos($args,$_).^name,
-                    value     => nqp::atpos($args,$_)
-                  )
+                throw-type(
+                  nqp::atpos($directives,$_),
+                  "Cool",
+                  nqp::atpos($args,$_).^name,
+                  nqp::atpos($args,$_)
                 )
               )
             );
@@ -510,39 +517,32 @@ class Formatter {
     }
 
     # RUNTIME number of arguments checker for single expected argument
-    sub check-one-arg(@args, str $directive --> Nil) {
+    sub check-one-arg(@args, Str:D $directive --> Nil) {
         my $args := nqp::getattr(@args,List,'$!reified');
 
         # number of args matches, check type
-        if nqp::iseq_i(nqp::elems($args),1) {
-            Failure.new(
-              X::Str::Sprintf::Directives::BadType.new(
-                directive => $directive,
-                expected  => "Cool",
-                type      => nqp::atpos($args,0).^name,
-                value     => nqp::atpos($args,0)
-              )
+        if nqp::isconcrete($args) && nqp::iseq_i(nqp::elems($args),1) {
+            throw-type(
+              $directive,
+              "Cool",
+              nqp::atpos($args,0).^name,
+              nqp::atpos($args,0)
             ) unless Cool.ACCEPTS(nqp::atpos($args,0))
         }
         # number of args doesn't match
         else {
-            Failure.new(
-              X::Str::Sprintf::Directives::Count.new(
-                :args-have(nqp::elems($args)), :args-used(1)
-              )
+            throw-count(
+              nqp::isconcrete($args) ?? nqp::elems($args) !! 0,
+              1
             )
         }
     }
 
     # RUNTIME number of arguments checker for NO expected argument
     sub check-no-arg(@args --> Nil) {
-        if nqp::elems(nqp::getattr(@args,List,'$reified')) -> int $elems {
-            Failure.new(
-              X::Str::Sprintf::Directives::Count.new(
-                :args-have($elems), :args-used(0)
-              )
-            )
-        }
+        my $args := nqp::getattr(@args,List,'$!reified');
+        throw-count(nqp::elems($args), 0)
+          if nqp::isconcrete($args) && nqp::elems($args);
     }
 
     # RUNTIME check if value is positive integer and stringify
@@ -551,14 +551,7 @@ class Formatter {
 
         # number of args matches, check type
         nqp::isle_I($value,0)
-          ?? Failure.new(
-               X::Str::Sprintf::Directives::BadType.new(
-                 directive => "u",
-                 expected  => "UInt",
-                 type      => $arg.^name,
-                 value     => $value
-               )
-             )
+          ?? throw-type("u", "UInt", $arg.^name, $value)
           !! $value.Str
         }
 
@@ -646,14 +639,11 @@ class Formatter {
     }
 
     # RUNTIME set up value for scientific notation
-#    proto sub scientify(|) {*}
-#    multi sub scientify($positions, Str:D $value --> Str:D) {
-#        scientify($positions, $value.Numeric)
-#    }
-#    multi sub scientify($positions, Cool:D $value --> Str:D) {
-    sub scientify($positions, Cool:D $value is copy) {
-        $value = $value.Numeric if $value ~~ Str;  # no multis in RakuAST yet
-
+    proto sub scientify(|) {*}
+    multi sub scientify($positions, Str:D $value --> Str:D) {
+        scientify($positions, $value.Numeric)
+    }
+    multi sub scientify($positions, Cool:D $value --> Str:D) {
         my int $exponent = $value.abs.log(10).floor;
         my int $abs-expo = $exponent.abs;
         pad-zeroes-precision(
@@ -686,8 +676,8 @@ class Formatter {
             !! $string
     }
 
-    # Create callable for given uncached format string
-    sub create-format($format --> Callable:D) {
+    # Return AST for given format
+    method AST(Str(Cool) $format) {
         my @*DIRECTIVES;          # the directives seen
         my $*NEXT-PARAMETER = 0;  # index of next parameter to be expected
 
@@ -787,46 +777,52 @@ class Formatter {
               ),
               body => RakuAST::Blockoid.new($ast)
             );
-
-note $ast.DEPARSE if %*ENV<RAKUDO_FORMATTER>;
-            EVAL($ast)
+            $ast
         }
         else {
             die "huh?"
         }
     }
 
+    # Return Callable for given format
+    method CODE(Str(Cool) $format --> Callable:D) { EVAL self.AST($format) }
+
     # actual workhorse for sprintf()
-    my $format-lock := Lock.new; # allow multiple threads to create formats
-    my $FORMATS := nqp::hash;    # where we keep our formats
+    my $FORMATS := nqp::hash;  # where we keep our formats
     method new(Str:D $format) {
-        $format-lock.protect: {
-            nqp::ifnull(
-              nqp::atkey($FORMATS,$format),
-              nqp::stmts(
-                nqp::if(
-                  nqp::iseq_i(nqp::elems($FORMATS),100),  # XXX  should be settable
-                  nqp::deletekey(
-                    $FORMATS,
-                    nqp::iterkey_s(nqp::shift(nqp::iterator($FORMATS)))
-                  )
-                ),
-                nqp::bindkey($FORMATS,$format,create-format($format))
-              )
-            )
-        }
+        nqp::ifnull(
+          nqp::atkey($FORMATS,$format),
+          self!fetch-new-format($format)
+        )
+    }
+
+    # Threadsafe cache updater, don't care about multiple threads trying
+    # to do the same format, but this way we don't have a lock if the
+    # same format is called *many* times over
+    method !fetch-new-format(Str:D $format) {
+        my $new := nqp::clone($FORMATS);
+
+        # remove the first key we encounter if max reached
+        nqp::deletekey($new,nqp::iterkey_s(nqp::shift(nqp::iterator($new))))
+          if nqp::isge_i(nqp::elems($new),100);  # XXX  should be settable
+
+        nqp::bindkey($new,$format,my $code := self.CODE($format));
+        $FORMATS := $new;
+        $code
     }
 }
 
 # the procedural frontend of sprintf functionality
-#proto sub sprintf($, |) {*}
-#multi sub sprintf(Str(Cool) $format, \value) {
-#    Formatter.new($format)(nqp::list(value))
-#}
-#multi sub sprintf(Str(Cool) $format, @args) {
-#    Formatter.new($format)(@args)
-#}
-#multi sub sprintf(Str(Cool) $format, *@args) {
-sub zprintf(Str(Cool) $format, *@args) {   # RakuAST doesn't do multis yet
+proto sub zprintf($, |) {*}
+multi sub zprintf(Str(Cool) $format, \value) {
+    Formatter.new($format)(nqp::list(value))
+}
+multi sub zprintf(Str(Cool) $format, @args) {
     Formatter.new($format)(@args)
+}
+multi sub zprintf(Str(Cool) $format, *@args) {
+    Formatter.new($format)(@args)
+}
+multi sub zprintf(&code, *@args) {
+    code(@args)
 }

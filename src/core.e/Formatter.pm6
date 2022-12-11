@@ -723,7 +723,7 @@ class Formatter {
                       name => RakuAST::Name.from-identifier('check-args'),
                       args => RakuAST::ArgList.new(
                         RakuAST::Var::Lexical.new('@args'),
-                        RakuAST::Statement::Expression.new($ast)
+                        RakuAST::Statement::Expression.new(:expression($ast))
                       )
                     );
                 }
@@ -732,16 +732,16 @@ class Formatter {
 
                     # $ast; @parts[0]
                     $ast = RakuAST::StatementList.new(
-                     RakuAST::Statement::Expression.new($ast),
-                      RakuAST::Statement::Expression.new(@parts[0])
+                     RakuAST::Statement::Expression.new(:expression($ast)),
+                      RakuAST::Statement::Expression.new(:expression(@parts[0]))
                     );
                 }
                 else {
 
                     # $ast; @parts.join
                     $ast = RakuAST::StatementList.new(
-                      RakuAST::Statement::Expression.new($ast),
-                      RakuAST::Statement::Expression.new(
+                      RakuAST::Statement::Expression.new(:expression($ast)),
+                      RakuAST::Statement::Expression.new(:expression(
                         RakuAST::ApplyPostfix.new(
                           operand => RakuAST::ApplyListInfix.new(
                             infix     => RakuAST::Infix.new(','),
@@ -751,7 +751,7 @@ class Formatter {
                             name => RakuAST::Name.from-identifier('join')
                           )
                         )
-                      )
+                      ))
                     );
                 }
             }
@@ -761,17 +761,17 @@ class Formatter {
 
                 # check-no-arg(@args); $format
                 $ast = RakuAST::StatementList.new(
-                  RakuAST::Statement::Expression.new(
+                  RakuAST::Statement::Expression.new(:expression(
                     RakuAST::Call::Name.new(
                       name => RakuAST::Name.from-identifier('check-no-arg'),
                       args => RakuAST::ArgList.new(
                         RakuAST::Var::Lexical.new('@args')
                       )
                     )
-                  ),
-                  RakuAST::Statement::Expression.new(
+                  )),
+                  RakuAST::Statement::Expression.new(:expression(
                     RakuAST::StrLiteral.new($format)
-                  )
+                  ))
                 );
             }
 

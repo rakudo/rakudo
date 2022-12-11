@@ -49,7 +49,7 @@ sub exec_and_check {
 sub checkout_rev {
     my ($name, $type, $downstream_file) = @_;
     my $back = cwd();
-    if ($type eq 'master') or ($type eq 'main') {
+    if (($type eq 'master') or ($type eq 'main')) {
         exec_and_check('git', 'clone', $repos{$name}, $name, "Cloning $name failed.");
         chdir $name;
         exec_and_check('git', 'checkout', '-f', $type, "Checking out $name $type failed.");

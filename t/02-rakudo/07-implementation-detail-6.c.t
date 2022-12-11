@@ -11,7 +11,6 @@ sub non-implementation(\base, \matcher) {
 }
 
 my @UPPER = <DYNAMIC-FALLBACK EVAL EVALFILE HOW NYI RUN-MAIN VAR WHAT>;
-my @UPPER = <DYNAMIC-FALLBACK EVAL EVALFILE HOW RUN-MAIN VAR WHAT>;
 
 my @lower = ("",<<
   abs acos acosec acosech acosh acotan acotanh all any append

@@ -62,7 +62,7 @@ class CompUnit::PrecompilationRepository::Default
 
         my $World := $*W;
         if $World && $World.record_precompilation_dependencies
-            or $*CU && $*CU.record-precompilation-dependencies {
+            or CALLERS::.EXISTS-KEY('$*CU') && $*CU.record-precompilation-dependencies {
             if $handle {
                 $dependency.checksum = $checksum;
                 say $dependency.serialize;
@@ -221,7 +221,7 @@ Need to re-check dependencies.")
         # report back id and source location of dependency to dependant
         my $World := $*W;
         if $World && $World.record_precompilation_dependencies
-            or $*CU && $*CU.record-precompilation-dependencies {
+            or CALLERS::.EXISTS-KEY('$*CU') && $*CU.record-precompilation-dependencies {
             my $dependencies := nqp::list_s();
             nqp::push_s($dependencies,.serialize)
               for $precomp-unit.dependencies;

@@ -756,6 +756,7 @@ subtest 'Native str assign initializer works' => {
     }
     is-deeply $M::x, 42, 'our variable set in eval mode is installed into the current package';
     ok $M::x.VAR ~~ Scalar, 'It is a bound scalar';
+    todo "NYI";
     nok M.WHO<$y>:exists, 'our-scoped variable declaration in top-level comp unit does not leak out';
 }
 

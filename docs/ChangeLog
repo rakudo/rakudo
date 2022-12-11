@@ -1,3 +1,127 @@
+New in 2022.12:
+
++ Improvements:
+    + Improve flow of calling set-env.sh from a script [57337212]
+    + Make the "needle (elem) list" message more clear [958537b1]
+    + Make X::TypeCheck::Assignment message better [05d60e21]
+    + Simplify X::TypeCheck::Assignment for containers [1e30b43c]
+
++ Additions:
+    + Allow for --no-foo as alternative to --/foo when
+      %SUB-MAIN-OPTS<allow-no> is set [61617b12]
+    + Allow for -j2 as an alternative to --j=2 when
+      %SUB-MAIN-OPTS<numeric-suffix-as-value> [388924d6]
+    + Allow for .skip(produce,skip,produce,skip,...) in 6.e [2a1ace84]
+    + Introduce "nano" term in 6.e [10feda11][feb97323]
+    + Add IO::Path.created returning the Instant a path was created [dbf035d8]
+    + Introduce // as a definedness prefix operator in 6.e [d05f7eed]
+    + Add method Any.snitch in 6.e [10066021]
+    + Introduce Dateish.days-in-year method [3d181c89][4d43bbf9][67513cb8]
+    + Add rotor-like capability to Str.comb in 6.e [84abeb52]
+    + Make sure Type.are also works [983cf3ec]
+    + Implement IO::Path.chown and chown() [1e02f566]
+
++ Efficiency:
+    + Add a lot of uint candidates for a lot of ops [47f9b286]
+    + Add proper support for uint comparisons [25c76aed]
+
++ Fixes:
+    + Make List:D.iterator a multi so that List:U.iterator works [5ad2c0c6]
+    + Add missing Allomorph.words method [59a34853]
+    + Revert "Add CUR::Staging.candidates method" to fix issue with
+      precompiling modules for packaging [9360c650][6937da17][454752e3]
+    + Implement nominalizable transparency for definites [71de2232][c915b07c]
+    + Make World's `is_type` method more reliable [13f7416c]
+    + Don't blindly make a Version object for vN [7ddb90ce]
+    + Add missing $obj? to Perl6::Metamodel::JavaHOW.archetypes [d059921b]
+    + Fix role parameterization over generics [94f3028e]
+    + Get job done well for coercive nominalizeables [9e18b391]
+    + Make generics work with return type in signature [a3021944][47c35cab]
+      [4cdb5585]
+    + Make (1,2,3,4,1,2).QuantHash>>-- work [63d03eb8][d0ec99a8]
+    + Report deprecated subs/methods that are hidden-from-backtrace [43a6575b]
+    + Feeds require .append to work, not .push [29eadbb2]
+    + Make feed error message more comprehensible [2070ceeb]
+    + Fix module installation writing precomp files into the wrong precomp
+      store [cc7193d0]
+    + Fix NEXT / LEAVE phaser interaction on JVM [ce1af0fa]
+    + Fix definite type parameterization [07164fec] [8a7d84c5]
+    + Fix a regression introduced by new 'dispatch' path related to
+      smartmatch [35b180b8]
+    + Make sure that Array.raku doesn't die on a lazy iterator [2037ffba]
+    + Make sure .elems don't mention the class [3859d6cb]
+    + Fix smartmatch in EVAL regression [0a9e2014][2702b001]
+    + Avoid loss in precision on FatRat .Str conversion [441e71a5]
+    + Revert "Simplify setting up standard handles" to fix seemingly
+      unrelated issue with IO::Notifications not working [64f552f3]
+
++ Removals:
+    + Remove nqp::p6client* ops [126aa804]
+
++ Internal:
+    + Tune Java in response to nqp's (de)serialization rewrite [018e549b]
+      [5a57f84e][18122e02][a78033f1]
+    + Reuse $v-how instead of calling HOW again [191964c5]
+    + Change internal API of RI:Snip [feb04dbe]
+    + Move the iterator logic of Str.comb(N) to RI::Ngrams [e826dbdc][d12461b0]
+    + Actions: Avoid repeated $<sym> eq 'S' [bc3b5824]
+
+New in 2022.07:
+
++ Changes:
+    + Re-imagine DateTime.new(Str) / Str.DateTime [aa462b41]
+    + Make sort() a runtime error [0c9169dc]
+    + Implement coercion via new-disp and re-consider return typechecking
+      dispatcher [7774c331][4ab61720][efd610cb][b4a26fbe][3e45f709][6c3cb859]
+      [f448ac47][a9606b29]
+    + Make Iterable.hyper|race take Any as a default for :batch and :degree
+      [d73d035e]
+
++ Additions:
+    + Implement fallback support for MRO [1128d5cf][83197e34][9710a85e]
+    + Add IO::Path inode, dev, and devtype methods [5c4970c5][599a6362]
+      [6dc2f92c]
+    + Add sub version of .head / .skip / .tail [af31b1df]
+    + Implement Haskell's "span" as "snip" in 6.e [16ccb573]
+
++ Removals:
+
++ Efficiency:
+    + Add native sub versions for .elems and .end (up to 4x speedup) [4fedb6f0]
+    + Make coercions up to 1.6x as fast [5a8aa66b]
+    + Add candidates for sub substr(str,int,int) for up to 2.8x speedup
+      [09ead96e]
+
++ Fixes:
+    + Fix cases where we try calling methods on BOOTCode [4130846b]
+    + Make PostionalBindFailover.iterator die [dd7f3eb9]
+    + Fix subclasses of .Date(Time) coercion [1a7b4b1b]
+    + Revert relaxation of positional bind failover binding [bb944723]
+    + Fix an LTA error message on passing Seq to a List parameter [db13e402]
+    + Fix copy-pasto in error message for native unsigned ints [ffdeecd1]
+    + Add missing private error handling method in Buf[32a40791]
+    + Consider Positional/Associative type parameters in optional defaults
+      [7148da1c]
+    + Fix a deep recursion issue in return typecheck dispatcher [9fa76ec6]
+      [808b0768]
+    + Fix a regression where coercing into a role didn't work [0e09a287]
+    + Implement lazy 'handles' trait application for methods [6430d41d]
+    + Get around a problem where a module duplicates method objects [324adc5a]
+    + Fix lone "-" in MAIN handling with :named-anywhere [3d3966b0]
+    + Add ACCEPTS method for DateTime [31779f47][621d69e0]
+    + Fix some cases of coercion over containerized values [fbe3acd0]
+      [02f32d51]
+    + Make code object based delegation 6.e feature [c6c8dfee]
+
++ Internal:
+    + Micro-opt on CoercionHOW.typecheck [41e07ab9]
+    + Make coercion more easily inlineable [eceea95c]
+    + Simplify $has_varname setting [378a89e6]
+    + Simplify native value / container check in binder [750487c6]
+    + Further simplify native binding check [fc149e22]
+    + Streamline native match check [a2f92b2b]
+    + Ternearize lexpad binding of natives [f2546b44]
+
 New in 2022.06:
 
 + Changes:

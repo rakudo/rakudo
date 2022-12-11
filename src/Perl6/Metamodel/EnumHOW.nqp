@@ -45,7 +45,7 @@ class Perl6::Metamodel::EnumHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1),
                                                         :augmentable(1) );
-    method archetypes() {
+    method archetypes($obj?) {
         $archetypes
     }
 

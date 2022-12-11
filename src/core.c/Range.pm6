@@ -122,7 +122,7 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
           ?? 0 max $!max - $!excludes-max - $!min - $!excludes-min + 1
           !! $!infinite
-            ?? self.fail-iterator-cannot-be-lazy('.elems')
+            ?? self.fail-iterator-cannot-be-lazy('.elems',"")
             !! nextsame
     }
 

@@ -6,7 +6,7 @@ class Perl6::Metamodel::GenericHOW
     does Perl6::Metamodel::Naming
 {
     my $archetypes := Perl6::Metamodel::Archetypes.new( :generic(1) );
-    method archetypes() {
+    method archetypes($obj?) {
         $archetypes
     }
 

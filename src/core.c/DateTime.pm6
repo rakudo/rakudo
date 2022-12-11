@@ -690,7 +690,7 @@ my class DateTime does Dateish {
     proto method Date() {*}
     multi method Date(DateTime:D: --> Date:D) { Date.new($!year,$!month,$!day) }
     multi method Date(DateTime:U: --> Date:U) { Date }
-    method DateTime() { 
+    method DateTime() {
         nqp::eqaddr(self.WHAT,DateTime)
           ?? self
           !! nqp::create(DateTime)!SET-SELF:
@@ -704,6 +704,8 @@ my class DateTime does Dateish {
           ~ (',' ~ :$!timezone.raku if $!timezone)
           ~ ')'
     }
+
+    multi method ACCEPTS(DateTime:D: DateTime:D \topic) { self == topic }
 }
 
 multi sub infix:«<»(DateTime:D $a, DateTime:D $b --> Bool:D) {

@@ -18,7 +18,7 @@ my @lower = ("",<<
   atomic-dec-fetch atomic-fetch atomic-fetch-add atomic-fetch-dec
   atomic-fetch-inc atomic-fetch-sub atomic-inc-fetch atomic-sub-fetch
   await bag cache callframe callsame callwith cas categorize ceiling
-  chars chdir chmod chomp chop chr chrs cis classify close comb
+  chars chdir chmod chomp chop chown chr chrs cis classify close comb
   combinations copy cos cosec cosech cosh cotan cotanh deepmap defined
   die dir done duckmap elems emit end exit exp expmod fail fc first
   flat flip floor full-barrier get getc gist goto grep hash head index
@@ -30,8 +30,8 @@ my @lower = ("",<<
   prompt push put rand redo reduce rename repeated repl return
   return-rw reverse rotor rindex rmdir roll roots rotate round roundrobin
   run samecase samemark samewith say sec sech set shell shift sign
-  signal sin sinh skip sleep sleep-timer sleep-until slip slurp so sort
-  splice split sprintf spurt sqrt squish srand subbuf-rw substr
+  signal sin sinh skip sleep sleep-timer sleep-until slip slurp snip snitch
+  so sort splice split sprintf spurt sqrt squish srand subbuf-rw substr
   substr-rw succeed sum symlink tail take take-rw tan tanh tc tclc trim
   trim-leading trim-trailing truncate uc unimatch uniname
   uninames uniparse uniprop uniprops unique unival univals unlink

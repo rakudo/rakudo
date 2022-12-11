@@ -856,6 +856,7 @@ S26-documentation/why-trailing.t
 S26-documentation/why-leading.t
 S28-named-variables/cwd.t
 S28-named-variables/slangs.t    # moar
+S29-any/are.t
 S29-any/cmp.t
 S29-any/isa.t
 S29-context/die.t

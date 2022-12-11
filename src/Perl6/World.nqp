@@ -367,6 +367,16 @@ class Perl6::World is HLL::World {
             0;
         }
 
+        method find_lexical(str $name) {
+            my int $i := +@!PADS;
+            while $i > 0 {
+                $i := $i - 1;
+                my %sym := @!PADS[$i].symbol($name);
+                return %sym if +%sym;
+            }
+            nqp::null()
+        }
+
         # Checks if the symbol is really an alias to an attribute.
         method is_attr_alias(str $name) {
             my int $i := +@!PADS;
@@ -2052,11 +2062,11 @@ class Perl6::World is HLL::World {
         # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
         # current compiler.
         my $v-how := $v.HOW;
-        !$v-how.archetypes.coercive
+        !$v-how.archetypes($v).coercive
         && (nqp::can($v-how, 'lang-rev-before') ?? $v-how.lang-rev-before($v, 'e') !! self.lang-rev-before('e'))
             ?? self.maybe-definite-how-base($v)
-            !! ($v.HOW.archetypes.nominalizable
-                ?? $v.HOW.nominalize($v)
+            !! ($v-how.archetypes($v).nominalizable
+                ?? $v-how.nominalize($v)
                 !! $v)
     }
 
@@ -2164,7 +2174,7 @@ class Perl6::World is HLL::World {
         if nqp::istype($varast, QAST::Var) {
             $varast.scope('lexical');
             $varast.returns(%cont_info<bind_constraint>);
-            if %cont_info<bind_constraint>.HOW.archetypes.generic {
+            if %cont_info<bind_constraint>.HOW.archetypes(%cont_info<bind_constraint>).generic {
                 $varast := QAST::Op.new(
                     :op('callmethod'), :name('instantiate_generic'),
                     QAST::Op.new( :op('p6var'), $varast ),
@@ -2184,7 +2194,7 @@ class Perl6::World is HLL::World {
         my $par_type  := self.find_single_symbol_in_setting('Parameter');
         my $parameter := nqp::create($par_type);
         self.add_object_if_no_sc($parameter);
-        my $paramerter_type := %param_info<type>;
+        my $parameter_type := %param_info<type>;
 
         # Calculate flags.
         my int $flags := 0;
@@ -2245,7 +2255,7 @@ class Perl6::World is HLL::World {
         if %param_info<type_generic> {
             $flags := $flags + $SIG_ELEM_TYPE_GENERIC;
         }
-        if $paramerter_type.HOW.archetypes.coercive {
+        if $parameter_type.HOW.archetypes($parameter_type).coercive {
             $flags := $flags + $SIG_ELEM_IS_COERCIVE;
         }
         if %param_info<default_is_literal> {
@@ -4906,7 +4916,10 @@ class Perl6::World is HLL::World {
     method is_type(@name) {
         my $is_name := 0;
         try {
-            # This throws if it's not a known name.
+            # This throws if it's not a known name. This also includes cases where @name[0] happens not to be a str.
+            if +@name == 1 && +(my %sym := self.context().find_lexical(~@name[0])) {
+                return 0 if nqp::existskey(%sym, 'descriptor');
+            }
             $is_name := !nqp::isconcrete(self.find_symbol(@name))
         }
         $is_name

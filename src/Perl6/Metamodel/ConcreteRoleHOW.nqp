@@ -25,7 +25,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     has $!composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1) );
-    method archetypes() {
+    method archetypes($obj?) {
         $archetypes
     }
 

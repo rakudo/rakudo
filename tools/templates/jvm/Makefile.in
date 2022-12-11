@@ -4,7 +4,7 @@ JAR     = jar
 
 NQP_PREFIX  = @nqp_prefix@
 @bpv(NQP)@       = @shquot(@j_nqp@)@
-@bpv(NQP_RR)@    = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
+@bpv(NQP_RR)@    = $(JAVA) -XX:+AggressiveHeap -XX:+AllowParallelDefineClass -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
 @bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-j-build
 @bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
 
@@ -48,7 +48,7 @@ RUNTIME_JAR = rakudo-runtime.jar
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	@echo(+++ Generating	$@)@
 	$(NOECHO)$(MKPATH) bin
-	$(NOECHO)$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
+	$(NOECHO)$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g:none -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(NOECHO)$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
 
 @bpm(RUN_RAKUDO_SCRIPT)@: @@nfp(@template(@backend_subdir@/rakudo-j-build.in)@)@@

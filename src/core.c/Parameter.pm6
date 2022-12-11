@@ -231,7 +231,7 @@ my class Parameter { # declared in BOOTSTRAP
         $flags +|= $SIG_ELEM_IS_COPY        if $is-copy;
         $flags +|= $SIG_ELEM_IS_RAW         if $is-raw;
         $flags +|= $SIG_ELEM_IS_RW          if $is-rw;
-        $flags +|= $SIG_ELEM_IS_COERCIVE    if $!type.HOW.archetypes.coercive;
+        $flags +|= $SIG_ELEM_IS_COERCIVE    if $!type.^archetypes.coercive;
 
         $!variable_name = $name if $name;
         $!flags = $flags;
@@ -323,9 +323,9 @@ my class Parameter { # declared in BOOTSTRAP
     method type(Parameter:D: --> Mu) { $!type }
 
     # XXX Must be marked as DEPRECATED
-    method coerce_type(Parameter:D: --> Mu) { $!type.HOW.archetypes.coercive ?? $!type.^target_type !! Mu }
+    method coerce_type(Parameter:D: --> Mu) { $!type.^archetypes.coercive ?? $!type.^target_type !! Mu }
 
-    method nominal_type(Parameter:D: --> Mu) { $!type.HOW.archetypes.nominalizable ?? $!type.^nominalize !! $!type }
+    method nominal_type(Parameter:D: --> Mu) { $!type.^archetypes.nominalizable ?? $!type.^nominalize !! $!type }
 
     method named_names(Parameter:D: --> List:D) {
         nqp::if(
@@ -663,7 +663,7 @@ multi sub infix:<eqv>(Parameter:D $a, Parameter:D $b) {
     # different compunits the curryings would be different typeobject instances.
     return False
         unless
-            (atype.HOW.archetypes.generic && btype.HOW.archetypes.generic)
+            (atype.^archetypes.generic && btype.^archetypes.generic)
             || (nqp::istype(atype, btype)
                 && nqp::istype(btype, atype));
 

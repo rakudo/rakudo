@@ -225,6 +225,9 @@ my class X::Method::NotFound is Exception {
         elsif $.method eq 'ceil' {
             %suggestions<ceiling> = 0;
         }
+        elsif $.method eq 'last' {
+            %suggestions<tail> = 0;
+        }
 
         my sub code-name(Mu $meth) {
             # KnowHOW `methods` method returns a hash. Respectively, iteration over .^methods gives us Pairs.
@@ -790,6 +793,15 @@ my class X::IO::Chmod does X::IO {
     has $.mode;
     method message() {
         "Failed to set the mode of '$.path' to '0o{$.mode.fmt("%03o")}': $.os-error"
+    }
+}
+
+my class X::IO::Chown does X::IO {
+    has $.path;
+    has $.uid;
+    has $.gid;
+    method message() {
+        "Failed to change owner of '$.path' to $.uid/$.gid: $.os-error"
     }
 }
 
@@ -2712,8 +2724,11 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method operation { 'assignment' }
     method message {
         my $symbol := $!symbol // $!desc.name;
-        my $to = $symbol.defined && $symbol ne '$'
-            ?? " to $symbol" !! "";
+        my $location = !$symbol.defined || $symbol eq '$'
+            ?? "in assignment"
+            !! $symbol.starts-with("@" | "%") 
+                ?? "for an element of $symbol"
+                !! "in assignment to $symbol";
         my $is-itself := nqp::eqaddr(self.expected, self.got);
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"
@@ -2725,7 +2740,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
           && nqp::eqaddr(self.expected.^base_type, self.got)
           ?? ' (perhaps Nil was assigned to a :D which had no default?)' !! '';
 
-        self.priors() ~ "Type check failed in assignment$to; $expected$maybe-Nil"
+        self.priors() ~ "Type check failed $location; $expected$maybe-Nil"
     }
 }
 my class X::TypeCheck::Argument is X::TypeCheck {

@@ -52,6 +52,8 @@ $lang = 'Raku' if $lang eq 'perl6';
         return {*};
     }
 
+    my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
+                    # currently compiling compilation unit
     my $context := nqp::defined($ctx) ?? $ctx !! CALLER::;
     my $compiled;
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
@@ -97,8 +99,6 @@ $lang = 'Raku' if $lang eq 'perl6';
         $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;
 
         my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
-        my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
-                      # currently compiling compilation unit
 
         my $LANG := $context<%?LANG>:exists
                         ?? $context<%?LANG>

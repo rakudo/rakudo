@@ -732,7 +732,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token version {
-        <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' '+'?]
+        <?before v\d+\w*
+            [ '.' \d
+              || <!{ $*W.is_lexical(~$/) }> ]>
+        'v' $<vstr>=[<vnum>+ % '.' '+'?]
         <!before '-'|\'> # cheat because of LTM fail
     }
 
@@ -3079,6 +3082,12 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token term:sym<time> { <sym> <.tok> }
 
+    token term:sym<nano> {
+        <?{ (nqp::getcomp('Raku').language_revision ge 'e')
+            || $*W.is_name(['&term:<nano>']) }>
+        <sym> <.tok>
+    }
+
     token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* '=>'> }
 
     token term:sym<rand> {
@@ -3503,7 +3512,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         ]
     }
 
-    token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
+    token quote:sym</null/> {
+        :my $rev := nqp::getcomp('Raku').language_revision;
+          <?{ $rev lt 'e' }>
+          '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
+        | <?{ $rev ge 'e' }>
+          '/' \s+ '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
+    }
     token quote:sym</ />  {
         :my %*RX;
         :my $*INTERPOLATE := 1;
@@ -4089,6 +4104,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <?before \d+ <?before \. <.?alpha> > <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
     }
     token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<//>  {
+        <?{ nqp::getcomp('Raku').language_revision ge 'e' }>
+        <sym> <O(|%symbolic_unary)>
+    }
 
     token infix:sym<*>    { <sym>  <O(|%multiplicative)> }
     token infix:sym<×>    { <sym>  <O(|%multiplicative)> }

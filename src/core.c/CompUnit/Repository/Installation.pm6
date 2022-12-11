@@ -332,7 +332,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             # Precomp files should only depend on downstream repos
             PROCESS::<$REPO> := self;
 
-            my $precomp = $head.precomp-repository;
+            my $precomp = self.precomp-repository;
             my $repo-prefix = self!repo-prefix;
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);

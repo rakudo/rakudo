@@ -7,8 +7,8 @@ class Perl6::Metamodel::PackageHOW
 {
     has $!composed;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( );
-    method archetypes() {
+    my $archetypes := Perl6::Metamodel::Archetypes.new();
+    method archetypes($obj?) {
         $archetypes
     }
 

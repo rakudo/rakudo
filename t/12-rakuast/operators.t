@@ -136,7 +136,7 @@ subtest 'Application of a (user-defined) postfix operator to a literal' => {
       postfix => RakuAST::Postfix.new('!'),
     );
     is-deeply $_, 24
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL('sub postfix:<!>($n) { [*] 1..$n }; ' ~ $ast.DEPARSE);
 }
 
 subtest 'Basic assignment to a Scalar container' => {

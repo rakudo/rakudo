@@ -13,10 +13,10 @@
 #
 
 trigger:
-- master
+- main
 
 pr:
-- master
+- main
 
 variables:
   # Turn this Powershell console into a developer powershell console.

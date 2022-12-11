@@ -1,0 +1,14 @@
+name: Fail when incorrect branch names are used
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  no_slash_in_branch_names:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fails if triggered
+        run: |
+          echo "::error::❌ The 'master' branch is no longer the default one. Please use the 'main' branch"
+          exit 1

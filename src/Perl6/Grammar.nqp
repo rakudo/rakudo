@@ -274,9 +274,9 @@ role STD {
         $stopper := $stopper // $goal;
         $stopper := $stopper ~~ /(.*\S)\s*/;
         $stopper := ~$stopper[0];
+        my @line-file := HLL::Compiler.linefileof(self.target(), self.from(), :cache, :directives);
         self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper),
-                         :line-real(HLL::Compiler.lineof(self.orig(), self.from(),
-                                                         :cache(1))));
+                         :line-real(@line-file[0]), :filename-real(@line-file[1]));
     }
 
     method panic(*@args) {
@@ -4475,7 +4475,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
         sub push_lines(@target, @pos) {
             for @pos {
-                nqp::push(@target, HLL::Compiler.lineof(self.orig, $_, :cache(1)));
+                nqp::push(@target, HLL::Compiler.lineof(self.orig, $_, :cache));
             }
         }
 

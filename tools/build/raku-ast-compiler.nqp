@@ -101,14 +101,20 @@ grammar RakuASTParser {
 
 # AST
 
-role Node { }
-
-class CompUnit {
-    has @!packages;
-    method packages() { @!packages }
+role Node {
+    has $!line;
+    method line() { $!line }
+    method set-line($line) { $!line := $line; }
 }
 
-class Package {
+class CompUnit does Node {
+    has @!packages;
+    has $!filename;
+    method packages() { @!packages }
+    method filename() { $!filename }
+}
+
+class Package does Node {
     has $!name;
     has @!parents;
     has @!attributes;
@@ -119,7 +125,7 @@ class Package {
     method methods() { @!methods }
 }
 
-class Attribute {
+class Attribute does Node {
     has $!type;
     has $!name;
     has $!has-accessor;
@@ -134,7 +140,7 @@ class Attribute {
     }
 }
 
-class Method {
+class Method does Node {
     has $!name;
     has @!parameters;
     has $!body;
@@ -143,7 +149,7 @@ class Method {
     method body() { $!body }
 }
 
-class Parameter {
+class Parameter does Node {
     has $!type;
     has $!slurpy;
     has $!named;
@@ -158,15 +164,26 @@ class Parameter {
     method raw() { $!raw }
 }
 
+class NQPCode does Node {
+    has $!body;
+    method body() { $!body }
+    method Str() { $!body }
+}
+
 # AST-building actions
 
 class RakuASTActions {
+    method attach($/, $node) {
+        $node.set-line(HLL::Compiler.lineof($/.target, $/.from, :cache));
+        make $node;
+    }
+
     method TOP($/) {
         my @packages;
         for $<package> {
             @packages.push($_.ast);
         }
-        make CompUnit.new(:@packages);
+        self.attach($/, CompUnit.new(:@packages, :filename($*CURRENT-FILE)));
     }
 
     method package:sym<class>($/) {
@@ -183,7 +200,7 @@ class RakuASTActions {
         for $<method-decl> {
             @methods.push($_.ast);
         }
-        make Package.new(:$name, :@parents, :@attributes, :@methods);
+        self.attach($/, Package.new(:$name, :@parents, :@attributes, :@methods));
     }
 
     method attribute-decl($/) {
@@ -198,14 +215,14 @@ class RakuASTActions {
             $attr := Attribute.new(:$type, :$name, :has-accessor);
         }
         %*ATTRS{$attr.name} := $attr;
-        make $attr;
+        self.attach($/, $attr);
     }
 
     method method-decl($/) {
         my $name := ~$<name>;
         my @parameters := $<signature> ?? $<signature>.ast !! [];
         my $body := $<nqp-code>.ast;
-        make Method.new(:$name, :@parameters, :$body);
+        self.attach($/, Method.new(:$name, :@parameters, :$body));
     }
 
     method signature($/) {
@@ -225,7 +242,7 @@ class RakuASTActions {
             ?? ($<optional> eq '!' ?? 0 !! 1)
             !! ($<optional> eq '?' ?? 1 !! 0);
         my $raw := ?$<raw>;
-        make Parameter.new(:$type, :$named, :$slurpy, :$name, :$optional, :$raw);
+        self.attach($/, Parameter.new(:$type, :$named, :$slurpy, :$name, :$optional, :$raw));
     }
 
     method nqp-code($/) {
@@ -266,7 +283,7 @@ class RakuASTActions {
                 @chunks.push(~$/);
             }
         }
-        make nqp::join("", @chunks);
+        self.attach($/, NQPCode.new(:body(nqp::join("", @chunks))));
     }
 
     method string($/) {
@@ -284,6 +301,8 @@ sub MAIN(*@files) {
     my @compunits;
     nqp::shift(@files); # first arg is this script
     for @files {
+        my $*CURRENT-FILE := $_;
+        my $*LINEPOSCACHE;
         my $source := slurp($_);
         @compunits.push(RakuASTParser.parse($source, actions => RakuASTActions).ast);
     }
@@ -295,6 +314,7 @@ sub MAIN(*@files) {
     say('BEGIN {');
     emit-mop-utils();
     for @compunits {
+        my $*CU := $_;
         for $_.packages {
             emit-package($_);
         }
@@ -433,6 +453,7 @@ sub emit-method($package, $method) {
     for @params-decont {
         say("        $_");
     }
+    say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
     say("        " ~ $method.body);
     say("    });");
 }

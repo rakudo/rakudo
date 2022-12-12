@@ -99,6 +99,7 @@ grammar Formatter::Syntax {
 }
 
 class Formatter {
+    my constant RakuAST = nqp::getcurhllsym('RakuAST');
 
     # class to be used with Grammar to turn format into array of pieces of code
     class Actions {

@@ -1,5 +1,9 @@
 use nqp;
 
+package EXPORT::rakuast {
+    OUR::<RakuAST> := nqp::getcurhllsym('RakuAST');
+}
+
 package EXPORT::cached {
     multi sub trait_mod:<is>(Routine $r, :$cached!) {
         my %cache;

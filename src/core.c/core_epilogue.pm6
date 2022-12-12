@@ -135,6 +135,19 @@ BEGIN .^compose for
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 
+{
+    my Mu $ctx := nqp::getattr(CORE::, PseudoStash, '$!ctx');
+    until nqp::isnull($ctx) {
+        my $pad := nqp::ctxlexpad($ctx);
+        if nqp::existskey($pad, 'CORE-SETTING-REV') {
+            nqp::bindcurhllsym('RakuAST',RakuAST);
+            nqp::bindkey($pad,'RakuAST',Nil);
+            last;
+        }
+        $ctx := nqp::ctxouterskipthunks($ctx);
+    }
+}
+
 {YOU_ARE_HERE}
 
 # vim: expandtab shiftwidth=4

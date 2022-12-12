@@ -135,6 +135,10 @@ BEGIN .^compose for
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 
+# This code can be removed once RakuAST is stable and
+#   use experimental :rakuast;
+# is no longer necessary to be able to access the RakuAST classes
+# and their functionality.
 {
     my Mu $ctx := nqp::getattr(CORE::, PseudoStash, '$!ctx');
     until nqp::isnull($ctx) {

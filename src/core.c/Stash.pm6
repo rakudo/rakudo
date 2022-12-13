@@ -24,6 +24,13 @@ my class Stash { # declared in BOOTSTRAP
                ContainerDescriptor::BindHashKey.new(Mu, self, $key)
              )
     }
+
+    method !fail-not-found($key) {
+        (self.Str eq 'must-use-experimental-rakuast'
+          ?? "Must do a 'use experimental :rakuast' to access RakuAST::$key.substr(1)"
+          !! "Could not find symbol '$key' in '{self}'"
+        ).Failure
+    }
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback!) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::if(
@@ -34,7 +41,7 @@ my class Stash { # declared in BOOTSTRAP
             nqp::if(
               nqp::existskey(GLOBAL.WHO,$key),
               nqp::atkey(GLOBAL.WHO,$key),
-              "Could not find symbol '$key' in '{self}'".Failure
+              self!fail-not-found($key)
             ),
             nqp::p6scalarfromdesc(
               ContainerDescriptor::BindHashKey.new(Mu, self, $key)

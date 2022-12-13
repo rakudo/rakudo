@@ -178,10 +178,10 @@ my class Seq is Cool does Iterable does Sequence {
 
     multi method ACCEPTS(Seq:D: Iterable:D \iterable --> Bool:D) {
         nqp::if(
-          (my \liter := self.iterator).is-lazy,
+          (my \riter := self.iterator).is-lazy,
           False,
           nqp::if(
-            (my \riter := iterable.iterator).is-lazy,
+            (my \liter := iterable.iterator).is-lazy,
             False,
             nqp::stmts(
               nqp::until(

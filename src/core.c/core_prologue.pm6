@@ -10,7 +10,6 @@ my class List { ... }
 my class Map { ... }
 my class Match { ... }
 my class Failure { ... }
-my class RakuAST::Deparse { ... }
 my class Rakudo::Deprecations { ... }
 my class Rakudo::Internals { ... }
 my class Rakudo::Internals::JSON { ... }
@@ -43,9 +42,6 @@ my role Hash::Object { ... }
 BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);
 nqp::bindhllsym('Raku', 'Iterable', Iterable);
 nqp::bindhllsym('Raku', 'Failure', Failure);
-
-# Make deparsing possible with the .DEPARSE method from NQP
-nqp::bindhllsym('Raku','DEPARSE',RakuAST::Deparse);
 
 BEGIN {
     # Ensure routines with traits using mixins applied to them typecheck as Callable.

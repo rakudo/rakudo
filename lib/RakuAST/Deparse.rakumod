@@ -6,6 +6,13 @@
 # method expects an instance if a subclass of a RakuAST::Node as the first
 # positional parameter.
 
+# This code can be removed once RakuAST is stable and
+#   use experimental :rakuast;
+# is no longer necessary to be able to access the RakuAST classes
+# and their functionality.
+use nqp;
+my constant RakuAST = nqp::gethllsym('Raku','RakuAST');
+
 class RakuAST::Deparse {
     has str $.before-comma = ' ';
     has str $.after-comma  = ' ';

@@ -1,5 +1,19 @@
 use nqp;
 
+package EXPORT::rakuast {
+    # This code can be removed once RakuAST is stable and
+    #   use experimental :rakuast;
+    # is no longer necessary to be able to access the RakuAST classes
+    # and their functionality.
+    my \RakuAST := nqp::getcurhllsym('RakuAST');
+
+    require ::("RakuAST::Deparse");
+    use nqp;
+    nqp::bindcurhllsym('DEPARSE',::("RakuAST::Deparse"));
+
+    OUR::<RakuAST> := RakuAST;
+}
+
 package EXPORT::cached {
     multi sub trait_mod:<is>(Routine $r, :$cached!) {
         my %cache;

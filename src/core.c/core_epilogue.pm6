@@ -152,15 +152,6 @@ BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
         $ctx := nqp::ctxouterskipthunks($ctx);
     }
 }
-augment class Rakudo::Internals {
-    # This code needs to live late, as at compilation time of
-    # "sub dd", the ::() lookup doesn't work yet
-    method DEPARSE($var) {
-        require ::("RakuAST::Deparse");
-        nqp::bindcurhllsym("DEPARSE",::("RakuAST::Deparse"));
-        note $var.DEPARSE.chomp;
-    }
-}
 
 {YOU_ARE_HERE}
 

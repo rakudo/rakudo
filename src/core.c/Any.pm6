@@ -592,14 +592,10 @@ sub dd(|c) {  # is implementation-detail
 
     my Mu $args := nqp::p6argvmarray();
     if nqp::elems($args) {
-        # This code can be removed once RakuAST is stable and
-        #   use experimental :rakuast;
-        # is no longer necessary to be able to access the RakuAST classes
-        # and their functionality.
         while $args {
             my $var  := nqp::shift($args);
             if nqp::istype($var,RakuAST::Node) {
-                Rakudo::Internals.DEPARSE($var);
+                note $var.DEPARSE.chomp;
             }
             else {
                 my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;

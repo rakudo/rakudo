@@ -451,7 +451,7 @@ class Formatter {
 
             my $size = size($/);
             my $ast  = ast-call-sub("unsigned-int", parameter($/));
-            
+
             # handle zero padding / left / right justification
             if $size {
                 $ast = ast-call-sub(

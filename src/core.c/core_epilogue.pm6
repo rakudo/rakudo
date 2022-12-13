@@ -151,6 +151,13 @@ BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
         $ctx := nqp::ctxouterskipthunks($ctx);
     }
 }
+augment class Rakudo::Internals {
+    method DEPARSE($var) {
+        require ::("RakuAST::Deparse");
+        nqp::bindcurhllsym("DEPARSE",::("RakuAST::Deparse"));
+        note $var.DEPARSE.chomp;
+    }
+}
 
 {YOU_ARE_HERE}
 

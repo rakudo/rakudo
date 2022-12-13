@@ -251,5 +251,4 @@ src/core.c/WrappedJSObject.pm6)@
 src/core.c/Rakudo/Metaops.pm6
 src/core.c/Rakudo/Internals/PostcircumfixAdverbs.pm6
 src/core.c/unicodey.pm6
-src/core.c/RakuAST/Deparse.pm6
 src/core.c/core_epilogue.pm6

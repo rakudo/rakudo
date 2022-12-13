@@ -5,7 +5,13 @@ package EXPORT::rakuast {
     #   use experimental :rakuast;
     # is no longer necessary to be able to access the RakuAST classes
     # and their functionality.
-    OUR::<RakuAST> := nqp::getcurhllsym('RakuAST');
+    my \RakuAST := nqp::getcurhllsym('RakuAST');
+
+    require ::("RakuAST::Deparse");
+    use nqp;
+    nqp::bindcurhllsym('DEPARSE',::("RakuAST::Deparse"));
+
+    OUR::<RakuAST> := RakuAST;
 }
 
 package EXPORT::cached {

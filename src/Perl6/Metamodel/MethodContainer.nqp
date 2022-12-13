@@ -13,62 +13,94 @@ role Perl6::Metamodel::MethodContainer {
     # is not ideal here).
     has %!cache;
 
+    has $!update_lock;
+
     # Add a method.
     method add_method($obj, $name, $code_obj, :$handles = 1) {
-        # Ensure we haven't already got it.
-        $code_obj := nqp::decont($code_obj);
-        $name := nqp::decont_s($name);
-        if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
-            # XXX try within nqp::die() causes a hang. Pre-cache the result and use it later.
-            my $method-type := try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method';
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Method::Duplicate',
-                "Package '"
-                    ~ self.name($obj)
-                    ~ "' already has a "
-                    ~ $method-type
-                    ~ " '"
-                    ~ $name
-                    ~ "' (did you mean to declare a multi method?)",
-                :$method-type,
-                :method($name),
-                :typename(self.name($obj))
-            );
+        unless nqp::defined(my $update_lock := $!update_lock) {
+            $update_lock := 
+                nqp::gethllsym('Raku', 'METAMODEL_CONFIGURATION').generate_lock(self, $?CLASS, '$!update_lock');
         }
-
-        # Add to correct table depending on if it's a Submethod.
-        if !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type)
-            && nqp::istype($code_obj, Perl6::Metamodel::Configuration.submethod_type) {
-            %!submethods{$name} := $code_obj;
-        }
-        else {
-            %!methods{$name} := $code_obj;
-        }
-
-        # See if trait `handles` has been applied and we can use it on the target type.
-        # XXX Also skip this step if method is being added under a different name but the original code object has been
-        # installed earlier. This step is here until Method::Also incorporates support for :!handles argument.
-        if $handles
-            && nqp::can($code_obj, 'apply_handles') 
-            && nqp::can($obj.HOW, 'find_method_fallback') 
-        {
-            my $do_apply := 1;
-            for @!method_order {
-                if $_ =:= $code_obj {
-                    $do_apply := 0;
-                    last
-                }
+        $update_lock.protect: {
+            # Ensure we haven't already got it.
+            $code_obj := nqp::decont($code_obj);
+            $name := nqp::decont_s($name);
+            if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
+                # XXX try within nqp::die() causes a hang. Pre-cache the result and use it later.
+                my $method-type := try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method';
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Method::Duplicate',
+                    "Package '"
+                        ~ self.name($obj)
+                        ~ "' already has a "
+                        ~ $method-type
+                        ~ " '"
+                        ~ $name
+                        ~ "' (did you mean to declare a multi method?)",
+                    :$method-type,
+                    :method($name),
+                    :typename(self.name($obj))
+                );
             }
-            $code_obj.apply_handles($obj) if $do_apply;
-        }
 
-        # Adding a method means any cache is no longer authoritative.
-        if nqp::can(self, "invalidate_method_caches") {
-            self.invalidate_method_caches($obj);
+            # Add to correct table depending on if it's a Submethod.
+            my $table-attr;
+            if !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type)
+                && nqp::istype($code_obj, Perl6::Metamodel::Configuration.submethod_type) {
+                    $table-attr := '%!submethods';
+            }
+            else {
+                    $table-attr := '%!methods';
+            }
+
+            # Try to be on the concurrency-safe side.
+            # For now only MoarVM provides the means of safe attribute replacement. Therefore other backends just get a
+            # little bit more safe but not completely safe.
+            my %table-copy := nqp::clone(nqp::getattr(self, $?CLASS, $table-attr));
+            %table-copy{$name} := $code_obj;
+#?if moar
+            # Because lock protection only protects updates nqp::atomicbindattr is needed to ensure reads are safe.
+            nqp::atomicbindattr(self, $?CLASS, $table-attr, %table-copy);
+#?endif
+#?if !moar
+            nqp::bindattr(self, $?CLASS, $table-attr, %table-copy);
+#?endif
+
+            # See if trait `handles` has been applied and we can use it on the target type.
+            # XXX Also skip this step if method is being added under a different name but the original code object has been
+            # installed earlier. This step is here until Method::Also incorporates support for :!handles argument.
+            if $handles
+                && nqp::can($code_obj, 'apply_handles') 
+                && nqp::can($obj.HOW, 'find_method_fallback') 
+            {
+                my $do_apply := 1;
+                for @!method_order {
+                    if $_ =:= $code_obj {
+                        $do_apply := 0;
+                        last
+                    }
+                }
+                $code_obj.apply_handles($obj) if $do_apply;
+            }
+
+            # Adding a method means any cache is no longer authoritative.
+            if nqp::can(self, "invalidate_method_caches") {
+                self.invalidate_method_caches($obj);
+            }
+            self.'!invalidate_cache'();
+#?if moar
+            my @mcopy := nqp::clone(@!method_order);
+            @mcopy[+@mcopy] := $code_obj;
+            nqp::atomicbindattr(self, $?CLASS, '@!method_order', @mcopy);
+            @mcopy := nqp::clone(@!method_names);
+            @mcopy[+@mcopy] := $name;
+            nqp::atomicbindattr(self, $?CLASS, '@!method_names', @mcopy);
+#?endif
+#?if !moar
+            @!method_order[+@!method_order] := $code_obj;
+            @!method_names[+@!method_names] := $name;
+#?endif
         }
-        %!cache := {};
-        @!method_order[+@!method_order] := $code_obj;
-        @!method_names[+@!method_names] := $name;
     }
 
     # Gets the method hierarchy.
@@ -151,22 +183,40 @@ role Perl6::Metamodel::MethodContainer {
     # Caches or updates a cached value.
     method cache($obj, str $key, $value_generator) {
         my %orig_cache := %!cache;
-        nqp::ishash(%orig_cache) && nqp::existskey(%!cache, $key)
-            ?? %!cache{$key}
+        nqp::ishash(%orig_cache) && nqp::existskey(%orig_cache, $key)
+            ?? %orig_cache{$key}
             !! self.cache_add($obj, $key, $value_generator())
     }
 
     method cache_get($obj, str $key) {
-        my %caches := %!cache;
-        nqp::ishash(%caches) ?? nqp::atkey(%caches, $key) !! nqp::null()
+        my %orig_cache := %!cache;
+        nqp::ishash(%orig_cache) ?? nqp::atkey(%orig_cache, $key) !! nqp::null()
     }
 
     method cache_add($obj, str $key, $value) {
         my %orig_cache := %!cache;
         my %copy := nqp::ishash(%orig_cache) ?? nqp::clone(%orig_cache) !! {};
         %copy{$key} := $value;
+        nqp::scwbdisable();
+#?if moar
+        nqp::atomicbindattr(self, $?CLASS, '%!cache', %copy);
+#?endif
+#?if !moar
         %!cache := %copy;
+#?endif
+        nqp::scwbenable();
         $value
+    }
+
+    method !invalidate_cache() {
+            nqp::scwbdisable();
+#?if moar
+            nqp::atomicbindattr(self, $?CLASS, '%!cache', nqp::hash());
+#?endif
+#?if !moar
+            %!cache := {};
+#?endif
+            nqp::scwbenable();
     }
 }
 

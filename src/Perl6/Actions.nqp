@@ -1390,9 +1390,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             stderr().print($world.group_exception().gist());
         }
 
-        unless $*COMPILING_CORE_SETTING || $*WANT_RAKUAST {
-            my $ex := $*W.find_symbol(['X', 'Experimental']).new(:feature<RakuAST>, :use<rakuast>);
-            $*W.add_object_if_no_sc($ex);
+        unless $*COMPILING_CORE_SETTING || $*WANT_RAKUAST || $world.have_outer {
+            my $ex := $*W.find_symbol_in_setting(['X', 'Experimental']).new(:feature<RakuAST>, :use<rakuast>);
+            $world.add_object_if_no_sc($ex);
             $*UNIT_OUTER[0].push(
                 QAST::Op.new(
                     :op<bind>,

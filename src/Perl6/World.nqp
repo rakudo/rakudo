@@ -545,6 +545,8 @@ class Perl6::World is HLL::World {
         $!in_unit_parse
     }
 
+    method have_outer() { $!have_outer }
+
     method add_check($check) {
         @!CHECKs := [] unless @!CHECKs;
         @!CHECKs.unshift($check);

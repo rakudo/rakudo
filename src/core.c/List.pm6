@@ -475,6 +475,17 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
+    multi method head(List:D:) is raw {
+        nqp::decont(
+          nqp::isconcrete($!reified)
+            ?? nqp::ifnull(
+                 nqp::atpos($!reified,0),
+                 self!AT_POS_SLOW(0)
+               )
+            !! self!AT_POS_SLOW(0)
+        )
+    }
+
     multi method AT-POS(List:D: uint $pos) is raw {
         nqp::isconcrete($!reified)
           ?? nqp::ifnull(

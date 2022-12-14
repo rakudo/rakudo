@@ -1786,6 +1786,10 @@ my class Rakudo::Internals {
     method NEXT-ID(--> Int:D) {
         cas $next-id, { nqp::add_I(nqp::decont($_), 1, Int) }
     }
+
+    method DEPARSE(Mu \node) {
+        nqp::gethllsym('Raku', 'DEPARSE').new.deparse(node)
+    }
 }
 
 # expose the number of bits a native int has

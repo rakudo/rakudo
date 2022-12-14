@@ -796,6 +796,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my %*SIG_INFO;                            # information about recent signature
         :my $*CAN_LOWER_TOPIC := 1;                # true if we optimize the $_ lexical away
         :my $*MAY_USE_RETURN := 0;                 # true if the current routine may use return
+        :my $*WANT_RAKUAST := 0;                   # if `use experimental :rakuast` is in effect
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;

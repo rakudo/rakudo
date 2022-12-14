@@ -1271,6 +1271,25 @@ class Perl6::World is HLL::World {
                 self.throw($/, 'X::Pragma::UnknownArg', :$name, :$arg);
             }
         }
+        elsif $name eq 'experimental' {
+            # Make sure if an experimental feature requires compile-time pre-processing. Currently used for masking
+            # RakuAST symbol unless `use experimental :rakuast` is used.
+            if $on && nqp::defined($arglist) && nqp::elems($arglist) {
+                my $Pair := self.find_single_symbol_in_setting('Pair');
+                my $Bool := self.find_single_symbol_in_setting('Bool');
+                for $arglist -> $arg {
+                    if nqp::istype($arg, $Pair) {
+                        my $value := $arg.value;
+                        if nqp::istype($value, $Bool) && $value && $arg.key eq 'rakuast' {
+                            $*WANT_RAKUAST := 1;
+                            last;
+                        }
+                    }
+                }
+            }
+            # Load module 'experimental' anyway
+            return 0;
+        }
         elsif $name eq 'lib' {
             unless $on {
                 self.throw($/, 'X::Pragma::CannotWhat', :what<no>, :$name);
@@ -4890,6 +4909,7 @@ class Perl6::World is HLL::World {
     # Checks if a given symbol is declared.
     method is_name(@name) {
         my int $is_name := 0;
+        self."!no_experimental_rakuast"(@name);
         if self.is_pseudo_package(@name[0]) {
             $is_name := 1;
         }
@@ -5149,6 +5169,13 @@ class Perl6::World is HLL::World {
         $value
 
     }
+
+    method !no_experimental_rakuast(@name) {
+        if (@name[0] eq 'RakuAST') && !($*COMPILING_CORE_SETTING || $*WANT_RAKUAST) {
+            $*LEAF.typed_panic('X::Experimental', :feature<RakuAST>, :use<rakuast>);
+        }
+    }
+
     method find_symbol(@name, :$setting-only, :$upgrade_to_global, :$cur-package) {
         my $fullname := join("::", @name);
         if $setting-only && nqp::existskey(%!setting_symbols, $fullname) && !$upgrade_to_global {
@@ -5157,6 +5184,8 @@ class Perl6::World is HLL::World {
 
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
+
+        self."!no_experimental_rakuast"(@name);
 
         if +@name == 1 {
             #note("got a single element argument to find_symbol: " ~ @name[0]);

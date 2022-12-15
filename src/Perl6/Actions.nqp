@@ -1391,8 +1391,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         unless $*COMPILING_CORE_SETTING || $*WANT_RAKUAST || $world.have_outer {
-            my $ex := $*W.find_symbol_in_setting(['X', 'Experimental']).new(:feature<RakuAST>, :use<rakuast>);
-            $world.add_object_if_no_sc($ex);
+            my $Exception := $*W.find_symbol_in_setting(['X', 'Experimental']);
+            $world.add_object_if_no_sc($Exception);
             $*UNIT_OUTER[0].push(
                 QAST::Op.new(
                     :op<bind>,
@@ -1401,10 +1401,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         :op<callmethod>,
                         :name<new>,
                         QAST::Var.new( :name<Failure>, :scope<lexical> ),
-                        QAST::WVal.new(:value($ex))
-                    )
-                )
-            );
+                        QAST::Op.new(
+                            :op<callmethod>,
+                            :name<new>,
+                            QAST::WVal.new(:value($Exception)),
+                            QAST::SVal.new(:value<RakuAST>, :named<feature>),
+                            QAST::SVal.new(:value<rakuast>, :named<use> )))));
         }
 
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl

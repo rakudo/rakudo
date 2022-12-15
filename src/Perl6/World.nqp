@@ -5587,7 +5587,8 @@ class Perl6::World is HLL::World {
             }
 
             # Build and throw exception object.
-            %opts<line>            := HLL::Compiler.lineof($c.orig, $c.pos, :cache(1));
+            my @directive-line-file := HLL::Compiler.linefileof($c.target, $c.pos, :cache(1), :directives(1));
+            %opts<line>            := @directive-line-file[0];
             # only set <pos> if it's not already set:
             %opts<pos>             := $c.pos unless nqp::existskey(%opts, 'pos');
             %opts<modules>         := p6ize_recursive(@*MODULES // []);
@@ -5607,7 +5608,12 @@ class Perl6::World is HLL::World {
                     %opts{$p.key} := nqp::hllizefor($p.value, 'Raku');
                 }
             }
-            %opts<filename> := nqp::box_s(self.current_file,self.find_single_symbol_in_setting('Str'));
+            my $actual-file := self.current_file;
+            my $Str := self.find_single_symbol_in_setting('Str');
+            %opts<filename> := nqp::box_s($actual-file, $Str);
+            if @directive-line-file[1] {
+                %opts<directive-filename> := nqp::box_s(@directive-line-file[1], $Str);
+            }
             try { return $ex.new(|%opts) };
         }
 

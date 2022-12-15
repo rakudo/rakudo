@@ -820,9 +820,10 @@ my class X::IO::Closed does X::IO {
 }
 
 my role X::Comp is Exception {
-    has $.filename;
     has $.pos;
+    has $.filename;
     has $.line;
+    has $.directive-filename; # set with #line directive and if differs from $.filename
     has $.column;
     has @.modules;
     has $.is-compile-time = False;
@@ -834,11 +835,7 @@ my role X::Comp is Exception {
             my ($red,$clear,$green,$yellow,$eject) =
               Rakudo::Internals.error-rcgye;
             my $r = $sorry ?? self.sorry_heading() !! "";
-            $r ~= $.filename eq '<unknown file>'
-              ?? $.line == 1
-                ?? $.message
-                !! "$.message\nat line $.line"
-              !! "$.message\nat $.filename():$.line";
+            $r ~= $_ ?? "$.message\n$_" !! $.message with self.at-line($.line);
             $r ~= "\n------> $green$.pre$yellow$eject$red$.post$clear" if defined $.pre;
             if $expect && @.highexpect {
                 $r ~= "\n    expecting any of:";
@@ -857,6 +854,19 @@ my role X::Comp is Exception {
         else {
             self.Exception::gist;
         }
+    }
+    method at-line(*@lines, :$filename is copy) {
+        my $fn = $.directive-filename // $.filename;
+        # If $filename is specified and is different from $fn then the message is about a "long" location crossing a
+        # #line directive. Most typical it would be an unclosed brace or a quote starting before the directive.
+        with $filename {
+            $fn = $_ eq $fn ?? "" !! $_;
+        }
+        !$fn || ($fn eq '<unknown file>')
+            ?? !$filename.defined && @lines == 1 && @lines.head == 1
+                ?? ""
+                !! "at line" ~ (@lines == 1 ?? ' ' !! 's ') ~ @lines.join(", ")
+            !! "at $fn:" ~ @lines.join(",");
     }
     method sorry_heading() {
         my ($red, $clear) = Rakudo::Internals.error-rcgye;
@@ -970,11 +980,12 @@ my class X::Comp::FailGoal does X::Comp {
     has $.dba;
     has $.goal;
     has $.line-real;
+    has $.filename-real;
 
     method is-compile-time(--> True) { }
 
     method message { "Unable to parse expression in $.dba; couldn't find final $.goal"
-                     ~ " (corresponding starter was at line $.line-real)" }
+                     ~ " (corresponding starter was " ~ self.at-line($.line-real, :filename($.filename-real)) ~ ")" }
 }
 
 my role X::Syntax does X::Comp { }
@@ -1234,7 +1245,10 @@ my class X::Undeclared::Symbols does X::Comp {
     method message(X::Undeclared::Symbols:D:) {
         sub l(@l) {
             my @lu = @l.map({ nqp::hllize($_) }).unique.sort;
-            'used at line' ~ (@lu == 1 ?? ' ' !! 's ') ~ @lu.join(', ')
+            # Linenumbers here are disrespecting #line directives. Therefore let's be explicit about the filename.
+            # Perhaps this message can be improved for multi-filename case of many #line directives per source by
+            # nicely formatting all of them.
+            'used ' ~ self.at-line(@l, :$.filename);
         }
         sub s(@s) {
             "Did you mean '{ @s.join("', '") }'?";
@@ -2726,7 +2740,7 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
         my $symbol := $!symbol // $!desc.name;
         my $location = !$symbol.defined || $symbol eq '$'
             ?? "in assignment"
-            !! $symbol.starts-with("@" | "%") 
+            !! $symbol.starts-with("@" | "%")
                 ?? "for an element of $symbol"
                 !! "in assignment to $symbol";
         my $is-itself := nqp::eqaddr(self.expected, self.got);

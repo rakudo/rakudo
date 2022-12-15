@@ -222,7 +222,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 	$(NOECHO)$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
 			 --out @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ \
 			 --set-var=backend=@backend@
-	$(NOECHO@nop())@@bpm(NQP)@ @bpm(GEN_CAT)@ -f @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ > @nfpq(@bpm(BUILD_DIR)@/CORE.@lcspec@.setting)@
+	$(NOECHO@nop())@@bpm(NQP)@ @bpm(GEN_CAT)@ -p 'SETTING::' -f @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ > @nfpq(@bpm(BUILD_DIR)@/CORE.@lcspec@.setting)@
 	@echo(The following step can take a long time, please be patient.)@
 	$(NOECHO@nop())@@bpm(RUN_RAKUDO)@ --setting=NULL.@lcspec@ --ll-exception --optimize=3 --target=@btarget@ --stagestats --output=@bsm(SETTING_@ucspec@)@ @nfpq(@bpm(BUILD_DIR)@/CORE.@lcspec@.setting)@
 

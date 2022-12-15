@@ -95,7 +95,8 @@ grammar RakuASTParser {
     }
 
     method panic($message) {
-        nqp::die("$message near '" ~ nqp::substr(self.orig, self.pos, 20) ~ "'")
+        nqp::die( "$message near '" ~ nqp::substr(self.orig, self.pos, 20) ~ "' at "
+            ~ $*CURRENT-FILE ~ ":" ~ HLL::Compiler.lineof(self.orig, self.pos, :cache))
     }
 }
 

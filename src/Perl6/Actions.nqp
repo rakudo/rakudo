@@ -1390,6 +1390,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
             stderr().print($world.group_exception().gist());
         }
 
+        unless $*COMPILING_CORE_SETTING || $*WANT_RAKUAST || $world.have_outer {
+            my $Exception := $*W.find_symbol_in_setting(['X', 'Experimental']);
+            $world.add_object_if_no_sc($Exception);
+            $*UNIT_OUTER[0].push(
+                QAST::Op.new(
+                    :op<bind>,
+                    QAST::Var.new( :name<RakuAST>, :scope<lexical>, :decl<var>),
+                    QAST::Op.new(
+                        :op<callmethod>,
+                        :name<new>,
+                        QAST::Var.new( :name<Failure>, :scope<lexical> ),
+                        QAST::Op.new(
+                            :op<callmethod>,
+                            :name<new>,
+                            QAST::WVal.new(:value($Exception)),
+                            QAST::SVal.new(:value<RakuAST>, :named<feature>),
+                            QAST::SVal.new(:value<rakuast>, :named<use> )))));
+        }
+
         if %*COMPILING<%?OPTIONS><p> { # also covers the -np case, like Perl
             $mainline[1] := QAST::Stmt.new(wrap_option_p_code($/, $mainline[1]));
         }
@@ -10865,9 +10884,9 @@ Did you mean a call like '"
             $world.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
         }
         my $type := $world.find_symbol(@name);
-        my $is_generic := 
-            nqp::can($type.HOW, "archetypes") 
-            && nqp::can($type.HOW.archetypes($type), "generic") 
+        my $is_generic :=
+            nqp::can($type.HOW, "archetypes")
+            && nqp::can($type.HOW.archetypes($type), "generic")
             && $type.HOW.archetypes($type).generic;
         my $past;
         if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {

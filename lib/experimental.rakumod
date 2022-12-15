@@ -1,11 +1,7 @@
 use nqp;
 
 package EXPORT::rakuast {
-    # This code can be removed once RakuAST is stable and
-    #   use experimental :rakuast;
-    # is no longer necessary to be able to access the RakuAST classes
-    # and their functionality.
-    OUR::<RakuAST> := nqp::getcurhllsym('RakuAST');
+    # Do nothing, just provide the tag.
 }
 
 package EXPORT::cached {

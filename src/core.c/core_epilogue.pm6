@@ -135,24 +135,6 @@ BEGIN .^compose for
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 
-# This code can be removed once RakuAST is stable and
-#   use experimental :rakuast;
-# is no longer necessary to be able to access the RakuAST classes
-# and their functionality.
-{
-    my Mu $ctx := nqp::getattr(CORE::, PseudoStash, '$!ctx');
-    my class must-use-experimental-rakuast is Nil { }
-    until nqp::isnull($ctx) {
-        my $pad := nqp::ctxlexpad($ctx);
-        if nqp::existskey($pad, 'CORE-SETTING-REV') {
-            nqp::bindcurhllsym('RakuAST',RakuAST);
-            nqp::bindkey($pad,'RakuAST',must-use-experimental-rakuast);
-            last;
-        }
-        $ctx := nqp::ctxouterskipthunks($ctx);
-    }
-}
-
 {YOU_ARE_HERE}
 
 # vim: expandtab shiftwidth=4

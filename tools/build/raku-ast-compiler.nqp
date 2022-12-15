@@ -40,10 +40,16 @@ grammar RakuASTParser {
     }
 
     rule method-decl {
-        'method' <name=.identifier> <signature>?
-        [ '{' || <.panic('Missing opening { of method')> ]
+        'method' <name=.identifier> {}
+        :my $*METHOD-NAME := ~$<name>;
+         <signature>?
+         <method-body>
+    }
+
+    token method-body {
+        [ '{' || <.panic("Missing block in method '$*METHOD-NAME' declaration")> ]
         <nqp-code>
-        [ '}' || <.panic('Missing }')> ]
+        [ '}' || <.panic("Missing '}' in method '$*METHOD-NAME' declaration")> ]
     }
 
     rule signature {
@@ -222,8 +228,12 @@ class RakuASTActions {
     method method-decl($/) {
         my $name := ~$<name>;
         my @parameters := $<signature> ?? $<signature>.ast !! [];
-        my $body := $<nqp-code>.ast;
+        my $body := $<method-body>.ast;
         self.attach($/, Method.new(:$name, :@parameters, :$body));
+    }
+
+    method method-body($/) {
+        make $<nqp-code>.ast
     }
 
     method signature($/) {

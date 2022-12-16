@@ -20,14 +20,16 @@ grammar RakuASTParser {
     }
 
     proto rule package {*}
-    rule package:sym<class> {
-        'class' <name> {}
-        :my $*CLASS := ~$<name>;
+    rule package:sym<class> { <sym> <package-def('class')> }
+
+    rule package-def($*PKGDECL) {
+        <name> {}
+        :my $*PACKAGE-NAME := ~$<name>;
         :my %*ATTRS;
         [ 'is' <parent=.name> ]*
-        '{'
+        [ '{' || <.panic("Missing block in $*PKGDECL $*PACKAGE-NAME declaration")> ]
         [ <attribute-decl> | <method-decl> ]*
-        [ '}' || <.panic('Missing }')> ]
+        [ '}' || <.panic("Missing '}' in $*PKGDECL $*PACKAGE-NAME declaration")> ]
     }
 
     rule attribute-decl {
@@ -40,10 +42,16 @@ grammar RakuASTParser {
     }
 
     rule method-decl {
-        'method' <name=.identifier> <signature>?
-        [ '{' || <.panic('Missing opening { of method')> ]
+        'method' <name=.identifier> {}
+        :my $*METHOD-NAME := ~$<name>;
+         <signature>?
+         <method-body>
+    }
+
+    token method-body {
+        [ '{' || <.panic("Missing block in method '$*METHOD-NAME' declaration")> ]
         <nqp-code>
-        [ '}' || <.panic('Missing }')> ]
+        [ '}' || <.panic("Missing '}' in method '$*METHOD-NAME' declaration")> ]
     }
 
     rule signature {
@@ -95,7 +103,8 @@ grammar RakuASTParser {
     }
 
     method panic($message) {
-        nqp::die("$message near '" ~ nqp::substr(self.orig, self.pos, 20) ~ "'")
+        nqp::die( "$message near '" ~ nqp::substr(self.orig, self.pos, 20) ~ "' at "
+            ~ $*CURRENT-FILE ~ ":" ~ HLL::Compiler.lineof(self.orig, self.pos, :cache))
     }
 }
 
@@ -115,6 +124,7 @@ class CompUnit does Node {
 }
 
 class Package does Node {
+    has $!type; # only 'class' for now, could be 'role' too
     has $!name;
     has @!parents;
     has @!attributes;
@@ -186,7 +196,9 @@ class RakuASTActions {
         self.attach($/, CompUnit.new(:@packages, :filename($*CURRENT-FILE)));
     }
 
-    method package:sym<class>($/) {
+    method package:sym<class>($/) { make $<package-def>.ast }
+
+    method package-def($/) {
         my $name := ~$<name>;
         my @parents;
         for $<parent> {
@@ -200,7 +212,7 @@ class RakuASTActions {
         for $<method-decl> {
             @methods.push($_.ast);
         }
-        self.attach($/, Package.new(:$name, :@parents, :@attributes, :@methods));
+        self.attach($/, Package.new(:type($*PKGDECL), :$name, :@parents, :@attributes, :@methods));
     }
 
     method attribute-decl($/) {
@@ -221,8 +233,12 @@ class RakuASTActions {
     method method-decl($/) {
         my $name := ~$<name>;
         my @parameters := $<signature> ?? $<signature>.ast !! [];
-        my $body := $<nqp-code>.ast;
+        my $body := $<method-body>.ast;
         self.attach($/, Method.new(:$name, :@parameters, :$body));
+    }
+
+    method method-body($/) {
+        make $<nqp-code>.ast
     }
 
     method signature($/) {
@@ -264,10 +280,10 @@ class RakuASTActions {
             elsif $<attribute> {
                 my $name := ~$<attribute>;
                 if %*ATTRS{$name} -> $attr {
-                    @chunks.push("nqp::" ~ $attr.getattr-op ~ "(\$SELF, $*CLASS, '$name')");
+                    @chunks.push("nqp::" ~ $attr.getattr-op ~ "(\$SELF, $*PACKAGE-NAME, '$name')");
                 }
                 else {
-                    $/.panic("No such attribute $name in $*CLASS");
+                    $/.panic("No such attribute $name in $*PACKAGE-NAME");
                 }
             }
             elsif $<string> {

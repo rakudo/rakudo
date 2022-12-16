@@ -99,12 +99,6 @@ grammar Formatter::Syntax {
 }
 
 class Formatter {
-    # This code can be removed once RakuAST is stable and
-    #   use experimental :rakuast;
-    # is no longer necessary to be able to access the RakuAST classes
-    # and their functionality.
-    my constant RakuAST = nqp::getcurhllsym('RakuAST');
-
     # class to be used with Grammar to turn format into array of pieces of code
     class Actions {
         my $knowhow := nqp::knowhow().new_type(:repr("P6bigint"));

@@ -440,11 +440,14 @@ sub emit-package($package) {
 
     for %need-accessor {
         my $method-name := $_.key;
-        my $attr-name := $_.value.name;
+        my $attr-node := $_.value;
+        my $attr-name := $attr-node.name;
+        my $decl-line := $attr-node.line;
         my $op := $_.value.getattr-op;
-        say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{");
-        say("        nqp::" ~ $op ~ "(nqp::decont(\$self), $name, '$attr-name')");
-        say("    });");
+        say("#line ", $decl-line, " ", $*CU.filename);
+        say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{",
+            " nqp::" ~ $op ~ "(nqp::decont(\$self), $name, '$attr-name')",
+            " });");
     }
 
     say("    compose($name);");

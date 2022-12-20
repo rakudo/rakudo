@@ -112,7 +112,11 @@ ORIG
     }
 }
 
+if $*DISTRO.is-win {
+    todo "is-run is having problems on Windows with multi-line code";
+}
 subtest "Backtrace with line directive" => {
+    plan 1;
     temp %*ENV<RAKUDO_RAKUAST> = 1;
     is-run q:to/SCRIPT/,
                 say "ok yet";

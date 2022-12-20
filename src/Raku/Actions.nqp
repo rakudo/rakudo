@@ -33,6 +33,11 @@ role Raku::CommonActions {
     }
 
     method SET-NODE-ORIGIN($/, $node, :$as-key-origin) {
+        # XXX This is a temporary stub to avoid unimplemented nodes. Must be replaced with exception throwing when
+        # RakuAST is considered ready for this.
+        unless nqp::isconcrete($node) {
+            return
+        }
         if nqp::istype($node, self.r('Node')) {
             unless nqp::isconcrete($node.origin) {
                 $node.set-origin(

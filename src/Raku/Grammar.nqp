@@ -451,6 +451,23 @@ role Raku::Common {
             }
         }
     }
+
+    # Provide parent's rule/token @*ORIGIN-NESTINGS to ease and unify creating a stack of key AST nodes.
+    method PARENT-NESTINGS() {
+        # Expect to be called immediately from the nesting token.
+        my $parent-ctx := nqp::ctxcallerskipthunks(nqp::ctxcaller(nqp::ctx()));
+        nqp::getlexreldyn($parent-ctx, '@*ORIGIN-NESTINGS');
+    }
+
+    method key-origin($subrule, *@pos, *%named) {
+        my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
+        my @*ORIGIN-NESTINGS := [];
+        my $rc := self."$subrule"(|@pos, |%named);
+        if $rc {
+            self.actions().key-origin($rc);
+        }
+        $rc
+    }
 }
 
 grammar Raku::Grammar is HLL::Grammar does Raku::Common {
@@ -478,6 +495,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LASTQUOTE := [0,0];                  # for runaway quote detection
         my $*SORRY_REMAINING := 10;               # decremented on each sorry; panic when 0
         my $*BORG := {};                          # who gets blamed for a missing block
+        my $*ORIGIN-SOURCE;                       # where we get source code information from
+        my @*ORIGIN-NESTINGS := [];               # this will be used for the CompUnit object
 
         # Variables used for Pod parsing.
         my $*VMARGIN := 0;
@@ -492,6 +511,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.comp_unit($*CU)
     }
 
+    token comp_unit_stage0 { <?> }
+
     token comp_unit($outer-cu) {
         <.bom>?
 
@@ -501,11 +522,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*R;
         :my $*LITERALS;
         :my $*EXPORT;
+        <.comp_unit_stage0>
         <.lang_setup($outer-cu)>
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
         <load_command_line_modules>
-        <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist')>
+        <statementlist=.key-origin('FOREIGN_LANG', $*MAIN, 'statementlist')>
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         { $*R.leave-scope() }
     }
@@ -545,7 +567,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | $
         | <?before <.[\)\]\}]>>
-        | [ <statement> <.eat_terminator> ]*
+        | [ <statement=.key-origin('statement')> <.eat_terminator> ]*
         ]
         <.set_braid_from(self)>   # any language tweaks must not escape
         <!!{ nqp::rebless($/, self.WHAT); 1 }>
@@ -656,12 +678,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $borg := $*BORG;
         :my $has_mystery := 0; # TODO
         :my $*MULTINESS := '';
+        :my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
+        :my @*ORIGIN-NESTINGS := [];
         { $*BORG := {} }
         [
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
           '{'
-          <statementlist>
+          <statementlist=.key-origin('statementlist')>
           '}'
           <?ENDSTMT>
         || <.missing_block($borg, $has_mystery)>
@@ -677,14 +701,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
         { $*IN_DECL := ''; }
         <.enter-block-scope('Block')>
-        <statementlist>
+        <statementlist=.key-origin('statementlist')>
         <.leave-block-scope>
     }
 
     token enter-block-scope($*SCOPE-KIND) { <?> }
     token leave-block-scope() { <?> }
 
-    proto rule statement_control { <...> }
+    proto rule statement_control {*}
 
     rule statement_control:sym<if> {
         $<sym>=[if|with]<.kok> {}
@@ -2013,15 +2037,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #        <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
 #    }
 
-    proto token routine_declarator { <...> }
+    proto token routine_declarator {*}
     token routine_declarator:sym<sub> {
-        <sym> <.end_keyword> <routine_def('sub')>
+        <sym> <.end_keyword> <routine_def=.key-origin('routine_def', 'sub')>
     }
     token routine_declarator:sym<method> {
-        <sym> <.end_keyword> <method_def('method')>
+        <sym> <.end_keyword> <method_def=.key-origin('method_def', 'method')>
     }
     token routine_declarator:sym<submethod> {
-        <sym> <.end_keyword> <method_def('submethod')>
+        <sym> <.end_keyword> <method_def=.key-origin('method_def', 'submethod')>
     }
 
     rule routine_def($declarator) {

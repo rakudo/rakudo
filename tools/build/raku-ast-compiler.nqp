@@ -64,20 +64,25 @@ grammar RakuASTParser {
         [$<raw>=[is raw]]?
     }
 
+    token sigil {
+        '$' | '@' | '%'
+    }
+
     token nqp-code {
         # We want to do some minor transforms on the NQP code, so just sorta
         # tokenize it. If it's good enough for the C preproc... :-)
         (
         | <name>
         | <attribute>
-        | $<variable>=['$' '*'? <.identifier>]
+        | $<variable>=[<.sigil> '*'? <.identifier>]
         | <string>
         | ['/' <-[/]>+ '/' || '//' || '/' <?before \s* [\d | '$']>] # regex or // operator
         | $<numeric>=[ \d+ ['.' \d*]? [<[eE]> \d+]? ]
-        | $<paren>='(' <nqp-code> [ ')' || <.panic('Missing )')> ]
-        | $<brace>='{' <nqp-code> [ '}' || <.panic('Missing }')> ]
+        | $<paren>='(' <nqp-code> [ ')' || {} <.panic('Missing ) for opening ( at line ' ~ self.line-of($<paren>))> ]
+        | $<brace>='{' <nqp-code> [ '}' || {} <.panic('Missing } for opening { at line ' ~ self.line-of($<brace>))> ]
+        | $<brckt>='[' <nqp-code> [ ']' || {} <.panic('Missing ] for opening [ at line ' ~ self.line-of($<brckt>))> ]
         | <?[\s#]> <ws>
-        || $<other>=[<-[{}()'"\s\w$/]>+] # don't include in LTM as it'd win too much
+        || $<other>=[<-[{}()\[\]'"\s\w$/]>+] # don't include in LTM as it'd win too much
         )*
     }
 
@@ -104,7 +109,7 @@ grammar RakuASTParser {
 
     method panic($message) {
         nqp::die( "$message near '" ~ nqp::substr(self.orig, self.pos, 20) ~ "' at "
-            ~ $*CURRENT-FILE ~ ":" ~ HLL::Compiler.lineof(self.orig, self.pos, :cache))
+            ~ $*CURRENT-FILE ~ ":" ~ HLL::Compiler.lineof(self.target, self.pos, :cache))
     }
 }
 
@@ -295,6 +300,9 @@ class RakuASTActions {
             elsif $<brace> {
                @chunks.push('{' ~ $<nqp-code>.ast ~ '}');
             }
+            elsif $<brckt> {
+               @chunks.push('[' ~ $<nqp-code>.ast ~ ']');
+            }
             else {
                 @chunks.push(~$/);
             }
@@ -432,11 +440,14 @@ sub emit-package($package) {
 
     for %need-accessor {
         my $method-name := $_.key;
-        my $attr-name := $_.value.name;
+        my $attr-node := $_.value;
+        my $attr-name := $attr-node.name;
+        my $decl-line := $attr-node.line;
         my $op := $_.value.getattr-op;
-        say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{");
-        say("        nqp::" ~ $op ~ "(nqp::decont(\$self), $name, '$attr-name')");
-        say("    });");
+        say("#line ", $decl-line, " ", $*CU.filename);
+        say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{",
+            " nqp::" ~ $op ~ "(nqp::decont(\$self), $name, '$attr-name')",
+            " });");
     }
 
     say("    compose($name);");

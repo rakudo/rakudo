@@ -100,6 +100,60 @@ class RakuAST::ImplicitBlockSemanticsProvider is RakuAST::Node {
     }
 }
 
+class RakuAST::ForLoopImplementation is RakuAST::Node {
+    method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
+            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
+        # TODO various optimized forms are possible here
+        self.IMPL-TO-QAST-GENERAL($context, $mode, $after-mode, $source-qast,
+            $body-qast, $label)
+    }
+
+    # The most general, least optimized, form for a `for` loop, which
+    # delegates to `map`.
+    method IMPL-TO-QAST-GENERAL(RakuAST::IMPL::QASTContext $context, str $mode,
+            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label) {
+        # Bind the source into a temporary.
+        my $for-list-name := QAST::Node.unique('for-list');
+        my $bind-source := QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
+            $source-qast
+        );
+
+        # Produce the map call.
+        my $map-call := QAST::Op.new(
+            :op('if'),
+            QAST::Op.new( :op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ) ),
+            QAST::Op.new(
+                :op<callmethod>, :name<map>,
+                QAST::Var.new( :name($for-list-name), :scope('local') ),
+                $body-qast,
+                QAST::IVal.new( :value(1), :named('item') )
+            ),
+            QAST::Op.new(
+                :op<callmethod>, :name<map>,
+                QAST::Op.new(
+                    :op<callmethod>, :name($mode),
+                    QAST::Var.new( :name($for-list-name), :scope('local') )
+                ),
+                $body-qast
+            )
+        );
+        if $label {
+            my $label-qast := $label.IMPL-LOOKUP-QAST($context);
+            $label-qast.named('label');
+            $map-call[1].push($label-qast);
+            $map-call[2].push($label-qast);
+        }
+
+        # Apply after mode to the map result, and we're done.
+        self.IMPL-SET-NODE(
+            QAST::Stmts.new(
+                $bind-source,
+                QAST::Op.new( :op<callmethod>, :name($after-mode), $map-call )), :key)
+    }
+}
+
 # A list of statements, often appearing as the body of a block.
 class RakuAST::StatementList is RakuAST::SinkPropagator {
     has List $!statements;
@@ -119,10 +173,18 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
-        my $stmts := QAST::Stmts.new;
+        my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
         my @statements := $!statements;
         for @statements {
-            $stmts.push($_.IMPL-TO-QAST($context));
+            my $qast := $_.IMPL-TO-QAST($context);
+            my $stmt-orig := $_.origin;
+            if nqp::isconcrete($stmt-orig) && $stmt-orig.is-key {
+                $qast := QAST::Stmt.new(
+                    :node($stmt-orig.as-match),
+                    $qast
+                );
+            }
+            $stmts.push($qast);
         }
         $stmts
     }
@@ -227,7 +289,7 @@ class RakuAST::StatementSequence is RakuAST::StatementList is RakuAST::ImplicitL
             )
         }
         else {
-            my $stmts := QAST::Stmts.new;
+            my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
             for @statements {
                 $stmts.push($_.IMPL-TO-QAST($context));
             }
@@ -705,7 +767,7 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
 
             # Prepend setup code and evaluate to Nil if not sunk.
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $wrapper := QAST::Stmt.new();
+            my $wrapper := self.IMPL-SET-NODE(QAST::Stmt.new(), :key);
             if $!setup {
                 $wrapper.push($!setup.IMPL-TO-QAST($context));
             }
@@ -763,6 +825,7 @@ class RakuAST::Statement::Loop::RepeatUntil is RakuAST::Statement::Loop {
 
 # A for loop.
 class RakuAST::Statement::For is RakuAST::Statement
+                              is RakuAST::ForLoopImplementation
                               is RakuAST::Sinkable is RakuAST::SinkPropagator
                               is RakuAST::BlockStatementSensitive
                               is RakuAST::ImplicitBlockSemanticsProvider {
@@ -825,57 +888,6 @@ class RakuAST::Statement::For is RakuAST::Statement
                 @labels ?? @labels[0] !! RakuAST::Label)
     }
 
-    method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
-            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
-        # TODO various optimized forms are possible here
-        self.IMPL-TO-QAST-GENERAL($context, $mode, $after-mode, $source-qast,
-            $body-qast, $label)
-    }
-
-    # The most general, least optimized, form for a `for` loop, which
-    # delegates to `map`.
-    method IMPL-TO-QAST-GENERAL(RakuAST::IMPL::QASTContext $context, str $mode,
-            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label) {
-        # Bind the source into a temporary.
-        my $for-list-name := QAST::Node.unique('for-list');
-        my $bind-source := QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
-            $source-qast
-        );
-
-        # Produce the map call.
-        my $map-call := QAST::Op.new(
-            :op('if'),
-            QAST::Op.new( :op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ) ),
-            QAST::Op.new(
-                :op<callmethod>, :name<map>,
-                QAST::Var.new( :name($for-list-name), :scope('local') ),
-                $body-qast,
-                QAST::IVal.new( :value(1), :named('item') )
-            ),
-            QAST::Op.new(
-                :op<callmethod>, :name<map>,
-                QAST::Op.new(
-                    :op<callmethod>, :name($mode),
-                    QAST::Var.new( :name($for-list-name), :scope('local') )
-                ),
-                $body-qast
-            )
-        );
-        if $label {
-            my $label-qast := $label.IMPL-LOOKUP-QAST($context);
-            $label-qast.named('label');
-            $map-call[1].push($label-qast);
-            $map-call[2].push($label-qast);
-        }
-
-        # Apply after mode to the map result, and we're done.
-        QAST::Stmts.new(
-            $bind-source,
-            QAST::Op.new( :op<callmethod>, :name($after-mode), $map-call )
-        )
-    }
 
     method visit-children(Code $visitor) {
         $visitor($!source);

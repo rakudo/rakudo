@@ -19,14 +19,45 @@ role Raku::CommonActions {
     # Some AST nodes need symbol resolution or attachment of position information
     # as we go. This factors out that process and attaches the AST to the match
     # object.
-    method attach($/, $node) {
+    method attach($/, $node, :$as-key-origin) {
         if nqp::istype($node, self.r('ImplicitLookups')) {
             $node.resolve-implicit-lookups-with($*R);
         }
         if nqp::istype($node, self.r('Attaching')) {
             $node.attach($*R);
         }
+
+        self.SET-NODE-ORIGIN($/, $node, :$as-key-origin);
+
         make $node;
+    }
+
+    method SET-NODE-ORIGIN($/, $node, :$as-key-origin) {
+        # XXX This is a temporary stub to avoid unimplemented nodes. Must be replaced with exception throwing when
+        # RakuAST is considered ready for this.
+        unless nqp::isconcrete($node) {
+            return
+        }
+        if nqp::istype($node, self.r('Node')) {
+            unless nqp::isconcrete($node.origin) {
+                $node.set-origin(
+                    self.r('Origin').new(
+                        :from($/.from),
+                        :to($/.to),
+                        :source($*ORIGIN-SOURCE)));
+            }
+            if $as-key-origin {
+                my $nestings := @*ORIGIN-NESTINGS;
+                unless nqp::istype($node, self.r('CompUnit')) {
+                    @*PARENT-NESTINGS.push($node)
+                }
+                $node.origin.set-nestings($nestings);
+            }
+        }
+    }
+
+    method key-origin($/) {
+        self.SET-NODE-ORIGIN($/, $/.ast, :as-key-origin);
     }
 
     method quibble($/) {
@@ -64,9 +95,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method lang_setup($/) {
+    method comp_unit_stage0($/) {
         ensure_raku_ast();
+        # Before anything else starts we must be ready to report locations in the source.
+        $*ORIGIN-SOURCE := self.r('Origin', 'Source').new(:orig($/.target()));
+    }
 
+    method lang_setup($/) {
         # Calculate the setting name to use.
         # TODO don't hardcode this
         my $name := 'CORE';
@@ -101,7 +136,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*EXPORT := $export-package;
 
         # Create a compilation unit.
-        my $file := nqp::getlexdyn('$?FILES');
+        my $file := $*ORIGIN-SOURCE.original-file();
         if nqp::isconcrete($outer_ctx) {
             # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
             my $comp-unit-name := nqp::sha1($file ~ $/.target() ~ SerializationContextId.next-id());
@@ -155,7 +190,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
 
-        self.attach: $/, $cu;
+        self.attach: $/, $cu, :as-key-origin;
     }
 
     ##
@@ -234,7 +269,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method blockoid($/) {
-        self.attach: $/, self.r('Blockoid').new($<statementlist>.ast);
+        self.attach: $/, self.r('Blockoid').new($<statementlist>.ast), :as-key-origin;
     }
 
     method unit-block($/) {
@@ -931,7 +966,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<routine_declarator>($/) {
-        self.attach: $/, $<routine_declarator>.ast;
+        self.attach: $/, $<routine_declarator>.ast
     }
 
     method term:sym<multi_declarator>($/) {
@@ -969,7 +1004,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method term:sym<identifier>($/) {
         self.attach: $/, self.r('Call', 'Name').new:
             name => self.r('Name').from-identifier(~$<identifier>),
-            args => $<args>.ast; 
+            args => $<args>.ast;
     }
 
     method term:sym<nqp::const>($/) {
@@ -1021,7 +1056,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 self.attach: $/, self.r('ColonPair', 'Value').new(:$key, :$value);
             }
             elsif $<var> {
-                my $value := $<var>.ast; 
+                my $value := $<var>.ast;
                 self.attach: $/, self.r('ColonPair', 'Variable').new(:$key, :$value);
             }
             elsif $<neg> {
@@ -1123,12 +1158,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, self.r('Var', 'Attribute').new($name);
         }
         elsif $twigil eq '?' {
+            my $origin-source := $*ORIGIN-SOURCE;
             if $name eq '$?FILE' {
-                my str $file := self.current_file();
+                my str $file := $origin-source.original-file();
                 self.attach: $/, self.r('Var', 'Compiler', 'File').new($*LITERALS.intern-str($file));
             }
             elsif $name eq '$?LINE' {
-                my int $line := self.current_line($/);
+                my int $line := $origin-source.original-line($/.from());
                 self.attach: $/, self.r('Var', 'Compiler', 'Line').new($*LITERALS.intern-int($line, 10));
             }
             else {
@@ -1179,21 +1215,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             nqp::die("Lookup with twigil '$twigil' NYI");
         }
-    }
-
-    method current_file() {
-        my $file := nqp::getlexdyn('$?FILES');
-        if nqp::isnull($file) {
-            $file := '<unknown file>';
-        }
-        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
-            $file := nqp::cwd ~ '/' ~ $file;
-        }
-        $file;
-    }
-
-    method current_line($/) {
-        HLL::Compiler.lineof($/.orig,$/.from,:cache(1));
     }
 
     method contextualizer($/) {
@@ -2153,6 +2174,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method pod_block:sym<finish>($/) {
         $*CU.replace-finish-content($*LITERALS.intern-str(~$<finish>));
+    }
+
+    method comment:sym<line_directive>($/) {
+        my $origin-source := $*ORIGIN-SOURCE;
+        $origin-source.register-line-directive(
+            $origin-source.original-line($/.from()),
+            nqp::radix(10, $<line>, 0, 0)[0],
+            $<filename> );
     }
 }
 

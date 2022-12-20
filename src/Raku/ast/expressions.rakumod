@@ -18,6 +18,18 @@ class RakuAST::Expression is RakuAST::Node {
         Nil
     }
 
+    method dump-extras(int $indent) {
+        my $prefix := nqp::x(' ', $indent);
+        my @chunks;
+        self.visit-thunks(-> $thunk {
+            @chunks.push("$prefix🧠 " ~ $thunk.thunk-kind ~ "\n");
+            $thunk.visit-children(-> $child {
+                @chunks.push($child.dump($indent + 2));
+            });
+        });
+        nqp::join('', @chunks)
+    }
+
     method IMPL-QAST-ADD-THUNK-DECL-CODE(RakuAST::IMPL::QASTContext $context, Mu $target) {
         if $!thunks {
             $!thunks.IMPL-THUNK-CODE-QAST($context, $target, self);

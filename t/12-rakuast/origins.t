@@ -9,6 +9,8 @@ use lib $?FILE.IO.parent(2).add('packages');
 use Test;
 use Test::Helpers;
 
+plan 2;
+
 subtest "Locations" => {
     my $origins;
     my $target = q:to/ORIG/;

@@ -1,3 +1,4 @@
+use experimental :rakuast;
 use nqp;
 use NQPP6QRegex:from<NQP>;
 use NQPHLL:from<NQP>;

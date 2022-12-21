@@ -403,41 +403,37 @@ role Raku::Common {
 
     # "when" arg assumes more things will become obsolete after Raku comes out...
     method obs($old, $new, $when = 'in Raku', :$ism = 'p5isms') {
-        # TODO isms
-#        unless $*LANG.pragma($ism) {
+        unless $*LANG.pragma($ism) {
             self.typed_panic: 'X::Obsolete',
                 old         => $old,
                 replacement => $new,
                 when        => $when;
-#        }
+        }
         self;
     }
     method obsvar($name, $identifier-name?) {
-        # TODO isms
-#        unless $*LANG.pragma('p5isms') {
+        unless $*LANG.pragma('p5isms') {
             self.typed_panic: 'X::Syntax::Perl5Var',
               :$name, :$identifier-name;
-#        }
+        }
         self;
     }
     method sorryobs($old, $new, $when = 'in Raku') {
-        # TODO isms
-#        unless $*LANG.pragma('p5isms') {
+        unless $*LANG.pragma('p5isms') {
             self.typed_sorry: 'X::Obsolete',
                 old         => $old,
                 replacement => $new,
                 when        => $when;
-#        }
+        }
         self;
     }
     method worryobs($old, $new, $when = 'in Raku') {
-        # TODO isms
-#        unless $*LANG.pragma('p5isms') {
+        unless $*LANG.pragma('p5isms') {
             self.typed_worry: 'X::Obsolete',
                 old         => $old,
                 replacement => $new,
                 when        => $when;
-#        }
+        }
         self;
     }
 

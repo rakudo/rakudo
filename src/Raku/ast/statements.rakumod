@@ -1304,6 +1304,34 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
             }
             True
         }
+        elsif $name eq 'isms' {
+            my %isms := nqp::hash(
+              'Perl5',   'p5isms',
+              'C++',     'c++isms',
+            );
+            if nqp::islist($arglist) {
+                my @huh;
+                for $arglist -> $ism {
+                    my $pragma := nqp::atkey(%isms, $ism);
+                    if $pragma {
+                        $*LANG.set_pragma($pragma, 1);
+                    }
+                    else {
+                        nqp::push(@huh, $ism)
+                    }
+                }
+                if @huh {
+                    nqp::die("Don't know how to handle: isms <"
+                        ~ nqp::join(" ", @huh)
+                        ~ ">"
+                    );
+                }
+            }
+            else {
+                $*LANG.set_pragma($_.value, 1) for %isms;
+            }
+            True
+        }
         elsif %just_set_pragma{$name} {
             $*LANG.set_pragma($name, 1);
             True

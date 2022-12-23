@@ -183,7 +183,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 @gencat(@nfp(@bpm(BUILD_DIR)@/rakudo-debug.nqp)@:	@nfp(src/rakudo-debug.nqp)@ @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@)@
 
 # compile Raku AST specs into NQP
-@nfp(gen/ast.nqp)@: @bsm(RAKU_AST_SOURCES)@ @nfp(tools/build/raku-ast-compiler.nqp)@
+@nfp(gen/ast.nqp)@: @bsm(RAKU_AST_SOURCES)@ @nfpl(tools/build/raku-ast-compiler.nqp src/Raku/ast/rakuast-prologue.nqp src/Raku/ast/rakuast-epilogue.nqp)@
 	@echo(+++ Generating	$@)@
 	$(NOECHO)@bpm(NQP)@ @nfp(tools/build/raku-ast-compiler.nqp)@ @bsm(RAKU_AST_SOURCES)@ >@nfp(gen/ast.nqp)@
 

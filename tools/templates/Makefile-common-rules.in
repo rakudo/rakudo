@@ -4,11 +4,13 @@
 
 spectest_checkout : @nfp(t/spec)@
 @nfp(t/spec)@:
-	git clone @roast_pull_url@ @nfp(t/spec)@
-	-cd @nfp(t/spec/)@ && git config remote.origin.pushurl @roast_push_url@
+	@echo(+++ Preparing the roast)@
+	$(NOECHO)git clone @roast_pull_url@ @nfp(t/spec)@
+	$(NOECHO)-cd @nfp(t/spec/)@ && git config remote.origin.pushurl @roast_push_url@
 
 spectest_update :
-	-cd @nfp(t/spec)@ && git pull --ff-only
+	@echo(+++ Updating the roast)@
+	$(NOECHO)-cd @nfp(t/spec)@ && git pull --ff-only
 
 @nfp(t/localtest.data)@:
 	$(TEST_F) $@

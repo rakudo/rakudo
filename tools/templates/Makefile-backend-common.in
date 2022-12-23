@@ -217,7 +217,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @comp_rr(@bsm(RAKUDO_BOOTSTRAP_@ucspec@)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/BOOTSTRAP/v6@lcspec@.nqp)@)@ @bsm(RAKUDO_M)@)@
 
-@bsm(SETTING_@ucspec@)@: @bsm(RAKUDO)@ @bsm(RAKUDO_BOOTSTRAP_@ucspec@)@ @bpm(CORE_@ucspec@_SOURCES)@ @bpm(RUN_RAKUDO_SCRIPT)@
+@bsm(SETTING_@ucspec@)@: @bsm(RAKUDO)@ @bsm(RAKUDO_BOOTSTRAP_@ucspec@)@ @bpm(CORE_@ucspec@_SOURCES)@ @bpm(RUN_RAKUDO_SCRIPT)@ @if(lcspec!=c @bsm(SETTING_@ucprevspec@)@)@
 	@echo(+++ Compiling	$@)@
 	$(NOECHO)$(CONFIGURE) --expand @shquot(@ctx_template(core_sources)@)@ \
 			 --out @nfpq(@bpm(BUILD_DIR)@/core_sources.@lcspec@)@ \

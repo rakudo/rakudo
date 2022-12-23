@@ -232,7 +232,7 @@ MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 @backend_prefix@-install-dirs::
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
 
-@backend_prefix@-install-pre::
+@backend_prefix@-install-pre:: 
 	@echo(+++ Removing old files)@
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@ @bpm(RAKUDO_PRECOMPS)@
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@

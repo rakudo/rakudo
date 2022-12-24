@@ -1,5 +1,9 @@
 use nqp;
 
+package EXPORT::rakuast {
+    # Do nothing, just provide the tag.
+}
+
 package EXPORT::cached {
     multi sub trait_mod:<is>(Routine $r, :$cached!) {
         my %cache;

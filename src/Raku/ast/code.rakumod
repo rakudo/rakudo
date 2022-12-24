@@ -351,11 +351,12 @@ class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta is RakuAST::Beg
             str :$blocktype, RakuAST::Expression :$expression!) {
         # From the block, compiling the signature.
         my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
-        my $block := QAST::Block.new(
-            :blocktype('declaration_static'),
-            QAST::Stmts.new(
-                $signature.IMPL-QAST-BINDINGS($context)
-            ));
+        my $block :=
+            self.IMPL-SET-NODE(
+                QAST::Block.new(
+                    :blocktype('declaration_static'),
+                    QAST::Stmts.new( $signature.IMPL-QAST-BINDINGS($context) )),
+                :key);
         $block.arity($signature.arity);
 
         # If there's an inner thunk the body evaluates to that.
@@ -1064,11 +1065,13 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
-        my $block := QAST::Block.new(
-            :name(self.name ?? self.name.canonicalize !! ''),
-            :blocktype('declaration_static'),
-            self.IMPL-QAST-DECLS($context)
-        );
+        my $block :=
+            self.IMPL-SET-NODE(
+                QAST::Block.new(
+                    :name(self.name ?? self.name.canonicalize !! ''),
+                    :blocktype('declaration_static'),
+                    self.IMPL-QAST-DECLS($context)
+                ), :key);
         my $signature := self.placeholder-signature || $!signature;
         $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args)));
         $block.custom_args(1) if self.custom-args;
@@ -1129,7 +1132,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
         my $name := self.lexical-name;
         if $name && (self.scope eq 'our' || self.scope eq 'unit') {
-            my $stmts := QAST::Stmts.new();
+            my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new(), :key);
             $stmts.push($block);
             $stmts.push(QAST::Op.new(
                 :op('bindkey'),
@@ -1409,15 +1412,16 @@ class RakuAST::RegexDeclaration is RakuAST::Methodish {
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
-        QAST::Stmts.new(
-            # Regex compiler wants a local named "self"
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
-                QAST::Var.new( :scope('lexical'), :name('self') )
-            ),
-            $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
-        )
+        self.IMPL-SET-NODE(
+            QAST::Stmts.new(
+                # Regex compiler wants a local named "self"
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
+                    QAST::Var.new( :scope('lexical'), :name('self') )
+                ),
+                $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
+            ), :key)
     }
 }
 
@@ -1788,13 +1792,14 @@ class RakuAST::Substitution is RakuAST::RegexThunk is RakuAST::QuotedMatchConstr
         # coercion in the call to .match also).
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $topic-str-var := QAST::Node.unique('subst_topic_str');
-        my $result := QAST::Stmts.new:
-            QAST::Op.new:
-                :op('bind'),
-                QAST::Var.new( :decl('var'), :scope('local'), :name($topic-str-var) ),
+        my $result := self.IMPL-SET-NODE(
+            QAST::Stmts.new(
                 QAST::Op.new:
-                    :op('callmethod'), :name('Str'),
-                    @lookups[0].IMPL-TO-QAST($context);
+                    :op('bind'),
+                    QAST::Var.new( :decl('var'), :scope('local'), :name($topic-str-var) ),
+                    QAST::Op.new:
+                        :op('callmethod'), :name('Str'),
+                        @lookups[0].IMPL-TO-QAST($context) ), :key);
 
         # Compile the call to match the regex against the stringified topic,
         # binding it into a result variable. While emitting adverbs, take

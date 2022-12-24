@@ -60,6 +60,7 @@ my class Backtrace::Frame {
     }
     method is-setting(Backtrace::Frame:D:) {
         $!file.starts-with("SETTING::")
+          || $!file.starts-with("NQP::")
 #?if jvm
           || $!file ~~ / "CORE." \w+ ".setting" $ /
 #?endif
@@ -170,7 +171,10 @@ my class Backtrace {
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp')
                  || $file.ends-with('Perl6/Ops.nqp');
-            if $file.ends-with('NQPHLL.nqp') || $file.ends-with('NQPHLL.moarvm') {
+            if $file.ends-with('NQPHLL.nqp')
+                || $file.ends-with('NQPHLL.moarvm')
+                || $file.starts-with('NQP::')
+            {
                 # This could mean we're at the end of the interesting backtrace,
                 # or it could mean that we're in something like sprintf (which
                 # uses an NQP grammar to parse the format string).
@@ -180,7 +184,7 @@ my class Backtrace {
                     next unless $annotations;
                     my $file := $annotations<file>;
                     next unless $file;
-                    if $file.starts-with('SETTING::') {
+                    if $file.starts-with('SETTING::') && !$file.ends-with('.nqp') {
                         $!bt-next--; # re-visit this frame
                         last;
                     }
@@ -196,33 +200,27 @@ my class Backtrace {
                 $!bt-next = $elems;
                 last;
             }
+            elsif $name ne '<unit-outer>' {
+                my $code;
+                try {
+                    $code := nqp::getcodeobj($do);
+                    $code := Any unless nqp::istype($code, Mu);
+                };
 
-            my $code;
-            try {
-                $code := nqp::getcodeobj($do);
-                $code := Any unless nqp::istype($code, Mu);
-            };
+                nqp::push($!frames,
+                    Backtrace::Frame.new(
+                        $file,
+                        $line.Int,
+                        $code,
+                        $name.starts-with("_block") ?? '<anon>' !! $name ));
+            }
 
-            nqp::push($!frames,
-              Backtrace::Frame.new(
-                $file,
-                $line.Int,
-                $code,
-                $name.starts-with("_block") ?? '<anon>' !! $name,
-              )
-            );
             last unless $todo = $todo - 1;
         }
 
         # found something
         if nqp::existspos($!frames,$pos) {
             nqp::atpos($!frames,$pos);
-        }
-
-        # we've reached the end, don't show the last <unit-outer> if there is one
-        else {
-            nqp::pop($!frames) if $!frames;
-            Nil;
         }
     }
 

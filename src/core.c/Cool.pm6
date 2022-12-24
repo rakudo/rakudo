@@ -40,7 +40,11 @@ my class Cool { # declared in BOOTSTRAP
     multi method log(Cool:D: )      { self.Numeric.log          }
     multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
 
-    method Order(Cool:D:) { ORDER(self.Int) }
+    method Order(Cool:D:) {
+        nqp::istype((my $value := self.Int),Failure)
+          ?? $value
+          !! ORDER($value)
+    }
 
     proto method exp(|) {*}
     multi method exp(Cool:D: )      { self.Numeric.exp          }

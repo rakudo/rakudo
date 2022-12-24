@@ -20,14 +20,16 @@ grammar RakuASTParser {
     }
 
     proto rule package {*}
-    rule package:sym<class> {
-        'class' <name> {}
-        :my $*CLASS := ~$<name>;
+    rule package:sym<class> { <sym> <package-def('class')> }
+
+    rule package-def($*PKGDECL) {
+        <name> {}
+        :my $*PACKAGE-NAME := ~$<name>;
         :my %*ATTRS;
         [ 'is' <parent=.name> ]*
-        '{'
+        [ '{' || <.panic("Missing block in $*PKGDECL $*PACKAGE-NAME declaration")> ]
         [ <attribute-decl> | <method-decl> ]*
-        [ '}' || <.panic('Missing }')> ]
+        [ '}' || <.panic("Missing '}' in $*PKGDECL $*PACKAGE-NAME declaration")> ]
     }
 
     rule attribute-decl {
@@ -40,10 +42,16 @@ grammar RakuASTParser {
     }
 
     rule method-decl {
-        'method' <name=.identifier> <signature>?
-        [ '{' || <.panic('Missing opening { of method')> ]
+        'method' <name=.identifier> {}
+        :my $*METHOD-NAME := ~$<name>;
+         <signature>?
+         <method-body>
+    }
+
+    token method-body {
+        [ '{' || <.panic("Missing block in method '$*METHOD-NAME' declaration")> ]
         <nqp-code>
-        [ '}' || <.panic('Missing }')> ]
+        [ '}' || <.panic("Missing '}' in method '$*METHOD-NAME' declaration")> ]
     }
 
     rule signature {
@@ -56,20 +64,25 @@ grammar RakuASTParser {
         [$<raw>=[is raw]]?
     }
 
+    token sigil {
+        '$' | '@' | '%'
+    }
+
     token nqp-code {
         # We want to do some minor transforms on the NQP code, so just sorta
         # tokenize it. If it's good enough for the C preproc... :-)
         (
         | <name>
         | <attribute>
-        | $<variable>=['$' '*'? <.identifier>]
+        | $<variable>=[<.sigil> '*'? <.identifier>]
         | <string>
         | ['/' <-[/]>+ '/' || '//' || '/' <?before \s* [\d | '$']>] # regex or // operator
         | $<numeric>=[ \d+ ['.' \d*]? [<[eE]> \d+]? ]
-        | $<paren>='(' <nqp-code> [ ')' || <.panic('Missing )')> ]
-        | $<brace>='{' <nqp-code> [ '}' || <.panic('Missing }')> ]
+        | $<paren>='(' <nqp-code> [ ')' || {} <.panic('Missing ) for opening ( at line ' ~ self.line-of($<paren>))> ]
+        | $<brace>='{' <nqp-code> [ '}' || {} <.panic('Missing } for opening { at line ' ~ self.line-of($<brace>))> ]
+        | $<brckt>='[' <nqp-code> [ ']' || {} <.panic('Missing ] for opening [ at line ' ~ self.line-of($<brckt>))> ]
         | <?[\s#]> <ws>
-        || $<other>=[<-[{}()'"\s\w$/]>+] # don't include in LTM as it'd win too much
+        || $<other>=[<-[{}()\[\]'"\s\w$/]>+] # don't include in LTM as it'd win too much
         )*
     }
 
@@ -95,20 +108,28 @@ grammar RakuASTParser {
     }
 
     method panic($message) {
-        nqp::die("$message near '" ~ nqp::substr(self.orig, self.pos, 20) ~ "'")
+        nqp::die( "$message near '" ~ nqp::substr(self.orig, self.pos, 20) ~ "' at "
+            ~ $*CURRENT-FILE ~ ":" ~ HLL::Compiler.lineof(self.target, self.pos, :cache))
     }
 }
 
 # AST
 
-role Node { }
-
-class CompUnit {
-    has @!packages;
-    method packages() { @!packages }
+role Node {
+    has $!line;
+    method line() { $!line }
+    method set-line($line) { $!line := $line; }
 }
 
-class Package {
+class CompUnit does Node {
+    has @!packages;
+    has $!filename;
+    method packages() { @!packages }
+    method filename() { $!filename }
+}
+
+class Package does Node {
+    has $!type; # only 'class' for now, could be 'role' too
     has $!name;
     has @!parents;
     has @!attributes;
@@ -119,7 +140,7 @@ class Package {
     method methods() { @!methods }
 }
 
-class Attribute {
+class Attribute does Node {
     has $!type;
     has $!name;
     has $!has-accessor;
@@ -134,7 +155,7 @@ class Attribute {
     }
 }
 
-class Method {
+class Method does Node {
     has $!name;
     has @!parameters;
     has $!body;
@@ -143,7 +164,7 @@ class Method {
     method body() { $!body }
 }
 
-class Parameter {
+class Parameter does Node {
     has $!type;
     has $!slurpy;
     has $!named;
@@ -158,18 +179,31 @@ class Parameter {
     method raw() { $!raw }
 }
 
+class NQPCode does Node {
+    has $!body;
+    method body() { $!body }
+    method Str() { $!body }
+}
+
 # AST-building actions
 
 class RakuASTActions {
+    method attach($/, $node) {
+        $node.set-line(HLL::Compiler.lineof($/.target, $/.from, :cache));
+        make $node;
+    }
+
     method TOP($/) {
         my @packages;
         for $<package> {
             @packages.push($_.ast);
         }
-        make CompUnit.new(:@packages);
+        self.attach($/, CompUnit.new(:@packages, :filename($*CURRENT-FILE)));
     }
 
-    method package:sym<class>($/) {
+    method package:sym<class>($/) { make $<package-def>.ast }
+
+    method package-def($/) {
         my $name := ~$<name>;
         my @parents;
         for $<parent> {
@@ -183,7 +217,7 @@ class RakuASTActions {
         for $<method-decl> {
             @methods.push($_.ast);
         }
-        make Package.new(:$name, :@parents, :@attributes, :@methods);
+        self.attach($/, Package.new(:type($*PKGDECL), :$name, :@parents, :@attributes, :@methods));
     }
 
     method attribute-decl($/) {
@@ -198,14 +232,18 @@ class RakuASTActions {
             $attr := Attribute.new(:$type, :$name, :has-accessor);
         }
         %*ATTRS{$attr.name} := $attr;
-        make $attr;
+        self.attach($/, $attr);
     }
 
     method method-decl($/) {
         my $name := ~$<name>;
         my @parameters := $<signature> ?? $<signature>.ast !! [];
-        my $body := $<nqp-code>.ast;
-        make Method.new(:$name, :@parameters, :$body);
+        my $body := $<method-body>.ast;
+        self.attach($/, Method.new(:$name, :@parameters, :$body));
+    }
+
+    method method-body($/) {
+        make $<nqp-code>.ast
     }
 
     method signature($/) {
@@ -225,7 +263,7 @@ class RakuASTActions {
             ?? ($<optional> eq '!' ?? 0 !! 1)
             !! ($<optional> eq '?' ?? 1 !! 0);
         my $raw := ?$<raw>;
-        make Parameter.new(:$type, :$named, :$slurpy, :$name, :$optional, :$raw);
+        self.attach($/, Parameter.new(:$type, :$named, :$slurpy, :$name, :$optional, :$raw));
     }
 
     method nqp-code($/) {
@@ -247,10 +285,10 @@ class RakuASTActions {
             elsif $<attribute> {
                 my $name := ~$<attribute>;
                 if %*ATTRS{$name} -> $attr {
-                    @chunks.push("nqp::" ~ $attr.getattr-op ~ "(\$SELF, $*CLASS, '$name')");
+                    @chunks.push("nqp::" ~ $attr.getattr-op ~ "(\$SELF, $*PACKAGE-NAME, '$name')");
                 }
                 else {
-                    $/.panic("No such attribute $name in $*CLASS");
+                    $/.panic("No such attribute $name in $*PACKAGE-NAME");
                 }
             }
             elsif $<string> {
@@ -262,11 +300,14 @@ class RakuASTActions {
             elsif $<brace> {
                @chunks.push('{' ~ $<nqp-code>.ast ~ '}');
             }
+            elsif $<brckt> {
+               @chunks.push('[' ~ $<nqp-code>.ast ~ ']');
+            }
             else {
                 @chunks.push(~$/);
             }
         }
-        make nqp::join("", @chunks);
+        self.attach($/, NQPCode.new(:body(nqp::join("", @chunks))));
     }
 
     method string($/) {
@@ -284,6 +325,8 @@ sub MAIN(*@files) {
     my @compunits;
     nqp::shift(@files); # first arg is this script
     for @files {
+        my $*CURRENT-FILE := $_;
+        my $*LINEPOSCACHE;
         my $source := slurp($_);
         @compunits.push(RakuASTParser.parse($source, actions => RakuASTActions).ast);
     }
@@ -295,6 +338,7 @@ sub MAIN(*@files) {
     say('BEGIN {');
     emit-mop-utils();
     for @compunits {
+        my $*CU := $_;
         for $_.packages {
             emit-package($_);
         }
@@ -396,11 +440,14 @@ sub emit-package($package) {
 
     for %need-accessor {
         my $method-name := $_.key;
-        my $attr-name := $_.value.name;
+        my $attr-node := $_.value;
+        my $attr-name := $attr-node.name;
+        my $decl-line := $attr-node.line;
         my $op := $_.value.getattr-op;
-        say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{");
-        say("        nqp::" ~ $op ~ "(nqp::decont(\$self), $name, '$attr-name')");
-        say("    });");
+        say("#line ", $decl-line, " ", $*CU.filename);
+        say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{",
+            " nqp::" ~ $op ~ "(nqp::decont(\$self), $name, '$attr-name')",
+            " });");
     }
 
     say("    compose($name);");
@@ -433,6 +480,7 @@ sub emit-method($package, $method) {
     for @params-decont {
         say("        $_");
     }
+    say("#line " ~ $method.body.line ~ " " ~ $*CU.filename);
     say("        " ~ $method.body);
     say("    });");
 }

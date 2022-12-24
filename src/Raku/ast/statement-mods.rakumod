@@ -175,9 +175,11 @@ class RakuAST::StatementModifier::Given is RakuAST::StatementModifier::Loop {
 }
 
 # The for statement modifier.
-class RakuAST::StatementModifier::For is RakuAST::StatementModifier::Loop {
+class RakuAST::StatementModifier::For is RakuAST::StatementModifier::Loop
+                                      is RakuAST::ForLoopImplementation {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
-        RakuAST::Statement::For.IMPL-FOR-QAST($context, 'serial',
+        self.IMPL-FOR-QAST(
+            $context, 'serial',
             ($sink ?? 'sink' !! 'eager'),
             self.expression.IMPL-TO-QAST($context),
             $statement-qast)

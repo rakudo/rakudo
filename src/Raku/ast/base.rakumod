@@ -1,5 +1,7 @@
 # The base of all RakuAST nodes.
 class RakuAST::Node {
+    has RakuAST::Origin $.origin;
+
     # What type does evaluating this node produce, if known?
     method type() { Mu }
 
@@ -47,6 +49,36 @@ class RakuAST::Node {
     # resolver.
     method resolve-all(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-CHECK($resolver, $context, True);
+    }
+
+    method set-origin(RakuAST::Origin $origin) {
+        nqp::bindattr(self, RakuAST::Node, '$!origin', $origin);
+    }
+
+    # Find the narrowest key origin node for an original position
+    method locate-node(int $pos, int $to?, :$key) {
+        return Nil unless nqp::isconcrete($!origin)
+                            && $pos >= $!origin.from && $pos < $!origin.to
+                            && (!nqp::isconcrete($to) || $to <= $!origin.to);
+
+        if $key && !$!origin.is-key {
+            nqp::die("Only a key node can search for key nodes")
+        }
+        if $key {
+            my @nestings := $!origin.nestings;
+            for @nestings {
+                my $cand := $_.locate-node($pos, $to, :key);
+                return $cand if nqp::isconcrete($cand);
+            }
+        }
+        else {
+            self.visit-children(-> $child {
+                my $cand := $child.locate-node($pos, $to);
+                return $cand if nqp::isconcrete($cand);
+            });
+        }
+        # If no nested key node gave a match then we are the one.
+        self
     }
 
     # Perform CHECK-time activities on this node.
@@ -188,28 +220,71 @@ class RakuAST::Node {
         }
     }
 
-    method dump(int $indent?) {
-        my str $prefix := nqp::x(' ', $indent);
-        my $name := nqp::substr(self.HOW.name(self), nqp::chars('RakuAST::'));
-
+    method dump-markers() {
         my @markers;
         @markers.push('⚓') if nqp::istype(self, RakuAST::Sinkable) && self.sunk;
         @markers.push('▪') if nqp::istype(self, RakuAST::BlockStatementSensitive) && self.is-block-statement;
-        my $markers := @markers ?? ' ' ~ nqp::join('', @markers) !! '';
-
-        my $dump := "$prefix$name$markers\n";
-        if nqp::istype(self, RakuAST::Expression) {
-            self.visit-thunks(-> $thunk {
-                $dump := "$dump$prefix  🧠 " ~ $thunk.thunk-kind ~ "\n";
-                $thunk.visit-children(-> $child {
-                    $dump := $dump ~ $child.dump($indent + 4);
-                });
-            });
+        if nqp::isconcrete($!origin) {
+            @markers.push('𝄞') if $!origin.is-key();
         }
+        nqp::join('', @markers)
+    }
+
+    # Dump any extra information about the node if there is any and when it doesn't fit into the primary line. Extras
+    # are placed below the line and are expected to respect the indentation level provided with $indent and be
+    # terminated with a new line. See RakuAST::Expression.dump-extras() as a reference implementation.
+    method dump-extras(int $indent) { '' }
+
+    method dump-children(int $indent) {
+        my @chunks;
         self.visit-children(-> $child {
-            $dump := $dump ~ $child.dump($indent + 2);
+            @chunks.push($child.dump($indent));
         });
-        $dump
+        nqp::join('', @chunks)
+    }
+
+    method dump-origin() {
+        my @chunks;
+        if nqp::isconcrete($!origin) {
+            my $from := $!origin.from;
+            my $orig-source := $!origin.source;
+            if $!origin.is-key {
+                my @location := $orig-source.location-of-pos($from);
+                @chunks.push(@location[2] ~ ':' ~ @location[0]);
+            }
+
+            my $src := nqp::escape(nqp::substr($orig-source.orig, $from, $!origin.to - $from));
+            if nqp::chars($src) > 50 {
+                $src := nqp::substr($src, 0, 49) ~ '…';
+            }
+            @chunks.push(' ⎡');
+            @chunks.push($src ~ '⎤');
+        }
+        nqp::join('', @chunks)
+    }
+
+    method dump(int $indent?) {
+        my @chunks := [
+            nqp::x(' ', $indent),
+            nqp::substr(self.HOW.name(self), nqp::chars('RakuAST::'))
+        ];
+
+        if (my $markers := self.dump-markers()) {
+            @chunks.push(' ' ~ $markers);
+        }
+
+        if (my $origin := self.dump-origin()) {
+            @chunks.push(' ' ~ $origin);
+        }
+
+        @chunks.push("\n");
+        if (my $extras := self.dump-extras($indent + 2)) {
+            @chunks.push($extras);
+        }
+        if (my $children := self.dump-children($indent + 2)) {
+            @chunks.push($children);
+        }
+        nqp::join('', @chunks)
     }
 
     # Hook into the Raku RakuAST::Deparse class (by default) or any other
@@ -223,7 +298,7 @@ class RakuAST::Node {
 
     method IMPL-SORTED-KEYS(Mu $hash) {
         # Due to these classes being pieced together at compile time we can't
-        # reach the sorted_hash sub in the NQP setting, so it's copied here. 
+        # reach the sorted_hash sub in the NQP setting, so it's copied here.
         my @keys;
         for $hash {
             nqp::push(@keys, $_.key);
@@ -294,6 +369,26 @@ class RakuAST::Node {
                 QAST::Var.new( :name($temporary), :scope('local') )
             )
         )
+    }
+
+    # Set QAST .node() from the origin. With :key named argument the narrowest parent key node would be used instead
+    # of node's own .origin.
+    # Origin information is not critical to the overall compilation process. Therefore no exceptions are thrown and any
+    # absence of information is treated as irrelevant. The only possible case when this dies is when key node is not
+    # found. But this is only possible as a side effect of a worse error somewhere else.
+    method IMPL-SET-NODE(Mu $qast, :$key) {
+        my $orig := self.origin;
+        if nqp::isconcrete($orig) {
+            if $key && !$orig.is-key {
+                my $comp-unit := $*CU;
+                if nqp::isconcrete($comp-unit) {
+                    my $key-node := $comp-unit.locate-node($orig.from, $orig.to, :key);
+                    $orig := $key-node.origin if nqp::isconcrete($key-node);
+                }
+            }
+            $qast.node($orig.as-match);
+        }
+        $qast
     }
 }
 

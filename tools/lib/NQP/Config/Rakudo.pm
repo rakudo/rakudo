@@ -801,7 +801,6 @@ sub _specs_iterate {
                 },
                 File::Spec->catdir( $base_dir, "src" )
             );
-            push @all_sources, 'gen/nqp-version';
         }
         return @all_sources;
     }

@@ -2,13 +2,13 @@
 
 #.NOTPARALLEL:
 
-spectest_checkout : @nfp(t/spec)@
+spectest_checkout: @nfp(t/spec)@
 @nfp(t/spec)@:
 	@echo(+++ Preparing the roast)@
 	$(NOECHO)git clone @roast_pull_url@ @nfp(t/spec)@
 	$(NOECHO)-cd @nfp(t/spec/)@ && git config remote.origin.pushurl @roast_push_url@
 
-spectest_update :
+spectest_update:
 	@echo(+++ Updating the roast)@
 	$(NOECHO)-cd @nfp(t/spec)@ && git pull --ff-only
 
@@ -16,7 +16,7 @@ spectest_update :
 	$(TEST_F) $@
 
 realclean: clean
-	$(RM_F) Makefile config.status MANIFEST gen/nqp-version
+	$(RM_F) Makefile config.status MANIFEST
 	$(RM_RF) @nfpl(lib/.precomp/ t/04-nativecall/.precomp/ gen/build_rakudo_home/)@
 
 

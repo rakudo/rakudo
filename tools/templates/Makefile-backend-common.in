@@ -146,23 +146,23 @@
 	@bpm(HARNESS5)@ $(COMMON_TEST_DIRS) @bsm(SPECIFIC_TEST_DIRS)@
 
 # Run the spectests that we know work.
-@backend_prefix@-spectest5: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-spectest5: @backend_prefix@-testable
 	@bpm(HARNESS5_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA)
 
 # Run the spectests that we know work after precompiling them.
-@backend_prefix@-spectest5_precompile: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-spectest5_precompile: @backend_prefix@-testable
 	@bpm(HARNESS5_WITH_FUDGE)@ --precompile --tests-from-file=$(SPECTEST_DATA)
 
 @backend_prefix@-spectest_full5: @backend_prefix@-testable
 	@bpm(HARNESS5_WITH_FUDGE)@ @nfp(t/spec)@
 
-@backend_prefix@-quicktest5: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-quicktest5: @backend_prefix@-testable
 	@bpm(HARNESS5_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --quick
 
-@backend_prefix@-stresstest5: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-stresstest5: @backend_prefix@-testable
 	@bpm(HARNESS5_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --stress
 
-@backend_prefix@-testable : @backend_prefix@-all spectest_checkout spectest_update
+@backend_prefix@-testable: spectest_update
 
 # --- Main rules ---
 

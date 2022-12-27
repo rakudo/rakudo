@@ -52,8 +52,6 @@
 	@echo(+++ Linting @uc(@backend@)@ runtime)@
 	$(NOECHO)gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@
 
-#js-testable: js-all spectest_checkout spectest_update
-
 @backend_prefix@-spectest5: @backend_prefix@-testable
 	$(PERL5) t/harness5 --fudge --js --keep-exit-code --tests-from-file=@nfp(t/spectest.js.data)@
 

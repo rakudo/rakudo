@@ -195,33 +195,33 @@ MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 
 # No sense in moving this into Makefile-backend-common.in because moar backend
 # is the only one supporting harness6
-@backend_prefix@-test6   : @backend_prefix@-coretest6
+@backend_prefix@-test6: @backend_prefix@-coretest6
 
 @backend_prefix@-coretest6: @backend_prefix@-all
 	@bpm(HARNESS6)@ $(COMMON_TEST_DIRS) @bsm(SPECIFIC_TEST_DIRS)@
 
 # Run the spectests that we know work.
-@backend_prefix@-spectest6: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-spectest6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA)
 
 @backend_prefix@-spectest_full6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ @nfp(t/spec)@
 
-@backend_prefix@-quicktest6: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-quicktest6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --quick
 
-@backend_prefix@-stresstest6: @backend_prefix@-testable $(SPECTEST_DATA)
+@backend_prefix@-stresstest6: @backend_prefix@-testable
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=$(SPECTEST_DATA) --stress
 
 #spectest_smolder: rakudo_test_run.tar.gz
 #	./perl6 -e "shell qqx[git log -1 --pretty=format:%H].fmt(qq[curl -F architecture=@cpuarch@ -F platform=@osname@ -F revision=%s -F report_file=@rakudo_test_run.tar.gz -F username=parrot-autobot -F password=qa_rocks http://smolder.parrot.org/app/projects/process_add_report/5])"
 
 # Run the tests in t/localtest.data
-@backend_prefix@-localtest: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest: @backend_prefix@-all spectest_update @nfp(t/localtest.data)@
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@
 
 # Run the tests in t/localtest.data with a higher verbosity
-@backend_prefix@-localtest_loud: @backend_prefix@-all spectest_checkout @nfp(t/localtest.data)@
+@backend_prefix@-localtest_loud: @backend_prefix@-all spectest_update @nfp(t/localtest.data)@
 	@bpm(HARNESS6_WITH_FUDGE)@ --tests-from-file=@nfp(t/localtest.data)@ --verbosity=1
 
 # Run many tests of your choice.

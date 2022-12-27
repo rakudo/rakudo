@@ -1,5 +1,5 @@
 src/Perl6/bootstrap.c/BOOTSTRAP.nqp
 src/Perl6/bootstrap.c/EXPORTHOW.nqp
-gen/ast.nqp
+gen/@backend@/ast.nqp
 @if(backend==moar
 src/vm/moar/dispatchers.nqp)@

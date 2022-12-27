@@ -97,7 +97,7 @@
 @bsv(RAKUDO_DEBUG)@ = rakudo-debug.@bext@
 
 @bpv(SOURCE_DIGEST_FILES)@ = \
-	@bpm(NQP_VERSION_FILE)@ \
+    @bpm(NQP_VERSION_FILE)@ \
     @source_digest_files()@
 
 @bpv(CLEANUPS_ALL)@ = \

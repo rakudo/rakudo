@@ -523,6 +523,10 @@ class RakuAST::Deparse {
         $ast.value.raku
     }
 
+    multi method deparse(RakuAST::Label:D $ast --> str) {
+        $ast.name ~ ':'
+    }
+
     multi method deparse(RakuAST::MetaInfix::Assign:D $ast --> str) {
         nqp::concat(self.deparse($ast.infix),'=')
     }

@@ -29,7 +29,6 @@ RakuAST::ExpressionThunk
 RakuAST::ForLoopImplementation
 RakuAST::FunctionInfix
 RakuAST::Heredoc
-RakuAST::Label
 RakuAST::Name::Part::Empty
 RakuAST::Name::Part::Expression
 RakuAST::OnlyStar

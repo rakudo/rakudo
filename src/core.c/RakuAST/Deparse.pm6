@@ -100,7 +100,7 @@ class RakuAST::Deparse {
 
     # Base class catcher
     multi method deparse(RakuAST::Node:D $ast) {
-        X::NYI.new(feature => "Deparsing $ast.^name() objects").throw
+        NYI("Deparsing $ast.^name() objects").throw
     }
 
     # Odd value catcher, avoiding long dispatch options in error message
@@ -227,7 +227,7 @@ class RakuAST::Deparse {
           $parts,
           nqp::ifnull(
             nqp::atkey($processor-attribute,$_),
-            X::NYI.new(feature => "String processors '$_'").throw
+            NYI("String processors '$_'").throw
           )
         ) for @processors;
 
@@ -722,9 +722,7 @@ class RakuAST::Deparse {
                 nqp::concat(
                   nqp::ifnull(
                     nqp::atkey($single-processor-prefix,$processor),
-                    X::NYI.new(
-                      feature => "Quoted string processor '$processor'"
-                    ).throw
+                    NYI("Quoted string processor '$processor'").throw
                   ),
                   nqp::concat($string,'/')
                 )

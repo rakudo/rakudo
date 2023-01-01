@@ -1198,15 +1198,37 @@ class RakuAST::Statement::No is RakuAST::Statement is RakuAST::BeginTime
     }
 }
 
+class RakuAST::Categorical {
+    has Str $.category;
+    has Str $.opname;
+    has Str $.subname;
+    has RakuAST::Declaration $.declarand;
+
+    method new(Str :$category!, Str :$opname!, Str :$subname!, RakuAST::Declaration :$declarand!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Categorical, '$!category', $category);
+        nqp::bindattr($obj, RakuAST::Categorical, '$!opname', $opname);
+        nqp::bindattr($obj, RakuAST::Categorical, '$!subname', $subname);
+        nqp::bindattr($obj, RakuAST::Categorical, '$!declarand', $declarand);
+        $obj
+    }
+
+    method canname {
+        $!category ~ ':sym' ~ RakuAST::ColonPairish.IMPL-QUOTE-VALUE($!opname);
+    }
+}
+
 # A use statement.
 class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
                               is RakuAST::ImplicitLookups {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
+    has List $!categoricals;
 
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!categoricals', []);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
             $argument // RakuAST::Expression);
         $obj
@@ -1216,6 +1238,10 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
         ])
+    }
+
+    method categoricals() {
+        self.IMPL-WRAP-LIST($!categoricals)
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1372,9 +1398,19 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
             if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
                 $value := nqp::decont($value);
             }
-            $target-scope.merge-generated-lexical-declaration:
-                RakuAST::Declaration::Import.new:
+            my $declarand := RakuAST::Declaration::Import.new:
                     :lexical-name($key), :compile-time-value($value);
+            $target-scope.merge-generated-lexical-declaration: $declarand;
+
+            my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
+            if $categorical {
+                nqp::push($!categoricals, RakuAST::Categorical.new(
+                    :category($categorical[0]),
+                    :opname($categorical[1]),
+                    :subname(nqp::substr($key, 1)),
+                    :$declarand
+                ));
+            }
         }
     }
 

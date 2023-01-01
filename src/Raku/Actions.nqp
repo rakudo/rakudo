@@ -403,6 +403,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                )
             !! self.r('Statement', 'Use').new(module-name => $<module_name>.ast);
         $ast.ensure-begin-performed($*R, $*CU.context);
+        for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
+            $/.add-categorical($_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
+        }
         self.attach: $/, $ast;
     }
 

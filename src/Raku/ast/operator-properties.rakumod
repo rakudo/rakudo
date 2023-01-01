@@ -36,6 +36,10 @@ class OperatorProperties {
         $obj
     }
 
+    method new-compat(str :$prec, str :$assoc, str :$thunky, int :$iffy, int :$diffy, int :$fiddly, str :$dba, str :$nextterm, str :$sub, *%_) {
+        self.new(:precedence($prec), :associative($assoc), :$thunky, :$iffy, :$diffy, :$fiddly, :$dba, :next-term($nextterm), :sub-precedence($sub))
+    }
+
     # Accessors
     method precedence()     { nqp::defined(self) ?? $!precedence     !! "" }
     method sub-precedence() { nqp::defined(self) ?? $!sub-precedence !! "" }

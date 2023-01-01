@@ -4,6 +4,7 @@ use NQPP5QRegex;
 # The AST nodes come from the Raku setting bootstrap, thus we need to load
 # them from there.
 my $ast_root;
+my $operator_properties;
 sub ensure_raku_ast() {
     unless nqp::isconcrete($ast_root) {
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
@@ -12,6 +13,7 @@ sub ensure_raku_ast() {
         $ast_root := nqp::existskey($export, 'RakuAST')
                 ?? nqp::atkey($export, 'RakuAST').WHO
                 !! nqp::die('Cannot find RakuAST nodes');
+        $operator_properties := nqp::atkey($export, 'OperatorProperties');
     }
 }
 
@@ -791,7 +793,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<infix> {
             $ast := $<infix>.ast;
             unless $ast || $<infix><sym> eq '??' {
-                $ast := self.r('Infix').new(~$<infix>);
+                my %prec := $<infix><O>.ast;
+                $ast := self.r('Infix').new(~$<infix>, :properties($operator_properties.new-compat(|%prec)));
             }
         }
         elsif $<infix_prefix_meta_operator> {

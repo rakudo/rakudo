@@ -1,5 +1,6 @@
 
 @bpv(NQP)@ = @js_nqp@
+@bpv(NQP_BIN)@ = @js_nqp@
 @bpv(NQP_RUNTIME)@ = @nfp(@nqp::libdir@/nqp-js-on-js/node_modules/nqp-runtime)@
 @bpv(PERL6_RUNTIME)@ = @perl6_runtime@
 @bpv(NQP_FLAGS)@ = --nqp-runtime @bpm(RUNTIME)@ --perl6-runtime @perl6_runtime@ --libpath "@bpm(BLIB)@|||@nqp::libdir@@nfp(/nqp-js-on-js/)@" --source-map --substagestats --stagestats

@@ -11,6 +11,7 @@ MOAR_PREFIX = @nfp(@moar::prefix@)@
 MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 @bpv(NQP)@       = @nfpq(@m_nqp@)@
 @bpv(NQP_RR)@    = @bpm(NQP)@
+@bpv(NQP_BIN)@       = @nfp(@m_nqp@)@
 @bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-m-early-build
 @bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
 

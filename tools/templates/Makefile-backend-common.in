@@ -168,7 +168,7 @@
 
 # --- Main rules ---
 
-@bpm(NQP_VERSION_FILE)@: @@script(check-nqp-version.pl)@@
+@bpm(NQP_VERSION_FILE)@: @bpm(NQP_BIN)@ @@script(check-nqp-version.pl)@@
 	@echo(+++ Checking for @backend@ NQP version)@
 	$(NOECHO)$(PERL5) @shquot(@script(check-nqp-version.pl)@)@ @bpm(NQP_VERSION_FILE)@ @bpm(NQP)@
 

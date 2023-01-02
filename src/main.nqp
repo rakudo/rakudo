@@ -46,6 +46,10 @@ my @clo := $comp.commandline_options();
 @clo.push('beautify');
 #?endif
 
+# Make Raku grammar / actions visible to HLL
+nqp::bindhllsym('Raku', 'Grammar', Raku::Grammar);
+nqp::bindhllsym('Raku', 'Actions', Raku::Actions);
+
 # Set up END block list, which we'll run at exit.
 nqp::bindhllsym('Raku', '@END_PHASERS', []);
 

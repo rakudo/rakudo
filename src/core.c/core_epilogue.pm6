@@ -111,15 +111,41 @@ multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
     $*KERNEL.hostname
 }
 
-# Methods that are DEPRECATED are moved here and augmented into the classes
-# they belong to without bootstrapping issues.
-
 augment class Cool {
+
+    # Methods that are DEPRECATED are moved here and augmented into the classes
+    # they belong to without bootstrapping issues.
     method parse-names(Cool:D: --> Str:D) is DEPRECATED('uniparse') {
         self.uniparse
     }
     method path(Cool:D: --> IO::Path:D) is DEPRECATED('IO') {
         self.IO
+    }
+
+    # Allow for creating an AST out of a string, for core debugging mainly
+    method AST() is implementation-detail {
+
+        # Make sure we don't use the EVAL's MAIN context for the
+        # currently compiling compilation unit
+        my $*CTXSAVE;
+        my $eval_ctx := nqp::getattr(CALLER::,PseudoStash,'$!ctx');
+
+        # Some context
+        my $?FILES :='EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+        my $*INSIDE-EVAL := 1;
+
+        # Convert to RakuAST
+        my $compiler := nqp::getcomp('Raku');
+        $compiler.compile:
+          self.Str,
+          :outer_ctx($eval_ctx),
+          :global(GLOBAL),
+          :language_version($compiler.language_version),
+          |(:optimize($_) with $compiler.cli-options<optimize>),
+          :target<ast>,
+          :compunit_ok(1),
+          :grammar(nqp::gethllsym('Raku','Grammar')),
+          :actions(nqp::gethllsym('Raku','Actions'))
     }
 }
 

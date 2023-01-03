@@ -206,11 +206,22 @@ class RakuAST::Deparse {
         ))
     }
 
+    method !assemble-quoted-string($ast) {
+        $ast.segments.map({
+            nqp::istype($_,RakuAST::StrLiteral)
+              ?? .value.raku.substr(1,*-1)
+              !! nqp::istype($_,RakuAST::Block)
+                ?? self.deparse($_).chomp
+                !! self.deparse($_)
+            }).join
+    }
+
     my $processor-attribute := nqp::hash(
       'exec',       ':x',
       'quotewords', ':ww',
       'val',        ':v',
       'words',      ':w',
+      'heredoc',    ':to',
     );
 
     my $single-processor-prefix := nqp::hash(
@@ -231,6 +242,7 @@ class RakuAST::Deparse {
           )
         ) for @processors;
 
+        nqp::push_s($parts,'/');
         nqp::push_s($parts,$string);
         nqp::push_s($parts,'/');
 
@@ -507,6 +519,24 @@ class RakuAST::Deparse {
         )
     }
 
+    multi method deparse(RakuAST::Heredoc:D $ast --> str) {
+        my $string := self!assemble-quoted-string($ast);
+        my @processors = $ast.processors;
+        @processors.push('heredoc');
+
+        my $stop    := $ast.stop;
+        my $indent  := $stop eq "\n"
+          ?? ''
+          !! " " x ($stop.chars - $stop.trim-leading.chars);
+
+        self!multiple-processors($stop.trim, @processors)
+          ~ "\n"
+          ~ $string.chomp('\n').split(Q/\n/).map({
+              $_ ?? "$indent$_\n" !! "\n"
+            }).join
+          ~ $stop
+    }
+
     multi method deparse(RakuAST::Infix:D $ast --> str) {
         $ast.operator
     }
@@ -709,13 +739,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::QuotedString:D $ast --> str) {
-        my str $string = $ast.segments.map({
-            nqp::istype($_,RakuAST::StrLiteral)
-              ?? .value.raku.substr(1,*-1)
-              !! nqp::istype($_,RakuAST::Block)
-                ?? self.deparse($_).chomp
-                !! self.deparse($_)
-            }).join;
+        my str $string = self!assemble-quoted-string($ast);
 
         if $ast.processors -> @processors {
             if @processors == 1 && @processors.head -> $processor {

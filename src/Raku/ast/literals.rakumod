@@ -146,12 +146,16 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
     has Mu $!processors;
 
     method new(List :$segments!, List :$processors) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::QuotedString, '$!segments',
+        nqp::create(self).SET-SELF($segments, $processors)
+    }
+
+    # Allow subclasses to set these attributes transparently
+    method SET-SELF(List $segments, List $processors) {
+        nqp::bindattr(self, RakuAST::QuotedString, '$!segments',
             self.IMPL-UNWRAP-LIST($segments));
-        nqp::bindattr($obj, RakuAST::QuotedString, '$!processors',
+        nqp::bindattr(self, RakuAST::QuotedString, '$!processors',
             self.IMPL-CHECK-PROCESSORS($processors));
-        $obj
+        self
     }
 
     method IMPL-CHECK-PROCESSORS(Mu $processors) {
@@ -409,7 +413,13 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
 }
 
 class RakuAST::Heredoc is RakuAST::QuotedString {
-    has RakuAST::QuotedString $!stop;
+    has Str $!stop;
+
+    method new(List :$segments!, List :$processors, Str :$stop) {
+        my $obj := nqp::create(self).SET-SELF($segments, $processors);
+        nqp::bindattr($obj, RakuAST::Heredoc, '$!stop', $stop // '');
+        $obj
+    }
 
     method replace-segments-from(RakuAST::QuotedString $source) {
         nqp::bindattr(
@@ -420,9 +430,10 @@ class RakuAST::Heredoc is RakuAST::QuotedString {
         );
     }
 
-    method set-stop(RakuAST::QuotedString $stop) {
+    method set-stop(Str $stop) {
         nqp::bindattr(self, RakuAST::Heredoc, '$!stop', $stop);
     }
+    method stop() { $!stop }
 
     method trim() {
         # Remove heredoc postprocessor to defuse the "Premature heredoc consumption" error

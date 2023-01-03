@@ -1,3 +1,6 @@
+# NOTE: if you're adding / adapting tests here, you probably want to do
+#       the same in t/12-rakuast/heredocs.t
+
 use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
@@ -11,12 +14,12 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 }
 
 subtest 'One-part quoted string with literal piece' => {
-    # "hello"
+    # "hello\n"
     ast RakuAST::QuotedString.new(
-      :segments[RakuAST::StrLiteral.new('hello')]
+      :segments[RakuAST::StrLiteral.new("hello\n")]
     );
 
-    is-deeply $_, 'hello'
+    is-deeply $_, "hello\n"
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
 

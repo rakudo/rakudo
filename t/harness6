@@ -90,16 +90,18 @@ sub MAIN(
         @tfiles = batch(200, @tfiles).flatmap(&fudge);
     }
 
+    my @volumes = map { ::("TAP::Formatter::Volume::$_") }, <Silent Quiet Normal Verbose>;
+    my $volume = @volumes[$verbosity + 2];
     my $harness = ::('TAP::Harness').new(
             :handlers[get-handler($vm, :$rakupath)],
             :ignore-exit,
 #            :trap,
             :$jobs,
-            :$verbosity,
+            :$volume,
             :err('ignore'),
     );
     temp %*ENV<RAKULIB> = 'lib';
-    await $harness.run(@tfiles).waiter;
+    await $harness.run(@tfiles);
 
     sub batch(Int(Real) $size, @files) {
         gather {

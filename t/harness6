@@ -101,7 +101,7 @@ sub MAIN(
             :err('ignore'),
     );
     temp %*ENV<RAKULIB> = 'lib';
-    await $harness.run(@tfiles).waiter;
+    await $harness.run(@tfiles);
 
     sub batch(Int(Real) $size, @files) {
         gather {

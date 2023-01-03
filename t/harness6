@@ -128,7 +128,7 @@ sub MAIN(
                 if $file.d {
                     listdir($file);
                 }
-                elsif $file ~~ / \. t $ / {
+                elsif $file ~~ / \. [t | rakutest] $ / {
                     take ~$file;
                 }
             }

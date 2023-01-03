@@ -199,7 +199,8 @@ sub all_in {
             if ( -d $currfile ) {
                 push( @hits, all_in( $currfile ) );
             } else {
-                push( @hits, $currfile ) if $currfile =~ /\.t$/;
+                push( @hits, $currfile )
+                  if $currfile =~ /\.t$/ || $currfile =~ /\.rakutest$/;
             }
         }
     } else {

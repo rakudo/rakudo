@@ -182,7 +182,7 @@ role Raku::Common {
                     # Get it trimmed and AST updated.
                     my $heredoc := $herestub.orignode.MATCH.ast;
                     $heredoc.replace-segments-from($doc.MATCH.ast);
-                    $heredoc.set-stop($stop);
+                    $heredoc.set-stop(~$stop);
                     $heredoc.trim;
                 }
                 else {

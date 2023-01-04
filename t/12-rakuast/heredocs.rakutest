@@ -231,7 +231,7 @@ subtest 'Using the val processor in heredoc with interpolation' => {
         RakuAST::Var::Lexical.new('$end'),
         RakuAST::StrLiteral.new("\n")
       ],
-      :processors['val']
+      :processors['val'],
       :stop("VAL\n")
     );
 

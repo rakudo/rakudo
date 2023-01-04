@@ -1454,31 +1454,43 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Ternary:D $ast --> str) {
-        my $parts := nqp::list_s(self.deparse($ast.condition),$.ternary1);
-        my str $heredoc;
+        my $heredoc := $*HEREDOC;
 
-        if nqp::istype((my $then := $ast.then),RakuAST::Heredoc) {
-            my str ($header,$rest) = self.deparse($then).split("\n",2);
-            nqp::push_s($parts,$header);
-            $heredoc = nqp::concat("\n",$rest);
+        # no place to store heredocs, make one, try again, add them at the end
+        if nqp::istype($heredoc,Failure) {
+            $heredoc := my $*HEREDOC := nqp::list_s;
+            my $deparsed := self.deparse($ast);
+
+            nqp::elems($heredoc)
+              ?? $deparsed ~ nqp::join('',$heredoc) ~ "\n"
+              !! $deparsed
         }
+
+        # already have a place to store heredocs
         else {
-            nqp::push_s($parts,self.deparse($then));
-        }
+            my $parts := nqp::list_s(
+              self.deparse($ast.condition),
+              $.ternary1
+            );
 
-        nqp::push_s($parts,$.ternary2);
+            # helper sup for a ternary part
+            sub deparse-part($node --> Nil) {
+                if nqp::istype($node,RakuAST::Heredoc) {
+                    my str ($header,$rest) = self.deparse($node).split("\n",2);
+                    nqp::push_s($parts,$header);
+                    nqp::push_s($heredoc,nqp::concat("\n",$rest.chomp));
+                }
+                else {
+                    nqp::push_s($parts,self.deparse($node));
+                }
+            }
 
-        if nqp::istype((my $else := $ast.else),RakuAST::Heredoc) {
-            my str ($header,$rest) = self.deparse($else).split("\n",2);
-            nqp::push_s($parts,$header);
-            nqp::push_s($parts,nqp::concat($heredoc ?? $heredoc !! "\n",$rest));
-        }
-        else {
-            nqp::push_s($parts,self.deparse($else));
-            nqp::push_s($parts,$heredoc);
-        }
+            deparse-part($ast.then);
+            nqp::push_s($parts,$.ternary2);
+            deparse-part($ast.else);
 
-        nqp::join('',$parts)
+            nqp::join('',$parts)
+        }
     }
 
     multi method deparse(RakuAST::Trait::Is:D $ast --> str) {

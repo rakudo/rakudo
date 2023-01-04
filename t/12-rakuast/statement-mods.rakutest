@@ -5,9 +5,11 @@ use Test;
 plan 13;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'The postfix if statement works with a true expression' => {
@@ -22,7 +24,7 @@ subtest 'The postfix if statement works with a true expression' => {
     );
 
     is-deeply $_, 42
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'The postfix if statement works with a false expression' => {
@@ -38,7 +40,7 @@ subtest 'The postfix if statement works with a false expression' => {
 
     # some weird interaction with Empty and postfix for
     is-deeply EVAL($ast), Empty;
-    is-deeply EVAL($ast.DEPARSE), Empty;
+    is-deeply EVAL($deparsed), Empty;
 }
 
 subtest 'The postfix unless statement works with a false expression' => {
@@ -53,7 +55,7 @@ subtest 'The postfix unless statement works with a false expression' => {
     );
 
     is-deeply $_, 42
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'The postfix unless statement works with a true expression' => {
@@ -69,7 +71,7 @@ subtest 'The postfix unless statement works with a true expression' => {
 
     # some weird interaction with Empty and postfix for
     is-deeply EVAL($ast), Empty;
-    is-deeply EVAL($ast.DEPARSE), Empty;
+    is-deeply EVAL($deparsed), Empty;
 }
 
 subtest 'The postfix with statement works with defined expression' => {
@@ -88,7 +90,7 @@ subtest 'The postfix with statement works with defined expression' => {
     );
 
     is-deeply $_, 84
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'The postfix with statement works with a type object' => {
@@ -110,7 +112,7 @@ subtest 'The postfix with statement works with a type object' => {
 
     # some weird interaction with Empty and postfix for
     is-deeply EVAL($ast), Empty;
-    is-deeply EVAL($ast.DEPARSE), Empty;
+    is-deeply EVAL($deparsed), Empty;
 }
 
 subtest 'The postfix without statement works with defined expression' => {
@@ -130,7 +132,7 @@ subtest 'The postfix without statement works with defined expression' => {
 
     # some weird interaction with Empty and postfix for
     is-deeply EVAL($ast), Empty;
-    is-deeply EVAL($ast.DEPARSE), Empty;
+    is-deeply EVAL($deparsed), Empty;
 }
 
 subtest 'The postfix without statement works with a type object' => {
@@ -152,7 +154,7 @@ subtest 'The postfix without statement works with a type object' => {
     );
 
     is-deeply $_, ""
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'The postfix given statement works with defined expression' => {
@@ -171,7 +173,7 @@ subtest 'The postfix given statement works with defined expression' => {
     );
 
     is-deeply $_, 84
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'The postfix given statement works with a type object' => {
@@ -193,7 +195,7 @@ subtest 'The postfix given statement works with a type object' => {
     );
 
     is-deeply $_, ""
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'The postfix while statement works' => {
@@ -221,7 +223,7 @@ subtest 'The postfix while statement works' => {
     is-deeply $foo, 5;
 
     $foo = 0;
-    EVAL($ast.DEPARSE);  # return value is VMNull
+    EVAL($deparsed);  # return value is VMNull
     is-deeply $foo, 5;
 }
 
@@ -250,7 +252,7 @@ subtest 'The postfix until statement works' => {
     is-deeply $foo, 5;
 
     $foo = 0;
-    EVAL($ast.DEPARSE);  # return value is VMNull
+    EVAL($deparsed);  # return value is VMNull
     is-deeply $foo, 5;
 }
 
@@ -279,7 +281,7 @@ subtest 'The postfix for statement works' => {
     is-deeply $foo, 5;
 
     $foo = 0;
-    EVAL($ast.DEPARSE);  # return value is VMNull
+    EVAL($deparsed);  # return value is VMNull
     is-deeply $foo, 5;
 }
 

@@ -130,3 +130,5 @@ subtest "Backtrace with line directive" => {
         :out("ok yet\n"),
         :err("and here we die...\n  in sub bad at -e line 2\n  in block <unit> at \"test.raku\" line 11\n\n");
 }
+
+# vim: expandtab shiftwidth=4

@@ -5,9 +5,11 @@ use Test;
 plan 7;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $ast.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'Parenthesized expressions compile correctly' => {
@@ -28,7 +30,7 @@ subtest 'Parenthesized expressions compile correctly' => {
       )
     );
     is-deeply $_, 14
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Multi-statement semilist compiles into a List' => {
@@ -40,7 +42,7 @@ subtest 'Multi-statement semilist compiles into a List' => {
       )
     );
     is-deeply $_, (3, 4)
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Array composer produces an array' => {
@@ -53,7 +55,7 @@ subtest 'Array composer produces an array' => {
       )
     );
     is-deeply $_, [9, 10, 11]
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Array composer works correctly with a single argument' => {
@@ -68,14 +70,14 @@ subtest 'Array composer works correctly with a single argument' => {
       )
     );
     is-deeply $_, [5, 6, 7, 8, 9]
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Empty hash composer works correctly' => {
     # {}
     ast RakuAST::Circumfix::HashComposer.new;
     is-deeply $_, hash()
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Hash composer with fatarrow works correctly' => {
@@ -87,7 +89,7 @@ subtest 'Hash composer with fatarrow works correctly' => {
       )
     );
     is-deeply $_, {a => 42},
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Hash composer with list of fat arrows works correctly' => {
@@ -108,7 +110,7 @@ subtest 'Hash composer with list of fat arrows works correctly' => {
       )
     );
     is-deeply $_, {x => 11, y => 22},
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 # vim: expandtab shiftwidth=4

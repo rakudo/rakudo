@@ -5,9 +5,11 @@ use Test;
 plan 15;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'The do statement prefix works with a statement' => {
@@ -23,7 +25,7 @@ subtest 'The do statement prefix works with a statement' => {
     );
 
     is-deeply $_, 137
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'The do statement prefix works with a block' => {
@@ -45,7 +47,7 @@ subtest 'The do statement prefix works with a block' => {
     );
 
     is-deeply $_, 199
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'The quietly statement prefix works' => {
@@ -79,7 +81,7 @@ subtest 'The quietly statement prefix works' => {
     nok $warned, 'The warning was suppressed';
 
     $warned = False;
-    is-deeply EVAL($ast.DEPARSE), "survived", 'DEPARSE with a statement';
+    is-deeply EVAL($deparsed), "survived", 'DEPARSE with a statement';
     nok $warned, 'The warning was suppressed';
 
     # quietly { do-warning() }
@@ -106,7 +108,7 @@ subtest 'The quietly statement prefix works' => {
     nok $warned, 'The warning was suppressed';
 
     $warned = False;
-    is-deeply EVAL($ast.DEPARSE), "survived", 'DEPARSE with a block';
+    is-deeply EVAL($deparsed), "survived", 'DEPARSE with a block';
     nok $warned, 'The warning was suppressed';
 }
 
@@ -132,7 +134,7 @@ subtest 'The gather statement prefix works on a statement' => {
     );
 
     $done = False;
-    for EVAL($ast), EVAL($ast.DEPARSE) -> \result {
+    for EVAL($ast), EVAL($deparsed) -> \result {
         isa-ok result, Seq, 'Got a Seq back from gather (expression form)';
         is-deeply $done, False, 'The gather is lazy';
         my @elems = result;
@@ -169,7 +171,7 @@ subtest 'The gather statement prefix works on a block' => {
     );
 
     $done = False;
-    for EVAL($ast), EVAL($ast.DEPARSE) -> \result {
+    for EVAL($ast), EVAL($deparsed) -> \result {
         isa-ok result, Seq, 'Got a Seq back from gather (block form)';
         is-deeply $done, False, 'The gather is lazy';
         my @elems = result;
@@ -209,7 +211,7 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
         is-deeply $c.called, [$context], 'Correct context method was called';
 
         $c = ContextMe.new;
-        $result := EVAL($ast.DEPARSE);
+        $result := EVAL($deparsed);
         is-deeply $result, 'result', "DEPARSE $context works with a statement";
         is-deeply $c.called, [$context], 'Correct context method was called';
     }
@@ -241,7 +243,7 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
         is-deeply $c.called, [$context], 'Correct context method was called';
 
         $c = ContextMe.new;
-        $result := EVAL($ast.DEPARSE);
+        $result := EVAL($deparsed);
         is-deeply $result, 'result', "DEPARSE $context works with a block";
         is-deeply $c.called, [$context], 'Correct context method was called';
     }
@@ -258,7 +260,7 @@ subtest 'try statement prefix with expression producing value results' => {
     is-deeply EVAL($ast), 99, 'AST: correct result';
     is-deeply $!, Nil, 'AST: $! is Nil when not exception';
 
-    is-deeply EVAL($ast.DEPARSE), 99, 'DEPARSE: correct result';
+    is-deeply EVAL($deparsed), 99, 'DEPARSE: correct result';
     todo 'string eval does not set $!, also in master';
     is-deeply $!, Nil, 'DEPARSE: $! is Nil when not exception';
 }
@@ -279,7 +281,7 @@ subtest 'try statement prefix with throwing expression handles the exception' =>
     is-deeply $!.Str, 'hard', '$! is populated with the exception';
 
     $! = 42;
-    is-deeply EVAL($ast.DEPARSE), Nil, 'DEPARSE';
+    is-deeply EVAL($deparsed), Nil, 'DEPARSE';
     is-deeply $!.Str, 'hard', '$! is populated with the exception';
 }
 
@@ -300,7 +302,7 @@ subtest 'try statement prefix with block producing value results' => {
     is-deeply EVAL($ast), 999, 'AST: correct result';
     is-deeply $!, Nil, 'AST: $! is Nil when not exception';
 
-    is-deeply EVAL($ast.DEPARSE), 999, 'DEPARSE: correct result';
+    is-deeply EVAL($deparsed), 999, 'DEPARSE: correct result';
     todo 'string eval does not set $!, also in master';
     is-deeply $!, Nil, 'DEPARSE: $! is Nil when not exception';
 }
@@ -327,7 +329,7 @@ subtest 'try statement prefix with throwing block handles the exception' => {
     is-deeply $!.Str, 'another day', '$! is populated with the exception';
 
     $! = 42;
-    is-deeply EVAL($ast.DEPARSE), Nil, 'DEPARSE';
+    is-deeply EVAL($deparsed), Nil, 'DEPARSE';
     is-deeply $!.Str, 'another day', '$! is populated with the exception';
 }
 
@@ -339,7 +341,7 @@ subtest 'start statement prefix with expression evalutes to Promise' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $promise {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $promise {
         isa-ok $promise, Promise, $type;
         is-deeply await($promise), 111, 'Correct result from Promise';
     }
@@ -359,7 +361,7 @@ subtest 'start statement prefix with block evalutes to Promise' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $promise {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $promise {
         isa-ok $promise, Promise, $type;
         is-deeply await($promise), 137, 'Correct result from Promise';
     }
@@ -381,7 +383,7 @@ subtest 'A start has a fresh $/' => {
 
     {
         my $/ = 666;
-        nok await(EVAL($ast.DEPARSE)) ~~ 666, 'DEPARSE: A start has a fresh $/';
+        nok await(EVAL($deparsed)) ~~ 666, 'DEPARSE: A start has a fresh $/';
     }
 }
 
@@ -401,7 +403,7 @@ subtest 'A start has a fresh $!' => {
 
     {
         my $! = 666;
-        nok await(EVAL($ast.DEPARSE)) ~~ 666, 'DEPARSE: A start has a fresh $!';
+        nok await(EVAL($deparsed)) ~~ 666, 'DEPARSE: A start has a fresh $!';
     }
 }
 
@@ -421,7 +423,7 @@ subtest 'BEGIN phaser producing a literal expression works' => {
       )
     );
     is-deeply $_, 12
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 # vim: expandtab shiftwidth=4

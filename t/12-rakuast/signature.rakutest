@@ -5,9 +5,11 @@ use Test;
 plan 14;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'Default type for block and routine' => {
@@ -23,7 +25,7 @@ subtest 'Default type for block and routine' => {
     );
 
     ok .signature.params[0].type =:= Any, 'Default type of sub'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 
     # -> $param { }
     ast RakuAST::PointyBlock.new(
@@ -36,7 +38,7 @@ subtest 'Default type for block and routine' => {
       )
     );
     ok .signature.params[0].type =:= Mu, 'Default type of block'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Type constraint is enforced on Scalar' => {
@@ -54,7 +56,7 @@ subtest 'Type constraint is enforced on Scalar' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].type =:= Int,
           "$type: Specified type is introspectable";
         lives-ok { $sub(42) },
@@ -78,7 +80,7 @@ subtest 'Anonymous parameter still enforces type constraint' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].type =:= Int,
           "$type: Specified type is introspectable";
         lives-ok { $sub(42) },
@@ -111,7 +113,7 @@ subtest 'Optional Scalar parameter defaults to type object' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].optional,
           "$type: Parameter introspects as optional";
         is $sub.arity, 0,
@@ -146,7 +148,7 @@ subtest 'One required named parameter' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         is $sub.signature.params.elems, 1,
           "$type: Sub has one params elem";
         is-deeply $sub.arity, 0,
@@ -189,7 +191,7 @@ subtest 'Required named parameter with alias' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         is $sub.signature.params.elems, 1,
           "$type: Sub has one params elem";
         is-deeply $sub.arity, 0,
@@ -235,7 +237,7 @@ subtest 'Slurpy hash parameter' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].slurpy,
           "$type: Parameter introspects as slurpy";
         ok $sub.signature.params[0].named,
@@ -273,7 +275,7 @@ subtest 'Slurpy flattening array parameter' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].slurpy,
           "$type: Parameter introspects as slurpy";
         nok $sub.signature.params[0].named,
@@ -313,7 +315,7 @@ subtest 'Slurpy non-flattening array parameter' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].slurpy,
           "$type: Parameter introspects as slurpy";
         nok $sub.signature.params[0].named,
@@ -355,7 +357,7 @@ subtest 'Slurpy single arg rule array parameter' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].slurpy,
           "$type: Parameter introspects as slurpy";
         nok $sub.signature.params[0].named,
@@ -399,7 +401,7 @@ subtest 'Sigilless parameter' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].type =:= Int,
           "$type: Type is introspectable";
         is $sub.signature.params[0].name, 'trm',
@@ -431,7 +433,7 @@ subtest 'Capture parameter' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
         ok $sub.signature.params[0].capture,
           "$type: Parameter introspects as a capture";
         is $sub.arity, 0,
@@ -463,6 +465,7 @@ subtest 'Placeholder positional parameter' => {
       )
     );
 
+    # for some reason, using $deparsed here causes an error
     for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
         is $sub.signature.params.elems, 1,
           "$type: Sub has one params elem";
@@ -495,6 +498,7 @@ subtest 'Placeholder named parameter' => {
       )
     );
 
+    # for some reason, using $deparsed here causes an error
     for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
         is $sub.signature.params.elems, 1,
           "$type: Sub has one params elem";

@@ -5,9 +5,11 @@ use Test;
 plan 18;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 sub no-args() {
@@ -19,7 +21,7 @@ subtest 'Can make a named call with no arguments' => {
       name => RakuAST::Name.from-identifier('no-args')
     );
     is-deeply $_, 444
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 sub one-arg($x) {
@@ -32,7 +34,7 @@ subtest 'Can make a named call with one positional argument' => {
       args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(5))
     );
     is-deeply $_, 45
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 sub two-args($x, $y) {
@@ -48,7 +50,7 @@ subtest 'Can make a named call with two positional arguments' => {
       )
     );
     is-deeply $_, 2
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 sub two-named(:$n1, :$n2) {
@@ -70,7 +72,7 @@ subtest 'Can make a named call with two named arguments' => {
       )
     );
     is-deeply $_, 50.0
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Duplicated named arguments are correctly handled' => {
@@ -93,7 +95,7 @@ subtest 'Duplicated named arguments are correctly handled' => {
       )
     );
     is-deeply $_, 100.0
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 my $target = -> $a, $b { $a - $b }
@@ -109,7 +111,7 @@ subtest 'Can make a call on a term with two positional arguments' => {
       )
     );
     is-deeply $_, 5
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 class TestTarget {
@@ -127,7 +129,7 @@ subtest 'Can make a call on a method without arguments' => {
       )
     );
     is-deeply $_, 66
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Can make a call on a method with positional arguments' => {
@@ -145,7 +147,7 @@ subtest 'Can make a call on a method with positional arguments' => {
       )
     );
     is-deeply $_, 8
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Method call WHAT compiles into MOP primitive' => {
@@ -157,7 +159,7 @@ subtest 'Method call WHAT compiles into MOP primitive' => {
       )
     );
     is-deeply $_, Int
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Method call HOW compiles into MOP primitive' => {
@@ -169,7 +171,7 @@ subtest 'Method call HOW compiles into MOP primitive' => {
       )
     );
     is-deeply $_, Int.HOW
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Method call WHO compiles into MOP primitive' => {
@@ -181,7 +183,7 @@ subtest 'Method call WHO compiles into MOP primitive' => {
       )
     );
     isa-ok $_, Stash
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Method call DEFINITE compiles into MOP primitive' => {
@@ -193,7 +195,7 @@ subtest 'Method call DEFINITE compiles into MOP primitive' => {
       )
     );
     is-deeply $_, True
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Method call REPR compiles into MOP primitive' => {
@@ -205,7 +207,7 @@ subtest 'Method call REPR compiles into MOP primitive' => {
       )
     );
     is-deeply $_, 'P6opaque'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Can make a quoted call on a method without arguments' => {
@@ -221,7 +223,7 @@ subtest 'Can make a quoted call on a method without arguments' => {
       )
     );
     is-deeply $_, 66
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Can make a quoted call on a method with positional arguments' => {
@@ -241,7 +243,7 @@ subtest 'Can make a quoted call on a method with positional arguments' => {
       )
     );
     is-deeply $_, 8
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Can make a meta-method call' => {
@@ -251,7 +253,7 @@ subtest 'Can make a meta-method call' => {
       postfix => RakuAST::Call::MetaMethod.new(name => 'name')
     );
     is-deeply $_, 'Int'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Can make a call that flattens into array' => {
@@ -267,7 +269,7 @@ subtest 'Can make a call that flattens into array' => {
       )
     );
     is-deeply $_, 444, 'flattening empty list'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 
     @args = 95, 40;
     # two-args(|@args)
@@ -281,7 +283,7 @@ subtest 'Can make a call that flattens into array' => {
       )
     );
     is-deeply $_, 55, 'two positional arguments'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Can make a call that flattens into hash' => {
@@ -297,7 +299,7 @@ subtest 'Can make a call that flattens into hash' => {
       )
     );
     is-deeply $_, 444, 'flattening empty list'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 
     %args<n1 n2> = 60, 12;
     # two-named(|%args)
@@ -311,7 +313,7 @@ subtest 'Can make a call that flattens into hash' => {
       )
     );
     is-deeply $_, 5.0, 'flattening two named arguments'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 # vim: expandtab shiftwidth=4

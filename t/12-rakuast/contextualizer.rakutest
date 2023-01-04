@@ -5,14 +5,17 @@ use Test;
 plan 4;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
+    $ast      := $node;
+    $deparsed := $ast.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'Hash contextualizer from empty sequence' => {
     # %()
     ast RakuAST::Contextualizer::Hash.new(RakuAST::StatementSequence.new());
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $result {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $result {
         is-deeply $result, Hash.new(),
             "$type: Contextualizer gives expected result";
     }
@@ -21,7 +24,7 @@ subtest 'Hash contextualizer from empty sequence' => {
 subtest 'List contextualizer from empty sequence' => {
     # @()
     ast RakuAST::Contextualizer::List.new(RakuAST::StatementSequence.new());
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $result {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $result {
         is-deeply $result, List.new(),
             "$type: Contextualizer gives expected result";
     }
@@ -42,7 +45,7 @@ subtest 'Hash contextualizer from pairs' => {
             )
         )
     );
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $result {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $result {
         is-deeply $result, Hash.new((a => 1, b => 2)),
             "$type: Contextualizer gives expected result";
     }
@@ -63,7 +66,7 @@ subtest 'List contextualizer from pairs' => {
             )
         )
     );
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $result {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $result {
         is-deeply $result, (a => 1, b => 2),
             "$type: Contextualizer gives expected result";
     }

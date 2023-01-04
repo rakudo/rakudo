@@ -5,9 +5,11 @@ use Test;
 plan 6;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'can make a simple ... stub' => {
@@ -20,7 +22,7 @@ subtest 'can make a simple ... stub' => {
 
 #    for 'AST','DEPARSE' -> $type {
     for 'DEPARSE' -> $type {   # for now
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE) },
+        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
           X::StubCode,
           message => 'Stub code executed'
         ;
@@ -41,7 +43,7 @@ subtest 'can make a ... stub with info' => {
 
 #    for 'AST','DEPARSE' -> $type {
     for 'DEPARSE' -> $type {   # for now
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE) },
+        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
           X::StubCode,
           message => "foobar"
         ;
@@ -58,7 +60,7 @@ subtest 'can make a simple !!! stub' => {
 
 #    for 'AST','DEPARSE' -> $type {
     for 'DEPARSE' -> $type {   # for now
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE) },
+        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
           X::StubCode,
           message => 'Stub code executed'
         ;
@@ -79,7 +81,7 @@ subtest 'can make a !!! stub with info' => {
 
 #    for 'AST','DEPARSE' -> $type {
     for 'DEPARSE' -> $type {   # for now
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE) },
+        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
           X::StubCode,
           message => "foobar"
         ;
@@ -96,7 +98,7 @@ subtest 'can make a simple ??? stub' => {
 
 #    for 'AST','DEPARSE' -> $type {
     for 'DEPARSE' -> $type {   # for now
-        EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE);
+        EVAL($type eq 'AST' ?? $ast !! $deparsed);
         CONTROL {
             isa-ok $_, CX::Warn, "$type: did we get a warning?";
             is .message, "Stub code executed", "$type: the right warning";
@@ -119,7 +121,7 @@ subtest 'can make a ??? stub with info' => {
 
 #    for 'AST','DEPARSE' -> $type {
     for 'DEPARSE' -> $type {   # for now
-        EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE);
+        EVAL($type eq 'AST' ?? $ast !! $deparsed);
         CONTROL {
             isa-ok $_, CX::Warn, "$type: did we get a warning?";
             is .message, "foobar", "$type: the right warning";

@@ -5,9 +5,11 @@ use Test;
 plan 11;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'Method call via self' => {
@@ -57,7 +59,7 @@ subtest 'Method call via self' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, Mu $class {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, Mu $class {
         is-deeply $class.meth-b(), 99,
           "$type: Method call via self works";
     }
@@ -83,7 +85,7 @@ subtest 'Topic call applies the call to $_' => {
     );
 
     is-deeply $_, 'ARGH'
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'now named term can be called' => {
@@ -91,7 +93,7 @@ subtest 'now named term can be called' => {
     ast RakuAST::Term::Named.new('now');
 
     isa-ok $_, Instant
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'rand term works' => {
@@ -99,7 +101,7 @@ subtest 'rand term works' => {
     ast RakuAST::Term::Rand.new;
 
     isa-ok $_, Num
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Empty set term works' => {
@@ -107,7 +109,7 @@ subtest 'Empty set term works' => {
     ast RakuAST::Term::EmptySet.new;
 
     is-deeply $_, ∅,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Name term works with single-part name' => {
@@ -117,7 +119,7 @@ subtest 'Name term works with single-part name' => {
     );
 
     is-deeply $_, True,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Name term works with multi-part name' => {
@@ -127,7 +129,7 @@ subtest 'Name term works with multi-part name' => {
     );
 
     is-deeply $_, True,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Whatever term works' => {
@@ -135,7 +137,7 @@ subtest 'Whatever term works' => {
     ast RakuAST::Term::Whatever.new;
 
     isa-ok $_, Whatever,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Hyperwhatever term works' => {
@@ -143,7 +145,7 @@ subtest 'Hyperwhatever term works' => {
     ast RakuAST::Term::HyperWhatever.new;
 
     isa-ok $_, HyperWhatever,
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Capture term can be constructed with a term' => {
@@ -155,7 +157,7 @@ subtest 'Capture term can be constructed with a term' => {
     );
 
     is-deeply $_, \(4)
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Capture term can be constructed with an arg list' => {
@@ -168,7 +170,7 @@ subtest 'Capture term can be constructed with an arg list' => {
     );
 
     is-deeply $_, \(6, :x)
-      for EVAL($ast), EVAL($ast.DEPARSE);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 # vim: expandtab shiftwidth=4

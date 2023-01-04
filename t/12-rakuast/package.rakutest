@@ -5,9 +5,11 @@ use Test;
 plan 11;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'Create an empty class' => {
@@ -20,7 +22,7 @@ subtest 'Create an empty class' => {
       repr => 'P6opaque'
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class evaluates to a type object";
         is $class.^name, 'MyTestClass',
@@ -57,7 +59,7 @@ subtest 'Create a class with a method' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class with method evaluates to a type object";
         is $class.^name, 'TestClassWithMethods',
@@ -92,7 +94,7 @@ subtest 'Check lexically resolving of a class' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $result {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $result {
         nok $result.defined,
           "$type: Got type object back from looking up package";
         is $result.^name, 'LexicalTestClass',
@@ -124,7 +126,7 @@ subtest 'Check globally resolving of a class' => {
           )
         );
 
-        my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($ast.DEPARSE);
+        my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($deparsed);
         nok $result.defined,
           "Got type object back from looking up our-scoped package";
         is $result.^name, $class,
@@ -159,7 +161,7 @@ module Enclosing {
               )
             );
 
-            my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($ast.DEPARSE);
+            my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($deparsed);
             todo 'bug in enclosed package naming in rakuast branch'
               if $type eq 'AST';
             is $result.^name, "Enclosing::$class",
@@ -195,7 +197,7 @@ subtest 'class with attribute' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class with attribute evluates to a type object";
         is $class.^name, 'TestClassWithAttribute',
@@ -239,7 +241,7 @@ subtest 'class with attribute and accessor' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class with attribute with accessor evluates to a type object";
         is $class.^name, 'TestClassWithAttributeAccessor',
@@ -300,7 +302,7 @@ subtest 'class with accessor usage' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class with accessor usage evaluates to a type object";
         is $class.^name, 'TestClassWithAttributeUsage',
@@ -329,7 +331,7 @@ subtest 'class with does trait really does the role' => {
       ]
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
         is $class.^name, 'TestRoleTarget',
           "$type: Class with does trait gets correct name";
         ok $class ~~ TestRole,
@@ -356,7 +358,7 @@ subtest 'class with is trait really inherits' => {
       ]
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
         is $class.^name, 'TestChild',
           "$type: Class with is trait gets correct name";
         ok $class ~~ TestBase,

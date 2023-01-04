@@ -5,9 +5,11 @@ use Test;
 plan 4;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'Assignment meta-op evaluates to expected value' => {
@@ -23,7 +25,7 @@ subtest 'Assignment meta-op evaluates to expected value' => {
     is-deeply EVAL($ast), 13, 'AST: evaluates to expected value';
     is-deeply $a, 13, 'Really did mutate the variable';
 
-    is-deeply EVAL($ast.DEPARSE), 16, 'DEPARSE: evaluates to expected value';
+    is-deeply EVAL($deparsed), 16, 'DEPARSE: evaluates to expected value';
     is-deeply $a, 16, 'Really did mutate the variable';
 }
 
@@ -48,7 +50,7 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
     is-deeply $update, 2,
       'AST: Really did short-circuit, and not evaluate RHS';
 
-    is-deeply EVAL($ast.DEPARSE), 10,
+    is-deeply EVAL($deparsed), 10,
       'DEPARSE: short-circuit || evaluates to true LHS';
     is-deeply $update, 2,
       'DEPARSE: Really did short-circuit, and not evaluate RHS';
@@ -60,7 +62,7 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
       'AST: Really did evaluate RHS';
 
     $test = 0;
-    is-deeply EVAL($ast.DEPARSE), 3,
+    is-deeply EVAL($deparsed), 3,
       'DEPARSE: no short-circuit || evaluates to RHS when LHS false';
     is-deeply $update, 4,
       'DEPARSE: Really did evaluate RHS';
@@ -76,8 +78,8 @@ subtest 'Reduce meta-op on left associative operator' => {
             RakuAST::IntLiteral.new(3))
     );
 
-    is-deeply EVAL($ast), 6, 'AST: evaluates to expected value';
-    is-deeply EVAL($ast.DEPARSE), 6, 'DEPARSE: evaluates to expected value';
+    is-deeply $_, 6
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Triangle reduce meta-op on left associative operator' => {
@@ -91,8 +93,8 @@ subtest 'Triangle reduce meta-op on left associative operator' => {
         triangle => True
     );
 
-    is-deeply EVAL($ast), (1, 3, 6), 'AST: evaluates to expected value';
-    is-deeply EVAL($ast.DEPARSE), (1, 3, 6), 'DEPARSE: evaluates to expected value';
+    is-deeply $_, (1,3,6)
+      for EVAL($ast), EVAL($deparsed);
 }
 
 # vim: expandtab shiftwidth=4

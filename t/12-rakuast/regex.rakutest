@@ -7,16 +7,18 @@ plan 41;
 sub rx(RakuAST::Regex $body) { EVAL RakuAST::QuotedRegex.new(:$body) }
 
 my $ast;
-sub ast(RakuAST::Regex:D $body --> Nil) {
-    $ast := RakuAST::QuotedRegex.new(:$body);
-    diag $ast.DEPARSE.chomp;
+my $deparsed;
+sub ast(RakuAST::Node:D $body --> Nil) {
+    $ast      := RakuAST::QuotedRegex.new(:$body);
+    $deparsed := $ast.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 sub match-ok($haystack, $expected) is test-assertion {
   subtest "matches" => {
     plan 2;
     is $haystack ~~ EVAL($ast), $expected, 'EVAL over RakuAST';
-    is $haystack ~~ EVAL($ast.DEPARSE), $expected, 'EVAL over deparsed AST';
+    is $haystack ~~ EVAL($deparsed), $expected, 'EVAL over deparsed AST';
   }
 }
 
@@ -24,14 +26,14 @@ sub match-nok($haystack) is test-assertion {
   subtest "doesn't match" => {
     plan 2;
     nok $haystack ~~ EVAL($ast), 'EVAL over RakuAST';
-    nok $haystack ~~ EVAL($ast.DEPARSE), 'EVAL over deparsed AST';
+    nok $haystack ~~ EVAL($deparsed), 'EVAL over deparsed AST';
   }
 }
 
 subtest 'Simple literal regex' => {
     # / foo /
     ast RakuAST::Regex::Literal.new('foo');
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "foobarbaz"   ~~ $regex, 'foo', "$type: start of string";
         is "42foobarbaz" ~~ $regex, 'foo', "$type: middle of string";
         nok "barbaz"     ~~ $regex,        "$type: not matched";
@@ -196,7 +198,7 @@ subtest 'Right word boundary works' => {
       RakuAST::Regex::Anchor::RightWordBoundary.new
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "elizabeth the second" ~~ $regex, 'he', "$type: pass case";
         nok "elizabeth second" ~~ $regex, "$type: fail case";
     }
@@ -210,7 +212,7 @@ subtest 'Left word boundary works' => {
       RakuAST::Regex::Literal.new('t')
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "cat ethics committee" ~~ $regex, 'et', "$type: pass case";
         nok "cat committee" ~~ $regex, "$type: fail case";
     }
@@ -337,7 +339,7 @@ subtest 'Regex groups compile correctly' => {
       separator => RakuAST::Regex::Literal.new(',')
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "values: 1,2,33,400,stuff" ~~ $regex, '1,2,33,400',
           "$type: did we get correct match";
         nok $/.list.keys,
@@ -353,7 +355,7 @@ subtest 'Named assertion matches correctly' => {
       capturing => True
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "1a2" ~~ $regex, 'a',
           "$type: did we get correct match";
         is-deeply $/.hash.keys, ('alpha',).Seq,
@@ -369,7 +371,7 @@ subtest 'Non-capturing named assertion matches correctly' => {
       capturing => False
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "1a2" ~~ $regex, 'a',
           "$type: did we get correct match";
         is-deeply $/.hash.keys, ().Seq,
@@ -387,7 +389,7 @@ subtest 'Named assertion with alias matches correctly' => {
       )
      );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "1a2" ~~ $regex, 'a',
           "$type: did we get correct match";
         is-deeply $/.hash.keys.sort, ('alpha','foo').Seq,
@@ -409,7 +411,7 @@ subtest 'Non-capturing named assertion with alias matches correctly' => {
       )
      );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "1a2" ~~ $regex, 'a',
           "$type: did we get correct match";
         is-deeply $/.hash.keys, ('foo',).Seq,
@@ -431,7 +433,7 @@ subtest 'Regex with two positional capturing groups matches correctly' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "2a1b" ~~ $regex, 'a1b',
           "$type: did we get correct match";
         is $/.list.elems, 2,
@@ -457,7 +459,7 @@ subtest 'Lookahead assertion with named rule works' => {
       RakuAST::Regex::CharClass::Word.new
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "!2a" ~~ $regex, 'a',
           "$type: did we get correct match";
         is $/.list.elems, 0,
@@ -480,7 +482,7 @@ subtest 'Negated lookahead assertion with named rule works' => {
       RakuAST::Regex::CharClass::Word.new
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "!2a" ~~ $regex, '2',
           "$type: did we get correct match";
         is $/.list.elems, 0,
@@ -502,7 +504,7 @@ subtest 'Lookahead assertion calling before with a regex arg works' => {
       RakuAST::Regex::CharClass::Word.new
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "!2a" ~~ $regex, '2',
           "$type: did we get correct match";
         is $/.list.elems, 0,
@@ -525,7 +527,7 @@ subtest 'Negated lookahead assertion calling before with a regex arg works' => {
       RakuAST::Regex::CharClass::Word.new
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $regex {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $regex {
         is "!2a" ~~ $regex, 'a',
           "$type: did we get correct match";
         is $/.list.elems, 0,
@@ -573,7 +575,7 @@ subtest 'Match involving a quoted string with interpolation works' => {
     );
 
     is "believe" ~~ EVAL($ast), 'eve', 'EVAL over RakuAST';
-    is "believe" ~~ EVAL($ast.DEPARSE), 'eve', 'EVAL over deparsed AST';
+    is "believe" ~~ EVAL($deparsed), 'eve', 'EVAL over deparsed AST';
 }
 
 subtest 'Match involving quote words works' => {

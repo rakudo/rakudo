@@ -8,9 +8,11 @@ use Test;
 plan 13;
 
 my $ast;
+my $deparsed;
 sub ast(RakuAST::Node:D $node --> Nil) {
-    $ast := $node;
-    diag $ast.DEPARSE.chomp;
+    $ast      := $node;
+    $deparsed := $ast.DEPARSE;
+    diag $deparsed.chomp;
 }
 
 subtest 'One-part heredoc with literal piece' => {
@@ -20,7 +22,6 @@ subtest 'One-part heredoc with literal piece' => {
       :stop("    CODE\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:to/CODE/
     hello
 
@@ -45,7 +46,6 @@ subtest 'Heredoc with interpolated string variable works' => {
       :stop("MESSAGE\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:to/MESSAGE/
 $str world
 MESSAGE
@@ -68,7 +68,6 @@ subtest 'Heredoc with interpolated integer variable' => {
       :stop("  INTY\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:to/INTY/
   $int is the answer
   INTY
@@ -93,7 +92,6 @@ subtest 'Heredoc consisting of only interpolated integer variable' => {
       :stop(" NONE\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:to/NONE/
  $int
  NONE
@@ -117,7 +115,6 @@ subtest 'Heredoc with 3 parts works' => {
       :stop("    MORE\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:to/MORE/
     The answer is $int of course!
     MORE
@@ -149,7 +146,6 @@ subtest 'Heredoc involving an interpolated block' => {
       :stop("\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:to//
 An {
     $bv
@@ -170,7 +166,6 @@ subtest 'words processor splits a heredoc into words' => {
       :stop("WORDS\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:w:to/WORDS/
 foo bar 42
 WORDS
@@ -195,7 +190,6 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
       :stop("WORDS\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:w:to/WORDS/
 ba$stuff 66
 WORDS
@@ -214,7 +208,6 @@ subtest 'Using the val processor alone on a heredoc' => {
       :stop("VAL\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:v:to/VAL/
 42
 VAL
@@ -242,7 +235,6 @@ subtest 'Using the val processor in heredoc with interpolation' => {
       :stop("VAL\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:v:to/VAL/
 4$end
 VAL
@@ -261,7 +253,6 @@ subtest 'Using the words and val processor in a heredoc' => {
       :stop("VALS\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:w:v:to/VALS/
 foo bar 42
 VALS
@@ -276,7 +267,7 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
     my $stuff = 'r baz';
 
     # qq:w:v/ba$stuff 66/
-    $ast := RakuAST::Heredoc.new(
+    ast RakuAST::Heredoc.new(
       :segments[
         RakuAST::StrLiteral.new('ba'),
         RakuAST::Var::Lexical.new('$stuff'),
@@ -286,7 +277,6 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
       :stop("HUH\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:w:v:to/HUH/
 ba$stuff 66
 HUH
@@ -305,7 +295,6 @@ subtest 'Using the exec processor alone gives expected result' => {
       :stop("GO\n")
     );
 
-    my $deparsed := $ast.DEPARSE;
     is-deeply $deparsed, 'qq:x:to/GO/
 echo 123
 GO

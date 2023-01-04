@@ -1,102 +1,116 @@
 # This is the default class handling deparsing (aka, converting a given
-# RakuAST::Node object into Raku source code).  It allows for all sorts
-# of customization, and can be subclassed for further optimizations.
-
-# Apart from the .new method, which expects named parameters, each public
-# method expects an instance if a subclass of a RakuAST::Node as the first
-# positional parameter.
+# RakuAST::Node object into Raku source code).
+#
+# It is supposed to be subclassed to provide customization and further
+# optimizations (although optimizations should probably live here).
+#
+# All methods are class methods, so do not require any type of instantiation.
+#
+# The "deparse" multi method expects an instance if a subclass of a
+# RakuAST::Node as the first positional parameter.  All other publick methods
+# are used to provide some standard functionality used by the "deparse" methods.
 
 class RakuAST::Deparse {
-    has str $.before-comma = ' ';
-    has str $.after-comma  = ' ';
 
-    has str $.parens-open  = '(';
-    has str $.parens-close = ')';
+#-------------------------------------------------------------------------------
+# These methods are effectively constants that can be overridden by a
+# subclass.
 
-    has str $.square-open  = '[';
-    has str $.square-close = ']';
+    method before-comma(--> ' ') { }
+    method after-comma( --> ' ') { }
 
-    has str $.reduce-open     = '[';
-    has str $.reduce-triangle = '[\\';
-    has str $.reduce-close    = ']';
+    method parens-open( --> '(') { }
+    method parens-close(--> ')') { }
 
-    has str $.bracket-open  = '{';
-    has str $.bracket-close = '}';
+    method square-open( --> '[') { }
+    method square-close(--> ']') { }
 
-    has str $.pointy-open  = '<';
-    has str $.pointy-close = '>';
+    method reduce-open(    --> '[')   { }
+    method reduce-triangle(--> '[\\') { }
+    method reduce-close(   --> ']')   { }
 
-    has str $.double-pointy-open  = '<<';
-    has str $.double-pointy-close = '>>';
+    method bracket-open( --> '{') { }
+    method bracket-close(--> '}') { }
 
-    has str $.block-open  = "\{\n";
-    has str $.block-close = "\}\n";
+    method pointy-open( --> '<') { }
+    method pointy-close(--> '>') { }
 
-    has str $.regex-open                   = '/ ';
-    has str $.regex-close                  = ' /';
-    has str $.regex-alternation            = ' | ';
-    has str $.regex-sequential-alternation = ' || ';
-    has str $.regex-conjunction            = ' & ';
-    has str $.regex-sequential-conjunction = ' && ';
+    method double-pointy-open( --> '<<') { }
+    method double-pointy-close(--> '>>') { }
 
-    has str $.regex-beginning-of-string = '^';
-    has str $.regex-end-of-string       = '$';
-    has str $.regex-beginning-of-line   = '^^';
-    has str $.regex-end-of-line         = '$$';
-    has str $.regex-left-word-boundary  = '<<';
-    has str $.regex-right-word-boundary = '>>';
+    method block-open( --> "\{\n") { }
+    method block-close(--> "\}\n") { }
 
-    has str $.regex-assertion-pass = '<?>';
-    has str $.regex-assertion-fail = '<!>';
+    method regex-open(                  --> '/ ')   { }
+    method regex-close(                 --> ' /')   { }
+    method regex-alternation(           --> ' | ')  { }
+    method regex-sequential-alternation(--> ' || ') { }
+    method regex-conjunction(           --> ' & ')  { }
+    method regex-sequential-conjunction(--> ' && ') { }
 
-    has str $.regex-backtrack-frugal  = '?';
-    has str $.regex-backtrack-ratchet = ':';
+    method regex-beginning-of-string(--> '^')  { }
+    method regex-end-of-string(      --> '$')  { }
+    method regex-beginning-of-line(  --> '^^') { }
+    method regex-end-of-line(        --> '$$') { }
+    method regex-left-word-boundary( --> '<<') { }
+    method regex-right-word-boundary(--> '>>') { }
 
-    has str $.regex-match-from = '<(';
-    has str $.regex-match-to   = ')>';
+    method regex-assertion-pass(--> '<?>') { }
+    method regex-assertion-fail(--> '<!>') { }
 
-    has str $.before-infix     = ' ';
-    has str $.after-infix      = ' ';
-    has str $.list-infix-comma = ', ';
+    method regex-backtrack-frugal( --> '?') { }
+    method regex-backtrack-ratchet(--> ':') { }
 
-    has str $.dotty-infix-call        = '.';
-    has str $.dotty-infix-call-assign = '.=';
+    method regex-match-from(--> '<(') { }
+    method regex-match-to(  --> ')>') { }
 
-    has str $.slurpy-flattened       = '*';
-    has str $.slurpy-single-argument = '+';
-    has str $.slurpy-unflattened     = '**';
-    has str $.slurpy-capture         = '|';
+    method before-infix(    --> ' ')  { }
+    method after-infix(     --> ' ')  { }
+    method list-infix-comma(--> ', ') { }
 
-    has str $.term-hyperwhatever = '**';
-    has str $.term-rand          = 'rand';
-    has str $.term-empty-set     = '∅';
-    has str $.term-self          = 'self';
-    has str $.term-whatever      = '*';
+    method dotty-infix-call(       --> '.')  { }
+    method dotty-infix-call-assign(--> '.=') { }
 
-    has str $.var-compiler-file = '$?FILE';
-    has str $.var-compiler-line = '$?LINE';
+    method slurpy-flattened(      --> '*') { }
+    method slurpy-single-argument(--> '+') { }
+    method slurpy-unflattened(   --> '**') { }
+    method slurpy-capture(       --> '|')  { }
 
-    has str $.assign =  ' = ';
-    has str $.bind   = ' := ';
+    method term-hyperwhatever(--> '**')   { }
+    method term-rand(         --> 'rand') { }
+    method term-empty-set(    --> '∅')    { }
+    method term-self(         --> 'self') { }
+    method term-whatever(     --> '*')    { }
 
-    has str $.before-list-infix = '';
-    has str $.after-list-infix  = ' ';
+    method var-compiler-file(--> '$?FILE') { }
+    method var-compiler-line(--> '$?LINE') { }
 
-    has str $.loop-separator = '; ';
+    method assign(--> ' = ')  { }
+    method bind(  --> ' := ') { }
 
-    has str $.pointy-sig     = '-> ';
-    has str $.pointy-return  = ' --> ';
-    has str $.fatarrow       = ' => ';
-    has str $.end-statement  = ";\n";
-    has str $.last-statement = "\n";
+    method before-list-infix(--> '') { }
+    method after-list-infix(--> ' ') { }
 
-    has str $.indent-spaces = '';
-    has str $.indent-with   = '    ';
+    method loop-separator(--> '; ') { }
 
-    has str $.ternary1 = ' ?? ';
-    has str $.ternary2 = ' !! ';
+    method pointy-sig(     --> '-> ')   { }
+    method pointy-return(  --> ' --> ') { }
+    method fatarrow(       --> ' => ')  { }
+    method end-statement(  --> ";\n")   { }
+    method last-statement( --> "\n")    { }
 
-    proto method deparse(|) {*}
+    method indent-with(  --> '    ') { }
+
+    method ternary1(--> ' ?? ') { }
+    method ternary2(--> ' !! ') { }
+
+#-------------------------------------------------------------------------------
+# Setting up the deparse method
+
+    proto method deparse(|) {
+        my $*INDENT = '';
+        {*}
+    }
 
     # Base class catcher
     multi method deparse(RakuAST::Node:D $ast) {
@@ -120,19 +134,15 @@ class RakuAST::Deparse {
         self.deparse($target)
     }
 
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Private helper methods
 
     method !indent(--> str) {
-        $!indent-spaces = nqp::concat($!indent-spaces,$!indent-with)
+        $*INDENT = $*INDENT ~ $.indent-with
     }
 
     method !dedent(--> str) {
-        $!indent-spaces = nqp::substr(
-          $!indent-spaces,
-          0,
-          nqp::chars($!indent-spaces) - nqp::chars($!indent-with)
-        )
+        $*INDENT = $*INDENT.chomp($.indent-with);
     }
 
     method !routine(RakuAST::Routine:D $ast --> str) {
@@ -269,7 +279,7 @@ class RakuAST::Deparse {
         nqp::concat($.parens-open,nqp::concat($inside,$.parens-close))
     }
 
-#--------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Deparsing methods in alphabetical order
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> str) {
@@ -1094,7 +1104,7 @@ class RakuAST::Deparse {
             for @parameters -> $parameter {
                 nqp::push_s($parts,self.deparse($parameter));
             }
-            nqp::join($!list-infix-comma,$parts)
+            nqp::join($.list-infix-comma,$parts)
         }
         else {
             ''
@@ -1263,7 +1273,7 @@ class RakuAST::Deparse {
 
         if $ast.statements -> @statements {
             my $parts     := nqp::list_s;
-            my str $spaces = $.indent-spaces;
+            my str $spaces = self!indent;
             my str $end    = $.end-statement;
 
             my str $code;

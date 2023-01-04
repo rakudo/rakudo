@@ -289,11 +289,10 @@ class RakuAST::Node {
 
     # Hook into the Raku RakuAST::Deparse class (by default) or any other
     # class that has been put into the hllsym hash for 'Raku'
-    method DEPARSE(*%_) {
-        my $deparser := nqp::gethllsym('Raku','DEPARSE');
-        nqp::isnull($deparser)
-          ?? nqp::die("No deparser class found")
-          !! $deparser.new(|%_).deparse(self)
+    method DEPARSE() {
+        # TODO: figure out how to take a single optional positional that
+        # expects a class, and how to check for that here.
+        nqp::gethllsym('Raku','DEPARSE').deparse(self)
     }
 
     method IMPL-SORTED-KEYS(Mu $hash) {

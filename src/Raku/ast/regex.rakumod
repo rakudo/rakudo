@@ -1424,7 +1424,11 @@ class RakuAST::Regex::CharClassElement::Enumeration is RakuAST::Regex::CharClass
         }
 
         else {
-            nqp::die('nyi cclass compilation')
+            self.negated ??
+                QAST::Regex.new( :rxtype<concat>, :negate(1),
+                    QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, |@alts ),
+                    QAST::Regex.new( :rxtype<cclass>, :name<.> ) ) !!
+                QAST::Regex.new( :rxtype<alt>, |@alts );
         }
     }
 

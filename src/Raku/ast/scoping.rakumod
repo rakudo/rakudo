@@ -373,7 +373,9 @@ class RakuAST::Declaration::External is RakuAST::Declaration {
 
 class RakuAST::Declaration::Mergeable {
     method is-stub() {
-        self.type.HOW.HOW.name(self.type.HOW) eq 'Perl6::Metamodel::PackageHOW'
+        my $how  := self.type.HOW;
+        my $name := $how.HOW.name($how);
+        $name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW'
     }
 
     method merge(RakuAST::Declaration $other) {

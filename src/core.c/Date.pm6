@@ -403,6 +403,19 @@ my class Date does Dateish {
           ?? self
           !! nqp::create(Date)!SET-SELF($!year, $!month, $!day, &!formatter)
     }
+    
+    method Int() {
+        self.daycount
+    }
+    
+    method Numeric() {
+        self.daycount
+    }
+    
+    method Real() {
+        self.daycount
+    }
+    
 }
 
 multi sub infix:<+>(Date:D $date, Int:D $x --> Date:D) {
@@ -419,24 +432,6 @@ multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
 }
 multi sub infix:<cmp>(Date:D $a, Date:D $b) {
     $a.daycount cmp $b.daycount
-}
-multi sub infix:«<=>»(Date:D $a, Date:D $b) {
-    $a.daycount <=> $b.daycount
-}
-multi sub infix:<==>(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount == $b.daycount
-}
-multi sub infix:«<=»(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount <= $b.daycount
-}
-multi sub infix:«<»(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount < $b.daycount
-}
-multi sub infix:«>=»(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount >= $b.daycount
-}
-multi sub infix:«>»(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount > $b.daycount
 }
 
 proto sub sleep($?, *%) {*}

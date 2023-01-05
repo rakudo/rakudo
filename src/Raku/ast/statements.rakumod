@@ -52,6 +52,8 @@ class RakuAST::Label is RakuAST::Declaration is RakuAST::ImplicitLookups is Raku
 # Everything that can appear at statement level does RakuAST::Statement.
 class RakuAST::Statement is RakuAST::Blorst {
     has Mu $!labels;
+    has int $.trace;
+    has int $.statement-id;
 
     method add-label(RakuAST::Label $label) {
         nqp::push(($!labels // nqp::bindattr(self, RakuAST::Statement, '$!labels', [])),
@@ -66,6 +68,14 @@ class RakuAST::Statement is RakuAST::Blorst {
     method set-labels(List $labels) {
         nqp::bindattr(self, RakuAST::Statement, '$!labels', self.IMPL-UNWRAP-LIST($labels));
         Nil
+    }
+
+    method set-statement-id(int $statement-id) {
+        nqp::bindattr_i(self, RakuAST::Statement, '$!statement-id', $statement-id);
+    }
+
+    method set-trace(Bool $trace) {
+        nqp::bindattr_i(self, RakuAST::Statement, '$!trace', $trace ?? 1 !! 0);
     }
 
     method visit-labels(Code $visitor) {
@@ -155,10 +165,10 @@ class RakuAST::ForLoopImplementation is RakuAST::Node {
 }
 
 # A list of statements, often appearing as the body of a block.
-class RakuAST::StatementList is RakuAST::SinkPropagator {
+class RakuAST::StatementList is RakuAST::SinkPropagator is RakuAST::ImplicitLookups {
     has List $!statements;
 
-    method new(*@statements) {
+    method new(*@statements, Bool :$trace) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementList, '$!statements', @statements);
         $obj
@@ -172,6 +182,12 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         nqp::push($!statements, $statement);
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Blob'))
+        ])
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
         my @statements := $!statements;
@@ -183,6 +199,29 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
                     :node($stmt-orig.as-match),
                     $qast
                 );
+            }
+            if $_.trace && nqp::isconcrete($stmt-orig) && !$*CU.precompilation-mode {
+                my $Blob := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+                $context.ensure-sc($Blob);
+                my $line := $stmt-orig.source.original-line($stmt-orig.from);
+                my $file := $stmt-orig.source.original-file;
+                my $code := nqp::substr($stmt-orig.source.orig, $stmt-orig.from, $stmt-orig.to - $stmt-orig.from);
+                if $code ne 'use trace' {
+                    my $id := $_.statement-id;
+                    $stmts.push(QAST::Op.new(
+                        :op<writefh>,
+                        QAST::Op.new(:op<getstderr>),
+                        QAST::Op.new(
+                            :op('encode'),
+                            QAST::SVal.new(:value("$id ($file line $line)\n$code\n")),
+                            QAST::SVal.new(:value('utf8')),
+                            QAST::Op.new(
+                                :op('callmethod'), :name('new'),
+                                QAST::WVal.new( :value($Blob) )
+                            )
+                        )
+                    ));
+                }
             }
             $stmts.push($qast);
         }

@@ -518,6 +518,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*R;
         :my $*LITERALS;
         :my $*EXPORT;
+        :my $*NEXT_STATEMENT_ID := 1; # to give each statement an ID
         <.comp_unit_stage0>
         <.lang_setup($outer-cu)>
 
@@ -590,6 +591,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
+        :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
 
         :my $actions := self.slang_actions('MAIN');
         <!!{ $/.set_actions($actions); 1 }>

@@ -224,6 +224,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement($/) {
+        my $trace := $/.pragma('trace') ?? 1 !! 0;
+        my $statement-id := $*STATEMENT_ID;
         if $<EXPR> {
             my $statement := self.r('Statement', 'Expression').new(expression => $<EXPR>.ast);
             if $<statement_mod_cond> {
@@ -232,10 +234,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $<statement_mod_loop> {
                 $statement.replace-loop-modifier($<statement_mod_loop>.ast);
             }
+            $statement.set-trace($trace);
+            $statement.set-statement-id($statement-id);
             self.attach: $/, $statement;
         }
         elsif $<statement_control> {
-            self.attach: $/, $<statement_control>.ast;
+            my $statement := $<statement_control>.ast;
+            $statement.set-trace($trace);
+            $statement.set-statement-id($statement-id);
+            self.attach: $/, $statement;
         }
         elsif $<label> {
             my $statement := $<statement>.ast;
@@ -243,7 +250,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             make $statement;
         }
         else {
-            self.attach: $/, self.r('Statement', 'Empty').new;
+            my $statement := self.r('Statement', 'Empty').new;
+            $statement.set-trace($trace);
+            $statement.set-statement-id($statement-id);
+            self.attach: $/, $statement
         }
     }
 

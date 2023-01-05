@@ -20,6 +20,7 @@ subtest 'Can make a named call with no arguments' => {
     ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('no-args')
     );
+    is-deeply $deparsed, 'no-args()';
     is-deeply $_, 444
       for EVAL($ast), EVAL($deparsed);
 }
@@ -33,6 +34,7 @@ subtest 'Can make a named call with one positional argument' => {
       name => RakuAST::Name.from-identifier('one-arg'),
       args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(5))
     );
+    is-deeply $deparsed, 'one-arg(5)';
     is-deeply $_, 45
       for EVAL($ast), EVAL($deparsed);
 }
@@ -49,6 +51,7 @@ subtest 'Can make a named call with two positional arguments' => {
         RakuAST::IntLiteral.new(3),
       )
     );
+    is-deeply $deparsed, 'two-args(5, 3)';
     is-deeply $_, 2
       for EVAL($ast), EVAL($deparsed);
 }
@@ -71,6 +74,7 @@ subtest 'Can make a named call with two named arguments' => {
         )
       )
     );
+    is-deeply $deparsed, 'two-named(n1 => 200, n2 => 4)';
     is-deeply $_, 50.0
       for EVAL($ast), EVAL($deparsed);
 }
@@ -94,6 +98,7 @@ subtest 'Duplicated named arguments are correctly handled' => {
         ),
       )
     );
+    is-deeply $deparsed, 'two-named(n1 => 200, n2 => 4, n1 => 400)';
     is-deeply $_, 100.0
       for EVAL($ast), EVAL($deparsed);
 }
@@ -110,6 +115,7 @@ subtest 'Can make a call on a term with two positional arguments' => {
         )
       )
     );
+    is-deeply $deparsed, '$target(9, 4)';
     is-deeply $_, 5
       for EVAL($ast), EVAL($deparsed);
 }
@@ -119,7 +125,7 @@ class TestTarget {
     method subtract($x, $y) { $x - $y }
 }
 subtest 'Can make a call on a method without arguments' => {
-    # TestTarget.route
+    # TestTarget.route()
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier('TestTarget')
@@ -128,6 +134,7 @@ subtest 'Can make a call on a method without arguments' => {
         name => RakuAST::Name.from-identifier('route')
       )
     );
+    is-deeply $deparsed, 'TestTarget.route()';
     is-deeply $_, 66
       for EVAL($ast), EVAL($deparsed);
 }
@@ -146,6 +153,7 @@ subtest 'Can make a call on a method with positional arguments' => {
         )
       )
     );
+    is-deeply $deparsed, 'TestTarget.subtract(14, 6)';
     is-deeply $_, 8
       for EVAL($ast), EVAL($deparsed);
 }
@@ -158,6 +166,8 @@ subtest 'Method call WHAT compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('WHAT')
       )
     );
+    todo 'Should codegen without parens, as it is a macro';
+    is-deeply $deparsed, '42.WHAT';
     is-deeply $_, Int
       for EVAL($ast), EVAL($deparsed);
 }
@@ -170,6 +180,8 @@ subtest 'Method call HOW compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('HOW')
       )
     );
+    todo 'Should codegen without parens, as it is a macro';
+    is-deeply $deparsed, '42.HOW';
     is-deeply $_, Int.HOW
       for EVAL($ast), EVAL($deparsed);
 }
@@ -182,6 +194,8 @@ subtest 'Method call WHO compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('WHO')
       )
     );
+    todo 'Should codegen without parens, as it is a macro';
+    is-deeply $deparsed, '42.WHO';
     isa-ok $_, Stash
       for EVAL($ast), EVAL($deparsed);
 }
@@ -194,6 +208,8 @@ subtest 'Method call DEFINITE compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('DEFINITE')
       )
     );
+    todo 'Should codegen without parens, as it is a macro';
+    is-deeply $deparsed, '42.DEFINITE';
     is-deeply $_, True
       for EVAL($ast), EVAL($deparsed);
 }
@@ -206,6 +222,8 @@ subtest 'Method call REPR compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('REPR')
       )
     );
+    todo 'Should codegen without parens, as it is a macro';
+    is-deeply $deparsed, '42.REPR';
     is-deeply $_, 'P6opaque'
       for EVAL($ast), EVAL($deparsed);
 }
@@ -222,6 +240,7 @@ subtest 'Can make a quoted call on a method without arguments' => {
         )
       )
     );
+    is-deeply $deparsed, 'TestTarget."route"()';
     is-deeply $_, 66
       for EVAL($ast), EVAL($deparsed);
 }
@@ -242,16 +261,18 @@ subtest 'Can make a quoted call on a method with positional arguments' => {
         )
       )
     );
+    is-deeply $deparsed, 'TestTarget."subtract"(14, 6)';
     is-deeply $_, 8
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Can make a meta-method call' => {
-    # 42.^name
+    # 42.^name()
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(42),
       postfix => RakuAST::Call::MetaMethod.new(name => 'name')
     );
+    is-deeply $deparsed, '42.^name()';
     is-deeply $_, 'Int'
       for EVAL($ast), EVAL($deparsed);
 }
@@ -268,6 +289,7 @@ subtest 'Can make a call that flattens into array' => {
         )
       )
     );
+    is-deeply $deparsed, 'no-args(|@args)';
     is-deeply $_, 444, 'flattening empty list'
       for EVAL($ast), EVAL($deparsed);
 
@@ -282,6 +304,7 @@ subtest 'Can make a call that flattens into array' => {
         )
       )
     );
+    is-deeply $deparsed, 'two-args(|@args)';
     is-deeply $_, 55, 'two positional arguments'
       for EVAL($ast), EVAL($deparsed);
 }
@@ -298,6 +321,7 @@ subtest 'Can make a call that flattens into hash' => {
         )
       )
     );
+    is-deeply $deparsed, 'no-args(|%args)';
     is-deeply $_, 444, 'flattening empty list'
       for EVAL($ast), EVAL($deparsed);
 
@@ -312,6 +336,7 @@ subtest 'Can make a call that flattens into hash' => {
         )
       )
     );
+    is-deeply $deparsed, 'two-named(|%args)';
     is-deeply $_, 5.0, 'flattening two named arguments'
       for EVAL($ast), EVAL($deparsed);
 }

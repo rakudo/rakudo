@@ -391,7 +391,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                     :name(RakuAST::Name.from-identifier(self.desigilname)),
                     :body(RakuAST::Blockoid.new(
                         RakuAST::StatementList.new(
-                            $variable-access,
+                            RakuAST::Statement::Expression.new(:expression($variable-access)),
                         ),
                     )),
                 );

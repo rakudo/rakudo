@@ -332,7 +332,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Call::Method:D $ast --> Str:D) {
         self.deparse($ast.name)
-          ~ self!parenthesize(self.deparse($ast.args))
+          ~ ($ast.macroish ?? '' !! self!parenthesize(self.deparse($ast.args)))
     }
 
     multi method deparse(RakuAST::Call::QuotedMethod:D $ast --> Str:D) {

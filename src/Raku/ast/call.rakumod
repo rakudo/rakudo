@@ -15,6 +15,8 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
         $obj
     }
 
+    method has-args() { nqp::elems($!args) }
+
     method args() {
         self.IMPL-WRAP-LIST($!args)
     }
@@ -326,7 +328,7 @@ class RakuAST::Call::Methodish is RakuAST::Call is RakuAST::Postfixish {
 
 # A call to a method identified by a name. Some names (like WHAT and HOW) are
 # compiled into primitive operations rather than really being method calls.
-class RakuAST::Call::Method is RakuAST::Call::Methodish {
+class RakuAST::Call::Method is RakuAST::Call::Methodish is RakuAST::CheckTime {
     has RakuAST::Name $.name;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
@@ -339,6 +341,20 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor(self.args);
+    }
+
+    method shortname() {
+        my $parts := self.IMPL-UNWRAP-LIST($!name.parts);
+        nqp::elems($parts) == 1
+          && nqp::istype($parts[0], RakuAST::Name::Part::Simple)
+          ?? $parts[0].name
+          !! ''
+    }
+
+    method macroish() {
+        $!name.is-identifier
+          && (my $name := self.shortname)
+          && nqp::istrue(self.IMPL-SPECIAL-OP($name))
     }
 
     method IMPL-SPECIAL-OP(str $name) {
@@ -354,8 +370,8 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
-        if $!name.is-identifier {
-            my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+        my $name := self.shortname;
+        if $name {
             my $op := self.IMPL-SPECIAL-OP($name);
             if $op {
                 # Not really a method call, just using that syntax.
@@ -373,13 +389,11 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
         }
     }
 
-    method can-be-used-with-hyper() {
-        $!name.is-identifier && !self.IMPL-SPECIAL-OP($!name.canonicalize)
-    }
+    method can-be-used-with-hyper() { !self.macroish }
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         # TODO later expand this to the qualified case
-        my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+        my $name := self.shortname;
         my $call := QAST::Op.new:
             :op('callmethod'), :name('dispatch:<hyper>'),
             $operand-qast,
@@ -393,7 +407,7 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, Mu $invocant-compiler) {
         my $invocant := $invocant-compiler();
-        my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+        my $name := self.shortname;
         if $name eq 'WHAT' {
             $invocant.WHAT
         }
@@ -419,6 +433,17 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
             my @pos := @args[0];
             my %named := @args[1];
             $invocant."$name"(|@pos, |%named)
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if self.macroish && self.args.has-args {
+            self.add-sorry(
+              $resolver.build-exception(
+                'X::Syntax::Argument::MOPMacro',
+                macro => self.shortname
+              )
+            );
         }
     }
 }

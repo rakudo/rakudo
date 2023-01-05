@@ -166,7 +166,6 @@ subtest 'Method call WHAT compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('WHAT')
       )
     );
-    todo 'Should codegen without parens, as it is a macro';
     is-deeply $deparsed, '42.WHAT';
     is-deeply $_, Int
       for EVAL($ast), EVAL($deparsed);
@@ -180,7 +179,6 @@ subtest 'Method call HOW compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('HOW')
       )
     );
-    todo 'Should codegen without parens, as it is a macro';
     is-deeply $deparsed, '42.HOW';
     is-deeply $_, Int.HOW
       for EVAL($ast), EVAL($deparsed);
@@ -194,7 +192,6 @@ subtest 'Method call WHO compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('WHO')
       )
     );
-    todo 'Should codegen without parens, as it is a macro';
     is-deeply $deparsed, '42.WHO';
     isa-ok $_, Stash
       for EVAL($ast), EVAL($deparsed);
@@ -208,7 +205,6 @@ subtest 'Method call DEFINITE compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('DEFINITE')
       )
     );
-    todo 'Should codegen without parens, as it is a macro';
     is-deeply $deparsed, '42.DEFINITE';
     is-deeply $_, True
       for EVAL($ast), EVAL($deparsed);
@@ -222,7 +218,6 @@ subtest 'Method call REPR compiles into MOP primitive' => {
         name => RakuAST::Name.from-identifier('REPR')
       )
     );
-    todo 'Should codegen without parens, as it is a macro';
     is-deeply $deparsed, '42.REPR';
     is-deeply $_, 'P6opaque'
       for EVAL($ast), EVAL($deparsed);

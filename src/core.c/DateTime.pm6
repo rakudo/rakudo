@@ -494,6 +494,10 @@ my class DateTime does Dateish {
     method Numeric(DateTime:D: --> Instant:D) {
         self.Instant
     }
+    
+    method Real(DateTime:D: --> Instant:D) {
+        self.Instant
+    }
 
     method Instant(DateTime:D: --> Instant:D) {
         Instant.from-posix: self.posix + $!second % 1, $!second >= 60;
@@ -708,27 +712,6 @@ my class DateTime does Dateish {
     multi method ACCEPTS(DateTime:D: DateTime:D \topic) { self == topic }
 }
 
-multi sub infix:«<»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant < $b.Instant
-}
-multi sub infix:«>»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant > $b.Instant
-}
-multi sub infix:«<=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant <= $b.Instant
-}
-multi sub infix:«>=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant >= $b.Instant
-}
-multi sub infix:«==»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant == $b.Instant
-}
-multi sub infix:«!=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant != $b.Instant
-}
-multi sub infix:«<=>»(DateTime:D $a, DateTime:D $b) {
-    $a.Instant <=> $b.Instant
-}
 multi sub infix:«cmp»(DateTime:D $a, DateTime:D $b) {
     $a.Instant cmp $b.Instant
 }

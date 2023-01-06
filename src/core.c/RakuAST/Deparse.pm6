@@ -122,13 +122,13 @@ class RakuAST::Deparse {
         die "You cannot deparse a $ast.^name() instance: $ast.raku()";
     }
     multi method deparse(Mu:U $ast) {
-        die "You cannot deparse a $ast.^name type object";
+        die "You cannot deparse a $ast.^name() type object";
     }
 
     # helper method for deparsing contextualizers, sadly no private multis yet
     proto method context-target(|) is implementation-detail {*}
     multi method context-target(RakuAST::StatementSequence $target --> str) {
-        self!parenthesize(self.deparse($target))
+        self!parenthesize($target)
     }
     multi method context-target($target --> str) {
         self.deparse($target)
@@ -154,7 +154,7 @@ class RakuAST::Deparse {
         }
 
         unless $ast.placeholder-signature {
-            @parts.push(self!parenthesize(self.deparse($ast.signature)));
+            @parts.push(self!parenthesize($ast.signature));
         }
 
         if $ast.traits -> @traits {
@@ -245,8 +245,22 @@ class RakuAST::Deparse {
         $quantifier ~ self.deparse($ast.backtrack)
     }
 
-    method !parenthesize(str $inside --> Str:D) {
-        $.parens-open ~ $inside ~ $.parens-close
+    method !parenthesize($ast --> Str:D) {
+        $.parens-open
+          ~ ($ast.defined ?? self.deparse($ast) !! '')
+          ~ $.parens-close
+    }
+
+    method !bracketize($ast --> Str:D) {
+        $.bracket-open
+          ~ ($ast.defined ?? self.deparse($ast) !! '')
+          ~ $.bracket-close
+    }
+
+    method !squarize($ast --> Str:D) {
+        $.square-open
+          ~ ($ast.defined ?? self.deparse($ast) !! '')
+          ~ $.square-close
     }
 
     method !typish-trait(RakuAST::Trait:D $ast --> Str:D) {
@@ -332,64 +346,49 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Call::Method:D $ast --> Str:D) {
         self.deparse($ast.name)
-          ~ ($ast.macroish ?? '' !! self!parenthesize(self.deparse($ast.args)))
+          ~ ($ast.macroish ?? '' !! self!parenthesize($ast.args))
     }
 
     multi method deparse(RakuAST::Call::QuotedMethod:D $ast --> Str:D) {
-        self.deparse($ast.name)
-          ~ self!parenthesize(self.deparse($ast.args))
+        self.deparse($ast.name) ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::MaybeMethod:D $ast --> Str:D) {
-        '?'
-          ~ $ast.name
-          ~ self!parenthesize(self.deparse($ast.args))
+        '?' ~ $ast.name ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::MetaMethod:D $ast --> Str:D) {
-        '^'
-          ~ $ast.name
-          ~ self!parenthesize(self.deparse($ast.args))
+        '^' ~ $ast.name ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::PrivateMethod:D $ast --> Str:D) {
-        '!'
-          ~ self.deparse($ast.name)
-          ~ self!parenthesize(self.deparse($ast.args))
+        '!' ~ self.deparse($ast.name) ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
-        '&'
-          ~ self.deparse($ast.name)
-          ~ self!parenthesize(self.deparse($ast.args))
+        '&' ~ self.deparse($ast.name) ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
-        self.deparse($ast.name) ~ self!parenthesize(self.deparse($ast.args))
+        self.deparse($ast.name) ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {
-        self!parenthesize(self.deparse($ast.args))
+        self!parenthesize($ast.args)
     }
 
 #- Circumfix -------------------------------------------------------------------
 
     multi method deparse(RakuAST::Circumfix::ArrayComposer:D $ast --> Str:D) {
-        (my $semilist := $ast.semilist)
-          ?? $.square-open ~ self.deparse($semilist) ~ $.square-close
-          !! $.square-open ~ $.square-close
+        self!squarize($ast.semilist)
     }
 
     multi method deparse(RakuAST::Circumfix::HashComposer:D $ast --> Str:D) {
-        (my $expression := $ast.expression)
-          ?? $.bracket-open ~ self.deparse($expression) ~ $.bracket-close
-          !! $.bracket-open ~ $.bracket-close
+        self!bracketize($ast.expression)
     }
 
     multi method deparse(RakuAST::Circumfix::Parentheses:D $ast --> Str:D) {
-        (my $semilist := $ast.semilist)
-          ?? self!parenthesize(self.deparse($semilist))
-          !! $.parens-open ~ $.parens-close
+        self!parenthesize($ast.semilist)
     }
 
 #- ColonPair -------------------------------------------------------------------
@@ -663,11 +662,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Postcircumfix::ArrayIndex:D $ast --> Str:D) {
-        $.square-open ~ self.deparse($ast.index) ~ $.square-close
+        self!squarize($ast.index)
     }
 
     multi method deparse(RakuAST::Postcircumfix::HashIndex:D $ast --> Str:D) {
-        $.bracket-open ~ self.deparse($ast.index) ~ $.bracket-close
+        self!bracketize($ast.index)
     }
 
     multi method deparse(
@@ -974,7 +973,7 @@ class RakuAST::Deparse {
 #- Regex::G --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::Group:D $ast --> Str:D) {
-        $.square-open ~ self.deparse($ast.regex) ~ $.square-close
+        self!squarize($ast.regex)
     }
 
 #- Regex::I --------------------------------------------------------------------
@@ -1434,7 +1433,7 @@ class RakuAST::Deparse {
 #- Term ------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Term::Capture:D $ast --> Str:D) {
-        Q/\/ ~ self!parenthesize(self.deparse($ast.source))
+        Q/\/ ~ self!parenthesize($ast.source)
     }
 
     multi method deparse(RakuAST::Term::EmptySet:D $ --> Str:D) {
@@ -1461,7 +1460,7 @@ class RakuAST::Deparse {
         ($ast.triangle ?? $.reduce-triangle !! $.reduce-open)
           ~ self.deparse($ast.infix)
           ~ $.reduce-close
-          ~ self!parenthesize(self.deparse($ast.args))
+          ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Term::Self:D $ --> Str:D) {

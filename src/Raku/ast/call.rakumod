@@ -343,17 +343,9 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish is RakuAST::CheckTime {
         $visitor(self.args);
     }
 
-    method shortname() {
-        my $parts := self.IMPL-UNWRAP-LIST($!name.parts);
-        nqp::elems($parts) == 1
-          && nqp::istype($parts[0], RakuAST::Name::Part::Simple)
-          ?? $parts[0].name
-          !! ''
-    }
-
     method macroish() {
         $!name.is-identifier
-          && (my $name := self.shortname)
+          && (my $name := $!name.canonicalize)
           && nqp::istrue(self.IMPL-SPECIAL-OP($name))
     }
 
@@ -370,7 +362,7 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish is RakuAST::CheckTime {
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
-        my $name := self.shortname;
+        my $name := $!name.canonicalize;
         if $name {
             my $op := self.IMPL-SPECIAL-OP($name);
             if $op {
@@ -393,7 +385,7 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish is RakuAST::CheckTime {
 
     method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         # TODO later expand this to the qualified case
-        my $name := self.shortname;
+        my $name := $!name.canonicalize;
         my $call := QAST::Op.new:
             :op('callmethod'), :name('dispatch:<hyper>'),
             $operand-qast,
@@ -407,7 +399,7 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish is RakuAST::CheckTime {
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, Mu $invocant-compiler) {
         my $invocant := $invocant-compiler();
-        my $name := self.shortname;
+        my $name := $!name.canonicalize;
         if $name eq 'WHAT' {
             $invocant.WHAT
         }
@@ -436,12 +428,15 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish is RakuAST::CheckTime {
         }
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-CHECK(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
         if self.macroish && self.args.has-args {
             self.add-sorry(
               $resolver.build-exception(
                 'X::Syntax::Argument::MOPMacro',
-                macro => self.shortname
+                macro => $!name.canonicalize
               )
             );
         }

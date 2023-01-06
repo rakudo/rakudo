@@ -64,9 +64,11 @@ class RakuAST::Deparse {
     method regex-match-from(--> '<(') { }
     method regex-match-to(  --> ')>') { }
 
-    method before-infix(    --> ' ')  { }
-    method after-infix(     --> ' ')  { }
-    method list-infix-comma(--> ', ') { }
+    method before-infix(--> ' ')  { }
+    method after-infix( --> ' ')  { }
+
+    method list-infix-comma(     --> ', ') { }
+    method list-infix-semi-colon(--> '; ') { }
 
     method dotty-infix-call(       --> '.')  { }
     method dotty-infix-call-assign(--> '.=') { }
@@ -284,17 +286,18 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyListInfix:D $ast --> Str:D) {
-        my str @parts = $ast.operands.map: -> \operand {
-            self.deparse(operand)
-        }
+        my str $operator = $ast.infix.operator;
+        my str @parts    = $ast.operands.map({ self.deparse($_) });
 
         @parts
-          ?? @parts.join(
-               $.before-list-infix
-                 ~ $ast.infix.operator
-                 ~ $.after-list-infix
-             )
-          !! '()'
+          ?? $operator eq ','
+            ?? @parts == 1
+              ?? @parts.head ~ $.list-infix-comma.chomp
+              !! @parts.join($.list-infix-comma)
+            !! @parts.join(
+                 $.before-list-infix ~ $operator ~ $.after-list-infix
+               )
+          !! ''
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
@@ -1110,13 +1113,12 @@ class RakuAST::Deparse {
 
 #- S ---------------------------------------------------------------------------
 
+    multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
+        $ast.statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
+    }
+
     multi method deparse(RakuAST::Signature:D $ast --> Str:D) {
-        if $ast.parameters -> @parameters {
-            @parameters.map({ self.deparse($_) }).join($.list-infix-comma)
-        }
-        else {
-            ''
-        }
+        $ast.parameters.map({ self.deparse($_) }).join($.list-infix-comma)
     }
 
 #- Statement -------------------------------------------------------------------

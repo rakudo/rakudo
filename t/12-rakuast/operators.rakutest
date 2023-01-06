@@ -234,7 +234,7 @@ subtest 'Multi-dimensional array indexing' => {
         ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::HashIndex.new(
-            RakuAST::SemiList.new()
+            RakuAST::SemiList.new
           )
         );
         is-deeply $_, %h
@@ -324,9 +324,15 @@ subtest 'Application of a list infix operator on three operands' => {
 
 subtest 'Application of a list infix operator on no operands' => {
     # ()
-    ast RakuAST::ApplyListInfix.new(
-      infix => RakuAST::Infix.new(','),
-      operands => ()
+    ast RakuAST::Circumfix::Parentheses.new(
+      RakuAST::SemiList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => ()
+          )
+        )
+      )
     );
     is-deeply $_, (),
       for EVAL($ast), EVAL($deparsed);

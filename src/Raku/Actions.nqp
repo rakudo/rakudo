@@ -1135,7 +1135,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             my str $sigil := ~$<sigil>;
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
-            my str $desigilname := ~$<desigilname>;
+            my str $desigilname := $<desigilname><longname>
+                ?? $<desigilname><longname>.ast.canonicalize
+                !! ~$<desigilname>;
             self.compile_variable_access($/, $sigil, $twigil, $desigilname, $<desigilname><longname>);
         }
     }

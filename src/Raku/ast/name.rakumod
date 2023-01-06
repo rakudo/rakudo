@@ -87,8 +87,11 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
             elsif nqp::istype($_, RakuAST::Name::Part::Empty) {
                 nqp::push_s($canon-parts, '');
             }
+            elsif nqp::istype($_, RakuAST::Name::Part::Expression) {
+                nqp::push_s($canon-parts, $_.expr.DEPARSE);
+            }
             else {
-                nqp::die('canonicalize NYI for non-simple name parts');
+                nqp::die('canonicalize NYI for non-simple name part ' ~ $_.HOW.name($_));
             }
         }
         my $name := nqp::join('::', $canon-parts);

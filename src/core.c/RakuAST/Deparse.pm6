@@ -403,11 +403,13 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ColonPair::Value:D $ast --> Str:D) {
-        ':'
-          ~ $ast.named-arg-name
-          ~ $.parens-open
-          ~ self.deparse($ast.value)
-          ~ $.parens-close
+        my $value := $ast.value;
+
+        ':' ~ $ast.named-arg-name ~ (
+          nqp::istype($value,RakuAST::StrLiteral)
+            ?? $.pointy-open ~ $value.value ~ $.pointy-close
+            !! $.parens-open ~ self.deparse($value) ~ $.parens-close
+        )
     }
 
     multi method deparse(RakuAST::ColonPair::Variable:D $ast --> Str:D) {

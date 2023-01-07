@@ -197,6 +197,13 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
         self.IMPL-WRAP-LIST(@needed)
     }
 
+    method has-variables() {
+        for $!segments {
+            return True if nqp::istype($_,RakuAST::Var);
+        }
+        False
+    }
+
     method type {
         if $!processors {
             # Can probably figure some of these out.

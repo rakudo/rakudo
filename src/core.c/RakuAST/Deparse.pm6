@@ -220,7 +220,7 @@ class RakuAST::Deparse {
     ;
 
     my constant %single-processor-prefix =
-      'exec',       'qqx/',
+      'exec',       'qx/',
       'quotewords', 'qqww/',
       'val',        'qq:v/',
       'words',      'qqw/',
@@ -228,7 +228,7 @@ class RakuAST::Deparse {
 
     method !multiple-processors(str $string, @processors --> Str:D) {
         "qq@processors.map({
-            %processor-attribute.AT-KEY($_) // NYI("String processors '$_'")
+            %processor-attribute{$_} // NYI("String processors '$_'")
         }).join()/$string/"
     }
 
@@ -700,14 +700,16 @@ class RakuAST::Deparse {
 
         if $ast.processors -> @processors {
             if @processors == 1 && @processors.head -> $processor {
-                with %single-processor-prefix.AT-KEY($processor) -> str $p {
-                    $p ~ $string ~ '/'
+                if %single-processor-prefix{$processor} -> str $p {
+                    ($p eq 'exec' && $ast.has-variables ?? 'qqx' !! $p)
+                      ~ $string
+                      ~ '/'
                 }
                 else {
                     NYI("Quoted string processor '$processor'").throw
                 }
             }
-            elsif @processors == 2 {
+            elsif @processors == 2 && !$ast.has-variables {
                 my str $joined = @processors.join(' ');
                 if $joined eq 'words val' {
                     $.pointy-open ~ $string ~ $.pointy-close

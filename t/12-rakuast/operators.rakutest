@@ -2,10 +2,11 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 23;
+plan 28;
 
 my $ast;
 my $deparsed;
+my @type = |<AST string> xx *;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
@@ -13,117 +14,143 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 }
 
 subtest 'Application of an infix operator on two literals' => {
-
     # 44 + 22
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(44),
       infix => RakuAST::Infix.new('+'),
       right => RakuAST::IntLiteral.new(22)
     );
-    is-deeply $_, 66
+
+    is-deeply $deparsed, '44 + 22', 'deparse';
+    is-deeply $_, 66, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The special form || operator works' => {
-
+subtest 'The special form || operator works (1)' => {
     # 22 || 44
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(22),
       infix => RakuAST::Infix.new('||'),
       right => RakuAST::IntLiteral.new(44)
     );
-    is-deeply $_, 22
-      for EVAL($ast), EVAL($deparsed);
 
+    is-deeply $deparsed, '22 || 44', 'deparse';
+    is-deeply $_, 22, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'The special form || operator works (2)' => {
     # 0 || 44
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(0),
       infix => RakuAST::Infix.new('||'),
       right => RakuAST::IntLiteral.new(44)
     );
-    is-deeply $_, 44
+
+    is-deeply $deparsed, '0 || 44', 'deparse';
+    is-deeply $_, 44, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The special form or operator works' => {
-
+subtest 'The special form or operator works (1)' => {
     # 22 or 44
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(22),
       infix => RakuAST::Infix.new('or'),
       right => RakuAST::IntLiteral.new(44)
     );
-    is-deeply $_, 22
-      for EVAL($ast), EVAL($deparsed);
 
+    is-deeply $deparsed, '22 or 44', 'deparse';
+    is-deeply $_, 22, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'The special form or operator works (2)' => {
     # 0 or 44
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(0),
       infix => RakuAST::Infix.new('or'),
       right => RakuAST::IntLiteral.new(44)
     );
-    is-deeply $_, 44
+
+    is-deeply $deparsed, '0 or 44', 'deparse';
+    is-deeply $_, 44, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The special form && operator works' => {
-
+subtest 'The special form && operator works (1)' => {
     # 22 && 44
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(22),
       infix => RakuAST::Infix.new('&&'),
       right => RakuAST::IntLiteral.new(44)
     );
-    is-deeply $_, 44
-      for EVAL($ast), EVAL($deparsed);
 
+    is-deeply $deparsed, '22 && 44', 'deparse';
+    is-deeply $_, 44, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'The special form && operator works (2)' => {
     # 0 && 44
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(0),
       infix => RakuAST::Infix.new('&&'),
       right => RakuAST::IntLiteral.new(44)
     );
-    is-deeply $_, 0
+
+    is-deeply $deparsed, '0 && 44', 'deparse';
+    is-deeply $_, 0, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The special form and operator works' => {
-
+subtest 'The special form and operator works (1)' => {
     # 22 and 44
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(22),
       infix => RakuAST::Infix.new('and'),
       right => RakuAST::IntLiteral.new(44)
     );
-    is-deeply $_, 44
-      for EVAL($ast), EVAL($deparsed);
 
+    is-deeply $deparsed, '22 and 44', 'deparse';
+    is-deeply $_, 44, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'The special form and operator works (2)' => {
     # 0 and 44
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(0),
       infix => RakuAST::Infix.new('and'),
       right => RakuAST::IntLiteral.new(44)
     );
-    is-deeply $_, 0
+
+    is-deeply $deparsed, '0 and 44', 'deparse';
+    is-deeply $_, 0, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'Application of a prefix operator to a literal' => {
-
+subtest 'Application of a prefix operator to a literal (1)' => {
     # ?2
     ast RakuAST::ApplyPrefix.new(
       prefix => RakuAST::Prefix.new('?'),
       operand => RakuAST::IntLiteral.new(2)
     );
-    is-deeply $_, True
-      for EVAL($ast), EVAL($deparsed);
 
+    is-deeply $deparsed, '?2', 'deparse';
+    is-deeply $_, True, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Application of a prefix operator to a literal (2)' => {
     # ?0
     ast RakuAST::ApplyPrefix.new(
       prefix => RakuAST::Prefix.new('?'),
       operand => RakuAST::IntLiteral.new(0)
     );
-    is-deeply $_, False
+
+    is-deeply $deparsed, '?0', 'deparse';
+    is-deeply $_, False, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -137,8 +164,10 @@ subtest 'Application of a (user-defined) postfix operator to a literal' => {
       operand => RakuAST::IntLiteral.new(4),
       postfix => RakuAST::Postfix.new('!'),
     );
-    is-deeply $_, 24
-      for EVAL($ast), EVAL('sub postfix:<!>($n) { [*] 1..$n }; ' ~ $deparsed);
+
+    is-deeply $deparsed, '4!', 'deparse';
+    is-deeply $_, 24, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Basic assignment to a Scalar container' => {
@@ -151,9 +180,10 @@ subtest 'Basic assignment to a Scalar container' => {
       right => RakuAST::IntLiteral.new(4)
     );
 
-    is-deeply EVAL($ast), 4;
+    is-deeply $deparsed, '$a = 4', 'deparse';
+    is-deeply EVAL($ast), 4, @type[$++];
     $a = 666;
-    is-deeply EVAL($deparsed), 4;
+    is-deeply EVAL($deparsed), 4, @type[$++];
 }
 
 subtest 'Basic single-dimension array index' => {
@@ -170,8 +200,10 @@ subtest 'Basic single-dimension array index' => {
         )
       )
     );
-    is-deeply $_, 15
-      for EVAL($ast); #, EVAL($deparsed);
+
+    is-deeply $deparsed, '@a[5]', 'deparse';
+    is-deeply $_, 15, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Zen array slice' => {
@@ -184,7 +216,9 @@ subtest 'Zen array slice' => {
         RakuAST::SemiList.new
       )
     );
-    is-deeply $_, @a
+
+    is-deeply $deparsed, '@a[]', 'deparse';
+    is-deeply $_, @a, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -206,7 +240,8 @@ subtest 'Multi-dimensional array indexing' => {
       )
     );
 
-    is-deeply $_, 'h'
+    is-deeply $deparsed, '@a[2; 1]', 'deparse';
+    is-deeply $_, 'h', @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -214,7 +249,7 @@ subtest 'Multi-dimensional array indexing' => {
     my %h = a => 'add', s => 'subtract';
 
     subtest 'Basic single-dimension hash index' => {
-        # %h{('s',)}
+        # %h{"s")}
         ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::HashIndex.new(
@@ -225,7 +260,9 @@ subtest 'Multi-dimensional array indexing' => {
             )
           )
         );
-        is-deeply $_, 'subtract'
+
+        is-deeply $deparsed, '%h{"s"}', 'deparse';
+        is-deeply $_, 'subtract', @type[$++]
           for EVAL($ast), EVAL($deparsed);
     }
 
@@ -237,7 +274,9 @@ subtest 'Multi-dimensional array indexing' => {
             RakuAST::SemiList.new
           )
         );
-        is-deeply $_, %h
+
+        is-deeply $deparsed, '%h{}', 'deparse';
+        is-deeply $_, %h, @type[$++]
           for EVAL($ast), EVAL($deparsed);
     }
 
@@ -252,7 +291,9 @@ subtest 'Multi-dimensional array indexing' => {
             )
           )
         );
-        is-deeply $_, 'subtract'
+
+        is-deeply $deparsed, '%h<s>', 'deparse';
+        is-deeply $_, 'subtract', @type[$++]
           for EVAL($ast), EVAL($deparsed);
     }
 
@@ -267,7 +308,9 @@ subtest 'Multi-dimensional array indexing' => {
             )
           )
         );
-        is-deeply $_, ('subtract', 'add'),
+
+        is-deeply $deparsed, '%h<s a>', 'deparse';
+        is-deeply $_, ('subtract', 'add'), @type[$++]
           for EVAL($ast), EVAL($deparsed);
     }
 
@@ -282,7 +325,9 @@ subtest 'Multi-dimensional array indexing' => {
             )
           )
         );
-        is-deeply $_, %h
+
+        is-deeply $deparsed, '%h<>', 'deparse';
+        is-deeply $_, %h, @type[$++]
           for EVAL($ast), EVAL($deparsed);
     }
 }
@@ -304,12 +349,14 @@ subtest 'Multi-dimensional hash indexing' => {
         )
       )
     );
-    is-deeply $_, (3,), # Is this actually a CORE.setting bug?
+
+    is-deeply $deparsed, '%h{"y"; "a"}', 'deparse';
+    is-deeply $_, (3,), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Application of a list infix operator on three operands' => {
-    # (10, 11, 12)
+    # 10, 11, 12
     ast RakuAST::ApplyListInfix.new(
       infix => RakuAST::Infix.new(','),
       operands => (
@@ -318,7 +365,9 @@ subtest 'Application of a list infix operator on three operands' => {
         RakuAST::IntLiteral.new(12),
       )
     );
-    is-deeply $_, (10, 11, 12),
+
+    is-deeply $deparsed, '10, 11, 12', 'deparse';
+    is-deeply $_, (10, 11, 12), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -334,7 +383,9 @@ subtest 'Application of a list infix operator on no operands' => {
         )
       )
     );
-    is-deeply $_, (),
+
+    is-deeply $deparsed, '()', 'deparse';
+    is-deeply $_, (), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -354,12 +405,13 @@ subtest 'Chaining operator has correct outcome' => {
       infix => RakuAST::Infix.new('>'),
       right => RakuAST::IntLiteral.new(3)
     );
+    is-deeply $deparsed, '5 > $x++ > 3', 'deparse';
 
-    is-deeply EVAL($ast), True;
+    is-deeply EVAL($ast), True, @type[$++];
     is-deeply $x, 5;
 
     $x = 4;
-    is-deeply EVAL($deparsed), True;
+    is-deeply EVAL($deparsed), True, @type[$++];
     is-deeply $x, 5;
 }
 
@@ -370,18 +422,19 @@ subtest 'Correct outcome of ternary operator' => {
       then => RakuAST::IntLiteral.new(22),
       else => RakuAST::IntLiteral.new(33)
     );
+    is-deeply $deparsed, '$a ?? 22 !! 33', 'deparse';
 
     my $a = 1;
-    is-deeply $_, 22
+    is-deeply $_, 22, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 
     $a = 0;
-    is-deeply $_, 33
+    is-deeply $_, 33, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Application of dotty infix `.`' => {
-    # "foo".uc
+    # "foo".uc()
     ast RakuAST::ApplyDottyInfix.new(
       left => RakuAST::StrLiteral.new('foo'),
       infix => RakuAST::DottyInfix::Call.new(),
@@ -390,14 +443,15 @@ subtest 'Application of dotty infix `.`' => {
       )
     );
 
-    is-deeply $_, 'FOO'
+    is-deeply $deparsed, '"foo".uc()', 'deparse';
+    is-deeply $_, 'FOO', @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Application of dotty infix `.=` evaluates to expected value' => {
     my $var = 'foo';
 
-    # $var .= tc
+    # $var .= tc()
     ast RakuAST::ApplyDottyInfix.new(
       left => RakuAST::Var::Lexical.new('$var'),
       infix => RakuAST::DottyInfix::CallAssign.new(),
@@ -405,12 +459,13 @@ subtest 'Application of dotty infix `.=` evaluates to expected value' => {
         name => RakuAST::Name.from-identifier('tc')
       )
     );
+    is-deeply $deparsed, '$var .= tc()', 'deparse';
 
-    is-deeply EVAL($ast), 'Foo';
+    is-deeply EVAL($ast), 'Foo', @type[$++];
     is-deeply $var, 'Foo';
 
     $var = 'foo';
-    is-deeply EVAL($deparsed), 'Foo';
+    is-deeply EVAL($deparsed), 'Foo', @type[$++];
     is-deeply $var, 'Foo';
 }
 

@@ -406,8 +406,8 @@ class RakuAST::Deparse {
         my $value := $ast.value;
 
         ':' ~ $ast.named-arg-name ~ (
-          nqp::istype($value,RakuAST::StrLiteral)
-            ?? $.pointy-open ~ $value.value ~ $.pointy-close
+          nqp::istype($value,RakuAST::QuotedString)
+            ?? self.deparse($value)
             !! $.parens-open ~ self.deparse($value) ~ $.parens-close
         )
     }

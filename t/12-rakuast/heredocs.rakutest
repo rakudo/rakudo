@@ -9,6 +9,7 @@ plan 13;
 
 my $ast;
 my $deparsed;
+my @type = <AST string>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $ast.DEPARSE;
@@ -27,10 +28,9 @@ subtest 'One-part heredoc with literal piece' => {
 
     goodbye
     CODE
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, "hello\n\ngoodbye\n"
+    is-deeply $_, "hello\n\ngoodbye\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -49,10 +49,9 @@ subtest 'Heredoc with interpolated string variable works' => {
     is-deeply $deparsed, 'qq:to/MESSAGE/
 $str world
 MESSAGE
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, "hello, world\n"
+    is-deeply $_, "hello, world\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -71,10 +70,9 @@ subtest 'Heredoc with interpolated integer variable' => {
     is-deeply $deparsed, 'qq:to/INTY/
   $int is the answer
   INTY
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, "42 is the answer\n"
+    is-deeply $_, "42 is the answer\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -95,10 +93,9 @@ subtest 'Heredoc consisting of only interpolated integer variable' => {
     is-deeply $deparsed, 'qq:to/NONE/
  $int
  NONE
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, "42\n"
+    is-deeply $_, "42\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -118,10 +115,9 @@ subtest 'Heredoc with 3 parts works' => {
     is-deeply $deparsed, 'qq:to/MORE/
     The answer is $int of course!
     MORE
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, "The answer is 42 of course!\n"
+    is-deeply $_, "The answer is 42 of course!\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -151,10 +147,9 @@ An {
     $bv
 } block
 
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, "An interpolated block\n"
+    is-deeply $_, "An interpolated block\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -169,10 +164,9 @@ subtest 'words processor splits a heredoc into words' => {
     is-deeply $deparsed, 'qq:w:to/WORDS/
 foo bar 42
 WORDS
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, ("foo", "bar", "42")
+    is-deeply $_, ("foo", "bar", "42"), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -193,10 +187,9 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
     is-deeply $deparsed, 'qq:w:to/WORDS/
 ba$stuff 66
 WORDS
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, ("bar", "baz", "66")
+    is-deeply $_, ("bar", "baz", "66"), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -211,14 +204,13 @@ subtest 'Using the val processor alone on a heredoc' => {
     is-deeply $deparsed, 'qq:v:to/VAL/
 42
 VAL
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-#    is-deeply $_, IntStr.new(42,"42\n")
+#    is-deeply $_, IntStr.new(42,"42\n"), @type[$++]
 #      for EVAL($ast), EVAL($ast.DEPARSE);
-    is-deeply EVAL($ast),      IntStr.new(42,"42\n");
+    is-deeply EVAL($ast),      IntStr.new(42,"42\n"), @type[$++];
     todo("problem in parsing static heredocs and :v");
-    is-deeply EVAL($deparsed), IntStr.new(42,"42\n");
+    is-deeply EVAL($deparsed), IntStr.new(42,"42\n"), @type[$++];
 }
 
 subtest 'Using the val processor in heredoc with interpolation' => {
@@ -238,10 +230,9 @@ subtest 'Using the val processor in heredoc with interpolation' => {
     is-deeply $deparsed, 'qq:v:to/VAL/
 4$end
 VAL
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, IntStr.new(46,"46\n") 
+    is-deeply $_, IntStr.new(46,"46\n"), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -256,10 +247,9 @@ subtest 'Using the words and val processor in a heredoc' => {
     is-deeply $deparsed, 'qq:w:v:to/VALS/
 foo bar 42
 VALS
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, ("foo", "bar", IntStr.new(42,"42"))
+    is-deeply $_, ("foo", "bar", IntStr.new(42,"42")), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -280,10 +270,9 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
     is-deeply $deparsed, 'qq:w:v:to/HUH/
 ba$stuff 66
 HUH
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, ('bar', 'baz', IntStr.new(66,"66"))
+    is-deeply $_, ('bar', 'baz', IntStr.new(66,"66")), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -298,10 +287,9 @@ subtest 'Using the exec processor alone gives expected result' => {
     is-deeply $deparsed, 'qq:x:to/GO/
 echo 123
 GO
-',
-      'is DEPARSE ok';
+', 'deparse';
 
-    is-deeply $_, "123\n"
+    is-deeply $_, "123\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 

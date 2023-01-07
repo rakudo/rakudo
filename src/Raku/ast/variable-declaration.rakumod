@@ -250,7 +250,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
 
     method can-be-bound-to() {
         # Must be lexical and non-native.
-        if self.scope eq 'my' {
+        if self.scope eq 'my' || self.scope eq 'state' {
             my str $sigil := self.sigil;
             return True if $sigil eq '@' || $sigil eq '%';
             return True unless $!type;
@@ -652,7 +652,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
         my str $scope := self.scope;
-        nqp::die('Can only compile bind to my-scoped variables') unless $scope eq 'my';
+        nqp::die('Can only compile bind to my-scoped variables') unless $scope eq 'my' || $scope eq 'state';
         QAST::Op.new(
             :op('bind'),
             QAST::Var.new( :name($!name), :scope('lexical') ),

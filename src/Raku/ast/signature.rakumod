@@ -564,7 +564,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                     ),
                 ),
             );
-            $block.ensure-begin-performed($resolver, $context);
+            $block.IMPL-CHECK($resolver, $context, False);
             nqp::bindattr(self, RakuAST::Parameter, '$!where', $block);
         }
     }

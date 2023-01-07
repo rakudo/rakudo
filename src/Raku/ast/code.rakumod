@@ -56,6 +56,7 @@ class RakuAST::OnlyStar is RakuAST::Blockoid {
 class RakuAST::Code is RakuAST::Node {
     has Bool $.custom-args;
     has Mu $!qast-block;
+    has str $!cuid;
 
     method set-custom-args() {
         nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
@@ -89,6 +90,11 @@ class RakuAST::Code is RakuAST::Node {
 
     method IMPL-STUB-CODE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $code-obj := self.meta-object;
+        nqp::bindattr_s(self, RakuAST::Code, '$!cuid', QAST::Block.next-cuid());
+
+        # Stash it under the QAST block unique ID.
+        my str $cuid := $!cuid;
+        $context.sub-id-to-code-object(){$cuid} := $code-obj;
 
         my $precomp;
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
@@ -126,6 +132,7 @@ class RakuAST::Code is RakuAST::Node {
             $context.add-cleanup-task(sub () {
                 nqp::bindattr($clone, Code, '@!compstuff', nqp::null());
             });
+            $context.add-clone-for-cuid($clone, $cuid);
         }
 
         $stub
@@ -140,20 +147,9 @@ class RakuAST::Code is RakuAST::Node {
         # fixed up as needed.
         $block.code_object($code-obj);
 
-        # Stash it under the QAST block unique ID.
-        my str $cuid := $block.cuid();
-        $context.sub-id-to-code-object(){$cuid} := $code-obj;
-
         my @compstuff := nqp::getattr($code-obj, Code, '@!compstuff');
-
-        @compstuff[2] := sub ($orig, $clone) {
-            my $do := nqp::getattr($clone, Code, '$!do');
-            nqp::markcodestub($do);
-            $context.add-cleanup-task(sub () {
-                nqp::bindattr($clone, Code, '@!compstuff', nqp::null());
-            });
-            $context.add-clone-for-cuid($clone, $cuid);
-        }
+        my $cuid := $!cuid;
+        $block.set-cuid($!cuid);
 
         my $fixups := QAST::Stmts.new();
         unless $context.is-precompilation-mode || $context.is-nested {

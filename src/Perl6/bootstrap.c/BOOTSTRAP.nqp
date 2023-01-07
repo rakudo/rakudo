@@ -2295,7 +2295,7 @@ BEGIN {
                 my $cloned := nqp::clone($dcself);
                 my $do     := nqp::getattr($dcself, Code, '$!do');
                 nqp::setcodeobj(
-                  nqp::bindattr($cloned, Code, '$!do', nqp::clone($do)),
+                  nqp::bindattr($cloned, Code, '$!do', my $cldo := nqp::clone($do)),
                   $cloned
                 );
 #?if !jvm

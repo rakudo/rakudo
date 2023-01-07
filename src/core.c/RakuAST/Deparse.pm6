@@ -70,8 +70,8 @@ class RakuAST::Deparse {
     method list-infix-comma(     --> ', ') { }
     method list-infix-semi-colon(--> '; ') { }
 
-    method dotty-infix-call(       --> '.')  { }
-    method dotty-infix-call-assign(--> '.=') { }
+    method dotty-infix-call(       --> '.')    { }
+    method dotty-infix-call-assign(--> ' .= ') { }
 
     method slurpy-flattened(      --> '*') { }
     method slurpy-single-argument(--> '+') { }

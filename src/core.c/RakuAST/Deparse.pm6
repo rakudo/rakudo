@@ -27,7 +27,7 @@ class RakuAST::Deparse {
 
     method reduce-open(    --> '[')   { }
     method reduce-triangle(--> '[\\') { }
-    method reduce-close(   --> ']')   { }
+    method reduce-close(   --> '] ')  { }
 
     method bracket-open( --> '{') { }
     method bracket-close(--> '}') { }
@@ -301,11 +301,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
-        my $postfix := self.deparse($ast.postfix);
+        my $postfix := $ast.postfix;
 
         self.deparse($ast.operand)
-          ~ ($postfix.starts-with('(') ?? '' !! '.')  # XXX yuck
-          ~ $postfix
+          ~ (nqp::istype($postfix,RakuAST::Call::Methodish) ?? '.' !! '')
+          ~ self.deparse($postfix)
     }
 
     multi method deparse(RakuAST::ApplyPrefix:D $ast --> Str:D) {

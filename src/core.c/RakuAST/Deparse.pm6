@@ -313,21 +313,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ArgList:D $ast --> Str:D) {
-        if $ast.args -> @args {
-            my str @parts;
-            my str $comma = $.list-infix-comma;
-
-            for @args -> $arg {
-                @parts.push(self.deparse($arg));
-                @parts.push($comma);
-            }
-            @parts.pop;  # lose last comma
-
-            @parts.join
-        }
-        else {
-            ''
-        }
+        $ast.args.map({ self.deparse($_) }).join($.list-infix-comma)
     }
 
 #- B ---------------------------------------------------------------------------
@@ -1160,7 +1146,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Statement::For:D $ast --> Str:D) {
-        my str @parts = 
+        my str @parts =
           'for',
           self.deparse($ast.source),
           self.deparse($ast.body)
@@ -1461,10 +1447,15 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Reduce:D $ast --> Str:D) {
+        my $args := $ast.args;
+
         ($ast.triangle ?? $.reduce-triangle !! $.reduce-open)
           ~ self.deparse($ast.infix)
           ~ $.reduce-close
-          ~ self!parenthesize($ast.args)
+          ~ ($args.defined && $args.elems == 1
+              ?? self.deparse($args)
+              !! self!parenthesize($args)
+            )
     }
 
     multi method deparse(RakuAST::Term::Self:D $ --> Str:D) {

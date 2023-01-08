@@ -784,6 +784,20 @@ class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::Imp
                 $list := QAST::Op.new( :op('p6store'), $list, $init-qast);
                 return $list;
             }
+            elsif nqp::istype($!initializer, RakuAST::Initializer::Bind) {
+                my $signature := $!signature.meta-object;
+                $context.ensure-sc($signature);
+                my $init-qast := $!initializer.IMPL-TO-QAST($context);
+                my $list := QAST::Op.new(
+                    :op('p6bindcaptosig'),
+                    QAST::WVal.new( :value($signature) ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('Capture'),
+                        $init-qast
+                    )
+                );
+                return $list;
+            }
             else {
                 nqp::die('Not yet supported signature initializer: ' ~ $!initializer.HOW.name($!initializer));
             }

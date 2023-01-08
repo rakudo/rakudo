@@ -148,28 +148,22 @@ class RakuAST::Deparse {
     }
 
     method !routine(RakuAST::Routine:D $ast --> Str:D) {
-        my str @parts;
+        my str @parts = '';
 
-        @parts.push(' ');
         if $ast.name -> $name {
             @parts.push(self.deparse($name));
         }
 
-        unless $ast.placeholder-signature {
-            @parts.push(self!parenthesize($ast.signature));
-        }
+        @parts.push(self!parenthesize($ast.signature))
+          unless $ast.has-placeholder-parameters;
 
         if $ast.traits -> @traits {
-            for @traits -> $trait {
-                @parts.push(' ');
-                @parts.push(self.deparse($trait));
-            }
+            @parts.push(self.deparse($_)) for @traits;
         }
 
-        @parts.push(' ');
         @parts.push(self.deparse($ast.body));
 
-        @parts.join
+        @parts.join(' ')
     }
 
     method !method(RakuAST::Method:D $ast, str $type --> Str:D) {
@@ -546,11 +540,15 @@ class RakuAST::Deparse {
 #- Parameter -------------------------------------------------------------------
 
     multi method deparse(RakuAST::Parameter:D $ast --> Str:D) {
-        my str @parts;
+        my $target := $ast.target;
 
+        my str @parts;
         if $ast.type -> $type {
-            @parts.push(self.deparse($type));
-            @parts.push(' ') if $ast.target;
+            my str $deparsed = self.deparse($type);
+            if $deparsed ne 'Any' {
+                @parts.push($deparsed);
+                @parts.push(' ') if $ast.target;
+            }
         }
 
         if $ast.target -> $target {

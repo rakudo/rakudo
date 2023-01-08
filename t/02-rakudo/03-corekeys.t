@@ -798,6 +798,7 @@ my @allowed =
         Q{$!},
         Q{$/},
         Q{$=pod},
+        Q{$?UNICODE-VERSION},
         Q{$_},
         Q{$¢},
         Q{&last},

@@ -13,6 +13,7 @@ my @expected = (
     Q{$?BITS},
     Q{$?NL},
     Q{$?TABSTOP},
+    Q{$?UNICODE-VERSION},
     Q{$_},
     Q{$¢},
     Q{&CLONE-HASH-DECONTAINERIZED},

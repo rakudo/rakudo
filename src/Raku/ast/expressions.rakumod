@@ -886,7 +886,7 @@ class RakuAST::Postfixish is RakuAST::Node {
         }
     }
 
-    method IMPL-ADD-COLONPAIRS-TO-OP(RakuAST::Impl::QASTContext $context, Mu $op) {
+    method IMPL-ADD-COLONPAIRS-TO-OP(RakuAST::IMPL::QASTContext $context, Mu $op) {
         for $!colonpairs {
             my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
             $val-ast.named($_.named-arg-name);

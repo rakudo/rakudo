@@ -62,7 +62,7 @@ class RakuAST::Type::Setting is RakuAST::Type::Simple {
     # TODO limit lookup to setting
 }
 
-class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup {
+class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup is RakuAST::Declaration {
     has RakuAST::Name $.name;
     has RakuAST::Type $.constraint;
     has RakuAST::Declaration $!base-type;
@@ -107,9 +107,13 @@ class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup {
     method visit-children(Code $visitor) {
         $visitor($!constraint);
     }
+
+    method is-simple-lexical-declaration() {
+        False
+    }
 }
 
-class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup {
+class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup is RakuAST::Declaration {
     has RakuAST::Name $.name;
     has Bool $.definite;
     has RakuAST::Declaration $!base-type;
@@ -149,6 +153,10 @@ class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup {
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.meta-object
+    }
+
+    method is-simple-lexical-declaration() {
+        False
     }
 }
 
@@ -214,7 +222,7 @@ class RakuAST::Type::Capture is RakuAST::Type is RakuAST::Declaration {
     }
 }
 
-class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup {
+class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup is RakuAST::Declaration {
     has RakuAST::Name $.name;
     has RakuAST::ArgList $.args;
     has RakuAST::Declaration $!base-type;
@@ -276,5 +284,9 @@ class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup {
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.meta-object
+    }
+
+    method is-simple-lexical-declaration() {
+        False
     }
 }

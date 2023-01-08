@@ -18,7 +18,7 @@ sub ast-ok(
 
         is-deeply $deparsed, $string, 'deparse';
         is-deeply EVAL($ast), $value, 'AST';
-        is-deeply EVAL($deparsed), $value, 'string';
+        is-deeply EVAL($deparsed), $value, 'Str';
     }
 }
 

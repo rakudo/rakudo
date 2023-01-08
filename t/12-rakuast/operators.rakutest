@@ -6,7 +6,7 @@ plan 28;
 
 my $ast;
 my $deparsed;
-my @type = |<AST string> xx *;
+my @type = |<AST Str> xx *;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;

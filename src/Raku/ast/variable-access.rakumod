@@ -31,8 +31,8 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
         self.resolution.IMPL-LOOKUP-QAST($context)
     }
 
-    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
-        self.resolution.IMPL-BIND-QAST($context, $source)
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        self.resolution.IMPL-BIND-QAST($context, $source-qast)
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -112,9 +112,8 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
         }
     }
 
-    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
         # If it's resolved in the current scope, just a lexical bind.
-        my $source-qast := $source.IMPL-TO-QAST($context);
         if self.is-resolved {
             my $name := self.resolution.lexical-name;
             QAST::Op.new(
@@ -204,11 +203,10 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
         )
     }
 
-    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $package := $!package.meta-object;
         my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
-        my $source-qast := $source.IMPL-TO-QAST($context);
         unless nqp::eqaddr($attr-type, Mu) {
             $context.ensure-sc($attr-type);
             $source-qast := QAST::Op.new(

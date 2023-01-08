@@ -206,7 +206,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         my str $op := $!operator;
         if $op eq ':=' {
             if $left.can-be-bound-to {
-                $left.IMPL-BIND-QAST($context, $right)
+                $left.IMPL-BIND-QAST($context, $right.IMPL-TO-QAST($context))
             }
             else {
                 nqp::die('Cannot compile bind to ' ~ $left.HOW.name($left));
@@ -1016,11 +1016,11 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
     }
 
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $operand, RakuAST::Expression $source) {
+            RakuAST::Expression $operand, QAST::Node $source-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
-        my $bind := $source.IMPL-TO-QAST($context);
+        my $bind := $source-qast;
         $bind.named('BIND');
         $op.push($bind);
         $op
@@ -1067,12 +1067,12 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
     }
 
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $operand, RakuAST::Expression $source) {
+            RakuAST::Expression $operand, QAST::Node $source-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
-        my $bind := $source.IMPL-TO-QAST($context);
+        my $bind := $source-qast;
         $bind.named('BIND');
         $op.push($bind);
         $op
@@ -1124,12 +1124,12 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
     }
 
     method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $operand, RakuAST::Expression $source) {
+            RakuAST::Expression $operand, QAST::Node $source-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
         self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
-        my $bind := $source.IMPL-TO-QAST($context);
+        my $bind := $source-qast;
         $bind.named('BIND');
         $op.push($bind);
         $op
@@ -1209,8 +1209,8 @@ class RakuAST::ApplyPostfix is RakuAST::Termish is RakuAST::BeginTime {
             !! $postfix-ast
     }
 
-    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
-        $!postfix.IMPL-BIND-POSTFIX-QAST($context, $!operand, $source)
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        $!postfix.IMPL-BIND-POSTFIX-QAST($context, $!operand, $source-qast)
     }
 
     method visit-children(Code $visitor) {

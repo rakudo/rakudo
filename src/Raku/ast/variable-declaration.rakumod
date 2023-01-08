@@ -650,13 +650,13 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         }
     }
 
-    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
         my str $scope := self.scope;
         nqp::die('Can only compile bind to my-scoped variables') unless $scope eq 'my' || $scope eq 'state';
         QAST::Op.new(
             :op('bind'),
             QAST::Var.new( :name($!name), :scope('lexical') ),
-            $source.IMPL-TO-QAST($context)
+            $source-qast
         )
     }
 

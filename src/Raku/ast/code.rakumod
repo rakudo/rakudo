@@ -1082,7 +1082,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         nqp::die('RakuAST::Routine subclass must implement IMPL-COMPILE-BODY')
     }
 
-    method IMPL-WRAP-RETURN-HANDLER(RakuAST::IMPL::QASTContext $context, RakuAST::Node $body) {
+    method IMPL-WRAP-RETURN-HANDLER(RakuAST::IMPL::QASTContext $context, QAST::Node $body) {
         my $result := $body;
         my $routine := self.compile-time-value;
         my $signature := nqp::getattr($routine, Code, '$!signature');

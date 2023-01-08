@@ -1581,7 +1581,7 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::QuotedMatchConstru
             $body // RakuAST::Regex::Assertion::Fail.new);
         nqp::bindattr($obj, RakuAST::QuotedRegex, '$!match-immediately',
             $match-immediately ?? True !! False);
-        $obj.replace-adverbs($adverbs // []);
+        $obj.replace-adverbs($adverbs // List);
         $obj
     }
 
@@ -1722,7 +1722,7 @@ class RakuAST::Substitution is RakuAST::RegexThunk is RakuAST::QuotedMatchConstr
             $immutable ?? True !! False);
         nqp::bindattr($obj, RakuAST::Substitution, '$!samespace',
             $samespace ?? True !! False);
-        $obj.replace-adverbs($adverbs // []);
+        $obj.replace-adverbs($adverbs // List);
         nqp::bindattr($obj, RakuAST::Substitution, '$!pattern', $pattern);
         nqp::bindattr($obj, RakuAST::Substitution, '$!infix', $infix);
         nqp::bindattr($obj, RakuAST::Substitution, '$!replacement', $replacement);

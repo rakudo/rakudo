@@ -16,8 +16,10 @@ my class Variable {
     has $.implicit-lexical-usage is rw;
 
     # make throwing easier
-    submethod throw ( |c ) {
-        $*W.throw( self.slash, |c );
+    submethod throw ( $ex_type, |c ) {
+        $*W
+            ?? $*W.throw( self.slash, $ex_type, |c )
+            !! ::($ex_type).new(|c).throw
     }
 
     submethod willdo(&block) {

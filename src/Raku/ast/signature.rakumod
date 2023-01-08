@@ -883,6 +883,10 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
         ''
     }
 
+    method can-be-bound-to() {
+        True #TODO only when parameter is copy
+    }
+
     method set-type(RakuAST::Type $type) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
         Nil

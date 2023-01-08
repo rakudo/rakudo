@@ -115,7 +115,7 @@ class RakuAST::ForLoopImplementation is RakuAST::Node {
             str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
         # TODO various optimized forms are possible here
         self.IMPL-TO-QAST-GENERAL($context, $mode, $after-mode, $source-qast,
-            $body-qast, $label)
+            $body-qast, $label // RakuAST::Label)
     }
 
     # The most general, least optimized, form for a `for` loop, which

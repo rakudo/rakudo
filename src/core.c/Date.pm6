@@ -404,15 +404,15 @@ my class Date does Dateish {
           !! nqp::create(Date)!SET-SELF($!year, $!month, $!day, &!formatter)
     }
     
-    multi method Int(Date:D:) {
+    multi method Int(Date:D: --> Int:D) {
         self.daycount
     }
     
-    multi method Numeric(Date:D:) {
+    multi method Numeric(Date:D: --> Int:D) {
         self.daycount
     }
     
-    multi method Real(Date:D:) {
+    multi method Real(Date:D: --> Int:D) {
         self.daycount
     }
     

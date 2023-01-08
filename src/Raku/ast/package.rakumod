@@ -9,7 +9,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     has Mu $.attribute-type;
     has RakuAST::Name $.name;
     has Str $.repr;
-    has RakuAST::Block $.body;
+    has RakuAST::Code $.body;
     has Mu $!role-group;
     has Mu $!block-semantics-applied;
 
@@ -21,7 +21,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     has Mu $!attached-attribute-usages;
 
     method new(Str :$package-declarator!, Mu :$how!, Mu :$attribute-type,
-               RakuAST::Name :$name, Str :$repr, RakuAST::Block :$body,
+               RakuAST::Name :$name, Str :$repr, RakuAST::Code :$body,
                str :$scope, List :$traits) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
@@ -36,11 +36,11 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attributes', []);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attribute-usages', []);
         nqp::bindattr($obj, RakuAST::Package, '$!role-group', Mu);
-        $obj.set-traits($traits);
+        $obj.set-traits($traits) if $traits;
         $obj
     }
 
-    method replace-body(RakuAST::Block $new-body) {
+    method replace-body(RakuAST::Code $new-body) {
         nqp::bindattr(self, RakuAST::Package, '$!body', $new-body);
         Nil
     }

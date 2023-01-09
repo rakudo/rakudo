@@ -11,6 +11,10 @@ class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $!value.WHAT
     }
 
+    method ast-type {
+        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
@@ -40,6 +44,10 @@ class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $!value.WHAT
     }
 
+    method ast-type {
+        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Num'))
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
@@ -67,6 +75,10 @@ class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $!value.WHAT
     }
 
+    method ast-type {
+        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Rat'))
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
@@ -91,6 +103,10 @@ class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
 
     method type {
         $!value.WHAT
+    }
+
+    method ast-type {
+        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Version'))
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -120,6 +136,10 @@ class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
 
     method type {
         $!value.WHAT
+    }
+
+    method ast-type {
+        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -212,6 +232,17 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
         else {
             # Always a string if no processors.
             Str
+        }
+    }
+
+    method ast-type {
+        if $!processors {
+            # Can probably figure some of these out.
+            nqp::die('NYI ast-type of non-trivial quoted strings');
+        }
+        else {
+            # Always a string if no processors.
+            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
         }
     }
 

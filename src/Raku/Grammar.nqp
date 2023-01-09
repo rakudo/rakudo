@@ -2612,8 +2612,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token type_constraint {
         :my $*IN_DECL := '';
         [
-#        | <value>
-#        | [ <[-−]> :my $*NEGATE_VALUE := 1; | '+' ] $<value>=<numish>
+        | <value>
+        | [ <[-−]> :my $*NEGATE_VALUE := 1; | '+' ] $<value>=<numish>
         | <typename>
 #        | where <.ws> <EXPR('i=')>
         ]

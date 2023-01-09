@@ -1981,13 +1981,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                          $<param_term>  ?? $<param_term>.ast  !!
                          self.r('Parameter').new;
         my $capture := self.r('Type', 'Capture');
+        my $raku-type := self.r('Type');
+        my $raku-compiletimevalue := self.r('CompileTimeValue');
         for $<type_constraint> {
             my $type-constraint := $_.ast;
             if nqp::istype($type-constraint, $capture) {
                 $parameter.add-type-capture($type-constraint);
             }
-            else {
+            elsif nqp::istype($type-constraint, $raku-type) {
                 $parameter.set-type($type-constraint);
+            }
+            else {
+                $parameter.set-type($type-constraint.ast-type);
+                my $value := $type-constraint.compile-time-value;
+                $parameter.set-value($value);
             }
         }
         if $<quant> {
@@ -2075,7 +2082,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method type_constraint($/) {
-        self.attach: $/, $<typename>.ast;
+        self.attach: $/, $<typename> ?? $<typename>.ast !! $<value>.ast;
     }
 
     method post_constraint($/) {

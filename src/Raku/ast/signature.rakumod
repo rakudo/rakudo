@@ -241,12 +241,14 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     has RakuAST::Node $!owner;
     has RakuAST::Signature $.sub-signature;
     has List $!type-captures;
+    has Mu $!value;
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
             List :$names, Bool :$invocant, Bool :$optional,
             RakuAST::Parameter::Slurpy :$slurpy, List :$traits,
             RakuAST::Expression :$default, RakuAST::Expression :$where,
-            RakuAST::Signature :$sub-signature, List :$type-captures) {
+            RakuAST::Signature :$sub-signature, List :$type-captures,
+            Mu :$value) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
         $target.set-type($type) if $target && nqp::can($target, 'set-type') && $type;
@@ -267,6 +269,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         nqp::bindattr($obj, RakuAST::Parameter, '$!type-captures', nqp::defined($type-captures)
             ?? self.IMPL-TYPE-CAPTURES($type-captures)
             !! []);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!value', $value) if nqp::defined($value);
         $obj
     }
 
@@ -331,6 +334,11 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 
     method set-where(RakuAST::Expression $where) {
         nqp::bindattr(self, RakuAST::Parameter, '$!where', $where);
+        Nil
+    }
+
+    method set-value(Mu $value) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!value', $value);
         Nil
     }
 
@@ -454,8 +462,15 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
             nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
         }
+        my @post_constraints;
         if $!where {
-            nqp::bindattr($parameter, Parameter, '@!post_constraints', nqp::list($!where.meta-object));
+            nqp::push(@post_constraints, $!where.meta-object);
+        }
+        if nqp::defined($!value) {
+            nqp::push(@post_constraints, $!value);
+        }
+        if nqp::elems(@post_constraints) {
+            nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);
         }
         if $!sub-signature {
             nqp::bindattr($parameter, Parameter, '$!sub_signature', $!sub-signature.meta-object);
@@ -769,6 +784,30 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                     }
                 }
             }
+        }
+
+        if nqp::defined($!value) {
+            my $value := $!value;
+            my $wval  := QAST::WVal.new: :value($value);
+            $context.ensure-sc($value);
+            my $type := $!type.name.canonicalize;
+            $param-qast.push: QAST::ParamTypeCheck.new:
+                $type eq 'Int'
+                    ?? QAST::Op.new(:op<if>,
+                        QAST::Op.new(:op<isconcrete>, $temp-qast-var),
+                        QAST::Op.new(:op<iseq_I>, $wval,
+                          QAST::Op.new: :op<decont>, $temp-qast-var))
+                    !! $type eq 'Num'
+                      ?? QAST::Op.new(:op<if>,
+                          QAST::Op.new(:op<isconcrete>, $temp-qast-var),
+                          QAST::Op.new(:op<unless>,
+                            QAST::Op.new(:op<iseq_n>, $wval, $temp-qast-var), # equal
+                            QAST::Op.new(:op<if>, # or both are NaNs
+                              QAST::Op.new(:op<isne_n>, $wval, $wval),
+                              QAST::Op.new(:op<isne_n>, $temp-qast-var, $temp-qast-var))))
+                      !! QAST::Op.new(:op<if>,
+                          QAST::Op.new(:op<isconcrete>, $temp-qast-var),
+                          QAST::Op.new(:op<iseq_s>, $wval, $temp-qast-var));
         }
 
         if $!where {

@@ -58,9 +58,8 @@ BEGIN {
 }
 
 # Set up Empty, which is a Slip created with an empty IterationBuffer (which
-# we also stub here). This is needed in a bunch of simple constructs (like if
-# with only one branch).
-my class IterationBuffer is repr('VMArray') { ... }
+# is stubbed in bootstrap). This is needed in a bunch of simple constructs
+# (like if with only one branch).
 my constant Empty = nqp::p6bindattrinvres(nqp::create(Slip),
     List, '$!reified', nqp::create(IterationBuffer));
 

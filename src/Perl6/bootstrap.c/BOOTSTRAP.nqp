@@ -73,6 +73,7 @@ my stub List metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Slip metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Array metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub array metaclass Perl6::Metamodel::ClassHOW is repr('VMArray') { ... };
+my stub IterationBuffer metaclass Perl6::Metamodel::ClassHOW is repr('VMArray') { ... };
 my stub Map metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -3729,6 +3730,8 @@ BEGIN {
 
     # class array does Iterable does Positional {
     array.HOW.compose_repr(array);
+    # class IterationBuffer {
+    IterationBuffer.HOW.compose_repr(IterationBuffer);
 
     # my class Map is Cool {
     #     has Mu $!storage;
@@ -3860,6 +3863,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Slip);
     Perl6::Metamodel::ClassHOW.add_stash(Array);
     Perl6::Metamodel::ClassHOW.add_stash(array);
+    Perl6::Metamodel::ClassHOW.add_stash(IterationBuffer);
     Perl6::Metamodel::ClassHOW.add_stash(Map);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
     Perl6::Metamodel::ClassHOW.add_stash(Capture);
@@ -3972,6 +3976,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Slip>       := Slip;
     EXPORT::DEFAULT.WHO<Array>      := Array;
     EXPORT::DEFAULT.WHO<array>      := array;
+    EXPORT::DEFAULT.WHO<IterationBuffer> := IterationBuffer;
     EXPORT::DEFAULT.WHO<Map>        := Map;
     EXPORT::DEFAULT.WHO<Hash>       := Hash;
     EXPORT::DEFAULT.WHO<Capture>    := Capture;

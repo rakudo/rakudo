@@ -491,7 +491,10 @@ my class DateTime does Dateish {
         )
     }
 
-    method Numeric(DateTime:D: --> Instant:D) {
+    multi method Numeric(DateTime:D: --> Instant:D) {
+        self.Instant
+    }
+    multi method Real(DateTime:D: --> Instant:D) {
         self.Instant
     }
 
@@ -708,39 +711,6 @@ my class DateTime does Dateish {
     multi method ACCEPTS(DateTime:D: DateTime:D \topic) { self == topic }
 }
 
-multi sub infix:«<»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant < $b.Instant
-}
-multi sub infix:«>»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant > $b.Instant
-}
-multi sub infix:«<=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant <= $b.Instant
-}
-multi sub infix:«>=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant >= $b.Instant
-}
-multi sub infix:«==»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant == $b.Instant
-}
-multi sub infix:«!=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
-    $a.Instant != $b.Instant
-}
-multi sub infix:«<=>»(DateTime:D $a, DateTime:D $b) {
-    $a.Instant <=> $b.Instant
-}
-multi sub infix:«cmp»(DateTime:D $a, DateTime:D $b) {
-    $a.Instant cmp $b.Instant
-}
-multi sub infix:<->(DateTime:D $a, Instant:D $b --> Duration:D) {
-    $a.Instant - $b
-}
-multi sub infix:<->(Instant:D $a, DateTime:D $b --> Duration:D) {
-    $a - $b.Instant
-}
-multi sub infix:<->(DateTime:D $a, DateTime:D $b --> Duration:D) {
-    $a.Instant - $b.Instant
-}
 multi sub infix:<->(DateTime:D $a, Duration:D $b --> DateTime:D) {
     $a.new($a.Instant - $b).in-timezone($a.timezone)
 }

@@ -403,6 +403,18 @@ my class Date does Dateish {
           ?? self
           !! nqp::create(Date)!SET-SELF($!year, $!month, $!day, &!formatter)
     }
+
+    multi method Int(Date:D: --> Int:D) {
+        self.daycount
+    }
+
+    multi method Numeric(Date:D: --> Int:D) {
+        self.daycount
+    }
+
+    multi method Real(Date:D: --> Int:D) {
+        self.daycount
+    }
 }
 
 multi sub infix:<+>(Date:D $date, Int:D $x --> Date:D) {
@@ -413,30 +425,6 @@ multi sub infix:<+>(Int:D $x, Date:D $date --> Date:D) {
 }
 multi sub infix:<->(Date:D $date, Int:D $x --> Date:D) {
     $date.MOVE-DAYS(nqp::neg_i($x))
-}
-multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
-    $a.daycount - $b.daycount;
-}
-multi sub infix:<cmp>(Date:D $a, Date:D $b) {
-    $a.daycount cmp $b.daycount
-}
-multi sub infix:«<=>»(Date:D $a, Date:D $b) {
-    $a.daycount <=> $b.daycount
-}
-multi sub infix:<==>(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount == $b.daycount
-}
-multi sub infix:«<=»(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount <= $b.daycount
-}
-multi sub infix:«<»(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount < $b.daycount
-}
-multi sub infix:«>=»(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount >= $b.daycount
-}
-multi sub infix:«>»(Date:D $a, Date:D $b --> Bool:D) {
-    $a.daycount > $b.daycount
 }
 
 proto sub sleep($?, *%) {*}

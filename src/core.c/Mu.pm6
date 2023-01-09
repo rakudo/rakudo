@@ -760,6 +760,11 @@ my class Mu { # declared in BOOTSTRAP
         warn "Use of uninitialized value of type {self.^name} in numeric context";
         0
     }
+    proto method Int(|) {*}
+    multi method Int(Mu:U \v:) {
+        warn "Use of uninitialized value of type {self.^name} in numeric context";
+        0
+    }
 
     proto method Str(|) {*}
     multi method Str(Mu:U \v:) {

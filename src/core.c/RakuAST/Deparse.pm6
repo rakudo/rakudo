@@ -297,7 +297,7 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
         my $postfix := $ast.postfix;
 
-        self.deparse($ast.operand)
+        ($ast.on-topic ?? "" !! self.deparse($ast.operand))
           ~ (nqp::istype($postfix,RakuAST::Call::Methodish) ?? '.' !! '')
           ~ self.deparse($postfix)
     }

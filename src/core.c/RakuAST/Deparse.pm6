@@ -110,8 +110,13 @@ class RakuAST::Deparse {
 # Setting up the deparse method
 
     proto method deparse(|) {
-        my $*INDENT = '';
-        {*}
+        if nqp::istype($*INDENT,Failure) {
+            my $*INDENT = "";
+            {*}
+        }
+        else {
+            {*}
+        }
     }
 
     # Base class catcher
@@ -140,11 +145,11 @@ class RakuAST::Deparse {
 # Private helper methods
 
     method !indent(--> Str:D) {
-        $*INDENT = $*INDENT ~ $.indent-with
+        $_ = $_ ~ $.indent-with with $*INDENT;
     }
 
     method !dedent(--> Str:D) {
-        $*INDENT = $*INDENT.chomp($.indent-with);
+        $_ = $_.chomp($.indent-with) with $*INDENT;
     }
 
     method !routine(RakuAST::Routine:D $ast --> Str:D) {
@@ -317,8 +322,9 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Blockoid:D $ast --> Str:D) {
-        self!indent;
+        my str @parts = $.block-open;
 
+        self!indent;
         $.block-open
           ~ self.deparse($ast.statement-list)
           ~ self!dedent
@@ -1249,7 +1255,7 @@ class RakuAST::Deparse {
 
         if $ast.statements -> @statements {
             my str @parts;
-            my str $spaces = self!indent;
+            my str $spaces = $*INDENT;
             my str $end    = $.end-statement;
 
             my str $code;

@@ -140,7 +140,7 @@ class RakuAST::Trait::Is is RakuAST::Trait is RakuAST::BeginTime {
             my $key := $!name.canonicalize;
             @args.push(
                 $!argument
-                ?? RakuAST::ColonPair::Value.new(:$key, :value(self.IMPL-UNWRAP-LIST($!argument.semilist.statements)[0]))
+                ?? RakuAST::ColonPair::Value.new(:$key, :value($!argument))
                 !! RakuAST::ColonPair::True.new(:$key)
             );
         }

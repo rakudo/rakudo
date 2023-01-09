@@ -19,6 +19,14 @@ class RakuAST::Circumfix::Parentheses is RakuAST::Circumfix {
     method visit-children(Code $visitor) {
         $visitor($!semilist);
     }
+
+    method IMPL-CAN-INTERPRET() {
+        $!semilist.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        $!semilist.IMPL-INTERPRET($ctx)
+    }
 }
 
 # Array composer circumfix.

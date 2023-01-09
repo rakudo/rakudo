@@ -162,7 +162,7 @@ module Enclosing {
             );
 
             my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($deparsed);
-            todo 'bug in enclosed package naming in rakuast branch'
+            todo 'bug in enclosed package naming'
               if $type eq 'AST';
             is $result.^name, "Enclosing::$class",
               "$type: EVAL of package AST inside a module works";

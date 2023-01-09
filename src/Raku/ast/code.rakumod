@@ -506,6 +506,16 @@ class RakuAST::PlaceholderParameterOwner is RakuAST::Node {
 
 class RakuAST::ScopePhaser {
     has List $!leave-phasers;
+    has RakuAST::Block $!let;
+    has RakuAST::Block $!temp;
+
+    method set-has-let() {
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!let', RakuAST::Block.new(:implicit-topic(False)));
+    }
+
+    method set-has-temp() {
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!temp', RakuAST::Block.new(:implicit-topic(False)));
+    }
 
     method add-leave-phaser(RakuAST::StatementPrefix::Phaser::Leave $phaser) {
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!leave-phasers', []) unless $!leave-phasers;
@@ -523,12 +533,80 @@ class RakuAST::ScopePhaser {
         if $leave-phasers {
             $code-object.add_phaser('LEAVE', $_.meta-object) for $leave-phasers;
         }
+        if $!let {
+            $code-object.add_phaser('UNDO', $!let.meta-object);
+        }
+        if $!temp {
+            $code-object.add_phaser('LEAVE', $!temp.meta-object);
+        }
     }
 
-    method add-phasers-handling-code($qast) {
-        if $!leave-phasers && nqp::elems($!leave-phasers) {
+    method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
+        if $!leave-phasers && nqp::elems($!leave-phasers) || $!temp {
             $qast.has_exit_handler(1);
         }
+        if $!let {
+            self.IMPL-ADD-PHASER-QAST($context, $!let, '!LET-RESTORE', $qast);
+        }
+        if $!temp {
+            self.IMPL-ADD-PHASER-QAST($context, $!temp, '!TEMP-RESTORE', $qast);
+        }
+    }
+
+    method IMPL-STUB-PHASERS(RakuAST::Resolver $resolver, RakuAST::IMPL::Context $context) {
+        if $!let {
+            $!let.IMPL-CHECK($resolver, $context, False);
+            $!let.IMPL-STUB-CODE($resolver, $context);
+        }
+        if $!temp {
+            $!temp.IMPL-CHECK($resolver, $context, False);
+            $!temp.IMPL-STUB-CODE($resolver, $context);
+        }
+    }
+
+    method IMPL-ADD-PHASER-QAST(RakuAST::IMPL::Context $context, RakuAST::Block $phaser, Str $value_stash, QAST::Block $block) {
+        $block[0].push(QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($value_stash), :scope('lexical'), :decl('var') ),
+            QAST::Op.new(
+              :op('create'),
+              QAST::WVal.new( :value(IterationBuffer)))));
+        $block.symbol($value_stash, :scope('lexical'));
+
+        my $phaser-block := $phaser.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'));
+        $phaser-block.push(QAST::Op.new(
+            :op('while'),
+            QAST::Op.new(
+                :op('elems'),
+                QAST::Var.new( :name($value_stash), :scope('lexical') )),
+            QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('iscont'),
+                    QAST::Op.new(
+                        :op('atpos'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') ),
+                        QAST::IVal.new( :value(0) ))),
+                QAST::Op.new( # p6store is for Scalar
+                    :op('p6store'),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') )),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') ))),
+                QAST::Op.new( # Otherwise we restore by means of the container itself
+                    :op('callmethod'),
+                    :name('TEMP-LET-RESTORE'),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') )),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') ))))));
+
+        # Add as phaser.
+        $block[0].push($phaser-block);
     }
 
     method clear-phaser-attachments() {
@@ -558,10 +636,10 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
     # Should this block declare a fresh implicit `$!`?
     has int $!fresh-exception;
 
-    method new(RakuAST::Blockoid :$body, Bool :$implicit-topic, Bool :$required-topic) {
+    method new(RakuAST::Blockoid :$body, Bool :$implicit-topic, Bool :$required-topic, Bool :$exception) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
-        nqp::bindattr_i($obj, RakuAST::Block, '$!implicit-topic-mode', 1);
+        $obj.set-implicit-topic($implicit-topic // 1, :required($required-topic), :$exception);
         $obj
     }
 
@@ -637,6 +715,8 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
             }
         }
 
+        self.IMPL-STUB-PHASERS($resolver, $context);
+
         self.IMPL-STUB-CODE($resolver, $context);
 
         Nil
@@ -710,7 +790,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         my $is-handler := $!implicit-topic-mode == 3 ?? True !! False;
         $block.push(self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $body-qast, :$is-handler));
 
-        self.add-phasers-handling-code($block);
+        self.add-phasers-handling-code($context, $block);
 
         $block
     }
@@ -872,6 +952,8 @@ class RakuAST::PointyBlock is RakuAST::Block {
             }
         }
 
+        self.IMPL-STUB-PHASERS($resolver, $context);
+
         self.IMPL-STUB-CODE($resolver, $context);
 
         Nil
@@ -1019,6 +1101,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
         }
 
+        self.IMPL-STUB-PHASERS($resolver, $context);
+
         my $stub := self.IMPL-STUB-CODE($resolver, $context);
         nqp::setcodename($stub, $!name.canonicalize) if $!name;
 
@@ -1074,7 +1158,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);
         $block.push(self.IMPL-COMPILE-BODY($context));
-        self.add-phasers-handling-code($block);
+        self.add-phasers-handling-code($context, $block);
         $block
     }
 
@@ -1297,6 +1381,7 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
         if self.multiness eq 'proto' {
             nqp::bindattr(self.meta-object, Routine, '@!dispatchees', []);
         }
+        self.IMPL-STUB-PHASERS($resolver, $context);
 
         my $stub := self.IMPL-STUB-CODE($resolver, $context);
         nqp::setcodename($stub, self.name.canonicalize) if self.name;

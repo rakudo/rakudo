@@ -3,7 +3,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
                         is RakuAST::ImplicitLookups
                         is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget {
     has RakuAST::StatementList $.statement-list;
-    has RakuAST::Block $!mainline;
+    has RakuAST::Block $.mainline;
     has Str $.comp-unit-name;
     has Str $.setting-name;
     has Mu $.finish-content;

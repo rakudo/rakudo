@@ -541,7 +541,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.apply-traits($resolver, $context, self);
 
-        if $!where && ! nqp::istype($!where, RakuAST::Code) {
+        if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) {
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(

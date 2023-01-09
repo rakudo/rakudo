@@ -1184,6 +1184,10 @@ class RakuAST::ApplyPostfix is RakuAST::Termish is RakuAST::BeginTime {
         $!postfix.can-be-bound-to
     }
 
+    method on-topic() {
+        nqp::istype($!operand,RakuAST::Var::Lexical) && $!operand.name eq '$_'
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::bitand_i($!postfix.IMPL-CURRIES, 1) {
             if nqp::istype($!operand, RakuAST::Term::Whatever) {

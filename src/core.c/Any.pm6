@@ -148,28 +148,32 @@ my class Any { # declared in BOOTSTRAP
     multi method classify() {
         die "Must specify something to classify with, a Callable, Hash or List";
     }
-    multi method classify(Whatever) {
-        die "Doesn't make sense to classify with itself";
+    multi method classify(Whatever, :&as) {
+        Hash.^parameterize(Any,Mu).new.classify-list(
+          { $_ }, self, :&as 
+        )
     }
     multi method classify($test, :$into!, :&as)   {
-        ( $into // $into.new ).classify-list( $test, self, :&as);
+        ( $into // $into.new ).classify-list($test, self, :&as)
     }
     multi method classify($test, :&as)   {
-        Hash.^parameterize(Any,Mu).new.classify-list( $test, self, :&as );
+        Hash.^parameterize(Any,Mu).new.classify-list($test, self, :&as )
     }
 
     proto method categorize(|) is nodal {*}
     multi method categorize() {
         die "Must specify something to categorize with, a Callable, Hash or List";
     }
-    multi method categorize(Whatever) {
-        die "Doesn't make sense to categorize with itself";
+    multi method categorize(Whatever, :&as) {
+        Hash.^parameterize(Any,Mu).new.categorize-list(
+          { $_ }, self.list, :&as
+        )
     }
     multi method categorize($test, :$into!, :&as) {
-        ( $into // $into.new ).categorize-list( $test, self.list, :&as );
+        ( $into // $into.new ).categorize-list( $test, self.list, :&as )
     }
     multi method categorize($test, :&as) {
-        Hash.^parameterize(Any,Mu).new.categorize-list($test, self.list, :&as);
+        Hash.^parameterize(Any,Mu).new.categorize-list($test, self.list, :&as)
     }
 
     method reverse() is nodal { self.list.reverse }

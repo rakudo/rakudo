@@ -2,10 +2,11 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 26; # Do not change this file to done-testing
+plan 27; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
+my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
@@ -31,6 +32,9 @@ subtest 'Statement list evaluates to its final statement' => {
         )
       )
     );
+    is-deeply $deparsed, '++$x;
+++$y
+', 'deparse';
 
     is-deeply EVAL($ast), 100,
       'AST: Statement list evaluates to its final statement';
@@ -40,11 +44,11 @@ subtest 'Statement list evaluates to its final statement' => {
       'AST: Second side-effecting statement was executed';
 
     is-deeply EVAL($deparsed), 101,
-      'DEPARSE: Statement list evaluates to its final statement';
+      'Str: Statement list evaluates to its final statement';
     is $x, 14,
-      'DEPARSE: First side-effecting statement was executed';
+      'Str: First side-effecting statement was executed';
     is $y, 101,
-      'DEPARSE: Second side-effecting statement was executed';
+      'Str: Second side-effecting statement was executed';
 }
 
 subtest 'Basic if / elsif / else structure' => {
@@ -101,22 +105,36 @@ subtest 'Basic if / elsif / else structure' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+if $a {
+    1
+}
+elsif $b {
+    2
+}
+elsif $c {
+    3
+}
+else {
+    4
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $a = $b = $c = False;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 4,
+        is-deeply EVAL($it), 4,
           "$type: When all conditions False, else is evaluated";
 
         $c = True;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 3,
+        is-deeply EVAL($it), 3,
           "$type: Latest elsif reachable when matched";
 
         $b = True;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 2,
+        is-deeply EVAL($it), 2,
           "$type: First elsif reachable when matched";
 
         $a = True;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 1,
+        is-deeply EVAL($it), 1,
           "$type: When the main condition is true, the then block is picked";
     }
 }
@@ -137,14 +155,19 @@ subtest 'simple if evaluation' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+if $a {
+    1
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $a = True;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 1,
+        is-deeply EVAL($it), 1,
           "$type: When simple if with no else has true condition";
 
         $a = False;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Empty,
+        is-deeply EVAL($it), Empty,
           "$type: When simple if with no else has false condition";
     }
 }
@@ -231,22 +254,36 @@ subtest 'Basic with / orwith / else structure' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+with $a -> $x {
+    1
+}
+orwith $b -> $x {
+    2
+}
+orwith $c -> $x {
+    3
+}
+else -> $x {
+    4
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $a = $b = $c = Nil;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 4,
+        is-deeply EVAL($it), 4,
           "$type: When all conditions undefined, else is evaluated";
 
         $c = False;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 3,
+        is-deeply EVAL($it), 3,
           "$type: Latest orwith reachable when matched";
 
         $b = False;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 2,
+        is-deeply EVAL($it), 2,
           "$type: First orwith reachable when matched";
 
         $a = False;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 1,
+        is-deeply EVAL($it), 1,
           "$type: When the main condition is defined, the then block is picked";
     }
 }
@@ -274,13 +311,19 @@ subtest 'simple with evaluation' => {
         )
       )
     );
-    for 'AST', 'DEPARSE' -> $type {
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+with $a -> $x {
+    1
+}
+CODE
+
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $a = False;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 1,
+        is-deeply EVAL($it), 1,
           "$type: When simple when with no else has defined condition";
 
         $a = Nil;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Empty,
+        is-deeply EVAL($it), Empty,
           "$type: When simple with if with no else has undefined condition";
     }
 }
@@ -308,13 +351,22 @@ subtest 'with topicalizes in the body' => {
         )
       )
     );
-    for 'AST', 'DEPARSE' -> $type {
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+with $a {
+    $_
+}
+else {
+    $_
+}
+CODE
+
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         my $a = 42;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 42,
+        is-deeply EVAL($it), 42,
           "$type: with topicalizes in the body";
 
         $a = Int;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Int,
+        is-deeply EVAL($it), Int,
           "$type: with topicalizes in the else body too";
     }
 }
@@ -339,14 +391,19 @@ subtest 'simple unless with a false condition' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+unless $x {
+    ++$y
+}
+CODE
 
     is-deeply EVAL($ast), 10,
       'AST: unless block with a false condition evaluates to its body';
     is $y, 10, 'AST: Side-effect of the body was performed';
 
     is-deeply EVAL($deparsed), 11,
-      'DEPARSE: unless block with a false condition evaluates to its body';
-    is $y, 11, 'DEPARSE: Side-effect of the body was performed';
+      'Str: unless block with a false condition evaluates to its body';
+    is $y, 11, 'Str: Side-effect of the body was performed';
 }
 
 subtest 'simple unless with a false condition' => {
@@ -369,14 +426,19 @@ subtest 'simple unless with a false condition' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+unless $x {
+    ++$y
+}
+CODE
 
     is-deeply EVAL($ast), Empty,
       'AST: unless block with a false condition evaluates to Empty';
     is $y, 9, 'AST: Side-effect of the body was not performed';
 
     is-deeply EVAL($deparsed), Empty,
-      'DEPARSE: unless block with a false condition evaluates to Empty';
-    is $y, 9, 'DEPARSE: Side-effect of the body was not performed';
+      'Str: unless block with a false condition evaluates to Empty';
+    is $y, 9, 'Str: Side-effect of the body was not performed';
 }
 
 subtest 'simple without with an undefined condition' => {
@@ -399,14 +461,19 @@ subtest 'simple without with an undefined condition' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+without $x {
+    $y++
+}
+CODE
 
     is-deeply EVAL($ast), 9,
       'AST: without block with an undefined object evaluates to its body';
     is $y, 10, 'AST: Side-effect of the body was performed';
 
     is-deeply EVAL($deparsed), 10,
-      'DEPARSE: without block with an undefined object evaluates to its body';
-    is $y, 11, 'DEPARSE: Side-effect of the body was performed';
+      'Str: without block with an undefined object evaluates to its body';
+    is $y, 11, 'Str: Side-effect of the body was performed';
 }
 
 subtest 'simple without with a defined condition' => {
@@ -429,14 +496,19 @@ subtest 'simple without with a defined condition' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+without $x {
+    ++$y
+}
+CODE
 
     is-deeply EVAL($ast), Empty,
       'AST: An without block with a defined object evaluates to Empty';
     is $y, 9, 'AST: Side-effect of the body was not performed';
 
     is-deeply EVAL($deparsed), Empty,
-      'DEPARSE: An without block with a defined object evaluates to Empty';
-    is $y, 9, 'DEPARSE: Side-effect of the body was not performed';
+      'Str: An without block with a defined object evaluates to Empty';
+    is $y, 9, 'Str: Side-effect of the body was not performed';
 }
 
 subtest 'simple without with an undefined condition' => {
@@ -455,8 +527,13 @@ subtest 'simple without with an undefined condition' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+without $x {
+    $_
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $result {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
         is-deeply $result, Cool,
           "$type: without block sets the topic";
     }
@@ -481,11 +558,16 @@ subtest 'While loop at statement level evaluates to Nil' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+while $x {
+    --$x
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $x = 5;
 
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Nil,
+        is-deeply EVAL($it), Nil,
           "$type: while loop at statement level evaluates to Nil";
         is-deeply $x, 0, "$type: Loop variable was decremented to zero";
     }
@@ -513,11 +595,16 @@ subtest 'Until loop at statement level evaluates to Nil' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+until !$x {
+    --$x
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $x = 5;
 
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Nil,
+        is-deeply EVAL($it), Nil,
           "$type: until loop at statement level evaluates to Nil";
         is-deeply $x, 0, "$type: Loop variable was decremented to zero";
     }
@@ -542,11 +629,16 @@ subtest 'Repeat while loop at statement level evaluates to Nil' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+repeat {
+    --$x
+} while $x;
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast,  'DEPARSE', $deparsed -> $type, $it {
         $x = 5;
 
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Nil,
+        is-deeply EVAL($it), Nil,
           "$type: repeat until loop at statement level evaluates to Nil";
         is-deeply $x, 0, "$type: loop variable decremented to 0";
     }
@@ -571,11 +663,16 @@ subtest 'Repeat until loop at statement level evaluates to Nil' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+repeat {
+    --$x
+} until $x;
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $x = 0;
 
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Nil,
+        is-deeply EVAL($it), Nil,
           "$type: repeat until loop at statement level evaluates to Nil";
         is-deeply $x, -1, "$type: loop ran once";
     }
@@ -610,11 +707,16 @@ subtest 'Loop block with setup and increment expression' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+loop (my $i = 9; $i; --$i) {
+    ++$count
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $count = 0;
 
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Nil,
+        is-deeply EVAL($it), Nil,
           "$type: loop with setup and increment evaluates to Nil";
         is-deeply $count, 9, "$type: loop ran as expected";
     }
@@ -650,11 +752,16 @@ subtest 'Statement level for loop' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+for 2 .. 7 -> $x {
+    ++$count
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $count = 0;
 
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Nil,
+        is-deeply EVAL($it), Nil,
           "$type: for loop evaluates to Nil";
         is-deeply $count, 6, "$type: loop ran with expected number of times";
     }
@@ -695,12 +802,17 @@ subtest 'for loop with explicit iteration variable' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+for 2 .. 7 -> $x {
+    $total = $total + $x
+}
+CODE
 
     my $sum = (2..7).sum;
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $total = 0;
 
-        $type eq 'AST' ?? EVAL($ast) !! EVAL($deparsed);
+        is-deeply EVAL($it), Nil, "$type: result value of for";
         is-deeply $total, $sum, "$type: correct value in iteration variable";
     }
 }
@@ -733,12 +845,17 @@ subtest 'Statement level for loop with implicit topic' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+for 2 .. 7 {
+    $total = $total + $_
+}
+CODE
 
     my $sum = (2..7).sum;
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $total = 0;
 
-        $type eq 'AST' ?? EVAL($ast) !! EVAL($deparsed);
+        is-deeply EVAL($it), Nil, "$type: result value of for";
         is-deeply $total, $sum, "$type: correct value in implicit topic";
     }
 }
@@ -764,14 +881,19 @@ subtest 'given with explicit signature' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+given $a -> $x {
+    $x
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         my $a = 'concrete';
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 'concrete',
+        is-deeply EVAL($it), 'concrete',
           "$type: given topicalizes on the source (signature)";
 
         $a = Str;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Str,
+        is-deeply EVAL($it), Str,
           "$type: given topicalizes even an undefined source (signature)";
     }
 }
@@ -790,14 +912,19 @@ subtest 'given with implicit signature' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+given $a {
+    $_
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         my $a = 'concrete';
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 'concrete',
+        is-deeply EVAL($it), 'concrete',
           "$type: given topicalizes on the source (implicit)";
 
         $a = Str;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Str,
+        is-deeply EVAL($it), Str,
           "$type: given topicalizes even an undefined source (implicit)";
     }
 }
@@ -848,18 +975,31 @@ subtest 'given with when and default' => {
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+given $a {
+    when 2 {
+        "two"
+    }
+    when 3 {
+        "three"
+    }
+    default {
+        "another"
+    }
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         my $a = 2;
         is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 'two',
           "$type: first when statement matching gives correct result";
 
         $a = 3;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 'three',
+        is-deeply EVAL($it), 'three',
           "$type: second when statement matching gives correct result";
 
         $a = 4;
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 'another',
+        is-deeply EVAL($it), 'another',
           "$type: no when statement giving default";
     }
 }
@@ -867,16 +1007,10 @@ subtest 'given with when and default' => {
 subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
     my $handled;
 
-    # { die "oops"; CATCH { $handled++ } }
+    # { CATCH { default { $handled++ } }; die "oops" }
     ast RakuAST::Block.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::Call::Name.new(
-              name => RakuAST::Name.from-identifier('die'),
-              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('oops'))
-            )
-          ),
           RakuAST::Statement::Catch.new(
             body => RakuAST::Block.new(
               body => RakuAST::Blockoid.new(
@@ -898,15 +1032,31 @@ subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
                 )
               )
             )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('die'),
+              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('oops'))
+            )
           )
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+{
+    CATCH {
+        default {
+            $handled++
+        }
+    }
+    die("oops")
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
         $handled = 0;
 
-        is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), Nil,
+        is-deeply EVAL($it), Nil,
           "$type: block with CATCH/default handles exception, evalutes to Nil";
         is-deeply $handled, 1, "$type: the exception handler ran once";
         is $!, 'oops', "$type: \$! in the outer scope has the exception";
@@ -914,29 +1064,36 @@ subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
 }
 
 subtest 'Exception is rethrown if unhandled' => {
-    # { die "gosh"; CATCH { } }
+    # { CATCH { }; die "gosh" }
     ast RakuAST::Block.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::Call::Name.new(
-              name => RakuAST::Name.from-identifier('die'),
-              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('gosh'))
-            )
-          ),
           RakuAST::Statement::Catch.new(
             body => RakuAST::Block.new(
               body => RakuAST::Blockoid.new(
                 RakuAST::StatementList.new
               )
             )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('die'),
+              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('gosh'))
+            )
           )
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+{
+    CATCH {
+    }
+    die("gosh")
+}
+CODE
 
-    for 'AST', 'DEPARSE' -> $type {
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
+    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+        throws-like { EVAL($it) },
           X::AdHoc,
           message => /gosh/,
           "$type: exception is rethrown if unhandled";
@@ -958,11 +1115,15 @@ subtest 'Exception is rethrown if unhandled' => {
           name => RakuAST::Name.from-identifier('ok'),
           args => RakuAST::ArgList.new(
             RakuAST::IntLiteral.new(1),
-            RakuAST::StrLiteral.new('use statements works')
+            RakuAST::StrLiteral.new('use statements work')
           )
         )
       )
     );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use Test;
+ok(1, "use statements work")
+CODE
 
     # EVALling produces test output
     EVAL($ast);

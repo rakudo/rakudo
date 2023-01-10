@@ -78,11 +78,11 @@ class RakuAST::Deparse {
     method slurpy-unflattened(   --> '**') { }
     method slurpy-capture(       --> '|')  { }
 
-    method term-hyperwhatever(--> '**')   { }
-    method term-rand(         --> 'rand') { }
-    method term-empty-set(    --> '∅')    { }
-    method term-self(         --> 'self') { }
-    method term-whatever(     --> '*')    { }
+    method term-hyperwhatever(--> '**')    { }
+    method term-rand(         --> 'rand')  { }
+    method term-empty-set(    --> 'set()') { }
+    method term-self(         --> 'self')  { }
+    method term-whatever(     --> '*')     { }
 
     method var-compiler-file(--> '$?FILE') { }
     method var-compiler-line(--> '$?LINE') { }

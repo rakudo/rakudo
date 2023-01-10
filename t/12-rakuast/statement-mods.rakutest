@@ -232,7 +232,6 @@ subtest 'The postfix while statement works' => {
     is-deeply $deparsed, '++$foo while $foo < 5', 'deparse';
 
     $foo = 0;
-    todo('AST should probably return Nil, not Mu');
     is-deeply EVAL($ast), Nil, @type[$++];
     is-deeply $foo, 5, @type[$++];
 
@@ -264,7 +263,6 @@ subtest 'The postfix until statement works' => {
     is-deeply $deparsed, '++$foo until $foo >= 5', 'deparse';
 
     $foo = 0;
-    todo('AST should probably return Nil, not Mu');
     is-deeply EVAL($ast), Nil, @type[$++];
     is-deeply $foo, 5; @type[$++];
 
@@ -296,7 +294,6 @@ subtest 'The postfix for statement works' => {
     is-deeply $deparsed, '++$foo for 1 .. 5', 'deparse';
 
     $foo = 0;
-    todo('AST should probably return Nil, not Mu');
     is-deeply EVAL($ast), Nil, @type[$++];
     is-deeply $foo, 5, @type[$++];
 

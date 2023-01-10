@@ -96,6 +96,7 @@ class RakuAST::Trait is RakuAST::ImplicitLookups {
                     RakuAST::ColonPair::Value.new(:key(nqp::iterkey_s($_)), :value(nqp::iterval($_)))
                 );
             }
+            $args.IMPL-CHECK($resolver, $context, False);
             $target.IMPL-BEGIN-TIME-CALL(@lookups[0], $args, $resolver, $context);
             self.mark-applied;
         }

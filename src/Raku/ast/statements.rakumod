@@ -88,6 +88,10 @@ class RakuAST::Statement is RakuAST::Blorst {
         Nil
     }
 
+    method IMPL-DISCARD-RESULT() {
+        False
+    }
+
     method IMPL-WRAP-WHEN-OR-DEFAULT(RakuAST::IMPL::QASTContext $context, Mu $qast) {
         my $succeed-qast := QAST::Op.new( :op('call'), :name('&succeed'), $qast );
         QAST::Op.new(
@@ -167,10 +171,12 @@ class RakuAST::ForLoopImplementation is RakuAST::Node {
 # A list of statements, often appearing as the body of a block.
 class RakuAST::StatementList is RakuAST::SinkPropagator is RakuAST::ImplicitLookups {
     has List $!statements;
+    has int $!is-sunk;
 
     method new(*@statements, Bool :$trace) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementList, '$!statements', @statements);
+        nqp::bindattr_i($obj, RakuAST::StatementList, '$!is-sunk', 0);
         $obj
     }
 
@@ -184,13 +190,15 @@ class RakuAST::StatementList is RakuAST::SinkPropagator is RakuAST::ImplicitLook
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Blob'))
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Blob')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
         ])
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
         my @statements := $!statements;
+        my $Nil := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         for @statements {
             my $qast := $_.IMPL-TO-QAST($context);
             my $stmt-orig := $_.origin;
@@ -225,6 +233,20 @@ class RakuAST::StatementList is RakuAST::SinkPropagator is RakuAST::ImplicitLook
             }
             $stmts.push($qast);
         }
+        if !nqp::elems(@statements) {
+            $stmts.push($Nil.IMPL-TO-QAST($context));
+        }
+        else {
+            my $last-stmt := @statements[nqp::elems(@statements) - 1];
+            if $!is-sunk || $last-stmt.IMPL-DISCARD-RESULT {
+                $stmts.push($Nil.IMPL-TO-QAST($context));
+            }
+            else {
+                my $last := $stmts[nqp::elems($stmts) - 1];
+                $last.final(1);
+                $stmts.returns($last.returns);
+            }
+        }
         $stmts
     }
 
@@ -243,6 +265,7 @@ class RakuAST::StatementList is RakuAST::SinkPropagator is RakuAST::ImplicitLook
             }
             $i++;
         }
+        nqp::bindattr_i(self, RakuAST::StatementList, '$!is-sunk', $is-sunk ?? 1 !! 0);
         Nil
     }
 
@@ -269,7 +292,11 @@ class RakuAST::StatementList is RakuAST::SinkPropagator is RakuAST::ImplicitLook
         for $!statements {
             $result := $_.IMPL-INTERPRET($ctx);
         }
-        $result
+        $!is-sunk
+                || ! $!statements
+                || $!statements[nqp::elems($!statements) - 1].IMPL-DISCARD-RESULT
+            ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].compile-time-value
+            !! $result
     }
 }
 
@@ -440,7 +467,12 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
     }
 
     method IMPL-DISCARD-RESULT() {
-        self.is-block-statement || self.sunk
+        (
+            self.is-block-statement
+                && $!loop-modifier
+                && !nqp::istype($!loop-modifier, RakuAST::StatementModifier::Given)
+            || self.sunk
+        ) ?? 1 !! 0
     }
 
     method propagate-sink(Bool $is-sunk) {

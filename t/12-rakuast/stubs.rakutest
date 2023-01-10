@@ -6,6 +6,7 @@ plan 6;
 
 my $ast;
 my $deparsed;
+my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
@@ -19,18 +20,29 @@ subtest 'can make a simple ... stub' => {
         expression => RakuAST::Stub::Fail.new
       )
     );
+    is-deeply $deparsed, qq/...\n/, 'deparse';
 
-#    for 'AST','DEPARSE' -> $type {
-    for 'DEPARSE' -> $type {   # for now
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
-          X::StubCode,
-          message => 'Stub code executed'
-        ;
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        if $type eq 'AST' {
+            todo("with an unresumable exception");
+            flunk "AST has internal error";
+        }
+        else {
+            my $result := sub () {
+                CONTROL {
+                    isa-ok $_, CX::Return, "$type: did we get return?";
+                }
+                EVAL($it);
+            }();
+            isa-ok $result, Failure, "$type: did we get a Failure";
+            is $result.mess.lines.head.chomp,
+              'Stub code executed', "$type: payload ok";
+        }
     }
 }
 
 subtest 'can make a ... stub with info' => {
-    # ...
+    # ... "foobar"
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Stub::Fail.new(
@@ -40,27 +52,39 @@ subtest 'can make a ... stub with info' => {
         )
       )
     );
+    is-deeply $deparsed, qq/... "foobar"\n/, 'deparse';
 
-#    for 'AST','DEPARSE' -> $type {
-    for 'DEPARSE' -> $type {   # for now
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
-          X::StubCode,
-          message => "foobar"
-        ;
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        if $type eq 'AST' {
+            todo("with an unresumable exception");
+            flunk "AST has internal error";
+        }
+        else {
+            my $result := sub () {
+                CONTROL {
+                    isa-ok $_, CX::Return, "$type: did we get return?";
+                }
+                EVAL($it);
+            }();
+            isa-ok $result, Failure, "$type: did we get a Failure";
+            is $result.mess.lines.head.chomp,
+              'foobar', "$type: payload ok";
+        }
     }
 }
 
 subtest 'can make a simple !!! stub' => {
-    # ...
+    # !!!
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Stub::Die.new
       )
     );
+    is-deeply $deparsed, qq/!!!\n/, 'deparse';
 
-#    for 'AST','DEPARSE' -> $type {
-    for 'DEPARSE' -> $type {   # for now
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        todo("AST has internal error") if $type eq 'AST';
+        throws-like { EVAL($it) },
           X::StubCode,
           message => 'Stub code executed'
         ;
@@ -68,7 +92,7 @@ subtest 'can make a simple !!! stub' => {
 }
 
 subtest 'can make a !!! stub with info' => {
-    # ...
+    # !!! "foobar"
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Stub::Die.new(
@@ -78,10 +102,11 @@ subtest 'can make a !!! stub with info' => {
         )
       )
     );
+    is-deeply $deparsed, qq/!!! "foobar"\n/, 'deparse';
 
-#    for 'AST','DEPARSE' -> $type {
-    for 'DEPARSE' -> $type {   # for now
-        throws-like { EVAL($type eq 'AST' ?? $ast !! $deparsed) },
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        todo("AST has internal error") if $type eq 'AST';
+        throws-like { EVAL($it) },
           X::StubCode,
           message => "foobar"
         ;
@@ -89,26 +114,36 @@ subtest 'can make a !!! stub with info' => {
 }
 
 subtest 'can make a simple ??? stub' => {
-    # ...
+    # ???
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Stub::Warn.new
       )
     );
+    is-deeply $deparsed, qq/???\n/, 'deparse';
 
-#    for 'AST','DEPARSE' -> $type {
-    for 'DEPARSE' -> $type {   # for now
-        EVAL($type eq 'AST' ?? $ast !! $deparsed);
-        CONTROL {
-            isa-ok $_, CX::Warn, "$type: did we get a warning?";
-            is .message, "Stub code executed", "$type: the right warning";
-            .resume;
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        if $type eq 'AST' {
+            todo("with an unresumable exception");
+            flunk "AST has internal error";
+        }
+        else {
+            CATCH {
+                flunk "$type has internal error";
+                .resume;
+            }
+            CONTROL {
+                isa-ok $_, CX::Warn, "$type: did we get a warning?";
+                is .message, "Stub code executed", "$type: the right warning";
+                .resume;
+            }
+            EVAL($it);
         }
     }
 }
 
 subtest 'can make a ??? stub with info' => {
-    # ...
+    # ??? "foobar"
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Stub::Warn.new(
@@ -118,14 +153,24 @@ subtest 'can make a ??? stub with info' => {
         )
       )
     );
+    is-deeply $deparsed, qq/??? "foobar"\n/, 'deparse';
 
-#    for 'AST','DEPARSE' -> $type {
-    for 'DEPARSE' -> $type {   # for now
-        EVAL($type eq 'AST' ?? $ast !! $deparsed);
-        CONTROL {
-            isa-ok $_, CX::Warn, "$type: did we get a warning?";
-            is .message, "foobar", "$type: the right warning";
-            .resume;
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        if $type eq 'AST' {
+            todo("with an unresumable exception");
+            flunk "AST has internal error";
+        }
+        else {
+            CATCH {
+                flunk "$type has internal error";
+                .resume;
+            }
+            CONTROL {
+                isa-ok $_, CX::Warn, "$type: did we get a warning?";
+                is .message, "foobar", "$type: the right warning";
+                .resume;
+            }
+            EVAL($it);
         }
     }
 }

@@ -21,8 +21,12 @@ subtest 'Create an empty class' => {
       how  => Metamodel::ClassHOW,
       repr => 'P6opaque'
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class MyTestClass {
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class evaluates to a type object";
         is $class.^name, 'MyTestClass',
@@ -58,8 +62,15 @@ subtest 'Create a class with a method' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class TestClassWithMethods {
+    method test-meth () {
+        456
+    }
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class with method evaluates to a type object";
         is $class.^name, 'TestClassWithMethods',
@@ -93,8 +104,13 @@ subtest 'Check lexically resolving of a class' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class LexicalTestClass {
+}
+LexicalTestClass
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $result {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
         nok $result.defined,
           "$type: Got type object back from looking up package";
         is $result.^name, 'LexicalTestClass',
@@ -105,7 +121,7 @@ subtest 'Check lexically resolving of a class' => {
 }
 
 subtest 'Check globally resolving of a class' => {
-    for 'AST', 'DEPARSE' -> $type {
+    for 'AST', 'Str' -> $type {
         my $class = "OurTestClass$type";
 
         # class OurTestClass$type { }; OurTestClass$type
@@ -125,6 +141,11 @@ subtest 'Check globally resolving of a class' => {
             )
           )
         );
+        is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
+class OurTestClass$type {
+}
+OurTestClass$type
+CODE
 
         my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($deparsed);
         nok $result.defined,
@@ -140,7 +161,7 @@ subtest 'Check globally resolving of a class' => {
 
 module Enclosing {
     subtest 'our class inside an enclosing module' => {
-        for 'AST', 'DEPARSE' -> $type {
+        for 'AST', 'Str' -> $type {
             my $class = "OurEnclosedClass$type";
 
             # class OurEnclosedClass$type { }; OurEnclosedClass$type
@@ -160,6 +181,11 @@ module Enclosing {
                 )
               )
             );
+            is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
+class OurEnclosedClass$type {
+}
+OurEnclosedClass$type
+CODE
 
             my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($deparsed);
             todo 'bug in enclosed package naming'
@@ -196,8 +222,13 @@ subtest 'class with attribute' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class TestClassWithAttribute {
+    has $!foo
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class with attribute evluates to a type object";
         is $class.^name, 'TestClassWithAttribute',
@@ -240,8 +271,13 @@ subtest 'class with attribute and accessor' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class TestClassWithAttributeAccessor {
+    has Int $.foo
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class with attribute with accessor evluates to a type object";
         is $class.^name, 'TestClassWithAttributeAccessor',
@@ -266,7 +302,7 @@ subtest 'class with attribute and accessor' => {
 subtest 'class with accessor usage' => {
     # my class TestClassWithAttributeUsage {
     #     has Int $.bar;
-    #     method test-meth() { $!bar }
+    #     method test-meth () { $!bar }
     # }
     ast RakuAST::Package.new(
       scope => 'my',
@@ -301,8 +337,16 @@ subtest 'class with accessor usage' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class TestClassWithAttributeUsage {
+    has Int $.bar;
+    method test-meth () {
+        $!bar
+    }
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
           "$type: Class with accessor usage evaluates to a type object";
         is $class.^name, 'TestClassWithAttributeUsage',
@@ -317,6 +361,7 @@ subtest 'class with does trait really does the role' => {
         method test-meth() { 'role meth' }
     }
 
+    # my class TestRoleTarget does TestRole { }
     ast RakuAST::Package.new(
       scope => 'my',
       package-declarator => 'class',
@@ -330,8 +375,12 @@ subtest 'class with does trait really does the role' => {
         )
       ]
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class TestRoleTarget does TestRole {
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         is $class.^name, 'TestRoleTarget',
           "$type: Class with does trait gets correct name";
         ok $class ~~ TestRole,
@@ -346,6 +395,7 @@ subtest 'class with is trait really inherits' => {
         method test-meth() { 'base meth' }
     }
 
+    # my class TestChild is TestBas { }
     ast RakuAST::Package.new(
       scope => 'my',
       package-declarator => 'class',
@@ -357,8 +407,12 @@ subtest 'class with is trait really inherits' => {
         )
       ]
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class TestChild is TestBase {
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $class {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         is $class.^name, 'TestChild',
           "$type: Class with is trait gets correct name";
         ok $class ~~ TestBase,

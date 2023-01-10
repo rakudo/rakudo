@@ -610,23 +610,16 @@ class RakuAST::Call::VarMethod is RakuAST::Call::Methodish is RakuAST::Lookup {
 }
 
 # Base role for all stubs
-class RakuAST::Stub is RakuAST::Term is RakuAST::Call {
+class RakuAST::Stub is RakuAST::Call::Name {
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList);
+        nqp::bindattr($obj, RakuAST::Call::Name, '$!name', RakuAST::Name.from-identifier(self.IMPL-FUNC-NAME));
+        unless $args && $args.has-args {
+            $args := RakuAST::ArgList.new:
+                RakuAST::StrLiteral.new('Stub code executed')
+        }
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args);
         $obj
-    }
-
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $call := QAST::Op.new( :op('call') );
-        $call.name(self.IMPL-FUNC-NAME);
-
-        (self.args // RakuAST::ArgList.new(
-            RakuAST::StrLiteral.new('Stub code executed')
-          )
-        ).IMPL-ADD-QAST-ARGS($context, $call);
-
-        $call
     }
 }
 

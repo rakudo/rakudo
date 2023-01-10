@@ -300,6 +300,21 @@ class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
             $list
         }
     }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @statements := nqp::getattr(self, RakuAST::StatementList, '$!statements');
+        my int $n := nqp::elems(@statements);
+        if $n == 1 {
+            nqp::atpos(@statements, 0).IMPL-INTERPRET($ctx)
+        }
+        else {
+            my @list;
+            for @statements {
+                nqp::push(@list, $_.IMPL-INTERPRET($ctx));
+            }
+            self.IMPL-WRAP-LIST(@list)
+        }
+    }
 }
 
 # A statement sequence is a semicolon-separated list of statements, used as

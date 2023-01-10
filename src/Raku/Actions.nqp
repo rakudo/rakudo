@@ -101,6 +101,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         ensure_raku_ast();
         # Before anything else starts we must be ready to report locations in the source.
         $*ORIGIN-SOURCE := self.r('Origin', 'Source').new(:orig($/.target()));
+
+        # Set up the literals builder, so we can produce and intern literal
+        # values.
+        $*LITERALS := self.r('LiteralBuilder').new;
     }
 
     method lang_setup($/) {
@@ -155,9 +159,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             nqp::bindhllsym('Raku', 'GLOBAL', $global);
         }
 
-        # Set up the literals builder, so we can produce and intern literal
-        # values.
-        $*LITERALS := self.r('LiteralBuilder').new(:resolver($*R));
+	$*LITERALS.set-resolver($*R);
     }
 
     sub stash_hash($pkg) {

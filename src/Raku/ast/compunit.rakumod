@@ -344,10 +344,14 @@ class RakuAST::LiteralBuilder {
     has Mu $!cached-rat;
     has int $!has-cached-rat;
 
-    method new(RakuAST::Resolver :$resolver!) {
+    method new(RakuAST::Resolver :$resolver) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!resolver', $resolver);
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!resolver', $resolver) if $resolver;
         $obj
+    }
+
+    method set-resolver(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::LiteralBuilder, '$!resolver', $resolver);
     }
 
     # Build an Int constant and intern it.

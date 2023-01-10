@@ -610,28 +610,40 @@ class RakuAST::Call::VarMethod is RakuAST::Call::Methodish is RakuAST::Lookup {
 }
 
 # Base role for all stubs
-class RakuAST::Stub is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
+class RakuAST::Stub is RakuAST::Term is RakuAST::Call {
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList);
         $obj
     }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $call := QAST::Op.new( :op('call') );
+        $call.name(self.IMPL-FUNC-NAME);
+
+        (self.args // RakuAST::ArgList.new(
+            RakuAST::StrLiteral.new('Stub code executed')
+          )
+        ).IMPL-ADD-QAST-ARGS($context, $call);
+
+        $call
+    }
 }
 
 # the ... stub
 class RakuAST::Stub::Fail is RakuAST::Stub {
-    method IMPL-STUB-NAME() { '...'   }
+    method name() { '...' }
     method IMPL-FUNC-NAME() { 'fail' }
 }
 
 # the ??? stub
 class RakuAST::Stub::Warn is RakuAST::Stub {
-    method IMPL-STUB-NAME() { '???'   }
+    method name() { '???' }
     method IMPL-FUNC-NAME() { 'warn' }
 }
 
 # the !!! stub
 class RakuAST::Stub::Die is RakuAST::Stub {
-    method IMPL-STUB-NAME() { '!!!'  }
+    method name() { '!!!' }
     method IMPL-FUNC-NAME() { 'die' }
 }

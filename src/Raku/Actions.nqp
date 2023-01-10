@@ -901,6 +901,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     ##
+    ## Stubs
+    ##
+
+    method term:sym<...>($/) {
+        self.attach: $/, self.r('Stub', 'Fail').new(
+          args => $<args>.ast
+        );
+    }
+
+    method term:sym<???>($/) {
+        self.attach: $/, self.r('Stub', 'Warn').new(
+          args => $<args>.ast
+        );
+    }
+
+    method term:sym<!!!>($/) {
+        self.attach: $/, self.r('Stub', 'Die').new(
+          args => $<args>.ast
+        );
+    }
+
+    ##
     ## Terms
     ##
 
@@ -926,39 +948,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method term:sym<rand>($/) {
         self.attach: $/, self.r('Term', 'Rand').new();
-    }
-
-    method term:sym<...>($/) {
-        my $args := $<args>.ast;
-        my $arg-list := $args.IMPL-UNWRAP-LIST($args.args);
-        nqp::push($arg-list, self.r('StrLiteral').new($*LITERALS.intern-str('Stub code executed')))
-            unless $arg-list;
-
-        self.attach: $/, self.r('Call', 'Name').new:
-            name => self.r('Name').from-identifier('fail'),
-            args => $args;
-    }
-
-    method term:sym<???>($/) {
-        my $args := $<args>.ast;
-        my $arg-list := $args.IMPL-UNWRAP-LIST($args.args);
-        nqp::push($arg-list, self.r('StrLiteral').new($*LITERALS.intern-str('Stub code executed')))
-            unless $arg-list;
-
-        self.attach: $/, self.r('Call', 'Name').new:
-            name => self.r('Name').from-identifier('warn'),
-            args => $args;
-    }
-
-    method term:sym<!!!>($/) {
-        my $args := $<args>.ast;
-        my $arg-list := $args.IMPL-UNWRAP-LIST($args.args);
-        nqp::push($arg-list, self.r('StrLiteral').new($*LITERALS.intern-str('Stub code executed')))
-            unless $arg-list;
-
-        self.attach: $/, self.r('Call', 'Name').new:
-            name => self.r('Name').from-identifier('die'),
-            args => $args;
     }
 
     method term:sym<fatarrow>($/) {

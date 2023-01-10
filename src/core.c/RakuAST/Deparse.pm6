@@ -1378,10 +1378,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Stub:D $ast --> Str:D) {
         if $ast.args -> $args {
-            $ast.IMPL-STUB-NAME ~ ' ' ~ self.deparse($args)
+            $ast.name ~ ' ' ~ self.deparse($args)
         }
         else {
-            $ast.IMPL-STUB-NAME
+            $ast.name
         }
     }
 

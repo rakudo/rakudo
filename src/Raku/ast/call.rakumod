@@ -614,12 +614,18 @@ class RakuAST::Stub is RakuAST::Call::Name {
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Call::Name, '$!name', RakuAST::Name.from-identifier(self.IMPL-FUNC-NAME));
-        unless $args && $args.has-args {
-            $args := RakuAST::ArgList.new:
-                RakuAST::StrLiteral.new('Stub code executed')
-        }
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args);
         $obj
+    }
+
+    method args() {
+        my $args := nqp::getattr(self, RakuAST::Call, '$!args');
+        if $args && $args.has-args {
+            $args
+        }
+        else {
+            RakuAST::ArgList.new: RakuAST::StrLiteral.new('Stub code executed')
+        }
     }
 }
 

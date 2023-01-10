@@ -2,10 +2,11 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 37;
+plan 40;
 
 my $ast;
 my $deparsed;
+my @type = <AST Str AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
@@ -17,7 +18,8 @@ subtest 'Lexical variable lookup ($ sigil)' => {
 
     # $x
     ast RakuAST::Var::Lexical.new('$x');
-    is-deeply $_, 42
+    is-deeply $deparsed, '$x', 'deparse';
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), try EVAL($deparsed);
 }
 
@@ -25,7 +27,8 @@ subtest 'Lexical variable lookup (& sigil)' => {
 
     # &plan
     ast RakuAST::Var::Lexical.new('&plan');
-    is-deeply $_, &plan
+    is-deeply $deparsed, '&plan', 'deparse';
+    is-deeply $_, &plan, @type[$++]
       for EVAL($ast), try EVAL($deparsed);
 }
 
@@ -35,12 +38,14 @@ subtest 'Positional capture variable lookup works' => {
 
     # $0
     ast RakuAST::Var::PositionalCapture.new(0);
-    is-deeply $_, "a"
+    is-deeply $deparsed, '$0', 'deparse';
+    is-deeply $_, "a", @type[$++]
       for EVAL($ast).Str, try EVAL($deparsed).Str;
 
     # $1
     ast RakuAST::Var::PositionalCapture.new(1);
-    is-deeply $_, "b"
+    is-deeply $deparsed, '$1', 'deparse';
+    is-deeply $_, "b", @type[$++]
       for EVAL($ast).Str, try EVAL($deparsed).Str;
 }
 
@@ -55,7 +60,9 @@ subtest 'Named capture variable lookup works' => {
         processors => ['words','val']
       )
     );
-    is-deeply $_, "b"
+
+    is-deeply $deparsed, '$<y>', 'deparse';
+    is-deeply $_, "b", @type[$++]
       for EVAL($ast).Str, try EVAL($deparsed).Str;
 
     # $<x>
@@ -65,7 +72,9 @@ subtest 'Named capture variable lookup works' => {
         processors => ['words','val']
       )
     );
-    is-deeply $_, "a"
+
+    is-deeply $deparsed, '$<x>', 'deparse';
+    is-deeply $_, "a", @type[$++]
       for EVAL($ast).Str, try EVAL($deparsed).Str;
 }
 
@@ -76,6 +85,7 @@ subtest 'variable declaration takes scope and name' => {
           scope => $scope,
           name  => '$foo'
         );
+        is-deeply $deparsed, $scope ~ ' $foo', 'deparse';
 
         is $ast.scope, $scope, "did we get scope: $scope";
         is $ast.name,  '$foo', 'did we get the right name';
@@ -103,7 +113,13 @@ subtest 'Lexical variable my|state declarations work' => {
             expression => RakuAST::Var::Lexical.new('$foo')
           )
         );
-        is-deeply $_, 10, $scope
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ $foo;
+$foo = 10;
+$foo
+CODE
+        is-deeply $_, 10, "@type[$++]: $scope"
           for EVAL($ast), EVAL($deparsed);
     }
 }
@@ -123,7 +139,11 @@ subtest 'Defaults of my|state untyped container' => {
           )
         );
 
-        for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \cont {
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ $foo;
+$foo
+CODE
+        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \cont {
             is-deeply cont, Any, "$type: $scope default value is Any";
             ok cont.VAR.of =:= Mu, "$type: $scope Default constraint is Mu";
         }
@@ -154,7 +174,13 @@ subtest 'Typed variable my|state declaration (type matches in assignment)' => {
             expression => RakuAST::Var::Lexical.new('$foo')
           )
         );
-        is-deeply $_, 99, $scope
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ Int $foo;
+$foo = 99;
+$foo
+CODE
+        is-deeply $_, 99, "@type[$++]: $scope"
           for EVAL($ast), EVAL($deparsed);
     }
 }
@@ -183,6 +209,11 @@ subtest 'Typed variable my|state declaration (type mismatch throws)' => {
             expression => RakuAST::Var::Lexical.new('$foo')
           )
         );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ Int $foo;
+$foo = 100000e0;
+$foo
+CODE
 
         throws-like { EVAL($ast) },
           X::TypeCheck::Assignment,
@@ -216,7 +247,11 @@ subtest 'Lexical variable my|state declaration with assignment initializer' => {
           )
         );
 
-        for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \result {
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ $var = 125;
+$var
+CODE
+        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \result {
             is-deeply result, 125,
               "$type: $scope variable declarations with assignment initializer";
             ok result.VAR.isa(Scalar),
@@ -252,14 +287,19 @@ subtest 'Lexical my|state array declaration with assignment initializer' => {
             expression => RakuAST::Var::Lexical.new('@var')
           ),
         );
-        is-deeply $_, [22,33], $scope
+
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ @var = 22, 33;
+@var
+CODE
+        is-deeply $_, [22,33], "@type[$++]: $scope"
           for EVAL($ast), EVAL($deparsed);
     }
 }
 
 subtest 'Lexical my|state variable declarations with bind initializer' => {
     for 'my', 'state' -> $scope {
-        # my|state $var := 225
+        # my|state $var := 225; $var
         ast RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
@@ -275,7 +315,11 @@ subtest 'Lexical my|state variable declarations with bind initializer' => {
           ),
         );
 
-        for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \result {
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ $var := 225;
+$var
+CODE
+        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \result {
             # state var limitation: binding (like "state $var := 225") not supported
             next if $scope eq 'state';
 
@@ -311,7 +355,12 @@ subtest 'Anonymous state variable declaration' => {
       )
     );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, &result {
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+-> {
+    ++$ + ++$
+}
+CODE
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, &result {
         is-deeply result() ~ result() ~ result(), '246',
             "$type: anonymous state variables works are are distinct";
     }
@@ -325,15 +374,19 @@ subtest 'Dynamic variable access' => {
 
     # $*dyn
     ast RakuAST::Var::Dynamic.new('$*dyn');
-    is-deeply $_, 'out', 'access outside'
+    is-deeply $deparsed, '$*dyn', 'deparse';
+
+    is-deeply $_, 'out', "@type[$++] access outside"
       for EVAL($ast), EVAL($deparsed);
 
-    is-deeply $_, 'in', 'access inside'
+    is-deeply $_, 'in', "@type[$++] access inside"
       for with-dyn({ EVAL($ast) }), with-dyn({ EVAL($deparsed) });
 
     # $*OUT
     ast RakuAST::Var::Dynamic.new('$*OUT');
-    is-deeply $_, $*OUT, 'checking $*OUT'
+    is-deeply $deparsed, '$*OUT', 'deparse';
+
+    is-deeply $_, $*OUT, "@type[$++] checking \$*OUT"
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -352,8 +405,12 @@ subtest 'Dynamic variable declaration and assignment, dynamic lookup' => {
         expression => RakuAST::Var::Dynamic.new('$*var')
       ),
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my $*var = 360;
+$*var
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \result {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \result {
         is-deeply result, 360,
           "$type: Dynamic variable declaration and assignment, dynamic lookup";
         ok result.VAR.isa(Scalar),
@@ -379,8 +436,12 @@ subtest '@ sigil my|state var is initialized to Array' => {
             expression => RakuAST::Var::Lexical.new('@arr')
           ),
         );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ @arr;
+@arr
+CODE
 
-        for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \cont {
+        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \cont {
             is-deeply cont.WHAT, Array,
               "$type: $scope @ sigil var is initialized to Array";
             is-deeply cont.VAR.WHAT, Array,
@@ -413,8 +474,12 @@ subtest '% sigil my|state var is initialized to Hash' => {
             expression => RakuAST::Var::Lexical.new('%hash')
           ),
         );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ %hash;
+%hash
+CODE
 
-        for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \cont {
+        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \cont {
             is-deeply cont.WHAT, Hash,
               "$type: $scope % sigil var is initialized to Hash";
             is-deeply cont.VAR.WHAT, Hash,
@@ -450,8 +515,12 @@ subtest '@ sigil my|state var with Int type is an Array' => {
             expression => RakuAST::Var::Lexical.new('@arr')
           ),
         );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ Int @arr;
+@arr
+CODE
 
-        for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \cont {
+        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \cont {
             ok cont ~~ Array,
               "$type: $scope @ sigil var with Int type is an Array";
             ok cont ~~ Positional[Int],
@@ -487,8 +556,12 @@ subtest '% sigil my|state var with Int type is a Hash' => {
             expression => RakuAST::Var::Lexical.new('%hash')
           )
         );
+        is-deeply $deparsed, $scope ~ q:to/CODE/, 'deparse';
+ Int %hash;
+%hash
+CODE
 
-        for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \cont {
+        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \cont {
             ok cont ~~ Hash,
               "$type: $scope % sigil var with Int type is a Hash";
             ok cont ~~ Associative[Int],
@@ -512,7 +585,9 @@ subtest 'Can access external native int var' => {
 
     # $x
     ast RakuAST::Var::Lexical.new('$x');
-    is-deeply $_, 42
+    is-deeply $deparsed, '$x', 'deparse';
+
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -521,7 +596,9 @@ subtest 'Can access external native num var' => {
 
     # $x
     ast RakuAST::Var::Lexical.new('$x');
-    is-deeply $_, 4e2
+    is-deeply $deparsed, '$x', 'deparse';
+
+    is-deeply $_, 4e2, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -530,7 +607,9 @@ subtest 'Can access external native str var' => {
 
     # $x
     ast RakuAST::Var::Lexical.new('$x');
-    is-deeply $_, 'answer'
+    is-deeply $deparsed, '$x', 'deparse';
+
+    is-deeply $_, 'answer', @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -549,8 +628,12 @@ subtest 'int declaration creates a native int container' => {
         expression => RakuAST::Var::Lexical.new('$native-int')
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my int $native-int;
+$native-int
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \cont {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \cont {
         my $desc = "$type: int declaration creates a native int container";
         multi check(int $x) { pass $desc }
         multi check($x) { flunk $desc }
@@ -576,8 +659,12 @@ subtest 'num declaration creates a native num container' => {
         expression => RakuAST::Var::Lexical.new('$native-num')
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my num $native-num;
+$native-num
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \cont {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \cont {
         my $desc = "$type: num declaration creates a native num container";
         multi check(num $x) { pass $desc }
         multi check($x) { flunk $desc }
@@ -603,8 +690,12 @@ subtest 'str declaration creates a native str container' => {
         expression => RakuAST::Var::Lexical.new('$native-str')
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my str $native-str;
+$native-str
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \cont {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \cont {
         my $desc = "$type: str declaration creates a native str container";
         multi check(str $x) { pass $desc }
         multi check($x) { flunk $desc }
@@ -633,12 +724,17 @@ subtest 'Native int assign initializer works' => {
         expression => RakuAST::Var::Lexical.new('$native-int')
       )
     );
-    is-deeply $_, 963
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my int $native-int = 963;
+$native-int
+CODE
+
+    is-deeply $_, 963, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Native num assign initializer works' => {
-    # my int $native-num = 963; $native-num
+    # my num $native-num = 96e3; $native-num
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
@@ -655,12 +751,17 @@ subtest 'Native num assign initializer works' => {
         expression => RakuAST::Var::Lexical.new('$native-num')
       )
     );
-    is-deeply $_, 96e3
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my num $native-num = 96000e0;
+$native-num
+CODE
+
+    is-deeply $_, 96e3, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Native str assign initializer works' => {
-    # my int $native-str = 'nine six three'; $native-str
+    # my str $native-str = 'nine six three'; $native-str
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
@@ -677,7 +778,12 @@ subtest 'Native str assign initializer works' => {
         expression => RakuAST::Var::Lexical.new('$native-str')
       )
     );
-    is-deeply $_, 'nine six three'
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my str $native-str = "nine six three";
+$native-str
+CODE
+
+    is-deeply $_, 'nine six three', @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -697,6 +803,10 @@ subtest 'Native str assign initializer works' => {
             expression => RakuAST::Var::Lexical.new('$var')
           ),
         );
+        is-deeply $deparsed, q:to/CODE/, 'deparse';
+our $var;
+$var
+CODE
 
         subtest 'AST: our-scoped variable declaration without initializer takes current value (eval mode)' => {
             $var = 66;
@@ -704,9 +814,9 @@ subtest 'Native str assign initializer works' => {
             is-deeply $var, 66, 'Value intact after eval';
         }
 
-        subtest 'DEPARSE: our-scoped variable declaration without initializer takes current value (eval mode)' => {
+        subtest 'Str: our-scoped variable declaration without initializer takes current value (eval mode)' => {
             $var = 99;
-            is-deeply EVAL($ast), 99, 'eval DEPARSE';
+            is-deeply EVAL($ast), 99, 'eval Str';
             is-deeply $var, 99, 'Value intact after evaL';
         }
 
@@ -725,6 +835,10 @@ subtest 'Native str assign initializer works' => {
             expression => RakuAST::Var::Lexical.new('$x')
           ),
         );
+        is-deeply $deparsed, q:to/CODE/, 'deparse';
+our $x = 42;
+$x
+CODE
 
         subtest 'our-scoped variable declaration with initializer works (eval mode)' => {
             is-deeply $_, 42
@@ -750,6 +864,10 @@ subtest 'Native str assign initializer works' => {
             )
           ))
         );
+        is-deeply $deparsed, q:to/CODE/, 'deparse';
+our $y = 99;
+$y
+CODE
 
         # There is no equivalent string representation of a compilation unit
         # so we cannot actually test the DEPARSE of the ast, as that would
@@ -764,7 +882,7 @@ subtest 'Native str assign initializer works' => {
 }
 
 subtest 'A pointy block node with a state variable' => {
-    # -> () { state $foo = 42; $foo++ }
+    # -> { state $foo = 42; $foo++ }
     ast RakuAST::PointyBlock.new(
       signature => RakuAST::Signature.new(
         parameters => ()
@@ -793,8 +911,14 @@ subtest 'A pointy block node with a state variable' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+-> {
+    state $foo = 42;
+    $foo++
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $block {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         is $block(), 42, "$type: state variable initialized";
         is $block(), 43, "$type: state variable kept value";
     }
@@ -816,8 +940,12 @@ subtest 'Term (sigilless) variable declaration' => {
         expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('foo'))
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my \foo = 111;
+foo
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, \value {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, \value {
         is-deeply value, 111, "$type: sigilless variable initialized with correct value";
         ok value.VAR =:= value, "$type: no container produced";
     }

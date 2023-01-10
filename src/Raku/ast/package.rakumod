@@ -1,9 +1,14 @@
-class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
-                       is RakuAST::IMPL::ImmediateBlockUser
-                       is RakuAST::Declaration is RakuAST::AttachTarget
-                       is RakuAST::BeginTime is RakuAST::TraitTarget
-                       is RakuAST::ImplicitBlockSemanticsProvider
-                       is RakuAST::LexicalScope {
+class RakuAST::Package
+  is RakuAST::StubbyMeta
+  is RakuAST::Term
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::Declaration
+  is RakuAST::AttachTarget
+  is RakuAST::BeginTime
+  is RakuAST::TraitTarget
+  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::LexicalScope
+{
     has Str $.package-declarator;
     has Mu $.how;
     has Mu $.attribute-type;
@@ -383,6 +388,14 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.compile-time-value
+    }
+
+    method IMPL-COMPOSE() {
+        if $!package-declarator eq 'class' {
+            # create BUILDALL method if there's something to create,
+            # otherwise put in a generic fallback BUILDALL that doesn't
+            # do anything
+        }
     }
 
     method visit-children(Code $visitor) {

@@ -1283,6 +1283,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $package.replace-body: $body;
         $package.IMPL-CHECK($*R, $*CU.context, 1);
+        $package.IMPL-COMPOSE();
         $package.meta-object; # Ensure it's composed
         self.attach: $/, $package;
     }

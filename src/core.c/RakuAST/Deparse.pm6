@@ -1377,8 +1377,8 @@ class RakuAST::Deparse {
 #- Stu -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Stub:D $ast --> Str:D) {
-        if $ast.args -> $args {
-            $ast.name ~ ' ' ~ self.deparse($args)
+        if $ast.real-args -> $real-args {
+            $ast.name ~ ' ' ~ self.deparse($real-args)
         }
         else {
             $ast.name
@@ -1606,6 +1606,15 @@ class RakuAST::Deparse {
     }
 
 #- VarDeclaration --------------------------------------------------------------
+
+    multi method deparse(RakuAST::VarDeclaration::Anonymous:D $ast --> Str:D) {
+        my str $sigil = $ast.sigil;
+        my str $scope = $ast.scope;
+
+        $sigil eq '$' && $scope eq 'state'
+          ?? $sigil
+          !! "$scope $sigil"
+    }
 
     multi method deparse(RakuAST::VarDeclaration::Implicit:D $ast --> Str:D) {
         $ast.name

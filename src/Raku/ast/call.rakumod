@@ -613,19 +613,23 @@ class RakuAST::Call::VarMethod is RakuAST::Call::Methodish is RakuAST::Lookup {
 class RakuAST::Stub is RakuAST::Call::Name {
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Call::Name, '$!name', RakuAST::Name.from-identifier(self.IMPL-FUNC-NAME));
+        nqp::bindattr(
+          $obj, RakuAST::Call::Name, '$!name',
+          RakuAST::Name.from-identifier(self.IMPL-FUNC-NAME)
+        );
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args);
         $obj
     }
 
     method args() {
         my $args := nqp::getattr(self, RakuAST::Call, '$!args');
-        if $args && $args.has-args {
-            $args
-        }
-        else {
-            RakuAST::ArgList.new: RakuAST::StrLiteral.new('Stub code executed')
-        }
+        $args && $args.has-args
+          ?? $args
+          !! RakuAST::ArgList.new: RakuAST::StrLiteral.new('Stub code executed')
+    }
+
+    method real-args() {
+        nqp::getattr(self, RakuAST::Call, '$!args');
     }
 }
 

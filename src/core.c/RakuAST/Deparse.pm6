@@ -197,7 +197,7 @@ class RakuAST::Deparse {
     }
 
     method !simple-repeat($self: $ast, str $type --> Str:D) {
-       "repeat $self.deparse($ast.body).chomp() $type $self.deparse($ast.condition)"
+       "repeat $self.deparse($ast.body).chomp() $type $self.deparse($ast.condition);\n"
     }
 
     method !assemble-quoted-string($ast --> Str:D) {

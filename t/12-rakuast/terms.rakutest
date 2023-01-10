@@ -6,6 +6,7 @@ plan 11;
 
 my $ast;
 my $deparsed;
+my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
@@ -58,15 +59,25 @@ subtest 'Method call via self' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class TestClass {
+    method meth-a () {
+        99
+    }
+    method meth-b () {
+        self.meth-a()
+    }
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, Mu $class {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, Mu $class {
         is-deeply $class.meth-b(), 99,
           "$type: Method call via self works";
     }
 }
 
 subtest 'Topic call applies the call to $_' => {
-    # given argh { .uc }
+    # given "argh" { .uc }
     ast RakuAST::Statement::Given.new(
       source => RakuAST::StrLiteral.new('argh'),
       body => RakuAST::Block.new(
@@ -83,32 +94,40 @@ subtest 'Topic call applies the call to $_' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+given "argh" {
+    .uc()
+}
+CODE
 
-    is-deeply $_, 'ARGH'
+    is-deeply $_, 'ARGH', @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'now named term can be called' => {
     # now
     ast RakuAST::Term::Named.new('now');
+    is-deeply $deparsed, 'now', 'deparse';
 
-    isa-ok $_, Instant
+    isa-ok $_, Instant, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'rand term works' => {
     # rand
     ast RakuAST::Term::Rand.new;
+    is-deeply $deparsed, 'rand', 'deparse';
 
-    isa-ok $_, Num
+    isa-ok $_, Num, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Empty set term works' => {
     # ∅
     ast RakuAST::Term::EmptySet.new;
+    is-deeply $deparsed, 'set()', 'deparse';
 
-    is-deeply $_, ∅,
+    is-deeply $_, set(), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -117,8 +136,9 @@ subtest 'Name term works with single-part name' => {
     ast RakuAST::Term::Name.new(
       RakuAST::Name.from-identifier('True')
     );
+    is-deeply $deparsed, 'True', 'deparse';
 
-    is-deeply $_, True,
+    is-deeply $_, True, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -127,14 +147,16 @@ subtest 'Name term works with multi-part name' => {
     ast RakuAST::Term::Name.new(
       RakuAST::Name.from-identifier-parts('Bool', 'True')
     );
+    is-deeply $deparsed, 'Bool::True', 'deparse';
 
-    is-deeply $_, True,
+    is-deeply $_, True, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Whatever term works' => {
     # *
     ast RakuAST::Term::Whatever.new;
+    is-deeply $deparsed, '*', 'deparse';
 
     isa-ok $_, Whatever,
       for EVAL($ast), EVAL($deparsed);
@@ -143,20 +165,22 @@ subtest 'Whatever term works' => {
 subtest 'Hyperwhatever term works' => {
     # **
     ast RakuAST::Term::HyperWhatever.new;
+    is-deeply $deparsed, '**', 'deparse';
 
-    isa-ok $_, HyperWhatever,
+    isa-ok $_, HyperWhatever, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Capture term can be constructed with a term' => {
     my $var = 4;
 
-    # \$var
+    # \($var)
     ast RakuAST::Term::Capture.new(
       RakuAST::Var::Lexical.new('$var')
     );
+    is-deeply $deparsed, Q/\($var)/, 'deparse';
 
-    is-deeply $_, \(4)
+    is-deeply $_, \(4), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -168,8 +192,9 @@ subtest 'Capture term can be constructed with an arg list' => {
         RakuAST::ColonPair::True.new(key => 'x')
       )
     );
+    is-deeply $deparsed, Q/\(6, :x)/, 'deparse';
 
-    is-deeply $_, \(6, :x)
+    is-deeply $_, \(6, :x), @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 

@@ -88,11 +88,9 @@ RakuAST::RegexDeclaration
 RakuAST::RegexThunk
 RakuAST::Routine
 RakuAST::Statement::Control
-RakuAST::Statement::Empty
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::No
 RakuAST::Statement::Require
-RakuAST::StatementModifier::For::Thunk
 RakuAST::StatementPrefix::Eager
 RakuAST::StatementPrefix::Hyper
 RakuAST::StatementPrefix::Lazy

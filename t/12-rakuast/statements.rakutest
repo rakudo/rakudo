@@ -17,7 +17,7 @@ subtest 'Statement list evaluates to its final statement' => {
     my $x = 12;
     my $y = 99;
 
-    # ++$x; ++$y
+    # ++$x; ; ++$y
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPrefix.new(
@@ -25,6 +25,7 @@ subtest 'Statement list evaluates to its final statement' => {
           operand => RakuAST::Var::Lexical.new('$x')
         )
       ),
+      RakuAST::Statement::Empty.new,
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPrefix.new(
           prefix => RakuAST::Prefix.new('++'),
@@ -32,9 +33,11 @@ subtest 'Statement list evaluates to its final statement' => {
         )
       )
     );
-    is-deeply $deparsed, '++$x;
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+++$x;
+;
 ++$y
-', 'deparse';
+CODE
 
     is-deeply EVAL($ast), 100,
       'AST: Statement list evaluates to its final statement';

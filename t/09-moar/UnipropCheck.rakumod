@@ -9,15 +9,15 @@ my %prop-data =
 my %expected-loses =
     "extracted/DerivedGeneralCategory.txt" => {
         General_Category => {
-            Cn => 27,
+            Cn => 21,
         },
     },
     # Many codepoints return XX instead of ID. These codepoints are undefined, but unicode
     # spec has specified that they should regardless be ID
     "LineBreak.txt" => {
         Line_Break => {
-            ID => 66841,
-            PR => 16
+            ID => 62579,
+            PR => 15
         }
     }
 ;

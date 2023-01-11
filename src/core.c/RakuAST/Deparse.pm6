@@ -106,6 +106,15 @@ class RakuAST::Deparse {
     method ternary1(--> ' ?? ') { }
     method ternary2(--> ' !! ') { }
 
+    method dont-parenthesize() {
+        my constant %dont-parenthesize = <
+          emit
+          note
+          return
+          say
+        >.map: * => True;
+    }
+
 #-------------------------------------------------------------------------------
 # Setting up the deparse method
 
@@ -248,7 +257,7 @@ class RakuAST::Deparse {
 
     method !parenthesize($ast --> Str:D) {
         $.parens-open
-          ~ ($ast.defined ?? self.deparse($ast) !! '')
+          ~ ($ast.defined ?? self.deparse($ast).chomp !! '')
           ~ $.parens-close
     }
 
@@ -359,7 +368,15 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
-        self.deparse($ast.name) ~ self!parenthesize($ast.args)
+        my str $name = self.deparse($ast.name);
+        my str $args = self.deparse($ast.args).chomp;
+
+        $name ~ ($.dont-parenthesize{$name}
+          ?? $args
+            ?? (" " ~ $args)
+            !! ""
+          !! $.parens-open ~ $args ~ $.parens-close
+        )
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {
@@ -1112,7 +1129,14 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Signature:D $ast --> Str:D) {
-        $ast.parameters.map({ self.deparse($_) }).join($.list-infix-comma)
+        my str $params  =
+          $ast.parameters.map({ self.deparse($_) }).join($.list-infix-comma);
+        my str $returns = self.deparse($_)
+          with $ast.returns;
+
+        $params
+          ~ (" " if $params && $returns)
+          ~ ($returns ?? "--> $returns" !! "")
     }
 
 #- Statement -------------------------------------------------------------------

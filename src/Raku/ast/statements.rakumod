@@ -7,7 +7,11 @@ class RakuAST::Blorst is RakuAST::Node {
 class RakuAST::Contextualizable is RakuAST::Node {}
 
 # A label, which can be placed on a statement.
-class RakuAST::Label is RakuAST::Declaration is RakuAST::ImplicitLookups is RakuAST::Meta {
+class RakuAST::Label
+  is RakuAST::Declaration
+  is RakuAST::ImplicitLookups
+  is RakuAST::Meta
+{
     has str $.name;
 
     method new(str $name) {
@@ -50,7 +54,9 @@ class RakuAST::Label is RakuAST::Declaration is RakuAST::ImplicitLookups is Raku
 }
 
 # Everything that can appear at statement level does RakuAST::Statement.
-class RakuAST::Statement is RakuAST::Blorst {
+class RakuAST::Statement
+  is RakuAST::Blorst
+{
     has Mu $!labels;
     has int $.trace;
     has int $.statement-id;
@@ -108,13 +114,17 @@ class RakuAST::Statement is RakuAST::Blorst {
 
 # Some nodes cause their child nodes to gain an implicit, or even required,
 # topic. They can supply a callback to do that during resolution.
-class RakuAST::ImplicitBlockSemanticsProvider is RakuAST::Node {
+class RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::Node
+{
     method apply-implicit-block-semantics() {
         nqp::die('apply-implicit-block-semantics not implemented by ' ~ self.HOW.name(self));
     }
 }
 
-class RakuAST::ForLoopImplementation is RakuAST::Node {
+class RakuAST::ForLoopImplementation
+  is RakuAST::Node
+{
     method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
             str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
         # TODO various optimized forms are possible here
@@ -169,7 +179,10 @@ class RakuAST::ForLoopImplementation is RakuAST::Node {
 }
 
 # A list of statements, often appearing as the body of a block.
-class RakuAST::StatementList is RakuAST::SinkPropagator is RakuAST::ImplicitLookups {
+class RakuAST::StatementList
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitLookups
+{
     has List $!statements;
     has int $!is-sunk;
 
@@ -302,7 +315,10 @@ class RakuAST::StatementList is RakuAST::SinkPropagator is RakuAST::ImplicitLook
 
 # A semilist is a semicolon-separted list of statements, but used for the
 # purpose of multi-dimensional array and hash indexing.
-class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
+class RakuAST::SemiList
+  is RakuAST::StatementList
+  is RakuAST::ImplicitLookups
+{
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&infix:<,>'),
@@ -348,8 +364,11 @@ class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
 # the target for a contextualizer. Like a normal statement list, it puts all
 # but its last statement in sink context and evaluates to the value of the
 # final statement. However, if empty it evaluates instead to an empty list.
-class RakuAST::StatementSequence is RakuAST::StatementList is RakuAST::ImplicitLookups
-                                 is RakuAST::Contextualizable {
+class RakuAST::StatementSequence
+  is RakuAST::StatementList
+  is RakuAST::ImplicitLookups
+  is RakuAST::Contextualizable
+{
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&infix:<,>'),
@@ -381,7 +400,10 @@ class RakuAST::StatementSequence is RakuAST::StatementList is RakuAST::ImplicitL
 
 # Any empty statement. Retained because it can have a semantic effect (for
 # example, in block vs. hash distinction with a leading `;`).
-class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookups {
+class RakuAST::Statement::Empty
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+{
     method new(List :$labels) {
         my $obj := nqp::create(self);
         $obj.set-labels($labels) if $labels;
@@ -407,9 +429,13 @@ class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookup
 # An expression statement is a statement consisting of the evaluation of an
 # expression. It may have modifiers also, and the expression may consist of a
 # single term.
-class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropagator
-                                     is RakuAST::Sinkable is RakuAST::BlockStatementSensitive
-                                     is RakuAST::CheckTime {
+class RakuAST::Statement::Expression
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::Sinkable
+  is RakuAST::BlockStatementSensitive
+  is RakuAST::CheckTime
+{
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
     has RakuAST::StatementModifier::Loop $.loop-modifier;
@@ -514,14 +540,20 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
 
 # Mark out things that immediately consume their body, rather than needing it as
 # a closure.
-class RakuAST::IMPL::ImmediateBlockUser is RakuAST::Node {
+class RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::Node
+{
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) { True }
 }
 
 # An if conditional, with optional elsif/orwith/else parts.
-class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
-                             is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
-                             is RakuAST::ImplicitBlockSemanticsProvider {
+class RakuAST::Statement::If
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+  is RakuAST::SinkPropagator
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
     has Mu $!elsifs;
@@ -641,7 +673,9 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
 }
 
 # A with conditional, with optional elsif/orwith/else parts.
-class RakuAST::Statement::With is RakuAST::Statement::If {
+class RakuAST::Statement::With
+  is RakuAST::Statement::If
+{
     method IMPL-QAST-TYPE() { 'with' }
 }
 
@@ -667,7 +701,9 @@ class RakuAST::Statement::Elsif {
 
 # An orwith part. Not a standalone RakuAST node; can only be used inside of an If
 # or With node.
-class RakuAST::Statement::Orwith is RakuAST::Statement::Elsif {
+class RakuAST::Statement::Orwith
+  is RakuAST::Statement::Elsif
+{
     method IMPL-QAST-TYPE() { 'with' }
 
     method apply-implicit-block-semantics() {
@@ -676,9 +712,13 @@ class RakuAST::Statement::Orwith is RakuAST::Statement::Elsif {
 }
 
 # An unless statement control.
-class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLookups
-                                 is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
-                                 is RakuAST::ImplicitBlockSemanticsProvider {
+class RakuAST::Statement::Unless
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+  is RakuAST::SinkPropagator
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -727,9 +767,13 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
 }
 
 # A without statement control.
-class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLookups
-                                  is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
-                                  is RakuAST::ImplicitBlockSemanticsProvider {
+class RakuAST::Statement::Without
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+  is RakuAST::SinkPropagator
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -779,11 +823,15 @@ class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLook
 
 # The base for various kinds of loop. Used directly for the loop construct,
 # and subclassed with assorted defaults for while/until/repeat.
-class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
-                               is RakuAST::Sinkable is RakuAST::SinkPropagator
-                               is RakuAST::BlockStatementSensitive
-                               is RakuAST::IMPL::ImmediateBlockUser
-                               is RakuAST::ImplicitBlockSemanticsProvider {
+class RakuAST::Statement::Loop
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+  is RakuAST::Sinkable
+  is RakuAST::SinkPropagator
+  is RakuAST::BlockStatementSensitive
+  is RakuAST::IMPL::ImmediateBlockUser
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
     # The setup expression for the loop.
     has RakuAST::Expression $.setup;
 
@@ -890,31 +938,41 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
 }
 
 # A while loop.
-class RakuAST::Statement::Loop::While is RakuAST::Statement::Loop {
-}
+class RakuAST::Statement::Loop::While
+  is RakuAST::Statement::Loop
+{ }
 
 # An until loop.
-class RakuAST::Statement::Loop::Until is RakuAST::Statement::Loop {
+class RakuAST::Statement::Loop::Until
+  is RakuAST::Statement::Loop
+{
     method negate() { True }
 }
 
 # A repeat while loop.
-class RakuAST::Statement::Loop::RepeatWhile is RakuAST::Statement::Loop {
+class RakuAST::Statement::Loop::RepeatWhile
+  is RakuAST::Statement::Loop
+{
     method repeat() { True }
 }
 
 # A repeat until loop.
-class RakuAST::Statement::Loop::RepeatUntil is RakuAST::Statement::Loop {
+class RakuAST::Statement::Loop::RepeatUntil
+  is RakuAST::Statement::Loop
+{
     method negate() { True }
     method repeat() { True }
 }
 
 # A for loop.
-class RakuAST::Statement::For is RakuAST::Statement
-                              is RakuAST::ForLoopImplementation
-                              is RakuAST::Sinkable is RakuAST::SinkPropagator
-                              is RakuAST::BlockStatementSensitive
-                              is RakuAST::ImplicitBlockSemanticsProvider {
+class RakuAST::Statement::For
+  is RakuAST::Statement
+  is RakuAST::ForLoopImplementation
+  is RakuAST::Sinkable
+  is RakuAST::SinkPropagator
+  is RakuAST::BlockStatementSensitive
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
     # The thing to iterate over.
     has RakuAST::Expression $.source;
 
@@ -983,8 +1041,11 @@ class RakuAST::Statement::For is RakuAST::Statement
 }
 
 # A given statement.
-class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
-                                is RakuAST::ImplicitBlockSemanticsProvider {
+class RakuAST::Statement::Given
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
     # The thing to topicalize.
     has RakuAST::Expression $.source;
 
@@ -1025,9 +1086,13 @@ class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
 
 # A when statement, smart-matching the topic against the specified expression,
 # with `succeed`/`proceed` handling.
-class RakuAST::Statement::When is RakuAST::Statement is RakuAST::SinkPropagator
-                               is RakuAST::ImplicitBlockSemanticsProvider is RakuAST::ImplicitLookups
-                               is RakuAST::Attaching {
+class RakuAST::Statement::When
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::ImplicitLookups
+  is RakuAST::Attaching
+{
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -1088,8 +1153,12 @@ class RakuAST::Statement::When is RakuAST::Statement is RakuAST::SinkPropagator
 }
 
 # A default statement.
-class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagator
-                                  is RakuAST::ImplicitBlockSemanticsProvider is RakuAST::Attaching {
+class RakuAST::Statement::Default
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::Attaching
+{
     has RakuAST::Block $.body;
 
     method new(RakuAST::Block :$body!, List :$labels) {
@@ -1131,9 +1200,12 @@ class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagat
 }
 
 # The commonalities of exception handlers (CATCH and CONTROL).
-class RakuAST::Statement::ExceptionHandler is RakuAST::Statement is RakuAST::SinkPropagator
-                                           is RakuAST::ImplicitBlockSemanticsProvider
-                                           is RakuAST::ImplicitLookups {
+class RakuAST::Statement::ExceptionHandler
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Block $.body;
 
     method new(RakuAST::Block :$body!) {
@@ -1169,7 +1241,10 @@ class RakuAST::Statement::ExceptionHandler is RakuAST::Statement is RakuAST::Sin
 }
 
 # A CATCH statement.
-class RakuAST::Statement::Catch is RakuAST::Statement::ExceptionHandler is RakuAST::Attaching {
+class RakuAST::Statement::Catch
+  is RakuAST::Statement::ExceptionHandler
+  is RakuAST::Attaching
+{
     method attach(RakuAST::Resolver $resolver) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
@@ -1183,7 +1258,10 @@ class RakuAST::Statement::Catch is RakuAST::Statement::ExceptionHandler is RakuA
 }
 
 # A CONTROL statement.
-class RakuAST::Statement::Control is RakuAST::Statement::ExceptionHandler is RakuAST::Attaching {
+class RakuAST::Statement::Control
+  is RakuAST::Statement::ExceptionHandler
+  is RakuAST::Attaching
+{
     method attach(RakuAST::Resolver $resolver) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
@@ -1197,8 +1275,11 @@ class RakuAST::Statement::Control is RakuAST::Statement::ExceptionHandler is Rak
 }
 
 # A no statement.
-class RakuAST::Statement::No is RakuAST::Statement is RakuAST::BeginTime
-                              is RakuAST::ImplicitLookups {
+class RakuAST::Statement::No
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
     has Bool $!precompilation-mode;
@@ -1305,8 +1386,11 @@ class RakuAST::Categorical {
 }
 
 # A use statement.
-class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
-                              is RakuAST::ImplicitLookups {
+class RakuAST::Statement::Use
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
     has List $!categoricals;
@@ -1548,7 +1632,10 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
 }
 
 # A require statement.
-class RakuAST::Statement::Require is RakuAST::Statement is RakuAST::ImplicitLookups {
+class RakuAST::Statement::Require
+  is RakuAST::Statement
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Name $.module-name;
 
     method new(RakuAST::Name :$module-name!) {

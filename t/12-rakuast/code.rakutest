@@ -6,6 +6,7 @@ plan 11;
 
 my $ast;
 my $deparsed;
+my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
@@ -13,7 +14,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 }
 
 subtest 'A pointy block node evaluates to a Block' => {
-    # -> () { 101 }
+    # -> { 101 }
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::PointyBlock.new(
@@ -30,8 +31,13 @@ subtest 'A pointy block node evaluates to a Block' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+-> {
+    101
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $block {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         ok $block.WHAT === Block,
           "$type: A pointy block node evaluates to a Block";
         is $block.signature.params.elems, 0,
@@ -69,8 +75,13 @@ subtest 'A pointy block node taking a parameter evaluates to a Block' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+-> $param {
+    $param
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $block {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         ok $block.WHAT === Block,
           "$type: A pointy block node taking a parameter evaluates to a Block";
         is $block.signature.params.elems, 1,
@@ -108,6 +119,11 @@ subtest 'Bare block at statement level is executed' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+{
+    $x++
+}
+CODE
 
     is-deeply EVAL($ast), 99,
       'AST: Bare block at statement level is executed';
@@ -115,9 +131,9 @@ subtest 'Bare block at statement level is executed' => {
       'AST: Side-effects were performed as expected';
 
     is-deeply EVAL($deparsed), 100,
-      'DEPARSE: Bare block at statement level is executed';
+      'Str: Bare block at statement level is executed';
     is-deeply $x, 101,
-      'DEPARSE: Side-effects were performed as expected';
+      'Str: Side-effects were performed as expected';
 }
 
 subtest 'Bare block in parentheses evaluates to Block' => {
@@ -146,6 +162,11 @@ subtest 'Bare block in parentheses evaluates to Block' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+({
+    $x++
+})
+CODE
 
     given EVAL($ast) -> $result {
         is-deeply $result.WHAT, Block,
@@ -164,17 +185,17 @@ subtest 'Bare block in parentheses evaluates to Block' => {
 
     given EVAL($deparsed) -> $result {
         is-deeply $result.WHAT, Block,
-          'DEPARSE: Bare block in parentheses evaluates to Block';
+          'Str: Bare block in parentheses evaluates to Block';
         is $result.arity, 0,
-          'DEPARSE: Block has arity 0';
+          'Str: Block has arity 0';
         is $result.count, 1,
-          'DEPARSE: Block has count 1';
+          'Str: Block has count 1';
         is-deeply $x, 100,
-          'DEPARSE: No side-effects were performed';
+          'Str: No side-effects were performed';
         is-deeply $result(), 100,
-          'DEPARSE: Can evaluate the returned block';
+          'Str: Can evaluate the returned block';
         is-deeply $x, 101,
-          'DEPARSE: Block did perform side-effects when evaluated';
+          'Str: Block did perform side-effects when evaluated';
     }
 }
 
@@ -199,8 +220,13 @@ subtest 'Block has default parameter' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+({
+    $_
+})
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $result {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
         is-deeply $result('xxx'), 'xxx',
           "$type: Block has default $type parameter";
         lives-ok { $result() },
@@ -230,8 +256,13 @@ subtest 'A sub node evaluates to a Sub' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub ($param) {
+    $param
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         ok $sub.WHAT === Sub,
           "$type: A sub node evaluates to a Sub";
         is $sub.signature.params.elems, 1,
@@ -248,7 +279,7 @@ subtest 'A sub node evaluates to a Sub' => {
 }
 
 subtest 'Can call a named sub declaration' => {
-    # sub my-sub($param) { $param }; my-sub(66)
+    # sub my-sub ($param) { $param }; my-sub(66)
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
@@ -278,13 +309,19 @@ subtest 'Can call a named sub declaration' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub my-sub ($param) {
+    $param
+}
+my-sub(66)
+CODE
 
-    is-deeply $_, 66
+    is-deeply $_, 66, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'A routine declared anonymous does not declare anything' => {
-    # anon sub my-sub() { 66 }; my-sub()
+    # anon sub my-sub () { 66 }; my-sub()
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
@@ -305,8 +342,14 @@ subtest 'A routine declared anonymous does not declare anything' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+anon sub my-sub () {
+    66
+}
+my-sub()
+CODE
 
-    dies-ok $_
+    dies-ok $_, @type[$++]
       for { EVAL($ast) }, { EVAL($deparsed) };
 }
 
@@ -332,6 +375,11 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub () returns Int {
+    66
+}
+CODE
 
     my $sub = EVAL($ast);
     ok $sub ~~ Sub, 'A sub node with a trait evaluates to a Sub';
@@ -363,8 +411,13 @@ subtest 'Return type constraint' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub () returns Int {
+    $x
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         $x = 42;
         lives-ok { $sub() }, "$type: type matches";
         $x = 'oops';
@@ -401,8 +454,13 @@ subtest 'Using return with acceptable type works' => {
         )
       )
     );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+sub () returns Int {
+    return $x
+}
+CODE
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($deparsed) -> $type, $sub {
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         $x = 42;
         lives-ok { $sub() }, "$type: type matches";
         $x = 'oops';

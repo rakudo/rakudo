@@ -493,7 +493,7 @@ class RakuAST::Deparse {
 #- L ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Label:D $ast --> Str:D) {
-        $ast.name ~ ':'
+        $ast.name ~ ': '
     }
 
 #- M ---------------------------------------------------------------------------
@@ -1124,23 +1124,29 @@ class RakuAST::Deparse {
 
 #- Statement -------------------------------------------------------------------
 
+    method !labels(RakuAST::Statement:D $ast --> Str:D) {
+        $ast.labels.map({ self.deparse($_) }).join
+    }
+
     multi method deparse(RakuAST::Statement::Catch:D $ast --> Str:D) {
-        'CATCH ' ~ self.deparse($ast.body)
+        self!labels($ast) ~ 'CATCH ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Control:D $ast --> Str:D) {
-        'CONTROL ' ~ self.deparse($ast.body)
+        self!labels($ast) ~ 'CONTROL ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Default:D $ast --> Str:D) {
-        'default ' ~ self.deparse($ast.body)
+        self!labels($ast) ~ 'default ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Elsif:D $ast --> Str:D) {
-        self!conditional($ast, 'elsif');
+        self!conditional($ast, 'elsif')  # cannot have labels
     }
 
-    multi method deparse(RakuAST::Statement::Empty:D $ast --> '') { }
+    multi method deparse(RakuAST::Statement::Empty:D $ast --> Str:D) {
+        self!labels($ast)
+    }
 
     multi method deparse(RakuAST::Statement::Expression:D $ast --> Str:D) {
         my str @parts = self.deparse($ast.expression);
@@ -1155,7 +1161,7 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($modifier));
         }
 
-        @parts.join
+        self!labels($ast) ~ @parts.join
     }
 
     multi method deparse(RakuAST::Statement::For:D $ast --> Str:D) {
@@ -1169,11 +1175,12 @@ class RakuAST::Deparse {
             @parts.unshift($mode) if $mode ne 'serial';
         }
 
-        @parts.join(' ')
+        self!labels($ast) ~ @parts.join(' ')
     }
 
     multi method deparse(RakuAST::Statement::Given:D $ast --> Str:D) {
-        'given '
+        self!labels($ast)
+          ~ 'given '
           ~ self.deparse($ast.source)
           ~ ' '
           ~ self.deparse($ast.body)
@@ -1191,11 +1198,12 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($else));
         }
 
-        @parts.join
+        self!labels($ast) ~ @parts.join
     }
 
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
-        'loop ('
+        self!labels($ast)
+          ~ 'loop ('
           ~ self.deparse($ast.setup)
           ~ $.loop-separator
           ~ self.deparse($ast.condition)
@@ -1208,28 +1216,32 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Statement::Loop::RepeatUntil:D $ast
     --> Str:D) {
-        self!simple-repeat($ast, 'until')
+        self!labels($ast) ~ self!simple-repeat($ast, 'until')
     }
 
     multi method deparse(
       RakuAST::Statement::Loop::RepeatWhile:D $ast --> Str:D) {
-        self!simple-repeat($ast, 'while')
+        self!labels($ast) ~ self!simple-repeat($ast, 'while')
     }
 
     multi method deparse(RakuAST::Statement::Loop::Until:D $ast --> Str:D) {
-        self!simple-loop($ast, 'until')
+        self!labels($ast) ~ self!simple-loop($ast, 'until')
     }
 
     multi method deparse(RakuAST::Statement::Loop::While:D $ast --> Str:D) {
-        self!simple-loop($ast, 'while')
+        self!labels($ast) ~ self!simple-loop($ast, 'while')
     }
 
     multi method deparse(RakuAST::Statement::Orwith:D $ast --> Str:D) {
-        self!conditional($ast, 'orwith');
+        self!conditional($ast, 'orwith')  # cannot have labels
+    }
+
+    multi method deparse(RakuAST::Statement::Require:D $ast --> Str:D) {
+        self!labels($ast) ~ 'require ' ~ self.deparse($ast.module-name)
     }
 
     multi method deparse(RakuAST::Statement::Unless:D $ast --> Str:D) {
-        self!negated-conditional($ast, 'unless');
+        self!labels($ast) ~ self!negated-conditional($ast, 'unless');
     }
 
     multi method deparse(RakuAST::Statement::Use:D $ast --> Str:D) {
@@ -1240,22 +1252,19 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($argument));
         }
 
-        @parts.join
-    }
-
-    multi method deparse(RakuAST::Statement::Require:D $ast --> Str:D) {
-        'require ' ~ self.deparse($ast.module-name)
+        self!labels($ast) ~ @parts.join
     }
 
     multi method deparse(RakuAST::Statement::When:D $ast --> Str:D) {
-        'when '
+        self!labels($ast)
+          ~ 'when '
           ~ self.deparse($ast.condition)
           ~ ' '
           ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Without:D $ast --> Str:D) {
-        self!negated-conditional($ast, 'without');
+        self!labels($ast) ~ self!negated-conditional($ast, 'without');
     }
 
     multi method deparse(RakuAST::StatementList:D $ast --> Str:D) {

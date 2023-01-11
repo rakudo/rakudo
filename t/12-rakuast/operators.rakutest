@@ -469,4 +469,19 @@ subtest 'Application of dotty infix `.=` evaluates to expected value' => {
     is-deeply $var, 'Foo';
 }
 
+subtest 'Application of a function infix on two literals' => {
+    # 44 [&sum] 22
+    ast RakuAST::ApplyInfix.new(
+      left => RakuAST::IntLiteral.new(44),
+      infix => RakuAST::FunctionInfix.new(
+        RakuAST::Var::Lexical.new('&sum')
+      ),
+      right => RakuAST::IntLiteral.new(22)
+    );
+
+    is-deeply $deparsed, '44 [&sum] 22', 'deparse';
+    is-deeply $_, 66, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
 # vim: expandtab shiftwidth=4

@@ -212,11 +212,14 @@ class RakuAST::Node {
             # Wasn't wrapped anyway
             $list
         }
-        else {
+        elsif nqp::istype($list, List) {
             my $reified := nqp::getattr($list, List, '$!reified');
             nqp::isconcrete($reified)
                 ?? $reified
                 !! $list.FLATTENABLE_LIST
+        }
+        else {
+            nqp::list($list)
         }
     }
 

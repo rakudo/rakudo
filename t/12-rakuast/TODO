@@ -25,10 +25,6 @@ RakuAST::Declaration::Import
 RakuAST::Declaration::LexicalPackage
 RakuAST::Declaration::Mergeable
 RakuAST::Declaration::ResolvedConstant
-RakuAST::Expression
-RakuAST::ExpressionThunk
-RakuAST::ForLoopImplementation
-RakuAST::FunctionInfix
 RakuAST::Name::Part::Empty
 RakuAST::Name::Part::Expression
 RakuAST::OnlyStar

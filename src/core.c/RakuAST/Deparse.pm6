@@ -73,6 +73,9 @@ class RakuAST::Deparse {
     method dotty-infix-call(       --> '.')    { }
     method dotty-infix-call-assign(--> ' .= ') { }
 
+    method function-infix-open( --> '[') { }
+    method function-infix-close(--> ']') { }
+
     method slurpy-flattened(      --> '*') { }
     method slurpy-single-argument(--> '+') { }
     method slurpy-unflattened(   --> '**') { }
@@ -450,6 +453,12 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::FatArrow:D $ast --> Str:D) {
         $ast.key ~ $.fatarrow ~ self.deparse($ast.value)
+    }
+
+    multi method deparse(RakuAST::FunctionInfix:D $ast --> Str:D) {
+        $.function-infix-open
+          ~ self.deparse($ast.function)
+          ~ $.function-infix-close
     }
 
 #- H ---------------------------------------------------------------------------

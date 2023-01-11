@@ -164,7 +164,7 @@ if $a {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $a = True;
         is-deeply EVAL($it), 1,
           "$type: When simple if with no else has true condition";
@@ -272,7 +272,7 @@ else -> $x {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $a = $b = $c = Nil;
         is-deeply EVAL($it), 4,
           "$type: When all conditions undefined, else is evaluated";
@@ -320,7 +320,7 @@ with $a -> $x {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $a = False;
         is-deeply EVAL($it), 1,
           "$type: When simple when with no else has defined condition";
@@ -363,7 +363,7 @@ else {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         my $a = 42;
         is-deeply EVAL($it), 42,
           "$type: with topicalizes in the body";
@@ -567,7 +567,7 @@ while $x {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $x = 5;
 
         is-deeply EVAL($it), Nil,
@@ -604,7 +604,7 @@ until !$x {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $x = 5;
 
         is-deeply EVAL($it), Nil,
@@ -638,7 +638,7 @@ repeat {
 } while $x;
 CODE
 
-    for 'AST', $ast,  'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast,  'Str', $deparsed -> $type, $it {
         $x = 5;
 
         is-deeply EVAL($it), Nil,
@@ -672,7 +672,7 @@ repeat {
 } until $x;
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $x = 0;
 
         is-deeply EVAL($it), Nil,
@@ -716,7 +716,7 @@ loop (my $i = 9; $i; --$i) {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $count = 0;
 
         is-deeply EVAL($it), Nil,
@@ -761,7 +761,7 @@ for 2 .. 7 -> $x {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $count = 0;
 
         is-deeply EVAL($it), Nil,
@@ -812,7 +812,7 @@ for 2 .. 7 -> $x {
 CODE
 
     my $sum = (2..7).sum;
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $total = 0;
 
         is-deeply EVAL($it), Nil, "$type: result value of for";
@@ -855,7 +855,7 @@ for 2 .. 7 {
 CODE
 
     my $sum = (2..7).sum;
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $total = 0;
 
         is-deeply EVAL($it), Nil, "$type: result value of for";
@@ -890,7 +890,7 @@ given $a -> $x {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         my $a = 'concrete';
         is-deeply EVAL($it), 'concrete',
           "$type: given topicalizes on the source (signature)";
@@ -921,7 +921,7 @@ given $a {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         my $a = 'concrete';
         is-deeply EVAL($it), 'concrete',
           "$type: given topicalizes on the source (implicit)";
@@ -992,7 +992,7 @@ given $a {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         my $a = 2;
         is-deeply EVAL($type eq 'AST' ?? $ast !! $deparsed), 'two',
           "$type: first when statement matching gives correct result";
@@ -1056,7 +1056,7 @@ subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $handled = 0;
 
         is-deeply EVAL($it), Nil,
@@ -1095,7 +1095,7 @@ subtest 'Exception is rethrown if unhandled' => {
 }
 CODE
 
-    for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         throws-like { EVAL($it) },
           X::AdHoc,
           message => /gosh/,

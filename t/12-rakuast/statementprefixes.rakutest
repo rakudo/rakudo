@@ -284,7 +284,7 @@ subtest 'try statement prefix with expression producing value results' => {
 
     is-deeply EVAL($deparsed), 99, 'Str: correct result';
     todo 'string eval does not set $!, also in main';
-    is-deeply $!, Nil, 'DEPARSE: $! is Nil when not exception';
+    is-deeply $!, Nil, 'Str: $! is Nil when not exception';
 }
 
 subtest 'try statement prefix with throwing expression handles the exception' => {
@@ -331,7 +331,7 @@ subtest 'try statement prefix with block producing value results' => {
 
     is-deeply EVAL($deparsed), 999, 'Str: correct result';
     todo 'string eval does not set $!, also in main';
-    is-deeply $!, Nil, 'DEPARSE: $! is Nil when not exception';
+    is-deeply $!, Nil, 'Str: $! is Nil when not exception';
 }
 
 subtest 'try statement prefix with throwing block handles the exception' => {

@@ -28,7 +28,7 @@ subtest 'Assignment meta-op evaluates to expected value' => {
     is-deeply EVAL($ast), 13, 'AST: evaluates to expected value';
     is-deeply $a, 13, 'Really did mutate the variable';
 
-    is-deeply EVAL($deparsed), 16, 'DEPARSE: evaluates to expected value';
+    is-deeply EVAL($deparsed), 16, 'Str: evaluates to expected value';
     is-deeply $a, 16, 'Really did mutate the variable';
 }
 
@@ -56,9 +56,9 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
       'AST: Really did short-circuit, and not evaluate RHS';
 
     is-deeply EVAL($deparsed), 10,
-      'DEPARSE: short-circuit || evaluates to true LHS';
+      'Str: short-circuit || evaluates to true LHS';
     is-deeply $update, 2,
-      'DEPARSE: Really did short-circuit, and not evaluate RHS';
+      'Str: Really did short-circuit, and not evaluate RHS';
 
     $test = 0;
     is-deeply EVAL($ast), 2,
@@ -68,9 +68,9 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
 
     $test = 0;
     is-deeply EVAL($deparsed), 3,
-      'DEPARSE: no short-circuit || evaluates to RHS when LHS false';
+      'Str: no short-circuit || evaluates to RHS when LHS false';
     is-deeply $update, 4,
-      'DEPARSE: Really did evaluate RHS';
+      'Str: Really did evaluate RHS';
 }
 
 subtest 'Literal reduce meta-op on left associative operator' => {

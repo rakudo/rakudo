@@ -125,7 +125,7 @@ subtest 'rand term works' => {
 subtest 'Empty set term works' => {
     # ∅
     ast RakuAST::Term::EmptySet.new;
-    is-deeply $deparsed, 'set()', 'deparse';
+    is-deeply $deparsed, '∅', 'deparse';
 
     is-deeply $_, set(), @type[$++]
       for EVAL($ast), EVAL($deparsed);

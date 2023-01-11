@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 28;
+plan 29;
 
 my $ast;
 my $deparsed;

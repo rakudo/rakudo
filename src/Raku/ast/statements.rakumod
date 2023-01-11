@@ -1395,12 +1395,13 @@ class RakuAST::Statement::Use
     has RakuAST::Expression $.argument;
     has List $!categoricals;
 
-    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!categoricals', []);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
             $argument // RakuAST::Expression);
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 

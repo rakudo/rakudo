@@ -106,15 +106,6 @@ class RakuAST::Deparse {
     method ternary1(--> ' ?? ') { }
     method ternary2(--> ' !! ') { }
 
-    method dont-parenthesize() {
-        my constant %dont-parenthesize = <
-          emit
-          note
-          return
-          say
-        >.map: * => True;
-    }
-
 #-------------------------------------------------------------------------------
 # Setting up the deparse method
 
@@ -368,15 +359,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
-        my str $name = self.deparse($ast.name);
-        my str $args = self.deparse($ast.args).chomp;
-
-        $name ~ ($.dont-parenthesize{$name}
-          ?? $args
-            ?? (" " ~ $args)
-            !! ""
-          !! $.parens-open ~ $args ~ $.parens-close
-        )
+        self.deparse($ast.name) ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {

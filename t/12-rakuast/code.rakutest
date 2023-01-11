@@ -456,7 +456,7 @@ subtest 'Using return with acceptable type works' => {
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
 sub () returns Int {
-    return $x
+    return($x)
 }
 CODE
 

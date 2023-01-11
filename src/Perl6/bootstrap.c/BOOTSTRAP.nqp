@@ -86,6 +86,7 @@ my stub Grammar metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Version metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub IntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub UIntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
@@ -3804,6 +3805,18 @@ BEGIN {
     ForeignCode.HOW.compose_invocation(ForeignCode);
 #?endif
 
+    # class Version {
+    #     has $!parts;
+    #     has int $!plus;
+    #     has int $!whatever;
+    #     has str $!string;
+    Version.HOW.add_parent(Version, Any);
+    Version.HOW.add_attribute(Version, Attribute.new(:name('$!parts'), :type(Mu), :package(Version)));
+    Version.HOW.add_attribute(Version, Attribute.new(:name('$!plus'), :type(int), :package(Version)));
+    Version.HOW.add_attribute(Version, Attribute.new(:name('$!whatever'), :type(int), :package(Version)));
+    Version.HOW.add_attribute(Version, Attribute.new(:name('$!string'), :type(str), :package(Version)));
+    Version.HOW.compose_repr(Version);
+
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
     #     has str $!longname;
@@ -3874,6 +3887,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Grammar);
     Perl6::Metamodel::ClassHOW.add_stash(Junction);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
+    Perl6::Metamodel::ClassHOW.add_stash(Version);
 
 #?if !moar
     # Default invocation behavior delegates off to invoke.
@@ -4015,6 +4029,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<WrapDispatcher>      := Perl6::Metamodel::WrapDispatcher;
     EXPORT::DEFAULT.WHO<Metamodel>           := Metamodel;
     EXPORT::DEFAULT.WHO<ForeignCode>         := ForeignCode;
+    EXPORT::DEFAULT.WHO<Version>             := Version;
 }
 EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
 EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
@@ -4430,6 +4445,7 @@ nqp::bindhllsym('Raku', 'ScalarVAR', ScalarVAR);
 nqp::bindhllsym('Raku', 'default_cont_spec',
     Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
 nqp::bindhllsym('Raku', 'Capture', Capture);
+nqp::bindhllsym('Raku', 'Version', Version);
 
 #?if jvm
 # On JVM, set up JVM interop bits.

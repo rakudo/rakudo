@@ -1,11 +1,11 @@
-class Version {
-    has $!parts;
-    has int $!plus;
-    has int $!whatever;
-    has str $!string;
-}
+# class Version {
+#     has $!parts;
+#     has int $!plus;
+#     has int $!whatever;
+#     has str $!string;
+# }
 
-augment class Version {
+class Version {
 
     constant $v  = do {
         my $version := nqp::create(Version);

@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 13;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -13,7 +13,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
     diag $deparsed.chomp;
 }
 
-subtest 'The postfix if statement works with a true expression' => {
+subtest 'The postfix "if" statement works with a true expression' => {
     # 42 if 666
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::IntLiteral.new(42),
@@ -29,7 +29,7 @@ subtest 'The postfix if statement works with a true expression' => {
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The postfix if statement works with a false expression' => {
+subtest 'The postfix "if" statement works with a false expression' => {
     # 42 if ""
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::IntLiteral.new(42),
@@ -46,7 +46,7 @@ subtest 'The postfix if statement works with a false expression' => {
     is-deeply EVAL($deparsed), Empty, @type[$++];
 }
 
-subtest 'The postfix unless statement works with a false expression' => {
+subtest 'The postfix "unless" statement works with a false expression' => {
     # 42 unless ""
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::IntLiteral.new(42),
@@ -62,7 +62,7 @@ subtest 'The postfix unless statement works with a false expression' => {
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The postfix unless statement works with a true expression' => {
+subtest 'The postfix "unless" statement works with a true expression' => {
     # 42 unless 666
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::IntLiteral.new(42),
@@ -79,7 +79,7 @@ subtest 'The postfix unless statement works with a true expression' => {
     is-deeply EVAL($deparsed), Empty, @type[$++];
 }
 
-subtest 'The postfix with statement works with defined expression' => {
+subtest 'The postfix "with" statement works with defined expression' => {
     # $_ * 2 with 42
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::ApplyInfix.new(
@@ -99,7 +99,7 @@ subtest 'The postfix with statement works with defined expression' => {
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The postfix with statement works with a type object' => {
+subtest 'The postfix "with" statement works with a type object' => {
     # $_ * 2 with Int
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::ApplyInfix.new(
@@ -122,7 +122,7 @@ subtest 'The postfix with statement works with a type object' => {
     is-deeply EVAL($deparsed), Empty, @type[$++];
 }
 
-subtest 'The postfix without statement works with defined expression' => {
+subtest 'The postfix "without" statement works with defined expression' => {
     # $_ * 2 without 42
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::ApplyInfix.new(
@@ -143,7 +143,7 @@ subtest 'The postfix without statement works with defined expression' => {
     is-deeply EVAL($deparsed), Empty, @type[$++];
 }
 
-subtest 'The postfix given statement works with defined expression' => {
+subtest 'The postfix "given" statement works with defined expression' => {
     # $_ * 2 given 42
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::ApplyInfix.new(
@@ -163,7 +163,7 @@ subtest 'The postfix given statement works with defined expression' => {
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The postfix without statement works with a type object' => {
+subtest 'The postfix "without" statement works with a type object' => {
     # .Str without Int
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::ApplyPostfix.new(
@@ -186,7 +186,35 @@ subtest 'The postfix without statement works with a type object' => {
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The postfix given statement works with a type object' => {
+subtest 'The postfix "when" statement works' => {
+    my $foo;
+
+    # $_ = 42; 666 when 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new('$_'),
+          infix => RakuAST::Infix.new('='),
+          right => RakuAST::IntLiteral.new(42)
+        ),
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(666),
+        condition-modifier => RakuAST::StatementModifier::When.new(
+          RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+$_ = 42;
+666 when 42
+CODE
+
+    is-deeply $_, 666, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'The postfix "given" statement works with a type object' => {
     # .Str given Int
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::ApplyPostfix.new(
@@ -209,7 +237,7 @@ subtest 'The postfix given statement works with a type object' => {
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'The postfix while statement works' => {
+subtest 'The postfix "while" statement works' => {
     my $foo;
 
     # ++$foo while $foo < 5
@@ -240,7 +268,7 @@ subtest 'The postfix while statement works' => {
     is-deeply $foo, 5, @type[$++];
 }
 
-subtest 'The postfix until statement works' => {
+subtest 'The postfix "until" statement works' => {
     my $foo;
 
     # ++$foo until $foo >= 5
@@ -271,7 +299,7 @@ subtest 'The postfix until statement works' => {
     is-deeply $foo, 5; @type[$++];
 }
 
-subtest 'The postfix for statement works' => {
+subtest 'The postfix "for" statement works' => {
     my $foo;
 
     # ++$foo for 1 .. 5

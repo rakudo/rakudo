@@ -92,10 +92,7 @@ RakuAST::Statement::Empty
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::No
 RakuAST::Statement::Require
-RakuAST::StatementModifier::Condition
 RakuAST::StatementModifier::For::Thunk
-RakuAST::StatementModifier::Loop
-RakuAST::StatementModifier::When
 RakuAST::StatementPrefix::Eager
 RakuAST::StatementPrefix::Hyper
 RakuAST::StatementPrefix::Lazy

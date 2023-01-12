@@ -655,6 +655,35 @@ class RakuAST::Stub
         $args && $args.has-args
           ?? $args
           !! RakuAST::ArgList.new: RakuAST::StrLiteral.new('Stub code executed')
+
+# The above implementation is wrong: the die/fail/warn subs should be called
+# with an X::StubCode exception as the argument.  However, the below code
+# fails *execution* with:
+#
+#   This element has not been resolved. Type: RakuAST::Type::Simple
+#
+# I wonder if this is a bootstrapping issue.  Rather than just dropping this
+# into a branch that will go into oblivion, leaving the code here for someone
+# more knowledgeable to pick up in the future to properly activate.
+#
+#        $args := RakuAST::ArgList.new(
+#          RakuAST::FatArrow.new(
+#            key   => 'message',
+#            value => $args[0]
+#          )
+#        ) if $args;
+#
+#        RakuAST::ArgList.new(
+#          RakuAST::ApplyPostfix.new(
+#            operand => RakuAST::Type::Simple.new(
+#              RakuAST::Name.from-identifier-parts('X','StubCode')
+#            ),
+#            postfix => RakuAST::Call::Method.new(
+#              name => RakuAST::Name.from-identifier('new'),
+#              args => $args
+#            )
+#          )
+#        )
     }
 
     method real-args() {

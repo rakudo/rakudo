@@ -458,7 +458,7 @@ subtest 'Correct outcome of ternary operator' => {
 }
 
 subtest 'Application of dotty infix `.`' => {
-    # "foo".uc()
+    # "foo" .uc()
     ast RakuAST::ApplyDottyInfix.new(
       left => RakuAST::StrLiteral.new('foo'),
       infix => RakuAST::DottyInfix::Call.new(),
@@ -467,7 +467,7 @@ subtest 'Application of dotty infix `.`' => {
       )
     );
 
-    is-deeply $deparsed, '"foo".uc()', 'deparse';
+    is-deeply $deparsed, '"foo" .uc()', 'deparse';
     is-deeply $_, 'FOO', @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }

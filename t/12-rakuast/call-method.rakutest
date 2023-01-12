@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 10;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -162,6 +162,72 @@ subtest 'Can make a meta-method call' => {
     );
     is-deeply $deparsed, '42.^name()', 'deparsed';
     is-deeply $_, 'Int', @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Can make a method call if the method exists' => {
+    # TestTarget.?subtract(50,8)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::MaybeMethod.new(
+        name => 'subtract',
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(50),
+          RakuAST::IntLiteral.new(8),
+        )
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.?subtract(50, 8)', 'deparsed';
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Can make a method call if the method does not exist' => {
+    # TestTarget.?dunno()
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::MaybeMethod.new(
+        name => 'dunno'
+      )
+    );
+    is-deeply $deparsed, 'TestTarget.?dunno()', 'deparsed';
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Can make a private method call' => {
+    class A {
+        method !private(--> 42) { }
+
+        # A!private()
+        ast RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('A')
+          ),
+          postfix => RakuAST::Call::PrivateMethod.new(
+            name => RakuAST::Name.from-identifier('private')
+          )
+        );
+        is-deeply $deparsed, 'A!private()', 'deparsed';
+        is-deeply $_, 42, @type[$++]
+          for EVAL($ast), EVAL($deparsed);
+    }
+}
+
+subtest 'Can make a method call on a sub' => {
+    # "foo".&uc()
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::StrLiteral.new("foo"),
+      postfix => RakuAST::Call::VarMethod.new(
+        name => RakuAST::Name.from-identifier('uc')
+      )
+    );
+    is-deeply $deparsed, '"foo".&uc()', 'deparsed';
+    is-deeply $_, "FOO", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 

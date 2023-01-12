@@ -9,9 +9,6 @@ a test for that class.
 
 RakuAST::BlockThunk
 RakuAST::BracketedInfix
-RakuAST::Call::MaybeMethod
-RakuAST::Call::PrivateMethod
-RakuAST::Call::VarMethod
 RakuAST::Categorical
 RakuAST::CheckTime
 RakuAST::ContainerCreator

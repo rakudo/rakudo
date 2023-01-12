@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 4;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -11,6 +11,17 @@ sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $ast.DEPARSE;
     diag $deparsed.chomp;
+}
+
+subtest 'Item contextualizer from empty sequence' => {
+    # $()
+    ast RakuAST::Contextualizer::Item.new(RakuAST::StatementSequence.new());
+    is-deeply $deparsed, '$()', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
+        is-deeply $result, List.new(),
+          "$type: Contextualizer gives expected result";
+    }
 }
 
 subtest 'Hash contextualizer from empty sequence' => {
@@ -35,20 +46,60 @@ subtest 'List contextualizer from empty sequence' => {
     }
 }
 
+subtest 'Item contextualizer with single value' => {
+    # $(42)
+    ast RakuAST::Contextualizer::Item.new(
+      RakuAST::StatementSequence.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+    is-deeply $deparsed, '$(42)', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
+        is-deeply $result, 42,
+          "$type: Contextualizer gives expected result";
+    }
+}
+
+subtest 'Item contextualizer with multiple values' => {
+    # $(42, 666)
+    ast RakuAST::Contextualizer::Item.new(
+      RakuAST::StatementSequence.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => [
+              RakuAST::IntLiteral.new(42),
+              RakuAST::IntLiteral.new(666)
+            ]
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, '$(42, 666)', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
+        is-deeply $result, $(42, 666),
+          "$type: Contextualizer gives expected result";
+    }
+}
+
 subtest 'Hash contextualizer from pairs' => {
     # %(a => 1, b => 2)
     ast RakuAST::Contextualizer::Hash.new(
-        RakuAST::StatementSequence.new(
-            RakuAST::Statement::Expression.new(
-                expression => RakuAST::ApplyListInfix.new(
-                    infix => RakuAST::Infix.new(','),
-                    operands => [
-                        RakuAST::FatArrow.new(key => 'a', value => RakuAST::IntLiteral.new(1)),
-                        RakuAST::FatArrow.new(key => 'b', value => RakuAST::IntLiteral.new(2))
-                    ]
-                )
-            )
+      RakuAST::StatementSequence.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => [
+              RakuAST::FatArrow.new(key => 'a', value => RakuAST::IntLiteral.new(1)),
+              RakuAST::FatArrow.new(key => 'b', value => RakuAST::IntLiteral.new(2))
+            ]
+          )
         )
+      )
     );
     is-deeply $deparsed, '%(a => 1, b => 2)', 'deparse';
 
@@ -61,17 +112,17 @@ subtest 'Hash contextualizer from pairs' => {
 subtest 'List contextualizer from pairs' => {
     # @(a => 1, b => 2)
     ast RakuAST::Contextualizer::List.new(
-        RakuAST::StatementSequence.new(
-            RakuAST::Statement::Expression.new(
-                expression => RakuAST::ApplyListInfix.new(
-                    infix => RakuAST::Infix.new(','),
-                    operands => [
-                        RakuAST::FatArrow.new(key => 'a', value => RakuAST::IntLiteral.new(1)),
-                        RakuAST::FatArrow.new(key => 'b', value => RakuAST::IntLiteral.new(2))
-                    ]
-                )
-            )
+      RakuAST::StatementSequence.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => [
+              RakuAST::FatArrow.new(key => 'a', value => RakuAST::IntLiteral.new(1)),
+              RakuAST::FatArrow.new(key => 'b', value => RakuAST::IntLiteral.new(2))
+            ]
+          )
         )
+      )
     );
     is-deeply $deparsed, '@(a => 1, b => 2)', 'deparse';
 

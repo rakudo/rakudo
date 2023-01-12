@@ -15,8 +15,6 @@ RakuAST::Call::VarMethod
 RakuAST::Categorical
 RakuAST::CheckTime
 RakuAST::ContainerCreator
-RakuAST::Contextualizer
-RakuAST::Contextualizer::Item
 RakuAST::CurryThunk
 RakuAST::Declaration
 RakuAST::Declaration::External

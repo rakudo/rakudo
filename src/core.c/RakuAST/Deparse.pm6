@@ -70,7 +70,7 @@ class RakuAST::Deparse {
     method list-infix-comma(     --> ', ') { }
     method list-infix-semi-colon(--> '; ') { }
 
-    method dotty-infix-call(       --> '.')    { }
+    method dotty-infix-call(       --> ' .')   { }
     method dotty-infix-call-assign(--> ' .= ') { }
 
     method function-infix-open( --> '[') { }
@@ -271,6 +271,15 @@ class RakuAST::Deparse {
         $ast.IMPL-TRAIT-NAME ~ ' ' ~ self.deparse($ast.type)
     }
 
+    method !method-call(
+      RakuAST::Call::Methodish:D $ast, str $dot, $macroish?
+    --> Str:D) {
+        my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
+          with $ast.name;
+
+        $dot ~ $name ~ ($macroish ?? '' !! self!parenthesize($ast.args))
+    }
+
 #- A ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> Str:D) {
@@ -284,7 +293,8 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::ApplyDottyInfix:D $ast --> Str:D) {
         self.deparse($ast.left)
           ~ self.deparse($ast.infix)
-          ~ self.deparse($ast.right)
+          # lose the ".", as it is provided by the infix
+          ~ self.deparse($ast.right).substr(1)
     }
 
     multi method deparse(RakuAST::ApplyListInfix:D $ast --> Str:D) {
@@ -303,11 +313,8 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
-        my $postfix := $ast.postfix;
-
         ($ast.on-topic ?? "" !! self.deparse($ast.operand))
-          ~ (nqp::istype($postfix,RakuAST::Call::Methodish) ?? '.' !! '')
-          ~ self.deparse($postfix)
+          ~ self.deparse($ast.postfix)
     }
 
     multi method deparse(RakuAST::ApplyPrefix:D $ast --> Str:D) {
@@ -336,29 +343,28 @@ class RakuAST::Deparse {
 
 #- Call ------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Call::Method:D $ast --> Str:D) {
-        self.deparse($ast.name)
-          ~ ($ast.macroish ?? '' !! self!parenthesize($ast.args))
-    }
-
-    multi method deparse(RakuAST::Call::QuotedMethod:D $ast --> Str:D) {
-        self.deparse($ast.name) ~ self!parenthesize($ast.args)
-    }
-
     multi method deparse(RakuAST::Call::MaybeMethod:D $ast --> Str:D) {
-        '?' ~ $ast.name ~ self!parenthesize($ast.args)
+        self!method-call($ast, '.?')
     }
 
     multi method deparse(RakuAST::Call::MetaMethod:D $ast --> Str:D) {
-        '^' ~ $ast.name ~ self!parenthesize($ast.args)
+        self!method-call($ast, '.^')
+    }
+
+    multi method deparse(RakuAST::Call::Method:D $ast --> Str:D) {
+        self!method-call($ast, '.', $ast.macroish)
     }
 
     multi method deparse(RakuAST::Call::PrivateMethod:D $ast --> Str:D) {
-        '!' ~ self.deparse($ast.name) ~ self!parenthesize($ast.args)
+        self!method-call($ast, '!')
+    }
+
+    multi method deparse(RakuAST::Call::QuotedMethod:D $ast --> Str:D) {
+        self!method-call($ast, '.')
     }
 
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
-        '&' ~ self.deparse($ast.name) ~ self!parenthesize($ast.args)
+        self!method-call($ast, '.&')
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
@@ -1498,7 +1504,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::TopicCall:D $ast --> Str:D) {
-        '.' ~ self.deparse($ast.call)
+        self.deparse($ast.call)
     }
 
     multi method deparse(RakuAST::Term::Whatever:D $ --> Str:D) {

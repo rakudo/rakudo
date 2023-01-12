@@ -1598,7 +1598,19 @@ class RakuAST::Deparse {
 
 #- Var -------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Var::Lexical:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Var::Attribute:D $ast --> Str:D) {
+        $ast.name
+    }
+
+    multi method deparse(RakuAST::Var::Compiler::File:D $ast --> Str:D) {
+        $.var-compiler-file
+    }
+
+    multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> Str:D) {
+        $.var-compiler-line
+    }
+
+    multi method deparse(RakuAST::Var::Compiler::Lookup:D $ast --> Str:D) {
         $ast.name
     }
 
@@ -1606,26 +1618,8 @@ class RakuAST::Deparse {
         $ast.name
     }
 
-    multi method deparse(RakuAST::Var::Attribute:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Var::Lexical:D $ast --> Str:D) {
         $ast.name
-    }
-
-    multi method deparse(RakuAST::Var::Compiler::Lookup:D $ast --> Str:D) {
-        $ast.name
-    }
-
-    multi method deparse(RakuAST::Var::Compiler::File:U $ --> Str:D) {
-        $.var-compiler-file
-    }
-    multi method deparse(RakuAST::Var::Compiler::File:D $ast --> Str:D) {
-        $ast.file
-    }
-
-    multi method deparse(RakuAST::Var::Compiler::Line:U $ --> Str:D) {
-        $.var-compiler-line
-    }
-    multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> Str:D) {
-        $ast.line
     }
 
     multi method deparse(RakuAST::Var::NamedCapture:D $ast --> Str:D) {

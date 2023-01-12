@@ -1,5 +1,7 @@
 # An argument list.
-class RakuAST::ArgList is RakuAST::CaptureSource {
+class RakuAST::ArgList
+  is RakuAST::CaptureSource
+{
     has List $!args;
 
     method new(*@args) {
@@ -161,7 +163,11 @@ class RakuAST::Call {
 }
 
 # A call to a named sub.
-class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
+class RakuAST::Call::Name
+  is RakuAST::Term
+  is RakuAST::Call
+  is RakuAST::Lookup
+{
     has RakuAST::Name $.name;
     has Mu $!package;
 
@@ -303,7 +309,10 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
 }
 
 # A call to any term (the postfix () operator).
-class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
+class RakuAST::Call::Term
+  is RakuAST::Call
+  is RakuAST::Postfixish
+{
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
@@ -322,13 +331,19 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
 }
 
 # The base of all method call like things.
-class RakuAST::Call::Methodish is RakuAST::Call is RakuAST::Postfixish {
+class RakuAST::Call::Methodish
+  is RakuAST::Call
+  is RakuAST::Postfixish
+{
     method IMPL-CURRIES() { 3 }
 }
 
 # A call to a method identified by a name. Some names (like WHAT and HOW) are
 # compiled into primitive operations rather than really being method calls.
-class RakuAST::Call::Method is RakuAST::Call::Methodish is RakuAST::CheckTime {
+class RakuAST::Call::Method
+  is RakuAST::Call::Methodish
+  is RakuAST::CheckTime
+{
     has RakuAST::Name $.name;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
@@ -444,7 +459,9 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish is RakuAST::CheckTime {
 }
 
 # A call to a method with a quoted name.
-class RakuAST::Call::QuotedMethod is RakuAST::Call::Methodish {
+class RakuAST::Call::QuotedMethod
+  is RakuAST::Call::Methodish
+{
     has RakuAST::QuotedString $.name;
 
     method new(RakuAST::QuotedString :$name!, RakuAST::ArgList :$args) {
@@ -468,8 +485,11 @@ class RakuAST::Call::QuotedMethod is RakuAST::Call::Methodish {
 }
 
 # A call to a private method.
-class RakuAST::Call::PrivateMethod is RakuAST::Call::Methodish
-        is RakuAST::Lookup is RakuAST::ImplicitLookups {
+class RakuAST::Call::PrivateMethod
+  is RakuAST::Call::Methodish
+  is RakuAST::Lookup
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Name $.name;
     has Mu $!package;
 
@@ -519,7 +539,9 @@ class RakuAST::Call::PrivateMethod is RakuAST::Call::Methodish
 }
 
 # A call to a meta-method.
-class RakuAST::Call::MetaMethod is RakuAST::Call::Methodish {
+class RakuAST::Call::MetaMethod
+  is RakuAST::Call::Methodish
+{
     has str $.name;
 
     method new(str :$name!, RakuAST::ArgList :$args) {
@@ -541,7 +563,9 @@ class RakuAST::Call::MetaMethod is RakuAST::Call::Methodish {
 }
 
 # A safe call to a method, i.e. returns Nil if no method was found by that name.
-class RakuAST::Call::MaybeMethod is RakuAST::Call::Methodish {
+class RakuAST::Call::MaybeMethod
+  is RakuAST::Call::Methodish
+{
     has str $.name;
 
     method new(str :$name!, RakuAST::ArgList :$args) {
@@ -567,7 +591,10 @@ class RakuAST::Call::MaybeMethod is RakuAST::Call::Methodish {
     }
 }
 
-class RakuAST::Call::VarMethod is RakuAST::Call::Methodish is RakuAST::Lookup {
+class RakuAST::Call::VarMethod
+  is RakuAST::Call::Methodish
+  is RakuAST::Lookup
+{
     has RakuAST::Name $.name;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
@@ -610,7 +637,9 @@ class RakuAST::Call::VarMethod is RakuAST::Call::Methodish is RakuAST::Lookup {
 }
 
 # Base role for all stubs
-class RakuAST::Stub is RakuAST::Call::Name {
+class RakuAST::Stub
+  is RakuAST::Call::Name
+{
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr(
@@ -634,19 +663,25 @@ class RakuAST::Stub is RakuAST::Call::Name {
 }
 
 # the ... stub
-class RakuAST::Stub::Fail is RakuAST::Stub {
+class RakuAST::Stub::Fail
+  is RakuAST::Stub
+{
     method name() { '...' }
     method IMPL-FUNC-NAME() { 'fail' }
 }
 
 # the ??? stub
-class RakuAST::Stub::Warn is RakuAST::Stub {
+class RakuAST::Stub::Warn
+  is RakuAST::Stub
+{
     method name() { '???' }
     method IMPL-FUNC-NAME() { 'warn' }
 }
 
 # the !!! stub
-class RakuAST::Stub::Die is RakuAST::Stub {
+class RakuAST::Stub::Die
+  is RakuAST::Stub
+{
     method name() { '!!!' }
     method IMPL-FUNC-NAME() { 'die' }
 }

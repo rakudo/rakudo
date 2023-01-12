@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 43;
+plan 44;
 
 my $ast;
 my $deparsed;
@@ -981,6 +981,19 @@ CODE
         is-deeply value, 111, "$type: sigilless variable initialized with correct value";
         ok value.VAR =:= value, "$type: no container produced";
     }
+}
+
+subtest 'Lexical constant' => {
+    # my constant foo = "bar"
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::VarDeclaration::Implicit::Constant.new(
+        name  => "foo",
+        value => "bar"
+      )
+    );
+    is-deeply $deparsed, 'my constant foo = "bar"', 'deparse';
+    is-deeply $_, "bar", @type[$++]
+      for EVAL($ast), try EVAL($deparsed);
 }
 
 # vim: expandtab shiftwidth=4

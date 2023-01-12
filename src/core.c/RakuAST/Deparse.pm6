@@ -1650,6 +1650,12 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
+      RakuAST::VarDeclaration::Implicit::Constant:D $ast
+    --> Str:D) {
+        'my constant ' ~ $ast.name ~ ' = ' ~ $ast.value.raku
+    }
+
+    multi method deparse(
       RakuAST::VarDeclaration::Placeholder::Named:D $ast
     --> Str:D) {
         .substr(0, 1) ~ ':' ~ .substr(1) given $ast.lexical-name

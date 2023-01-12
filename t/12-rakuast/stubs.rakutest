@@ -23,22 +23,16 @@ subtest 'can make a simple ... stub' => {
     is-deeply $deparsed, qq/...\n/, 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
-        if $type eq 'AST' {
-            todo("with an unresumable exception");
-            flunk "AST has internal error";
-        }
-        else {
-            my $result := sub () {
-                CONTROL {
-                    isa-ok $_, CX::Return, "$type: did we get return?";
-                }
-                EVAL($it);
-            }();
-            isa-ok $result, Failure, "$type: did we get a Failure";
-            is $result.mess.lines.head.chomp,
-              'Stub code executed', "$type: payload ok";
-        }
-    }
+        my $result := sub () {
+            CONTROL {
+                isa-ok $_, CX::Return, "$type: did we get return?";
+            }
+            EVAL($it);
+        }();
+        isa-ok $result, Failure, "$type: did we get a Failure";
+        is $result.mess.lines.head.chomp,
+          'Stub code executed', "$type: payload ok";
+}
 }
 
 subtest 'can make a ... stub with info' => {
@@ -55,22 +49,16 @@ subtest 'can make a ... stub with info' => {
     is-deeply $deparsed, qq/... "foobar"\n/, 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
-        if $type eq 'AST' {
-            todo("with an unresumable exception");
-            flunk "AST has internal error";
-        }
-        else {
-            my $result := sub () {
-                CONTROL {
-                    isa-ok $_, CX::Return, "$type: did we get return?";
-                }
-                EVAL($it);
-            }();
-            isa-ok $result, Failure, "$type: did we get a Failure";
-            is $result.mess.lines.head.chomp,
-              'foobar', "$type: payload ok";
-        }
-    }
+        my $result := sub () {
+            CONTROL {
+                isa-ok $_, CX::Return, "$type: did we get return?";
+            }
+            EVAL($it);
+        }();
+        isa-ok $result, Failure, "$type: did we get a Failure";
+        is $result.mess.lines.head.chomp,
+          'foobar', "$type: payload ok";
+}
 }
 
 subtest 'can make a simple !!! stub' => {
@@ -123,22 +111,16 @@ subtest 'can make a simple ??? stub' => {
     is-deeply $deparsed, qq/???\n/, 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
-        if $type eq 'AST' {
-            todo("with an unresumable exception");
-            flunk "AST has internal error";
+        CATCH {
+            flunk "$type has internal error";
+            .resume;
         }
-        else {
-            CATCH {
-                flunk "$type has internal error";
-                .resume;
-            }
-            CONTROL {
-                isa-ok $_, CX::Warn, "$type: did we get a warning?";
-                is .message, "Stub code executed", "$type: the right warning";
-                .resume;
-            }
-            EVAL($it);
+        CONTROL {
+            isa-ok $_, CX::Warn, "$type: did we get a warning?";
+            is .message, "Stub code executed", "$type: the right warning";
+            .resume;
         }
+        EVAL($it);
     }
 }
 
@@ -156,22 +138,16 @@ subtest 'can make a ??? stub with info' => {
     is-deeply $deparsed, qq/??? "foobar"\n/, 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
-        if $type eq 'AST' {
-            todo("with an unresumable exception");
-            flunk "AST has internal error";
+        CATCH {
+            flunk "$type has internal error";
+            .resume;
         }
-        else {
-            CATCH {
-                flunk "$type has internal error";
-                .resume;
-            }
-            CONTROL {
-                isa-ok $_, CX::Warn, "$type: did we get a warning?";
-                is .message, "foobar", "$type: the right warning";
-                .resume;
-            }
-            EVAL($it);
+        CONTROL {
+            isa-ok $_, CX::Warn, "$type: did we get a warning?";
+            is .message, "foobar", "$type: the right warning";
+            .resume;
         }
+        EVAL($it);
     }
 }
 

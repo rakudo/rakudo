@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 11;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -78,6 +78,52 @@ CODE
         ok $class.^lookup('test-meth'),
           "$type: The class has a test-meth method";
         is $class.test-meth(), 456,
+          "$type: Can call method without signature and get expected value";
+    }
+}
+
+subtest 'Create a class with a submethod' => {
+    # my class TestClassWithSubmethods { submethod test-submeth() { 137 } }
+    ast RakuAST::Package.new(
+      scope => 'my',
+      package-declarator => 'class',
+      name  => RakuAST::Name.from-identifier('TestClassWithSubmethods'),
+      how   => Metamodel::ClassHOW,
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Submethod.new(
+                name => RakuAST::Name.from-identifier('test-submeth'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(137)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+my class TestClassWithSubmethods {
+    submethod test-submeth () {
+        137
+    }
+}
+CODE
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with method evaluates to a type object";
+        is $class.^name, 'TestClassWithSubmethods',
+          "$type: Correct class name";
+        ok $class.^lookup('test-submeth'),
+          "$type: The class has a test-submeth method";
+        is $class.test-submeth(), 137,
           "$type: Can call method without signature and get expected value";
     }
 }

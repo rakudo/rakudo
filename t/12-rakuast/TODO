@@ -90,7 +90,6 @@ RakuAST::StatementPrefix::Phaser::Leave
 RakuAST::StatementPrefix::Phaser::Sinky
 RakuAST::StatementPrefix::Race
 RakuAST::StatementPrefix::Thunky
-RakuAST::Submethod
 RakuAST::Substitution
 RakuAST::SubstitutionReplacementThunk
 RakuAST::Term::RadixNumber

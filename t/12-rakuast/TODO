@@ -104,10 +104,6 @@ RakuAST::Type::Parameterized
 RakuAST::Type::Setting
 RakuAST::UndeclaredSymbolDescription
 RakuAST::UndeclaredSymbolDescription::Routine
-RakuAST::Var::Compiler
-RakuAST::Var::Compiler::File
-RakuAST::Var::Compiler::Line
-RakuAST::Var::Compiler::Lookup
 RakuAST::Var::Lexical::Constant
 RakuAST::Var::Lexical::Setting
 RakuAST::Var::Package

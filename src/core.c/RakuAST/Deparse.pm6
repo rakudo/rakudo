@@ -683,6 +683,10 @@ class RakuAST::Deparse {
         $ast.operator
     }
 
+    multi method deparse(RakuAST::Postfix::Power:D $ast --> Str:D) {
+        $ast.power.trans('-0123456789' => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹')
+    }
+
     multi method deparse(RakuAST::Prefix:D $ast --> Str:D) {
         $ast.operator
     }

@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 29;
+plan 31;
 
 my $ast;
 my $deparsed;
@@ -151,6 +151,30 @@ subtest 'Application of a prefix operator to a literal (2)' => {
 
     is-deeply $deparsed, '?0', 'deparse';
     is-deeply $_, False, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Application of a positive power postfix operator' => {
+    # 3²²
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(3),
+      postfix => RakuAST::Postfix::Power.new(22)
+    );
+
+    is-deeply $deparsed, '3²²', 'deparse';
+    is-deeply $_, 31381059609, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Application of a negative power postfix operator' => {
+    # 4⁻²
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(4),
+      postfix => RakuAST::Postfix::Power.new(-2)
+    );
+
+    is-deeply $deparsed, '4⁻²', 'deparse';
+    is-deeply $_, 0.0625, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 

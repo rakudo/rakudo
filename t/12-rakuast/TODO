@@ -30,7 +30,6 @@ RakuAST::Origin
 RakuAST::Origin::Match
 RakuAST::Origin::Source
 RakuAST::ParameterDefaultThunk
-RakuAST::Postfix::Power
 RakuAST::QuoteWordsAtom
 RakuAST::QuotedMatchConstruct
 RakuAST::Regex::Anchor::BeginningOfLine

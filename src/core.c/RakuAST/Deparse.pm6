@@ -48,6 +48,7 @@ class RakuAST::Deparse {
     method regex-conjunction(           --> ' & ')  { }
     method regex-sequential-conjunction(--> ' && ') { }
 
+    method regex-any(                --> '.')  { }
     method regex-beginning-of-string(--> '^')  { }
     method regex-end-of-string(      --> '$')  { }
     method regex-beginning-of-line(  --> '^^') { }
@@ -58,8 +59,9 @@ class RakuAST::Deparse {
     method regex-assertion-pass(--> '<?>') { }
     method regex-assertion-fail(--> '<!>') { }
 
-    method regex-backtrack-frugal( --> '?') { }
-    method regex-backtrack-ratchet(--> ':') { }
+    method regex-backtrack-frugal( --> '?')  { }
+    method regex-backtrack-ratchet(--> ':')  { }
+    method regex-backtrack-greedy( --> ':!') { }
 
     method regex-match-from(--> '<(') { }
     method regex-match-to(  --> ')>') { }
@@ -754,33 +756,31 @@ class RakuAST::Deparse {
 #- Regex -----------------------------------------------------------------------
 
     multi method deparse(
-      RakuAST::Regex::Anchor::BeginningOfString:D $
+      RakuAST::Regex::Anchor::BeginningOfString $
     --> Str:D) {
         $.regex-beginning-of-string
     }
 
-    multi method deparse(RakuAST::Regex::Anchor::EndOfString:D $ --> Str:D) {
+    multi method deparse(RakuAST::Regex::Anchor::EndOfString $ --> Str:D) {
         $.regex-end-of-string
     }
 
     multi method deparse(
-      RakuAST::Regex::Anchor::BeginningOfLine:D $
+      RakuAST::Regex::Anchor::BeginningOfLine $
     --> Str:D) {
         $.regex-beginning-of-line
     }
 
-    multi method deparse(RakuAST::Regex::Anchor::EndOfLine:D $ --> Str:D) {
+    multi method deparse(RakuAST::Regex::Anchor::EndOfLine $ --> Str:D) {
         $.regex-end-of-line
     }
 
-    multi method deparse(
-      RakuAST::Regex::Anchor::LeftWordBoundary:D $
-    --> Str:D) {
+    multi method deparse(RakuAST::Regex::Anchor::LeftWordBoundary $ --> Str:D) {
         $.regex-left-word-boundary
     }
 
     multi method deparse(
-      RakuAST::Regex::Anchor::RightWordBoundary:D $
+      RakuAST::Regex::Anchor::RightWordBoundary $
     --> Str:D) {
         $.regex-right-word-boundary
     }
@@ -809,17 +809,34 @@ class RakuAST::Deparse {
           ~ self.deparse($ast.assertion).substr(1)
     }
 
-    multi method deparse(RakuAST::Regex::Assertion::Callable:D $ast --> Str:D) {
-        '<'
-          ~ self.deparse($ast.callee)
-          ~ ($ast.args ?? '(' ~ self.deparse($ast.args) ~ ')' !! '')
-          ~ '>'
+    multi method deparse(
+      RakuAST::Regex::Assertion::Callable:D $ast
+    --> Str:D) {
+        '<&' ~ self.deparse($ast.callee) ~ self!parenthesize($ast.args) ~ '>'
     }
 
     multi method deparse(
       RakuAST::Regex::Assertion::CharClass:D $ast
     --> Str:D) {
-        '<' ~ $ast.elements.map({ self.deparse($_) }).join ~ '>'
+        '<' ~ $ast.elements.map({ self.deparse($_) }).join(' ') ~ '>'
+    }
+
+    multi method deparse(RakuAST::Regex::Assertion::Fail:D $ --> Str:D) {
+        $.regex-assertion-fail
+    }
+
+    multi method deparse(
+      RakuAST::Regex::Assertion::InterpolatedBlock:D $ast
+    --> Str:D) {
+        NYI "DEPARSE of sequential interpolated block NYI" if $ast.sequential;
+        '<' ~ self.deparse($ast.block) ~ '>'
+    }
+
+    multi method deparse(
+      RakuAST::Regex::Assertion::InterpolatedVar:D $ast
+    --> Str:D) {
+        NYI "DEPARSE of sequential interpolated block NYI" if $ast.sequential;
+        '<' ~ self.deparse($ast.var) ~ '>'
     }
 
     multi method deparse(
@@ -834,6 +851,15 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
+      RakuAST::Regex::Assertion::Named::Args:D $ast
+    --> Str:D) {
+        ($ast.capturing ?? '<' !! '<.')
+          ~ self.deparse($ast.name)
+          ~ self!parenthesize($ast.args)
+          ~ '>'
+    }
+
+    multi method deparse(
       RakuAST::Regex::Assertion::Named::RegexArg:D $ast
     --> Str:D) {
         '<'
@@ -843,19 +869,8 @@ class RakuAST::Deparse {
           ~ '>'
     }
 
-    multi method deparse(
-      RakuAST::Regex::Assertion::InterpolatedBlock:D $ast
-    --> Str:D) {
-        NYI "DEPARSE of sequential interpolated block NYI" if $ast.sequential;
-        '<' ~ self.deparse($ast.block) ~ '>'
-    }
-
     multi method deparse(RakuAST::Regex::Assertion::Pass:D $ --> Str:D) {
         $.regex-assertion-pass
-    }
-
-    multi method deparse(RakuAST::Regex::Assertion::Fail:D $ --> Str:D) {
-        $.regex-assertion-fail
     }
 
     multi method deparse(
@@ -878,10 +893,15 @@ class RakuAST::Deparse {
         '$<' ~ $ast.name ~ '>'
     }
 
+    # This candidate needed to represent *no* backtracking specification
     multi method deparse(RakuAST::Regex::Backtrack:U $ --> '') { }
 
     multi method deparse(RakuAST::Regex::Backtrack::Frugal:U $ --> Str:D) {
         $.regex-backtrack-frugal
+    }
+
+    multi method deparse(RakuAST::Regex::Backtrack::Greedy:U $ --> Str:D) {
+        $.regex-backtrack-greedy
     }
 
     multi method deparse(RakuAST::Regex::Backtrack::Ratchet:U $ --> Str:D) {
@@ -906,10 +926,32 @@ class RakuAST::Deparse {
 
 #- Regex::Charclass ------------------------------------------------------------
 
-    multi method deparse(RakuAST::Regex::CharClass::Any:D $ast --> '.') { }
+    multi method deparse(RakuAST::Regex::CharClass::Any $ast --> Str:D) {
+        $.regex-any
+    }
+
+    multi method deparse(
+      RakuAST::Regex::CharClass::BackSpace:D $ast
+    --> Str:D) {
+        $ast.negated ?? '\\B' !! '\\b'
+    }
+
+    multi method deparse(
+      RakuAST::Regex::CharClass::CarriageReturn:D $ast
+    --> Str:D) {
+        $ast.negated ?? '\\R' !! '\\r'
+    }
 
     multi method deparse(RakuAST::Regex::CharClass::Digit:D $ast --> Str:D) {
         $ast.negated ?? '\\D' !! '\\d'
+    }
+
+    multi method deparse(RakuAST::Regex::CharClass::Escape:D $ast --> Str:D) {
+        $ast.negated ?? '\\E' !! '\\e'
+    }
+
+    multi method deparse(RakuAST::Regex::CharClass::FormFeed:D $ast --> Str:D) {
+        $ast.negated ?? '\\F' !! '\\f'
     }
 
     multi method deparse(
@@ -922,6 +964,8 @@ class RakuAST::Deparse {
         $ast.negated ?? '\\N' !! '\\n'
     }
 
+    multi method deparse(RakuAST::Regex::CharClass::Nul:D $ast --> '\0') { }
+
     multi method deparse(RakuAST::Regex::CharClass::Space:D $ast --> Str:D) {
         $ast.negated ?? '\\S' !! '\\s'
     }
@@ -929,7 +973,10 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::CharClass::Specified:D $ast
     --> Str:D) {
-        ($ast.negated ?? '\\C' !! '\\c') ~ '[' ~ $ast.characters ~ ']';
+        ($ast.negated ?? '\\C' !! '\\c')
+          ~ '['
+          ~ $ast.characters.ords.map(*.uniname).join(', ')
+          ~ ']'
     }
 
     multi method deparse(RakuAST::Regex::CharClass::Tab:D $ast --> Str:D) {
@@ -956,7 +1003,7 @@ class RakuAST::Deparse {
       RakuAST::Regex::CharClassElement::Property:D $ast
     --> Str:D) {
         my str @parts = ':';
-        @parts.push('!') if $ast.inverted;
+        @parts.push('-') if $ast.inverted;
         @parts.push($ast.property);
         @parts.push(self.deparse($_)) with $ast.predicate;
         @parts.join
@@ -965,7 +1012,7 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::CharClassElement::Rule:D $ast
     --> Str:D) {
-        ($ast.negated ?? '!' !! '') ~ $ast.name
+        ($ast.negated ?? '-' !! '') ~ $ast.name
     }
 
     multi method deparse(
@@ -1099,7 +1146,11 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Regex::Sequence:D $ast --> Str:D) {
         if $ast.terms -> @terms {
-            @terms.map({ self.deparse($_) }).join(' ')
+            @terms.map({
+                nqp::istype($_,RakuAST::Regex::CharClass::BackSpace)
+                  ?? ('"' ~ self.deparse($_) ~ '"')
+                  !! self.deparse($_)
+            }).join(' ')
         }
         else {
             ''
@@ -1118,10 +1169,14 @@ class RakuAST::Deparse {
         self!branches($ast, $.regex-sequential-conjunction)
     }
 
+    multi method deparse(RakuAST::Regex::Statement:D $ast --> Str:D) {
+        ':' ~ self.deparse($ast.statement) ~ ';'
+    }
+
 #- Regex::W --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::WithSigspace:D $ast --> Str:D) {
-        self.deparse($ast.regex)
+        self.deparse($ast.regex)  # XXX something missing here??
     }
 
 #- S ---------------------------------------------------------------------------

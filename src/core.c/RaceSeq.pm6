@@ -3,7 +3,7 @@
 # the input).
 
 #?if !js
-my class RaceSeq does ParallelSequence {
+my class RaceSeq does ParallelSequence[Rakudo::Internals::RaceToIterator] {
     method hyper(RaceSeq:D:) {
         HyperSeq.new(
             :$!configuration,

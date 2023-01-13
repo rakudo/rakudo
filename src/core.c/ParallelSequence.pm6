@@ -1,5 +1,5 @@
 # ParallelSequence role implements common functionality of HyperSeq and RaceSeq classes.
-my role ParallelSequence does Iterable does Sequence {
+my role ParallelSequence[::Joiner] does Iterable does Sequence {
     has HyperConfiguration $.configuration;
     has Rakudo::Internals::HyperWorkStage $!work-stage-head;
 #?if moar
@@ -22,7 +22,7 @@ my role ParallelSequence does Iterable does Sequence {
 #?if !moar
             if nqp::cas($!has-iterator, 0, 1);
 #?endif
-        my $joiner := Rakudo::Internals::HyperToIterator.new:
+        my $joiner := Joiner.new:
                         source => $!work-stage-head;
         Rakudo::Internals::HyperPipeline.start($joiner, $!configuration);
         $joiner

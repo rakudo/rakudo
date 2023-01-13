@@ -63,7 +63,9 @@ class RakuAST::Regex is RakuAST::Node {
 }
 
 # Common role done by all branching regex constructs (alternations and conjunctions).
-class RakuAST::Regex::Branching is RakuAST::Regex {
+class RakuAST::Regex::Branching
+  is RakuAST::Regex
+{
     has Mu $!branches;
 
     method new(*@branches) {
@@ -95,27 +97,37 @@ class RakuAST::Regex::Branching is RakuAST::Regex {
 }
 
 # Sequential alternation (||).
-class RakuAST::Regex::SequentialAlternation is RakuAST::Regex::Branching {
+class RakuAST::Regex::SequentialAlternation
+  is RakuAST::Regex::Branching
+{
     method IMPL-QAST-REGEX-TYPE() { 'altseq' }
 }
 
 # Sequential conjunction (&&).
-class RakuAST::Regex::SequentialConjunction is RakuAST::Regex::Branching {
+class RakuAST::Regex::SequentialConjunction
+  is RakuAST::Regex::Branching
+{
     method IMPL-QAST-REGEX-TYPE() { 'conjseq' }
 }
 
 # Alternation (|).
-class RakuAST::Regex::Alternation is RakuAST::Regex::Branching {
+class RakuAST::Regex::Alternation
+  is RakuAST::Regex::Branching
+{
     method IMPL-QAST-REGEX-TYPE() { 'alt' }
 }
 
 # Conjunction (&).
-class RakuAST::Regex::Conjunction is RakuAST::Regex::Branching {
+class RakuAST::Regex::Conjunction
+  is RakuAST::Regex::Branching
+{
     method IMPL-QAST-REGEX-TYPE() { 'conj' }
 }
 
 # A sequence of terms to match, one after the other.
-class RakuAST::Regex::Sequence is RakuAST::Regex {
+class RakuAST::Regex::Sequence
+  is RakuAST::Regex
+{
     has Mu $!terms;
 
     method new(*@terms) {
@@ -168,16 +180,20 @@ class RakuAST::Regex::Sequence is RakuAST::Regex {
 }
 
 # Marker for all regex terms.
-class RakuAST::Regex::Term is RakuAST::Regex {
-}
+class RakuAST::Regex::Term
+  is RakuAST::Regex { }
 
 # Marker for all regex atoms.
-class RakuAST::Regex::Atom is RakuAST::Regex::Term {
+class RakuAST::Regex::Atom
+  is RakuAST::Regex::Term
+{
     method quantifiable() { True }
 }
 
 # A literal, unquoted, piece of text appearing in the regex.
-class RakuAST::Regex::Literal is RakuAST::Regex::Atom {
+class RakuAST::Regex::Literal
+  is RakuAST::Regex::Atom
+{
     has str $.text;
 
     method new(str $text) {
@@ -196,7 +212,9 @@ class RakuAST::Regex::Literal is RakuAST::Regex::Atom {
 # A quoted string appearing in the regex. Covers both standard single/double
 # quotes which compile into a literal match of the evaluated string, or
 # quote words, which compile into an LTM alternation of literals.
-class RakuAST::Regex::Quote is RakuAST::Regex::Atom {
+class RakuAST::Regex::Quote
+  is RakuAST::Regex::Atom
+{
     has RakuAST::QuotedString $.quoted;
 
     method new(RakuAST::QuotedString $quoted) {
@@ -254,7 +272,9 @@ class RakuAST::Regex::Quote is RakuAST::Regex::Atom {
 }
 
 # A (non-capturing) regex group, from the [...] syntax.
-class RakuAST::Regex::Group is RakuAST::Regex::Atom {
+class RakuAST::Regex::Group
+  is RakuAST::Regex::Atom
+{
     has RakuAST::Regex $.regex;
 
     method new(RakuAST::Regex $regex) {
@@ -273,7 +293,10 @@ class RakuAST::Regex::Group is RakuAST::Regex::Atom {
 }
 
 # A (positional, at least by default) capturing regex group, from the (...) syntax.
-class RakuAST::Regex::CapturingGroup is RakuAST::Regex::Atom is RakuAST::RegexThunk {
+class RakuAST::Regex::CapturingGroup
+  is RakuAST::Regex::Atom
+  is RakuAST::RegexThunk
+{
     has RakuAST::Regex $.regex;
 
     # Used as part of QAST compilation.
@@ -336,7 +359,9 @@ class RakuAST::Regex::CapturingGroup is RakuAST::Regex::Atom is RakuAST::RegexTh
 }
 
 # A named capture, of the form $<name>=quantified-atom.
-class RakuAST::Regex::NamedCapture is RakuAST::Regex::Atom {
+class RakuAST::Regex::NamedCapture
+  is RakuAST::Regex::Atom
+{
     has str $.name;
     has Bool $.array;
     has RakuAST::Term $.regex;
@@ -372,7 +397,9 @@ class RakuAST::Regex::NamedCapture is RakuAST::Regex::Atom {
 }
 
 #| The base for all kinds of anchor.
-class RakuAST::Regex::Anchor is RakuAST::Regex::Atom {
+class RakuAST::Regex::Anchor
+  is RakuAST::Regex::Atom
+{
     method new() {
         nqp::create(self)
     }
@@ -385,37 +412,51 @@ class RakuAST::Regex::Anchor is RakuAST::Regex::Atom {
 }
 
 #| The beginning of string (^) anchor.
-class RakuAST::Regex::Anchor::BeginningOfString is RakuAST::Regex::Anchor {
+class RakuAST::Regex::Anchor::BeginningOfString
+  is RakuAST::Regex::Anchor
+{
     method IMPL-QAST-SUBTYPE() { 'bos' }
 }
 
 #| The beginning of line (^^) anchor.
-class RakuAST::Regex::Anchor::BeginningOfLine is RakuAST::Regex::Anchor {
+class RakuAST::Regex::Anchor::BeginningOfLine
+  is RakuAST::Regex::Anchor
+{
     method IMPL-QAST-SUBTYPE() { 'bol' }
 }
 
 #| The end of string ($) anchor.
-class RakuAST::Regex::Anchor::EndOfString is RakuAST::Regex::Anchor {
+class RakuAST::Regex::Anchor::EndOfString
+  is RakuAST::Regex::Anchor
+{
     method IMPL-QAST-SUBTYPE() { 'eos' }
 }
 
 #| The end of line (^^) anchor.
-class RakuAST::Regex::Anchor::EndOfLine is RakuAST::Regex::Anchor {
+class RakuAST::Regex::Anchor::EndOfLine
+  is RakuAST::Regex::Anchor
+{
     method IMPL-QAST-SUBTYPE() { 'eol' }
 }
 
 #| The left word boundary (<<) anchor.
-class RakuAST::Regex::Anchor::LeftWordBoundary is RakuAST::Regex::Anchor {
+class RakuAST::Regex::Anchor::LeftWordBoundary
+  is RakuAST::Regex::Anchor
+{
     method IMPL-QAST-SUBTYPE() { 'lwb' }
 }
 
 #| The right word boundary (>>) anchor.
-class RakuAST::Regex::Anchor::RightWordBoundary is RakuAST::Regex::Anchor {
+class RakuAST::Regex::Anchor::RightWordBoundary
+  is RakuAST::Regex::Anchor
+{
     method IMPL-QAST-SUBTYPE() { 'rwb' }
 }
 
 # The start of match marker.
-class RakuAST::Regex::MatchFrom is RakuAST::Regex::Atom {
+class RakuAST::Regex::MatchFrom
+  is RakuAST::Regex::Atom
+{
     method new() {
         nqp::create(self)
     }
@@ -432,7 +473,9 @@ class RakuAST::Regex::MatchFrom is RakuAST::Regex::Atom {
 }
 
 # The end of match marker.
-class RakuAST::Regex::MatchTo is RakuAST::Regex::Atom {
+class RakuAST::Regex::MatchTo
+  is RakuAST::Regex::Atom
+{
     method new() {
         nqp::create(self)
     }
@@ -452,21 +495,27 @@ class RakuAST::Regex::MatchTo is RakuAST::Regex::Atom {
 # anything), \d (digit chars), and also things like \xCAFE because while they
 # may in some senses be a literal, they are also possible to negate, in which
 # case they imply a class of characters too.
-class RakuAST::Regex::CharClass is RakuAST::Regex::Atom {
+class RakuAST::Regex::CharClass
+  is RakuAST::Regex::Atom
+{
     method new() {
         nqp::create(self)
     }
 }
 
 # The character class matching anything (".").
-class RakuAST::Regex::CharClass::Any is RakuAST::Regex::CharClass {
+class RakuAST::Regex::CharClass::Any
+  is RakuAST::Regex::CharClass
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<.> )
     }
 }
 
 # The base for all negatable built-in character classes.
-class RakuAST::Regex::CharClass::Negatable is RakuAST::Regex::CharClass {
+class RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClass
+{
     has Bool $.negated;
 
     method new(Bool :$negated) {
@@ -479,7 +528,9 @@ class RakuAST::Regex::CharClass::Negatable is RakuAST::Regex::CharClass {
 
 # Done by everything that can appear inside of a user-defined character class
 # enumeration (that is, `<[this]>`).
-class RakuAST::Regex::CharClassEnumerationElement is RakuAST::Node {
+class RakuAST::Regex::CharClassEnumerationElement
+  is RakuAST::Node
+{
     method IMPL-CCLASS-ENUM-CHARS(%mods) { '' }
 
     method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
@@ -502,8 +553,10 @@ class RakuAST::Regex::CharClassEnumerationElement is RakuAST::Node {
 
 # The backspace character class (\b, \B). In Raku syntax, this may only appear
 # in a character class enumeration.
-class RakuAST::Regex::CharClass::BackSpace is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::BackSpace
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\b"
@@ -517,8 +570,10 @@ class RakuAST::Regex::CharClass::BackSpace is RakuAST::Regex::CharClass::Negatab
 }
 
 # The digit character class (\d, \D).
-class RakuAST::Regex::CharClass::Digit is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::Digit
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<d>, :negate(self.negated) )
     }
@@ -529,8 +584,10 @@ class RakuAST::Regex::CharClass::Digit is RakuAST::Regex::CharClass::Negatable
 }
 
 # The escape character class (\e, \E)
-class RakuAST::Regex::CharClass::Escape is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::Escape
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\c[27]"
@@ -544,8 +601,10 @@ class RakuAST::Regex::CharClass::Escape is RakuAST::Regex::CharClass::Negatable
 }
 
 # The form feed character class (\f, \F)
-class RakuAST::Regex::CharClass::FormFeed is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::FormFeed
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\c[12]"
@@ -559,8 +618,10 @@ class RakuAST::Regex::CharClass::FormFeed is RakuAST::Regex::CharClass::Negatabl
 }
 
 # The horizontal whitespace character class (\h, \H)
-class RakuAST::Regex::CharClass::HorizontalSpace is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::HorizontalSpace
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated),
@@ -573,8 +634,10 @@ class RakuAST::Regex::CharClass::HorizontalSpace is RakuAST::Regex::CharClass::N
 }
 
 # The newline character class (\n, \N).
-class RakuAST::Regex::CharClass::Newline is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::Newline
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<n>, :negate(self.negated) )
     }
@@ -585,8 +648,10 @@ class RakuAST::Regex::CharClass::Newline is RakuAST::Regex::CharClass::Negatable
 }
 
 # The carriage return character class (\r, \R)
-class RakuAST::Regex::CharClass::CarriageReturn is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::CarriageReturn
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\r"
@@ -600,8 +665,10 @@ class RakuAST::Regex::CharClass::CarriageReturn is RakuAST::Regex::CharClass::Ne
 }
 
 # The space character class (\s, \S).
-class RakuAST::Regex::CharClass::Space is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::Space
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<s>, :negate(self.negated) )
     }
@@ -612,8 +679,10 @@ class RakuAST::Regex::CharClass::Space is RakuAST::Regex::CharClass::Negatable
 }
 
 # The tab character class (\t, \T)
-class RakuAST::Regex::CharClass::Tab is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::Tab
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\t"
@@ -627,8 +696,10 @@ class RakuAST::Regex::CharClass::Tab is RakuAST::Regex::CharClass::Negatable
 }
 
 # The vertical whitespace character class (\v, \V)
-class RakuAST::Regex::CharClass::VerticalSpace is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::VerticalSpace
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated),
@@ -641,8 +712,10 @@ class RakuAST::Regex::CharClass::VerticalSpace is RakuAST::Regex::CharClass::Neg
 }
 
 # The word character class (\w, \W).
-class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::Word
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<w>, :negate(self.negated) )
     }
@@ -656,8 +729,10 @@ class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable
 # This covers \c13, \c[13,10], \x1F98B, \c[BUTTERFLY], and so forth (the
 # node is always constructed with the character(s) resulting from processing
 # these sequences).
-class RakuAST::Regex::CharClass::Specified is RakuAST::Regex::CharClass::Negatable
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::Specified
+  is RakuAST::Regex::CharClass::Negatable
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     has str $.characters;
 
     method new(Bool :$negated, str :$characters!) {
@@ -703,8 +778,10 @@ class RakuAST::Regex::CharClass::Specified is RakuAST::Regex::CharClass::Negatab
 }
 
 # The nul character class (\0)
-class RakuAST::Regex::CharClass::Nul is RakuAST::Regex::CharClass
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClass::Nul
+  is RakuAST::Regex::CharClass
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new: :rxtype<literal>, "\0"
     }
@@ -713,7 +790,9 @@ class RakuAST::Regex::CharClass::Nul is RakuAST::Regex::CharClass
 }
 
 # The base of all kinds of back-reference to a capture.
-class RakuAST::Regex::BackReference is RakuAST::Regex::Atom {
+class RakuAST::Regex::BackReference
+  is RakuAST::Regex::Atom
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new: :rxtype<subrule>, :subtype<method>, QAST::NodeList.new:
             QAST::SVal.new( :value('!BACKREF') ),
@@ -726,7 +805,9 @@ class RakuAST::Regex::BackReference is RakuAST::Regex::Atom {
 }
 
 # A back-reference to a positional capture.
-class RakuAST::Regex::BackReference::Positional is RakuAST::Regex::BackReference {
+class RakuAST::Regex::BackReference::Positional
+  is RakuAST::Regex::BackReference
+{
     has int $.index;
 
     method new(int $index) {
@@ -739,7 +820,9 @@ class RakuAST::Regex::BackReference::Positional is RakuAST::Regex::BackReference
 }
 
 # A back-reference to a named capture.
-class RakuAST::Regex::BackReference::Named is RakuAST::Regex::BackReference {
+class RakuAST::Regex::BackReference::Named
+  is RakuAST::Regex::BackReference
+{
     has str $.name;
 
     method new(str $name) {
@@ -753,7 +836,9 @@ class RakuAST::Regex::BackReference::Named is RakuAST::Regex::BackReference {
 
 # A statement embedded in a regex, typically used for making a variable
 # declaration.
-class RakuAST::Regex::Statement is RakuAST::Regex::Atom {
+class RakuAST::Regex::Statement
+  is RakuAST::Regex::Atom
+{
     has RakuAST::Statement $.statement;
 
     method new(RakuAST::Statement $statement) {
@@ -773,7 +858,9 @@ class RakuAST::Regex::Statement is RakuAST::Regex::Atom {
 }
 
 # A block of code embedded in a regex, executed only for its side-effects.
-class RakuAST::Regex::Block is RakuAST::Regex::Atom {
+class RakuAST::Regex::Block
+  is RakuAST::Regex::Atom
+{
     has RakuAST::Block $.block;
 
     method new(RakuAST::Block $block) {
@@ -797,7 +884,10 @@ class RakuAST::Regex::Block is RakuAST::Regex::Atom {
 # An interpolation of a variable into a regex. While this is typically a
 # variable, in fact it could also be a contextualizer like `$(something())`,
 # thus it can be constructed with any expression.
-class RakuAST::Regex::Interpolation is RakuAST::Regex::Atom is RakuAST::ImplicitLookups {
+class RakuAST::Regex::Interpolation
+  is RakuAST::Regex::Atom
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Expression $.var;
     has Bool $.sequential;
 
@@ -859,7 +949,9 @@ class RakuAST::Regex::Interpolation is RakuAST::Regex::Atom is RakuAST::Implicit
 
 # The base of all regex assertions (things of the form `<...>`, such as subrule
 # calls, lookaheads, and user-defined character classes).
-class RakuAST::Regex::Assertion is RakuAST::Regex::Atom {
+class RakuAST::Regex::Assertion
+  is RakuAST::Regex::Atom
+{
     method IMPL-INTERPOLATE-ASSERTION(RakuAST::IMPL::QASTContext $context, %mods,
             Mu $expression-qast, Bool $sequential, Mu $PseudoStash) {
         QAST::Regex.new:
@@ -879,7 +971,9 @@ class RakuAST::Regex::Assertion is RakuAST::Regex::Atom {
 }
 
 # An assertion that always passes.
-class RakuAST::Regex::Assertion::Pass is RakuAST::Regex::Assertion {
+class RakuAST::Regex::Assertion::Pass
+  is RakuAST::Regex::Assertion
+{
     method new() {
         nqp::create(self)
     }
@@ -892,7 +986,9 @@ class RakuAST::Regex::Assertion::Pass is RakuAST::Regex::Assertion {
 }
 
 # An assertion that always fails.
-class RakuAST::Regex::Assertion::Fail is RakuAST::Regex::Assertion {
+class RakuAST::Regex::Assertion::Fail
+  is RakuAST::Regex::Assertion
+{
     method new() {
         nqp::create(self)
     }
@@ -907,8 +1003,10 @@ class RakuAST::Regex::Assertion::Fail is RakuAST::Regex::Assertion {
 # A named assertion, which may or may not capture. Models `<foo>` and
 # `<.foo>`, and also `<foo::bar>`. Forms with arguments or taking a regex
 # argument are modeled as subclasses of this.
-class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion
-                                       is RakuAST::ImplicitLookups {
+class RakuAST::Regex::Assertion::Named
+  is RakuAST::Regex::Assertion
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Name $.name;
     has Bool $.capturing;
 
@@ -976,7 +1074,9 @@ class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion
 }
 
 # A named rule called with args.
-class RakuAST::Regex::Assertion::Named::Args is RakuAST::Regex::Assertion::Named {
+class RakuAST::Regex::Assertion::Named::Args
+  is RakuAST::Regex::Assertion::Named
+{
     has RakuAST::ArgList $.args;
 
     method new(RakuAST::Name :$name!, Bool :$capturing, Raku::ArgList :$args!) {
@@ -1001,8 +1101,10 @@ class RakuAST::Regex::Assertion::Named::Args is RakuAST::Regex::Assertion::Named
 }
 
 # A named rule called with a regex argument.
-class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::Named
-                                                 is RakuAST::RegexThunk {
+class RakuAST::Regex::Assertion::Named::RegexArg
+  is RakuAST::Regex::Assertion::Named
+  is RakuAST::RegexThunk
+{
     has RakuAST::Regex $.regex-arg;
 
     # Used during compilation
@@ -1069,7 +1171,9 @@ class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::N
 
 # An alias assertion (where another assertion is given an extra name - or, in
 # the case it's anonymous, perhaps just a name).
-class RakuAST::Regex::Assertion::Alias is RakuAST::Regex::Assertion {
+class RakuAST::Regex::Assertion::Alias
+  is RakuAST::Regex::Assertion
+{
     has str $.name;
     has RakuAST::Regex::Assertion $.assertion;
 
@@ -1097,7 +1201,9 @@ class RakuAST::Regex::Assertion::Alias is RakuAST::Regex::Assertion {
 
 # A lookahead assertion (where another assertion is evaluated as a
 # zerowidth lookahead, either positive or negative).
-class RakuAST::Regex::Assertion::Lookahead is RakuAST::Regex::Assertion {
+class RakuAST::Regex::Assertion::Lookahead
+  is RakuAST::Regex::Assertion
+{
     has Bool $.negated;
     has RakuAST::Regex::Assertion $.assertion;
 
@@ -1125,8 +1231,10 @@ class RakuAST::Regex::Assertion::Lookahead is RakuAST::Regex::Assertion {
 
 # An assertion that evaluates a block of code and then interpolates the result,
 # treating it as code to be evaluated.
-class RakuAST::Regex::Assertion::InterpolatedBlock is RakuAST::Regex::Assertion
-        is RakuAST::ImplicitLookups {
+class RakuAST::Regex::Assertion::InterpolatedBlock
+  is RakuAST::Regex::Assertion
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Block $.block;
     has Bool $.sequential;
 
@@ -1158,8 +1266,10 @@ class RakuAST::Regex::Assertion::InterpolatedBlock is RakuAST::Regex::Assertion
 
 # An assertion that does a variable lookup and then interpolates the result,
 # treating it as code to be evaluated.
-class RakuAST::Regex::Assertion::InterpolatedVar is RakuAST::Regex::Assertion
-        is RakuAST::ImplicitLookups {
+class RakuAST::Regex::Assertion::InterpolatedVar
+  is RakuAST::Regex::Assertion
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Expression $.var;
     has Bool $.sequential;
 
@@ -1190,7 +1300,9 @@ class RakuAST::Regex::Assertion::InterpolatedVar is RakuAST::Regex::Assertion
 
 # An assertion of the form <&foo> or <&foo($arg)>, which resolves the callable
 # (typically a lexical rules) and then calls it.
-class RakuAST::Regex::Assertion::Callable is RakuAST::Regex::Assertion {
+class RakuAST::Regex::Assertion::Callable
+  is RakuAST::Regex::Assertion
+{
     has RakuAST::Expression $.callee;
     has RakuAST::ArgList $.args;
 
@@ -1218,7 +1330,9 @@ class RakuAST::Regex::Assertion::Callable is RakuAST::Regex::Assertion {
 
 # An assertion that evaluates a block of code and then decides whether to match
 # based on the boolification of the produced result.
-class RakuAST::Regex::Assertion::PredicateBlock is RakuAST::Regex::Assertion {
+class RakuAST::Regex::Assertion::PredicateBlock
+  is RakuAST::Regex::Assertion
+{
     has Bool $.negated;
     has RakuAST::Block $.block;
 
@@ -1244,7 +1358,9 @@ class RakuAST::Regex::Assertion::PredicateBlock is RakuAST::Regex::Assertion {
 }
 
 # An assertion containing one or more character class elements.
-class RakuAST::Regex::Assertion::CharClass is RakuAST::Regex::Assertion {
+class RakuAST::Regex::Assertion::CharClass
+  is RakuAST::Regex::Assertion
+{
     has Mu $!elements;
 
     method new(*@elements) {
@@ -1303,12 +1419,16 @@ class RakuAST::Regex::Assertion::CharClass is RakuAST::Regex::Assertion {
 }
 
 # The base of all user-defined character class elements.
-class RakuAST::Regex::CharClassElement is RakuAST::Node {
+class RakuAST::Regex::CharClassElement
+  is RakuAST::Node
+{
     has Bool $.negated;
 }
 
 # A character class element that calls another rule (for example, <-alpha>).
-class RakuAST::Regex::CharClassElement::Rule is RakuAST::Regex::CharClassElement {
+class RakuAST::Regex::CharClassElement::Rule
+  is RakuAST::Regex::CharClassElement
+{
     has str $.name;
 
     method new(str :$name!, Bool :$negated) {
@@ -1334,7 +1454,9 @@ class RakuAST::Regex::CharClassElement::Rule is RakuAST::Regex::CharClassElement
 }
 
 # A character class element that tests a Unicode property.
-class RakuAST::Regex::CharClassElement::Property is RakuAST::Regex::CharClassElement {
+class RakuAST::Regex::CharClassElement::Property
+  is RakuAST::Regex::CharClassElement
+{
     has str $.property;
     has Bool $.inverted;
     has RakuAST::Expression $.predicate;
@@ -1367,7 +1489,9 @@ class RakuAST::Regex::CharClassElement::Property is RakuAST::Regex::CharClassEle
 
 # A character class element that is a user-defined enumeration of characters,
 # including characters, ranges, and backslash sequences.
-class RakuAST::Regex::CharClassElement::Enumeration is RakuAST::Regex::CharClassElement {
+class RakuAST::Regex::CharClassElement::Enumeration
+  is RakuAST::Regex::CharClassElement
+{
     has Mu $!elements;
 
     method new(List :$elements!, Bool :$negated) {
@@ -1442,7 +1566,8 @@ class RakuAST::Regex::CharClassElement::Enumeration is RakuAST::Regex::CharClass
 # A single character in a character class enumeration (for example, the "a" in
 # `<[a]>`).
 class RakuAST::Regex::CharClassEnumerationElement::Character
-        is RakuAST::Regex::CharClassEnumerationElement {
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     has str $.character;
 
     method new(str :$character!) {
@@ -1465,8 +1590,10 @@ class RakuAST::Regex::CharClassEnumerationElement::Character
 # A range of characters in a character class enumeration, for example the a..f
 # in `<[a..f]>`. Constructed with two integer codepoints, which means that a
 # number of problems are not possible at the AST level.
-class RakuAST::Regex::CharClassEnumerationElement::Range is RakuAST::CheckTime
-        is RakuAST::Regex::CharClassEnumerationElement {
+class RakuAST::Regex::CharClassEnumerationElement::Range
+  is RakuAST::CheckTime
+  is RakuAST::Regex::CharClassEnumerationElement
+{
     has int $.from;
     has int $.to;
 
@@ -1498,7 +1625,9 @@ class RakuAST::Regex::CharClassEnumerationElement::Range is RakuAST::CheckTime
 }
 
 # The base of all internal modifiers.
-class RakuAST::Regex::InternalModifier is RakuAST::Regex::Atom {
+class RakuAST::Regex::InternalModifier
+  is RakuAST::Regex::Atom
+{
     has Bool $.negated;
 
     method new(Bool :$negated) {
@@ -1512,7 +1641,9 @@ class RakuAST::Regex::InternalModifier is RakuAST::Regex::Atom {
 }
 
 # The ignorecase internal modifier.
-class RakuAST::Regex::InternalModifier::IgnoreCase is RakuAST::Regex::InternalModifier {
+class RakuAST::Regex::InternalModifier::IgnoreCase
+  is RakuAST::Regex::InternalModifier
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         %mods<i> := !self.negated;
         Nil
@@ -1520,7 +1651,9 @@ class RakuAST::Regex::InternalModifier::IgnoreCase is RakuAST::Regex::InternalMo
 }
 
 # The ignoremark internal modifier.
-class RakuAST::Regex::InternalModifier::IgnoreMark is RakuAST::Regex::InternalModifier {
+class RakuAST::Regex::InternalModifier::IgnoreMark
+  is RakuAST::Regex::InternalModifier
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         %mods<m> := !self.negated;
         Nil
@@ -1528,7 +1661,9 @@ class RakuAST::Regex::InternalModifier::IgnoreMark is RakuAST::Regex::InternalMo
 }
 
 # The ratchet internal modifier.
-class RakuAST::Regex::InternalModifier::Ratchet is RakuAST::Regex::InternalModifier {
+class RakuAST::Regex::InternalModifier::Ratchet
+  is RakuAST::Regex::InternalModifier
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         %mods<r> := !self.negated;
         Nil
@@ -1536,7 +1671,9 @@ class RakuAST::Regex::InternalModifier::Ratchet is RakuAST::Regex::InternalModif
 }
 
 # The sigspace internal modifier.
-class RakuAST::Regex::InternalModifier::Sigspace is RakuAST::Regex::InternalModifier {
+class RakuAST::Regex::InternalModifier::Sigspace
+  is RakuAST::Regex::InternalModifier
+{
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         %mods<s> := !self.negated;
         Nil
@@ -1545,7 +1682,10 @@ class RakuAST::Regex::InternalModifier::Sigspace is RakuAST::Regex::InternalModi
 
 # A quantified atom in a regex - that is, an atom with a quantifier and
 # optional separator.
-class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term is RakuAST::CheckTime {
+class RakuAST::Regex::QuantifiedAtom
+  is RakuAST::Regex::Term
+  is RakuAST::CheckTime
+{
     has RakuAST::Atom $.atom;
     has RakuAST::Quantifier $.quantifier;
     has RakuAST::Regex::Term $.separator;
@@ -1601,7 +1741,9 @@ class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term is RakuAST::CheckTi
 }
 
 # The base of all regex quantifiers.
-class RakuAST::Regex::Quantifier is RakuAST::Node {
+class RakuAST::Regex::Quantifier
+  is RakuAST::Node
+{
     has RakuAST::Regex::Backtrack $.backtrack;
 
     method new(RakuAST::Regex::Backtrack :$backtrack) {
@@ -1619,7 +1761,9 @@ class RakuAST::Regex::Quantifier is RakuAST::Node {
 }
 
 # The zero or one (?) quantifier. 
-class RakuAST::Regex::Quantifier::ZeroOrOne is RakuAST::Regex::Quantifier {
+class RakuAST::Regex::Quantifier::ZeroOrOne
+  is RakuAST::Regex::Quantifier
+{
     method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
         self.backtrack.IMPL-QAST-APPLY:
             QAST::Regex.new( :rxtype<quant>, :min(0), :max(1), $atom-qast ),
@@ -1628,7 +1772,9 @@ class RakuAST::Regex::Quantifier::ZeroOrOne is RakuAST::Regex::Quantifier {
 }
 
 # The zero or more (*) quantifier. 
-class RakuAST::Regex::Quantifier::ZeroOrMore is RakuAST::Regex::Quantifier {
+class RakuAST::Regex::Quantifier::ZeroOrMore
+  is RakuAST::Regex::Quantifier
+{
     method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
         self.backtrack.IMPL-QAST-APPLY:
             QAST::Regex.new( :rxtype<quant>, :min(0), :max(-1), $atom-qast ),
@@ -1637,7 +1783,9 @@ class RakuAST::Regex::Quantifier::ZeroOrMore is RakuAST::Regex::Quantifier {
 }
 
 # The one or more (+) quantifier. 
-class RakuAST::Regex::Quantifier::OneOrMore is RakuAST::Regex::Quantifier {
+class RakuAST::Regex::Quantifier::OneOrMore
+  is RakuAST::Regex::Quantifier
+{
     method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
         self.backtrack.IMPL-QAST-APPLY:
             QAST::Regex.new( :rxtype<quant>, :min(1), :max(-1), $atom-qast ),
@@ -1646,7 +1794,9 @@ class RakuAST::Regex::Quantifier::OneOrMore is RakuAST::Regex::Quantifier {
 }
 
 # The literal range (** 1..5) quantifier.
-class RakuAST::Regex::Quantifier::Range is RakuAST::Regex::Quantifier {
+class RakuAST::Regex::Quantifier::Range
+  is RakuAST::Regex::Quantifier
+{
     has Int $.min;
     has Int $.max;
     has Bool $.excludes-min;
@@ -1683,7 +1833,9 @@ class RakuAST::Regex::Quantifier::Range is RakuAST::Regex::Quantifier {
 }
 
 # The block range (** {$n..$m}) quantifier.
-class RakuAST::Regex::Quantifier::BlockRange is RakuAST::Regex::Quantifier {
+class RakuAST::Regex::Quantifier::BlockRange
+  is RakuAST::Regex::Quantifier
+{
     has RakuAST::Block $.block;
 
     method new(RakuAST::Block :$block!, RakuAST::Regex::Backtrack :$backtrack) {
@@ -1717,7 +1869,9 @@ class RakuAST::Regex::Quantifier::BlockRange is RakuAST::Regex::Quantifier {
 }
 
 # An atom followed by a backtracking modifier.
-class RakuAST::Regex::BacktrackModifiedAtom is RakuAST::Regex::Term {
+class RakuAST::Regex::BacktrackModifiedAtom
+  is RakuAST::Regex::Term
+{
     has RakuAST::Atom $.atom;
     has RakuAST::Regex::Backtrack $.backtrack;
 
@@ -1740,25 +1894,33 @@ class RakuAST::Regex::BacktrackModifiedAtom is RakuAST::Regex::Term {
 }
 
 # Backtracking modifiers.
-class RakuAST::Regex::Backtrack is RakuAST::Node {
+class RakuAST::Regex::Backtrack
+  is RakuAST::Node
+{
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
         $quant-qast.backtrack('r') if %mods<r>;
         $quant-qast
     }
 }
-class RakuAST::Regex::Backtrack::Greedy is RakuAST::Regex::Backtrack {
+class RakuAST::Regex::Backtrack::Greedy
+  is RakuAST::Regex::Backtrack
+{
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
         $quant-qast.backtrack('g');
         $quant-qast
     }
 }
-class RakuAST::Regex::Backtrack::Frugal is RakuAST::Regex::Backtrack {
+class RakuAST::Regex::Backtrack::Frugal
+  is RakuAST::Regex::Backtrack
+{
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
         $quant-qast.backtrack('f');
         $quant-qast
     }
 }
-class RakuAST::Regex::Backtrack::Ratchet is RakuAST::Regex::Backtrack {
+class RakuAST::Regex::Backtrack::Ratchet
+  is RakuAST::Regex::Backtrack
+{
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
         $quant-qast.backtrack('r');
         $quant-qast
@@ -1766,7 +1928,9 @@ class RakuAST::Regex::Backtrack::Ratchet is RakuAST::Regex::Backtrack {
 }
 
 # A regex atom or term followed by sigspace.
-class RakuAST::Regex::WithSigspace is RakuAST::Regex::Atom {
+class RakuAST::Regex::WithSigspace
+  is RakuAST::Regex::Atom
+{
     has RakuAST::Regex::Term $.regex;
 
     method new(RakuAST::Regex::Term $regex) {

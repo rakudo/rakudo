@@ -4,8 +4,6 @@ use Test;
 
 plan 41;
 
-sub rx(RakuAST::Regex $body) { EVAL RakuAST::QuotedRegex.new(:$body) }
-
 my $ast;
 my $deparsed;
 sub ast(RakuAST::Node:D $body --> Nil) {

@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 8;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -190,6 +190,63 @@ subtest 'Negated lookahead assertion calling before with a regex arg works' => {
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
         is "!2a" ~~ $regex, 'a',
+          "$type: did we get correct match";
+        is $/.list.elems, 0,
+          "$type: No positional captures";
+        is $/.hash.elems, 0,
+          "$type: No named captures";
+    }
+}
+
+subtest 'Character class enumeration assertion works' => {
+    # / <+[a \d c..f]> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Enumeration.new(
+          elements => [
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("a"),
+            RakuAST::Regex::CharClass::Digit.new,
+            RakuAST::Regex::CharClassEnumerationElement::Range.new(
+              from => "c".ord,
+              to   => "f".ord
+            )
+          ]
+        )
+      ),
+    );
+    is-deeply $deparsed, '/ <+[a \d c..f]> /', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+        is "fooa9cbar" ~~ $regex, 'f',
+          "$type: did we get correct match";
+        is $/.list.elems, 0,
+          "$type: No positional captures";
+        is $/.hash.elems, 0,
+          "$type: No named captures";
+    }
+}
+
+subtest 'Negated character class enumeration assertion works' => {
+    # / <-[a \d c..f]> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Enumeration.new(
+          :negated,
+          elements => [
+            RakuAST::Regex::CharClassEnumerationElement::Character.new("a"),
+            RakuAST::Regex::CharClass::Digit.new,
+            RakuAST::Regex::CharClassEnumerationElement::Range.new(
+              from => "c".ord,
+              to   => "f".ord
+            )
+          ]
+        )
+      ),
+    );
+    is-deeply $deparsed, '/ <-[a \d c..f]> /', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+        is "fooa9cbar" ~~ $regex, 'o',
           "$type: did we get correct match";
         is $/.list.elems, 0,
           "$type: No positional captures";

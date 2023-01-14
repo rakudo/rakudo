@@ -44,11 +44,8 @@ RakuAST::Regex::BackReference::Positional
 RakuAST::Regex::Backtrack::Greedy
 RakuAST::Regex::BacktrackModifiedAtom
 RakuAST::Regex::Block
-RakuAST::Regex::CharClassElement::Enumeration
 RakuAST::Regex::CharClassElement::Property
 RakuAST::Regex::CharClassElement::Rule
-RakuAST::Regex::CharClassEnumerationElement::Character
-RakuAST::Regex::CharClassEnumerationElement::Range
 RakuAST::Regex::InternalModifier::IgnoreCase
 RakuAST::Regex::InternalModifier::IgnoreMark
 RakuAST::Regex::InternalModifier::Ratchet

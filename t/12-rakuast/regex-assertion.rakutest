@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 10;
+plan 14;
 
 my $ast;
 my $deparsed;
@@ -13,11 +13,18 @@ sub ast(RakuAST::Node:D $body --> Nil) {
 }
 
 sub match-ok($haystack, $expected) is test-assertion {
-  subtest "matches" => {
-    plan 2;
-    is $haystack ~~ EVAL($ast), $expected, 'EVAL over RakuAST';
-    is $haystack ~~ EVAL($deparsed), $expected, 'EVAL over deparsed AST';
-  }
+    subtest "matches" => {
+        plan 6;
+
+        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+            is $haystack ~~ EVAL($ast), $expected, "$type: EVAL";
+
+            is $/.list.elems, 0,
+              "$type: No positional captures";
+            is $/.hash.elems, 0,
+              "$type: No named captures";
+        }
+    }
 }
 
 sub match-nok($haystack) is test-assertion {
@@ -51,13 +58,7 @@ subtest 'Non-capturing named assertion matches correctly' => {
       capturing => False
     );
     is-deeply $deparsed, '/ <.alpha> /', 'deparse';
-
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
-        is "1a2" ~~ $regex, 'a',
-          "$type: did we get correct match";
-        is-deeply $/.hash.keys, ().Seq,
-          "$type: no match keys";
-    }
+    match-ok "1a2", 'a';
 }
 
 subtest 'Named assertion with alias matches correctly' => {
@@ -116,15 +117,7 @@ subtest 'Lookahead assertion with named rule works' => {
       RakuAST::Regex::CharClass::Word.new
     );
     is-deeply $deparsed, '/ <?alpha> \w /', 'deparse';
-
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
-        is "!2a" ~~ $regex, 'a',
-          "$type: did we get correct match";
-        is $/.list.elems, 0,
-          "$type: No positional captures";
-        is $/.hash.elems, 0,
-          "$type: No named captures";
-    }
+    match-ok "!2a", 'a';
 }
 
 subtest 'Negated lookahead assertion with named rule works' => {
@@ -140,15 +133,7 @@ subtest 'Negated lookahead assertion with named rule works' => {
       RakuAST::Regex::CharClass::Word.new
     );
     is-deeply $deparsed, '/ <!alpha> \w /', 'deparse';
-
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
-        is "!2a" ~~ $regex, '2',
-          "$type: did we get correct match";
-        is $/.list.elems, 0,
-          "$type: No positional captures";
-        is $/.hash.elems, 0,
-          "$type: No named captures";
-    }
+    match-ok "!2a", '2';
 }
 
 subtest 'Lookahead assertion calling before with a regex arg works' => {
@@ -163,15 +148,7 @@ subtest 'Lookahead assertion calling before with a regex arg works' => {
       RakuAST::Regex::CharClass::Word.new
     );
     is-deeply $deparsed, '/ <?before \d> \w /', 'deparse';
-
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
-        is "!2a" ~~ $regex, '2',
-          "$type: did we get correct match";
-        is $/.list.elems, 0,
-          "$type: No positional captures";
-        is $/.hash.elems, 0,
-          "$type: No named captures";
-    }
+    match-ok "!2a", '2';
 }
 
 subtest 'Negated lookahead assertion calling before with a regex arg works' => {
@@ -187,15 +164,7 @@ subtest 'Negated lookahead assertion calling before with a regex arg works' => {
       RakuAST::Regex::CharClass::Word.new
     );
     is-deeply $deparsed, '/ <!before \d> \w /', 'deparse';
-
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
-        is "!2a" ~~ $regex, 'a',
-          "$type: did we get correct match";
-        is $/.list.elems, 0,
-          "$type: No positional captures";
-        is $/.hash.elems, 0,
-          "$type: No named captures";
-    }
+    match-ok "!2a", 'a';
 }
 
 subtest 'Character class enumeration assertion works' => {
@@ -215,15 +184,7 @@ subtest 'Character class enumeration assertion works' => {
       ),
     );
     is-deeply $deparsed, '/ <+[a \d c..f]> /', 'deparse';
-
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
-        is "fooa9cbar" ~~ $regex, 'f',
-          "$type: did we get correct match";
-        is $/.list.elems, 0,
-          "$type: No positional captures";
-        is $/.hash.elems, 0,
-          "$type: No named captures";
-    }
+    match-ok "fooa9cbar", 'f';
 }
 
 subtest 'Negated character class enumeration assertion works' => {
@@ -244,15 +205,62 @@ subtest 'Negated character class enumeration assertion works' => {
       ),
     );
     is-deeply $deparsed, '/ <-[a \d c..f]> /', 'deparse';
+    match-ok "fooa9cbar", 'o';
+}
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
-        is "fooa9cbar" ~~ $regex, 'o',
-          "$type: did we get correct match";
-        is $/.list.elems, 0,
-          "$type: No positional captures";
-        is $/.hash.elems, 0,
-          "$type: No named captures";
-    }
+subtest 'Character property assertion works' => {
+    # / <+:N> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'N'
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+:N> /', 'deparse';
+    match-ok "fooa9cbar", '9';
+}
+
+subtest 'Inverted character property assertion works' => {
+    # / <+:!N> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'N', :inverted
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+:!N> /', 'deparse';
+    match-ok "fooa9cbar", 'f';
+}
+
+subtest 'Negated character property assertion works' => {
+    # / <-:N> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'N', :negated
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <-:N> /', 'deparse';
+    match-ok "fooa9cbar", 'f';
+}
+
+subtest 'Multiple character property assertion works' => {
+    # / <+:L -:Lu> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'L',
+        ),
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'Lu', :negated
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+:L -:Lu> /', 'deparse';
+    match-ok "Fooa9cbar", 'o';
 }
 
 # vim: expandtab shiftwidth=4

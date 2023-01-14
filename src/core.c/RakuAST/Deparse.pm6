@@ -996,14 +996,18 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::CharClassElement::Enumeration:D $ast
     --> Str:D) {
-        '[' ~ $ast.elements.map({ self.deparse($_) }).join(' ') ~ ']'
+        ($ast.negated ?? '-' !! '+')
+          ~ '[' ~ $ast.elements.map({ self.deparse($_) }).join(' ') ~ ']'
     }
 
     multi method deparse(
       RakuAST::Regex::CharClassElement::Property:D $ast
     --> Str:D) {
-        my str @parts = ':';
-        @parts.push('-') if $ast.inverted;
+        my str @parts;
+
+        @parts.push($ast.negated ?? '-' !! '+');
+        @parts.push(':');
+        @parts.push('!') if $ast.inverted;
         @parts.push($ast.property);
         @parts.push(self.deparse($_)) with $ast.predicate;
         @parts.join

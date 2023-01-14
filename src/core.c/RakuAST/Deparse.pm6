@@ -821,7 +821,7 @@ class RakuAST::Deparse {
         '<' ~ $ast.elements.map({ self.deparse($_) }).join(' ') ~ '>'
     }
 
-    multi method deparse(RakuAST::Regex::Assertion::Fail:D $ --> Str:D) {
+    multi method deparse(RakuAST::Regex::Assertion::Fail $ --> Str:D) {
         $.regex-assertion-fail
     }
 
@@ -869,7 +869,7 @@ class RakuAST::Deparse {
           ~ '>'
     }
 
-    multi method deparse(RakuAST::Regex::Assertion::Pass:D $ --> Str:D) {
+    multi method deparse(RakuAST::Regex::Assertion::Pass $ --> Str:D) {
         $.regex-assertion-pass
     }
 

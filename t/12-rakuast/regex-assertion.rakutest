@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 19;
+plan 21;
 
 my $ast;
 my $deparsed;
@@ -30,8 +30,8 @@ sub match-ok($haystack, $expected) is test-assertion {
 sub match-nok($haystack) is test-assertion {
   subtest "doesn't match" => {
     plan 2;
-    nok $haystack ~~ EVAL($ast), 'EVAL over RakuAST';
-    nok $haystack ~~ EVAL($deparsed), 'EVAL over deparsed AST';
+    nok $haystack ~~ EVAL($ast), 'AST: EVAL';
+    nok $haystack ~~ EVAL($deparsed), 'Str: EVAL';
   }
 }
 
@@ -336,6 +336,26 @@ subtest 'Multiple rule assertions work' => {
     );
     is-deeply $deparsed, '/ <+alpha -xdigit> /', 'deparse';
     match-ok "Fooa🦋:9cbar", 'o';
+}
+
+subtest 'Pass assertion works' => {
+    # / a <?> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("a"),
+      RakuAST::Regex::Assertion::Pass.new
+    );
+    is-deeply $deparsed, '/ a <?> /', 'deparse';
+    match-ok "abc", 'a';
+}
+
+subtest 'Fail assertion works' => {
+    # / a <!> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("a"),
+      RakuAST::Regex::Assertion::Fail.new
+    );
+    is-deeply $deparsed, '/ a <!> /', 'deparse';
+    match-nok "abc";
 }
 
 # vim: expandtab shiftwidth=4

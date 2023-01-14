@@ -3178,6 +3178,16 @@ my class X::Multi::NoMatch is Exception {
     }
 }
 
+my class X::NotSingleGrapheme is Exception {
+    has $.characters;
+    method message() {
+        ('"\c['
+          ~ $.characters.ords.map(*.uniname).join(", ")
+          ~ ']" did not resolve to a single grapheme'
+        ).naive-word-wrapper
+    }
+}
+
 my class X::Caller::NotDynamic is Exception {
     has $.symbol;
     method message() {

@@ -1016,7 +1016,7 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::CharClassElement::Rule:D $ast
     --> Str:D) {
-        ($ast.negated ?? '-' !! '') ~ $ast.name
+        ($ast.negated ?? '-' !! '+') ~ $ast.name
     }
 
     multi method deparse(

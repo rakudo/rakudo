@@ -996,7 +996,7 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::CharClassElement::Enumeration:D $ast
     --> Str:D) {
-        '[' ~ $ast.elements.map({ self.deparse($_) }).join ~ ']'
+        '[' ~ $ast.elements.map({ self.deparse($_) }).join(' ') ~ ']'
     }
 
     multi method deparse(
@@ -1024,7 +1024,7 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::CharClassEnumerationElement::Range:D $ast
     --> Str:D) {
-        $ast.from ~ '..' ~ $ast.to
+        $ast.from.chr ~ '..' ~ $ast.to.chr
     }
 
 #- Regex::Co -------------------------------------------------------------------

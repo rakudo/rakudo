@@ -732,6 +732,7 @@ class RakuAST::Regex::CharClass::Word
 class RakuAST::Regex::CharClass::Specified
   is RakuAST::Regex::CharClass::Negatable
   is RakuAST::Regex::CharClassEnumerationElement
+  is RakuAST::CheckTime
 {
     has str $.characters;
 
@@ -742,6 +743,16 @@ class RakuAST::Regex::CharClass::Specified
         nqp::bindattr_s($obj, RakuAST::Regex::CharClass::Specified, '$!characters',
             $characters);
         $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::chars($!characters) > 1 {
+            self.add-sorry(
+              $resolver.build-exception(
+                'X::NotSingleGrapheme', characters => $!characters
+              )
+            )
+        }
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {

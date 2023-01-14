@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 33;
+plan 36;
 
 my $ast;
 my $deparsed;
@@ -235,13 +235,48 @@ subtest 'Left word boundary works' => {
     }
 }
 
-subtest 'Quantified built-in character class matches' => {
+subtest 'Quantified + built-in character class matches' => {
     # / \d+ /
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
     );
     is-deeply $deparsed, '/ \d+ /', 'deparse';
+
+    match-ok "99cents", "99";
+}
+
+subtest 'Quantified * built-in character class matches' => {
+    # / \d* /
+    ast RakuAST::Regex::QuantifiedAtom.new(
+      atom => RakuAST::Regex::CharClass::Digit.new,
+      quantifier => RakuAST::Regex::Quantifier::ZeroOrMore.new
+    );
+    is-deeply $deparsed, '/ \d* /', 'deparse';
+
+    match-ok "99cents", "99";
+}
+
+subtest 'Quantified ? built-in character class matches' => {
+    # / \d? /
+    ast RakuAST::Regex::QuantifiedAtom.new(
+      atom => RakuAST::Regex::CharClass::Digit.new,
+      quantifier => RakuAST::Regex::Quantifier::ZeroOrOne.new
+    );
+    is-deeply $deparsed, '/ \d? /', 'deparse';
+
+    match-ok "99cents", "9";
+}
+
+subtest 'Quantified ** built-in character class matches' => {
+    # / \d ** 1^..^5 /
+    ast RakuAST::Regex::QuantifiedAtom.new(
+      atom => RakuAST::Regex::CharClass::Digit.new,
+      quantifier => RakuAST::Regex::Quantifier::Range.new(
+        min => 1, max => 5, :excludes-min, :excludes-max
+      )
+    );
+    is-deeply $deparsed, '/ \d ** 1^..^5 /', 'deparse';
 
     match-ok "99cents", "99";
 }

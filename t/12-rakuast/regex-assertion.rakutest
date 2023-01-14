@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 14;
+plan 19;
 
 my $ast;
 my $deparsed;
@@ -261,6 +261,81 @@ subtest 'Multiple character property assertion works' => {
     );
     is-deeply $deparsed, '/ <+:L -:Lu> /', 'deparse';
     match-ok "Fooa9cbar", 'o';
+}
+
+subtest 'Character property with expression assertion works' => {
+    # / <+:Block("Basic Latin")> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          property => 'Block',
+          predicate => RakuAST::Circumfix::Parentheses.new(
+            RakuAST::StrLiteral.new("Basic Latin")
+          ),
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+:Block("Basic Latin")> /', 'deparse';
+    match-ok "🦋:Fooa9cbar", ':';
+}
+
+subtest 'Negated character property with expression assertion works' => {
+    # / <-:Block("Basic Latin")> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Property.new(
+          negated  => True,
+          property => 'Block',
+          predicate => RakuAST::Circumfix::Parentheses.new(
+            RakuAST::StrLiteral.new("Basic Latin")
+          ),
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <-:Block("Basic Latin")> /', 'deparse';
+    match-ok ":🦋Fooa9cbar", '🦋';
+}
+
+subtest 'Rule assertion works' => {
+    # / <+alpha> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Rule.new(
+          name => "alpha"
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+alpha> /', 'deparse';
+    match-ok "🦋:Fooa9cbar", 'F';
+}
+
+subtest 'Negated rule assertion works' => {
+    # / <-alpha> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Rule.new(
+          name => "alpha", :negated
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <-alpha> /', 'deparse';
+    match-ok "Fooa🦋:9cbar", '🦋';
+}
+
+subtest 'Multiple rule assertions work' => {
+    # / <+alpha -xdigit> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::CharClass.new(
+        RakuAST::Regex::CharClassElement::Rule.new(
+          name => "alpha"
+        ),
+        RakuAST::Regex::CharClassElement::Rule.new(
+          name => "xdigit", :negated
+        )
+      )
+    );
+    is-deeply $deparsed, '/ <+alpha -xdigit> /', 'deparse';
+    match-ok "Fooa🦋:9cbar", 'o';
 }
 
 # vim: expandtab shiftwidth=4

@@ -1581,7 +1581,7 @@ class RakuAST::Regex::CharClassEnumerationElement::Character
 {
     has str $.character;
 
-    method new(str :$character!) {
+    method new(str $character) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Regex::CharClassEnumerationElement::Character,
             '$!character', $character);

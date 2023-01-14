@@ -2815,7 +2815,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                 }
                 else {
                     my $node := self.r('Regex', 'CharClassEnumerationElement', 'Character');
-                    @elements.push($node.new(:character(~$_[0])));
+                    @elements.push($node.new(~$_[0]));
                 }
             }
             self.attach: $/, self.r('Regex', 'CharClassElement', 'Enumeration').new:
@@ -2900,7 +2900,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method cclass_backslash:sym<any>($/) {
         self.attach: $/,
-            self.r('Regex', 'CharClassEnumerationElement', 'Character').new(:character(~$/));
+            self.r('Regex', 'CharClassEnumerationElement', 'Character').new(~$/);
     }
 
     method mod_internal($/) {

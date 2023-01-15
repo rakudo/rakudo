@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 23;
+plan 25;
 
 my $ast;
 my $deparsed;
@@ -16,8 +16,8 @@ sub match-ok($haystack, $expected) is test-assertion {
     subtest "matches" => {
         plan 6;
 
-        for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
-            is $haystack ~~ EVAL($ast), $expected, "$type: EVAL";
+        for 'AST', $ast, 'Str', $deparsed -> $type, $regex {
+            is $haystack ~~ EVAL($regex), $expected, "$type: EVAL";
 
             is $/.list.elems, 0,
               "$type: No positional captures";
@@ -411,6 +411,43 @@ subtest 'Negated assertion with predicate block works' => {
 }> /
 CODE
     match-ok "foo", 'o';
+}
+
+subtest 'Assertion with interpolated var works' => {
+    # / <$expected> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Assertion::InterpolatedVar.new(
+        # refers to '$expected' inside "match-ok"
+        var => RakuAST::Var::Lexical.new('$expected')
+      )
+    );
+    is-deeply $deparsed, '/ <$expected> /', 'deparse';
+    match-ok "foo", 'oo';
+}
+
+subtest 'Assertion with interpolated block works' => {
+    # / o <{ "o" }> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Assertion::InterpolatedBlock.new(
+        block => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::StrLiteral.new("o")
+              )
+            )
+          )
+        )
+      )
+      
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+/ o <{
+    "o"
+}> /
+CODE
+    match-ok "foo", 'oo';
 }
 
 # vim: expandtab shiftwidth=4

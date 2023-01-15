@@ -32,8 +32,6 @@ RakuAST::QuotedMatchConstruct
 RakuAST::Regex::Anchor::BeginningOfLine
 RakuAST::Regex::Anchor::EndOfLine
 RakuAST::Regex::Assertion::Callable
-RakuAST::Regex::Assertion::InterpolatedBlock
-RakuAST::Regex::Assertion::InterpolatedVar
 RakuAST::Regex::Assertion::Named::Args
 RakuAST::Regex::BackReference::Named
 RakuAST::Regex::BackReference::Positional

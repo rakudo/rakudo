@@ -829,7 +829,7 @@ class RakuAST::Deparse {
       RakuAST::Regex::Assertion::InterpolatedBlock:D $ast
     --> Str:D) {
         NYI "DEPARSE of sequential interpolated block NYI" if $ast.sequential;
-        '<' ~ self.deparse($ast.block) ~ '>'
+        '<' ~ self.deparse($ast.block).chomp ~ '>'
     }
 
     multi method deparse(

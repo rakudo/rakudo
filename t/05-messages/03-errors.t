@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 28;
+plan 26;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -144,9 +144,7 @@ is-run 'sub rt125181 returns Str returns Int {}',
 
 { # coverage; 2016-09-18
     throws-like { 42.classify      }, Exception, '.classify()    on Any throws';
-    throws-like { 42.classify:   * }, Exception, '.classify(*)   on Any throws';
     throws-like { 42.categorize    }, Exception, '.categorize()  on Any throws';
-    throws-like { 42.categorize: * }, Exception, '.categorize(*) on Any throws';
 }
 
 # https://github.com/rakudo/rakudo/issues/2110

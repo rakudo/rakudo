@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 21;
+plan 23;
 
 my $ast;
 my $deparsed;
@@ -356,6 +356,61 @@ subtest 'Fail assertion works' => {
     );
     is-deeply $deparsed, '/ a <!> /', 'deparse';
     match-nok "abc";
+}
+
+subtest 'Assertion with predicate block works' => {
+    # / o <?{ True }> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Assertion::PredicateBlock.new(
+        block => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::Name.new(
+                  RakuAST::Name.from-identifier("True")
+                )
+              )
+            )
+          )
+        )
+      )
+      
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+/ o <?{
+    True
+}> /
+CODE
+    match-ok "foo", 'o';
+}
+
+subtest 'Negated assertion with predicate block works' => {
+    # / o <!{ False }> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Assertion::PredicateBlock.new(
+        negated => True,
+        block   => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::Name.new(
+                  RakuAST::Name.from-identifier("False")
+                )
+              )
+            )
+          )
+        )
+      )
+      
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+/ o <!{
+    False
+}> /
+CODE
+    match-ok "foo", 'o';
 }
 
 # vim: expandtab shiftwidth=4

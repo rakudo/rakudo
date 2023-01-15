@@ -527,16 +527,6 @@ class Perl6::World is HLL::World {
         @!CHECKs := [];
     }
 
-    method lang-rev-before(str $want) {
-        nqp::chars($want) == 1 || nqp::die(
-          'Version to $*W.lang-rev-before'
-            ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
-        nqp::cmp_s(
-          nqp::substr(nqp::getcomp('Raku').language_version, 2, 1),
-          $want
-        ) == -1
-    }
-
     method setting_revision() {
         $!setting_revision
     }
@@ -556,7 +546,7 @@ class Perl6::World is HLL::World {
         @!CHECKs
     }
 
-    method !check-version-modifier($ver-match, $rev, $modifier, $comp) {
+    method !check-version-modifier($ver-match, int $rev, $modifier, $comp) {
         my %lang_rev := $comp.language_revisions;
 
         unless nqp::existskey(%lang_rev, $rev) &&
@@ -576,7 +566,8 @@ class Perl6::World is HLL::World {
         }
 
         if %lang_rev{$rev}<mods>{$modifier}<deprecate> {
-            $ver-match.PRECURSOR.worry("$modifier modifier is deprecated for Raku.$rev");
+            $ver-match.PRECURSOR.worry: "$modifier modifier is deprecated for Raku v"
+                                        ~ $comp.lvs.as-public-repr($rev, :as-str);
         }
     }
 
@@ -592,23 +583,18 @@ class Perl6::World is HLL::World {
         $*STRICT := 1 if $*begin_compunit;
 
         my str $version := ~$ver-match;
-        my @vparts := nqp::split('.', $version);
+        my @vparts := $comp.lvs.from-public-repr($version);
         my $vWhatever := nqp::isge_i(nqp::index($version, '*'), 0);
         my $vPlus := nqp::isge_i(nqp::index($version, '+'), 0);
-        my $default_rev := nqp::substr(nqp::gethllsym('default', 'SysConfig').rakudo-build-config()<language-version>, 2, 1);
 
-        # Do we have dot-splitted version string?
-        if !($vWhatever || $vPlus) &&
-            ( ((@vparts > 1) && nqp::iseq_s(@vparts[0], 'v6'))
-              || ($version eq 'v6') ) {
-            my $revision := @vparts[1] || $default_rev;
-            my $lang_ver := '6.' ~ $revision;
+        if !($vWhatever || $vPlus) {
+            my $revision := @vparts[0];
 
-            self."!check-version-modifier"($ver-match, $revision, @vparts[2] || '', $comp);
+            self."!check-version-modifier"($ver-match, $revision, @vparts[1] // '', $comp);
 
-            $comp.set_language_version: $lang_ver;
+            $comp.set_language_version: @vparts;
             # fast-path the common cases
-            if $revision eq 'c' {
+            if $revision == 1 {
                 $*CAN_LOWER_TOPIC := 0;
                 # # CORE.c is currently our lowest core, which we don't "load"
                 $!setting_name := 'CORE.c';
@@ -616,46 +602,35 @@ class Perl6::World is HLL::World {
             }
 
             # Speed up loading assuming that the default language version would be the most used one.
-            if $lang_ver eq nqp::gethllsym('default', 'SysConfig').rakudo-build-config()<language-version> {
-                $!setting_name := 'CORE.' ~ $revision;
-                # self.load_setting: $ver-match, 'CORE.' ~ $revision;
+            if $revision == nqp::gethllsym('default', 'SysConfig').rakudo-build-config<language-revision> {
+                $!setting_name := 'CORE.' ~ $comp.lvs.p6rev($revision);
                 return;
             }
         }
 
-        my $Version := self.find_symbol: ['Version'];
-        my $vWant   := $ver-match.ast.compile_time_value;
-        my $vWantParts := $vWant.parts;
-        my %lang_rev := $comp.language_revisions;
-        unless $vWhatever || $vWant.plus {
-            # It makes no sense checking for modifier when something like v6.* or v6.c+ is wanted.
-            my $rev := $vWantParts.AT-POS(1);
-            my str $rev_mod := $vWantParts.elems > 2 ?? $vWantParts.AT-POS(2) !! '';
-            self."!check-version-modifier"($ver-match, $rev, $rev_mod, $comp);
-        }
+        my $Version := self.find_single_symbol_in_setting: 'Version';
+        my $vWant   := $comp.lvs.from-public-repr($version, :as-version);
 
         my @can_ver_reversed;
         for $comp.can_language_versions { nqp::unshift(@can_ver_reversed, $_) }
 
-        my $Str := self.find_single_symbol_in_setting('Str');
         for @can_ver_reversed -> $can-ver {
             # Skip if tried version doesn't match the wanted one
-            next unless $vWant.ACCEPTS: my $vCan := $Version.new: nqp::box_s($can-ver, $Str);
+            next unless $vWant.ACCEPTS: my $vCan := $Version.new: $can-ver;
 
             my $vCanElems := $vCan.parts.elems;
-            my $can_rev := $vCan.parts.AT-POS: 1;
+            my $can_rev := nqp::unbox_i($vCan.parts.AT-POS(0));
 
-            # Skip if 2-part version tried now has a required modifier
-            next if nqp::iseq_i($vCanElems, 2) && nqp::existskey(%lang_rev{$can_rev}, 'require');
+            # Skip if 2-part v6.x version tried now has a required modifier
+            next if $vCanElems == 1 && nqp::existskey($comp.language_revisions{$can_rev}, 'require');
 
-            $comp.set_language_version: '6.' ~ $can_rev;
-            $comp.set_language_modifier: $vCan.parts.AT-POS: 2 if $vCanElems > 2;
+            $comp.set_language_revision: $can_rev;
 
-            if $can_rev eq 'c' {
+            if $can_rev == 1 {
                 $*CAN_LOWER_TOPIC := 0;
                 # CORE.c is our lowest core, which we don't "load"
             }
-            $!setting_name := 'CORE.' ~ $can_rev;
+            $!setting_name := 'CORE.' ~ $comp.lvs.p6rev($can_rev);
             return;
         }
 
@@ -687,8 +662,9 @@ class Perl6::World is HLL::World {
         # If we already have a specified outer context, then that's
         # our setting. Otherwise, load one.
         $!have_outer := nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>);
-        my $default_revision := nqp::substr($comp.language_version, 2, 1);
-        my $default_setting_name := 'CORE.' ~ $default_revision;
+        my $default_revision := $comp.language_revision;
+        my $default_p6rev := $comp.lvs.p6rev($default_revision);
+        my $default_setting_name := 'CORE.' ~ $default_p6rev;
         if $!have_outer {
             $!setting_name := $default_setting_name;
             $*UNIT.annotate('IN_DECL', 'eval');
@@ -698,13 +674,13 @@ class Perl6::World is HLL::World {
             if nqp::eqat($!setting_name, 'NULL.', 0) {
                 $*COMPILING_CORE_SETTING := 1;
                 $*SET_DEFAULT_LANG_VER := 0;
-                $!setting_revision := nqp::substr($!setting_name, 5, 1);
+                $!setting_revision := $comp.lvs.internal-from-p6: nqp::substr($!setting_name, 5, 1);
                 # Compile core with default language version unless the core revision is higher. I.e. when 6.d is the
                 # default only core.e will be compiled with 6.e compiler.
-                my $lang_ver := '6.' ~ (nqp::isgt_s($!setting_revision, $default_revision)
-                                            ?? $!setting_revision
-                                            !! $default_revision);
-                nqp::getcomp('Raku').set_language_version($lang_ver);
+                nqp::getcomp('Raku').set_language_revision(
+                    $!setting_revision > $default_revision
+                        ?? $!setting_revision
+                        !! $default_revision );
             }
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
@@ -1808,7 +1784,7 @@ class Perl6::World is HLL::World {
             elsif $prim == 2 {
                 $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    $*W.lang-rev-before('d')
+                    nqp::getcomp('Raku').language_revision < 2
                       ?? QAST::Op.new(:op<nan>)
                       !! QAST::NVal.new(:value(0e0))
                 );
@@ -2074,9 +2050,10 @@ class Perl6::World is HLL::World {
     method maybe-definite-how-base($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
-        ! self.lang-rev-before('d') && nqp::eqaddr($v.HOW,
-            self.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
-        ) ?? $v.HOW.base_type: $v !! $v
+        nqp::getcomp('Raku').language_revision >= 2
+            && nqp::eqaddr($v.HOW, self.find_symbol(['Metamodel','DefiniteHOW'], :setting-only))
+            ?? $v.HOW.base_type: $v
+            !! $v
     }
 
     method maybe-nominalize($v) {
@@ -2084,7 +2061,9 @@ class Perl6::World is HLL::World {
         # current compiler.
         my $v-how := $v.HOW;
         !$v-how.archetypes($v).coercive
-        && (nqp::can($v-how, 'lang-rev-before') ?? $v-how.lang-rev-before($v, 'e') !! self.lang-rev-before('e'))
+            && (nqp::can($v-how, 'language_revision')
+                    ?? $v-how.language_revision($v) < 3
+                    !! nqp::getcomp('Raku').language_revision < 3)
             ?? self.maybe-definite-how-base($v)
             !! ($v-how.archetypes($v).nominalizable
                 ?? $v-how.nominalize($v)
@@ -2112,7 +2091,7 @@ class Perl6::World is HLL::World {
                 'default_value',   $WHAT,
                 'scalar_value',    $WHAT,
             );
-            my $dynamic := self.lang-rev-before('d') || $name ne '$_';
+            my $dynamic := nqp::getcomp('Raku').language_revision < 2 || $name ne '$_';
             my $desc := self.create_container_descriptor($Mu, $name, $WHAT, $dynamic);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);
@@ -5047,13 +5026,17 @@ class Perl6::World is HLL::World {
         if nqp::iseq_s(@name[0], 'CORE') {          # Looking in CORE:: namespace
             nqp::shift(@name := nqp::clone(@name));
             if nqp::iseq_i(nqp::chars(@name[0]),3)
-                && nqp::iseq_i(nqp::index(@name[0], 'v6'),0) {
-                my $rev := nqp::substr(@name[0],2,1);
+                && nqp::iseq_i(nqp::index(@name[0], 'v6'),0)
+            {
+                my $comp := nqp::getcomp('Raku');
+                my $p6rev := nqp::substr(@name[0],2,1);
                 # If a supported language revision requested
-                if nqp::chars($rev) == 1 && nqp::existskey(nqp::getcomp('Raku').language_revisions,$rev) {
+                if nqp::chars($p6rev) == 1
+                    && nqp::existskey($comp.language_revisions, $comp.lvs.internal-from-p6($p6rev))
+                {
                     $no-outers := 1; # you don't see other COREs!
                     nqp::shift(@name);
-                    $setting_name := 'CORE' ~ '.' ~ $rev;
+                    $setting_name := 'CORE' ~ '.' ~ $p6rev;
                 }
             }
         }

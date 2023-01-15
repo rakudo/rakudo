@@ -2,7 +2,7 @@ use MONKEY;
 
 # This constant must specify current CORE revision.  Must precede class
 # declarations to allow correct recording of their respective language version
-my constant CORE-SETTING-REV = 'e';
+my constant CORE-SETTING-REV = nqp::clone(Int.new(3)) but Metamodel::Configuration.language_revision_role;
 
 # This constant specifies the current Unicode version being supported
 my constant $?UNICODE-VERSION = (

@@ -2851,7 +2851,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*W.lang-rev-before('d');
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && nqp::getcomp('Raku').language_revision < 2;
 
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')

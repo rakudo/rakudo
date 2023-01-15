@@ -79,6 +79,10 @@ class Perl6::Metamodel::Configuration {
         $utility_class.NEXT-ID
     }
 
+    my $language-revision-role := nqp::null();
+    method set_language_revision_role($role) { $language-revision-role := $role; }
+    method language_revision_role()          { $language-revision-role }
+
     # Register HLL symbol for code which doesn't have direct access to this class. For example, moar/Perl6/Ops.nqp
     # relies on this symbol.
     nqp::bindhllsym('Raku', 'METAMODEL_CONFIGURATION', Perl6::Metamodel::Configuration);

@@ -91,7 +91,7 @@ class Perl6::Metamodel::CurriedRoleHOW
             $!candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
             my $candidate-how := $!candidate.HOW;
 
-            self.set_language_revision($obj, $candidate-how.language-revision($!candidate));
+            self.set_language_revision($obj, $candidate-how.language_revision($!candidate));
 
             my $type_env;
             try {

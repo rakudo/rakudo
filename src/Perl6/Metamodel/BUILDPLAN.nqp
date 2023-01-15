@@ -45,7 +45,12 @@ role Perl6::Metamodel::BUILDPLAN {
         my @attrs := $obj.HOW.attributes($obj, :local(1));
         # When adding role's BUILD/TWEAK into the buildplan for pre-6.e classes only roles of 6.e+ origin must be
         # considered.
-        my $only_6e_roles := $obj.HOW.lang-rev-before($obj, 'e');
+        my $ohow := $obj.HOW;
+        my $only_6e_roles := nqp::can($ohow, 'language_revision')
+                                ?? $ohow.language_revision($obj) < 3
+                                !! nqp::can($ohow, 'lang-rev-before')
+                                    ?? $ohow.lang-rev-before($obj, 'e') # Support legacy approach where implemented
+                                    !! 1; # Assume the HOW being compiled against an older Raku language version
 
         # Emit any container initializers. Also build hash of attrs we
         # do not touch in any of the BUILDPLAN so we can spit out vivify
@@ -90,7 +95,7 @@ role Perl6::Metamodel::BUILDPLAN {
             while --$i >= 0 {
                 my $role := @ins_roles[$i];
                 # Skip any non-6.e+ role if the target is pre-6.e
-                next if $only_6e_roles && $role.HOW.lang-rev-before($role, 'e');
+                next if $only_6e_roles && $role.HOW.language_revision($role) < 3;
                 my $submeth := nqp::atkey($role.HOW.submethod_table($role), $name);
                 if !nqp::isnull($submeth) {
                     nqp::push(@plan, $submeth);

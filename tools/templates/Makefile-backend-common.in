@@ -207,7 +207,7 @@
 @comp(@bsm(RAKUDO_P)@:   @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@)@)@
 @comp(@bsm(RAKUDO_W)@:   @bpm(NQP_VERSION_FILE)@ @use_prereqs(@nfp(@bpm(BUILD_DIR)@/World.nqp)@)@ @bsm(RAKUDO_ML)@ @bsm(RAKUDO_OPS)@ @bsm(RAKUDO_P)@)@
 
-@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bpm(SOURCE_DIGEST_FILES)@
+@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ @@template(main-version-common)@@ $(CONFIGURE_SOURCES) @bpm(SOURCE_DIGEST_FILES)@
 	@echo(+++ Expanding	$@)@
 	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/main-version)@ \
 	          --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@ \

@@ -123,7 +123,7 @@ class Perl6::Metamodel::EnumHOW
                 my $r := @roles_to_compose.pop();
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 my $ins := $r.HOW.specialize($r, $obj);
-                self.check-type-compat($obj, $ins, ['e'])
+                self.check-type-compat($obj, $ins, [3])
                     if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
             }

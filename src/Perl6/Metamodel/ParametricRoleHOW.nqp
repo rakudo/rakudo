@@ -158,7 +158,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                 # to initialize $?CONCRETIZATION by role's body block.
                 my $*MOP-ROLE-CONCRETIZATION := $conc :=
                     $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
-                $conc.HOW.set_language_revision($conc, $obj.HOW.language-revision($obj));
+                $conc.HOW.set_language_revision($conc, $obj.HOW.language_revision($obj));
                 $conc.HOW.set_hidden($conc) if $obj.HOW.hidden($obj);
 
                 # Run the body block to get the type environment (we know

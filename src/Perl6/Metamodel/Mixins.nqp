@@ -70,9 +70,9 @@ role Perl6::Metamodel::Mixins {
         for @roles {
             my $cur := $_;
             @role_shortnames.push(~$_.HOW.shortname($_));
-            my $role_lrev := $_.HOW.language-revision($_)
-                if nqp::can($_.HOW, 'language-revision');
-            $lang_rev := $role_lrev if $role_lrev && nqp::islt_s($lang_rev, $role_lrev);
+            my $role_lrev := $_.HOW.language_revision($_)
+                if nqp::can($_.HOW, 'language_revision');
+            $lang_rev := $role_lrev if $role_lrev && $lang_rev < $role_lrev;
         }
         my $new_shortname := $obj.HOW.shortname($obj) ~ '+{' ~
             nqp::join(',', @role_shortnames) ~ '}';

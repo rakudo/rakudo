@@ -13,7 +13,7 @@ my class RoleToRoleApplier {
         my %priv_meth_info;
         my @priv_meth_names;
         my %priv_meth_providers;
-        my $with_submethods := $target.HOW.lang-rev-before($target, 'e');
+        my $with_submethods := $target.HOW.language_revision($target) < 3; # less than 6.e
         my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
         for @roles {
             my $role := $_;
@@ -24,7 +24,7 @@ my class RoleToRoleApplier {
                     # Only transfer submethods from pre-6.e roles into pre-6.e classes.
                     next if nqp::istype($meth, $submethod_type)
                             && !($with_submethods
-                                && $role.HOW.lang-rev-before($role, 'e'));
+                                && $role.HOW.language_revision($role) < 3);
                     my @meth_list;
                     my @meth_providers;
                     if nqp::existskey(%meth_info_to_use, $name) {
@@ -161,7 +161,7 @@ my class RoleToRoleApplier {
                     my $to_add := $_.code;
                     next if nqp::istype($to_add, $submethod_type)
                             && !($with_submethods
-                                && $role.HOW.lang-rev-before($role, 'e'));
+                                && $role.HOW.language_revision($role) < 3);
                     my $yada := 0;
                     try { $yada := $to_add.yada; }
                     if $yada {

@@ -217,10 +217,18 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             !! $c.HOW.auth($c)
     }
 
+    # See Perl6::Metamodel::LanguageRevision role comments about the difference between these two language revision
+    # methods.
     method language-revision($obj) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? nqp::null()
             !! $c.HOW.language-revision($c)
+    }
+
+    method language_revision($obj) {
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.language_revision($c)
     }
 
     method is-implementation-detail($obj) {

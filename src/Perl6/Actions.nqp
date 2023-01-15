@@ -18,7 +18,7 @@ my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 sub block_closure($code, :$regex) {
     my $clone := QAST::Op.new( :op('callmethod'), :name('clone'), $code );
     if $regex {
-        if $*W.lang-rev-before('d') {
+        if nqp::getcomp('Raku').language_revision < 2 {
             my $marker := $*W.find_symbol(['Rakudo', 'Internals', 'RegexBoolification6cMarker']);
             $clone.push(QAST::WVal.new( :value($marker), :named('topic') ));
         }
@@ -1450,7 +1450,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
               QAST::WVal.new(:value($main<value>)),
               $mainline             # run the mainline and get its result
             );
-            unless $world.lang-rev-before('d') {
+            unless nqp::getcomp('Raku').language_revision < 2 {
                 $mainline.push(
                   QAST::WVal.new( # $*IN as $*ARGSFILES
                     value => $world.find_symbol(['Bool','True'], :setting-only),
@@ -1647,7 +1647,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $ast := $statements[0].ast;
 
                 # an op and 6e or higher?
-                if nqp::istype($ast,QAST::Op) && !$*W.lang-rev-before("e") {
+                if nqp::istype($ast,QAST::Op) && nqp::getcomp('Raku').language_revision >= 3 {
                     sub is-pipe-pipe($ast) {
                         nqp::istype($ast,QAST::Op)
                           && $ast.name eq '&prefix:<|>'
@@ -2582,7 +2582,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub single_top_level_whenever($block) {
         if $*WHENEVER_COUNT == 1
-        && nqp::getcomp('Raku').language_version ne '6.c' {
+        && nqp::getcomp('Raku').language_revision > 1 {
             my $stmts := $block[1];
             if nqp::istype($stmts, QAST::Stmts) {
                 my @stmts := $stmts.list;
@@ -2667,7 +2667,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::WVal.new( :value($world.find_single_symbol_in_setting('Promise')) ),
             $<blorst>.ast
         );
-        unless $world.lang-rev-before('d') {
+        if nqp::getcomp('Raku').language_revision > 1 {
             $qast.push(QAST::WVal.new(
                 :value($world.find_symbol(['Bool', 'True'])),
                 :named('report-broken-if-sunk')
@@ -3027,7 +3027,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method contextualizer($/) {
         my $past := $<coercee>.ast;
-        my $has_magic := $*W.lang-rev-before('d') && $<coercee> eq '';
+        my $has_magic := nqp::getcomp('Raku').language_revision < 2 && $<coercee> eq '';
         my $sigil := ~$<sigil>;
 
         if $has_magic && $sigil eq '$' { # for '$()'
@@ -4125,7 +4125,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
 
     sub decontrv_op() {
-        $*W.lang-rev-before('d') && nqp::getcomp('Raku').backend.name eq 'moar'
+        (my $comp := nqp::getcomp('Raku')).language_revision < 2 && $comp.backend.name eq 'moar'
             ?? 'p6decontrv_6c'
             !! 'p6decontrv'
     }
@@ -5458,7 +5458,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         if $sigil eq '%' {
             nqp::defined($*OFTYPE) && $world.throw: $/, 'X::ParametricConstant';
-            $world.lang-rev-before('d')
+            nqp::getcomp('Raku').language_revision < 2
               ?? check-type($world.find_symbol: ['Associative'])
               !! check-type-maybe-coerce('Map', $world.find_symbol: ['Associative'])
         }
@@ -6852,7 +6852,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method arglist($/) {
-        my $Pair := $*W.find_single_symbol_in_setting('Pair');
         my $past := QAST::Op.new( :op('call'), :node($/) );
         my @names;
         if $<EXPR> {
@@ -6889,6 +6888,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 migrate_colonpairs($/, @args);
             }
             my %named_counts;
+            my $Pair := $*W.find_single_symbol_in_setting('Pair');
             for @args {
                 if nqp::istype($_, QAST::Op) && istype($_.returns, $Pair)
                     && nqp::can($_[1], 'has_compile_time_value') {

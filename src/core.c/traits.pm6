@@ -537,9 +537,9 @@ multi sub trait_mod:<handles>(Method:D $m, &thunk) {
         }
 
         method apply_handles(&code_obj: Mu $pkg is raw) {
-            $!delegator_name := 
-                ($pkg.^language-revision // nqp::getcomp("Raku").language_revision) lt 'e' 
-                    ?? &code_obj.name 
+            $!delegator_name :=
+                ($pkg.^language_revision // nqp::getcomp("Raku").language_revision) < 3
+                    ?? &code_obj.name
                     !! Nil;
 
             sub applier($expr) {

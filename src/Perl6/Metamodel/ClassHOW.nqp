@@ -119,7 +119,7 @@ class Perl6::Metamodel::ClassHOW
                 # If class is a result of pun then transfer hidden flag from the source role
                 if $!pun_source =:= $r {
                     self.set_hidden($obj) if $ins.HOW.hidden($ins);
-                    self.set_language_revision($obj, $ins.HOW.language-revision($ins), :force);
+                    self.set_language_revision($obj, $ins.HOW.language_revision($ins), :force);
                 }
                 @ins_roles.push($ins);
                 self.add_concretization($obj, $r, $ins);
@@ -313,7 +313,7 @@ class Perl6::Metamodel::ClassHOW
             my $i := 0;
             while ++$i < +@mro {
                 my $parent := @mro[$i];
-                if nqp::can($parent.HOW, 'find_method_fallback') 
+                if nqp::can($parent.HOW, 'find_method_fallback')
                     && !nqp::isnull(my $fallback := $parent.HOW.find_method_fallback($obj, $name, :local)) {
                     return $fallback
                 }

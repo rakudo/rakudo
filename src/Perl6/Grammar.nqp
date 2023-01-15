@@ -1194,10 +1194,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     rule statement_control:sym<whenever> {
         <sym><.kok>
         [
-        || <?{
-              nqp::getcomp('Raku').language_version eq '6.c'
-            || $*WHENEVER_COUNT >= 0
-          }>
+        || <?{ nqp::getcomp('Raku').language_revision == 1 || $*WHENEVER_COUNT >= 0 }>
         || <.typed_panic('X::Comp::WheneverOutOfScope')>
         ]
         { $*WHENEVER_COUNT++ }
@@ -4621,7 +4618,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*W.lang-rev-before('d');
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && nqp::getcomp('Raku').language_revision < 2;
 
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')

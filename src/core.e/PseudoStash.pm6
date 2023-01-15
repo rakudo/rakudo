@@ -180,7 +180,8 @@ my class PseudoStash is CORE::v6c::PseudoStash {
 
 
     method !find-rev-core($key) {
-        my $rev = nqp::substr($key, 2, 1);
+        my $p6rev = nqp::substr($key, 2, 1);
+        my $rev = nqp::getcomp('Raku').lvs.internal-from-p6: nqp::substr($key, 2, 1);
         my $ctx := nqp::getattr(self, PseudoStash6c, '$!ctx');
         my $found := nqp::null();
         my $stash;
@@ -190,7 +191,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                 (my $lexpad := nqp::ctxlexpad($ctx)),
                 nqp::if(
                     nqp::existskey($lexpad, 'CORE-SETTING-REV')
-                    && nqp::iseq_s($rev, nqp::atkey($lexpad, 'CORE-SETTING-REV')),
+                    && $rev == nqp::atkey($lexpad, 'CORE-SETTING-REV'),
                     ($found := $ctx),
                     ($ctx := nqp::ctxouterskipthunks($ctx))
                 ),
@@ -198,7 +199,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         );
         nqp::if(
             nqp::isnull($found),
-            X::NoCoreRevision.new(lang-rev => $rev).Failure,
+            X::NoCoreRevision.new(lang-rev => $p6rev).Failure,
             nqp::stmts(
                 ($stash := nqp::create(PseudoStash)),
                 nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found)),

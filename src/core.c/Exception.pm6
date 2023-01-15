@@ -937,7 +937,8 @@ my class X::Comp::BeginTime does X::Comp {
     method message() {
         $!exception ~~ X::MOP
             ?? $!exception.message
-            !! "An exception occurred while $!use-case"
+            !! "An exception {$!exception.^name} occurred while $!use-case"
+                ~ (try { ": " ~ $!exception.message } // "")
     }
 
     multi method gist(::?CLASS:D: :$sorry = True) {
@@ -3043,7 +3044,7 @@ my class X::NoSuchSymbol is Exception {
 
 my class X::NoCoreRevision is Exception {
     has $.lang-rev;
-    method message { "No CORE for language version 6.$!lang-rev" }
+    method message { "No CORE for language revision $!lang-rev" }
 }
 
 my class X::Item is Exception {

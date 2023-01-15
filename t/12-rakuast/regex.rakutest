@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 36;
+plan 40;
 
 my $ast;
 my $deparsed;
@@ -183,6 +183,28 @@ subtest 'Beginning of string anchor works (failure case)' => {
     match-nok "abcd";
 }
 
+subtest 'Beginning of line anchor works (pass case)' => {
+    # / ^^ . /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Anchor::BeginningOfLine.new,
+      RakuAST::Regex::CharClass::Any.new
+    );
+    is-deeply $deparsed, '/ ^^ . /', 'deparse';
+
+    match-ok "abcd", "a";
+}
+
+subtest 'Beginning of line anchor works (failure case)' => {
+    # / ^^ b /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Anchor::BeginningOfLine.new,
+      RakuAST::Regex::Literal.new('b')
+    );
+    is-deeply $deparsed, '/ ^^ b /', 'deparse';
+
+    match-nok "abcd";
+}
+
 subtest 'End of string anchor works (pass case)' => {
     # / . $ /
     ast RakuAST::Regex::Sequence.new(
@@ -201,6 +223,28 @@ subtest 'End of string anchor works (failure case)' => {
       RakuAST::Regex::Anchor::EndOfString.new
     );
     is-deeply $deparsed, '/ b $ /', 'deparse';
+
+    match-nok "abcde";
+}
+
+subtest 'End of line anchor works (pass case)' => {
+    # / . $$ /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::CharClass::Any.new,
+      RakuAST::Regex::Anchor::EndOfLine.new
+    );
+    is-deeply $deparsed, '/ . $$ /', 'deparse';
+
+    match-ok "abcde", "e";
+}
+
+subtest 'End of line anchor works (failure case)' => {
+    # / b $$ /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new('b'),
+      RakuAST::Regex::Anchor::EndOfLine.new
+    );
+    is-deeply $deparsed, '/ b $$ /', 'deparse';
 
     match-nok "abcde";
 }

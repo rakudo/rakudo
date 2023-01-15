@@ -876,7 +876,10 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::Assertion::PredicateBlock:D $ast
     --> Str:D) {
-        '<' ~ ($ast.negated ?? '!' !! '?') ~ self.deparse($ast.block) ~ '>'
+        '<'
+          ~ ($ast.negated ?? '!' !! '?')
+          ~ self.deparse($ast.block).chomp
+          ~ '>'
     }
 
 #- Regex::B --------------------------------------------------------------------
@@ -1069,7 +1072,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Interpolation:D $ast --> Str:D) {
-        ($ast.sequential ?? '||' !! '') ~ self.deparse($ast.var)
+        ($ast.sequential ?? '|| ' !! '') ~ self.deparse($ast.var)
     }
 
 #- Regex::M --------------------------------------------------------------------

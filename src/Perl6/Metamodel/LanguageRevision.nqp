@@ -22,7 +22,7 @@ role Perl6::Metamodel::LanguageRevision
         }
         elsif $comp {
             # When CORE is being compiled compiler's language revision may not represent the CORE's revision. But the
-            # World instance knows it. Though $*W cannot be used at optimization stage.
+            # World's instance knows it.
             # TODO RakuAST needs different approach.
             if $*COMPILING_CORE_SETTING && $*W {
                 @lang-ver.push: $*W.setting_revision;
@@ -80,10 +80,10 @@ role Perl6::Metamodel::LanguageRevision
     # Public interface to conform to S14-roles/versioning.t behavior but still maintain compatibility with numeric
     # internal representation of language revisions.
     method language-revision($obj) {
-        my $lang-rev-type := Perl6::Metamodel::Configuration.language_revision_role;
+        my $lang-rev-type := Perl6::Metamodel::Configuration.language_revision_type;
         nqp::isnull($lang-rev-type)
             ?? $!lang_rev
-            !! (my $rev := nqp::clone(nqp::hllizefor($!lang_rev, 'Raku'))).HOW.mixin($rev, $lang-rev-type)
+            !! nqp::box_i($!lang_rev, $lang-rev-type)
     }
 
     # This method is a private interface always returning an int, akin to compiler's object method of the same name.

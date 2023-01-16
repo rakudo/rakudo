@@ -107,6 +107,4 @@ PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif
 
-my constant CORE-SETTING-REV = nqp::clone(1);
-
 # vim: expandtab shiftwidth=4

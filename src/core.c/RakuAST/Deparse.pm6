@@ -1050,25 +1050,25 @@ class RakuAST::Deparse {
 
     multi method deparse(
       RakuAST::Regex::InternalModifier::IgnoreCase:D $ast --> Str:D) {
-        $ast.negated ?? ':!i ' !! ':i '
+        $ast.negated ?? ':!i' !! ':i'
     }
 
     multi method deparse(
       RakuAST::Regex::InternalModifier::IgnoreMark:D $ast
     --> Str:D) {
-        $ast.negated ?? ':!m ' !! ':m '
+        $ast.negated ?? ':!m' !! ':m'
     }
 
     multi method deparse(
       RakuAST::Regex::InternalModifier::Ratchet:D $ast
     --> Str:D) {
-        $ast.negated ?? ':!r ' !! ':r '
+        $ast.negated ?? ':!r' !! ':r'
     }
 
     multi method deparse(
       RakuAST::Regex::InternalModifier::Sigspace:D $ast
     --> Str:D) {
-        $ast.negated ?? ':!s ' !! ':s '
+        $ast.negated ?? ':!s' !! ':s'
     }
 
     multi method deparse(RakuAST::Regex::Interpolation:D $ast --> Str:D) {

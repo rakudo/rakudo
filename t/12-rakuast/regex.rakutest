@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 40;
+plan 42;
 
 my $ast;
 my $deparsed;
@@ -537,6 +537,33 @@ subtest 'Match involving quote words works' => {
     is-deeply $deparsed, '/ <{ qqw/link inky linky/ }> /', 'deparse';
 
     match-ok "slinky sprint", 'linky';
+}
+
+subtest 'Match with positional backreference' => {
+    # / (o) $0 }> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::CapturingGroup.new(
+        RakuAST::Regex::Literal.new("o"),
+      ),
+      RakuAST::Regex::BackReference::Positional.new(0)
+    );
+    is-deeply $deparsed, '/ (o) $0 /', 'deparse';
+
+    match-ok "foo", 'oo';
+}
+
+subtest 'Match with named backreference' => {
+    # / $<bar>=o $<bar> /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::NamedCapture.new(
+        name  => 'bar',
+        regex => RakuAST::Regex::Literal.new("o"),
+      ),
+      RakuAST::Regex::BackReference::Named.new("bar")
+    );
+    is-deeply $deparsed, '/ $<bar>=o $<bar> /', 'deparse';
+
+    match-ok "foo", 'oo';
 }
 
 # vim: expandtab shiftwidth=4

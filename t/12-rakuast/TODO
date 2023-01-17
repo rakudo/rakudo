@@ -31,8 +31,6 @@ RakuAST::QuoteWordsAtom
 RakuAST::QuotedMatchConstruct
 RakuAST::Regex::Assertion::Callable
 RakuAST::Regex::Assertion::Named::Args
-RakuAST::Regex::BackReference::Named
-RakuAST::Regex::BackReference::Positional
 RakuAST::Regex::Backtrack::Greedy
 RakuAST::Regex::BacktrackModifiedAtom
 RakuAST::Regex::Block

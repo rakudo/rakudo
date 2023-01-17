@@ -37,7 +37,6 @@ RakuAST::Regex::Quantifier::BlockRange
 RakuAST::Regex::SequentialConjunction
 RakuAST::RegexDeclaration
 RakuAST::RegexThunk
-RakuAST::Statement::Control
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::No
 RakuAST::Statement::Require

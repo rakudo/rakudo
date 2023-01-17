@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 15;
+plan 16;
 
 my $ast;
 my $deparsed;
@@ -463,6 +463,52 @@ subtest 'BEGIN phaser producing a literal expression works' => {
 
     is-deeply $deparsed, 'BEGIN 12', 'deparse';
     is-deeply $_, 12, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'CONTROL phaser catching a warning' => {
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Control.new(
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("isa-ok"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Var::Lexical.new('$_'),
+                    RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier-parts('CX', 'Warn')
+                    )
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::TopicCall.new(
+                  RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier("resume")
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier("warn")
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+
+    is-deeply $deparsed,
+      qq:!s:!c|CONTROL {\n    isa-ok($_, CX::Warn);\n    .resume()\n}\nwarn();\n42\n|,
+      'deparse';
+
+    is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 

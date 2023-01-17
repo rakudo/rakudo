@@ -1549,6 +1549,13 @@ class RakuAST::Deparse {
         $.term-rand
     }
 
+    multi method deparse(RakuAST::Term::RadixNumber:D $ast --> Str:D) {
+        # multi-part doesn't need to be checked, as it only involves
+        # the legality of what is put in .value.  So deparsing .value
+        # is enough
+        ':' ~ $ast.radix ~ self.deparse($ast.value)
+    }
+
     multi method deparse(RakuAST::Term::Reduce:D $ast --> Str:D) {
         my $args := $ast.args;
 

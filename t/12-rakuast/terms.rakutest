@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 11;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -195,6 +195,47 @@ subtest 'Capture term can be constructed with an arg list' => {
     is-deeply $deparsed, Q/\(6, :x)/, 'deparse';
 
     is-deeply $_, \(6, :x), @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Radix number term' => {
+    # :16("abc")
+    ast RakuAST::Term::RadixNumber.new(
+      radix => 16,
+      value => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::StrLiteral.new("abc")
+        )
+      )
+    );
+    is-deeply $deparsed, Q/:16("abc")/, 'deparse';
+
+    is-deeply $_, 2748, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Radix number term with multiple args' => {
+    # :16[1,2,3]
+    ast RakuAST::Term::RadixNumber.new(
+      radix => 16, :multi-part,
+      value => RakuAST::Circumfix::ArrayComposer.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyListInfix.new(
+              infix => RakuAST::Infix.new(','),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2),
+                RakuAST::IntLiteral.new(3)
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q/:16[1, 2, 3]/, 'deparse';
+
+    is-deeply $_, 291, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 

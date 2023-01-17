@@ -35,7 +35,6 @@ RakuAST::Regex::Backtrack::Greedy
 RakuAST::Regex::BacktrackModifiedAtom
 RakuAST::Regex::Quantifier::BlockRange
 RakuAST::Regex::SequentialConjunction
-RakuAST::Regex::Term
 RakuAST::RegexDeclaration
 RakuAST::RegexThunk
 RakuAST::Statement::Control
@@ -53,7 +52,6 @@ RakuAST::StatementPrefix::Race
 RakuAST::StatementPrefix::Thunky
 RakuAST::Substitution
 RakuAST::SubstitutionReplacementThunk
-RakuAST::Term::RadixNumber
 RakuAST::Trait::Hides
 RakuAST::Trait::Of
 RakuAST::TraitTarget::Variable

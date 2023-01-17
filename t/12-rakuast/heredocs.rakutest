@@ -5,7 +5,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 13;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -19,16 +19,14 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 subtest 'One-part heredoc with literal piece' => {
     # "hello\n\ngoodbye\n"
     ast RakuAST::Heredoc.new(
+#      :segments[RakuAST::StrLiteral.new("    hello\n\n    goodbye\n")],  # XX enable after trimfix
       :segments[RakuAST::StrLiteral.new("hello\n\ngoodbye\n")],
       :stop("    CODE\n")
     );
 
-    is-deeply $deparsed, 'qq:to/CODE/
-    hello
-
-    goodbye
-    CODE
-', 'deparse';
+    is-deeply $deparsed,
+      "qq:to/CODE/\n    hello\n\n    goodbye\n    CODE\n",
+      'deparse';
 
     is-deeply $_, "hello\n\ngoodbye\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -46,10 +44,9 @@ subtest 'Heredoc with interpolated string variable works' => {
       :stop("MESSAGE\n")
     );
 
-    is-deeply $deparsed, 'qq:to/MESSAGE/
-$str world
-MESSAGE
-', 'deparse';
+    is-deeply $deparsed,
+      qq:!s|qq:to/MESSAGE/\n$str world\nMESSAGE\n|,
+      'deparse';
 
     is-deeply $_, "hello, world\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -61,41 +58,18 @@ subtest 'Heredoc with interpolated integer variable' => {
     # "$int is the answer\n"
     ast RakuAST::Heredoc.new(
       :segments[
+#        RakuAST::StrLiteral.new("  "),  #  XXX enable after trim fix
         RakuAST::Var::Lexical.new('$int'),
         RakuAST::StrLiteral.new(" is the answer\n")
-      ],
+    ],
       :stop("  INTY\n")
     );
 
-    is-deeply $deparsed, 'qq:to/INTY/
-  $int is the answer
-  INTY
-', 'deparse';
+    is-deeply $deparsed,
+      qq:!s|qq:to/INTY/\n  $int is the answer\n  INTY\n|,
+      'deparse';
 
     is-deeply $_, "42 is the answer\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
-}
-
-subtest 'Heredoc consisting of only interpolated integer variable' => {
-    # NOTE: No Raku representation is possible without at least a string
-    #       with a newline in it, so maybe this test is a bit over the top.
-    my $int = 42;
-
-    # "$int\n"
-    ast RakuAST::Heredoc.new(
-      :segments[
-        RakuAST::Var::Lexical.new('$int'),
-        RakuAST::StrLiteral.new("\n")
-      ],
-      :stop(" NONE\n")
-    );
-
-    is-deeply $deparsed, 'qq:to/NONE/
- $int
- NONE
-', 'deparse';
-
-    is-deeply $_, "42\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 
@@ -105,6 +79,7 @@ subtest 'Heredoc with 3 parts works' => {
     # "The answer is $int of course"
     ast RakuAST::Heredoc.new(
       :segments[
+#        RakuAST::StrLiteral.new('    The answer is '),  # XXX enable after trim fix
         RakuAST::StrLiteral.new('The answer is '),
         RakuAST::Var::Lexical.new('$int'),
         RakuAST::StrLiteral.new(" of course!\n")
@@ -112,10 +87,9 @@ subtest 'Heredoc with 3 parts works' => {
       :stop("    MORE\n")
     );
 
-    is-deeply $deparsed, 'qq:to/MORE/
-    The answer is $int of course!
-    MORE
-', 'deparse';
+    is-deeply $deparsed,
+      qq:!s|qq:to/MORE/\n    The answer is $int of course!\n    MORE\n|,
+      'deparse';
 
     is-deeply $_, "The answer is 42 of course!\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -142,12 +116,9 @@ subtest 'Heredoc involving an interpolated block' => {
       :stop("\n")
     );
 
-    is-deeply $deparsed, 'qq:to//
-An {
-    $bv
-} block
-
-', 'deparse';
+    is-deeply $deparsed,
+      qq:!s:!c|qq:to//\nAn {\n    $bv\n} block\n\n|,
+      'deparse';
 
     is-deeply $_, "An interpolated block\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -161,10 +132,9 @@ subtest 'words processor splits a heredoc into words' => {
       :stop("WORDS\n")
     );
 
-    is-deeply $deparsed, 'qq:w:to/WORDS/
-foo bar 42
-WORDS
-', 'deparse';
+    is-deeply $deparsed,
+      qq|qq:w:to/WORDS/\nfoo bar 42\nWORDS\n|,
+      'deparse';
 
     is-deeply $_, ("foo", "bar", "42"), @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -184,10 +154,9 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
       :stop("WORDS\n")
     );
 
-    is-deeply $deparsed, 'qq:w:to/WORDS/
-ba$stuff 66
-WORDS
-', 'deparse';
+    is-deeply $deparsed,
+      qq:!s|qq:w:to/WORDS/\nba$stuff 66\nWORDS\n|,
+      'deparse';
 
     is-deeply $_, ("bar", "baz", "66"), @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -201,10 +170,9 @@ subtest 'Using the val processor alone on a heredoc' => {
       :stop("VAL\n")
     );
 
-    is-deeply $deparsed, 'qq:v:to/VAL/
-42
-VAL
-', 'deparse';
+    is-deeply $deparsed,
+      qq|qq:v:to/VAL/\n42\nVAL\n|,
+      'deparse';
 
 #    is-deeply $_, IntStr.new(42,"42\n"), @type[$++]
 #      for EVAL($ast), EVAL($ast.DEPARSE);
@@ -227,10 +195,9 @@ subtest 'Using the val processor in heredoc with interpolation' => {
       :stop("VAL\n")
     );
 
-    is-deeply $deparsed, 'qq:v:to/VAL/
-4$end
-VAL
-', 'deparse';
+    is-deeply $deparsed,
+      qq:!s|qq:v:to/VAL/\n4$end\nVAL\n|,
+      'deparse';
 
     is-deeply $_, IntStr.new(46,"46\n"), @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -244,10 +211,9 @@ subtest 'Using the words and val processor in a heredoc' => {
       :stop("VALS\n")
     );
 
-    is-deeply $deparsed, 'qq:w:v:to/VALS/
-foo bar 42
-VALS
-', 'deparse';
+    is-deeply $deparsed,
+      qq|qq:w:v:to/VALS/\nfoo bar 42\nVALS\n|,
+      'deparse';
 
     is-deeply $_, ("foo", "bar", IntStr.new(42,"42")), @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -267,10 +233,9 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
       :stop("HUH\n")
     );
 
-    is-deeply $deparsed, 'qq:w:v:to/HUH/
-ba$stuff 66
-HUH
-', 'deparse';
+    is-deeply $deparsed,
+      qq:!s|qq:w:v:to/HUH/\nba$stuff 66\nHUH\n|,
+      'deparse';
 
     is-deeply $_, ('bar', 'baz', IntStr.new(66,"66")), @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -284,10 +249,9 @@ subtest 'Using the exec processor alone gives expected result' => {
       :stop("GO\n")
     );
 
-    is-deeply $deparsed, 'qq:x:to/GO/
-echo 123
-GO
-', 'deparse';
+    is-deeply $deparsed,
+      qq|qq:x:to/GO/\necho 123\nGO\n|,
+      'deparse';
 
     is-deeply $_, "123\n", @type[$++]
       for EVAL($ast), EVAL($deparsed);

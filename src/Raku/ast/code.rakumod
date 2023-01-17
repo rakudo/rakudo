@@ -214,7 +214,7 @@ class RakuAST::Code is RakuAST::Node {
             :compilation_mode(0),
             $wrapper
         );
-        my $comp := nqp::getcomp('Raku');
+        my $comp := $*HLL-COMPILER // nqp::getcomp("Raku");
         my $precomp := $comp.compile($compunit, :from<qast>, :compunit_ok(1));
         nqp::dispatch(
             'boot-syscall',

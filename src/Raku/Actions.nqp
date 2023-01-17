@@ -111,7 +111,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Calculate the setting name to use.
         # TODO don't hardcode this
         my $name := 'CORE';
-        my $comp := nqp::getcomp('Raku');
+        my $comp := $*HLL-COMPILER;
         my $resolver_type := self.r('Resolver', 'Compile');
         my $language-revision := $comp.language_revision;
 

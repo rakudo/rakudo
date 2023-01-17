@@ -493,6 +493,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*BORG := {};                          # who gets blamed for a missing block
         my $*ORIGIN-SOURCE;                       # where we get source code information from
         my @*ORIGIN-NESTINGS := [];               # this will be used for the CompUnit object
+        my $*COMPILING_CORE_SETTING := 0;
 
         # Variables used for Pod parsing.
         my $*VMARGIN := 0;

@@ -82,6 +82,7 @@ class Perl6::Metamodel::Configuration {
     my $language-revision-type := nqp::null();
     method set_language_revision_type($type) { $language-revision-type := $type; }
     method language_revision_type()          { $language-revision-type }
+    method language_revision_object(int $revision) { nqp::box_i($revision, $language-revision-type) }
 
     # Register HLL symbol for code which doesn't have direct access to this class. For example, moar/Perl6/Ops.nqp
     # relies on this symbol.

@@ -37,12 +37,10 @@ RakuAST::Regex::InternalModifier::Ratchet
 RakuAST::Regex::InternalModifier::Sigspace
 RakuAST::Regex::Quantifier::BlockRange
 RakuAST::Regex::SequentialConjunction
-RakuAST::Regex::Statement
 RakuAST::Regex::Term
 RakuAST::Regex::WithSigspace
 RakuAST::RegexDeclaration
 RakuAST::RegexThunk
-RakuAST::Routine
 RakuAST::Statement::Control
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::No

@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 50;
+plan 51;
 
 my $ast;
 my $deparsed;
@@ -673,6 +673,25 @@ subtest 'No match with *not* ignoring mark' => {
     is-deeply $deparsed, '/ :!m oo /', 'deparse';
 
     match-nok "Föö";
+}
+
+subtest 'Match with variable definition' => {
+    # / o :my $foo; o /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Statement.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::VarDeclaration::Simple.new(
+            scope => 'my',
+            name  => '$foo'
+          )
+        )
+      ),
+      RakuAST::Regex::Literal.new("o")
+    );
+    is-deeply $deparsed, '/ o :my $foo; o /', 'deparse';
+
+    match-ok "Foo", 'oo';
 }
 
 # vim: expandtab shiftwidth=4

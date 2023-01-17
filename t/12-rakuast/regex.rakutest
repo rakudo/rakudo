@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 44;
+plan 50;
 
 my $ast;
 my $deparsed;
@@ -607,6 +607,72 @@ subtest 'Match with block' => {
       'deparse';
 
     match-ok "foo", 'oo', 2;
+}
+
+subtest 'Match with ignoring case' => {
+    # / :i oo /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::InternalModifier::IgnoreCase.new,
+      RakuAST::Regex::Literal.new("oo"),
+    );
+    is-deeply $deparsed, '/ :i oo /', 'deparse';
+
+    match-ok "FOO", 'OO';
+}
+
+subtest 'Match with *not* ignoring case' => {
+    # / :!i OO /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::InternalModifier::IgnoreCase.new(:negated),
+      RakuAST::Regex::Literal.new("OO"),
+    );
+    is-deeply $deparsed, '/ :!i OO /', 'deparse';
+
+    match-ok "FOO", 'OO';
+}
+
+subtest 'No match with *not* ignoring case' => {
+    # / :!i oo /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::InternalModifier::IgnoreCase.new(:negated),
+      RakuAST::Regex::Literal.new("oo"),
+    );
+    is-deeply $deparsed, '/ :!i oo /', 'deparse';
+
+    match-nok "FOO";
+}
+
+subtest 'Match with ignoring mark' => {
+    # / :m oo /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::InternalModifier::IgnoreMark.new,
+      RakuAST::Regex::Literal.new("oo"),
+    );
+    is-deeply $deparsed, '/ :m oo /', 'deparse';
+
+    match-ok "Fõõ", 'õõ';
+}
+
+subtest 'Match with *not* ignoring mark' => {
+    # / :!m ôô /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::InternalModifier::IgnoreMark.new(:negated),
+      RakuAST::Regex::Literal.new("ôô"),
+    );
+    is-deeply $deparsed, '/ :!m ôô /', 'deparse';
+
+    match-ok "Fôô", 'ôô';
+}
+
+subtest 'No match with *not* ignoring mark' => {
+    # / :!m oo /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::InternalModifier::IgnoreMark.new(:negated),
+      RakuAST::Regex::Literal.new("oo"),
+    );
+    is-deeply $deparsed, '/ :!m oo /', 'deparse';
+
+    match-nok "Föö";
 }
 
 # vim: expandtab shiftwidth=4

@@ -918,7 +918,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Block:D $ast --> Str:D) {
-        self.deparse($ast.block)
+        self.deparse($ast.block).chomp
     }
 
 #- Regex::C --------------------------------------------------------------------

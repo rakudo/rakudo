@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 42;
+plan 44;
 
 my $ast;
 my $deparsed;
@@ -12,9 +12,9 @@ sub ast(RakuAST::Node:D $body --> Nil) {
     diag $deparsed.chomp;
 }
 
-sub match-ok($haystack, $expected) is test-assertion {
+sub match-ok($haystack, $expected, $additional = 0) is test-assertion {
   subtest "matches" => {
-    plan 2;
+    plan 2 + $additional;
     is $haystack ~~ EVAL($ast), $expected, 'EVAL over RakuAST';
     is $haystack ~~ EVAL($deparsed), $expected, 'EVAL over deparsed AST';
   }
@@ -564,6 +564,49 @@ subtest 'Match with named backreference' => {
     is-deeply $deparsed, '/ $<bar>=o $<bar> /', 'deparse';
 
     match-ok "foo", 'oo';
+}
+
+subtest 'Match with interpolated variable' => {
+    # / $expected /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Interpolation.new(
+        var => RakuAST::Var::Lexical.new('$expected')
+      ),
+    );
+    is-deeply $deparsed, '/ $expected /', 'deparse';
+
+    match-ok "foo", 'oo';
+}
+
+subtest 'Match with block' => {
+    # / o { is($/, "foo", "block") } o /
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Block.new(
+        RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier('is'),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Var::Lexical.new('$/'),
+                    RakuAST::StrLiteral.new("o"),
+                    RakuAST::StrLiteral.new("block")
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Regex::Literal.new("o")
+    );
+    is-deeply $deparsed,
+      qq:!c:!s|/ o {\n    is($/, "o", "block")\n} o /|,
+      'deparse';
+
+    match-ok "foo", 'oo', 2;
 }
 
 # vim: expandtab shiftwidth=4

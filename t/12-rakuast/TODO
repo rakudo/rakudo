@@ -33,12 +33,10 @@ RakuAST::Regex::Assertion::Callable
 RakuAST::Regex::Assertion::Named::Args
 RakuAST::Regex::Backtrack::Greedy
 RakuAST::Regex::BacktrackModifiedAtom
-RakuAST::Regex::Block
 RakuAST::Regex::InternalModifier::IgnoreCase
 RakuAST::Regex::InternalModifier::IgnoreMark
 RakuAST::Regex::InternalModifier::Ratchet
 RakuAST::Regex::InternalModifier::Sigspace
-RakuAST::Regex::Interpolation
 RakuAST::Regex::Quantifier::BlockRange
 RakuAST::Regex::SequentialConjunction
 RakuAST::Regex::Statement

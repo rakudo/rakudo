@@ -1480,7 +1480,7 @@ class RakuAST::Deparse {
 #- Stu -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Stub:D $ast --> Str:D) {
-        if $ast.real-args -> $real-args {
+        if $ast.args -> $real-args {
             $ast.name ~ ' ' ~ self.deparse($real-args)
         }
         else {

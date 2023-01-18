@@ -638,56 +638,41 @@ class RakuAST::Call::VarMethod
 
 # Base role for all stubs
 class RakuAST::Stub
-  is RakuAST::Call::Name
+  is RakuAST::ImplicitLookups
 {
+    has RakuAST::ArgList $.args;
+
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
-        nqp::bindattr(
-          $obj, RakuAST::Call::Name, '$!name',
-          RakuAST::Name.from-identifier(self.IMPL-FUNC-NAME)
-        );
-        nqp::bindattr($obj, RakuAST::Call, '$!args', $args);
+        nqp::bindattr($obj, RakuAST::Stub, '$!args', $args);
         $obj
     }
 
-    method args() {
-        my $args := nqp::getattr(self, RakuAST::Call, '$!args');
-        $args && $args.has-args
-          ?? $args
-          !! RakuAST::ArgList.new: RakuAST::StrLiteral.new('Stub code executed')
-
-# The above implementation is wrong: the die/fail/warn subs should be called
-# with an X::StubCode exception as the argument.  However, the below code
-# fails *execution* with:
-#
-#   This element has not been resolved. Type: RakuAST::Type::Simple
-#
-# I wonder if this is a bootstrapping issue.  Rather than just dropping this
-# into a branch that will go into oblivion, leaving the code here for someone
-# more knowledgeable to pick up in the future to properly activate.
-#
-#        $args := RakuAST::ArgList.new(
-#          RakuAST::FatArrow.new(
-#            key   => 'message',
-#            value => $args[0]
-#          )
-#        ) if $args;
-#
-#        RakuAST::ArgList.new(
-#          RakuAST::ApplyPostfix.new(
-#            operand => RakuAST::Type::Simple.new(
-#              RakuAST::Name.from-identifier-parts('X','StubCode')
-#            ),
-#            postfix => RakuAST::Call::Method.new(
-#              name => RakuAST::Name.from-identifier('new'),
-#              args => $args
-#            )
-#          )
-#        )
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier-parts('X','StubCode')
+            )
+        ])
     }
 
-    method real-args() {
-        nqp::getattr(self, RakuAST::Call, '$!args');
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $x-stubcode := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+        my $qast := QAST::Op.new(
+          :op<callmethod>, :name<new>,
+          $x-stubcode.IMPL-TO-QAST($context)
+        );
+        if $!args {
+            my @args  := self.IMPL-UNWRAP-LIST($!args.args);
+            my $value := @args[0].IMPL-EXPR-QAST($context);
+            $value.named("message");
+            nqp::push($qast, $value);
+        }
+
+        QAST::Op.new(
+          :op<callstatic>, :name('&' ~ self.IMPL-FUNC-NAME),
+          $qast
+        )
     }
 }
 

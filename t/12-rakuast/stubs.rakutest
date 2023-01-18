@@ -30,7 +30,9 @@ subtest 'can make a simple ... stub' => {
             EVAL($it);
         }();
         isa-ok $result, Failure, "$type: did we get a Failure";
-        is $result.mess.lines.head.chomp,
+        isa-ok $result.exception, X::StubCode,
+          "$type: did we get right exception";
+        is $result.exception.message,
           'Stub code executed', "$type: payload ok";
 }
 }
@@ -56,7 +58,9 @@ subtest 'can make a ... stub with info' => {
             EVAL($it);
         }();
         isa-ok $result, Failure, "$type: did we get a Failure";
-        is $result.mess.lines.head.chomp,
+        isa-ok $result.exception, X::StubCode,
+          "$type: did we get right exception";
+        is $result.exception.message,
           'foobar', "$type: payload ok";
 }
 }
@@ -71,7 +75,6 @@ subtest 'can make a simple !!! stub' => {
     is-deeply $deparsed, qq/!!!\n/, 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
-        todo("AST has internal error") if $type eq 'AST';
         throws-like { EVAL($it) },
           X::StubCode,
           message => 'Stub code executed'
@@ -93,7 +96,6 @@ subtest 'can make a !!! stub with info' => {
     is-deeply $deparsed, qq/!!! "foobar"\n/, 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
-        todo("AST has internal error") if $type eq 'AST';
         throws-like { EVAL($it) },
           X::StubCode,
           message => "foobar"

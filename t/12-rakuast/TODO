@@ -45,7 +45,6 @@ RakuAST::StatementPrefix::Hyper
 RakuAST::StatementPrefix::Lazy
 RakuAST::StatementPrefix::Phaser
 RakuAST::StatementPrefix::Phaser::End
-RakuAST::StatementPrefix::Phaser::Leave
 RakuAST::StatementPrefix::Phaser::Sinky
 RakuAST::StatementPrefix::Race
 RakuAST::StatementPrefix::Thunky

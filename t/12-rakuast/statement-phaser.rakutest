@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 5; # Do not change this file to done-testing
+plan 7; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -247,6 +247,74 @@ die();
 CODE
 
     is-deeply $_, 666, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'LEAVE phaser thunk being run' => {
+     # { LEAVE pass("leaving") }
+    ast RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Leave.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("pass"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::StrLiteral.new("leaving")
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    plan 5;  # additional tests here that need to pass
+    is-deeply $deparsed, qq:!c/{\n    LEAVE pass("leaving")\n}\n/, 'deparse';
+
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'LEAVE phaser block being run' => {
+     # { LEAVE { pass("leaving") } }
+    ast RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Leave.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Call::Name.new(
+                        name => RakuAST::Name.from-identifier("pass"),
+                        args => RakuAST::ArgList.new(
+                          RakuAST::StrLiteral.new("leaving")
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    plan 5;  # additional tests here that need to pass
+    is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
+{
+    LEAVE {
+        pass("leaving")
+    }
+}
+CODE
+
+    is-deeply $_, Nil, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 

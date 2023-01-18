@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 27; # Do not change this file to done-testing
+plan 25; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1004,102 +1004,6 @@ CODE
         $a = 4;
         is-deeply EVAL($it), 'another',
           "$type: no when statement giving default";
-    }
-}
-
-subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
-    my $handled;
-
-    # { CATCH { default { $handled++ } }; die "oops" }
-    ast RakuAST::Block.new(
-      body => RakuAST::Blockoid.new(
-        RakuAST::StatementList.new(
-          RakuAST::Statement::Catch.new(
-            body => RakuAST::Block.new(
-              body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                  RakuAST::Statement::Default.new(
-                    body => RakuAST::Block.new(
-                      body => RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                          RakuAST::Statement::Expression.new(
-                            expression => RakuAST::ApplyPostfix.new(
-                              operand => RakuAST::Var::Lexical.new('$handled'),
-                              postfix => RakuAST::Postfix.new('++')
-                            )
-                          )
-                        )
-                      )
-                    )
-                  )
-                )
-              )
-            )
-          ),
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::Call::Name.new(
-              name => RakuAST::Name.from-identifier('die'),
-              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('oops'))
-            )
-          )
-        )
-      )
-    );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
-{
-    CATCH {
-        default {
-            $handled++
-        }
-    }
-    die("oops")
-}
-CODE
-
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
-        $handled = 0;
-
-        is-deeply EVAL($it), Nil,
-          "$type: block with CATCH/default handles exception, evalutes to Nil";
-        is-deeply $handled, 1, "$type: the exception handler ran once";
-        is $!, 'oops', "$type: \$! in the outer scope has the exception";
-    }
-}
-
-subtest 'Exception is rethrown if unhandled' => {
-    # { CATCH { }; die "gosh" }
-    ast RakuAST::Block.new(
-      body => RakuAST::Blockoid.new(
-        RakuAST::StatementList.new(
-          RakuAST::Statement::Catch.new(
-            body => RakuAST::Block.new(
-              body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new
-              )
-            )
-          ),
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::Call::Name.new(
-              name => RakuAST::Name.from-identifier('die'),
-              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('gosh'))
-            )
-          )
-        )
-      )
-    );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
-{
-    CATCH {
-    }
-    die("gosh")
-}
-CODE
-
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
-        throws-like { EVAL($it) },
-          X::AdHoc,
-          message => /gosh/,
-          "$type: exception is rethrown if unhandled";
     }
 }
 

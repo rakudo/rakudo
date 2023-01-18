@@ -663,10 +663,12 @@ class RakuAST::Stub
           $x-stubcode.IMPL-TO-QAST($context)
         );
         if $!args {
-            my @args  := self.IMPL-UNWRAP-LIST($!args.args);
-            my $value := @args[0].IMPL-EXPR-QAST($context);
-            $value.named("message");
-            nqp::push($qast, $value);
+            my @args := self.IMPL-UNWRAP-LIST($!args.args);
+            if nqp::elems(@args) {
+                my $value := @args[0].IMPL-EXPR-QAST($context);
+                $value.named("message");
+                nqp::push($qast, $value);
+            }
         }
 
         QAST::Op.new(

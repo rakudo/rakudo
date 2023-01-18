@@ -1,5 +1,7 @@
 # The base of all statement prefixes.
-class RakuAST::StatementPrefix is RakuAST::Term {
+class RakuAST::StatementPrefix
+  is RakuAST::Term
+{
     has RakuAST::Blorst $.blorst;
 
     method new(RakuAST::Blorst $blorst) {
@@ -32,7 +34,10 @@ class RakuAST::StatementPrefix is RakuAST::Term {
 }
 
 # The `do` statement prefix.
-class RakuAST::StatementPrefix::Do is RakuAST::StatementPrefix is RakuAST::SinkPropagator {
+class RakuAST::StatementPrefix::Do
+  is RakuAST::StatementPrefix
+  is RakuAST::SinkPropagator
+{
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
     }
@@ -43,7 +48,10 @@ class RakuAST::StatementPrefix::Do is RakuAST::StatementPrefix is RakuAST::SinkP
 }
 
 # The `quietly` statement prefix.
-class RakuAST::StatementPrefix::Quietly is RakuAST::StatementPrefix is RakuAST::SinkPropagator {
+class RakuAST::StatementPrefix::Quietly
+  is RakuAST::StatementPrefix
+  is RakuAST::SinkPropagator
+{
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
     }
@@ -59,7 +67,9 @@ class RakuAST::StatementPrefix::Quietly is RakuAST::StatementPrefix is RakuAST::
 }
 
 # The `race` statement prefix.
-class RakuAST::StatementPrefix::Race is RakuAST::StatementPrefix {
+class RakuAST::StatementPrefix::Race
+  is RakuAST::StatementPrefix
+{
     method allowed-on-for-statement() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -71,7 +81,9 @@ class RakuAST::StatementPrefix::Race is RakuAST::StatementPrefix {
 }
 
 # The `hyper` statement prefix.
-class RakuAST::StatementPrefix::Hyper is RakuAST::StatementPrefix {
+class RakuAST::StatementPrefix::Hyper
+  is RakuAST::StatementPrefix
+{
     method allowed-on-for-statement() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -83,7 +95,9 @@ class RakuAST::StatementPrefix::Hyper is RakuAST::StatementPrefix {
 }
 
 # The `lazy` statement prefix.
-class RakuAST::StatementPrefix::Lazy is RakuAST::StatementPrefix {
+class RakuAST::StatementPrefix::Lazy
+  is RakuAST::StatementPrefix
+{
     method allowed-on-for-statement() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -95,7 +109,9 @@ class RakuAST::StatementPrefix::Lazy is RakuAST::StatementPrefix {
 }
 
 # The `eager` statement prefix.
-class RakuAST::StatementPrefix::Eager is RakuAST::StatementPrefix {
+class RakuAST::StatementPrefix::Eager
+  is RakuAST::StatementPrefix
+{
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
@@ -106,8 +122,11 @@ class RakuAST::StatementPrefix::Eager is RakuAST::StatementPrefix {
 }
 
 # The `try` statement prefix.
-class RakuAST::StatementPrefix::Try is RakuAST::StatementPrefix is RakuAST::SinkPropagator
-                                    is RakuAST::ImplicitLookups {
+class RakuAST::StatementPrefix::Try
+  is RakuAST::StatementPrefix
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitLookups
+{
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
     }
@@ -182,9 +201,12 @@ class RakuAST::StatementPrefix::Try is RakuAST::StatementPrefix is RakuAST::Sink
 
 # Done by statement prefixes that insist on thunking expressions into a code
 # object.
-class RakuAST::StatementPrefix::Thunky is RakuAST::StatementPrefix
-                                       is RakuAST::Meta is RakuAST::Code
-                                       is RakuAST::BeginTime {
+class RakuAST::StatementPrefix::Thunky
+  is RakuAST::StatementPrefix
+  is RakuAST::Meta
+  is RakuAST::Code
+  is RakuAST::BeginTime
+{
 
     method is-begin-performed-before-children() { False }
 
@@ -250,7 +272,10 @@ class RakuAST::StatementPrefix::Thunky is RakuAST::StatementPrefix
 }
 
 # The `gather` statement prefix.
-class RakuAST::StatementPrefix::Gather is RakuAST::StatementPrefix::Thunky is RakuAST::SinkPropagator {
+class RakuAST::StatementPrefix::Gather
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::SinkPropagator
+{
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(True);
     }
@@ -261,9 +286,11 @@ class RakuAST::StatementPrefix::Gather is RakuAST::StatementPrefix::Thunky is Ra
 }
 
 # The `start` statement prefix.
-class RakuAST::StatementPrefix::Start is RakuAST::StatementPrefix::Thunky
-                                      is RakuAST::SinkPropagator
-                                      is RakuAST::ImplicitLookups {
+class RakuAST::StatementPrefix::Start
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitLookups
+{
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False);
     }
@@ -294,13 +321,15 @@ class RakuAST::StatementPrefix::Start is RakuAST::StatementPrefix::Thunky
 
 # Done by all phasers. Serves as little more than a marker for phasers, for
 # easing locating them all.
-class RakuAST::StatementPrefix::Phaser is RakuAST::StatementPrefix {
-}
+class RakuAST::StatementPrefix::Phaser
+  is RakuAST::StatementPrefix { }
 
 # Done by all phasers that don't produce a result.
-class RakuAST::StatementPrefix::Phaser::Sinky is RakuAST::StatementPrefix::Phaser
-                                              is RakuAST::ImplicitLookups
-                                              is RakuAST::SinkPropagator {
+class RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Phaser
+  is RakuAST::ImplicitLookups
+  is RakuAST::SinkPropagator
+{
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(True);
     }
@@ -318,9 +347,11 @@ class RakuAST::StatementPrefix::Phaser::Sinky is RakuAST::StatementPrefix::Phase
 }
 
 # The BEGIN phaser.
-class RakuAST::StatementPrefix::Phaser::Begin is RakuAST::StatementPrefix::Phaser
-                                              is RakuAST::StatementPrefix::Thunky
-                                              is RakuAST::BeginTime {
+class RakuAST::StatementPrefix::Phaser::Begin
+  is RakuAST::StatementPrefix::Phaser
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::BeginTime
+{
     has Mu $!produced-value;
 
     # Perform BEGIN-time evaluation.
@@ -341,9 +372,11 @@ class RakuAST::StatementPrefix::Phaser::Begin is RakuAST::StatementPrefix::Phase
 }
 
 # The LEAVE phaser.
-class RakuAST::StatementPrefix::Phaser::Leave is RakuAST::StatementPrefix::Phaser::Sinky
-                                            is RakuAST::StatementPrefix::Thunky
-                                            is RakuAST::Attaching {
+class RakuAST::StatementPrefix::Phaser::Leave
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
 
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-leave-phaser(self);
@@ -351,9 +384,11 @@ class RakuAST::StatementPrefix::Phaser::Leave is RakuAST::StatementPrefix::Phase
 }
 
 # The END phaser.
-class RakuAST::StatementPrefix::Phaser::End is RakuAST::StatementPrefix::Phaser::Sinky
-                                            is RakuAST::StatementPrefix::Thunky
-                                            is RakuAST::Attaching {
+class RakuAST::StatementPrefix::Phaser::End
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
 
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('compunit').add-end-phaser(self);

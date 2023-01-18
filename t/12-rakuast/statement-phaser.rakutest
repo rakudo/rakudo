@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 2; # Do not change this file to done-testing
+plan 5; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -11,6 +11,27 @@ sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
     diag $deparsed.chomp;
+}
+
+subtest 'BEGIN phaser producing a literal expression works' => {
+    CATCH {
+        when X::AdHoc {
+            # Any other kind of exception or having different message means
+            # different issue and we take measure not to mask it.
+            .rethrow unless  .message eq q<Unknown compilation input 'qast'>;
+            skip "BEGIN phaser is having some issues yet", 2;
+        }
+    }
+    # BEGIN 12
+    ast RakuAST::StatementPrefix::Phaser::Begin.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(12)
+      )
+    );
+
+    is-deeply $deparsed, 'BEGIN 12', 'deparse';
+    is-deeply $_, 12, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
 }
 
 subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
@@ -107,6 +128,126 @@ CODE
           message => /gosh/,
           "$type: exception is rethrown if unhandled";
     }
+}
+
+subtest 'CONTROL phaser catching a warning' => {
+    # CONTROL {
+    #     isa-ok $_, CX::Warn
+    #     .resume
+    # }
+    # warn();
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Control.new(
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("isa-ok"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Var::Lexical.new('$_'),
+                    RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier-parts('CX', 'Warn')
+                    )
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::TopicCall.new(
+                  RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier("resume")
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier("warn")
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+
+    plan 5;  # additional tests here that need to pass
+    is-deeply $deparsed,
+      qq:!s:!c|CONTROL {\n    isa-ok($_, CX::Warn);\n    .resume()\n}\nwarn();\n42\n|,
+      'deparse';
+
+    is-deeply $_, 42, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'CATCH phaser catching an exception' => {
+    # CATCH {
+    #     isa-ok $_, X::AdHoc
+    #     .resume
+    # }
+    # die();
+    # 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Catch.new(
+        body => RakuAST::Block.new(
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("todo"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::StrLiteral.new("Getting a warning instead of an exception???")
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("isa-ok"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Var::Lexical.new('$_'),
+                    RakuAST::Type::Simple.new(
+                      RakuAST::Name.from-identifier-parts('X', 'AdHoc')
+                    )
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::TopicCall.new(
+                  RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier("resume")
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier("die")
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(666)
+      )
+    );
+
+    plan 5;  # additional tests here that need to pass
+    is-deeply $deparsed, qq:!s:!c:to/CODE/, 'deparse';
+CATCH {
+    todo("Getting a warning instead of an exception???");
+    isa-ok($_, X::AdHoc);
+    .resume()
+}
+die();
+666
+CODE
+
+    is-deeply $_, 666, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
 }
 
 # vim: expandtab shiftwidth=4

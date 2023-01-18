@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 7; # Do not change this file to done-testing
+plan 13; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -251,7 +251,7 @@ CODE
 }
 
 subtest 'LEAVE phaser thunk being run' => {
-     # { LEAVE pass("leaving") }
+    # { LEAVE pass("leaving") }
     ast RakuAST::Block.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
@@ -279,7 +279,7 @@ subtest 'LEAVE phaser thunk being run' => {
 }
 
 subtest 'LEAVE phaser block being run' => {
-     # { LEAVE { pass("leaving") } }
+    # { LEAVE { pass("leaving") } }
     ast RakuAST::Block.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
@@ -311,6 +311,54 @@ subtest 'LEAVE phaser block being run' => {
     LEAVE {
         pass("leaving")
     }
+}
+CODE
+
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'END phaser thunk being run' => {
+    # END pass("leaving END thunk")
+    ast RakuAST::StatementPrefix::Phaser::End.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+         name => RakuAST::Name.from-identifier("pass"),
+          args => RakuAST::ArgList.new(
+            RakuAST::StrLiteral.new("leaving END thunk")
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, qq:!c/END pass("leaving END thunk")/, 'deparse';
+
+    is-deeply $_, Nil, @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'END phaser block being run' => {
+    # END { pass("leaving END block") }
+    ast RakuAST::StatementPrefix::Phaser::End.new(
+      RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier("pass"),
+                args => RakuAST::ArgList.new(
+                  RakuAST::StrLiteral.new("leaving END block")
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
+END {
+    pass("leaving END block")
 }
 CODE
 

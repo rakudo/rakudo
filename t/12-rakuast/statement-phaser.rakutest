@@ -251,10 +251,19 @@ CODE
 }
 
 subtest 'LEAVE phaser thunk being run' => {
-    # { LEAVE pass("leaving") }
+    my $done = 666;
+
+    # { $done = False; LEAVE pass("leaving"); $done = True }
     ast RakuAST::Block.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$done'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Term::False.new
+            )
+          ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Leave.new(
               RakuAST::Statement::Expression.new(
@@ -266,23 +275,47 @@ subtest 'LEAVE phaser thunk being run' => {
                 )
               )
             )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$done'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Term::True.new
+            )
           )
         )
       )
     );
 
-    plan 5;  # additional tests here that need to pass
-    is-deeply $deparsed, qq:!c/{\n    LEAVE pass("leaving")\n}\n/, 'deparse';
+    plan 7;  # additional tests here that need to pass
+    is-deeply $deparsed, qq:!c:!s:to/CODE/, 'deparse';
+{
+    $done = False;
+    LEAVE pass("leaving");
+    $done = True
+}
+CODE
 
-    is-deeply $_, Nil, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        is-deeply EVAL($it), True, "$type: result correct";
+        is-deeply $done, True, "$type: did block run to completion";
+    }
 }
 
 subtest 'LEAVE phaser block being run' => {
-    # { LEAVE { pass("leaving") } }
+    my $done = 666;
+
+    # { $done = False; LEAVE { pass("leaving") }; $done = True }
     ast RakuAST::Block.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$done'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Term::False.new
+            )
+          ),
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Leave.new(
               RakuAST::Block.new(
@@ -295,27 +328,38 @@ subtest 'LEAVE phaser block being run' => {
                           RakuAST::StrLiteral.new("leaving")
                         )
                       )
-                    )
+                    ),
                   )
                 )
               )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::Var::Lexical.new('$done'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::Term::True.new
             )
           )
         )
       )
     );
 
-    plan 5;  # additional tests here that need to pass
-    is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
+    plan 7;  # additional tests here that need to pass
+    is-deeply $deparsed, qq:!c:!s:to/CODE/, 'deparse';
 {
+    $done = False;
     LEAVE {
         pass("leaving")
     }
+    $done = True
 }
 CODE
 
-    is-deeply $_, Nil, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        is-deeply EVAL($it), True, "$type: result correct";
+        is-deeply $done, True, "$type: did block run to completion";
+    }
 }
 
 subtest 'END phaser thunk being run' => {

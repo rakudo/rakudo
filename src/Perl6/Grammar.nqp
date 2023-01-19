@@ -1393,6 +1393,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token statement_prefix:sym<BEGIN>   { :my %*MYSTERY; <sym><.kok> <blorst> <.explain_mystery> <.cry_sorrows> }
     token statement_prefix:sym<COMPOSE> { <sym><.kok> <blorst> }
     token statement_prefix:sym<TEMP>    { <sym><.kok> <blorst> }
+    token statement_prefix:sym<IGNORE>  { <sym><.kok> <blorst> }
+
     token statement_prefix:sym<CHECK>   { <sym><.kok> <blorst> }
     token statement_prefix:sym<INIT>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<ENTER>   { <sym><.kok> <blorst> }

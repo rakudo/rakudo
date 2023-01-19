@@ -31,6 +31,20 @@ class RakuAST::Term::Name
     }
 }
 
+# True
+class RakuAST::Term::True {
+    method new() {
+        RakuAST::Term::Name.new(RakuAST::Name.from-identifier("True"))
+    }
+}
+
+# False
+class RakuAST::Term::False {
+    method new() {
+        RakuAST::Term::Name.new(RakuAST::Name.from-identifier("False"))
+    }
+}
+
 # The self term for getting the current invocant
 class RakuAST::Term::Self
   is RakuAST::Term

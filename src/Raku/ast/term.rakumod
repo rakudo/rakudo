@@ -1,7 +1,10 @@
 # A name, which may resolve to a type or a constant, may be indirect, etc.
 # Things that are known to be types will instead be compiled into some
 # kind of RakuAST::Type.
-class RakuAST::Term::Name is RakuAST::Term is RakuAST::Lookup {
+class RakuAST::Term::Name
+  is RakuAST::Term
+  is RakuAST::Lookup
+{
     has RakuAST::Name $.name;
 
     method new(RakuAST::Name $name) {
@@ -29,7 +32,11 @@ class RakuAST::Term::Name is RakuAST::Term is RakuAST::Lookup {
 }
 
 # The self term for getting the current invocant
-class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup is RakuAST::CheckTime {
+class RakuAST::Term::Self
+  is RakuAST::Term
+  is RakuAST::Lookup
+  is RakuAST::CheckTime
+{
     method new() {
         nqp::create(self)
     }
@@ -54,7 +61,10 @@ class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup is RakuAST::CheckT
 }
 
 # The term for a dotty operation on the current topic (for example in `.lc with $foo`).
-class RakuAST::Term::TopicCall is RakuAST::Term is RakuAST::ImplicitLookups {
+class RakuAST::Term::TopicCall
+  is RakuAST::Term
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Postfixish $.call;
 
     method new(RakuAST::Postfixish $call) {
@@ -80,7 +90,10 @@ class RakuAST::Term::TopicCall is RakuAST::Term is RakuAST::ImplicitLookups {
 }
 
 # A named term that is implemented by a call to term:<foo>.
-class RakuAST::Term::Named is RakuAST::Term is RakuAST::Lookup {
+class RakuAST::Term::Named
+  is RakuAST::Term
+  is RakuAST::Lookup
+{
     has str $.name;
 
     method new(str $name) {
@@ -103,7 +116,10 @@ class RakuAST::Term::Named is RakuAST::Term is RakuAST::Lookup {
 }
 
 # The empty set term.
-class RakuAST::Term::EmptySet is RakuAST::Term is RakuAST::Lookup {
+class RakuAST::Term::EmptySet
+  is RakuAST::Term
+  is RakuAST::Lookup
+{
     method new() {
         nqp::create(self)
     }
@@ -122,7 +138,10 @@ class RakuAST::Term::EmptySet is RakuAST::Term is RakuAST::Lookup {
 }
 
 # The rand term.
-class RakuAST::Term::Rand is RakuAST::Term is RakuAST::Lookup {
+class RakuAST::Term::Rand
+  is RakuAST::Term
+  is RakuAST::Lookup
+{
     method new() {
         nqp::create(self)
     }
@@ -141,7 +160,10 @@ class RakuAST::Term::Rand is RakuAST::Term is RakuAST::Lookup {
 }
 
 # The whatever (*) term.
-class RakuAST::Term::Whatever is RakuAST::Term is RakuAST::Attaching {
+class RakuAST::Term::Whatever
+  is RakuAST::Term
+  is RakuAST::Attaching
+{
     has RakuAST::CompUnit $!enclosing-comp-unit;
 
     method new() {
@@ -162,7 +184,10 @@ class RakuAST::Term::Whatever is RakuAST::Term is RakuAST::Attaching {
 }
 
 # The hyper whatever (**) term.
-class RakuAST::Term::HyperWhatever is RakuAST::Term is RakuAST::Attaching {
+class RakuAST::Term::HyperWhatever
+  is RakuAST::Term
+  is RakuAST::Attaching
+{
     has RakuAST::CompUnit $!enclosing-comp-unit;
 
     method new() {
@@ -183,7 +208,9 @@ class RakuAST::Term::HyperWhatever is RakuAST::Term is RakuAST::Attaching {
 }
 
 # A capture term (`\$foo`, `\($foo, :bar)`).
-class RakuAST::Term::Capture is RakuAST::Term {
+class RakuAST::Term::Capture
+  is RakuAST::Term
+{
     has RakuAST::CaptureSource $.source;
 
     method new(RakuAST::CaptureSource $source) {
@@ -213,7 +240,10 @@ class RakuAST::Term::Capture is RakuAST::Term {
 }
 
 # A reduction meta-operator.
-class RakuAST::Term::Reduce is RakuAST::Term is RakuAST::ImplicitLookups {
+class RakuAST::Term::Reduce
+  is RakuAST::Term
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::Infixish $.infix;
     has RakuAST::ArgList $.args;
     has Bool $.triangle;
@@ -269,7 +299,9 @@ class RakuAST::Term::Reduce is RakuAST::Term is RakuAST::ImplicitLookups {
 
 # A radix number, of the single-part form :10('foo') or the multi-part form
 # :8[3,4,5].
-class RakuAST::Term::RadixNumber is RakuAST::Term {
+class RakuAST::Term::RadixNumber
+  is RakuAST::Term
+{
     has Int $.radix;
     has RakuAST::Circumfix $.value;
     has Bool $.multi-part;

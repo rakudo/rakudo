@@ -505,34 +505,63 @@ class RakuAST::PlaceholderParameterOwner is RakuAST::Node {
 }
 
 class RakuAST::ScopePhaser {
-    has List $!leave-phasers;
+    has Bool $!has-exit-handler;
+    has List $!LEAVE;
+    has List $!NEXT;
+    has List $!LAST;
     has RakuAST::Block $!let;
     has RakuAST::Block $!temp;
+
+    method add-phaser-to-list(Str $attr, RakuAST::StatementPrefix::Phaser $phaser) {
+        my $list := nqp::getattr(self, RakuAST::ScopePhaser, $attr);
+        $list := nqp::bindattr(self, RakuAST::ScopePhaser, $attr, [])
+          unless $list;
+
+        for $list {
+            if nqp::eqaddr($_, $phaser) {
+                return;
+            }
+        }
+        nqp::push($list, $phaser);
+    }
 
     method set-has-let() {
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!let', RakuAST::Block.new(:implicit-topic(False)));
     }
 
     method set-has-temp() {
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!temp', RakuAST::Block.new(:implicit-topic(False)));
     }
 
     method add-leave-phaser(RakuAST::StatementPrefix::Phaser::Leave $phaser) {
-        nqp::bindattr(self, RakuAST::ScopePhaser, '$!leave-phasers', []) unless $!leave-phasers;
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
+        self.add-phaser-to-list('$!LEAVE', $phaser);
+    }
 
-        for $!leave-phasers {
-            if nqp::eqaddr($_, $phaser) {
-                return;
+    method add-next-phaser(RakuAST::StatementPrefix::Phaser::Next $phaser) {
+        self.add-phaser-to-list('$!NEXT', $phaser);
+    }
+
+    method add-last-phaser(RakuAST::StatementPrefix::Phaser::Next $phaser) {
+        self.add-phaser-to-list('$!LAST', $phaser);
+    }
+
+    method add-list-to-code-object(Str $attr, $code-object) {
+        my $list := nqp::getattr(self, RakuAST::ScopePhaser, $attr);
+        if $list {
+            my $name := nqp::substr($attr,2);
+            for $list {
+                $code-object.add_phaser($name, $_.meta-object);
             }
         }
-        nqp::push($!leave-phasers, $phaser);
     }
 
     method add-phasers-to-code-object($code-object) {
-        my $leave-phasers := $!leave-phasers;
-        if $leave-phasers {
-            $code-object.add_phaser('LEAVE', $_.meta-object) for $leave-phasers;
-        }
+        self.add-list-to-code-object('$!LEAVE', $code-object);
+        self.add-list-to-code-object('$!NEXT', $code-object);
+        self.add-list-to-code-object('$!LAST', $code-object);
+
         if $!let {
             $code-object.add_phaser('UNDO', $!let.meta-object);
         }
@@ -542,7 +571,7 @@ class RakuAST::ScopePhaser {
     }
 
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
-        if $!leave-phasers && nqp::elems($!leave-phasers) || $!temp {
+        if $!has-exit-handler {
             $qast.has_exit_handler(1);
         }
         if $!let {
@@ -564,7 +593,12 @@ class RakuAST::ScopePhaser {
         }
     }
 
-    method IMPL-ADD-PHASER-QAST(RakuAST::IMPL::Context $context, RakuAST::Block $phaser, Str $value_stash, QAST::Block $block) {
+    method IMPL-ADD-PHASER-QAST(
+      RakuAST::IMPL::Context $context,
+      RakuAST::Block         $phaser,
+      Str                    $value_stash,
+      QAST::Block            $block
+    ) {
         $block[0].push(QAST::Op.new(
             :op('bind'),
             QAST::Var.new( :name($value_stash), :scope('lexical'), :decl('var') ),
@@ -610,7 +644,7 @@ class RakuAST::ScopePhaser {
     }
 
     method clear-phaser-attachments() {
-        nqp::setelems($!leave-phasers, 0) if $!leave-phasers;
+        nqp::setelems($!LEAVE, 0) if $!LEAVE;
     }
 }
 

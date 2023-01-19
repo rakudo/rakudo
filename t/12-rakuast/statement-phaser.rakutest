@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 13; # Do not change this file to done-testing
+plan 15; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -408,6 +408,128 @@ CODE
 
     is-deeply $_, Nil, @type[$++]
       for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'For loop with NEXT / LAST phaser thunk' => {
+    my $next;
+    my $last;
+
+    # for ^3 { NEXT ++$next; LAST ++$last }
+    ast RakuAST::Statement::For.new(
+      source => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('^'),
+        operand => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::Next.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$next')
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::Last.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$last')
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+for ^3 {
+    NEXT ++$next;
+    LAST ++$last
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $next = $last = 0;
+
+        is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+        is-deeply $next, 3, "$type: NEXTed expected number of times";
+        is-deeply $last, 1, "$type: LASTed expected number of times";
+    }
+}
+
+subtest 'For loop with NEXT phaser block' => {
+    my $next;
+    my $last;
+
+    # for ^3 { NEXT { ++$next }; LAST { ++$last } }
+    ast RakuAST::Statement::For.new(
+      source => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('^'),
+        operand => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::Next.new(
+                RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::ApplyPrefix.new(
+                          prefix => RakuAST::Prefix.new('++'),
+                          operand => RakuAST::Var::Lexical.new('$next')
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::Last.new(
+                RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::ApplyPrefix.new(
+                          prefix => RakuAST::Prefix.new('++'),
+                          operand => RakuAST::Var::Lexical.new('$last')
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+for ^3 {
+    NEXT {
+        ++$next
+    }
+    LAST {
+        ++$last
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $next = $last = 0;
+
+        is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+        is-deeply $next, 3, "$type: NEXTed expected number of times";
+        is-deeply $last, 1, "$type: LASTed expected number of times";
+    }
 }
 
 # vim: expandtab shiftwidth=4

@@ -174,9 +174,8 @@ class Rakudo::Supply {
 
             # Run the Supply block, then decrease active count afterwards (it
             # counts as an active runner).
-            self!run-supply-code:
-                { &!block(); self!deactivate-one-internal($state) },
-                Nil, $state, &add-whenever, $t;
+            self!run-supply-code: { &!block() }, Nil, $state, &add-whenever, $t;
+            self!deactivate-one-internal($state);
 
             # Evaluate to the Tap.
             $t
@@ -218,7 +217,8 @@ class Rakudo::Supply {
         method !run-add-whenevers(@whenever-tap-data, &add-whenever, BlockState $state --> Nil) {
             for @whenever-tap-data {
                 if $_.done {
-                    $state.run-done();
+                    $state.run-async-lock.protect-or-queue-on-recursion:
+                        { $state.run-done() };
                 }
                 else {
                     &add-whenever($_.supply, $_.whenever-block);

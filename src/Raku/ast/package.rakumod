@@ -242,6 +242,12 @@ class RakuAST::Package
                         name => '::?ROLE', value => self.stubbed-meta-object
                     )
                 );
+                $resolver.declare-lexical(
+                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('$?CLASS'))
+                );
+                $resolver.declare-lexical(
+                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('::?CLASS'))
+                );
             }
             elsif $!package-declarator eq 'module' {
                 $resolver.declare-lexical(

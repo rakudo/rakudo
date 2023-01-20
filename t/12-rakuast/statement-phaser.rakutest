@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 15; # Do not change this file to done-testing
+plan 17; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -328,7 +328,7 @@ subtest 'LEAVE phaser block being run' => {
                           RakuAST::StrLiteral.new("leaving")
                         )
                       )
-                    ),
+                    )
                   )
                 )
               )
@@ -408,6 +408,120 @@ CODE
 
     is-deeply $_, Nil, @type[$++]
       for EVAL($ast), EVAL($deparsed);
+}
+
+todo("AST FIRST phaser not working yet");
+subtest 'For loop with FIRST phaser thunk' => {
+    my $run;
+
+    # for ^3 { FIRST is-deeply $run, 0, "inside FIRST"; ++$run }
+    ast RakuAST::Statement::For.new(
+      source => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('^'),
+        operand => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::First.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier("is-deeply"),
+                    args => RakuAST::ArgList.new(
+                      RakuAST::Var::Lexical.new('$run'),
+                      RakuAST::IntLiteral.new(0),
+                      RakuAST::StrLiteral.new('inside FIRST'),
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$run')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    plan 5;  # FIRST tests need to be run
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+for ^3 {
+    FIRST is-deeply($run, 0, "inside FIRST");
+    ++$run
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $run = 0;
+
+        is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+    }
+}
+
+todo("AST FIRST phaser not working yet");
+subtest 'For loop with FIRST phaser block' => {
+    my $run;
+
+    # for ^3 { FIRST { is-deeply $run, 0, "inside FIRST" }; ++$run }
+    ast RakuAST::Statement::For.new(
+      source => RakuAST::ApplyPrefix.new(
+        prefix  => RakuAST::Prefix.new('^'),
+        operand => RakuAST::IntLiteral.new(3)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::StatementPrefix::Phaser::First.new(
+                RakuAST::Block.new(
+                  body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        expression => RakuAST::Call::Name.new(
+                          name => RakuAST::Name.from-identifier("is-deeply"),
+                          args => RakuAST::ArgList.new(
+                            RakuAST::Var::Lexical.new('$run'),
+                                  RakuAST::IntLiteral.new(0),
+                            RakuAST::StrLiteral.new('inside FIRST'),
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$run')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    plan 5;  # FIRST tests need to be run
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+for ^3 {
+    FIRST {
+        is-deeply($run, 0, "inside FIRST")
+    }
+    ++$run
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $run = 0;
+
+        is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+    }
 }
 
 subtest 'For loop with NEXT / LAST phaser thunk' => {

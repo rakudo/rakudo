@@ -1450,6 +1450,12 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
+      RakuAST::StatementPrefix::Phaser::First:D $ast
+    --> Str:D) {
+        'FIRST ' ~ self.deparse($ast.blorst)
+    }
+
+    multi method deparse(
       RakuAST::StatementPrefix::Phaser::Last:D $ast
     --> Str:D) {
         'LAST ' ~ self.deparse($ast.blorst)

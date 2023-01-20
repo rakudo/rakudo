@@ -371,13 +371,23 @@ class RakuAST::StatementPrefix::Phaser::Begin
     }
 }
 
+# The FIRST phaser.
+class RakuAST::StatementPrefix::Phaser::First
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-first-phaser(self);
+    }
+}
+
 # The NEXT phaser.
 class RakuAST::StatementPrefix::Phaser::Next
   is RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
-
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-next-phaser(self);
     }
@@ -389,7 +399,6 @@ class RakuAST::StatementPrefix::Phaser::Last
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
-
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-last-phaser(self);
     }
@@ -401,7 +410,6 @@ class RakuAST::StatementPrefix::Phaser::Leave
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
-
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-leave-phaser(self);
     }
@@ -413,7 +421,6 @@ class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
-
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('compunit').add-end-phaser(self);
     }

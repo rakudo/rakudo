@@ -507,6 +507,7 @@ class RakuAST::PlaceholderParameterOwner is RakuAST::Node {
 class RakuAST::ScopePhaser {
     has Bool $!has-exit-handler;
     has List $!LEAVE;
+    has List $!FIRST;
     has List $!NEXT;
     has List $!LAST;
     has RakuAST::Block $!let;
@@ -539,6 +540,10 @@ class RakuAST::ScopePhaser {
         self.add-phaser-to-list('$!LEAVE', $phaser);
     }
 
+    method add-first-phaser(RakuAST::StatementPrefix::Phaser::First $phaser) {
+        self.add-phaser-to-list('$!FIRST', $phaser);
+    }
+
     method add-next-phaser(RakuAST::StatementPrefix::Phaser::Next $phaser) {
         self.add-phaser-to-list('$!NEXT', $phaser);
     }
@@ -550,7 +555,7 @@ class RakuAST::ScopePhaser {
     method add-list-to-code-object(Str $attr, $code-object) {
         my $list := nqp::getattr(self, RakuAST::ScopePhaser, $attr);
         if $list {
-            my $name := nqp::substr($attr,2);
+            my $name := nqp::substr($attr,2);  # $!FOO -> FOO
             for $list {
                 $code-object.add_phaser($name, $_.meta-object);
             }
@@ -559,8 +564,9 @@ class RakuAST::ScopePhaser {
 
     method add-phasers-to-code-object($code-object) {
         self.add-list-to-code-object('$!LEAVE', $code-object);
-        self.add-list-to-code-object('$!NEXT', $code-object);
-        self.add-list-to-code-object('$!LAST', $code-object);
+        self.add-list-to-code-object('$!FIRST', $code-object);
+        self.add-list-to-code-object( '$!NEXT', $code-object);
+        self.add-list-to-code-object( '$!LAST', $code-object);
 
         if $!let {
             $code-object.add_phaser('UNDO', $!let.meta-object);
@@ -573,6 +579,22 @@ class RakuAST::ScopePhaser {
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {
         if $!has-exit-handler {
             $qast.has_exit_handler(1);
+        }
+        if $!FIRST {
+#            for $!FIRST {
+#                my $phaser-block := $_.IMPL-QAST-BLOCK(
+#                  $context, :blocktype('declaration_static')
+#                );
+#                $qast[0].push(
+#                  QAST::Op.new(
+#                    :op('if'),
+#                    QAST::Op.new( :op('p6takefirstflag') ),
+#                    $_.IMPL-QAST-BLOCK(
+#                      $context, :blocktype('declaration_static')
+#                    )
+#                  )
+#                );
+#            }
         }
         if $!let {
             self.IMPL-ADD-PHASER-QAST($context, $!let, '!LET-RESTORE', $qast);
@@ -644,7 +666,11 @@ class RakuAST::ScopePhaser {
     }
 
     method clear-phaser-attachments() {
-        nqp::setelems($!LEAVE, 0) if $!LEAVE;
+        my @attrs := ['$!LEAVE', '$!FIRST', '$!NEXT', '$!LAST'];
+        for @attrs {
+            my $attr := nqp::getattr(self, RakuAST::ScopePhaser, $_);
+            nqp::setelems($attr, 0) if $attr;
+        }
     }
 }
 

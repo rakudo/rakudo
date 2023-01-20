@@ -1532,19 +1532,32 @@ class RakuAST::Deparse {
         @parts.push(':samespace') if $ast.samespace;
 
         if $ast.adverbs -> @adverbs {
-            @parts.push(':');
             @parts.push(self.deparse($_)) for @adverbs;
         }
 
-        @parts.push('/');
-        @parts.push(self.deparse($ast.pattern));
-        @parts.push('/');
-        @parts.push(self.deparse($ast.replacement));
-        @parts.push('/');
-
-        NYI 'DEPARSE of infix on substitution' if $ast.infix;
+        if $ast.infix -> $infix {
+            @parts.push('{');
+            @parts.push(self.deparse($ast.pattern));
+            @parts.push('} ');
+            @parts.push(self.deparse($infix));
+            @parts.push(' ');
+            @parts.push(self.deparse($ast.replacement));
+        }
+        else {
+            @parts.push('/');
+            @parts.push(self.deparse($ast.pattern));
+            @parts.push('/');
+            @parts.push(self.deparse($ast.replacement).substr(1,*-1));
+            @parts.push('/');
+        }
 
         @parts.join
+    }
+
+    multi method deparse(
+      RakuAST::SubstitutionReplacementThunk:D $ast
+    --> Str:D) {
+        self.deparse($ast.infix)
     }
 
 #- Term ------------------------------------------------------------------------

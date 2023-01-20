@@ -40,7 +40,6 @@ RakuAST::RegexThunk
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::No
 RakuAST::Statement::Require
-RakuAST::Substitution
 RakuAST::SubstitutionReplacementThunk
 RakuAST::Trait::Hides
 RakuAST::Trait::Of

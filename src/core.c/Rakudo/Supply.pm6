@@ -186,6 +186,7 @@ class Rakudo::Supply {
             my @whenever-tap-data;
 
             my class WheneverTapData {
+                has $.done = False;
                 has $.supply;
                 has &.whenever-block;
             }
@@ -193,28 +194,34 @@ class Rakudo::Supply {
                 @whenever-tap-data.push: WheneverTapData.new(:$supply, :&whenever-block);
             }
 
+            sub queue-done() {
+                @whenever-tap-data.push: WheneverTapData.new(:done);
+            }
+
             my $queued := $state.run-async-lock.protect-or-queue-on-recursion: {
                 my &*ADD-WHENEVER := &save-whenever;
                 $state.active > 0 and nqp::handle(code(value),
                     'EMIT', $state.run-emit(),
-                    'DONE', $state.run-done(),
+                    'DONE', queue-done(),
                     'CATCH', $state.run-catch(),
                     'LAST', $state.run-last($tap, &code),
                     'NEXT', 0);
             }
             if $queued.defined {
-                $queued.then({ self!run-add-whenevers(@whenever-tap-data, &add-whenever) });
+                $queued.then({ self!run-add-whenevers(@whenever-tap-data, &add-whenever, $state) });
             }
             else {
-                self!run-add-whenevers(@whenever-tap-data, &add-whenever);
+                self!run-add-whenevers(@whenever-tap-data, &add-whenever, $state);
             }
         }
 
-        method !run-add-whenevers(@whenever-tap-data, &add-whenever --> Nil) {
-            if @whenever-tap-data {
-                for @whenever-tap-data {
-                    my $data = @_.shift();
-                    &add-whenever($data.supply, $data.whenever-block);
+        method !run-add-whenevers(@whenever-tap-data, &add-whenever, BlockState $state --> Nil) {
+            for @whenever-tap-data {
+                if $_.done {
+                    $state.run-done();
+                }
+                else {
+                    &add-whenever($_.supply, $_.whenever-block);
                 }
             }
         }

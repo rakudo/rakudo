@@ -1,5 +1,7 @@
 # A blockoid represents the block part of some kind of code declaration.
-class RakuAST::Blockoid is RakuAST::SinkPropagator {
+class RakuAST::Blockoid
+  is RakuAST::SinkPropagator
+{
     has RakuAST::StatementList $.statement-list;
 
     method new(RakuAST::StatementList $statement-list?) {
@@ -34,7 +36,9 @@ class RakuAST::Blockoid is RakuAST::SinkPropagator {
     }
 }
 
-class RakuAST::OnlyStar is RakuAST::Blockoid {
+class RakuAST::OnlyStar
+  is RakuAST::Blockoid
+{
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Blockoid, '$!statement-list',
@@ -53,7 +57,9 @@ class RakuAST::OnlyStar is RakuAST::Blockoid {
 }
 
 # Marker for all code-y things.
-class RakuAST::Code is RakuAST::Node {
+class RakuAST::Code
+  is RakuAST::Node
+{
     has Bool $.custom-args;
     has Mu $!qast-block;
     has str $!cuid;
@@ -310,7 +316,11 @@ class RakuAST::Code is RakuAST::Node {
 
 # The base of all expression thunks, which produce a code object of some kind
 # that wraps the thunk.
-class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta is RakuAST::BeginTime {
+class RakuAST::ExpressionThunk
+  is RakuAST::Code
+  is RakuAST::Meta
+  is RakuAST::BeginTime
+{
     has RakuAST::ExpressionThunk $.next;
     has RakuAST::Signature $!signature;
 
@@ -412,7 +422,9 @@ class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta is RakuAST::Beg
 }
 
 # A code object that can have placeholder parameters.
-class RakuAST::PlaceholderParameterOwner is RakuAST::Node {
+class RakuAST::PlaceholderParameterOwner
+  is RakuAST::Node
+{
     # Any placeholder parameters that have been attached
     has Mu $!attached-placeholder-parameters;
 
@@ -675,11 +687,20 @@ class RakuAST::ScopePhaser {
 }
 
 # A block, either without signature or with only a placeholder signature.
-class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
-                     is RakuAST::BlockStatementSensitive is RakuAST::SinkPropagator
-                     is RakuAST::Blorst is RakuAST::ImplicitDeclarations
-                     is RakuAST::AttachTarget is RakuAST::PlaceholderParameterOwner
-                     is RakuAST::BeginTime is RakuAST::ScopePhaser {
+class RakuAST::Block
+  is RakuAST::LexicalScope
+  is RakuAST::Term
+  is RakuAST::Code
+  is RakuAST::Meta
+  is RakuAST::BlockStatementSensitive
+  is RakuAST::SinkPropagator
+  is RakuAST::Blorst
+  is RakuAST::ImplicitDeclarations
+  is RakuAST::AttachTarget
+  is RakuAST::PlaceholderParameterOwner
+  is RakuAST::BeginTime
+  is RakuAST::ScopePhaser
+{
     has RakuAST::Blockoid $.body;
 
     # Should this block have an implicit topic, in the absence of a (perhaps
@@ -969,7 +990,9 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 }
 
 # A pointy block (-> $foo { ... }).
-class RakuAST::PointyBlock is RakuAST::Block {
+class RakuAST::PointyBlock
+  is RakuAST::Block
+{
     has RakuAST::Signature $.signature;
 
     method new(RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
@@ -1021,11 +1044,21 @@ class RakuAST::PointyBlock is RakuAST::Block {
 }
 
 # Done by all kinds of Routine.
-class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code
-                       is RakuAST::Meta is RakuAST::Declaration is RakuAST::Attaching
-                       is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget
-                       is RakuAST::PlaceholderParameterOwner is RakuAST::ImplicitLookups
-                       is RakuAST::BeginTime is RakuAST::TraitTarget is RakuAST::ScopePhaser {
+class RakuAST::Routine
+  is RakuAST::LexicalScope
+  is RakuAST::Term
+  is RakuAST::Code
+  is RakuAST::Meta
+  is RakuAST::Declaration
+  is RakuAST::Attaching
+  is RakuAST::ImplicitDeclarations
+  is RakuAST::AttachTarget
+  is RakuAST::PlaceholderParameterOwner
+  is RakuAST::ImplicitLookups
+  is RakuAST::BeginTime
+  is RakuAST::TraitTarget
+  is RakuAST::ScopePhaser
+{
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
     has str $!multiness;
@@ -1344,7 +1377,10 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 }
 
 # A subroutine.
-class RakuAST::Sub is RakuAST::Routine is RakuAST::SinkBoundary {
+class RakuAST::Sub
+  is RakuAST::Routine
+  is RakuAST::SinkBoundary
+{
     has RakuAST::Blockoid $.body;
 
     method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
@@ -1393,7 +1429,10 @@ class RakuAST::Sub is RakuAST::Routine is RakuAST::SinkBoundary {
 
 # The commonalities of method-like things, whichever language their body is in
 # (be it the main Raku language or the regex language).
-class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
+class RakuAST::Methodish
+  is RakuAST::Routine
+  is RakuAST::Attaching
+{
     method default-scope() {
         self.name ?? 'has' !! 'anon'
     }
@@ -1452,7 +1491,10 @@ class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
 }
 
 # A method.
-class RakuAST::Method is RakuAST::Methodish is RakuAST::SinkBoundary {
+class RakuAST::Method
+  is RakuAST::Methodish
+  is RakuAST::SinkBoundary
+{
     has RakuAST::Blockoid $.body;
     has Bool $.meta;
     has Bool $.private;
@@ -1513,13 +1555,17 @@ class RakuAST::Method is RakuAST::Methodish is RakuAST::SinkBoundary {
 }
 
 # A submethod.
-class RakuAST::Submethod is RakuAST::Method {
+class RakuAST::Submethod
+  is RakuAST::Method
+{
     method IMPL-META-OBJECT-TYPE() { Submethod }
 }
 
 # A regex declaration, such as `token foo { bar }`. This implies its own
 # lexical scope.
-class RakuAST::RegexDeclaration is RakuAST::Methodish {
+class RakuAST::RegexDeclaration
+  is RakuAST::Methodish
+{
     has RakuAST::Regex $.body;
 
     method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
@@ -1570,7 +1616,11 @@ class RakuAST::RegexDeclaration is RakuAST::Methodish {
 # a separate regex code object but without introducing a new lexical scope. This
 # includes quoted regexes like /.../, capturing groups, and calls of the form
 # `<?before foo>`, where `foo` is the thunked regex.
-class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta is RakuAST::BeginTime {
+class RakuAST::RegexThunk
+  is RakuAST::Code
+  is RakuAST::Meta
+  is RakuAST::BeginTime
+{
     method PRODUCE-META-OBJECT() {
         # Create default signature, receiving invocant only.
         my $signature := nqp::create(Signature);
@@ -1620,7 +1670,10 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta is RakuAST::BeginTim
 
 # A language construct that does some kind of pattern matching. These all have
 # adverbs in common.
-class RakuAST::QuotedMatchConstruct is RakuAST::Term is RakuAST::BeginTime {
+class RakuAST::QuotedMatchConstruct
+  is RakuAST::Term
+  is RakuAST::BeginTime
+{
     has List $.adverbs;
 
     method replace-adverbs(List $adverbs) {
@@ -1714,9 +1767,13 @@ class RakuAST::QuotedMatchConstruct is RakuAST::Term is RakuAST::BeginTime {
 
 # A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
 # new lexical scope.
-class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::QuotedMatchConstruct
-                           is RakuAST::Sinkable is RakuAST::ImplicitLookups
-                           is RakuAST::CheckTime {
+class RakuAST::QuotedRegex
+  is RakuAST::RegexThunk
+  is RakuAST::QuotedMatchConstruct
+  is RakuAST::Sinkable
+  is RakuAST::ImplicitLookups
+  is RakuAST::CheckTime
+{
     has RakuAST::Regex $.body;
     has Bool $.match-immediately;
 
@@ -1850,9 +1907,13 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::QuotedMatchConstru
     }
 }
 
-# A subsbitution, such as `s/abc/def/`, `S/not_in/place/`, or `s/abc/ = 'def'`.
-class RakuAST::Substitution is RakuAST::RegexThunk is RakuAST::QuotedMatchConstruct
-                            is RakuAST::ImplicitLookups is RakuAST::CheckTime {
+# A substitution, such as `s/abc/def/`, `S/not_in/place/`, or `s/abc/ = 'def'`.
+class RakuAST::Substitution
+  is RakuAST::RegexThunk
+  is RakuAST::QuotedMatchConstruct
+  is RakuAST::ImplicitLookups
+  is RakuAST::CheckTime
+{
     has Bool $.immutable;
     has Bool $.samespace;
     has RakuAST::Regex $.pattern;
@@ -2057,7 +2118,9 @@ class RakuAST::Substitution is RakuAST::RegexThunk is RakuAST::QuotedMatchConstr
 }
 
 # Thunk handle for substitution replacement.
-class RakuAST::SubstitutionReplacementThunk is RakuAST::ExpressionThunk {
+class RakuAST::SubstitutionReplacementThunk
+  is RakuAST::ExpressionThunk
+{
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish :$infix) {
@@ -2087,7 +2150,10 @@ class RakuAST::SubstitutionReplacementThunk is RakuAST::ExpressionThunk {
 }
 
 # Thunk for a curried Whatever expression.
-class RakuAST::CurryThunk is RakuAST::ExpressionThunk is RakuAST::ImplicitLookups {
+class RakuAST::CurryThunk
+  is RakuAST::ExpressionThunk
+  is RakuAST::ImplicitLookups
+{
     method thunk-kind() {
         'Curried Whatever'
     }
@@ -2114,7 +2180,9 @@ class RakuAST::CurryThunk is RakuAST::ExpressionThunk is RakuAST::ImplicitLookup
     }
 }
 
-class RakuAST::BlockThunk is RakuAST::ExpressionThunk {
+class RakuAST::BlockThunk
+  is RakuAST::ExpressionThunk
+{
     has RakuAST::Expression $!expression;
 
     method new(RakuAST::Expression :$expression) {

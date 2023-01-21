@@ -135,22 +135,37 @@ class RakuAST::Regex::Sequence
 
         my @terms;
         my @literals;
+
+        my sub handle-literals($with-sigspace) {
+            my $literal := RakuAST::Regex::Literal.new(nqp::join('',@literals));
+            @terms.push($with-sigspace
+              ?? RakuAST::Regex::WithSigspace.new($literal)
+              !! $literal
+            );
+            nqp::setelems(@literals, 0);
+        }
+
         for @atoms {
             if nqp::istype($_, RakuAST::Regex::Literal) {
                 @literals.push($_.text);
             }
-            else {
-                if @literals {
-                    @terms.push(
-                      RakuAST::Regex::Literal.new(nqp::join('',@literals))
-                    );
-                    nqp::setelems(@literals, 0);
+            elsif nqp::istype($_, RakuAST::Regex::WithSigspace) {
+                my $regex := $_.regex;
+                if nqp::istype($regex, RakuAST::Regex::Literal) && @literals {
+                    @literals.push($regex.text);
+                    handle-literals(True);
                 }
+                else {
+                    handle-literals(False) if @literals;
+                    @terms.push($_);
+                }
+            }
+            else {
+                handle-literals(False) if @literals;
                 @terms.push($_);
             }
         }
-        @terms.push(RakuAST::Regex::Literal.new(nqp::join('',@literals)))
-          if @literals;
+        handle-literals(False) if @literals;
 
         nqp::bindattr($obj, RakuAST::Regex::Sequence, '$!terms', @terms);
         $obj

@@ -130,10 +130,29 @@ class RakuAST::Regex::Sequence
 {
     has Mu $!terms;
 
-    method new(*@terms) {
+    method new(*@atoms) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Regex::Sequence, '$!terms',
-            @terms);
+
+        my @terms;
+        my @literals;
+        for @atoms {
+            if nqp::istype($_, RakuAST::Regex::Literal) {
+                @literals.push($_.text);
+            }
+            else {
+                if @literals {
+                    @terms.push(
+                      RakuAST::Regex::Literal.new(nqp::join('',@literals))
+                    );
+                    nqp::setelems(@literals, 0);
+                }
+                @terms.push($_);
+            }
+        }
+        @terms.push(RakuAST::Regex::Literal.new(nqp::join('',@literals)))
+          if @literals;
+
+        nqp::bindattr($obj, RakuAST::Regex::Sequence, '$!terms', @terms);
         $obj
     }
 

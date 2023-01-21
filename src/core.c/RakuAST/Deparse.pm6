@@ -282,6 +282,15 @@ class RakuAST::Deparse {
         $dot ~ $name ~ ($macroish ?? '' !! self!parenthesize($ast.args))
     }
 
+    method !quote-if-needed(str $literal) {
+        my int $find = nqp::findnotcclass(
+          nqp::const::CCLASS_WORD,$literal,0,nqp::chars($literal)
+        );
+        $find == nqp::chars($literal)
+          ?? $literal       # just word chars
+          !! $literal.raku  # need quoting
+    }
+
 #- A ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> Str:D) {
@@ -786,14 +795,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Literal:D $ast --> Str:D) {
-        my str $literal = $ast.text;
-        nqp::iseq_i(
-          nqp::findnotcclass(
-            nqp::const::CCLASS_WORD,$literal,0,nqp::chars($literal)
-          ),
-          nqp::chars($literal)
-        ) ?? $literal               # just word chars
-          !! "'" ~ $literal ~ "'"   # need quoting
+        self!quote-if-needed($ast.text)
     }
 
     multi method deparse(RakuAST::Regex::Alternation:D $ast --> Str:D) {

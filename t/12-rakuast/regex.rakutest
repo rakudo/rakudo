@@ -395,44 +395,44 @@ subtest 'Ratchet quantifier will not backtrack' => {
 }
 
 subtest 'Separator works (non-trailing case)' => {
-    # / \d+ % ',' /
+    # / \d+ % "," /
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(',')
     );
-    is-deeply $deparsed, q|/ \d+ % ',' /|, 'deparse';
+    is-deeply $deparsed, q|/ \d+ % "," /|, 'deparse';
 
     match-ok "values: 1,2,3,4,stuff", '1,2,3,4';
 }
 
 subtest 'Separator works (trailing case)' => {
-    # / \d+ %% ',' /
+    # / \d+ %% "," /
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(','),
       trailing-separator => True
     );
-    is-deeply $deparsed, q|/ \d+ %% ',' /|, 'deparse';
+    is-deeply $deparsed, q|/ \d+ %% "," /|, 'deparse';
 
     match-ok "values: 1,2,3,4,stuff", '1,2,3,4,';
 }
 
 subtest 'Separator must be between every quantified item' => {
-    # / \d+ % ',' /
+    # / \d+ % "," /
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::CharClass::Digit.new,
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(',')
     );
-    is-deeply $deparsed, q|/ \d+ % ',' /|, 'deparse';
+    is-deeply $deparsed, q|/ \d+ % "," /|, 'deparse';
 
     match-ok "values: 1,2,33,4,stuff", '1,2,3';
 }
 
 subtest 'Regex groups compile correctly' => {
-    # / [\d+]+ % ',' /
+    # / [\d+]+ % "," /
     ast RakuAST::Regex::QuantifiedAtom.new(
       atom => RakuAST::Regex::Group.new(
         RakuAST::Regex::QuantifiedAtom.new(
@@ -443,7 +443,7 @@ subtest 'Regex groups compile correctly' => {
       quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
       separator => RakuAST::Regex::Literal.new(',')
     );
-    is-deeply $deparsed, q|/ [\d+]+ % ',' /|, 'deparse';
+    is-deeply $deparsed, q|/ [\d+]+ % "," /|, 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
         is "values: 1,2,33,400,stuff" ~~ $regex, '1,2,33,400',

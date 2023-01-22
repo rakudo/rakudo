@@ -129,28 +129,30 @@ class RakuAST::Package
             }
         }
         else {
-            my $resolved := $resolver.partially-resolve-name-constant($name);
+            my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
+            $final := nqp::pop(@parts).name;
+            my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
 
             if $resolved { # first parts of the name found
                 $resolved := self.IMPL-UNWRAP-LIST($resolved);
                 $target := $resolved[0];
                 my $parts  := $resolved[1];
                 my @parts := self.IMPL-UNWRAP-LIST($parts);
-                $final := nqp::pop(@parts).name;
-                my $longname := $target.HOW.name($target);
                 $scope := 'our'; # Ensure we install the package into the parent stash
+                if nqp::elems(@parts) {
+                    my $longname := $target.HOW.name($target);
 
-                for @parts {
-                    $longname := $longname ~ '::' ~ $_.name;
-                    my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
-                    $package.HOW.compose($package);
-                    my %stash := $resolver.IMPL-STASH-HASH($target);
-                    %stash{$_.name} := $package;
-                    $target := $package;
+                    for @parts {
+                        $longname := $longname ~ '::' ~ $_.name;
+                        my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
+                        $package.HOW.compose($package);
+                        my %stash := $resolver.IMPL-STASH-HASH($target);
+                        %stash{$_.name} := $package;
+                        $target := $package;
+                    }
                 }
             }
             else {
-                my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
                 my $first := nqp::shift(@parts).name;
                 $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
                 $target.HOW.compose($target);
@@ -166,7 +168,6 @@ class RakuAST::Package
                 }
                 $scope := 'our'; # Ensure we install the package into the generated stub
 
-                $final := nqp::pop(@parts).name;
                 my $longname := $first;
                 for @parts {
                     $longname := $longname ~ '::' ~ $_.name;

@@ -232,9 +232,10 @@ class RakuAST::Resolver {
     method IMPL-PARTIALLY-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {
         if $name.is-identifier {
             my str $identifier := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
-            $setting
+            my $constant := $setting
                 ?? self.resolve-lexical-constant-in-setting($identifier)
-                !! self.resolve-lexical-constant($identifier)
+                !! self.resolve-lexical-constant($identifier);
+            $constant ?? ($constant.compile-time-value, List.new) !! Nil
         }
         else {
             # Obtain parts.
@@ -273,8 +274,7 @@ class RakuAST::Resolver {
                 $cur-symbol := $next-symbol;
             }
 
-            # Wrap it.
-            (RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $cur-symbol), List.new)
+            ($cur-symbol, List.new)
         }
     }
 

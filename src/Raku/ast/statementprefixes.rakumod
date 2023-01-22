@@ -371,6 +371,38 @@ class RakuAST::StatementPrefix::Phaser::Begin
     }
 }
 
+# The INIT phaser.
+class RakuAST::StatementPrefix::Phaser::Init
+  is RakuAST::StatementPrefix::Phaser
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
+    has Scalar $.container;
+
+    method new(RakuAST::Blorst $blorst) {
+        my $obj := nqp::create(self);
+        unless self.allowed-on-for-statement {
+            if nqp::istype($blorst, RakuAST::Statement::For) {
+                nqp::die('Do not use this statement prefix on a RakuAST::Statement::For; ' ~
+                    'instead, set the mode on that node');
+            }
+        }
+        nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
+        nqp::bindattr($obj, RakuAST::StatementPrefix::Phaser::Init, '$!container', nqp::create(Scalar));
+        $obj
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('compunit').add-init-phaser(self);
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $container := $!container;
+        $context.ensure-sc($container);
+        QAST::WVal.new( :value($container) )
+    }
+}
+
 # The FIRST phaser.
 class RakuAST::StatementPrefix::Phaser::First
   is RakuAST::StatementPrefix::Phaser::Sinky

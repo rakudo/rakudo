@@ -492,6 +492,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
+    method statement_prefix:sym<INIT>($/) {
+        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Init').new($<blorst>.ast);
+    }
+
     method statement_prefix:sym<END>($/) {
         self.attach: $/, self.r('StatementPrefix', 'Phaser', 'End').new($<blorst>.ast);
     }

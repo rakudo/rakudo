@@ -15,6 +15,7 @@ class RakuAST::CompUnit
     has int $!is-sunk;
     has int $!is-eval;
     has Mu $!global-package-how;
+    has Mu $!init-phasers;
     has Mu $!end-phasers;
     has Mu $!singleton-whatever;
     has Mu $!singleton-hyper-whatever;
@@ -40,6 +41,7 @@ class RakuAST::CompUnit
             $global-package-how =:= NQPMu ?? Perl6::Metamodel::PackageHOW !! $global-package-how);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
             $export-package =:= NQPMu ?? Mu !! $export-package);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!init-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
@@ -110,8 +112,14 @@ class RakuAST::CompUnit
     }
 
     method clear-attachments() {
+        nqp::setelems($!init-phasers, 0);
         nqp::setelems($!end-phasers, 0);
         self.clear-handler-attachments();
+        Nil
+    }
+
+    method add-init-phaser(RakuAST::StatementPrefix::Phaser::Init $phaser) {
+        nqp::push($!init-phasers, $phaser);
         Nil
     }
 
@@ -285,10 +293,29 @@ class RakuAST::CompUnit
             QAST::Stmts.new(
                 QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
                 self.IMPL-QAST-DECLS($context),
+                self.IMPL-QAST-INIT-PHASERS($context),
                 self.IMPL-QAST-END-PHASERS($context),
                 self.IMPL-QAST-CTXSAVE($context),
                 self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
             )
+    }
+
+    method IMPL-QAST-INIT-PHASERS(RakuAST::IMPL::QASTContext $context) {
+        my $init-setup := QAST::Stmts.new;
+        for $!init-phasers {
+            my $container := $_.container;
+            $context.ensure-sc($container);
+            $init-setup.push(
+                QAST::Op.new(
+                    :op<bindattr>,
+                    QAST::WVal.new( :value($container) ),
+                    QAST::WVal.new( :value(Scalar) ),
+                    QAST::SVal.new( :value('$!value') ),
+                    $_.IMPL-CALLISH-QAST($context)
+                )
+            );
+        }
+        $init-setup
     }
 
     method IMPL-QAST-END-PHASERS(RakuAST::IMPL::QASTContext $context) {

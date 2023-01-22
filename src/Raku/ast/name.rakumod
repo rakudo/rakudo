@@ -110,6 +110,7 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
 
     method is-pseudo-package() {
         nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].is-pseudo-package
+        || nqp::istype($!parts[0], RakuAST::Name::Part::Empty)
     }
 
     method qualified-with(RakuAST::Name $target) {

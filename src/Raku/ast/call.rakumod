@@ -193,10 +193,12 @@ class RakuAST::Call::Name
         }
         elsif $!name.is-package-lookup {
             my $name := $!name.base-name;
-            $resolved := $resolver.resolve-name($name);
-            if $resolved {
-                my $v := $resolved.compile-time-value;
-                self.set-resolution($resolved);
+            if $name.canonicalize {
+                $resolved := $resolver.resolve-name($name);
+                if $resolved {
+                    my $v := $resolved.compile-time-value;
+                    self.set-resolution($resolved);
+                }
             }
         }
         Nil

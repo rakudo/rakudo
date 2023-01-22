@@ -5,6 +5,25 @@ use MONKEY;
 my constant CORE-SETTING-REV = 'e';
 
 # This constant specifies the current Unicode version being supported
+#?if jvm
+my constant $?UNICODE-VERSION = %(
+    # Supported Unicode version per Java (major) version.
+    # (cmp. https://docs.oracle.com/en/java/javase/19/docs/api/java.base/java/lang/Character.html)
+     '8' =>  '6.2',
+     '9' =>  '8.0',
+    '10' =>  '8.0',
+    '11' => '10.0',
+    '12' => '11.0',
+    '13' => '12.1',
+    '14' => '12.1',
+    '15' => '13.0',
+    '16' => '13.0',
+    '17' => '13.0',
+    '18' => '13.0',
+    '19' => '14.0',
+).{nqp::jvmgetproperties<java.version>.split('.').first}.Version;
+#?endif
+#?if !jvm
 my constant $?UNICODE-VERSION = (
    '1.1' => 'a',
    '2.0' => 'ẛ',
@@ -34,5 +53,6 @@ my constant $?UNICODE-VERSION = (
 # PLEASE ADD NEWER UNICODE VERSIONS HERE, AS SOON AS THE UNICODE
 # CONSORTIUM HAS RELEASED A NEW VERSION
 ).first(*.value.uniprop('Age') ne 'Unassigned', :end).key.Version;
+#?endif
 
 # vim: expandtab shiftwidth=4

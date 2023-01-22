@@ -601,20 +601,15 @@ class RakuAST::ScopePhaser {
             $qast.has_exit_handler(1);
         }
         if $!FIRST {
-#            for $!FIRST {
-#                my $phaser-block := $_.IMPL-QAST-BLOCK(
-#                  $context, :blocktype('declaration_static')
-#                );
-#                $qast[0].push(
-#                  QAST::Op.new(
-#                    :op('if'),
-#                    QAST::Op.new( :op('p6takefirstflag') ),
-#                    $_.IMPL-QAST-BLOCK(
-#                      $context, :blocktype('declaration_static')
-#                    )
-#                  )
-#                );
-#            }
+            for $!FIRST {
+                $qast[0].push(
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new( :op('p6takefirstflag') ),
+                        $_.IMPL-CALLISH-QAST($context)
+                    )
+                );
+            }
         }
         if $!let {
             self.IMPL-ADD-PHASER-QAST($context, $!let, '!LET-RESTORE', $qast);

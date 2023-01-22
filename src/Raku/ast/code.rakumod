@@ -440,7 +440,11 @@ class RakuAST::PlaceholderParameterOwner
             nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
                 '$!attached-placeholder-parameters', []);
         }
-        nqp::push($!attached-placeholder-parameters, $placeholder);
+        if self.IMPL-HAS-PARAMETER($placeholder.lexical-name) {
+            $placeholder.IMPL-ALREADY-DECLARED;
+        }
+        nqp::push($!attached-placeholder-parameters, $placeholder)
+            unless self.IMPL-HAS-PARAMETER($placeholder.lexical-name);
         Nil
     }
 
@@ -453,6 +457,10 @@ class RakuAST::PlaceholderParameterOwner
     method has-placeholder-parameters() {
         my $params := $!attached-placeholder-parameters;
         nqp::islist($params) && nqp::elems($params) ?? True !! False
+    }
+
+    method IMPL-HAS-PARAMETER(Str $name) {
+        False
     }
 
     method IMPL-PLACEHOLDER-MAP() {
@@ -1020,6 +1028,10 @@ class RakuAST::PointyBlock
         $visitor(self.body);
     }
 
+    method IMPL-HAS-PARAMETER(Str $name) {
+        $!signature.IMPL-HAS-PARAMETER($name)
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Make sure that our placeholder signature has resolutions performed,
         # and that we don't produce a topic parameter.
@@ -1234,6 +1246,10 @@ class RakuAST::Routine
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!'))) if $exclamation-mark;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_'))) if $underscore;
         self.IMPL-WRAP-LIST(@declarations)
+    }
+
+    method IMPL-HAS-PARAMETER(Str $name) {
+        $!signature.IMPL-HAS-PARAMETER($name)
     }
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,

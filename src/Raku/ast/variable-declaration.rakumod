@@ -1116,7 +1116,14 @@ class RakuAST::VarDeclaration::Implicit::Cursor is RakuAST::VarDeclaration::Impl
 }
 
 # The commonalities for placeholder parameters.
-class RakuAST::VarDeclaration::Placeholder is RakuAST::Declaration is RakuAST::Attaching is RakuAST::Term {
+class RakuAST::VarDeclaration::Placeholder
+    is RakuAST::Declaration
+    is RakuAST::Attaching
+    is RakuAST::Term
+    is RakuAST::BeginTime
+{
+    has Bool $!already-declared;
+
     method lexical-name() { nqp::die('Missing lexical-name implementation') }
 
     method generate-parameter() {
@@ -1138,6 +1145,19 @@ class RakuAST::VarDeclaration::Placeholder is RakuAST::Declaration is RakuAST::A
         my $lookup := RakuAST::Var::Lexical.new(self.lexical-name);
         $lookup.set-resolution(self);
         $lookup
+    }
+
+    method is-simple-lexical-declaration() {
+        False
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        $resolver.find-attach-target('block').add-generated-lexical-declaration(self)
+            unless $!already-declared;
+    }
+
+    method IMPL-ALREADY-DECLARED() {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!already-declared', True);
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

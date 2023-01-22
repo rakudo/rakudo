@@ -70,6 +70,13 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups
         ])
     }
 
+    method IMPL-HAS-PARAMETER(Str $name) {
+        for self.IMPL-UNWRAP-LIST($!parameters) {
+            return True if $_.target.lexical-name eq $name;
+        }
+        False
+    }
+
     method IMPL-ENSURE-IMPLICITS() {
         if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
             my @param-asts := self.IMPL-UNWRAP-LIST($!parameters);

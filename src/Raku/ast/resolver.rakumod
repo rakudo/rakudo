@@ -247,25 +247,29 @@ class RakuAST::Resolver {
             # TODO pseudo-packages
             # TODO GLOBALish fallback
             my $cur-symbol;
-            if @parts[0].name eq 'EXPORT' {
+            @parts := nqp::clone(@parts); # make manipulations safe
+            my $first := nqp::shift(@parts);
+            if $first.name eq 'EXPORT' {
                 $cur-symbol := $!export-package;
             }
             else {
                 my $first-resolved := $setting
-                    ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
-                    !! self.resolve-lexical-constant(@parts[0].name);
+                    ?? self.resolve-lexical-constant-in-setting($first.name)
+                    !! self.resolve-lexical-constant($first.name);
                 return Nil unless $first-resolved;
                 $cur-symbol := $first-resolved.compile-time-value;
             }
 
             # Now chase down through the packages until we find something.
-            @parts := nqp::clone(@parts); # make manipulations safe
             while @parts {
                 my $part := nqp::shift(@parts);
                 my %hash := self.IMPL-STASH-HASH($cur-symbol);
                 my $name-part := $part.name;
                 my $next-symbol := nqp::atkey(%hash, @parts ?? $name-part !! $sigil ~ $name-part);
-                return ($cur-symbol, $name.IMPL-WRAP-LIST(@parts)) if nqp::isnull($next-symbol);
+                if nqp::isnull($next-symbol) {
+                    nqp::unshift(@parts, $part); # put the symbol we failed to resolve back into the list
+                    return ($cur-symbol, $name.IMPL-WRAP-LIST(@parts));
+                }
                 $cur-symbol := $next-symbol;
             }
 

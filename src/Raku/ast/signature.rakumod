@@ -694,6 +694,13 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                 }
                 $param-qast.push(QAST::ParamTypeCheck.new($concreteness));
             }
+            elsif $nominal-type.HOW.archetypes.generic {
+                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                    :op('istype_nd'),
+                    $get-decont-var(),
+                    QAST::Var.new( :name($nominal-type.HOW.name($nominal-type)), :scope<typevar> )
+                )));
+            }
             else {
                 my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
 

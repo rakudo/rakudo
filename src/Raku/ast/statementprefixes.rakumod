@@ -374,7 +374,6 @@ class RakuAST::StatementPrefix::Phaser::Begin
 # The INIT phaser.
 class RakuAST::StatementPrefix::Phaser::Init
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
     has Scalar $.container;

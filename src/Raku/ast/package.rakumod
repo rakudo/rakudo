@@ -1,3 +1,22 @@
+class RakuAST::LexPad is RakuAST::Lookup {
+    method new() {
+        my $obj := nqp::create(self);
+        $obj
+    }
+    method resolve-with(RakuAST::Resolver $r) {
+        nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $r);
+    }
+    method IMPL-CAN-INTERPRET() {
+        True
+    }
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.resolution
+    }
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(:op<curlexpad>)
+    }
+}
+
 class RakuAST::Package
   is RakuAST::StubbyMeta
   is RakuAST::Term
@@ -345,6 +364,19 @@ class RakuAST::Package
                     name => '::?ROLE', value => self.stubbed-meta-object
                 )
             );
+            $!body.body.statement-list.push(
+                RakuAST::Statement::Expression.new(
+                    :expression(RakuAST::Call::Name.new(
+                        :name(RakuAST::Name.from-identifier-parts('nqp', 'list')),
+                        :args(RakuAST::ArgList.new(
+                            RakuAST::Declaration::ResolvedConstant.new(
+                                :compile-time-value(self.stubbed-meta-object)
+                            ),
+                            RakuAST::LexPad.new,
+                        ))
+                    ))
+                )
+            );
         }
         elsif $!package-declarator eq 'module' {
             $!body.add-generated-lexical-declaration(
@@ -380,11 +412,6 @@ class RakuAST::Package
             $body,
             QAST::WVal.new( :value($type-object) )
         );
-        if $!package-declarator eq 'role' {
-            $body.push(
-                QAST::Op.new(:op<list>, QAST::WVal.new(:value($type-object)), QAST::Op.new(:op<curlexpad>))
-            );
-        }
         $result
     }
 
@@ -402,6 +429,7 @@ class RakuAST::Package
             # otherwise put in a generic fallback BUILDALL that doesn't
             # do anything
         }
+        self.meta-object; # Ensure it's composed
     }
 
     method visit-children(Code $visitor) {

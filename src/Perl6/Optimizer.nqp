@@ -2591,7 +2591,7 @@ class Perl6::Optimizer {
         'nextwith', NQPMu, '&nextwith', NQPMu,
         'nextsame', NQPMu, '&nextsame', NQPMu,
         'samewith', NQPMu, '&samewith', NQPMu,
-        # This is a hack to compensate for Test.pm6 using unspecified
+        # This is a hack to compensate for Test.rakumod using unspecified
         # behavior. The EVAL form of it should be deprecated and then
         # removed, at which point this can go away.
         '&throws-like', NQPMu,

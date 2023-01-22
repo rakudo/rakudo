@@ -1025,6 +1025,16 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
         $op.push($bind);
         $op
     }
+
+    method can-be-used-with-hyper() { True }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
+            $operand-qast,
+            $!index.IMPL-TO-QAST($context),
+            self.resolution.IMPL-LOOKUP-QAST($context)
+    }
 }
 
 # A postcircumfix hash index operator, possibly multi-dimensional.

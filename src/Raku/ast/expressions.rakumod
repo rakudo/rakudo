@@ -115,6 +115,10 @@ class RakuAST::Infixish is RakuAST::ImplicitLookups {
                                 RakuAST::Expression *@operands) {
     }
 
+    # %curried == 0 means do not curry
+    # %curried == 1 means curry Whatever only
+    # %curried == 2 means curry WhateverCode only
+    # %curried == 3 means curry both Whatever and WhateverCode (default)
     method IMPL-CURRIES() { 0 }
 }
 
@@ -894,6 +898,10 @@ class RakuAST::Postfixish is RakuAST::Node {
         }
     }
 
+    # %curried == 0 means do not curry
+    # %curried == 1 means curry Whatever only
+    # %curried == 2 means curry WhateverCode only
+    # %curried == 3 means curry both Whatever and WhateverCode (default)
     method IMPL-CURRIES() { 0 }
 
     method can-be-used-with-hyper() { False }
@@ -1007,6 +1015,8 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
         self.visit-colonpairs($visitor);
     }
 
+    method IMPL-CURRIES() { 3 }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
@@ -1068,6 +1078,8 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
         self.visit-colonpairs($visitor);
     }
 
+    method IMPL-CURRIES() { 3 }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
@@ -1123,6 +1135,8 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
         $visitor($!assignee) if $!assignee;
         self.visit-colonpairs($visitor);
     }
+
+    method IMPL-CURRIES() { 3 }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;

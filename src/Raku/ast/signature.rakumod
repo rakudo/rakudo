@@ -604,8 +604,13 @@ class RakuAST::Parameter
         if nqp::istype($!owner, RakuAST::Routine) {
             my $name := $!owner.name;
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
-                self.add-worry: $resolver.build-exception: 'X::AdHoc',
-                    payload => "'is rw' on parameters of 'sub MAIN' usually cannot be satisfied.\nDid you mean 'is copy'?"
+                for self.IMPL-UNWRAP-LIST(self.traits) {
+                    if nqp::istype($_, RakuAST::Trait::Is) && $_.name.canonicalize eq 'copy' {
+                        self.add-worry: $resolver.build-exception: 'X::AdHoc',
+                            payload => "'is rw' on parameters of 'sub MAIN' usually cannot be satisfied.\nDid you mean 'is copy'?";
+                        last;
+                    }
+                }
             }
         }
 

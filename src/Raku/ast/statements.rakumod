@@ -434,7 +434,7 @@ class RakuAST::Statement::Expression
   is RakuAST::SinkPropagator
   is RakuAST::Sinkable
   is RakuAST::BlockStatementSensitive
-  is RakuAST::CheckTime
+  is RakuAST::BeginTime
 {
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
@@ -514,7 +514,7 @@ class RakuAST::Statement::Expression
         }
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!loop-modifier {
             my $thunk := $!loop-modifier.expression-thunk;
             $!expression.wrap-with-thunk($thunk) if $thunk;

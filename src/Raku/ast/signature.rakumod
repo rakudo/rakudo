@@ -1,7 +1,11 @@
 # A signature, typically part of a block though also contained within a
 # signature literal or a signature-based variable declarator.
-class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups
-                         is RakuAST::Attaching is RakuAST::Term {
+class RakuAST::Signature
+  is RakuAST::Meta
+  is RakuAST::ImplicitLookups
+  is RakuAST::Attaching
+  is RakuAST::Term
+{
     has List $.parameters;
     has RakuAST::Node $.returns;
     has int $!is-on-method;
@@ -234,9 +238,14 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups
 
 # A parameter within a signature. A parameter may result in binding or assignment
 # into a target; this is modeled by a RakuAST::ParameterTarget, which is optional.
-class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
-                         is RakuAST::ImplicitLookups is RakuAST::TraitTarget
-                         is RakuAST::BeginTime is RakuAST::CheckTime {
+class RakuAST::Parameter
+  is RakuAST::Meta
+  is RakuAST::Attaching
+  is RakuAST::ImplicitLookups
+  is RakuAST::TraitTarget
+  is RakuAST::BeginTime
+  is RakuAST::CheckTime
+{
     has RakuAST::Type $.type;
     has RakuAST::ParameterTarget $.target;
     has Mu $!names;
@@ -893,14 +902,20 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 # need not be bound into anything (it may be being used only as a matcher, or
 # destructured). This serves primarily as a marker for the different kinds of
 # parameter target.
-class RakuAST::ParameterTarget is RakuAST::Node {
+class RakuAST::ParameterTarget
+  is RakuAST::Node
+{
     method sigil() { '' }
     method name() { '' }
 }
 
 # A binding of a parameter into a lexical variable (with sigil).
-class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Declaration
-                                    is RakuAST::Meta is RakuAST::ContainerCreator {
+class RakuAST::ParameterTarget::Var
+  is RakuAST::ParameterTarget
+  is RakuAST::Declaration
+  is RakuAST::Meta
+  is RakuAST::ContainerCreator
+{
     has str $.name;
     has RakuAST::Type $.type;
     has Mu $!of;
@@ -998,7 +1013,10 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
 }
 
 # A binding of a parameter into a lexical term.
-class RakuAST::ParameterTarget::Term is RakuAST::ParameterTarget is RakuAST::Declaration {
+class RakuAST::ParameterTarget::Term
+  is RakuAST::ParameterTarget
+  is RakuAST::Declaration
+{
     has RakuAST::Name $.name;
 
     method new(RakuAST::Name $name!) {
@@ -1072,7 +1090,9 @@ class RakuAST::Parameter::Slurpy {
 }
 
 # Flattening slurpy (the * quantifier).
-class RakuAST::Parameter::Slurpy::Flattened is RakuAST::Parameter::Slurpy {
+class RakuAST::Parameter::Slurpy::Flattened
+  is RakuAST::Parameter::Slurpy
+{
     method IMPL-FLAGS(str $sigil) {
         my constant SIG_ELEM_SLURPY_POS   := 8;
         my constant SIG_ELEM_SLURPY_NAMED := 16;
@@ -1111,7 +1131,9 @@ class RakuAST::Parameter::Slurpy::Flattened is RakuAST::Parameter::Slurpy {
 }
 
 # Non-flattening slurpy (the ** quantifier).
-class RakuAST::Parameter::Slurpy::Unflattened is RakuAST::Parameter::Slurpy {
+class RakuAST::Parameter::Slurpy::Unflattened
+  is RakuAST::Parameter::Slurpy
+{
     method IMPL-FLAGS(str $sigil) {
         my constant SIG_ELEM_SLURPY_LOL := 32;
         $sigil eq '@' ?? SIG_ELEM_SLURPY_LOL !! 0
@@ -1129,7 +1151,9 @@ class RakuAST::Parameter::Slurpy::Unflattened is RakuAST::Parameter::Slurpy {
 }
 
 # Single argument rule slurpy (the + quantifier).
-class RakuAST::Parameter::Slurpy::SingleArgument is RakuAST::Parameter::Slurpy {
+class RakuAST::Parameter::Slurpy::SingleArgument
+  is RakuAST::Parameter::Slurpy
+{
     method IMPL-FLAGS(str $sigil) {
         my constant SIG_ELEM_SLURPY_ONEARG := 16777216;
         $sigil eq '@' || $sigil eq '' ?? SIG_ELEM_SLURPY_ONEARG !! 0
@@ -1147,7 +1171,9 @@ class RakuAST::Parameter::Slurpy::SingleArgument is RakuAST::Parameter::Slurpy {
 }
 
 # Capture slurpy (the | quantifier).
-class RakuAST::Parameter::Slurpy::Capture is RakuAST::Parameter::Slurpy {
+class RakuAST::Parameter::Slurpy::Capture
+  is RakuAST::Parameter::Slurpy
+{
     method IMPL-FLAGS(str $sigil) {
         my constant SIG_ELEM_IS_CAPTURE := 32768;
         SIG_ELEM_IS_CAPTURE
@@ -1185,7 +1211,9 @@ class RakuAST::Parameter::Slurpy::Capture is RakuAST::Parameter::Slurpy {
 }
 
 # Thunk for a default parameter.
-class RakuAST::ParameterDefaultThunk is RakuAST::ExpressionThunk {
+class RakuAST::ParameterDefaultThunk
+  is RakuAST::ExpressionThunk
+{
     has RakuAST::Parameter $!parameter;
 
     method new(RakuAST::Parameter $parameter) {

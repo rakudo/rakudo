@@ -366,6 +366,11 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
             self.IMPL-WALK($context, $node[0], $result);
             self.IMPL-WALK($context, $node[1], $result);
         }
+        elsif nqp::istype($node, QAST::Op) && $node.op eq 'join' {
+            for $node[1].list {
+                self.IMPL-WALK($context, $_, $result);
+            }
+        }
         # (can't just use postprocess_words here because it introduces spurious comma operations)
         elsif $node.has_compile_time_value {
             my @words := HLL::Grammar.split_words(nqp::unbox_s($node.compile_time_value));

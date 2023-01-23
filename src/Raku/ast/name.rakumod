@@ -151,6 +151,7 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
         elsif $lexical {
             $first := 1;
             $result := $lexical.IMPL-LOOKUP-QAST($context);
+            return QAST::Op.new(:op<who>, $result);
         }
         if self.is-pseudo-package {
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());

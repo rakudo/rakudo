@@ -864,25 +864,46 @@ class RakuAST::Parameter
                 my $value := $get-decont-var();
 
                 if $flags +& SIG_ELEM_IS_COPY {
-                    my $container_descriptor := $param-obj.container_descriptor;
-                    if $container_descriptor {
-                        $value := QAST::Op.new(
-                            :op<p6scalarwithvalue>,
-                            QAST::WVal.new(:value($container_descriptor)),
-                            $value
+                    my $sigil := $!target.sigil;
+                    if (my $is-array := $sigil eq '@') || $sigil eq '%' {
+                        my $copy-var := $name ~ '_copy';
+                        $param-qast.push(
+                            QAST::Op.new( :op<bind>,
+                                QAST::Var.new( :name($copy-var), :scope<local>, :decl<var> ),
+                                QAST::Op.new( :op<create>,
+                                    QAST::WVal.new( :value($is-array ?? Array !! Hash) )
+                                )
+                            )
                         );
+                        $param-qast.push(
+                            QAST::Op.new( :op<callmethod>, :name<STORE>,
+                                QAST::Var.new( :name($copy-var), :scope<local> ),
+                                $value
+                            )
+                        );
+                        $value := QAST::Var.new( :name($copy-var), :scope<local> );
                     }
                     else {
-                        $value := QAST::Op.new(
-                            :op('p6bindattrinvres'),
-                            QAST::Op.new(
-                                :op('create'),
-                                QAST::WVal.new( :value(Scalar) )
-                            ),
-                            QAST::WVal.new( :value(Scalar) ),
-                            QAST::SVal.new( :value('$!value') ),
-                            $value
-                        );
+                        my $container_descriptor := $param-obj.container_descriptor;
+                        if $container_descriptor {
+                            $value := QAST::Op.new(
+                                :op<p6scalarwithvalue>,
+                                QAST::WVal.new(:value($container_descriptor)),
+                                $value
+                            );
+                        }
+                        else {
+                            $value := QAST::Op.new(
+                                :op('p6bindattrinvres'),
+                                QAST::Op.new(
+                                    :op('create'),
+                                    QAST::WVal.new( :value(Scalar) )
+                                ),
+                                QAST::WVal.new( :value(Scalar) ),
+                                QAST::SVal.new( :value('$!value') ),
+                                $value
+                            );
+                        }
                     }
                 }
 

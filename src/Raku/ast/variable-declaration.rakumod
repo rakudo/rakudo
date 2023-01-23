@@ -884,7 +884,7 @@ class RakuAST::VarDeclaration::Term is RakuAST::Declaration {
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $init-qast := $!initializer.IMPL-TO-QAST($context);
-        if $!type {
+        if $!type && !$!type.is-known-to-be-exactly(Mu) {
             $init-qast := QAST::Op.new(
                 :op('p6bindassert'),
                 $init-qast,

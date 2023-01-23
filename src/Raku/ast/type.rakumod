@@ -12,6 +12,16 @@ class RakuAST::Type is RakuAST::Term is RakuAST::Meta {
         }
         0
     }
+    method is-known-to-be-exactly(Mu $type) {
+        nqp::die('Expected a type object') if nqp::isconcrete($type);
+        if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
+            my $resolution := self.resolution;
+            if nqp::istype($resolution, RakuAST::CompileTimeValue) {
+                return $resolution.compile-time-value =:= $type;
+            }
+        }
+        0
+    }
 }
 
 # A simple type name, e.g. Int, Foo::Bar, etc.

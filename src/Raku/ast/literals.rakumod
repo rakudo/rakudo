@@ -507,7 +507,9 @@ class RakuAST::QuoteWordsAtom is RakuAST::Node {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!atom.IMPL-TO-QAST($context)
+        my $qast := $!atom.IMPL-TO-QAST($context);
+        $qast.annotate('ww_atom', 1);
+        $qast
     }
 
     method visit-children(Code $visitor) {

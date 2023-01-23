@@ -366,6 +366,10 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
             self.IMPL-WALK($context, $node[0], $result);
             self.IMPL-WALK($context, $node[1], $result);
         }
+        elsif nqp::istype($node, QAST::Op) && $node.op eq 'concat' {
+            self.IMPL-WALK($context, $node[0], $result);
+            self.IMPL-WALK($context, $node[1], $result);
+        }
         elsif nqp::istype($node, QAST::Op) && $node.op eq 'join' {
             for $node[1].list {
                 self.IMPL-WALK($context, $_, $result);

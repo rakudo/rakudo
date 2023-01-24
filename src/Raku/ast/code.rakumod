@@ -528,6 +528,7 @@ class RakuAST::PlaceholderParameterOwner
 
 class RakuAST::ScopePhaser {
     has Bool $!has-exit-handler;
+    has List $!ENTER;
     has List $!LEAVE;
     has List $!FIRST;
     has List $!NEXT;
@@ -557,6 +558,10 @@ class RakuAST::ScopePhaser {
     method set-has-temp() {
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!temp', RakuAST::Block.new(:implicit-topic(False)));
+    }
+
+    method add-enter-phaser(RakuAST::StatementPrefix::Phaser::Enter $phaser) {
+        self.add-phaser-to-list('$!ENTER', $phaser);
     }
 
     method add-leave-phaser(RakuAST::StatementPrefix::Phaser::Leave $phaser) {
@@ -595,6 +600,7 @@ class RakuAST::ScopePhaser {
     }
 
     method add-phasers-to-code-object($code-object) {
+        self.add-list-to-code-object('$!ENTER', $code-object);
         self.add-list-to-code-object('$!LEAVE', $code-object);
         self.add-list-to-code-object('$!FIRST', $code-object);
         self.add-list-to-code-object( '$!NEXT', $code-object);
@@ -624,6 +630,23 @@ class RakuAST::ScopePhaser {
                     )
                 );
             }
+        }
+        if $!ENTER {
+            my $init-setup := QAST::Stmts.new;
+            for $!ENTER {
+                my $container := $_.container;
+                $context.ensure-sc($container);
+                $init-setup.push(
+                  QAST::Op.new(
+                    :op<bindattr>,
+                    QAST::WVal.new( :value($container) ),
+                    QAST::WVal.new( :value(Scalar) ),
+                    QAST::SVal.new( :value('$!value') ),
+                    $_.IMPL-CALLISH-QAST($context)
+                  )
+                );
+            }
+            self.IMPL-SET-NODE($init-setup);
         }
         if $!let {
             self.IMPL-ADD-PHASER-QAST($context, $!let, '!LET-RESTORE', $qast);

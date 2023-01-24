@@ -1470,6 +1470,12 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
+      RakuAST::StatementPrefix::Phaser::Enter:D $ast
+    --> Str:D) {
+        'ENTER ' ~ self.deparse($ast.blorst)
+    }
+
+    multi method deparse(
       RakuAST::StatementPrefix::Phaser::Leave:D $ast
     --> Str:D) {
         'LEAVE ' ~ self.deparse($ast.blorst)

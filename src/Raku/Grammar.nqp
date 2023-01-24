@@ -902,6 +902,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement_prefix:sym<INIT>  { <sym><.kok> <blorst> }
 
     token statement_prefix:sym<END>   { <sym><.kok> <blorst> }
+    token statement_prefix:sym<ENTER> { <sym><.kok> <blorst> }
     token statement_prefix:sym<LEAVE> { <sym><.kok> <blorst> }
 
     token statement_prefix:sym<FIRST> { <sym><.kok> <blorst> }

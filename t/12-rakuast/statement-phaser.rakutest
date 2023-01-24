@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 20; # Do not change this file to done-testing
+plan 22; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -248,6 +248,98 @@ CODE
 
     is-deeply $_, 666, @type[$++]
       for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Block with ENTER phaser thunk' => {
+    my $enter;
+
+    # -> { ENTER ++$enter }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Enter.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$enter')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+-> {
+    ENTER ++$enter
+}
+CODE
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+        $enter = 0;
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        todo("ENTER phaser is not actually run yet");
+        is-deeply $block(), 1, "$type: ENTER phaser returns expression";
+        todo("ENTER phaser is not actually run yet");
+        is-deeply $enter, 1, "$type: ENTER actually ran";
+    }
+}
+
+subtest 'Block with ENTER phaser block' => {
+    my $enter;
+
+    # -> { ENTER ++$enter; 42 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Enter.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$enter')
+                      )
+                    ),
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(42)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+-> {
+    ENTER {
+        ++$enter;
+        42
+    }
+}
+CODE
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+        $enter = 0;
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        todo("ENTER phaser is not actually run yet");
+        is-deeply $block(), 1, "$type: ENTER phaser returns expression";
+        todo("ENTER phaser is not actually run yet");
+        is-deeply $enter, 1, "$type: ENTER actually ran";
+    }
 }
 
 subtest 'LEAVE phaser thunk being run' => {

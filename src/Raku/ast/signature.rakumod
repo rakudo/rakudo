@@ -838,18 +838,6 @@ class RakuAST::Parameter
                           QAST::Op.new(:op<iseq_s>, $wval, $temp-qast-var));
         }
 
-        if $!where {
-            $param-qast.push(
-                QAST::ParamTypeCheck.new(
-                    QAST::Op.new(
-                        :op('call'),
-                        $!where.IMPL-TO-QAST($context),
-                        $temp-qast-var
-                    )
-                )
-            );
-        }
-
         $context.ensure-sc(nqp::getattr($param-obj, Parameter, '$!container_descriptor'));
 
         # Bind parameter into its target.
@@ -918,6 +906,18 @@ class RakuAST::Parameter
         }
         for $!type-captures {
             $param-qast.push($_.IMPL-BIND-QAST($context, $temp-qast-var));
+        }
+
+        if $!where {
+            $param-qast.push(
+                QAST::ParamTypeCheck.new(
+                    QAST::Op.new(
+                        :op('call'),
+                        $!where.IMPL-TO-QAST($context),
+                        $temp-qast-var
+                    )
+                )
+            );
         }
 
         @prepend ?? QAST::Stmts.new( |@prepend, $param-qast ) !! $param-qast

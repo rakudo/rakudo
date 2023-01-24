@@ -380,12 +380,6 @@ class RakuAST::StatementPrefix::Phaser::Init
 
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
-        unless self.allowed-on-for-statement {
-            if nqp::istype($blorst, RakuAST::Statement::For) {
-                nqp::die('Do not use this statement prefix on a RakuAST::Statement::For; ' ~
-                    'instead, set the mode on that node');
-            }
-        }
         nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
         nqp::bindattr($obj, RakuAST::StatementPrefix::Phaser::Init, '$!container', nqp::create(Scalar));
         $obj

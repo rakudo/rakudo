@@ -493,6 +493,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*BORG := {};                          # who gets blamed for a missing block
         my $*ORIGIN-SOURCE;                       # where we get source code information from
         my @*ORIGIN-NESTINGS := [];               # this will be used for the CompUnit object
+        my $*COMPILING_CORE_SETTING := 0;
 
         # Variables used for Pod parsing.
         my $*VMARGIN := 0;
@@ -2860,7 +2861,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*W.lang-rev-before('d');
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*HLL-COMPILER.language_revision < 2;
 
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')

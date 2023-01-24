@@ -13,7 +13,7 @@ role Perl6::Metamodel::Finalization {
             if !nqp::isnull($destroy) && $destroy {
                 nqp::push(@destroyers, $destroy);
             }
-            if !self.lang-rev-before($obj, 'e')
+            if self.language_revision($obj) >= 3
                 && nqp::can($classHOW, 'ins_roles')
                 && nqp::can($classHOW, 'roles')
             {

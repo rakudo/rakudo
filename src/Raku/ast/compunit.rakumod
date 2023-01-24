@@ -10,6 +10,7 @@ class RakuAST::CompUnit
     has RakuAST::Block $.mainline;
     has Str $.comp-unit-name;
     has Str $.setting-name;
+    has Mu $.language-revision; # Same type as in CORE-SETTING-REV
     has Mu $.finish-content;
     has Mu $!sc;
     has int $!is-sunk;
@@ -25,7 +26,7 @@ class RakuAST::CompUnit
     has RakuAST::IMPL::QASTContext $.context;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
-            Str :$setting-name, Bool :$eval, Mu :$global-package-how,
+            Str :$setting-name, Bool :$eval, Mu :$global-package-how, int :$language-revision,
             Bool :$precompilation-mode, Mu :$export-package, RakuAST::CompUnit :$outer-cu) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
@@ -45,6 +46,14 @@ class RakuAST::CompUnit
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
+        # If CompUnit's language revision is not set explicitly then try to guess it
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
+            $language-revision
+                ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
+                !! nqp::isconcrete(
+                    my $setting-rev := nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()), 'CORE-SETTING-REV'))
+                    ?? $setting-rev
+                    !! Perl6::Metamodel::Configuration.language_revision_object(nqp::getcomp("Raku").language_revision));
 
         my $sc;
         if $outer-cu {

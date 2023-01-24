@@ -43,7 +43,7 @@ my class RoleToClassApplier {
         else {
             $!to_compose := $concrete.new_type();
             $!to_compose_meta := $!to_compose.HOW;
-            $!to_compose_meta.set_language_revision($!to_compose, $target.HOW.language-revision($target));
+            $!to_compose_meta.set_language_revision($!to_compose, $target.HOW.language_revision($target));
             for @roles {
                 $!to_compose_meta.add_role($!to_compose, $_);
             }
@@ -104,9 +104,9 @@ my class RoleToClassApplier {
         my @stubs;
 
         # Only transfer submethods from pre-6.e roles into pre-6.e classes.
-        my $with_submethods := $!target.HOW.lang-rev-before($!target, 'e')
+        my $with_submethods := $!target.HOW.language_revision($!target) < 3
                                 && (!nqp::istype($!to_compose_meta, Perl6::Metamodel::LanguageRevision)
-                                    || $!to_compose.HOW.lang-rev-before($!to_compose, 'e'));
+                                    || $!to_compose.HOW.language_revision($!to_compose) < 3);
 
         # Compose in any methods.
         sub compose_method_table(@methods, @method_names) {

@@ -20,6 +20,34 @@ BEGIN {
 #?endif
 }
 
+my constant CORE-SETTING-REV = do {
+    # Turn CORE-SETTING-REV into kind of an allomorph except that we cannot use the actual Allomorph class since it is
+    # not available at the beginning of CORE compilation and this is where we need the symbol in first place. Therefore
+    # it gets its initial value as a plain integer and it is only now as we can eventually mixin the public interface
+    # role into it. Besides, Allomorph is a string in first place, whereas CORE-SETTING-REV must represent the internal
+    # representation which is now an integer.
+    my class LanguageRevision {
+        has int $!language-revision is box_target;
+        has Str $!p6rev;
+        method p6rev(::?CLASS:D:) {
+            nqp::isconcrete($!p6rev)
+                ?? $!p6rev
+                !! ($!p6rev := nqp::getcomp('Raku').lvs.p6rev(nqp::unbox_i(self)))
+        }
+        # The default Int, Numeric, and Real coercions return the object itself, but we need a fresh copy.
+        multi method Int(::?CLASS:D:)     { nqp::box_i($!language-revision, Int) }
+        multi method Numeric(::?CLASS:D:) { nqp::box_i($!language-revision, Int) }
+        multi method Real(::?CLASS:D:)    { nqp::box_i($!language-revision, Int) }
+        multi method Str(::?CLASS:D:)     { self.p6rev }
+        multi method gist(::?CLASS:D:)    { self.p6rev }
+        method Version(::?CLASS:D:) {
+            nqp::getcomp('Raku').lvs.as-public-repr($!language-revision, :as-version)
+        }
+    }
+    nqp::box_i(1, LanguageRevision)
+}
+Metamodel::Configuration.set_language_revision_type(CORE-SETTING-REV.WHAT);
+
 BEGIN {
     # Create pun at compile time as buf8 is used extensively in file I/O and module loading
     buf8.elems;

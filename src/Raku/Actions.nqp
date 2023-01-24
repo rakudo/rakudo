@@ -111,21 +111,144 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Calculate the setting name to use.
         # TODO don't hardcode this
         my $name := 'CORE';
-        my $version := nqp::substr(nqp::getcomp('Raku').language_version, 2);
-        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
-        my $setting-name := $loader.previous_setting_name("$name.$version");
+        my $comp := $*HLL-COMPILER;
+        my $resolver_type := self.r('Resolver', 'Compile');
+        my $language-revision := $comp.language_revision;
 
         # Set up the resolver.
+
         my %options := %*COMPILING<%?OPTIONS>;
-        my $resolver_type := self.r('Resolver', 'Compile');
         my $outer_ctx := %options<outer_ctx>;
+        my $setting-name := %options<setting>;
+        my $has-outer := nqp::isconcrete($outer_ctx);
         my $precompilation-mode := %options<precomp>;
-        if nqp::isconcrete($outer_ctx) {
+        if $has-outer {
             my $global := %options<global>;
             $*R := $resolver_type.from-context(:context($outer_ctx), :$global, :resolver($*OUTER-RESOLVER));
         }
-        else {
+        elsif $setting-name {
+            if nqp::eqat($setting-name, 'NULL.', 0) {
+                # TODO This branch is for when we start compiling the CORE.
+                $*COMPILING_CORE_SETTING := 1;
+                if $setting-name ne 'NULL.c' {
+                    my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+                    $*R := $resolver_type.from-setting(:setting($loader.previous_setting_name($setting-name)));
+                }
+                else {
+                    # TODO CORE.c is being compiled. What resolver is to be used?
+                    nqp::die("Can't compiler CORE.c yet");
+                }
+            }
+            else {
+                # Setting name is explicitly set. Use it to determine the default language revision.
+                $*R := $resolver_type.from-setting(:setting($setting-name));
+                $language-revision := nqp::unbox_i(
+                    $*R.resolve-lexical-constant-in-setting('CORE-SETTING-REV').compile-time-value );
+                $comp.set_language_revision($language-revision);
+            }
+        }
+
+        my sub resolver-from-revision() {
+            $setting-name := 'CORE.' ~ $comp.lvs.p6rev($language-revision);
             $*R := $resolver_type.from-setting(:$setting-name);
+        }
+
+        if $<version> {
+            my $version := ~$<version>;
+            my @vparts := $comp.lvs.from-public-repr($version);
+            my @final-version;
+            my %lang-revisions := $comp.language_revisions;
+            my $modifier-deprecated;
+
+            # If no other method have initialized the resolver then use CORE.c setting for a while.
+            unless $*R {
+                # $*R will be re-initialized later with a proper one. For now we need this to be able to throw exceptions.
+                $*R := $resolver_type.from-setting(:setting-name<CORE.c>);
+            }
+
+            if nqp::index($version, '*') >= 0 || nqp::index($version, '+') >= 0 {
+                # For a globbed version a bit of research needs to be done first.
+                my $Version := $*R.resolve-lexical-constant-in-setting('Version').compile-time-value;
+                my $ver-requested := $Version.new($comp.lvs.from-public-repr($version, :as-str));
+                my @can-versions := $comp.can_language_versions;
+                my $can-version;
+                my $i := nqp::elems(@can-versions);
+                # Iterate over the version candidates from higher to lower ones, skip these that don't match the
+                # requested version glob, and these without a modifier but one is required. Like 6.e would be a valid
+                # version in the future, but for now it has to be 6.e.PREVIEW.
+                while --$i >= 0 {
+                    $can-version := $Version.new(@can-versions[$i]);
+                    next unless $ver-requested.ACCEPTS($can-version);
+
+                    # If version candidate
+                    my $can-parts := $can-version.parts;
+                    my $can-revision := nqp::unbox_i($can-parts.head);
+                    last unless $can-parts.elems == 1 && nqp::existskey(%lang-revisions{$can-revision}, 'require');
+                }
+
+                if $i < 0 {
+                    $<version>.typed_panic: 'X::Language::Unsupported', :$version;
+                }
+
+                # Are there any easier way to unbox boxable types?
+                my $Int := $*R.resolve-lexical-constant-in-setting('Int').compile-time-value;
+                my $Str := $*R.resolve-lexical-constant-in-setting('Str').compile-time-value;
+                my @can-parts := nqp::getattr($can-version, $Version, '$!parts');
+                for @can-parts -> $part {
+                    @final-version.push:
+                        nqp::isint($part) || nqp::isstr($part)
+                            ?? $part
+                            !! nqp::istype($part, $Int)
+                                ?? nqp::unbox_i($part)
+                                !! nqp::istype($part, $Str)
+                                    ?? nqp::unbox_s($part)
+                                    !! nqp::die("Don't know how to handle version part of '"
+                                                ~ $part.HOW.name($part) ~ "' type");
+                }
+            }
+            else {
+                # A non-globbed version can be used as-is, just make sure it is a valid one.
+                my $revision := @vparts[0];
+                # Consider version to have a language modifier if the last part of is a string of non-zero length.
+                my $modifier := @vparts > 1 && nqp::objprimspec(@vparts[-1]) == 3
+                    ?? @vparts[-1]
+                    !! nqp::null();
+
+                # Do we know this language version?
+                unless nqp::existskey(%lang-revisions, $revision)
+                     && (!$modifier || nqp::existskey(%lang-revisions{$revision}<mods>, $modifier))
+                {
+                    $<version>.typed_panic('X::Language::Unsupported', :$version)
+                }
+
+                # If the version is known, is it used with a required modifier?
+                if nqp::existskey(%lang-revisions{$revision}, 'require')
+                    && (!$modifier || %lang-revisions{$revision}<require> ne $modifier)
+                {
+                    $<version>.typed_panic('X::Language::ModRequired', :$version, :modifier(%lang-revisions{$revision}<require>))
+                }
+
+                if $modifier && %lang-revisions{$revision}<mods>{$modifier}<deprecate> {
+                    # We can't issue a worry immediately because the current resolver is temporary.
+                    $modifier-deprecated := $modifier;
+                }
+
+                @final-version := @vparts;
+            }
+
+            $comp.set_language_version(@final-version);
+            $language-revision := @final-version[0];
+            resolver-from-revision();
+
+            # Now the resolver is final, express our modifier concern!
+            if $modifier-deprecated {
+                # At this point our compiler version is final.
+                $<version>.worry: "$modifier-deprecated modifier is deprecated for Raku v" ~ $comp.language_version();
+            }
+        }
+
+        unless nqp::isconcrete($*R) {
+            resolver-from-revision();
         }
 
         # Locate an EXPORTHOW and set those mappings on our current language.
@@ -146,20 +269,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if nqp::isconcrete($outer_ctx) {
             # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
             my $comp-unit-name := nqp::sha1($file ~ $/.target() ~ SerializationContextId.next-id());
-            $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name, :eval, :$*outer-cu);
+            $*CU := self.r('CompUnit').new( :$comp-unit-name, :$setting-name, :eval, :$*outer-cu, :$language-revision);
         }
         else {
             # Top-level compilation. Create a GLOBAL using the correct package meta-object.
             my $comp-unit-name := nqp::sha1($file ~ $/.target());
             $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name,
                 :global-package-how($package-how), :$precompilation-mode,
-                :$export-package);
+                :$export-package, :$language-revision);
             my $global := $*CU.generated-global;
             $*R.set-global($global);
             nqp::bindhllsym('Raku', 'GLOBAL', $global);
         }
 
-	$*LITERALS.set-resolver($*R);
+        $*LITERALS.set-resolver($*R);
     }
 
     sub stash_hash($pkg) {

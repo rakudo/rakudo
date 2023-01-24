@@ -2,18 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 11;
-
-subtest '.lang-rev-before method on Perl6::World' => {
-    plan 5;
-    is-run ｢use v6.c; BEGIN print ?$*W.lang-rev-before: 'd'｣, 'c is before d', :out<True>;
-    is-run ｢use v6.c; BEGIN print ?$*W.lang-rev-before: 'c'｣, 'c is not before d', :out<False>;
-    is-run ｢use v6.e.PREVIEW; BEGIN print ?$*W.lang-rev-before: 'e'｣, 'e.PREVIEW is not before e', :out<False>;
-    is-run ｢use v6.e.PREVIEW; BEGIN print ?$*W.lang-rev-before: 'd'｣, 'e is not before d', :out<False>;
-    throws-like ｢BEGIN $*W.lang-rev-before: <6.d>｣, Exception,
-        :self{.exception.message.contains: 'must be 1 char long'},
-        'using wrong revision format as argument throws';
-}
+plan 10;
 
 subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;

@@ -1,6 +1,5 @@
 # This constant must specify current CORE revision.
 # Must preceede class declarations to allow correct recording of their respective language version.
-my constant CORE-SETTING-REV = 'c';
 
 # Stub a few things the compiler wants to have really early on.
 my class Pair { ... }   # must be first for some reason

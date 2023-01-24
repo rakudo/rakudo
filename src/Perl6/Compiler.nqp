@@ -3,11 +3,124 @@ use QRegex;
 use Perl6::Optimizer;
 
 class Perl6::Compiler is HLL::Compiler {
-    has $!language_version;  # Default language version in form 6.c
-    has $!language_modifier; # Active language modifier; PREVIEW mostly.
-    has $!language_revisions; # Hash of language revision letters. See gen/<vm>/main-version.nqp
-    has $!can_language_versions; # List of valid language version
+    has @!language_version;  # Default language revision, 1 stands for v6.c
+    has $!language_revisions; # Hash of language revision properties. See gen/<vm>/main-version.nqp
+    has $!can_language_versions; # List of valid language versions
     has $!rakudo-home;
+
+    class LanguageVersionServices {
+        method p6rev(int $internal-revision) {
+            $internal-revision < 1
+                ?? nqp::die("Internal revision " ~ $internal-revision ~ " cannot be converted into Perl6 representation")
+                !! nqp::chr(98 + $internal-revision)
+        }
+
+        method internal-from-p6(str $p6rev) {
+            nqp::chars($p6rev) > 1
+                ?? nqp::die("Perl6 revision can only be a single letter, got '$p6rev'")
+                !! (my $irev := nqp::ord($p6rev) - 98) < 1
+                    ?? nqp::die("'$p6rev' cannot be a Perl6 revision")
+                    !! $irev
+        }
+
+        my sub as(@parts, :$plus, :$as-str, :$as-version) {
+            if $as-str || $as-version {
+                my $i := -1;
+                while ++$i < +@parts {
+                    @parts[$i] := ~@parts[$i];
+                }
+
+                my $vstr := join(".", @parts) ~ $plus;
+
+                return $vstr unless $as-version;
+
+                my $Version := nqp::gethllsym('Raku', 'Version');
+                if nqp::isnull($Version) {
+                    nqp::die("Symbol 'Version' is not available at this time; is BOOTSTRAP loaded?")
+                }
+
+                # This can be micro-optimized by using nqp::create + nqp::bindattr, but does it make any sense?
+                return $Version.new($vstr);
+            }
+            @parts
+        }
+
+        # Get language version representation, guess its format, and return it as internal. with :as-version
+        # will try to get Version class from HLL symbols and return an instance of it.
+        method from-public-repr(str $repr, :$as-str, :$as-version) {
+            my $config := nqp::gethllsym('default', 'SysConfig');
+            my @parts;
+            my $plus := '';
+
+            if !$repr || $repr eq 'v6' {
+                # Default revision implied
+                @parts.push: nqp::gethllsym('default', 'SysConfig').rakudo-build-config<language-revision>;
+            }
+            else {
+                my $m := $repr ~~ /^ v? $<vstr>=[ [ \w+ | '*' ]+ % '.' ] $<plus>='+'? $/;
+                @parts := nqp::split('.', $m<vstr>);
+                $plus := ~$m<plus>;
+                if $repr ~~ /^ v? 6 [\D | $]/ {
+                    # Perl6 representation. Skip the starting '6' first
+                    if @parts[0] eq '6' {
+                        # Since we excluded the 'v6' variant then @parts would never end up being empty here
+                        @parts.shift;
+                    }
+                    else {
+                        @parts[0] := nqp::substr(@parts[0], 1);
+                    }
+
+                    if @parts[0] ne '*' {
+                        @parts[0] := self.internal-from-p6(@parts[0]);
+                    }
+                }
+                else {
+                    nqp::die("Requested language version '$repr' is not valid");
+                }
+            }
+
+            as(@parts, :$plus, :$as-str, :$as-version)
+        }
+
+        method as-perl6($internal, :$as-str, :$as-version) {
+            my $Version := nqp::gethllsym('Raku', 'Version');
+            my $primspec := nqp::objprimspec($internal);
+            my $is-list := nqp::islist($internal);
+            my $is-version := !nqp::isnull($Version) && nqp::istype($internal, $Version);
+            my @parts;
+            if $primspec == 3 || $is-list || $is-version {
+                # A string
+                @parts := $is-version
+                    ?? nqp::clone(nqp::getattr($internal, $Version, '$!parts'))
+                    !! $is-list
+                        ?? nqp::clone($internal)
+                        !! nqp::split(".", $internal);
+                my $rev := @parts[0];
+                if nqp::objprimspec($rev) == 3 && $rev ~~ /^ v? $<vnum>=\d+ $<plus>='+'? $/ -> $m {
+                    # Turn internal revision number info a Perl6-revision char
+                    @parts[0] := self.p6rev(+$m<vnum>) ~ $m<plus>;
+                }
+                else {
+                    @parts[0] := self.p6rev($rev);
+                }
+            }
+            elsif $primspec == 1 || $primspec == 10 { # int, unit
+                @parts.push: self.p6rev($internal);
+            }
+            else {
+                nqp::die("Don't know how to create Perl6-style language version from " ~ $internal.HOW.name($internal));
+            }
+
+            @parts.unshift('6');
+
+            as(@parts, :$as-str, :$as-version)
+        }
+
+        method as-public-repr($internal, :$as-str, :$as-version) {
+            # When v6.x is replaced with another representation this method will change too.
+            self.as-perl6($internal, :$as-str, :$as-version);
+        }
+    }
 
     method config() {
         nqp::gethllsym('default', 'SysConfig').rakudo-build-config();
@@ -17,6 +130,8 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::say(self.version_string);
         nqp::exit(0);
     }
+
+    method lvs() { LanguageVersionServices }
 
     method version_string(:$shorten-versions, :$no-unicode) {
         my $config-version  := self.config()<version>;
@@ -60,28 +175,28 @@ class Perl6::Compiler is HLL::Compiler {
     method implementation()   { self.config<implementation> }
     method language_name()    { 'Raku' }
     method reset_language_version() {
-        $!language_version := NQPMu;
-        $!language_modifier := NQPMu;
+        @!language_version := [];
     }
     method set_language_version($version) {
-        $!language_version := $version;
+        @!language_version := nqp::islist($version)
+            ?? $version
+            !! self.lvs.from-public-repr($version);
     }
-    method set_language_modifier($modifier) {
-        $!language_modifier := $modifier;
+    method set_language_revision(int $rev) {
+        @!language_version := [$rev];
+    }
+    method language_version_parts() {
+        unless nqp::defined(@!language_version) && @!language_version {
+            @!language_version := self.lvs.from-public-repr(%*COMPILING<%?OPTIONS><language_version> // '');
+        }
+        @!language_version
     }
     method language_version() {
-        if nqp::defined($!language_version) {
-            $!language_version
-        }
-        else {
-            $!language_version := %*COMPILING<%?OPTIONS><language_version> || self.config<language-version>
-        }
+        self.set_language_version('') unless @!language_version;
+        LanguageVersionServices.as-public-repr: @!language_version, :as-str
     }
     method language_revision() {
-        nqp::substr(self.language_version,2,1)
-    }
-    method language_modifier() {
-        $!language_modifier
+        self.language_version_parts[0]
     }
     method    can_language_versions() {
             $!can_language_versions

@@ -1004,20 +1004,15 @@ class RakuAST::ParameterTarget::Var
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        if $!type {
-            my $container := self.meta-object;
-            $context.ensure-sc($container);
-            QAST::Var.new(
-                :decl(nqp::objprimspec($!of) ?? 'var' !! 'contvar'),
-                :scope('lexical'),
-                :name($!name),
-                :value($container),
-                :returns($!of)
-            )
-        }
-        else {
-            QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name) )
-        }
+        my $container := self.meta-object;
+        $context.ensure-sc($container);
+        QAST::Var.new(
+            :decl(nqp::objprimspec($!of) ?? 'var' !! 'contvar'),
+            :scope('lexical'),
+            :name($!name),
+            :value($container),
+            :returns($!of)
+        )
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {

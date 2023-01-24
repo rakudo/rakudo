@@ -237,6 +237,19 @@ class RakuAST::CompUnit
         $top-level.push(self.IMPL-TO-QAST($context));
         $!mainline.IMPL-LINK-META-OBJECT($context, $top-level);
 
+        if !$!precompilation-mode
+            && !$*INSIDE-EVAL
+            && +(@*MODULES // []) == 0
+            && (my $main := self.find-lexical('&MAIN'))
+        {
+            $top-level.set_children([QAST::Op.new(
+              :op('call'),
+              :name('&RUN-MAIN'),
+              QAST::WVal.new(:value($main.meta-object)),
+              QAST::Stmts.new(|$top-level.list) # run the mainline and get its result
+            )]);
+        }
+
         QAST::CompUnit.new:
             $top-level,
             :hll('Raku'),

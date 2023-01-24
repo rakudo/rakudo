@@ -283,9 +283,7 @@ CODE
         $enter = 0;
 
         isa-ok $block, Block, "$type: did we get a Block";
-        todo("ENTER phaser is not actually run yet");
         is-deeply $block(), 1, "$type: ENTER phaser returns expression";
-        todo("ENTER phaser is not actually run yet");
         is-deeply $enter, 1, "$type: ENTER actually ran";
     }
 }
@@ -335,9 +333,7 @@ CODE
         $enter = 0;
 
         isa-ok $block, Block, "$type: did we get a Block";
-        todo("ENTER phaser is not actually run yet");
-        is-deeply $block(), 1, "$type: ENTER phaser returns expression";
-        todo("ENTER phaser is not actually run yet");
+        is-deeply $block(), 42, "$type: ENTER phaser returns expression";
         is-deeply $enter, 1, "$type: ENTER actually ran";
     }
 }

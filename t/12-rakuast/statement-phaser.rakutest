@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 22; # Do not change this file to done-testing
+plan 24; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -248,6 +248,96 @@ CODE
 
     is-deeply $_, 666, @type[$++]
       for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Block with INIT phaser thunk' => {
+    my $init;
+
+    # -> { INIT ++$init }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Init.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$init')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+-> {
+    INIT ++$init
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $init = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $init, 1, "$type: INIT actually ran";
+        is-deeply $block(), 1, "$type: INIT phaser returns expression";
+    }
+}
+
+subtest 'Block with INIT phaser block' => {
+    my $init;
+
+    # -> { INIT { ++$init; 42 } }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Init.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$init')
+                      )
+                    ),
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(42)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+-> {
+    INIT {
+        ++$init;
+        42
+    }
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $init = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $init, 1, "$type: INIT actually ran";
+        is-deeply $block(), 42, "$type: INIT phaser returns expression";
+    }
 }
 
 subtest 'Block with ENTER phaser thunk' => {

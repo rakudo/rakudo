@@ -431,6 +431,7 @@ class RakuAST::StatementPrefix::Phaser::Last
 
 # The ENTER phaser.
 class RakuAST::StatementPrefix::Phaser::Enter
+  is RakuAST::StatementPrefix::Phaser
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
@@ -444,7 +445,7 @@ class RakuAST::StatementPrefix::Phaser::Enter
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-enter-phaser(self);
+        ($resolver.find-attach-target('block') // $resolver.find-attach-target('compunit')).add-enter-phaser(self);
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

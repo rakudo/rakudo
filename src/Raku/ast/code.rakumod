@@ -632,11 +632,11 @@ class RakuAST::ScopePhaser {
             }
         }
         if $!ENTER {
-            my $init-setup := QAST::Stmts.new;
+            my $enter-setup := QAST::Stmts.new;
             for $!ENTER {
                 my $container := $_.container;
                 $context.ensure-sc($container);
-                $init-setup.push(
+                $enter-setup.push(
                   QAST::Op.new(
                     :op<bindattr>,
                     QAST::WVal.new( :value($container) ),
@@ -646,7 +646,7 @@ class RakuAST::ScopePhaser {
                   )
                 );
             }
-            self.IMPL-SET-NODE($init-setup);
+            $qast[0].push($enter-setup);
         }
         if $!let {
             self.IMPL-ADD-PHASER-QAST($context, $!let, '!LET-RESTORE', $qast);

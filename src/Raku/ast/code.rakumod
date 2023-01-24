@@ -222,6 +222,7 @@ class RakuAST::Code
         );
         my $comp := nqp::getcomp('Raku');
         my $precomp := $comp.compile($compunit, :from<qast>, :compunit_ok(1));
+#?if !jvm
         nqp::dispatch(
             'boot-syscall',
             'set-compunit-resolver',
@@ -243,6 +244,7 @@ class RakuAST::Code
                 $dynamic-fallback.compile-time-value()($dyn-name, $without-star)
             }
         );
+#?endif
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
 

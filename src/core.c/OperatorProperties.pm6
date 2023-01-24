@@ -74,7 +74,9 @@ BEGIN {
       &prefix:«|»,
       &prefix:«~»,
       &prefix:«~^»,
+#?if !jvm
       &prefix:<⚛>,
+#?endif
 
     # infixes
       &infix:«!=»,
@@ -176,6 +178,7 @@ BEGIN {
       &infix:«⊅»,  # U+2285 NOT A SUPERSET OF
       &infix:«⊈»,  # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
       &infix:«⊉»,  # U+2289 NEITHER A SUPERSET OF NOR EQUAL TO
+#?if !jvm
       &infix:<⚛+=>,
       &infix:<⚛-=>,
       &infix:<⚛=>,
@@ -183,6 +186,7 @@ BEGIN {
       &prefix:<--⚛>,
       &postfix:<⚛++>,
       &postfix:<⚛-->,
+#?endif
 
     # postfixes
       &postfix:«++»,

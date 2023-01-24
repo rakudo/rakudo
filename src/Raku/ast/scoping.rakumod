@@ -41,10 +41,10 @@ class RakuAST::LexicalScope is RakuAST::Node {
 
         # Visit declarations and produce declaration QAST.
         for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations()) {
-            $stmts.unshift($_.IMPL-QAST-DECL($context));
+            $stmts.unshift($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
         }
         for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
-            $stmts.unshift($_.IMPL-QAST-DECL($context));
+            $stmts.unshift($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
         }
 
         # If there's handler block declarations, add those.

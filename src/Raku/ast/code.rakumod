@@ -635,15 +635,23 @@ class RakuAST::ScopePhaser {
             $qast.has_exit_handler(1);
         }
         if $!FIRST {
-            for $!FIRST {
-                $qast[0].push(
-                    QAST::Op.new(
-                        :op('if'),
-                        QAST::Op.new( :op('p6takefirstflag') ),
-                        $_.IMPL-CALLISH-QAST($context)
-                    )
-                );
+            my $first;
+            if nqp::elems($!FIRST) == 1 {
+                $first := $!FIRST[0].IMPL-CALLISH-QAST($context)
             }
+            else {
+                $first := QAST::Stmts.new;
+                for $!FIRST {
+                    $first.push($_.IMPL-CALLISH-QAST($context));
+                }
+            }
+            $qast[0].push(
+              QAST::Op.new(
+                :op('if'),
+                QAST::Op.new( :op('p6takefirstflag') ),
+                $first
+              )
+            );
         }
         if $!ENTER {
             my $enter-setup := QAST::Stmts.new;

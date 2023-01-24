@@ -871,7 +871,7 @@ CODE
 subtest 'For loop with FIRST phaser thunk' => {
     my $run;
 
-    # for ^3 { FIRST is-deeply $run, 0, "inside FIRST"; ++$run }
+    # for ^3 { FIRST is-deeply $run, 0, "inside FIRST"; FIRST ++$run }
     ast RakuAST::Statement::For.new(
       source => RakuAST::ApplyPrefix.new(
         prefix  => RakuAST::Prefix.new('^'),
@@ -895,9 +895,13 @@ subtest 'For loop with FIRST phaser thunk' => {
               )
             ),
             RakuAST::Statement::Expression.new(
-              expression => RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$run')
+              expression => RakuAST::StatementPrefix::Phaser::First.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$run')
+                  )
+                )
               )
             )
           )
@@ -905,11 +909,11 @@ subtest 'For loop with FIRST phaser thunk' => {
       )
     );
 
-    plan 5;  # FIRST tests need to be run
+    plan 7;  # FIRST tests need to be run
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 for ^3 {
     FIRST is-deeply($run, 0, "inside FIRST");
-    ++$run
+    FIRST ++$run
 }
 CODE
 
@@ -917,6 +921,7 @@ CODE
         $run = 0;
 
         is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
+        is-deeply $run, 1, "$type: did second FIRST run once";
     }
 }
 

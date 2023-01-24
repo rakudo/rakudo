@@ -466,6 +466,28 @@ class RakuAST::StatementPrefix::Phaser::Leave
     }
 }
 
+# The KEEP phaser.
+class RakuAST::StatementPrefix::Phaser::Keep
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-keep-phaser(self);
+    }
+}
+
+# The UNDO phaser.
+class RakuAST::StatementPrefix::Phaser::Undo
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-undo-phaser(self);
+    }
+}
+
 # The END phaser.
 class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Phaser::Sinky

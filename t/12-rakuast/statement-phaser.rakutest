@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 24; # Do not change this file to done-testing
+plan 28; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -537,6 +537,286 @@ CODE
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         is-deeply EVAL($it), True, "$type: result correct";
         is-deeply $done, True, "$type: did block run to completion";
+    }
+}
+
+subtest 'KEEP / UNDO phaser thunk successful exit' => {
+    my $keep;
+    my $undo;
+
+    # -> { KEEP ++$keep; UNDO ++$undo; 42 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Keep.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$keep')
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Undo.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$undo')
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:!c:!s:to/CODE/, 'deparse';
+-> {
+    KEEP ++$keep;
+    UNDO ++$undo;
+    42
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $keep = 0;
+        $undo = 0;
+
+        my $block := EVAL($it);  # should not run the phaser
+        is-deeply $keep, 0, "$type: KEEP did *not* run yet";
+        is-deeply $undo, 0, "$type: UNDO did *not* run yet";
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), 42, "$type: exited block correctly";
+        is-deeply $keep, 1, "$type: KEEP actually ran";
+        is-deeply $undo, 0, "$type: UNDO did *not* run";
+    }
+}
+
+subtest 'KEEP / UNDO phaser block successful exit' => {
+    my $keep;
+    my $undo;
+
+    # -> { KEEP { ++$keep }; UNDO { ++$undo }; 42 }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Keep.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$keep')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Undo.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$undo')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:!c:!s:to/CODE/, 'deparse';
+-> {
+    KEEP {
+        ++$keep
+    }
+    UNDO {
+        ++$undo
+    }
+    42
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $keep = 0;
+        $undo = 0;
+
+        my $block := EVAL($it);  # should not run the phaser
+        is-deeply $keep, 0, "$type: KEEP did *not* run yet";
+        is-deeply $undo, 0, "$type: UNDO did *not* run yet";
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), 42, "$type: exited block correctly";
+        is-deeply $keep, 1, "$type: KEEP actually ran";
+        is-deeply $undo, 0, "$type: UNDO did *not* run";
+    }
+}
+
+subtest 'KEEP / UNDO phaser thunk UNsuccessful exit' => {
+    my $keep;
+    my $undo;
+
+    # -> { KEEP ++$keep; UNDO ++$undo; Int }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Keep.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$keep')
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Undo.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$undo')
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier("Int")
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:!c:!s:to/CODE/, 'deparse';
+-> {
+    KEEP ++$keep;
+    UNDO ++$undo;
+    Int
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $keep = 0;
+        $undo = 0;
+
+        my $block := EVAL($it);  # should not run the phaser
+        is-deeply $keep, 0, "$type: KEEP did *not* run yet";
+        is-deeply $undo, 0, "$type: UNDO did *not* run yet";
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), Int, "$type: exited block correctly";
+        is-deeply $keep, 0, "$type: KEEP did *not* run";
+        is-deeply $undo, 1, "$type: UNDO actually ran";
+    }
+}
+
+subtest 'KEEP / UNDO phaser block UNsuccessful exit' => {
+    my $keep;
+    my $undo;
+
+    # -> { KEEP { ++$keep }; UNDO { ++$undo }; Int }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Keep.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$keep')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Undo.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$undo')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier("Int")
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:!c:!s:to/CODE/, 'deparse';
+-> {
+    KEEP {
+        ++$keep
+    }
+    UNDO {
+        ++$undo
+    }
+    Int
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $keep = 0;
+        $undo = 0;
+
+        my $block := EVAL($it);  # should not run the phaser
+        is-deeply $keep, 0, "$type: KEEP did *not* run yet";
+        is-deeply $undo, 0, "$type: UNDO did *not* run yet";
+
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), Int, "$type: exited block correctly";
+        is-deeply $keep, 0, "$type: KEEP did *not* run";
+        is-deeply $undo, 1, "$type: UNDO actually ran";
     }
 }
 

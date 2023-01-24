@@ -532,6 +532,8 @@ class RakuAST::ScopePhaser {
     has List $!FIRST;
     has List $!NEXT;
     has List $!LAST;
+    has List $!QUIT;
+    has List $!CLOSE;
     has RakuAST::Block $!let;
     has RakuAST::Block $!temp;
 
@@ -574,6 +576,14 @@ class RakuAST::ScopePhaser {
         self.add-phaser-to-list('$!LAST', $phaser);
     }
 
+    method add-quit-phaser(RakuAST::StatementPrefix::Phaser::Quit $phaser) {
+        self.add-phaser-to-list('$!QUIT', $phaser);
+    }
+
+    method add-close-phaser(RakuAST::StatementPrefix::Phaser::Close $phaser) {
+        self.add-phaser-to-list('$!CLOSE', $phaser);
+    }
+
     method add-list-to-code-object(Str $attr, $code-object) {
         my $list := nqp::getattr(self, RakuAST::ScopePhaser, $attr);
         if $list {
@@ -589,6 +599,8 @@ class RakuAST::ScopePhaser {
         self.add-list-to-code-object('$!FIRST', $code-object);
         self.add-list-to-code-object( '$!NEXT', $code-object);
         self.add-list-to-code-object( '$!LAST', $code-object);
+        self.add-list-to-code-object( '$!QUIT', $code-object);
+        self.add-list-to-code-object('$!CLOSE', $code-object);
 
         if $!let {
             $code-object.add_phaser('UNDO', $!let.meta-object);

@@ -516,6 +516,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Last').new($<blorst>.ast);
     }
 
+    method statement_prefix:sym<QUIT>($/) {
+        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Quit').new($<blorst>.ast);
+    }
+
+    method statement_prefix:sym<CLOSE>($/) {
+        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Close').new($<blorst>.ast);
+    }
+
     method statement_prefix:sym<race>($/) {
         my $blorst := $<blorst>.ast;
         if nqp::istype($blorst, self.r('Statement', 'For')) {

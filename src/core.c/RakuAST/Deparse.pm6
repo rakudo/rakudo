@@ -1446,6 +1446,12 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
+      RakuAST::StatementPrefix::Phaser::Close:D $ast
+    --> Str:D) {
+        'CLOSE ' ~ self.deparse($ast.blorst)
+    }
+
+    multi method deparse(
       RakuAST::StatementPrefix::Phaser::End:D $ast
     --> Str:D) {
         'END ' ~ self.deparse($ast.blorst)
@@ -1473,6 +1479,12 @@ class RakuAST::Deparse {
       RakuAST::StatementPrefix::Phaser::Next:D $ast
     --> Str:D) {
         'NEXT ' ~ self.deparse($ast.blorst)
+    }
+
+    multi method deparse(
+      RakuAST::StatementPrefix::Phaser::Quit:D $ast
+    --> Str:D) {
+        'QUIT ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(RakuAST::StatementPrefix::Quietly:D $ast --> Str:D) {

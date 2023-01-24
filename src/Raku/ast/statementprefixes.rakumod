@@ -456,3 +456,28 @@ class RakuAST::StatementPrefix::Phaser::End
         $resolver.find-attach-target('compunit').add-end-phaser(self);
     }
 }
+
+# The QUIT phaser.
+class RakuAST::StatementPrefix::Phaser::Quit
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::Attaching
+{
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-quit-phaser(self);
+    }
+
+    method meta-object() {
+        self.blorst.meta-object
+    }
+}
+
+# The CLOSE phaser.
+class RakuAST::StatementPrefix::Phaser::Close
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-close-phaser(self);
+    }
+}

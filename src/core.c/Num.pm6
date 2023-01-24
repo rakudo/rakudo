@@ -2,6 +2,16 @@ my class X::Cannot::Capture        { ... }
 my class X::Numeric::DivideByZero  { ... }
 my class X::Numeric::CannotConvert { ... }
 
+my constant tau = 6.28318_53071_79586_476e0;
+my constant pi  = 3.14159_26535_89793_238e0;
+my constant e   = 2.71828_18284_59045_235e0;
+
+my constant π := pi;
+my constant τ := tau;
+#?if !jvm
+my constant 𝑒 := e;
+#?endif
+
 my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool
     #     has num $!value is box_target;
@@ -137,8 +147,13 @@ my class Num does Real { # declared in BOOTSTRAP
     }
 
     proto method log(|) {*}
-    multi method log(Num:D: ) {
-        nqp::p6box_n(nqp::log_n(nqp::unbox_n(self)));
+    multi method log(Num:D:) {
+        nqp::islt_n(self,0e0)
+          ?? Complex.new(
+               nqp::p6box_n(nqp::log_n(nqp::abs_n(nqp::unbox_n(self)))),
+               pi
+             )
+          !! nqp::p6box_n(nqp::log_n(nqp::unbox_n(self)));
     }
     multi method log(Num:D: Num \base) {
         self.log() / base.log();
@@ -288,16 +303,6 @@ my class Num does Real { # declared in BOOTSTRAP
         nqp::p6box_n(nqp::div_In(nu,de))  # downgrade to float
     }
 }
-
-my constant tau = 6.28318_53071_79586_476e0;
-my constant pi  = 3.14159_26535_89793_238e0;
-my constant e   = 2.71828_18284_59045_235e0;
-
-my constant π := pi;
-my constant τ := tau;
-#?if !jvm
-my constant 𝑒 := e;
-#?endif
 
 multi sub prefix:<++>(Num:D $a is rw) {
     $a = nqp::p6box_n(nqp::add_n(nqp::unbox_n($a), 1e0))

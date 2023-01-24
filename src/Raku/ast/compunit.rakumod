@@ -5,6 +5,7 @@ class RakuAST::CompUnit
   is RakuAST::ImplicitLookups
   is RakuAST::ImplicitDeclarations
   is RakuAST::AttachTarget
+  is RakuAST::ScopePhaser
 {
     has RakuAST::StatementList $.statement-list;
     has RakuAST::Block $.mainline;
@@ -236,6 +237,8 @@ class RakuAST::CompUnit
         # Compile into a QAST::CompUnit.
         $top-level.push(self.IMPL-TO-QAST($context));
         $!mainline.IMPL-LINK-META-OBJECT($context, $top-level);
+        self.add-phasers-to-code-object($!mainline.meta-object);
+        self.add-phasers-handling-code($context, $top-level);
 
         if !$!precompilation-mode
             && !$*INSIDE-EVAL

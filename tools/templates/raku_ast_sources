@@ -21,8 +21,8 @@ src/Raku/ast/type.rakumod
 src/Raku/ast/variable-declaration.rakumod
 src/Raku/ast/variable-access.rakumod
 src/Raku/ast/contextualizer.rakumod
-src/Raku/ast/compunit.rakumod
 src/Raku/ast/code.rakumod
+src/Raku/ast/compunit.rakumod
 src/Raku/ast/statementprefixes.rakumod
 src/Raku/ast/statement-mods.rakumod
 src/Raku/ast/signature.rakumod

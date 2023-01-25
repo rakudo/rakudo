@@ -1152,8 +1152,8 @@ class RakuAST::VarDeclaration::Placeholder
             unless $!already-declared;
     }
 
-    method IMPL-ALREADY-DECLARED() {
-        nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!already-declared', True);
+    method IMPL-ALREADY-DECLARED(Bool $declared) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Placeholder, '$!already-declared', $declared ?? True !! False);
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

@@ -442,17 +442,34 @@ class RakuAST::PlaceholderParameterOwner
             nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
                 '$!attached-placeholder-parameters', []);
         }
-        if self.IMPL-HAS-PARAMETER($placeholder.lexical-name) {
-            $placeholder.IMPL-ALREADY-DECLARED;
+        my $name := $placeholder.lexical-name;
+        if self.IMPL-HAS-PARAMETER($name) {
+            # matches an explicitly declared parameter
+            $placeholder.IMPL-ALREADY-DECLARED(True);
         }
-        nqp::push($!attached-placeholder-parameters, $placeholder)
-            unless self.IMPL-HAS-PARAMETER($placeholder.lexical-name);
+        else {
+            for $!attached-placeholder-parameters {
+                if $_.lexical-name eq $name {
+                    # same placeholder is used multiple times
+                    $placeholder.IMPL-ALREADY-DECLARED(True);
+                    return Nil
+                }
+            }
+            nqp::push($!attached-placeholder-parameters, $placeholder);
+        }
         Nil
     }
 
     method clear-placeholder-attachments() {
-        nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
-            '$!attached-placeholder-parameters', nqp::null());
+        if nqp::islist($!attached-placeholder-parameters) {
+            for $!attached-placeholder-parameters {
+                # reset declared state on parameters,
+                # will be re-set when they are attached again
+                $_.IMPL-ALREADY-DECLARED(False);
+            }
+            nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
+                '$!attached-placeholder-parameters', nqp::null());
+        }
         Nil
     }
 

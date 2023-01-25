@@ -291,10 +291,6 @@ class RakuAST::Deparse {
           !! $literal.raku  # need quoting
     }
 
-    method !prefix-blorst($ast, str $prefix) {
-        $prefix ~ self.deparse($ast.blorst)
-    }
-
 #- A ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> Str:D) {
@@ -1424,15 +1420,15 @@ class RakuAST::Deparse {
 #- Statement::Prefix -----------------------------------------------------------
 
     multi method deparse(RakuAST::StatementPrefix::Do:D $ast --> Str:D) {
-        self!prefix-blorst($ast, 'do ')
+        'do ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(RakuAST::StatementPrefix::Eager:D $ast --> Str:D) {
-        self!prefix-blorst($ast, 'eager ')
+        'eager ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(RakuAST::StatementPrefix::Gather:D $ast --> Str:D) {
-        self!prefix-blorst($ast, 'gather ')
+        'gather ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(RakuAST::StatementPrefix::Hyper:D $ast --> Str:D) {
@@ -1440,79 +1436,79 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::StatementPrefix::Lazy:D $ast --> Str:D) {
-        self!prefix-blorst($ast, 'lazy ')
+        'lazy ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Begin:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'BEGIN ')
+        'BEGIN ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Close:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'CLOSE ')
+        'CLOSE ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::End:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'END ')
+        'END ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::First:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'FIRST ')
+        'FIRST ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Last:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'LAST ')
+        'LAST ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Enter:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'ENTER ')
+        'ENTER ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Init:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'INIT ')
+        'INIT ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Keep:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'KEEP ')
+        'KEEP ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Leave:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'LEAVE ')
+        'LEAVE ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Next:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'NEXT ')
+        'NEXT ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Quit:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'QUIT ')
+        'QUIT ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Undo:D $ast
     --> Str:D) {
-        self!prefix-blorst($ast, 'UNDO ')
+        'UNDO ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(RakuAST::StatementPrefix::Quietly:D $ast --> Str:D) {

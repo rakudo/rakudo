@@ -615,49 +615,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
-    method statement_prefix:sym<INIT>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Init').new($<blorst>.ast);
+    method setup-phaser($/, $name) {
+        self.attach: $/, self.r('StatementPrefix', 'Phaser', $name).new($<blorst>.ast);
     }
 
-    method statement_prefix:sym<END>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'End').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<ENTER>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Enter').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<LEAVE>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Leave').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<KEEP>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Keep').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<UNDO>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Undo').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<FIRST>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'First').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<NEXT>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Next').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<LAST>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Last').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<QUIT>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Quit').new($<blorst>.ast);
-    }
-
-    method statement_prefix:sym<CLOSE>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', 'Close').new($<blorst>.ast);
-    }
+    method statement_prefix:sym<INIT>($/)  { self.setup-phaser($/, 'Init')  }
+    method statement_prefix:sym<END>($/)   { self.setup-phaser($/, 'End')   }
+    method statement_prefix:sym<ENTER>($/) { self.setup-phaser($/, 'Enter') }
+    method statement_prefix:sym<LEAVE>($/) { self.setup-phaser($/, 'Leave') }
+    method statement_prefix:sym<KEEP>($/)  { self.setup-phaser($/, 'Keep')  }
+    method statement_prefix:sym<UNDO>($/)  { self.setup-phaser($/, 'Undo')  }
+    method statement_prefix:sym<FIRST>($/) { self.setup-phaser($/, 'First') }
+    method statement_prefix:sym<NEXT>($/)  { self.setup-phaser($/, 'Next')  }
+    method statement_prefix:sym<LAST>($/)  { self.setup-phaser($/, 'Last')  }
+    method statement_prefix:sym<QUIT>($/)  { self.setup-phaser($/, 'Quit')  }
+    method statement_prefix:sym<CLOSE>($/) { self.setup-phaser($/, 'Close') }
 
     method statement_prefix:sym<race>($/) {
         my $blorst := $<blorst>.ast;

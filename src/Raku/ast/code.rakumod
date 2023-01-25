@@ -670,11 +670,25 @@ class RakuAST::ScopePhaser {
             }
             $qast[0].push($enter-setup);
         }
+
         if $!let {
             self.IMPL-ADD-PHASER-QAST($context, $!let, '!LET-RESTORE', $qast);
         }
         if $!temp {
             self.IMPL-ADD-PHASER-QAST($context, $!temp, '!TEMP-RESTORE', $qast);
+        }
+
+        if $!LAST || $!NEXT || $!QUIT || $!CLOSE {
+            $qast[0].push(
+              QAST::Op.new(
+                :op('callmethod'),
+                :name('!capture_phasers'),
+                QAST::Op.new(
+                  :op('getcodeobj'),
+                  QAST::Op.new(:op('curcode'))
+                )
+              )
+            );
         }
     }
 

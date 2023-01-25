@@ -1116,11 +1116,14 @@ my class Rakudo::Internals {
           )
         )
     }
+    my $dynamics-not-found := nqp::hash;
     sub dynamic-not-found(str $key, str $name) {
 #nqp::say("failed: $name");
-        PROCESS::.BIND-KEY(
-          $key,
-          X::Dynamic::NotFound.new(:$name).Failure
+        nqp::ifnull(
+          nqp::atkey($dynamics-not-found,$key),
+          nqp::bindkey($dynamics-not-found,$key,
+            X::Dynamic::NotFound.new(:$name).Failure
+          )
         )
     }
     my $DYNAMIC-INITIALIZATION-LOCK := Lock.new;

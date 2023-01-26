@@ -986,6 +986,10 @@ class RakuAST::ParameterTarget::Var
         Nil
     }
 
+    method set-name(str $name) {
+        nqp::bindattr_s(self, RakuAST::ParameterTarget::Var, '$!name', $name);
+    }
+
     method set-container-type(Mu $type, Mu $of) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);

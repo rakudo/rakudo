@@ -54,16 +54,17 @@ class RakuAST::Expression is RakuAST::Node {
         }
     }
 
-    method IMPL-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $thunk := RakuAST::CurryThunk.new;
+    method IMPL-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Str $arg) {
+        my $thunk := RakuAST::CurryThunk.new($arg);
         $thunk.IMPL-CHECK($resolver, $context, True);
         self.wrap-with-thunk($thunk);
+        $thunk
     }
 
     method IMPL-CURRIED() {
         my $cur-thunk := $!thunks;
         while $cur-thunk {
-            return True if nqp::istype($cur-thunk, RakuAST::CurryThunk);
+            return $cur-thunk if nqp::istype($cur-thunk, RakuAST::CurryThunk);
             $cur-thunk := $cur-thunk.next;
         }
         False
@@ -74,17 +75,19 @@ class RakuAST::Expression is RakuAST::Node {
         my $cur-thunk := $!thunks;
         while $cur-thunk {
             if nqp::istype($cur-thunk, RakuAST::CurryThunk) {
+                my $params := $cur-thunk.IMPL-PARAMS;
                 if $prev-thunk {
                     $prev-thunk.set-next($cur-thunk.next);
                 }
                 else {
                     nqp::bindattr(self, RakuAST::Expression, '$!thunks', $cur-thunk.next);
                 }
+                return $params;
             }
             $prev-thunk := $cur-thunk;
             $cur-thunk := $cur-thunk.next;
         }
-        False
+        nqp::die("UNCURRY didn't find a CurryThunk");
     }
 }
 
@@ -631,26 +634,41 @@ class RakuAST::ApplyInfix is RakuAST::Expression is RakuAST::BeginTime {
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if nqp::bitand_i($!infix.IMPL-CURRIES, 1) {
-            if nqp::istype($!left, RakuAST::Term::Whatever) {
-                nqp::bindattr(self, RakuAST::ApplyInfix, '$!left', RakuAST::Var::Lexical.new('$_'));
-                self.IMPL-CURRY($resolver, $context);
-                $!left.resolve-with($resolver);
-            }
-            if nqp::istype($!right, RakuAST::Term::Whatever) {
-                nqp::bindattr(self, RakuAST::ApplyInfix, '$!right', RakuAST::Var::Lexical.new('$_'));
-                self.IMPL-CURRY($resolver, $context);
-                $!right.resolve-with($resolver);
+        if nqp::bitand_i($!infix.IMPL-CURRIES, 2) && (my $curried := $!left.IMPL-CURRIED) {
+            my $params := $!left.IMPL-UNCURRY;
+            self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
+            $curried := self.IMPL-CURRIED;
+            for $params {
+                $curried.IMPL-ADD-PARAM($_.target.lexical-name);
             }
         }
-        if nqp::bitand_i($!infix.IMPL-CURRIES, 2) {
-            if $!left.IMPL-CURRIED {
-                $!left.IMPL-UNCURRY;
-                self.IMPL-CURRY($resolver, $context);
+        if nqp::bitand_i($!infix.IMPL-CURRIES, 1) {
+            for '$!left', '$!right' {
+                my $operand := nqp::getattr(self, RakuAST::ApplyInfix, $_);
+                if nqp::istype($operand, RakuAST::Term::Whatever) {
+                    my $curried := self.IMPL-CURRIED;
+                    my $param_name := '$whatevercode_arg' ~ ($curried ?? $curried.IMPL-NUM-PARAMS + 1 !! 1);
+                    my $param;
+                    if $curried {
+                        $param := $curried.IMPL-ADD-PARAM($param_name);
+                        $curried.IMPL-CHECK($resolver, $context, True);
+                    }
+                    else {
+                        $param := self.IMPL-CURRY($resolver, $context, $param_name).IMPL-LAST-PARAM;
+                    }
+                    nqp::bindattr(self, RakuAST::ApplyInfix, $_, $param.target.generate-lookup);
+                }
             }
-            if $!right.IMPL-CURRIED {
-                $!right.IMPL-UNCURRY;
-                self.IMPL-CURRY($resolver, $context);
+        }
+        if nqp::bitand_i($!infix.IMPL-CURRIES, 2) && ($curried := $!right.IMPL-CURRIED) {
+            my $params := $!right.IMPL-UNCURRY;
+            self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
+            $curried := self.IMPL-CURRIED;
+            my $param-num := $curried.IMPL-NUM-PARAMS;
+            for $params {
+                $param-num++;
+                $_.target.set-name('$whatevercode_arg' ~ $param-num);
+                $curried.IMPL-ADD-PARAM($_.target.lexical-name);
             }
         }
 
@@ -1216,14 +1234,14 @@ class RakuAST::ApplyPostfix is RakuAST::Termish is RakuAST::BeginTime {
         if nqp::bitand_i($!postfix.IMPL-CURRIES, 1) {
             if nqp::istype($!operand, RakuAST::Term::Whatever) {
                 nqp::bindattr(self, RakuAST::ApplyPostfix, '$!operand', RakuAST::Var::Lexical.new('$_'));
-                self.IMPL-CURRY($resolver, $context);
+                self.IMPL-CURRY($resolver, $context, '$_');
                 $!operand.resolve-with($resolver);
             }
         }
         if nqp::bitand_i($!postfix.IMPL-CURRIES, 2) {
             if $!operand.IMPL-CURRIED {
                 $!operand.IMPL-UNCURRY;
-                self.IMPL-CURRY($resolver, $context);
+                self.IMPL-CURRY($resolver, $context, '$_');
             }
         }
     }

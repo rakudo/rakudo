@@ -365,6 +365,11 @@ class RakuAST::ExpressionThunk
                     :blocktype('declaration_static'),
                     QAST::Stmts.new( $signature.IMPL-QAST-BINDINGS($context) )),
                 :key);
+        my $stmts := QAST::Stmts.new();
+        for self.IMPL-UNWRAP-LIST($signature.parameters) {
+            $stmts.push($_.target.IMPL-QAST-DECL($context)) unless $_.target.lexical-name eq '$_';
+        }
+        $block.push($stmts);
         $block.arity($signature.arity);
 
         # If there's an inner thunk the body evaluates to that.
@@ -420,6 +425,17 @@ class RakuAST::ExpressionThunk
         nqp::bindattr($signature.meta-object, Signature, '$!code', $code);
         self.IMPL-THUNK-META-OBJECT-PRODUCED($code);
         $code
+    }
+
+    method IMPL-UPDATE-SIGNATURE() {
+        return Nil unless self.has-meta-object;
+
+        my $code := self.meta-object;
+        nqp::bindattr(self, RakuAST::ExpressionThunk, '$!signature', self.IMPL-THUNK-SIGNATURE);
+        my $signature := $!signature;
+        nqp::bindattr($code, Code, '$!signature', $signature.meta-object);
+        nqp::bindattr($signature.meta-object, Signature, '$!code', $code);
+        self.IMPL-THUNK-META-OBJECT-PRODUCED($code);
     }
 }
 
@@ -2270,6 +2286,15 @@ class RakuAST::CurryThunk
   is RakuAST::ExpressionThunk
   is RakuAST::ImplicitLookups
 {
+    has Mu $!parameters;
+
+    method new(str $param) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::CurryThunk,, '$!parameters', []);
+        $obj.IMPL-ADD-PARAM($param) if $param ne '';
+        $obj
+    }
+
     method thunk-kind() {
         'Curried Whatever'
     }
@@ -2285,14 +2310,29 @@ class RakuAST::CurryThunk
         ])
     }
 
+    method IMPL-ADD-PARAM(str $param_name) {
+        my $param := RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new($param_name)
+        );
+        nqp::push($!parameters, $param);
+        self.IMPL-UPDATE-SIGNATURE;
+        $param
+    }
+
+    method IMPL-NUM-PARAMS() {
+        nqp::elems($!parameters)
+    }
+
+    method IMPL-PARAMS() {
+        $!parameters
+    }
+
+    method IMPL-LAST-PARAM() {
+        $!parameters[nqp::elems($!parameters) - 1]
+    }
+
     method IMPL-THUNK-SIGNATURE() {
-        RakuAST::Signature.new(
-            parameters => (
-                RakuAST::Parameter.new(
-                    target => RakuAST::ParameterTarget::Var.new('$_'),
-                ),
-            )
-        )
+        RakuAST::Signature.new(parameters => self.IMPL-WRAP-LIST($!parameters))
     }
 }
 

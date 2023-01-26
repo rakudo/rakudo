@@ -477,6 +477,60 @@ class RakuAST::StatementPrefix::Phaser::Keep
     }
 }
 
+# The PRE phaser.
+class RakuAST::StatementPrefix::Phaser::Pre
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
+
+    method new(RakuAST::Blorst $condition) {
+        my $obj := nqp::create(self);
+
+        nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst',
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyPostfix.new(
+              operand => RakuAST::ApplyPostfix.new(
+                operand => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier-parts(
+                    'X','Phaser','PrePost'
+                  )
+                ),
+                postfix => RakuAST::Call::Method.new(
+                  name => RakuAST::Name.from-identifier('new'),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::ColonPair::Value.new(
+                      key   => 'condition',
+                      value => RakuAST::StrLiteral.new(
+                        $condition.DEPARSE
+                      )
+                    )
+                  )
+                )
+              ),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('throw')
+              )
+            ),
+            condition-modifier => RakuAST::StatementModifier::Unless.new(
+              nqp::istype($condition, RakuAST::Block)
+                ?? RakuAST::ApplyPostfix.new(
+                     operand => $condition,
+                     postfix => RakuAST::Call::Term.new
+                   )
+                !! $condition
+            )
+          )
+        );
+
+        $obj
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-pre-phaser(self);
+    }
+}
+
 # The UNDO phaser.
 class RakuAST::StatementPrefix::Phaser::Undo
   is RakuAST::StatementPrefix::Phaser::Sinky

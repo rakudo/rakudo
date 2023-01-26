@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 28; # Do not change this file to done-testing
+plan 30; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1250,6 +1250,111 @@ CODE
           "$type: QUIT phaser returns Nil";
 
         is-deeply $quit, $exception, "$type: QUIT actually ran";
+    }
+}
+
+subtest 'Block with PRE phaser thunk' => {
+    my $pre;
+
+    # -> { PRE ++$pre }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Pre.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$pre')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+-> {
+    PRE ++$pre
+}
+CODE
+
+    # succeeding
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $pre = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), Nil, "$type: PRE phaser does not return expression";
+        is-deeply $pre, 1, "$type: PRE actually ran";
+    }
+
+    # failing
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $pre = -1;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        throws-like { $block() }, X::Phaser::PrePost,
+          message => Q|Precondition '++$pre' failed|,
+          "$type: PRE phaser throws";
+    }
+}
+
+subtest 'Block with PRE phaser block' => {
+    my $pre;
+
+    # -> { PRE { ++$pre } }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Pre.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('++'),
+                        operand => RakuAST::Var::Lexical.new('$pre')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+-> {
+    PRE {
+        ++$pre
+    }
+}
+CODE
+
+    # succeeding
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $pre = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), Nil, "$type: PRE phaser does not return expression";
+        is-deeply $pre, 1, "$type: PRE actually ran";
+    }
+
+    # failing
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $pre = -1;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        throws-like { $block() }, X::Phaser::PrePost,
+          message => / '++$pre' /,
+          "$type: PRE phaser throws";
+        is-deeply $pre, 0, "$type: PRE actually ran";
     }
 }
 

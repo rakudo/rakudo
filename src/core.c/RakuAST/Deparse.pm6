@@ -324,7 +324,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
-        ($ast.on-topic ?? "" !! self.deparse($ast.operand))
+        ($ast.on-topic ?? "" !! self.deparse($ast.operand).chomp)
           ~ self.deparse($ast.postfix)
     }
 
@@ -1497,6 +1497,20 @@ class RakuAST::Deparse {
       RakuAST::StatementPrefix::Phaser::Next:D $ast
     --> Str:D) {
         'NEXT ' ~ self.deparse($ast.blorst)
+    }
+
+    multi method deparse(
+      RakuAST::StatementPrefix::Phaser::Pre:D $ast
+    --> Str:D) {
+        # PRE phasers get extra code inserted at RakuAST level, which
+        # wraps the original blorst into a statement in which the blorst
+        # becomes the condition modifier
+        my $expression := $ast.blorst.condition-modifier.expression;
+        'PRE ' ~ self.deparse(
+          nqp::istype($expression,RakuAST::ApplyPostfix)
+            ?? $expression.operand
+            !! $expression
+        )
     }
 
     multi method deparse(

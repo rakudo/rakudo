@@ -535,6 +535,7 @@ class RakuAST::ScopePhaser {
     has List $!FIRST;
     has List $!NEXT;
     has List $!LAST;
+    has List $!PRE;
     has List $!QUIT;
     has List $!CLOSE;
     has RakuAST::Block $!let;
@@ -593,6 +594,10 @@ class RakuAST::ScopePhaser {
         self.add-phaser-to-list('$!LAST', $phaser);
     }
 
+    method add-pre-phaser(RakuAST::StatementPrefix::Phaser::Pre $phaser) {
+        self.add-phaser-to-list('$!PRE', $phaser);
+    }
+
     method add-quit-phaser(RakuAST::StatementPrefix::Phaser::Quit $phaser) {
         self.add-phaser-to-list('$!QUIT', $phaser);
     }
@@ -620,6 +625,7 @@ class RakuAST::ScopePhaser {
         self.add-list-to-code-object( '$!NEXT', $code-object);
         self.add-list-to-code-object( '$!LAST', $code-object);
         self.add-list-to-code-object( '$!QUIT', $code-object);
+        self.add-list-to-code-object(  '$!PRE', $code-object);
         self.add-list-to-code-object('$!CLOSE', $code-object);
 
         if $!let {
@@ -635,21 +641,15 @@ class RakuAST::ScopePhaser {
             $qast.has_exit_handler(1);
         }
         if $!FIRST {
-            my $first;
-            if nqp::elems($!FIRST) == 1 {
-                $first := $!FIRST[0].IMPL-CALLISH-QAST($context)
-            }
-            else {
-                $first := QAST::Stmts.new;
-                for $!FIRST {
-                    $first.push($_.IMPL-CALLISH-QAST($context));
-                }
+            my $first-setup := QAST::Stmts.new;
+            for $!FIRST {
+                $first-setup.push($_.IMPL-CALLISH-QAST($context));
             }
             $qast[0].push(
               QAST::Op.new(
                 :op('if'),
                 QAST::Op.new( :op('p6takefirstflag') ),
-                $first
+                $first-setup
               )
             );
         }
@@ -689,6 +689,21 @@ class RakuAST::ScopePhaser {
                 )
               )
             );
+        }
+
+        if $!PRE {
+            my $pre-setup := QAST::Stmts.new;
+            for $!PRE {
+                $pre-setup.push($_.IMPL-CALLISH-QAST($context));
+            }
+
+            $qast[0].push(QAST::Op.new( :op('p6setpre') ));
+            $qast[0].push($pre-setup);
+            $qast[0].push(QAST::Op.new( :op('p6clearpre') ));
+        }
+
+        if $!LEAVE || $!KEEP || $!UNDO {
+            $qast.annotate('WANTMEPLEASE',1);
         }
     }
 

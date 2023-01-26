@@ -64,10 +64,12 @@ my class Hash { # declared in BOOTSTRAP
         my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'));
         nqp::while(
           $iter,
-          self.STORE_AT_KEY(
-            nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
-          )
+          map.PUT_FROM_ITER(nqp::shift($iter), self)
         );
+    }
+
+    method PUT_FROM_ITER(Mu \iter, \target --> Nil) is implementation-detail {
+        target.STORE_AT_KEY(nqp::iterkey_s(iter),nqp::iterval(iter))
     }
 
     proto method STORE(|) {*}

@@ -33,6 +33,11 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
         )
     }
 
+    method PUT_FROM_ITER(Mu \iter, \target --> Nil) {
+        my \actual-pair = nqp::iterval(iter);
+        target.STORE_AT_KEY(nqp::getattr(actual-pair, Pair, '$!key'), nqp::getattr(actual-pair, Pair, '$!value'))
+    }
+
     method ASSIGN-KEY(::?CLASS:D: TKey \key, Mu \assignval) is raw {
         my \storage  := nqp::getattr(self, Map, '$!storage');
         my \WHICH    := key.WHICH;

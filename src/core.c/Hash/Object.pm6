@@ -33,6 +33,20 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
         )
     }
 
+    method PUSH_FROM_MAP(\target --> Nil) is implementation-detail {
+        my $iter := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
+        nqp::while(
+          $iter,
+          nqp::stmts(
+            (my $pair := nqp::iterval(nqp::shift($iter))),
+            target.STORE_AT_KEY(
+              nqp::getattr($pair,Pair,'$!key'),
+              nqp::getattr($pair,Pair,'$!value'),
+            )
+          )
+        );
+    }
+
     method ASSIGN-KEY(::?CLASS:D: TKey \key, Mu \assignval) is raw {
         my \storage  := nqp::getattr(self, Map, '$!storage');
         my \WHICH    := key.WHICH;

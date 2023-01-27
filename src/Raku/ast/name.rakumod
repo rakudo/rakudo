@@ -72,6 +72,9 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
 
     method visit-children(Code $visitor) {
         if nqp::isconcrete(self) {
+            for $!parts {
+                $_.visit-children($visitor);
+            }
             for $!colonpairs {
                 $visitor($_);
             }
@@ -211,6 +214,8 @@ class RakuAST::Name is RakuAST::ImplicitLookups {
 
 # Marker role for a part of a name.
 class RakuAST::Name::Part {
+    method visit-children(Code $visitor) {
+    }
 }
 
 # A simple name part, wrapping a string name.
@@ -291,6 +296,10 @@ class RakuAST::Name::Part::Expression is RakuAST::Name::Part {
 
     method IMPL-QAST-INDIRECT-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
         $!expr.IMPL-TO-QAST($context)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!expr);
     }
 }
 

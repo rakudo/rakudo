@@ -1085,6 +1085,10 @@ class RakuAST::ParameterTarget::Term
     method default-scope() { 'my' }
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+    }
 }
 
 # Marker for all kinds of slurpy behavior.

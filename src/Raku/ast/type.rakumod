@@ -64,6 +64,10 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.resolution.compile-time-value
     }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+    }
 }
 
 # A simple type name, e.g. Int, Foo::Bar, etc. that should be looked up in the
@@ -115,6 +119,7 @@ class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup is RakuAST::De
     }
 
     method visit-children(Code $visitor) {
+        $visitor($!name);
         $visitor($!constraint);
     }
 
@@ -167,6 +172,10 @@ class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup is RakuAST:
 
     method is-simple-lexical-declaration() {
         False
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
     }
 }
 

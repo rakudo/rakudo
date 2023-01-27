@@ -442,4 +442,8 @@ class RakuAST::Var::Package is RakuAST::Var is RakuAST::Lookup {
             $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :$sigil)
         }
     }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+    }
 }

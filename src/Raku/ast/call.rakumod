@@ -503,6 +503,7 @@ class RakuAST::Call::PrivateMethod
     }
 
     method visit-children(Code $visitor) {
+        $visitor($!name);
         $visitor(self.args);
     }
 

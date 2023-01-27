@@ -41,13 +41,19 @@ class RakuAST::Circumfix::ArrayComposer is RakuAST::Circumfix is RakuAST::Lookup
     }
 
     method canonicalize() {
-        my @parts;
-        for self.IMPL-UNWRAP-LIST(self.semilist.statements) {
-            nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_))
-                unless nqp::istype($_, RakuAST::Statement::Expression);
-            nqp::push(@parts, "'" ~ $_.expression.literal-value ~ "'");
+        my @statements := self.IMPL-UNWRAP-LIST(self.semilist.statements);
+        if nqp::elems(@statements) == 1 {
+            self.IMPL-QUOTE-VALUE(@statements[0].expression.literal-value)
         }
-        '[' ~ nqp::join('; ', @parts) ~ ']'
+        else {
+            my @parts;
+            for @statements {
+                nqp::die('canonicalize NYI for non-simple colonpairs: ' ~ $_.HOW.name($_))
+                    unless nqp::istype($_, RakuAST::Statement::Expression);
+                nqp::push(@parts, "'" ~ $_.expression.literal-value ~ "'");
+            }
+            '[' ~ nqp::join('; ', @parts) ~ ']'
+        }
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {

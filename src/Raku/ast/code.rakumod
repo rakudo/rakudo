@@ -680,6 +680,18 @@ class RakuAST::ScopePhaser {
         if $!has-exit-handler {
             $qast.has_exit_handler(1);
         }
+
+        if $!PRE {
+            my $pre-setup := QAST::Stmts.new;
+            for $!PRE {
+                $pre-setup.push($_.IMPL-CALLISH-QAST($context));
+            }
+
+            $qast[0].push(QAST::Op.new( :op('p6setpre') ));
+            $qast[0].push($pre-setup);
+            $qast[0].push(QAST::Op.new( :op('p6clearpre') ));
+        }
+
         if $!FIRST {
             my $first-setup := QAST::Stmts.new;
             for $!FIRST {
@@ -693,6 +705,7 @@ class RakuAST::ScopePhaser {
               )
             );
         }
+
         if $!ENTER {
             my $enter-setup := QAST::Stmts.new;
             for $!ENTER {
@@ -729,17 +742,6 @@ class RakuAST::ScopePhaser {
                 )
               )
             );
-        }
-
-        if $!PRE {
-            my $pre-setup := QAST::Stmts.new;
-            for $!PRE {
-                $pre-setup.push($_.IMPL-CALLISH-QAST($context));
-            }
-
-            $qast[0].push(QAST::Op.new( :op('p6setpre') ));
-            $qast[0].push($pre-setup);
-            $qast[0].push(QAST::Op.new( :op('p6clearpre') ));
         }
 
         if $!LEAVE || $!KEEP || $!UNDO || $!POST {

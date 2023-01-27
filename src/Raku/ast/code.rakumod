@@ -569,6 +569,7 @@ class RakuAST::ScopePhaser {
     has List $!NEXT;
     has List $!LAST;
     has List $!PRE;
+    has List $!POST;
     has List $!QUIT;
     has List $!CLOSE;
     has RakuAST::Block $!let;
@@ -631,6 +632,11 @@ class RakuAST::ScopePhaser {
         self.add-phaser-to-list('$!PRE', $phaser);
     }
 
+    method add-post-phaser(RakuAST::StatementPrefix::Phaser::Post $phaser) {
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
+        self.add-phaser-to-list('$!POST', $phaser);
+    }
+
     method add-quit-phaser(RakuAST::StatementPrefix::Phaser::Quit $phaser) {
         self.add-phaser-to-list('$!QUIT', $phaser);
     }
@@ -659,6 +665,7 @@ class RakuAST::ScopePhaser {
         self.add-list-to-code-object( '$!LAST', $code-object);
         self.add-list-to-code-object( '$!QUIT', $code-object);
         self.add-list-to-code-object(  '$!PRE', $code-object);
+        self.add-list-to-code-object( '$!POST', $code-object);
         self.add-list-to-code-object('$!CLOSE', $code-object);
 
         if $!let {
@@ -735,7 +742,7 @@ class RakuAST::ScopePhaser {
             $qast[0].push(QAST::Op.new( :op('p6clearpre') ));
         }
 
-        if $!LEAVE || $!KEEP || $!UNDO {
+        if $!LEAVE || $!KEEP || $!UNDO || $!POST {
             $qast.annotate('WANTMEPLEASE',1);
         }
     }

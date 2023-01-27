@@ -1500,6 +1500,21 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
+      RakuAST::StatementPrefix::Phaser::Post:D $ast
+    --> Str:D) {
+        # POST phasers get extra code inserted at RakuAST level, which
+        # wraps the original blorst into a statement in which the blorst
+        # becomes the condition modifier
+        my $expression := $ast.blorst.body.statement-list.statements.head
+          .condition-modifier.expression;
+        'POST ' ~ self.deparse(
+          nqp::istype($expression,RakuAST::ApplyPostfix)
+            ?? $expression.operand
+            !! $expression
+        )
+    }
+
+    multi method deparse(
       RakuAST::StatementPrefix::Phaser::Pre:D $ast
     --> Str:D) {
         # PRE phasers get extra code inserted at RakuAST level, which

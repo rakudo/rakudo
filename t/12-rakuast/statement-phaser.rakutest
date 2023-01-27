@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 30; # Do not change this file to done-testing
+plan 32; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1297,6 +1297,7 @@ CODE
         isa-ok $block, Block, "$type: did we get a Block";
         throws-like { $block() }, X::Phaser::PrePost,
           message => Q|Precondition '++$pre' failed|,
+          phaser  => "PRE",
           "$type: PRE phaser throws";
     }
 }
@@ -1353,8 +1354,133 @@ CODE
         isa-ok $block, Block, "$type: did we get a Block";
         throws-like { $block() }, X::Phaser::PrePost,
           message => / '++$pre' /,
+          phaser  => "PRE",
           "$type: PRE phaser throws";
         is-deeply $pre, 0, "$type: PRE actually ran";
+    }
+}
+
+subtest 'Block with POST phaser thunk' => {
+    my $post;
+    my $result;
+
+    # -> { POST $post = $_; $result }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Post.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$post'),
+                  infix => RakuAST::Infix.new('='),
+                  right => RakuAST::Var::Lexical.new('$_')
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$result')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+-> {
+    POST $post = $_;
+    $result
+}
+CODE
+
+    # succeeding
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $post   = 0;
+        $result = 42;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), $result, "$type: block returns expression";
+        is-deeply $post, $result, "$type: POST actually ran";
+    }
+
+    # failing
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $post   = 666;
+        $result = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        throws-like { $block() }, X::Phaser::PrePost,
+          message => Q|Postcondition '$post = $_' failed|,
+          phaser  => "POST",
+          "$type: POST phaser throws";
+        is-deeply $post, $result, "$type: POST actually ran";
+    }
+}
+
+subtest 'Block with POST phaser block' => {
+    my $post;
+    my $result;
+
+    # -> { POST { $post = $_ }; $result }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::StatementPrefix::Phaser::Post.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::Var::Lexical.new('$post'),
+                        infix => RakuAST::Infix.new('='),
+                        right => RakuAST::Var::Lexical.new('$_')
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$result')
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+-> {
+    POST {
+        $post = $_
+    }
+    $result
+}
+CODE
+
+    # succeeding
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $post   = 0;
+        $result = 42;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        is-deeply $block(), $result, "$type: block returns expression";
+        is-deeply $post, $result, "$type: POST actually ran";
+    }
+
+    # failing
+    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+        $post   = 666;
+        $result = 0;
+
+        my $block := EVAL($it);  # should run the phaser
+        isa-ok $block, Block, "$type: did we get a Block";
+        throws-like { $block() }, X::Phaser::PrePost,
+          message => / '$post = $_' /,
+          phaser  => "POST",
+          "$type: POST phaser throws";
+        is-deeply $post, $result, "$type: POST actually ran";
     }
 }
 

@@ -487,6 +487,11 @@ class RakuAST::StatementPrefix::Phaser::Pre
     method new(RakuAST::Blorst $condition) {
         my $obj := nqp::create(self);
 
+        # The PRE phaser needs extra code to get the required
+        # functionality, so this converts a given
+        #     foo
+        # into
+        #     X::Phaser::PrePost.new(:value(~foo)).throw unless foo
         nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst',
           RakuAST::Statement::Expression.new(
             expression => RakuAST::ApplyPostfix.new(
@@ -528,6 +533,80 @@ class RakuAST::StatementPrefix::Phaser::Pre
 
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-pre-phaser(self);
+    }
+}
+
+# The POST phaser.
+class RakuAST::StatementPrefix::Phaser::Post
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
+
+    method new(RakuAST::Blorst $condition) {
+        my $obj  := nqp::create(self);
+
+        # The POST phaser needs extra code to get the required
+        # functionality, so this converts a given
+        #     foo
+        # into
+        #     {
+        #         X::Phaser::PrePost.new(:value(~foo), :phaser<POST>).throw
+        #           unless foo
+        #     }
+        nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst',
+          RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::ApplyPostfix.new(
+                      operand => RakuAST::Type::Simple.new(
+                        RakuAST::Name.from-identifier-parts(
+                          'X','Phaser','PrePost'
+                        )
+                      ),
+                      postfix => RakuAST::Call::Method.new(
+                        name => RakuAST::Name.from-identifier('new'),
+                        args => RakuAST::ArgList.new(
+                          RakuAST::ColonPair::Value.new(
+                            key   => 'phaser',
+                            value => RakuAST::StrLiteral.new(
+                              nqp::hllizefor("POST", 'Raku')
+                            )
+                          ),
+                          RakuAST::ColonPair::Value.new(
+                            key   => 'condition',
+                            value => RakuAST::StrLiteral.new(
+                              $condition.DEPARSE
+                            )
+                          )
+                        )
+                      )
+                    ),
+                    postfix => RakuAST::Call::Method.new(
+                      name => RakuAST::Name.from-identifier('throw')
+                    )
+                  ),
+                  condition-modifier => RakuAST::StatementModifier::Unless.new(
+                    nqp::istype($condition, RakuAST::Block)
+                      ?? RakuAST::ApplyPostfix.new(
+                           operand => $condition,
+                           postfix => RakuAST::Call::Term.new
+                         )
+                      !! $condition
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        $obj
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-post-phaser(self);
     }
 }
 

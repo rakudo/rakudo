@@ -60,6 +60,19 @@ my class Hash { # declared in BOOTSTRAP
           nqp::p6scalarwithvalue($!descriptor,value),
         )
     }
+    method !STORE_OBJECT_MAP(\map --> Nil) {
+        my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'));
+        nqp::while(
+          $iter,
+          nqp::stmts(
+            (my $pair := nqp::iterval(nqp::shift($iter))),
+            self.STORE_AT_KEY(
+              nqp::getattr($pair,Pair,'$!key'),
+              nqp::getattr($pair,Pair,'$!value'),
+            )
+          )
+        );
+    }
     method !STORE_MAP(\map --> Nil) {
         my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'));
         nqp::while(
@@ -94,7 +107,11 @@ my class Hash { # declared in BOOTSTRAP
             ),
             nqp::if(
               (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
-              $temp!STORE_MAP($x),
+              nqp::if(
+                nqp::istype($x,Hash::Object),
+                $temp!STORE_OBJECT_MAP($x),
+                $temp!STORE_MAP($x)
+              ),
               nqp::if(
                 nqp::eqaddr(($y := $iter.pull-one),IterationEnd),
                 nqp::if(

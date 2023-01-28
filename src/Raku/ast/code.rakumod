@@ -575,7 +575,12 @@ class RakuAST::ScopePhaser {
     has RakuAST::Block $!let;
     has RakuAST::Block $!temp;
 
-    method add-phaser-to-list(Str $attr, RakuAST::StatementPrefix::Phaser $phaser) {
+    method add-phaser(
+      Str $name,
+      RakuAST::StatementPrefix::Phaser $phaser,
+      :$has-exit-handler
+    ) {
+        my $attr := '$!' ~ $name;
         my $list := nqp::getattr(self, RakuAST::ScopePhaser, $attr);
         $list := nqp::bindattr(self, RakuAST::ScopePhaser, $attr, [])
           unless $list;
@@ -586,6 +591,8 @@ class RakuAST::ScopePhaser {
             }
         }
         nqp::push($list, $phaser);
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True)
+          if $has-exit-handler;
     }
 
     method set-has-let() {
@@ -595,54 +602,6 @@ class RakuAST::ScopePhaser {
     method set-has-temp() {
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!temp', RakuAST::Block.new(:implicit-topic(False)));
-    }
-
-    method add-enter-phaser(RakuAST::StatementPrefix::Phaser::Enter $phaser) {
-        self.add-phaser-to-list('$!ENTER', $phaser);
-    }
-
-    method add-leave-phaser(RakuAST::StatementPrefix::Phaser::Leave $phaser) {
-        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
-        self.add-phaser-to-list('$!LEAVE', $phaser);
-    }
-
-    method add-keep-phaser(RakuAST::StatementPrefix::Phaser::Keep $phaser) {
-        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
-        self.add-phaser-to-list('$!KEEP', $phaser);
-    }
-
-    method add-undo-phaser(RakuAST::StatementPrefix::Phaser::Undo $phaser) {
-        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
-        self.add-phaser-to-list('$!UNDO', $phaser);
-    }
-
-    method add-first-phaser(RakuAST::StatementPrefix::Phaser::First $phaser) {
-        self.add-phaser-to-list('$!FIRST', $phaser);
-    }
-
-    method add-next-phaser(RakuAST::StatementPrefix::Phaser::Next $phaser) {
-        self.add-phaser-to-list('$!NEXT', $phaser);
-    }
-
-    method add-last-phaser(RakuAST::StatementPrefix::Phaser::Next $phaser) {
-        self.add-phaser-to-list('$!LAST', $phaser);
-    }
-
-    method add-pre-phaser(RakuAST::StatementPrefix::Phaser::Pre $phaser) {
-        self.add-phaser-to-list('$!PRE', $phaser);
-    }
-
-    method add-post-phaser(RakuAST::StatementPrefix::Phaser::Post $phaser) {
-        nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
-        self.add-phaser-to-list('$!POST', $phaser);
-    }
-
-    method add-quit-phaser(RakuAST::StatementPrefix::Phaser::Quit $phaser) {
-        self.add-phaser-to-list('$!QUIT', $phaser);
-    }
-
-    method add-close-phaser(RakuAST::StatementPrefix::Phaser::Close $phaser) {
-        self.add-phaser-to-list('$!CLOSE', $phaser);
     }
 
     method add-list-to-code-object(Str $attr, $code-object) {

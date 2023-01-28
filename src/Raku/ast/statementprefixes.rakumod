@@ -403,7 +403,7 @@ class RakuAST::StatementPrefix::Phaser::First
   is RakuAST::Attaching
 {
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-first-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("FIRST", self);
     }
 }
 
@@ -414,7 +414,7 @@ class RakuAST::StatementPrefix::Phaser::Next
   is RakuAST::Attaching
 {
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-next-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("NEXT", self);
     }
 }
 
@@ -425,7 +425,7 @@ class RakuAST::StatementPrefix::Phaser::Last
   is RakuAST::Attaching
 {
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-last-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("LAST", self);
     }
 }
 
@@ -445,7 +445,9 @@ class RakuAST::StatementPrefix::Phaser::Enter
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        ($resolver.find-attach-target('block') // $resolver.find-attach-target('compunit')).add-enter-phaser(self);
+        ($resolver.find-attach-target('block')
+          // $resolver.find-attach-target('compunit')
+        ).add-phaser("ENTER", self);
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -462,7 +464,7 @@ class RakuAST::StatementPrefix::Phaser::Leave
   is RakuAST::Attaching
 {
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-leave-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("LEAVE", self, :has-exit-handler);
     }
 }
 
@@ -473,7 +475,7 @@ class RakuAST::StatementPrefix::Phaser::Keep
   is RakuAST::Attaching
 {
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-keep-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("KEEP", self, :has-exit-handler);
     }
 }
 
@@ -532,7 +534,7 @@ class RakuAST::StatementPrefix::Phaser::Pre
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-pre-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("PRE", self);
     }
 }
 
@@ -606,7 +608,7 @@ class RakuAST::StatementPrefix::Phaser::Post
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-post-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("POST", self, :has-exit-handler);
     }
 }
 
@@ -617,7 +619,7 @@ class RakuAST::StatementPrefix::Phaser::Undo
   is RakuAST::Attaching
 {
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-undo-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("UNDO", self, :has-exit-handler);
     }
 }
 
@@ -638,7 +640,7 @@ class RakuAST::StatementPrefix::Phaser::Quit
   is RakuAST::Attaching
 {
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-quit-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("QUIT", self);
     }
 
     method meta-object() {
@@ -653,6 +655,6 @@ class RakuAST::StatementPrefix::Phaser::Close
   is RakuAST::Attaching
 {
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-close-phaser(self);
+        $resolver.find-attach-target('block').add-phaser("CLOSE", self);
     }
 }

@@ -40,7 +40,13 @@ class Perl6::Compiler is HLL::Compiler {
                 }
 
                 # This can be micro-optimized by using nqp::create + nqp::bindattr, but does it make any sense?
+#?if jvm
+                # Version.new tries to coerce argument to Str, and that doesn't work with BOOTStr.
+                return $Version.new(nqp::hllizefor($vstr,'Raku'));
+#?endif
+#?if !jvm
                 return $Version.new($vstr);
+#?endif
             }
             @parts
         }

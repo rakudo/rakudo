@@ -1226,9 +1226,10 @@ class RakuAST::Routine
         $routine
     }
 
-    method is-begin-performed-before-children() { False }
+    method is-begin-performed-before-children() { True }
+    method is-begin-performed-after-children() { True }
 
-    method IMPL-ENSURE-IMPLICITS() {
+    method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
             $placeholder-signature.IMPL-ENSURE-IMPLICITS;
@@ -1238,7 +1239,7 @@ class RakuAST::Routine
         }
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
@@ -1562,7 +1563,10 @@ class RakuAST::Methodish
         }
     }
 
-    method IMPL-ENSURE-IMPLICITS(RakuAST::Resolver $resolver) {
+    method is-begin-performed-before-children() { True }
+    method is-begin-performed-after-children() { True }
+
+    method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
             $placeholder-signature.set-is-on-method(True);
@@ -1587,7 +1591,7 @@ class RakuAST::Methodish
         }
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::getattr(self, RakuAST::Routine, '$!package') {
             nqp::getattr(self, RakuAST::Routine, '$!package').ATTACH-METHOD(self);
         }
@@ -1598,24 +1602,11 @@ class RakuAST::Methodish
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
-            $placeholder-signature.set-is-on-method(True);
-            $placeholder-signature.set-is-on-named-method(True) if self.name;
-            $placeholder-signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
-            $placeholder-signature.IMPL-ENSURE-IMPLICITS;
             $placeholder-signature.IMPL-CHECK($resolver, $context, True);
         }
         # Make sure that our signature has resolutions performed.
         my $signature := self.signature;
         if $signature {
-            $signature.set-default-type(
-                RakuAST::Type::Simple.new(
-                    RakuAST::Name.from-identifier('Any'),
-                ),
-            );
-            $signature.set-is-on-method(True);
-            $signature.set-is-on-named-method(True) if self.name;
-            $signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
-            $signature.IMPL-ENSURE-IMPLICITS;
             $signature.IMPL-CHECK($resolver, $context, True);
         }
 

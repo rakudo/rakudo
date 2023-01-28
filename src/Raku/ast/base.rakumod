@@ -103,13 +103,8 @@ class RakuAST::Node {
         # Apply any pre-children BEGIN-time effects that were not yet
         # performed (and figure out if we have to do the later).
         my int $needs-begin-after;
-        if nqp::istype(self, RakuAST::BeginTime) {
-            if self.is-begin-performed-before-children() {
-                self.ensure-begin-performed($resolver, $context);
-            }
-            else {
-                $needs-begin-after := 1;
-            }
+        if nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-before-children() {
+            self.ensure-begin-performed($resolver, $context, :phase(1));
         }
 
         # Visit children.
@@ -122,8 +117,8 @@ class RakuAST::Node {
         $resolver.pop-package() if $is-package;
 
         # Perform any after-children BEGIN-time effects.
-        if $needs-begin-after {
-            self.ensure-begin-performed($resolver, $context);
+        if nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-after-children() {
+            self.ensure-begin-performed($resolver, $context, :phase(2));
         }
 
         # Unless in resolve-only mode, do other check-time activities.

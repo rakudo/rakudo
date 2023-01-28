@@ -486,7 +486,7 @@ class RakuAST::StatementPrefix::Phaser::Pre
   is RakuAST::Attaching
 {
 
-    method new(RakuAST::Blorst $condition) {
+    method new(RakuAST::Blorst $blorst, Str $condition?) {
         my $obj := nqp::create(self);
 
         # The PRE phaser needs extra code to get the required
@@ -509,7 +509,9 @@ class RakuAST::StatementPrefix::Phaser::Pre
                     RakuAST::ColonPair::Value.new(
                       key   => 'condition',
                       value => RakuAST::StrLiteral.new(
-                        $condition.DEPARSE
+                        $condition
+                          ?? nqp::hllizefor($condition, 'Raku')
+                          !! $blorst.DEPARSE
                       )
                     )
                   )
@@ -520,12 +522,12 @@ class RakuAST::StatementPrefix::Phaser::Pre
               )
             ),
             condition-modifier => RakuAST::StatementModifier::Unless.new(
-              nqp::istype($condition, RakuAST::Block)
+              nqp::istype($blorst, RakuAST::Block)
                 ?? RakuAST::ApplyPostfix.new(
-                     operand => $condition,
+                     operand => $blorst,
                      postfix => RakuAST::Call::Term.new
                    )
-                !! $condition
+                !! $blorst
             )
           )
         );
@@ -545,7 +547,7 @@ class RakuAST::StatementPrefix::Phaser::Post
   is RakuAST::Attaching
 {
 
-    method new(RakuAST::Blorst $condition) {
+    method new(RakuAST::Blorst $blorst, Str $condition?) {
         my $obj  := nqp::create(self);
 
         # The POST phaser needs extra code to get the required
@@ -580,7 +582,9 @@ class RakuAST::StatementPrefix::Phaser::Post
                           RakuAST::ColonPair::Value.new(
                             key   => 'condition',
                             value => RakuAST::StrLiteral.new(
-                              $condition.DEPARSE
+                              $condition
+                                ?? nqp::hllizefor($condition, 'Raku')
+                                !! $blorst.DEPARSE
                             )
                           )
                         )
@@ -591,12 +595,12 @@ class RakuAST::StatementPrefix::Phaser::Post
                     )
                   ),
                   condition-modifier => RakuAST::StatementModifier::Unless.new(
-                    nqp::istype($condition, RakuAST::Block)
+                    nqp::istype($blorst, RakuAST::Block)
                       ?? RakuAST::ApplyPostfix.new(
-                           operand => $condition,
+                           operand => $blorst,
                            postfix => RakuAST::Call::Term.new
                          )
-                      !! $condition
+                      !! $blorst
                   )
                 )
               )

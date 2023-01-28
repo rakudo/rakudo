@@ -615,6 +615,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
+    method statement_prefix:sym<PRE>($/) {
+        self.attach: $/, self.r(
+          'StatementPrefix', 'Phaser', 'Pre'
+        ).new($<blorst>.ast, ~$<blorst>);
+    }
+    method statement_prefix:sym<POST>($/) {
+        self.attach: $/, self.r(
+          'StatementPrefix', 'Phaser', 'Post'
+        ).new($<blorst>.ast, ~$<blorst>);
+    }
+
     method setup-phaser($/, $name) {
         self.attach: $/, self.r('StatementPrefix', 'Phaser', $name).new($<blorst>.ast);
     }
@@ -628,8 +639,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement_prefix:sym<FIRST>($/) { self.setup-phaser($/, 'First') }
     method statement_prefix:sym<NEXT>($/)  { self.setup-phaser($/, 'Next')  }
     method statement_prefix:sym<LAST>($/)  { self.setup-phaser($/, 'Last')  }
-    method statement_prefix:sym<PRE>($/)   { self.setup-phaser($/, 'Pre')   }
-    method statement_prefix:sym<POST>($/)  { self.setup-phaser($/, 'Post')  }
     method statement_prefix:sym<QUIT>($/)  { self.setup-phaser($/, 'Quit')  }
     method statement_prefix:sym<CLOSE>($/) { self.setup-phaser($/, 'Close') }
 

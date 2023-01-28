@@ -102,7 +102,23 @@ class RakuAST::Signature
                 nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant',
                     RakuAST::Parameter.new(:invocant, :$type));
             }
-            # TODO implicit slurpy hash
+            unless $!is-on-meta-method {
+                my $slurpy-hash-seen := 0;
+                for @param-asts {
+                    if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $_.target && $_.target.sigil eq '%' {
+                        $slurpy-hash-seen := 1;
+                        last;
+                    }
+                }
+                unless $slurpy-hash-seen {
+                    nqp::bindattr(self, RakuAST::Signature, '$!implicit-slurpy-hash',
+                        RakuAST::Parameter.new(
+                            :slurpy(RakuAST::Parameter::Slurpy::Flattened.new),
+                            :target(RakuAST::ParameterTarget::Var.new('%_'))
+                        )
+                    );
+                }
+            }
         }
         if $!is-on-role-body && !$!implicit-invocant {
             my @param-asts := self.IMPL-UNWRAP-LIST($!parameters);

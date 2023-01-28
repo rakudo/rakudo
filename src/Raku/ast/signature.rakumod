@@ -232,6 +232,7 @@ class RakuAST::Signature
         for self.IMPL-UNWRAP-LIST($!parameters) {
             $visitor($_);
         }
+        $visitor($!implicit-slurpy-hash) if $!implicit-slurpy-hash;
         $visitor($!returns) if $!returns;
     }
 }

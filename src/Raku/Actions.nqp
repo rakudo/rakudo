@@ -1593,6 +1593,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         $routine.replace-body($<onlystar> ?? $<onlystar>.ast !! $<blockoid>.ast);
+        $routine.IMPL-ENSURE-IMPLICITS($*R);
         $routine.IMPL-CHECK($*R, $*CU.context, 1);
         $routine.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $routine;

@@ -115,6 +115,10 @@ class RakuAST::ColonPair::True is RakuAST::QuotePair {
         $obj
     }
 
+    method canonicalize() {
+        nqp::getattr(self, RakuAST::ColonPair, '$!key')
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair'))
@@ -148,6 +152,10 @@ class RakuAST::ColonPair::False is RakuAST::QuotePair {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
         $obj
+    }
+
+    method canonicalize() {
+        "!" ~ nqp::getattr(self, RakuAST::ColonPair, '$!key')
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

@@ -1758,7 +1758,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
-        self.deparse($ast.name) ~ ($ast.definite ?? ':D' !! ':U')
+        self.deparse($ast.name)
     }
 
     multi method deparse(RakuAST::Type::Coercion:D $ast --> Str:D) {

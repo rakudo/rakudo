@@ -484,9 +484,12 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                     :value($container)
                 );
                 if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
+                    my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+                    my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),
-                        QAST::WVal.new( :value(self.IMPL-CONTAINER-BASE-TYPE) )
+                        QAST::WVal.new( :value(self.IMPL-CONTAINER-TYPE($of)) )
                     ) );
                     if $!shape {
                         my $shape_ast := $!shape.IMPL-TO-QAST($context);

@@ -482,6 +482,21 @@ class RakuAST::Heredoc is RakuAST::QuotedString {
         );
     }
 
+    method steal-processors-from(RakuAST::QuotedString $source) {
+        my $processors := nqp::getattr(self, RakuAST::QuotedString, '$!processors');
+        for self.IMPL-UNWRAP-LIST($source.processors) {
+            nqp::push($processors, $_);
+        }
+        # Also steal the implicit lookups as any processor related lookups will
+        # have been done before we got to stealing those processors.
+        nqp::bindattr(
+            self,
+            RakuAST::ImplicitLookups,
+            '$!implicit-lookups-cache',
+            nqp::getattr($source, RakuAST::ImplicitLookups, '$!implicit-lookups-cache')
+        );
+    }
+
     method set-stop(Str $stop) {
         nqp::bindattr(self, RakuAST::Heredoc, '$!stop', $stop);
     }

@@ -2084,6 +2084,7 @@ class RakuAST::Substitution
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('$_'),
             RakuAST::Var::Lexical.new('$/'),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Positional')),
         ])
     }
 
@@ -2226,6 +2227,7 @@ class RakuAST::Substitution
         # compiler frontend explicitly checked if it got a Match object or a
         # non-empty List. However, those are both truthy, and all the non-match
         # cases would be falsey, so we can just emit a truth test.
+        my $Positional := @lookups[2];
         $result.push: QAST::Op.new:
             :op('if'),
             QAST::Var.new( :scope('local'), :name($match-result-var) ),
@@ -2241,6 +2243,14 @@ class RakuAST::Substitution
                         :op('assign'),
                         @lookups[0].IMPL-TO-QAST($context),
                         $apply-call
+                    ),
+                    # If we have a list of matches, then put them into $/,
+                    # otherwise, $/ already has the Match object we want it to have.
+                    # Not entirely sure, why we need to do this. Guess $/ gets
+                    # clobbered by the APPLY-MATCHES call.
+                    QAST::Op.new( :op('p6store'),
+                        $match-lookup,
+                        QAST::Var.new( :name($match-result-var), :scope('local') ),
                     ),
                     QAST::Var.new( :scope('local'), :name($match-result-var) )
                 ),

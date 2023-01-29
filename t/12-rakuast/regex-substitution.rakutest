@@ -118,7 +118,6 @@ subtest 'Simple literal substitution on variable with adverbs' => {
         $string = "foO";
 
         is EVAL($it).gist, '(｢o｣ ｢O｣)', "$type: did we get right return value";
-        todo("AST doesn't set $/ as list)") if $type eq 'AST';
         is $/.gist, '(｢o｣ ｢O｣)', "$type: did it set \$/ correctly";
         is $string, "fxx", "$type: is the result correct";
     }

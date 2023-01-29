@@ -300,7 +300,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Sort out sinking; the compilation unit is sunk as a whole if we are
         # not in a REPL or EVAL context.
-        $cu.mark-sunk() unless nqp::isconcrete(%*COMPILING<%?OPTIONS><outer_ctx>);
+        $cu.mark-sunk() unless nqp::existskey(%*COMPILING<%?OPTIONS>, 'outer_ctx');
         $cu.calculate-sink();
 
         # Have check time.

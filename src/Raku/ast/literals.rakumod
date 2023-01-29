@@ -312,6 +312,12 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
         False
     }
 
+    method dump-extras(int $indent) {
+        $!processors && nqp::elems($!processors)
+            ?? nqp::x(' ', $indent) ~ 'postprocessors: ' ~ nqp::join(', ', $!processors) ~ "\n"
+            !! ''
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # If we can constant fold it, just produce the constant.
         my $literal-value := self.literal-value;

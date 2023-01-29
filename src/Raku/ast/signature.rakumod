@@ -530,8 +530,13 @@ class RakuAST::Parameter
         my constant SIG_ELEM_UNDEFINED_ONLY      := 65536;
         my constant SIG_ELEM_DEFINED_ONLY        := 131072;
         my constant SIG_ELEM_TYPE_GENERIC        := 524288;
+        my constant SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+        my constant SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
+        my constant SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
+        my constant SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
         my constant SIG_ELEM_CODE_SIGIL          := 33554432;
         my constant SIG_ELEM_IS_COERCIVE         := 67108864;
+
         my $sigil := $!target.sigil;
         my int $flags;
         $flags := $flags +| SIG_ELEM_INVOCANT if $!invocant;
@@ -555,8 +560,24 @@ class RakuAST::Parameter
         if nqp::istype($!type, RakuAST::Type::Coercion) {
             $flags := $flags +| SIG_ELEM_IS_COERCIVE;
         }
-        if $!type && $!type.meta-object.HOW.archetypes.generic {
-            $flags := $flags +| SIG_ELEM_TYPE_GENERIC;
+        if $!type {
+            my $meta-object := $!type.meta-object;
+            if $meta-object.HOW.archetypes.generic {
+                $flags := $flags +| SIG_ELEM_TYPE_GENERIC;
+            }
+            my $primspec := nqp::objprimspec($!type.meta-object);
+            if $primspec == 1 {
+                $flags := $flags +| SIG_ELEM_NATIVE_INT_VALUE;
+            }
+            elsif $primspec == 2 {
+                $flags := $flags +| SIG_ELEM_NATIVE_NUM_VALUE;
+            }
+            elsif $primspec == 3 {
+                $flags := $flags +| SIG_ELEM_NATIVE_STR_VALUE;
+            }
+            elsif $primspec == 10 {
+                $flags := $flags +| SIG_ELEM_NATIVE_UINT_VALUE;
+            }
         }
         $flags := $flags +| $!slurpy.IMPL-FLAGS($sigil);
         $flags

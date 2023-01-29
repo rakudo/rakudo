@@ -414,7 +414,6 @@ subtest 'A start has a fresh $/' => {
 
     {
         my $/ = 42;
-        todo 'fresh specials NYI';
         nok await(EVAL($ast)) ~~ 42, 'AST: A start has a fresh $/';
     }
 
@@ -435,7 +434,6 @@ subtest 'A start has a fresh $!' => {
 
     {
         my $! = 42;
-        todo 'fresh specials NYI';
         nok await(EVAL($ast)) ~~ 42, 'AST: A start has a fresh $!';
     }
 

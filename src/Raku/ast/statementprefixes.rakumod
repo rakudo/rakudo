@@ -289,10 +289,16 @@ class RakuAST::StatementPrefix::Gather
 class RakuAST::StatementPrefix::Start
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::ImplicitLookups
 {
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False);
+    }
+
+    method apply-implicit-block-semantics() {
+        self.blorst.set-fresh-variables(:match, :exception)
+            if nqp::istype(self.blorst, RakuAST::Block);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -300,6 +306,24 @@ class RakuAST::StatementPrefix::Start
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Promise')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('True')),
         ])
+    }
+
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
+            str :$blocktype, RakuAST::Expression :$expression) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
+        }
+        else {
+            my $block := QAST::Block.new(
+                :blocktype('declaration_static'),
+                QAST::Stmts.new(
+                    RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')).IMPL-QAST-DECL($context),
+                    RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')).IMPL-QAST-DECL($context),
+                    self.blorst.IMPL-TO-QAST($context)
+                ));
+            $block.arity(0);
+            $block
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

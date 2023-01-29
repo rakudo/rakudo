@@ -219,7 +219,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
                 nqp::die('Cannot compile bind to ' ~ $left.HOW.name($left));
             }
         }
-        elsif nqp::existskey(OP-SMARTMATCH, $op) {
+        elsif nqp::existskey(OP-SMARTMATCH, $op) && !nqp::istype($right, RakuAST::Var) {
             self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }
         else {

@@ -541,7 +541,12 @@ class RakuAST::PlaceholderParameterOwner
                 @nameds.push($placeholder);
             }
             else {
-                @slurpies.push($placeholder);
+                if $placeholder.lexical-name eq '@_' { # @_ before %_
+                    @slurpies.unshift($placeholder);
+                }
+                else {
+                    @slurpies.push($placeholder);
+                }
             }
         }
 

@@ -537,8 +537,15 @@ class RakuAST::PlaceholderParameterOwner
                 }
                 nqp::splice(@positionals, [$placeholder], $insert-at, 0);
             }
-            elsif nqp::istype($_, RakuAST::VarDeclaration::Placeholder::Named) {
-                @nameds.push($placeholder);
+            elsif nqp::istype($placeholder, RakuAST::VarDeclaration::Placeholder::Named) {
+                my int $insert-at := 0;
+                my str $desigil-insert := nqp::substr($placeholder.lexical-name, 1);
+                while $insert-at < nqp::elems(@nameds) {
+                    my str $desigil-cur := nqp::substr(@nameds[$insert-at].lexical-name, 1);
+                    last if $desigil-insert lt $desigil-cur;
+                    $insert-at++;
+                }
+                nqp::splice(@nameds, [$placeholder], $insert-at, 0);
             }
             else {
                 if $placeholder.lexical-name eq '@_' { # @_ before %_

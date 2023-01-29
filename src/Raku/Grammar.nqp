@@ -183,6 +183,9 @@ role Raku::Common {
                     my $heredoc := $herestub.orignode.MATCH.ast;
                     $heredoc.replace-segments-from($doc.MATCH.ast);
                     $heredoc.set-stop(~$stop);
+                    my str $ws := $stop.MATCH<ws>.Str;
+                    my int $actualchars := nqp::chars($ws);
+                    $heredoc.set-indent($actualchars);
                     $heredoc.trim;
                 }
                 else {

@@ -142,6 +142,10 @@ class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
     }
 
+    method set-value(Str $value) {
+        nqp::bindattr(self, RakuAST::StrLiteral, '$!value', $value);
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
@@ -461,6 +465,7 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
 
 class RakuAST::Heredoc is RakuAST::QuotedString {
     has Str $!stop;
+    has int $!indent;
 
     method new(List :$segments!, List :$processors, Str :$stop) {
         my $obj := nqp::create(self).SET-SELF($segments, $processors);
@@ -482,6 +487,10 @@ class RakuAST::Heredoc is RakuAST::QuotedString {
     }
     method stop() { $!stop }
 
+    method set-indent(int $indent) {
+        nqp::bindattr_i(self, RakuAST::Heredoc, '$!indent', $indent);
+    }
+
     method trim() {
         # Remove heredoc postprocessor to defuse the "Premature heredoc consumption" error
         my $processors := nqp::getattr(self, RakuAST::QuotedString, '$!processors');
@@ -491,7 +500,30 @@ class RakuAST::Heredoc is RakuAST::QuotedString {
             nqp::push($new_processors, $_) if $_ ne 'heredoc';
         }
 
-        #TODO actually trim there heredoc
+        if ($!indent) {
+            my int $indent := -$!indent;
+
+            my $in-fresh-line := 1;
+            for self.IMPL-UNWRAP-LIST(self.segments) {
+                if nqp::istype($_, RakuAST::StrLiteral) {
+                    if $in-fresh-line {
+                        $_.set-value($_.value.indent($indent));
+                    }
+                    else {
+                        my $strval := $_.value;
+                        if $strval ~~ /\n/ { # we have more lines
+                            # add temporary indentation to the front, so every line will be indented
+                            my $strbox := nqp::box_s(nqp::x(" ", -$indent) ~ nqp::unbox_s($strval), Str);
+                            $in-fresh-line := 1;
+                            $_.set-value($strbox.indent($indent));
+                        }
+                    }
+                }
+                else {
+                    $in-fresh-line := 0;
+                }
+            }
+        }
     }
 }
 

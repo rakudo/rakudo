@@ -1616,6 +1616,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $regex.replace-signature($<signature>.ast);
         }
         $regex.replace-body($<nibble>.ast);
+        $regex.IMPL-CHECK($*R, $*CU.context, 1);
         $regex.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $regex;
     }

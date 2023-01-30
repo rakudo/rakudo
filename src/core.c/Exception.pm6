@@ -544,9 +544,9 @@ do {
             }
         }
 
+        my Mu $err := $*ERR;
         try {
             my $v := $e.vault-backtrace;
-            my Mu $err := $*ERR;
 
             $e.backtrace;  # This is where most backtraces actually happen
             if $e.is-compile-time || $e.backtrace && $e.backtrace.is-runtime {
@@ -566,9 +566,13 @@ do {
             nqp::getcurhllsym('&THE_END')();
             CONTROL { when CX::Warn { .resume } }
         }
-        if $! {
-            nqp::rethrow(nqp::getattr(nqp::decont($!), Exception, '$!ex'));
-            $ex
+        if $! -> $secondary-ex {
+            $err.say: "===SORRY!=== Error while reporting exception " ~ $e.^name
+                ~ (try { ": secondary " ~ $secondary-ex.^name ~ " has been thrown" } || "")
+                ~ (try { "\n  The original message was: " ~ $e.message } || "")
+                ~ (try { "\n  The secondary message is: " ~ $secondary-ex.message } || "")
+                ~ (try { "\n  The original backtrace:\n" ~ $e.backtrace.Str.indent(4) } || "");
+            nqp::rethrow(nqp::getattr(nqp::decont($!), Exception, '$!ex'))
         }
     }
 

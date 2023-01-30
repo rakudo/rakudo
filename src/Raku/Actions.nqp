@@ -1339,7 +1339,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 self.attach: $/, self.r('Var', 'Pod', 'Finish').new;
             }
             else {
-                $/.typed_sorry('X::Comp::NYI', feature => 'Pod variable ' ~ $name);
+                nqp::die("Pod variable $name NYI");
             }
         }
         elsif $twigil eq '.' {

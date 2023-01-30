@@ -26,6 +26,10 @@ class RakuAST::StatementModifier::Condition is RakuAST::StatementModifier
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         @lookups[0].IMPL-TO-QAST($context)
     }
+
+    method expression-thunk() {
+        RakuAST::StatementModifier::Condition::Thunk.new(self)
+    }
 }
 
 # The if statement modifier.
@@ -201,5 +205,42 @@ class RakuAST::StatementModifier::For::Thunk is RakuAST::ExpressionThunk {
                 ]
             )
         ])
+    }
+}
+
+class RakuAST::StatementModifier::Condition::Thunk is RakuAST::ExpressionThunk {
+    has RakuAST::StatementModifier::Condition $!condition;
+
+    method new(RakuAST::StatementModifier::Condition $condition) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::StatementModifier::Condition::Thunk, '$!condition', $condition);
+        $obj
+    }
+
+    method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
+            RakuAST::Expression $expression) {
+
+        #TODO handle inner thunks
+        $target.push($!condition.IMPL-WRAP-QAST($context, $expression.IMPL-EXPR-QAST($context)));
+    }
+
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(:op<null>)
+    }
+
+    method is-begin-performed-before-children() { False }
+    method is-begin-performed-after-children() { False }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        Nil
+    }
+
+    method PRODUCE-META-OBJECT() {
+        Nil
+    }
+
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
+            str :$blocktype, RakuAST::Expression :$expression!) {
+        nqp::die('must not call this ' ~ $!condition.dump);
     }
 }

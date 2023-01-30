@@ -483,7 +483,7 @@ class RakuAST::Statement::Expression
             if self.sunk && $!expression.needs-sink-call {
                 $qast := QAST::Op.new( :op('p6sink'), $qast );
             }
-            $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier;
+            $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier && !$!loop-modifier;
         }
         if $!loop-modifier {
             my $sink := self.IMPL-DISCARD-RESULT;
@@ -517,8 +517,17 @@ class RakuAST::Statement::Expression
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!loop-modifier {
             my $thunk := $!loop-modifier.expression-thunk;
-            $!expression.wrap-with-thunk($thunk) if $thunk;
-            $thunk.ensure-begin-performed($resolver, $context);
+            if $thunk {
+                # only need to thunk the condition if we also have a loop thunk
+                if $!condition-modifier {
+                    #nqp::die('have loop and condition modifier ' ~ self.dump);
+                    my $thunk := $!condition-modifier.expression-thunk;
+                    $!expression.wrap-with-thunk($thunk);
+                    $thunk.ensure-begin-performed($resolver, $context);
+                }
+                $!expression.wrap-with-thunk($thunk);
+                $thunk.ensure-begin-performed($resolver, $context);
+            }
         }
     }
 

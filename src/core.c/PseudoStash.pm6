@@ -200,7 +200,15 @@ my class PseudoStash is Map {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
             nqp::if(
-              nqp::isnull($ctx) || nqp::isnull($ctx := nqp::ctxouter(nqp::ctxouter($ctx))),
+              nqp::isnull($ctx)
+                  || nqp::isnull($ctx := nqp::ctxouter($ctx))
+                  || nqp::isnull(
+                       nqp::if(
+                          nqp::existskey(nqp::ctxlexpad($ctx), 'CORE-SETTING-REV'),
+                          $ctx, # Compiled from RakuAST
+                          ($ctx := nqp::ctxouter($ctx)) # Compiled via legacy frontend
+                       )
+                   ),
               Nil,
               nqp::stmts(
                 (my $stash := nqp::create(PseudoStash)),

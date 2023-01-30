@@ -203,6 +203,12 @@ class RakuAST::CompUnit
             nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
             nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         }
+        nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
+            name => '!UNIT_MARKER', value => 1
+        ));
+        nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
+            name => '!EVAL_MARKER', value => 1
+        )) if $!is-eval;
         self.IMPL-WRAP-LIST(@decls)
     }
 

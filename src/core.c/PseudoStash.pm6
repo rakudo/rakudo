@@ -199,7 +199,7 @@ my class PseudoStash is Map {
             until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
-            my $is-rakuast := nqp::existskey(nqp::ctxlexpad($ctx), '!RAKUAST_MARKER');
+            my $is-rakuast := nqp::isconcrete($ctx) && nqp::existskey(nqp::ctxlexpad($ctx), '!RAKUAST_MARKER');
             nqp::if(
               nqp::isnull($ctx)
                   || nqp::isnull($ctx := nqp::ctxouter($ctx))

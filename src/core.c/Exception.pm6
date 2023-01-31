@@ -522,6 +522,8 @@ do {
     sub print_exception(|) {
         my Mu $ex := nqp::atpos(nqp::p6argvmarray(), 0);
         my $e := EXCEPTION($ex);
+        $*EXIT      = 1;
+        $*EXCEPTION = $e;
 
         if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");

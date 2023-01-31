@@ -207,6 +207,9 @@ class RakuAST::CompUnit
             name => '!UNIT_MARKER', value => 1
         ));
         nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
+            name => '!RAKUAST_MARKER', value => 1 #TODO remove this when old frontend is gone
+        ));
+        nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
             name => '!EVAL_MARKER', value => 1
         )) if $!is-eval;
         self.IMPL-WRAP-LIST(@decls)

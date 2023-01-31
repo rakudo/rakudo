@@ -199,16 +199,11 @@ my class PseudoStash is Map {
             until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
+            my $is-rakuast := nqp::existskey(nqp::ctxlexpad($ctx), '!RAKUAST_MARKER');
             nqp::if(
               nqp::isnull($ctx)
                   || nqp::isnull($ctx := nqp::ctxouter($ctx))
-                  || nqp::isnull(
-                       nqp::if(
-                          nqp::existskey(nqp::ctxlexpad($ctx), 'CORE-SETTING-REV'),
-                          $ctx, # Compiled from RakuAST
-                          ($ctx := nqp::ctxouter($ctx)) # Compiled via legacy frontend
-                       )
-                   ),
+                  || nqp::isnull(nqp::if($is-rakuast, $ctx, ($ctx := nqp::ctxouter($ctx)))),
               Nil,
               nqp::stmts(
                 (my $stash := nqp::create(PseudoStash)),

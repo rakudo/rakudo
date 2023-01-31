@@ -136,6 +136,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
             }
             # EVAL adds two extra contexts to EVAL'ed code.
             my $outers = ($ctx && nqp::existskey(nqp::ctxlexpad($ctx), '!EVAL_MARKER')) ?? 4 !! 2;
+            $outers-- if nqp::existskey(nqp::ctxlexpad($ctx), '!RAKUAST_MARKER');
             nqp::until(
                 (nqp::isnull($ctx) || !$outers),
                 nqp::stmts(

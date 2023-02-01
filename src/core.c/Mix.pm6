@@ -3,8 +3,13 @@ my class Mix does Mixy {
     has Real       $!total;
     has Real       $!total-positive;
 
+    my role KeyOf[::CONSTRAINT] {
+        method keyof() { CONSTRAINT }
+    }
     method ^parameterize(Mu \base, Mu \type) {
-        Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
+        my \what := base.^mixin(KeyOf[type]);
+        what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
+        what
     }
 
 #--- interface methods

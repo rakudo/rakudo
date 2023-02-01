@@ -1708,16 +1708,6 @@ my class Rakudo::Internals {
         $METAOP_ASSIGN := $metaop_assign;
     }
 
-    # handle parameterization by just adding a "keyof" method
-    my role KeyOf[::CONSTRAINT] {
-        method keyof() { CONSTRAINT }
-    }
-    method PARAMETERIZE-KEYOF(Mu \base, Mu \type) {
-        my \what := base.^mixin(KeyOf[type]);
-        what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
-        what
-    }
-
     # Return a nqp list iterator from an IterationSet
     proto method IterationSet2keys(|) {*}
     multi method IterationSet2keys(IterationSet:U) {

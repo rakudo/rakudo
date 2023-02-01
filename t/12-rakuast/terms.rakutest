@@ -61,12 +61,8 @@ subtest 'Method call via self' => {
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
 my class TestClass {
-    method meth-a () {
-        99
-    }
-    method meth-b () {
-        self.meth-a()
-    }
+    method meth-a () { 99 }
+    method meth-b () { self.meth-a() }
 }
 CODE
 
@@ -95,9 +91,7 @@ subtest 'Topic call applies the call to $_' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-given "argh" {
-    .uc()
-}
+given "argh" { .uc() }
 CODE
 
     is-deeply $_, 'ARGH', @type[$++]

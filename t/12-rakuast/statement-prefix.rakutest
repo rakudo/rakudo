@@ -48,9 +48,7 @@ subtest 'The do statement prefix works with a block' => {
       )
     );
 
-    is-deeply $deparsed, 'do {
-    199
-}
+    is-deeply $deparsed, 'do { 199 }
 ', 'deparse';
     is-deeply $_, 199, @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -109,9 +107,7 @@ subtest 'The quietly statement prefix works' => {
         )
       )
     );
-    is-deeply $deparsed, 'quietly {
-    do-warning()
-}
+    is-deeply $deparsed, 'quietly { do-warning() }
 ', 'deparse';
 
     $warned = False;
@@ -181,9 +177,7 @@ subtest 'The gather statement prefix works on a block' => {
         )
       )
     );
-    is-deeply $deparsed, 'gather {
-    do-takes()
-}
+    is-deeply $deparsed, 'gather { do-takes() }
 ', 'deparse';
 
     $done = False;
@@ -253,9 +247,7 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
             )
           )
         );
-        is-deeply $deparsed, $context ~ ' {
-    $c
-}
+        is-deeply $deparsed, $context ~ ' { $c }
 ', 'deparse';
 
         $c = ContextMe.new;
@@ -321,10 +313,7 @@ subtest 'try statement prefix with block producing value results' => {
         )
       )
     );
-    is-deeply $deparsed, 'try {
-    999
-}
-', 'deparse';
+    is-deeply $deparsed, 'try { 999 }', 'deparse';
 
     is-deeply EVAL($ast), 999, 'AST: correct result';
     is-deeply $!, Nil, 'AST: $! is Nil when not exception';
@@ -350,10 +339,7 @@ subtest 'try statement prefix with throwing block handles the exception' => {
         )
       )
     );
-    is-deeply $deparsed, 'try {
-    die("another day")
-}
-', 'deparse';
+    is-deeply $deparsed, 'try { die("another day") }', 'deparse';
 
     $! = 42;
     is-deeply EVAL($ast), Nil, 'AST';
@@ -392,10 +378,7 @@ subtest 'start statement prefix with block evalutes to Promise' => {
         )
       )
     );
-    is-deeply $deparsed, 'start {
-    137
-}
-', 'deparse';
+    is-deeply $deparsed, 'start { 137 }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $promise {
         isa-ok $promise, Promise, $type;

@@ -387,11 +387,7 @@ subtest 'Anonymous state variable declaration' => {
       )
     );
 
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
--> {
-    ++$ + ++$
-}
-CODE
+    is-deeply $deparsed, '-> { ++$ + ++$ }', 'deparse';
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, &result {
         is-deeply result() ~ result() ~ result(), '246',
             "$type: anonymous state variables works are are distinct";

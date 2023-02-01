@@ -603,7 +603,7 @@ subtest 'Match with block' => {
       RakuAST::Regex::Literal.new("o")
     );
     is-deeply $deparsed,
-      qq:!c:!s|/ o {\n    is($/, "o", "block")\n} o /|,
+      qq:!c:!s|/ o { is($/, "o", "block") } o /|,
       'deparse';
 
     match-ok "foo", 'oo', 2;

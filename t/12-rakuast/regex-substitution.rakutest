@@ -174,9 +174,7 @@ subtest 'Simple Callable substitution on variable' => {
         )
       )
     );
-    is-deeply $deparsed, '$string ~~ s/o/{
-    $x
-}/', 'deparse';
+    is-deeply $deparsed, '$string ~~ s/o/{ $x }/', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $string = "foo";

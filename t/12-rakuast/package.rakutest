@@ -21,10 +21,7 @@ subtest 'Create an empty class' => {
       how  => Metamodel::ClassHOW,
       repr => 'P6opaque'
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-my class MyTestClass {
-}
-CODE
+    is-deeply $deparsed, 'my class MyTestClass { }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
@@ -62,13 +59,9 @@ subtest 'Create a class with a method' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-my class TestClassWithMethods {
-    method test-meth () {
-        456
-    }
-}
-CODE
+    is-deeply $deparsed,
+      'my class TestClassWithMethods { method test-meth () { 456 } }',
+      'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
@@ -108,13 +101,9 @@ subtest 'Create a class with a submethod' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-my class TestClassWithSubmethods {
-    submethod test-submeth () {
-        137
-    }
-}
-CODE
+    is-deeply $deparsed,
+      'my class TestClassWithSubmethods { submethod test-submeth () { 137 } }',
+      'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
@@ -151,8 +140,7 @@ subtest 'Check lexically resolving of a class' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-my class LexicalTestClass {
-}
+my class LexicalTestClass { }
 LexicalTestClass
 CODE
 
@@ -188,8 +176,7 @@ subtest 'Check globally resolving of a class' => {
           )
         );
         is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
-class OurTestClass$type {
-}
+class OurTestClass$type { }
 OurTestClass$type
 CODE
 
@@ -228,8 +215,7 @@ module Enclosing {
               )
             );
             is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
-class OurEnclosedClass$type {
-}
+class OurEnclosedClass$type { }
 OurEnclosedClass$type
 CODE
 
@@ -268,11 +254,9 @@ subtest 'class with attribute' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-my class TestClassWithAttribute {
-    has $!foo
-}
-CODE
+    is-deeply $deparsed,
+      'my class TestClassWithAttribute { has $!foo }',
+      'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
@@ -317,11 +301,9 @@ subtest 'class with attribute and accessor' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-my class TestClassWithAttributeAccessor {
-    has Int $.foo
-}
-CODE
+    is-deeply $deparsed,
+      'my class TestClassWithAttributeAccessor { has Int $.foo }',
+      'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         nok $class.DEFINITE,
@@ -386,9 +368,7 @@ subtest 'class with accessor usage' => {
     is-deeply $deparsed, q:to/CODE/, 'deparse';
 my class TestClassWithAttributeUsage {
     has Int $.bar;
-    method test-meth () {
-        $!bar
-    }
+    method test-meth () { $!bar }
 }
 CODE
 
@@ -421,10 +401,9 @@ subtest 'class with does trait really does the role' => {
         )
       ]
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-my class TestRoleTarget does TestRole {
-}
-CODE
+    is-deeply $deparsed,
+      'my class TestRoleTarget does TestRole { }',
+      'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         is $class.^name, 'TestRoleTarget',
@@ -453,10 +432,9 @@ subtest 'class with is trait really inherits' => {
         )
       ]
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-my class TestChild is TestBase {
-}
-CODE
+    is-deeply $deparsed,
+      'my class TestChild is TestBase { }',
+      'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $class {
         is $class.^name, 'TestChild',

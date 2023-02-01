@@ -377,11 +377,7 @@ subtest 'Assertion with predicate block works' => {
       )
       
     );
-    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-/ o <?{
-    True
-}> /
-CODE
+    is-deeply $deparsed, '/ o <?{ True }> /', 'deparse';
     match-ok "foo", 'o';
 }
 
@@ -405,11 +401,7 @@ subtest 'Negated assertion with predicate block works' => {
       )
       
     );
-    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-/ o <!{
-    False
-}> /
-CODE
+    is-deeply $deparsed, '/ o <!{ False }> /', 'deparse';
     match-ok "foo", 'o';
 }
 
@@ -442,11 +434,7 @@ subtest 'Assertion with interpolated block works' => {
       )
       
     );
-    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-/ o <{
-    "o"
-}> /
-CODE
+    is-deeply $deparsed, '/ o <{ "o" }> /', 'deparse';
     match-ok "foo", 'oo';
 }
 

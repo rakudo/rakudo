@@ -74,11 +74,7 @@ subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 {
-    CATCH {
-        default {
-            $handled++
-        }
-    }
+    CATCH { default { $handled++ } }
     die("oops")
 }
 CODE
@@ -116,8 +112,7 @@ subtest 'Exception is rethrown if unhandled' => {
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 {
-    CATCH {
-    }
+    CATCH { }
     die("gosh")
 }
 CODE
@@ -273,11 +268,7 @@ subtest 'Block with INIT phaser thunk' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    INIT ++$init
-}
-CODE
+    is-deeply $deparsed, '-> { INIT ++$init }', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $init = 0;
@@ -321,13 +312,11 @@ subtest 'Block with INIT phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    INIT {
-        ++$init;
-        42
-    }
-}
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+-> { INIT {
+    ++$init;
+    42
+} }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -363,11 +352,7 @@ subtest 'Block with ENTER phaser thunk' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    ENTER ++$enter
-}
-CODE
+    is-deeply $deparsed,'-> { ENTER ++$enter }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         $enter = 0;
@@ -410,13 +395,11 @@ subtest 'Block with ENTER phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    ENTER {
-        ++$enter;
-        42
-    }
-}
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+-> { ENTER {
+    ++$enter;
+    42
+} }
 CODE
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
@@ -527,9 +510,7 @@ subtest 'LEAVE phaser block being run' => {
     is-deeply $deparsed, qq:!c:!s:to/CODE/, 'deparse';
 {
     $done = False;
-    LEAVE {
-        pass("leaving")
-    }
+    LEAVE { pass("leaving") }
     $done = True
 }
 CODE
@@ -653,12 +634,8 @@ subtest 'KEEP / UNDO phaser block successful exit' => {
 
     is-deeply $deparsed, Q:!c:!s:to/CODE/, 'deparse';
 -> {
-    KEEP {
-        ++$keep
-    }
-    UNDO {
-        ++$undo
-    }
+    KEEP { ++$keep }
+    UNDO { ++$undo }
     42
 }
 CODE
@@ -795,12 +772,8 @@ subtest 'KEEP / UNDO phaser block UNsuccessful exit' => {
 
     is-deeply $deparsed, Q:!c:!s:to/CODE/, 'deparse';
 -> {
-    KEEP {
-        ++$keep
-    }
-    UNDO {
-        ++$undo
-    }
+    KEEP { ++$keep }
+    UNDO { ++$undo }
     Int
 }
 CODE
@@ -858,11 +831,7 @@ subtest 'END phaser block being run' => {
       )
     );
 
-    is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
-END {
-    pass("leaving END block")
-}
-CODE
+    is-deeply $deparsed, 'END { pass("leaving END block") }', 'deparse';
 
     is-deeply $_, Nil, @type[$++]
       for EVAL($ast), EVAL($deparsed);
@@ -971,9 +940,7 @@ subtest 'For loop with FIRST phaser block' => {
     plan 5;  # FIRST tests need to be run
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 for ^3 {
-    FIRST {
-        is-deeply($run, 0, "inside FIRST")
-    }
+    FIRST { is-deeply($run, 0, "inside FIRST") }
     ++$run
 }
 CODE
@@ -1089,12 +1056,8 @@ subtest 'For loop with NEXT / LAST phaser block' => {
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 for ^3 {
-    NEXT {
-        ++$next
-    }
-    LAST {
-        ++$last
-    }
+    NEXT { ++$next }
+    LAST { ++$last }
 }
 CODE
 
@@ -1136,11 +1099,7 @@ subtest 'Block with CLOSE phaser thunk' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    CLOSE ++$close
-}
-CODE
+    is-deeply $deparsed, '-> { CLOSE ++$close }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         $close = 0;
@@ -1182,13 +1141,7 @@ subtest 'Block with CLOSE phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    CLOSE {
-        ++$close
-    }
-}
-CODE
+    is-deeply $deparsed, '-> { CLOSE { ++$close } }'; 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         $close = 0;
@@ -1232,13 +1185,7 @@ subtest 'Block with QUIT phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    QUIT {
-        $quit = $_
-    }
-}
-CODE
+    is-deeply $deparsed, '-> { QUIT { $quit = $_ } }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         $quit = Nil;
@@ -1273,11 +1220,7 @@ subtest 'Block with PRE phaser thunk' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    PRE ++$pre
-}
-CODE
+    is-deeply $deparsed, '-> { PRE ++$pre }', 'deparse';
 
     # succeeding
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -1328,13 +1271,7 @@ subtest 'Block with PRE phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
--> {
-    PRE {
-        ++$pre
-    }
-}
-CODE
+    is-deeply $deparsed, '-> { PRE { ++$pre } }', 'deparse';
 
     # succeeding
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -1451,9 +1388,7 @@ subtest 'Block with POST phaser block' => {
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 -> {
-    POST {
-        $post = $_
-    }
+    POST { $post = $_ }
     $result
 }
 CODE

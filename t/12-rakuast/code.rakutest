@@ -15,27 +15,18 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 
 subtest 'A pointy block node evaluates to a Block' => {
     # -> { 101 }
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::PointyBlock.new(
-          signature => RakuAST::Signature.new(
-            parameters => ()
-          ),
-          body => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::IntLiteral.new(101)
-              )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(101)
             )
           )
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
--> {
-    101
-}
-CODE
+    is-deeply $deparsed, '-> { 101 }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         ok $block.WHAT === Block,
@@ -54,32 +45,26 @@ CODE
 }
 
 subtest 'A pointy block node taking a parameter evaluates to a Block' => {
-    # -> $param { $param };
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::PointyBlock.new(
-          signature => RakuAST::Signature.new(
-            parameters => (
-              RakuAST::Parameter.new(
-                target => RakuAST::ParameterTarget::Var.new('$param')
-              ),
-            )
-          ),
-          body => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::Var::Lexical.new('$param')
-              )
+    # -> $param { $param }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$param')
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$param')
             )
           )
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
--> $param {
-    $param
-}
-CODE
+    is-deeply $deparsed, '-> $param { $param }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         ok $block.WHAT === Block,
@@ -103,27 +88,21 @@ subtest 'Bare block at statement level is executed' => {
     my $x = 99;
 
     # { $x++ };
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Block.new(
-          body => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::ApplyPostfix.new(
-                  operand => RakuAST::Var::Lexical.new('$x'),
-                  postfix => RakuAST::Postfix.new('++')
-                )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyPostfix.new(
+                operand => RakuAST::Var::Lexical.new('$x'),
+                postfix => RakuAST::Postfix.new('++')
               )
             )
           )
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-{
-    $x++
-}
-CODE
+    is-deeply $deparsed, '{ $x++ }', 'deparse';
 
     is-deeply EVAL($ast), 99,
       'AST: Bare block at statement level is executed';
@@ -140,19 +119,17 @@ subtest 'Bare block in parentheses evaluates to Block' => {
     my $x = 99;
 
     # ({ $x++ })
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Circumfix::Parentheses.new(
-          RakuAST::SemiList.new(
-            RakuAST::Statement::Expression.new(
-              expression => RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                  RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                      expression => RakuAST::ApplyPostfix.new(
-                        operand => RakuAST::Var::Lexical.new('$x'),
-                        postfix => RakuAST::Postfix.new('++')
-                      )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::ApplyPostfix.new(
+                      operand => RakuAST::Var::Lexical.new('$x'),
+                      postfix => RakuAST::Postfix.new('++')
                     )
                   )
                 )
@@ -162,11 +139,7 @@ subtest 'Bare block in parentheses evaluates to Block' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-({
-    $x++
-})
-CODE
+    is-deeply $deparsed, '({ $x++ })', 'deparse';
 
     given EVAL($ast) -> $result {
         is-deeply $result.WHAT, Block,
@@ -201,18 +174,16 @@ CODE
 
 subtest 'Block has default parameter' => {
     # ({ $_ })
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Circumfix::Parentheses.new(
-          RakuAST::SemiList.new(
-            RakuAST::Statement::Expression.new(
-              expression => RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                  RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                      expression => RakuAST::Var::Lexical.new('$_')
-                    ),
-                  )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Var::Lexical.new('$_')
+                  ),
                 )
               )
             )
@@ -220,11 +191,7 @@ subtest 'Block has default parameter' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-({
-    $_
-})
-CODE
+    is-deeply $deparsed, '({ $_ })', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
         is-deeply $result('xxx'), 'xxx',
@@ -235,32 +202,26 @@ CODE
 }
 
 subtest 'A sub node evaluates to a Sub' => {
-    # sub ($param) { $param };
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Sub.new(
-          signature => RakuAST::Signature.new(
-            parameters => (
-              RakuAST::Parameter.new(
-                target => RakuAST::ParameterTarget::Var.new('$param')
-              ),
-            )
-          ),
-          body => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::Var::Lexical.new('$param')
-              ),
-            )
+    # sub ($param) { $param }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$param')
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$param')
+            ),
           )
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-sub ($param) {
-    $param
-}
-CODE
+    is-deeply $deparsed, 'sub ($param) { $param }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         ok $sub.WHAT === Sub,
@@ -310,9 +271,7 @@ subtest 'Can call a named sub declaration' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-sub my-sub ($param) {
-    $param
-}
+sub my-sub ($param) { $param }
 my-sub(66)
 CODE
 
@@ -343,9 +302,7 @@ subtest 'A routine declared anonymous does not declare anything' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-anon sub my-sub () {
-    66
-}
+anon sub my-sub () { 66 }
 my-sub()
 CODE
 
@@ -355,31 +312,25 @@ CODE
 
 subtest 'A sub node with a trait evaluates to a Sub' => {
     # sub () returns Int { 66 }
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Sub.new(
-          traits => [
-            RakuAST::Trait::Returns.new(
-              RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Int')
-              )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        traits => [
+          RakuAST::Trait::Returns.new(
+            RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier('Int')
             )
-          ],
-          body => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::IntLiteral.new(66)
-              )
+          )
+        ],
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(66)
             )
           )
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-sub () returns Int {
-    66
-}
-CODE
+    is-deeply $deparsed, 'sub () returns Int { 66 }', 'deparse';
 
     my $sub = EVAL($ast);
     ok $sub ~~ Sub, 'A sub node with a trait evaluates to a Sub';
@@ -391,31 +342,25 @@ subtest 'Return type constraint' => {
     my $x;
 
     # sub () returns Int { $x }
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Sub.new(
-          traits => [
-            RakuAST::Trait::Returns.new(
-              RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Int')
-              )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        traits => [
+          RakuAST::Trait::Returns.new(
+            RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier('Int')
             )
-          ],
-          body => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::Var::Lexical.new('$x')
-              )
+          )
+        ],
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Var::Lexical.new('$x')
             )
           )
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-sub () returns Int {
-    $x
-}
-CODE
+    is-deeply $deparsed, 'sub () returns Int { $x }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         $x = 42;
@@ -429,24 +374,22 @@ subtest 'Using return with acceptable type works' => {
     my $x;
 
     # sub () returns Int { return $x }
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Sub.new(
-          traits => [
-            RakuAST::Trait::Returns.new(
-              RakuAST::Type::Simple.new(
-                RakuAST::Name.from-identifier('Int')
-              )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        traits => [
+          RakuAST::Trait::Returns.new(
+            RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier('Int')
             )
-          ],
-          body => RakuAST::Blockoid.new(
-            RakuAST::StatementList.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier('return'),
-                  args => RakuAST::ArgList.new(
-                    RakuAST::Var::Lexical.new('$x')
-                  )
+          )
+        ],
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier('return'),
+                args => RakuAST::ArgList.new(
+                  RakuAST::Var::Lexical.new('$x')
                 )
               )
             )
@@ -454,11 +397,7 @@ subtest 'Using return with acceptable type works' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
-sub () returns Int {
-    return($x)
-}
-CODE
+    is-deeply $deparsed, 'sub () returns Int { return($x) }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         $x = 42;

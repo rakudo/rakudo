@@ -109,18 +109,10 @@ subtest 'Basic if / elsif / else structure' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-if $a {
-    1
-}
-elsif $b {
-    2
-}
-elsif $c {
-    3
-}
-else {
-    4
-}
+if $a { 1 }
+elsif $b { 2 }
+elsif $c { 3 }
+else { 4 }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -159,9 +151,7 @@ subtest 'simple if evaluation' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-if $a {
-    1
-}
+if $a { 1 }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -258,18 +248,10 @@ subtest 'Basic with / orwith / else structure' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-with $a -> $x {
-    1
-}
-orwith $b -> $x {
-    2
-}
-orwith $c -> $x {
-    3
-}
-else -> $x {
-    4
-}
+with $a -> $x { 1 }
+orwith $b -> $x { 2 }
+orwith $c -> $x { 3 }
+else -> $x { 4 }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -315,9 +297,7 @@ subtest 'simple with evaluation' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-with $a -> $x {
-    1
-}
+with $a -> $x { 1 }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -355,12 +335,8 @@ subtest 'with topicalizes in the body' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-with $a {
-    $_
-}
-else {
-    $_
-}
+with $a { $_ }
+else { $_ }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -395,9 +371,7 @@ subtest 'simple unless with a false condition' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-unless $x {
-    ++$y
-}
+unless $x { ++$y }
 CODE
 
     is-deeply EVAL($ast), 10,
@@ -430,9 +404,7 @@ subtest 'simple unless with a false condition' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-unless $x {
-    ++$y
-}
+unless $x { ++$y }
 CODE
 
     is-deeply EVAL($ast), Empty,
@@ -465,9 +437,7 @@ subtest 'simple without with an undefined condition' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-without $x {
-    $y++
-}
+without $x { $y++ }
 CODE
 
     is-deeply EVAL($ast), 9,
@@ -500,9 +470,7 @@ subtest 'simple without with a defined condition' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-without $x {
-    ++$y
-}
+without $x { ++$y }
 CODE
 
     is-deeply EVAL($ast), Empty,
@@ -531,9 +499,7 @@ subtest 'simple without with an undefined condition' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-without $x {
-    $_
-}
+without $x { $_ }
 CODE
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
@@ -562,9 +528,7 @@ subtest 'While loop at statement level evaluates to Nil' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-while $x {
-    --$x
-}
+while $x { --$x }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -599,9 +563,7 @@ subtest 'Until loop at statement level evaluates to Nil' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-until !$x {
-    --$x
-}
+until !$x { --$x }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -633,9 +595,7 @@ subtest 'Repeat while loop at statement level evaluates to Nil' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-repeat {
-    --$x
-} while $x;
+repeat { --$x } while $x
 CODE
 
     for 'AST', $ast,  'Str', $deparsed -> $type, $it {
@@ -667,9 +627,7 @@ subtest 'Repeat until loop at statement level evaluates to Nil' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-repeat {
-    --$x
-} until $x;
+repeat { --$x } until $x
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -710,10 +668,8 @@ subtest 'Loop block with setup and increment expression' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
-loop (my $i = 9; $i; --$i) {
-    ++$count
-}
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+loop (my $i = 9; $i; --$i) { ++$count }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -755,11 +711,7 @@ subtest 'Statement level for loop' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
-for 2 .. 7 -> $x {
-    ++$count
-}
-CODE
+    is-deeply $deparsed, 'for 2 .. 7 -> $x { ++$count }', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $count = 0;
@@ -805,11 +757,7 @@ subtest 'for loop with explicit iteration variable' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
-for 2 .. 7 -> $x {
-    $total = $total + $x
-}
-CODE
+    is-deeply $deparsed, 'for 2 .. 7 -> $x { $total = $total + $x }', 'deparse';
 
     my $sum = (2..7).sum;
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -848,11 +796,7 @@ subtest 'Statement level for loop with implicit topic' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
-for 2 .. 7 {
-    $total = $total + $_
-}
-CODE
+    is-deeply $deparsed, 'for 2 .. 7 { $total = $total + $_ }', 'deparse';
 
     my $sum = (2..7).sum;
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -884,10 +828,8 @@ subtest 'given with explicit signature' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
-given $a -> $x {
-    $x
-}
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+given $a -> $x { $x }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -915,10 +857,8 @@ subtest 'given with implicit signature' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
-given $a {
-    $_
-}
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+given $a { $_ }
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -980,15 +920,9 @@ subtest 'given with when and default' => {
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 given $a {
-    when 2 {
-        "two"
-    }
-    when 3 {
-        "three"
-    }
-    default {
-        "another"
-    }
+    when 2 { "two" }
+    when 3 { "three" }
+    default { "another" }
 }
 CODE
 

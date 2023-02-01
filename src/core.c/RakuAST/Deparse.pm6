@@ -190,19 +190,19 @@ class RakuAST::Deparse {
     }
 
     method !conditional($self: $ast, str $type --> Str:D) {
-        "$type $self.deparse($ast.condition) $self.deparse($ast.then)"
+        "$type $self.deparse($ast.condition) $self.deparse($ast.then)$.last-statement"
     }
 
     method !negated-conditional($self: $ast, str $type --> Str:D) {
-        "$type $self.deparse($ast.condition) $self.deparse($ast.body)"
+        "$type $self.deparse($ast.condition) $self.deparse($ast.body)$.last-statement"
     }
 
     method !simple-loop($self: $ast, str $type --> Str:D) {
-        "$type $self.deparse($ast.condition) $self.deparse($ast.body)"
+        "$type $self.deparse($ast.condition) $self.deparse($ast.body)$.last-statement"
     }
 
     method !simple-repeat($self: $ast, str $type --> Str:D) {
-       "repeat $self.deparse($ast.body).chomp() $type $self.deparse($ast.condition);\n"
+       "repeat $self.deparse($ast.body).chomp() $type $self.deparse($ast.condition)$.last-statement"
     }
 
     method !assemble-quoted-string($ast --> Str:D) {
@@ -291,6 +291,10 @@ class RakuAST::Deparse {
           !! $literal.raku  # need quoting
     }
 
+    method !labels(RakuAST::Statement:D $ast --> Str:D) {
+        $ast.labels.map({ self.deparse($_) }).join
+    }
+
 #- A ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::ApplyInfix:D $ast --> Str:D) {
@@ -343,13 +347,24 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Blockoid:D $ast --> Str:D) {
-        my str @parts = $.block-open;
+        my $statement-list := $ast.statement-list;
+        my $statements := $statement-list.statements;
 
-        self!indent;
-        $.block-open
-          ~ self.deparse($ast.statement-list)
-          ~ self!dedent
-          ~ $.block-close
+        if $statements.elems > 1 {
+            self!indent;
+            $.block-open
+              ~ self.deparse($statement-list)
+              ~ self!dedent
+              ~ $.block-close
+        }
+        else {
+            my str @parts = $.bracket-open;
+            @parts.push(self.deparse($statements.head).chomp)
+              if $statements.elems;
+            @parts.push($.bracket-close);
+
+            @parts.join(' ')
+        }
     }
 
 #- Call ------------------------------------------------------------------------
@@ -1207,10 +1222,6 @@ class RakuAST::Deparse {
 
 #- Statement -------------------------------------------------------------------
 
-    method !labels(RakuAST::Statement:D $ast --> Str:D) {
-        $ast.labels.map({ self.deparse($_) }).join
-    }
-
     multi method deparse(RakuAST::Statement::Catch:D $ast --> Str:D) {
         self!labels($ast) ~ 'CATCH ' ~ self.deparse($ast.body)
     }
@@ -1234,17 +1245,15 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Statement::Expression:D $ast --> Str:D) {
         my str @parts = self.deparse($ast.expression);
 
-        if $ast.condition-modifier -> $modifier {
-            @parts.push(' ');
-            @parts.push(self.deparse($modifier));
+        if $ast.condition-modifier -> $condition {
+            @parts.push(self.deparse($condition));
         }
 
-        if $ast.loop-modifier -> $modifier {
-            @parts.push(' ');
-            @parts.push(self.deparse($modifier));
+        if $ast.loop-modifier -> $loop {
+            @parts.push(self.deparse($loop));
         }
 
-        self!labels($ast) ~ @parts.join
+        self!labels($ast) ~ @parts.join(' ')
     }
 
     multi method deparse(RakuAST::Statement::For:D $ast --> Str:D) {
@@ -1266,7 +1275,8 @@ class RakuAST::Deparse {
           ~ 'given '
           ~ self.deparse($ast.source)
           ~ ' '
-          ~ self.deparse($ast.body)
+          ~ self.deparse($ast.body).chomp
+          ~ $.last-statement
     }
 
     multi method deparse(RakuAST::Statement::If:D $ast --> Str:D) {
@@ -1279,6 +1289,7 @@ class RakuAST::Deparse {
         if $ast.else -> $else {
             @parts.push('else ');
             @parts.push(self.deparse($else));
+            @parts.push($.last-statement);
         }
 
         self!labels($ast) ~ @parts.join
@@ -1294,6 +1305,7 @@ class RakuAST::Deparse {
           ~ self.deparse($ast.increment)
           ~ ') '
           ~ self.deparse($ast.body)
+          ~ $.last-statement
     }
 
     multi method deparse(
@@ -1355,19 +1367,22 @@ class RakuAST::Deparse {
         if $ast.statements -> @statements {
             my str @parts;
             my str $spaces = $*INDENT;
+            my str $last   = $.last-statement;
             my str $end    = $.end-statement;
 
             my str $code;
-            my $dropped;
-            for @statements -> $statement {
+            for @statements.head(*-1) -> $statement {
                 @parts.push($spaces);
                 @parts.push($code = self.deparse($statement));
-                @parts.push($end)
-                  unless $dropped = $code.ends-with("\}\n");
+                @parts.push($code.ends-with($.bracket-close)
+                  ?? $last !! $end
+                ) unless $code.ends-with($.block-close);
             }
 
-            @parts.pop unless $dropped;  # lose the last end?
-            @parts.push($.last-statement) unless $code.ends-with("\}\n");
+            @parts.push($spaces);
+            @parts.push($code = self.deparse(@statements.tail));
+            @parts.push($.last-statement)
+              unless $code.ends-with($.block-close);
 
             @parts.join
         }

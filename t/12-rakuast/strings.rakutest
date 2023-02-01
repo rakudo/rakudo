@@ -110,9 +110,7 @@ subtest 'Quoted string involving an interpolated block' => {
       ]
     );
 
-    is-deeply $deparsed, '"An {
-    $bv
-} block"', 'deparse';
+    is-deeply $deparsed, '"An { $bv } block"', 'deparse';
     is-deeply $_, 'An interpolated block', @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }

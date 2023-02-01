@@ -1708,6 +1708,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $decl;
     }
 
+    method type_declarator:sym<subset>($/) {
+        my $decl := self.r('Type', 'Subset').new(
+            :name($<longname>.ast),
+            :where($<EXPR>.ast),
+            :traits($<trait>),
+            :scope($*SCOPE)
+        );
+        $decl.IMPL-CHECK($*R, $*CU.context, 1);
+        self.attach: $/, $decl;
+    }
+
     method trait($/) {
         my $trait := $<trait_mod>.ast;
         if $trait { # is repr(...) won't be handled as a trait

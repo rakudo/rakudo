@@ -373,6 +373,7 @@ class RakuAST::Declaration::External is RakuAST::Declaration {
 
 class RakuAST::Declaration::Mergeable {
     method is-stub() {
+        return True if nqp::istype(self, RakuAST::Declaration::LexicalPackage) && self.package-is-stub;
         my $how  := self.type.HOW;
         my $name := $how.HOW.name($how);
         $name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW'
@@ -481,19 +482,26 @@ class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration
         is RakuAST::CompileTimeValue is RakuAST::Declaration::Mergeable {
     has str $.lexical-name;
     has Mu $.compile-time-value;
+    has RakuAST::Package $.package;
 
-    method new(str :$lexical-name!, Mu :$compile-time-value!) {
+    method new(str :$lexical-name!, Mu :$compile-time-value!, RakuAST::Package :$package!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::LexicalPackage,
             '$!lexical-name', $lexical-name);
         nqp::bindattr($obj, RakuAST::Declaration::LexicalPackage,
             '$!compile-time-value', $compile-time-value);
+        nqp::bindattr($obj, RakuAST::Declaration::LexicalPackage,
+            '$!package', $package);
         $obj
     }
 
     method set-value(Mu $compile-time-value) {
         nqp::bindattr(self, RakuAST::Declaration::LexicalPackage,
             '$!compile-time-value', $compile-time-value);
+    }
+
+    method package-is-stub() {
+        $!package.is-stub
     }
 
     method type() { $!compile-time-value.WHAT }

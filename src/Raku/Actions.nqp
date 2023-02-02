@@ -1409,6 +1409,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $body := $<block> ?? $<block>.ast !! $<unit-block>.ast;
 
         if is-yada($<block> || $<unit-block>) {
+            $package.set-is-stub(1);
             return self.attach: $/, $package;
         }
 

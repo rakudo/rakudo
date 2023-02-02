@@ -36,6 +36,7 @@ class RakuAST::Package
     has RakuAST::Code $.body;
     has Mu $!role-group;
     has Mu $!block-semantics-applied;
+    has Bool $.is-stub;
 
     # Methods and attributes are not directly added, but rather thorugh the
     # RakuAST::Attaching mechanism. Attribute usages are also attached for
@@ -60,6 +61,7 @@ class RakuAST::Package
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attributes', []);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attribute-usages', []);
         nqp::bindattr($obj, RakuAST::Package, '$!role-group', Mu);
+        nqp::bindattr($obj, RakuAST::Package, '$!is-stub', False);
         $obj.set-traits($traits) if $traits;
         $obj
     }
@@ -71,6 +73,10 @@ class RakuAST::Package
 
     method set-repr(Str $repr) {
         nqp::bindattr(self, RakuAST::Package, '$!repr', $repr);
+    }
+
+    method set-is-stub(Bool $is-stub) {
+        nqp::bindattr(self, RakuAST::Package, '$!is-stub', $is-stub ?? True !! False);
     }
 
     method default-scope() { 'our' }
@@ -120,7 +126,8 @@ class RakuAST::Package
             $resolver.current-scope.merge-generated-lexical-declaration:
                 RakuAST::Declaration::LexicalPackage.new:
                     :lexical-name($name.canonicalize),
-                    :compile-time-value($type-object);
+                    :compile-time-value($type-object),
+                    :package(self);
 
             # If `our`-scoped, also put it into the current package.
             if $scope eq 'our' {
@@ -160,7 +167,8 @@ class RakuAST::Package
                 $resolver.current-scope.merge-generated-lexical-declaration:
                     RakuAST::Declaration::LexicalPackage.new:
                         :lexical-name($first),
-                        :compile-time-value($target);
+                        :compile-time-value($target),
+                        :package(self);
                 if $scope eq 'our' {
                     # TODO conflicts
                     my %stash := $resolver.IMPL-STASH-HASH($resolver.current-package);
@@ -195,6 +203,11 @@ class RakuAST::Package
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+         # Note that this early return is actually not effective as the begin handler will
+         # already be run when the parser enters the package and we only know that it's a
+         # stub when we are done parsing the body.
+         return Nil if $!is-stub;
+
         # Install the symbol.
         my str $scope := self.scope;
         $scope := 'our' if $scope eq 'unit';

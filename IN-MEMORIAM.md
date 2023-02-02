@@ -60,8 +60,8 @@ In June 2020, Robert Lemmen passed away after a serious illness.  Among other co
 
 From the obituary at: https://www.debian.org/News/2021/20210812
 
-Ben Davies (Kaiepi)
--------------------
+Ben Davies (Kaiepi / @Mrofnet)
+------------------------------
 On January 14th 2023, Ben Davies passed away suddenly at home in the early hours January 14, 2023 with his father Eric.  Ben has worked on MoarVM, NQP and Rakudo since 2017. As such he worked on configuration issues, provided JIT templates  and added support for asynchronous sockets in MoarVM.  As well as working a lot on support of the JVM backend and optimizing Rakudo performance in general.
 
 From the obituary at: https://www.tributearchive.com/obituaries/27062822/benjamin-nelson-davies

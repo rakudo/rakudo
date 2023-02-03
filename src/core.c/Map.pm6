@@ -383,6 +383,17 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           ?? self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
           !! self!STORE_MAP_FROM_MAP_DECONT(map)
     }
+
+    method PUSH_FROM_MAP(Hash:D \target --> Nil) is implementation-detail {
+        my $iter := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
+        nqp::while(
+          $iter,
+          target.STORE_AT_KEY(
+            nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
+          )
+        );
+    }
+
     method !STORE_MAP(\map --> Map:D) {
         nqp::istype(map,Hash::Object)
           ?? self!STORE_MAP_FROM_OBJECT_HASH(map)

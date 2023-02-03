@@ -291,8 +291,19 @@ class RakuAST::Deparse {
           !! $literal.raku  # need quoting
     }
 
-    method !labels(RakuAST::Statement:D $ast --> Str:D) {
+    method !labels(RakuAST::Statement:D $ast) {
         $ast.labels.map({ self.deparse($_) }).join
+    }
+
+    method !use-no(str $what, $ast) {
+        my str @parts = $what, self.deparse($ast.module-name);
+
+        if $ast.argument -> $argument {
+            @parts.push(' ');
+            @parts.push(self.deparse($argument));
+        }
+
+        self!labels($ast) ~ @parts.join
     }
 
 #- A ---------------------------------------------------------------------------
@@ -1116,6 +1127,10 @@ class RakuAST::Deparse {
         '$<' ~ $ast.name ~ '>=' ~ self.deparse($ast.regex)
     }
 
+    multi method deparse(RakuAST::Statement::No:D $ast --> Str:D) {
+        self!use-no("no ", $ast)
+    }
+
 #- Regex::Q --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::QuantifiedAtom:D $ast --> Str:D) {
@@ -1348,14 +1363,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Statement::Use:D $ast --> Str:D) {
-        my str @parts = 'use ', self.deparse($ast.module-name);
-
-        if $ast.argument -> $argument {
-            @parts.push(' ');
-            @parts.push(self.deparse($argument));
-        }
-
-        self!labels($ast) ~ @parts.join
+        self!use-no("use ", $ast)
     }
 
     multi method deparse(RakuAST::Statement::When:D $ast --> Str:D) {

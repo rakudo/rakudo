@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 25; # Do not change this file to done-testing
+plan 27; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -967,8 +967,53 @@ ok(1, "use statements work")
 CODE
 
     # EVALling produces test output
-    EVAL($ast);
-    EVAL($deparsed);
+    EVAL($_) for $ast, $deparsed;
+}
+
+subtest "check parsing of 'use' pragma" => {
+
+    # Apparently EVALling an AST does **NOT** set $*LANG yet,
+    # so we fake one here for now
+    my $*LANG = class { method set_pragma($,$) { } }
+
+    # no trace; 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('MONKEY')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Nqp::Const.new("STAT_ISDIR")
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+use MONKEY;
+nqp::const::STAT_ISDIR
+CODE
+
+    is-deeply EVAL($_), 2, @type[$++] for $ast, $deparsed;
+}
+
+subtest "check parsing of 'no' pragma" => {
+
+    # Apparently EVALling an AST does **NOT** set $*LANG yet,
+    # so we fake one here for now
+    my $*LANG = class { method set_pragma($,$) { } }
+
+    # no trace; 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::No.new(
+        module-name => RakuAST::Name.from-identifier('trace')
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+no trace;
+42
+CODE
+
+    is-deeply EVAL($_), 42, @type[$++] for $ast, $deparsed;
 }
 
 # vim: expandtab shiftwidth=4

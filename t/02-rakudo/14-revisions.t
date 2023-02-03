@@ -31,7 +31,7 @@ subtest "Modifiers", {
         :err(rx:s/TESTDEPR modifier is deprecated for Raku v6\.d/);
     is-run
         q[use v6.d.NOMOD; print CORE-SETTING-REV],
-        "Deprecated modifier generates a warning",
+        "Unknown modifier dies",
         :exitcode(1),
         :err(rx:s/No compiler available for Raku v6'.'d'.'NOMOD/);
 }

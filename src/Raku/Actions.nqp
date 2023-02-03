@@ -1156,6 +1156,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             args => $<args>.ast;
     }
 
+    method term:sym<nqp::op>($/) {
+        self.attach: $/, self.r('Nqp').new: ~$<op>, $<args>.ast;
+    }
+
     method term:sym<nqp::const>($/) {
         self.attach: $/, self.r('Nqp', 'Const').new(~$<const>);
     }

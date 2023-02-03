@@ -215,9 +215,7 @@ class RakuAST::Call::Name
         }
         else {
             if my $op := $!name.IMPL-IS-NQP-OP {
-                my $nqp := RakuAST::Nqp.new($op);
-                $nqp.set-args(self.IMPL-UNWRAP-LIST(self.args.args));
-                return $nqp.IMPL-TO-QAST($context)
+                return RakuAST::Nqp.new($op, self.args).IMPL-TO-QAST($context);
             }
             elsif $!name.is-package-lookup {
                 return self.is-resolved

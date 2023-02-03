@@ -1704,6 +1704,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
     }
 
+    token term:sym<nqp::op> {
+        'nqp::' $<op>=[\w+] <args>?
+    }
+
     token term:sym<nqp::const> {
         'nqp::const::' $<const>=[\w+]
     }

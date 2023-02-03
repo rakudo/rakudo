@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 2;
+plan 4;
 
 my $ast;
 my $deparsed;
@@ -32,6 +32,24 @@ subtest 'Check constant' => {
     is-deeply $deparsed, 'nqp::const::STAT_FILESIZE', 'deparse';
 
     is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL("use nqp; $deparsed");
+}
+
+subtest 'Set up a lookup hash' => {
+    # nqp::hash("a",42,"b",666);
+    ast RakuAST::Nqp.new("hash", "a", 42, "b", 666);
+    is-deeply $deparsed, 'nqp::hash("a", 42, "b", 666)', 'deparse';
+
+    is-deeply $_, { :42a, :666b }, @type[$++]
+      for EVAL($ast), EVAL("use nqp; $deparsed");
+}
+
+subtest 'Set up a list' => {
+    # nqp::list("a","b","c");
+    ast RakuAST::Nqp.new("list", <a b c>);
+    is-deeply $deparsed, 'nqp::list("a", "b", "c")', 'deparse';
+
+    is-deeply $_, <a b c>, @type[$++]
       for EVAL($ast), EVAL("use nqp; $deparsed");
 }
 

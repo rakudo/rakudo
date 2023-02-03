@@ -76,7 +76,8 @@ class RakuAST::ColonPair is RakuAST::ColonPairish is RakuAST::Term
     method named-arg-value() { self.value }
 
     method canonicalize() {
-        $!key ~ self.IMPL-QUOTE-VALUE(self.simple-compile-time-quote-value)
+        my $value := self.simple-compile-time-quote-value;
+        $!key ~ ($value ?? self.IMPL-QUOTE-VALUE($value) !! self.value.DEPARSE)
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

@@ -1458,7 +1458,12 @@ class RakuAST::Statement::Use
 
         return False unless $!module-name.is-identifier;
         my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
-        if $name eq 'lib' {
+        if $name eq 'MONKEY' {
+            $*LANG.set_pragma($_.key, 1)
+              if nqp::eqat($_.key,'MONKEY',0) for %just_set_pragma;
+            True
+        }
+        elsif $name eq 'lib' {
             if nqp::islist($arglist) {
                 my $registry := $resolver.resolve-name-constant(
                     RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')

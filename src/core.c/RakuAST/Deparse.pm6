@@ -557,6 +557,14 @@ class RakuAST::Deparse {
         $ast.canonicalize
     }
 
+    multi method deparse(RakuAST::Nqp:D $ast --> Str:D) {
+        "nqp::" ~ $ast.op ~ self!parenthesize($ast.args)
+    }
+
+    multi method deparse(RakuAST::Nqp::Const:D $ast --> Str:D) {
+        "nqp::const::" ~ $ast.name
+    }
+
     multi method deparse(RakuAST::NumLiteral:D $ast --> Str:D) {
         $ast.value.raku
     }

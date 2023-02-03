@@ -1,0 +1,38 @@
+use MONKEY-SEE-NO-EVAL;
+use experimental :rakuast;
+use Test;
+
+plan 2;
+
+my $ast;
+my $deparsed;
+my @type = <AST Str>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(:expression($node))
+    );
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
+}
+
+subtest 'Check number of chars' => {
+    my $x = "foo";
+
+    # nqp::chars($x)
+    ast RakuAST::Nqp.new("chars", RakuAST::Var::Lexical.new('$x'));
+    is-deeply $deparsed, 'nqp::chars($x)', 'deparse';
+
+    is-deeply $_, 3, @type[$++]
+      for EVAL($ast), EVAL("use nqp; $deparsed");
+}
+
+subtest 'Check constant' => {
+    # nqp::const::STAT_FILESIZE
+    ast RakuAST::Nqp::Const.new("STAT_FILESIZE");
+    is-deeply $deparsed, 'nqp::const::STAT_FILESIZE', 'deparse';
+
+    is-deeply $_, 1, @type[$++]
+      for EVAL($ast), EVAL("use nqp; $deparsed");
+}
+
+# vim: expandtab shiftwidth=4

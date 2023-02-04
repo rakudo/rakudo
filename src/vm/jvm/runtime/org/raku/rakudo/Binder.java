@@ -470,7 +470,7 @@ public final class Binder {
                     /* Try to figure out the most helpful name for the expected. */
                     SixModelObject expectedType = null;
                     SixModelObject postConstraints = param.get_attribute_boxed(tc, gcx.Parameter,
-                            "$!post_contraints", HINT_post_constraints);
+                            "$!post_constraints", HINT_post_constraints);
                     if (postConstraints != null) {
                         SixModelObject consType = postConstraints.at_pos_boxed(tc, 0);
                         expectedType = (Ops.istype(consType, gcx.Code, tc) != 0)
@@ -688,7 +688,7 @@ public final class Binder {
         /* Handle any constraint types (note that they may refer to the parameter by
          * name, so we need to have bound it already). */
         SixModelObject postConstraints = param.get_attribute_boxed(tc, gcx.Parameter,
-            "$!post_contraints", HINT_post_constraints);
+            "$!post_constraints", HINT_post_constraints);
         if (postConstraints != null) {
             long numConstraints = postConstraints.elems(tc);
             for (long i = 0; i < numConstraints; i++) {

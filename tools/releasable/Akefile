@@ -563,7 +563,7 @@ task ‘wikipedia’, { # Step ⓴ (rakudo release guide)
         },
     );
     my $announce-io = $RAKUDO-PATH.add(“docs/announce/$version-rakudo.md”);
-    die ‘Weird annoncement’ unless slurp($announce-io).lines.head ~~ /Release \s (‘#’\d+)/;
+    die ‘Weird announcement’ unless slurp($announce-io).lines.head ~~ /Release \s (‘#’\d+)/;
     my $release-id = ~$0;
     my $date = run(‘git’, ‘log’, ‘-1’, ‘--format=%ai’, $version-rakudo,
                    :out, :cwd($RAKUDO-PATH)).out.words.head;

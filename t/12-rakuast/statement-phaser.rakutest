@@ -34,7 +34,7 @@ subtest 'BEGIN phaser producing a literal expression works' => {
       for EVAL($ast), EVAL($deparsed);
 }
 
-subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
+subtest 'Block with CATCH/default handles exception and evaluates to Nil' => {
     my $handled;
 
     # { CATCH { default { $handled++ } }; die "oops" }
@@ -83,7 +83,7 @@ CODE
         $handled = 0;
 
         is-deeply EVAL($it), Nil,
-          "$type: block with CATCH/default handles exception, evalutes to Nil";
+          "$type: block with CATCH/default handles exception, evaluates to Nil";
         is-deeply $handled, 1, "$type: the exception handler ran once";
         is $!, 'oops', "$type: \$! in the outer scope has the exception";
     }

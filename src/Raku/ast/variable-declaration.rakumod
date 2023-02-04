@@ -202,7 +202,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                str :$scope, RakuAST::SemiList :$shape) {
         my $obj := nqp::create(self);
         if nqp::chars($name) < 2 {
-            nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous varialbe; use RakuAST::VarDeclaration::Anonymous');
+            nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
         }
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name', $name);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);

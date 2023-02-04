@@ -582,7 +582,7 @@ multi sub infix:<~>(Junction:D $a, Str:D $b) {
 }
 
 multi sub infix:<~>(Junction:D \a, Junction:D \b) {
-    my int $mergable = Junction.INFIX-TWO(my $a = a, my $b = b);
+    my int $mergeable = Junction.INFIX-TWO(my $a = a, my $b = b);
     my \astor := nqp::getattr(nqp::decont($a),Junction,'$!eigenstates');
     my \bstor := nqp::getattr(nqp::decont($b),Junction,'$!eigenstates');
     my int $aelems = nqp::elems(astor);
@@ -594,7 +594,7 @@ multi sub infix:<~>(Junction:D \a, Junction:D \b) {
       Junction,
       '$!eigenstates',
       nqp::if(
-        $mergable,
+        $mergeable,
         nqp::list,
         nqp::setelems(nqp::list,$aelems)
       )
@@ -610,7 +610,7 @@ multi sub infix:<~>(Junction:D \a, Junction:D \b) {
         )),
         (my int $j = -1),
         nqp::if(
-          $mergable,
+          $mergeable,
           nqp::while(                          # merge eigenstates
             nqp::islt_i(++$j,$belems),
             nqp::unless(

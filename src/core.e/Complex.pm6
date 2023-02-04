@@ -1,5 +1,8 @@
 augment class Complex {
-    method sign() { self / self.abs }
+    method sign(Complex:D: --> Complex:D) {
+        my $abs = self.abs;
+        $abs == 0 ?? 0i !! self / $abs
+    }
 }
 
 # vim: expandtab shiftwidth=4

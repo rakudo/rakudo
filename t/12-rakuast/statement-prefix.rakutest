@@ -350,7 +350,7 @@ subtest 'try statement prefix with throwing block handles the exception' => {
     is-deeply $!.Str, 'another day', '$! is populated with the exception';
 }
 
-subtest 'start statement prefix with expression evalutes to Promise' => {
+subtest 'start statement prefix with expression evaluates to Promise' => {
     # start 111
     ast RakuAST::StatementPrefix::Start.new(
       RakuAST::Statement::Expression.new(
@@ -365,7 +365,7 @@ subtest 'start statement prefix with expression evalutes to Promise' => {
     }
 }
 
-subtest 'start statement prefix with block evalutes to Promise' => {
+subtest 'start statement prefix with block evaluates to Promise' => {
     # start { 137 }
     ast RakuAST::StatementPrefix::Start.new(
       RakuAST::Block.new(

@@ -39,7 +39,7 @@ sub configure_nqp {
         if ( defined $passed_backends && $nqp_backend ne $passed_backends ) {
             $self->sorry(
                 "Passed value to --backends ($passed_backends) is overwritten ",
-                "by the one infered by --with-nqp ($nqp_backend)"
+                "by the one inferred by --with-nqp ($nqp_backend)"
             );
         }
     }

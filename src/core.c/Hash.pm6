@@ -60,15 +60,6 @@ my class Hash { # declared in BOOTSTRAP
           nqp::p6scalarwithvalue($!descriptor,value),
         )
     }
-    method PUSH_FROM_MAP(\target --> Nil) is implementation-detail {
-        my $iter := nqp::iterator(nqp::getattr(self,Map,'$!storage'));
-        nqp::while(
-          $iter,
-          target.STORE_AT_KEY(
-            nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
-          )
-        );
-    }
 
     proto method STORE(|) {*}
     multi method STORE(Hash:D: \to_store) {

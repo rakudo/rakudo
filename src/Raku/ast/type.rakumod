@@ -76,30 +76,29 @@ class RakuAST::Type::Setting is RakuAST::Type::Simple {
     # TODO limit lookup to setting
 }
 
-class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup is RakuAST::Declaration {
-    has RakuAST::Name $.name;
-    has RakuAST::Type $.constraint;
-    has RakuAST::Declaration $!base-type;
+class RakuAST::Type::Derived is RakuAST::Type is RakuAST::Lookup {
+    has RakuAST::Type $.base-type;
 
-    method new(RakuAST::Name $name, Mu $constraint) {
+    method resolve-with(RakuAST::Resolver $resolver) {
+        $!base-type.resolve-with($resolver);
+        self.set-resolution(self);
+        Nil
+    }
+}
+
+class RakuAST::Type::Coercion is RakuAST::Type::Derived is RakuAST::Declaration {
+    has RakuAST::Type $.constraint;
+
+    method new(RakuAST::Type $base-type, Mu $constraint) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Type::Coercion, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
         nqp::bindattr($obj, RakuAST::Type::Coercion, '$!constraint', $constraint);
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-name-constant($!name);
-        if $resolved {
-            nqp::bindattr(self, RakuAST::Type::Coercion, '$!base-type', $resolved);
-            self.set-resolution(self);
-        }
-        Nil
-    }
-
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::CoercionHOW.new_type(
-            $!base-type.compile-time-value,
+            self.base-type.compile-time-value,
             $!constraint.meta-object,
         );
     }
@@ -111,7 +110,8 @@ class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup is RakuAST::De
     }
 
     method IMPL-CAN-INTERPRET() {
-        self.is-resolved && nqp::istype($!base-type, RakuAST::CompileTimeValue)
+        nqp::istype(self.base-type, RakuAST::CompileTimeValue)
+        && nqp::istype($!constraint, RakuAST::CompileTimeValue)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -119,7 +119,7 @@ class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup is RakuAST::De
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!name);
+        $visitor(self.base-type);
         $visitor($!constraint);
     }
 
@@ -128,30 +128,19 @@ class RakuAST::Type::Coercion is RakuAST::Type is RakuAST::Lookup is RakuAST::De
     }
 }
 
-class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup is RakuAST::Declaration {
-    has RakuAST::Name $.name;
+class RakuAST::Type::Definedness is RakuAST::Type::Derived is RakuAST::Declaration {
     has Bool $.definite;
-    has RakuAST::Declaration $!base-type;
 
-    method new(RakuAST::Name $name, Bool $definite) {
+    method new(RakuAST::Type $base-type, Bool $definite) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Type::Definedness, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
         nqp::bindattr($obj, RakuAST::Type::Definedness, '$!definite', $definite ?? True !! False);
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-name-constant($!name);
-        if $resolved {
-            nqp::bindattr(self, RakuAST::Type::Definedness, '$!base-type', $resolved);
-            self.set-resolution(self);
-        }
-        Nil
-    }
-
     method PRODUCE-META-OBJECT() {
         Perl6::Metamodel::DefiniteHOW.new_type(
-            :base_type($!base-type.compile-time-value),
+            :base_type(self.base-type.compile-time-value),
             :definite($!definite),
         );
     }
@@ -163,7 +152,7 @@ class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup is RakuAST:
     }
 
     method IMPL-CAN-INTERPRET() {
-        self.is-resolved && nqp::istype($!base-type, RakuAST::CompileTimeValue)
+        nqp::istype(self.base-type, RakuAST::CompileTimeValue)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
@@ -175,7 +164,7 @@ class RakuAST::Type::Definedness is RakuAST::Type is RakuAST::Lookup is RakuAST:
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!name);
+        $visitor(self.base-type);
     }
 }
 
@@ -241,29 +230,19 @@ class RakuAST::Type::Capture is RakuAST::Type is RakuAST::Declaration {
     }
 }
 
-class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup is RakuAST::Declaration {
-    has RakuAST::Name $.name;
+class RakuAST::Type::Parameterized is RakuAST::Type::Derived is RakuAST::Declaration {
     has RakuAST::ArgList $.args;
-    has RakuAST::Declaration $!base-type;
 
-    method new(RakuAST::Name $name, RakuAST::ArgList $args) {
+    method new(RakuAST::Type $base-type, RakuAST::ArgList $args) {
+        nqp::die('need a base-type, not ' ~ $base-type.dump) if !nqp::istype($base-type, RakuAST::Type);
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Type::Parameterized, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
         nqp::bindattr($obj, RakuAST::Type::Parameterized, '$!args', $args);
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-name-constant($!name);
-        if $resolved {
-            nqp::bindattr(self, RakuAST::Type::Parameterized, '$!base-type', $resolved);
-            self.set-resolution(self);
-        }
-        Nil
-    }
-
     method visit-children(Code $visitor) {
-        $visitor($!name);
+        $visitor(self.base-type);
         $visitor($!args);
     }
 
@@ -272,7 +251,7 @@ class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup is RakuAS
             my $args := $!args.IMPL-COMPILE-TIME-VALUES;
             my @pos := $args[0];
             my %named := $args[1];
-            my $ptype := $!base-type.compile-time-value;
+            my $ptype := self.base-type.compile-time-value;
             $ptype.HOW.parameterize($ptype, |@pos, |%named)
         }
         else {
@@ -287,7 +266,7 @@ class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup is RakuAS
             QAST::WVal.new( :$value )
         }
         else {
-            my $ptype := $!base-type.compile-time-value;
+            my $ptype := self.base-type.compile-time-value;
             my $ptref := QAST::WVal.new( :value($ptype) );
             my $qast := QAST::Op.new(:op<callmethod>, :name<parameterize>, QAST::Op.new(:op<how>, $ptref), $ptref);
             $!args.IMPL-ADD-QAST-ARGS($context, $qast);
@@ -296,9 +275,8 @@ class RakuAST::Type::Parameterized is RakuAST::Type is RakuAST::Lookup is RakuAS
     }
 
     method IMPL-CAN-INTERPRET() {
-        self.is-resolved
-            && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
-            && $!args.IMPL-CAN-INTERPRET
+        nqp::istype(self.base-type, RakuAST::CompileTimeValue)
+        && $!args.IMPL-CAN-INTERPRET
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {

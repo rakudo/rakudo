@@ -1172,12 +1172,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             if $*is-type {
+                my $type := self.r('Type', 'Simple').new($<longname>.ast);
                 if $<arglist> {
-                    self.attach: $/, self.r('Type', 'Parameterized').new($<longname>.ast, $<arglist>.ast);
+                    $type := self.r('Type', 'Parameterized').new($type, $<arglist>.ast);
                 }
-                else {
-                    self.attach: $/, self.r('Type', 'Simple').new($<longname>.ast);
-                }
+                self.attach: $/, $type;
             }
             else {
                 self.attach: $/, self.r('Term', 'Name').new($<longname>.ast);
@@ -2048,24 +2047,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Declare the lexical so it is available right away (e.g. for traits)
             $*R.declare-lexical($type-capture);
         }
-        elsif $<arglist> {
-            self.attach: $/, self.r('Type', 'Parameterized').new($base-name, $<arglist>.ast);
-        }
-        elsif $<accept> {
-            self.attach: $/, self.r('Type', 'Coercion').new($base-name, $<accept>.ast);
-        }
-        elsif $<accept_any> {
-            my $Any := self.r('Type', 'Setting').new(RakuAST::Name.from-identifier('Any'));
-            self.attach: $/, self.r('Type', 'Coercion').new($base-name, $Any);
-        }
-        elsif $base-name.has-colonpair('D') {
-            self.attach: $/, self.r('Type', 'Definedness').new($base-name, 1);
-        }
-        elsif $base-name.has-colonpair('U') {
-            self.attach: $/, self.r('Type', 'Definedness').new($base-name, 0);
-        }
         else {
-            self.attach: $/, self.r('Type', 'Simple').new($base-name);
+            my $type := self.r('Type', 'Simple').new($base-name);
+            if $base-name.has-colonpair('D') {
+                $type := self.r('Type', 'Definedness').new($type, 1);
+            }
+            elsif $base-name.has-colonpair('U') {
+                $type := self.r('Type', 'Definedness').new($type, 0);
+            }
+            if $<arglist> {
+                $type := self.r('Type', 'Parameterized').new($type, $<arglist>.ast);
+            }
+            if $<accept> {
+                $type := self.r('Type', 'Coercion').new($type, $<accept>.ast);
+            }
+            elsif $<accept_any> {
+                my $Any := self.r('Type', 'Setting').new(RakuAST::Name.from-identifier('Any'));
+                $type := self.r('Type', 'Coercion').new($type, $Any);
+            }
+            self.attach: $/, $type;
         }
     }
 

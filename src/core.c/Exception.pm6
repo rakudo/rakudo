@@ -402,6 +402,14 @@ my class X::Pragma::OnlyOne is Exception {
     has $.name;
     method message { "The '$.name' pragma only takes one argument." }
 }
+my class X::Pragma::Unknown is Exception {
+    has $.name;
+    method message { "The '$.name' pragma is unknown." }
+}
+my class X::Ism::Unknown is Exception {
+    has $.name;
+    method message { "The '$.name' ism is unknown." }
+}
 
 my role X::Control is Exception {
 }

@@ -1294,12 +1294,21 @@ class RakuAST::Statement::No
     has Bool $!precompilation-mode;
 
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, Bool :$precompilation-mode) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Statement::No, '$!module-name', $module-name);
-        nqp::bindattr($obj, RakuAST::Statement::No, '$!argument',
-            $argument // RakuAST::Expression);
-        nqp::bindattr($obj, RakuAST::Statement::No, '$!precompilation-mode', $precompilation-mode);
-        $obj
+        my $name := $module-name.canonicalize;
+        if RakuAST::Pragma.IS-PRAGMA($name) {
+            RakuAST::Pragma.new($name, :off)
+        }
+        elsif $name eq "isms" {
+            RakuAST::Isms.new($argument, :off)
+        }
+        else {
+            my $obj := nqp::create(self);
+            nqp::bindattr($obj, RakuAST::Statement::No, '$!module-name', $module-name);
+            nqp::bindattr($obj, RakuAST::Statement::No, '$!argument',
+                $argument // RakuAST::Expression);
+            nqp::bindattr($obj, RakuAST::Statement::No, '$!precompilation-mode', $precompilation-mode);
+            $obj
+    }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1321,42 +1330,10 @@ class RakuAST::Statement::No
     }
 
     method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
-        # pragmas without args that just set_pragma to true
-        my %just_set_pragma := nqp::hash(
-          'internals',          1,
-          'MONKEY-TYPING',      1,
-          'MONKEY-SEE-NO-EVAL', 1,
-          'MONKEY-BRAINS',      1,
-          'MONKEY-GUTS',        1,
-          'MONKEY-BUSINESS',    1,
-          'MONKEY-TRAP',        1,
-          'MONKEY-SHINE',       1,
-          'MONKEY-WRENCH',      1,
-          'MONKEY-BARS',        1,
-          'nqp',                1,
-          'trace',              1,
-          'worries',            1,
-        );
-
         return False unless $!module-name.is-identifier;
         my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
         if $name eq 'lib' {
             $resolver.build-exception('X::Pragma::CannotWhat', :what<no>, :$name).throw;
-        }
-        elsif $name eq 'fatal' {
-            True
-        }
-        elsif %just_set_pragma{$name} {
-            $*LANG.set_pragma($name, 0);
-            True
-        }
-        elsif $name eq 'precompilation' {
-            if $!precompilation-mode {
-                my $automatic_precomp := nqp::ifnull(nqp::atkey(nqp::getenvhash, 'RAKUDO_PRECOMP_WITH'), 0);
-                nqp::exit(0) if $automatic_precomp;
-                $resolver.build-exception('X::Pragma::CannotPrecomp', :what<no>, :$name).throw;
-            }
-            True
         }
         else {
             False
@@ -1405,13 +1382,22 @@ class RakuAST::Statement::Use
     has List $!categoricals;
 
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
-        nqp::bindattr($obj, RakuAST::Statement::Use, '$!categoricals', []);
-        nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
-            $argument // RakuAST::Expression);
-        $obj.set-labels($labels) if $labels;
-        $obj
+        my $name := $module-name.canonicalize;
+        if RakuAST::Pragma.IS-PRAGMA($name) {
+            RakuAST::Pragma.new($name)
+        }
+        elsif $name eq "isms" {
+            RakuAST::Isms.new($argument)
+        }
+        else {
+            my $obj := nqp::create(self);
+            nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
+            nqp::bindattr($obj, RakuAST::Statement::Use, '$!categoricals', []);
+            nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
+                $argument // RakuAST::Expression);
+            $obj.set-labels($labels) if $labels;
+            $obj
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -1439,31 +1425,9 @@ class RakuAST::Statement::Use
     }
 
     method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
-        # pragmas without args that just set_pragma to true
-        my %just_set_pragma := nqp::hash(
-          'internals',          1,
-          'MONKEY-TYPING',      1,
-          'MONKEY-SEE-NO-EVAL', 1,
-          'MONKEY-BRAINS',      1,
-          'MONKEY-GUTS',        1,
-          'MONKEY-BUSINESS',    1,
-          'MONKEY-TRAP',        1,
-          'MONKEY-SHINE',       1,
-          'MONKEY-WRENCH',      1,
-          'MONKEY-BARS',        1,
-          'nqp',                1,
-          'trace',              1,
-          'worries',            1,
-        );
-
         return False unless $!module-name.is-identifier;
         my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
-        if $name eq 'MONKEY' {
-            $*LANG.set_pragma($_.key, 1)
-              if nqp::eqat($_.key,'MONKEY',0) for %just_set_pragma;
-            True
-        }
-        elsif $name eq 'lib' {
+        if $name eq 'lib' {
             if nqp::islist($arglist) {
                 my $registry := $resolver.resolve-name-constant(
                     RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')
@@ -1487,38 +1451,6 @@ class RakuAST::Statement::Use
                 # TODO X::LibNone
                 nqp::die('todo no arg lib')
             }
-            True
-        }
-        elsif $name eq 'isms' {
-            my %isms := nqp::hash(
-              'Perl5',   'p5isms',
-              'C++',     'c++isms',
-            );
-            if nqp::islist($arglist) {
-                my @huh;
-                for $arglist -> $ism {
-                    my $pragma := nqp::atkey(%isms, $ism);
-                    if $pragma {
-                        $*LANG.set_pragma($pragma, 1);
-                    }
-                    else {
-                        nqp::push(@huh, $ism)
-                    }
-                }
-                if @huh {
-                    nqp::die("Don't know how to handle: isms <"
-                        ~ nqp::join(" ", @huh)
-                        ~ ">"
-                    );
-                }
-            }
-            else {
-                $*LANG.set_pragma($_.value, 1) for %isms;
-            }
-            True
-        }
-        elsif %just_set_pragma{$name} {
-            $*LANG.set_pragma($name, 1);
             True
         }
         else {

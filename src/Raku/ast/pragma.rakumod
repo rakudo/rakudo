@@ -1,7 +1,7 @@
 class RakuAST::Pragma
   is RakuAST::Statement
   is RakuAST::BeginTime
-  is RakuAST::ImplicitLookups
+  is RakuAST::ProducesNil
 {
     has Str $.name;
     has int $.off;
@@ -38,12 +38,6 @@ class RakuAST::Pragma
         nqp::existskey(self.KNOWN-PRAGMAS, $name)
     }
 
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-          RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ])
-    }
-
     method categoricals() { () }
 
     method PERFORM-BEGIN(
@@ -78,17 +72,12 @@ class RakuAST::Pragma
             ).throw;
         }
     }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].IMPL-TO-QAST($context)
-    }
 }
 
 class RakuAST::Isms
   is RakuAST::Statement
   is RakuAST::BeginTime
-  is RakuAST::ImplicitLookups
+  is RakuAST::ProducesNil
 {
     has RakuAST::Expression $.argument;
     has int $.off;
@@ -109,12 +98,6 @@ class RakuAST::Isms
 
     method IS-ISM(Str $name) {
         nqp::existskey(self.KNOWN-ISMS, $name)
-    }
-
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-          RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ])
     }
 
     method categoricals() { () }
@@ -142,10 +125,5 @@ class RakuAST::Isms
         else {
             $*LANG.set_pragma($_.value, $on) for self.KNOWN-ISMS;
         }
-    }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].IMPL-TO-QAST($context)
     }
 }

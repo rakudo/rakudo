@@ -398,27 +398,32 @@ class RakuAST::StatementSequence
     }
 }
 
-# Any empty statement. Retained because it can have a semantic effect (for
-# example, in block vs. hash distinction with a leading `;`).
-class RakuAST::Statement::Empty
-  is RakuAST::Statement
+# Done by all classes that always produce Nil
+class RakuAST::ProducesNil
   is RakuAST::ImplicitLookups
 {
-    method new(List :$labels) {
-        my $obj := nqp::create(self);
-        $obj.set-labels($labels) if $labels;
-        $obj
-    }
-
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
         ])
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         @lookups[0].IMPL-TO-QAST($context)
+    }
+}
+
+# Any empty statement. Retained because it can have a semantic effect (for
+# example, in block vs. hash distinction with a leading `;`).
+class RakuAST::Statement::Empty
+  is RakuAST::Statement
+  is RakuAST::ProducesNil
+{
+    method new(List :$labels) {
+        my $obj := nqp::create(self);
+        $obj.set-labels($labels) if $labels;
+        $obj
     }
 
     method visit-children(Code $visitor) {
@@ -1213,7 +1218,7 @@ class RakuAST::Statement::ExceptionHandler
   is RakuAST::Statement
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ImplicitLookups
+  is RakuAST::ProducesNil
 {
     has RakuAST::Block $.body;
 
@@ -1230,17 +1235,6 @@ class RakuAST::Statement::ExceptionHandler
 
     method propagate-sink(Bool $is-sunk) {
         $!body.body.apply-sink(True);
-    }
-
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ])
-    }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].IMPL-TO-QAST($context)
     }
 
     method visit-children(Code $visitor) {
@@ -1287,7 +1281,7 @@ class RakuAST::Statement::Control
 class RakuAST::Statement::No
   is RakuAST::Statement
   is RakuAST::BeginTime
-  is RakuAST::ImplicitLookups
+  is RakuAST::ProducesNil
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
@@ -1308,13 +1302,7 @@ class RakuAST::Statement::No
                 $argument // RakuAST::Expression);
             nqp::bindattr($obj, RakuAST::Statement::No, '$!precompilation-mode', $precompilation-mode);
             $obj
-    }
-    }
-
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ])
+        }
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1338,11 +1326,6 @@ class RakuAST::Statement::No
         else {
             False
         }
-    }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].IMPL-TO-QAST($context)
     }
 
     method visit-children(Code $visitor) {
@@ -1375,7 +1358,7 @@ class RakuAST::Categorical {
 class RakuAST::Statement::Use
   is RakuAST::Statement
   is RakuAST::BeginTime
-  is RakuAST::ImplicitLookups
+  is RakuAST::ProducesNil
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
@@ -1398,12 +1381,6 @@ class RakuAST::Statement::Use
             $obj.set-labels($labels) if $labels;
             $obj
         }
-    }
-
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-        ])
     }
 
     method categoricals() {
@@ -1565,11 +1542,6 @@ class RakuAST::Statement::Use
             $hash := $hash.FLATTENABLE_HASH();
         }
         $hash
-    }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].IMPL-TO-QAST($context)
     }
 
     method visit-children(Code $visitor) {

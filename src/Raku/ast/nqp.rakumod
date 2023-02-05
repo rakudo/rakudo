@@ -1,3 +1,4 @@
+# Create NQP ops without Call::Name roundabout
 class RakuAST::Nqp
   is RakuAST::Expression
 {

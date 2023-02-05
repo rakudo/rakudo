@@ -609,7 +609,9 @@ class RakuAST::Resolver {
 # The EVAL resolver is used when we are given an AST as a whole, and visit it
 # to perform resolutions. We expect a context and GLOBAL to be provided in this
 # mode.
-class RakuAST::Resolver::EVAL is RakuAST::Resolver {
+class RakuAST::Resolver::EVAL
+  is RakuAST::Resolver
+{
     # The stack of scopes we are in (an array of RakuAST::LexicalScope).
     has Mu $!scopes;
 
@@ -715,7 +717,9 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
 # for the sake of parse disambiguation, as well as to handle BEGIN-time code.
 # A resolver may be created using an existing context, or it may be for a
 # compilation unit whose outer scope is some version of the setting.
-class RakuAST::Resolver::Compile is RakuAST::Resolver {
+class RakuAST::Resolver::Compile
+  is RakuAST::Resolver
+{
     # Scopes stack; an array of RakuAST::Resolver::Compile::Scope.
     has Mu $!scopes;
 
@@ -940,7 +944,9 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
 }
 
 # Information about a lexical scope that we are currently compiling.
-class RakuAST::Resolver::Compile::Scope is RakuAST::Resolver {
+class RakuAST::Resolver::Compile::Scope
+  is RakuAST::Resolver
+{
     # The scope.
     has RakuAST::LexicalScope $.scope;
 

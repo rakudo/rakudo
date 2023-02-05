@@ -1,5 +1,7 @@
 # Done by every AST node that can report CHECK-time problems.
-class RakuAST::CheckTime is RakuAST::Node {
+class RakuAST::CheckTime
+  is RakuAST::Node
+{
     # A list of sorries, lazily allocated if there are any.
     has Mu $!sorries;
 

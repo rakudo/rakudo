@@ -1,6 +1,8 @@
 # A name. Names range from simple (a single identifier) up to rather more
 # complex (including pseudo-packages, interpolated parts, etc.)
-class RakuAST::Name is RakuAST::ImplicitLookups {
+class RakuAST::Name
+  is RakuAST::ImplicitLookups
+{
     has List $!parts;
     has List $.colonpairs;
 
@@ -219,7 +221,9 @@ class RakuAST::Name::Part {
 }
 
 # A simple name part, wrapping a string name.
-class RakuAST::Name::Part::Simple is RakuAST::Name::Part {
+class RakuAST::Name::Part::Simple
+  is RakuAST::Name::Part
+{
     has str $.name;
 
     method new(Str $name) {
@@ -267,7 +271,9 @@ class RakuAST::Name::Part::Simple is RakuAST::Name::Part {
     }
 }
 
-class RakuAST::Name::Part::Expression is RakuAST::Name::Part {
+class RakuAST::Name::Part::Expression
+  is RakuAST::Name::Part
+{
     has RakuAST::Expression $.expr;
 
     method new(RakuAST::Expression $expr) {
@@ -304,8 +310,9 @@ class RakuAST::Name::Part::Expression is RakuAST::Name::Part {
 }
 
 # An empty name part, implying .WHO
-class RakuAST::Name::Part::Empty is RakuAST::Name::Part {
-
+class RakuAST::Name::Part::Empty
+  is RakuAST::Name::Part
+{
     method new() {
         nqp::create(self);
     }

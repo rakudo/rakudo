@@ -1,9 +1,12 @@
 # Marker for all kinds of circumfix.
-class RakuAST::Circumfix is RakuAST::Term is RakuAST::Contextualizable {
-}
+class RakuAST::Circumfix
+  is RakuAST::Term
+  is RakuAST::Contextualizable { }
 
 # Grouping parentheses circumfix.
-class RakuAST::Circumfix::Parentheses is RakuAST::Circumfix {
+class RakuAST::Circumfix::Parentheses
+  is RakuAST::Circumfix
+{
     has RakuAST::SemiList $.semilist;
 
     method new(RakuAST::SemiList $semilist) {
@@ -30,8 +33,11 @@ class RakuAST::Circumfix::Parentheses is RakuAST::Circumfix {
 }
 
 # Array composer circumfix.
-class RakuAST::Circumfix::ArrayComposer is RakuAST::Circumfix is RakuAST::Lookup
-                                        is RakuAST::ColonPairish {
+class RakuAST::Circumfix::ArrayComposer
+  is RakuAST::Circumfix
+  is RakuAST::Lookup
+  is RakuAST::ColonPairish
+{
     has RakuAST::SemiList $.semilist;
 
     method new(RakuAST::SemiList $semilist) {
@@ -82,7 +88,10 @@ class RakuAST::Circumfix::ArrayComposer is RakuAST::Circumfix is RakuAST::Lookup
 # thing as a block. At the AST level there are two distinct node types:
 # this, and Block (for the case it's a block). The Block node has a method
 # on it for performing this disambiguation.
-class RakuAST::Circumfix::HashComposer is RakuAST::Circumfix is RakuAST::Lookup {
+class RakuAST::Circumfix::HashComposer
+  is RakuAST::Circumfix
+  is RakuAST::Lookup
+{
     has RakuAST::Expression $.expression;
 
     method new(RakuAST::Expression $expression?) {

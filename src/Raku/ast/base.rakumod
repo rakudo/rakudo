@@ -391,7 +391,9 @@ class RakuAST::Node {
 }
 
 # Anything with a known compile time value does RakuAST::CompileTimeValue.
-class RakuAST::CompileTimeValue is RakuAST::Node {
+class RakuAST::CompileTimeValue
+  is RakuAST::Node
+{
     method compile-time-value() {
         nqp::die('compile-time-value not implemented for ' ~ self.HOW.name(self))
     }

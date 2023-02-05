@@ -1,5 +1,7 @@
 # The base of all contextualizers.
-class RakuAST::Contextualizer is RakuAST::Term {
+class RakuAST::Contextualizer
+  is RakuAST::Term
+{
     # The thing to be contextualized.
     has RakuAST::Contextualizable $.target;
 
@@ -23,19 +25,25 @@ class RakuAST::Contextualizer is RakuAST::Term {
 }
 
 # The item contextualizer.
-class RakuAST::Contextualizer::Item is RakuAST::Contextualizer {
+class RakuAST::Contextualizer::Item
+  is RakuAST::Contextualizer
+{
     method IMPL-METHOD() { 'item' }
     method sigil { '$' }
 }
 
 # The list contextualizer.
-class RakuAST::Contextualizer::List is RakuAST::Contextualizer {
+class RakuAST::Contextualizer::List
+  is RakuAST::Contextualizer
+{
     method IMPL-METHOD() { 'cache' }
     method sigil { '@' }
 }
 
 # The hash contextualizer.
-class RakuAST::Contextualizer::Hash is RakuAST::Contextualizer {
+class RakuAST::Contextualizer::Hash
+  is RakuAST::Contextualizer
+{
     method IMPL-METHOD() { 'hash' }
     method sigil { '%' }
 }

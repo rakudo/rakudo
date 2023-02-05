@@ -1,11 +1,17 @@
 # Base role done by things that serve as named arguments.
-class RakuAST::NamedArg is RakuAST::Node {
+class RakuAST::NamedArg
+  is RakuAST::Node
+{
     method named-arg-name() { nqp::die('named-arg-name not implemented') }
     method named-arg-value() { nqp::die('named-arg-value not implemented') }
 }
 
 # A fat arrow pair, such as `foo => 42`.
-class RakuAST::FatArrow is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST::NamedArg {
+class RakuAST::FatArrow
+  is RakuAST::Term
+  is RakuAST::ImplicitLookups
+  is RakuAST::NamedArg
+{
     has Str $.key;
     has RakuAST::Term $.value;
 
@@ -65,8 +71,12 @@ class RakuAST::ColonPairish {
 }
 
 # The base of all colonpair constructs.
-class RakuAST::ColonPair is RakuAST::ColonPairish is RakuAST::Term
-                         is RakuAST::ImplicitLookups is RakuAST::NamedArg {
+class RakuAST::ColonPair
+  is RakuAST::ColonPairish
+  is RakuAST::Term
+  is RakuAST::ImplicitLookups
+  is RakuAST::NamedArg
+{
     has Str $.key;
     
     method value() { nqp::die(self.HOW.name(self) ~ ' does not implement value') }
@@ -105,11 +115,13 @@ class RakuAST::ColonPair is RakuAST::ColonPairish is RakuAST::Term
 }
 
 # The base of colonpairs that can be placed as adverbs on a quote construct.
-class RakuAST::QuotePair is RakuAST::ColonPair {
-}
+class RakuAST::QuotePair
+  is RakuAST::ColonPair { }
 
 # A truthy colonpair (:foo).
-class RakuAST::ColonPair::True is RakuAST::QuotePair {
+class RakuAST::ColonPair::True
+  is RakuAST::QuotePair
+{
     method new(Str :$key!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
@@ -148,7 +160,9 @@ class RakuAST::ColonPair::True is RakuAST::QuotePair {
 }
 
 # A falsey colonpair (:!foo).
-class RakuAST::ColonPair::False is RakuAST::QuotePair {
+class RakuAST::ColonPair::False
+  is RakuAST::QuotePair
+{
     method new(Str :$key!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
@@ -187,7 +201,9 @@ class RakuAST::ColonPair::False is RakuAST::QuotePair {
 }
 
 # A number colonpair (:2th).
-class RakuAST::ColonPair::Number is RakuAST::QuotePair {
+class RakuAST::ColonPair::Number
+  is RakuAST::QuotePair
+{
     has RakuAST::IntLiteral $.value;
 
     method new(Str :$key!, RakuAST::IntLiteral :$value) {
@@ -213,7 +229,9 @@ class RakuAST::ColonPair::Number is RakuAST::QuotePair {
 }
 
 # A colonpair with a value (:foo(42)).
-class RakuAST::ColonPair::Value is RakuAST::QuotePair {
+class RakuAST::ColonPair::Value
+  is RakuAST::QuotePair
+{
     has RakuAST::Expression $.value;
 
     method new(Str :$key!, RakuAST::Expression :$value) {
@@ -247,7 +265,9 @@ class RakuAST::ColonPair::Value is RakuAST::QuotePair {
 }
 
 # A variable colonpair (:$var, :$<match>).
-class RakuAST::ColonPair::Variable is RakuAST::ColonPair {
+class RakuAST::ColonPair::Variable
+  is RakuAST::ColonPair
+{
     has RakuAST::Var $.value;
 
     method new(Str :$key!, RakuAST::Var :$value) {

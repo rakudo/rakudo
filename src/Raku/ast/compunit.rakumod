@@ -505,9 +505,33 @@ class RakuAST::LiteralBuilder {
         # Produce the Rat object.
         unless $!has-cached-rat {
             nqp::bindattr(self, RakuAST::LiteralBuilder, '$!cached-rat',
-                $!resolver.resolve-lexical-constant-in-setting('Rat').compile-time-value);
+              $!resolver.resolve-lexical-constant-in-setting('Rat').compile-time-value);
             nqp::bindattr_i(self, RakuAST::LiteralBuilder, '$!has-cached-rat', 1);
         }
         $!cached-rat.new($parti, $partf)
+    }
+
+    # Build a Complex constant and intern it.
+    method intern-complex($real-part, $imaginary-part) {
+        # TODO interning
+        self.build-complex($real-part, $imaginary-part)
+    }
+
+    # Build a Complex constant, but do not intern it.
+    method build-complex(str $real-part, str $imaginary-part) {
+        my num $real := $real-part
+          ?? nqp::box_n(nqp::numify($real-part), Num)
+          !! 0e0;
+        my num $imaginary := $imaginary-part
+          ?? nqp::box_n(nqp::numify($imaginary-part), Num)
+          !! 0e0;
+
+        # Produce the Complex object.
+        unless $!has-cached-complex {
+            nqp::bindattr(self, RakuAST::LiteralBuilder, '$!cached-complex',
+              $!resolver.resolve-lexical-constant-in-setting('Complex').compile-time-value);
+            nqp::bindattr_i(self, RakuAST::LiteralBuilder, '$!has-cached-complex', 1);
+        }
+        $!cached-complex.new($real, $imaginary)
     }
 }

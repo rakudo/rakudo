@@ -1,4 +1,6 @@
-class RakuAST::LexPad is RakuAST::Lookup {
+class RakuAST::LexPad
+  is RakuAST::Lookup
+{
     method new() {
         my $obj := nqp::create(self);
         $obj

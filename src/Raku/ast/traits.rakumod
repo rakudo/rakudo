@@ -55,7 +55,9 @@ class RakuAST::TraitTarget {
 }
 
 # The base of all traits.
-class RakuAST::Trait is RakuAST::ImplicitLookups {
+class RakuAST::Trait
+  is RakuAST::ImplicitLookups
+{
     has int $!applied;
 
     method IMPL-TRAIT-NAME() {
@@ -104,7 +106,10 @@ class RakuAST::Trait is RakuAST::ImplicitLookups {
 }
 
 # The is trait.
-class RakuAST::Trait::Is is RakuAST::Trait is RakuAST::BeginTime {
+class RakuAST::Trait::Is
+  is RakuAST::Trait
+  is RakuAST::BeginTime
+{
     has RakuAST::Name $.name;
     has RakuAST::Circumfix $.argument;
     has RakuAST::Term::Name $.resolved-name;
@@ -155,7 +160,9 @@ class RakuAST::Trait::Is is RakuAST::Trait is RakuAST::BeginTime {
 }
 
 # The hides trait.
-class RakuAST::Trait::Hides is RakuAST::Trait {
+class RakuAST::Trait::Hides
+  is RakuAST::Trait
+{
     has RakuAST::Type $.type;
 
     method new(RakuAST::Type $type) {
@@ -176,7 +183,9 @@ class RakuAST::Trait::Hides is RakuAST::Trait {
 }
 
 # The does trait.
-class RakuAST::Trait::Does is RakuAST::Trait {
+class RakuAST::Trait::Does
+  is RakuAST::Trait
+{
     has RakuAST::Type $.type;
 
     method new(RakuAST::Type $type) {
@@ -197,7 +206,9 @@ class RakuAST::Trait::Does is RakuAST::Trait {
 }
 
 # The of trait.
-class RakuAST::Trait::Of is RakuAST::Trait {
+class RakuAST::Trait::Of
+  is RakuAST::Trait
+{
     has RakuAST::Type $.type;
 
     method new(RakuAST::Type $type) {
@@ -218,7 +229,9 @@ class RakuAST::Trait::Of is RakuAST::Trait {
 }
 
 # The returns trait.
-class RakuAST::Trait::Returns is RakuAST::Trait {
+class RakuAST::Trait::Returns
+  is RakuAST::Trait
+{
     has RakuAST::Type $.type;
 
     method new(RakuAST::Type $type) {

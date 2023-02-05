@@ -1,10 +1,15 @@
 # Marker for different variable-like things.
-class RakuAST::Var is RakuAST::Term {
+class RakuAST::Var
+  is RakuAST::Term
+{
     method sigil() { '' }
 }
 
 # A typical lexical variable lookup (e.g. $foo).
-class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
+class RakuAST::Var::Lexical
+  is RakuAST::Var
+  is RakuAST::Lookup
+{
     has str $.name;
 
     method new(str $name) {
@@ -46,7 +51,9 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
 
 # A lexical variable lookup, but assumed to resolve to a compile time
 # value.
-class RakuAST::Var::Lexical::Constant is RakuAST::Var::Lexical {
+class RakuAST::Var::Lexical::Constant
+  is RakuAST::Var::Lexical
+{
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical-constant(self.name);
         if $resolved {
@@ -58,7 +65,10 @@ class RakuAST::Var::Lexical::Constant is RakuAST::Var::Lexical {
 
 # A lexical looked up in the setting (used for when we really want the setting
 # version of a routine).
-class RakuAST::Var::Lexical::Setting is RakuAST::Var::Lexical is RakuAST::Lookup {
+class RakuAST::Var::Lexical::Setting
+  is RakuAST::Var::Lexical
+  is RakuAST::Lookup
+{
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical-constant-in-setting(self.name);
         if $resolved {
@@ -69,7 +79,10 @@ class RakuAST::Var::Lexical::Setting is RakuAST::Var::Lexical is RakuAST::Lookup
 }
 
 # A dynamic variable lookup (e.g. $*foo).
-class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
+class RakuAST::Var::Dynamic
+  is RakuAST::Var
+  is RakuAST::Lookup
+{
     has str $.name;
 
     method new(str $name) {
@@ -139,8 +152,11 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
 }
 
 # An attribute access (e.g. $!foo).
-class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
-                              is RakuAST::Attaching {
+class RakuAST::Var::Attribute
+  is RakuAST::Var
+  is RakuAST::ImplicitLookups
+  is RakuAST::Attaching
+{
     has str $.name;
     has RakuAST::Package $!package;
 
@@ -228,11 +244,13 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
 }
 
 # The base for special compiler variables ($?FOO).
-class RakuAST::Var::Compiler is RakuAST::Var {
-}
+class RakuAST::Var::Compiler
+  is RakuAST::Var { }
 
 # The $?FILE variable, which is created pre-resolved to a string value.
-class RakuAST::Var::Compiler::File is RakuAST::Var::Compiler {
+class RakuAST::Var::Compiler::File
+  is RakuAST::Var::Compiler
+{
     has Str $.file;
 
     method new(Str $file) {
@@ -255,7 +273,9 @@ class RakuAST::Var::Compiler::File is RakuAST::Var::Compiler {
 }
 
 # The $?LINE variable, which is created pre-resolved to an integer value.
-class RakuAST::Var::Compiler::Line is RakuAST::Var::Compiler {
+class RakuAST::Var::Compiler::Line
+  is RakuAST::Var::Compiler
+{
     has Int $.line;
 
     method new(Int $line) {
@@ -278,7 +298,10 @@ class RakuAST::Var::Compiler::Line is RakuAST::Var::Compiler {
 }
 
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
-class RakuAST::Var::Compiler::Lookup is RakuAST::Var::Compiler is RakuAST::Lookup {
+class RakuAST::Var::Compiler::Lookup
+  is RakuAST::Var::Compiler
+  is RakuAST::Lookup
+{
     has str $.name;
 
     method new(str $name) {
@@ -303,11 +326,14 @@ class RakuAST::Var::Compiler::Lookup is RakuAST::Var::Compiler is RakuAST::Looku
 }
 
 # The base for POD variables ($=foo).
-class RakuAST::Var::Pod is RakuAST::Var {
-}
+class RakuAST::Var::Pod
+  is RakuAST::Var { }
 
 # The Pod $=finish variable.
-class RakuAST::Var::Pod::Finish is RakuAST::Var is RakuAST::Attaching {
+class RakuAST::Var::Pod::Finish
+  is RakuAST::Var
+  is RakuAST::Attaching
+{
     has RakuAST::CompUnit $!cu;
 
     method new() {
@@ -329,7 +355,10 @@ class RakuAST::Var::Pod::Finish is RakuAST::Var is RakuAST::Attaching {
 }
 
 # A regex positional capture variable (e.g. $0).
-class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookups {
+class RakuAST::Var::PositionalCapture
+  is RakuAST::Var
+  is RakuAST::ImplicitLookups
+{
     has Int $.index;
 
     method new(Int $index) {
@@ -359,7 +388,10 @@ class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookup
 }
 
 # A regex named capture variable (e.g. $<foo>).
-class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
+class RakuAST::Var::NamedCapture
+  is RakuAST::Var
+  is RakuAST::ImplicitLookups
+{
     has RakuAST::QuotedString $.index;
 
     method new(RakuAST::QuotedString $index) {
@@ -392,7 +424,10 @@ class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
 }
 
 # A package variable, i.e. $Foo::bar
-class RakuAST::Var::Package is RakuAST::Var is RakuAST::Lookup {
+class RakuAST::Var::Package
+  is RakuAST::Var
+  is RakuAST::Lookup
+{
     has str $.sigil;
     has RakuAST::Name $.name;
 

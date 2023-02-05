@@ -1,5 +1,8 @@
 # Some kind of type (done by all kinds of things that result in a type).
-class RakuAST::Type is RakuAST::Term is RakuAST::Meta {
+class RakuAST::Type
+  is RakuAST::Term
+  is RakuAST::Meta
+{
     # Checks if the type is statically known to be some particular type
     # (provided as the type object, not as another RakuAST node).
     method is-known-to-be(Mu $type) {
@@ -25,7 +28,10 @@ class RakuAST::Type is RakuAST::Term is RakuAST::Meta {
 }
 
 # A simple type name, e.g. Int, Foo::Bar, etc.
-class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
+class RakuAST::Type::Simple
+  is RakuAST::Type
+  is RakuAST::Lookup
+{
     has RakuAST::Name $.name;
 
     method new(RakuAST::Name $name) {
@@ -72,11 +78,16 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
 
 # A simple type name, e.g. Int, Foo::Bar, etc. that should be looked up in the
 # setting.
-class RakuAST::Type::Setting is RakuAST::Type::Simple {
+class RakuAST::Type::Setting
+  is RakuAST::Type::Simple
+{
     # TODO limit lookup to setting
 }
 
-class RakuAST::Type::Derived is RakuAST::Type is RakuAST::Lookup {
+class RakuAST::Type::Derived
+  is RakuAST::Type
+  is RakuAST::Lookup
+{
     has RakuAST::Type $.base-type;
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -86,7 +97,10 @@ class RakuAST::Type::Derived is RakuAST::Type is RakuAST::Lookup {
     }
 }
 
-class RakuAST::Type::Coercion is RakuAST::Type::Derived is RakuAST::Declaration {
+class RakuAST::Type::Coercion
+  is RakuAST::Type::Derived
+  is RakuAST::Declaration
+{
     has RakuAST::Type $.constraint;
 
     method new(RakuAST::Type $base-type, Mu $constraint) {
@@ -128,7 +142,10 @@ class RakuAST::Type::Coercion is RakuAST::Type::Derived is RakuAST::Declaration 
     }
 }
 
-class RakuAST::Type::Definedness is RakuAST::Type::Derived is RakuAST::Declaration {
+class RakuAST::Type::Definedness
+  is RakuAST::Type::Derived
+  is RakuAST::Declaration
+{
     has Bool $.definite;
 
     method new(RakuAST::Type $base-type, Bool $definite) {
@@ -168,7 +185,10 @@ class RakuAST::Type::Definedness is RakuAST::Type::Derived is RakuAST::Declarati
     }
 }
 
-class RakuAST::Type::Capture is RakuAST::Type is RakuAST::Declaration {
+class RakuAST::Type::Capture
+  is RakuAST::Type
+  is RakuAST::Declaration
+{
     has RakuAST::Name $.name;
 
     method new(RakuAST::Name $name) {
@@ -230,7 +250,10 @@ class RakuAST::Type::Capture is RakuAST::Type is RakuAST::Declaration {
     }
 }
 
-class RakuAST::Type::Parameterized is RakuAST::Type::Derived is RakuAST::Declaration {
+class RakuAST::Type::Parameterized
+  is RakuAST::Type::Derived
+  is RakuAST::Declaration
+{
     has RakuAST::ArgList $.args;
 
     method new(RakuAST::Type $base-type, RakuAST::ArgList $args) {

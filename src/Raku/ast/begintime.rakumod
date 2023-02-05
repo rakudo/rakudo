@@ -1,7 +1,9 @@
 # Done by all things that want to perform some kind of effect at BEGIN time.
 # They may do that effect before their children are visited in resolution or
 # after; the default is after.
-class RakuAST::BeginTime is RakuAST::Node {
+class RakuAST::BeginTime
+  is RakuAST::Node
+{
     has int $!begin-performed;
 
     # Method implemented by a node to perform its begin-time side-effects.

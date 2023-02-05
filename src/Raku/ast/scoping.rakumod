@@ -1,5 +1,7 @@
 # Done by anything that implies a lexical scope.
-class RakuAST::LexicalScope is RakuAST::Node {
+class RakuAST::LexicalScope
+  is RakuAST::Node
+{
     # Caching of lexical declarations in this scope due to AST nodes.
     has List $!declarations-cache;
     has Mu $!lexical-lookup-hash;
@@ -266,7 +268,9 @@ class RakuAST::LexicalScope is RakuAST::Node {
 }
 
 # Done by anything that is a declaration - that is, declares a symbol.
-class RakuAST::Declaration is RakuAST::Node {
+class RakuAST::Declaration
+  is RakuAST::Node
+{
     has str $!scope;
 
     # Returns the default scope of this kind of declaration.
@@ -316,7 +320,9 @@ class RakuAST::Declaration is RakuAST::Node {
 # to the enclosing lexical scope, implicit declarations are considered as being
 # on the inside; this makes a difference in the case the node is also doing
 # RakuAST::LexicalScope and is thus a lexical scope boundary.
-class RakuAST::ImplicitDeclarations is RakuAST::Node {
+class RakuAST::ImplicitDeclarations
+  is RakuAST::Node
+{
     has List $!implicit-declarations-cache;
 
     # A node typically implements this to specify the implicit declarations
@@ -338,7 +344,9 @@ class RakuAST::ImplicitDeclarations is RakuAST::Node {
 
 # A lexical declaration that comes from an external symbol (for example, the
 # setting or an EVAL).
-class RakuAST::Declaration::External is RakuAST::Declaration {
+class RakuAST::Declaration::External
+  is RakuAST::Declaration
+{
     has str $.lexical-name;
     has Mu $!native-type;
 
@@ -437,8 +445,11 @@ class RakuAST::Declaration::Mergeable {
 
 # A lexical declaration that comes with an external symbol, which has a fixed
 # value available during compilation.
-class RakuAST::Declaration::External::Constant is RakuAST::Declaration::External
-        is RakuAST::CompileTimeValue is RakuAST::Declaration::Mergeable {
+class RakuAST::Declaration::External::Constant
+  is RakuAST::Declaration::External
+  is RakuAST::CompileTimeValue
+  is RakuAST::Declaration::Mergeable
+{
     has Mu $.compile-time-value;
 
     method new(str :$lexical-name!, Mu :$compile-time-value!) {
@@ -465,7 +476,9 @@ class RakuAST::Declaration::External::Constant is RakuAST::Declaration::External
 
 # An imported lexical declaration. Has a compile-time value. Must create a
 # lexical slot for itself in the scope it is installed in.
-class RakuAST::Declaration::Import is RakuAST::Declaration::External::Constant {
+class RakuAST::Declaration::Import
+  is RakuAST::Declaration::External::Constant
+{
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my $value := self.compile-time-value;
         $context.ensure-sc($value);
@@ -478,8 +491,11 @@ class RakuAST::Declaration::Import is RakuAST::Declaration::External::Constant {
 # A lexical declaration that points to a package. Generated as part of package
 # installation in RakuAST::Package, and installed as a generated lexical in a
 # RakuAST::LexicalScope.
-class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration
-        is RakuAST::CompileTimeValue is RakuAST::Declaration::Mergeable {
+class RakuAST::Declaration::LexicalPackage
+  is RakuAST::Declaration
+  is RakuAST::CompileTimeValue
+  is RakuAST::Declaration::Mergeable
+{
     has str $.lexical-name;
     has Mu $.compile-time-value;
     has RakuAST::Package $.package;
@@ -524,7 +540,10 @@ class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration
 # A constant value that has been resolved. Has a compile time value, and the
 # resolution always compiles into that. The name it was looked up under is
 # not preserved.
-class RakuAST::Declaration::ResolvedConstant is RakuAST::Declaration is RakuAST::CompileTimeValue {
+class RakuAST::Declaration::ResolvedConstant
+  is RakuAST::Declaration
+  is RakuAST::CompileTimeValue
+{
     has Mu $.compile-time-value;
 
     method new(Mu :$compile-time-value!) {
@@ -561,7 +580,9 @@ class RakuAST::Declaration::ResolvedConstant is RakuAST::Declaration is RakuAST:
 
 # Done by anything that is a lookup of a symbol. May or may not need resolution
 # at compile time.
-class RakuAST::Lookup is RakuAST::Node {
+class RakuAST::Lookup
+  is RakuAST::Node
+{
     has RakuAST::Declaration $!resolution;
 
     method needs-resolution() { True }
@@ -598,7 +619,9 @@ class RakuAST::UndeclaredSymbolDescription {
         $obj
     }
 }
-class RakuAST::UndeclaredSymbolDescription::Routine is RakuAST::UndeclaredSymbolDescription {
+class RakuAST::UndeclaredSymbolDescription::Routine
+  is RakuAST::UndeclaredSymbolDescription
+{
     method IMPL-REPORT(RakuAST::Lookup $node, Mu $types, Mu $routines, Mu $other) {
         nqp::bindkey($routines, self.name, ['unknown']);
     }
@@ -609,7 +632,9 @@ class RakuAST::UndeclaredSymbolDescription::Routine is RakuAST::UndeclaredSymbol
 # access depends on `&postcircumfix:<[ ]>` and `$/`, while an `unless`
 # statement depends on `Empty` (as that's what it evaluates to in the case
 # there the condition is not matched).
-class RakuAST::ImplicitLookups is RakuAST::Node {
+class RakuAST::ImplicitLookups
+  is RakuAST::Node
+{
     has List $!implicit-lookups-cache;
 
     # A node typically implements this to specify the implicit lookups

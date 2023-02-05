@@ -1,10 +1,11 @@
 # Block or statement, used in statement prefixes which can take either a
 # block or a statement.
-class RakuAST::Blorst is RakuAST::Node {
-}
+class RakuAST::Blorst
+  is RakuAST::Node { }
 
 # Something that can be the target of a contextualizer.
-class RakuAST::Contextualizable is RakuAST::Node {}
+class RakuAST::Contextualizable
+  is RakuAST::Node {}
 
 # A label, which can be placed on a statement.
 class RakuAST::Label

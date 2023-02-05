@@ -2,7 +2,9 @@
 # that meta-object is used in a very general sense: it's any object that
 # models a program element that still exists until runtime. The meta-object
 # of a class is actually its type object, not its HOW.
-class RakuAST::Meta is RakuAST::CompileTimeValue {
+class RakuAST::Meta
+  is RakuAST::CompileTimeValue
+{
     has Mu $!cached-meta-object;
     has Bool $!meta-object-produced;
 
@@ -30,7 +32,9 @@ class RakuAST::Meta is RakuAST::CompileTimeValue {
 # needs them when it is composed, but furthermore an attribute needs to
 # reference the class; in this case the attribute will just want the stubbed
 # meta-object of the class.
-class RakuAST::StubbyMeta is RakuAST::Meta {
+class RakuAST::StubbyMeta
+  is RakuAST::Meta
+{
     has Mu $!cached-stubbed-meta-object;
     has Bool $!stubbed-meta-object-produced;
 

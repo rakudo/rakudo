@@ -1,5 +1,7 @@
 # Base marker for all things that may appear as top-level regex syntax.
-class RakuAST::Regex is RakuAST::Node {
+class RakuAST::Regex
+  is RakuAST::Node
+{
     method IMPL-REGEX-TOP-LEVEL-QAST(RakuAST::IMPL::QASTContext $context, Mu $code-object,
             %mods, int :$no-scan, Mu :$body-qast) {
         # Compile the regex.

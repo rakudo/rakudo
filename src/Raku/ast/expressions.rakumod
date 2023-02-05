@@ -1,9 +1,11 @@
 # Marker for anything that can be used as the source for a capture.
-class RakuAST::CaptureSource is RakuAST::Node {
-}
+class RakuAST::CaptureSource
+  is RakuAST::Node { }
 
 # Everything that can appear as an expression does RakuAST::Expression.
-class RakuAST::Expression is RakuAST::Node {
+class RakuAST::Expression
+  is RakuAST::Node
+{
     # All expressions can be thunked - that is, compiled such that they get
     # wrapped up in a code object of some kind. For such expressions, this
     # thunks attribute will point to a linked list of thunks to apply, the
@@ -92,15 +94,18 @@ class RakuAST::Expression is RakuAST::Node {
 }
 
 # Everything that is termish (a term with prefixes or postfixes applied).
-class RakuAST::Termish is RakuAST::Expression is RakuAST::CaptureSource {
-}
+class RakuAST::Termish
+  is RakuAST::Expression
+  is RakuAST::CaptureSource { }
 
 # Everything that is a kind of term does RakuAST::Term.
-class RakuAST::Term is RakuAST::Termish {
-}
+class RakuAST::Term
+  is RakuAST::Termish { }
 
 # Marker for all kinds of infixish operators.
-class RakuAST::Infixish is RakuAST::ImplicitLookups {
+class RakuAST::Infixish
+  is RakuAST::ImplicitLookups
+{
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
         nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
     }
@@ -127,7 +132,10 @@ class RakuAST::Infixish is RakuAST::ImplicitLookups {
 
 # A simple (non-meta) infix operator. Some of these are just function calls,
 # others need more special attention.
-class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
+class RakuAST::Infix
+  is RakuAST::Infixish
+  is RakuAST::Lookup
+{
     has str $.operator;
     has OperatorProperties $.properties;
 
@@ -337,7 +345,9 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 }
 
 # An assign meta-operator, operator on another infix.
-class RakuAST::MetaInfix::Assign is RakuAST::Infixish {
+class RakuAST::MetaInfix::Assign
+  is RakuAST::Infixish
+{
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
@@ -400,7 +410,9 @@ class RakuAST::MetaInfix::Assign is RakuAST::Infixish {
 }
 
 # A bracketed infix.
-class RakuAST::BracketedInfix is RakuAST::Infixish {
+class RakuAST::BracketedInfix
+  is RakuAST::Infixish
+{
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
@@ -430,7 +442,9 @@ class RakuAST::BracketedInfix is RakuAST::Infixish {
 }
 
 # A function infix (`$x [&func] $y`).
-class RakuAST::FunctionInfix is RakuAST::Infixish {
+class RakuAST::FunctionInfix
+  is RakuAST::Infixish
+{
     has RakuAST::Expression $.function;
 
     method new(RakuAST::Expression $function) {
@@ -458,7 +472,9 @@ class RakuAST::FunctionInfix is RakuAST::Infixish {
 }
 
 # A negate meta-operator.
-class RakuAST::MetaInfix::Negate is RakuAST::Infixish {
+class RakuAST::MetaInfix::Negate
+  is RakuAST::Infixish
+{
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
@@ -492,7 +508,9 @@ class RakuAST::MetaInfix::Negate is RakuAST::Infixish {
 }
 
 # A reverse meta-operator.
-class RakuAST::MetaInfix::Reverse is RakuAST::Infixish {
+class RakuAST::MetaInfix::Reverse
+  is RakuAST::Infixish
+{
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
@@ -517,7 +535,9 @@ class RakuAST::MetaInfix::Reverse is RakuAST::Infixish {
 }
 
 # A cross meta-operator.
-class RakuAST::MetaInfix::Cross is RakuAST::Infixish {
+class RakuAST::MetaInfix::Cross
+  is RakuAST::Infixish
+{
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
@@ -547,7 +567,9 @@ class RakuAST::MetaInfix::Cross is RakuAST::Infixish {
 }
 
 # A zip meta-operator.
-class RakuAST::MetaInfix::Zip is RakuAST::Infixish {
+class RakuAST::MetaInfix::Zip
+  is RakuAST::Infixish
+{
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
@@ -577,7 +599,9 @@ class RakuAST::MetaInfix::Zip is RakuAST::Infixish {
 }
 
 # An infix hyper operator.
-class RakuAST::MetaInfix::Hyper is RakuAST::Infixish {
+class RakuAST::MetaInfix::Hyper
+  is RakuAST::Infixish
+{
     has RakuAST::Infixish $.infix;
     has Bool $.dwim-left;
     has Bool $.dwim-right;
@@ -619,7 +643,10 @@ class RakuAST::MetaInfix::Hyper is RakuAST::Infixish {
 }
 
 # Application of an infix operator.
-class RakuAST::ApplyInfix is RakuAST::Expression is RakuAST::BeginTime {
+class RakuAST::ApplyInfix
+  is RakuAST::Expression
+  is RakuAST::BeginTime
+{
     has RakuAST::Infixish $.infix;
     has RakuAST::Expression $.left;
     has RakuAST::Expression $.right;
@@ -693,7 +720,10 @@ class RakuAST::ApplyInfix is RakuAST::Expression is RakuAST::BeginTime {
 }
 
 # Application of an list-precedence infix operator.
-class RakuAST::ApplyListInfix is RakuAST::Expression is RakuAST::BeginTime {
+class RakuAST::ApplyListInfix
+  is RakuAST::Expression
+  is RakuAST::BeginTime
+{
     has RakuAST::Infixish $.infix;
     has List $.operands;
 
@@ -742,12 +772,16 @@ class RakuAST::ApplyListInfix is RakuAST::Expression is RakuAST::BeginTime {
 }
 
 # The base of all dotty infixes (`$foo .bar` or `$foo .= bar()`).
-class RakuAST::DottyInfixish is RakuAST::Node {
+class RakuAST::DottyInfixish
+  is RakuAST::Node
+{
     method new() { nqp::create(self) }
 }
 
 # The `.` dotty infix.
-class RakuAST::DottyInfix::Call is RakuAST::DottyInfixish {
+class RakuAST::DottyInfix::Call
+  is RakuAST::DottyInfixish
+{
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
             RakuAST::Postfixish $rhs-ast) {
@@ -756,7 +790,9 @@ class RakuAST::DottyInfix::Call is RakuAST::DottyInfixish {
 }
 
 # The `.=` dotty infix.
-class RakuAST::DottyInfix::CallAssign is RakuAST::DottyInfixish {
+class RakuAST::DottyInfix::CallAssign
+  is RakuAST::DottyInfixish
+{
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
             RakuAST::Postfixish $rhs-ast) {
@@ -787,7 +823,9 @@ class RakuAST::DottyInfix::CallAssign is RakuAST::DottyInfixish {
 # Application of an dotty infix operator. These are infixes that actually
 # parse a postfix operation on their right hand side, and thus won't fit in
 # the standard infix model.
-class RakuAST::ApplyDottyInfix is RakuAST::Expression {
+class RakuAST::ApplyDottyInfix
+  is RakuAST::Expression
+{
     has RakuAST::DottyInfixish $.infix;
     has RakuAST::Expression $.left;
     has RakuAST::Postfixish $.right;
@@ -815,11 +853,14 @@ class RakuAST::ApplyDottyInfix is RakuAST::Expression {
 }
 
 # Marker for all kinds of prefixish operators.
-class RakuAST::Prefixish is RakuAST::Node {
-}
+class RakuAST::Prefixish
+  is RakuAST::Node { }
 
 # A lookup of a simple (non-meta) prefix operator.
-class RakuAST::Prefix is RakuAST::Prefixish is RakuAST::Lookup {
+class RakuAST::Prefix
+  is RakuAST::Prefixish
+  is RakuAST::Lookup
+{
     has str $.operator;
 
     method new(str $operator) {
@@ -848,7 +889,9 @@ class RakuAST::Prefix is RakuAST::Prefixish is RakuAST::Lookup {
 }
 
 # The prefix hyper meta-operator.
-class RakuAST::MetaPrefix::Hyper is RakuAST::Prefixish {
+class RakuAST::MetaPrefix::Hyper
+  is RakuAST::Prefixish
+{
     has RakuAST::Prefix $.prefix;
 
     method new(RakuAST::Prefix $prefix) {
@@ -873,7 +916,9 @@ class RakuAST::MetaPrefix::Hyper is RakuAST::Prefixish {
 }
 
 # Application of a prefix operator.
-class RakuAST::ApplyPrefix is RakuAST::Termish {
+class RakuAST::ApplyPrefix
+  is RakuAST::Termish
+{
     has RakuAST::Prefixish $.prefix;
     has RakuAST::Expression $.operand;
 
@@ -895,7 +940,9 @@ class RakuAST::ApplyPrefix is RakuAST::Termish {
 }
 
 # Marker for all kinds of postfixish operators.
-class RakuAST::Postfixish is RakuAST::Node {
+class RakuAST::Postfixish
+  is RakuAST::Node
+{
     has List $.colonpairs;
 
     method add-colonpair(RakuAST::ColonPair $pair) {
@@ -926,7 +973,10 @@ class RakuAST::Postfixish is RakuAST::Node {
 }
 
 # A lookup of a simple (non-meta) postfix operator.
-class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
+class RakuAST::Postfix
+  is RakuAST::Postfixish
+  is RakuAST::Lookup
+{
     has str $.operator;
 
     method new(str $operator) {
@@ -960,7 +1010,10 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
 }
 
 # The postfix exponentiation operator (2⁴⁵).
-class RakuAST::Postfix::Power is RakuAST::Postfixish is RakuAST::Lookup {
+class RakuAST::Postfix::Power
+  is RakuAST::Postfixish
+  is RakuAST::Lookup
+{
     has Int $.power;
 
     method new(Int $power) {
@@ -992,11 +1045,14 @@ class RakuAST::Postfix::Power is RakuAST::Postfixish is RakuAST::Lookup {
 
 # A marker for all postcircumfixes. These each have relatively special
 # compilation, so they get distinct nodes.
-class RakuAST::Postcircumfix is RakuAST::Postfixish {
-}
+class RakuAST::Postcircumfix
+  is RakuAST::Postfixish { }
 
 # A postcircumfix array index operator, possibly multi-dimensional.
-class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::Lookup {
+class RakuAST::Postcircumfix::ArrayIndex
+  is RakuAST::Postcircumfix
+  is RakuAST::Lookup
+{
     has RakuAST::SemiList $.index;
     has RakuAST::Expression $.assignee;
 
@@ -1066,7 +1122,10 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
 }
 
 # A postcircumfix hash index operator, possibly multi-dimensional.
-class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lookup {
+class RakuAST::Postcircumfix::HashIndex
+  is RakuAST::Postcircumfix
+  is RakuAST::Lookup
+{
     has RakuAST::SemiList $.index;
 
     method new(RakuAST::SemiList $index) {
@@ -1120,7 +1179,10 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
 }
 
 # A postcircumfix literal hash index operator.
-class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is RakuAST::Lookup {
+class RakuAST::Postcircumfix::LiteralHashIndex
+  is RakuAST::Postcircumfix
+  is RakuAST::Lookup
+{
     has RakuAST::QuotedString $.index;
     has RakuAST::Expression $.assignee;
 
@@ -1179,7 +1241,10 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
 }
 
 # An hyper operator on a postfix operator.
-class RakuAST::MetaPostfix::Hyper is RakuAST::Postfixish is RakuAST::CheckTime {
+class RakuAST::MetaPostfix::Hyper
+  is RakuAST::Postfixish
+  is RakuAST::CheckTime
+{
     has RakuAST::Postfixish $.postfix;
 
     method new(RakuAST::Postfixish $postfix) {
@@ -1207,7 +1272,10 @@ class RakuAST::MetaPostfix::Hyper is RakuAST::Postfixish is RakuAST::CheckTime {
 }
 
 # Application of a postfix operator.
-class RakuAST::ApplyPostfix is RakuAST::Termish is RakuAST::BeginTime {
+class RakuAST::ApplyPostfix
+  is RakuAST::Termish
+  is RakuAST::BeginTime
+{
     has RakuAST::Postfixish $.postfix;
     has RakuAST::Expression $.operand;
 
@@ -1272,7 +1340,9 @@ class RakuAST::ApplyPostfix is RakuAST::Termish is RakuAST::BeginTime {
 }
 
 # The ternary conditional operator (?? !!).
-class RakuAST::Ternary is RakuAST::Expression {
+class RakuAST::Ternary
+  is RakuAST::Expression
+{
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
     has RakuAST::Expression $.else;

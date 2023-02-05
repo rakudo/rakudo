@@ -144,28 +144,57 @@ class RakuAST::Resolver {
     # Resolve a RakuAST::Name, optionally adding the specified sigil to the
     # final component.
     method resolve-name(RakuAST::Name $name, Str :$sigil) {
+        my $found;
         if $name.is-identifier {
             return self.global-package() if $name.canonicalize eq 'GLOBAL';
             # Single-part name, so look lexically.
             my str $bare-name := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
             my str $lexical-name := $sigil ?? $sigil ~ $bare-name !! $bare-name;
-            self.resolve-lexical($lexical-name)
+            $found := self.resolve-lexical($lexical-name)
         }
         else {
             # All package name installations happen via the symbol table as
             # BEGIN-time effects, so chase it down as if it were a constant.
-            self.resolve-name-constant($name, :$sigil)
+            $found := self.resolve-name-constant($name, :$sigil)
         }
+        unless $found {
+            $found := self.IMPL-RESOLVE-NAME-IN-PACKAGES($name, :$sigil);
+        }
+        $found;
     }
 
     # Resolve a RakuAST::Name to a constant.
     method resolve-name-constant(RakuAST::Name $name, str :$sigil) {
         self.IMPL-RESOLVE-NAME-CONSTANT($name, :$sigil)
+        // self.IMPL-RESOLVE-NAME-IN-PACKAGES($name, :$sigil)
     }
 
     # Resolve a RakuAST::Name to a constant looking only in the setting.
     method resolve-name-constant-in-setting(RakuAST::Name $name) {
         self.IMPL-RESOLVE-NAME-CONSTANT($name, :setting)
+    }
+
+    method IMPL-RESOLVE-NAME-IN-PACKAGES($name, :$sigil) {
+        # Try looking in the packages
+        my $lexical := $name.canonicalize;
+        for $!packages {
+            my $stash := self.IMPL-STASH-HASH($_.compile-time-value);
+            return RakuAST::Declaration::External::Constant.new(
+                :lexical-name($lexical),
+                :compile-time-value(nqp::atkey($stash, $lexical))
+            ) if nqp::existskey($stash, $lexical);
+        }
+
+        my $stash := self.IMPL-STASH-HASH($!global);
+        if nqp::existskey($stash, $lexical) {
+            RakuAST::Declaration::External::Constant.new(
+                :lexical-name($lexical),
+                :compile-time-value(nqp::atkey($stash, $lexical))
+            );
+        }
+        else {
+            Nil
+        }
     }
 
     method IMPL-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {

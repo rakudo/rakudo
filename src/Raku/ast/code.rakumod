@@ -222,6 +222,7 @@ class RakuAST::Code
         );
         my $comp := $*HLL-COMPILER // nqp::getcomp("Raku");
         my $precomp := $comp.compile($compunit, :from<qast>, :compunit_ok(1));
+        $resolver := $resolver.clone;
 #?if !jvm
         nqp::dispatch(
             'boot-syscall',

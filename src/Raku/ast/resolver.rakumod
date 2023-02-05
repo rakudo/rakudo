@@ -24,6 +24,13 @@ class RakuAST::Resolver {
     # The current comp unit's EXPORT package.
     has Mu $!export-package;
 
+    method clone() {
+        my $clone := nqp::clone(self);
+        nqp::bindattr($clone, RakuAST::Resolver, '$!attach-targets', nqp::clone($!attach-targets));
+        nqp::bindattr($clone, RakuAST::Resolver, '$!packages', nqp::clone($!packages));
+        $clone
+    }
+
     # Push an attachment target, so children can attach to it.
     method push-attach-target(RakuAST::AttachTarget $target) {
         $target.clear-attachments();
@@ -620,6 +627,12 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
         $obj
     }
 
+    method clone() {
+        my $clone := nqp::findmethod(RakuAST::Resolver, 'clone')(self);
+        nqp::bindattr($clone, RakuAST::Resolver::EVAL, '$!scopes', nqp::clone($!scopes));
+        $clone
+    }
+
     # Pushes an active lexical scope to be considered in lookup.
     method push-scope(RakuAST::LexicalScope $scope) {
         $!scopes.push($scope);
@@ -733,6 +746,12 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
             :$global,
             :scopes($resolver ?? nqp::getattr($resolver, RakuAST::Resolver::Compile, '$!scopes') !! Mu)
         )
+    }
+
+    method clone() {
+        my $clone := nqp::findmethod(RakuAST::Resolver, 'clone')(self);
+        nqp::bindattr($clone, RakuAST::Resolver::Compile, '$!scopes', nqp::clone($!scopes));
+        $clone
     }
 
     # Create a resolver for a fresh compilation unit of the specified language

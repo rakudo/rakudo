@@ -56,7 +56,7 @@ class RakuAST::Pragma
           'nqp',                1,
           'parameters',         0,
           'precompilation',     0,
-          'soft',               1,  # XXX should support args later??
+          'soft',               0,
           'strict',             1,
           'trace',              1,
           'variables',          0,
@@ -135,6 +135,14 @@ class RakuAST::Pragma
             else {
                 $*LANG.set_pragma($_.value, $on) for self.KNOWN-ISMS;
             }
+        }
+        elsif $name eq 'soft' {
+            nqp::islist($arglist)
+              ?? $resolver.build-exception(
+                   'X::NYI',
+                   :feature("Arguments to '{$on ?? 'use' !! 'no' } soft'"),
+                 ).throw
+              !! $*LANG.set_pragma($name, $on);
         }
         elsif $name eq 'attributes'
            || $name eq 'invocant'

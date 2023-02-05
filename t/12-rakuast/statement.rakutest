@@ -976,11 +976,9 @@ subtest "check parsing of 'use' pragma" => {
     # so we fake one here for now
     my $*LANG = class { method set_pragma($,$) { } }
 
-    # no trace; 42
+    # use MONKEY; nqp::const::STAT_ISDIR
     ast RakuAST::StatementList.new(
-      RakuAST::Statement::Use.new(
-        module-name => RakuAST::Name.from-identifier('MONKEY')
-      ),
+      RakuAST::Pragma.new(:name<MONKEY>),
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Nqp::Const.new("STAT_ISDIR")
       )
@@ -1001,9 +999,7 @@ subtest "check parsing of 'no' pragma" => {
 
     # no trace; 42
     ast RakuAST::StatementList.new(
-      RakuAST::Statement::No.new(
-        module-name => RakuAST::Name.from-identifier('trace')
-      ),
+      RakuAST::Pragma.new(:name<trace>, :off),
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42)
       )

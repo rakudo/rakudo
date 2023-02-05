@@ -72,9 +72,6 @@ class RakuAST::Pragma
         nqp::existskey(self.KNOWN-ISMS, $name)
     }
 
-    # needed by BeginTime
-    method categoricals() { () }
-
     method PERFORM-BEGIN(
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context

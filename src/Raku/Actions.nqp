@@ -515,29 +515,49 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement_control:sym<no>($/) {
-        my $ast := $<arglist><EXPR>
-            ?? self.r('Statement', 'No').new(
-                   module-name => $<module_name>.ast,
-                   argument => $<arglist><EXPR>.ast,
-               )
-            !! self.r('Statement', 'No').new(
-                module-name => $<module_name>.ast,
-            );
-        $ast.ensure-begin-performed($*R, $*CU.context);
-        self.attach: $/, $ast;
+        my str $name := ~$<module_name>;
+        if RakuAST::Pragma.IS-PRAGMA($name) {
+            my $ast := $<arglist><EXPR>
+              ?? self.r('Pragma').new(
+                   :$name, :argument($<arglist><EXPR>.ast), :off
+                 )
+              !! self.r('Pragma').new(:$name, :off);
+            $ast.ensure-begin-performed($*R, $*CU.context);
+            self.attach: $/, $ast;
+        }
+        else {
+            nqp::die("Don't know how to 'no " ~ $name ~ "'just yet")
+        }
     }
 
     method statement_control:sym<use>($/) {
-        my $ast := $<arglist><EXPR>
-            ?? self.r('Statement', 'Use').new(
-                   module-name => $<module_name>.ast,
-                   argument => $<arglist><EXPR>.ast
-               )
-            !! self.r('Statement', 'Use').new(module-name => $<module_name>.ast);
-        $ast.ensure-begin-performed($*R, $*CU.context);
-        for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
-            $/.add-categorical($_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
+        my str $name := ~$<module_name>;
+        my $ast;
+
+        if RakuAST::Pragma.IS-PRAGMA($name) {
+            $ast := $<arglist><EXPR>
+              ?? self.r('Pragma').new(:$name, :argument($<arglist><EXPR>.ast))
+              !! self.r('Pragma').new(:$name);
+            $ast.ensure-begin-performed($*R, $*CU.context);
         }
+
+        # proper module loading
+        else {
+            $ast := $<arglist><EXPR>
+              ?? self.r('Statement', 'Use').new(
+                   :module-name($<module_name>.ast),
+                   :argument($<arglist><EXPR>.ast)
+                 )
+              !! self.r('Statement', 'Use').new(
+                   :module-name($<module_name>.ast)
+                 );
+            $ast.ensure-begin-performed($*R, $*CU.context);
+            for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
+                $/.add-categorical(
+                  $_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
+            }
+        }
+
         self.attach: $/, $ast;
     }
 

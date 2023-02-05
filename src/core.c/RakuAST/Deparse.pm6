@@ -1133,10 +1133,6 @@ class RakuAST::Deparse {
         '$<' ~ $ast.name ~ '>=' ~ self.deparse($ast.regex)
     }
 
-    multi method deparse(RakuAST::Statement::No:D $ast --> Str:D) {
-        self!use-no("no ", $ast)
-    }
-
 #- Regex::Q --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::QuantifiedAtom:D $ast --> Str:D) {

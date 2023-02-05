@@ -1277,40 +1277,6 @@ class RakuAST::Statement::Control
     }
 }
 
-# A no statement.
-class RakuAST::Statement::No
-  is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::ProducesNil
-{
-    has RakuAST::Name $.module-name;
-    has RakuAST::Expression $.argument;
-
-    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
-        my $name := $module-name.canonicalize;
-        if RakuAST::Pragma.IS-PRAGMA($name) {
-            RakuAST::Pragma.new(:$name, :$argument, :off)
-        }
-        else {
-            my $obj := nqp::create(self);
-            nqp::bindattr($obj, RakuAST::Statement::No, '$!module-name',
-              $module-name);
-            nqp::bindattr($obj, RakuAST::Statement::No, '$!argument',
-                $argument // RakuAST::Expression);
-            $obj
-        }
-    }
-
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        nqp::die("Don't know how to 'no " ~ $!module-name.canonicalize ~ "' just yet");
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor($!module-name);
-        self.visit-labels($visitor);
-    }
-}
-
 class RakuAST::Categorical {
     has Str $.category;
     has Str $.opname;
@@ -1342,19 +1308,13 @@ class RakuAST::Statement::Use
     has List $!categoricals;
 
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
-        my $name := $module-name.canonicalize;
-        if RakuAST::Pragma.IS-PRAGMA($name) {
-            RakuAST::Pragma.new(:$name, :$argument)
-        }
-        else {
-            my $obj := nqp::create(self);
-            nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
-            nqp::bindattr($obj, RakuAST::Statement::Use, '$!categoricals', []);
-            nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
-                $argument // RakuAST::Expression);
-            $obj.set-labels($labels) if $labels;
-            $obj
-        }
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!categoricals', []);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
+            $argument // RakuAST::Expression);
+        $obj.set-labels($labels) if $labels;
+        $obj
     }
 
     method categoricals() {

@@ -110,6 +110,9 @@ class RakuAST::Pragma
                   'X::Pragma::CannotPrecomp', :what("'use lib'")
                 ).throw;
             }
+            elsif $*PKGDECL {
+                $resolver.build-exception('X::Package::UseLib', :what($*PKGDECL));
+            }
             elsif nqp::islist($arglist) {
                 my $Registry := $resolver.resolve-name-constant(
                     RakuAST::Name.from-identifier-parts(
@@ -122,7 +125,7 @@ class RakuAST::Pragma
                 for $arglist -> $arg {
                     if $arg {
                         $Registry.use-repository($Registry.repository-for-spec(
-                            nqp::istype($arg, $IO-Path) ?? $arg.absolute !! $arg
+                          nqp::istype($arg,$IO-Path) ?? $arg.absolute !! $arg
                         ));
                     }
                     else {

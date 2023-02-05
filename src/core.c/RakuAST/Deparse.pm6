@@ -542,12 +542,6 @@ class RakuAST::Deparse {
         $ast.value.raku
     }
 
-    multi method deparse(RakuAST::Isms:D $ast --> Str:D) {
-        my str @parts = ($ast.off ?? "no isms" !! "use isms");
-        @parts.push(self.deparse($_)) with $ast.argument;
-        @parts.join(' ')
-    }
-
 #- L ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Label:D $ast --> Str:D) {
@@ -610,7 +604,9 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Pragma:D $ast --> Str:D) {
-        ($ast.off ?? "no " !! "use ") ~ $ast.name
+        my str @parts = ($ast.off ?? "no" !! "use"), $ast.name;
+        @parts.push(self.deparse($_)) with $ast.argument;
+        @parts.join(' ')
     }
 
 #- Parameter -------------------------------------------------------------------

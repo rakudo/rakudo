@@ -1290,10 +1290,7 @@ class RakuAST::Statement::No
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, Bool :$precompilation-mode) {
         my $name := $module-name.canonicalize;
         if RakuAST::Pragma.IS-PRAGMA($name) {
-            RakuAST::Pragma.new($name, :off)
-        }
-        elsif $name eq "isms" {
-            RakuAST::Isms.new($argument, :off)
+            RakuAST::Pragma.new(:$name, :$argument, :off)
         }
         else {
             my $obj := nqp::create(self);
@@ -1367,10 +1364,7 @@ class RakuAST::Statement::Use
     method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
         my $name := $module-name.canonicalize;
         if RakuAST::Pragma.IS-PRAGMA($name) {
-            RakuAST::Pragma.new($name)
-        }
-        elsif $name eq "isms" {
-            RakuAST::Isms.new($argument)
+            RakuAST::Pragma.new(:$name, :$argument)
         }
         else {
             my $obj := nqp::create(self);

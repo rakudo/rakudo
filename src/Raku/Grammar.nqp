@@ -485,6 +485,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         #self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
         #self.define_slang('Pod',     Raku::PodGrammar,     Raku::PodActions);
 
+        # we default to strict!
+        self.set_pragma('strict',1);
+
         # Variables used during the parse.
         my $*IN_DECL;                             # what declaration we're in
         my $*OFTYPE;                              # type of the current declarator

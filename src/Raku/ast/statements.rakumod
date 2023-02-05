@@ -1397,9 +1397,15 @@ class RakuAST::Statement::Use
 
     method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
         return False unless $!module-name.is-identifier;
-        my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
+
+        my str $name := $!module-name.canonicalize;
         if $name eq 'lib' {
-            if nqp::islist($arglist) {
+            if $*CU.precompilation-mode {
+                $resolver.build-exception(
+                  'X::Pragma::CannotPrecomp', :what("'use lib'")
+                ).throw;
+            }
+            elsif nqp::islist($arglist) {
                 my $registry := $resolver.resolve-name-constant(
                     RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')
                 ).compile-time-value;
@@ -1413,14 +1419,12 @@ class RakuAST::Statement::Use
                         ));
                     }
                     else {
-                        # TODO X::LibEmpty
-                        nqp::die('todo lib empty')
+                        $resolver.build-exception('X::LibEmpty').throw;
                     }
                 }
             }
             else {
-                # TODO X::LibNone
-                nqp::die('todo no arg lib')
+                $resolver.build-exception('X::LibNone').throw;
             }
             True
         }

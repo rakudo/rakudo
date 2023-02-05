@@ -15,11 +15,33 @@ class RakuAST::Pragma
         $obj
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Bool')),
+        ])
+    }
+
+    method IS-NYI(Str $name) {
+        my constant NYI-PRAGMAS := nqp::hash(
+          'internals',  1,
+          'invocant',   1,
+          'parameters', 1,
+        );
+
+        nqp::existskey(NYI-PRAGMAS, $name)
+    }
+
     method KNOWN-PRAGMAS() {
+        # 0 means specific handling required, 1 means just (un)set pragma
+        # by that name
         my constant KNOWN-PRAGMAS := nqp::hash(
+          'attributes',         0,
           'dynamic-scope',      0,
           'fatal',              0,
           'internals',          1,
+          'invocant',           0,
           'isms',               0,
           'MONKEY',             0,
 #          'MONKEY-BARS',        1,
@@ -32,10 +54,12 @@ class RakuAST::Pragma
           'MONKEY-TYPING',      1,
 #          'MONKEY-WRENCH',      1,
           'nqp',                1,
+          'parameters',         0,
           'precompilation',     0,
-          'soft',               0,
+          'soft',               1,  # XXX should support args later??
           'strict',             1,
           'trace',              1,
+          'variables',          0,
           'worries',            1,
         );
     }
@@ -55,6 +79,7 @@ class RakuAST::Pragma
         nqp::existskey(self.KNOWN-ISMS, $name)
     }
 
+    # needed by BeginTime
     method categoricals() { () }
 
     method PERFORM-BEGIN(
@@ -69,8 +94,16 @@ class RakuAST::Pragma
              ).List.FLATTENABLE_LIST
           !! Nil;
 
-        if self.KNOWN-PRAGMAS{$name} {
-            $*LANG.set_pragma($name, $on)
+        if self.IS-NYI($name) {
+            $resolver.build-exception(
+              'X::NYI',
+              :feature(($on ?? 'use' !! 'no') ~ " $name"),
+            ).throw;
+        }
+        elsif self.KNOWN-PRAGMAS{$name} {
+            nqp::islist($arglist)
+              ?? $resolver.build-exception('X::Pragma::NoArgs', :$name).throw
+              !! $*LANG.set_pragma($name, $on)
         }
         elsif $name eq 'MONKEY' {
             $*LANG.set_pragma($_.key, $on)
@@ -103,10 +136,55 @@ class RakuAST::Pragma
                 $*LANG.set_pragma($_.value, $on) for self.KNOWN-ISMS;
             }
         }
-        else {
+        elsif $name eq 'attributes'
+           || $name eq 'invocant'
+           || $name eq 'parameters'
+           || $name eq 'variables' {
+
             $resolver.build-exception(
-              "X::Pragma::Unknown",:name($!name)
-            ).throw;
+              'X::Pragma::CannotWhat', :what<no>, :$name
+            ).throw unless $on;
+
+            $resolver.build-exception(
+              'X::Pragma::MustOneOf', :$name, :alternatives(':D, :U or :_')
+            ).throw unless $arglist;
+
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $Pair := @lookups[1];
+            my $Bool := @lookups[2];
+
+            my $type;
+            for $arglist -> $arg {
+                if $type {
+                    $resolver.build-exception(
+                      'X::Pragma::OnlyOne', :$name
+                    ).throw;
+                }
+                elsif nqp::istype($arg,$Pair) {
+                    my $value := $arg.value;
+                    if nqp::istype($value,$Bool) && $value {
+                        $type := $arg.key;
+                        if $type eq 'D' || $type eq 'U' {
+                            $*LANG.set_pragma($name, $type);
+                            next;
+                        }
+                        elsif $type eq '_' {
+                            # XXX shouldn't know this
+                            nqp::deletekey($*LANG.slangs,$name);
+                            next;
+                        }
+                    }
+                    $resolver.build-exception(
+                      'X::InvalidTypeSmiley', :name($arg.key)
+                    ).throw;
+                }
+                $resolver.build-exception(
+                  'X::Pragma::UnknownArg', :$name, :$arg
+                ).throw;
+            }
+        }
+        else {
+            $resolver.build-exception("X::Pragma::Unknown",:$name).throw;
         }
     }
 }

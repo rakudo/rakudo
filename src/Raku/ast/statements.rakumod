@@ -1285,44 +1285,24 @@ class RakuAST::Statement::No
 {
     has RakuAST::Name $.module-name;
     has RakuAST::Expression $.argument;
-    has Bool $!precompilation-mode;
 
-    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, Bool :$precompilation-mode) {
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
         my $name := $module-name.canonicalize;
         if RakuAST::Pragma.IS-PRAGMA($name) {
             RakuAST::Pragma.new(:$name, :$argument, :off)
         }
         else {
             my $obj := nqp::create(self);
-            nqp::bindattr($obj, RakuAST::Statement::No, '$!module-name', $module-name);
+            nqp::bindattr($obj, RakuAST::Statement::No, '$!module-name',
+              $module-name);
             nqp::bindattr($obj, RakuAST::Statement::No, '$!argument',
                 $argument // RakuAST::Expression);
-            nqp::bindattr($obj, RakuAST::Statement::No, '$!precompilation-mode', $precompilation-mode);
             $obj
         }
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # Evaluate the argument to the module load, if any.
-        my $arglist := $!argument
-            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
-            !! Nil;
-
-        # See if it's a pragma of some kind.
-        unless self.IMPL-DO-PRAGMA($resolver, $arglist) {
-            nqp::die("Don't know how to 'no " ~ $!module-name.canonicalize ~ "' just yet");
-        }
-    }
-
-    method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
-        return False unless $!module-name.is-identifier;
-        my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
-        if $name eq 'lib' {
-            $resolver.build-exception('X::Pragma::CannotWhat', :what<no>, :$name).throw;
-        }
-        else {
-            False
-        }
+        nqp::die("Don't know how to 'no " ~ $!module-name.canonicalize ~ "' just yet");
     }
 
     method visit-children(Code $visitor) {
@@ -1387,50 +1367,8 @@ class RakuAST::Statement::Use
             ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
             !! Nil;
 
-        # See if it's a pragma of some kind.
-        unless self.IMPL-DO-PRAGMA($resolver, $arglist) {
-            # Not a pragma; try it as a module.
-            my $comp-unit := self.IMPL-LOAD-MODULE($resolver);
-            self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist);
-        }
-    }
-
-    method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
-        return False unless $!module-name.is-identifier;
-
-        my str $name := $!module-name.canonicalize;
-        if $name eq 'lib' {
-            if $*CU.precompilation-mode {
-                $resolver.build-exception(
-                  'X::Pragma::CannotPrecomp', :what("'use lib'")
-                ).throw;
-            }
-            elsif nqp::islist($arglist) {
-                my $registry := $resolver.resolve-name-constant(
-                    RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')
-                ).compile-time-value;
-                my $io-path := $resolver.resolve-name-constant(
-                    RakuAST::Name.from-identifier-parts('IO', 'Path')
-                ).compile-time-value;
-                for $arglist -> $arg {
-                    if $arg {
-                        $registry.use-repository($registry.repository-for-spec(
-                            nqp::istype($arg, $io-path) ?? $arg.absolute !! $arg
-                        ));
-                    }
-                    else {
-                        $resolver.build-exception('X::LibEmpty').throw;
-                    }
-                }
-            }
-            else {
-                $resolver.build-exception('X::LibNone').throw;
-            }
-            True
-        }
-        else {
-            False
-        }
+        my $comp-unit := self.IMPL-LOAD-MODULE($resolver);
+        self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist);
     }
 
     method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver) {

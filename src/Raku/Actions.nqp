@@ -515,16 +515,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement_control:sym<no>($/) {
-        my $precompilation-mode := $*CU.precompilation-mode;
         my $ast := $<arglist><EXPR>
             ?? self.r('Statement', 'No').new(
                    module-name => $<module_name>.ast,
                    argument => $<arglist><EXPR>.ast,
-                   :$precompilation-mode,
                )
             !! self.r('Statement', 'No').new(
                 module-name => $<module_name>.ast,
-                :$precompilation-mode,
             );
         $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;

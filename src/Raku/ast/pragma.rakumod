@@ -15,14 +15,6 @@ class RakuAST::Pragma
         $obj
     }
 
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Bool')),
-        ])
-    }
-
     method IS-NYI(Str $name) {
         my constant NYI-PRAGMAS := nqp::hash(
           'internals',  1,
@@ -43,6 +35,7 @@ class RakuAST::Pragma
           'internals',          1,
           'invocant',           0,
           'isms',               0,
+          'lib',                0,
           'MONKEY',             0,
 #          'MONKEY-BARS',        1,
 #          'MONKEY-BRAINS',      1,
@@ -109,6 +102,41 @@ class RakuAST::Pragma
             $*LANG.set_pragma($_.key, $on)
               if nqp::eqat($_.key,'MONKEY',0) for self.KNOWN-PRAGMAS;
         }
+        elsif $name eq 'lib' {
+            if $!off {
+                $resolver.build-exception(
+                  'X::Pragma::CannotWhat', :what<no>, :$name
+                ).throw;
+            }
+            elsif try $*CU.precompilation-mode {
+                $resolver.build-exception(
+                  'X::Pragma::CannotPrecomp', :what("'use lib'")
+                ).throw;
+            }
+            elsif nqp::islist($arglist) {
+                my $Registry := $resolver.resolve-name-constant(
+                    RakuAST::Name.from-identifier-parts(
+                      'CompUnit', 'RepositoryRegistry'
+                    )
+                ).compile-time-value;
+                my $IO-Path := $resolver.resolve-name-constant(
+                    RakuAST::Name.from-identifier-parts('IO', 'Path')
+                ).compile-time-value;
+                for $arglist -> $arg {
+                    if $arg {
+                        $Registry.use-repository($Registry.repository-for-spec(
+                            nqp::istype($arg, $IO-Path) ?? $arg.absolute !! $arg
+                        ));
+                    }
+                    else {
+                        $resolver.build-exception('X::LibEmpty').throw;
+                    }
+                }
+            }
+            else {
+                $resolver.build-exception('X::LibNone').throw;
+            }
+        }
         elsif $name eq 'precompilation' {
             if $!off && $*CU.precompilation-mode {
                 nqp::ifnull(
@@ -157,9 +185,12 @@ class RakuAST::Pragma
               'X::Pragma::MustOneOf', :$name, :alternatives(':D, :U or :_')
             ).throw unless $arglist;
 
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $Pair := @lookups[1];
-            my $Bool := @lookups[2];
+            my $Pair := $resolver.resolve-name-constant(
+              RakuAST::Name.from-identifier('Pair')
+            );
+            my $Bool := $resolver.resolve-name-constant(
+              RakuAST::Name.from-identifier('Bool')
+            );
 
             my $type;
             for $arglist -> $arg {

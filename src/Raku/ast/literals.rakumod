@@ -1,14 +1,23 @@
-class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
+# Marker for all compile-time literals
+class RakuAST::Literal
+  is RakuAST::Term
+  is RakuAST::CompileTimeValue
+{
+    method type() { self.value.WHAT }
+    method compile-time-value() { self.value }
+    method IMPL-CAN-INTERPRET() { True }
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { self.value }
+}
+
+class RakuAST::IntLiteral
+  is RakuAST::Literal
+{
     has Int $.value;
     
     method new(Int $value) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IntLiteral, '$!value', $value);
         $obj
-    }
-
-    method type {
-        $!value.WHAT
     }
 
     method ast-type {
@@ -23,25 +32,17 @@ class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
             ?? $wval
             !! QAST::Want.new( $wval, 'Ii', QAST::IVal.new( :value(nqp::unbox_i($value)) ) )
     }
-
-    method compile-time-value() { $!value }
-
-    method IMPL-CAN-INTERPRET() { True }
-
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
-class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
+class RakuAST::NumLiteral
+  is RakuAST::Literal
+{
     has Num $.value;
 
     method new(Num $value) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::NumLiteral, '$!value', $value);
         $obj
-    }
-
-    method type {
-        $!value.WHAT
     }
 
     method ast-type {
@@ -54,25 +55,17 @@ class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new( $wval, 'Nn', QAST::NVal.new( :value(nqp::unbox_n($value)) ) )
     }
-
-    method compile-time-value() { $!value }
-
-    method IMPL-CAN-INTERPRET() { True }
-
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
-class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
+class RakuAST::RatLiteral
+  is RakuAST::Literal
+{
     has Rat $.value;
 
     method new(Rat $value) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::RatLiteral, '$!value', $value);
         $obj
-    }
-
-    method type {
-        $!value.WHAT
     }
 
     method ast-type {
@@ -84,25 +77,17 @@ class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
-
-    method compile-time-value() { $!value }
-
-    method IMPL-CAN-INTERPRET() { True }
-
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
-class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
+class RakuAST::VersionLiteral
+  is RakuAST::Literal
+{
     has Any $.value;
 
     method new($value) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VersionLiteral, '$!value', $value);
         $obj
-    }
-
-    method type {
-        $!value.WHAT
     }
 
     method ast-type {
@@ -114,28 +99,20 @@ class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
-
-    method compile-time-value() { $!value }
-
-    method IMPL-CAN-INTERPRET() { True }
-
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
 # A StrLiteral is a basic string literal without any kind of interpolation
 # taking place. It may be placed in the tree directly, but a compiler will
 # typically emit it in a quoted string wrapper.
-class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
+class RakuAST::StrLiteral
+  is RakuAST::Literal
+{
     has Str $.value;
 
     method new(Str $value) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StrLiteral, '$!value', $value);
         $obj
-    }
-
-    method type {
-        $!value.WHAT
     }
 
     method ast-type {
@@ -152,20 +129,17 @@ class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new( $wval, 'Ss', QAST::SVal.new( :value(nqp::unbox_s($value)) ) )
     }
-
-    method compile-time-value() { $!value }
-
-    method IMPL-CAN-INTERPRET() { True }
-
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
 # A quoted string consists of a sequence of segments that should be evaluated
 # (if needed) and concatenated. Processing may be applied to the result (these
 # are "words", "quotewords", "val", and "exec", and are applied in the order
 # that they are specified here).
-class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
-                            is RakuAST::ImplicitLookups {
+class RakuAST::QuotedString
+  is RakuAST::ColonPairish
+  is RakuAST::Term
+  is RakuAST::ImplicitLookups
+{
     has Mu $!segments;
     has Mu $!processors;
 
@@ -469,7 +443,9 @@ class RakuAST::QuotedString is RakuAST::ColonPairish is RakuAST::Term
     }
 }
 
-class RakuAST::Heredoc is RakuAST::QuotedString {
+class RakuAST::Heredoc
+  is RakuAST::QuotedString
+{
     has Str $!stop;
     has int $!indent;
 
@@ -550,7 +526,9 @@ class RakuAST::Heredoc is RakuAST::QuotedString {
 
 # An atom in a quote words construct. By wrapping something in this, it is
 # considered indivisible in words processing.
-class RakuAST::QuoteWordsAtom is RakuAST::Node {
+class RakuAST::QuoteWordsAtom
+  is RakuAST::Node
+{
     has RakuAST::Node $.atom;
 
     method new(RakuAST::Node $atom) {

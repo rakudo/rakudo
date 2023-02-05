@@ -1,11 +1,15 @@
 # All initializers do this marker. An initializer is the `= 42` part in a
 # declaration like `my $a = 42`.
-class RakuAST::Initializer is RakuAST::Node {
+class RakuAST::Initializer
+  is RakuAST::Node
+{
     method is-binding() { False }
 }
 
 # An assignment (`=`) initializer.
-class RakuAST::Initializer::Assign is RakuAST::Initializer {
+class RakuAST::Initializer::Assign
+  is RakuAST::Initializer
+{
     has RakuAST::Expression $.expression;
 
     method new(RakuAST::Expression $expression) {
@@ -24,7 +28,9 @@ class RakuAST::Initializer::Assign is RakuAST::Initializer {
 }
 
 # A bind (`:=`) initializer.
-class RakuAST::Initializer::Bind is RakuAST::Initializer {
+class RakuAST::Initializer::Bind
+  is RakuAST::Initializer
+{
     has RakuAST::Expression $.expression;
 
     method new(RakuAST::Expression $expression) {
@@ -141,7 +147,12 @@ class RakuAST::ContainerCreator {
     }
 }
 
-class RakuAST::TraitTarget::Variable is RakuAST::TraitTarget is RakuAST::Meta is RakuAST::ImplicitLookups is RakuAST::BeginTime {
+class RakuAST::TraitTarget::Variable
+  is RakuAST::TraitTarget
+  is RakuAST::Meta
+  is RakuAST::ImplicitLookups
+  is RakuAST::BeginTime
+{
     has str $!name;
     has str $!scope;
     has Mu $!cont;
@@ -184,10 +195,16 @@ class RakuAST::TraitTarget::Variable is RakuAST::TraitTarget is RakuAST::Meta is
 }
 
 # A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
-class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::ImplicitLookups
-                                      is RakuAST::TraitTarget is RakuAST::ContainerCreator
-                                      is RakuAST::Meta is RakuAST::Attaching is RakuAST::BeginTime
-                                      is RakuAST::Term {
+class RakuAST::VarDeclaration::Simple
+  is RakuAST::Declaration
+  is RakuAST::ImplicitLookups
+  is RakuAST::TraitTarget
+  is RakuAST::ContainerCreator
+  is RakuAST::Meta
+  is RakuAST::Attaching
+  is RakuAST::BeginTime
+  is RakuAST::Term
+{
     has RakuAST::Type $.type;
     has str $.name;
     has str $!storage-name;
@@ -666,9 +683,14 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     method needs-sink-call() { False }
 }
 
-class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::ImplicitLookups
-                                      is RakuAST::TraitTarget is RakuAST::CheckTime
-                                      is RakuAST::Attaching is RakuAST::BeginTime {
+class RakuAST::VarDeclaration::Signature
+  is RakuAST::Declaration
+  is RakuAST::ImplicitLookups
+  is RakuAST::TraitTarget
+  is RakuAST::CheckTime
+  is RakuAST::Attaching
+  is RakuAST::BeginTime
+{
     has RakuAST::Signature $.signature;
     has RakuAST::Type $.type;
     has RakuAST::Initializer $.initializer;
@@ -809,7 +831,9 @@ class RakuAST::VarDeclaration::Signature is RakuAST::Declaration is RakuAST::Imp
 }
 
 # An anonymous variable declaration, such as `my $ = 42`
-class RakuAST::VarDeclaration::Anonymous is RakuAST::VarDeclaration::Simple {
+class RakuAST::VarDeclaration::Anonymous
+  is RakuAST::VarDeclaration::Simple
+{
     has str $.sigil;
 
     method new(str :$sigil!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
@@ -851,7 +875,9 @@ class RakuAST::VarDeclaration::Anonymous is RakuAST::VarDeclaration::Simple {
 }
 
 # The declaration of a term (sigilless) variable.
-class RakuAST::VarDeclaration::Term is RakuAST::Declaration {
+class RakuAST::VarDeclaration::Term
+  is RakuAST::Declaration
+{
     has RakuAST::Type $.type;
     has RakuAST::Name $.name;
     has RakuAST::Initializer $.initializer;
@@ -911,7 +937,9 @@ class RakuAST::VarDeclaration::Term is RakuAST::Declaration {
 }
 
 # The commonalities for implicitly declared variables.
-class RakuAST::VarDeclaration::Implicit is RakuAST::Declaration {
+class RakuAST::VarDeclaration::Implicit
+  is RakuAST::Declaration
+{
     has str $.name;
 
     method new(str :$name!, str :$scope) {
@@ -946,8 +974,10 @@ class RakuAST::VarDeclaration::Implicit is RakuAST::Declaration {
 
 # An implicitly declared special variable. Typically used for $/, $!, and $_ in
 # routines.
-class RakuAST::VarDeclaration::Implicit::Special is RakuAST::VarDeclaration::Implicit
-                                                 is RakuAST::Meta {
+class RakuAST::VarDeclaration::Implicit::Special
+  is RakuAST::VarDeclaration::Implicit
+  is RakuAST::Meta
+{
     method PRODUCE-META-OBJECT() {
         # Reuse the container descriptor for the common cases that we expect
         # to have.
@@ -978,7 +1008,9 @@ class RakuAST::VarDeclaration::Implicit::Special is RakuAST::VarDeclaration::Imp
 # but can be configured to be either a non-parameter (always from outer), a
 # required parameter, or to obtain the current exception (for when it is a
 # CATCH or CONTROL block);
-class RakuAST::VarDeclaration::Implicit::BlockTopic is RakuAST::VarDeclaration::Implicit {
+class RakuAST::VarDeclaration::Implicit::BlockTopic
+  is RakuAST::VarDeclaration::Implicit
+{
     has Bool $.parameter;
     has Bool $.required;
     has Bool $.exception;
@@ -1039,9 +1071,13 @@ class RakuAST::VarDeclaration::Implicit::BlockTopic is RakuAST::VarDeclaration::
 
 # An implicitly declared constant variable - that is, one with a value that is
 # fixed at compile time. Used for $?PACKAGE and similar.
-class RakuAST::VarDeclaration::Implicit::Constant is RakuAST::VarDeclaration::Implicit
-                                                  is RakuAST::TraitTarget is RakuAST::BeginTime
-                                                  is RakuAST::Meta is RakuAST::CompileTimeValue {
+class RakuAST::VarDeclaration::Implicit::Constant
+  is RakuAST::VarDeclaration::Implicit
+  is RakuAST::TraitTarget
+  is RakuAST::BeginTime
+  is RakuAST::Meta
+  is RakuAST::CompileTimeValue
+{
     has Mu $.value;
 
     method new(str :$name!, Mu :$value!, str :$scope) {
@@ -1069,7 +1105,9 @@ class RakuAST::VarDeclaration::Implicit::Constant is RakuAST::VarDeclaration::Im
 }
 
 # An implicitly declared block (like an auto-generated proto)
-class RakuAST::VarDeclaration::Implicit::Block is RakuAST::Declaration {
+class RakuAST::VarDeclaration::Implicit::Block
+  is RakuAST::Declaration
+{
     has Mu $.block;
 
     method new(Mu :$block!, str :$scope) {
@@ -1087,7 +1125,9 @@ class RakuAST::VarDeclaration::Implicit::Block is RakuAST::Declaration {
 }
 
 # The implicit `self` term declaration for the invocant.
-class RakuAST::VarDeclaration::Implicit::Self is RakuAST::VarDeclaration::Implicit {
+class RakuAST::VarDeclaration::Implicit::Self
+  is RakuAST::VarDeclaration::Implicit
+{
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', 'self');
@@ -1101,7 +1141,9 @@ class RakuAST::VarDeclaration::Implicit::Self is RakuAST::VarDeclaration::Implic
 }
 
 # The implicit `$¢` declaration for the cursor.
-class RakuAST::VarDeclaration::Implicit::Cursor is RakuAST::VarDeclaration::Implicit {
+class RakuAST::VarDeclaration::Implicit::Cursor
+  is RakuAST::VarDeclaration::Implicit
+{
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$¢');
@@ -1116,10 +1158,10 @@ class RakuAST::VarDeclaration::Implicit::Cursor is RakuAST::VarDeclaration::Impl
 
 # The commonalities for placeholder parameters.
 class RakuAST::VarDeclaration::Placeholder
-    is RakuAST::Declaration
-    is RakuAST::Attaching
-    is RakuAST::Term
-    is RakuAST::BeginTime
+  is RakuAST::Declaration
+  is RakuAST::Attaching
+  is RakuAST::Term
+  is RakuAST::BeginTime
 {
     has Bool $!already-declared;
 
@@ -1173,7 +1215,9 @@ class RakuAST::VarDeclaration::Placeholder
 }
 
 # A positional placeholder parameter.
-class RakuAST::VarDeclaration::Placeholder::Positional is RakuAST::VarDeclaration::Placeholder {
+class RakuAST::VarDeclaration::Placeholder::Positional
+  is RakuAST::VarDeclaration::Placeholder
+{
     has str $.lexical-name;
 
     method new(str $declared-name) {
@@ -1193,7 +1237,9 @@ class RakuAST::VarDeclaration::Placeholder::Positional is RakuAST::VarDeclaratio
 }
 
 # A named placeholder parameter.
-class RakuAST::VarDeclaration::Placeholder::Named is RakuAST::VarDeclaration::Placeholder {
+class RakuAST::VarDeclaration::Placeholder::Named
+  is RakuAST::VarDeclaration::Placeholder
+{
     has str $.lexical-name;
 
     method new(str $declared-name) {
@@ -1215,7 +1261,9 @@ class RakuAST::VarDeclaration::Placeholder::Named is RakuAST::VarDeclaration::Pl
 }
 
 # A slurpy array placeholder parameter.
-class RakuAST::VarDeclaration::Placeholder::SlurpyArray is RakuAST::VarDeclaration::Placeholder {
+class RakuAST::VarDeclaration::Placeholder::SlurpyArray
+  is RakuAST::VarDeclaration::Placeholder
+{
     method lexical-name() { '@_' }
 
     method generate-parameter() {
@@ -1226,7 +1274,9 @@ class RakuAST::VarDeclaration::Placeholder::SlurpyArray is RakuAST::VarDeclarati
 }
 
 # A slurpy hash placeholder parameter.
-class RakuAST::VarDeclaration::Placeholder::SlurpyHash is RakuAST::VarDeclaration::Placeholder {
+class RakuAST::VarDeclaration::Placeholder::SlurpyHash
+  is RakuAST::VarDeclaration::Placeholder
+{
     method lexical-name() { '%_' }
 
     method generate-parameter() {

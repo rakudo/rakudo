@@ -21,7 +21,7 @@ my constant $?UNICODE-VERSION = %(
     '17' => '13.0',
     '18' => '13.0',
     '19' => '14.0',
-).{nqp::jvmgetproperties<java.version>.split('.').first}.Version;
+).{nqp::jvmgetproperties<java.specification.version>}.Version;
 #?endif
 #?if !jvm
 my constant $?UNICODE-VERSION = (

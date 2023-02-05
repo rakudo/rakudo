@@ -2241,7 +2241,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <dec_number>
         | <rad_number>
         | <rat_number>
-#        | <complex_number>
+        | <complex_number>
         | 'Inf' >>
         | $<uinf>='∞'
         | <unum=:No+:Nl>
@@ -2264,6 +2264,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token signed-integer { <sign> <integer> }
+
+    token signed-number { <sign> <number> }
 
     token dec_number {
         :dba('decimal number')
@@ -2302,6 +2304,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token bare_rat_number {
         <?before <.[-−+0..9<>:boxd]>+? '/'>
         <nu=.signed-integer> '/' <de=integer>
+    }
+
+    token complex_number { '<' <bare_complex_number> '>' }
+    token bare_complex_number {
+        <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+? 'i'>
+        <re=.signed-number> <?[-−+]> <im=.signed-number> \\? 'i'
     }
 
     token version {

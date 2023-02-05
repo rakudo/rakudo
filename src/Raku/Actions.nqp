@@ -1786,6 +1786,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<rat_number> {
             self.attach: $/, $<rat_number>.ast;
         }
+        elsif $<complex_number> {
+            self.attach: $/, $<complex_number>.ast;
+        }
         elsif $<unum> {
             my $code := nqp::ord($/.Str);
             my int $nu := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Numerator"));
@@ -1930,7 +1933,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method bare_rat_number($/) {
-        self.attach: $/, self.r('RatLiteral').new($*LITERALS.intern-rat($<nu>.ast, $<de>.ast));
+        self.attach: $/, self.r('RatLiteral').new(
+          $*LITERALS.intern-rat($<nu>.ast, $<de>.ast)
+        );
+    }
+
+    method complex_number($/) {
+        self.attach: $/, $<bare_complex_number>.ast;
+    }
+
+    method bare_complex_number($/) {
+        self.attach: $/, self.r('ComplexLiteral').new(
+          $*LITERALS.intern-complex(~$<re>, ~$<im>)
+        );
     }
 
     method version($/) {

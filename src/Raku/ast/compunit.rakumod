@@ -408,6 +408,8 @@ class RakuAST::LiteralBuilder {
     has RakuAST::Resolver $!resolver;
     has Mu $!cached-rat;
     has int $!has-cached-rat;
+    has Mu $!cached-complex;
+    has int $!has-cached-complex;
 
     method new(RakuAST::Resolver :$resolver) {
         my $obj := nqp::create(self);
@@ -524,7 +526,7 @@ class RakuAST::LiteralBuilder {
           !! 0e0;
         my num $imaginary := $imaginary-part
           ?? nqp::box_n(nqp::numify($imaginary-part), Num)
-          !! 0e0;
+          !! 1e0;
 
         # Produce the Complex object.
         unless $!has-cached-complex {

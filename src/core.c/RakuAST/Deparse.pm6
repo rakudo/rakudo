@@ -464,6 +464,10 @@ class RakuAST::Deparse {
 
 #- Co --------------------------------------------------------------------------
 
+    multi method deparse(RakuAST::ComplexLiteral:D $ast --> Str:D) {
+        $ast.value.raku
+    }
+
     multi method deparse(RakuAST::CompUnit:D $ast --> Str:D) {
         my str $deparsed = self.deparse($ast.statement-list);
         with $ast.finish-content {

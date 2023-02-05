@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 8;
+plan 9;
 
 # NOTE: this only works when there are no variable references
 sub ast-ok(
@@ -60,6 +60,10 @@ ast-ok RakuAST::RatLiteral.new(1.5), 1.5, '1.5',
     ast-ok RakuAST::RatLiteral.new($a + $b), 4.2 + 0.3, '4.5',
       'RakuAST::RatLiteral with calculated value';
 }
+
+# <42+6.66i>
+ast-ok RakuAST::ComplexLiteral.new(<42+6.66i>), <42+6.66i>, '<42+6.66i>',
+  'RakuAST::ComplexLiteral with constant';
 
 # v4.2
 ast-ok RakuAST::VersionLiteral.new(v4.2), v4.2, 'v4.2',

@@ -1,7 +1,7 @@
 use MONKEY;
 
-# This constant must specify current CORE revision.  Must precede class
-# declarations to allow correct recording of their respective language version
+# This constant specifies the current CORE revision.  It must precede class
+# declarations to allow correct recording of their respective language version.
 my constant CORE-SETTING-REV = nqp::box_i(3, Metamodel::Configuration.language_revision_type);
 
 # This constant specifies the current Unicode version being supported

@@ -5,6 +5,10 @@ use MONKEY;
 my constant CORE-SETTING-REV = nqp::box_i(3, Metamodel::Configuration.language_revision_type);
 
 # This constant specifies the current Unicode version being supported
+#?if jvm
+my constant $?UNICODE-VERSION = nqp::jvmgetunicodeversion.Version;
+#?endif
+#?if !jvm
 my constant $?UNICODE-VERSION = (
    '1.1' => 'a',
    '2.0' => 'ẛ',
@@ -34,5 +38,6 @@ my constant $?UNICODE-VERSION = (
 # PLEASE ADD NEWER UNICODE VERSIONS HERE, AS SOON AS THE UNICODE
 # CONSORTIUM HAS RELEASED A NEW VERSION
 ).first(*.value.uniprop('Age') ne 'Unassigned', :end).key.Version;
+#?endif
 
 # vim: expandtab shiftwidth=4

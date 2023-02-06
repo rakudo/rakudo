@@ -798,7 +798,6 @@ my @allowed =
         Q{$!},
         Q{$/},
         Q{$=pod},
-        Q{$?UNICODE-VERSION},
         Q{$_},
         Q{$¢},
         Q{&last},
@@ -815,6 +814,7 @@ my @allowed =
         Q{Formatter},
         Q{Grammar},
         Q{PseudoStash},
+        Q{Unicode},
     );
 
 my %nyi-for-backend = (

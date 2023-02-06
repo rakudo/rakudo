@@ -12,7 +12,7 @@ multi sub infix:<(-)>(MixHash:D $a)   { $a.Mix }
 multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
     (my $araw := $a.RAW-HASH) && nqp::elems($araw)
       && (my $braw := $b.RAW-HASH) && nqp::elems($braw)
-      ?? nqp::create($a.Setty).SET-SELF(            # both have elems
+      ?? nqp::create($a.WHAT).SET-SELF(             # both have elems
            Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
          )
       !! $a                                         # no elems in a or b
@@ -20,7 +20,7 @@ multi sub infix:<(-)>(Setty:D $a, Setty:D $b) {
 multi sub infix:<(-)>(Setty:D $a, Map:D \b) {
     nqp::if(
       (my \araw := $a.RAW-HASH) && nqp::elems(araw),
-      nqp::create($a.Setty).SET-SELF(                     # elems in a
+      nqp::create($a.WHAT).SET-SELF(                      # elems in a
         nqp::if(
           nqp::elems(my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage')),
           Rakudo::QuantHash.SUB-MAP-FROM-SET(araw, b),    # both have elems
@@ -36,7 +36,7 @@ multi sub infix:<(-)>(Setty:D $a, Iterable:D \b) {
       Set.fail-iterator-cannot-be-lazy('set difference'),
       nqp::if(
         (my $raw := $a.RAW-HASH) && nqp::elems($raw),
-        nqp::create($a.Setty).SET-SELF(                   # elems in b
+        nqp::create($a.WHAT).SET-SELF(                    # elems in b
           Rakudo::QuantHash.SUB-PAIRS-FROM-SET($raw, $iterator)
         ),
         $a                                                # no elems in b

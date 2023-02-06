@@ -33,7 +33,9 @@ multi sub infix:<(&)>(Setty:D $a, Setty:D $b) {
         nqp::create($a.WHAT).SET-SELF($elems)
       ),
       nqp::if(                                 # one/neither has elems
-        nqp::istype($a,Set), set(), nqp::create(SetHash)
+        nqp::istype($a,Set),
+        nqp::if(nqp::eqaddr($a.WHAT,Set), set(), nqp::create($a.WHAT)),
+        nqp::create(SetHash)
       )
     )
 }

@@ -87,7 +87,7 @@ multi sub infix:<(+)>(Baggy:D $a, QuantHash:D $b) {
             nqp::if(
               nqp::istype($b,Mixy),
               nqp::if(nqp::istype($a,Bag),Mix,MixHash),
-              nqp::if(nqp::istype($a,Bag),Bag,BagHash)
+              nqp::if(nqp::istype($a,Bag),$a.WHAT,BagHash)
             )
           ).SET-SELF(
             nqp::if(

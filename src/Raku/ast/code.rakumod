@@ -267,10 +267,6 @@ class RakuAST::Code
                 my $code-obj := %sub-id-to-code-object{$subid};
                 nqp::setcodeobj(@coderefs[$i], $code-obj);
                 nqp::bindattr($code-obj, Code, '$!do', @coderefs[$i]);
-                my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
-                if $fixups {
-                    $fixups.pop() while $fixups.list;
-                }
                 nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
             }
 
@@ -281,10 +277,6 @@ class RakuAST::Code
                     my $clone := nqp::clone(@coderefs[$i]);
                     nqp::setcodeobj($clone, $code-obj);
                     nqp::bindattr($code-obj, Code, '$!do', $clone);
-                    my $fixups := nqp::getattr($code-obj, Code, '@!compstuff')[3];
-                    if $fixups {
-                        $fixups.pop() while $fixups.list;
-                    }
                     nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
                 }
             }

@@ -6,7 +6,6 @@ my role Real does Numeric {
     method abs()  { self < 0 ?? -self !! self }
     method sign(Real:D:) { self > 0 ?? 1 !! self < 0 ?? -1 !! 0 }
     method conj(Real:D:) { self }
-    method sqrt() { self.Bridge.sqrt }
     method rand() { self.Bridge.rand }
     method sin()  { self.Bridge.sin }
     method asin() { self.Bridge.asin }
@@ -37,6 +36,8 @@ my role Real does Numeric {
     method acotanh() { self.Bridge.acotanh }
     method floor() { self.Bridge.floor }
     method ceiling() { self.Bridge.ceiling }
+
+    multi method sqrt(Real:D:) { self.Bridge.sqrt }
 
     proto method round(|) {*}
     multi method round(Real:D:) {

@@ -91,7 +91,7 @@ my class Int does Real { # declared in BOOTSTRAP
             !! self.Real::Bridge
     }
 
-    method sqrt(Int:D: --> Num:D) {
+    multi method sqrt(Int:D: --> Num:D) {
         nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self)))
     }
 

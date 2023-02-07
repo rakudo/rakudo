@@ -616,8 +616,9 @@ class RakuAST::Deparse {
 #- Parameter -------------------------------------------------------------------
 
     multi method deparse(RakuAST::Parameter:D $ast --> Str:D) {
-        my $target := $ast.target;
+        return .raku with $ast.value;
 
+        my $target := $ast.target;
         my str @parts;
         if $ast.type -> $type {
             my str $deparsed = self.deparse($type);

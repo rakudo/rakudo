@@ -2150,6 +2150,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                          self.r('Parameter').new;
         my $capture := self.r('Type', 'Capture');
         my $raku-type := self.r('Type');
+        my $raku-quotedstring := self.r('QuotedString');
         my $raku-compiletimevalue := self.r('CompileTimeValue');
         for $<type_constraint> {
             my $type-constraint := $_.ast;
@@ -2158,6 +2159,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             elsif nqp::istype($type-constraint, $raku-type) {
                 $parameter.set-type($type-constraint);
+            }
+            elsif nqp::istype($type-constraint,$raku-quotedstring) {
+                my $value := $type-constraint.literal-value;
+                if nqp::defined($value) {  # not Nil
+                    $parameter.set-type($type-constraint.ast-type);
+                    $parameter.set-value($value);
+                }
+                else {
+                    nqp::die("Could not get a literal value of a quoted string as a parameter");
+                }
             }
             else {
                 $parameter.set-type($type-constraint.ast-type);

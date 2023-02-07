@@ -275,7 +275,7 @@ class RakuAST::Parameter
     has RakuAST::Node $!owner;
     has RakuAST::Signature $.sub-signature;
     has List $!type-captures;
-    has Mu $!value;
+    has Mu $.value;
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
             List :$names, Bool :$invocant, Bool :$optional,

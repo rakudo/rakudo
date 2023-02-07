@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 11;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -404,6 +404,32 @@ subtest 'Using return with acceptable type works' => {
         lives-ok { $sub() }, "$type: type matches";
         $x = 'oops';
         dies-ok { $sub() }, "$type: type does not match";
+    }
+}
+
+subtest 'Using a string literal works' => {
+    # sub ("Bee") { 42 }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(value => "Bee"),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(42)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'sub ("Bee") { 42 }', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
+        lives-ok { $sub("Bee") }, "$type: type matches";
+        dies-ok  { $sub("Boo") }, "$type: type does not match";
     }
 }
 

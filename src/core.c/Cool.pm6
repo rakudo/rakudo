@@ -1,13 +1,11 @@
 my class Cool { # declared in BOOTSTRAP
     # class Cool is Any
 
-    proto method sqrt() {*}
-    multi method sqrt(Cool:D:) { self.Numeric.sqrt }
-
     ## numeric methods
 
     method abs()  { self.Numeric.abs }
     method conj()  { self.Numeric.conj }
+    method sqrt()  { self.Numeric.sqrt }
     method sign()  { self.Real.sign }
     method rand() { self.Num.rand }
     method sin()  { self.Numeric.sin }

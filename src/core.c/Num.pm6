@@ -144,6 +144,7 @@ my class Num does Real { # declared in BOOTSTRAP
         self.log() / base.log();
     }
 
+    proto method sqrt(|) {*}
     multi method sqrt(Num:D: ) {
         nqp::p6box_n(nqp::sqrt_n(nqp::unbox_n(self)));
     }

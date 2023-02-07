@@ -2515,7 +2515,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $qast_block.annotate('BEGINISH', 1);
         make $*W.add_phaser($/, 'CHECK', wanted($<blorst>.ast,'CHECK').ann('code_object'));
     }
-    method statement_prefix:sym<COMPOSE>($/) { make $*W.add_phaser($/, 'COMPOSE', unwanted($<blorst>.ast,'COMPOSE').ann('code_object')); }
     method statement_prefix:sym<INIT>($/)    { make $*W.add_phaser($/, 'INIT', wanted($<blorst>.ast,'INIT').ann('code_object'), ($<blorst>.ast).ann('past_block')); }
     method statement_prefix:sym<ENTER>($/)   { make $*W.add_phaser($/, 'ENTER', wanted($<blorst>.ast,'ENTER').ann('code_object')); }
     method statement_prefix:sym<FIRST>($/)   { make $*W.add_phaser($/, 'FIRST', wanted($<blorst>.ast,'FIRST').ann('code_object')); }

@@ -1004,10 +1004,6 @@ class Perl6::World is HLL::World {
                         self.add_package_declarator($/,$pdecl);
                     }
                 }
-                elsif $key eq 'COMPOSE' {
-                    my %COMPOSE := self.stash_hash($pair.value);
-                    $/.NYI('EXPORTHOW::COMPOSE');
-                }
                 else {
                     if $key eq nqp::lc($key) {
                         # Support legacy API, which behaves like an unchecked

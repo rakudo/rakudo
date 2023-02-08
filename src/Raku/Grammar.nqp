@@ -446,8 +446,15 @@ role Raku::Common {
         if $ast ~~ self.actions.r('Var', 'Lexical') {
             $ast.resolve-with($*R);
             unless $ast.is-resolved || $ast.sigil eq '&' {
-                # TODO restore good error
-                nqp::die("Undeclared variable " ~ $ast.name);
+                my str $name := $var.ast.name;
+                $*LANG.pragma("strict")
+                  ?? self.typed_panic('X::Undeclared',
+                       symbol => $name, is-compile-time => 1
+                     )
+                  !! RakuAST::VarDeclaration::Simple.new(
+                       scope => 'our', name => $name
+                     ).resolve-with($*R)
+
             }
         }
     }

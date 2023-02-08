@@ -828,8 +828,9 @@ class RakuAST::Resolver::Compile
         Nil
     }
 
-    # Add a lexical declaration. Used when the compiler produces the declaration,
-    # so that we can resovle it without requiring it to be linked into the tree.
+    # Add a lexical declaration. Used when the compiler produces the
+    # declaration, so that we can resolve it without requiring it to be
+    # linked into the tree.
     method declare-lexical(RakuAST::Declaration $decl) {
         $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl);
     }

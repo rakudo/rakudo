@@ -729,6 +729,7 @@ my %allowed = (
     Q{UIntLexRef},
     Q{UIntPosRef},
     Q{Uni},
+    Q{Unicode},
     Q{UnsignedBlob},
     Q{VM},
     Q{ValueObjAt},

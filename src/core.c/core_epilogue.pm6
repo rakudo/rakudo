@@ -151,7 +151,8 @@ augment class Cool {
     }
 
     # Allow for creating an AST out of a string, for core debugging mainly
-    method AST() is implementation-detail {
+    proto method AST(|) is implementation-detail {*}
+    multi method AST() {
 
         # Make sure we don't use the EVAL's MAIN context for the
         # currently compiling compilation unit
@@ -175,6 +176,8 @@ augment class Cool {
           :grammar(nqp::gethllsym('Raku','Grammar')),
           :actions(nqp::gethllsym('Raku','Actions'))
     }
+
+    multi method AST(:$run!) { use MONKEY; EVAL self.AST }
 }
 
 # Make sure all affected subclasses are aware of additions to their parents

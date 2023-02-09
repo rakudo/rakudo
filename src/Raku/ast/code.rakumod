@@ -646,6 +646,8 @@ class RakuAST::ScopePhaser {
         if $!temp {
             $code-object.add_phaser('LEAVE', $!temp.meta-object);
         }
+
+        $code-object.fatalize if $*LANG && $*LANG.pragma('fatal');
     }
 
     method add-phasers-handling-code(RakuAST::IMPL::Context $context, Mu $qast) {

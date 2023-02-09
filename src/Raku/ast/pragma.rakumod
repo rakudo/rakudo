@@ -31,7 +31,7 @@ class RakuAST::Pragma
         my constant KNOWN-PRAGMAS := nqp::hash(
           'attributes',         0,
           'dynamic-scope',      0,
-          'fatal',              0,
+          'fatal',              1,
           'internals',          1,
           'invocant',           0,
           'isms',               0,
@@ -146,9 +146,6 @@ class RakuAST::Pragma
                        'X::Pragma::CannotPrecomp', :what<no>, :$name
                      ).throw;
             }
-        }
-        elsif $name eq 'fatal' {
-            nqp::die("use fatal NYI") if $on;
         }
         elsif $name eq 'isms' {
             if nqp::islist($arglist) {

@@ -516,12 +516,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method statement_control:sym<no>($/) {
         my str $name := ~$<module_name>;
-        if RakuAST::Pragma.IS-PRAGMA($name) {
+        my $Pragma   := self.r('Pragma');
+        if $Pragma.IS-PRAGMA($name) {
             my $ast := $<arglist><EXPR>
-              ?? self.r('Pragma').new(
-                   :$name, :argument($<arglist><EXPR>.ast), :off
-                 )
-              !! self.r('Pragma').new(:$name, :off);
+              ?? $Pragma.new(:$name, :argument($<arglist><EXPR>.ast), :off)
+              !! $Pragma.new(:$name, :off);
             $ast.ensure-begin-performed($*R, $*CU.context);
             self.attach: $/, $ast;
         }
@@ -532,12 +531,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method statement_control:sym<use>($/) {
         my str $name := ~$<module_name>;
+        my $Pragma   := self.r('Pragma');
         my $ast;
 
-        if RakuAST::Pragma.IS-PRAGMA($name) {
+        if $Pragma.IS-PRAGMA($name) {
             $ast := $<arglist><EXPR>
-              ?? self.r('Pragma').new(:$name, :argument($<arglist><EXPR>.ast))
-              !! self.r('Pragma').new(:$name);
+              ?? $Pragma.new(:$name, :argument($<arglist><EXPR>.ast))
+              !! $Pragma.new(:$name);
             $ast.ensure-begin-performed($*R, $*CU.context);
         }
 

@@ -558,11 +558,12 @@ class RakuAST::VarDeclaration::Simple
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my str $name := $!name;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
-            my str $name := $!name;
             my str $sigil := self.sigil;
             my $var-access := QAST::Var.new( :$name, :scope<lexical> );
             my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+
             if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
                 # Natively typed value. Need to initialize it to a default
                 # in the absence of an initializer.
@@ -629,6 +630,15 @@ class RakuAST::VarDeclaration::Simple
                 else {
                     $perform-init-qast
                 }
+            }
+
+            # "our" variable without initialize, need to vivify
+            elsif $scope eq 'our' {
+                QAST::Op.new(
+                  :op('callmethod'), :name('VIVIFY-KEY'),
+                  QAST::Op.new(:op('who'), @lookups[0].IMPL-TO-QAST($context)),
+                  QAST::SVal.new(:value($name))
+                )
             }
 
             # Just a declaration; compile into an access to the variable.

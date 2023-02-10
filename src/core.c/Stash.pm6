@@ -43,6 +43,17 @@ my class Stash { # declared in BOOTSTRAP
         )
     }
 
+    method VIVIFY-KEY(Stash:D: $key --> Nil) is implementation-detail {
+        self.BIND-KEY($key, (my str $sigil = nqp::substr($key,0,1)) eq '$'
+          ?? (my $)
+          !! $sigil eq '&'
+            ?? (my &)
+            !! $sigil eq '@'
+              ?? []
+              !! {}  # assume %
+         ) unless self.EXISTS-KEY($key);
+    }
+
     # New proto is introduced here in order to cut off Hash candidates completely. There are few reasons to do so:
     # 1. Hash is not thread-safe whereas Stash claims to be
     # 2. Stash candidates are fully overriding their counterparts from Hash

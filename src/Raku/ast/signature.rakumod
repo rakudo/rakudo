@@ -498,7 +498,7 @@ class RakuAST::Parameter
         }
         my @post_constraints;
         if $!where {
-            nqp::push(@post_constraints, $!where.meta-object);
+            nqp::push(@post_constraints, $!where.IMPL-CURRIED || $!where.meta-object);
         }
         if nqp::defined($!value) {
             nqp::push(@post_constraints, $!value);
@@ -611,7 +611,7 @@ class RakuAST::Parameter
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.apply-traits($resolver, $context, self);
 
-        if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) {
+        if $!where && (! nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) && !$!where.IMPL-CURRIED {
             my $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(

@@ -476,9 +476,10 @@ class RakuAST::VarDeclaration::Simple
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my str $scope := self.scope;
+        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+
         if $scope eq 'my' {
             # Lexically scoped
-            my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
             my str $sigil := self.sigil;
             if $sigil eq '$' && nqp::objprimspec($of) {
                 # Natively typed; just declare it.
@@ -501,9 +502,6 @@ class RakuAST::VarDeclaration::Simple
                     :value($container)
                 );
                 if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
-                    my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                    my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
-
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),
                         QAST::WVal.new( :value(self.IMPL-CONTAINER-TYPE($of)) )

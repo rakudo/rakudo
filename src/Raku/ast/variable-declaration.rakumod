@@ -50,7 +50,9 @@ class RakuAST::Initializer::Bind
     }
 }
 
-class RakuAST::ContainerCreator {
+class RakuAST::ContainerCreator
+  is RakuAST::ImplicitLookups
+{
     has Mu $!container-base-type;
 
     method IMPL-SET-CONTAINER-BASE-TYPE(Mu $type) {
@@ -74,13 +76,16 @@ class RakuAST::ContainerCreator {
         }
 
         # Form container descriptor.
-        my $default := self.type ?? $of !! Any;
+        my $Callable := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+        my $default := self.sigil eq '&'
+        	?? self.type ?? $Callable.HOW.parameterize($Callable, $of) !! $Callable
+        	!! self.type ?? $of !! Any;
         my int $dynamic := self.twigil eq '*' ?? 1 !! 0;
         (
             nqp::eqaddr($of, Mu)
             ?? ContainerDescriptor::Untyped
             !! ContainerDescriptor
-        ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
+        ).new(:of($default), :$default, :$dynamic, :name(self.lexical-name))
     }
 
     method IMPL-CONTAINER-TYPE(Mu $of) {
@@ -113,8 +118,11 @@ class RakuAST::ContainerCreator {
 
     method IMPL-CONTAINER(Mu $of, Mu $cont-desc) {
         # Form the container.
-        my $default := self.type ?? $of !! Any;
         my str $sigil := self.sigil;
+        my $Callable := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+        my $default := $sigil eq '&'
+        	?? self.type ?? $Callable.HOW.parameterize($Callable, $of) !! $Callable
+        	!! self.type ?? $of !! Any;
         my $container-base-type;
         my $container-type;
         if nqp::eqaddr($!container-base-type, Mu) {
@@ -145,6 +153,13 @@ class RakuAST::ContainerCreator {
             $!container-base-type
         }
     }
+	
+	method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable')),
+        ])
+    }
+
 }
 
 class RakuAST::TraitTarget::Variable
@@ -197,7 +212,6 @@ class RakuAST::TraitTarget::Variable
 # A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple
   is RakuAST::Declaration
-  is RakuAST::ImplicitLookups
   is RakuAST::TraitTarget
   is RakuAST::ContainerCreator
   is RakuAST::Meta
@@ -272,7 +286,7 @@ class RakuAST::VarDeclaration::Simple
             return True if $sigil eq '@' || $sigil eq '%';
             return True unless $!type;
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-            return True unless nqp::objprimspec(@lookups[0].resolution.compile-time-value);
+            return True unless nqp::objprimspec(@lookups[1].resolution.compile-time-value);
         }
         False
     }
@@ -359,7 +373,7 @@ class RakuAST::VarDeclaration::Simple
                     )
                     !! RakuAST::ArgList.new;
                 my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+                my $of := $!type ?? @lookups[1].resolution.compile-time-value !! Mu;
                 my $container-initializer-ast := RakuAST::ApplyPostfix.new(
                     operand => RakuAST::Declaration::ResolvedConstant.new(
                         :compile-time-value(self.IMPL-CONTAINER-TYPE($of))
@@ -422,6 +436,9 @@ class RakuAST::VarDeclaration::Simple
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups;
+        # The first element will be used by ContainerCreator which this class depends from
+        # for compatibility, it must be 'Callable'
+        @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))); 
         # If it's our-scoped, we need the package to bind it from.
         my str $scope := self.scope;
         if $scope eq 'our' {
@@ -445,7 +462,7 @@ class RakuAST::VarDeclaration::Simple
 
         # Calculate the type.
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+        my $of := $!type ?? @lookups[1].resolution.compile-time-value !! Mu;
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
@@ -478,7 +495,7 @@ class RakuAST::VarDeclaration::Simple
         my str $scope := self.scope;
         if $scope eq 'my' {
             # Lexically scoped
-            my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+            my $of := $!type ?? @lookups[1].resolution.compile-time-value !! Mu;
             my str $sigil := self.sigil;
             if $sigil eq '$' && nqp::objprimspec($of) {
                 # Natively typed; just declare it.
@@ -502,7 +519,7 @@ class RakuAST::VarDeclaration::Simple
                 );
                 if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
                     my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                    my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+                    my $of := $!type ?? @lookups[1].resolution.compile-time-value !! Mu;
 
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),
@@ -533,7 +550,7 @@ class RakuAST::VarDeclaration::Simple
         }
         elsif $scope eq 'state' {
             # Lexically scoped state variable
-            my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+            my $of := $!type ?? @lookups[1].resolution.compile-time-value !! Mu;
             my str $sigil := self.sigil;
             if $sigil eq '$' && nqp::objprimspec($of) {
                 nqp::die("Natively typed state variables not yet implemented");
@@ -564,7 +581,7 @@ class RakuAST::VarDeclaration::Simple
             my str $name := $!name;
             my str $sigil := self.sigil;
             my $var-access := QAST::Var.new( :$name, :scope<lexical> );
-            my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+            my $of := $!type ?? @lookups[1].resolution.compile-time-value !! Mu;
             if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
                 # Natively typed value. Need to initialize it to a default
                 # in the absence of an initializer.
@@ -653,7 +670,7 @@ class RakuAST::VarDeclaration::Simple
                 # Potentially l-value native lookups need a lexicalref.
                 if self.sigil eq '$' && self.scope ne 'our' {
                     my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                    my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+                    my $of := $!type ?? @lookups[1].resolution.compile-time-value !! Mu;
                     if nqp::objprimspec($of) {
                         $scope := 'lexicalref';
                     }
@@ -785,7 +802,7 @@ class RakuAST::VarDeclaration::Signature
 
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my $type := $!type;
-        my $of := $type ?? @lookups[0].resolution.compile-time-value !! Mu;
+        my $of := $type ?? @lookups[1].resolution.compile-time-value !! Mu;
 
         for @params {
             $_.target.set-container-type($type, $of) if $type;

@@ -1523,6 +1523,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $<defterm> {
             my str $scope := $*SCOPE;
+            $/.typed_panic('X::Comp::NYI',
+              feature => "our scoped term definitions (only 'my' is supported at the moment)"
+            ) if $scope eq 'our';
+
             my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
             my $name := $<defterm>.ast;
             my $initializer := $<term_init>.ast;

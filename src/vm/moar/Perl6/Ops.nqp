@@ -25,6 +25,8 @@ my int $MVM_operand_uint64      := nqp::bitshiftl_i($MVM_reg_uint64, 3);
 my %core_op_generators := MAST::Ops.WHO<%generators>;
 my &op_dispatch_v := %core_op_generators<dispatch_v>;
 my &op_dispatch_o := %core_op_generators<dispatch_o>;
+my &op_dispatch_v1 := %core_op_generators<dispatch_v1>;
+my &op_dispatch_o1 := %core_op_generators<dispatch_o1>;
 
 # Register MoarVM extops.
 use MASTNodes;
@@ -113,7 +115,7 @@ $ops.add_hll_op('Raku', 'p6capturelex', -> $qastcomp, $op {
     my $frame := $qastcomp.mast_frame;
     my uint $callsite_id := $frame.callsites.get_callsite_id_from_args(
         [$op[0]], [$code_res]);
-    op_dispatch_v($frame, 'raku-capture-lex', $callsite_id, [$code_res.result_reg]);
+    op_dispatch_v1($frame, 'raku-capture-lex', $callsite_id, $code_res.result_reg);
     $code_res
 });
 $ops.add_hll_op('nqp', 'p6capturelexwhere', -> $qastcomp, $op {
@@ -121,7 +123,7 @@ $ops.add_hll_op('nqp', 'p6capturelexwhere', -> $qastcomp, $op {
     my $frame := $qastcomp.mast_frame;
     my uint $callsite_id := $frame.callsites.get_callsite_id_from_args(
         [$op[0]], [$code_res]);
-    op_dispatch_v($frame, 'raku-capture-lex-callers', $callsite_id, [$code_res.result_reg]);
+    op_dispatch_v1($frame, 'raku-capture-lex-callers', $callsite_id, $code_res.result_reg);
     $code_res
 });
 $ops.add_hll_op('Raku', 'p6bindassert', -> $qastcomp, $op {
@@ -167,7 +169,7 @@ $ops.add_hll_op('Raku', 'p6getouterctx', -> $qastcomp, $op {
     $qastcomp.regalloc.release_register($code_res.result_reg, $MVM_reg_obj);
     my $res_reg := $qastcomp.regalloc.fresh_o();
     MAST::Op.new(:$frame, :op('decont'), $res_reg, $code_res.result_reg);
-    op_dispatch_o($frame, $res_reg, 'raku-get-code-outer-ctx', $callsite_id, [$res_reg]);
+    op_dispatch_o1($frame, $res_reg, 'raku-get-code-outer-ctx', $callsite_id, $res_reg);
     MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
 $ops.add_hll_moarop_mapping('nqp', 'p6captureouters2', 'p6captureouters', 0);
@@ -190,7 +192,7 @@ $ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {
     MAST::Op.new(:$frame, :op('atpos_o'), $tmp_reg, $res_reg, $i_reg );
     my uint $callsite_id := $frame.callsites.get_callsite_id_from_args(
         [$op], [MAST::InstructionList.new($tmp_reg, $MVM_reg_obj)]);
-    op_dispatch_o($frame, $tmp_reg, 'lang-hllize', $callsite_id, [$tmp_reg]);
+    op_dispatch_o1($frame, $tmp_reg, 'lang-hllize', $callsite_id, $tmp_reg);
     MAST::Op.new(:$frame, :op('bindpos_o'), $res_reg, $i_reg, $tmp_reg );
     MAST::Op.new(:$frame, :op('const_i64'), $cmp_reg, MAST::IVal.new( :value(1) ) );
     MAST::Op.new(:$frame, :op('add_i'), $i_reg, $i_reg, $cmp_reg );
@@ -252,12 +254,12 @@ $ops.add_hll_op('Raku', 'p6sink', -> $qastcomp, $op {
         $qastcomp.regalloc.release_register($sinkee_res.result_reg, $MVM_reg_obj);
         my $WANT := $*WANT;
         if nqp::defined($WANT) && $WANT == $MVM_reg_void {
-            op_dispatch_v($frame, 'raku-sink', $callsite_id, [$sinkee_res.result_reg]);
+            op_dispatch_v1($frame, 'raku-sink', $callsite_id, $sinkee_res.result_reg);
             MAST::InstructionList.new(MAST::VOID, $MVM_reg_void);
         }
         else {
             my $res_reg := $qastcomp.regalloc.fresh_register($MVM_reg_obj);
-            op_dispatch_o($frame, $res_reg, 'raku-sink', $callsite_id, [$sinkee_res.result_reg]);
+            op_dispatch_o1($frame, $res_reg, 'raku-sink', $callsite_id, $sinkee_res.result_reg);
             MAST::InstructionList.new($res_reg, $MVM_reg_obj);
         }
     }

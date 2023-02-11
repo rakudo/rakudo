@@ -676,7 +676,7 @@ class RakuAST::ApplyInfix
                 my $operand := nqp::getattr(self, RakuAST::ApplyInfix, $_);
                 if nqp::istype($operand, RakuAST::Term::Whatever) {
                     my $curried := self.IMPL-CURRIED;
-                    my $param_name := '$whatevercode_arg' ~ ($curried ?? $curried.IMPL-NUM-PARAMS + 1 !! 1);
+                    my $param_name := '$whatevercode_arg_' ~ ($curried ?? $curried.IMPL-NUM-PARAMS + 1 !! 1);
                     my $param;
                     if $curried {
                         $param := $curried.IMPL-ADD-PARAM($param_name);
@@ -696,7 +696,7 @@ class RakuAST::ApplyInfix
             my $param-num := $curried.IMPL-NUM-PARAMS;
             for $params {
                 $param-num++;
-                $_.target.set-name('$whatevercode_arg' ~ $param-num);
+                $_.target.set-name('$whatevercode_arg_' ~ $param-num);
                 $curried.IMPL-ADD-PARAM($_.target.lexical-name);
             }
         }

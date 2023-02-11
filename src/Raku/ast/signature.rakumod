@@ -1087,8 +1087,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        my str $scope := 'lexical';
-        QAST::Var.new( :name($!name), :$scope )
+        QAST::Var.new( :name($!name), :scope('lexical') )
     }
 
     method default-scope() { 'my' }

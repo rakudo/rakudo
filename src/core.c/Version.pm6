@@ -1,19 +1,18 @@
-# class Version {
-#     has $!parts;
-#     has int $!plus;
-#     has int $!whatever;
-#     has str $!string;
-# }
+my class Version {
+    # class Version {
+    #     has $!parts;
+    #     has int $!plus;
+    #     has int $!whatever;
+    #     has str $!string;
+    # }
 
-class Version {
-
-    constant $v  = do {
+    my constant $v  = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list());
         nqp::bindattr_s($version,Version,'$!string',"");
         $version
     }
-    constant $vw = do {
+    my constant $vw = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts',   nqp::list(*));
         nqp::bindattr_i($version,Version,'$!plus',   -1);
@@ -21,31 +20,31 @@ class Version {
         nqp::bindattr_s($version,Version,'$!string', "*");
         $version
     }
-    constant $v6  = do {
+    my constant $v6  = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list(6));
         nqp::bindattr_s($version,Version,'$!string',"6");
         $version
     }
-    constant $v6c = do {
+    my constant $v6c = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"c"));
         nqp::bindattr_s($version,Version,'$!string',"6.c");
         $version
     }
-    constant $v6d = do {
+    my constant $v6d = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"d"));
         nqp::bindattr_s($version,Version,'$!string',"6.d");
         $version
     }
-    constant $v6e = do {
+    my constant $v6e = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"e","PREVIEW"));
         nqp::bindattr_s($version,Version,'$!string',"6.e.PREVIEW");
         $version
     }
-    constant $vplus = do {
+    my constant $vplus = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list);
         nqp::bindattr_i($version,Version,'$!plus',  1);

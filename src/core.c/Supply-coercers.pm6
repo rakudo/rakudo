@@ -789,9 +789,9 @@
                 if &with {
                     whenever $supply -> \val {
                         @values[$index].push(val);
-                        my $new-count = @counts[$index]++;
+                        @counts[$index]++;
                         emit( [[&with]] @values.map(*.shift) ) if all(@values);
-                        done if $new-count == $watermark;
+                        done if all(@counts) >= $watermark;
                         LAST {
                             $watermark min= @counts[$index];
                             done if all(@counts) >= $watermark;
@@ -801,9 +801,9 @@
                 else {
                     whenever $supply -> \val {
                         @values[$index].push(val);
-                        my $new-count = @counts[$index]++;
+                        @counts[$index]++;
                         emit( $(@values.map(*.shift).list.eager) ) if all(@values);
-                        done if $new-count == $watermark;
+                        done if all(@counts) >= $watermark;
                         LAST {
                             $watermark min= @counts[$index];
                             done if all(@counts) >= $watermark;

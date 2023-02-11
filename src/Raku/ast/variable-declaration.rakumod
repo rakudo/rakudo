@@ -422,13 +422,9 @@ class RakuAST::VarDeclaration::Simple
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups;
-        # If it's our-scoped, we need the package to bind it from.
         my str $scope := self.scope;
-        if $scope eq 'our' {
-            @lookups.push(RakuAST::Var::Compiler::Lookup.new('$?PACKAGE'));
-        }
         # If we have a type, we need to resolve that.
-        elsif $!type {
+        if $!type {
             @lookups.push($!type);
         }
         # If we're has/HAS scope, we need Nil to evaluate to.
@@ -516,13 +512,17 @@ class RakuAST::VarDeclaration::Simple
             }
         }
         elsif $scope eq 'our' {
-            # Package scoped lexical alias. We want to bind the lexical to a lookup
-            # in the package.
+            # Package scoped lexical alias. We want to bind the lexical to
+            # a lookup in the package.
             my $name := RakuAST::Name.from-identifier($!name);
             QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) ),
-                $name.IMPL-QAST-PACKAGE-LOOKUP($context, QAST::WVal.new(:value($!package)))
+              :op('bind'),
+              QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) ),
+              QAST::Op.new(
+                :op('callmethod'), :name('VIVIFY-KEY'),
+                QAST::Op.new(:op('who'), QAST::WVal.new(:value($!package))),
+                QAST::SVal.new(:value($!name))
+              )
             )
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
@@ -630,15 +630,6 @@ class RakuAST::VarDeclaration::Simple
                 else {
                     $perform-init-qast
                 }
-            }
-
-            # "our" variable without initialize, need to vivify
-            elsif $scope eq 'our' {
-                QAST::Op.new(
-                  :op('callmethod'), :name('VIVIFY-KEY'),
-                  QAST::Op.new(:op('who'), @lookups[0].IMPL-TO-QAST($context)),
-                  QAST::SVal.new(:value($name))
-                )
             }
 
             # Just a declaration; compile into an access to the variable.

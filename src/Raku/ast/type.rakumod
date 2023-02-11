@@ -318,6 +318,7 @@ class RakuAST::Type::Subset
     is RakuAST::TraitTarget
     is RakuAST::StubbyMeta
     is RakuAST::Attaching
+    is RakuAST::PackageInstaller
 {
     has RakuAST::Name $.name;
     has RakuAST::Expression $.where;
@@ -328,7 +329,7 @@ class RakuAST::Type::Subset
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope || $obj.default-scope);
         for $obj.IMPL-UNWRAP-LIST($traits) {
             $obj.add-trait($_.ast);
         }
@@ -370,107 +371,11 @@ class RakuAST::Type::Subset
         QAST::WVal.new( :$value )
     }
 
-    method IMPL-INSTALL-SUBSET(RakuAST::Resolver $resolver, RakuAST::Name $name, Mu $type-object) {
-        my str $scope := self.scope;
-        my $target;
-        my $final;
-        my $lexical;
-        my $lexically-registered;
-        if $name.is-identifier {
-            $final := $name.canonicalize;
-            $lexical := $resolver.resolve-lexical-constant($final);
-
-            # If the subset shares the name of a stubbed package, it will have resolved via the above.
-            if !$lexical {
-                $resolver.current-scope.merge-generated-lexical-declaration:
-                    # TODO: Using Implicit::Constant because it had the right type signature/QAST output
-                    RakuAST::VarDeclaration::Implicit::Constant.new:
-                        :name($final),
-                        :value($type-object),
-                        :scope($scope);
-            }
-            $lexically-registered := True;
-
-            # If `our`-scoped, also put it into the current package.
-            if $scope eq 'our' {
-                # TODO conflicts
-                $target := $!current-package;
-            }
-        } else {
-            my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
-            $final := nqp::pop(@parts).name;
-            my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
-
-            if $resolved { # first parts of the name found
-                $resolved := self.IMPL-UNWRAP-LIST($resolved);
-                $target := $resolved[0];
-                my $parts := $resolved[1];
-                my @parts := self.IMPL-UNWRAP-LIST($parts);
-                $scope := 'our'; # Ensure we install the package into the parent stash
-                if nqp::elems(@parts) {
-                    my $longname := $target.HOW.name($target);
-
-                    for @parts {
-                        $longname := $longname ~ '::' ~ $_.name;
-                        my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
-                        $package.HOW.compose($package);
-                        my %stash := $resolver.IMPL-STASH-HASH($target);
-                        %stash{$_.name} := $package;
-                        $target := $package;
-                    }
-                }
-            } else {
-                my $first := nqp::shift(@parts).name;
-                $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
-                $target.HOW.compose($target);
-
-                $resolver.current-scope.merge-generated-lexical-declaration:
-                    RakuAST::Declaration::LexicalPackage.new:
-                        :lexical-name($first),
-                        :compile-time-value($target),
-                        :package($!current-package);
-                if $scope eq 'our' {
-                    # TODO conflicts
-                    my %stash := $resolver.IMPL-STASH-HASH($!current-package);
-                    %stash{$first} := $target;
-                }
-                $scope := 'our'; # Ensure we install the package into the generated stub
-
-                my $longname := $first;
-                for @parts {
-                    $longname := $longname ~ '::' ~ $_.name;
-                    my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
-                    $package.HOW.compose($package);
-                    my %stash := $resolver.IMPL-STASH-HASH($target);
-                    %stash{$_.name} := $package;
-                    $target := $package;
-                }
-            }
-            $lexical := $resolver.resolve-lexical-constant($final);
-        }
-
-        my %stash := $resolver.IMPL-STASH-HASH($target);
-        # upgrade a lexically imported package stub to package scope if it exists
-        if $lexical {
-            %stash{$final} := $lexical.compile-time-value;
-        }
-
-        # Take care of installing in case we had to make or find packages
-        if !$lexically-registered {
-            $resolver.current-scope.merge-generated-lexical-declaration:
-                #TODO: Using Implicit::Constant because it had the right type signature/QAST output combination
-                RakuAST::VarDeclaration::Implicit::Constant.new:
-                    :name($final),
-                    :value($type-object),
-                    :scope($scope);
-        }
-
-        if $scope eq 'our' {
-            if nqp::existskey(%stash, $final) {
-                nqp::setwho($type-object, %stash{$final}.WHO);
-            }
-            %stash{$final} := $type-object;
-        }
+    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+        RakuAST::VarDeclaration::Implicit::Constant.new:
+            :name($name),
+            :value($type-object),
+            :scope(self.scope);
     }
 
     method is-begin-performed-after-children() { True }
@@ -526,7 +431,7 @@ class RakuAST::Type::Subset
             ).canonicalize(:colonpairs(0))
         ) if !nqp::eqaddr($!current-package, $resolver.get-global);
 
-        self.IMPL-INSTALL-SUBSET($resolver, $!name, $type-object);
+        self.IMPL-INSTALL-PACKAGE($resolver, self.scope, $!name, $type-object, $!current-package);
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {

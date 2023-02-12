@@ -325,11 +325,11 @@ class RakuAST::Type::Subset
     has RakuAST::Declaration $.of;
     has RakuAST::Package $!current-package;
 
-    method new(RakuAST::Name :$name, RakuAST::Expression :$where, List :$traits, str :$scope) {
+    method new(RakuAST::Name :$name!, RakuAST::Expression :$where, List :$traits, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope || $obj.default-scope);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         for $obj.IMPL-UNWRAP-LIST($traits) {
             $obj.add-trait($_.ast);
         }

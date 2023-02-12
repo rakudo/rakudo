@@ -350,7 +350,7 @@ class RakuAST::Type::Subset
 
     method visit-children(Code $visitor) {
         $visitor($!name);
-        $visitor($!where);
+        $visitor($!where) if $!where;
         # External constants break if visited with missing IMPL-QAST-DECL. Adding a sensible IMPL-QAST-DECL
         # results in lexical declarations for things like Int, which will break if added more than once.
         $visitor($!of) if $!of && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
@@ -394,7 +394,7 @@ class RakuAST::Type::Subset
         }
 
         my $block;
-        if !$!where.IMPL-CURRIED && (!nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) {
+        if $!where && !$!where.IMPL-CURRIED && (!nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) {
             $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(
@@ -447,12 +447,14 @@ class RakuAST::Type::Subset
         if $!of {
             $type.HOW.set_of($type, $!of.compile-time-value);
         }
-        $type.HOW.set_where(
-            $type,
-            $!where.IMPL-CURRIED
-                ?? $!where.IMPL-CURRIED.meta-object
-                !! $!where.compile-time-value
-        );
+        if $!where {
+            $type.HOW.set_where(
+                $type,
+                $!where.IMPL-CURRIED
+                    ?? $!where.IMPL-CURRIED.meta-object
+                    !! $!where.compile-time-value
+            );
+        }
         $type
     }
 }

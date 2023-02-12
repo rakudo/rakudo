@@ -1711,7 +1711,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method type_declarator:sym<subset>($/) {
         my $decl := self.r('Type', 'Subset').new(
             :name($<longname>.ast),
-            :where($<EXPR>.ast),
+            :where($<EXPR> ?? $<EXPR>.ast !! Mu),
             :traits($<trait>),
             :scope($*SCOPE)
         );

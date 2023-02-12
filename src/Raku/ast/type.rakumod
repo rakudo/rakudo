@@ -365,7 +365,7 @@ class RakuAST::Type::Subset
         nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
     }
 
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContenxt $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.meta-object;
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )

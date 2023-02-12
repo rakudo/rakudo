@@ -534,6 +534,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*LITERALS;
         :my $*EXPORT;
         :my $*NEXT_STATEMENT_ID := 1; # to give each statement an ID
+        :my $*begin_compunit := 1;    # whether we're at start of a compilation unit
         <.comp_unit_stage0>
         <.lang_setup($outer-cu)>
 
@@ -1911,9 +1912,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait($*PACKAGE)>*
         <.enter-package-scope>
         [
-        || <?[{]> <block>
+        || <?[{]> { $*begin_compunit := 0; } <block>
         || ';'
-            <unit-block($*PKGDECL)>
+            [
+            || <?{ $*begin_compunit }>
+                { $*begin_compunit := 0; }
+                <unit-block($*PKGDECL)>
+            || { $/.typed_panic("X::UnitScope::TooLate", what => $*PKGDECL); }
+            ]
         || <.panic("Unable to parse $*PKGDECL definition")>
         ]
         <.leave-block-scope>
@@ -2103,6 +2109,27 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait($*BLOCK)>* :!s
         { $*IN_DECL := ''; }
         [
+        || ';'
+            {
+                if $<deflongname> ne 'MAIN' {
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub",
+                        where => "except on a MAIN sub", suggestion =>
+                        'Please use the block form. If you did not mean to '
+                        ~ "declare a unit-scoped sub,\nperhaps you accidentally "
+                        ~ "placed a semicolon after routine's definition?"
+                    );
+                }
+                unless $*begin_compunit {
+                    $/.typed_panic("X::UnitScope::TooLate", what => "sub");
+                }
+                unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "on a $*MULTINESS sub");
+                }
+                unless $*R.outer-scope =:= $*UNIT {
+                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "in a subscope");
+                }
+                $*begin_compunit := 0;
+            }
         || <onlystar>
         || <blockoid>
         ]

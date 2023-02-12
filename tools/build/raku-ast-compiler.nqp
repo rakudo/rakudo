@@ -111,6 +111,10 @@ grammar RakuASTParser {
         nqp::die( "$message near '" ~ nqp::substr(self.orig, self.pos, 20) ~ "' at "
             ~ $*CURRENT-FILE ~ ":" ~ HLL::Compiler.lineof(self.target, self.pos, :cache))
     }
+
+    method line-of($whatever) {
+        -1
+    }
 }
 
 # AST

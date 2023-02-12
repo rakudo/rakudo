@@ -791,7 +791,7 @@
                         @values[$index].push(val);
                         my $new-count = @counts[$index]++;
                         emit( [[&with]] @values.map(*.shift) ) if all(@values);
-                        done if $new-count == $watermark;
+                        done if $new-count >= $watermark;
                         LAST {
                             $watermark min= @counts[$index];
                             done if all(@counts) >= $watermark;
@@ -803,7 +803,7 @@
                         @values[$index].push(val);
                         my $new-count = @counts[$index]++;
                         emit( $(@values.map(*.shift).list.eager) ) if all(@values);
-                        done if $new-count == $watermark;
+                        done if $new-count >= $watermark;
                         LAST {
                             $watermark min= @counts[$index];
                             done if all(@counts) >= $watermark;

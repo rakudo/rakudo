@@ -250,3 +250,28 @@ class RakuAST::Trait::Returns
         $visitor($!type);
     }
 }
+
+# The will trait.
+class RakuAST::Trait::Will
+  is RakuAST::Trait
+{
+    has str $.type;
+    has RakuAST::Expression $.expr;
+
+    method new(str $type, RakuAST::Expression $expr) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Trait::Will, '$!type', $type);
+        nqp::bindattr($obj, RakuAST::Trait::Will, '$!expr', $expr);
+        $obj
+    }
+
+    method IMPL-TRAIT-NAME() { 'will' }
+
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
+        RakuAST::ArgList.new($target, RakuAST::ColonPair::Value.new(:key($!type), :value($!expr)))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!expr);
+    }
+}

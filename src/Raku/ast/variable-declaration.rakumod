@@ -232,7 +232,7 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method lexical-name() {
-        $!name
+        self.twigil eq '.' ?? self.sigil ~ '!' ~ self.desigilname !! $!name
     }
 
     method sigil() {
@@ -377,6 +377,11 @@ class RakuAST::VarDeclaration::Simple
                 );
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!container-initializer',
                     $thunk.meta-object);
+            }
+
+            if $!initializer {
+                my $initializer := $!initializer;
+                self.add-trait(RakuAST::Trait::Will.new('build', $initializer.expression));
             }
 
             # For attributes our meta-object is an appropriate Attribute instance

@@ -1183,9 +1183,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method term:sym<name>($/) {
         if $<args> {
-            self.attach: $/, self.r('Call', 'Name').new:
-                name => $<longname>.ast,
-                args => $<args>.ast;
+            my $args := $<args>.ast;
+            my $name := $<longname>.ast;
+            if $args.invocant {
+                # Indirect method call syntax, e.g. new Int: 1
+                self.attach: $/, self.r('ApplyPostfix').new:
+                    :operand($args.invocant),
+                    :postfix(self.r('Call', 'Method').new(:$name, :$args));
+            }
+            else {
+                self.attach: $/, self.r('Call', 'Name').new: name => $name, args => $args
+            }
         }
         else {
             if $*is-type {
@@ -2299,6 +2307,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     nqp::istype($expr.infix, self.r('Infix')) &&
                     $expr.infix.operator eq ',' {
                 self.attach: $/, self.r('ArgList').from-comma-list($expr);
+            }
+            elsif nqp::istype($expr, self.r('ApplyListInfix')) &&
+                    nqp::istype($expr.infix, self.r('Infix')) &&
+                    $expr.infix.operator eq ':' {
+                self.attach: $/, self.r('ArgList').from-invocant-list($expr);
             }
             else {
                 self.attach: $/, self.r('ArgList').new($expr);

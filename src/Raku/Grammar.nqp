@@ -1494,6 +1494,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<,>    {
         <.unsp>? <sym> <O(|%comma, :fiddly(0))>
     }
+    token infix:sym<:>    {
+        <?{ $*INVOCANT_OK && $*GOAL ne '!!' }>
+        <.unsp>? <sym> <?before \s | <.terminator> | $ >
+        <O(|%comma, :fiddly(0))>
+        [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
+        { $*INVOCANT_OK := 0; }
+    }
 
     token infix:sym<Z>    { <!before <.sym> <.infixish> > <sym>  <O(|%list_infix)> }
     token infix:sym<X>    { <!before <.sym> <.infixish> > <sym>  <O(|%list_infix)> }

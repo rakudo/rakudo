@@ -3,6 +3,7 @@ class RakuAST::ArgList
   is RakuAST::CaptureSource
 {
     has List $!args;
+    has RakuAST::Expression $.invocant;
 
     method new(*@args) {
         my $obj := nqp::create(self);
@@ -17,6 +18,14 @@ class RakuAST::ArgList
         $obj
     }
 
+    method from-invocant-list(RakuAST::ApplyListInfix $colon-apply) {
+        my $obj := nqp::create(self);
+        my @args := nqp::clone(self.IMPL-UNWRAP-LIST($colon-apply.operands));
+        nqp::bindattr($obj, RakuAST::ArgList, '$!invocant', nqp::shift(@args));
+        nqp::bindattr($obj, RakuAST::ArgList, '$!args', @args);
+        $obj
+    }
+
     method has-args() { nqp::elems($!args) }
 
     method args() {
@@ -25,6 +34,7 @@ class RakuAST::ArgList
 
     method visit-children(Code $visitor) {
         my @args := $!args;
+        $visitor($!invocant) if $!invocant;
         for @args {
             $visitor($_);
         }

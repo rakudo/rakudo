@@ -1712,9 +1712,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $decl := self.r('Type', 'Subset').new(
             :name($<longname>.ast),
             :where($<EXPR> ?? $<EXPR>.ast !! Mu),
-            :traits($<trait>),
             :scope($*SCOPE)
         );
+        for $<trait> {
+            $decl.add-trait($_.ast);
+        }
         $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
     }

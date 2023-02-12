@@ -317,23 +317,37 @@ class RakuAST::Type::Subset
     is RakuAST::BeginTime
     is RakuAST::TraitTarget
     is RakuAST::StubbyMeta
-    is RakuAST::Attaching
     is RakuAST::PackageInstaller
 {
-    has RakuAST::Name $.name;
+    has RakuAST::Name       $.name;
+    has RakuAST::Trait::Of  $.of;
     has RakuAST::Expression $.where;
-    has RakuAST::Declaration $.of;
-    has RakuAST::Package $!current-package;
+    has Mu $!meta;
 
-    method new(RakuAST::Name :$name!, RakuAST::Expression :$where, List :$traits, str :$scope) {
+    method new(
+      str                 :$scope,
+      RakuAST::Name       :$name!,
+      RakuAST::Trait::Of  :$of,
+      RakuAST::Expression :$where,
+      List                :$traits
+    ) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
-        for $obj.IMPL-UNWRAP-LIST($traits) {
-            $obj.add-trait($_.ast);
-        }
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!of', $of) if $of;
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where) if $where;
+        $obj.handle-traits($traits) if $traits;
         $obj
+    }
+
+    method handle-traits($traits) {
+        for self.IMPL-UNWRAP-LIST($traits) {
+            nqp::istype($_, RakuAST::Trait::Of)
+              ?? $!of
+                ?? nqp::die("Cannot declare more than one 'of' trait per subset")
+                !! nqp::bindattr(self, RakuAST::Type::Subset, '$!of', $_)
+              !! self.add-trait($_);
+        }
     }
 
     method default-scope() { 'our' }
@@ -351,19 +365,14 @@ class RakuAST::Type::Subset
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor($!where) if $!where;
-        # External constants break if visited with missing IMPL-QAST-DECL. Adding a sensible IMPL-QAST-DECL
-        # results in lexical declarations for things like Int, which will break if added more than once.
-        $visitor($!of) if $!of && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
-        # Below fails with No such method 'apply-sink' for invocant of type 'GLOBALish'
-        #$visitor($!current-package);
+        # External constants break if visited with missing IMPL-QAST-DECL.
+        # Adding a sensible IMPL-QAST-DECL results in lexical declarations
+        # for things like Int, which will break if added more than once.
+        $visitor($!of) if $!of; # && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
     }
 
     method is-lexical() { True }
     method is-simple-lexical-declaration() { False }
-
-    method attach(RakuAST::Resolver $resolver) {
-        nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
-    }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.meta-object;
@@ -383,17 +392,7 @@ class RakuAST::Type::Subset
     method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.apply-traits($resolver, $context, self);
 
-        for self.IMPL-UNWRAP-LIST(self.traits) {
-            if nqp::istype($_, RakuAST::Trait::Of) {
-                if $!of {
-                    nqp::die("Cannot declare more than one 'of' trait per subset");
-                }
-                my $of-type := $resolver.resolve-name-constant($_.type.name);
-                nqp::bindattr(self, RakuAST::Type::Subset, '$!of', $of-type);
-            }
-        }
-
-        my $block;
+        my $block := $!where;
         if $!where && !$!where.IMPL-CURRIED && (!nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) {
             $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
@@ -418,20 +417,32 @@ class RakuAST::Type::Subset
                 ),
             );
             $block.IMPL-CHECK($resolver, $context, False);
-            nqp::bindattr(self, RakuAST::Type::Subset, '$!where', $block);
         }
 
-        my $type-object := self.stubbed-meta-object;
-        $type-object.HOW.set_name(
-            $type-object,
-            $!name.qualified-with(
-                RakuAST::Name.from-identifier-parts(
-                    |nqp::split('::', $!current-package.HOW.name($!current-package))
-                )
-            ).canonicalize(:colonpairs(0))
-        ) if !nqp::eqaddr($!current-package, $resolver.get-global);
+        # set up the meta object
+        my $package := $resolver.current-package;
+        my $meta    := self.stubbed-meta-object;
+        $meta.HOW.set_name(
+          $meta,
+          $!name.qualified-with(
+            RakuAST::Name.from-identifier-parts(
+              |nqp::split('::', $package.HOW.name($package))
+            )
+          ).canonicalize(:colonpairs(0))
+        ) unless nqp::eqaddr($package, $resolver.get-global);
 
-        self.IMPL-INSTALL-PACKAGE($resolver, self.scope, $!name, $type-object, $!current-package);
+        $meta.HOW.set_of($meta, $!of.compile-time-value) if $!of;
+        $meta.HOW.set_where(
+          $meta,
+          $block.IMPL-CURRIED
+            ?? $block.IMPL-CURRIED.meta-object
+            !! $block.compile-time-value
+        ) if $block;
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!meta', $meta);
+
+        self.IMPL-INSTALL-PACKAGE(
+          $resolver, self.scope, $!name, $meta, $package
+        );
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
@@ -442,19 +453,5 @@ class RakuAST::Type::Subset
         )
     }
 
-    method PRODUCE-META-OBJECT() {
-        my $type := self.stubbed-meta-object;
-        if $!of {
-            $type.HOW.set_of($type, $!of.compile-time-value);
-        }
-        if $!where {
-            $type.HOW.set_where(
-                $type,
-                $!where.IMPL-CURRIED
-                    ?? $!where.IMPL-CURRIED.meta-object
-                    !! $!where.compile-time-value
-            );
-        }
-        $type
-    }
+    method PRODUCE-META-OBJECT() { $!meta }
 }

@@ -269,13 +269,11 @@ class RakuAST::Deparse {
           ~ $.square-close
     }
 
-    method !typish-trait(RakuAST::Trait:D $ast --> Str:D) {
+    method !typish-trait($ast --> Str:D) {
         $ast.IMPL-TRAIT-NAME ~ ' ' ~ self.deparse($ast.type)
     }
 
-    method !method-call(
-      RakuAST::Call::Methodish:D $ast, str $dot, $macroish?
-    --> Str:D) {
+    method !method-call($ast, str $dot, $macroish? --> Str:D) {
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
 
@@ -1805,6 +1803,18 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Type::Parameterized:D $ast --> Str:D) {
         self.deparse($ast.name) ~ '[' ~ self.deparse($ast.args) ~ ']'
+    }
+
+    multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {
+        my str @parts = 'subset';
+
+        @parts.unshift($ast.scope) if $ast.scope;
+        @parts.push(self.deparse($ast.name));
+        @parts.push(self.deparse($_)) with $ast.of;
+        @parts.push(self.deparse($_)) for $ast.traits;
+        @parts.push('where ' ~ self.deparse($_)) with $ast.where;
+
+        @parts.join(' ')
     }
 
 #- Var -------------------------------------------------------------------------

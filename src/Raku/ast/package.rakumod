@@ -456,3 +456,20 @@ class RakuAST::Package
 
     method needs-sink-call() { False }
 }
+
+class RakuAST::Package::Augmented
+    is RakuAST::Package
+    is RakuAST::Lookup
+{
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-name(self.name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method PRODUCE-STUBBED-META-OBJECT() {
+        self.resolution.compile-time-value
+    }
+}

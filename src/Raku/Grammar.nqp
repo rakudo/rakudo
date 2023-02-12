@@ -1946,6 +1946,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token scope_declarator:sym<state> { <sym> <scoped('state')> }
     token scope_declarator:sym<unit>  { <sym> <scoped('unit')> }
 
+    token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
+    token scope_declarator:sym<supersede> {
+        <sym> <scoped('supersede')> <.NYI('"supersede"')>
+    }
+
     token scoped($*SCOPE) {
         <.end_keyword>
         :dba('scoped declarator')

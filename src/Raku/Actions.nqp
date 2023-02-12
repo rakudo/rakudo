@@ -1470,7 +1470,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my str $scope := $*SCOPE // 'our';
         my $name-match := $*PACKAGE-NAME;
         my $name := $name-match ?? $name-match.ast !! self.r('Name');
-        $*PACKAGE := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
+        if $scope eq 'augment' {
+            $*PACKAGE := self.r('Package', 'Augmented').new: :$package-declarator, :$how, :$name, :$scope;
+            $*PACKAGE.IMPL-CHECK($*R, $*CU.context, 1);
+        }
+        else {
+            $*PACKAGE := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
+        }
     }
 
     method enter-package-scope($/) {
@@ -1493,6 +1499,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method scope_declarator:sym<anon>($/)  { self.attach: $/, $<scoped>.ast; }
     method scope_declarator:sym<state>($/) { self.attach: $/, $<scoped>.ast; }
     method scope_declarator:sym<unit>($/)  { self.attach: $/, $<scoped>.ast; }
+
+    method scope_declarator:sym<augment>($/) { self.attach: $/, $<scoped>.ast; }
 
     method scoped($/) {
         self.attach: $/, $<DECL>.ast;

@@ -181,7 +181,10 @@ my class X::Method::NotFound is Exception {
           !! "of type '$.typename'"
     }
 
-    method message() { $!message // self!create-message }
+    method message() {
+        (try $!message // self!create-message)
+          // "Method " ~ $.invocant.^name ~ "." ~ $.method ~ " not found";
+    }
     method suggestions() {
         self!create-message unless $!message;
         @!suggestions
@@ -2690,6 +2693,8 @@ my class X::TypeCheck is Exception {
         "Type check failed in $.operation; " ~ $.explain
     }
 }
+
+my class X::Comp::TypeCheck is X::TypeCheck does X::Comp { }
 
 my class X::TypeCheck::Binding is X::TypeCheck {
     has $.symbol;

@@ -178,7 +178,7 @@ sub showop(@actions --> Str:D) {
 }
 
 sub EXPORT(*@classes) {
-    note BUILDPLAN(nqp::isconcrete($_) ?? ::($_) !! $_)
+    note BUILDPLAN(nqp::isconcrete($_) ?? (::($_)) !! $_)
       for @classes;
 
     EXPORT::DEFAULT::

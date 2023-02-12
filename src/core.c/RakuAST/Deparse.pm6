@@ -588,7 +588,7 @@ class RakuAST::Deparse {
         my str @parts;
 
         if $ast.scope -> $scope {
-            @parts.push($scope) if $scope ne 'our';
+            @parts.push($scope) if $scope ne 'our'; # XXX
         }
 
         @parts.push($ast.package-declarator);
@@ -1807,8 +1807,9 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {
         my str @parts = 'subset';
+        my str $scope = $ast.scope;
 
-        @parts.unshift($ast.scope) if $ast.scope;
+        @parts.unshift($scope) if $scope && $scope ne 'our'; # XXX
         @parts.push(self.deparse($ast.name));
         @parts.push(self.deparse($_)) with $ast.of;
         @parts.push(self.deparse($_)) for $ast.traits;
@@ -1840,7 +1841,8 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Var::Lexical:D $ast --> Str:D) {
-        $ast.name
+        my $name := $ast.name;
+        $name.starts-with('$whatevercode_arg_') ?? '*' !! $name
     }
 
     multi method deparse(RakuAST::Var::NamedCapture:D $ast --> Str:D) {

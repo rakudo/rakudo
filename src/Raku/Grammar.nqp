@@ -1734,11 +1734,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*is-type;
         <longname>
         [
-        || <?{ $*R.is-name-known($<longname>.ast) }>
-           { $*is-type := $*R.is-name-type($<longname>.ast) }
+        || <?{ nqp::eqat($<longname>.Str, '::', 0) || $*R.is-name-known($<longname>.ast) }>
+            { $*is-type := $*R.is-name-type($<longname>.ast) }
             [
                 <?[[]> <?{ $*is-type }>
                 :dba('type parameter') '[' ~ ']' <arglist>
+            ]?
+            <.unsp>?
+            [
+                <?[{]> <?{ $*is-type }>
+                <whence=.postcircumfix> <.NYI('Autovivifying object closures')>
+            ]?
+            <.unsp>?
+            [
+                <?[(]> <?{ $*is-type }>
+                '(' <.ws> [
+                    || <accept=.maybe_typename> <!{ nqp::isconcrete($<accept>.ast) }>
+                    || $<accept_any>=<?>
+                ] <.ws> ')'
             ]?
         || [ \\ <?before '('> ]? <args(1)>
            {
@@ -2569,6 +2582,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         } <whence=.postcircumfix> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
+    }
+
+    method maybe_typename() {
+        return self.typename();
+        CATCH { return self.'!cursor_start_cur'() }
     }
 
     ##

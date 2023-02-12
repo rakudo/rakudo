@@ -6,6 +6,7 @@ class RakuAST::Term::Name
   is RakuAST::Lookup
 {
     has RakuAST::Name $.name;
+    has Mu $!package;
 
     method new(RakuAST::Name $name) {
         my $obj := nqp::create(self);
@@ -13,17 +14,49 @@ class RakuAST::Term::Name
         $obj
     }
 
+    method attach(RakuAST::Resolver $resolver) {
+        my $package := $resolver.find-attach-target('package');
+        nqp::bindattr(self, RakuAST::Term::Name, '$!package', $package);
+    }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-name($!name);
         if $resolved {
             self.set-resolution($resolved);
+        }
+        elsif $!name.is-package-lookup {
+            my $name := $!name.base-name;
+            if $name.canonicalize {
+                $resolved := $resolver.resolve-name($name);
+                if $resolved {
+                    my $v := $resolved.compile-time-value;
+                    self.set-resolution($resolved);
+                }
+            }
         }
         Nil
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # TODO indirects, trailing ::, etc.
-        self.resolution.IMPL-LOOKUP-QAST($context)
+        if $!name.is-package-lookup {
+            return self.is-resolved
+                ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                    $context,
+                    QAST::WVal.new(:value($!package)),
+                    :lexical(self.resolution)
+                )
+                !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                    $context,
+                    QAST::WVal.new(:value($!package))
+                );
+        }
+        elsif $!name.is-indirect-lookup {
+            return $!name.IMPL-QAST-INDIRECT-LOOKUP($context);
+        }
+        else {
+            self.resolution.IMPL-LOOKUP-QAST($context)
+        }
     }
 
     method visit-children(Code $visitor) {

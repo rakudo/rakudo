@@ -1182,9 +1182,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<name>($/) {
+        my $name := $<longname>.ast;
         if $<args> {
             my $args := $<args>.ast;
-            my $name := $<longname>.ast;
             if $args.invocant {
                 # Indirect method call syntax, e.g. new Int: 1
                 self.attach: $/, self.r('ApplyPostfix').new:
@@ -1197,14 +1197,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             if $*is-type {
-                my $type := self.r('Type', 'Simple').new($<longname>.ast);
+                my $type := self.r('Type', 'Simple').new($name);
                 if $<arglist> {
                     $type := self.r('Type', 'Parameterized').new($type, $<arglist>.ast);
                 }
                 self.attach: $/, $type;
             }
             else {
-                self.attach: $/, self.r('Term', 'Name').new($<longname>.ast);
+                self.attach: $/, self.r('Term', 'Name').new($name);
             }
         }
     }

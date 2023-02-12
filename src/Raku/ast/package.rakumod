@@ -20,6 +20,7 @@ class RakuAST::LexPad
 }
 
 class RakuAST::Package
+  is RakuAST::PackageInstaller
   is RakuAST::StubbyMeta
   is RakuAST::Term
   is RakuAST::IMPL::ImmediateBlockUser
@@ -117,91 +118,11 @@ class RakuAST::Package
     # We install the name before parsing the class body.
     method is-begin-performed-before-children() { True }
 
-    method IMPL-INSTALL-PACKAGE(RakuAST::Resolver $resolver, str $scope, RakuAST::Name $name, Mu $type-object) {
-        my $target;
-        my $final;
-        my $lexical;
-        if $name.is-identifier {
-            $final := $name.canonicalize;
-            $lexical := $resolver.resolve-lexical-constant($final);
-            # We always install it as a lexical symbol.
-            $resolver.current-scope.merge-generated-lexical-declaration:
-                RakuAST::Declaration::LexicalPackage.new:
-                    :lexical-name($name.canonicalize),
-                    :compile-time-value($type-object),
-                    :package(self);
-
-            # If `our`-scoped, also put it into the current package.
-            if $scope eq 'our' {
-                # TODO conflicts
-                $target := $resolver.current-package;
-            }
-        }
-        else {
-            my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
-            $final := nqp::pop(@parts).name;
-            my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
-
-            if $resolved { # first parts of the name found
-                $resolved := self.IMPL-UNWRAP-LIST($resolved);
-                $target := $resolved[0];
-                my $parts  := $resolved[1];
-                my @parts := self.IMPL-UNWRAP-LIST($parts);
-                $scope := 'our'; # Ensure we install the package into the parent stash
-                if nqp::elems(@parts) {
-                    my $longname := $target.HOW.name($target);
-
-                    for @parts {
-                        $longname := $longname ~ '::' ~ $_.name;
-                        my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
-                        $package.HOW.compose($package);
-                        my %stash := $resolver.IMPL-STASH-HASH($target);
-                        %stash{$_.name} := $package;
-                        $target := $package;
-                    }
-                }
-            }
-            else {
-                my $first := nqp::shift(@parts).name;
-                $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
-                $target.HOW.compose($target);
-
-                $resolver.current-scope.merge-generated-lexical-declaration:
-                    RakuAST::Declaration::LexicalPackage.new:
-                        :lexical-name($first),
-                        :compile-time-value($target),
-                        :package(self);
-                if $scope eq 'our' {
-                    # TODO conflicts
-                    my %stash := $resolver.IMPL-STASH-HASH($resolver.current-package);
-                    %stash{$first} := $target;
-                }
-                $scope := 'our'; # Ensure we install the package into the generated stub
-
-                my $longname := $first;
-                for @parts {
-                    $longname := $longname ~ '::' ~ $_.name;
-                    my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
-                    $package.HOW.compose($package);
-                    my %stash := $resolver.IMPL-STASH-HASH($target);
-                    %stash{$_.name} := $package;
-                    $target := $package;
-                }
-            }
-            $lexical := $resolver.resolve-lexical-constant($final);
-        }
-
-        my %stash := $resolver.IMPL-STASH-HASH($target);
-        # upgrade a lexically imported package stub to package scope if it exists
-        if $lexical {
-            %stash{$final} := $lexical.compile-time-value;
-        }
-        if $scope eq 'our' {
-            if nqp::existskey(%stash, $final) {
-                nqp::setwho($type-object, %stash{$final}.WHO);
-            }
-            %stash{$final} := $type-object;
-        }
+    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+        RakuAST::Declaration::LexicalPackage.new:
+            :lexical-name($name),
+            :compile-time-value($type-object),
+            :package(self);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -228,7 +149,7 @@ class RakuAST::Package
 
             if ($scope eq 'my' || $scope eq 'our') && $!package-declarator ne 'role' {
                 # Need to install the package somewhere.
-                self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $type-object);
+                self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $type-object, $resolver.current-package);
             }
 
             elsif $!package-declarator eq 'role' {
@@ -252,7 +173,7 @@ class RakuAST::Package
                         )
                     );
                     if $scope eq 'our' {
-                        self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $group);
+                        self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $group, $resolver.current-package);
                     }
                 }
                 # Add ourselves to the role group

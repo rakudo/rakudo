@@ -2240,6 +2240,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
     }
 
+    rule type_declarator:sym<subset> {
+        :my $*IN_DECL := 'subset';
+        <sym><.kok>
+        [
+            [
+                [
+                    <longname>
+                ]
+                { $*IN_DECL := '' }
+                <trait>*
+                [ where <EXPR('e=')> ]?
+            ]
+            || <.malformed('subset')>
+        ]
+    }
+
     rule trait($*TARGET?) {
         :my $*IN_DECL := '';
         <trait_mod>

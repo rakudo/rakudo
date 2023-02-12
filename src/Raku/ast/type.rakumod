@@ -310,3 +310,151 @@ class RakuAST::Type::Parameterized
         False
     }
 }
+
+class RakuAST::Type::Subset
+    is RakuAST::Type
+    is RakuAST::Declaration
+    is RakuAST::BeginTime
+    is RakuAST::TraitTarget
+    is RakuAST::StubbyMeta
+    is RakuAST::Attaching
+    is RakuAST::PackageInstaller
+{
+    has RakuAST::Name $.name;
+    has RakuAST::Expression $.where;
+    has RakuAST::Declaration $.of;
+    has RakuAST::Package $!current-package;
+
+    method new(RakuAST::Name :$name, RakuAST::Expression :$where, List :$traits, str :$scope) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope || $obj.default-scope);
+        for $obj.IMPL-UNWRAP-LIST($traits) {
+            $obj.add-trait($_.ast);
+        }
+        $obj
+    }
+
+    method default-scope() { 'our' }
+
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
+
+    method lexical-name() { $!name.canonicalize }
+
+    method generate-lookup() {
+        my $lookup := RakuAST::Term::Name.new($!name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+        $visitor($!where) if $!where;
+        # External constants break if visited with missing IMPL-QAST-DECL. Adding a sensible IMPL-QAST-DECL
+        # results in lexical declarations for things like Int, which will break if added more than once.
+        $visitor($!of) if $!of && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
+        # Below fails with No such method 'apply-sink' for invocant of type 'GLOBALish'
+        #$visitor($!current-package);
+    }
+
+    method is-lexical() { True }
+    method is-simple-lexical-declaration() { False }
+
+    method attach(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContenxt $context) {
+        my $value := self.meta-object;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+        RakuAST::VarDeclaration::Implicit::Constant.new:
+            :name($name),
+            :value($type-object),
+            :scope(self.scope);
+    }
+
+    method is-begin-performed-after-children() { True }
+
+    method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.apply-traits($resolver, $context, self);
+
+        for self.IMPL-UNWRAP-LIST(self.traits) {
+            if nqp::istype($_, RakuAST::Trait::Of) {
+                if $!of {
+                    nqp::die("Cannot declare more than one 'of' trait per subset");
+                }
+                my $of-type := $resolver.resolve-name-constant($_.type.name);
+                nqp::bindattr(self, RakuAST::Type::Subset, '$!of', $of-type);
+            }
+        }
+
+        my $block;
+        if $!where && !$!where.IMPL-CURRIED && (!nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) {
+            $block := RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            expression => RakuAST::ApplyPostfix.new(
+                                operand => RakuAST::ApplyPostfix.new(
+                                    operand => $!where,
+                                    postfix => RakuAST::Call::Method.new(
+                                        name => RakuAST::Name.from-identifier('ACCEPTS'),
+                                        args => RakuAST::ArgList.new(
+                                            RakuAST::Var::Lexical.new('$_'),
+                                        ),
+                                    ),
+                                ),
+                                postfix => RakuAST::Call::Method.new(
+                                    name => RakuAST::Name.from-identifier('Bool'),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            );
+            $block.IMPL-CHECK($resolver, $context, False);
+            nqp::bindattr(self, RakuAST::Type::Subset, '$!where', $block);
+        }
+
+        my $type-object := self.stubbed-meta-object;
+        $type-object.HOW.set_name(
+            $type-object,
+            $!name.qualified-with(
+                RakuAST::Name.from-identifier-parts(
+                    |nqp::split('::', $!current-package.HOW.name($!current-package))
+                )
+            ).canonicalize(:colonpairs(0))
+        ) if !nqp::eqaddr($!current-package, $resolver.get-global);
+
+        self.IMPL-INSTALL-PACKAGE($resolver, self.scope, $!name, $type-object, $!current-package);
+    }
+
+    method PRODUCE-STUBBED-META-OBJECT() {
+        Perl6::Metamodel::SubsetHOW.new_type(
+            :name($!name.canonicalize),
+            :refinee(Any),
+            :refinement(Any)
+        )
+    }
+
+    method PRODUCE-META-OBJECT() {
+        my $type := self.stubbed-meta-object;
+        if $!of {
+            $type.HOW.set_of($type, $!of.compile-time-value);
+        }
+        if $!where {
+            $type.HOW.set_where(
+                $type,
+                $!where.IMPL-CURRIED
+                    ?? $!where.IMPL-CURRIED.meta-object
+                    !! $!where.compile-time-value
+            );
+        }
+        $type
+    }
+}

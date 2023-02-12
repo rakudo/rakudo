@@ -95,7 +95,7 @@ class RakuAST::Resolver {
     # Obtains the current package. This is not a RakuAST::Package node, but
     # rather the type object of the package we are currently in.
     method current-package() {
-        int $n := nqp::elems($!packages);
+        my int $n := nqp::elems($!packages);
         if $n == 0 {
             my $current := $!outer;
             while !nqp::eqaddr($current, $!setting) {

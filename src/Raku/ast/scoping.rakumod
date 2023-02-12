@@ -663,3 +663,99 @@ class RakuAST::ImplicitLookups
         }
     }
 }
+
+# Anything that needs to stub packages into existence -- or to fill in stubbed packages -- does RakuAST::PackageInstaller
+class RakuAST::PackageInstaller {
+    ### Consuming classes must define:
+    #    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) { ... }
+
+    method IMPL-INSTALL-PACKAGE(
+        RakuAST::Resolver $resolver,
+        str $scope,
+        RakuAST::Name $name,
+        Mu $type-object,
+        RakuAST::Package $current-package
+     ) {
+        my $target;
+        my $final;
+        my $lexical;
+        my $pure-package-installation := nqp::istype(self, RakuAST::Package);
+        if $name.is-identifier {
+            $final := $name.canonicalize;
+            $lexical := $resolver.resolve-lexical-constant($final);
+            if $pure-package-installation || !$lexical {
+                $resolver.current-scope.merge-generated-lexical-declaration:
+                    self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $type-object);
+            }
+            # If `our`-scoped, also put it into the current package.
+            if $scope eq 'our' {
+                # TODO conflicts
+                $target := $current-package;
+            }
+        }
+        else {
+            my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($name.parts));
+            $final := nqp::pop(@parts).name;
+            my $resolved := $resolver.partially-resolve-name-constant(RakuAST::Name.new(|@parts));
+
+            if $resolved { # first parts of the name found
+                $resolved := self.IMPL-UNWRAP-LIST($resolved);
+                $target := $resolved[0];
+                my $parts  := $resolved[1];
+                my @parts := self.IMPL-UNWRAP-LIST($parts);
+                $scope := 'our'; # Ensure we install the package into the parent stash
+                if nqp::elems(@parts) {
+                    my $longname := $target.HOW.name($target);
+
+                    for @parts {
+                        $longname := $longname ~ '::' ~ $_.name;
+                        my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
+                        $package.HOW.compose($package);
+                        my %stash := $resolver.IMPL-STASH-HASH($target);
+                        %stash{$_.name} := $package;
+                        $target := $package;
+                    }
+                }
+            }
+            else {
+                my $first := nqp::shift(@parts).name;
+                $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
+                $target.HOW.compose($target);
+                $resolver.current-scope.merge-generated-lexical-declaration:
+                    RakuAST::Declaration::LexicalPackage.new:
+                        :lexical-name($first),
+                        :compile-time-value($target),
+                        :package($pure-package-installation ?? self !! $current-package);
+                if $scope eq 'our' {
+                    # TODO conflicts
+                    my %stash := $resolver.IMPL-STASH-HASH($current-package);
+                    %stash{$first} := $target;
+                }
+                $scope := 'our'; # Ensure we install the package into the generated stub
+
+                my $longname := $first;
+                for @parts {
+                    $longname := $longname ~ '::' ~ $_.name;
+                    my $package := Perl6::Metamodel::PackageHOW.new_type(name => $longname);
+                    $package.HOW.compose($package);
+                    my %stash := $resolver.IMPL-STASH-HASH($target);
+                    %stash{$_.name} := $package;
+                    $target := $package;
+                }
+            }
+            $lexical := $resolver.resolve-lexical-constant($final);
+        }
+
+        my %stash := $resolver.IMPL-STASH-HASH($target);
+        # upgrade a lexically imported package stub to package scope if it exists
+        if $lexical {
+            %stash{$final} := $lexical.compile-time-value;
+        }
+        if $scope eq 'our' {
+            if nqp::existskey(%stash, $final) {
+                nqp::setwho($type-object, %stash{$final}.WHO);
+            }
+            %stash{$final} := $type-object;
+        }
+    }
+}

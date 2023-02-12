@@ -503,6 +503,9 @@ class RakuAST::Parameter
         if nqp::defined($!value) {
             nqp::push(@post_constraints, $!value);
         }
+        if nqp::defined($!type) && $!type.meta-object.HOW.archetypes.nominalizable {
+            nqp::push(@post_constraints, $!type.meta-object);
+        }
         if nqp::elems(@post_constraints) {
             nqp::bindattr($parameter, Parameter, '@!post_constraints', @post_constraints);
         }
@@ -959,6 +962,23 @@ class RakuAST::Parameter
             );
         }
 
+        # Take care of checking against provided subset types and other nominalizable types.
+        # TODO: Investigate breakage -- No such method 'ACCEPTS' for invocant of type '::?CLASS:D'
+        #        if nqp::defined($!type) && $!type.meta-object.HOW.archetypes.nominalizable {
+        if nqp::defined($!type) && nqp::istype($!type.meta-object.HOW, Perl6::Metamodel::SubsetHOW) {
+            my $type-object := $!type.meta-object;
+            $context.ensure-sc($type-object);
+            $param-qast.push(
+                QAST::ParamTypeCheck.new(
+                    QAST::Op.new(
+                        :op('callmethod'), :name('ACCEPTS'),
+                        QAST::WVal.new( :value($type-object) ),
+                        $temp-qast-var
+                    )
+                )
+            );
+        }
+
         @prepend ?? QAST::Stmts.new( |@prepend, $param-qast ) !! $param-qast
     }
 }
@@ -1067,8 +1087,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        my str $scope := 'lexical';
-        QAST::Var.new( :name($!name), :$scope )
+        QAST::Var.new( :name($!name), :scope('lexical') )
     }
 
     method default-scope() { 'my' }

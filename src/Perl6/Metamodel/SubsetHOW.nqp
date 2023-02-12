@@ -71,6 +71,10 @@ class Perl6::Metamodel::SubsetHOW
         }
     }
 
+    method set_where($obj, $refinement) {
+        $!refinement := nqp::decont($refinement)
+    }
+
     method refinee($obj) {
         $!refinee
     }

@@ -243,7 +243,20 @@ class RakuAST::Call::Name
                 return $!name.IMPL-QAST-INDIRECT-LOOKUP($context);
             }
             else {
-                nqp::die('compiling complex call names NYI ' ~ $!name.canonicalize)
+                $call.push(
+                    self.is-resolved
+                        ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                            $context,
+                            QAST::WVal.new(:value($!package)),
+                            :lexical(self.resolution),
+                            :sigil<&>
+                        )
+                        !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
+                            $context,
+                            QAST::WVal.new(:value($!package)),
+                            :sigil<&>
+                        )
+                );
             }
         }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);

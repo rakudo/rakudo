@@ -145,7 +145,7 @@ class RakuAST::Name
         )
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical) {
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil) {
         my $result := $start-package;
         my $final := $!parts[nqp::elems($!parts) - 1];
         my int $first := 0;
@@ -185,7 +185,7 @@ class RakuAST::Name
                 else { # get the Stash from all real packages
                     # We do .WHO on the current package, followed by the index into it.
                     $result := QAST::Op.new( :op('who'), $result );
-                    $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
+                    $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);
                 }
             }
         }

@@ -7511,7 +7511,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 my str $error := "Only routine calls or variables that can '.append' may appear on either side
 of feed operators.";
-                if nqp::istype($stage[0], QAST::Var) {
+                if nqp::istype($stage, QAST::Children) && nqp::istype($stage[0], QAST::Var) {
                     if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
                       && nqp::eqat($stage[0].name, '&', 0) {
                         $error := "A feed may not sink values into a code object.

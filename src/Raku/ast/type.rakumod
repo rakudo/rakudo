@@ -317,12 +317,14 @@ class RakuAST::Type::Subset
     is RakuAST::BeginTime
     is RakuAST::TraitTarget
     is RakuAST::StubbyMeta
+    is RakuAST::Attaching
     is RakuAST::PackageInstaller
 {
     has RakuAST::Name       $.name;
     has RakuAST::Trait::Of  $.of;
     has RakuAST::Expression $.where;
-    has Mu $!meta;
+    has Mu $!current-package;
+    has Mu $!block;
 
     method new(
       str                 :$scope,
@@ -362,13 +364,19 @@ class RakuAST::Type::Subset
         $lookup
     }
 
+    method attach(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor($!where) if $!where;
         # External constants break if visited with missing IMPL-QAST-DECL.
         # Adding a sensible IMPL-QAST-DECL results in lexical declarations
         # for things like Int, which will break if added more than once.
-        $visitor($!of) if $!of; # && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
+        $visitor($!of)
+          if $!of
+          && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
     }
 
     method is-lexical() { True }
@@ -418,12 +426,13 @@ class RakuAST::Type::Subset
             );
             $block.IMPL-CHECK($resolver, $context, False);
         }
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
 
         # set up the meta object
-        my $package := $resolver.current-package;
-        my $meta    := self.stubbed-meta-object;
-        $meta.HOW.set_name(
-          $meta,
+        my $package := $!current-package;
+        my $type    := self.stubbed-meta-object;
+        $type.HOW.set_name(
+          $type,
           $!name.qualified-with(
             RakuAST::Name.from-identifier-parts(
               |nqp::split('::', $package.HOW.name($package))
@@ -431,17 +440,8 @@ class RakuAST::Type::Subset
           ).canonicalize(:colonpairs(0))
         ) unless nqp::eqaddr($package, $resolver.get-global);
 
-        $meta.HOW.set_of($meta, $!of.compile-time-value) if $!of;
-        $meta.HOW.set_where(
-          $meta,
-          $block.IMPL-CURRIED
-            ?? $block.IMPL-CURRIED.meta-object
-            !! $block.compile-time-value
-        ) if $block;
-        nqp::bindattr(self, RakuAST::Type::Subset, '$!meta', $meta);
-
         self.IMPL-INSTALL-PACKAGE(
-          $resolver, self.scope, $!name, $meta, $package
+          $resolver, self.scope, $!name, $type, $package
         );
     }
 
@@ -453,5 +453,19 @@ class RakuAST::Type::Subset
         )
     }
 
-    method PRODUCE-META-OBJECT() { $!meta }
+    method PRODUCE-META-OBJECT() {
+        my $type  := self.stubbed-meta-object;
+        my $block := $!block;
+
+        $type.HOW.set_of($type, $!of.compile-time-value)
+          if $!of;
+        $type.HOW.set_where(
+          $type,
+          $block.IMPL-CURRIED
+            ?? $block.IMPL-CURRIED.meta-object
+            !! $block.compile-time-value
+        ) if $block;
+
+        $type
+    }
 }

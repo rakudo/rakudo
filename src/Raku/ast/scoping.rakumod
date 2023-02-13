@@ -119,7 +119,7 @@ class RakuAST::LexicalScope
             nqp::bindattr(self, RakuAST::LexicalScope, '$!generated-lexical-declarations', []);
         }
         for $!generated-lexical-declarations {
-            if $_.lexical-name eq $declaration.lexical-name {
+            if ($_.lexical-name // '') eq $declaration.lexical-name {
                 if $_.compile-time-value =:= $declaration.compile-time-value {
                     return Nil
                 }
@@ -155,7 +155,8 @@ class RakuAST::LexicalScope
         unless nqp::isconcrete(%lookup) {
             %lookup := {};
             for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations) {
-                %lookup{$_.lexical-name} := $_;
+                my $lexical-name := $_.lexical-name;
+                %lookup{$lexical-name} := $_ if $lexical-name;
             }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!generated-lexical-lookup-hash', %lookup);
         }

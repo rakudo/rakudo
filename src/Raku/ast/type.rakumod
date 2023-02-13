@@ -311,6 +311,225 @@ class RakuAST::Type::Parameterized
     }
 }
 
+class RakuAST::Type::Enum
+  is RakuAST::Type
+  is RakuAST::Declaration
+  is RakuAST::BeginTime
+  is RakuAST::TraitTarget
+  is RakuAST::Attaching
+  is RakuAST::PackageInstaller
+  is RakuAST::ImplicitLookups
+{
+    has RakuAST::Name           $.name;
+    has RakuAST::Expression     $.term;
+    has RakuAST::Type           $.of;
+    has Mu                      $!current-package;
+    # Note: Not using RakuAST::Type::Derived because we don't always know the base-type ahead of time
+    has Mu                      $!base-type;
+
+    method new(RakuAST::Name :$name, RakuAST::Expression :$term!, RakuAST::Type :$of, str :$scope) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!name', $name // RakuAST::Name.from-identifier(''));
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!term', $term);
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj
+    }
+
+    method default-scope() { 'our' }
+
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
+
+    method lexical-name() { $!name.canonicalize }
+
+    method generate-lookup() {
+        my $lookup := RakuAST::Term::Name.new($!name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+        $visitor($!term);
+        $visitor($!of) if $!of;
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
+    }
+
+    method is-lexical() { True }
+    method is-simple-lexical-declaration() { False }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := QAST::Op.new(:op('call'), :name('&ENUM_VALUES'), $!term.IMPL-EXPR-QAST($context));
+        QAST::Want.new(
+            $qast,
+            'v',
+            QAST::Op.new(:op('null'))
+        )
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('List')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Stringy')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Numeric'))
+        ])
+    }
+
+    method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
+        RakuAST::VarDeclaration::Implicit::Constant.new:
+            :name($name),
+            :value($type-object),
+            :scope(self.scope);
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my @lookups     := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $Pair        := @lookups[0].resolution.compile-time-value;
+        my $List        := @lookups[1].resolution.compile-time-value;
+        my $Stringy     := @lookups[2].resolution.compile-time-value;
+        my $Numeric     := @lookups[3].resolution.compile-time-value;
+
+        my $base-type;
+        my $has-base-type := False;
+        if $!of {
+            $base-type := $!of.compile-time-value;
+            $has-base-type := True;
+        }
+        my %values := nqp::hash;
+        my $cur-val := nqp::box_i(-1, Int); # Boxed to support .succ
+        my $evaluated := self.IMPL-BEGIN-TIME-EVALUATE($!term, $resolver, $context);
+        my $is-settings-list := nqp::istype($evaluated, $List);
+        if nqp::istype($evaluated, $Pair) {
+            if !$has-base-type {
+                # No need for type checking when we are going to get the base-type from the value
+                %values{$evaluated.key} := $evaluated.value;
+                $base-type := $evaluated.value.WHAT;
+            } else {
+                unless nqp::istype($evaluated.value, $!base-type) {
+                    nqp::die("Incorrect value type provided. Expected '" ~ $!base-type.raku ~ "' but got '" ~ $evaluated.value.WHAT.raku ~ "'");
+                }
+                %values{$evaluated.key} := $evaluated.value;
+            }
+        } elsif nqp::istype($evaluated, Str) {
+            # TODO: What do we actually want to do when base-type is defined but they only provide a single Str?
+            #       Base just ignores and uses Int
+            # A single string enum will always have 0, but we use $cur-val to keep it boxed
+            %values{$evaluated} := $cur-val.succ;
+            $base-type := Int;
+        } elsif nqp::istype($evaluated, List) || $is-settings-list {
+            my @items := self.IMPL-UNWRAP-LIST($evaluated);
+            if nqp::elems(@items) == 0 {
+                # For empty enums, just default to Int
+                $base-type := Int;
+            } else {
+                for @items {
+                    if nqp::istype($_, $Pair) {
+                        $cur-val := $_.value;
+                        if !$has-base-type {
+                            $base-type := $cur-val.WHAT;
+                            $has-base-type := True;
+                        } else {
+                            # Should be a panic or a throw, right?
+                            unless nqp::istype($cur-val, $!base-type) {
+                                nqp::die("Incorrect value type provided. Expected '" ~ $!base-type.raku ~ "' but got '" ~ $cur-val.WHAT.raku ~ "'");
+                            }
+                        }
+                        %values{$_.key} := $cur-val;
+                    } elsif nqp::istype($_, Str) {
+                        if !$has-base-type {
+                            # TODO: Again, uncertain what to do when user provides a base type but then only hands a list of Str
+                            $base-type := Int;
+                            $has-base-type := True;
+                        }
+                        %values{$_} := ($cur-val := $cur-val.succ);
+                    }
+                }
+            }
+        }
+
+        # Make $!base-type available, then we can produce the meta-object and add and apply traits
+        nqp::bindattr(self, RakuAST::Type::Enum, '$!base-type', $base-type);
+        my $meta := self.meta-object;
+        my $enumeration-kind;
+        if nqp::istype($meta, $Numeric) {
+            $enumeration-kind := nqp::istype($meta, $Stringy)
+                ?? 'NumericStringyEnumeration' # allomorphs
+                !! 'NumericEnumeration';
+        } elsif nqp::istype($meta, $Stringy) {
+            $enumeration-kind := 'StringyEnumeration';
+        }
+        self.add-trait(RakuAST::Trait::Does.new(
+            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Enumeration'))
+        ));
+        if $enumeration-kind {
+            self.add-trait(RakuAST::Trait::Does.new(
+                RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($enumeration-kind))
+            ));
+        }
+        self.apply-traits($resolver, $context, self);
+        $meta.HOW.compose($meta);
+
+        # Don't install an anonymous enum
+        my $anonymous := !$!name.canonicalize;
+        if !$anonymous {
+            self.IMPL-INSTALL-PACKAGE(
+                $resolver, self.scope, $!name, $meta, $!current-package
+            );
+        }
+
+        # Create type objects for each value and install into proper scop
+        my %stash := $resolver.IMPL-STASH-HASH($anonymous ?? $!current-package !! $meta);
+        my $index := 0;
+        for %values -> $pair {
+            my $key     := $pair.key;
+            my $value   := $pair.value;
+
+            if !nqp::defined($value) {
+                nqp::die("Using a type object as a value for an enum not yet implemented. Sorry.");
+            }
+
+            my $val-meta := nqp::rebless(nqp::clone($value), $meta);
+            nqp::bindattr($val-meta, $meta, '$!key', $key);
+            nqp::bindattr($val-meta, $meta, '$!value', $value);
+            nqp::bindattr_i($val-meta, $meta, '$!index', $index++);
+            $context.ensure-sc($val-meta);
+            $meta.HOW.add_enum_value($meta, $val-meta);
+
+            # Make sure it is not already defined, eg 'enum Day<Mon Mon>' or 'class Day::Foo {}; enum Day<Mon Foo>'
+            # TODO: Base allows both. First raises a 'Potential Difficulties', second succeeds silently.
+            #   But perhaps 6.e and moving forward, we could make the logic below the default behavior.
+#            if nqp::existskey(%stash, $key) {
+#                nqp::die("Redeclaration of symbol '" ~ $key ~ "'.");
+#            }
+            unless $anonymous && self.scope eq 'my' {
+                %stash{$key} := $val-meta;
+            }
+
+            # Declare these values into the lexical scope
+            # TODO: Bind an X::PoisonedAlias when a lexical already exists
+            #   (Which is tricky, because base only does it when there is a clash in the current lexpad...)
+            $resolver.current-scope.add-generated-lexical-declaration:
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                    :name($key),
+                    :scope(self.scope),
+                    :value($val-meta)
+                );
+        }
+        $meta.HOW.compose_values($meta);
+    }
+
+    method PRODUCE-META-OBJECT() {
+        Perl6::Metamodel::EnumHOW.new_type(
+            :name($!name.canonicalize),
+            :base_type($!base-type)
+        )
+    }
+}
+
 class RakuAST::Type::Subset
     is RakuAST::Type
     is RakuAST::Declaration

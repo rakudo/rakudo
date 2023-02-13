@@ -2253,6 +2253,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
     }
 
+    token type_declarator:sym<enum> {
+        <sym><.kok>
+        :my $*IN_DECL := 'enum';
+        [
+        | <longname>
+        | <variable>
+        | <?>
+        ]
+        { $*IN_DECL := '' }
+        <.ws>
+
+        <trait>*
+
+        [ <?[<(«]> <term> <.ws> || <.panic: 'An enum must supply an expression using <>, «», or ()'> ]
+    }
+
     rule type_declarator:sym<subset> {
         :my $*IN_DECL := 'subset';
         <sym><.kok>

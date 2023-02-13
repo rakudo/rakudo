@@ -1,0 +1,30 @@
+use MONKEY-SEE-NO-EVAL;
+use experimental :rakuast;
+use Test;
+
+plan 1;
+
+my $ast;
+my $deparsed;
+my @type = <AST Str>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    diag $deparsed.chomp;
+}
+
+# NOTE: always using scope "my" for these tests to prevent redefined
+# errors.
+subtest 'Simplest subset Foo' => {
+    # my subset Foo
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo")
+    );
+
+    is-deeply $deparsed, 'my subset Foo', 'deparse';
+    is-deeply .^name, "Foo", @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+# vim: expandtab shiftwidth=4

@@ -42,7 +42,6 @@ RakuAST::Statement::No
 RakuAST::Statement::Require
 RakuAST::SubstitutionReplacementThunk
 RakuAST::Trait::Hides
-RakuAST::Trait::Of
 RakuAST::TraitTarget::Variable
 RakuAST::Type::Capture
 RakuAST::Type::Coercion

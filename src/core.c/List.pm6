@@ -370,20 +370,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method to(List:D:)      { self.elems ?? self[self.end].to !! Nil }
     method from(List:D:)    { self.elems ?? self[0].from !! Nil }
 
-    multi method sum(List:D:) {
+    multi method sum(List:D \SELF:) {
         nqp::if(
           self.is-lazy,
           self.fail-iterator-cannot-be-lazy('.sum'),
           nqp::if(
             (my int $elems = self.elems), # reify
-            nqp::stmts(
-              (my $sum  := 0),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(++$i,$elems),
-                ($sum := $sum + nqp::ifnull(nqp::atpos($!reified,$i),0))
-              ),
-              $sum
+            nqp::if(
+              nqp::iscont(SELF),
+              $elems,
+              nqp::stmts(
+                (my $sum  := 0),
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(++$i,$elems),
+                  ($sum := $sum + nqp::ifnull(nqp::atpos($!reified,$i),0))
+                ),
+                $sum
+              )
             )
           )
         )

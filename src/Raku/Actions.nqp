@@ -1708,6 +1708,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $decl;
     }
 
+    method type_declarator:sym<enum>($/) {
+        # TODO: <variable> being defined means we should throw an NYI
+        # Need to support anonymous enums
+        my $name := $<longname>
+                        ?? $<longname>.ast
+                        !! self.r('Name').from-identifier('');
+        my $base-type := $*OFTYPE ?? $*OFTYPE.ast !! self.r("Type");
+        my $decl := self.r('Type', 'Enum').new(
+            :name($name),
+            :term($<term>.ast),
+            :scope($*SCOPE),
+            :of($base-type)
+        );
+        for $<trait> {
+            $decl.add-trait($_.ast)
+        }
+        $decl.IMPL-CHECK($*R, $*CU.context, 1);
+        self.attach: $/, $decl;
+    }
+
     method type_declarator:sym<subset>($/) {
         my $decl := self.r('Type', 'Subset').new(
             :name($<longname>.ast),

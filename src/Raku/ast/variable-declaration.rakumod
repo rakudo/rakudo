@@ -381,7 +381,24 @@ class RakuAST::VarDeclaration::Simple
 
             if $!initializer {
                 my $initializer := $!initializer;
-                self.add-trait(RakuAST::Trait::Will.new('build', $initializer.expression));
+                my $method := RakuAST::Method.new(
+                    :signature(RakuAST::Signature.new(
+                        :parameters([
+                            RakuAST::Parameter.new(
+                                target => RakuAST::ParameterTarget::Var.new('$_')
+                            )
+                        ])
+                    )),
+                    :body(RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                :expression($initializer.expression)
+                            )
+                        )
+                    )),
+                );
+                $!attribute-package.add-generated-lexical-declaration($method);
+                self.add-trait(RakuAST::Trait::Will.new('build', $method));
             }
 
             # For attributes our meta-object is an appropriate Attribute instance

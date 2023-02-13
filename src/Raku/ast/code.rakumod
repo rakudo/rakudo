@@ -1678,12 +1678,9 @@ class RakuAST::Method
     method IMPL-META-OBJECT-TYPE() { Method }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')),
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')),
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')),
+        my $list := nqp::findmethod(RakuAST::Routine, 'PRODUCE-IMPLICIT-DECLARATIONS')(self);
+        self.IMPL-UNWRAP-LIST($list).push:
             RakuAST::VarDeclaration::Implicit::Self.new(),
-        ])
     }
 
     method get-boundary-sink-propagator() {

@@ -2,11 +2,10 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 1;
+plan 5;
 
 my $ast;
 my $deparsed;
-my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
@@ -23,8 +22,159 @@ subtest 'Simplest subset Foo' => {
     );
 
     is-deeply $deparsed, 'my subset Foo', 'deparse';
-    is-deeply .^name, "Foo", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Any, "$type: is refinee ok";
+        is-deeply $subset.^refinement, Mu, "$type: is refinement ok";
+
+        ok 42    ~~ $subset, "$type: subset accepts 42";
+        ok "foo" ~~ $subset, "$type: subset accepts foo";
+        ok Any   ~~ $subset, "$type: subset accepts Any";
+        nok Mu   ~~ $subset, "$type: subset does not accept Mu";
+    }
+}
+
+subtest 'Simple subset Foo of Int' => {
+    # my subset Foo
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      )
+    );
+
+    is-deeply $deparsed, 'my subset Foo of Int', 'deparse';
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Int, "$type: is refinee ok";
+        is-deeply $subset.^refinement, Mu, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+        nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
+}
+
+subtest 'Subset with a where block' => {
+    # my subset Foo of Int where { $_ %% 2 }
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      ),
+      where => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyInfix.new(
+                left => RakuAST::Var::Lexical.new('$_'),
+                infix => RakuAST::Infix.new('%%'),
+                right => RakuAST::IntLiteral.new(2)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, 'my subset Foo of Int where { $_ %% 2 }', 'deparse';
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Int, "$type: is refinee ok";
+        isa-ok $subset.^refinement, Block, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+        nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
+}
+
+subtest 'Subset with a where pointy block' => {
+    # my subset Foo of Int where -> $a { $a %% 2 }
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      ),
+      where => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$a')
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyInfix.new(
+                left => RakuAST::Var::Lexical.new('$a'),
+                infix => RakuAST::Infix.new('%%'),
+                right => RakuAST::IntLiteral.new(2)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed,
+      'my subset Foo of Int where -> $a { $a %% 2 }',
+      'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Int, "$type: is refinee ok";
+        isa-ok $subset.^refinement, Block, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+        nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
+}
+
+subtest 'Subset with a where whatevercode' => {
+    # my subset Foo of Int where * %% 2
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      of    => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      ),
+      where => RakuAST::ApplyInfix.new(
+        left => RakuAST::Term::Whatever.new,
+        infix => RakuAST::Infix.new('%%'),
+        right => RakuAST::IntLiteral.new(2)
+      )
+    );
+
+    is-deeply $deparsed,
+      'my subset Foo of Int where * %% 2',
+      'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Int, "$type: is refinee ok";
+        isa-ok $subset.^refinement, WhateverCode, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+        nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
 }
 
 # vim: expandtab shiftwidth=4

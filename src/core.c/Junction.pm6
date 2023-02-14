@@ -253,26 +253,10 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
-    multi method Str(Junction:D:) {
-        my \storage := nqp::bindattr(
-          (my \junction := nqp::clone(self)),
-          Junction,
-          '$!eigenstates',
-          nqp::clone(nqp::getattr(self,Junction,'$!eigenstates'))
-        );
-        my int $elems = nqp::elems(storage);
-        my int $i = -1;
-
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::unless(
-            nqp::istype(nqp::atpos(storage,$i),Str),
-            nqp::bindpos(storage,$i,nqp::atpos(storage,$i).Str)
-          )
-        );
-
-        junction
-    }
+    multi method Str     (Junction:D:) { self.THREAD: *.Str     }
+    multi method Int     (Junction:D:) { self.THREAD: *.Int     }
+    multi method Numeric (Junction:D:) { self.THREAD: *.Numeric }
+    multi method Real    (Junction:D:) { self.THREAD: *.Real    }
 
     multi method iterator(Junction:D:) {
         # If we're asked for an iterator, we should really give one rather than
@@ -300,9 +284,7 @@ my class Junction { # declared in BOOTSTRAP
         $!type ~ '(' ~ nqp::join(', ',$rakus) ~ ')'
     }
 
-    multi method put() {
-        self.THREAD: { .put }
-    }
+    multi method put() { self.THREAD: *.put }
 
     method CALL-ME(|c) {
         my \storage     := nqp::getattr(self, Junction, '$!eigenstates');
@@ -323,9 +305,9 @@ my class Junction { # declared in BOOTSTRAP
         nqp::atpos($!eigenstates,$i).sink while nqp::islt_i(++$i,$elems);
     }
 
-    # Helper method for handling those cases where auto-threading doesn't cut it.
-    # Call the given Callable with each of the Junction values, and return a
-    # Junction with the results of the calls.
+    # Helper method for handling those cases where auto-threading doesn't cut
+    # it. Call the given Callable with each of the Junction values, and return
+    # a Junction with the results of the calls.
     method THREAD(&call) is implementation-detail {
         my \storage := nqp::getattr(self,Junction,'$!eigenstates');
         my int $i = -1;

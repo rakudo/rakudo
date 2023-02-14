@@ -457,7 +457,7 @@ class RakuAST::Type::Subset
         my $type  := self.stubbed-meta-object;
         my $block := $!block;
 
-        $type.HOW.set_of($type, $!of.type.PRODUCE-META-OBJECT)
+        $type.HOW.set_of($type, $!of.type.meta-object)
           if $!of;
         $type.HOW.set_where($type, $block
           ?? $block.IMPL-CURRIED

@@ -459,12 +459,12 @@ class RakuAST::Type::Subset
 
         $type.HOW.set_of($type, $!of.type.PRODUCE-META-OBJECT)
           if $!of;
-        $type.HOW.set_where(
-          $type,
-          $block.IMPL-CURRIED
+        $type.HOW.set_where($type, $block
+          ?? $block.IMPL-CURRIED
             ?? $block.IMPL-CURRIED.meta-object
             !! $block.compile-time-value
-        ) if $block;
+          !! Mu
+        );
 
         $type
     }

@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 5;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -174,6 +174,50 @@ subtest 'Subset with a where whatevercode' => {
         nok 41    ~~ $subset, "$type: subset does not accept 41";
         nok "foo" ~~ $subset, "$type: subset does not accept foo";
         nok Any   ~~ $subset, "$type: subset does not accept Any";
+    }
+}
+
+subtest 'Subset with a where literal' => {
+    # my subset Foo where 42
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      where => RakuAST::IntLiteral.new(42)
+    );
+
+    is-deeply $deparsed, 'my subset Foo where 42', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Any, "$type: is refinee ok";
+        isa-ok $subset.^refinement, Block, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
+    }
+}
+
+subtest 'Subset with a where regex' => {
+    # my subset Foo where / 42 /
+    ast RakuAST::Type::Subset.new(
+      scope => 'my',
+      name  => RakuAST::Name.from-identifier("Foo"),
+      where => RakuAST::QuotedRegex.new(
+        body => RakuAST::Regex::Literal.new('42')
+      )
+    );
+
+    is-deeply $deparsed, 'my subset Foo where / 42 /', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+        is-deeply $subset.^name, "Foo", "$type: is name ok";
+        is-deeply $subset.^refinee, Any, "$type: is refinee ok";
+        isa-ok $subset.^refinement, Block, "$type: is refinement ok";
+
+        ok 42     ~~ $subset, "$type: subset accepts 42";
+        nok 41    ~~ $subset, "$type: subset does not accept 41";
+        nok "foo" ~~ $subset, "$type: subset does not accept foo";
     }
 }
 

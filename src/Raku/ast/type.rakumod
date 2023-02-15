@@ -337,7 +337,12 @@ class RakuAST::Type::Subset
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Type::Subset, '$!of', $of) if $of;
-        nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where) if $where;
+        if $where {
+            # The $!where attribute is for deparsing, the $!block attribute
+            # is for the actual action.
+            nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
+            nqp::bindattr($obj, RakuAST::Type::Subset, '$!block', $where);
+        }
         $obj.handle-traits($traits) if $traits;
         $obj
     }
@@ -370,7 +375,7 @@ class RakuAST::Type::Subset
 
     method visit-children(Code $visitor) {
         $visitor($!name);
-        $visitor($!where) if $!where;
+        $visitor($!block) if $!block;
         # External constants break if visited with missing IMPL-QAST-DECL.
         # Adding a sensible IMPL-QAST-DECL results in lexical declarations
         # for things like Int, which will break if added more than once.
@@ -400,15 +405,20 @@ class RakuAST::Type::Subset
     method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.apply-traits($resolver, $context, self);
 
-        my $block := $!where;
-        if $!where && !$!where.IMPL-CURRIED && (!nqp::istype($!where, RakuAST::Code) || nqp::istype($!where, RakuAST::RegexThunk)) {
+        my $block := $!block;
+        if $block
+          && !$block.IMPL-CURRIED
+          && (!nqp::istype($block, RakuAST::Code)
+               || nqp::istype($block, RakuAST::RegexThunk
+             )
+        ) {
             $block := RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                     RakuAST::StatementList.new(
                         RakuAST::Statement::Expression.new(
                             expression => RakuAST::ApplyPostfix.new(
                                 operand => RakuAST::ApplyPostfix.new(
-                                    operand => $!where,
+                                    operand => $!block,
                                     postfix => RakuAST::Call::Method.new(
                                         name => RakuAST::Name.from-identifier('ACCEPTS'),
                                         args => RakuAST::ArgList.new(
@@ -424,9 +434,9 @@ class RakuAST::Type::Subset
                     ),
                 ),
             );
+            nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
             $block.IMPL-CHECK($resolver, $context, False);
         }
-        nqp::bindattr(self, RakuAST::Type::Subset, '$!block', $block);
 
         # set up the meta object
         my $package := $!current-package;

@@ -198,31 +198,29 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         }
     }
     else {
-        nqp::eqaddr(op,&infix:<+>)
-        ?? &sum
-        !! sub (+values) {
-              my $iter := values.iterator;
+        sub (+values) {
+            my $iter := values.iterator;
+            nqp::if(
+              nqp::eqaddr((my $result := $iter.pull-one),IterationEnd),
+              op.(),                         # identity
               nqp::if(
-                nqp::eqaddr((my $result := $iter.pull-one),IterationEnd),
-                op.(),                         # identity
+                nqp::eqaddr((my $value := $iter.pull-one),IterationEnd),
                 nqp::if(
-                  nqp::eqaddr((my $value := $iter.pull-one),IterationEnd),
-                  nqp::if(
-                    nqp::isle_i(op.arity,1),
-                    op.($result),              # can call with 1 param
-                    $result                    # what we got
+                  nqp::isle_i(op.arity,1),
+                  op.($result),              # can call with 1 param
+                  $result                    # what we got
+                ),
+                nqp::stmts(
+                  ($result := op.($result,$value)),
+                  nqp::until(
+                    nqp::eqaddr(($value := $iter.pull-one),IterationEnd),
+                    ($result := op.($result,$value))
                   ),
-                  nqp::stmts(
-                    ($result := op.($result,$value)),
-                    nqp::until(
-                      nqp::eqaddr(($value := $iter.pull-one),IterationEnd),
-                      ($result := op.($result,$value))
-                    ),
-                    $result                    # final result
-                  )
+                  $result                    # final result
                 )
               )
-           }
+            )
+        }
     }
 }
 

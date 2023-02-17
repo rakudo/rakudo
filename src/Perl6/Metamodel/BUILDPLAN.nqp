@@ -9,9 +9,10 @@ role Perl6::Metamodel::BUILDPLAN {
     # out what we'll need to do up front, so we can just zip
     # through the "todo list" each time we need to make an object.
     # The plan is an array of code objects / arrays. If the element
-    # is a code object, it should be called as a method without any
-    # further parameters.  If it is an array, then the first element
-    # of each array is an "op" # representing the task to perform:
+    # is a code object, it should be called as a method with the named
+    # parameters of the call to .bless.  If it is an array, then the
+    # first element of each array is an "op" # representing the task
+    # to perform:
     #   code = call as method (for BUILD or TWEAK)
     #
     # NOTE: Any changes here, should also be reflected in the

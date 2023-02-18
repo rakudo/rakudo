@@ -49,7 +49,7 @@ class RakuAST::BeginTime
             $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
         }
         elsif nqp::istype($code, RakuAST::Code) {
-            $code.meta-object()()
+            $code.meta-object;
         }
         elsif nqp::istype($code, RakuAST::Expression) {
             my $thunk := RakuAST::ExpressionThunk.new;

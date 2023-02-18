@@ -383,8 +383,9 @@ class RakuAST::StatementPrefix::Phaser::Begin
         self.IMPL-STUB-CODE($resolver, $context);
 
         nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
+        my $value-producer := self.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
-            '$!produced-value', self.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context));
+            '$!produced-value', $value-producer());
         Nil
     }
 

@@ -104,8 +104,8 @@ class RakuAST::Code
 
         my $precomp;
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
-            if self.IMPL-CAN-INTERPRET {
-                self.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+            if nqp::can(self, 'body') && self.body.IMPL-CAN-INTERPRET {
+                self.body.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
             }
             else {
                 my $code-obj := nqp::getcodeobj(nqp::curcode());
@@ -1501,6 +1501,14 @@ class RakuAST::Routine
         $visitor($!signature);
         self.visit-traits($visitor);
         $visitor(self.body);
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        True
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.meta-object
     }
 }
 

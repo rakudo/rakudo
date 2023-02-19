@@ -117,7 +117,7 @@ my class Complex is Cool does Numeric {
     method cis(Complex:D:) {
         self.cos + self.sin*Complex.new(0,1)
     }
-    method sqrt(Complex:D:) {
+    multi method sqrt(Complex:D:) {
         my Num $abs = self.abs;
         my Num $re = (($abs + self.re)/2).sqrt;
         my Num $im = (($abs - self.re)/2).sqrt;

@@ -150,7 +150,7 @@ my class Any { # declared in BOOTSTRAP
     }
     multi method classify(Whatever, :&as) {
         Hash.^parameterize(Any,Mu).new.classify-list(
-          { $_ }, self, :&as 
+          { $_ }, self, :&as
         )
     }
     multi method classify($test, :$into!, :&as)   {

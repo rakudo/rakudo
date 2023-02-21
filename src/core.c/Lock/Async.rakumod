@@ -150,7 +150,7 @@ my class Lock::Async {
             # Lock is already held on the stack, so we're recursing. Queue.
             $try-acquire.then({
                 self!run-with-updated-recursion-list(&code);
-            });
+            }, :synchronous);
         }
         else {
             # Lock is held but by something else. Await its availability.

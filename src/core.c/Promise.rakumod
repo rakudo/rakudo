@@ -38,6 +38,7 @@ my class Promise does Awaitable {
     has $!lock;
     has $!cond;
     has $!thens;
+    has $!thens-sync;
     has Mu $!dynamic_context;
     has Bool $!report-broken-if-sunk;
 
@@ -48,6 +49,7 @@ my class Promise does Awaitable {
         $!cond                  := $!lock.condition;
         $!status                := Planned;
         $!thens                 := nqp::null;
+        $!thens-sync            := nqp::null;
         self
     }
     submethod new(:$scheduler = $*SCHEDULER, :$report-broken-if-sunk) {
@@ -70,6 +72,7 @@ my class Promise does Awaitable {
         $!cond                  := $!lock.condition();
         $!status                := Planned;
         $!thens                 := nqp::null;
+        $!thens-sync            := nqp::null;
     }
 
     # A Vow is used to enable the right to keep/break a promise
@@ -170,7 +173,18 @@ my class Promise does Awaitable {
             nqp::elems($!thens),
             $!scheduler.cue(nqp::shift($!thens), :catch(nqp::shift($!thens)))
           )
-        )
+        );
+        nqp::unless(
+          nqp::isnull($!thens-sync),
+          nqp::while(
+            nqp::elems($!thens-sync),
+            nqp::stmts(
+              (my &code := nqp::shift($!thens-sync)),
+              (my &ex := nqp::shift($!thens-sync)),
+              nqp::handle(code(), 'CATCH', ex())
+            )
+          )
+        );
     }
 
     method result(Promise:D:) {
@@ -204,32 +218,46 @@ my class Promise does Awaitable {
         }
     }
 
-    method !PLANNED-THEN(\then-promise, \vow, \then-code) {
+    method !PLANNED-THEN(\then-promise, \vow, \then-code, \synchronous) {
         # Push 2 entries to $!thens: something that starts the then code,
         # and something that handles its exceptions. They will be sent to the
         # scheduler when this promise is kept or broken.
         nqp::bindattr(then-promise, Promise, '$!dynamic_context', nqp::ctx());
-        nqp::push(nqp::ifnull($!thens, ($!thens := nqp::list)), then-code);
-        nqp::push($!thens, -> $ex { vow.break($ex) });
+        if synchronous {
+            nqp::push(nqp::ifnull($!thens-sync,($!thens-sync := nqp::list)), then-code);
+            nqp::push($!thens-sync, -> $ex { vow.break($ex) });
+        }
+        else {
+            nqp::push(nqp::ifnull($!thens, ($!thens := nqp::list)), then-code);
+            nqp::push($!thens, -> $ex { vow.break($ex) });
+        }
         nqp::unlock($!lock);
         then-promise
     }
 
-    method then(Promise:D: &code) {
+    method then(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken || $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
-            self.WHAT.start( { code(self) }, :$!scheduler);
+            if $synchronous {
+                code(self);
+            }
+            else {
+                self.WHAT.start( { code(self) }, :$!scheduler);
+            }
         }
         else {
             my $then-p := self.new(:$!scheduler);
             my $vow := $then-p.vow;
-            self!PLANNED-THEN($then-p, $vow, { my $*PROMISE := $then-p; $vow.keep(code(self)) } )
+            self!PLANNED-THEN( $then-p,
+                               $vow,
+                               { my $*PROMISE := $then-p; $vow.keep(code(self)) },
+                               $synchronous)
         }
     }
 
-    method andthen(Promise:D: &code) {
+    method andthen(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
@@ -238,7 +266,12 @@ my class Promise does Awaitable {
         elsif $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
-            self.WHAT.start( { code(self) }, :$!scheduler);
+            if $synchronous {
+                code(self);
+            }
+            else {
+                self.WHAT.start( { code(self) }, :$!scheduler);
+            }
         }
         else {
             my $then-p := self.new(:$!scheduler);
@@ -247,15 +280,21 @@ my class Promise does Awaitable {
                                $vow,
                                { $!status == Kept
                                     ?? do { my $*PROMISE := $then-p; $vow.keep(code(self)) }
-                                    !! $vow.break($!result) })
+                                    !! $vow.break($!result) },
+                               $synchronous)
         }
     }
 
-    method orelse(Promise:D: &code) {
+    method orelse(Promise:D: &code, :$synchronous) {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
-            self.WHAT.start( { code(self) }, :$!scheduler);
+            if $synchronous {
+                code(self);
+            }
+            else {
+                self.WHAT.start( { code(self) }, :$!scheduler);
+            }
         }
         elsif $!status == Kept {
             # Already have the result, start immediately.
@@ -269,7 +308,8 @@ my class Promise does Awaitable {
                                $vow,
                                { $!status == Kept
                                    ?? $vow.keep($!result)
-                                   !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } })
+                                   !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } },
+                               $synchronous)
         }
     }
 

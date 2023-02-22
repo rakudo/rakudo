@@ -653,20 +653,19 @@ do {
     }
 
     sub print_control(|) {
-        my Mu $ex := nqp::atpos(nqp::p6argvmarray(),0);
-        my int $type = nqp::getextype($ex);
-        my $backtrace = Backtrace.new(nqp::backtrace($ex));
+        my Mu $ex     := nqp::atpos(nqp::p6argvmarray(),0);
+        my int $type   = nqp::getextype($ex);
+        my $backtrace := Backtrace.new(nqp::backtrace($ex));
 
-        nqp::if(
-          nqp::iseq_i($type,nqp::const::CONTROL_WARN),
-          nqp::stmts(
-            (nqp::istype((my $class := $*WARNINGS),Failure)
-              ?? CX::Warn
-              !! $class
-            ).WARN(nqp::getmessage($ex) || "Warning", $backtrace),
-            nqp::resume($ex)
-          )
-        );
+        if nqp::iseq_i($type,nqp::const::CONTROL_WARN) {
+            my str $message = nqp::getmessage($ex) || "Warning";
+            nqp::istype((my $class := $*WARNINGS),Callable)
+              ?? note "$class($message)\n$backtrace"
+              !! (nqp::istype($class,Failure) ?? CX::Warn !! $class).WARN(
+                   $message, $backtrace
+                 );
+            nqp::resume($ex);
+        }
 
         my $label = $type +& nqp::const::CONTROL_LABELED ?? "labeled " !! "";
         if $type +& nqp::const::CONTROL_LAST {

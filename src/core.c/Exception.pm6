@@ -435,6 +435,69 @@ my class CX::Warn does X::Control {
         warn "Downgrading Rat $nu / $de to Num";
         nqp::p6box_n(nqp::div_In($nu,$de))
     }
+    method WARN(str $message, $bt --> Nil) is hidden-from-backtrace {
+        note "$message\n$bt.first-none-setting-line()";
+    }
+}
+my class CX::Warn::Quietly {
+    method WARN($, $ --> Nil) is hidden-from-backtrace { }
+}
+my class CX::Warn::Fatal {
+    method WARN(str $message, $bt --> Nil) is hidden-from-backtrace {
+        X::AdHoc.new(payload => $message).throw;
+    }
+}
+my class CX::Warn::Verbose {
+    method WARN( str $message, $bt --> Nil) is hidden-from-backtrace {
+        note "$message\n$bt";
+    }
+}
+my class CX::Warn::Collect {
+    my $lock     := Lock.new;
+    my $messages := nqp::hash;
+
+    method WARN(str $message, $bt --> Nil) is hidden-from-backtrace {
+        my str $key = "$message\n$bt";
+        $lock.protect: {
+            nqp::bindkey($messages,$key,
+              nqp::add_i(nqp::ifnull(nqp::atkey($messages,$key),0),1)
+            );
+        }
+    }
+
+    END {
+        if nqp::elems($messages) {
+            my %messages := nqp::create(Map);
+            nqp::bindattr(%messages,Map,'$!storage',$messages);
+
+            note .value ~ 'x: ' ~ .key for %messages.sort(-*.value);
+        }
+    }
+}
+my class CX::Warn::Debug {
+    has @!debugs;
+
+    method new(|) {
+        my $args := nqp::clone(nqp::p6argvmarray);
+        nqp::shift($args);  # lose the invocant
+
+        nqp::p6bindattrinvres(nqp::create(self),self,'@!debugs',
+          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$args)
+        )
+    }
+
+    method WARN(str $message, $bt) {
+        my str @parts = @!debugs.map: {
+            my $VAR := .VAR;
+            $VAR.can("name")
+              ?? $VAR.name ~ ' = ' ~ .raku
+              !! $_
+        }
+        @parts.push: $message;
+        @parts.push: $bt.Str;
+
+        note @parts.join("\n");
+    }
 }
 my class CX::Succeed does X::Control {
     method message() { "<succeed control exception>" }
@@ -597,10 +660,10 @@ do {
         nqp::if(
           nqp::iseq_i($type,nqp::const::CONTROL_WARN),
           nqp::stmts(
-            (my Mu $err := $*ERR),
-            (my str $msg = nqp::getmessage($ex)),
-            $err.say(nqp::if(nqp::chars($msg),$msg,"Warning")),
-            $err.print($backtrace.first-none-setting-line),
+            (nqp::istype((my $class := $*WARNINGS),Failure)
+              ?? CX::Warn
+              !! $class
+            ).WARN(nqp::getmessage($ex) || "Warning", $backtrace),
             nqp::resume($ex)
           )
         );

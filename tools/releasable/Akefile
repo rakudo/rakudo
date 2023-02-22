@@ -439,7 +439,7 @@ sub rakudo-test($path, :$checkout-roast=True) {
     %env<TEST_JOBS> = $THREADS;
     antiflap-run :cwd($path), :%env, <make test>;
     if $checkout-roast {
-        run :cwd($path), :%env, <make spectest_checkout>; # ensure roast checkout
+        run :cwd($path), :%env, <make spectest_update>; # ensure roast checkout
         run :cwd($path.add: ‘t/spec’), <git checkout>, $branch-roast;
     }
     antiflap-run :cwd($path), :%env, <make spectest>;

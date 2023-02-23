@@ -409,9 +409,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
                  found => 2 * $elems + 1,
                  last  => $x
                ).throw
-            !! die qq:to/ERROR/;
-Cannot use a Callable as the only argument to store in a {self.^name}.
-Did you mean to store a Hash but used ';' instead of ',' to separate values?
+            !! die qq:to/ERROR/.chomp;
+Cannot use a Callable as the only argument to store in a {self.^name}.  If the
+intent was to store the contents of a Hash, one should probably use the
+%( ) hash constructor instead of \{ }.  Causes of \{ } misinterpretation:
+- using ';' instead of ',' to separate values, as these imply statements
+- using '\$_' or any placeholder variable, as they imply a block scope
 ERROR
     }
 

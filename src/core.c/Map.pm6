@@ -400,6 +400,21 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           !! self!STORE_MAP_FROM_MAP(map)
     }
 
+    method store-odd-number($x) is implementation-detail {
+        my int $elems = self.elems;
+        nqp::istype($x,Failure)
+          ?? $x.throw
+          !! $elems || nqp::not_i(nqp::istype($x,Callable))
+            ?? X::Hash::Store::OddNumber.new(
+                 found => 2 * $elems + 1,
+                 last  => $x
+               ).throw
+            !! die qq:to/ERROR/;
+Cannot use a Callable as the only argument to store in a {self.^name}.
+Did you mean to store a Hash but used ';' instead of ',' to separate values?
+ERROR
+    }
+
     # Store the contents of an iterator into the Map
     method !STORE_MAP_FROM_ITERATOR_DECONT($iterator --> Map:D) is raw {
         nqp::until(
@@ -416,14 +431,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               self!STORE_MAP_DECONT($x),
               nqp::if(
                 nqp::eqaddr((my Mu $y := $iterator.pull-one),IterationEnd),
-                nqp::if(
-                  nqp::istype($x,Failure),
-                  $x.throw,
-                  X::Hash::Store::OddNumber.new(
-                    found => self.elems * 2 + 1,
-                    last  => $x
-                  ).throw
-                ),
+                self.store-odd-number($x),
                 nqp::bindkey($!storage,$x.Str,nqp::decont($y))
               )
             )
@@ -446,14 +454,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               self!STORE_MAP($x),
               nqp::if(
                 nqp::eqaddr((my Mu $y := $iterator.pull-one),IterationEnd),
-                nqp::if(
-                  nqp::istype($x,Failure),
-                  $x.throw,
-                  X::Hash::Store::OddNumber.new(
-                    found => self.elems * 2 + 1,
-                    last  => $x
-                  ).throw
-                ),
+                self.store-odd-number($x),
                 nqp::bindkey($!storage,$x.Str,$y)
               )
             )

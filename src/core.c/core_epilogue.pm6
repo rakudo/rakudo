@@ -175,13 +175,9 @@ augment class Cool {
           :grammar(nqp::gethllsym('Raku','Grammar')),
           :actions(nqp::gethllsym('Raku','Actions'));
 
-        if $run {
-            use MONKEY;
-            EVAL $ast;
-        }
-        else {
-            $compunit ?? $ast !! $ast.statement-list
-        }
+        $run
+          ?? EVAL($ast)
+          !! $compunit ?? $ast !! $ast.statement-list
     }
 }
 

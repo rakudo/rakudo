@@ -2120,11 +2120,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $type := self.r('Type', 'Parameterized').new($type, $<arglist>.ast);
             }
             if $<accept> {
-                $type := self.r('Type', 'Coercion').new($type, $<accept>.ast);
+                $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($<accept>.ast));
             }
             elsif $<accept_any> {
                 my $Any := self.r('Type', 'Setting').new(RakuAST::Name.from-identifier('Any'));
-                $type := self.r('Type', 'Coercion').new($type, $Any);
+                $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($Any));
             }
             self.attach: $/, $type;
         }

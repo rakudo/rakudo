@@ -268,7 +268,7 @@ class RakuAST::Parameter
     has RakuAST::ParameterTarget $.target;
     has Mu $!names;
     has Bool $.invocant;
-    has Bool $!optional;
+    has Bool $.optional;
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression $.default;
     has RakuAST::Expression $.where;

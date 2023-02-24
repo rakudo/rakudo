@@ -2111,10 +2111,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             my $type := self.r('Type', 'Simple').new($base-name);
             if $base-name.has-colonpair('D') {
-                $type := self.r('Type', 'Definedness').new($type, 1);
+                $type := self.r('Type', 'Definedness').new(:base-type($type), :definite);
             }
             elsif $base-name.has-colonpair('U') {
-                $type := self.r('Type', 'Definedness').new($type, 0);
+                $type := self.r('Type', 'Definedness').new(:base-type($type), :!definite);
             }
             if $<arglist> {
                 $type := self.r('Type', 'Parameterized').new($type, $<arglist>.ast);

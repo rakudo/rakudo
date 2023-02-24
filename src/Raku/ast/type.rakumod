@@ -148,7 +148,7 @@ class RakuAST::Type::Definedness
 {
     has Bool $.definite;
 
-    method new(RakuAST::Type $base-type, Bool $definite) {
+    method new(RakuAST::Type :$base-type!, Bool :$definite!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
         nqp::bindattr($obj, RakuAST::Type::Definedness, '$!definite', $definite ?? True !! False);

@@ -249,7 +249,7 @@ augment class RakuAST::Node {
 #- I ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Infix:D: --> Str:D) {
-        self!nameds: <operator>
+        self!literal(self.operator)
     }
 
     multi method raku(RakuAST::Initializer::Assign:D: --> Str:D) {
@@ -379,15 +379,15 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Postfix:D: --> Str:D) {
-        self!nameds: <operator>
+        self!literal(self.operator)
     }
 
     multi method raku(RakuAST::Postfix::Power:D: --> Str:D) {
-        self!nameds: <power>
+        self!literal(self.power)
     }
 
     multi method raku(RakuAST::Prefix:D: --> Str:D) {
-        self!nameds: <operator>
+        self!literal(self.operator)
     }
 
 #- Q ---------------------------------------------------------------------------

@@ -367,7 +367,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Postcircumfix::ArrayIndex:D: --> Str:D) {
-        self!nameds: <index>
+        self!nameds: <index assignee>
     }
 
     multi method raku(RakuAST::Postcircumfix::HashIndex:D: --> Str:D) {

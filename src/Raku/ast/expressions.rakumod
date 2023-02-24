@@ -1058,7 +1058,7 @@ class RakuAST::Postcircumfix::ArrayIndex
     has RakuAST::SemiList $.index;
     has RakuAST::Expression $.assignee;
 
-    method new(RakuAST::SemiList $index, RakuAST::Expression :$assignee) {
+    method new(RakuAST::SemiList :$index!, RakuAST::Expression :$assignee) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!index', $index);
         nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!assignee', $assignee // RakuAST::Expression);

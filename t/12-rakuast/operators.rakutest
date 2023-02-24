@@ -217,7 +217,7 @@ subtest 'Basic single-dimension array index' => {
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('@a'),
       postfix => RakuAST::Postcircumfix::ArrayIndex.new(
-        RakuAST::SemiList.new(
+        index => RakuAST::SemiList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::IntLiteral.new(5)
           )
@@ -237,7 +237,7 @@ subtest 'Zen array slice' => {
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('@a'),
       postfix => RakuAST::Postcircumfix::ArrayIndex.new(
-        RakuAST::SemiList.new
+        index => RakuAST::SemiList.new
       )
     );
 
@@ -253,7 +253,7 @@ subtest 'Multi-dimensional array indexing' => {
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('@a'),
       postfix => RakuAST::Postcircumfix::ArrayIndex.new(
-        RakuAST::SemiList.new(
+        index => RakuAST::SemiList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::IntLiteral.new(2)
           ),

@@ -855,7 +855,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method postcircumfix:sym<[ ]>($/) {
-        self.attach: $/, self.r('Postcircumfix', 'ArrayIndex').new($<semilist>.ast);
+        self.attach: $/, self.r('Postcircumfix', 'ArrayIndex').new(:index($<semilist>.ast));
     }
 
     method postcircumfix:sym<{ }>($/) {

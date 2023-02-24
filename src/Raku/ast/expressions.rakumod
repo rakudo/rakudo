@@ -1188,7 +1188,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex
     has RakuAST::QuotedString $.index;
     has RakuAST::Expression $.assignee;
 
-    method new(RakuAST::QuotedString $index, RakuAST::Expression :$assignee) {
+    method new(RakuAST::QuotedString :$index!, RakuAST::Expression :$assignee) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::LiteralHashIndex, '$!index', $index);
         nqp::bindattr($obj, RakuAST::Postcircumfix::LiteralHashIndex, '$!assignee', $assignee // RakuAST::Expression);

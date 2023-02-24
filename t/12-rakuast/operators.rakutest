@@ -309,7 +309,7 @@ subtest 'Multi-dimensional array indexing' => {
         ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
-            RakuAST::QuotedString.new(
+            index => RakuAST::QuotedString.new(
               segments => [RakuAST::StrLiteral.new('s')],
               processors => ['words','val']
             )
@@ -326,7 +326,7 @@ subtest 'Multi-dimensional array indexing' => {
         ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
-            RakuAST::QuotedString.new(
+            index => RakuAST::QuotedString.new(
               segments => [RakuAST::StrLiteral.new('s a')],
               processors => ['words','val']
             )
@@ -343,7 +343,7 @@ subtest 'Multi-dimensional array indexing' => {
         ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
-            RakuAST::QuotedString.new(
+            index => RakuAST::QuotedString.new(
               segments => [RakuAST::StrLiteral.new('')],
               processors => ['words','val']
             )

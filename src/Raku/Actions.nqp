@@ -1199,7 +1199,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $*is-type {
                 my $type := self.r('Type', 'Simple').new($name);
                 if $<arglist> {
-                    $type := self.r('Type', 'Parameterized').new($type, $<arglist>.ast);
+                    $type := self.r('Type', 'Parameterized').new(:base-type($type), :args($<arglist>.ast));
                 }
                 self.attach: $/, $type;
             }
@@ -2117,7 +2117,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $type := self.r('Type', 'Definedness').new(:base-type($type), :!definite);
             }
             if $<arglist> {
-                $type := self.r('Type', 'Parameterized').new($type, $<arglist>.ast);
+                $type := self.r('Type', 'Parameterized').new(:base-type($type), :args($<arglist>.ast));
             }
             if $<accept> {
                 $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($<accept>.ast));

@@ -256,7 +256,7 @@ class RakuAST::Type::Parameterized
 {
     has RakuAST::ArgList $.args;
 
-    method new(RakuAST::Type $base-type, RakuAST::ArgList $args) {
+    method new(RakuAST::Type :$base-type!, RakuAST::ArgList :$args!) {
         nqp::die('need a base-type, not ' ~ $base-type.dump) if !nqp::istype($base-type, RakuAST::Type);
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);

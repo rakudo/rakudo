@@ -151,8 +151,7 @@ augment class Cool {
     }
 
     # Allow for creating an AST out of a string, for core debugging mainly
-    proto method AST(|) is implementation-detail {*}
-    multi method AST() {
+    method AST(Cool:D: :$run, :$compunit) {
 
         # Make sure we don't use the EVAL's MAIN context for the
         # currently compiling compilation unit
@@ -165,7 +164,7 @@ augment class Cool {
 
         # Convert to RakuAST
         my $compiler := nqp::getcomp('Raku');
-        $compiler.compile:
+        my $ast := $compiler.compile:
           self.Str,
           :outer_ctx($eval_ctx),
           :global(GLOBAL),
@@ -174,10 +173,16 @@ augment class Cool {
           :target<ast>,
           :compunit_ok(1),
           :grammar(nqp::gethllsym('Raku','Grammar')),
-          :actions(nqp::gethllsym('Raku','Actions'))
-    }
+          :actions(nqp::gethllsym('Raku','Actions'));
 
-    multi method AST(:$run!) { use MONKEY; EVAL self.AST }
+        if $run {
+            use MONKEY;
+            EVAL $ast;
+        }
+        else {
+            $compunit ?? $ast !! $ast.statement-list
+        }
+    }
 }
 
 # Make sure all affected subclasses are aware of additions to their parents

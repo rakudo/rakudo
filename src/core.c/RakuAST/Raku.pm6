@@ -207,9 +207,9 @@ augment class RakuAST::Node {
         self!literal(self.value)
     }
 
-    multi method raku(RakuAST::CompUnit:D: --> Str:D) {
-        # XXX need to handle .finish-content
-        self.statement-list.raku;
+    multi method raku(RakuAST::CompUnit:D: :$compunit --> Str:D) {
+        # XXX need to handle .finish-content and other arguments
+        self!nameds: <statement-list comp-unit-name setting-name>
     }
 
     multi method raku(RakuAST::Contextualizer:D: --> Str:D) {

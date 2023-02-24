@@ -1322,7 +1322,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             else { # package variable
                 self.attach: $/, self.r('Var', 'Package').new(
-                    $longname<name>.ast,
+                    :name($longname<name>.ast),
                     :$sigil
                 );
             }

@@ -431,7 +431,7 @@ class RakuAST::Var::Package
     has str $.sigil;
     has RakuAST::Name $.name;
 
-    method new(RakuAST::Name $name, :$sigil) {
+    method new(RakuAST::Name :$name!, :$sigil) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Var::Package, '$!name', $name);
         nqp::bindattr_s($obj, RakuAST::Var::Package, '$!sigil', $sigil);

@@ -6,7 +6,7 @@
 # unimplemented classes in a sensible way.
 
 augment class RakuAST::Node {
-    proto method raku(RakuAST::Node:D:) {
+    proto method raku(RakuAST::Node:) {
         CATCH {
             when X::Multi::NoMatch {
                 die "No .raku method implemented for {self.^name} objects yet";
@@ -1179,7 +1179,7 @@ augment class RakuAST::Node {
 # .raku handling
 
 augment class RakuAST::Name::Part {
-    proto method raku(RakuAST::Name::Part:D:) {
+    proto method raku(RakuAST::Name::Part:) {
         CATCH {
             when X::Multi::NoMatch {
                 die "No .raku method implemented for {self.^name} objects yet";
@@ -1203,8 +1203,8 @@ augment class RakuAST::Name::Part {
 
 #- Name::Part-------------------------------------------------------------------
 
-    multi method raku(RakuAST::Name::Part::Empty:D: --> Str:D) {
-        self.^name ~ '.new'
+    multi method raku(RakuAST::Name::Part::Empty:U: --> Str:D) {
+        self.^name
     }
 
     multi method raku(RakuAST::Name::Part::Expression:D: --> Str:D) {

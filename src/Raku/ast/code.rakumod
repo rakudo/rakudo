@@ -845,6 +845,10 @@ class RakuAST::Block
         Nil
     }
 
+    method implicit-topic() { $!implicit-topic-mode == 1 ?? Bool !! $!implicit-topic-mode > 1 }
+    method required-topic() { $!implicit-topic-mode > 1 || Bool }
+    method exception()      { $!implicit-topic-mode > 2 || Bool }
+
     method set-fresh-variables(Bool :$match, Bool :$exception) {
         nqp::bindattr_i(self, RakuAST::Block, '$!fresh-match', $match ?? 1 !! 0);
         nqp::bindattr_i(self, RakuAST::Block, '$!fresh-exception', $exception ?? 1 !! 0);

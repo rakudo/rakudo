@@ -1475,8 +1475,8 @@ class Rakudo::Iterator {
         has Mu  $!CWD;       # IO::Path object for $*CWD when testing
         has Mu  $!tester;    # object to call .ACCEPTS on to accept entry
         has Mu  $!dirhandle; # low level directory handle
-#?if jvm
-        has $!dots;  # JVM doesnt produce "." and "..", so we need to fake them
+#?if !js
+        has $!dots;  # JVM, Moar+libuv don't produce "." and "..", so we need to fake them
 #?endif
 
         method !SET-SELF(\path, Mu \tester) {
@@ -1485,7 +1485,7 @@ class Rakudo::Iterator {
             $!CWD       := path.CWD.IO;
             $!tester    := tester;
             $!dirhandle := nqp::opendir(path.absolute);
-#?if jvm
+#?if !js
             $!dots   := nqp::list_s(".","..");
 #?endif
 
@@ -1499,14 +1499,14 @@ class Rakudo::Iterator {
             my $*CWD := $!CWD;
 
             nqp::while(
-#?if jvm
+#?if !js
               ($entry = nqp::if(
                 nqp::elems($!dots),
                 nqp::shift_s($!dots),
                 nqp::nextfiledir($!dirhandle)
               )),
 #?endif
-#?if !jvm
+#?if js
               ($entry = nqp::nextfiledir($!dirhandle)),
 #?endif
               nqp::if(
@@ -1522,7 +1522,7 @@ class Rakudo::Iterator {
         }
 
         method push-all(\target --> IterationEnd) {
-#?if jvm
+#?if !js
             my $dots      := $!dots;
 #?endif
             my $path      := $!path;
@@ -1533,14 +1533,14 @@ class Rakudo::Iterator {
 
             my $*CWD := $!CWD;
             nqp::while(
-#?if jvm
+#?if !js
               ($entry = nqp::if(
                 nqp::elems($dots),
                 nqp::shift_s($dots),
                 nqp::nextfiledir($dirhandle)
               )),
 #?endif
-#?if !jvm
+#?if js
               ($entry = nqp::nextfiledir($dirhandle)),
 #?endif
               nqp::if(
@@ -1568,19 +1568,19 @@ class Rakudo::Iterator {
             $!path  := path;
             $!prefix = path.prefix-for-dir;
 
-#?if !jvm
+#?if js
             my $dirhandle := nqp::opendir(path.absolute);
-            # skipping . and .. worked, JVM never produces them
+            # skipping . and .. worked, JVM, MoarVM+libuv never produce them
             if nqp::iseq_s(nqp::nextfiledir($dirhandle),'.')
               && nqp::iseq_s(nqp::nextfiledir($dirhandle),'..') {
                 $!dirhandle  := $dirhandle;
 #?endif
-#?if jvm
+#?if !js
                 $!dirhandle := nqp::opendir(path.absolute);
 #?endif
 
                 self
-#?if !jvm
+#?if js
             }
 
             # strange, no '.' or '..' at start, run with tester

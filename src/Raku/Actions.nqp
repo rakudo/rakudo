@@ -383,9 +383,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method label($/) {
-        my $label := self.r('Label').new(~$<identifier>);
-        $*R.declare-lexical($label);
-        self.attach: $/, $label;
+        my $name := ~$<identifier>;
+        my $decl := self.r('Label').new($name);
+        $/.typed_panic('X::Redeclaration', :symbol($name))
+          if $*R.declare-lexical($decl);
+        self.attach: $/, $decl;
     }
 
     method pblock($/) {
@@ -1573,7 +1575,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $decl := self.r('VarDeclaration', 'Simple').new:
                 :$scope, :$type, :$name, :$initializer, :$shape;
             if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
-                $*R.declare-lexical($decl);
+                $/.typed_worry('X::Redeclaration', :symbol($name))
+                  if $*R.declare-lexical($decl);
             }
         }
         else {
@@ -1704,7 +1707,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<trait> {
             $decl.add-trait($_.ast);
         }
-        $*R.declare-lexical($decl);
+        $/.typed_panic('X::Redeclaration', :symbol($name))
+          if $*R.declare-lexical($decl);
         self.attach: $/, $decl;
     }
 
@@ -2254,8 +2258,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method param_term($/) {
         if $<defterm> {
             # Create sigilless target to bind into
-            my $decl := self.r('ParameterTarget', 'Term').new($<defterm>.ast);
-            $*R.declare-lexical($decl);
+            my $name := $<defterm>.ast;
+            my $decl := self.r('ParameterTarget', 'Term').new($name);
+            $/.typed_panic('X::Redeclaration', :symbol($name))
+              if $*R.declare-lexical($decl);
             self.attach: $/, self.r('Parameter').new(target => $decl);
         }
         else {

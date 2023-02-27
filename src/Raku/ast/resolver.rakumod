@@ -983,9 +983,12 @@ class RakuAST::Resolver::Compile::Scope
     }
 
     method declare-lexical(RakuAST::Declaration $decl) {
-        nqp::die('Should not be calling declare-lexical in batch mode') if $!batch-mode;
+        nqp::die('Should not be calling declare-lexical in batch mode')
+          if $!batch-mode;
+        my $name    := $decl.lexical-name;
+        my $existed := nqp::existskey($!live-decl-map, $name);
         $!live-decl-map{$decl.lexical-name} := $decl;
-        Nil
+        $existed
     }
 
     method create-implicits() {

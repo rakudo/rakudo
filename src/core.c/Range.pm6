@@ -119,7 +119,10 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method Bool(Range:D: --> Bool:D) {
-        self.elems ?? True !! False
+        nqp::hllbool($!is-int
+          ?? ($!max - $!excludes-max - $!min - $!excludes-min) > -1
+          !! nqp::not_i(nqp::eqaddr(self.iterator.pull-one,Nil))
+        )
     }
 
     method elems {

@@ -1868,6 +1868,23 @@ class RakuAST::Deparse {
           !! "$scope $sigil"
     }
 
+    multi method deparse(RakuAST::VarDeclaration::Constant:D $ast --> Str:D) {
+        my str @parts;
+
+        my str $scope = $ast.scope;
+        @parts.push($scope) if $scope ne $ast.default-scope;
+        @parts.push(self.deparse($_)) with $ast.type;
+        @parts.push('constant');
+        @parts.push($ast.name);
+        if $ast.traits -> @traits {
+            @parts.push(self.deparse($_)) for @traits;
+        }
+        @parts.push('=');
+        @parts.push($ast.value.raku);
+
+        @parts.join(' ');
+    }
+
     multi method deparse(RakuAST::VarDeclaration::Implicit:D $ast --> Str:D) {
         $ast.name
     }

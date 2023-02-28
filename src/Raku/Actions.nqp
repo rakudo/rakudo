@@ -1659,18 +1659,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method type_declarator:sym<constant>($/) {
-        my $value := $<initializer><EXPR>.ast;
-        my $sigil := '';
-
         # Provided it's named, install it.
-        my $name;
+        my %args;
         if $<defterm> {
-            $name := $<defterm>.ast.canonicalize;
+            %args<name> := $<defterm>.ast.canonicalize;
         }
         elsif $<variable> {
-            if $<variable><sigil> {
-                $sigil := ~$<variable><sigil>;
-            }
             if $<variable><twigil> {
                 my $twigil := ~$<variable><twigil>;
 
@@ -1697,17 +1691,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
             }
 
-            $name := ~$<variable>;
+            %args<name> := ~$<variable>;
+        }
+        %args<value> := self.r('BeginTime').IMPL-BEGIN-TIME-EVALUATE(
+          $<initializer><EXPR>.ast, $*R, $*CU.context
+        );
+        %args<scope> := $*SCOPE;
+        if $<trait> {
+            %args<traits> := my @traits;
+            @traits.push($_.ast) for $<trait>;
         }
 
-        my $decl := self.r('VarDeclaration', 'Implicit', 'Constant').new(
-            :$name,
-            :value(self.r('BeginTime').IMPL-BEGIN-TIME-EVALUATE($value, $*R, $*CU.context)),
-            :scope($*SCOPE));
-        for $<trait> {
-            $decl.add-trait($_.ast);
-        }
-        $/.typed_panic('X::Redeclaration', :symbol($name))
+        my $decl := self.r('VarDeclaration', 'Constant').new(|%args);
+        $/.typed_panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
         self.attach: $/, $decl;
     }

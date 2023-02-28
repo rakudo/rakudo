@@ -76,7 +76,14 @@ augment class RakuAST::Node {
     method !nameds(*@names) {
         self!indent;
         my @pairs = @names.map: -> $method {
-            if self."$method"() -> $object {
+            if $method eq 'args' && self.args -> $args {
+                :$args if $args.args
+            }
+            elsif $method eq 'scope' {
+                my $scope := self.scope;
+                :$scope if $scope ne self.default-scope
+            }
+            elsif self."$method"() -> $object {
                 Pair.new($method, $object)
             }
         }
@@ -1127,6 +1134,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::VarDeclaration::Anonymous:D: --> Str:D) {
         self!nameds: <scope sigil type initializer>
+    }
+
+    multi method raku(RakuAST::VarDeclaration::Constant:D: --> Str:D) {
+        self!nameds: <scope type name traits value>
     }
 
     multi method raku(RakuAST::VarDeclaration::Implicit:D: --> Str:D) {

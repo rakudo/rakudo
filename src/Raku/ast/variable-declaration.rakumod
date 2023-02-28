@@ -194,7 +194,122 @@ class RakuAST::TraitTarget::Variable
     }
 }
 
-# A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
+# A basic constant declaration of the form `my Type constant $foo = 42`
+class RakuAST::VarDeclaration::Constant
+  is RakuAST::Declaration
+  is RakuAST::TraitTarget
+  is RakuAST::BeginTime
+  is RakuAST::CheckTime
+  is RakuAST::CompileTimeValue
+  is RakuAST::ImplicitLookups
+{
+    has str           $.name;
+    has Mu            $.value;
+    has RakuAST::Type $.type;
+    has Mu            $!package;
+
+    method new(
+      str           :$scope,
+      RakuAST::Type :$type,
+      str           :$name!,
+      Mu            :$value!,
+      List          :$traits
+    ) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Constant,'$!name',$name);
+        nqp::bindattr($obj,RakuAST::VarDeclaration::Constant,'$!value',$value);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!type',
+          $type // RakuAST::Type);
+        $obj.set-traits($traits) if $traits;
+        $obj
+    }
+
+    method lexical-name()   { $!name }
+    method default-scope()  { 'our'   }
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
+    method is-simple-lexical-declaration() { True }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST($!type ?? [$!type] !! [])
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!type) if $!type;
+        self.visit-traits($visitor);
+    }
+
+    method PERFORM-BEGIN(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        if self.scope eq 'our' {
+            # There is always a package, even if it's just GLOBALish
+            my $package := nqp::bindattr(
+              self, RakuAST::VarDeclaration::Constant, '$!package',
+              $resolver.current-package
+            );
+            my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
+            if $package.HOW.EXISTS-KEY($name) {
+                nqp::die("already have an 'our constant $name' in the package");
+            }
+        }
+
+        self.apply-traits(
+          $resolver, $context, self, :SYMBOL(RakuAST::StrLiteral.new($!name))
+        );
+    }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        if $!type {
+            my $type := self.IMPL-UNWRAP-LIST(
+              self.get-implicit-lookups
+            )[0].resolution.compile-time-value;
+
+            unless nqp::istype(nqp::what($!value), $type) {
+                self.add-sorry($resolver.build-exception('X::Comp::TypeCheck',
+                  operation => 'constant declaration',
+                  expected  => $type,
+                  got       => nqp::what($!value)
+                ));
+                return False;
+            }
+        }
+        True
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!value;
+        $context.ensure-sc($value);
+        my $constant := QAST::Var.new(
+          :decl('static'), :scope('lexical'), :name($!name), :value($!value)
+        );
+        self.scope eq 'our'
+          ?? QAST::Op.new(
+               :op('callmethod'), :name('BIND-KEY'),
+               QAST::Op.new(:op('who'), QAST::WVal.new(:value($!package))),
+               QAST::SVal.new(:value($!name)),
+               $constant
+             )
+          !! $constant
+    }
+
+    method compile-time-value() { $!value }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new(:name($!name), :scope<lexical>)
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new(:name($!name), :scope<lexical>)
+    }
+}
+
+# A basic variable declaration of the form `my SomeType $foo = 42` or
+# `has Foo $x .= new`.
 class RakuAST::VarDeclaration::Simple
   is RakuAST::Declaration
   is RakuAST::ImplicitLookups

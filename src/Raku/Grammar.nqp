@@ -2813,12 +2813,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token defterm {
         :dba('new term to be defined')
 
-        {
-            self.typed_panic('X::Comp::NYI',
-              feature => "$*SCOPE scoped term definitions (only 'my' is supported at the moment)"
-            ) if $*SCOPE eq 'our';
-        }
-
         <identifier>
         # TODO colonpairs
     }

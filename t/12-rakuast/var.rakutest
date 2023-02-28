@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 44;
+plan 45;
 
 my $ast;
 my $deparsed;
@@ -980,16 +980,30 @@ CODE
 }
 
 subtest 'Lexical constant' => {
+    # constant foo = "bar"
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::VarDeclaration::Constant.new(
+        name  => "foo",
+        value => "bar"
+      )
+    );
+    is-deeply $deparsed, 'constant foo = "bar"', 'deparse';
+    is-deeply $_, "bar", @type[$++]
+      for EVAL($ast), EVAL($deparsed);
+}
+
+subtest 'Lexical my constant' => {
     # my constant foo = "bar"
     ast RakuAST::Statement::Expression.new(
-      expression => RakuAST::VarDeclaration::Implicit::Constant.new(
+      expression => RakuAST::VarDeclaration::Constant.new(
+        scope => "my",
         name  => "foo",
         value => "bar"
       )
     );
     is-deeply $deparsed, 'my constant foo = "bar"', 'deparse';
     is-deeply $_, "bar", @type[$++]
-      for EVAL($ast), try EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed);
 }
 
 # vim: expandtab shiftwidth=4

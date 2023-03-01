@@ -6,6 +6,11 @@
 # unimplemented classes in a sensible way.
 
 augment class RakuAST::Node {
+    method EVAL(RakuAST::Node:D: *%opts) {
+        use MONKEY-SEE-NO-EVAL;
+        EVAL self, context => CALLER::, |%opts
+    }
+
     proto method raku(RakuAST::Node:) {
         CATCH {
             when X::Multi::NoMatch {

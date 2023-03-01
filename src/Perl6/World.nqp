@@ -632,6 +632,8 @@ class Perl6::World is HLL::World {
 
             $comp.set_language_revision: $can_rev;
 
+            $*WANT_RAKUAST := 1 if $can_rev == 3;
+
             if $can_rev == 1 {
                 $*CAN_LOWER_TOPIC := 0;
                 # CORE.c is our lowest core, which we don't "load"

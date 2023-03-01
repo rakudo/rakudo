@@ -109,7 +109,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         $!denominator == 1 && $!numerator.is-prime
     }
 
-    multi method Str(::?CLASS:D: --> Str:D) {
+    multi method Str(::?CLASS:D: :$digits --> Str:D) {
         if $!denominator {
             my \abs   := self.abs;                              # N / D
             my \whole := abs.floor;
@@ -119,7 +119,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                 ?? nqp::islt_I($!numerator,0)                    # next Int
                   ?? nqp::concat("-",nqp::tostr_I(whole + 1))    # < 0
                   !! nqp::tostr_I(whole + 1)                     # >= 0
-                !! self!STRINGIFY(whole, fract,                  # 42.666
+                !! self!STRINGIFY(whole, fract, $digits // (     # 42.666
                      nqp::eqaddr(self.WHAT,Rat)
         # Stringify Rats to at least 6 significant digits. There does not
         # appear to be any written spec for this but there are tests in
@@ -139,7 +139,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                               + nqp::chars(nqp::tostr_I(whole))
                               + 5
                             )
-                   )
+                   ))
               !! nqp::islt_I($!numerator,0)                      # no fract val
                 ?? nqp::concat("-",nqp::tostr_I(whole))          # < 0
                 !! nqp::tostr_I(whole)                           # >= 0

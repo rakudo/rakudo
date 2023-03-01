@@ -10583,7 +10583,14 @@ Did you mean a call like '"
                 $all_literal := 0 unless nqp::istype($_,QAST::SpecialArg) ||
                     nqp::istype($_,QAST::Want) && nqp::istype($_[0],QAST::WVal) && $_[1] eq 'Ss' && nqp::istype($_[2],QAST::SVal);
             }
-            $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval($/);
+            unless $all_literal || monkey_see_no_eval($/) {
+                $args.push(
+                  QAST::WVal.new(
+                    :value($*W.find_single_symbol_in_setting('True')),
+                    :named('no-monkey')
+                  )
+                );
+            }
             $*W.cur_lexpad().no_inline(1);
         }
         WANTALL($args, 'handle_special_call_names');

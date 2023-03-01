@@ -31,10 +31,13 @@ proto sub EVAL(
   PseudoStash :context($ctx),
   Str()       :$filename = Str,
   Bool()      :$check,
+  Bool()      :$no-monkey,
   *%_
 ) is raw {
     die "EVAL() in Raku is intended to evaluate strings or ASTs, did you mean 'try'?"
       if nqp::istype($code,Callable);
+    X::SecurityPolicy::Eval.new.throw
+      if $no-monkey && nqp::not_i(nqp::istype($code,RakuAST::Node));
 
 # TEMPORARY HACK
 $lang = 'Raku' if $lang eq 'perl6';

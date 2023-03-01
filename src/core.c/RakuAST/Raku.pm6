@@ -93,7 +93,7 @@ augment class RakuAST::Node {
         }).join(",\n");
         self!dedent;
 
-        self.^name ~ ".new(\n$args\n$*INDENT)"
+        self.^name ~ ($args ?? ".new(\n$args\n$*INDENT)" !! '.new')
     }
 
 #- A ---------------------------------------------------------------------------

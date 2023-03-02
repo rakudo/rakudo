@@ -115,11 +115,10 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             my \whole := abs.floor;
             (my \fract := abs - whole)
               # fight floating point noise issues https://github.com/Raku/old-issue-tracker/issues/4524
-              ?? fract.Num == 1e0 && nqp::eqaddr(self.WHAT,Rat)  # 42.666?
-                ?? nqp::islt_I($!numerator,0)                    # next Int
-                  ?? nqp::concat("-",nqp::tostr_I(whole + 1))    # < 0
-                  !! nqp::tostr_I(whole + 1)                     # >= 0
-                !! self!STRINGIFY(whole, fract,                  # 42.666
+              ?? nqp::eqaddr(self.WHAT,Rat)                      # 42.666?
+                   && nqp::iseq_n(nqp::div_In($!numerator,$!denominator),1e0)
+                ?? self!UNITS(nqp::add_I(whole,1,Int))           # next Int
+                !! self!STRINGIFY(self!UNITS(whole), fract,      # 42.666
                      nqp::eqaddr(self.WHAT,Rat)
         # Stringify Rats to at least 6 significant digits. There does not
         # appear to be any written spec for this but there are tests in
@@ -140,20 +139,31 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                               + 5
                             )
                    )
-              !! nqp::islt_I($!numerator,0)                      # no fract val
-                ?? nqp::concat("-",nqp::tostr_I(whole))          # < 0
-                !! nqp::tostr_I(whole)                           # >= 0
+              !! self!UNITS(whole)                               # no fract val
         }
         else {                                                   # N / 0
-              X::Numeric::DivideByZero.new(
-                :details('when coercing Rational to Str')
-              ).throw
+              DIVIDE_BY_ZERO
         }
     }
 
-    method !STRINGIFY(\whole, \fract, int $digits) {
+    # faster .round that doesn't need to check the denominator
+    method !ROUND(--> Int:D) {
+        nqp::div_I(
+          nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
+          nqp::mul_I($!denominator, 2, Int),
+          Int
+        )
+    }
+
+    method !UNITS(Int:D $whole --> Str:D) {
+        nqp::islt_I($!numerator,0)                  # next Int
+          ?? nqp::concat("-",nqp::tostr_I($whole))    # < 0
+          !! nqp::tostr_I($whole)                     # >= 0
+    }
+
+    method !STRINGIFY(str $units, Rational:D $fract, int $digits) {
         my str $s = nqp::tostr_I(
-          (fract * nqp::pow_I(10,$digits,Num,Int)).round
+          ($fract * nqp::pow_I(10,$digits,Num,Int))!ROUND
         );
         $s = nqp::concat(nqp::x('0',$digits - nqp::chars($s)),$s)
           if nqp::chars($s) < $digits;
@@ -165,17 +175,15 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         );
 
         $i
-          ?? nqp::concat(
-               nqp::isle_I($!numerator,0)
-                 ?? nqp::concat('-',nqp::tostr_I(whole))
-                 !! nqp::tostr_I(whole),
-               nqp::concat('.',nqp::substr($s,0,$i))
-             )
-          !! nqp::isle_I($!numerator,0)
-            ?? nqp::concat('-',nqp::tostr_I(whole))
-            !! nqp::tostr_I(whole)
+          ?? nqp::concat($units,nqp::concat('.',nqp::substr($s,0,$i)))
+          !! $units
     }
 
+    sub DIVIDE_BY_ZERO() {
+        X::Numeric::DivideByZero.new(
+          :details('when coercing Rational to Str')
+        ).throw
+    }
     sub BASE_OUT_OF_RANGE(int $got) {
         X::OutOfRange.new(
           :what('base argument to base'),:$got,:range<2..36>

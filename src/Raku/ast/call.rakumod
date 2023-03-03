@@ -326,6 +326,18 @@ class RakuAST::Call::Term
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }
+
+    method IMPL-CAN-INTERPRET() {
+        self.args.IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, Code $operand) {
+        my $code := $operand();
+        my @args := self.args.IMPL-INTERPRET($ctx);
+        my @pos := @args[0];
+        my %named := @args[1];
+        $code(|@pos, |%named)
+    }
 }
 
 # The base of all method call like things.

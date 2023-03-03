@@ -1093,6 +1093,14 @@ class RakuAST::Block
     method visit-children(Code $visitor) {
         $visitor($!body);
     }
+
+    method IMPL-CAN-INTERPRET() {
+        True
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.meta-object
+    }
 }
 
 # A pointy block (-> $foo { ... }).

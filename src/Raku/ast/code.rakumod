@@ -104,18 +104,13 @@ class RakuAST::Code
 
         my $precomp;
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
-            if nqp::can(self, 'body') && self.body.IMPL-CAN-INTERPRET {
-                self.body.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+            my $code-obj := nqp::getcodeobj(nqp::curcode());
+            unless $precomp {
+                my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
+                $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
             }
-            else {
-                my $code-obj := nqp::getcodeobj(nqp::curcode());
-                unless $precomp {
-                    my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
-                    $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
-                }
-                unless nqp::isnull($code-obj) {
-                    return $code-obj(|@pos, |%named);
-                }
+            unless nqp::isnull($code-obj) {
+                return $code-obj(|@pos, |%named);
             }
         });
 

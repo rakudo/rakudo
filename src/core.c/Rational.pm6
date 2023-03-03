@@ -116,7 +116,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             (my \fract := abs - whole)
               # fight floating point noise issues https://github.com/Raku/old-issue-tracker/issues/4524
               ?? nqp::eqaddr(self.WHAT,Rat)                      # 42.666?
-                   && nqp::iseq_n(nqp::div_In($!numerator,$!denominator),1e0)
+                   && nqp::div_In($!numerator,$!denominator) == 1e0
                 ?? self!UNITS(nqp::add_I(whole,1,Int))           # next Int
                 !! self!STRINGIFY(self!UNITS(whole), fract,      # 42.666
                      nqp::eqaddr(self.WHAT,Rat)

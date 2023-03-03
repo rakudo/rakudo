@@ -115,8 +115,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             my \whole := abs.floor;
             (my \fract := abs - whole)
               # fight floating point noise issues https://github.com/Raku/old-issue-tracker/issues/4524
-              ?? nqp::eqaddr(self.WHAT,Rat)                      # 42.666?
-                   && nqp::div_In($!numerator,$!denominator) == 1e0
+              ?? nqp::eqaddr(self.WHAT,Rat) && fract.Num == 1e0  # 42.666?
                 ?? self!UNITS(nqp::add_I(whole,1,Int))           # next Int
                 !! self!STRINGIFY(self!UNITS(whole), fract,      # 42.666
                      nqp::eqaddr(self.WHAT,Rat)
@@ -146,24 +145,15 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         }
     }
 
-    # faster .round that doesn't need to check the denominator
-    method !ROUND(--> Int:D) {
-        nqp::div_I(
-          nqp::add_I(nqp::mul_I($!numerator, 2, Int), $!denominator, Int),
-          nqp::mul_I($!denominator, 2, Int),
-          Int
-        )
-    }
-
     method !UNITS(Int:D $whole --> Str:D) {
         nqp::islt_I($!numerator,0)                  # next Int
           ?? nqp::concat("-",nqp::tostr_I($whole))    # < 0
           !! nqp::tostr_I($whole)                     # >= 0
     }
 
-    method !STRINGIFY(str $units, Rational:D $fract, int $digits) {
+    method !STRINGIFY(str $units, $fract, int $digits) {
         my str $s = nqp::tostr_I(
-          ($fract * nqp::pow_I(10,$digits,Num,Int))!ROUND
+          ($fract * nqp::pow_I(10,$digits,Num,Int)).round
         );
         $s = nqp::concat(nqp::x('0',$digits - nqp::chars($s)),$s)
           if nqp::chars($s) < $digits;

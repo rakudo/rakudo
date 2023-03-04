@@ -80,9 +80,20 @@ my class Mu { # declared in BOOTSTRAP
     multi method WHY(Mu:) {
         my Mu $why;
 
-        my role Suggestion[$name] {
+        my role Suggestion[\object] {
             method gist {
-                "No documentation available for type '$name'. Perhaps it can be found at https://docs.raku.org/type/$name".naive-word-wrapper
+                my $what;
+                my $where;
+                if nqp::isconcrete(object) && nqp::can(object,"name") {
+                    $what  := object.name;
+                    $where := "routine/$what".subst('<', '&lt;', :g).subst('>', '&gt;', :g);
+                }
+                else {
+                    $what  := object.^name;
+                    $where := "type/$what";
+                }
+
+                "No documentation available for $what. Perhaps it can be found at https://docs.raku.org/$where.html".naive-word-wrapper
             }
         }
 
@@ -93,7 +104,7 @@ my class Mu { # declared in BOOTSTRAP
         if $why.defined && !$.defined #`(ie. we're a type object) {
             $why.set_docee(self);
         }
-        $why // Nil but Suggestion[self.^name]
+        $why // Nil but Suggestion[self]
     }
 
     method set_why($why) {

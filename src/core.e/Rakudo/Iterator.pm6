@@ -30,10 +30,16 @@ augment class Rakudo::Iterator {
 
                 # no more tests, produce the rest
                 if nqp::eqaddr(($test := $!tests.pull-one),IterationEnd) {
-                    nqp::until(
-                      nqp::eqaddr(($pulled := $values.pull-one),IterationEnd),
-                      nqp::push($buffer,$pulled)
-                    );
+                    $!next := IterationEnd;
+                    nqp::bindattr((my \result := nqp::create(List)),
+                      List,'$!reified',$buffer);
+                    nqp::bindattr((my \todo := nqp::create(List::Reifier)),
+                      List::Reifier,'$!reified',$buffer);
+                    nqp::bindattr(todo,
+                      List::Reifier,'$!current-iter',$values);
+                    nqp::bindattr(todo,
+                      List::Reifier,'$!reification-target',$buffer);
+                    nqp::p6bindattrinvres(result,List,'$!todo',todo)
                 }
 
                 # produce matching this test
@@ -43,10 +49,9 @@ augment class Rakudo::Iterator {
                         || nqp::isfalse($test.ACCEPTS($pulled)),
                       nqp::push($buffer,$pulled)
                     );
+                    $!next := $pulled;
+                    $buffer.List
                 }
-
-                $!next := $pulled;
-                $buffer.List
             }
         }
     }

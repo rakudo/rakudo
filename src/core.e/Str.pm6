@@ -11,4 +11,6 @@ augment class Str {
     }
 }
 
+multi sub comb(Pair:D $rotor, Cool:D $input, *%_) { $input.comb($rotor, |%_) }
+
 # vim: expandtab shiftwidth=4

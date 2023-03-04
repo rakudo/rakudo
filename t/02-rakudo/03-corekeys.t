@@ -801,6 +801,7 @@ my @allowed =
         Q{$=pod},
         Q{$_},
         Q{$¢},
+        Q{&comb},
         Q{&last},
         Q{&next},
         Q{&postcircumfix:<[; ]>},

@@ -17,9 +17,14 @@ augment class Any {
         self.skip(@skips)
     }
 
-    method snitch(\SELF: &snitch-on = &note) is raw {
-        snitch-on SELF;
-        SELF
+    proto method snitch(|) {*}
+    multi method snitch(Seq:D \SNITCHEE: &snitcher = &note) is raw {
+        snitcher SNITCHEE.cache;
+        SNITCHEE
+    }
+    multi method snitch(\SNITCHEE: &snitcher = &note) is raw {
+        snitcher SNITCHEE;
+        SNITCHEE
     }
 }
 
@@ -37,13 +42,16 @@ multi sub snip(\condition,  +values) { values.snip(condition)  }
 multi sub snip(@conditions, +values) { values.snip(@conditions) }
 
 proto sub snitch($, |) {*}
-multi sub snitch(\SELF) is raw {
-    note SELF;
-    SELF
+multi sub snitch(Seq:D \SNITCHEE) is raw { note SNITCHEE.cache; SNITCHEE }
+multi sub snitch(      \SNITCHEE) is raw { note SNITCHEE;       SNITCHEE }
+
+multi sub snitch(&snitcher, Seq:D \SNITCHEE) is raw {
+    snitcher SNITCHEE.cache;
+    SNITCHEE
 }
-multi sub snitch(&snitch-on, \SELF) is raw {
-    snitch-on SELF;
-    SELF
+multi sub snitch(&snitcher, \SNITCHEE) is raw {
+    snitcher SNITCHEE;
+    SNITCHEE
 }
 
 # vim: expandtab shiftwidth=4

@@ -3511,9 +3511,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
     token quote:sym</null/> {
         :my $rev := nqp::getcomp('Raku').language_revision;
-          <?{ $rev lt 'e' }>
+          <?{ $rev < 3 }>
           '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
-        | <?{ $rev ge 'e' }>
+        | <?{ $rev >= 3 }>
           '/' \s+ '/' <.typed_panic: "X::Syntax::Regex::NullRegex">
     }
     token quote:sym</ />  {
@@ -4102,7 +4102,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
     token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
     token prefix:sym<//>  {
-        <?{ nqp::getcomp('Raku').language_revision ge 'e' }>
+        <?{ nqp::getcomp('Raku').language_revision >= 3 }>
         <sym> <O(|%symbolic_unary)>
     }
 

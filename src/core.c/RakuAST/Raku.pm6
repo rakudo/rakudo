@@ -265,11 +265,11 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Initializer::Assign:D: --> Str:D) {
-        self!nameds: <expression>
+        self!positional(self.expression)
     }
 
     multi method raku(RakuAST::Initializer::Bind:D: --> Str:D) {
-        self!nameds: <expression>
+        self!positional(self.expression)
     }
 
     multi method raku(RakuAST::IntLiteral:D: --> Str:D) {

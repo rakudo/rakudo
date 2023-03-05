@@ -371,6 +371,7 @@ role Raku::Common {
 
         my $prestart := $pos - 40;
         $prestart := 0 if $prestart < 0;
+        $pos := 0 if $pos < 0; #FIXME workaround for when $pos is -3. Need to figure out how to get the real pos
         my $pre := nqp::substr($orig, $prestart, $pos - $prestart);
         $pre    := subst($pre, /.*\n/, "", :global);
         $pre    := '<BOL>' if $pre eq '';

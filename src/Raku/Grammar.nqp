@@ -186,8 +186,16 @@ role Raku::Common {
                     $heredoc.set-stop(~$stop);
                     my str $ws := $stop.MATCH<ws>.Str;
                     my int $actualchars := nqp::chars($ws);
-                    $heredoc.set-indent($actualchars);
-                    $heredoc.trim;
+                    my int $indent := $actualchars;
+                    my int $tabstop := $*R.resolve-lexical('$?TABSTOP').compile-time-value;
+                    my int $checkidx := -1;
+                    while ++$checkidx < $actualchars {
+                        if nqp::eqat($ws, "\t", $checkidx) {
+                            $indent := $indent + ($tabstop - 1);
+                        }
+                    }
+                    $heredoc.set-indent($indent);
+                    $heredoc.trim();
                 }
                 else {
                     self.panic("Ending delimiter $*DELIM not found");

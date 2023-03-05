@@ -5,9 +5,11 @@ plan 7;
 
 my $ast;
 my $deparsed;
+my $raku;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 

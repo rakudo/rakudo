@@ -5,11 +5,13 @@ plan 15;
 
 my $ast;
 my $deparsed;
+my $raku;
 my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node, :$EVAL --> Nil) {
     $ast      := $node;
     EVAL($ast) if $EVAL;
     $deparsed := $node.DEPARSE;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 

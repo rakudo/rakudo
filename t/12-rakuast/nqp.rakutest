@@ -5,12 +5,14 @@ plan 4;
 
 my $ast;
 my $deparsed;
+my $raku;
 my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(:expression($node))
     );
     $deparsed := $node.DEPARSE;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 

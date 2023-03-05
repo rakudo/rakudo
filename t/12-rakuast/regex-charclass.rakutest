@@ -5,10 +5,12 @@ plan 5;
 
 my $ast;
 my $deparsed;
+my $raku;
 my @type = <AST Str>;
 sub ast(RakuAST::Node:D $body --> Nil) {
     $ast      := RakuAST::QuotedRegex.new(:$body);
     $deparsed := $ast.DEPARSE;
+    $raku     := $ast.raku;
     diag $deparsed.chomp;
 }
 

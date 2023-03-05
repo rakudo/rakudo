@@ -5,10 +5,12 @@ plan 32; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
+my $raku;
 my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -1140,7 +1142,7 @@ subtest 'Block with CLOSE phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, '-> { CLOSE { ++$close } }'; 'deparse';
+    is-deeply $deparsed, '-> { CLOSE { ++$close } }', 'deparse';
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
         $close = 0;

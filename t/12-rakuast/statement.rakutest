@@ -5,10 +5,12 @@ plan 27; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
+my $raku;
 my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
+    $raku     := $node.raku;
     diag $deparsed.chomp;
 }
 

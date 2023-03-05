@@ -272,7 +272,7 @@ class RakuAST::VarDeclaration::Constant
 
         if self.scope eq 'our' {
             my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
-            if $!package.HOW.EXISTS-KEY($name) {
+            if $!package.WHO.EXISTS-KEY($name) {
                 nqp::die("already have an 'our constant $name' in the package");
             }
         }

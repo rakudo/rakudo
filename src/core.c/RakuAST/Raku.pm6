@@ -225,7 +225,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Contextualizer:D: --> Str:D) {
-        self!nameds: <sigil target>
+        self!positional(self.target)
     }
 
 #- D ---------------------------------------------------------------------------
@@ -234,11 +234,7 @@ augment class RakuAST::Node {
         self!nameds: <scope>
     }
 
-    multi method raku(RakuAST::DottyInfix::Call:D: --> Str:D) {
-        self!none
-    }
-
-    multi method raku(RakuAST::DottyInfix::CallAssign:D: --> Str:D) {
+    multi method raku(RakuAST::DottyInfixish:D: --> Str:D) {
         self!none
     }
 

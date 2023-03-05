@@ -411,10 +411,10 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::QuotedString:D: --> Str:D) {
         my str @parts = "RakuAST::QuotedString.new(";
         self!indent;
-        @parts.push:
-          $*INDENT ~ "segments   => " ~ self!rakufy(self.segments) ~ ",";
-        @parts.push:
-          $*INDENT ~ "processors => <" ~ self.processors ~ ">";
+        if self.processors -> @processors {
+            @parts.push: $*INDENT ~ "processors => <@processors[]>,";
+        }
+        @parts.push: $*INDENT ~ "segments   => " ~ self!rakufy(self.segments);
         self!dedent;
         @parts.push: $*INDENT ~ ")";
 

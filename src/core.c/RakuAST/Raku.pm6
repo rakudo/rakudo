@@ -112,7 +112,19 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::ApplyListInfix:D: --> Str:D) {
-        self!nameds: <infix operands>
+        my str @parts = "RakuAST::ApplyListInfix.new(";
+        self!indent;
+        @parts.push: $*INDENT ~ "infix    => " ~ self!rakufy(self.infix) ~ ",";
+        if self.operands -> @operands {
+            @parts.push: $*INDENT ~ "operands => " ~ self!rakufy(@operands);
+        }
+        else {
+            @parts.push: $*INDENT ~ "operands => ()";
+        }
+        self!dedent;
+        @parts.push: $*INDENT ~ ")";
+
+        @parts.join("\n")
     }
 
     multi method raku(RakuAST::ApplyPostfix:D: --> Str:D) {
@@ -245,7 +257,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::FunctionInfix:D: --> Str:D) {
-        self!nameds: <function>
+        self!positional(self.function)
     }
 
 #- H ---------------------------------------------------------------------------
@@ -281,11 +293,11 @@ augment class RakuAST::Node {
 #- M ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::MetaInfix::Assign:D: --> Str:D) {
-        self!nameds: <infix>
+        self!positional(self.infix)
     }
 
     multi method raku(RakuAST::MetaInfix::Negate:D: --> Str:D) {
-        self!nameds: <infix>
+        self!positional(self.infix)
     }
 
     multi method raku(RakuAST::Method:D: --> Str:D) {
@@ -308,11 +320,11 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Nqp:D: --> Str:D) {
-        self!nameds: <op args>
+        self!positionals( (self.op,|self.args.args) )
     }
 
     multi method raku(RakuAST::Nqp::Const:D: --> Str:D) {
-        self!nameds: <name>
+        $*INDENT ~ 'RakuAST::Nqp::Const.new(' ~ self.name.raku ~ ')'
     }
 
     multi method raku(RakuAST::NumLiteral:D: --> Str:D) {

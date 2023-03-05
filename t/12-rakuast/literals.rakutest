@@ -11,14 +11,15 @@ sub ast-ok(
   $comment = "testing for: $value.raku()"
 ) is test-assertion {
     subtest $comment => {
-        plan 3;
+        plan 4;
         my $deparsed = $ast.DEPARSE;
-        my $raku     = $ast.raku;
+        my $raku     = 'use experimental :rakuast; ' ~ $ast.raku;
         diag $deparsed.chomp;
 
         is-deeply $deparsed, $string, 'deparse';
         is-deeply EVAL($ast), $value, 'AST';
         is-deeply EVAL($deparsed), $value, 'Str';
+        is-deeply EVAL(EVAL $raku), $value, 'Raku';
     }
 }
 

@@ -9,11 +9,11 @@ plan 12;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $ast.DEPARSE;
-    $raku     := $ast.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
     diag $deparsed.chomp;
 }
 
@@ -30,7 +30,7 @@ subtest 'One-part heredoc with literal piece' => {
       'deparse';
 
     is-deeply $_, "hello\n\ngoodbye\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Heredoc with interpolated string variable works' => {
@@ -50,7 +50,7 @@ subtest 'Heredoc with interpolated string variable works' => {
       'deparse';
 
     is-deeply $_, "hello, world\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Heredoc with interpolated integer variable' => {
@@ -71,7 +71,7 @@ subtest 'Heredoc with interpolated integer variable' => {
       'deparse';
 
     is-deeply $_, "42 is the answer\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Heredoc with 3 parts works' => {
@@ -93,7 +93,7 @@ subtest 'Heredoc with 3 parts works' => {
       'deparse';
 
     is-deeply $_, "The answer is 42 of course!\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Heredoc involving an interpolated block' => {
@@ -122,7 +122,7 @@ subtest 'Heredoc involving an interpolated block' => {
       'deparse';
 
     is-deeply $_, "An interpolated block\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'words processor splits a heredoc into words' => {
@@ -138,7 +138,7 @@ subtest 'words processor splits a heredoc into words' => {
       'deparse';
 
     is-deeply $_, ("foo", "bar", "42"), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Words processor applied to a heredoc with interpolation' => {
@@ -160,7 +160,7 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
       'deparse';
 
     is-deeply $_, ("bar", "baz", "66"), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Using the val processor alone on a heredoc' => {
@@ -175,11 +175,11 @@ subtest 'Using the val processor alone on a heredoc' => {
       qq|qq:v:to/VAL/\n42\nVAL\n|,
       'deparse';
 
-#    is-deeply $_, IntStr.new(42,"42\n"), @type[$++]
-#      for EVAL($ast), EVAL($ast.DEPARSE);
-    is-deeply EVAL($ast),      IntStr.new(42,"42\n"), @type[$++];
-    todo("problem in parsing static heredocs and :v");
-    is-deeply EVAL($deparsed), IntStr.new(42,"42\n"), @type[$++];
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        todo("problem in parsing static heredocs and :v")
+          if $type eq 'Str' | 'Raku';
+        is-deeply EVAL($it), IntStr.new(42,"42\n"), $type;
+    }
 }
 
 subtest 'Using the val processor in heredoc with interpolation' => {
@@ -201,7 +201,7 @@ subtest 'Using the val processor in heredoc with interpolation' => {
       'deparse';
 
     is-deeply $_, IntStr.new(46,"46\n"), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Using the words and val processor in a heredoc' => {
@@ -217,7 +217,7 @@ subtest 'Using the words and val processor in a heredoc' => {
       'deparse';
 
     is-deeply $_, ("foo", "bar", IntStr.new(42,"42")), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Words processor applied to a heredoc with interpolation' => {
@@ -239,7 +239,7 @@ subtest 'Words processor applied to a heredoc with interpolation' => {
       'deparse';
 
     is-deeply $_, ('bar', 'baz', IntStr.new(66,"66")), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Using the exec processor alone gives expected result' => {
@@ -255,7 +255,7 @@ subtest 'Using the exec processor alone gives expected result' => {
       'deparse';
 
     is-deeply $_, "123\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

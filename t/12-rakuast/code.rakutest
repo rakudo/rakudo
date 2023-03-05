@@ -6,11 +6,11 @@ plan 12;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -29,7 +29,11 @@ subtest 'A pointy block node evaluates to a Block' => {
     );
     is-deeply $deparsed, '-> { 101 }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
         ok $block.WHAT === Block,
           "$type: A pointy block node evaluates to a Block";
         is $block.signature.params.elems, 0,
@@ -67,7 +71,11 @@ subtest 'A pointy block node taking a parameter evaluates to a Block' => {
     );
     is-deeply $deparsed, '-> $param { $param }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
         ok $block.WHAT === Block,
           "$type: A pointy block node taking a parameter evaluates to a Block";
         is $block.signature.params.elems, 1,
@@ -105,15 +113,13 @@ subtest 'Bare block at statement level is executed' => {
     );
     is-deeply $deparsed, '{ $x++ }', 'deparse';
 
-    is-deeply EVAL($ast), 99,
-      'AST: Bare block at statement level is executed';
-    is-deeply $x, 100,
-      'AST: Side-effects were performed as expected';
-
-    is-deeply EVAL($deparsed), 100,
-      'Str: Bare block at statement level is executed';
-    is-deeply $x, 101,
-      'Str: Side-effects were performed as expected';
+    my $expected = 99;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $block {
+        is-deeply EVAL($block), $expected,
+          "$type: Bare block at statement level is executed";
+        is-deeply $x, ++$expected,
+          "$type: Side-effects were performed as expected";
+    }
 }
 
 subtest 'Bare block in parentheses evaluates to Block' => {
@@ -142,34 +148,24 @@ subtest 'Bare block in parentheses evaluates to Block' => {
     );
     is-deeply $deparsed, '({ $x++ })', 'deparse';
 
-    given EVAL($ast) -> $result {
-        is-deeply $result.WHAT, Block,
-          'AST: Bare block in parentheses evaluates to Block';
-        is $result.arity, 0,
-          'AST: Block has arity 0';
-        is $result.count, 1,
-          'AST: Block has count 1';
-        is-deeply $x, 99,
-          'AST: No side-effects were performed';
-        is-deeply $result(), 99,
-          'AST: Can evaluate the returned block';
-        is-deeply $x, 100,
-          'AST: Block did perform side-effects when evaluated';
-    }
-
-    given EVAL($deparsed) -> $result {
-        is-deeply $result.WHAT, Block,
-          'Str: Bare block in parentheses evaluates to Block';
-        is $result.arity, 0,
-          'Str: Block has arity 0';
-        is $result.count, 1,
-          'Str: Block has count 1';
-        is-deeply $x, 100,
-          'Str: No side-effects were performed';
-        is-deeply $result(), 100,
-          'Str: Can evaluate the returned block';
-        is-deeply $x, 101,
-          'Str: Block did perform side-effects when evaluated';
+    my $expected = 99;
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed)
+#      ,'Raku', EVAL(EVAL $raku)  XXX
+    -> $type, $block {
+        is-deeply $block.WHAT, Block,
+          "$type: Bare block in parentheses evaluates to Block";
+        is $block.arity, 0,
+          "$type: Block has arity 0";
+        is $block.count, 1,
+          "$type: Block has count 1";
+        is-deeply $x, $expected,
+          "$type: No side-effects were performed";
+        is-deeply $block(), $expected,
+          "$type: Can evaluate the returned block";
+        is-deeply $x, ++$expected,
+          "$type: Block did perform side-effects when evaluated";
     }
 }
 
@@ -194,10 +190,14 @@ subtest 'Block has default parameter' => {
     );
     is-deeply $deparsed, '({ $_ })', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $result {
-        is-deeply $result('xxx'), 'xxx',
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed)
+#      ,'Raku', EVAL(EVAL $raku)  XXX
+    -> $type, $block {
+        is-deeply $block('xxx'), 'xxx',
           "$type: Block has default $type parameter";
-        lives-ok { $result() },
+        lives-ok { $block() },
           "$type: That $type parameter is optional";
     }
 }
@@ -224,7 +224,11 @@ subtest 'A sub node evaluates to a Sub' => {
     );
     is-deeply $deparsed, 'sub ($param) { $param }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $sub {
         ok $sub.WHAT === Sub,
           "$type: A sub node evaluates to a Sub";
         is $sub.signature.params.elems, 1,
@@ -277,7 +281,7 @@ my-sub(66)
 CODE
 
     is-deeply $_, 66, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'A routine declared anonymous does not declare anything' => {
@@ -308,7 +312,7 @@ my-sub()
 CODE
 
     dies-ok $_, @type[$++]
-      for { EVAL($ast) }, { EVAL($deparsed) };
+      for { EVAL($ast) }, { EVAL($deparsed) }, { EVAL(EVAL $raku) };
 }
 
 subtest 'A sub node with a trait evaluates to a Sub' => {
@@ -333,10 +337,24 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
     );
     is-deeply $deparsed, 'sub () returns Int { 66 }', 'deparse';
 
-    my $sub = EVAL($ast);
-    ok $sub ~~ Sub, 'A sub node with a trait evaluates to a Sub';
-    is-deeply $sub.returns, Int, 'The returns trait was applied and .returns is correct';
-    ok $sub ~~ Callable[Int], 'It also does the correct parametric Callable';
+    package one {
+        my $sub := EVAL($ast);
+        ok $sub ~~ Sub, 'AST: A sub node with a trait evaluates to a Sub';
+        is-deeply $sub.returns, Int, 'AST: The returns trait was applied and .returns is correct';
+        ok $sub ~~ Callable[Int], 'AST: It also does the correct parametric Callable';
+    }
+    package two {
+        my $sub := EVAL($deparsed);
+        ok $sub ~~ Sub, 'Str: A sub node with a trait evaluates to a Sub';
+        is-deeply $sub.returns, Int, 'Str: The returns trait was applied and .returns is correct';
+        ok $sub ~~ Callable[Int], 'Str: It also does the correct parametric Callable';
+    }
+    package three {
+        my $sub := EVAL($deparsed);
+        ok $sub ~~ Sub, 'Raku: A sub node with a trait evaluates to a Sub';
+        is-deeply $sub.returns, Int, 'Raku: The returns trait was applied and .returns is correct';
+        ok $sub ~~ Callable[Int], 'Raku: It also does the correct parametric Callable';
+    }
 }
 
 subtest 'Return type constraint' => {
@@ -363,7 +381,11 @@ subtest 'Return type constraint' => {
     );
     is-deeply $deparsed, 'sub () returns Int { $x }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $sub {
         $x = 42;
         lives-ok { $sub() }, "$type: type matches";
         $x = 'oops';
@@ -400,7 +422,11 @@ subtest 'Using return with acceptable type works' => {
     );
     is-deeply $deparsed, 'sub () returns Int { return($x) }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $sub {
         $x = 42;
         lives-ok { $sub() }, "$type: type matches";
         $x = 'oops';
@@ -428,7 +454,11 @@ subtest 'Using a string literal works' => {
     );
     is-deeply $deparsed, 'sub ("Bee") { 42 }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $sub {
         lives-ok { $sub("Bee") }, "$type: type matches";
         dies-ok  { $sub("Boo") }, "$type: type does not match";
     }

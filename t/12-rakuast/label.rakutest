@@ -18,7 +18,7 @@ my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 

@@ -6,11 +6,11 @@ plan 5;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -26,11 +26,12 @@ subtest 'Assignment meta-op evaluates to expected value' => {
 
     is-deeply $deparsed, '$a += 3', 'deparse';
 
-    is-deeply EVAL($ast), 13, 'AST: evaluates to expected value';
-    is-deeply $a, 13, 'Really did mutate the variable';
-
-    is-deeply EVAL($deparsed), 16, 'Str: evaluates to expected value';
-    is-deeply $a, 16, 'Really did mutate the variable';
+    my $expected = 13;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), $expected, "$type: evaluates to expected value";
+        is-deeply $a, $expected, "$type: Really did mutate the variable";
+        $expected += 3;
+    }
 }
 
 subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
@@ -51,10 +52,14 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
 
     is-deeply $deparsed, '$test ||= $update++', 'deparse';
 
-    is-deeply EVAL($ast), 10,
-      'AST: short-circuit || evaluates to true LHS';
-    is-deeply $update, 2,
-      'AST: Really did short-circuit, and not evaluate RHS';
+    my $test-expected = 10;
+    my $update-expected = 2;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), $test-expected,
+          "$type: short-circuit || evaluates to true LHS";
+        is-deeply $update, $update-expected,
+          "$type: Really did short-circuit, and not evaluate RHS";
+    }
 
     is-deeply EVAL($deparsed), 10,
       'Str: short-circuit || evaluates to true LHS';
@@ -62,16 +67,12 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
       'Str: Really did short-circuit, and not evaluate RHS';
 
     $test = 0;
-    is-deeply EVAL($ast), 2,
-      'AST: no short-circuit || evaluates to RHS when LHS false';
-    is-deeply $update, 3,
-      'AST: Really did evaluate RHS';
-
-    $test = 0;
-    is-deeply EVAL($deparsed), 3,
-      'Str: no short-circuit || evaluates to RHS when LHS false';
-    is-deeply $update, 4,
-      'Str: Really did evaluate RHS';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', $raku -> $type, $it {
+        is-deeply EVAL($ast), 2,
+          "$type: no short-circuit || evaluates to RHS when LHS false";
+        is-deeply $update, 3,
+          "$type: Really did evaluate RHS";
+    }
 }
 
 subtest 'Literal reduce meta-op on left associative operator' => {
@@ -87,7 +88,7 @@ subtest 'Literal reduce meta-op on left associative operator' => {
 
     is-deeply $deparsed, '[+] 1, 2, 3', 'deparse';
     is-deeply $_, 6, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 {
@@ -103,7 +104,7 @@ subtest 'Literal reduce meta-op on left associative operator' => {
 
         is-deeply $deparsed, '[+] @a', 'deparse';
         is-deeply $_, 10, @type[$++]
-          for EVAL($ast), EVAL($deparsed);
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     }
 }
 
@@ -121,7 +122,7 @@ subtest 'Triangle reduce meta-op on left associative operator' => {
 
     is-deeply $deparsed, '[\+] 1, 2, 3', 'deparse';
     is-deeply $_, (1,3,6), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

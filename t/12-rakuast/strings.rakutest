@@ -1,8 +1,7 @@
 # NOTE: if you're adding / adapting tests here, you probably want to do
 #       the same in t/12-rakuast/heredocs.t
 
-use MONKEY-SEE-NO-EVAL;
-use experimental :rakuast;
+use v6.e.PREVIEW;
 use Test;
 
 plan 13;

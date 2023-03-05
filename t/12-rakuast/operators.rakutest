@@ -1,5 +1,4 @@
-use MONKEY-SEE-NO-EVAL;
-use experimental :rakuast;
+use v6.e.PREVIEW;
 use Test;
 
 plan 31;
@@ -375,7 +374,7 @@ subtest 'Multi-dimensional hash indexing' => {
     );
 
     is-deeply $deparsed, '%h{"y"; "a"}', 'deparse';
-    is-deeply $_, (3,), @type[$++]
+    is-deeply $_, 3, @type[$++]
       for EVAL($ast), EVAL($deparsed);
 }
 

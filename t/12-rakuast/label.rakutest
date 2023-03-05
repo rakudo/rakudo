@@ -1,5 +1,4 @@
-use MONKEY-SEE-NO-EVAL;
-use experimental :rakuast;
+use v6.e.PREVIEW;
 use Test;
 
 plan 18; # Do not change this file to done-testing

@@ -1263,7 +1263,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.unsp>?
         [
         | <methodop($special)>
-#        | <colonpair>
+        | <colonpair>
         | <!alpha> <postop> $<O> = {$<postop><O>} $<sym> = {$<postop><sym>}
           <.dotty-non-ident($special)>
         ]

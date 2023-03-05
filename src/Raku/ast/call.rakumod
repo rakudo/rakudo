@@ -26,6 +26,8 @@ class RakuAST::ArgList
         $obj
     }
 
+    method push($arg) { nqp::push($!args, $arg) }
+
     method has-args() { nqp::elems($!args) }
 
     method args() {

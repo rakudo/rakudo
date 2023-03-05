@@ -783,9 +783,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     make $/[0].ast;
                 }
                 else {
-                    self.attach: $/, self.r('ApplyPostfix').new:
-                        postfix => $ast // self.r('Postfix').new($<postfix><sym>),
-                        operand => $/[0].ast;
+                    if nqp::istype($ast, self.r('Call', 'Name')) {
+                        $ast.args.push: $/[0].ast;
+                        self.attach: $/, $ast;
+                    }
+                    else {
+                        self.attach: $/, self.r('ApplyPostfix').new:
+                            postfix => $ast // self.r('Postfix').new($<postfix><sym>),
+                            operand => $/[0].ast;
+                    }
                 }
             }
             else {
@@ -902,6 +908,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $<postop> {
             self.attach: $/, $<postop>.ast;
+        }
+        elsif $<colonpair> {
+            if $<colonpair><identifier> eq "" && $<colonpair><coloncircumfix> -> $cf {
+                if $cf<circumfix> -> $op_name {
+                    self.attach: $/, self.r('Call', 'Name').new(
+                        :name(
+                            self.r('Name').from-identifier(
+                                'prefix:' ~ self.r('ColonPairish').IMPL-QUOTE-VALUE(
+                                    ($op_name<nibble> // $op_name<semilist> // $op_name<pblock>).Str
+                                )
+                            )
+                        )
+                    );
+                }
+                else {
+                    nqp::die('NYI kind of dottyop with coloncircumfix');
+                }
+            } else {
+                self.attach: $/, $<colonpair>.ast;
+            }
         }
         else {
             nqp::die('NYI kind of dottyop');

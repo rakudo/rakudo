@@ -198,6 +198,7 @@ class RakuAST::TraitTarget::Variable
 class RakuAST::VarDeclaration::Constant
   is RakuAST::Declaration
   is RakuAST::TraitTarget
+  is RakuAST::Attaching
   is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::CompileTimeValue
@@ -233,6 +234,16 @@ class RakuAST::VarDeclaration::Constant
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
     method is-simple-lexical-declaration() { True }
 
+    method attach(RakuAST::Resolver $resolver) {
+        if self.scope eq 'our' {
+            # There is always a package, even if it's just GLOBALish
+            nqp::bindattr(
+              self, RakuAST::VarDeclaration::Constant, '$!package',
+              $resolver.current-package
+            );
+        }
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST($!type ?? [$!type] !! [])
     }
@@ -260,13 +271,8 @@ class RakuAST::VarDeclaration::Constant
         nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!value', $value);
 
         if self.scope eq 'our' {
-            # There is always a package, even if it's just GLOBALish
-            my $package := nqp::bindattr(
-              self, RakuAST::VarDeclaration::Constant, '$!package',
-              $resolver.current-package
-            );
             my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
-            if $package.HOW.EXISTS-KEY($name) {
+            if $!package.HOW.EXISTS-KEY($name) {
                 nqp::die("already have an 'our constant $name' in the package");
             }
         }

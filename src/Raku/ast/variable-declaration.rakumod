@@ -233,6 +233,7 @@ class RakuAST::VarDeclaration::Constant
     method default-scope()  { 'our'   }
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
     method is-simple-lexical-declaration() { True }
+    method needs-sink-call() { False }
 
     method attach(RakuAST::Resolver $resolver) {
         if self.scope eq 'our' {

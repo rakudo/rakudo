@@ -180,13 +180,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method rel2abs (Str() $path is copy, $base? is copy, :$omit-volume) {
         nqp::if(
-          (nqp::eqat($path, ':', 1) # /^ <[A..Z a..z]> ':' [ ｢\｣ | ｢/｣ ] /
-              && ( (nqp::isge_i(($_ := nqp::ord($path)), 65) # drive letter
-                  && nqp::isle_i($_, 90))
-                || (nqp::isge_i($_, 97) && nqp::isle_i($_, 122)))
-              && ( nqp::iseq_i(($_ := nqp::ordat($path, 2)), 92) # slash
-                || nqp::iseq_i($_, 47)))
-          || 0, #($path ~~ /^ <$UNCpath>/),
+          self.is-absolute($path),
           self.canonpath($path),
           nqp::if(
             nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /

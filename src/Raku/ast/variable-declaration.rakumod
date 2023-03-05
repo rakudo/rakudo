@@ -206,8 +206,8 @@ class RakuAST::VarDeclaration::Constant
 {
     has str                      $.name;
     has RakuAST::Initializer     $.initializer;
-    has Mu                       $!value;
     has RakuAST::Type            $.type;
+    has Mu                       $!value;
     has Mu                       $!package;
     has RakuAST::ExpressionThunk $!thunk;
 

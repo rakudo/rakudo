@@ -1880,7 +1880,7 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($_)) for @traits;
         }
         @parts.push('=');
-        @parts.push($ast.value.raku);
+        @parts.push(self.deparse($ast.initializer));
 
         @parts.join(' ');
     }

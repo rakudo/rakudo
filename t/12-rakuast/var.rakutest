@@ -2,7 +2,7 @@ use MONKEY-SEE-NO-EVAL;
 use experimental :rakuast;
 use Test;
 
-plan 45;
+plan 46;
 
 my $ast;
 my $deparsed;
@@ -988,12 +988,13 @@ subtest 'Lexical constant' => {
       )
     );
     is-deeply $deparsed, 'constant foo = "bar"', 'deparse';
-    package one {
-        todo "WTF";
-        is-deeply EVAL($ast), "bar", @type[$++];
+    my package one {
+        is-deeply EVAL($ast), "bar", "AST: did it produce 'bar'";
+        is-deeply OUR::<foo>, "bar", "AST: was the constant installed";
     }
-    package two {
-        is-deeply EVAL($deparsed), "bar", @type[$++];
+    my package two {
+        is-deeply EVAL($deparsed), "bar", "Str: did it produce 'bar'";
+        is-deeply OUR::<foo>, "bar", "Str: was the constant installed";
     }
 }
 
@@ -1007,8 +1008,29 @@ subtest 'Lexical my constant' => {
       )
     );
     is-deeply $deparsed, 'my constant foo = "bar"', 'deparse';
-    is-deeply $_, "bar", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+    for "AST", $ast, "Str", $deparsed -> $type, $it {
+        is-deeply EVAL($it), "bar", "$type: did it produce 'bar'";
+        nok OUR::<foo>:exists, "$type: was the constant *not* installed";
+    }
+}
+
+subtest 'Lexical my constant with expression' => {
+    # my constant foo = now
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::VarDeclaration::Constant.new(
+        scope       => "my",
+        name        => "foo",
+        initializer => RakuAST::Term::Named.new("now")
+      )
+    );
+    is-deeply $deparsed, 'my constant foo = now', 'deparse';
+    for "AST", (try EVAL $ast), "Str", EVAL($deparsed) -> $type, $it {
+        todo "Unknown compilation input 'qast'"
+          if $type eq 'AST' && !%*ENV<RAKUDO_RAKUAST>;
+        isa-ok $it, Instant, "$type: did it produce an Instant";
+        nok $it == now, "$type: check that time has passed";
+        nok OUR::<foo>:exists, "$type: was the constant *not* installed";
+    }
 }
 
 # vim: expandtab shiftwidth=4

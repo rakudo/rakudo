@@ -1015,11 +1015,11 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Term::Name:D: --> Str:D) {
-        self!positional(self.name)
+        self!literal(self.name)
     }
 
     multi method raku(RakuAST::Term::Named:D: --> Str:D) {
-        self!positional(self.name)
+        self!literal(self.name)
     }
 
     multi method raku(RakuAST::Term::Rand:D --> Str:D) {

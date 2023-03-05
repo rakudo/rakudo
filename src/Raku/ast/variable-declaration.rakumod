@@ -306,8 +306,13 @@ class RakuAST::VarDeclaration::Constant
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
-        my $constant := QAST::Var.new(
-          :decl('static'), :scope('lexical'), :name($!name), :value($!value)
+        my $constant := QAST::Stmts.new(
+            nqp::istype($!initializer, RakuAST::Code)
+                ?? $!initializer.IMPL-TO-QAST($context)
+                !! $!thunk.IMPL-QAST-BLOCK($context, :expression($!initializer)),
+            QAST::Var.new(
+              :decl('static'), :scope('lexical'), :name($!name), :value($!value)
+            )
         );
         self.scope eq 'our'
           ?? QAST::Op.new(
@@ -326,12 +331,7 @@ class RakuAST::VarDeclaration::Constant
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        if nqp::istype($!initializer, RakuAST::Code) {
-            $!initializer.IMPL-TO-QAST($context)
-        }
-        else {
-            $!thunk.IMPL-QAST-BLOCK($context, :expression($!initializer))
-        }
+        QAST::Var.new(:name($!name), :scope<lexical>);
     }
 }
 

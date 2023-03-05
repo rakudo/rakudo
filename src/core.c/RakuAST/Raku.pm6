@@ -409,7 +409,16 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::QuotedString:D: --> Str:D) {
-        self!nameds: <segments processors>
+        my str @parts = "RakuAST::QuotedString.new(";
+        self!indent;
+        @parts.push:
+          $*INDENT ~ "segments   => " ~ self!rakufy(self.segments) ~ ",";
+        @parts.push:
+          $*INDENT ~ "processors => <" ~ self.processors ~ ">";
+        self!dedent;
+        @parts.push: $*INDENT ~ ")";
+
+        @parts.join("\n")
     }
 
     multi method raku(RakuAST::QuoteWordsAtom:D: --> Str:D) {

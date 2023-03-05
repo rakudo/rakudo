@@ -1789,6 +1789,18 @@ class RakuAST::Deparse {
 
 #- Type ------------------------------------------------------------------------
 
+    multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {
+        my str @parts = 'enum';
+        my str $scope = $ast.scope;
+
+        @parts.unshift($scope) if $scope && $scope ne 'our'; # XXX
+        @parts.unshift(self.deparse($_)) with $ast.of;
+        @parts.push(self.deparse($_)) with $ast.name;
+        @parts.push(self.deparse($ast.term));
+
+        @parts.join(' ');
+    }
+
     multi method deparse(RakuAST::Type::Simple:D $ast --> Str:D) {
         self.deparse($ast.name)
     }

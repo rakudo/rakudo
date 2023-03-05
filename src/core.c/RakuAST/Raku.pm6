@@ -1076,6 +1076,10 @@ augment class RakuAST::Node {
 
 #- Type ------------------------------------------------------------------------
 
+    multi method raku(RakuAST::Type::Enum:D: --> Str:D) {
+        self!nameds: <scope name term of>
+    }
+
     multi method raku(RakuAST::Type::Simple:D: --> Str:D) {
         self!positional(self.name)
     }

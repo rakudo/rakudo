@@ -245,12 +245,7 @@ class RakuAST::Call::Name
             else {
                 $call.push(
                     self.is-resolved
-                        ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
-                            $context,
-                            QAST::WVal.new(:value($!package)),
-                            :lexical(self.resolution),
-                            :sigil<&>
-                        )
+                        ?? self.resolution.IMPL-LOOKUP-QAST($context)
                         !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
                             $context,
                             QAST::WVal.new(:value($!package)),

@@ -203,22 +203,25 @@ class RakuAST::VarDeclaration::Constant
   is RakuAST::CompileTimeValue
   is RakuAST::ImplicitLookups
 {
-    has str           $.name;
-    has Mu            $.value;
-    has RakuAST::Type $.type;
-    has Mu            $!package;
+    has str                      $.name;
+    has RakuAST::Initializer     $.initializer;
+    has Mu                       $!value;
+    has RakuAST::Type            $.type;
+    has Mu                       $!package;
+    has RakuAST::ExpressionThunk $!thunk;
 
     method new(
       str           :$scope,
       RakuAST::Type :$type,
       str           :$name!,
-      Mu            :$value!,
+      RakuAST::Initializer :$initializer!,
       List          :$traits
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Constant,'$!name',$name);
-        nqp::bindattr($obj,RakuAST::VarDeclaration::Constant,'$!value',$value);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!initializer',
+            $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Constant, '$!type',
           $type // RakuAST::Type);
         $obj.set-traits($traits) if $traits;
@@ -236,6 +239,7 @@ class RakuAST::VarDeclaration::Constant
 
     method visit-children(Code $visitor) {
         $visitor($!type) if $!type;
+        $visitor($!initializer) if $!initializer;
         self.visit-traits($visitor);
     }
 
@@ -243,6 +247,18 @@ class RakuAST::VarDeclaration::Constant
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
+        my $value := self.IMPL-BEGIN-TIME-EVALUATE($!initializer, $resolver, $context);
+        unless (nqp::istype($!initializer, RakuAST::Code)) {
+            my $thunk := $!initializer.outer-most-thunk;
+            unless ($thunk) {
+                $thunk := RakuAST::ExpressionThunk.new;
+                $!initializer.wrap-with-thunk($thunk);
+                $thunk.IMPL-STUB-CODE($resolver, $context);
+            }
+            nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!thunk', $thunk);
+        }
+        nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!value', $value);
+
         if self.scope eq 'our' {
             # There is always a package, even if it's just GLOBALish
             my $package := nqp::bindattr(
@@ -304,7 +320,12 @@ class RakuAST::VarDeclaration::Constant
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new(:name($!name), :scope<lexical>)
+        if nqp::istype($!initializer, RakuAST::Code) {
+            $!initializer.IMPL-TO-QAST($context)
+        }
+        else {
+            $!thunk.IMPL-QAST-BLOCK($context, :expression($!initializer))
+        }
     }
 }
 

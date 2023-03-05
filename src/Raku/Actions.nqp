@@ -1693,10 +1693,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
             %args<name> := ~$<variable>;
         }
-        %args<value> := self.r('BeginTime').IMPL-BEGIN-TIME-EVALUATE(
-          $<initializer><EXPR>.ast, $*R, $*CU.context
-        );
         %args<scope> := $*SCOPE;
+        %args<initializer> := $<initializer><EXPR>.ast;
         if $<trait> {
             %args<traits> := my @traits;
             @traits.push($_.ast) for $<trait>;
@@ -1705,6 +1703,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $decl := self.r('VarDeclaration', 'Constant').new(|%args);
         $/.typed_panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
+        $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
     }
 

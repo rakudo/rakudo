@@ -56,6 +56,10 @@ class RakuAST::Expression
         }
     }
 
+    method outer-most-thunk() {
+        $!thunks
+    }
+
     method IMPL-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Str $arg) {
         my $thunk := RakuAST::CurryThunk.new($arg);
         $thunk.IMPL-CHECK($resolver, $context, True);

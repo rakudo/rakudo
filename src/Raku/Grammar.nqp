@@ -211,7 +211,8 @@ role Raku::Common {
     }
 
     token cheat_heredoc {
-        <?{ nqp::elems($*CU.herestub-queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
+        :my $scope;
+        <?{ nqp::elems($*CU.herestub-queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> { $scope := $*R.current-scope; $*R.leave-scope; } <.ws> { $*R.enter-scope($scope) } <?MARKER('endstmt')>
     }
 
     token quibble($l, *@base_tweaks) {

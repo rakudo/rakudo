@@ -202,6 +202,10 @@ role Raku::Common {
         }
     }
 
+    token cheat_heredoc {
+        <?{ nqp::elems($*CU.herestub-queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
+    }
+
     token quibble($l, *@base_tweaks) {
         :my $lang;
         :my $start;
@@ -701,7 +705,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | :dba('block')
           '{'
           <statementlist=.key-origin('statementlist')>
-          '}'
+          [<.cheat_heredoc> || '}']
           <?ENDSTMT>
         || <.missing_block($borg, $has_mystery)>
         ]
@@ -869,7 +873,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <version>
             { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
-        | <module_name=.longname> [ <.spacey> <arglist> ]?
+        | <module_name=.longname> [ <.spacey> <arglist> <.cheat_heredoc>? ]?
         ]
         <.ws>
     }
@@ -947,7 +951,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token blorst {
         [
         | <?[{]> <block>
-        | <![;]> <statement> # <.cheat_heredoc>?
+        | <![;]> <statement> <.cheat_heredoc>?
         || <.missing: 'block or statement'>
         ]
     }
@@ -2252,6 +2256,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait>*
 
         [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
+
+        <.cheat_heredoc>?
     }
 
     token type_declarator:sym<enum> {

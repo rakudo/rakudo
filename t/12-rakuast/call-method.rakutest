@@ -6,11 +6,11 @@ plan 15;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str AST Str>;
+my @type = <AST Str Raku AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -32,7 +32,7 @@ subtest 'Can make a call on a method without arguments' => {
     );
     is-deeply $deparsed, 'TestTarget.route()', 'deparsed';
     is-deeply $_, 66, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a call on a submethod without arguments' => {
@@ -47,7 +47,7 @@ subtest 'Can make a call on a submethod without arguments' => {
     );
     is-deeply $deparsed, 'TestTarget.subby()', 'deparsed';
     is-deeply $_, 42, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a call on a method with positional arguments' => {
@@ -66,7 +66,7 @@ subtest 'Can make a call on a method with positional arguments' => {
     );
     is-deeply $deparsed, 'TestTarget.subtract(14, 6)', 'deparsed';
     is-deeply $_, 8, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Method call WHAT compiles into MOP primitive' => {
@@ -79,7 +79,7 @@ subtest 'Method call WHAT compiles into MOP primitive' => {
     );
     is-deeply $deparsed, '42.WHAT', 'deparsed';
     is-deeply $_, Int, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Method call HOW compiles into MOP primitive' => {
@@ -92,7 +92,7 @@ subtest 'Method call HOW compiles into MOP primitive' => {
     );
     is-deeply $deparsed, '42.HOW', 'deparsed';
     is-deeply $_, Int.HOW, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Method call WHO compiles into MOP primitive' => {
@@ -105,7 +105,7 @@ subtest 'Method call WHO compiles into MOP primitive' => {
     );
     is-deeply $deparsed, '42.WHO', 'deparsed';
     isa-ok $_, Stash, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Method call DEFINITE compiles into MOP primitive' => {
@@ -118,7 +118,7 @@ subtest 'Method call DEFINITE compiles into MOP primitive' => {
     );
     is-deeply $deparsed, '42.DEFINITE', 'deparsed';
     is-deeply $_, True, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Method call REPR compiles into MOP primitive' => {
@@ -131,7 +131,7 @@ subtest 'Method call REPR compiles into MOP primitive' => {
     );
     is-deeply $deparsed, '42.REPR', 'deparsed';
     is-deeply $_, 'P6opaque', @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a quoted call on a method without arguments' => {
@@ -148,7 +148,7 @@ subtest 'Can make a quoted call on a method without arguments' => {
     );
     is-deeply $deparsed, 'TestTarget."route"()', 'deparsed';
     is-deeply $_, 66, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a quoted call on a method with positional arguments' => {
@@ -169,7 +169,7 @@ subtest 'Can make a quoted call on a method with positional arguments' => {
     );
     is-deeply $deparsed, 'TestTarget."subtract"(14, 6)', 'deparsed';
     is-deeply $_, 8, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a meta-method call' => {
@@ -180,7 +180,7 @@ subtest 'Can make a meta-method call' => {
     );
     is-deeply $deparsed, '42.^name()', 'deparsed';
     is-deeply $_, 'Int', @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a method call if the method exists' => {
@@ -199,7 +199,7 @@ subtest 'Can make a method call if the method exists' => {
     );
     is-deeply $deparsed, 'TestTarget.?subtract(50, 8)', 'deparsed';
     is-deeply $_, 42, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a method call if the method does not exist' => {
@@ -214,7 +214,7 @@ subtest 'Can make a method call if the method does not exist' => {
     );
     is-deeply $deparsed, 'TestTarget.?dunno()', 'deparsed';
     is-deeply $_, Nil, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a private method call' => {
@@ -232,7 +232,7 @@ subtest 'Can make a private method call' => {
         );
         is-deeply $deparsed, 'A!private()', 'deparsed';
         is-deeply $_, 42, @type[$++]
-          for EVAL($ast), EVAL($deparsed);
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     }
 }
 
@@ -246,7 +246,7 @@ subtest 'Can make a method call on a sub' => {
     );
     is-deeply $deparsed, '"foo".&uc()', 'deparsed';
     is-deeply $_, "FOO", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

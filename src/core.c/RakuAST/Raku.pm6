@@ -234,11 +234,11 @@ augment class RakuAST::Node {
         self!nameds: <scope>
     }
 
-    multi method raku(RakuAST::DottyInfix::Call:D --> Str:D) {
+    multi method raku(RakuAST::DottyInfix::Call:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::DottyInfix::CallAssign:D --> Str:D) {
+    multi method raku(RakuAST::DottyInfix::CallAssign:D: --> Str:D) {
         self!none
     }
 
@@ -370,7 +370,7 @@ augment class RakuAST::Node {
         self!positional(self.name)
     }
 
-    multi method raku(RakuAST::ParameterDefaultThunk:D --> '') { }  # XXX
+    multi method raku(RakuAST::ParameterDefaultThunk:D: --> '') { }  # XXX
 
 #- Po --------------------------------------------------------------------------
 
@@ -433,27 +433,27 @@ augment class RakuAST::Node {
 
 #- Regex -----------------------------------------------------------------------
 
-    multi method raku(RakuAST::Regex::Anchor::BeginningOfString:D --> Str:D) {
+    multi method raku(RakuAST::Regex::Anchor::BeginningOfString:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::Regex::Anchor::EndOfString:D --> Str:D) {
+    multi method raku(RakuAST::Regex::Anchor::EndOfString:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::Regex::Anchor::BeginningOfLine:D --> Str:D) {
+    multi method raku(RakuAST::Regex::Anchor::BeginningOfLine:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::Regex::Anchor::EndOfLine:D --> Str:D) {
+    multi method raku(RakuAST::Regex::Anchor::EndOfLine:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::Regex::Anchor::LeftWordBoundary:D --> Str:D) {
+    multi method raku(RakuAST::Regex::Anchor::LeftWordBoundary:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::Regex::Anchor::RightWordBoundary:D --> Str:D) {
+    multi method raku(RakuAST::Regex::Anchor::RightWordBoundary:D: --> Str:D) {
         self!none
     }
 
@@ -479,7 +479,7 @@ augment class RakuAST::Node {
         self!positionals(self.elements)
     }
 
-    multi method raku(RakuAST::Regex::Assertion::Fail:D --> Str:D) {
+    multi method raku(RakuAST::Regex::Assertion::Fail:D: --> Str:D) {
         self!none
     }
 
@@ -508,7 +508,7 @@ augment class RakuAST::Node {
         self!nameds: <name regex-arg>
     }
 
-    multi method raku(RakuAST::Regex::Assertion::Pass:D --> Str:D) {
+    multi method raku(RakuAST::Regex::Assertion::Pass:D: --> Str:D) {
         self!none
     }
 
@@ -526,19 +526,19 @@ augment class RakuAST::Node {
         self!positional(self.name)
     }
 
-    multi method raku(RakuAST::Regex::Backtrack:U --> Str:D) {
+    multi method raku(RakuAST::Regex::Backtrack:U: --> Str:D) {
         self.^name
     }
 
-    multi method raku(RakuAST::Regex::Backtrack::Frugal:U --> Str:D) {
+    multi method raku(RakuAST::Regex::Backtrack::Frugal:U: --> Str:D) {
         self.^name
     }
 
-    multi method raku(RakuAST::Regex::Backtrack::Greedy:U --> Str:D) {
+    multi method raku(RakuAST::Regex::Backtrack::Greedy:U: --> Str:D) {
         self.^name
     }
 
-    multi method raku(RakuAST::Regex::Backtrack::Ratchet:U --> Str:D) {
+    multi method raku(RakuAST::Regex::Backtrack::Ratchet:U: --> Str:D) {
         self.^name
     }
 
@@ -558,8 +558,8 @@ augment class RakuAST::Node {
 
 #- Regex::Charclass ------------------------------------------------------------
 
-    multi method raku(RakuAST::Regex::CharClass::Any:U: --> Str:D) {
-        self.^name
+    multi method raku(RakuAST::Regex::CharClass::Any:D: --> Str:D) {
+        self!none
     }
 
     multi method raku(RakuAST::Regex::CharClass::BackSpace:D: --> Str:D) {
@@ -677,11 +677,11 @@ augment class RakuAST::Node {
 
 #- Regex::M --------------------------------------------------------------------
 
-    multi method raku(RakuAST::Regex::MatchFrom:D --> Str:D) {
+    multi method raku(RakuAST::Regex::MatchFrom:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::Regex::MatchTo:D --> Str:D) {
+    multi method raku(RakuAST::Regex::MatchTo:D: --> Str:D) {
         self!none
     }
 
@@ -694,7 +694,7 @@ augment class RakuAST::Node {
 #- Regex::Q --------------------------------------------------------------------
 
     multi method raku(RakuAST::Regex::QuantifiedAtom:D: --> Str:D) {
-        self!nameds: <atom quantifier separator trailing-seperator>
+        self!nameds: <atom quantifier separator trailing-separator>
     }
 
     multi method raku(RakuAST::Regex::Quantifier::BlockRange:D: --> Str:D) {
@@ -855,7 +855,7 @@ augment class RakuAST::Node {
         self!positional(self.expression)
     }
 
-    multi method raku(RakuAST::StatementModifier::For::Thunk:D --> Str:D) {
+    multi method raku(RakuAST::StatementModifier::For::Thunk:D: --> Str:D) {
         self!none
     }
 
@@ -1015,11 +1015,11 @@ augment class RakuAST::Node {
         self!positional(self.source)
     }
 
-    multi method raku(RakuAST::Term::EmptySet:D --> Str:D) {
+    multi method raku(RakuAST::Term::EmptySet:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::Term::HyperWhatever:D --> Str:D) {
+    multi method raku(RakuAST::Term::HyperWhatever:D: --> Str:D) {
         self!none
     }
 
@@ -1031,7 +1031,7 @@ augment class RakuAST::Node {
         self!literal(self.name)
     }
 
-    multi method raku(RakuAST::Term::Rand:D --> Str:D) {
+    multi method raku(RakuAST::Term::Rand:D: --> Str:D) {
         self!none
     }
 
@@ -1043,7 +1043,7 @@ augment class RakuAST::Node {
         self!nameds: <triangle infix args>
     }
 
-    multi method raku(RakuAST::Term::Self:D --> Str:D) {
+    multi method raku(RakuAST::Term::Self:D: --> Str:D) {
         self!none
     }
 
@@ -1051,7 +1051,7 @@ augment class RakuAST::Node {
         self!positional(self.call)
     }
 
-    multi method raku(RakuAST::Term::Whatever:D --> Str:D) {
+    multi method raku(RakuAST::Term::Whatever:D: --> Str:D) {
         self!none
     }
 
@@ -1178,12 +1178,12 @@ augment class RakuAST::Node {
     }
 
     multi method raku(
-      RakuAST::VarDeclaration::Placeholder::SlurpyArray:D --> Str:D) {
+      RakuAST::VarDeclaration::Placeholder::SlurpyArray:D: --> Str:D) {
         self!none
     }
 
     multi method raku(
-      RakuAST::VarDeclaration::Placeholder::SlurpyHash:D --> Str:D) {
+      RakuAST::VarDeclaration::Placeholder::SlurpyHash:D: --> Str:D) {
         self!none
     }
 

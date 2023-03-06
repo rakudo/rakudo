@@ -155,7 +155,7 @@ class RakuAST::Resolver {
         if $name.is-identifier {
             return self.global-package() if $name.canonicalize eq 'GLOBAL';
             # Single-part name, so look lexically.
-            my str $bare-name := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
+            my str $bare-name := $name.canonicalize;
             my str $lexical-name := $sigil ?? $sigil ~ $bare-name !! $bare-name;
             $found := self.resolve-lexical($lexical-name)
         }
@@ -206,7 +206,7 @@ class RakuAST::Resolver {
 
     method IMPL-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {
         if $name.is-identifier {
-            my str $identifier := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
+            my str $identifier := $name.canonicalize;
             return self.global-package() if $identifier eq 'GLOBAL';
             $setting
                 ?? self.resolve-lexical-constant-in-setting($identifier)
@@ -267,7 +267,7 @@ class RakuAST::Resolver {
 
     method IMPL-PARTIALLY-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {
         if $name.is-identifier {
-            my str $identifier := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
+            my str $identifier := $name.canonicalize;
             my $constant := $setting
                 ?? self.resolve-lexical-constant-in-setting($identifier)
                 !! self.resolve-lexical-constant($identifier);

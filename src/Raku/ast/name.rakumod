@@ -72,6 +72,15 @@ class RakuAST::Name
         False
     }
 
+    method without-colonpair($key) {
+        my @parts := nqp::clone($!parts);
+        my $type := RakuAST::Name.new(|@parts);
+        for $!colonpairs {
+            $type.add-colonpair($_) if $_.key ne $key;
+        }
+        $type
+    }
+
     method visit-children(Code $visitor) {
         if nqp::isconcrete(self) {
             for $!parts {

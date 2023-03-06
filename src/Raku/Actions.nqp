@@ -1227,11 +1227,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             if $*is-type {
-                my $type := self.r('Type', 'Simple').new($name);
-                if $<arglist> {
-                    $type := self.r('Type', 'Parameterized').new(:base-type($type), :args($<arglist>.ast));
-                }
-                self.attach: $/, $type;
+                self.attach: $/, self.type-for-name($/, $name);
             }
             else {
                 self.attach: $/, self.r('Term', 'Name').new($name);
@@ -2131,6 +2127,29 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Types
     ##
 
+    method type-for-name($/, $base-name) {
+        my $type := self.r('Type', 'Simple').new($base-name.without-colonpair('_'));
+        if $base-name.has-colonpair('D') {
+            $type := self.r('Type', 'Simple').new($base-name.without-colonpair('D'));
+            $type := self.r('Type', 'Definedness').new(:base-type($type), :definite);
+        }
+        elsif $base-name.has-colonpair('U') {
+            $type := self.r('Type', 'Simple').new($base-name.without-colonpair('U'));
+            $type := self.r('Type', 'Definedness').new(:base-type($type), :!definite);
+        }
+        if $<arglist> {
+            $type := self.r('Type', 'Parameterized').new(:base-type($type), :args($<arglist>.ast));
+        }
+        if $<accept> {
+            $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($<accept>.ast));
+        }
+        elsif $<accept_any> {
+            my $Any := self.r('Type', 'Setting').new(RakuAST::Name.from-identifier('Any'));
+            $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($Any));
+        }
+        $type
+    }
+
     method typename($/) {
         my $base-name := $<longname>
             ?? $<longname>.ast
@@ -2149,31 +2168,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $str_longname eq '::' {
                 $/.panic("Cannot use :: as a type name");
             }
-            my $type-capture := self.r('Type', 'Capture').new($base-name);
+            my $type-capture := self.r('Type', 'Capture').new($base-name.without-colonpair('D').without-colonpair('U').without-colonpair('_'));
             self.attach: $/, $type-capture;
 
             # Declare the lexical so it is available right away (e.g. for traits)
             $*R.declare-lexical($type-capture);
         }
         else {
-            my $type := self.r('Type', 'Simple').new($base-name);
-            if $base-name.has-colonpair('D') {
-                $type := self.r('Type', 'Definedness').new(:base-type($type), :definite);
-            }
-            elsif $base-name.has-colonpair('U') {
-                $type := self.r('Type', 'Definedness').new(:base-type($type), :!definite);
-            }
-            if $<arglist> {
-                $type := self.r('Type', 'Parameterized').new(:base-type($type), :args($<arglist>.ast));
-            }
-            if $<accept> {
-                $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($<accept>.ast));
-            }
-            elsif $<accept_any> {
-                my $Any := self.r('Type', 'Setting').new(RakuAST::Name.from-identifier('Any'));
-                $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($Any));
-            }
-            self.attach: $/, $type;
+            self.attach: $/, self.type-for-name($/, $base-name);
         }
     }
 

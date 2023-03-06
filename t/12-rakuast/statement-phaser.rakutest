@@ -1,16 +1,16 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 32; # Do not change this file to done-testing
+plan 34; # Do not change this file to done-testing because of END block tests
 
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -32,7 +32,7 @@ subtest 'BEGIN phaser producing a literal expression works' => {
 
     is-deeply $deparsed, 'BEGIN 12', 'deparse';
     is-deeply $_, 12, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Block with CATCH/default handles exception and evaluates to Nil' => {
@@ -80,7 +80,7 @@ subtest 'Block with CATCH/default handles exception and evaluates to Nil' => {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $handled = 0;
 
         is-deeply EVAL($it), Nil,
@@ -118,7 +118,7 @@ subtest 'Exception is rethrown if unhandled' => {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         throws-like { EVAL($it) },
           X::AdHoc,
           message => /gosh/,
@@ -170,13 +170,13 @@ subtest 'CONTROL phaser catching a warning' => {
       )
     );
 
-    plan 5;  # additional tests here that need to pass
+    plan 7;  # additional tests here that need to pass
     is-deeply $deparsed,
       qq:!s:!c|CONTROL {\n    isa-ok($_, CX::Warn);\n    .resume()\n}\nwarn();\n42\n|,
       'deparse';
 
     is-deeply $_, 42, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'CATCH phaser catching an exception' => {
@@ -231,7 +231,7 @@ subtest 'CATCH phaser catching an exception' => {
       )
     );
 
-    plan 5;  # additional tests here that need to pass
+    plan 7;  # additional tests here that need to pass
     is-deeply $deparsed, qq:!s:!c:to/CODE/, 'deparse';
 CATCH {
     todo("Getting a warning instead of an exception???");
@@ -243,7 +243,7 @@ die();
 CODE
 
     is-deeply $_, 666, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Block with INIT phaser thunk' => {
@@ -271,7 +271,7 @@ subtest 'Block with INIT phaser thunk' => {
     );
     is-deeply $deparsed, '-> { INIT ++$init }', 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $init = 0;
 
         my $block := EVAL($it);  # should run the phaser
@@ -320,7 +320,7 @@ subtest 'Block with INIT phaser block' => {
 } }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $init = 0;
 
         my $block := EVAL($it);  # should run the phaser
@@ -355,7 +355,11 @@ subtest 'Block with ENTER phaser thunk' => {
     );
     is-deeply $deparsed,'-> { ENTER ++$enter }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
         $enter = 0;
 
         isa-ok $block, Block, "$type: did we get a Block";
@@ -403,7 +407,11 @@ subtest 'Block with ENTER phaser block' => {
 } }
 CODE
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
         $enter = 0;
 
         isa-ok $block, Block, "$type: did we get a Block";
@@ -449,7 +457,7 @@ subtest 'LEAVE phaser thunk being run' => {
       )
     );
 
-    plan 7;  # additional tests here that need to pass
+    plan 10;  # additional tests here that need to pass
     is-deeply $deparsed, qq:!c:!s:to/CODE/, 'deparse';
 {
     $done = False;
@@ -458,7 +466,7 @@ subtest 'LEAVE phaser thunk being run' => {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), True, "$type: result correct";
         is-deeply $done, True, "$type: did block run to completion";
     }
@@ -507,7 +515,7 @@ subtest 'LEAVE phaser block being run' => {
       )
     );
 
-    plan 7;  # additional tests here that need to pass
+    plan 10;  # additional tests here that need to pass
     is-deeply $deparsed, qq:!c:!s:to/CODE/, 'deparse';
 {
     $done = False;
@@ -516,7 +524,7 @@ subtest 'LEAVE phaser block being run' => {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), True, "$type: result correct";
         is-deeply $done, True, "$type: did block run to completion";
     }
@@ -568,7 +576,7 @@ subtest 'KEEP / UNDO phaser thunk successful exit' => {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $keep = 0;
         $undo = 0;
 
@@ -641,7 +649,7 @@ subtest 'KEEP / UNDO phaser block successful exit' => {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $keep = 0;
         $undo = 0;
 
@@ -704,7 +712,7 @@ subtest 'KEEP / UNDO phaser thunk UNsuccessful exit' => {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $keep = 0;
         $undo = 0;
 
@@ -779,7 +787,7 @@ subtest 'KEEP / UNDO phaser block UNsuccessful exit' => {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $keep = 0;
         $undo = 0;
 
@@ -810,7 +818,7 @@ subtest 'END phaser thunk being run' => {
     is-deeply $deparsed, qq:!c/END pass("leaving END thunk")/, 'deparse';
 
     is-deeply $_, Nil, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'END phaser block being run' => {
@@ -835,7 +843,7 @@ subtest 'END phaser block being run' => {
     is-deeply $deparsed, 'END { pass("leaving END block") }', 'deparse';
 
     is-deeply $_, Nil, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'For loop with FIRST phaser thunk' => {
@@ -879,7 +887,7 @@ subtest 'For loop with FIRST phaser thunk' => {
       )
     );
 
-    plan 7;  # FIRST tests need to be run
+    plan 10;  # FIRST tests need to be run
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 for ^3 {
     FIRST is-deeply($run, 0, "inside FIRST");
@@ -887,7 +895,7 @@ for ^3 {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $run = 0;
 
         is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
@@ -938,7 +946,7 @@ subtest 'For loop with FIRST phaser block' => {
       )
     );
 
-    plan 5;  # FIRST tests need to be run
+    plan 7;  # FIRST tests need to be run
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
 for ^3 {
     FIRST { is-deeply($run, 0, "inside FIRST") }
@@ -946,7 +954,7 @@ for ^3 {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $run = 0;
 
         is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
@@ -997,7 +1005,7 @@ for ^3 {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $next = $last = 0;
 
         is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
@@ -1062,7 +1070,7 @@ for ^3 {
 }
 CODE
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $next = $last = 0;
 
         is-deeply EVAL($it), Nil, "$type: for loop evaluates to Nil";
@@ -1102,7 +1110,11 @@ subtest 'Block with CLOSE phaser thunk' => {
     );
     is-deeply $deparsed, '-> { CLOSE ++$close }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
         $close = 0;
 
         isa-ok $block, Block, "$type: did we get a Block";
@@ -1144,7 +1156,11 @@ subtest 'Block with CLOSE phaser block' => {
     );
     is-deeply $deparsed, '-> { CLOSE { ++$close } }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
         $close = 0;
 
         isa-ok $block, Block, "$type: did we get a Block";
@@ -1188,7 +1204,11 @@ subtest 'Block with QUIT phaser block' => {
     );
     is-deeply $deparsed, '-> { QUIT { $quit = $_ } }', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $block {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $block {
         $quit = Nil;
         my $exception := X::AdHoc.new(:payload<foo>);
 
@@ -1224,7 +1244,7 @@ subtest 'Block with PRE phaser thunk' => {
     is-deeply $deparsed, '-> { PRE ++$pre }', 'deparse';
 
     # succeeding
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $pre = 0;
 
         my $block := EVAL($it);  # should run the phaser
@@ -1234,7 +1254,7 @@ subtest 'Block with PRE phaser thunk' => {
     }
 
     # failing
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $pre = -1;
 
         my $block := EVAL($it);  # should run the phaser
@@ -1275,7 +1295,7 @@ subtest 'Block with PRE phaser block' => {
     is-deeply $deparsed, '-> { PRE { ++$pre } }', 'deparse';
 
     # succeeding
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $pre = 0;
 
         my $block := EVAL($it);  # should run the phaser
@@ -1285,7 +1305,7 @@ subtest 'Block with PRE phaser block' => {
     }
 
     # failing
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $pre = -1;
 
         my $block := EVAL($it);  # should run the phaser
@@ -1331,7 +1351,7 @@ subtest 'Block with POST phaser thunk' => {
 CODE
 
     # succeeding
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $post   = 0;
         $result = 42;
 
@@ -1342,7 +1362,7 @@ CODE
     }
 
     # failing
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $post   = 666;
         $result = 0;
 
@@ -1395,7 +1415,7 @@ subtest 'Block with POST phaser block' => {
 CODE
 
     # succeeding
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $post   = 0;
         $result = 42;
 
@@ -1406,7 +1426,7 @@ CODE
     }
 
     # failing
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $post   = 666;
         $result = 0;
 

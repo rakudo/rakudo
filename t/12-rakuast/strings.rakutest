@@ -9,11 +9,11 @@ plan 13;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -25,7 +25,7 @@ subtest 'One-part quoted string with literal piece' => {
 
     is-deeply $deparsed, '"hello\n"', 'deparse';
     is-deeply $_, "hello\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Quoted string with interpolated string variable works' => {
@@ -41,7 +41,7 @@ subtest 'Quoted string with interpolated string variable works' => {
 
     is-deeply $deparsed, '"$str world"', 'deparse';
     is-deeply $_, 'hello, world', @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Quoted string with interpolated integer variable' => {
@@ -57,7 +57,7 @@ subtest 'Quoted string with interpolated integer variable' => {
 
     is-deeply $deparsed, '"$int is the answer"', 'deparse';
     is-deeply $_, '42 is the answer', @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Quoted string consisting of only interpolated integer variable' => {
@@ -72,7 +72,7 @@ subtest 'Quoted string consisting of only interpolated integer variable' => {
 
     is-deeply $deparsed, '"$int"', 'deparse';
     is-deeply $_, '42', @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Quoted string with 3 parts works' => {
@@ -88,7 +88,7 @@ subtest 'Quoted string with 3 parts works' => {
     );
     is-deeply $deparsed, '"The answer is $int of course!"', 'deparse';
     is-deeply $_, 'The answer is 42 of course!', @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Quoted string involving an interpolated block' => {
@@ -113,7 +113,7 @@ subtest 'Quoted string involving an interpolated block' => {
 
     is-deeply $deparsed, '"An { $bv } block"', 'deparse';
     is-deeply $_, 'An interpolated block', @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'words processor splits a single literal string into words' => {
@@ -125,7 +125,7 @@ subtest 'words processor splits a single literal string into words' => {
 
     is-deeply $deparsed, 'qqw/foo bar 42/', 'deparse';
     is-deeply $_, ("foo", "bar", "42"), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Words processor applied to a quoted string with interpolation' => {
@@ -143,7 +143,7 @@ subtest 'Words processor applied to a quoted string with interpolation' => {
 
     is-deeply $deparsed, 'qqw/ba$stuff 66/', 'deparse';
     is-deeply $_, ("bar", "baz", "66"), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Using the val processor alone' => {
@@ -155,7 +155,7 @@ subtest 'Using the val processor alone' => {
 
     is-deeply $deparsed, 'qq:v/42/', 'deparse';
     is-deeply $_, IntStr.new(42,'42'), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Using the val processor alone with interpolation' => {
@@ -172,7 +172,7 @@ subtest 'Using the val processor alone with interpolation' => {
 
     is-deeply $deparsed, 'qq:v/4$end/', 'deparse';
     is-deeply $_, <46>, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Using the words and val processor' => {
@@ -184,7 +184,7 @@ subtest 'Using the words and val processor' => {
 
     is-deeply $deparsed, '<foo bar 42>', 'deparse';
     is-deeply $_, ("foo", "bar", val("42")), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Words processor applied to a quoted string with interpolation' => {
@@ -202,7 +202,7 @@ subtest 'Words processor applied to a quoted string with interpolation' => {
 
     is-deeply $deparsed, 'qq:w:v/ba$stuff 66/', 'deparse';
     is-deeply $_, ('bar', 'baz', <66>), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Using the exec processor alone gives expected result' => {
@@ -214,7 +214,7 @@ subtest 'Using the exec processor alone gives expected result' => {
 
     is-deeply $deparsed, 'qx/echo 123/', 'deparse';
     is-deeply $_, "123\n", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

@@ -6,11 +6,11 @@ plan 7;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $ast.DEPARSE;
-    $raku     := $ast.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
     diag $deparsed.chomp;
 }
 
@@ -33,7 +33,7 @@ subtest 'Parenthesized expressions compile correctly' => {
     );
     is-deeply $deparsed, '2 * (3 + 4)', 'deparsed';
     is-deeply $_, 14, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Multi-statement semilist compiles into a List' => {
@@ -53,7 +53,7 @@ subtest 'Multi-statement semilist compiles into a List' => {
     );
     is-deeply $deparsed, '(3, 4)', 'deparsed';
     is-deeply $_, (3,4), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Array composer produces an array' => {
@@ -74,7 +74,7 @@ subtest 'Array composer produces an array' => {
     );
     is-deeply $deparsed, '[9, 10, 11]', 'deparsed';
     is-deeply $_, [9,10,11], @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Array composer works correctly with a single argument' => {
@@ -92,7 +92,7 @@ subtest 'Array composer works correctly with a single argument' => {
     );
     is-deeply $deparsed, '[5 .. 9]', 'deparsed';
     is-deeply $_, [5,6,7,8,9], @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Empty hash composer works correctly' => {
@@ -101,7 +101,7 @@ subtest 'Empty hash composer works correctly' => {
 
     is-deeply $deparsed, '{}', 'deparsed';
     is-deeply $_, hash(), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Hash composer with fatarrow works correctly' => {
@@ -114,7 +114,7 @@ subtest 'Hash composer with fatarrow works correctly' => {
     );
     is-deeply $deparsed, '{a => 42}', 'deparsed';
     is-deeply $_, {:42a}, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Hash composer with list of fat arrows works correctly' => {
@@ -136,7 +136,7 @@ subtest 'Hash composer with list of fat arrows works correctly' => {
     );
     is-deeply $deparsed, '{x => 11, y => 22}', 'deparsed';
     is-deeply $_, {:11x, :22y}, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

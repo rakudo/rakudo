@@ -6,7 +6,7 @@ plan 15;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node, :$EVAL --> Nil) {
     $ast      := $node;
     EVAL($ast) if $EVAL;

@@ -9,7 +9,7 @@ my $raku;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -23,7 +23,12 @@ subtest 'Simplest subset Foo' => {
     );
 
     is-deeply $deparsed, 'my subset Foo', 'deparse';
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
         is-deeply $subset.^name, "Foo", "$type: is name ok";
         is-deeply $subset.^refinee, Any, "$type: is refinee ok";
         is-deeply $subset.^refinement, Mu, "$type: is refinement ok";
@@ -48,7 +53,12 @@ subtest 'Simple subset Foo of Int' => {
     );
 
     is-deeply $deparsed, 'my subset Foo of Int', 'deparse';
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
         is-deeply $subset.^name, "Foo", "$type: is name ok";
         is-deeply $subset.^refinee, Int, "$type: is refinee ok";
         is-deeply $subset.^refinement, Mu, "$type: is refinement ok";
@@ -85,7 +95,12 @@ subtest 'Subset with a where block' => {
     );
 
     is-deeply $deparsed, 'my subset Foo of Int where { $_ %% 2 }', 'deparse';
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
         is-deeply $subset.^name, "Foo", "$type: is name ok";
         is-deeply $subset.^refinee, Int, "$type: is refinee ok";
         isa-ok $subset.^refinement, Block, "$type: is refinement ok";
@@ -133,7 +148,11 @@ subtest 'Subset with a where pointy block' => {
       'my subset Foo of Int where -> $a { $a %% 2 }',
       'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
         is-deeply $subset.^name, "Foo", "$type: is name ok";
         is-deeply $subset.^refinee, Int, "$type: is refinee ok";
         isa-ok $subset.^refinement, Block, "$type: is refinement ok";
@@ -166,7 +185,11 @@ subtest 'Subset with a where whatevercode' => {
       'my subset Foo of Int where * %% 2',
       'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
         is-deeply $subset.^name, "Foo", "$type: is name ok";
         is-deeply $subset.^refinee, Int, "$type: is refinee ok";
         isa-ok $subset.^refinement, WhateverCode, "$type: is refinement ok";
@@ -188,7 +211,11 @@ subtest 'Subset with a where literal' => {
 
     is-deeply $deparsed, 'my subset Foo where 42', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
         is-deeply $subset.^name, "Foo", "$type: is name ok";
         is-deeply $subset.^refinee, Any, "$type: is refinee ok";
         isa-ok $subset.^refinement, Block, "$type: is refinement ok";
@@ -211,7 +238,11 @@ subtest 'Subset with a where regex' => {
 
     is-deeply $deparsed, 'my subset Foo where / 42 /', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $subset {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $subset {
         is-deeply $subset.^name, "Foo", "$type: is name ok";
         is-deeply $subset.^refinee, Any, "$type: is refinee ok";
         isa-ok $subset.^refinement, Block, "$type: is refinement ok";

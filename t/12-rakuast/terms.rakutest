@@ -6,11 +6,11 @@ plan 13;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -67,7 +67,11 @@ my class TestClass {
 }
 CODE
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, Mu $class {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, Mu $class {
         is-deeply $class.meth-b(), 99,
           "$type: Method call via self works";
     }
@@ -96,7 +100,7 @@ given "argh" { .uc() }
 CODE
 
     is-deeply $_, 'ARGH', @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'now named term can be called' => {
@@ -114,7 +118,7 @@ subtest 'rand term works' => {
     is-deeply $deparsed, 'rand', 'deparse';
 
     isa-ok $_, Num, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Empty set term works' => {
@@ -123,7 +127,7 @@ subtest 'Empty set term works' => {
     is-deeply $deparsed, '∅', 'deparse';
 
     is-deeply $_, set(), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Name term works with single-part name' => {
@@ -134,7 +138,7 @@ subtest 'Name term works with single-part name' => {
     is-deeply $deparsed, 'True', 'deparse';
 
     is-deeply $_, True, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Name term works with multi-part name' => {
@@ -145,7 +149,7 @@ subtest 'Name term works with multi-part name' => {
     is-deeply $deparsed, 'Bool::True', 'deparse';
 
     is-deeply $_, True, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Whatever term works' => {
@@ -154,7 +158,7 @@ subtest 'Whatever term works' => {
     is-deeply $deparsed, '*', 'deparse';
 
     isa-ok $_, Whatever,
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Hyperwhatever term works' => {
@@ -163,7 +167,7 @@ subtest 'Hyperwhatever term works' => {
     is-deeply $deparsed, '**', 'deparse';
 
     isa-ok $_, HyperWhatever, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Capture term can be constructed with a term' => {
@@ -176,7 +180,7 @@ subtest 'Capture term can be constructed with a term' => {
     is-deeply $deparsed, Q/\($var)/, 'deparse';
 
     is-deeply $_, \(4), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Capture term can be constructed with an arg list' => {
@@ -190,7 +194,7 @@ subtest 'Capture term can be constructed with an arg list' => {
     is-deeply $deparsed, Q/\(6, :x)/, 'deparse';
 
     is-deeply $_, \(6, :x), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Radix number term' => {
@@ -206,14 +210,15 @@ subtest 'Radix number term' => {
     is-deeply $deparsed, Q/:16("abc")/, 'deparse';
 
     is-deeply $_, 2748, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Radix number term with multiple args' => {
     # :16[1,2,3]
     ast RakuAST::Term::RadixNumber.new(
-      radix => 16, :multi-part,
-      value => RakuAST::Circumfix::ArrayComposer.new(
+      radix      => 16,
+      multi-part => True,
+      value      => RakuAST::Circumfix::ArrayComposer.new(
         RakuAST::SemiList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::ApplyListInfix.new(
@@ -231,7 +236,7 @@ subtest 'Radix number term with multiple args' => {
     is-deeply $deparsed, Q/:16[1, 2, 3]/, 'deparse';
 
     is-deeply $_, 291, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

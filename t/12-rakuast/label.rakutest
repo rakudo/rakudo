@@ -14,7 +14,6 @@ given RakuAST::Label.new('Foo') {
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;

@@ -6,11 +6,11 @@ plan 6;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -23,7 +23,7 @@ subtest 'can make a simple ... stub' => {
     );
     is-deeply $deparsed, qq/...\n/, 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $result := sub () {
             CONTROL {
                 isa-ok $_, CX::Return, "$type: did we get return?";
@@ -51,7 +51,7 @@ subtest 'can make a ... stub with info' => {
     );
     is-deeply $deparsed, qq/... "foobar"\n/, 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $result := sub () {
             CONTROL {
                 isa-ok $_, CX::Return, "$type: did we get return?";
@@ -75,7 +75,7 @@ subtest 'can make a simple !!! stub' => {
     );
     is-deeply $deparsed, qq/!!!\n/, 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         throws-like { EVAL($it) },
           X::StubCode,
           message => 'Stub code executed'
@@ -96,7 +96,7 @@ subtest 'can make a !!! stub with info' => {
     );
     is-deeply $deparsed, qq/!!! "foobar"\n/, 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         throws-like { EVAL($it) },
           X::StubCode,
           message => "foobar"
@@ -113,7 +113,7 @@ subtest 'can make a simple ??? stub' => {
     );
     is-deeply $deparsed, qq/???\n/, 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         CATCH {
             flunk "$type has internal error";
             .resume;
@@ -140,7 +140,7 @@ subtest 'can make a ??? stub with info' => {
     );
     is-deeply $deparsed, qq/??? "foobar"\n/, 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         CATCH {
             flunk "$type has internal error";
             .resume;

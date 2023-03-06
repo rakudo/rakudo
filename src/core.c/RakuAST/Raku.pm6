@@ -27,17 +27,34 @@ augment class RakuAST::Node {
     }
 
 #-------------------------------------------------------------------------------
-# Private helper methods
+# Helper subs
 
     my $spaces = '  ';
 
-    method !indent(--> Str:D) {
+    our sub indent(--> Str:D) {
         $_ = $_ ~ $spaces with $*INDENT;
     }
     
-    method !dedent(--> Str:D) {
+    our sub dedent(--> Str:D) {
         $_ = $_.chomp($spaces) with $*INDENT;
     }
+
+    our sub rakufy($value) {
+        if nqp::istype($value,List) && $value -> @elements {
+            indent;
+            my str $list = @elements.map({ $*INDENT ~ .raku }).join(",\n");
+            dedent;
+            "(\n$list,\n$*INDENT)"
+        }
+        else {
+            nqp::istype($value,Bool)
+              ?? ($value.defined ?? $value ?? "True" !! "False" !! 'Bool')
+              !! $value.raku
+        }
+    }
+
+#-------------------------------------------------------------------------------
+# Private helper methods
 
     method !none() { $*INDENT ~ self.^name ~ '.new' }
 
@@ -46,31 +63,19 @@ augment class RakuAST::Node {
     }
 
     method !positional($value) {
-        self!indent;
+        indent;
         my str $raku = $*INDENT ~ $value.raku;
-        self!dedent;
+        dedent;
         self.^name ~ ".new(\n$raku\n$*INDENT)"
-    }
-
-    method !rakufy($value) {
-        if nqp::istype($value,List) && $value -> @elements {
-            self!indent;
-            my str $list = @elements.map({ $*INDENT ~ .raku }).join(",\n");
-            self!dedent;
-            "(\n$list,\n$*INDENT)"
-        }
-        else {
-            $value.raku
-        }
     }
 
     method !positionals(@values) {
         if @values {
-            self!indent;
+            indent;
             my str $parts = @values.map({
-                $*INDENT ~ self!rakufy($_)
+                $*INDENT ~ rakufy($_)
             }).join(",\n");
-            self!dedent;
+            dedent;
             self.^name ~ ".new(\n$parts\n$*INDENT)"
         }
         else {
@@ -84,7 +89,7 @@ augment class RakuAST::Node {
             Pair.new($name, Rakufy-as.new(:$raku))
         }
 
-        self!indent;
+        indent;
         my @pairs = @names.map: -> $method {
             if $method eq 'args' && self.args -> $args {
                 :$args if $args.args
@@ -108,6 +113,16 @@ augment class RakuAST::Node {
                 my $labels := nqp::decont(self.labels);
                 :$labels if $labels;
             }
+            elsif $method eq 'traits' {
+                my $traits := nqp::decont(self.traits);
+                :$traits if $traits;
+            }
+            elsif $method eq 'signature' {
+                my $signature := self.signature;
+                :$signature
+                  if $signature
+                  && ($signature.parameters.elems || $signature.returns)
+            }
             else {
                 my $object := self."$method"();
                 Pair.new($method, $object) if nqp::isconcrete($object)
@@ -115,9 +130,9 @@ augment class RakuAST::Node {
         }
         my $format  := "$*INDENT%-@pairs.map(*.key.chars).max()s => %s";
         my str $args = @pairs.map({
-            sprintf($format, .key, self!rakufy(.value))
+            sprintf($format, .key, rakufy(.value))
         }).join(",\n");
-        self!dedent;
+        dedent;
 
         self.^name ~ ($args ?? ".new(\n$args\n$*INDENT)" !! '.new')
     }
@@ -134,15 +149,15 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::ApplyListInfix:D: --> Str:D) {
         my str @parts = "RakuAST::ApplyListInfix.new(";
-        self!indent;
-        @parts.push: $*INDENT ~ "infix    => " ~ self!rakufy(self.infix) ~ ",";
+        indent;
+        @parts.push: $*INDENT ~ "infix    => " ~ rakufy(self.infix) ~ ",";
         if self.operands -> @operands {
-            @parts.push: $*INDENT ~ "operands => " ~ self!rakufy(@operands);
+            @parts.push: $*INDENT ~ "operands => " ~ rakufy(@operands);
         }
         else {
             @parts.push: $*INDENT ~ "operands => ()";
         }
-        self!dedent;
+        dedent;
         @parts.push: $*INDENT ~ ")";
 
         @parts.join("\n")
@@ -209,11 +224,11 @@ augment class RakuAST::Node {
 #- Circumfix -------------------------------------------------------------------
 
     multi method raku(RakuAST::Circumfix::ArrayComposer:D: --> Str:D) {
-        self!nameds: <semilist>
+        self!positional(self.semilist)
     }
 
     multi method raku(RakuAST::Circumfix::HashComposer:D: --> Str:D) {
-        self!nameds: <expression>
+        self!positional(self.expression)
     }
 
     multi method raku(RakuAST::Circumfix::Parentheses:D: --> Str:D) {
@@ -266,6 +281,10 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::DottyInfixish:D: --> Str:D) {
         self!none
     }
+
+#- E ---------------------------------------------------------------------------
+
+    multi method raku(RakuAST::Expression:U: --> '') { }
 
 #- F ---------------------------------------------------------------------------
 
@@ -435,12 +454,12 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::QuotedString:D: --> Str:D) {
         my str @parts = "RakuAST::QuotedString.new(";
-        self!indent;
+        indent;
         if self.processors -> @processors {
             @parts.push: $*INDENT ~ "processors => <@processors[]>,";
         }
-        @parts.push: $*INDENT ~ "segments   => " ~ self!rakufy(self.segments);
-        self!dedent;
+        @parts.push: $*INDENT ~ "segments   => " ~ rakufy(self.segments);
+        dedent;
         @parts.push: $*INDENT ~ ")";
 
         @parts.join("\n")
@@ -794,10 +813,6 @@ augment class RakuAST::Node {
         self!nameds: <labels body>
     }
 
-    multi method raku(RakuAST::Statement::Elsif:D: --> Str:D) {
-        self!nameds: <condition then>
-    }
-
     multi method raku(RakuAST::Statement::Empty:D: --> Str:D) {
         self!nameds: <labels>
     }
@@ -836,10 +851,6 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Statement::Loop::While:D: --> Str:D) {
         self!nameds: <labels condition body>
-    }
-
-    multi method raku(RakuAST::Statement::Orwith:D: --> Str:D) {
-        self!nameds: <condition then>
     }
 
     multi method raku(RakuAST::Statement::Require:D: --> Str:D) {
@@ -971,11 +982,16 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Post:D: --> Str:D) {
-        self!positional(self.blorst)
+        # skip the auto-generated code
+        self!positional(
+          self.blorst.body
+            .statement-list.statements.head.condition-modifier.expression
+        )
     }
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Pre:D: --> Str:D) {
-        self!positional(self.blorst)
+        # skip the auto-generated code
+        self!positional(self.blorst.condition-modifier.expression)
     }
 
     multi method raku(RakuAST::StatementPrefix::Phaser::Quit:D: --> Str:D) {
@@ -1011,7 +1027,7 @@ augment class RakuAST::Node {
 #- Stu -------------------------------------------------------------------------
 
     multi method raku(RakuAST::Stub:D: --> Str:D) {
-        self!nameds: <name args>
+        self!nameds: <args>
     }
 
 #- Su --------------------------------------------------------------------------
@@ -1061,7 +1077,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Term::RadixNumber:D: --> Str:D) {
-        self!nameds: <radix value>
+        self!nameds: <radix multi-part value>
     }
 
     multi method raku(RakuAST::Term::Reduce:D: --> Str:D) {
@@ -1141,11 +1157,11 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Var::Compiler::File:D: --> Str:D) {
-        self!none
+        self!positional(self.file)
     }
 
     multi method raku(RakuAST::Var::Compiler::Line:D: --> Str:D) {
-        self!none
+        self!positional(self.line)
     }
 
     multi method raku(RakuAST::Var::Compiler::Lookup:D: --> Str:D) {
@@ -1248,13 +1264,6 @@ augment class RakuAST::Name::Part {
         }
     }
 
-#-------------------------------------------------------------------------------
-# Private helper methods
-
-    method !positional($value) {
-        self.^name ~ ".new($value.raku())"
-    }
-
 #- Name::Part-------------------------------------------------------------------
 
     multi method raku(RakuAST::Name::Part::Empty:U: --> Str:D) {
@@ -1262,11 +1271,29 @@ augment class RakuAST::Name::Part {
     }
 
     multi method raku(RakuAST::Name::Part::Expression:D: --> Str:D) {
-        self!positional(self.expr)
+        self.^name ~ '.new(' ~ self.expr.raku ~ ')';
     }
 
     multi method raku(RakuAST::Name::Part::Simple:D: --> Str:D) {
-        self!positional(self.name)
+        self.^name ~ '.new(' ~ self.name.raku ~ ')';
+    }
+}
+
+#-------------------------------------------------------------------------------
+# The RakuAST::Statement::Elsif tree is *not* descendent from RakuAST::Node
+# and as such needs separate handling to prevent it from bleeding into the
+# normal # .raku handling
+
+augment class RakuAST::Statement::Elsif {
+    multi method raku(RakuAST::Statement::Elsif:D: --> Str:D) {
+        my str @parts = self.^name ~ '.new(';
+        RakuAST::Node::indent();
+        @parts.push: $*INDENT ~ 'condition => ' ~ self.condition.raku ~ ",";
+        @parts.push: $*INDENT ~ 'then      => ' ~ self.then.raku;
+        RakuAST::Node::dedent();
+        @parts.push: $*INDENT ~ ")";
+
+        @parts.join("\n")
     }
 }
 

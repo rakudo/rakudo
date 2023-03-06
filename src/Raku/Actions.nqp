@@ -916,7 +916,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         :name(
                             self.r('Name').from-identifier(
                                 'prefix:' ~ self.r('ColonPairish').IMPL-QUOTE-VALUE(
-                                    ($op_name<nibble> // $op_name<semilist> // $op_name<pblock>).Str
+                                    self.r('BeginTime').IMPL-BEGIN-TIME-EVALUATE(
+                                      ($op_name<nibble> // $op_name<semilist> // $op_name<pblock>).ast, $*R, $*CU.context
+                                    )
                                 )
                             )
                         )

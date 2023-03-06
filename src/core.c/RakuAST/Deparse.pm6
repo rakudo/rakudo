@@ -403,7 +403,10 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
-        self.deparse($ast.name) ~ self!parenthesize($ast.args)
+        my $name := self.deparse($ast.name);
+        $name.ends-with('::')
+          ?? $name
+          !! $name ~ self!parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {
@@ -1793,7 +1796,7 @@ class RakuAST::Deparse {
         my str @parts = 'enum';
         my str $scope = $ast.scope;
 
-        @parts.unshift($scope) if $scope && $scope ne 'our'; # XXX
+        @parts.unshift($scope) if $scope && $scope ne $ast.default-scope;
         @parts.unshift(self.deparse($_)) with $ast.of;
         @parts.push(self.deparse($_)) with $ast.name;
         @parts.push(self.deparse($ast.term));

@@ -1,0 +1,123 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 3;
+
+my $ast;
+my $deparsed;
+my $raku;
+my @type = <AST Str Raku>;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+my $abc := Map.new((:a(0),:b(1),:c(2)));
+my sub test-enum(str $type, $evalled, %STASH) is test-assertion {
+    is-deeply $evalled, $abc, "$type: did it produce the right Map";
+    is-deeply %STASH<foo>.^name, "foo", "$type: was the enum installed";
+    is-deeply %STASH<a>.Numeric, 0, "$type: first enum element";
+    todo "keys are not yet installed in OUR::";
+    is-deeply %STASH<b>.Numeric, 1, "$type: second enum element";
+    todo "keys are not yet installed in OUR::";
+    is-deeply %STASH<c>.Numeric, 2, "$type: third enum element";
+}
+
+subtest 'Simple enum' => {
+    # enum foo <a b c>;
+    ast RakuAST::Type::Enum.new(
+      name => RakuAST::Name.from-identifier('foo'),
+      term => RakuAST::QuotedString.new(
+        segments   => (
+          RakuAST::StrLiteral.new("a b c"),
+        ),
+        processors => <words val>
+      )
+    );
+
+    is-deeply $deparsed, 'enum foo <a b c>', 'deparse';
+
+    my package one   { test-enum( 'AST', EVAL($ast),       OUR::) }
+    my package two   { test-enum( 'Str', EVAL($deparsed),  OUR::) }
+    my package three { test-enum('Raku', EVAL(EVAL $raku), OUR::) }
+}
+
+subtest 'Simple lexical enum' => {
+    # my enum foo <a b c>; MY::
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Type::Enum.new(
+          scope => "my",
+          name  => RakuAST::Name.from-identifier('foo'),
+          term  => RakuAST::QuotedString.new(
+            segments   => (
+              RakuAST::StrLiteral.new("a b c"),
+            ),
+            processors => <words val>
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.new(
+            RakuAST::Name::Part::Simple.new("MY"),
+            RakuAST::Name::Part::Empty
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+my enum foo <a b c>;
+MY::
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my %STASH := EVAL($it);
+        nok OUR::<foo>:exists, "$type: is the constant *not* in OUR::";
+        is-deeply %STASH<foo>.^name, "foo", "$type: was enum installed";
+        is-deeply %STASH<a>.Numeric, 0, "$type: first enum element";
+        is-deeply %STASH<b>.Numeric, 1, "$type: second enum element";
+        is-deeply %STASH<c>.Numeric, 2, "$type: third enum element";
+    }
+}
+
+subtest 'Enum with preset values' => {
+    # enum foo (:0a, :1b, :2c)
+    ast RakuAST::Type::Enum.new(
+      name => RakuAST::Name.from-identifier('foo'),
+      term => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(","),
+              operands => (
+                RakuAST::ColonPair::Number.new(
+                  key   => "a",
+                  value => RakuAST::IntLiteral.new(0)
+                ),
+                RakuAST::ColonPair::Number.new(
+                  key   => "b",
+                  value => RakuAST::IntLiteral.new(1)
+                ),
+                RakuAST::ColonPair::Number.new(
+                  key   => "c",
+                  value => RakuAST::IntLiteral.new(2)
+                ),
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, 'enum foo (:0a, :1b, :2c)', 'deparse';
+
+    my package one   { test-enum( 'AST', EVAL($ast),       OUR::) }
+    my package two   { test-enum( 'Str', EVAL($deparsed),  OUR::) }
+    my package three { test-enum('Raku', EVAL(EVAL $raku), OUR::) }
+}
+
+# vim: expandtab shiftwidth=4

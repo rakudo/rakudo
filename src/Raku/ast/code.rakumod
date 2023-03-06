@@ -365,13 +365,14 @@ class RakuAST::ExpressionThunk
         for self.IMPL-UNWRAP-LIST($signature.parameters) {
             $stmts.push($_.target.IMPL-QAST-DECL($context)) unless $_.target.lexical-name eq '$_';
         }
-        $block.push($stmts);
+        $block.push($stmts) if $stmts.list;
         $block.arity($signature.arity);
 
         # If there's an inner thunk the body evaluates to that.
         if $!next {
             $!next.IMPL-THUNK-CODE-QAST($context, $block[0], $expression);
-            $block.push($!next.IMPL-THUNK-VALUE-QAST($context));
+            my $value := $!next.IMPL-THUNK-VALUE-QAST($context);
+            $block.push($value) if $value;
         }
 
         # Otherwise, we evaluate to the expression.

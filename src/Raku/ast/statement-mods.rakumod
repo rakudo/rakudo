@@ -253,7 +253,7 @@ class RakuAST::StatementModifier::Condition::Thunk
     }
 
     method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(:op<null>)
+        Nil
     }
 
     method is-begin-performed-before-children() { False }

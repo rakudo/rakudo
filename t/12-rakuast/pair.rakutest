@@ -10,7 +10,7 @@ my @type = <AST Str>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -23,7 +23,7 @@ subtest 'Fat arrow syntax forms a Pair' => {
 
     is-deeply $deparsed, 'answer => 42', 'deparse';
     is-deeply $_, Pair.new('answer', 42), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'True colonpair forms a Pair with value True' => {
@@ -32,7 +32,7 @@ subtest 'True colonpair forms a Pair with value True' => {
 
     is-deeply $deparsed, ':r', 'deparse';
     is-deeply $_, Pair.new('r', True), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'False colonpair forms a Pair with value False' => {
@@ -41,7 +41,7 @@ subtest 'False colonpair forms a Pair with value False' => {
 
     is-deeply $deparsed, ':!r', 'deparse';
     is-deeply $_, Pair.new('r', False), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Number colonpair forms a Pair with the correct Int value' => {
@@ -53,7 +53,7 @@ subtest 'Number colonpair forms a Pair with the correct Int value' => {
 
     is-deeply $deparsed, ':42answer', 'deparse';
     is-deeply $_, Pair.new('answer', 42), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Value colonpair forms a Pair with the correct value (1)' => {
@@ -65,7 +65,7 @@ subtest 'Value colonpair forms a Pair with the correct value (1)' => {
 
     is-deeply $deparsed, ':cheese("stilton")', 'deparse';
     is-deeply $_, Pair.new('cheese', 'stilton'), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Value colonpair forms a Pair with the correct value (2)' => {
@@ -82,7 +82,7 @@ subtest 'Value colonpair forms a Pair with the correct value (2)' => {
 
     is-deeply $deparsed, ':cheese<limburg>', 'deparse';
     is-deeply $_, Pair.new('cheese', 'limburg'), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Value colonpair forms a Pair with the correct value (3)' => {
@@ -99,7 +99,7 @@ subtest 'Value colonpair forms a Pair with the correct value (3)' => {
 
     is-deeply $deparsed, ':cheese<cheddar limburg>', 'deparse';
     is-deeply $_, Pair.new('cheese', <cheddar limburg>), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Variable colonpair forms a Pair that looks up the variable' => {
@@ -113,7 +113,7 @@ subtest 'Variable colonpair forms a Pair that looks up the variable' => {
 
     is-deeply $deparsed, ':$curry', 'deparse';
     is-deeply $_, Pair.new('curry', 'red'), @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

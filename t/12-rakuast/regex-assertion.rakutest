@@ -9,15 +9,19 @@ my $raku;
 sub ast(RakuAST::Node:D $body --> Nil) {
     $ast      := RakuAST::QuotedRegex.new(:$body);
     $deparsed := $ast.DEPARSE;
-    $raku     := $ast.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
     diag $deparsed.chomp;
 }
 
 sub match-ok($haystack, $expected) is test-assertion {
     subtest "matches" => {
-        plan 6;
+        plan 9;
 
-        for 'AST', $ast, 'Str', $deparsed -> $type, $regex {
+        for
+          'AST', $ast,
+          'Str', $deparsed,
+          'Raku', EVAL($raku)
+        -> $type, $regex {
             is $haystack ~~ EVAL($regex), $expected, "$type: EVAL";
 
             is $/.list.elems, 0,
@@ -30,9 +34,10 @@ sub match-ok($haystack, $expected) is test-assertion {
 
 sub match-nok($haystack) is test-assertion {
   subtest "doesn't match" => {
-    plan 2;
+    plan 3;
     nok $haystack ~~ EVAL($ast), 'AST: EVAL';
     nok $haystack ~~ EVAL($deparsed), 'Str: EVAL';
+    nok $haystack ~~ EVAL(EVAL $raku), 'Raku: EVAL';
   }
 }
 
@@ -43,7 +48,11 @@ subtest 'Named assertion matches correctly' => {
     );
     is-deeply $deparsed, '/ <alpha> /', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
         is "1a2" ~~ $regex, 'a',
           "$type: did we get correct match";
         is-deeply $/.hash.keys, ('alpha',).Seq,
@@ -276,6 +285,7 @@ subtest 'Character property with expression assertion works' => {
         )
       )
     );
+
     is-deeply $deparsed, '/ <+:Block("Basic Latin")> /', 'deparse';
     match-ok "🦋:Fooa9cbar", ':';
 }

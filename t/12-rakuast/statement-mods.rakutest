@@ -6,11 +6,11 @@ plan 14;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
-    $raku     := $node.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
 }
 
@@ -27,7 +27,7 @@ subtest 'The postfix "if" statement works with a true expression' => {
 
     is-deeply $deparsed, '42 if 666', 'deparse';
     is-deeply $_, 42, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'The postfix "if" statement works with a false expression' => {
@@ -45,6 +45,7 @@ subtest 'The postfix "if" statement works with a false expression' => {
     # cannot put Empty as an entity in a for
     is-deeply EVAL($ast), Empty, @type[$++];
     is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
 }
 
 subtest 'The postfix "unless" statement works with a false expression' => {
@@ -60,7 +61,7 @@ subtest 'The postfix "unless" statement works with a false expression' => {
 
     is-deeply $deparsed, '42 unless ""', 'deparse';
     is-deeply $_, 42, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'The postfix "unless" statement works with a true expression' => {
@@ -78,6 +79,7 @@ subtest 'The postfix "unless" statement works with a true expression' => {
     # cannot put Empty as an entity in a for
     is-deeply EVAL($ast), Empty, @type[$++];
     is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
 }
 
 subtest 'The postfix "with" statement works with defined expression' => {
@@ -97,7 +99,7 @@ subtest 'The postfix "with" statement works with defined expression' => {
 
     is-deeply $deparsed, '$_ * 2 with 42', 'deparse';
     is-deeply $_, 84, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'The postfix "with" statement works with a type object' => {
@@ -121,6 +123,7 @@ subtest 'The postfix "with" statement works with a type object' => {
     # cannot put Empty as an entity in a for
     is-deeply EVAL($ast), Empty, @type[$++];
     is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
 }
 
 subtest 'The postfix "without" statement works with defined expression' => {
@@ -142,6 +145,7 @@ subtest 'The postfix "without" statement works with defined expression' => {
     # cannot put Empty as an entity in a for
     is-deeply EVAL($ast), Empty, @type[$++];
     is-deeply EVAL($deparsed), Empty, @type[$++];
+    is-deeply EVAL(EVAL $raku), Empty, @type[$++];
 }
 
 subtest 'The postfix "given" statement works with defined expression' => {
@@ -161,30 +165,27 @@ subtest 'The postfix "given" statement works with defined expression' => {
 
     is-deeply $deparsed, '$_ * 2 given 42', 'deparse';
     is-deeply $_, 84, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'The postfix "without" statement works with a type object' => {
     # .Str without Int
     ast RakuAST::Statement::Expression.new(
-      expression => RakuAST::ApplyPostfix.new(
-        operand => RakuAST::Var::Lexical.new('$_'),
-        postfix => RakuAST::Call::Method.new(
+      expression => RakuAST::Term::TopicCall.new(
+        RakuAST::Call::Method.new(
           name => RakuAST::Name.from-identifier('Str')
         )
       ),
       condition-modifier => RakuAST::StatementModifier::Without.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          )
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Int')
         )
       )
     );
 
     is-deeply $deparsed, '.Str() without Int', 'deparse';
     is-deeply $_, "", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'The postfix "when" statement works' => {
@@ -212,30 +213,27 @@ $_ = 42;
 CODE
 
     is-deeply $_, 666, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'The postfix "given" statement works with a type object' => {
     # .Str given Int
     ast RakuAST::Statement::Expression.new(
-      expression => RakuAST::ApplyPostfix.new(
-        operand => RakuAST::Var::Lexical.new('$_'),
-        postfix => RakuAST::Call::Method.new(
+      expression => RakuAST::Term::TopicCall.new(
+        RakuAST::Call::Method.new(
           name => RakuAST::Name.from-identifier('Str')
         )
       ),
       loop-modifier => RakuAST::StatementModifier::Given.new(
-        RakuAST::Statement::Expression.new(
-          expression => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          )
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier('Int')
         )
       )
     );
 
     is-deeply $deparsed, '.Str() given Int', 'deparse';
     is-deeply $_, "", @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'The postfix "while" statement works' => {
@@ -260,13 +258,11 @@ subtest 'The postfix "while" statement works' => {
 
     is-deeply $deparsed, '++$foo while $foo < 5', 'deparse';
 
-    $foo = 0;
-    is-deeply EVAL($ast), Nil, @type[$++];
-    is-deeply $foo, 5, @type[$++];
-
-    $foo = 0;
-    is-deeply EVAL($deparsed), Nil, @type[$++];
-    is-deeply $foo, 5, @type[$++];
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $foo = 0;
+        is-deeply EVAL($it), Nil, @type[$++];
+        is-deeply $foo, 5, @type[$++];
+    }
 }
 
 subtest 'The postfix "until" statement works' => {
@@ -291,13 +287,11 @@ subtest 'The postfix "until" statement works' => {
 
     is-deeply $deparsed, '++$foo until $foo >= 5', 'deparse';
 
-    $foo = 0;
-    is-deeply EVAL($ast), Nil, @type[$++];
-    is-deeply $foo, 5; @type[$++];
-
-    $foo = 0;
-    is-deeply EVAL($deparsed), Nil, @type[$++];
-    is-deeply $foo, 5; @type[$++];
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $foo = 0;
+        is-deeply EVAL($it), Nil, @type[$++];
+        is-deeply $foo, 5; @type[$++];
+    }
 }
 
 subtest 'The postfix "for" statement works' => {
@@ -322,13 +316,11 @@ subtest 'The postfix "for" statement works' => {
 
     is-deeply $deparsed, '++$foo for 1 .. 5', 'deparse';
 
-    $foo = 0;
-    is-deeply EVAL($ast), Nil, @type[$++];
-    is-deeply $foo, 5, @type[$++];
-
-    $foo = 0;
-    is-deeply EVAL($deparsed), Nil, @type[$++];
-    is-deeply $foo, 5, @type[$++];
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $foo = 0;
+        is-deeply EVAL($it), Nil, @type[$++];
+        is-deeply $foo, 5, @type[$++];
+    }
 }
 
 # vim: expandtab shiftwidth=4

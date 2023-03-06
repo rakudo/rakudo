@@ -9,7 +9,7 @@ my $raku;
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $ast.DEPARSE;
-    $raku     := $ast.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
     diag $deparsed.chomp;
 }
 
@@ -23,7 +23,7 @@ subtest 'Simple literal substitution on topic' => {
     );
     is-deeply $deparsed, 's/o/x/', 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $_ = "foo";
 
         is-deeply EVAL($it).gist, '｢o｣', "$type: did we get right return value";
@@ -43,7 +43,7 @@ subtest 'Simple literal modification on topic' => {
     );
     is-deeply $deparsed, 'S/o/x/', 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $_ = "foo";
 
         is-deeply EVAL($it), 'fxo', "$type: did we get right return value";
@@ -61,7 +61,7 @@ subtest 'Simple literal substitution using infix syntax' => {
     );
     is-deeply $deparsed, 's{o} = "x"', 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $_ = "foo";
 
         is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
@@ -86,7 +86,7 @@ subtest 'Simple literal substitution on variable' => {
     );
     is-deeply $deparsed, '$string ~~ s/o/x/', 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $string = "foo";
 
         is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
@@ -115,7 +115,7 @@ subtest 'Simple literal substitution on variable with adverbs' => {
     );
     is-deeply $deparsed, '$string ~~ s:g:i/O/x/', 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $string = "foO";
 
         is EVAL($it).gist, '(｢o｣ ｢O｣)', "$type: did we get right return value";
@@ -141,7 +141,7 @@ subtest 'Simple variable substitution on variable' => {
     );
     is-deeply $deparsed, '$string ~~ s/o/$x/', 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $string = "foo";
 
         is EVAL($it).gist, '｢o｣', "$type: did we get right return value";
@@ -177,7 +177,7 @@ subtest 'Simple Callable substitution on variable' => {
     );
     is-deeply $deparsed, '$string ~~ s/o/{ $x }/', 'deparse';
 
-    for 'AST', $ast, 'Str', $deparsed -> $type, $it {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $string = "foo";
 
         is EVAL($it).gist, '｢o｣', "$type: did we get right return value";

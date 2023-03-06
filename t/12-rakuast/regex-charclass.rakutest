@@ -6,11 +6,11 @@ plan 5;
 my $ast;
 my $deparsed;
 my $raku;
-my @type = <AST Str>;
+my @type = <AST Str Raku>;
 sub ast(RakuAST::Node:D $body --> Nil) {
     $ast      := RakuAST::QuotedRegex.new(:$body);
     $deparsed := $ast.DEPARSE;
-    $raku     := $ast.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
     diag $deparsed.chomp;
 }
 
@@ -37,7 +37,7 @@ subtest 'All of the simple character classes' => {
 
     my $target := ".\b\r7\e\f \n\0 \t\nx";
     is $target ~~ $_, $target, "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'All of the simple character classes than can be negated' => {
@@ -60,7 +60,7 @@ subtest 'All of the simple character classes than can be negated' => {
 
     my $target := "abcdefghi.";
     is $target ~~ $_, $target, "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'A single unicode character specified by name' => {
@@ -73,7 +73,7 @@ subtest 'A single unicode character specified by name' => {
     is-deeply $deparsed, '/ \c[COMMA] /', 'deparse';
     
     is $characters ~~ $_, $characters, "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Multiple unicode characters specified by name' => {
@@ -88,7 +88,7 @@ subtest 'Multiple unicode characters specified by name' => {
       'deparse';
     
     is $characters ~~ $_, $characters, "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Multiple unicode characters specified by name negated' => {
@@ -103,7 +103,7 @@ subtest 'Multiple unicode characters specified by name negated' => {
       'deparse';
     
     is "ab" ~~ $_, "a", "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 # vim: expandtab shiftwidth=4

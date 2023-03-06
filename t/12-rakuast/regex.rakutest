@@ -9,23 +9,25 @@ my $raku;
 sub ast(RakuAST::Node:D $body --> Nil) {
     $ast      := RakuAST::QuotedRegex.new(:$body);
     $deparsed := $ast.DEPARSE;
-    $raku     := $ast.raku;
+    $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
     diag $deparsed.chomp;
 }
 
 sub match-ok($haystack, $expected, $additional = 0) is test-assertion {
   subtest "matches" => {
-    plan 2 + $additional;
-    is $haystack ~~ EVAL($ast), $expected, 'EVAL over RakuAST';
-    is $haystack ~~ EVAL($deparsed), $expected, 'EVAL over deparsed AST';
+    plan 3 + $additional;
+    is $haystack ~~ EVAL($ast), $expected, 'AST: EVAL is';
+    is $haystack ~~ EVAL($deparsed), $expected, 'Str: EVAL is';
+    is $haystack ~~ EVAL(EVAL $raku), $expected, 'Raku: EVAL is';
   }
 }
 
 sub match-nok($haystack) is test-assertion {
   subtest "doesn't match" => {
-    plan 2;
-    nok $haystack ~~ EVAL($ast), 'EVAL over RakuAST';
-    nok $haystack ~~ EVAL($deparsed), 'EVAL over deparsed AST';
+    plan 3;
+    nok $haystack ~~ EVAL($ast), 'AST: EVAL nok';
+    nok $haystack ~~ EVAL($deparsed), 'Str: EVAL nok';
+    nok $haystack ~~ EVAL(EVAL $raku), 'Raku: EVAL nok';
   }
 }
 
@@ -34,7 +36,11 @@ subtest 'Simple literal regex' => {
     ast RakuAST::Regex::Literal.new('foo');
     is-deeply $deparsed, '/ foo /', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
         is "foobarbaz"   ~~ $regex, 'foo', "$type: start of string";
         is "42foobarbaz" ~~ $regex, 'foo', "$type: middle of string";
         nok "barbaz"     ~~ $regex,        "$type: not matched";
@@ -259,7 +265,11 @@ subtest 'Right word boundary works' => {
     );
     is-deeply $deparsed, '/ . e >> /', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
         is "elizabeth the second" ~~ $regex, 'he', "$type: pass case";
         nok "elizabeth second" ~~ $regex, "$type: fail case";
     }
@@ -274,7 +284,11 @@ subtest 'Left word boundary works' => {
     );
     is-deeply $deparsed, '/ << . t /', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
         is "cat ethics committee" ~~ $regex, 'et', "$type: pass case";
         nok "cat committee" ~~ $regex, "$type: fail case";
     }
@@ -346,6 +360,8 @@ subtest 'Quantified built-in character class matches (frugal mode)' => {
       )
     );
     is-deeply $deparsed, '/ \d+? /', 'deparse';
+
+say $raku;
 
     match-ok "99cents", "9";
 }
@@ -446,7 +462,11 @@ subtest 'Regex groups compile correctly' => {
     );
     is-deeply $deparsed, q|/ [\d+]+ % "," /|, 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
         is "values: 1,2,33,400,stuff" ~~ $regex, '1,2,33,400',
           "$type: did we get correct match";
         nok $/.list.keys,
@@ -469,7 +489,11 @@ subtest 'Regex with two positional capturing groups matches correctly' => {
     );
     is-deeply $deparsed, '/ (\w) \d (\w) /', 'deparse';
 
-    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $regex {
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $regex {
         is "2a1b" ~~ $regex, 'a1b',
           "$type: did we get correct match";
         is $/.list.elems, 2,
@@ -607,7 +631,7 @@ subtest 'Match with block' => {
       qq:!c:!s|/ o { is($/, "o", "block") } o /|,
       'deparse';
 
-    match-ok "foo", 'oo', 2;
+    match-ok "foo", 'oo', 3;
 }
 
 subtest 'Match with variable definition' => {

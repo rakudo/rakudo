@@ -79,6 +79,11 @@ augment class RakuAST::Node {
     }
 
     method !nameds(*@names) {
+        sub as-class(str $name, str $raku) {
+            my class Rakufy-as { has str $.raku }
+            Pair.new($name, Rakufy-as.new(:$raku))
+        }
+
         self!indent;
         my @pairs = @names.map: -> $method {
             if $method eq 'args' && self.args -> $args {
@@ -88,8 +93,24 @@ augment class RakuAST::Node {
                 my $scope := self.scope;
                 :$scope if $scope ne self.default-scope
             }
-            elsif self."$method"() -> $object {
-                Pair.new($method, $object)
+            elsif $method eq 'how' {
+                as-class('how', self.how.^name.subst("Perl6::"))
+            }
+            elsif $method eq 'backtrack' {
+                as-class('backtrack', self.backtrack.^name)
+            }
+            elsif $method eq 'slurpy' {
+                nqp::isconcrete(my $slurpy := self.slurpy)
+                  ?? :$slurpy
+                  !! as-class('slurpy', $slurpy.^name)
+            }
+            elsif $method eq 'labels' {
+                my $labels := nqp::decont(self.labels);
+                :$labels if $labels;
+            }
+            else {
+                my $object := self."$method"();
+                Pair.new($method, $object) if nqp::isconcrete($object)
             }
         }
         my $format  := "$*INDENT%-@pairs.map(*.key.chars).max()s => %s";
@@ -128,7 +149,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::ApplyPostfix:D: --> Str:D) {
-        self!nameds: <on-topic operand postfix>
+        self!nameds: <operand postfix>
     }
 
     multi method raku(RakuAST::ApplyPrefix:D: --> Str:D) {
@@ -196,33 +217,29 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Circumfix::Parentheses:D: --> Str:D) {
-        self!nameds: <semilist>
+        self!positional(self.semilist)
     }
 
 #- ColonPair -------------------------------------------------------------------
 
-    multi method raku(RakuAST::ColonPair:D: --> Str:D) {
-        self!nameds: <named-arg-name named-arg-value>
-    }
-
     multi method raku(RakuAST::ColonPair::False:D: --> Str:D) {
-        self!nameds: <named-arg-name>
+        self!nameds: <key>
     }
 
     multi method raku(RakuAST::ColonPair::Number:D: --> Str:D) {
-        self!nameds: <named-arg-name value>
+        self!nameds: <key value>
     }
 
     multi method raku(RakuAST::ColonPair::True:D: --> Str:D) {
-        self!nameds: <named-arg-name>
+        self!nameds: <key>
     }
 
     multi method raku(RakuAST::ColonPair::Value:D: --> Str:D) {
-        self!nameds: <named-arg-name value>
+        self!nameds: <key value>
     }
 
     multi method raku(RakuAST::ColonPair::Variable:D: --> Str:D) {
-        self!nameds: <value>  # XXX needs attention wrt to "key"
+        self!nameds: <key value>
     }
 
 #- Co --------------------------------------------------------------------------
@@ -334,7 +351,7 @@ augment class RakuAST::Node {
 #- P ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Package:D: --> Str:D) {
-        self!nameds: <scope package-declarator name traits body>
+        self!nameds: <scope package-declarator name how repr traits body>
     }
 
     multi method raku(RakuAST::Pragma:D: --> Str:D) {
@@ -466,7 +483,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Regex::Literal:D: --> Str:D) {
-        self!positional(self.text)
+        self!literal(self.text)
     }
 
     multi method raku(RakuAST::Regex::Alternation:D: --> Str:D) {
@@ -505,11 +522,11 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Regex::Assertion::Named:D: --> Str:D) {
-        self!nameds: <capturing name>
+        self!nameds: <name capturing>
     }
 
     multi method raku(RakuAST::Regex::Assertion::Named::Args:D: --> Str:D) {
-        self!nameds: <capturing name args>
+        self!nameds: <name args capturing>
     }
 
     multi method raku(RakuAST::Regex::Assertion::Named::RegexArg:D: --> Str:D) {
@@ -654,7 +671,7 @@ augment class RakuAST::Node {
 #- Regex::G --------------------------------------------------------------------
 
     multi method raku(RakuAST::Regex::Group:D: --> Str:D) {
-        self!nameds: <regex>
+        self!positional(self.regex)
     }
 
 #- Regex::I --------------------------------------------------------------------
@@ -1010,7 +1027,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Substitution:D: --> Str:D) {
-        self!nameds: <immutable samespace adverbs infix>
+        self!nameds: <immutable samespace adverbs infix pattern replacement>
     }
 
     multi method raku(RakuAST::SubstitutionReplacementThunk:D: --> Str:D) {

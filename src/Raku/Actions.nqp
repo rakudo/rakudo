@@ -788,9 +788,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         self.attach: $/, $ast;
                     }
                     else {
-                        self.attach: $/, self.r('ApplyPostfix').new:
-                            postfix => $ast // self.r('Postfix').new($<postfix><sym>),
-                            operand => $/[0].ast;
+                        my $postfix := $ast // self.r('Postfix').new($<postfix><sym>);
+                        if nqp::istype($postfix, RakuAST::Postfixish) {
+                            self.attach: $/, self.r('ApplyPostfix').new:
+                                postfix => $postfix,
+                                operand => $/[0].ast;
+                        }
+                        else {
+                            # Only report the sorry if there is no more specific sorry already
+                            $/.typed_sorry('X::Syntax::Confused') unless $*R.has-sorries;
+                        }
                     }
                 }
             }

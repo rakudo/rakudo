@@ -904,6 +904,10 @@ class RakuAST::Resolver::Compile
         Nil
     }
 
+    method has-sorries() {
+        $!sorries ?? nqp::elems($!sorries) ?? True !! False !! False
+    }
+
     # Add a worry check-time problem produced by the compiler.
     method add-worry(Any $exception) {
         unless $!worries {

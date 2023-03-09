@@ -783,19 +783,31 @@
 
         supply {
             my @values = nqp::create(Array) xx +@s;
+            my Int @counts = 0 xx +@s;
+            my $watermark = Inf;
             for @s.kv -> $index, $supply {
                 if &with {
                     whenever $supply -> \val {
                         @values[$index].push(val);
+                        @counts[$index]++;
                         emit( [[&with]] @values.map(*.shift) ) if all(@values);
-                        LAST { done }
+                        done if all(@counts) >= $watermark;
+                        LAST {
+                            $watermark min= @counts[$index];
+                            done if all(@counts) >= $watermark;
+                        }
                     }
                 }
                 else {
                     whenever $supply -> \val {
                         @values[$index].push(val);
+                        @counts[$index]++;
                         emit( $(@values.map(*.shift).list.eager) ) if all(@values);
-                        LAST { done }
+                        done if all(@counts) >= $watermark;
+                        LAST {
+                            $watermark min= @counts[$index];
+                            done if all(@counts) >= $watermark;
+                        }
                     }
                 }
             }

@@ -88,11 +88,14 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
           '10.13', 'High Sierra',
           '10.14', 'Mojave',
           '10.15', 'Catalina',
-          '11.0',  'Big Sur',
-          '12.0',  'Monterey',
+          '11',    'Big Sur',
+          '12',    'Monterey',
+          '13',    'Ventura',
         );
 
-        if nqp::atkey($names,$version.split(".").head(2).join(".")) -> $nick {
+        my ($major, $minor) = $version.split(".").head(2);
+        my str $key = $major eq '10' ?? "$major.$minor" !! $major;
+        if nqp::atkey($names,$key) -> $nick {
             $desc := $nick;
         }
     }

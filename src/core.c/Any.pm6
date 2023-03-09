@@ -422,32 +422,32 @@ my class Any { # declared in BOOTSTRAP
 
     proto method Set(|) is nodal {*}
     multi method Set(Any: --> Set:D) {
-        Set.new-from-pairs(self.list)
+        Set.new-from-pairs([self.list])
     }
 
     proto method SetHash(|) is nodal {*}
     multi method SetHash(Any: --> SetHash:D) {
-        SetHash.new-from-pairs(self.list)
+        SetHash.new-from-pairs([self.list])
     }
 
     proto method Bag(|) is nodal {*}
     multi method Bag(Any: --> Bag:D) {
-        Bag.new-from-pairs(self.list)
+        Bag.new-from-pairs([self.list])
     }
 
     proto method BagHash(|) is nodal {*}
     multi method BagHash(Any: --> BagHash:D) {
-        BagHash.new-from-pairs(self.list)
+        BagHash.new-from-pairs([self.list])
     }
 
     proto method Mix(|) is nodal {*}
     multi method Mix(Any: --> Mix:D) {
-        Mix.new-from-pairs(self.list)
+        Mix.new-from-pairs([self.list])
     }
 
     proto method MixHash(|) is nodal {*}
     multi method MixHash(Any: --> MixHash:D) {
-        MixHash.new-from-pairs(self.list)
+        MixHash.new-from-pairs([self.list])
     }
 
     # XXX GLR does this really need to force a list?

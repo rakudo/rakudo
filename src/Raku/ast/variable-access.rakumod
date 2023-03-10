@@ -32,6 +32,12 @@ class RakuAST::Var::Lexical
         Nil
     }
 
+    method undeclared-symbol-details() {
+        self.sigil eq '&'
+            ?? RakuAST::UndeclaredSymbolDescription::Routine.new($!name)
+            !! Nil
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)
     }

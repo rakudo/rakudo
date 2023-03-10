@@ -517,7 +517,7 @@ class RakuAST::Heredoc
 
             my $in-fresh-line := 1;
             for self.IMPL-UNWRAP-LIST(self.segments) {
-                if nqp::istype($_, RakuAST::StrLiteral) {
+                if nqp::istype($_, RakuAST::StrLiteral) && !nqp::istype($_, RakuAST::Heredoc::InterpolatedWhiteSpace) {
                     if $in-fresh-line {
                         $_.set-value($_.value.indent($indent));
                     }
@@ -537,6 +537,9 @@ class RakuAST::Heredoc
             }
         }
     }
+}
+
+class RakuAST::Heredoc::InterpolatedWhiteSpace is RakuAST::StrLiteral {
 }
 
 # An atom in a quote words construct. By wrapping something in this, it is

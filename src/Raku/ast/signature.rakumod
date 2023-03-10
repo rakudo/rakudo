@@ -77,7 +77,7 @@ class RakuAST::Signature
     method IMPL-HAS-PARAMETER(Str $name) {
         return True if $name eq '%_' && $!implicit-slurpy-hash;
         for self.IMPL-UNWRAP-LIST($!parameters) {
-            return True if $_.target.lexical-name eq $name;
+            return True if $_.target && $_.target.lexical-name eq $name;
         }
         False
     }

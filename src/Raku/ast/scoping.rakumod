@@ -1,5 +1,6 @@
 # Done by anything that implies a lexical scope.
 class RakuAST::LexicalScope
+  is RakuAST::CheckTime
   is RakuAST::Node
 {
     # Caching of lexical declarations in this scope due to AST nodes.
@@ -193,6 +194,34 @@ class RakuAST::LexicalScope
             nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', [$control]);
         }
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my %lookup;
+        for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations) {
+            my $lexical-name := $_.lexical-name;
+            if $lexical-name {
+                if nqp::existskey(%lookup, $lexical-name) {
+                    self.add-sorry: $resolver.build-exception:
+                        'X::Redeclaration', :symbol($lexical-name);
+                }
+                else {
+                    %lookup{$lexical-name} := $_;
+                }
+            }
+        }
+        for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations) {
+            my $lexical-name := $_.lexical-name;
+            if $lexical-name && ! $_ =:= self {
+                if nqp::existskey(%lookup, $lexical-name) {
+                    self.add-sorry: $resolver.build-exception:
+                        'X::Redeclaration', :symbol($lexical-name);
+                }
+                else {
+                    %lookup{$lexical-name} := $_;
+                }
+            }
+        }
     }
 
     # This is only accurate after resolution - but since we only need it at

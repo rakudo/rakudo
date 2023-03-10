@@ -1581,7 +1581,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $initializer := $<term_init>.ast;
             my $decl := self.r('VarDeclaration', 'Term').new:
                 :$scope, :$type, :$name, :$initializer;
-            $*R.declare-lexical($decl);
+            $/.typed_sorry('X::Redeclaration', :symbol($name))
+                if $*R.declare-lexical($decl);
             self.attach: $/, $decl;
         }
         else {
@@ -2461,10 +2462,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*BLOCK.replace-scope($scope);
         if $*MULTINESS ne 'multi' {
             if $scope eq 'my' || $scope eq 'our' || $scope eq 'unit' {
-                $*R.declare-lexical-in-outer($*BLOCK);
+                $/.typed_sorry('X::Redeclaration', :symbol($name.canonicalize))
+                    if $*R.declare-lexical-in-outer($*BLOCK);
             }
             elsif $*DEFAULT-SCOPE ne 'has' {
-                $*R.declare-lexical($*BLOCK);
+                $/.typed_sorry('X::Redeclaration', :symbol($name.canonicalize))
+                    if $*R.declare-lexical($*BLOCK);
             }
         }
     }

@@ -1492,6 +1492,10 @@ class RakuAST::Routine
         $scope eq 'my' || $scope eq 'state' || $scope eq 'our' || $scope eq 'unit'
     }
 
+    method is-simple-lexical-declaration() {
+        self.is-lexical && self.multiness ne 'multi'
+    }
+
     method generate-lookup() {
         if self.is-lexical {
             my $lookup := RakuAST::Var::Lexical.new(self.lexical-name);

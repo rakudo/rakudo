@@ -38,6 +38,7 @@ class RakuAST::Blockoid
 
 class RakuAST::OnlyStar
   is RakuAST::Blockoid
+  is RakuAST::Term
 {
     method new() {
         my $obj := nqp::create(self);

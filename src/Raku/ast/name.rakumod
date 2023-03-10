@@ -76,7 +76,7 @@ class RakuAST::Name
         my @parts := nqp::clone($!parts);
         my $type := RakuAST::Name.new(|@parts);
         for $!colonpairs {
-            $type.add-colonpair($_) if $_.key ne $key;
+            $type.add-colonpair($_) if !nqp::istype($_, RakuAST::ColonPair) || $_.key ne $key;
         }
         $type
     }

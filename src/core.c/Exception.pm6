@@ -536,16 +536,6 @@ do {
         $*EXIT      = 1;
         $*EXCEPTION = $e;
 
-        if %*ENV<PERL6_EXCEPTIONS_HANDLER> -> $handler {
-            my $class := ::("Exceptions::$handler");
-            unless nqp::istype($class,Failure) {
-                temp %*ENV<PERL6_EXCEPTIONS_HANDLER> = ""; # prevent looping
-                unless $class.process($e) {
-                    nqp::getcurhllsym('&THE_END')();
-                    return
-                }
-            }
-        }
         if %*ENV<RAKU_EXCEPTIONS_HANDLER> -> $handler {
             my $class := ::("Exceptions::$handler");
             unless nqp::istype($class,Failure) {

@@ -2456,7 +2456,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $scope := $*SCOPE || $*DEFAULT-SCOPE;
         $*BLOCK.replace-scope($scope);
         if $*MULTINESS ne 'multi' {
-            if $scope eq 'my' {
+            if $scope eq 'my' || $scope eq 'our' || $scope eq 'unit' {
                 $*R.declare-lexical-in-outer($*BLOCK);
             }
             elsif $*DEFAULT-SCOPE ne 'has' {

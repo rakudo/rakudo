@@ -1725,6 +1725,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             %args<name> := ~$<variable>;
         }
         %args<scope> := $*SCOPE;
+        %args<type>  := $*OFTYPE.ast if nqp::defined($*OFTYPE);
         %args<initializer> := $<initializer><EXPR>.ast;
         if $<trait> {
             %args<traits> := my @traits;

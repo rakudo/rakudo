@@ -296,7 +296,7 @@ class RakuAST::VarDeclaration::Constant
                 self.add-sorry($resolver.build-exception('X::Comp::TypeCheck',
                   operation => 'constant declaration',
                   expected  => $type,
-                  got       => nqp::what($!value)
+                  got       => $!value
                 ));
                 return False;
             }

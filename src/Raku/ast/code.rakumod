@@ -867,18 +867,20 @@ class RakuAST::Block
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @implicit;
-        if $!implicit-topic-mode == 1 {
-            @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
-                parameter => self.signature ?? False !! True;
-        }
-        elsif $!implicit-topic-mode == 2 {
-            @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
-                :required,
-                parameter => self.signature ?? False !! True;
-        }
-        elsif $!implicit-topic-mode == 3 {
-            @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new(:required,
-                :exception);
+        unless self.IMPL-HAS-PARAMETER('$_') {
+            if $!implicit-topic-mode == 1 {
+                @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
+                    parameter => self.signature ?? False !! True;
+            }
+            elsif $!implicit-topic-mode == 2 {
+                @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
+                    :required,
+                    parameter => self.signature ?? False !! True;
+            }
+            elsif $!implicit-topic-mode == 3 {
+                @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new(:required,
+                    :exception);
+            }
         }
         if $!fresh-match {
             nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));

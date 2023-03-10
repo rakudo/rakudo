@@ -43,9 +43,7 @@ class RakuAST::OnlyStar
     method new() {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Blockoid, '$!statement-list',
-            RakuAST::StatementList.new(
-                RakuAST::Statement::Expression.new(:expression(RakuAST::Term::Whatever.new)),
-            ));
+          RakuAST::StatementList.new);
         $obj
     }
 

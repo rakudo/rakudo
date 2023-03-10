@@ -2001,6 +2001,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              <DECL=multi_declarator>
            | <DECL=multi_declarator>
            ]
+        || <.ws><!typename> <typo_typename> <!>
         || <.malformed($*SCOPE)>
         ]
     }
@@ -2618,6 +2619,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         } <whence=.postcircumfix> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
+    }
+
+    token typo_typename($panic = 0) {
+        <longname>
+        {
+          #TODO bring back suggestions for which types may have been meant
+          my $method := $panic ?? 'typed_panic' !! 'typed_sorry';
+          $/."$method"('X::Undeclared',
+                    what => "Type",
+                    symbol => $<longname>.ast.canonicalize);
+        }
     }
 
     method maybe_typename() {

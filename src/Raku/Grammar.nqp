@@ -3158,6 +3158,7 @@ if $*COMPILING_CORE_SETTING {
         self.set_actions($actions);
 
         $*R.outer-scope.merge-generated-lexical-declaration(
+            :resolver($*R),
             self.actions.r('VarDeclaration', 'Implicit', 'Constant').new(
                 :name('%?LANG'),
                 :value(%*LANG),

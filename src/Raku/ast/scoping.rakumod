@@ -114,7 +114,7 @@ class RakuAST::LexicalScope
         Nil
     }
 
-    method merge-generated-lexical-declaration(RakuAST::Declaration $declaration) {
+    method merge-generated-lexical-declaration(RakuAST::Declaration $declaration, RakuAST::Resolver :$resolver!) {
         unless $!generated-lexical-declarations {
             nqp::bindattr(self, RakuAST::LexicalScope, '$!generated-lexical-declarations', []);
         }
@@ -124,7 +124,7 @@ class RakuAST::LexicalScope
                     return Nil
                 }
                 else {
-                    $_.merge($declaration);
+                    $_.merge($declaration, :$resolver);
                     return;
                 }
             }
@@ -388,7 +388,7 @@ class RakuAST::Declaration::Mergeable {
         $name eq 'Perl6::Metamodel::PackageHOW' || $name eq 'KnowHOW'
     }
 
-    method merge(RakuAST::Declaration $other) {
+    method merge(RakuAST::Declaration $other, RakuAST::Resolver :$resolver!) {
         my $target := self.compile-time-value;
         my $source := $other.compile-time-value;
 
@@ -434,8 +434,12 @@ class RakuAST::Declaration::Mergeable {
             self.set-value($source);
         }
         else {
-            nqp::die('Unsupported case trying to merge symbols or duplicate definition'
-                ~ (nqp::can(self, 'lexical-name') ?? ' trying to merge ' ~ self.lexical-name !! ''));
+            $resolver.panic(
+                $resolver.build-exception(
+                    'X::Redeclaration',
+                    :symbol(nqp::can(self, 'lexical-name') ?? self.lexical-name !! '')
+                )
+            );
         }
     }
 
@@ -686,6 +690,7 @@ class RakuAST::PackageInstaller {
             $lexical := $resolver.resolve-lexical-constant($final);
             if $pure-package-installation || !$lexical {
                 $resolver.current-scope.merge-generated-lexical-declaration:
+                    :$resolver,
                     self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $type-object);
             }
             # If `our`-scoped, also put it into the current package.
@@ -723,6 +728,7 @@ class RakuAST::PackageInstaller {
                 $target := Perl6::Metamodel::PackageHOW.new_type(name => $first);
                 $target.HOW.compose($target);
                 $resolver.current-scope.merge-generated-lexical-declaration:
+                    :$resolver,
                     RakuAST::Declaration::LexicalPackage.new:
                         :lexical-name($first),
                         :compile-time-value($target),

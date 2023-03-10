@@ -1419,7 +1419,7 @@ class RakuAST::Statement::Use
             }
             my $declarand := RakuAST::Declaration::Import.new:
                     :lexical-name($key), :compile-time-value($value);
-            $target-scope.merge-generated-lexical-declaration: $declarand;
+            $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
 
             my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
             if $categorical {

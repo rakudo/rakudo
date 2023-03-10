@@ -325,7 +325,7 @@ class RakuAST::QuotedString
         # Otherwise, needs compilation.
         my @segment-asts;
         for $!segments {
-            if $_.type =:= Str {
+            if $_.type =:= Str || nqp::istype($_, RakuAST::QuoteWordsAtom) {
                 @segment-asts.push($_.IMPL-TO-QAST($context));
             }
             else {

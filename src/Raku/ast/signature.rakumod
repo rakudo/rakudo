@@ -19,7 +19,7 @@ class RakuAST::Signature
     method new(List :$parameters, RakuAST::Node :$returns) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Signature, '$!parameters',
-            self.IMPL-WRAP-LIST($parameters // []));
+            $parameters // self.IMPL-WRAP-LIST([]));
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-named-method', 0);

@@ -1798,6 +1798,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    token term:sym<onlystar> {
+        '{*}' <?ENDSTMT>
+        # [ <?{ $*IN_PROTO }> || <.panic: '{*} may only appear in proto'> ]
+    }
+
     token colonpair {
         :my $*key;
         ':'

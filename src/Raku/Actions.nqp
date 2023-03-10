@@ -1250,6 +1250,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Term', 'Capture').new($<args>.ast);
     }
 
+    method term:sym<onlystar>($/) {
+        self.attach: $/, self.r('OnlyStar').new;
+    }
+
     method colonpair($/) {
         my $key-str := $*key;
         if $key-str {

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 47;
+plan 48;
 
 my $ast;
 my $deparsed;
@@ -23,6 +23,17 @@ subtest 'Special compiler variable $?FILE' => {
     is-deeply $deparsed, '$?FILE', 'deparse';
     is-deeply $_, $file, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+my class A {
+    subtest 'Special compiler variable $?FILE' => {
+        # ::$?CLASS
+        ast RakuAST::Var::Lexical::Constant.new('::?CLASS');
+
+        is-deeply $deparsed, '::?CLASS', 'deparse';
+        is-deeply $_, A, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
 }
 
 subtest 'Special compiler variable $?LINE' => {

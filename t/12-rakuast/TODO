@@ -50,7 +50,6 @@ RakuAST::Type::Parameterized
 RakuAST::Type::Setting
 RakuAST::UndeclaredSymbolDescription
 RakuAST::UndeclaredSymbolDescription::Routine
-RakuAST::Var::Lexical::Constant
 RakuAST::Var::Lexical::Setting
 RakuAST::Var::Package
 RakuAST::Var::Pod::Finish

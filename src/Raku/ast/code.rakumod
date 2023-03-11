@@ -1289,7 +1289,7 @@ class RakuAST::Routine
             else {
                 my $scope := $resolver.current-scope;
 
-                if $proto := $resolver.resolve-lexical($name) {
+                if $proto := $resolver.resolve-lexical-constant($name) {
                     $proto := $proto.compile-time-value.derive_dispatcher;
                 }
                 elsif $proto := $resolver.resolve-lexical-constant-in-outer($name) {

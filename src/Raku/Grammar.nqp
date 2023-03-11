@@ -1750,7 +1750,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $base-name;
         [
         || <?{
-                $base-name := $<longname>.ast.without-colonpair('D').without-colonpair('U').without-colonpair('_');
+                $base-name := $<longname>.ast.without-colonpairs;
                 nqp::eqat($<longname>.Str, '::', 0) || $*R.is-name-known($base-name)
             }>
             { $*is-type := $*R.is-name-type($base-name) }
@@ -2611,7 +2611,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <longname>
           <?{
             # ::T introduces a type, so always is one
-            nqp::eqat(~$<longname>, '::', 0) || $*R.is-name-known($<longname>.ast.without-colonpair('D').without-colonpair('U').without-colonpair('_'))
+            nqp::eqat(~$<longname>, '::', 0) || $*R.is-name-known($<longname>.ast.without-colonpairs)
           }>
         ]
         # parametric/coercion type?

@@ -2180,7 +2180,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $str_longname eq '::' {
                 $/.panic("Cannot use :: as a type name");
             }
-            my $type-capture := self.r('Type', 'Capture').new($base-name.without-colonpair('D').without-colonpair('U').without-colonpair('_'));
+            my $type-capture := self.r('Type', 'Capture').new($base-name.without-colonpairs);
             self.attach: $/, $type-capture;
 
             # Declare the lexical so it is available right away (e.g. for traits)

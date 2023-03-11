@@ -56,7 +56,7 @@ augment class RakuAST::Node {
 #-------------------------------------------------------------------------------
 # Private helper methods
 
-    method !none() { $*INDENT ~ self.^name ~ '.new' }
+    method !none() { self.^name ~ '.new' }
 
     method !literal($value) {
         self.^name ~ '.new(' ~ $value.raku ~ ')';
@@ -337,7 +337,9 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Method:D: --> Str:D) {
-        self!nameds: <scope name signature traits body>
+        self!nameds: self.scope eq self.default-scope
+          ?? <multiness name signature traits body>
+          !! <scope multiness name signature traits body>
     }
 
 #- N ---------------------------------------------------------------------------
@@ -367,6 +369,12 @@ augment class RakuAST::Node {
         self!literal(self.value)
     }
 
+#- O ---------------------------------------------------------------------------
+
+    multi method raku(RakuAST::OnlyStar:D: --> Str:D) {
+        self!none
+    }
+
 #- P ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Package:D: --> Str:D) {
@@ -380,10 +388,15 @@ augment class RakuAST::Node {
 #- Parameter -------------------------------------------------------------------
 
     multi method raku(RakuAST::Parameter:D: --> Str:D) {
-        self!nameds: <
-          type target names optional slurpy traits default where
-          sub-signature type-captures value
-        >
+        my str @nameds;
+        @nameds.push("type") if self.type && self.type.DEPARSE ne 'Any';
+        @nameds.push("names") if self.names.elems;
+        @nameds.push("type-captures") if self.type-captures.elems;
+        @nameds.append: <
+          target optional slurpy traits default where sub-signature value
+        >;
+
+        self!nameds: @nameds
     }
 
     multi method raku(RakuAST::Parameter::Slurpy:U --> Str:D) {
@@ -1033,9 +1046,9 @@ augment class RakuAST::Node {
 #- Su --------------------------------------------------------------------------
 
     multi method raku(RakuAST::Sub:D: --> Str:D) {
-        self!nameds: self.scope eq 'my'
-          ?? <name signature traits body>
-          !! <scope name signature traits body>
+        my str @nameds = <multiness name signature traits body>;
+        @nameds.unshift("scope") if self.scope ne self.default-scope;
+        self!nameds: @nameds
     }
 
     multi method raku(RakuAST::Submethod:D: --> Str:D) {

@@ -157,8 +157,12 @@ class RakuAST::Deparse {
         $_ = $_.chomp($.indent-with) with $*INDENT;
     }
 
-    method !routine(RakuAST::Routine:D $ast --> Str:D) {
-        my str @parts = '';
+    method !routine(RakuAST::Routine:D $ast, str $kind --> Str:D) {
+        my str @parts = $kind;
+
+        if $ast.multiness -> $multiness {
+            @parts.unshift($ast.multiness)
+        }
 
         if $ast.name -> $name {
             @parts.push(self.deparse($name));
@@ -184,7 +188,7 @@ class RakuAST::Deparse {
             @parts.push(' ');
         }
         @parts.push($type);
-        @parts.push(self!routine($ast));
+        @parts.push(self!routine($ast, 'method'));
 
         @parts.join
     }
@@ -585,6 +589,10 @@ class RakuAST::Deparse {
         $ast.value.raku
     }
 
+#- O ---------------------------------------------------------------------------
+
+    multi method deparse(RakuAST::OnlyStar:D $ --> '{*}') { }
+
 #- P ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Package:D $ast --> Str:D) {
@@ -625,11 +633,11 @@ class RakuAST::Deparse {
             my str $deparsed = self.deparse($type);
             if $deparsed ne 'Any' {
                 @parts.push($deparsed);
-                @parts.push(' ') if $ast.target;
+                @parts.push(' ') if $target;
             }
         }
 
-        if $ast.target -> $target {
+        if $target {
             my str $var = self.deparse($target, :slurpy($ast.slurpy));
 
             # named parameter
@@ -673,6 +681,9 @@ class RakuAST::Deparse {
                     @parts.push('!');
                 }
             }
+        }
+        elsif nqp::eqaddr($ast.slurpy,RakuAST::Parameter::Slurpy::Capture) {
+            @parts.push(self.deparse($ast.slurpy));
         }
 
         @parts.join
@@ -1241,14 +1252,16 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Signature:D $ast --> Str:D) {
-        my str $params  =
-          $ast.parameters.map({ self.deparse($_) }).join($.list-infix-comma);
-        my str $returns = self.deparse($_)
-          with $ast.returns;
+        my str @parts;
 
-        $params
-          ~ (" " if $params && $returns)
-          ~ ($returns ?? "--> $returns" !! "")
+        if $ast.parameters -> @parameters {
+            @parts.push(@parameters.map({
+                self.deparse($_)
+            }).join($.list-infix-comma));
+        }
+        @parts.push("--> " ~ self.deparse($_)) with $ast.returns;
+
+        @parts.join(' ')
     }
 
 #- Statement -------------------------------------------------------------------
@@ -1618,15 +1631,13 @@ class RakuAST::Deparse {
         my str @parts;
 
         given $ast.scope -> $scope {
-            if $scope ne 'my' && ($ast.name || $scope ne 'anon') {
-                @parts.push($scope);
-                @parts.push(' ');
-            }
+            @parts.push($scope)
+              if $scope ne $ast.default-scope
+              && ($ast.name || $scope ne 'anon');
         }
-        @parts.push('sub');
-        @parts.push(self!routine($ast));
+        @parts.push(self!routine($ast, 'sub'));
 
-        @parts.join
+        @parts.join(' ')
     }
 
     multi method deparse(RakuAST::Submethod:D $ast --> Str:D) {

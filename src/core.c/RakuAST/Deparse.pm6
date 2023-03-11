@@ -1812,11 +1812,14 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
-        self.deparse($ast.name)
+        self.deparse($ast.base-type.name)
+          ~ ($ast.definite ?? ':D' !! ':U')
     }
 
     multi method deparse(RakuAST::Type::Coercion:D $ast --> Str:D) {
-        self.deparse($ast.name) ~ '(' ~ self.deparse($ast.constraint) ~ ')'
+        my str $constraint = self.deparse($ast.constraint);
+        $constraint = "" if $constraint eq 'Any';
+        self.deparse($ast.base-type) ~ "($constraint)"
     }
 
     multi method deparse(RakuAST::Type::Parameterized:D $ast --> Str:D) {

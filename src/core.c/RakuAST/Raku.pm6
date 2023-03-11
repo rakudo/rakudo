@@ -1152,7 +1152,9 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Coercion:D: --> Str:D) {
-        self!nameds: <base-type constraint>
+        self!nameds: (try self.constraint.name.canonicalize eq 'Any')
+          ?? <base-type>
+          !! <base-type constraint>
     }
 
     multi method raku(RakuAST::Type::Parameterized:D: --> Str:D) {

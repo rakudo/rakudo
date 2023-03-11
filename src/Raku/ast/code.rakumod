@@ -364,6 +364,13 @@ class RakuAST::ExpressionThunk
         for self.IMPL-UNWRAP-LIST($signature.parameters) {
             $stmts.push($_.target.IMPL-QAST-DECL($context)) unless $_.target.lexical-name eq '$_';
         }
+        if nqp::istype(self, RakuAST::ImplicitDeclarations) {
+            for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) -> $decl {
+                if $decl.is-simple-lexical-declaration {
+                    nqp::push($stmts, $decl.IMPL-QAST-DECL($context));
+                }
+            }
+        }
         $block.push($stmts) if $stmts.list;
         $block.arity($signature.arity);
 
@@ -2382,6 +2389,7 @@ class RakuAST::CurryThunk
 
 class RakuAST::BlockThunk
   is RakuAST::ExpressionThunk
+  is RakuAST::ImplicitDeclarations
 {
     has RakuAST::Expression $!expression;
 
@@ -2395,6 +2403,13 @@ class RakuAST::BlockThunk
         'Block thunk'
     }
 
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::VarDeclaration::Implicit::BlockTopic.new:
+                parameter => self.signature ?? False !! True
+        ]);
+    }
+
     method IMPL-THUNK-OBJECT-TYPE() {
         Block
     }
@@ -2402,5 +2417,20 @@ class RakuAST::BlockThunk
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself and link it with the meta-object.
         self.IMPL-QAST-BLOCK($context, :blocktype('declaration_static'), :expression($!expression));
+    }
+
+    method PRODUCE-META-OBJECT() {
+        my $code := nqp::create(self.IMPL-THUNK-OBJECT-TYPE);
+        my $param := nqp::create(Parameter);
+        nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');
+        nqp::bindattr_i($param, Parameter, '$!flags', 2048 + 16384); # Optional + default from outer
+        my $sig := nqp::create(Signature);
+        nqp::bindattr($sig, Signature, '@!params', [$param]);
+        nqp::bindattr_i($sig, Signature, '$!arity', 0);
+        nqp::bindattr($sig, Signature, '$!count', nqp::box_i(1, Int));
+        nqp::bindattr($code, Code, '$!signature', $sig);
+        nqp::bindattr($sig, Signature, '$!code', $code);
+        self.IMPL-THUNK-META-OBJECT-PRODUCED($code);
+        $code
     }
 }

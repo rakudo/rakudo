@@ -178,6 +178,11 @@ class RakuAST::Infix
             $thunk.IMPL-CHECK($resolver, $context, True);
             $expression.wrap-with-thunk($thunk);
         }
+        elsif $type eq 't' && !nqp::istype($expression, RakuAST::Code) {
+            my $thunk := RakuAST::ExpressionThunk.new;
+            $thunk.IMPL-CHECK($resolver, $context, True);
+            $expression.wrap-with-thunk($thunk);
+        }
         # TODO implement other thunk types
     }
 

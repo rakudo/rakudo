@@ -1318,7 +1318,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $name.add-colonpair(
                 self.r('QuotedString').new(
                     :segments($name.IMPL-WRAP-LIST([
-                        RakuAST::StrLiteral.new($<infixish>.Str)
+                        self.r('StrLiteral').new($<infixish>.Str)
                     ]))
                 )
             );

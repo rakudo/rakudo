@@ -465,7 +465,7 @@ role Raku::Common {
                   ?? self.typed_panic('X::Undeclared',
                        symbol => $name, is-compile-time => 1
                      )
-                  !! RakuAST::VarDeclaration::Simple.new(
+                  !! self.actions.r('VarDeclaration','Simple').new(
                        scope => 'our', name => $name
                      ).resolve-with($*R)
 

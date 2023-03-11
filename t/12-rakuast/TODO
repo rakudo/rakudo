@@ -22,7 +22,6 @@ RakuAST::Declaration::Mergeable
 RakuAST::Declaration::ResolvedConstant
 RakuAST::Name::Part::Empty
 RakuAST::Name::Part::Expression
-RakuAST::OnlyStar
 RakuAST::Origin
 RakuAST::Origin::Match
 RakuAST::Origin::Source

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -193,11 +193,8 @@ subtest 'Return type constraint' => {
     );
     is-deeply $deparsed, 'sub () returns Int { $x }', 'deparse';
 
-    for
-      'AST', EVAL($ast),
-      'Str', EVAL($deparsed),
-      'Raku', EVAL(EVAL $raku)
-    -> $type, $sub {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
         $x = 42;
         lives-ok { $sub() }, "$type: type matches";
         $x = 'oops';
@@ -234,11 +231,8 @@ subtest 'Using return with acceptable type works' => {
     );
     is-deeply $deparsed, 'sub () returns Int { return($x) }', 'deparse';
 
-    for
-      'AST', EVAL($ast),
-      'Str', EVAL($deparsed),
-      'Raku', EVAL(EVAL $raku)
-    -> $type, $sub {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
         $x = 42;
         lives-ok { $sub() }, "$type: type matches";
         $x = 'oops';
@@ -266,13 +260,113 @@ subtest 'Using a string literal works' => {
     );
     is-deeply $deparsed, 'sub ("Bee") { 42 }', 'deparse';
 
-    for
-      'AST', EVAL($ast),
-      'Str', EVAL($deparsed),
-      'Raku', EVAL(EVAL $raku)
-    -> $type, $sub {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
         lives-ok { $sub("Bee") }, "$type: type matches";
         dies-ok  { $sub("Boo") }, "$type: type does not match";
+    }
+}
+
+subtest 'creating a proto sub works' => {
+    # proto sub zippo (|) { 42 }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        multiness => "proto",
+        name      => RakuAST::Name.from-identifier("zippo"),
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              slurpy => RakuAST::Parameter::Slurpy::Capture
+            ),
+          )
+        ),
+        body      => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::IntLiteral.new(42)
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'proto sub zippo (|) { 42 }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
+        ok $sub.is_dispatcher, "$type: did we return a dispatcher";
+        is $sub.dispatchees.elems, 0, 'did we get no dispatchees';
+        is-deeply $sub(), 42, "$type: can call without args";
+        is-deeply $sub(666), 42, "$type: can call with positionals";
+        is-deeply $sub(:bar), 42, "$type: can call with nameds";
+    }
+}
+
+subtest 'creating a multi sub without proto works' => {
+    # multi sub frobnicate () { 42 }; &frobnicate
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          multiness => "multi",
+          name      => RakuAST::Name.from-identifier("frobnicate"),
+          body      => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(42)
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new("\&frobnicate")
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+multi sub frobnicate () { 42 }
+&frobnicate
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
+        ok $sub.is_dispatcher, 'did we create a dispatcher';
+        is $sub.dispatchees.elems, 1, 'did we get 1 dispatchee';
+        is-deeply $sub(), 42, 'can call without args';
+        dies-ok { $sub(666) }, 'can NOT call with positionals';
+        dies-ok { $sub(:bar) }, 'can NOT call with nameds';
+    }
+}
+
+subtest 'creating a multi sub with existing proto works' => {
+    # multi sub frobnicate () { 42 }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        multiness => "multi",
+        name      => RakuAST::Name.from-identifier("frobnicate"),
+          body      => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(42)
+              )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, 'multi sub frobnicate () { 42 }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        proto sub frobnicate (|) {*}
+
+        my $sub := EVAL($it);
+        nok $sub.is_dispatcher, 'did we get a normal sub';
+        &frobnicate.add_dispatchee($sub);
+
+        # need to call it the difficult way otherwise the static optimizer
+        # kicks in saying that it will never be possible to call
+        is-deeply ::<&frobnicate>(), 42, 'can call without args';
+        dies-ok { ::<&frobnicate>(666) }, 'can NOT call with positionals';
+        dies-ok { ::<&frobnicate>(:bar) }, 'can NOT call with nameds';
     }
 }
 

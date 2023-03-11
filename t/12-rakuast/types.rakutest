@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 8;
 
 my $ast;
 my $deparsed;
@@ -61,7 +61,7 @@ subtest 'type with specific coercion' => {
       base-type  => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier("Int")
       ),
-      constraint => RakuAST::Type::Setting.new(
+      constraint => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier("Str")
       )
     );
@@ -118,6 +118,22 @@ subtest 'parameterized type with type' => {
 
     is-deeply $_, Rational[Int], @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Type from the setting' => {
+    # Date
+    ast RakuAST::Type::Setting.new(
+      RakuAST::Name.from-identifier("Date")
+    );
+    is-deeply $deparsed, 'Date', 'deparse';
+
+    my \SETTING-Date := Date;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my class Date { }
+        todo "no actual lookup in SETTING only yet";
+        is-deeply EVAL($it), SETTING-Date,
+          "$type: did we get the setting version";
+    }
 }
 
 # vim: expandtab shiftwidth=4

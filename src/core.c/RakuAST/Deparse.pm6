@@ -1795,6 +1795,17 @@ class RakuAST::Deparse {
 
 #- Type ------------------------------------------------------------------------
 
+    multi method deparse(RakuAST::Type::Coercion:D $ast --> Str:D) {
+        my str $constraint = self.deparse($ast.constraint);
+        $constraint = "" if $constraint eq 'Any';
+        self.deparse($ast.base-type) ~ "($constraint)"
+    }
+
+    multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
+        self.deparse($ast.base-type.name)
+          ~ ($ast.definite ?? ':D' !! ':U')
+    }
+
     multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {
         my str @parts = 'enum';
         my str $scope = $ast.scope;
@@ -1807,31 +1818,24 @@ class RakuAST::Deparse {
         @parts.join(' ');
     }
 
-    multi method deparse(RakuAST::Type::Simple:D $ast --> Str:D) {
-        self.deparse($ast.name)
-    }
-
-    multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
-        self.deparse($ast.base-type.name)
-          ~ ($ast.definite ?? ':D' !! ':U')
-    }
-
-    multi method deparse(RakuAST::Type::Coercion:D $ast --> Str:D) {
-        my str $constraint = self.deparse($ast.constraint);
-        $constraint = "" if $constraint eq 'Any';
-        self.deparse($ast.base-type) ~ "($constraint)"
-    }
-
     multi method deparse(RakuAST::Type::Parameterized:D $ast --> Str:D) {
         my str $args = self.deparse($ast.args);
         self.deparse($ast.base-type) ~ ($args ?? "[$args]" !! "")
+    }
+
+    multi method deparse(RakuAST::Type::Setting:D $ast --> Str:D) {
+        self.deparse($ast.name) # XXX adapt if we have syntax for Setting lookup
+    }
+
+    multi method deparse(RakuAST::Type::Simple:D $ast --> Str:D) {
+        self.deparse($ast.name)
     }
 
     multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {
         my str @parts = 'subset';
         my str $scope = $ast.scope;
 
-        @parts.unshift($scope) if $scope && $scope ne 'our'; # XXX
+        @parts.unshift($scope) if $scope && $scope ne $ast.default-scope;
         @parts.push(self.deparse($ast.name));
         @parts.push(self.deparse($_)) with $ast.of;
         @parts.push(self.deparse($_)) for $ast.traits;

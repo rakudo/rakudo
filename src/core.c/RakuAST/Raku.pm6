@@ -1139,26 +1139,30 @@ augment class RakuAST::Node {
 
 #- Type ------------------------------------------------------------------------
 
-    multi method raku(RakuAST::Type::Enum:D: --> Str:D) {
-        self!nameds: <scope name term of>
-    }
-
-    multi method raku(RakuAST::Type::Simple:D: --> Str:D) {
-        self!positional(self.name)
-    }
-
-    multi method raku(RakuAST::Type::Definedness:D: --> Str:D) {
-        self!nameds: <base-type definite>
-    }
-
     multi method raku(RakuAST::Type::Coercion:D: --> Str:D) {
         self!nameds: (try self.constraint.name.canonicalize eq 'Any')
           ?? <base-type>
           !! <base-type constraint>
     }
 
+    multi method raku(RakuAST::Type::Definedness:D: --> Str:D) {
+        self!nameds: <base-type definite>
+    }
+
+    multi method raku(RakuAST::Type::Enum:D: --> Str:D) {
+        self!nameds: <scope name term of>
+    }
+
     multi method raku(RakuAST::Type::Parameterized:D: --> Str:D) {
         self!nameds: <base-type args>
+    }
+
+    multi method raku(RakuAST::Type::Setting:D: --> Str:D) {
+        self!positional(self.name)
+    }
+
+    multi method raku(RakuAST::Type::Simple:D: --> Str:D) {
+        self!positional(self.name)
     }
 
     multi method raku(RakuAST::Type::Subset:D: --> Str:D) {

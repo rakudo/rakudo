@@ -103,10 +103,14 @@ class RakuAST::Type::Coercion
 {
     has RakuAST::Type $.constraint;
 
-    method new(RakuAST::Type :$base-type!, Mu :$constraint!) {
+    method new(RakuAST::Type :$base-type!, Mu :$constraint) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
-        nqp::bindattr($obj, RakuAST::Type::Coercion, '$!constraint', $constraint);
+        nqp::bindattr($obj, RakuAST::Type::Coercion, '$!constraint',
+          $constraint // RakuAST::Type::Setting.new(
+            RakuAST::Name.from-identifier("Any")
+          )
+        );
         $obj
     }
 

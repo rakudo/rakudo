@@ -2157,8 +2157,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($<accept>.ast));
         }
         elsif $<accept_any> {
-            my $Any := self.r('Type', 'Setting').new(self.r('Name').from-identifier('Any'));
-            $type := self.r('Type', 'Coercion').new(:base-type($type), :constraint($Any));
+            $type := self.r('Type', 'Coercion').new(:base-type($type));
         }
         $type
     }

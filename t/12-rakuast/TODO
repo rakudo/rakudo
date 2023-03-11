@@ -20,7 +20,6 @@ RakuAST::Declaration::Import
 RakuAST::Declaration::LexicalPackage
 RakuAST::Declaration::Mergeable
 RakuAST::Declaration::ResolvedConstant
-RakuAST::Name::Part::Empty
 RakuAST::Name::Part::Expression
 RakuAST::Origin
 RakuAST::Origin::Match
@@ -43,8 +42,6 @@ RakuAST::SubstitutionReplacementThunk
 RakuAST::Trait::Hides
 RakuAST::TraitTarget::Variable
 RakuAST::Type::Capture
-RakuAST::Type::Coercion
-RakuAST::Type::Definedness
 RakuAST::Type::Parameterized
 RakuAST::Type::Setting
 RakuAST::UndeclaredSymbolDescription

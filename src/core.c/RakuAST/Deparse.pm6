@@ -1823,7 +1823,8 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Type::Parameterized:D $ast --> Str:D) {
-        self.deparse($ast.name) ~ '[' ~ self.deparse($ast.args) ~ ']'
+        my str $args = self.deparse($ast.args);
+        self.deparse($ast.base-type) ~ ($args ?? "[$args]" !! "")
     }
 
     multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {

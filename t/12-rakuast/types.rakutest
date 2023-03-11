@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 5;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -86,6 +86,37 @@ subtest 'type with chained coercion' => {
     is-deeply $deparsed, 'Int(Str())', 'deparse';
 
     is-deeply $_, Int(Str()), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'parameterized type without type' => {
+    # Rational[]
+    ast RakuAST::Type::Parameterized.new(
+      base-type => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Rational")
+      )
+    );
+    is-deeply $deparsed, 'Rational', 'deparse';
+
+    is-deeply $_, Rational, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'parameterized type with type' => {
+    # Rational[Int]
+    ast RakuAST::Type::Parameterized.new(
+      base-type => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier("Rational")
+      ),
+      args      => RakuAST::ArgList.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      )
+    );
+    is-deeply $deparsed, 'Rational[Int]', 'deparse';
+
+    is-deeply $_, Rational[Int], @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

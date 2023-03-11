@@ -109,7 +109,7 @@ subtest 'now named term can be called' => {
     is-deeply $deparsed, 'now', 'deparse';
 
     isa-ok $_, Instant, @type[$++]
-      for EVAL($ast), EVAL($deparsed);
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'rand term works' => {

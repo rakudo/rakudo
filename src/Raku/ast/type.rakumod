@@ -260,11 +260,12 @@ class RakuAST::Type::Parameterized
 {
     has RakuAST::ArgList $.args;
 
-    method new(RakuAST::Type :$base-type!, RakuAST::ArgList :$args!) {
+    method new(RakuAST::Type :$base-type!, RakuAST::ArgList :$args) {
         nqp::die('need a base-type, not ' ~ $base-type.dump) if !nqp::istype($base-type, RakuAST::Type);
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
-        nqp::bindattr($obj, RakuAST::Type::Parameterized, '$!args', $args);
+        nqp::bindattr($obj, RakuAST::Type::Parameterized, '$!args',
+          $args // RakuAST::ArgList.new);
         $obj
     }
 
@@ -274,7 +275,10 @@ class RakuAST::Type::Parameterized
     }
 
     method PRODUCE-META-OBJECT() {
-        if $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+        if !$!args.args {
+            self.base-type.compile-time-value
+        }
+        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
             my $args := $!args.IMPL-COMPILE-TIME-VALUES;
             my @pos := $args[0];
             my %named := $args[1];
@@ -287,7 +291,10 @@ class RakuAST::Type::Parameterized
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        if $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
+        if !$!args.args {
+            QAST::WVal.new( :value(self.base-type.compile-time-value) )
+        }
+        elsif $!args.IMPL-HAS-ONLY-COMPILE-TIME-VALUES {
             my $value := self.meta-object;
             $context.ensure-sc($value);
             QAST::WVal.new( :$value )

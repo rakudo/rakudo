@@ -200,7 +200,7 @@ class RakuAST::Infix
                 if $type && $type ne '.' {
                     self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
                 }
-                $i++;
+                $i++ if $i < nqp::chars($thunky) - 1;
             }
         }
     }

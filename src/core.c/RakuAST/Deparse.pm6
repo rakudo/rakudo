@@ -181,16 +181,12 @@ class RakuAST::Deparse {
     }
 
     method !method(RakuAST::Method:D $ast, str $type --> Str:D) {
-        my str @parts;
+        my str $deparsed = self!routine($ast, $type);
+        my str $scope    = $ast.scope;
 
-        if $ast.scope ne 'has' {
-            @parts.push($ast.scope);
-            @parts.push(' ');
-        }
-        @parts.push($type);
-        @parts.push(self!routine($ast, 'method'));
-
-        @parts.join
+        $scope ne 'has' && $scope ne $ast.default-scope
+          ?? "$scope $deparsed"
+          !! $deparsed
     }
 
     method !conditional($self: $ast, str $type --> Str:D) {
@@ -1628,16 +1624,12 @@ class RakuAST::Deparse {
 #- Su --------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Sub:D $ast --> Str:D) {
-        my str @parts;
+        my str $deparsed = self!routine($ast, 'sub');
+        my str $scope    = $ast.scope;
 
-        given $ast.scope -> $scope {
-            @parts.push($scope)
-              if $scope ne $ast.default-scope
-              && ($ast.name || $scope ne 'anon');
-        }
-        @parts.push(self!routine($ast, 'sub'));
-
-        @parts.join(' ')
+        $scope ne $ast.default-scope && ($ast.name || $scope ne 'anon')
+          ?? "$scope $deparsed"
+          !! $deparsed
     }
 
     multi method deparse(RakuAST::Submethod:D $ast --> Str:D) {

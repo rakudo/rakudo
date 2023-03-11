@@ -188,14 +188,20 @@ class RakuAST::Infix
 
     method IMPL-THUNK-ARGUMENTS(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                 RakuAST::Expression *@operands) {
-        my $thunky := $!properties.thunky;
-        my $i := 0;
-        for @operands {
-            my $type := nqp::substr($thunky, $i, $i + 1);
-            if $type && $type ne '.' {
-                self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
+        if (
+               $!operator eq 'xx'     || $!operator eq 'andthen'
+            || $!operator eq 'orelse' || $!operator eq 'notandthen'
+            || $!operator eq 'with'   || $!operator eq 'without'
+        ) {
+            my $thunky := $!properties.thunky;
+            my $i := 0;
+            for @operands {
+                my $type := nqp::substr($thunky, $i, $i + 1);
+                if $type && $type ne '.' {
+                    self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
+                }
+                $i++;
             }
-            $i++;
         }
     }
 

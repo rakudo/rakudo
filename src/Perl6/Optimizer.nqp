@@ -3834,6 +3834,13 @@ class Perl6::Optimizer {
         my $it_var     := QAST::Node.unique('range_it_');
         my $last_var   := QAST::Node.unique('range_last_');
         my $callee_var := QAST::Node.unique('range_callee_');
+        my $countervartype := int;
+        my $unsigned := 0;
+
+        if nqp::objprimunsigned($callee.ann('code_object').signature.params.head.type) {
+            $countervartype := uint;
+            $unsigned := 1;
+        }
 
         $op.op('stmts');
         $op.push(QAST::Stmts.new(
@@ -3841,7 +3848,7 @@ class Perl6::Optimizer {
 # my int $it := $start - $step
           QAST::Op.new( :op<bind>,
             QAST::Var.new(
-              :name($it_var), :scope<local>, :decl<var>, :returns(int)
+              :name($it_var), :scope<local>, :decl<var>, :returns($countervartype)
             ),
             nqp::istype($start, QAST::IVal)
                 ?? QAST::IVal.new( :value($start.value - $step) )
@@ -3851,7 +3858,7 @@ class Perl6::Optimizer {
 # my int $last := $end
           QAST::Op.new( :op<bind>,
             QAST::Var.new(
-              :name($last_var), :scope<local>, :decl<var>, :returns(int)
+              :name($last_var), :scope<local>, :decl<var>, :returns($countervartype)
             ),
             $end
           ),
@@ -3869,21 +3876,21 @@ class Perl6::Optimizer {
 #   )
           QAST::Op.new( :op<while>,
             QAST::Op.new(
-              op => $step < 0 ?? "isge_i" !! "isle_i",
+              op => $step < 0 ?? ($unsigned ?? "isge_u" !! "isge_i") !! ($unsigned ?? "isle_u" !! "isle_i"),
               QAST::Op.new( :op<bind>,
-                QAST::Var.new(:name($it_var), :scope<local>, :returns(int)),
+                QAST::Var.new(:name($it_var), :scope<local>, :returns($countervartype)),
                 QAST::Op.new( :op<add_i>,
-                  QAST::Var.new(:name($it_var),:scope<local>,:returns(int)),
+                  QAST::Var.new(:name($it_var),:scope<local>,:returns($countervartype)),
                   QAST::IVal.new( :value($step) )
                 )
               ),
-              QAST::Var.new(:name($last_var), :scope<local>, :returns(int))
+              QAST::Var.new(:name($last_var), :scope<local>, :returns($countervartype))
             ),
 
 #   nqp::call($callee, $it)
             QAST::Op.new( :op<call>,
               QAST::Var.new(:name($callee_var), :scope<local> ),
-              QAST::Var.new(:name($it_var), :scope<local>, :returns(int))
+              QAST::Var.new(:name($it_var), :scope<local>, :returns($countervartype))
             )
           ),
 

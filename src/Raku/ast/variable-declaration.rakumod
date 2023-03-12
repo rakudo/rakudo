@@ -430,6 +430,8 @@ class RakuAST::VarDeclaration::Simple
         $visitor($type) if nqp::isconcrete($type);
         my $initializer := $!initializer;
         $visitor($initializer) if nqp::isconcrete($initializer);
+        my $shape := $!shape;
+        $visitor($shape) if nqp::isconcrete($shape);
         my $accessor := $!accessor;
         $visitor($accessor) if nqp::isconcrete($accessor);
         self.visit-traits($visitor);

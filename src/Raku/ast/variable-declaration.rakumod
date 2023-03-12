@@ -83,7 +83,7 @@ class RakuAST::ContainerCreator {
         ).new(:$of, :$default, :$dynamic, :name(self.lexical-name))
     }
 
-    method IMPL-CONTAINER-TYPE(Mu $of) {
+    method IMPL-CONTAINER-TYPE(Mu $of, Mu :$key-type) {
         # Form the container type.
         my str $sigil := self.sigil;
         my $container-type;
@@ -96,7 +96,9 @@ class RakuAST::ContainerCreator {
             }
             elsif $sigil eq '%' {
                 $container-type := self.type
-                    ?? Hash.HOW.parameterize(Hash, $of)
+                    ?? $key-type =:= NQPMu
+                        ?? Hash.HOW.parameterize(Hash, $of)
+                        !! Hash.HOW.parameterize(Hash, $of, $key-type)
                     !! Hash;
             }
             else {
@@ -512,7 +514,11 @@ class RakuAST::VarDeclaration::Simple
                 my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
                 my $container-initializer-ast := RakuAST::ApplyPostfix.new(
                     operand => RakuAST::Declaration::ResolvedConstant.new(
-                        :compile-time-value(self.IMPL-CONTAINER-TYPE($of))
+                        :compile-time-value(
+                            $!shape && self.sigil eq '%'
+                                ?? self.IMPL-CONTAINER-TYPE($of, :key-type(self.IMPL-UNWRAP-LIST($!shape.statements)[0].expression.compile-time-value))
+                                !! self.IMPL-CONTAINER-TYPE($of)
+                        )
                     ),
                     postfix => RakuAST::Call::Method.new(
                         name => RakuAST::Name.from-identifier('new'),
@@ -621,7 +627,9 @@ class RakuAST::VarDeclaration::Simple
 
             my $meta-object := $!attribute-package.attribute-type.new(
                 name => self.sigil ~ '!' ~ self.desigilname,
-                type => self.IMPL-CONTAINER-TYPE($of),
+                type => $!shape && self.sigil eq '%'
+                    ?? self.IMPL-CONTAINER-TYPE($of, :key-type(self.IMPL-UNWRAP-LIST($!shape.statements)[0].expression.compile-time-value))
+                    !! self.IMPL-CONTAINER-TYPE($of),
                 has_accessor => self.twigil eq '.',
                 container_descriptor => $cont-desc,
                 auto_viv_container => self.IMPL-CONTAINER($of, $cont-desc),
@@ -670,7 +678,9 @@ class RakuAST::VarDeclaration::Simple
                     :value($container)
                 );
                 if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
-                    my $value := self.IMPL-CONTAINER-TYPE($of);
+                    my $value := $!shape && self.sigil eq '%'
+                        ?? self.IMPL-CONTAINER-TYPE($of, :key-type(self.IMPL-UNWRAP-LIST($!shape.statements)[0].expression.compile-time-value))
+                        !! self.IMPL-CONTAINER-TYPE($of);
                     $context.ensure-sc($value);
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),

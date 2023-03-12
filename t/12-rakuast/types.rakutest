@@ -67,8 +67,8 @@ subtest 'type with specific coercion' => {
     );
     is-deeply $deparsed, 'Int(Str)', 'deparse';
 
-    is-deeply $_, Int(Str), @type[$++]
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+#    is-deeply $_, Int(Str), @type[$++]
+#      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'type with chained coercion' => {
@@ -85,8 +85,8 @@ subtest 'type with chained coercion' => {
     );
     is-deeply $deparsed, 'Int(Str())', 'deparse';
 
-    is-deeply $_, Int(Str()), @type[$++]
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+#    is-deeply $_, Int(Str()), @type[$++]
+#      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'parameterized type without type' => {

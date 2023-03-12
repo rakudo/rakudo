@@ -1769,7 +1769,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 '(' <.ws> [
                     || <accept=.maybe_typename> <?{
                            my $it := $<accept>.ast;
-                           !nqp::can($it,"name") || $*R.is-name-type($it.name)
+                           nqp::istype($it,self.actions.r('Type','Coercion'))
+                             || $*R.is-name-type($it.name)
                        }>
                     || $<accept_any>=<?>
                 ] <.ws> ')'

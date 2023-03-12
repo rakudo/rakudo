@@ -20,7 +20,6 @@ RakuAST::Declaration::Import
 RakuAST::Declaration::LexicalPackage
 RakuAST::Declaration::Mergeable
 RakuAST::Declaration::ResolvedConstant
-RakuAST::Name::Part::Expression
 RakuAST::Origin
 RakuAST::Origin::Match
 RakuAST::Origin::Source

@@ -4,7 +4,7 @@ class RakuAST::CaptureSource
 
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression
-  is RakuAST::Node
+  is RakuAST::IMPL::ImmediateBlockUser
 {
     # All expressions can be thunked - that is, compiled such that they get
     # wrapped up in a code object of some kind. For such expressions, this
@@ -94,6 +94,10 @@ class RakuAST::Expression
             $cur-thunk := $cur-thunk.next;
         }
         nqp::die("UNCURRY didn't find a CurryThunk");
+    }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Code $node) {
+        $!thunks ?? True !! False
     }
 }
 

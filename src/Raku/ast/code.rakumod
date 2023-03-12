@@ -371,6 +371,25 @@ class RakuAST::ExpressionThunk
                 }
             }
         }
+        # Add blocks embedded in the thunked expression children of the thunk
+        # block, so they can access the thunk argument.
+        my @code-todo := [$expression];
+        while @code-todo {
+            my $visit := @code-todo.shift;
+            $visit.visit-children: -> $node {
+                if nqp::istype($node, RakuAST::Code) {
+                    if $visit =:= $expression
+                        || !(nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) &&
+                            $visit.IMPL-IMMEDIATELY-USES($node))
+                    {
+                        $stmts.push($node.IMPL-QAST-DECL-CODE($context));
+                    }
+                }
+                unless nqp::istype($node, RakuAST::LexicalScope) {
+                    @code-todo.push($node);
+                }
+            }
+        }
         $block.push($stmts) if $stmts.list;
         $block.arity($signature.arity);
 

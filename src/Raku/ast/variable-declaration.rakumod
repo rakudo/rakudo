@@ -1191,6 +1191,16 @@ class RakuAST::VarDeclaration::Implicit::Special
             :value($container)
         )
     }
+
+    method can-be-bound-to() { True }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        QAST::Op.new(
+          :op('bind'),
+          QAST::Var.new( :name(self.name), :scope('lexical') ),
+          $source-qast
+        )
+    }
 }
 
 # Implicit block topic declaration. By default it is an optional parameter,

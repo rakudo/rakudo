@@ -4,7 +4,7 @@ use Test;
 plan 4;
 
 subtest "name from identifier" => {
-    $_ = RakuAST::Name.from-identifier('foo');
+    $_ := RakuAST::Name.from-identifier('foo');
     isa-ok $_, RakuAST::Name, '.from-identifier constructs a name';
     ok .is-identifier, 'The element is considered an identifier';
     is-deeply .parts.elems, 1, 'Has one part';
@@ -17,7 +17,7 @@ subtest "name from identifier" => {
 }
 
 subtest "name from identifier parts" => {
-    $_ = RakuAST::Name.from-identifier-parts('Foo','Bar');
+    $_ := RakuAST::Name.from-identifier-parts('Foo','Bar');
     isa-ok $_, RakuAST::Name, '.from-identifier-parts constructs a name';
     nok .is-identifier, 'the element is NOT considered an identifier';
     is-deeply .parts.elems, 2, 'Has two parts';
@@ -32,7 +32,7 @@ subtest "name from identifier parts" => {
 }
 
 subtest "name from different parts" => {
-    $_ = RakuAST::Name.new(
+    $_ := RakuAST::Name.new(
       RakuAST::Name::Part::Simple.new("Foo"),
       RakuAST::Name::Part::Empty
     );
@@ -52,7 +52,7 @@ CODE
 }
 
 subtest "name from expressions" => {
-    $_ = RakuAST::Name.new(
+    $_ := RakuAST::Name.new(
       RakuAST::Name::Part::Expression.new(
         RakuAST::StrLiteral.new("Int")
       )

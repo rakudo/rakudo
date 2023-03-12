@@ -358,7 +358,10 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Nqp:D: --> Str:D) {
-        self!positionals( (self.op,|self.args.args) )
+        my @args := self.args.args;
+        @args
+          ?? self!positionals( (self.op,|@args) )
+          !! self!literal(self.op)
     }
 
     multi method raku(RakuAST::Nqp::Const:D: --> Str:D) {

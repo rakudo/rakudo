@@ -1290,7 +1290,13 @@ augment class RakuAST::Name::Part {
     }
 
     multi method raku(RakuAST::Name::Part::Expression:D: --> Str:D) {
-        self.^name ~ '.new(' ~ self.expr.raku ~ ')';
+        my str @parts = self.^name ~ '.new(';
+        RakuAST::Node::indent();
+        @parts.push: $*INDENT ~ self.expr.raku;
+        RakuAST::Node::dedent();
+        @parts.push: $*INDENT ~ ")";
+
+        @parts.join("\n")
     }
 
     multi method raku(RakuAST::Name::Part::Simple:D: --> Str:D) {

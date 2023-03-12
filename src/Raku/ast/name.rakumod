@@ -112,7 +112,8 @@ class RakuAST::Name
                 nqp::push_s($canon-parts, '');
             }
             elsif nqp::istype($_, RakuAST::Name::Part::Expression) {
-                nqp::push_s($canon-parts, $_.expr.DEPARSE);
+                nqp::push_s($canon-parts, '') if nqp::elems($!parts) == 1;
+                nqp::push_s($canon-parts, '(' ~ $_.expr.DEPARSE ~ ')');
             }
             else {
                 nqp::die('canonicalize NYI for non-simple name part ' ~ $_.HOW.name($_));

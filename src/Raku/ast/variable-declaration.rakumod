@@ -670,9 +670,11 @@ class RakuAST::VarDeclaration::Simple
                     :value($container)
                 );
                 if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
+                    my $value := self.IMPL-CONTAINER-TYPE($of);
+                    $context.ensure-sc($value);
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),
-                        QAST::WVal.new( :value(self.IMPL-CONTAINER-TYPE($of)) )
+                        QAST::WVal.new( :$value )
                     ) );
                     if $!shape {
                         my $shape_ast := $!shape.IMPL-TO-QAST($context);

@@ -1401,6 +1401,9 @@ class RakuAST::Routine
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
+        # RegexThunk needs the body compiled first
+        my $body := self.IMPL-COMPILE-BODY($context);
+
         my $block :=
             self.IMPL-SET-NODE(
                 QAST::Block.new(
@@ -1413,7 +1416,7 @@ class RakuAST::Routine
         $block.custom_args(1) if self.custom-args;
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);
-        $block.push(self.IMPL-COMPILE-BODY($context));
+        $block.push($body);
         self.add-phasers-handling-code($context, $block);
         $block
     }

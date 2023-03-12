@@ -1,24 +1,3 @@
-class RakuAST::LexPad
-  is RakuAST::Lookup
-{
-    method new() {
-        my $obj := nqp::create(self);
-        $obj
-    }
-    method resolve-with(RakuAST::Resolver $r) {
-        nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $r);
-    }
-    method IMPL-CAN-INTERPRET() {
-        True
-    }
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.resolution
-    }
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(:op<curlexpad>)
-    }
-}
-
 class RakuAST::Package
   is RakuAST::PackageInstaller
   is RakuAST::StubbyMeta
@@ -302,17 +281,14 @@ class RakuAST::Package
                 )
             );
             $!body.body.statement-list.push(
-                RakuAST::Statement::Expression.new(
-                    :expression(RakuAST::Call::Name.new(
-                        :name(RakuAST::Name.from-identifier-parts('nqp', 'list')),
-                        :args(RakuAST::ArgList.new(
-                            RakuAST::Declaration::ResolvedConstant.new(
-                                :compile-time-value(self.stubbed-meta-object)
-                            ),
-                            RakuAST::LexPad.new,
-                        ))
-                    ))
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Nqp.new('list',
+                  RakuAST::Declaration::ResolvedConstant.new(
+                    compile-time-value => self.stubbed-meta-object
+                  ),
+                  RakuAST::Nqp.new('curlexpad')
                 )
+              )
             );
         }
         elsif $!package-declarator eq 'module' {

@@ -203,6 +203,7 @@ class RakuAST::VarDeclaration::Constant
   is RakuAST::CheckTime
   is RakuAST::CompileTimeValue
   is RakuAST::ImplicitLookups
+  is RakuAST::Term
 {
     has str                      $.name;
     has RakuAST::Initializer     $.initializer;
@@ -329,6 +330,10 @@ class RakuAST::VarDeclaration::Constant
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Var.new(:name($!name), :scope<lexical>)
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-LOOKUP-QAST($context)
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -846,6 +851,10 @@ class RakuAST::VarDeclaration::Simple
         )
     }
 
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-LOOKUP-QAST($context)
+    }
+
     method needs-sink-call() { False }
 }
 
@@ -856,6 +865,7 @@ class RakuAST::VarDeclaration::Signature
   is RakuAST::CheckTime
   is RakuAST::Attaching
   is RakuAST::BeginTime
+  is RakuAST::Term
 {
     has RakuAST::Signature $.signature;
     has RakuAST::Type $.type;
@@ -993,6 +1003,10 @@ class RakuAST::VarDeclaration::Signature
         QAST::Op.new(:op<null>);
     }
 
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-TO-QAST($context)
+    }
+
     method needs-sink-call() { False }
 }
 
@@ -1043,6 +1057,7 @@ class RakuAST::VarDeclaration::Anonymous
 # The declaration of a term (sigilless) variable.
 class RakuAST::VarDeclaration::Term
   is RakuAST::Declaration
+  is RakuAST::Term
 {
     has RakuAST::Type $.type;
     has RakuAST::Name $.name;
@@ -1087,6 +1102,10 @@ class RakuAST::VarDeclaration::Term
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-LOOKUP-QAST($context)
     }
 
     method default-scope() { 'my' }

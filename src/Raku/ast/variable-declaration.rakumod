@@ -1371,6 +1371,10 @@ class RakuAST::VarDeclaration::Placeholder
         self.IMPL-LOOKUP-QAST($context)
     }
 
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-LOOKUP-QAST($context)
+    }
+
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
         QAST::Var.new( :name(self.lexical-name), :scope('lexical') )
     }

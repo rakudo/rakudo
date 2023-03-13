@@ -71,9 +71,11 @@ class RakuAST::Package
           ?? Metamodel::ClassHOW
           !! $declarator eq 'role'
             ?? Metamodel::ParametricRoleHOW
-            !! $declarator eq 'grammar'
-              ?? Metamodel::GrammarHOW
-              !! Metamodel::PackageHOW
+            !! $declarator eq 'module'
+              ?? Metamodel::ModuleHOW
+              !! $declarator eq 'grammar'
+                ?? Metamodel::GrammarHOW
+                !! Metamodel::PackageHOW
     }
 
     # While a package may be declared `my`, its installation semantics are

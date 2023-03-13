@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 12;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -473,6 +473,37 @@ subtest 'class with is trait really inherits' => {
           "$type: Class with is trait inherits the base class";
         is $class.test-meth, 'base meth',
           "$type: A base class method can be called";
+    }
+}
+
+subtest 'creating an empty role' => {
+    # role Frobnicator { }
+    ast RakuAST::Package.new(
+      scope      => 'my',
+      declarator => 'role',
+      name       => RakuAST::Name.from-identifier('Frobnicator'),
+    );
+    is-deeply $deparsed, 'my role Frobnicator { }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is $role.^name, 'Frobnicator', "$type: role gets correct name";
+        isa-ok $role.new, $role, "$type: does the role auto-pun";
+
+        my $class := RakuAST::Package.new(
+          scope      => 'my',
+          declarator => 'class',
+          name       => RakuAST::Name.from-identifier('Zippo'),
+          traits     => (
+            RakuAST::Trait::Does.new($ast),
+          )
+        ).EVAL;
+
+        is $class.^name, 'Zippo', "$type: class gets correct name";
+        my $object := $class.new;
+        isa-ok $object, $class, "$type: can it be instantiated";
+        todo "needs work on consuming the role" if $type eq 'Str' | 'Raku';
+        does-ok $class, $role, "$type: did the role get consumed";
     }
 }
 

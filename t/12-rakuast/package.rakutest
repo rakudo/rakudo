@@ -19,7 +19,6 @@ subtest 'Create an empty class' => {
       scope      => 'my',
       declarator => 'class',
       name       => RakuAST::Name.from-identifier('MyTestClass'),
-      repr       => 'P6opaque'
     );
     is-deeply $deparsed, 'my class MyTestClass { }', 'deparse';
 
@@ -139,7 +138,6 @@ subtest 'Check lexically resolving of a class' => {
           scope      => 'my',
           declarator => 'class',
           name       => RakuAST::Name.from-identifier('LexicalTestClass'),
-          repr       => 'P6opaque'
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -178,7 +176,6 @@ subtest 'Check globally resolving of a class' => {
               scope      => 'our',
               declarator => 'class',
               name       => RakuAST::Name.from-identifier($class),
-              repr       => 'P6opaque'
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -220,7 +217,6 @@ module Enclosing {
                   scope      => 'our',
                   declarator => 'class',
                   name       => RakuAST::Name.from-identifier($class),
-                  repr       => 'P6opaque'
                 )
               ),
               RakuAST::Statement::Expression.new(

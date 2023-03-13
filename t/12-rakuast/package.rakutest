@@ -19,7 +19,6 @@ subtest 'Create an empty class' => {
       scope              => 'my',
       package-declarator => 'class',
       name               => RakuAST::Name.from-identifier('MyTestClass'),
-      how                => Metamodel::ClassHOW,
       repr               => 'P6opaque'
     );
     is-deeply $deparsed, 'my class MyTestClass { }', 'deparse';
@@ -44,7 +43,6 @@ subtest 'Create a class with a method' => {
       scope => 'my',
       package-declarator => 'class',
       name  => RakuAST::Name.from-identifier('TestClassWithMethods'),
-      how   => Metamodel::ClassHOW,
       body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
@@ -90,7 +88,6 @@ subtest 'Create a class with a submethod' => {
       scope => 'my',
       package-declarator => 'class',
       name  => RakuAST::Name.from-identifier('TestClassWithSubmethods'),
-      how   => Metamodel::ClassHOW,
       body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
@@ -142,7 +139,6 @@ subtest 'Check lexically resolving of a class' => {
           scope => 'my',
           package-declarator => 'class',
           name  => RakuAST::Name.from-identifier('LexicalTestClass'),
-          how   => Metamodel::ClassHOW,
           repr  => 'P6opaque'
         )
       ),
@@ -182,7 +178,6 @@ subtest 'Check globally resolving of a class' => {
               scope => 'our',
               package-declarator => 'class',
               name  => RakuAST::Name.from-identifier($class),
-              how   => Metamodel::ClassHOW,
               repr  => 'P6opaque'
             )
           ),
@@ -225,7 +220,6 @@ module Enclosing {
                   scope => 'our',
                   package-declarator => 'class',
                   name  => RakuAST::Name.from-identifier($class),
-                  how   => Metamodel::ClassHOW,
                   repr  => 'P6opaque'
                 )
               ),
@@ -265,7 +259,6 @@ subtest 'class with attribute' => {
       scope => 'my',
       package-declarator => 'class',
       name  => RakuAST::Name.from-identifier('TestClassWithAttribute'),
-      how   => Metamodel::ClassHOW,
       body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
@@ -313,7 +306,6 @@ subtest 'class with attribute and accessor' => {
       scope => 'my',
       package-declarator => 'class',
       name  => RakuAST::Name.from-identifier('TestClassWithAttributeAccessor'),
-      how   => Metamodel::ClassHOW,
       body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
@@ -369,7 +361,6 @@ subtest 'class with accessor usage' => {
       scope => 'my',
       package-declarator => 'class',
       name => RakuAST::Name.from-identifier('TestClassWithAttributeUsage'),
-      how => Metamodel::ClassHOW,
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
@@ -429,7 +420,6 @@ subtest 'class with does trait really does the role' => {
       scope => 'my',
       package-declarator => 'class',
       name => RakuAST::Name.from-identifier('TestRoleTarget'),
-      how => Metamodel::ClassHOW,
       traits => [
         RakuAST::Trait::Does.new(
           RakuAST::Type::Simple.new(
@@ -466,7 +456,6 @@ subtest 'class with is trait really inherits' => {
       scope => 'my',
       package-declarator => 'class',
       name => RakuAST::Name.from-identifier('TestChild'),
-      how => Metamodel::ClassHOW,
       traits => [
         RakuAST::Trait::Is.new(
           name => RakuAST::Name.from-identifier('TestBase')

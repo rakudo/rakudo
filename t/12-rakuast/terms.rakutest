@@ -23,7 +23,6 @@ subtest 'Method call via self' => {
       scope => 'my',
       package-declarator => 'class',
       name  => RakuAST::Name.from-identifier('TestClass'),
-      how   => Metamodel::ClassHOW,
       body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(

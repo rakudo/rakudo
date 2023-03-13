@@ -385,7 +385,22 @@ augment class RakuAST::Node {
 #- P ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Package:D: --> Str:D) {
-        self!nameds: <scope package-declarator name how repr traits body>
+        my $self := self;
+        if self.package-declarator eq 'role' {
+            my @statements = self.body.body.statement-list.statements;
+            @statements.pop;  # lose the fabricated return value
+
+            $self := nqp::clone(self);
+            $self.replace-body(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(|@statements)
+                )
+              )
+            );
+        }
+
+        $self!nameds: <scope package-declarator name how repr traits body>
     }
 
     multi method raku(RakuAST::Pragma:D: --> Str:D) {

@@ -604,7 +604,8 @@ class RakuAST::Deparse {
             @parts.push($scope) if $scope ne 'our'; # XXX
         }
 
-        @parts.push($ast.package-declarator);
+        my str $declarator = $ast.package-declarator;
+        @parts.push($declarator);
         @parts.push(self.deparse($ast.name));
 
         if $ast.traits -> @traits {
@@ -613,7 +614,20 @@ class RakuAST::Deparse {
             }
         }
 
-        @parts.push(self.deparse($ast.body));
+        if $declarator eq 'role' {
+            my @statements = $ast.body.body.statement-list.statements;
+            @statements.pop;  # lose the fabricated return value
+            @parts.push(self.deparse(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(|@statements)
+                )
+              )
+            ));
+        }
+        else {
+            @parts.push(self.deparse($ast.body));
+        }
 
         @parts.join(' ')
     }

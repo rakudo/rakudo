@@ -27,13 +27,15 @@ class RakuAST::Package
     has Mu $!attached-attributes;
     has Mu $!attached-attribute-usages;
 
-    method new(Str :$package-declarator!, Mu :$how!, Mu :$attribute-type,
+    method new(Str :$package-declarator!, Mu :$how, Mu :$attribute-type,
                RakuAST::Name :$name, Str :$repr, RakuAST::Code :$body,
                str :$scope, List :$traits) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!package-declarator', $package-declarator);
-        nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
+        nqp::bindattr($obj, RakuAST::Package, '$!how',
+          nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how
+        );
         nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
             nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
@@ -62,6 +64,17 @@ class RakuAST::Package
     }
 
     method default-scope() { 'our' }
+
+    method default-how() {
+        my $declarator := $!package-declarator;
+        $declarator eq 'class'
+          ?? Metamodel::ClassHOW
+          !! $declarator eq 'role'
+            ?? Metamodel::ParametricRoleHOW
+            !! $declarator eq 'grammar'
+              ?? Metamodel::GrammarHOW
+              !! Metamodel::PackageHOW
+    }
 
     # While a package may be declared `my`, its installation semantics are
     # more complex, and thus handled as a BEGIN-time effect. (For example,

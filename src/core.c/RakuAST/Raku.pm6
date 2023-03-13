@@ -99,7 +99,9 @@ augment class RakuAST::Node {
                 :$scope if $scope ne self.default-scope
             }
             elsif $method eq 'how' {
-                as-class('how', self.how.^name.subst("Perl6::"))
+                my $how := self.how;
+                as-class('how', $how.^name.subst("Perl6::"))
+                  unless nqp::eqaddr($how,self.default-how);
             }
             elsif $method eq 'backtrack' {
                 as-class('backtrack', self.backtrack.^name)

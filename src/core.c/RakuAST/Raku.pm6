@@ -278,6 +278,10 @@ augment class RakuAST::Node {
         self!nameds: <scope>
     }
 
+    multi method raku(RakuAST::Declaration::ResolvedConstant:D: --> Str:D) {
+        self!literal(self.compile-time-value)
+    }
+
     multi method raku(RakuAST::DottyInfixish:D: --> Str:D) {
         self!none
     }
@@ -1049,7 +1053,8 @@ augment class RakuAST::Node {
 #- Su --------------------------------------------------------------------------
 
     multi method raku(RakuAST::Sub:D: --> Str:D) {
-        my str @nameds = <multiness name signature traits body>;
+        my str @nameds = <name signature traits body>;
+        @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         self!nameds: @nameds
     }

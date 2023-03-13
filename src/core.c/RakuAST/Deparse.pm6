@@ -492,7 +492,7 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Declaration::ResolvedConstant:D $ast
     --> Str:D) {
-        self.deparse($ast.compile-time-value)
+        $ast.compile-time-value.raku
     }
 
     multi method deparse(RakuAST::DottyInfix::Call:D $ --> Str:D) {

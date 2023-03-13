@@ -188,7 +188,7 @@ class RakuAST::CompUnit
         my @decls;
         unless $!is-eval {
             my $global := RakuAST::Package.new:
-                    package-declarator => 'package',
+                    declarator => 'package',
                     how => $!global-package-how,
                     name => RakuAST::Name.from-identifier('GLOBALish');
             nqp::push(@decls, $global);

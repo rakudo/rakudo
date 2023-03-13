@@ -20,10 +20,10 @@ subtest 'Method call via self' => {
     #     method meth-b() { self.meth-a }
     # }
     ast RakuAST::Package.new(
-      scope => 'my',
-      package-declarator => 'class',
-      name  => RakuAST::Name.from-identifier('TestClass'),
-      body  => RakuAST::Block.new(
+      scope      => 'my',
+      declarator => 'class',
+      name       => RakuAST::Name.from-identifier('TestClass'),
+      body       => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(

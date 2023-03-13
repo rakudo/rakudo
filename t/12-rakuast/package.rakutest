@@ -16,10 +16,10 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 subtest 'Create an empty class' => {
     # my class MyTestClass { }
     ast RakuAST::Package.new(
-      scope              => 'my',
-      package-declarator => 'class',
-      name               => RakuAST::Name.from-identifier('MyTestClass'),
-      repr               => 'P6opaque'
+      scope      => 'my',
+      declarator => 'class',
+      name       => RakuAST::Name.from-identifier('MyTestClass'),
+      repr       => 'P6opaque'
     );
     is-deeply $deparsed, 'my class MyTestClass { }', 'deparse';
 
@@ -40,10 +40,10 @@ subtest 'Create an empty class' => {
 subtest 'Create a class with a method' => {
     # my class TestClassWithMethods { method test-meth() { 456 } }
     ast RakuAST::Package.new(
-      scope => 'my',
-      package-declarator => 'class',
-      name  => RakuAST::Name.from-identifier('TestClassWithMethods'),
-      body  => RakuAST::Block.new(
+      scope      => 'my',
+      declarator => 'class',
+      name       => RakuAST::Name.from-identifier('TestClassWithMethods'),
+      body       => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -85,10 +85,10 @@ subtest 'Create a class with a method' => {
 subtest 'Create a class with a submethod' => {
     # my class TestClassWithSubmethods { submethod test-submeth() { 137 } }
     ast RakuAST::Package.new(
-      scope => 'my',
-      package-declarator => 'class',
-      name  => RakuAST::Name.from-identifier('TestClassWithSubmethods'),
-      body  => RakuAST::Block.new(
+      scope      => 'my',
+      declarator => 'class',
+      name       => RakuAST::Name.from-identifier('TestClassWithSubmethods'),
+      body       => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -136,10 +136,10 @@ subtest 'Check lexically resolving of a class' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Package.new(
-          scope => 'my',
-          package-declarator => 'class',
-          name  => RakuAST::Name.from-identifier('LexicalTestClass'),
-          repr  => 'P6opaque'
+          scope      => 'my',
+          declarator => 'class',
+          name       => RakuAST::Name.from-identifier('LexicalTestClass'),
+          repr       => 'P6opaque'
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -175,10 +175,10 @@ subtest 'Check globally resolving of a class' => {
         ast RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::Package.new(
-              scope => 'our',
-              package-declarator => 'class',
-              name  => RakuAST::Name.from-identifier($class),
-              repr  => 'P6opaque'
+              scope      => 'our',
+              declarator => 'class',
+              name       => RakuAST::Name.from-identifier($class),
+              repr       => 'P6opaque'
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -217,10 +217,10 @@ module Enclosing {
             ast RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::Package.new(
-                  scope => 'our',
-                  package-declarator => 'class',
-                  name  => RakuAST::Name.from-identifier($class),
-                  repr  => 'P6opaque'
+                  scope      => 'our',
+                  declarator => 'class',
+                  name       => RakuAST::Name.from-identifier($class),
+                  repr       => 'P6opaque'
                 )
               ),
               RakuAST::Statement::Expression.new(
@@ -256,10 +256,10 @@ CODE
 subtest 'class with attribute' => {
     # my class TestClassWithAttribute { has $!foo }
     ast RakuAST::Package.new(
-      scope => 'my',
-      package-declarator => 'class',
-      name  => RakuAST::Name.from-identifier('TestClassWithAttribute'),
-      body  => RakuAST::Block.new(
+      scope      => 'my',
+      declarator => 'class',
+      name       => RakuAST::Name.from-identifier('TestClassWithAttribute'),
+      body       => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -303,10 +303,10 @@ subtest 'class with attribute' => {
 subtest 'class with attribute and accessor' => {
     # my class TestClassWithAttributeAccessor { has Int $.foo }
     ast RakuAST::Package.new(
-      scope => 'my',
-      package-declarator => 'class',
-      name  => RakuAST::Name.from-identifier('TestClassWithAttributeAccessor'),
-      body  => RakuAST::Block.new(
+      scope      => 'my',
+      declarator => 'class',
+      name       => RakuAST::Name.from-identifier('TestClassWithAttributeAccessor'),
+      body       => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -358,10 +358,10 @@ subtest 'class with accessor usage' => {
     #     method test-meth () { $!bar }
     # }
     ast RakuAST::Package.new(
-      scope => 'my',
-      package-declarator => 'class',
-      name => RakuAST::Name.from-identifier('TestClassWithAttributeUsage'),
-      body => RakuAST::Block.new(
+      scope      => 'my',
+      declarator => 'class',
+      name       => RakuAST::Name.from-identifier('TestClassWithAttributeUsage'),
+      body       => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -417,10 +417,10 @@ subtest 'class with does trait really does the role' => {
 
     # my class TestRoleTarget does TestRole { }
     ast RakuAST::Package.new(
-      scope => 'my',
-      package-declarator => 'class',
-      name => RakuAST::Name.from-identifier('TestRoleTarget'),
-      traits => [
+      scope      => 'my',
+      declarator => 'class',
+      name      => RakuAST::Name.from-identifier('TestRoleTarget'),
+      traits    => [
         RakuAST::Trait::Does.new(
           RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('TestRole')
@@ -453,10 +453,10 @@ subtest 'class with is trait really inherits' => {
 
     # my class TestChild is TestBas { }
     ast RakuAST::Package.new(
-      scope => 'my',
-      package-declarator => 'class',
-      name => RakuAST::Name.from-identifier('TestChild'),
-      traits => [
+      scope      => 'my',
+      declarator => 'class',
+      name       => RakuAST::Name.from-identifier('TestChild'),
+      traits     => [
         RakuAST::Trait::Is.new(
           name => RakuAST::Name.from-identifier('TestBase')
         )

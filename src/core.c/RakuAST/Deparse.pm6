@@ -604,7 +604,7 @@ class RakuAST::Deparse {
             @parts.push($scope) if $scope ne $ast.default-scope;
         }
 
-        my str $declarator = $ast.package-declarator;
+        my str $declarator = $ast.declarator;
         @parts.push($declarator);
         @parts.push(self.deparse($ast.name));
 

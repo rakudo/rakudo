@@ -388,7 +388,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Package:D: --> Str:D) {
         my $self := self;
-        if self.package-declarator eq 'role' {
+        if self.declarator eq 'role' {
             $self := nqp::clone(self);
             $self.replace-body(
               RakuAST::Block.new(
@@ -401,7 +401,7 @@ augment class RakuAST::Node {
             );
         }
 
-        $self!nameds: <scope package-declarator name how repr traits body>
+        $self!nameds: <scope declarator name how repr traits body>
     }
 
     multi method raku(RakuAST::Pragma:D: --> Str:D) {

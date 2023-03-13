@@ -1493,13 +1493,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method stub-package($/) {
         # Resolve the meta-object.
-        my $package-declarator := $*PKGDECL;
+        my $declarator := $*PKGDECL;
         my $how;
-        if $/.know_how($package-declarator) {
-            $how := $/.how($package-declarator);
+        if $/.know_how($declarator) {
+            $how := $/.how($declarator);
         }
         else {
-            $/.panic("Cannot resolve meta-object for $package-declarator")
+            $/.panic("Cannot resolve meta-object for $declarator")
         }
 
         # Stub the package AST node.
@@ -1507,11 +1507,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $name-match := $*PACKAGE-NAME;
         my $name := $name-match ?? $name-match.ast !! self.r('Name');
         if $scope eq 'augment' {
-            $*PACKAGE := self.r('Package', 'Augmented').new: :$package-declarator, :$how, :$name, :$scope;
+            $*PACKAGE := self.r('Package', 'Augmented').new: :$declarator, :$how, :$name, :$scope;
             $*PACKAGE.IMPL-CHECK($*R, $*CU.context, 1);
         }
         else {
-            $*PACKAGE := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
+            $*PACKAGE := self.r('Package').new: :$declarator, :$how, :$name, :$scope;
         }
     }
 

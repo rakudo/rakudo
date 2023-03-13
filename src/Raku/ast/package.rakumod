@@ -10,7 +10,7 @@ class RakuAST::Package
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::LexicalScope
 {
-    has Str $.package-declarator;
+    has Str $.declarator;
     has Mu $.how;
     has Mu $.attribute-type;
     has RakuAST::Name $.name;
@@ -27,12 +27,12 @@ class RakuAST::Package
     has Mu $!attached-attributes;
     has Mu $!attached-attribute-usages;
 
-    method new(Str :$package-declarator!, Mu :$how, Mu :$attribute-type,
+    method new(Str :$declarator!, Mu :$how, Mu :$attribute-type,
                RakuAST::Name :$name, Str :$repr, RakuAST::Code :$body,
                str :$scope, List :$traits) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
-        nqp::bindattr($obj, RakuAST::Package, '$!package-declarator', $package-declarator);
+        nqp::bindattr($obj, RakuAST::Package, '$!declarator', $declarator);
         nqp::bindattr($obj, RakuAST::Package, '$!how',
           nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how
         );
@@ -66,7 +66,7 @@ class RakuAST::Package
     method default-scope() { 'our' }
 
     method default-how() {
-        my $declarator := $!package-declarator;
+        my $declarator := $!declarator;
         $declarator eq 'class'
           ?? Metamodel::ClassHOW
           !! $declarator eq 'role'
@@ -141,12 +141,12 @@ class RakuAST::Package
                 ).canonicalize(:colonpairs(0))
             ) if !nqp::eqaddr($current-package, $resolver.get-global);
 
-            if ($scope eq 'my' || $scope eq 'our') && $!package-declarator ne 'role' {
+            if ($scope eq 'my' || $scope eq 'our') && $!declarator ne 'role' {
                 # Need to install the package somewhere.
                 self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $type-object, $resolver.current-package);
             }
 
-            elsif $!package-declarator eq 'role' {
+            elsif $!declarator eq 'role' {
                 # Find an appropriate existing role group
                 my $group-name := $name.canonicalize(:colonpairs(0));
                 my $group := $resolver.resolve-lexical-constant($group-name);
@@ -181,7 +181,7 @@ class RakuAST::Package
         if nqp::istype($resolver, RakuAST::Resolver::Compile) {
             $resolver.enter-scope(self);
 
-            if $!package-declarator eq 'role' {
+            if $!declarator eq 'role' {
                 $resolver.declare-lexical(
                     RakuAST::VarDeclaration::Implicit::Constant.new(
                         name => '$?ROLE', value => self.stubbed-meta-object
@@ -199,7 +199,7 @@ class RakuAST::Package
                     RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('::?CLASS'))
                 );
             }
-            elsif $!package-declarator eq 'module' {
+            elsif $!declarator eq 'module' {
                 $resolver.declare-lexical(
                     RakuAST::VarDeclaration::Implicit::Constant.new(
                         name => '$?MODULE', value => self.stubbed-meta-object
@@ -211,7 +211,7 @@ class RakuAST::Package
                     )
                 );
             }
-            elsif $!package-declarator ne 'package' {
+            elsif $!declarator ne 'package' {
                 $resolver.declare-lexical(
                     RakuAST::VarDeclaration::Implicit::Constant.new(
                         name => '$?CLASS', value => self.stubbed-meta-object
@@ -262,7 +262,7 @@ class RakuAST::Package
             $type.HOW.add_attribute($type, $_.meta-object);
         }
 
-        if $!package-declarator eq 'role' {
+        if $!declarator eq 'role' {
             $type.HOW.set_body_block($type, $!body.meta-object);
 
             my $group := $!role-group;
@@ -284,7 +284,7 @@ class RakuAST::Package
                 name => '$?PACKAGE', value => self.stubbed-meta-object
             )
         );
-        if $!package-declarator eq 'role' {
+        if $!declarator eq 'role' {
             $!body.add-generated-lexical-declaration(
                 RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?ROLE', value => self.stubbed-meta-object
@@ -306,7 +306,7 @@ class RakuAST::Package
               )
             );
         }
-        elsif $!package-declarator eq 'module' {
+        elsif $!declarator eq 'module' {
             $!body.add-generated-lexical-declaration(
                 RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?MODULE', value => self.stubbed-meta-object
@@ -318,7 +318,7 @@ class RakuAST::Package
                 )
             );
         }
-        elsif $!package-declarator ne 'package' {
+        elsif $!declarator ne 'package' {
             $!body.add-generated-lexical-declaration(
                 RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?CLASS', value => self.stubbed-meta-object
@@ -352,7 +352,7 @@ class RakuAST::Package
     }
 
     method IMPL-COMPOSE() {
-        if $!package-declarator eq 'class' {
+        if $!declarator eq 'class' {
             # create BUILDALL method if there's something to create,
             # otherwise put in a generic fallback BUILDALL that doesn't
             # do anything

@@ -601,7 +601,7 @@ class RakuAST::Deparse {
         my str @parts;
 
         if $ast.scope -> $scope {
-            @parts.push($scope) if $scope ne 'our'; # XXX
+            @parts.push($scope) if $scope ne $ast.default-scope;
         }
 
         my str $declarator = $ast.package-declarator;
@@ -614,20 +614,17 @@ class RakuAST::Deparse {
             }
         }
 
-        if $declarator eq 'role' {
-            my @statements = $ast.body.body.statement-list.statements;
-            @statements.pop;  # lose the fabricated return value
-            @parts.push(self.deparse(
-              RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                  RakuAST::StatementList.new(|@statements)
-                )
-              )
-            ));
-        }
-        else {
-            @parts.push(self.deparse($ast.body));
-        }
+        @parts.push(self.deparse(
+          $declarator eq 'role'
+            ?? RakuAST::Block.new(
+                 body => RakuAST::Blockoid.new(
+                   RakuAST::StatementList.new(  # lose fabricated return value
+                     |$ast.body.body.statement-list.statements.head(*-1)
+                   )
+                 )
+               )
+            !! $ast.body
+        ));
 
         @parts.join(' ')
     }

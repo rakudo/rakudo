@@ -387,14 +387,13 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::Package:D: --> Str:D) {
         my $self := self;
         if self.package-declarator eq 'role' {
-            my @statements = self.body.body.statement-list.statements;
-            @statements.pop;  # lose the fabricated return value
-
             $self := nqp::clone(self);
             $self.replace-body(
               RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
-                  RakuAST::StatementList.new(|@statements)
+                  RakuAST::StatementList.new(  # lose fabricated return value
+                    |self.body.body.statement-list.statements.head(*-1)
+                  )
                 )
               )
             );

@@ -1475,17 +1475,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             return self.attach: $/, $package;
         }
 
-        if $*PKGDECL eq 'role' {
-            my $signature := $<signature> ?? $<signature>.ast !! self.r('Signature').new;
-            $signature.set-is-on-role-body(1);
-            # upgrade body to a sub with a signature
-            $body := self.r('Sub').new(
-                :name($package.name),
-                :$signature,
-                :body($body.body)
-            );
-        }
-        $package.replace-body: $body;
+        $package.replace-body($body, $<signature> ?? $<signature>.ast !! Mu);
         $package.IMPL-CHECK($*R, $*CU.context, 1);
         $package.IMPL-COMPOSE();
         self.attach: $/, $package;

@@ -1482,8 +1482,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $body := self.r('Sub').new(
                 :name($package.name),
                 :$signature,
-                :body($body.body),
-                :multiness(1),
+                :body($body.body)
             );
         }
         $package.replace-body: $body;

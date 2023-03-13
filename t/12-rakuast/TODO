@@ -35,7 +35,6 @@ RakuAST::Regex::SequentialConjunction
 RakuAST::RegexDeclaration
 RakuAST::RegexThunk
 RakuAST::Statement::ExceptionHandler
-RakuAST::Statement::No
 RakuAST::Statement::Require
 RakuAST::SubstitutionReplacementThunk
 RakuAST::Trait::Hides

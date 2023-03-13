@@ -390,14 +390,17 @@ augment class RakuAST::Node {
         my $self := self;
         if self.declarator eq 'role' {
             $self := nqp::clone(self);
-            $self.replace-body(
-              RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                  RakuAST::StatementList.new(  # lose fabricated return value
-                    |self.body.body.statement-list.statements.head(*-1)
-                  )
-                )
-              )
+            my $statements := self.body.body.statement-list.statements;
+            nqp::bindattr($self, RakuAST::Package, '$!body',
+              $statements.elems == 1
+                ?? RakuAST::Block
+                !! RakuAST::Block.new(
+                     body => RakuAST::Blockoid.new(
+                       RakuAST::StatementList.new(
+                         |$statements.head(*-1) # lose fabricated return value
+                       )
+                     )
+                   )
             );
         }
 

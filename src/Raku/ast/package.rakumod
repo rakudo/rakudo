@@ -61,7 +61,7 @@ class RakuAST::Package
         $obj
     }
 
-    method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
+    method replace-body(RakuAST::Code $body, RakuAST::Signature $signature?) {
         $body := RakuAST::Block.new unless $body;
 
         # The body of a role is internally a Sub that has the parameterization

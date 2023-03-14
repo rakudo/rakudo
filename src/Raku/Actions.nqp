@@ -1590,6 +1590,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method variable_declarator($/) {
         my str $scope := $*SCOPE;
         my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
+
+        $/.panic("Cannot use := to initialize an attribute")
+          if $scope eq 'has' && $<initializer><sym> eq ':=';
+
         my $initializer := $<initializer>
             ?? $<initializer>.ast
             !! self.r('Initializer');

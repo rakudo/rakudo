@@ -91,7 +91,10 @@ augment class RakuAST::Node {
 
         indent;
         my @pairs = @names.map: -> $method {
-            if $method eq 'args' && self.args -> $args {
+            if nqp::istype($method,Pair) {
+                $method
+            }
+            elsif $method eq 'args' && self.args -> $args {
                 :$args if $args.args
             }
             elsif $method eq 'scope' {
@@ -107,9 +110,9 @@ augment class RakuAST::Node {
                 as-class('backtrack', self.backtrack.^name)
             }
             elsif $method eq 'slurpy' {
-                nqp::isconcrete(my $slurpy := self.slurpy)
-                  ?? :$slurpy
-                  !! as-class('slurpy', $slurpy.^name)
+                my $slurpy := self.slurpy;
+                as-class('slurpy', $slurpy.^name)
+                  unless nqp::eqaddr($slurpy,RakuAST::Parameter::Slurpy)
             }
             elsif $method eq 'labels' {
                 my $labels := nqp::decont(self.labels);
@@ -130,6 +133,7 @@ augment class RakuAST::Node {
                 Pair.new($method, $object) if nqp::isconcrete($object)
             }
         }
+        @pairs.append: %_;
         my $format  := "$*INDENT%-@pairs.map(*.key.chars).max()s => %s";
         my str $args = @pairs.map({
             sprintf($format, .key, rakufy(.value))
@@ -343,9 +347,10 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Method:D: --> Str:D) {
-        self!nameds: self.scope eq self.default-scope
-          ?? <multiness name signature traits body>
-          !! <scope multiness name signature traits body>
+        my str @nameds = <name signature traits body>;
+        @nameds.unshift("multiness") if self.multiness;
+        @nameds.unshift("scope") if self.scope ne self.default-scope;
+        self!nameds: @nameds
     }
 
 #- N ---------------------------------------------------------------------------
@@ -387,6 +392,7 @@ augment class RakuAST::Node {
 #- P ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Package:D: --> Str:D) {
+        my $signature := self.body.signature;
         my $self := self;
         if self.declarator eq 'role' {
             $self := nqp::clone(self);
@@ -404,7 +410,9 @@ augment class RakuAST::Node {
             );
         }
 
-        $self!nameds: <scope declarator name how repr traits body>
+        $self!nameds:
+          <scope declarator name parameterization how repr traits body>,
+          (parameterization => $signature if $signature.parameters.elems)
     }
 
     multi method raku(RakuAST::Pragma:D: --> Str:D) {

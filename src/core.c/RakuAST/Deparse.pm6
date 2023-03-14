@@ -606,7 +606,17 @@ class RakuAST::Deparse {
 
         my str $declarator = $ast.declarator;
         @parts.push($declarator);
-        @parts.push(self.deparse($ast.name));
+
+        my str $name = self.deparse($ast.name);
+        if $ast.parameterization -> $signature {
+            @parts.push((my $deparsed := self.deparse($signature))
+              ?? $name ~ '[' ~ $deparsed ~ ']'
+              !! $name
+            );
+        }
+        else {
+            @parts.push($name);
+        }
 
         if $ast.traits -> @traits {
             for @traits -> $trait {
@@ -697,6 +707,10 @@ class RakuAST::Deparse {
         }
         elsif nqp::eqaddr($ast.slurpy,RakuAST::Parameter::Slurpy::Capture) {
             @parts.push(self.deparse($ast.slurpy));
+        }
+
+        if $ast.default -> $default {
+            @parts.push($.assign ~ self.deparse($default));
         }
 
         @parts.join

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 2;
+plan 5;
 
 my $ast;
 my $deparsed;
@@ -45,7 +45,7 @@ subtest 'creating an empty role' => {
 }
 
 subtest 'creating a role with an attribute' => {
-    # role A { has $.a = 42 }
+    # my role A { has $.a = 42 }
     ast RakuAST::Package.new(
       scope      => 'my',
       declarator => 'role',
@@ -78,6 +78,119 @@ subtest 'creating a role with an attribute' => {
         my $one := $role.new(a => 666);
         isa-ok $one, $role, "$type: does the role auto-pun (2)";
         is-deeply $one.a, 666, "$type: did the attribute get initialized (2)";
+    }
+}
+
+subtest 'creating a role that does another role' => {
+    # my role B does Positional { }
+    ast RakuAST::Package.new(
+      scope      => 'my',
+      declarator => 'role',
+      name       => RakuAST::Name.from-identifier('B'),
+      traits     => (
+        RakuAST::Trait::Does.new(
+          RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier("Positional")
+          )
+        ),
+      )
+    );
+    is-deeply $deparsed, 'my role B does Positional { }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is $role.^name, 'B', "$type: role gets correct name";
+        is-deeply $role.^roles, (Positional,),
+          "$type: can we see the roles it does";
+        my $none := $role.new;
+        isa-ok $none, $role, "$type: does the role auto-pun";
+    }
+}
+
+subtest 'creating a role that does a parameterized role' => {
+    # my role C does Rational[Int,Int] { }
+    ast RakuAST::Package.new(
+      scope      => 'my',
+      declarator => 'role',
+      name       => RakuAST::Name.from-identifier('C'),
+      traits     => (
+        RakuAST::Trait::Does.new(
+          RakuAST::Type::Parameterized.new(
+            base-type => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier("Rational")
+            ),
+            args      => RakuAST::ArgList.new(
+              RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier("Int")
+              ),
+              RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier("Int")
+              )
+            )
+          )
+        ),
+      )
+    );
+    is-deeply $deparsed, 'my role C does Rational[Int, Int] { }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is $role.^name, 'C', "$type: role gets correct name";
+        is-deeply $role.^roles, (Rational[Int,Int],Real,Numeric),
+          "$type: can we see the roles it does";
+        my $zero := $role.new;
+        isa-ok $zero, $role, "$type: does the role auto-pun";
+        ok $zero == 0, "$type: did we get a rational 0";
+        ok $role.new(1,1) == 1, "$type: did we get a rational 1";
+        ok $role.new(1,3) == 1/3, "$type: did we get a rational 1/3";
+    }
+}
+
+subtest 'creating a parameterized role' => {
+    # my role D[$a = 42] { method a () { $a } }
+    ast RakuAST::Package.new(
+      scope      => 'my',
+      declarator => 'role',
+      name       => RakuAST::Name.from-identifier('D'),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("a"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Var::Lexical.new('$a')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      parameterization => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target  => RakuAST::ParameterTarget::Var.new("\$a"),
+            default => RakuAST::IntLiteral.new(42)
+          ),
+        )
+      )
+    );
+    is-deeply $deparsed, 'my role D[$a = 42] { method a () { $a } }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is $role.^name, 'D', "$type: role gets correct name";
+        is-deeply $role.^roles, (), "$type: can we see the roles it does";
+        my $none := $role.new;
+        isa-ok $none, $role, "$type: does the role auto-pun (1)";
+        is-deeply $none.a, 42, "$type: did the default value get set";
+        my $one := $role.^parameterize(666).new;
+        isa-ok $one, $role, "$type: does the role auto-pun (2)";
+        is-deeply $one.a, 666, "$type: did the value get set";
     }
 }
 

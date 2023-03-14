@@ -20,7 +20,7 @@ class RakuAST::Nqp
                 $args := nqp::getattr(@args[0], RakuAST::ArgList, '$!args');
             }
             elsif nqp::istype($it, List) {
-                my int $elems := $it.List;  # reify
+                $it.elems;  # reify
                 $obj.set-args($args := nqp::getattr($it, List, '$!reified'));
             }
             else {

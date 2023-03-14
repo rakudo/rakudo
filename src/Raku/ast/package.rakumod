@@ -113,6 +113,10 @@ class RakuAST::Package
         nqp::ifnull(nqp::atkey(HOWS,$!declarator),Metamodel::PackageHOW)
     }
 
+    method parameterization() {
+        $!declarator eq 'role' ?? $!body.signature !! Mu
+    }
+
     # While a package may be declared `my`, its installation semantics are
     # more complex, and thus handled as a BEGIN-time effect. (For example,
     # `my Foo::Bar { }` should not create a lexical symbol Foo::Bar.)

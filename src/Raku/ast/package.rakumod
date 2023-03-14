@@ -41,15 +41,15 @@ class RakuAST::Package
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!declarator', $declarator);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
-        $obj.set-traits($traits) if $traits;
-        $obj.replace-body($body, $parameterization);
-
-        nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
-          nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
         nqp::bindattr($obj, RakuAST::Package, '$!how',
           nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how
         );
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
+        nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
+          nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
+
+        $obj.set-traits($traits) if $traits;
+        $obj.replace-body($body, $parameterization);
 
         # Set up internal defaults
         nqp::bindattr($obj, RakuAST::Package, '$!attached-methods', []);
@@ -66,17 +66,24 @@ class RakuAST::Package
 
         # The body of a role is internally a Sub that has the parameterization
         # of the role as the signature.  This allows a role to be selected
-        # using ordinary dispatch semantics.  Later on, the statement list
-        # will get a return value added, so that the role's meta-object and
-        # lexpad are returned.
+        # using ordinary dispatch semantics.  The statement list gets a returni
+        # value added, so that the role's meta-object and lexpad are returned.
         if $!declarator eq 'role' {
             $signature := RakuAST::Signature.new unless $signature;
             $signature.set-is-on-role-body(1);
-            $body := RakuAST::Sub.new(
-              name      => $!name,
-              signature => $signature,
-              body      => $body.body
-            )
+
+            $body := $body.body;
+            $body.statement-list.push(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Nqp.new('list',
+                  RakuAST::Declaration::ResolvedConstant.new(
+                    compile-time-value => self.stubbed-meta-object
+                  ),
+                  RakuAST::Nqp.new('curlexpad')
+                )
+              )
+            );
+            $body := RakuAST::Sub.new(:name($!name), :$signature, :$body);
         }
 
         nqp::bindattr(self, RakuAST::Package, '$!body', $body);
@@ -287,6 +294,7 @@ class RakuAST::Package
             }
         }
         for $!attached-attributes {
+            # TODO: create method BUILDALL here
             $type.HOW.add_attribute($type, $_.meta-object);
         }
 
@@ -322,16 +330,6 @@ class RakuAST::Package
                 RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '::?ROLE', value => self.stubbed-meta-object
                 )
-            );
-            $!body.body.statement-list.push(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::Nqp.new('list',
-                  RakuAST::Declaration::ResolvedConstant.new(
-                    compile-time-value => self.stubbed-meta-object
-                  ),
-                  RakuAST::Nqp.new('curlexpad')
-                )
-              )
             );
         }
         elsif $!declarator eq 'module' {

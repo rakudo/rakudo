@@ -101,16 +101,16 @@ class RakuAST::Package
     method default-scope() { 'our' }
 
     method default-how() {
-        my $declarator := $!declarator;
-        $declarator eq 'class'
-          ?? Metamodel::ClassHOW
-          !! $declarator eq 'role'
-            ?? Metamodel::ParametricRoleHOW
-            !! $declarator eq 'module'
-              ?? Metamodel::ModuleHOW
-              !! $declarator eq 'grammar'
-                ?? Metamodel::GrammarHOW
-                !! Metamodel::PackageHOW
+        my constant HOWS := nqp::hash(
+          'class',   Metamodel::ClassHOW,
+          'grammar', Metamodel::GrammarHOW,
+          'knowhow', Metamodel::KnowHOW,
+          'module',  Metamodel::ModuleHOW,
+          'native',  Metamodel::NativeHOW,
+          'package', Metamodel::PackageHOW,
+          'role',    Metamodel::ParametricRoleHOW
+        );
+        nqp::ifnull(nqp::atkey(HOWS,$!declarator),Metamodel::PackageHOW)
     }
 
     # While a package may be declared `my`, its installation semantics are

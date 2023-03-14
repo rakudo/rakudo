@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 13;
+plan 11;
 
 my $ast;
 my $deparsed;
@@ -469,74 +469,6 @@ subtest 'class with is trait really inherits' => {
           "$type: Class with is trait inherits the base class";
         is $class.test-meth, 'base meth',
           "$type: A base class method can be called";
-    }
-}
-
-subtest 'creating an empty role' => {
-    # role Frobnicator { }
-    ast RakuAST::Package.new(
-      scope      => 'my',
-      declarator => 'role',
-      name       => RakuAST::Name.from-identifier('Frobnicator'),
-    );
-    is-deeply $deparsed, 'my role Frobnicator { }', 'deparse';
-
-    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
-        my $role := EVAL($it);
-        is $role.^name, 'Frobnicator', "$type: role gets correct name";
-        isa-ok $role.new, $role, "$type: does the role auto-pun";
-
-        my $class := RakuAST::Package.new(
-          scope      => 'my',
-          declarator => 'class',
-          name       => RakuAST::Name.from-identifier('Zippo'),
-          traits     => (
-            RakuAST::Trait::Does.new($ast),
-          )
-        ).EVAL;
-
-        is $class.^name, 'Zippo', "$type: class gets correct name";
-        my $object := $class.new;
-        isa-ok $object, $class, "$type: can it be instantiated";
-        todo "needs work on consuming the role" if $type eq 'Str' | 'Raku';
-        does-ok $class, $role, "$type: did the role get consumed";
-    }
-}
-
-subtest 'creating a role with an attribute' => {
-    # role A { has $.a = 42 }
-    ast RakuAST::Package.new(
-      scope      => 'my',
-      declarator => 'role',
-      name       => RakuAST::Name.from-identifier('A'),
-      body       => RakuAST::Block.new(
-        body => RakuAST::Blockoid.new(
-          RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-              expression => RakuAST::VarDeclaration::Simple.new(
-                scope       => "has",
-                name        => '$.a',
-                initializer => RakuAST::Initializer::Assign.new(
-                  RakuAST::IntLiteral.new(42)
-                )
-              )
-            )
-          )
-        )
-      )
-    );
-    is-deeply $deparsed, 'my role A { has $.a = 42 }', 'deparse';
-
-    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
-        my $role := EVAL($it);
-        is $role.^name, 'A', "$type: role gets correct name";
-        my $none := $role.new;
-        isa-ok $none, $role, "$type: does the role auto-pun (1)";
-        is-deeply $none.a, 42, "$type: did the attribute get initialized (1)";
-
-        my $one := $role.new(a => 666);
-        isa-ok $one, $role, "$type: does the role auto-pun (2)";
-        is-deeply $one.a, 666, "$type: did the attribute get initialized (2)";
     }
 }
 

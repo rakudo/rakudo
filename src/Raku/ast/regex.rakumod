@@ -1465,6 +1465,25 @@ class RakuAST::Regex::Assertion::CharClass
     }
 }
 
+class RakuAST::Regex::Assertion::RECURSE
+  is RakuAST::Regex::Assertion
+{
+  has RakuAST::Regex::Term $.node;
+
+  method new(RakuAST::Regex $node) {
+    my $obj := nqp::create(self);
+    nqp::bindattr($obj, RakuAST::Regex::Assertion::RECURSE, '$!node', $node);
+    $obj;
+  }
+
+  method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+     QAST::Regex.new:
+        :rxtype<subrule>, :subtype<method>,
+        QAST::NodeList.new( QAST::SVal.new( :value('RECURSE') ), :node($!node));
+  }
+
+}
+
 # The base of all user-defined character class elements.
 class RakuAST::Regex::CharClassElement
   is RakuAST::Node

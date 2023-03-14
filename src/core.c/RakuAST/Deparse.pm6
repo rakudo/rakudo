@@ -58,6 +58,7 @@ class RakuAST::Deparse {
 
     method regex-assertion-pass(--> '<?>') { }
     method regex-assertion-fail(--> '<!>') { }
+    method regex-assertion-recurse(--> '<~~>') { }
 
     method regex-backtrack-frugal( --> '?')  { }
     method regex-backtrack-ratchet(--> ':')  { }
@@ -957,6 +958,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Regex::Assertion::Pass $ --> Str:D) {
         $.regex-assertion-pass
+    }
+
+    multi method deparse(RakuAST::Regex::Assertion::RECURSE $ --> Str:D) {
+        $.regex-assertion-recurse
     }
 
     multi method deparse(

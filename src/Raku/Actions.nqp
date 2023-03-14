@@ -3084,6 +3084,18 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Regex', 'Assertion', 'CharClass').new(|@asts);
     }
 
+    method assertion:sym<~~>($/) {
+        if $<num> {
+            $/.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
+        }
+        elsif $<desigilname> {
+            $/.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
+        }
+        else {
+            self.attach: $/, self.r('Regex', 'Assertion', 'RECURSE').new($/);
+        }
+    }
+
     method cclass_elem($/) {
         my int $negated := $<sign> eq '-';
         if $<name> {

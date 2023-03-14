@@ -3092,7 +3092,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             $/.panic('Sorry, ~~ regex assertion with a capture is not yet implemented');
         }
         else {
-            self.attach: $/, self.r('Regex', 'Assertion', 'RECURSE').new($/);
+            self.attach: $/, self.r('Regex', 'Assertion', 'Recurse').new($/);
         }
     }
 

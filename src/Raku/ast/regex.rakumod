@@ -1465,14 +1465,14 @@ class RakuAST::Regex::Assertion::CharClass
     }
 }
 
-class RakuAST::Regex::Assertion::RECURSE
+class RakuAST::Regex::Assertion::Recurse
   is RakuAST::Regex::Assertion
 {
   has RakuAST::Regex::Term $.node;
 
   method new(RakuAST::Regex $node) {
     my $obj := nqp::create(self);
-    nqp::bindattr($obj, RakuAST::Regex::Assertion::RECURSE, '$!node', $node);
+    nqp::bindattr($obj, RakuAST::Regex::Assertion::Recurse, '$!node', $node);
     $obj;
   }
 

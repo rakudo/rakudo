@@ -960,7 +960,7 @@ class RakuAST::Deparse {
         $.regex-assertion-pass
     }
 
-    multi method deparse(RakuAST::Regex::Assertion::RECURSE $ --> Str:D) {
+    multi method deparse(RakuAST::Regex::Assertion::Recurse $ --> Str:D) {
         $.regex-assertion-recurse
     }
 

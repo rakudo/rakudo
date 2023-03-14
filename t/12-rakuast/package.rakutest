@@ -126,10 +126,6 @@ subtest 'Create a class with a submethod' => {
     }
 }
 
-is-deeply EVAL(RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('Proc', 'Async'))),
-    Proc::Async,
-    'Can resolve a multi-part type name from the setting';
-
 subtest 'Check lexically resolving of a class' => {
     # my class LexicalTestClass { }; LexicalTestClass
     ast RakuAST::StatementList.new(
@@ -504,6 +500,43 @@ subtest 'creating an empty role' => {
         isa-ok $object, $class, "$type: can it be instantiated";
         todo "needs work on consuming the role" if $type eq 'Str' | 'Raku';
         does-ok $class, $role, "$type: did the role get consumed";
+    }
+}
+
+subtest 'creating a role with an attribute' => {
+    # role A { has $.a = 42 }
+    ast RakuAST::Package.new(
+      scope      => 'my',
+      declarator => 'role',
+      name       => RakuAST::Name.from-identifier('A'),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                scope       => "has",
+                name        => '$.a',
+                initializer => RakuAST::Initializer::Assign.new(
+                  RakuAST::IntLiteral.new(42)
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed, 'my role A { has $.a = 42 }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is $role.^name, 'A', "$type: role gets correct name";
+        my $none := $role.new;
+        isa-ok $none, $role, "$type: does the role auto-pun (1)";
+        is-deeply $none.a, 42, "$type: did the attribute get initialized (1)";
+
+        my $one := $role.new(a => 666);
+        isa-ok $one, $role, "$type: does the role auto-pun (2)";
+        is-deeply $one.a, 666, "$type: did the attribute get initialized (2)";
     }
 }
 

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -12,6 +12,16 @@ sub ast(RakuAST::Node:D $node --> Nil) {
     $deparsed := $node.DEPARSE;
     $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
+}
+
+subtest 'look up an existing type' => {
+    ast RakuAST::Type::Simple.new(
+      RakuAST::Name.from-identifier-parts('Proc', 'Async')
+    );
+    is-deeply $deparsed, 'Proc::Async', 'deparse';
+
+    is-deeply $_, Proc::Async, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'type with definedness constraint' => {

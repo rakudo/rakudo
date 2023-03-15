@@ -1639,7 +1639,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<signature> {
             $routine.replace-signature($<signature>.ast);
         }
-        $routine.replace-body($<onlystar> ?? $<onlystar>.ast !! $<blockoid>.ast);
+        $routine.replace-body($<onlystar>
+          ?? self.r('OnlyStar').new
+          !! $<blockoid>.ast
+        );
         $routine.IMPL-CHECK($*R, $*CU.context, 1);
         $routine.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $routine;
@@ -1658,7 +1661,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $routine.set-private(1);
             }
         }
-        $routine.replace-body($<onlystar> ?? $<onlystar>.ast !! $<blockoid>.ast);
+        $routine.replace-body($<onlystar>
+          ?? self.r('OnlyStar').new
+          !! $<blockoid>.ast
+        );
         $routine.IMPL-CHECK($*R, $*CU.context, 1);
         $routine.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $routine;

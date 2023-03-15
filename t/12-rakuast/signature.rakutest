@@ -7,9 +7,8 @@ my $ast;
 my $deparsed;
 my $raku;
 my @type = <AST Str Raku>;
-sub ast(RakuAST::Node:D $node, :$EVAL --> Nil) {
+sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
-    EVAL($ast) if $EVAL;
     $deparsed := $node.DEPARSE;
     $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
@@ -537,7 +536,7 @@ subtest 'Placeholder positional parameter' => {
           )
         )
       )
-    ), :EVAL; # XXX for some reason EVAL is needed for proper deparsing
+    );
 
     is-deeply $deparsed, 'sub { $^pos }', 'deparse';
 
@@ -575,7 +574,7 @@ subtest 'Placeholder named parameter' => {
           )
         )
       )
-    ), :EVAL; # XXX for some reason EVAL is needed for proper deparsing
+    );
 
     is-deeply $deparsed, 'sub { $:named }', 'deparse';
 

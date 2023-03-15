@@ -169,7 +169,7 @@ class RakuAST::Deparse {
         }
 
         @parts.push(self!parenthesize($ast.signature))
-          unless $ast.has-placeholder-parameters;
+          unless $ast.code-has-placeholders;
 
         if $ast.traits -> @traits {
             @parts.push(self.deparse($_)) for @traits;

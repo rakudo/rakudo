@@ -498,6 +498,24 @@ class RakuAST::PlaceholderParameterOwner
         Nil
     }
 
+    # Build time introspection that checks whether there's any object
+    # inside that is a placeholder variable.  If so, short-circuit and
+    # return True.  Don't search deeper of another PlaceholderParameterOwner
+    # is found (as that will have its own logic).  Any other object, recurse.
+    # Intended to be used by deparsing and .raku generation.
+    method code-has-placeholders() {
+        my $searcher;
+        $searcher := -> $child {
+            nqp::istype($child,RakuAST::VarDeclaration::Placeholder)
+              ?? (return True)
+              !! nqp::istype($child,PlaceholderParameterOwner)
+                ?? False
+                !! $child.visit-children($searcher)
+        }
+        self.visit-children($searcher);
+        False
+    }
+
     method clear-placeholder-attachments() {
         if nqp::islist($!attached-placeholder-parameters) {
             for $!attached-placeholder-parameters {

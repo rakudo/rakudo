@@ -1371,6 +1371,7 @@ class RakuAST::VarDeclaration::Placeholder
   is RakuAST::Attaching
   is RakuAST::Term
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has Bool $!already-declared;
 
@@ -1404,6 +1405,30 @@ class RakuAST::VarDeclaration::Placeholder
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         $resolver.find-attach-target('block').add-generated-lexical-declaration(self)
             unless $!already-declared;
+    }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my $signature := $resolver.find-attach-target('block').signature;
+        if $signature.parameters-initialized {
+            # @_ and %_ are only real placeholders if they were not
+            # already defined in the signature, so we need to check
+            # there before pulling the plug
+            my $name := self.lexical-name;
+            if $name eq '@_' || $name eq '%_' {
+                return True if $signature.IMPL-HAS-PARAMETER($name);
+            }
+            self.add-sorry(
+              $resolver.build-exception('X::Signature::Placeholder',
+                precursor   => 1,
+                placeholder => self.lexical-name
+              )
+            );
+            return False;
+        }
+        True
     }
 
     method IMPL-ALREADY-DECLARED(Bool $declared) {

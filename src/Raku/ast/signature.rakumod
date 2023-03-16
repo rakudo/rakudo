@@ -19,13 +19,21 @@ class RakuAST::Signature
     method new(List :$parameters, RakuAST::Node :$returns) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Signature, '$!parameters',
-            $parameters // self.IMPL-WRAP-LIST([]));
+          self.IMPL-UNWRAP-LIST($parameters)
+        ) if $parameters;
         nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-named-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-meta-method', 0);
         nqp::bindattr_i($obj, RakuAST::Signature, '$!is-on-role-body', 0);
         $obj
+    }
+
+    method parameters() {
+        self.IMPL-WRAP-LIST($!parameters // [])
+    }
+    method parameters-initialized() {
+        nqp::isconcrete($!parameters) ?? True !! False
     }
 
     method attach(RakuAST::Resolver $resolver) {
@@ -76,15 +84,17 @@ class RakuAST::Signature
 
     method IMPL-HAS-PARAMETER(Str $name) {
         return True if $name eq '%_' && $!implicit-slurpy-hash;
-        for self.IMPL-UNWRAP-LIST($!parameters) {
-            return True if $_.target && $_.target.lexical-name eq $name;
+        if $!parameters {
+            for $!parameters {
+                return True if $_.target && $_.target.lexical-name eq $name;
+            }
         }
         False
     }
 
     method IMPL-ENSURE-IMPLICITS() {
         if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
-            my @param-asts := self.IMPL-UNWRAP-LIST($!parameters);
+            my @param-asts := $!parameters // [];
             unless @param-asts && @param-asts[0].invocant {
                 my $type;
                 if $!is-on-meta-method {
@@ -121,7 +131,7 @@ class RakuAST::Signature
             }
         }
         if $!is-on-role-body && !$!implicit-invocant {
-            my @param-asts := self.IMPL-UNWRAP-LIST($!parameters);
+            my @param-asts := $!parameters // [];
             unless @param-asts && @param-asts[0].invocant {
                 my $invocant := RakuAST::Parameter.new();
                 $invocant.add-type-capture(
@@ -142,8 +152,10 @@ class RakuAST::Signature
         if $!implicit-invocant {
             @parameters.push($!implicit-invocant.meta-object);
         }
-        for self.IMPL-UNWRAP-LIST($!parameters) {
-            @parameters.push($_.meta-object);
+        if $!parameters {
+            for $!parameters {
+                @parameters.push($_.meta-object);
+            }
         }
         if $!implicit-slurpy-hash {
             @parameters.push($!implicit-slurpy-hash.meta-object);
@@ -184,7 +196,7 @@ class RakuAST::Signature
     method IMPL-QAST-BINDINGS(RakuAST::IMPL::QASTContext $context, :$needs-full-binder) {
         self.IMPL-ENSURE-IMPLICITS();
         my $bindings := QAST::Stmts.new();
-        my $parameters := self.IMPL-UNWRAP-LIST($!parameters);
+        my $parameters := $!parameters // [];
         if $needs-full-binder {
             $bindings.push(QAST::Op.new(
                 :op('if'),
@@ -215,17 +227,21 @@ class RakuAST::Signature
     }
 
     method set-default-type(RakuAST::Type $type) {
-        for self.IMPL-UNWRAP-LIST($!parameters) {
-            $_.set-default-type($type);
+        if $!parameters {
+            for $!parameters {
+                $_.set-default-type($type);
+            }
         }
     }
 
     method arity() {
         my int $arity := 0;
         $arity++ if $!implicit-invocant;
-        for self.IMPL-UNWRAP-LIST($!parameters) {
-            last unless $_.is-positional && !$_.is-optional;
-            $arity++;
+        if $!parameters {
+            for $!parameters {
+                last unless $_.is-positional && !$_.is-optional;
+                $arity++;
+            }
         }
         nqp::box_i($arity, Int)
     }
@@ -233,12 +249,15 @@ class RakuAST::Signature
     method count() {
         my int $count := 0;
         $count++ if $!implicit-invocant;
-        for self.IMPL-UNWRAP-LIST($!parameters) {
-            if $_.is-positional {
-                $count++;
-            }
-            elsif !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $_.target.sigil ne '%' {
-                return nqp::box_n(nqp::inf, Num);
+        if $!parameters {
+            for $!parameters {
+                if $_.is-positional {
+                    $count++;
+                }
+                elsif !($_.slurpy =:= RakuAST::Parameter::Slurpy)
+                         && $_.target.sigil ne '%' {
+                    return nqp::box_n(nqp::inf, Num);
+                }
             }
         }
         nqp::box_i($count, Int)
@@ -246,8 +265,10 @@ class RakuAST::Signature
 
     method visit-children(Code $visitor) {
         $visitor($!implicit-invocant) if $!implicit-invocant;
-        for self.IMPL-UNWRAP-LIST($!parameters) {
-            $visitor($_);
+        if $!parameters {
+            for $!parameters {
+                $visitor($_);
+            }
         }
         $visitor($!implicit-slurpy-hash) if $!implicit-slurpy-hash;
         $visitor($!returns) if $!returns;

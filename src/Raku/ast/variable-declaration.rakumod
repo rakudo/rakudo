@@ -1423,7 +1423,7 @@ class RakuAST::VarDeclaration::Placeholder
             self.add-sorry(
               $resolver.build-exception('X::Signature::Placeholder',
                 precursor   => 1,
-                placeholder => self.lexical-name
+                placeholder => $name
               )
             );
             return False;

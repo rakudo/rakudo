@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 25;
+plan 26;
 
 my $ast;
 my $deparsed;
@@ -447,6 +447,29 @@ subtest 'Assertion with interpolated block works' => {
     );
     is-deeply $deparsed, '/ o <{ "o" }> /', 'deparse';
     match-ok "foo", 'oo';
+}
+
+subtest 'Assertion with recursive ast works' => {
+    # /o [ <~~> | a ] /"
+
+    my $dummy = RakuAST::QuotedRegex.new(body =>
+        RakuAST::Regex::Sequence.new(
+          RakuAST::Regex::Literal.new("o")
+          )
+    );
+
+    ast RakuAST::Regex::Sequence.new(
+      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::Group.new(
+          RakuAST::Regex::Alternation.new(
+            RakuAST::Regex::Assertion::Recurse.new($dummy),
+            RakuAST::Regex::Literal.new("a")
+          ),
+      )
+     );
+
+    is-deeply $deparsed, '/ o [<~~> | a] /', 'deparse';
+    match-ok "ooa", "ooa";
 }
 
 # vim: expandtab shiftwidth=4

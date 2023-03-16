@@ -611,6 +611,10 @@ augment class RakuAST::Node {
         self!nameds: <negated block>
     }
 
+    multi method raku(RakuAST::Regex::Assertion::Recurse:D: --> Str:D) {
+        self!positional(self.node)
+    }
+
 #- Regex::B --------------------------------------------------------------------
 
     multi method raku(RakuAST::Regex::BackReference::Positional:D: --> Str:D) {

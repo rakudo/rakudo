@@ -1856,6 +1856,14 @@ class RakuAST::RegexThunk
             :blocktype('declaration_static'),
             QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
             QAST::Var.new( :decl('var'), :scope('lexical'), :name('$¢') ),
+            QAST::Op.new(
+              :op('bind'),
+              QAST::Var.new(:name('$?REGEX'), :scope<lexical>, :decl('var')),
+              QAST::Op.new(
+                  :op('getcodeobj'),
+                  QAST::Op.new( :op('curcode') )
+              )
+            ),
             $slash.IMPL-QAST-DECL($context),
             QAST::Var.new(
                 :decl('param'), :scope('local'), :name('__lowered_param'),

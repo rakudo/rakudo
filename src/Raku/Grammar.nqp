@@ -4068,6 +4068,12 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         ]
     }
 
+    token assertion:sym<~~> {
+        <sym>
+        <!RESTRICTED>
+        [ <?[>]> | $<num>=[\d+] | <desigilname=.LANG('MAIN','desigilname')> ]
+    }
+
     token codeblock {
         :my $*ESCAPEBLOCK := 1;
         <!RESTRICTED>

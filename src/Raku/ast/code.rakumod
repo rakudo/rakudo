@@ -1756,8 +1756,8 @@ class RakuAST::Submethod
     method IMPL-META-OBJECT-TYPE() { Submethod }
 }
 
-# A regex declaration, such as `token foo { bar }`. This implies its own
-# lexical scope.
+# Base class for regex declaration, such as `token foo { bar }`. This
+# implies its own lexical scope.
 class RakuAST::RegexDeclaration
   is RakuAST::Methodish
 {
@@ -1775,6 +1775,8 @@ class RakuAST::RegexDeclaration
         $obj.set-traits($traits);
         $obj
     }
+
+    method declarator() { 'regex' }
 
     method replace-body(RakuAST::Regex $new-body) {
         nqp::bindattr(self, RakuAST::RegexDeclaration, '$!body', $new-body);
@@ -1805,6 +1807,18 @@ class RakuAST::RegexDeclaration
                 $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
             ), :key)
     }
+}
+
+class RakuAST::TokenDeclaration
+  is RakuAST::RegexDeclaration
+{
+    method declarator() { 'token' }
+}
+
+class RakuAST::RuleDeclaration
+  is RakuAST::RegexDeclaration
+{
+    method declarator() { 'rule' }
 }
 
 # Done by things that "thunk" a regex - that is to say, they want to compile as

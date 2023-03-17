@@ -2246,7 +2246,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule regex_def {
         :my $*BLOCK;
-        <.enter-block-scope('RegexDeclaration')>
+        <.enter-block-scope(nqp::tclc($*IN_DECL) ~ 'Declaration')>
         [
           <deflongname('has')>?
           { if $<longname> { %*RX<name> := ~$<deflongname>.ast } }

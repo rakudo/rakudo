@@ -158,7 +158,11 @@ class RakuAST::Deparse {
         $_ = $_.chomp($.indent-with) with $*INDENT;
     }
 
-    method !routine(RakuAST::Routine:D $ast, str $kind --> Str:D) {
+    method !routine(
+      RakuAST::Routine:D  $ast,
+                     str  $kind,
+                    Bool :$curlies
+    --> Str:D) {
         my str @parts = $kind;
 
         if $ast.multiness -> $multiness {
@@ -177,13 +181,14 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($_)) for @traits;
         }
 
-        @parts.push(self.deparse($ast.body));
+        my $body := self.deparse($ast.body);
+        @parts.push($curlies ?? '{ ' ~ $body ~ ' }' !! $body);
 
         @parts.join(' ')
     }
 
-    method !method(RakuAST::Method:D $ast, str $type --> Str:D) {
-        my str $deparsed = self!routine($ast, $type);
+    method !method(RakuAST::Methodish:D $ast, str $type --> Str:D) {
+        my str $deparsed = self!routine($ast, $type, |%_);
         my str $scope    = $ast.scope;
 
         $scope ne 'has' && $scope ne $ast.default-scope
@@ -1130,6 +1135,12 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Regex::Conjunction:D $ast --> Str:D) {
         self!branches($ast, $.regex-conjunction)
+    }
+
+#- Regex::D --------------------------------------------------------------------
+
+    multi method deparse(RakuAST::RegexDeclaration:D $ast --> Str:D) {
+        self!method($ast, $ast.declarator, :curlies)
     }
 
 #- Regex::G --------------------------------------------------------------------

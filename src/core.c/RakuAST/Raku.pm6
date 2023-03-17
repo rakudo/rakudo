@@ -742,6 +742,16 @@ augment class RakuAST::Node {
         self!positionals(self.branches)
     }
 
+#- Regex::D --------------------------------------------------------------------
+
+    multi method raku(RakuAST::RegexDeclaration:D: --> Str:D) {
+        my str @nameds = 'name';
+        @nameds.unshift("scope") if self.scope ne self.default-scope;
+        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.append: <traits body>;
+        self!nameds: @nameds
+    }
+
 #- Regex::G --------------------------------------------------------------------
 
     multi method raku(RakuAST::Regex::Group:D: --> Str:D) {

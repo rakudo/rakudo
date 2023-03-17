@@ -107,7 +107,9 @@ augment class RakuAST::Node {
                   unless nqp::eqaddr($how,self.default-how);
             }
             elsif $method eq 'backtrack' {
-                as-class('backtrack', self.backtrack.^name)
+                my $backtrack := self.backtrack;
+                as-class('backtrack', $backtrack.^name)
+                  unless nqp::eqaddr($backtrack,RakuAST::Regex::Backtrack)
             }
             elsif $method eq 'slurpy' {
                 my $slurpy := self.slurpy;
@@ -127,6 +129,9 @@ augment class RakuAST::Node {
                 :$signature
                   if $signature
                   && ($signature.parameters.elems || $signature.returns)
+            }
+            elsif $method eq 'negated' | 'trailing-separator' {
+                $method => True if self."$method"()
             }
             else {
                 my $object := self."$method"();

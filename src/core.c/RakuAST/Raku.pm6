@@ -350,7 +350,7 @@ augment class RakuAST::Node {
         my str @nameds = 'name';
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") unless self.code-has-placeholders;
+        @nameds.push("signature") if self.signature.parameters-initialized;
         @nameds.append: <traits body>;
         self!nameds: @nameds
     }
@@ -468,9 +468,9 @@ augment class RakuAST::Node {
 #- Po --------------------------------------------------------------------------
 
     multi method raku(RakuAST::PointyBlock:D: --> Str:D) {
-        self!nameds: self.code-has-placeholders
-          ?? <body>
-          !! <signature body>
+        self!nameds: self.signature.parameters-initialized
+          ?? <signature body>
+          !! <body>
     }
 
     multi method raku(RakuAST::Postcircumfix::ArrayIndex:D: --> Str:D) {
@@ -1091,14 +1091,14 @@ augment class RakuAST::Node {
         my str @nameds = 'name';
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") unless self.code-has-placeholders;
+        @nameds.push("signature") if self.signature.parameters-initialized;
         @nameds.append: <traits body>;
         self!nameds: @nameds
     }
 
     multi method raku(RakuAST::Submethod:D: --> Str:D) {
         my str @nameds = 'name';
-        @nameds.push("signature") unless self.code-has-placeholders;
+        @nameds.push("signature") if self.signature.parameters-initialized;
         @nameds.append: <traits body>;
         self!nameds: @nameds
     }

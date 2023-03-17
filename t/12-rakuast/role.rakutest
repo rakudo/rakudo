@@ -147,7 +147,7 @@ subtest 'creating a role that does a parameterized role' => {
 }
 
 subtest 'creating a parameterized role' => {
-    # my role D[$a = 42] { method a () { $a } }
+    # my role D[$a = 42] { method a { $a } }
     ast RakuAST::Package.new(
       scope      => 'my',
       declarator => 'role',
@@ -179,7 +179,7 @@ subtest 'creating a parameterized role' => {
         )
       )
     );
-    is-deeply $deparsed, 'my role D[$a = 42] { method a () { $a } }', 'deparse';
+    is-deeply $deparsed, 'my role D[$a = 42] { method a { $a } }', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $role := EVAL($it);

@@ -37,7 +37,7 @@ subtest 'Create an empty class' => {
 }
 
 subtest 'Create a class with a method' => {
-    # my class TestClassWithMethods { method test-meth() { 456 } }
+    # my class TestClassWithMethods { method test-meth { 456 } }
     ast RakuAST::Package.new(
       scope      => 'my',
       declarator => 'class',
@@ -62,7 +62,7 @@ subtest 'Create a class with a method' => {
       )
     );
     is-deeply $deparsed,
-      'my class TestClassWithMethods { method test-meth () { 456 } }',
+      'my class TestClassWithMethods { method test-meth { 456 } }',
       'deparse';
 
     for
@@ -82,7 +82,7 @@ subtest 'Create a class with a method' => {
 }
 
 subtest 'Create a class with a submethod' => {
-    # my class TestClassWithSubmethods { submethod test-submeth() { 137 } }
+    # my class TestClassWithSubmethods { submethod test-submeth { 137 } }
     ast RakuAST::Package.new(
       scope      => 'my',
       declarator => 'class',
@@ -107,7 +107,7 @@ subtest 'Create a class with a submethod' => {
       )
     );
     is-deeply $deparsed,
-      'my class TestClassWithSubmethods { submethod test-submeth () { 137 } }',
+      'my class TestClassWithSubmethods { submethod test-submeth { 137 } }',
       'deparse';
 
     for
@@ -347,7 +347,7 @@ subtest 'class with attribute and accessor' => {
 subtest 'class with accessor usage' => {
     # my class TestClassWithAttributeUsage {
     #     has Int $.bar;
-    #     method test-meth () { $!bar }
+    #     method test-meth { $!bar }
     # }
     ast RakuAST::Package.new(
       scope      => 'my',
@@ -384,7 +384,7 @@ subtest 'class with accessor usage' => {
     is-deeply $deparsed, q:to/CODE/, 'deparse';
 my class TestClassWithAttributeUsage {
     has Int $.bar;
-    method test-meth () { $!bar }
+    method test-meth { $!bar }
 }
 CODE
 
@@ -404,7 +404,7 @@ CODE
 
 subtest 'class with does trait really does the role' => {
     my role TestRole {
-        method test-meth() { 'role meth' }
+        method test-meth { 'role meth' }
     }
 
     # my class TestRoleTarget does TestRole { }
@@ -440,7 +440,7 @@ subtest 'class with does trait really does the role' => {
 
 subtest 'class with is trait really inherits' => {
     my class TestBase {
-        method test-meth() { 'base meth' }
+        method test-meth { 'base meth' }
     }
 
     # my class TestChild is TestBas { }

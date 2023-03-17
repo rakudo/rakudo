@@ -16,8 +16,8 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 
 subtest 'Method call via self' => {
     # my class TestClass {
-    #     method meth-a() { 99 }
-    #     method meth-b() { self.meth-a }
+    #     method meth-a { 99 }
+    #     method meth-b { self.meth-a }
     # }
     ast RakuAST::Package.new(
       scope      => 'my',
@@ -61,8 +61,8 @@ subtest 'Method call via self' => {
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
 my class TestClass {
-    method meth-a () { 99 }
-    method meth-b () { self.meth-a() }
+    method meth-a { 99 }
+    method meth-b { self.meth-a() }
 }
 CODE
 

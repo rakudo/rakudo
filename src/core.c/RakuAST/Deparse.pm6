@@ -169,8 +169,9 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($name));
         }
 
-        @parts.push(self!parenthesize($ast.signature))
-          unless $ast.code-has-placeholders;
+        my $signature := $ast.signature;
+        @parts.push(self!parenthesize($signature))
+          if $signature.parameters-initialized;
 
         if $ast.traits -> @traits {
             @parts.push(self.deparse($_)) for @traits;

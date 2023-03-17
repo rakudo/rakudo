@@ -97,7 +97,7 @@ CODE
 }
 
 subtest 'A routine declared anonymous does not declare anything' => {
-    # anon sub my-sub () { 66 }; my-sub()
+    # anon sub my-sub { 66 }; my-sub()
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
@@ -119,7 +119,7 @@ subtest 'A routine declared anonymous does not declare anything' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-anon sub my-sub () { 66 }
+anon sub my-sub { 66 }
 my-sub()
 CODE
 
@@ -128,9 +128,10 @@ CODE
 }
 
 subtest 'A sub node with a trait evaluates to a Sub' => {
-    # sub () returns Int { 66 }
+    # sub foo returns Int { 66 }
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::Sub.new(
+        name   => RakuAST::Name.from-identifier("foo"),
         traits => [
           RakuAST::Trait::Returns.new(
             RakuAST::Type::Simple.new(
@@ -147,7 +148,7 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
         )
       )
     );
-    is-deeply $deparsed, 'sub () returns Int { 66 }', 'deparse';
+    is-deeply $deparsed, 'sub foo returns Int { 66 }', 'deparse';
 
     package one {
         my $sub := EVAL($ast);
@@ -172,9 +173,10 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
 subtest 'Return type constraint' => {
     my $x;
 
-    # sub () returns Int { $x }
+    # sub foo returns Int { $x }
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::Sub.new(
+        name   => RakuAST::Name.from-identifier("foo"),
         traits => [
           RakuAST::Trait::Returns.new(
             RakuAST::Type::Simple.new(
@@ -182,7 +184,7 @@ subtest 'Return type constraint' => {
             )
           )
         ],
-        body => RakuAST::Blockoid.new(
+        body   => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
               expression => RakuAST::Var::Lexical.new('$x')
@@ -191,7 +193,7 @@ subtest 'Return type constraint' => {
         )
       )
     );
-    is-deeply $deparsed, 'sub () returns Int { $x }', 'deparse';
+    is-deeply $deparsed, 'sub foo returns Int { $x }', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $sub := EVAL($it);
@@ -205,9 +207,10 @@ subtest 'Return type constraint' => {
 subtest 'Using return with acceptable type works' => {
     my $x;
 
-    # sub () returns Int { return $x }
+    # sub foo returns Int { return $x }
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::Sub.new(
+        name   => RakuAST::Name.from-identifier("foo"),
         traits => [
           RakuAST::Trait::Returns.new(
             RakuAST::Type::Simple.new(
@@ -229,7 +232,7 @@ subtest 'Using return with acceptable type works' => {
         )
       )
     );
-    is-deeply $deparsed, 'sub () returns Int { return($x) }', 'deparse';
+    is-deeply $deparsed, 'sub foo returns Int { return($x) }', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $sub := EVAL($it);
@@ -302,7 +305,7 @@ subtest 'creating a proto sub works' => {
 }
 
 subtest 'creating a multi sub without proto works' => {
-    # multi sub frobnicate () { 42 }; &frobnicate
+    # multi sub frobnicate  42 }; &frobnicate
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
@@ -323,7 +326,7 @@ subtest 'creating a multi sub without proto works' => {
     );
 
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-multi sub frobnicate () { 42 }
+multi sub frobnicate { 42 }
 &frobnicate
 CODE
 
@@ -338,7 +341,7 @@ CODE
 }
 
 subtest 'creating a multi sub with existing proto works' => {
-    # multi sub frobnicate () { 42 }
+    # multi sub frobnicate { 42 }
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::Sub.new(
         multiness => "multi",
@@ -353,7 +356,7 @@ subtest 'creating a multi sub with existing proto works' => {
       )
     );
 
-    is-deeply $deparsed, 'multi sub frobnicate () { 42 }', 'deparse';
+    is-deeply $deparsed, 'multi sub frobnicate { 42 }', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         proto sub frobnicate (|) {*}

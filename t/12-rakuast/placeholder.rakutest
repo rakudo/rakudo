@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 4;
+plan 6;
 
 my $ast;
 my $deparsed;
@@ -89,7 +89,7 @@ subtest 'Placeholder named parameter' => {
     }
 }
 
-subtest 'Placeholder slurpy positional parameter' => {
+subtest 'Placeholder slurpy array' => {
     # sub { @_ }
     ast RakuAST::Sub.new(
       body => RakuAST::Blockoid.new(
@@ -121,8 +121,8 @@ subtest 'Placeholder slurpy positional parameter' => {
     }
 }
 
-subtest 'Placeholder slurpy associative parameter' => {
-    # sub { @_ }
+subtest 'Placeholder slurpy hash' => {
+    # sub { %_ }
     ast RakuAST::Sub.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
@@ -150,6 +150,88 @@ subtest 'Placeholder slurpy associative parameter' => {
         }
         is-deeply $sub(a => 42), { a => 42 }, "$type: Invoking sub with nameds works";
         is-deeply $sub(), {}, "$type: Invoking the sub without arguments works";
+    }
+}
+
+subtest 'Placeholder fake slurpy array' => {
+    # sub (@_) { @_ }
+    ast RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new("\@_")
+          ),
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Placeholder::SlurpyArray.new
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, 'sub (@_) { @_ }', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
+        is $sub.signature.params.elems, 1,
+          "$type: Sub has one params elem";
+        is-deeply $sub.arity, 1,
+          "$type: The block has 1 arity";
+        is-deeply $sub.count, 1,
+          "$type: The block has 1 count";
+        given $sub.signature.params[0] {
+            is-deeply .name, '@_',
+              "$type: Correct variable name";
+            nok .optional,
+              "$type: It is not optional";
+        }
+        is-deeply $sub( (1,2) ), (1,2),
+          "$type: Invoking sub with a list works";
+        is-deeply $sub( () ), (),
+          "$type: Invoking the sub with empty list works";
+    }
+}
+
+subtest 'Placeholder fake slurpy hash' => {
+    # sub (%_) { %_ }
+    ast RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new("\%_")
+          ),
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Placeholder::SlurpyHash.new
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, 'sub (%_) { %_ }', 'deparse';
+
+    for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
+        is $sub.signature.params.elems, 1,
+          "$type: Sub has one params elem";
+        is-deeply $sub.arity, 1,
+          "$type: The block has 1 arity";
+        is-deeply $sub.count, 1,
+          "$type: The block has 1 count";
+        given $sub.signature.params[0] {
+            is-deeply .name, '%_',
+              "$type: Correct variable name";
+            nok .optional,
+              "$type: It is not optional";
+        }
+        is-deeply $sub( {a => 42} ), { a => 42 },
+          "$type: Invoking sub with hash works";
+        is-deeply $sub( {} ), {},
+          "$type: Invoking the sub with empty hash";
     }
 }
 

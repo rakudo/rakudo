@@ -1264,7 +1264,7 @@ class RakuAST::Deparse {
                 nqp::istype($_,RakuAST::Regex::CharClass::BackSpace)
                   ?? ('"' ~ self.deparse($_) ~ '"')
                   !! self.deparse($_)
-            }).join(' ')
+            }).join(' ').subst('  ', ' ', :global)
         }
         else {
             ''
@@ -1290,7 +1290,7 @@ class RakuAST::Deparse {
 #- Regex::W --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::WithSigspace:D $ast --> Str:D) {
-        self.deparse($ast.regex)  # XXX something missing here??
+        self.deparse($ast.regex) ~ " "
     }
 
 #- S ---------------------------------------------------------------------------

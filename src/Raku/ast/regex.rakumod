@@ -1769,6 +1769,11 @@ class RakuAST::Regex::QuantifiedAtom
         $obj
     }
 
+    method replace-atom(RakuAST::Atom $atom) {
+        nqp::bindattr(self, RakuAST::Regex::QuantifiedAtom, '$!atom', $atom);
+        self
+    }
+
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!atom.quantifiable {
             self.add-sorry($resolver.build-exception('X::Syntax::Regex::NonQuantifiable'));

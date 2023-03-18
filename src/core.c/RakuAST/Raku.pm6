@@ -1,7 +1,7 @@
 # This augments the RakuAST::Node class so that all of its subclasses can
 # generate sensible .raku output *WITHOUT* having to specify that in the
 # RakuAST bootstrap.
-# 
+#
 # In it, it provides a new ".raku" proto method that will catch any
 # unimplemented classes in a sensible way.
 
@@ -34,7 +34,7 @@ augment class RakuAST::Node {
     our sub indent(--> Str:D) {
         $_ = $_ ~ $spaces with $*INDENT;
     }
-    
+
     our sub dedent(--> Str:D) {
         $_ = $_.chomp($spaces) with $*INDENT;
     }
@@ -861,6 +861,43 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Regex::WithSigspace:D: --> Str:D) {
         self!positional(self.regex)
+    }
+
+#- Ru --------------------------------------------------------------------
+
+    multi method raku(RakuAST::RuleDeclaration:D: --> Str:D) {
+        my str @nameds = 'name';
+        @nameds.unshift("scope") if self.scope ne self.default-scope;
+        @nameds.push("signature") if self.signature.parameters-initialized;
+        @nameds.append: <traits body>;
+
+        sub remove-sigspace($node) {
+            sub skip-sigspace($node) {
+                nqp::istype($node,RakuAST::Regex::WithSigspace)
+                  ?? $node.regex
+                  !! $node
+            }
+
+            my @*ATOMS;
+            sub unsigspace($child) {
+                my $deeper := skip-sigspace($child);
+                @*ATOMS.push: nqp::istype($deeper,RakuAST::Regex::Sequence)
+                  || nqp::istype($deeper,RakuAST::Regex::Group)
+                  ?? remove-sigspace($deeper)
+                  !! nqp::istype($deeper,RakuAST::Regex::QuantifiedAtom)
+                    ?? nqp::clone($deeper).replace-atom(
+                         remove-sigspace(skip-sigspace($deeper.atom))
+                       )
+                    !! $deeper
+            }
+
+            $node.visit-children(&unsigspace);
+            @*ATOMS ?? $node.WHAT.new(|@*ATOMS) !! $node
+        }
+
+        my $self := nqp::clone(self);
+        $self.replace-body(remove-sigspace($self.body));
+        $self!nameds: @nameds
     }
 
 #- S ---------------------------------------------------------------------------

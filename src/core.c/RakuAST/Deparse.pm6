@@ -556,6 +556,10 @@ class RakuAST::Deparse {
         $.bind ~ self.deparse($ast.expression)
     }
 
+    multi method deparse(RakuAST::Initializer::CallAssign:D $ast --> Str:D) {
+        $.dotty-infix-call-assign ~ self.deparse($ast.postfixish).substr(1)
+    }
+
     multi method deparse(RakuAST::IntLiteral:D $ast --> Str:D) {
         $ast.value.raku
     }

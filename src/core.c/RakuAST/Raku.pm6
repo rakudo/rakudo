@@ -331,6 +331,10 @@ augment class RakuAST::Node {
         self!positional(self.expression)
     }
 
+    multi method raku(RakuAST::Initializer::CallAssign:D: --> Str:D) {
+        self!positional(self.postfixish)
+    }
+
     multi method raku(RakuAST::IntLiteral:D: --> Str:D) {
         self!literal(self.value)
     }

@@ -1771,7 +1771,7 @@ class RakuAST::Regex::QuantifiedAtom
 
     method replace-atom(RakuAST::Atom $atom) {
         nqp::bindattr(self, RakuAST::Regex::QuantifiedAtom, '$!atom', $atom);
-        self
+        Nil
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

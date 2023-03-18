@@ -477,6 +477,7 @@ class RakuAST::Heredoc
             '$!segments',
             nqp::getattr($source, RakuAST::QuotedString, '$!segments')
         );
+        Nil
     }
 
     method steal-processors-from(RakuAST::QuotedString $source) {

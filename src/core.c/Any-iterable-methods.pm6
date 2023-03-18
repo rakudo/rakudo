@@ -2552,6 +2552,9 @@ Consider using a block if any of these are necessary for your mapping code."
           List,'$!reified',buffer
         )
     }
+
+    proto method do(|) is nodal {*}
+    multi method do(\SELF: &doer) { doer(SELF) }
 }
 
 BEGIN Attribute.^compose;

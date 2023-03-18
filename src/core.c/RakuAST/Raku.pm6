@@ -878,10 +878,10 @@ augment class RakuAST::Node {
                   !! $node
             }
 
-            my @*ATOMS;
+            my @ATOMS;
             sub unsigspace($child) {
                 my $deeper := skip-sigspace($child);
-                @*ATOMS.push: nqp::istype($deeper,RakuAST::Regex::Sequence)
+                @ATOMS.push: nqp::istype($deeper,RakuAST::Regex::Sequence)
                   || nqp::istype($deeper,RakuAST::Regex::Group)
                   ?? remove-sigspace($deeper)
                   !! nqp::istype($deeper,RakuAST::Regex::QuantifiedAtom)
@@ -892,7 +892,7 @@ augment class RakuAST::Node {
             }
 
             $node.visit-children(&unsigspace);
-            @*ATOMS ?? $node.WHAT.new(|@*ATOMS) !! $node
+            @ATOMS ?? $node.WHAT.new(|@ATOMS) !! $node
         }
 
         my $self := nqp::clone(self);

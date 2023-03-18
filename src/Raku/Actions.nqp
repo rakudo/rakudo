@@ -1587,6 +1587,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Initializer', 'Bind').new($<EXPR>.ast);
     }
 
+    method initializer:sym<.=>($/) {
+        self.attach: $/, self.r('Initializer', 'CallAssign').new($<dottyop>.ast);
+    }
+
     method variable_declarator($/) {
         my str $scope := $*SCOPE;
         my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
@@ -1730,7 +1734,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         %args<scope> := $*SCOPE;
         %args<type>  := $*OFTYPE.ast if nqp::defined($*OFTYPE);
-        %args<initializer> := $<initializer><EXPR>.ast;
+        %args<initializer> := $<initializer>.ast;
         if $<trait> {
             %args<traits> := my @traits;
             @traits.push($_.ast) for $<trait>;

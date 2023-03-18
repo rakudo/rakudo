@@ -3,7 +3,36 @@
 class RakuAST::Initializer
   is RakuAST::Node
 {
+    has RakuAST::ExpressionThunk $!thunk;
+
     method is-binding() { False }
+
+    method IMPL-COMPILE-TIME-VALUE(RakuAST::Resolver $resolver,
+        RakuAST::IMPL::QASTContext $context, Mu :$invocant-compiler)
+    {
+        RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(self.expression, $resolver, $context);
+    }
+
+    method IMPL-THUNK-EXPRESSION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $expression := self.expression;
+        my $thunk := Nil;
+        unless (nqp::istype($expression, RakuAST::Code)) {
+            $thunk := $expression.outer-most-thunk;
+            unless ($thunk) {
+                $thunk := RakuAST::ExpressionThunk.new;
+                $expression.wrap-with-thunk($thunk);
+                $thunk.IMPL-STUB-CODE($resolver, $context);
+            }
+            nqp::bindattr(self, RakuAST::Initializer, '$!thunk', $thunk);
+        }
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $expression := self.expression;
+        nqp::istype($expression, RakuAST::Code)
+            ?? $expression.IMPL-TO-QAST($context)
+            !! $!thunk.IMPL-QAST-BLOCK($context, :expression($expression))
+    }
 }
 
 # An assignment (`=`) initializer.
@@ -22,7 +51,7 @@ class RakuAST::Initializer::Assign
         $visitor($!expression);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast) {
         $!expression.IMPL-TO-QAST($context)
     }
 }
@@ -45,8 +74,43 @@ class RakuAST::Initializer::Bind
         $visitor($!expression);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast) {
         $!expression.IMPL-TO-QAST($context)
+    }
+}
+
+# An mutating method call (`.=`) initializer.
+class RakuAST::Initializer::CallAssign
+  is RakuAST::Initializer
+{
+    has RakuAST::Postfixish $.postfixish;
+
+    method new(RakuAST::Postfixish $postfixish) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Initializer::CallAssign, '$!postfixish', $postfixish);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!postfixish);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast) {
+        $!postfixish.IMPL-POSTFIX-QAST($context, $invocant-qast)
+    }
+
+    method IMPL-COMPILE-TIME-VALUE(RakuAST::Resolver $resolver,
+        RakuAST::IMPL::QASTContext $context, Mu :$invocant-compiler)
+    {
+        self.postfixish.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new, $invocant-compiler)
+    }
+
+    method IMPL-THUNK-EXPRESSION(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        Nil
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(:op<null>)
     }
 }
 
@@ -212,7 +276,6 @@ class RakuAST::VarDeclaration::Constant
     has RakuAST::Type            $.type;
     has Mu                       $!value;
     has Mu                       $!package;
-    has RakuAST::ExpressionThunk $!thunk;
 
     method new(
       str           :$scope,
@@ -262,16 +325,9 @@ class RakuAST::VarDeclaration::Constant
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my $value := self.IMPL-BEGIN-TIME-EVALUATE($!initializer, $resolver, $context);
-        unless (nqp::istype($!initializer, RakuAST::Code)) {
-            my $thunk := $!initializer.outer-most-thunk;
-            unless ($thunk) {
-                $thunk := RakuAST::ExpressionThunk.new;
-                $!initializer.wrap-with-thunk($thunk);
-                $thunk.IMPL-STUB-CODE($resolver, $context);
-            }
-            nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!thunk', $thunk);
-        }
+        my $value := $!initializer.IMPL-COMPILE-TIME-VALUE(
+            $resolver, $context, :invocant-compiler(-> { $!type.meta-object }));
+        $!initializer.IMPL-THUNK-EXPRESSION($resolver, $context);
         nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!value', $value);
 
         if self.scope eq 'our' {
@@ -311,9 +367,7 @@ class RakuAST::VarDeclaration::Constant
         my $value := $!value;
         $context.ensure-sc($value);
         my $constant := QAST::Stmts.new(
-            nqp::istype($!initializer, RakuAST::Code)
-                ?? $!initializer.IMPL-TO-QAST($context)
-                !! $!thunk.IMPL-QAST-BLOCK($context, :expression($!initializer)),
+            $!initializer.IMPL-QAST-DECL($context),
             QAST::Var.new(
               :decl('static'), :scope('lexical'), :name($!name), :value($!value)
             )
@@ -774,7 +828,7 @@ class RakuAST::VarDeclaration::Simple
 
             # Reference type value with an initializer
             elsif $!initializer {
-                my $init-qast := $!initializer.IMPL-TO-QAST($context);
+                my $init-qast := $!initializer.IMPL-TO-QAST($context, :invocant-qast($var-access));
                 my $perform-init-qast;
                 if $!initializer.is-binding {
                     # TODO type checking of source

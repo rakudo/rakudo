@@ -2123,9 +2123,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token initializer:sym<::=> {
         <sym> [ <.ws> <EXPR('e=')> <.NYI('"::="')> || <.malformed: 'binding'> ]
     }
-#    token initializer:sym<.=> {
-#        <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
-#    }
+    token initializer:sym<.=> {
+        <sym> [ <.ws> <dottyop> || <.malformed: 'mutator method call'> ]
+    }
 
     proto token routine_declarator {*}
     token routine_declarator:sym<sub> {

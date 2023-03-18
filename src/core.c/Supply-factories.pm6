@@ -445,6 +445,7 @@
     ## A bunch of the more complex combinators, implemented as supply blocks
     ##
 
+    proto method do(|) {*}
     multi method do(Supply:D: &side-effect) {
         supply {
             whenever self -> \value {

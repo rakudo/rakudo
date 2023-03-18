@@ -26,6 +26,8 @@ augment class Any {
         snitcher SNITCHEE;
         SNITCHEE
     }
+
+    multi method do(\SELF: &doer) is raw { doer(SELF); SELF }
 }
 
 proto sub rotor(|) {*}

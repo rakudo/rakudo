@@ -41,31 +41,31 @@ class RakuAST::Deparse {
     method block-open( --> "\{\n") { }
     method block-close(--> "\}\n") { }
 
-    method regex-open(                  --> '/ ')   { }
-    method regex-close(                 --> ' /')   { }
-    method regex-alternation(           --> ' | ')  { }
-    method regex-sequential-alternation(--> ' || ') { }
-    method regex-conjunction(           --> ' & ')  { }
-    method regex-sequential-conjunction(--> ' && ') { }
+    method regex-open(                  --> '/ ')  { }
+    method regex-close(                 --> '/')   { }
+    method regex-alternation(           --> '| ')  { }
+    method regex-sequential-alternation(--> '|| ') { }
+    method regex-conjunction(           --> '& ')  { }
+    method regex-sequential-conjunction(--> '&& ') { }
 
-    method regex-any(                --> '.')  { }
-    method regex-beginning-of-string(--> '^')  { }
-    method regex-end-of-string(      --> '$')  { }
-    method regex-beginning-of-line(  --> '^^') { }
-    method regex-end-of-line(        --> '$$') { }
-    method regex-left-word-boundary( --> '<<') { }
-    method regex-right-word-boundary(--> '>>') { }
+    method regex-any(                --> '.')   { }
+    method regex-beginning-of-string(--> '^ ')  { }
+    method regex-end-of-string(      --> '$ ')  { }
+    method regex-beginning-of-line(  --> '^^ ') { }
+    method regex-end-of-line(        --> '$$ ') { }
+    method regex-left-word-boundary( --> '<< ') { }
+    method regex-right-word-boundary(--> '>> ') { }
 
-    method regex-assertion-pass(--> '<?>') { }
-    method regex-assertion-fail(--> '<!>') { }
-    method regex-assertion-recurse(--> '<~~>') { }
+    method regex-assertion-pass(--> '<?> ')     { }
+    method regex-assertion-fail(--> '<!> ')     { }
+    method regex-assertion-recurse(--> '<~~> ') { }
 
     method regex-backtrack-frugal( --> '?')  { }
     method regex-backtrack-ratchet(--> ':')  { }
     method regex-backtrack-greedy( --> ':!') { }
 
-    method regex-match-from(--> '<(') { }
-    method regex-match-to(  --> ')>') { }
+    method regex-match-from(--> '<( ') { }
+    method regex-match-to(  --> ')> ') { }
 
     method before-infix(--> ' ')  { }
     method after-infix( --> ' ')  { }
@@ -1025,7 +1025,7 @@ class RakuAST::Deparse {
 #- Regex::C --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::CapturingGroup:D $ast --> Str:D) {
-        '(' ~ self.deparse($ast.regex) ~ ')'
+        self!parenthesize($ast.regex)
     }
 
 #- Regex::Charclass ------------------------------------------------------------
@@ -1157,25 +1157,25 @@ class RakuAST::Deparse {
 
     multi method deparse(
       RakuAST::Regex::InternalModifier::IgnoreCase:D $ast --> Str:D) {
-        $ast.negated ?? ':!i' !! ':i'
+        $ast.negated ?? ':!i ' !! ':i '
     }
 
     multi method deparse(
       RakuAST::Regex::InternalModifier::IgnoreMark:D $ast
     --> Str:D) {
-        $ast.negated ?? ':!m' !! ':m'
+        $ast.negated ?? ':!m ' !! ':m '
     }
 
     multi method deparse(
       RakuAST::Regex::InternalModifier::Ratchet:D $ast
     --> Str:D) {
-        $ast.negated ?? ':!r' !! ':r'
+        $ast.negated ?? ':!r ' !! ':r '
     }
 
     multi method deparse(
       RakuAST::Regex::InternalModifier::Sigspace:D $ast
     --> Str:D) {
-        $ast.negated ?? ':!s' !! ':s'
+        $ast.negated ?? ':!s ' !! ':s '
     }
 
     multi method deparse(RakuAST::Regex::Interpolation:D $ast --> Str:D) {
@@ -1204,7 +1204,7 @@ class RakuAST::Deparse {
         my str @parts = self.deparse($ast.atom), self.deparse($ast.quantifier);
 
         if $ast.separator -> $separator {
-            @parts.push($ast.trailing-separator ?? ' %% ' !! ' % ');
+            @parts.push($ast.trailing-separator ?? '%% ' !! '% ');
             @parts.push(self.deparse($separator));
         }
 
@@ -1214,7 +1214,7 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::Quantifier::BlockRange:D $ast
     --> Str:D) {
-        self!quantifier($ast, ' ** ' ~ self.deparse($ast.block))
+        self!quantifier($ast, '** ' ~ self.deparse($ast.block))
     }
 
     multi method deparse(
@@ -1226,7 +1226,7 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Regex::Quantifier::Range:D $ast --> Str:D) {
         self!quantifier(
           $ast,
-          ' ** '
+          '** '
             ~ ($ast.min.defined
                 ??  $ast.min ~ ($ast.excludes-min ?? '^' !! '') ~ '..'
                 !! '')
@@ -1264,7 +1264,7 @@ class RakuAST::Deparse {
                 nqp::istype($_,RakuAST::Regex::CharClass::BackSpace)
                   ?? ('"' ~ self.deparse($_) ~ '"')
                   !! self.deparse($_)
-            }).join(' ').subst('  ', ' ', :global)
+            }).join('')
         }
         else {
             ''
@@ -1284,7 +1284,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Statement:D $ast --> Str:D) {
-        ':' ~ self.deparse($ast.statement) ~ ';'
+        ':' ~ self.deparse($ast.statement) ~ '; '
     }
 
 #- Regex::W --------------------------------------------------------------------

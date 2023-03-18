@@ -15,7 +15,7 @@ sub ast(RakuAST::Node:D $body --> Nil) {
 }
 
 subtest 'All of the simple character classes' => {
-    # / . "\b" \r \d \e \f \h \n \0 \s \t \v \w /'
+    # / ."\b"\r\d\e\f\h\n\0\s\t\v\w/'
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Any.new,
       RakuAST::Regex::CharClass::BackSpace.new,
@@ -32,7 +32,7 @@ subtest 'All of the simple character classes' => {
       RakuAST::Regex::CharClass::Word.new,
     );
     is-deeply $deparsed,
-      '/ . "\b" \r \d \e \f \h \n \0 \s \t \v \w /',
+      '/ ."\b"\r\d\e\f\h\n\0\s\t\v\w/',
       'deparse';
 
     my $target := ".\b\r7\e\f \n\0 \t\nx";
@@ -41,7 +41,7 @@ subtest 'All of the simple character classes' => {
 }
 
 subtest 'All of the simple character classes than can be negated' => {
-    # / \R \D \E \F \H \N \S \T \V \W /'
+    # / \R\D\E\F\H\N\S\T\V\W/'
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::CarriageReturn.new(:negated),
       RakuAST::Regex::CharClass::Digit.new(:negated),
@@ -55,7 +55,7 @@ subtest 'All of the simple character classes than can be negated' => {
       RakuAST::Regex::CharClass::Word.new(:negated),
     );
     is-deeply $deparsed,
-      '/ \R \D \E \F \H \N \S \T \V \W /',
+      '/ \R\D\E\F\H\N\S\T\V\W/',
       'deparse';
 
     my $target := "abcdefghi.";
@@ -66,11 +66,11 @@ subtest 'All of the simple character classes than can be negated' => {
 subtest 'A single unicode character specified by name' => {
     my $characters = ",";
 
-    # / \c[COMMA] /'
+    # / \c[COMMA]/'
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Specified.new(:$characters)
     );
-    is-deeply $deparsed, '/ \c[COMMA] /', 'deparse';
+    is-deeply $deparsed, '/ \c[COMMA]/', 'deparse';
     
     is $characters ~~ $_, $characters, "@type[$++]: pass case"
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
@@ -79,12 +79,12 @@ subtest 'A single unicode character specified by name' => {
 subtest 'Multiple unicode characters specified by name' => {
     my $characters = "🇺🇦";
 
-    # / \c[REGIONAL INDICATOR SYMBOL LETTER U , REGIONAL INDICATOR SYMBOL LETTER A] /'
+    # / \c[REGIONAL INDICATOR SYMBOL LETTER U , REGIONAL INDICATOR SYMBOL LETTER A]/'
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Specified.new(:$characters)
     );
     is-deeply $deparsed,
-      '/ \c[REGIONAL INDICATOR SYMBOL LETTER U, REGIONAL INDICATOR SYMBOL LETTER A] /',
+      '/ \c[REGIONAL INDICATOR SYMBOL LETTER U, REGIONAL INDICATOR SYMBOL LETTER A]/',
       'deparse';
     
     is $characters ~~ $_, $characters, "@type[$++]: pass case"
@@ -94,12 +94,12 @@ subtest 'Multiple unicode characters specified by name' => {
 subtest 'Multiple unicode characters specified by name negated' => {
     my $characters = "🇺🇦";
 
-    # / \C[REGIONAL INDICATOR SYMBOL LETTER U , REGIONAL INDICATOR SYMBOL LETTER A] /'
+    # / \C[REGIONAL INDICATOR SYMBOL LETTER U , REGIONAL INDICATOR SYMBOL LETTER A]/'
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::CharClass::Specified.new(:$characters, :negated)
     );
     is-deeply $deparsed,
-      '/ \C[REGIONAL INDICATOR SYMBOL LETTER U, REGIONAL INDICATOR SYMBOL LETTER A] /',
+      '/ \C[REGIONAL INDICATOR SYMBOL LETTER U, REGIONAL INDICATOR SYMBOL LETTER A]/',
       'deparse';
     
     is "ab" ~~ $_, "a", "@type[$++]: pass case"

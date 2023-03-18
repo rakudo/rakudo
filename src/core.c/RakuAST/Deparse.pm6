@@ -1957,8 +1957,7 @@ class RakuAST::Deparse {
         if $ast.traits -> @traits {
             @parts.push(self.deparse($_)) for @traits;
         }
-        @parts.push('=');
-        @parts.push(self.deparse($ast.initializer));
+        @parts.push(self.deparse($ast.initializer).trim-leading);
 
         @parts.join(' ');
     }

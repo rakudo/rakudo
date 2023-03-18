@@ -1056,7 +1056,9 @@ subtest 'Lexical constant' => {
     ast RakuAST::Statement::Expression.new(
       expression => RakuAST::VarDeclaration::Constant.new(
         name        => "foo",
-        initializer => RakuAST::StrLiteral.new("bar")
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::StrLiteral.new("bar")
+        )
       )
     );
     is-deeply $deparsed, 'constant foo = "bar"', 'deparse';
@@ -1080,7 +1082,9 @@ subtest 'Lexical my constant' => {
       expression => RakuAST::VarDeclaration::Constant.new(
         scope       => "my",
         name        => "foo",
-        initializer => RakuAST::StrLiteral.new("bar")
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::StrLiteral.new("bar")
+        )
       )
     );
     is-deeply $deparsed, 'my constant foo = "bar"', 'deparse';
@@ -1096,7 +1100,9 @@ subtest 'Lexical my constant with expression' => {
       expression => RakuAST::VarDeclaration::Constant.new(
         scope       => "my",
         name        => "foo",
-        initializer => RakuAST::Term::Named.new("now")
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::Term::Named.new("now")
+        )
       )
     );
     is-deeply $deparsed, 'my constant foo = now', 'deparse';

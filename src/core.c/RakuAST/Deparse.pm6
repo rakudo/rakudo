@@ -806,7 +806,9 @@ class RakuAST::Deparse {
 #- Q ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::QuotedRegex:D $ast --> Str:D) {
-        ($ast.match-immediately ?? 'm' !! '')
+        my str $adverbs = $ast.adverbs.map({ self.deparse($_) }).join;
+        ($ast.match-immediately ?? 'm' !! $adverbs ?? 'rx' !! '')
+          ~ $adverbs
           ~ $.regex-open
           ~ self.deparse($ast.body)
           ~ $.regex-close

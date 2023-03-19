@@ -90,6 +90,10 @@ augment class RakuAST::Node {
         }
 
         my $special := BEGIN nqp::hash(
+          'adverbs', -> {
+              my $adverbs := nqp::decont(self.adverbs);
+              :$adverbs if $adverbs
+          },
           'args', -> {
               my $args := self.args;
               :$args if $args && $args.args
@@ -522,7 +526,7 @@ augment class RakuAST::Node {
 #- Q ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::QuotedRegex:D: --> Str:D) {
-        self!nameds: <match-immediately body>
+        self!nameds: <match-immediately body adverbs>
     }
 
     multi method raku(RakuAST::QuotedString:D: --> Str:D) {

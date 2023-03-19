@@ -445,21 +445,21 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ColonPair::False:D $ast --> Str:D) {
-        ':!' ~ $ast.named-arg-name
+        ':!' ~ $ast.key
     }
 
     multi method deparse(RakuAST::ColonPair::Number:D $ast --> Str:D) {
-        ':' ~ self.deparse($ast.value) ~ $ast.named-arg-name
+        ':' ~ self.deparse($ast.value) ~ $ast.key
     }
 
     multi method deparse(RakuAST::ColonPair::True:D $ast --> Str:D) {
-        ':' ~ $ast.named-arg-name
+        ':' ~ $ast.key
     }
 
     multi method deparse(RakuAST::ColonPair::Value:D $ast --> Str:D) {
         my $value := $ast.value;
 
-        ':' ~ $ast.named-arg-name ~ (
+        ':' ~ $ast.key ~ (
           nqp::istype($value,RakuAST::QuotedString)
             ?? self.deparse($value)
             !! $.parens-open ~ self.deparse($value) ~ $.parens-close

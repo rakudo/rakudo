@@ -122,7 +122,7 @@ class RakuAST::QuotePair
 class RakuAST::ColonPair::True
   is RakuAST::QuotePair
 {
-    method new(Str :$key!) {
+    method new(Str $key) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
         $obj
@@ -163,7 +163,7 @@ class RakuAST::ColonPair::True
 class RakuAST::ColonPair::False
   is RakuAST::QuotePair
 {
-    method new(Str :$key!) {
+    method new(Str $key) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
         $obj

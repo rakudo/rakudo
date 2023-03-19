@@ -104,8 +104,8 @@ subtest 'Simple literal substitution on variable with adverbs' => {
       infix => RakuAST::Infix.new("~~"),
       right => RakuAST::Substitution.new(
         adverbs     => [
-          RakuAST::ColonPair::True.new(:key<g>),
-          RakuAST::ColonPair::True.new(:key<i>)
+          RakuAST::ColonPair::True.new('g'),
+          RakuAST::ColonPair::True.new('i')
         ],
         pattern     => RakuAST::Regex::Literal.new("O"),
         replacement => RakuAST::QuotedString.new(

@@ -1271,10 +1271,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 self.attach: $/, self.r('ColonPair', 'Variable').new(:$key, :$value);
             }
             elsif $<neg> {
-                self.attach: $/, self.r('ColonPair', 'False').new(:$key);
+                self.attach: $/, self.r('ColonPair', 'False').new($key);
             }
             else {
-                self.attach: $/, self.r('ColonPair', 'True').new(:$key);
+                self.attach: $/, self.r('ColonPair', 'True').new($key);
             }
         }
         elsif $<fakesignature> {
@@ -2132,10 +2132,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, self.r('ColonPair', 'Value').new(:$key, :$value);
         }
         elsif $<neg> {
-            self.attach: $/, self.r('ColonPair', 'False').new(:$key);
+            self.attach: $/, self.r('ColonPair', 'False').new($key);
         }
         else {
-            self.attach: $/, self.r('ColonPair', 'True').new(:$key);
+            self.attach: $/, self.r('ColonPair', 'True').new($key);
         }
     }
 

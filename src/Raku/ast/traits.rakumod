@@ -147,7 +147,7 @@ class RakuAST::Trait::Is
             @args.push(
                 $!argument
                 ?? RakuAST::ColonPair::Value.new(:$key, :value($!argument))
-                !! RakuAST::ColonPair::True.new(:$key)
+                !! RakuAST::ColonPair::True.new($key)
             );
         }
         RakuAST::ArgList.new(|@args)

@@ -266,7 +266,7 @@ augment class RakuAST::Node {
 #- ColonPair -------------------------------------------------------------------
 
     multi method raku(RakuAST::ColonPair::False:D: --> Str:D) {
-        self!nameds: <key>
+        self!literal(self.key)
     }
 
     multi method raku(RakuAST::ColonPair::Number:D: --> Str:D) {
@@ -274,7 +274,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::ColonPair::True:D: --> Str:D) {
-        self!nameds: <key>
+        self!literal(self.key)
     }
 
     multi method raku(RakuAST::ColonPair::Value:D: --> Str:D) {

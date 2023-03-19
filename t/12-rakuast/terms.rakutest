@@ -187,7 +187,7 @@ subtest 'Capture term can be constructed with an arg list' => {
     ast RakuAST::Term::Capture.new(
       RakuAST::ArgList.new(
         RakuAST::IntLiteral.new(6),
-        RakuAST::ColonPair::True.new(key => 'x')
+        RakuAST::ColonPair::True.new('x')
       )
     );
     is-deeply $deparsed, Q/\(6, :x)/, 'deparse';

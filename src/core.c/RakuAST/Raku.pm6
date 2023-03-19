@@ -89,49 +89,62 @@ augment class RakuAST::Node {
             Pair.new($name, Rakufy-as.new(:$raku))
         }
 
+        my $special := BEGIN nqp::hash(
+          'args', -> {
+              my $args := self.args;
+              :$args if $args && $args.args
+          },
+          'backtrack', -> {
+              my $backtrack := self.backtrack;
+              as-class('backtrack', $backtrack.^name)
+                unless nqp::eqaddr($backtrack,RakuAST::Regex::Backtrack)
+          },
+          'how', -> {
+              my $how := self.how;
+              as-class('how', $how.^name.subst("Perl6::"))
+                unless nqp::eqaddr($how,self.default-how)
+          },
+          'labels', -> {
+              my $labels := nqp::decont(self.labels);
+              :$labels if $labels
+          },
+          'match-immediately', -> {
+              :match-immediately if self.match-immediately
+          },
+          'negated', -> {
+              :negated if self.negated
+          },
+          'scope', -> {
+              my $scope := self.scope;
+              :$scope if $scope ne self.default-scope
+          },
+          'signature', -> {
+              my $signature := self.signature;
+              :$signature
+                if $signature
+                && ($signature.parameters.elems || $signature.returns)
+          },
+          'slurpy', -> {
+              my $slurpy := self.slurpy;
+              as-class('slurpy', $slurpy.^name)
+                unless nqp::eqaddr($slurpy,RakuAST::Parameter::Slurpy)
+          },
+          'trailing-separator', -> {
+              :trailing-separator if self.trailing-separator
+          },
+          'traits', -> {
+              my $traits := nqp::decont(self.traits);
+              :$traits if $traits
+          }
+        );
+
         indent;
         my @pairs = @names.map: -> $method {
             if nqp::istype($method,Pair) {
                 $method
             }
-            elsif $method eq 'args' && self.args -> $args {
-                :$args if $args.args
-            }
-            elsif $method eq 'scope' {
-                my $scope := self.scope;
-                :$scope if $scope ne self.default-scope
-            }
-            elsif $method eq 'how' {
-                my $how := self.how;
-                as-class('how', $how.^name.subst("Perl6::"))
-                  unless nqp::eqaddr($how,self.default-how);
-            }
-            elsif $method eq 'backtrack' {
-                my $backtrack := self.backtrack;
-                as-class('backtrack', $backtrack.^name)
-                  unless nqp::eqaddr($backtrack,RakuAST::Regex::Backtrack)
-            }
-            elsif $method eq 'slurpy' {
-                my $slurpy := self.slurpy;
-                as-class('slurpy', $slurpy.^name)
-                  unless nqp::eqaddr($slurpy,RakuAST::Parameter::Slurpy)
-            }
-            elsif $method eq 'labels' {
-                my $labels := nqp::decont(self.labels);
-                :$labels if $labels;
-            }
-            elsif $method eq 'traits' {
-                my $traits := nqp::decont(self.traits);
-                :$traits if $traits;
-            }
-            elsif $method eq 'signature' {
-                my $signature := self.signature;
-                :$signature
-                  if $signature
-                  && ($signature.parameters.elems || $signature.returns)
-            }
-            elsif $method eq 'negated' | 'trailing-separator' {
-                $method => True if self."$method"()
+            elsif nqp::atkey($special,$method) -> &handle {
+                handle()
             }
             else {
                 my $object := self."$method"();

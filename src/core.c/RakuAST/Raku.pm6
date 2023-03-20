@@ -461,23 +461,23 @@ augment class RakuAST::Node {
         self!nameds: @nameds
     }
 
-    multi method raku(RakuAST::Parameter::Slurpy:U --> Str:D) {
+    multi method raku(RakuAST::Parameter::Slurpy:U: --> Str:D) {
         self.^name
     }
 
-    multi method raku(RakuAST::Parameter::Slurpy::Flattened:U --> Str:D) {
+    multi method raku(RakuAST::Parameter::Slurpy::Flattened:U: --> Str:D) {
         self.^name
     }
 
-    multi method raku(RakuAST::Parameter::Slurpy::SingleArgument:U --> Str:D) {
+    multi method raku(RakuAST::Parameter::Slurpy::SingleArgument:U: --> Str:D) {
         self.^name
     }
 
-    multi method raku(RakuAST::Parameter::Slurpy::Unflattened:U --> Str:D) {
+    multi method raku(RakuAST::Parameter::Slurpy::Unflattened:U: --> Str:D) {
         self.^name
     }
 
-    multi method raku(RakuAST::Parameter::Slurpy::Capture:U --> Str:D) {
+    multi method raku(RakuAST::Parameter::Slurpy::Capture:U: --> Str:D) {
         self.^name
     }
 

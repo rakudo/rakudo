@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 9;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -130,18 +130,34 @@ subtest 'parameterized type with type' => {
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
-subtest 'Type from the setting' => {
-    # Date
+subtest 'Single-part type from the setting' => {
+    # SETTING::<Date>
     ast RakuAST::Type::Setting.new(
       RakuAST::Name.from-identifier("Date")
     );
-    is-deeply $deparsed, 'Date', 'deparse';
+    is-deeply $deparsed, 'SETTING::<Date>', 'deparse';
 
     my \SETTING-Date := Date;
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my class Date { }
         todo "no actual lookup in SETTING only yet";
         is-deeply EVAL($it), SETTING-Date,
+          "$type: did we get the setting version";
+    }
+}
+
+subtest 'Multi-part type from the setting' => {
+    # SETTING::<IO>.WHO<Path>.WHO<Parts>
+    ast RakuAST::Type::Setting.new(
+      RakuAST::Name.from-identifier-parts("IO","Path","Parts")
+    );
+    is-deeply $deparsed, 'SETTING::<IO>.WHO<Path>.WHO<Parts>', 'deparse';
+
+    my \SETTING-Parts := IO::Path::Parts;
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my class IO::Path::Parts { }
+        todo "no actual lookup in SETTING only yet";
+        is-deeply EVAL($it), SETTING-Parts,
           "$type: did we get the setting version";
     }
 }

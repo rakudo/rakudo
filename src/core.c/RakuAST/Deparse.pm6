@@ -665,7 +665,7 @@ class RakuAST::Deparse {
         my str @parts;
         if $ast.type -> $type {
             my str $deparsed = self.deparse($type);
-            if $deparsed ne 'Any' {
+            if $deparsed ne 'SETTING::<Any>' {
                 @parts.push($deparsed);
                 @parts.push(' ') if $target;
             }
@@ -1851,7 +1851,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Type::Coercion:D $ast --> Str:D) {
         my str $constraint = self.deparse($ast.constraint);
-        $constraint = "" if $constraint eq 'Any';
+        $constraint = "" if $constraint eq 'SETTING::<Any>';
         self.deparse($ast.base-type) ~ "($constraint)"
     }
 
@@ -1878,7 +1878,10 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Type::Setting:D $ast --> Str:D) {
-        self.deparse($ast.name) # XXX adapt if we have syntax for Setting lookup
+        my str @parts = nqp::split('::',self.deparse($ast.name));
+        my str $root = @parts.shift;
+
+        'SETTING::<' ~ $root ~ '>' ~ @parts.map({ '.WHO<' ~ $_ ~ '>' }).join
     }
 
     multi method deparse(RakuAST::Type::Simple:D $ast --> Str:D) {

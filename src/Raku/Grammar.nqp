@@ -2219,6 +2219,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*INTERPOLATE := 1;
         :my $*IN_DECL := 'rule';
         {
+            # The %*RX<s> setting must stay for now to appease a worry
+            # from the bowels of NQP's grammar handling checking about
+            # the significance of whitespace.
             %*RX<s> := 1;
             %*RX<r> := 1;
         }
@@ -2521,6 +2524,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
+        # The %*RX<s> setting must stay for now to appease a worry
+        # from the bowels of NQP's grammar handling checking about
+        # the significance of whitespace.
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx_adverbs>
@@ -2532,9 +2538,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym=[Ss]> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        {
-            %*RX<s> := 1 if $/[0]
-        }
+        # The %*RX<s> setting must stay for now to appease a worry
+        # from the bowels of NQP's grammar handling checking about
+        # the significance of whitespace.
+        { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx_adverbs>
         <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>

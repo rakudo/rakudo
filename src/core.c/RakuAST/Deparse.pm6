@@ -182,7 +182,7 @@ class RakuAST::Deparse {
         }
 
         my $body := self.deparse($ast.body);
-        @parts.push($curlies ?? '{ ' ~ $body ~ ' }' !! $body);
+        @parts.push($curlies ?? '{ ' ~ $body ~ '}' !! $body);
 
         @parts.join(' ')
     }

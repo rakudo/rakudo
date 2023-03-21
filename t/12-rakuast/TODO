@@ -32,7 +32,6 @@ RakuAST::Regex::Backtrack::Greedy
 RakuAST::Regex::BacktrackModifiedAtom
 RakuAST::Regex::Quantifier::BlockRange
 RakuAST::Regex::SequentialConjunction
-RakuAST::RegexDeclaration
 RakuAST::RegexThunk
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::Require

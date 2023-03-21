@@ -2029,4 +2029,5 @@ class RakuAST::Regex::WithWhitespace
     method visit-children(Code $visitor) {
         $visitor($!regex);
     }
+    method whitespace-wrappable() { False }
 }

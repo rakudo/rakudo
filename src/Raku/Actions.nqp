@@ -2772,7 +2772,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method wrap-whitespace($cond, $ast) {
         nqp::chars(~$cond)
-          && nqp::istype($ast,RakuAST::Regex::Term)
+          && nqp::istype($ast,self.r('Regex','Term'))
           && $ast.whitespace-wrappable
           ?? self.r('Regex', 'WithWhitespace').new($ast)
           !! $ast

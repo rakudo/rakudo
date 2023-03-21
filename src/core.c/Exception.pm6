@@ -2087,15 +2087,14 @@ my class X::Syntax::Regex::MalformedRange does X::Syntax {
 
 my class X::Syntax::Regex::Unspace does X::Syntax {
     has $.char;
-    method message { "No unspace allowed in regex; if you meant to match the literal character, " ~
-        "please enclose in single quotes ('" ~ $.char ~ "') or use a backslashed form like \\x" ~
-        sprintf('%02x', $.char.ord)
+    method message {
+        "No unspace allowed in regex; if you meant to match the literal character, please enclose in single quotes ('$.char') or use a backslashed form like \\x&sprintf('%02x', $.char.ord).".naive-word-wrapper
     }
 }
 
 my class X::Syntax::Regex::InsignificantWhitespace does X::Syntax {
     method message {
-        "Space is not significant here; please use quotes or :s (:sigspace) modifier (or, to suppress this warning, omit the space, or otherwise change the spacing)".naive-word-wrapper
+        "Space is not significant here; please use quotes or :s (:sigspace) modifier (or, to suppress this warning, omit the space, or otherwise change the spacing).".naive-word-wrapper
     }
 }
 

@@ -2069,9 +2069,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method quote:sym<m>($/) {
-        self.attach: $/, self.r('QuotedRegex').new: :match-immediately,
-            body => $<quibble>.ast,
-            adverbs => $<rx_adverbs>.ast;
+        my @adverbs := $<rx_adverbs>.ast // nqp::list;
+        @adverbs.push(self.r('ColonPair','True').new("s"))
+          if nqp::elems($/[0]);  # handling ms//
+
+        self.attach: $/, self.r('QuotedRegex').new:
+          :match-immediately, body => $<quibble>.ast, :@adverbs;
     }
 
     method quote:sym<s>($/) {
@@ -2736,45 +2739,44 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method quantified_atom($/) {
-        my $atom := self.wrap-sigspace: $<sigmaybe>, $<atom>.ast;
+        my $atom := self.wrap-whitespace($<sigmaybe>, $<atom>.ast);
+
         if $<quantifier> {
             my $quantifier := $<quantifier>.ast;
             if $<separator> {
                 my $separator := $<separator>.ast;
                 my $trailing-separator := $<separator><septype> eq '%%';
-                self.attach: $/, self.wrap-sigspace: $<sigfinal>,
+                self.attach: $/, self.wrap-whitespace: $<sigfinal>,
                     self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier,
                         :$separator, :$trailing-separator);
             }
             else {
-                self.attach: $/, self.wrap-sigspace: $<sigfinal>,
+                self.attach: $/, self.wrap-whitespace: $<sigfinal>,
                     self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier);
             }
         }
+        # no quantifier
+        elsif $<separator> {
+            $/.panic("'" ~ $<separator><septype> ~
+                "' may only be used immediately following a quantifier");
+        }
+        elsif $<backmod> {
+            self.attach: $/, self.wrap-whitespace: $<sigfinal>,
+                self.r('Regex', 'BacktrackModifiedAtom').new:
+                    :$atom, :backtrack($<backmod>.ast);
+        }
         else {
-            if $<separator> {
-                $/.panic("'" ~ $<separator><septype> ~
-                    "' may only be used immediately following a quantifier");
-            }
-            if $<backmod> {
-                self.attach: $/, self.wrap-sigspace: $<sigfinal>,
-                    self.r('Regex', 'BacktrackModifiedAtom').new:
-                        :$atom, :backtrack($<backmod>.ast);
-            }
-            else {
-                self.attach: $/, self.wrap-sigspace: $<sigfinal>, $atom;
-            }
+            self.attach: $/, self.wrap-whitespace($<sigfinal>, $atom);
         }
     }
 
-    method wrap-sigspace($cond, $ast) {
-        $cond && $cond.ast
-            ?? self.r('Regex', 'WithSigspace').new($ast)
-            !! $ast
+    method wrap-whitespace($cond, $ast) {
+        nqp::chars(~$cond)
+          && nqp::istype($ast,RakuAST::Regex::Term)
+          && $ast.whitespace-wrappable
+          ?? self.r('Regex', 'WithWhitespace').new($ast)
+          !! $ast
     }
-
-    method sigmaybe:sym<normspace>($/) { make 0; }
-    method sigmaybe:sym<sigwhite>($/) { make 1; }
 
     method atom($/) {
         if $<metachar> {

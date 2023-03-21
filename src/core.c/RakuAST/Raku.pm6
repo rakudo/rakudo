@@ -103,6 +103,9 @@ augment class RakuAST::Node {
               as-class('backtrack', $backtrack.^name)
                 unless nqp::eqaddr($backtrack,RakuAST::Regex::Backtrack)
           },
+          'capturing', -> {
+              :capturing if self.capturing
+          },
           'how', -> {
               my $how := self.how;
               as-class('how', $how.^name.subst("Perl6::"))
@@ -876,48 +879,8 @@ augment class RakuAST::Node {
 
 #- Regex::W --------------------------------------------------------------------
 
-    multi method raku(RakuAST::Regex::WithSigspace:D: --> Str:D) {
+    multi method raku(RakuAST::Regex::WithWhitespace:D: --> Str:D) {
         self!positional(self.regex)
-    }
-
-#- Ru --------------------------------------------------------------------
-
-    multi method raku(RakuAST::RuleDeclaration:D: --> Str:D) {
-        my str @nameds = 'name';
-        @nameds.unshift("scope") if self.scope ne self.default-scope;
-        @nameds.push("signature") if self.signature.parameters-initialized;
-        @nameds.append: <traits body>;
-
-        sub remove-sigspace($node) {
-            sub skip-sigspace($node) {
-                nqp::istype($node,RakuAST::Regex::WithSigspace)
-                  ?? $node.regex
-                  !! $node
-            }
-            sub remove-sigspace-atom($node) {
-                my $new := nqp::clone($node);
-                $new.replace-atom(remove-sigspace(skip-sigspace($node.atom)));
-                $new
-            }
-
-            my @ATOMS;
-            sub unsigspace($child) {
-                my $deeper := skip-sigspace($child);
-                @ATOMS.push: nqp::istype($deeper,RakuAST::Regex::Sequence)
-                  || nqp::istype($deeper,RakuAST::Regex::Group)
-                  ?? remove-sigspace($deeper)
-                  !! nqp::istype($deeper,RakuAST::Regex::QuantifiedAtom)
-                    ?? remove-sigspace-atom($deeper)
-                    !! $deeper
-            }
-
-            $node.visit-children(&unsigspace);
-            @ATOMS ?? $node.WHAT.new(|@ATOMS) !! $node
-        }
-
-        my $self := nqp::clone(self);
-        $self.replace-body(remove-sigspace($self.body));
-        $self!nameds: @nameds
     }
 
 #- S ---------------------------------------------------------------------------

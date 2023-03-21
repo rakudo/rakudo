@@ -1804,7 +1804,11 @@ class RakuAST::RegexDeclaration
                     QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
                     QAST::Var.new( :scope('lexical'), :name('self') )
                 ),
-                $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
+                $!body.IMPL-REGEX-TOP-LEVEL-QAST(
+                  $context,
+                  self.meta-object,
+                  self.declarator eq 'rule' ?? nqp::hash("s",1) !! nqp::hash
+                )
             ), :key)
     }
 }

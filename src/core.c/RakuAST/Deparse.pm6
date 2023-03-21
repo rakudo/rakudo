@@ -1291,7 +1291,7 @@ class RakuAST::Deparse {
 
 #- Regex::W --------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Regex::WithSigspace:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Regex::WithWhitespace:D $ast --> Str:D) {
         self.deparse($ast.regex) ~ " "
     }
 

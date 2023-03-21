@@ -138,10 +138,10 @@ class RakuAST::Regex::Sequence
         my @terms;
         my @literals;
 
-        my sub handle-literals($with-sigspace) {
+        my sub handle-literals($with-whitespace) {
             my $literal := RakuAST::Regex::Literal.new(nqp::join('',@literals));
-            @terms.push($with-sigspace
-              ?? RakuAST::Regex::WithSigspace.new($literal)
+            @terms.push($with-whitespace
+              ?? RakuAST::Regex::WithWhitespace.new($literal)
               !! $literal
             );
             nqp::setelems(@literals, 0);
@@ -151,7 +151,7 @@ class RakuAST::Regex::Sequence
             if nqp::istype($_, RakuAST::Regex::Literal) {
                 @literals.push($_.text);
             }
-            elsif nqp::istype($_, RakuAST::Regex::WithSigspace) {
+            elsif nqp::istype($_, RakuAST::Regex::WithWhitespace) {
                 my $regex := $_.regex;
                 if nqp::istype($regex, RakuAST::Regex::Literal) && @literals {
                     @literals.push($regex.text);
@@ -217,7 +217,10 @@ class RakuAST::Regex::Sequence
 
 # Marker for all regex terms.
 class RakuAST::Regex::Term
-  is RakuAST::Regex { }
+  is RakuAST::Regex
+{
+    method whitespace-wrappable() { True }
+}
 
 # Marker for all regex atoms.
 class RakuAST::Regex::Atom
@@ -1704,6 +1707,7 @@ class RakuAST::Regex::InternalModifier
     }
 
     method quantifiable() { False }
+    method whitespace-wrappable() { False }
 }
 
 # The ignorecase internal modifier.
@@ -1998,24 +2002,28 @@ class RakuAST::Regex::Backtrack::Ratchet
     }
 }
 
-# A regex atom or term followed by sigspace.
-class RakuAST::Regex::WithSigspace
+# A regex atom or term followed by some whitespace
+class RakuAST::Regex::WithWhitespace
   is RakuAST::Regex::Atom
 {
     has RakuAST::Regex::Term $.regex;
 
     method new(RakuAST::Regex::Term $regex) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Regex::WithSigspace, '$!regex', $regex);
+        nqp::bindattr($obj, RakuAST::Regex::WithWhitespace, '$!regex', $regex);
         $obj
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        QAST::Regex.new: :rxtype<concat>,
-            $!regex.IMPL-REGEX-QAST($context, %mods),
-            QAST::Regex.new:
-                :rxtype<subrule>, :subtype<method>, :name<ws>,
-                QAST::NodeList.new(QAST::SVal.new( :value('ws') ))
+        my $qast := $!regex.IMPL-REGEX-QAST($context, %mods);
+        %mods<s>
+          ?? QAST::Regex.new(:rxtype<concat>,
+               $qast,
+               QAST::Regex.new:
+                 :rxtype<subrule>, :subtype<method>, :name<ws>,
+                 QAST::NodeList.new(QAST::SVal.new( :value('ws') ))
+             )
+          !! $qast
     }
 
     method visit-children(Code $visitor) {

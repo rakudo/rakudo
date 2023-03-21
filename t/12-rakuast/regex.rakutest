@@ -733,7 +733,7 @@ subtest 'Match with sigspace' => {
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Literal.new("o"),
       RakuAST::Regex::InternalModifier::Sigspace.new,
-      RakuAST::Regex::WithSigspace.new(
+      RakuAST::Regex::WithWhitespace.new(
         RakuAST::Regex::Literal.new("o")
       )
     );
@@ -745,11 +745,13 @@ subtest 'Match with sigspace' => {
 subtest 'Match without sigspace' => {
     # / o :!s o/
     ast RakuAST::Regex::Sequence.new(
-      RakuAST::Regex::Literal.new("o"),
+      RakuAST::Regex::WithWhitespace.new(
+        RakuAST::Regex::Literal.new("o")
+      ),
       RakuAST::Regex::InternalModifier::Sigspace.new(:negated),
       RakuAST::Regex::Literal.new("o")
     );
-    is-deeply $deparsed, '/ o:!s o/', 'deparse';
+    is-deeply $deparsed, '/ o :!s o/', 'deparse';
 
     match-ok "Foo", 'oo';
 }

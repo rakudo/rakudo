@@ -2223,7 +2223,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             # from the bowels of NQP's grammar handling checking about
             # the significance of whitespace.
             %*RX<s> := 1;
-            %*RX<r> := 1;
         }
         <regex_def>
     }
@@ -2233,9 +2232,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN_DECL := 'token';
-        {
-            %*RX<r> := 1;
-        }
         <regex_def>
     }
 

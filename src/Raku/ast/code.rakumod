@@ -1796,6 +1796,10 @@ class RakuAST::RegexDeclaration
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        my %mods;
+        %mods<s> := 1 if self.declarator eq 'rule';
+        %mods<r> := 1 if self.declarator ne 'regex';
+
         self.IMPL-SET-NODE(
             QAST::Stmts.new(
                 # Regex compiler wants a local named "self"
@@ -1805,9 +1809,7 @@ class RakuAST::RegexDeclaration
                     QAST::Var.new( :scope('lexical'), :name('self') )
                 ),
                 $!body.IMPL-REGEX-TOP-LEVEL-QAST(
-                  $context,
-                  self.meta-object,
-                  self.declarator eq 'rule' ?? nqp::hash("s",1) !! nqp::hash
+                  $context, self.meta-object, %mods
                 )
             ), :key)
     }

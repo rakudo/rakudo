@@ -12,18 +12,19 @@ sub ast(RakuAST::Node:D $body --> Nil) {
     $raku     := 'use experimental :rakuast; ' ~ $ast.raku;
     diag $deparsed.chomp;
 }
+my $body := RakuAST::Regex::WithWhitespace.new(
+  RakuAST::Regex::QuantifiedAtom.new(
+    atom       => RakuAST::Regex::Literal.new("a"),
+    quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+  )
+);
 
 subtest 'Simple regex declaration' => {
     # my regex aplus { a+ }
     ast RakuAST::RegexDeclaration.new(
       scope => "my",
       name  => RakuAST::Name.from-identifier("aplus"),
-      body  => RakuAST::Regex::WithWhitespace.new(
-        RakuAST::Regex::QuantifiedAtom.new(
-          atom       => RakuAST::Regex::Literal.new("a"),
-          quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
-        )
-      )
+      body  => $body
     );
     is-deeply $deparsed, 'my regex aplus { a+ }', 'deparse';
 
@@ -44,12 +45,7 @@ subtest 'Simple token declaration' => {
     ast RakuAST::TokenDeclaration.new(
       scope => "my",
       name  => RakuAST::Name.from-identifier("aplus"),
-      body  => RakuAST::Regex::WithWhitespace.new(
-        RakuAST::Regex::QuantifiedAtom.new(
-          atom       => RakuAST::Regex::Literal.new("a"),
-          quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
-        )
-      )
+      body  => $body
     );
     is-deeply $deparsed, 'my token aplus { a+ }', 'deparse';
 
@@ -70,12 +66,7 @@ subtest 'Simple rule declaration' => {
     ast RakuAST::RuleDeclaration.new(
       scope => "my",
       name  => RakuAST::Name.from-identifier("aplus"),
-      body  => RakuAST::Regex::WithWhitespace.new(
-        RakuAST::Regex::QuantifiedAtom.new(
-          atom       => RakuAST::Regex::Literal.new("a"),
-          quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
-        )
-      )
+      body  => $body
     );
     is-deeply $deparsed, 'my rule aplus { a+ }', 'deparse';
 

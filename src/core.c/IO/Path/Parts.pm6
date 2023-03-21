@@ -12,7 +12,7 @@ class IO::Path::Parts
         nqp::create(self)!SET-SELF($volume, $dirname, $basename)
     }
 
-    method raku() {
+    multi method raku(IO::Path::Parts:D:) {
         'IO::Path::Parts.new('
           ~ $!volume.raku
           ~ ','

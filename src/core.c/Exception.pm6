@@ -2093,6 +2093,12 @@ my class X::Syntax::Regex::Unspace does X::Syntax {
     }
 }
 
+my class X::Syntax::Regex::InsignificantWhitespace does X::Syntax {
+    method message {
+        "Space is not significant here; please use quotes or :s (:sigspace) modifier (or, to suppress this warning, omit the space, or otherwise change the spacing)".naive-word-wrapper
+    }
+}
+
 my class X::Syntax::Regex::Unterminated does X::Syntax {
     method message { 'Regex not terminated.' }
 }

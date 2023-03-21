@@ -2218,12 +2218,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN_DECL := 'rule';
-        {
-            # The %*RX<s> setting must stay for now to appease a worry
-            # from the bowels of NQP's grammar handling checking about
-            # the significance of whitespace.
-            %*RX<s> := 1;
-        }
+        :my $*WHITESPACE_OK := 1;
         <regex_def>
     }
 
@@ -2520,10 +2515,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        # The %*RX<s> setting must stay for now to appease a worry
-        # from the bowels of NQP's grammar handling checking about
-        # the significance of whitespace.
-        { %*RX<s> := 1 if $/[0] }
+        :my $*WHITESPACE_OK := ?$/[0];
         <.qok($/)>
         <rx_adverbs>
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
@@ -2534,10 +2526,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym=[Ss]> (s)**0..1
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        # The %*RX<s> setting must stay for now to appease a worry
-        # from the bowels of NQP's grammar handling checking about
-        # the significance of whitespace.
-        { %*RX<s> := 1 if $/[0] }
+        :my $*WHITESPACE_OK := ?$/[0];
         <.qok($/)>
         <rx_adverbs>
         <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>
@@ -4068,6 +4057,16 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
             | '(' <arglist> ')'
             ]?
         | <?sigil> <!RESTRICTED> <var=.LANG('MAIN', 'term:sym<variable>')>
+        ]
+    }
+
+    token atom {
+        # :dba('regex atom')
+        [
+        | \w
+          [ <?before ' ' \w <!before <.quantifier>>  > <!{ $*WHITESPACE_OK }> <.typed_worry('X::Syntax::Regex::InsignificantWhitespace')> ]?
+          <.SIGOK>
+        | <metachar>
         ]
     }
 

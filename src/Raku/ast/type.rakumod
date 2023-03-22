@@ -76,12 +76,18 @@ class RakuAST::Type::Simple
     }
 }
 
-# A simple type name, e.g. Int, Foo::Bar, etc. that should be looked up in the
+# A simple type name, e.g. Int, IO::Path, etc. that should be looked up in the
 # setting.
 class RakuAST::Type::Setting
   is RakuAST::Type::Simple
 {
-    # TODO limit lookup to setting
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-name-constant-in-setting(self.name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
 }
 
 class RakuAST::Type::Derived

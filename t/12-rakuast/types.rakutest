@@ -140,7 +140,6 @@ subtest 'Single-part type from the setting' => {
     my \SETTING-Date := Date;
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my class Date { }
-        todo "no actual lookup in SETTING only yet";
         is-deeply EVAL($it), SETTING-Date,
           "$type: did we get the setting version";
     }

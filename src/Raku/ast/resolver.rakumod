@@ -204,122 +204,86 @@ class RakuAST::Resolver {
         }
     }
 
-    method IMPL-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {
-        if $name.is-identifier {
-            my str $identifier := $name.canonicalize;
-            return self.global-package() if $identifier eq 'GLOBAL';
-            $setting
-                ?? self.resolve-lexical-constant-in-setting($identifier)
-                !! self.resolve-lexical-constant($identifier)
+    method IMPL-RESOLVE-NAME-CONSTANT(
+      RakuAST::Name  $constant,
+               Bool :$setting,
+               Bool :$partial,
+                str :$sigil
+    ) {
+        my @parts := nqp::clone($constant.IMPL-UNWRAP-LIST($constant.parts));
+        nqp::die('0-part name lookup not possible as a constant')
+          unless @parts;
+
+        my $root := @parts.shift;
+        # TODO pseudo-packages
+        # TODO GLOBALish fallback
+        if nqp::istype($root, RakuAST::Name::Part::Empty) {
+            return Nil;
         }
-        else {
-            # Obtain parts.
-            my @parts := $name.IMPL-UNWRAP-LIST($name.parts);
-            if nqp::elems(@parts) == 0 {
-                nqp::die('0-part name lookup not possible as a constant');
-            }
-
-            # See if we can obtain the first part lexically.
-            # TODO pseudo-packages
-            # TODO GLOBALish fallback
-            if nqp::istype(@parts[0], RakuAST::Name::Part::Empty) {
-                return Nil;
-            }
-            elsif nqp::istype(@parts[0], RakuAST::Name::Part::Expression) {
-                return Nil;
-            }
-            else {
-                my $cur-symbol;
-                if @parts[0].name eq 'EXPORT' {
-                    $cur-symbol := $!export-package;
-                }
-                else {
-                    my $first-resolved := $setting
-                        ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
-                        !! self.resolve-lexical-constant(@parts[0].name);
-                    return Nil unless $first-resolved;
-                    $cur-symbol := $first-resolved.compile-time-value;
-                }
-
-                # Now chase down through the packages until we find something.
-                my int $i := 1;
-                my int $n := nqp::elems(@parts);
-                while $i < $n {
-                    my %hash := self.IMPL-STASH-HASH($cur-symbol);
-                    my $name := nqp::istype(@parts[$i], RakuAST::Name::Part::Simple)
-                        ?? @parts[$i].name
-                        !! '';
-                    $cur-symbol := nqp::atkey(%hash, $i < $n - 1 ?? $name !! $sigil ~ $name);
-                    return Nil if nqp::isnull($cur-symbol);
-                    $i++;
-                }
-
-                # Wrap it.
-                RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $cur-symbol)
-            }
+        elsif nqp::istype($root, RakuAST::Name::Part::Expression) {
+            return Nil;
         }
+
+        # Resolve the root part.
+        my $name     := $root.name;
+        my $resolved := $name eq 'GLOBAL'
+          ?? self.global-package()
+          !! $name eq 'EXPORT'
+            ?? RakuAST::Declaration::ResolvedConstant.new(
+                 compile-time-value => $!export-package
+               )
+            !! $setting
+              ?? self.resolve-lexical-constant-in-setting($name)
+              !! self.resolve-lexical-constant($name);
+        $resolved
+          ?? (my $symbol := $resolved.compile-time-value)
+          !! (return Nil);
+
+        # Other parts to resolve.
+        if @parts {
+            # Chase down through the packages until we find something.
+            while @parts {
+                my $part := @parts.shift;
+                $name    := nqp::istype($part,RakuAST::Name::Part::Simple)
+                  ?? $part.name
+                  !! '';
+
+                # Add any sigil for last iteration
+                $name := $sigil ~ $name unless @parts;
+
+                # Lookup in the current symbol's stash
+                my $next := nqp::atkey(self.IMPL-STASH-HASH($symbol),$name);
+                if nqp::isnull($next) {
+                    if $partial {
+                        # put the symbol we failed to resolve back into the list
+                        nqp::unshift(@parts, $part);
+                        return ($symbol, $constant.IMPL-WRAP-LIST(@parts));
+                    }
+                    else {
+                        return Nil
+                    }
+                }
+                $symbol := $next;
+            }
+
+            # Wrap it.
+            $resolved := RakuAST::Declaration::ResolvedConstant.new(
+              compile-time-value => $symbol
+            );
+        }
+
+        $partial ?? ($symbol, List.new) !! $resolved
     }
 
     # Resolve a RakuAST::Name to a constant.
     method partially-resolve-name-constant(RakuAST::Name $name, str :$sigil) {
-        self.IMPL-PARTIALLY-RESOLVE-NAME-CONSTANT($name, :$sigil)
-    }
-
-    method IMPL-PARTIALLY-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting, str :$sigil) {
-        if $name.is-identifier {
-            my str $identifier := $name.canonicalize;
-            my $constant := $setting
-                ?? self.resolve-lexical-constant-in-setting($identifier)
-                !! self.resolve-lexical-constant($identifier);
-            $constant ?? ($constant.compile-time-value, List.new) !! Nil
-        }
-        else {
-            # Obtain parts.
-            my @parts := $name.IMPL-UNWRAP-LIST($name.parts);
-            if nqp::elems(@parts) == 0 {
-                nqp::die('0-part name lookup not possible as a constant');
-            }
-
-            # See if we can obtain the first part lexically.
-            # TODO pseudo-packages
-            # TODO GLOBALish fallback
-            my $cur-symbol;
-            @parts := nqp::clone(@parts); # make manipulations safe
-            my $first := nqp::shift(@parts);
-            if $first.name eq 'EXPORT' {
-                $cur-symbol := $!export-package;
-            }
-            else {
-                my $first-resolved := $setting
-                    ?? self.resolve-lexical-constant-in-setting($first.name)
-                    !! self.resolve-lexical-constant($first.name);
-                return Nil unless $first-resolved;
-                $cur-symbol := $first-resolved.compile-time-value;
-            }
-
-            # Now chase down through the packages until we find something.
-            while @parts {
-                my $part := nqp::shift(@parts);
-                my %hash := self.IMPL-STASH-HASH($cur-symbol);
-                my $name-part := $part.name;
-                my $next-symbol := nqp::atkey(%hash, @parts ?? $name-part !! $sigil ~ $name-part);
-                if nqp::isnull($next-symbol) {
-                    nqp::unshift(@parts, $part); # put the symbol we failed to resolve back into the list
-                    return ($cur-symbol, $name.IMPL-WRAP-LIST(@parts));
-                }
-                $cur-symbol := $next-symbol;
-            }
-
-            ($cur-symbol, List.new)
-        }
+        self.IMPL-RESOLVE-NAME-CONSTANT($name, :$sigil, :partial)
     }
 
     method IMPL-STASH-HASH(Mu $pkg) {
-        my $hash := $pkg.WHO;
-        unless nqp::ishash($hash) {
-            $hash := $hash.FLATTENABLE_HASH();
-        }
-        $hash
+        nqp::ishash(my $hash := $pkg.WHO)
+          ?? $hash
+          !! $hash.FLATTENABLE_HASH()
     }
 
     # Resolves a lexical in the chain of outer contexts.

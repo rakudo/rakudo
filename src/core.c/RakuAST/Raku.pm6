@@ -226,31 +226,8 @@ augment class RakuAST::Node {
 
 #- Call ------------------------------------------------------------------------
 
-    multi method raku(RakuAST::Call::MaybeMethod:D: --> Str:D) {
-        self!nameds: <name args>
-    }
-
-    multi method raku(RakuAST::Call::MetaMethod:D: --> Str:D) {
-        self!nameds: <name args>
-    }
-
-    multi method raku(RakuAST::Call::Method:D: --> Str:D) {
-        self!nameds: <name args>
-    }
-
-    multi method raku(RakuAST::Call::PrivateMethod:D: --> Str:D) {
-        self!nameds: <name args>
-    }
-
-    multi method raku(RakuAST::Call::QuotedMethod:D: --> Str:D) {
-        self!nameds: <name args>
-    }
-
-    multi method raku(RakuAST::Call::VarMethod:D: --> Str:D) {
-        self!nameds: <name args>
-    }
-
-    multi method raku(RakuAST::Call::Name:D: --> Str:D) {
+    # Generic RakuAST::Call::xxx handler
+    multi method raku(RakuAST::Call:D: --> Str:D) {
         self!nameds: <name args>
     }
 
@@ -373,7 +350,7 @@ augment class RakuAST::Node {
 
 #- M ---------------------------------------------------------------------------
 
-    # Generic handling of all other MetaInfix ops
+    # Generic handling of all other RakuAST::MetaInfix::xxx classes
     multi method raku(RakuAST::MetaInfix:D: --> Str:D) {
         self!positional(self.infix)
     }
@@ -471,23 +448,8 @@ augment class RakuAST::Node {
         self!nameds: @nameds
     }
 
+    # Generic handler for all RakuAST::Paramete::Slurpy::xxx classes
     multi method raku(RakuAST::Parameter::Slurpy:U: --> Str:D) {
-        self.^name
-    }
-
-    multi method raku(RakuAST::Parameter::Slurpy::Flattened:U: --> Str:D) {
-        self.^name
-    }
-
-    multi method raku(RakuAST::Parameter::Slurpy::SingleArgument:U: --> Str:D) {
-        self.^name
-    }
-
-    multi method raku(RakuAST::Parameter::Slurpy::Unflattened:U: --> Str:D) {
-        self.^name
-    }
-
-    multi method raku(RakuAST::Parameter::Slurpy::Capture:U: --> Str:D) {
         self.^name
     }
 
@@ -564,27 +526,8 @@ augment class RakuAST::Node {
 
 #- Regex -----------------------------------------------------------------------
 
-    multi method raku(RakuAST::Regex::Anchor::BeginningOfString:D: --> Str:D) {
-        self!none
-    }
-
-    multi method raku(RakuAST::Regex::Anchor::EndOfString:D: --> Str:D) {
-        self!none
-    }
-
-    multi method raku(RakuAST::Regex::Anchor::BeginningOfLine:D: --> Str:D) {
-        self!none
-    }
-
-    multi method raku(RakuAST::Regex::Anchor::EndOfLine:D: --> Str:D) {
-        self!none
-    }
-
-    multi method raku(RakuAST::Regex::Anchor::LeftWordBoundary:D: --> Str:D) {
-        self!none
-    }
-
-    multi method raku(RakuAST::Regex::Anchor::RightWordBoundary:D: --> Str:D) {
+    # Generic handling of all RakuAST::Regex::Anchor::xxx classes
+    multi method raku(RakuAST::Regex::Anchor:D: --> Str:D) {
         self!none
     }
 
@@ -661,19 +604,8 @@ augment class RakuAST::Node {
         self!positional(self.name)
     }
 
+    # Generix handling of all RakuAST::Regex::Backtrack::xxx classes
     multi method raku(RakuAST::Regex::Backtrack:U: --> Str:D) {
-        self.^name
-    }
-
-    multi method raku(RakuAST::Regex::Backtrack::Frugal:U: --> Str:D) {
-        self.^name
-    }
-
-    multi method raku(RakuAST::Regex::Backtrack::Greedy:U: --> Str:D) {
-        self.^name
-    }
-
-    multi method raku(RakuAST::Regex::Backtrack::Ratchet:U: --> Str:D) {
         self.^name
     }
 
@@ -693,60 +625,21 @@ augment class RakuAST::Node {
 
 #- Regex::Charclass ------------------------------------------------------------
 
+    # Generic handler for most RakuAST::Regex::CharClass::xxx classes
+    multi method raku(RakuAST::Regex::CharClass:D: --> Str:D) {
+        self!nameds: <negated>
+    }
+
     multi method raku(RakuAST::Regex::CharClass::Any:D: --> Str:D) {
         self!none
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::BackSpace:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::CarriageReturn:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::Digit:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::Escape:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::FormFeed:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::HorizontalSpace:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::Newline:D: --> Str:D) {
-        self!nameds: <negated>
     }
 
     multi method raku(RakuAST::Regex::CharClass::Nul:D: --> Str:D) {
         self!none
     }
 
-    multi method raku(RakuAST::Regex::CharClass::Space:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
     multi method raku(RakuAST::Regex::CharClass::Specified:D: --> Str:D) {
         self!nameds: <negated characters>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::Tab:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::VerticalSpace:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(RakuAST::Regex::CharClass::Word:D: --> Str:D) {
-        self!nameds: <negated>
     }
 
     multi method raku(
@@ -796,23 +689,8 @@ augment class RakuAST::Node {
 
 #- Regex::I --------------------------------------------------------------------
 
-    multi method raku(
-      RakuAST::Regex::InternalModifier::IgnoreCase:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(
-      RakuAST::Regex::InternalModifier::IgnoreMark:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(
-      RakuAST::Regex::InternalModifier::Ratchet:D: --> Str:D) {
-        self!nameds: <negated>
-    }
-
-    multi method raku(
-      RakuAST::Regex::InternalModifier::Sigspace:D: --> Str:D) {
+    # Generic handler for all RakuAST::Regex::InternalModifier::xxx classes
+    multi method raku( RakuAST::Regex::InternalModifier:D: --> Str:D) {
         self!nameds: <negated>
     }
 
@@ -980,15 +858,8 @@ augment class RakuAST::Node {
 
 #- Statement::Modifier ---------------------------------------------------------
 
-    multi method raku(RakuAST::StatementModifier::Given:D: --> Str:D) {
-        self!positional(self.expression)
-    }
-
-    multi method raku(RakuAST::StatementModifier::If:D: --> Str:D) {
-        self!positional(self.expression)
-    }
-
-    multi method raku( RakuAST::StatementModifier::For:D: --> Str:D) {
+    # Generic handler for most RakuAST::StatementModifier::xxx classes
+    multi method raku(RakuAST::StatementModifier:D: --> Str:D) {
         self!positional(self.expression)
     }
 
@@ -996,89 +867,10 @@ augment class RakuAST::Node {
         self!none
     }
 
-    multi method raku(RakuAST::StatementModifier::Unless:D: --> Str:D) {
-        self!positional(self.expression)
-    }
-
-    multi method raku(RakuAST::StatementModifier::Until:D: --> Str:D) {
-        self!positional(self.expression)
-    }
-
-    multi method raku(RakuAST::StatementModifier::When:D: --> Str:D) {
-        self!positional(self.expression)
-    }
-
-    multi method raku(RakuAST::StatementModifier::While:D: --> Str:D) {
-        self!positional(self.expression)
-    }
-
-    multi method raku(RakuAST::StatementModifier::With:D: --> Str:D) {
-        self!positional(self.expression)
-    }
-
-    multi method raku(RakuAST::StatementModifier::Without:D: --> Str:D) {
-        self!positional(self.expression)
-    }
-
 #- Statement::Prefix -----------------------------------------------------------
 
-    multi method raku(RakuAST::StatementPrefix::Do:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Eager:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Gather:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Hyper:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Lazy:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Begin:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Close:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::End:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::First:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Last:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Enter:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Init:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Keep:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Leave:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Next:D: --> Str:D) {
+    # Generic handler for most RakuAST::StatementPrefix::xxx classes
+    multi method raku(RakuAST::StatementPrefix:D: --> Str:D) {
         self!positional(self.blorst)
     }
 
@@ -1093,30 +885,6 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::StatementPrefix::Phaser::Pre:D: --> Str:D) {
         # skip the auto-generated code
         self!positional(self.blorst.condition-modifier.expression)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Quit:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Phaser::Undo:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Quietly:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Race:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Start:D: --> Str:D) {
-        self!positional(self.blorst)
-    }
-
-    multi method raku(RakuAST::StatementPrefix::Try:D: --> Str:D) {
-        self!positional(self.blorst)
     }
 
 #- Str -------------------------------------------------------------------------
@@ -1159,16 +927,13 @@ augment class RakuAST::Node {
 
 #- Term ------------------------------------------------------------------------
 
+    # Generic handler for some RakuAST::Term::xxx classes
+    multi method raku(RakuAST::Term:D: --> Str:D) {
+        self!none
+    }
+
     multi method raku(RakuAST::Term::Capture:D: --> Str:D) {
         self!positional(self.source)
-    }
-
-    multi method raku(RakuAST::Term::EmptySet:D: --> Str:D) {
-        self!none
-    }
-
-    multi method raku(RakuAST::Term::HyperWhatever:D: --> Str:D) {
-        self!none
     }
 
     multi method raku(RakuAST::Term::Name:D: --> Str:D) {
@@ -1179,10 +944,6 @@ augment class RakuAST::Node {
         self!literal(self.name)
     }
 
-    multi method raku(RakuAST::Term::Rand:D: --> Str:D) {
-        self!none
-    }
-
     multi method raku(RakuAST::Term::RadixNumber:D: --> Str:D) {
         self!nameds: <radix multi-part value>
     }
@@ -1191,16 +952,8 @@ augment class RakuAST::Node {
         self!nameds: <triangle infix args>
     }
 
-    multi method raku(RakuAST::Term::Self:D: --> Str:D) {
-        self!none
-    }
-
     multi method raku(RakuAST::Term::TopicCall:D: --> Str:D) {
         self!positional(self.call)
-    }
-
-    multi method raku(RakuAST::Term::Whatever:D: --> Str:D) {
-        self!none
     }
 
 #- Ternary ---------------------------------------------------------------------
@@ -1211,24 +964,13 @@ augment class RakuAST::Node {
 
 #- Trait -----------------------------------------------------------------------
 
+    # Generic handler for most RakuAST::Trait::xxx classes
+    multi method raku(RakuAST::Trait:D: --> Str:D) {
+        self!positional(self.type)
+    }
+
     multi method raku(RakuAST::Trait::Is:D: --> Str:D) {
         self!nameds: <name argument>
-    }
-
-    multi method raku(RakuAST::Trait::Hides:D: --> Str:D) {
-        self!positional(self.type)
-    }
-
-    multi method raku(RakuAST::Trait::Does:D: --> Str:D) {
-        self!positional(self.type)
-    }
-
-    multi method raku(RakuAST::Trait::Of:D: --> Str:D) {
-        self!positional(self.type)
-    }
-
-    multi method raku(RakuAST::Trait::Returns:D: --> Str:D) {
-        self!positional(self.type)
     }
 
 #- Type ------------------------------------------------------------------------

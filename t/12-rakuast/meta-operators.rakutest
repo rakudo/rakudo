@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 5;
+plan 6;
 
 my $ast;
 my $deparsed;
@@ -32,6 +32,21 @@ subtest 'Assignment meta-op evaluates to expected value' => {
         is-deeply $a, $expected, "$type: Really did mutate the variable";
         $expected += 3;
     }
+}
+
+subtest 'Reverse meta-op evaluates to expected value' => {
+    # 42 R- 666
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::IntLiteral.new(42),
+      infix => RakuAST::MetaInfix::Reverse.new(
+        RakuAST::Infix.new("-")
+      ),
+      right => RakuAST::IntLiteral.new(666)
+    );
+
+    is-deeply $deparsed, '42 R- 666', 'deparse';
+    is-deeply $_, 624, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {

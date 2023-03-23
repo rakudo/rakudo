@@ -580,6 +580,10 @@ class RakuAST::Deparse {
         self.deparse($ast.infix) ~ '!'
     }
 
+    multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {
+        'R' ~ self.deparse($ast.infix)
+    }
+
     multi method deparse(RakuAST::Method:D $ast --> Str:D) {
         self!method($ast, 'method')
     }

@@ -375,6 +375,10 @@ augment class RakuAST::Node {
         self!positional(self.infix)
     }
 
+    multi method raku(RakuAST::MetaInfix::Reverse:D: --> Str:D) {
+        self!positional(self.infix)
+    }
+
     multi method raku(RakuAST::Method:D: --> Str:D) {
         my str @nameds = 'name';
         @nameds.unshift("multiness") if self.multiness;

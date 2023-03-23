@@ -24,7 +24,6 @@ RakuAST::ParameterDefaultThunk
 RakuAST::QuoteWordsAtom
 RakuAST::Regex::Assertion::Callable
 RakuAST::Regex::Assertion::Named::Args
-RakuAST::Regex::Backtrack::Greedy
 RakuAST::Regex::BacktrackModifiedAtom
 RakuAST::Regex::Quantifier::BlockRange
 RakuAST::Regex::SequentialConjunction

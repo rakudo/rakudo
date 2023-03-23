@@ -352,8 +352,6 @@ subtest 'Quantified built-in character class matches (frugal mode)' => {
     );
     is-deeply $deparsed, '/ \d+?/', 'deparse';
 
-say $raku;
-
     match-ok "99cents", "9";
 }
 
@@ -371,16 +369,18 @@ subtest 'Quantified negated built-in character class matches (frugal mode)' => {
 }
 
 subtest 'Greedy quantifier will backtrack' => {
-    # / ^ \d+9/
+    # / ^ \d+!9/
     ast RakuAST::Regex::Sequence.new(
       RakuAST::Regex::Anchor::BeginningOfString.new,
       RakuAST::Regex::QuantifiedAtom.new(
         atom => RakuAST::Regex::CharClass::Digit.new,
-        quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+        quantifier => RakuAST::Regex::Quantifier::OneOrMore.new(
+          backtrack => RakuAST::Regex::Backtrack::Greedy
+        )
       ),
       RakuAST::Regex::Literal.new('9')
     );
-    is-deeply $deparsed, '/ ^ \d+9/', 'deparse';
+    is-deeply $deparsed, '/ ^ \d+!9/', 'deparse';
 
     match-ok "99cents", '99';
 }

@@ -60,9 +60,9 @@ class RakuAST::Deparse {
     method regex-assertion-fail(--> '<!> ')     { }
     method regex-assertion-recurse(--> '<~~> ') { }
 
-    method regex-backtrack-frugal( --> '?')  { }
-    method regex-backtrack-ratchet(--> ':')  { }
-    method regex-backtrack-greedy( --> ':!') { }
+    method regex-backtrack-frugal( --> '?') { }
+    method regex-backtrack-ratchet(--> ':') { }
+    method regex-backtrack-greedy( --> '!') { }
 
     method regex-match-from(--> '<( ') { }
     method regex-match-to(  --> ')> ') { }

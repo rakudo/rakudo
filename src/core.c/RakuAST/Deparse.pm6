@@ -661,9 +661,10 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Parameter:D $ast --> Str:D) {
         return .raku with $ast.value;
 
-        my $target := $ast.target;
+        my $target   := $ast.target;
+        my @captures := $ast.type-captures;
         my str @parts;
-        if $ast.type -> $type {
+        if !@captures && $ast.type -> $type {
             my str $deparsed = self.deparse($type);
             if $deparsed ne 'SETTING::<Any>' {
                 @parts.push($deparsed);
@@ -671,7 +672,10 @@ class RakuAST::Deparse {
             }
         }
 
-        if $target {
+        if $ast.type-captures -> @captures {
+            @parts.push(self.deparse($_)) for @captures;
+        }
+        elsif $target {
             my str $var = self.deparse($target, :slurpy($ast.slurpy));
 
             # named parameter
@@ -1848,6 +1852,10 @@ class RakuAST::Deparse {
     }
 
 #- Type ------------------------------------------------------------------------
+
+    multi method deparse(RakuAST::Type::Capture:D $ast --> Str:D) {
+        '::' ~ self.deparse($ast.name)
+    }
 
     multi method deparse(RakuAST::Type::Coercion:D $ast --> Str:D) {
         my str $constraint = self.deparse($ast.constraint);

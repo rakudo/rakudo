@@ -38,7 +38,6 @@ RakuAST::Statement::Require
 RakuAST::SubstitutionReplacementThunk
 RakuAST::Trait::Hides
 RakuAST::TraitTarget::Variable
-RakuAST::Type::Capture
 RakuAST::UndeclaredSymbolDescription
 RakuAST::UndeclaredSymbolDescription::Routine
 RakuAST::Var::Lexical::Setting

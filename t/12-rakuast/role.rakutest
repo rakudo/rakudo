@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 5;
+plan 6;
 
 my $ast;
 my $deparsed;
@@ -191,6 +191,82 @@ subtest 'creating a parameterized role' => {
         my $one := $role.^parameterize(666).new;
         isa-ok $one, $role, "$type: does the role auto-pun (2)";
         is-deeply $one.a, 666, "$type: did the value get set";
+    }
+}
+
+subtest 'creating a parameterized role with a type capture' => {
+    # my role E[::T] { method a (T:D $a) { $a } }
+    ast RakuAST::Package.new(
+      scope      => 'my',
+      declarator => 'role',
+      name       => RakuAST::Name.from-identifier('E'),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name      => RakuAST::Name.from-identifier("a"),
+                signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      type => RakuAST::Type::Definedness.new(
+                        base-type => RakuAST::Type::Simple.new(
+                          RakuAST::Name.from-identifier("T")
+                        ),
+                        definite  => True
+                      ),
+                      target => RakuAST::ParameterTarget::Var.new("\$a")
+                    ),
+                  )
+                ),
+                body      => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Var::Lexical.new("\$a")
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      parameterization => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            type-captures => (
+              RakuAST::Type::Capture.new(
+                RakuAST::Name.from-identifier("T")
+              ),
+            ),
+            default       => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier("Str")
+            )
+          ),
+        )
+      )
+    );
+    is-deeply
+      $deparsed,
+      'my role E[::T = Str] { method a (T:D $a) { $a } }',
+      'deparsed';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $role := EVAL($it);
+        is $role.^name, 'E', "$type: role gets correct name";
+        is-deeply $role.^roles, (), "$type: can we see the roles it does";
+        my $none := $role.new;
+        isa-ok $none, $role, "$type: does the role auto-pun (1)";
+        is-deeply $none.a("foo"), "foo", "$type: value returned (1)";
+        todo ":D not yet being applied in type check";
+        dies-ok { $none.a(Str) }, "$type: does uninstantiated type die (1)";
+        dies-ok { $none.a(666) }, "$type: does incorrect type die (1)";
+        my $one := $role.^parameterize(Int).new;
+        isa-ok $one, $role, "$type: does the role auto-pun (2)";
+        is-deeply $one.a(42), 42, "$type: value returned (2)";
+        todo ":D not yet being applied in type check";
+        dies-ok { $one.a(Int) }, "$type: does uninstantiated type die (2)";
+        dies-ok { $one.a("foo") }, "$type: does incorrect type die (2)";
     }
 }
 

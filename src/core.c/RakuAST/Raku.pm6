@@ -1226,6 +1226,10 @@ augment class RakuAST::Node {
 
 #- Type ------------------------------------------------------------------------
 
+    multi method raku(RakuAST::Type::Capture:D: --> Str:D) {
+        self!positional(self.name)
+    }
+
     multi method raku(RakuAST::Type::Coercion:D: --> Str:D) {
         self!nameds: (try self.constraint.name.canonicalize eq 'Any')
           ?? <base-type>

@@ -367,19 +367,7 @@ augment class RakuAST::Node {
 
 #- M ---------------------------------------------------------------------------
 
-    multi method raku(RakuAST::MetaInfix::Assign:D: --> Str:D) {
-        self!positional(self.infix)
-    }
-
-    multi method raku(RakuAST::MetaInfix::Negate:D: --> Str:D) {
-        self!positional(self.infix)
-    }
-
-    multi method raku(RakuAST::MetaInfix::Reverse:D: --> Str:D) {
-        self!positional(self.infix)
-    }
-
-    multi method raku(RakuAST::MetaInfix::Zip:D: --> Str:D) {
+    multi method raku(RakuAST::MetaInfix:D: --> Str:D) {
         self!positional(self.infix)
     }
 

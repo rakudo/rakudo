@@ -579,6 +579,10 @@ class RakuAST::Deparse {
         self.deparse($ast.infix) ~ '='
     }
 
+    multi method deparse(RakuAST::MetaInfix::Cross:D $ast --> Str:D) {
+        'X' ~ self.deparse($ast.infix)
+    }
+
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
         self.deparse($ast.infix) ~ '!'
     }

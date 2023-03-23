@@ -7,13 +7,10 @@ to create a test for a given class in this list, please remove that class from
 this list and explain in the commit message why it is not possible to create
 a test for that class.
 
-RakuAST::BlockThunk
 RakuAST::BracketedInfix
 RakuAST::Categorical
-RakuAST::CheckTime
 RakuAST::ContainerCreator
 RakuAST::CurryThunk
-RakuAST::Declaration
 RakuAST::Declaration::External
 RakuAST::Declaration::External::Constant
 RakuAST::Declaration::Import
@@ -25,14 +22,12 @@ RakuAST::Origin::Match
 RakuAST::Origin::Source
 RakuAST::ParameterDefaultThunk
 RakuAST::QuoteWordsAtom
-RakuAST::QuotedMatchConstruct
 RakuAST::Regex::Assertion::Callable
 RakuAST::Regex::Assertion::Named::Args
 RakuAST::Regex::Backtrack::Greedy
 RakuAST::Regex::BacktrackModifiedAtom
 RakuAST::Regex::Quantifier::BlockRange
 RakuAST::Regex::SequentialConjunction
-RakuAST::RegexThunk
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::Require
 RakuAST::SubstitutionReplacementThunk

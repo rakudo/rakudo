@@ -329,9 +329,12 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyListInfix:D $ast --> Str:D) {
-        my str $operator = $ast.infix.operator;
-        my str @parts    = $ast.operands.map({ self.deparse($_) });
+        my $infix       := $ast.infix;
+        my str $operator = nqp::istype($infix,RakuAST::MetaInfix)
+          ?? (' ' ~ self.deparse($infix))
+          !! $infix.operator;
 
+        my str @parts = $ast.operands.map({ self.deparse($_) });
         @parts
           ?? $operator eq ','
             ?? @parts == 1
@@ -582,6 +585,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {
         'R' ~ self.deparse($ast.infix)
+    }
+
+    multi method deparse(RakuAST::MetaInfix::Zip:D $ast --> Str:D) {
+        'Z' ~ self.deparse($ast.infix)
     }
 
     multi method deparse(RakuAST::Method:D $ast --> Str:D) {

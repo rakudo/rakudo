@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 6;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -46,6 +46,47 @@ subtest 'Reverse meta-op evaluates to expected value' => {
 
     is-deeply $deparsed, '42 R- 666', 'deparse';
     is-deeply $_, 624, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Zip meta-op evaluates to expected value' => {
+    # (1, 2) Z== (1, 3)
+    ast RakuAST::ApplyListInfix.new(
+      infix    => RakuAST::MetaInfix::Zip.new(
+        RakuAST::Infix.new("==")
+      ),
+      operands => (
+        RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(","),
+                operands => (
+                  RakuAST::IntLiteral.new(1),
+                  RakuAST::IntLiteral.new(2),
+                )
+              )
+            )
+          )
+        ),
+        RakuAST::Circumfix::Parentheses.new(
+          RakuAST::SemiList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(","),
+                operands => (
+                  RakuAST::IntLiteral.new(1),
+                  RakuAST::IntLiteral.new(3),
+                )
+              )
+            )
+          )
+        ),
+      )
+    );
+
+    is-deeply $deparsed, '(1, 2) Z== (1, 3)', 'deparse';
+    is-deeply $_, (True, False), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

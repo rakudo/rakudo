@@ -365,9 +365,13 @@ class RakuAST::Infix
     }
 }
 
+# Meta infixes base class, mostly for type checking
+class RakuAST::MetaInfix
+  is RakuAST::Infixish { }
+
 # An assign meta-operator, operator on another infix.
 class RakuAST::MetaInfix::Assign
-  is RakuAST::Infixish
+  is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
 
@@ -494,7 +498,7 @@ class RakuAST::FunctionInfix
 
 # A negate meta-operator.
 class RakuAST::MetaInfix::Negate
-  is RakuAST::Infixish
+  is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
 
@@ -530,7 +534,7 @@ class RakuAST::MetaInfix::Negate
 
 # A reverse meta-operator.
 class RakuAST::MetaInfix::Reverse
-  is RakuAST::Infixish
+  is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
 
@@ -557,7 +561,7 @@ class RakuAST::MetaInfix::Reverse
 
 # A cross meta-operator.
 class RakuAST::MetaInfix::Cross
-  is RakuAST::Infixish
+  is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
 
@@ -589,7 +593,7 @@ class RakuAST::MetaInfix::Cross
 
 # A zip meta-operator.
 class RakuAST::MetaInfix::Zip
-  is RakuAST::Infixish
+  is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
 
@@ -621,7 +625,7 @@ class RakuAST::MetaInfix::Zip
 
 # An infix hyper operator.
 class RakuAST::MetaInfix::Hyper
-  is RakuAST::Infixish
+  is RakuAST::MetaInfix
 {
     has RakuAST::Infixish $.infix;
     has Bool $.dwim-left;

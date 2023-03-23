@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -87,6 +87,34 @@ subtest 'Cross meta-op evaluates to expected value' => {
 
     is-deeply $deparsed, '(1, 2) X+ (1, 3)', 'deparse';
     is-deeply $_, (2,4,3,5), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Hyper meta-op evaluates to expected value' => {
+    # (1, 2) >>+>> (1, 3)
+    ast RakuAST::ApplyInfix.new(
+      left  => RakuAST::Circumfix::Parentheses.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyListInfix.new(
+              infix    => RakuAST::Infix.new(","),
+              operands => (
+                RakuAST::IntLiteral.new(1),
+                RakuAST::IntLiteral.new(2),
+              )
+            )
+          )
+        )
+      ),
+      infix => RakuAST::MetaInfix::Hyper.new(
+        infix      => RakuAST::Infix.new("+"),
+        dwim-right => True
+      ),
+      right => RakuAST::IntLiteral.new(1)
+    );
+
+    is-deeply $deparsed, '(1, 2) >>+>> 1', 'deparse';
+    is-deeply $_, (2,3), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

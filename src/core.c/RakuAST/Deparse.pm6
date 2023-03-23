@@ -583,6 +583,12 @@ class RakuAST::Deparse {
         'X' ~ self.deparse($ast.infix)
     }
 
+    multi method deparse(RakuAST::MetaInfix::Hyper:D $ast --> Str:D) {
+        ($ast.dwim-left ?? '<<' !! '>>')
+          ~ self.deparse($ast.infix)
+          ~ ($ast.dwim-right ?? '>>' !! '<<')
+    }
+
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
         self.deparse($ast.infix) ~ '!'
     }

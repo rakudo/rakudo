@@ -106,6 +106,12 @@ augment class RakuAST::Node {
           'capturing', -> {
               :capturing if self.capturing
           },
+          'dwim-left', -> {
+              :dwim-left if self.dwim-left
+          },
+          'dwim-right', -> {
+              :dwim-right if self.dwim-right
+          },
           'how', -> {
               my $how := self.how;
               as-class('how', $how.^name.subst("Perl6::"))
@@ -367,8 +373,13 @@ augment class RakuAST::Node {
 
 #- M ---------------------------------------------------------------------------
 
+    # Generic handling of all other MetaInfix ops
     multi method raku(RakuAST::MetaInfix:D: --> Str:D) {
         self!positional(self.infix)
+    }
+
+    multi method raku(RakuAST::MetaInfix::Hyper:D: --> Str:D) {
+        self!nameds: <dwim-left infix dwim-right>
     }
 
     multi method raku(RakuAST::Method:D: --> Str:D) {

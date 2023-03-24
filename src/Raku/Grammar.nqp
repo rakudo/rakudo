@@ -457,19 +457,11 @@ role Raku::Common {
 
     method check_variable($var) {
         my $ast := $var.ast;
-        if $ast ~~ self.actions.r('Var', 'Lexical') {
+        if nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT) {
             $ast.resolve-with($*R);
-            unless $ast.is-resolved || $ast.sigil eq '&' {
-                my str $name := $var.ast.name;
-                $*LANG.pragma("strict")
-                  ?? self.typed_panic('X::Undeclared',
-                       symbol => $name, is-compile-time => 1
-                     )
-                  !! self.actions.r('VarDeclaration','Simple').new(
-                       scope => 'our', name => $name
-                     ).resolve-with($*R)
-
-            }
+            self.typed_panic('X::Undeclared',
+              symbol => $ast.name, is-compile-time => 1
+            ) unless $ast.is-resolved || $ast.sigil eq '&';
         }
     }
 

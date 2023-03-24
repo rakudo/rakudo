@@ -55,6 +55,23 @@ class RakuAST::Var::Lexical
     }
 }
 
+# A lexical variable that possibly needs to be auto-declared (aka
+# "no strict" active)
+class RakuAST::Var::Lexical::Auto
+  is RakuAST::Var::Lexical
+{
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical(self.name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        else {
+nqp::die("need to create an 'our " ~ self.name ~ "' and resolve that");
+        }
+        Nil
+    }
+}
+
 # A lexical variable lookup, but assumed to resolve to a compile time
 # value.
 class RakuAST::Var::Lexical::Constant

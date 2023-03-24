@@ -1355,7 +1355,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $twigil eq '' {
             if !$longname || $longname<name>.ast.is-identifier {
-                self.attach: $/, self.r('Var', 'Lexical').new($name);
+                self.attach: $/, $*LANG.pragma("strict")
+                  ?? self.r('Var', 'Lexical').new($name)
+                  !! self.r('Var', 'Lexical', 'Auto').new($name)
             }
             else { # package variable
                 self.attach: $/, self.r('Var', 'Package').new(

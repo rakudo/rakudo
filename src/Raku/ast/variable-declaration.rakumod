@@ -752,7 +752,6 @@ class RakuAST::VarDeclaration::Simple
         elsif $scope eq 'our' {
             # Package scoped lexical alias. We want to bind the lexical to
             # a lookup in the package.
-            my $name := RakuAST::Name.from-identifier($!name);
             QAST::Op.new(
               :op('bind'),
               QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) ),

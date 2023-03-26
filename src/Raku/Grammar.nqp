@@ -566,14 +566,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <.ws>? 'use' <version> ';'? {} # <-- update $/ so we can grab $<version>
           # we parse out the numeral, since we could have "6d"
           :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
-          :my $y := nqp::say("version: $version");
           [
           ||  <?{ $version == 6 }> { Raku::Actions::lang_setup2($/) }
           ||  { # Setup default language so we can throw an exception
                   my $requested := ~$<version>;
                   $<version> := 'v6.c';
                   Raku::Actions::lang_setup2($/);
-                  $/.typed_panic: 'X::Language::Unsupported', version => $requested;
+                  self.typed_panic: 'X::Language::Unsupported', version => $requested;
               }
           ]
       ]

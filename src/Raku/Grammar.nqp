@@ -563,15 +563,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule lang_setup($*outer-cu) {
         [
-          <.ws>? 'use' <version> ';'? {} # <-- update $/ so we can grab $<version>
+          <.ws>? 'use' <version> ';'? { } # <-- update $/ so we can grab $<version>
           # we parse out the numeral, since we could have "6d"
           :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
           [
-          ||  <?{ $version == 6 }> { Raku::Actions::lang_setup2($/) }
+          ||  <?{ $version == 6 }> { Raku::Actions.lang_setup2($/) }
           ||  { # Setup default language so we can throw an exception
                   my $requested := ~$<version>;
                   $<version> := 'v6.c';
-                  Raku::Actions::lang_setup2($/);
+                  Raku::Actions.lang_setup2($/);
                   self.typed_panic: 'X::Language::Unsupported', version => $requested;
               }
           ]

@@ -1054,6 +1054,10 @@ augment class RakuAST::Node {
         self!nameds: <scope sigil type initializer>
     }
 
+    multi method raku(RakuAST::VarDeclaration::Auto:D: --> Str:D) {
+        RakuAST::Var::Lexical.new(self.name).raku
+    }
+
     multi method raku(RakuAST::VarDeclaration::Constant:D: --> Str:D) {
         self!nameds: <scope type name traits initializer>
     }

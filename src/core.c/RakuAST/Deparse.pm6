@@ -1984,6 +1984,10 @@ class RakuAST::Deparse {
           !! "$scope $sigil"
     }
 
+    multi method deparse(RakuAST::VarDeclaration::Auto:D $ast --> Str:D) {
+        self.deparse(RakuAST::Var::Lexical.new($ast.name))
+    }
+
     multi method deparse(RakuAST::VarDeclaration::Constant:D $ast --> Str:D) {
         my str @parts;
 

@@ -925,6 +925,11 @@ class RakuAST::VarDeclaration::Simple
     method needs-sink-call() { False }
 }
 
+# Subclass to mark that the declaration was automatically generated.
+# Used in correctly raku-fying and deparsing
+class RakuAST::VarDeclaration::Auto
+  is RakuAST::VarDeclaration::Simple { }
+
 class RakuAST::VarDeclaration::Signature
   is RakuAST::Declaration
   is RakuAST::ImplicitLookups

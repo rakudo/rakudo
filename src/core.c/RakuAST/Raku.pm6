@@ -426,8 +426,9 @@ augment class RakuAST::Node {
         }
 
         $self!nameds:
-          <scope declarator name parameterization how repr traits body>,
-          (parameterization => $signature if $signature.parameters.elems)
+          <scope declarator name how repr traits body>,
+          (parameterization => $signature
+            if $signature && $signature.parameters.elems)
     }
 
     multi method raku(RakuAST::Pragma:D: --> Str:D) {

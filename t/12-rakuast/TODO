@@ -22,7 +22,6 @@ RakuAST::Origin::Match
 RakuAST::Origin::Source
 RakuAST::ParameterDefaultThunk
 RakuAST::QuoteWordsAtom
-RakuAST::Regex::Assertion::Callable
 RakuAST::Regex::Assertion::Named::Args
 RakuAST::Regex::BacktrackModifiedAtom
 RakuAST::Regex::Quantifier::BlockRange

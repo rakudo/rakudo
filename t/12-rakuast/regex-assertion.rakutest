@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 26;
+plan 27;
 
 my $ast;
 my $deparsed;
@@ -472,6 +472,23 @@ subtest 'Assertion with recursive ast works' => {
 
     is-deeply $deparsed, '/ o[<~~> | a]/', 'deparse';
     match-ok "fooa", "ooa";
+}
+
+subtest 'Assertion with callable works' => {
+    # / <&abc>/"
+
+    my regex abc { abc }
+
+    ast RakuAST::Regex::Assertion::Callable.new(
+      callee => RakuAST::Var::Lexical.new("\&abc")
+    );
+
+    is-deeply $deparsed, '/ <&abc>/', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is "abcd" ~~ EVAL($it), "abc", "$type: EVAL";
+        is $/.list.elems, 0, "$type: No positional captures";
+        is $/.hash.elems, 0, "$type: No named captures";
+    }
 }
 
 # vim: expandtab shiftwidth=4

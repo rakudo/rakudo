@@ -936,7 +936,11 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::Assertion::Callable:D $ast
     --> Str:D) {
-        '<&' ~ self.deparse($ast.callee) ~ self!parenthesize($ast.args) ~ '>'
+        my $args := $ast.args;
+        '<'
+          ~ self.deparse($ast.callee)
+          ~ ($args && $args.args ?? self!parenthesize($args) !! "")
+          ~ '>'
     }
 
     multi method deparse(

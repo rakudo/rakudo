@@ -20,7 +20,6 @@ RakuAST::Declaration::ResolvedConstant
 RakuAST::Origin
 RakuAST::Origin::Match
 RakuAST::Origin::Source
-RakuAST::ParameterDefaultThunk
 RakuAST::QuoteWordsAtom
 RakuAST::Regex::Assertion::Named::Args
 RakuAST::Regex::BacktrackModifiedAtom
@@ -28,8 +27,6 @@ RakuAST::Regex::Quantifier::BlockRange
 RakuAST::Regex::SequentialConjunction
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::Require
-RakuAST::SubstitutionReplacementThunk
-RakuAST::TraitTarget::Variable
 RakuAST::UndeclaredSymbolDescription
 RakuAST::UndeclaredSymbolDescription::Routine
 RakuAST::Var::Pod::Finish

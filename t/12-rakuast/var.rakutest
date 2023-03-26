@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 49;
+plan 50;
 
 my $ast;
 my $deparsed;
@@ -85,6 +85,14 @@ subtest 'Lexical variable lookup (& sigil)' => {
     ast RakuAST::Var::Lexical.new('&plan');
     is-deeply $deparsed, '&plan', 'deparse';
     is-deeply $_, &plan, @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'A variable in the setting' => {
+    ast RakuAST::Var::Lexical::Setting.new('&val');
+
+    is-deeply $deparsed, 'SETTING::<&val>', 'deparse';
+    is-deeply $_, &val, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

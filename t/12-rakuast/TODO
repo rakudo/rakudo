@@ -33,5 +33,4 @@ RakuAST::Trait::Hides
 RakuAST::TraitTarget::Variable
 RakuAST::UndeclaredSymbolDescription
 RakuAST::UndeclaredSymbolDescription::Routine
-RakuAST::Var::Lexical::Setting
 RakuAST::Var::Pod::Finish

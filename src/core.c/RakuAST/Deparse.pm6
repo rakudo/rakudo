@@ -1961,6 +1961,10 @@ class RakuAST::Deparse {
         $name.starts-with('$whatevercode_arg_') ?? '*' !! $name
     }
 
+    multi method deparse(RakuAST::Var::Lexical::Setting:D $ast --> Str:D) {
+        'SETTING::<' ~ $ast.name ~ '>'
+    }
+
     multi method deparse(RakuAST::Var::NamedCapture:D $ast --> Str:D) {
         '$' ~ self.deparse($ast.index)
     }

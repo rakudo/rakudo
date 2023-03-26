@@ -29,7 +29,6 @@ RakuAST::Regex::SequentialConjunction
 RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::Require
 RakuAST::SubstitutionReplacementThunk
-RakuAST::Trait::Hides
 RakuAST::TraitTarget::Variable
 RakuAST::UndeclaredSymbolDescription
 RakuAST::UndeclaredSymbolDescription::Routine

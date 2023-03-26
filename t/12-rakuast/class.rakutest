@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 11;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -458,17 +458,61 @@ subtest 'class with is trait really inherits' => {
       'my class TestChild is TestBase { }',
       'deparse';
 
-    for
-      'AST', EVAL($ast),
-      'Str', EVAL($deparsed),
-      'Raku', EVAL(EVAL $raku)
-    -> $type, $class {
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $class := EVAL($it);
         is $class.^name, 'TestChild',
           "$type: Class with is trait gets correct name";
         ok $class ~~ TestBase,
           "$type: Class with is trait inherits the base class";
         is $class.test-meth, 'base meth',
           "$type: A base class method can be called";
+    }
+}
+
+subtest 'class that hides Any' => {
+    # my class HidesAny { method list() { nextsame() } }
+    ast RakuAST::Package.new(
+      scope      => "my",
+      declarator => "class",
+      name       => RakuAST::Name.from-identifier("HidesAny"),
+      traits     => (
+        RakuAST::Trait::Hides.new(
+          RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier("Any")
+          )
+        ),
+      ),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("list"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Call::Name.new(
+                        name => RakuAST::Name.from-identifier("nextsame")
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    is-deeply $deparsed,
+      'my class HidesAny hides Any { method list { nextsame() } }',
+      'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $class := EVAL($it);
+        is $class.^name, 'HidesAny',
+          "$type: Class with hides trait gets correct name";
+        is-deeply $class.list, Nil,
+          "$type: Calling .list will not dispatch to Any.list";
     }
 }
 

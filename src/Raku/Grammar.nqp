@@ -570,7 +570,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           [
           ||  <?{ $version == 6 }> { Raku::Actions::lang_setup2($/) }
           ||  <?{ $version == 4 }> { nqp::say("Can't load version 4"); nqp::exit(1); }
-          ||  { $/.typed_panic: 'X::Language::Unsupported', version => ~$<version> }
+          ||  { # Create a fallback Resolver so we can throw the exception
+                  my $resolver_type := self.r('Resolver', 'Compile');
+                  $*R := $resolver_type.from-setting(:setting-name<CORE.c>);
+                  $/.typed_panic: 'X::Language::Unsupported', version => ~$<version>
+              }
           ]
       ]
     }

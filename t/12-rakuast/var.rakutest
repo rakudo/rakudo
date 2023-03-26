@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 48;
+plan 49;
 
 my $ast;
 my $deparsed;
@@ -47,12 +47,24 @@ subtest 'Special compiler variable $?LINE' => {
 }
 
 package Foo {
+    our $foo = 42;
     subtest 'Special compiler variable $?PACKAGE' => {
         # $?PACKAGE
         ast RakuAST::Var::Compiler::Lookup.new('$?PACKAGE');
 
         is-deeply $deparsed, '$?PACKAGE', 'deparse';
         is-deeply $_, Foo, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+
+    subtest 'Generic package variable lookup' => {
+        ast RakuAST::Var::Package.new(
+          name  => RakuAST::Name.from-identifier-parts("Foo","foo"),
+          sigil => '$'
+        );
+
+        is-deeply $deparsed, '$Foo::foo', 'deparse';
+        is-deeply $_, 42, @type[$++]
           for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     }
 }

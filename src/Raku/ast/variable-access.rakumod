@@ -60,15 +60,43 @@ class RakuAST::Var::Lexical
 class RakuAST::Var::Lexical::Auto
   is RakuAST::Var::Lexical
 {
+    has Mu $!package;
+
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!name', $name);
+        nqp::bindattr($obj,RakuAST::Var::Lexical::Auto,'$!package',nqp::null);
+        $obj
+    }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical(self.name);
-        if $resolved {
-            self.set-resolution($resolved);
+        unless $resolved {
+            nqp::bindattr(self, RakuAST::Var::Lexical::Auto, '$!package',
+              $resolver.current-package);
+            $resolved := RakuAST::VarDeclaration::Simple.new(
+              scope => "our", name => self.name
+            );
+            $resolver.declare-lexical($resolved);
         }
-        else {
-nqp::die("need to create an 'our " ~ self.name ~ "' and resolve that");
-        }
+        self.set-resolution($resolved);
         Nil
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := self.resolution.IMPL-LOOKUP-QAST($context);
+        nqp::isnull($!package)
+          ?? $qast
+          !! QAST::Stmts.new(
+               QAST::Op.new(:op('bind'),
+                 QAST::Var.new(:scope('lexical'),:decl('var'),:name(self.name)),
+                 QAST::Op.new(:op('callmethod'),:name('VIVIFY-KEY'),
+                   QAST::Op.new(:op('who'),QAST::WVal.new(:value($!package))),
+                   QAST::SVal.new(:value(self.name))
+                 )
+               ),
+               $qast
+             )
     }
 }
 

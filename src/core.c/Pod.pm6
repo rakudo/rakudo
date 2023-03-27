@@ -2,19 +2,17 @@ my class Pod::Block {
     has %.config;
     has @.contents;
 
-    sub pod-gist(Pod::Block $pod, $level = 0) {
+    sub pod-gist(Pod::Block:D $pod, $level = 0) {
         my $leading = ' ' x $level;
         my %confs;
-        my @chunks;
         for <config name level caption type term> {
-            my $thing = $pod.?"$_"();
-            if $thing {
+            if $pod.?"$_"() -> $thing {
                 %confs{$_} = nqp::istype($thing,Iterable)
                   ?? $thing.raku
                   !! $thing.Str;
             }
         }
-        @chunks = $leading, $pod.^name, (%confs.raku if %confs), "\n";
+        my str @chunks = $leading, $pod.^name, (%confs.raku if %confs), "\n";
         for $pod.contents.flat -> $c {
             if nqp::istype($c,Pod::Block) {
                 @chunks.push: pod-gist($c, $level + 2);
@@ -26,24 +24,18 @@ my class Pod::Block {
                 @chunks.append: $c.Str.indent($level + 2), "\n";
             }
         }
-        @chunks.join;
+        @chunks.join
     }
 
-    multi method gist(Pod::Block:D:) {
-        pod-gist(self)
-    }
+    multi method gist(Pod::Block:D:) { pod-gist(self) }
 }
 
-my class Pod::Block::Para is Pod::Block {
-}
+my class Pod::Block::Para    is Pod::Block { }
+my class Pod::Block::Comment is Pod::Block { }
+my class Pod::Block::Code    is Pod::Block { }
 
 my class Pod::Block::Named is Pod::Block {
     has $.name;
-}
-
-my class Pod::Block::Comment is Pod::Block { }
-
-my class Pod::Block::Code is Pod::Block {
 }
 
 my class Pod::Block::Declarator is Pod::Block {
@@ -51,40 +43,34 @@ my class Pod::Block::Declarator is Pod::Block {
     has @.leading;
     has @.trailing;
 
-    method set_docee($d) {
-        $!WHEREFORE = $d
-    }
-    method Str {
-        @.contents.join('')
-    }
-    multi method gist(Pod::Block::Declarator:D:) {
-        @.contents.join('')
+    method set_docee(Pod::Block::Declarator:D: $!WHEREFORE) { }
+
+    multi method Str( Pod::Block::Declarator:D:) { self.contents.join }
+    multi method gist(Pod::Block::Declarator:D:) { self.contents.join }
+
+    method contents(Pod::Block::Declarator:D:) {
+        @!leading
+          ?? @!trailing
+            ?? [ self.leading ~ "\n" ~ self.trailing ]
+            !! [ self.leading ]
+          !! @!trailing
+            ?? [ self.trailing ]
+            !! []
     }
 
-    method contents {
-        if @!leading && @!trailing {
-            [ $.leading ~ "\n" ~ $.trailing ]
-        }
-        elsif @!leading {
-            [ $.leading ]
-        }
-        elsif @!trailing {
-            [ $.trailing ]
-        }
-        else {
-            []
-        }
+    method leading(Pod::Block::Declarator:D:) {
+        @!leading  ?? @!leading.join(' ')  !! Nil
+    }
+    method trailing(Pod::Block::Declarator:D:) {
+        @!trailing ?? @!trailing.join(' ') !! Nil
     }
 
-    method leading  { @!leading  ?? @!leading.join(' ')  !! Nil }
-    method trailing { @!trailing ?? @!trailing.join(' ') !! Nil }
-
-    method _add_leading($addition) {
-        @!leading.push: ~$addition;
+    method _add_leading(Pod::Block::Declarator:D: Str() $addition) {
+        @!leading.push: $addition;
     }
 
-    method _add_trailing($addition) {
-        @!trailing.push: ~$addition;
+    method _add_trailing(Pod::Block::Declarator:D: Str() $addition) {
+        @!trailing.push: $addition;
     }
 }
 

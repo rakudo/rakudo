@@ -1973,6 +1973,8 @@ class RakuAST::Deparse {
         $ast.sigil ~ self.deparse($ast.name)
     }
 
+    multi method deparse(RakuAST::Var::Pod::Finish:D $ --> '$=finish') { }
+
     multi method deparse(RakuAST::Var::PositionalCapture:D $ast --> Str:D) {
         '$' ~ $ast.index.Str
     }

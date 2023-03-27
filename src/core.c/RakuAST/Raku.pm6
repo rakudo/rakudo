@@ -1045,6 +1045,10 @@ augment class RakuAST::Node {
         self!nameds: <name sigil>
     }
 
+    multi method raku(RakuAST::Var::Pod::Finish:D: --> Str:D) {
+        self!none
+    }
+
     multi method raku(RakuAST::Var::PositionalCapture:D: --> Str:D) {
         self!positional(self.index)
     }

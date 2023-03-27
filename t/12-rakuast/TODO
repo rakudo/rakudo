@@ -29,4 +29,3 @@ RakuAST::Statement::ExceptionHandler
 RakuAST::Statement::Require
 RakuAST::UndeclaredSymbolDescription
 RakuAST::UndeclaredSymbolDescription::Routine
-RakuAST::Var::Pod::Finish

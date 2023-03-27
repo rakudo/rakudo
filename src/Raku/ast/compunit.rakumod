@@ -12,13 +12,14 @@ class RakuAST::CompUnit
     has Str $.comp-unit-name;
     has Str $.setting-name;
     has Mu $.language-revision; # Same type as in CORE-SETTING-REV
-    has Mu $.finish-content;
     has Mu $!sc;
     has int $!is-sunk;
     has int $!is-eval;
     has Mu $!global-package-how;
     has Mu $!init-phasers;
     has Mu $!end-phasers;
+    has Mu $!pod-blocks;
+    has Mu $.finish-content;
     has Mu $!singleton-whatever;
     has Mu $!singleton-hyper-whatever;
     has int $.precompilation-mode;
@@ -26,52 +27,78 @@ class RakuAST::CompUnit
     has Mu $.herestub-queue;
     has RakuAST::IMPL::QASTContext $.context;
 
-    method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
-            Str :$setting-name, Bool :$eval, Mu :$global-package-how, int :$language-revision,
-            Bool :$precompilation-mode, Mu :$export-package, RakuAST::CompUnit :$outer-cu) {
+    method new(          Str :$comp-unit-name!,
+                         Str :$setting-name,
+                        Bool :$eval,
+                          Mu :$global-package-how,
+                         int :$language-revision,
+                        Bool :$precompilation-mode,
+                          Mu :$export-package,
+      RakuAST::StatementList :$statement-list,
+           RakuAST::CompUnit :$outer-cu
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
             $statement-list // RakuAST::StatementList.new);
+
         my $mainline := RakuAST::Block.new();
         $mainline.set-implicit-topic(0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!mainline', $mainline);
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name', $comp-unit-name);
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!setting-name', $setting-name // Str);
-        my $file := nqp::getlexdyn('$?FILES');
-        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', $eval ?? $outer-cu ?? 2 !! 1 !! 0);
+
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name',
+          $comp-unit-name);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!setting-name',
+          $setting-name // Str);
+        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval',
+          $eval ?? $outer-cu ?? 2 !! 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
-            $global-package-how =:= NQPMu ?? Perl6::Metamodel::PackageHOW !! $global-package-how);
+          $global-package-how =:= NQPMu
+            ?? Perl6::Metamodel::PackageHOW
+            !! $global-package-how
+        );
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
-            $export-package =:= NQPMu ?? Mu !! $export-package);
+          $export-package =:= NQPMu ?? Mu !! $export-package);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!init-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
-        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode ?? 1 !! 0);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-blocks', []);
+
+        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
+          $precompilation-mode ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
-        # If CompUnit's language revision is not set explicitly then try to guess it
+
+        # If CompUnit's language revision is not set explicitly then guess it
         nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
-            $language-revision
-                ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
-                !! nqp::isconcrete(
-                    my $setting-rev := nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()), 'CORE-SETTING-REV'))
-                    ?? $setting-rev
-                    !! Perl6::Metamodel::Configuration.language_revision_object(nqp::getcomp("Raku").language_revision));
+          $language-revision
+            ?? Perl6::Metamodel::Configuration.language_revision_object($language-revision)
+            !! nqp::isconcrete(
+                 my $setting-rev := nqp::getlexrelcaller(
+                   nqp::ctxcallerskipthunks(nqp::ctx()), 'CORE-SETTING-REV'
+                 )
+               ) ?? $setting-rev
+                 !! Perl6::Metamodel::Configuration.language_revision_object(
+                      nqp::getcomp("Raku").language_revision)
+                    );
 
         my $sc;
         if $outer-cu {
             my $context             := $outer-cu.context.create-nested;
             $sc                     := $context.sc;
             my $precompilation-mode := $outer-cu.precompilation-mode;
+
             nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!context', $context);
-            nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode', $precompilation-mode);
+            nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
+              $precompilation-mode);
         }
         else {
             $sc := nqp::createsc($comp-unit-name);
             nqp::pushcompsc($sc);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
-            nqp::bindattr($obj, RakuAST::CompUnit, '$!context', RakuAST::IMPL::QASTContext.new(
-                :$sc, :$precompilation-mode));
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
+              RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode));
         }
+
+        my $file := nqp::getlexdyn('$?FILES');
         nqp::scsetdesc($sc, $file) unless nqp::isnull($file);
 
         $obj
@@ -135,6 +162,11 @@ class RakuAST::CompUnit
 
     method add-end-phaser(RakuAST::StatementPrefix::Phaser::End $phaser) {
         nqp::push($!end-phasers, $phaser);
+        Nil
+    }
+
+    method add-pod-block(RakuAST::Pod::Block $block) {
+        nqp::push($!pod-blocks, $block);
         Nil
     }
 

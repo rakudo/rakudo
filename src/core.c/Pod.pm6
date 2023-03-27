@@ -2,8 +2,6 @@ my class Pod::Block {
     has %.config;
     has @.contents;
 
-    submethod BUILD(:%!config, :@!contents --> Nil) {}
-
     sub pod-gist(Pod::Block $pod, $level = 0) {
         my $leading = ' ' x $level;
         my %confs;
@@ -50,10 +48,8 @@ my class Pod::Block::Code is Pod::Block {
 
 my class Pod::Block::Declarator is Pod::Block {
     has $.WHEREFORE;
-    has @!leading;
-    has @!trailing;
-
-    submethod BUILD(:@!leading, :@!trailing --> Nil) {}
+    has @.leading;
+    has @.trailing;
 
     method set_docee($d) {
         $!WHEREFORE = $d

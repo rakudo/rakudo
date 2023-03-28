@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 10;
+plan 11;
 
 my $ast;
 my $deparsed;
@@ -12,6 +12,25 @@ sub ast(RakuAST::Node:D $node --> Nil) {
     $deparsed := $node.DEPARSE;
     $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
+}
+
+subtest 'A bare sub evaluates to a Sub' => {
+    # sub a { }
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::Sub.new(
+        name => RakuAST::Name.from-identifier("a"),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new()
+        )
+      )
+    );
+    is-deeply $deparsed, 'sub a { }', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
+        isa-ok $sub, Sub,
+          "$type: A sub node evaluates to a Sub";
+    }
 }
 
 subtest 'A sub node evaluates to a Sub' => {
@@ -36,12 +55,9 @@ subtest 'A sub node evaluates to a Sub' => {
     );
     is-deeply $deparsed, 'sub ($param) { $param }', 'deparse';
 
-    for
-      'AST', EVAL($ast),
-      'Str', EVAL($deparsed),
-      'Raku', EVAL(EVAL $raku)
-    -> $type, $sub {
-        ok $sub.WHAT === Sub,
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $sub := EVAL($it);
+        isa-ok $sub, Sub,
           "$type: A sub node evaluates to a Sub";
         is $sub.signature.params.elems, 1,
           "$type: The sub has one parameter";

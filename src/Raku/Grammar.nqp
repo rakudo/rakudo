@@ -839,6 +839,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pblock>
     }
 
+    rule statement_control:sym<foreach> {
+        <sym><.end_keyword> <.obs("'foreach'", "'for'")>
+    }
+
     rule statement_control:sym<given> {
         <sym><.kok>
         :my $*GOAL := '{';
@@ -1306,6 +1310,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postfix:sym<⚛--> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<ⁿ> { <sign=[⁻⁺¯]>? <dig=[⁰¹²³⁴⁵⁶⁷⁸⁹]>+ <O(|%autoincrement)> }
 
+    # TODO: report the correct bracket in error message
+    token postfix:sym«->» {
+        <sym>
+        [
+        |  ['[' | '{' | '(' ] <.obs('->(), ->{} or ->[] as postfix dereferencer', '.(), .[] or .{} to deref, or whitespace to delimit a pointy block')>
+        | <.obs('-> as postfix', 'either . to call a method, or whitespace to delimit a pointy block')>
+        ]
+    }
+
     token infix:sym<**>   { <sym>  <O(|%exponentiation)> }
 
     token prefix:sym<+>   { <sym>  <O(|%symbolic_unary)> }
@@ -1568,6 +1581,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<but>  { <sym> >> <O(|%structural)> }
     token infix:sym<does> { <sym> >> <O(|%structural)> }
 
+    token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O(|%chaining)> }
+    token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O(|%chaining)> }
+
     token circumfix:sym<( )> {
         :dba('parenthesized expression')
         '(' ~ ')' <semilist>
@@ -1690,6 +1706,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<???> { <sym> <args> }
     token term:sym<!!!> { <sym> <args> }
 
+    token term:sym<undef> {
+        <!{ $*LANG.pragma('p5isms') }>
+        <sym> >> {}
+        [ <?before \h*'$/' >
+            <.obs('$/ variable as input record separator',
+                 "the filehandle's .slurp method")>
+        ]?
+        [ <?before [ '(' || \h*<.sigil><.twigil>?\w ] >
+            <.obs('undef as a verb', 'undefine() or assignment of Nil')>
+        ]?
+        <.obs('undef as a value', "something more specific:\n\tan undefined type object such as Any or Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absence of an expected value\n\tor fail() as a failure return\n\t   ")>
+    }
+
+    token term:sym<new> {
+        <!{ $*LANG.pragma('c++isms') }>
+        'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax", :ism<c++isms>)>
+    }
+
     token term:sym<fatarrow> {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }
@@ -1710,6 +1744,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
+    }
+    token term:sym<p5end> {
+        << __END__ >>
+        <.obs('__END__ as end of code',
+          'the =finish pod marker and $=finish to read')>
+    }
+    token term:sym<p5data> {
+        << __DATA__ >>
+        <.obs('__DATA__ as start of data',
+          'the =finish pod marker and $=finish to read')>
     }
 
     token term:sym<identifier> {
@@ -1856,6 +1900,167 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <twigil>? <desigilname>
         | $<capvar>='<' <desigilname> '>'
         ]
+    }
+
+    proto token special_variable { <...> }
+
+    token special_variable:sym<$!{ }> {
+        [ '$!{' .*? '}' | '%!' ]
+        <.obsvar('%!')>
+    }
+
+    token special_variable:sym<$`> {
+        <sym>  <?before \s | ',' | <.terminator> >
+        <.obsvar('$`')>
+    }
+
+    token special_variable:sym<$@> {
+        <sym> <[ \s ; , ) ]> .
+        <.obsvar('$@')>
+    }
+
+    token special_variable:sym<$#> {
+        <sym> <identifier>
+        {}
+        <.obsvar('$#', ~$<identifier>)>
+    }
+
+    token special_variable:sym<$$> {
+        <sym> \W
+        <.obsvar('$$')>
+    }
+
+    token special_variable:sym<$&> {
+        <sym> <?before \s | ',' | <.terminator> >
+        <.obsvar('$&')>
+    }
+
+    token special_variable:sym<@+> {
+        <sym> <?before \s | ',' | <.terminator> >
+        <.obsvar('@+')>
+    }
+
+    token special_variable:sym<%+> {
+        <sym> <?before \s | ',' | <.terminator> >
+        <.obsvar('%+')>
+    }
+
+    token special_variable:sym<$+[ ]> {
+        '$+['
+        <.obsvar('@+')>
+    }
+
+    token special_variable:sym<@+[ ]> {
+        '@+['
+        <.obsvar('@+')>
+    }
+
+    token special_variable:sym<@+{ }> {
+        '@+{'
+        <.obsvar('%+')>
+    }
+
+    token special_variable:sym<@-> {
+        <sym> <?before \s | ',' | <.terminator> >
+        <.obsvar('@-')>
+    }
+
+    token special_variable:sym<%-> {
+        <sym> <?before \s | ',' | <.terminator> >
+        <.obsvar('%-')>
+    }
+
+    token special_variable:sym<$-[ ]> {
+        '$-['
+        <.obsvar('@-')>
+    }
+
+    token special_variable:sym<@-[ ]> {
+        '@-['
+        <.obsvar('@-')>
+    }
+
+    token special_variable:sym<%-{ }> {
+        '@-{'
+        <.obsvar('%-')>
+    }
+
+    token special_variable:sym<$/> {
+        <sym> <?before \h* '=' \h* <.[ ' " ]> >
+        <.obsvar('$/')>
+    }
+
+    token special_variable:sym<$\\> {
+        '$\\' <?before \s | ',' | '=' | <.terminator> >
+        <.obsvar('$\\')>
+    }
+
+    token special_variable:sym<$|> {
+        <sym> <?before \h* '='>
+        <.obsvar('$|')>
+    }
+
+    token special_variable:sym<$;> {
+        <sym> <?before \h* '='>
+        <.obsvar('$;')>
+    }
+
+    token special_variable:sym<$'> { #'
+        <sym> <?before \s | ',' | <.terminator> >
+        <.obsvar('$' ~ "'")>
+    }
+
+    token special_variable:sym<$"> {
+        <sym> <?before \h* '='>
+        <.obsvar('$"')>
+    }
+
+    token special_variable:sym<$,> {
+        <sym> <?before \h* '='>
+        <.obsvar('$,')>
+    }
+
+    token special_variable:sym<$.> {
+        <sym> {} <!before \w | '(' | ':' | '^' >
+        <.obsvar('$.')>
+    }
+
+    token special_variable:sym<$?> {
+        <sym> {} <!before \w | '('>
+        <.obsvar('$?')>
+    }
+
+    token special_variable:sym<$]> {
+        <sym> {} <!before \w | '('>
+        <.obsvar('$]')>
+    }
+
+    regex special_variable:sym<${ }> {
+        <sigil> '{' {} $<text>=[.*?] '}'
+        <!{ $*IN_DECL }>
+        <!{ $<text> ~~ / '=>' || ':'<:alpha> || '|%' / }>
+        <!{ $<text> ~~ / ^ \s* $ / }>
+        <?{
+            my $sigil := $<sigil>.Str;
+            my $text := $<text>.Str;
+            my $bad := $sigil ~ '{' ~ $text ~ '}';
+            if $text ~~ /^\d+$/ {
+                $text := nqp::radix(10, $text, 0, 0)[0];
+                $text := $text - 1 if $text > 0;
+            }
+            if $sigil ne '$' && $sigil ne '@' {
+                False;  # not likely a P5ism
+            }
+            elsif !($text ~~ /^(\w|\:)+$/) {
+                $/.obs($bad, "$sigil\($text) for hard ref or $sigil\::($text) for symbolic ref");
+            }
+            elsif $*QSIGIL {
+                $/.obs($bad, '{' ~ $sigil ~ $text ~ '}');
+            }
+            else {
+                $/.obs($bad, $sigil ~ $text);
+            }
+        }>
     }
 
     token variable {

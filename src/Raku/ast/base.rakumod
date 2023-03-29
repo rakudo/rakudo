@@ -218,6 +218,34 @@ class RakuAST::Node {
         }
     }
 
+    method IMPL-WRAP-MAP(Mu $vm-hash) {
+        if nqp::istype($vm-hash, Map) {
+            # It already is a map
+            $vm-hash
+        }
+        else {
+            my $result := nqp::create(Map);
+            nqp::bindattr($result, Map, '$!storage', $vm-hash);
+            $result
+        }
+    }
+
+    method IMPL-UNWRAP-MAP(Mu $map) {
+        if nqp::ishash($map) {
+            # Wasn't wrapped anyway
+            $map
+        }
+        elsif nqp::istype($map, Map) {
+            my $storage := nqp::getattr($map, Map, '$!storage');
+            nqp::isconcrete($storage)
+                ?? $storage
+                !! $map.FLATTENABLE_HASH
+        }
+        else {
+            nqp::die("Cannot hashify " ~ $map.HOW.name($map));
+        }
+    }
+
     method dump-markers() {
         my @markers;
         @markers.push('⚓') if nqp::istype(self, RakuAST::Sinkable) && self.sunk;

@@ -9,6 +9,7 @@ src/Raku/ast/attaching.rakumod
 src/Raku/ast/begintime.rakumod
 src/Raku/ast/traits.rakumod
 src/Raku/ast/meta.rakumod
+src/Raku/ast/pod.rakumod
 src/Raku/ast/statements.rakumod
 src/Raku/ast/operator-properties.rakumod
 src/Raku/ast/expressions.rakumod
@@ -24,7 +25,6 @@ src/Raku/ast/variable-declaration.rakumod
 src/Raku/ast/variable-access.rakumod
 src/Raku/ast/contextualizer.rakumod
 src/Raku/ast/code.rakumod
-src/Raku/ast/pod.rakumod
 src/Raku/ast/compunit.rakumod
 src/Raku/ast/statementprefixes.rakumod
 src/Raku/ast/statement-mods.rakumod

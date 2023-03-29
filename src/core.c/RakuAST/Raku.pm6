@@ -466,6 +466,10 @@ augment class RakuAST::Node {
 
 #- Po --------------------------------------------------------------------------
 
+    multi method raku(RakuAST::Pod::Declarator:D: --> Str:D) {
+        self!nameds: <WHEREFORE leading trailing>
+    }
+
     multi method raku(RakuAST::PointyBlock:D: --> Str:D) {
         self!nameds: self.signature.parameters-initialized
           ?? <signature body>

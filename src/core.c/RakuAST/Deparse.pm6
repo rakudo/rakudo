@@ -296,6 +296,14 @@ class RakuAST::Deparse {
           !! $literal.raku  # need quoting
     }
 
+    method !deparse-unquoted($ast) {
+        my $literal := self.deparse($ast);
+        $literal.starts-with(Q/"/) && $literal.ends-with(Q/"/)
+          || $literal.starts-with(Q/'/) && $literal.ends-with(Q/'/)
+          ?? $literal.substr(1,*-1)
+          !! $literal
+    }
+
     method !labels(RakuAST::Statement:D $ast) {
         $ast.labels.map({ self.deparse($_) }).join
     }
@@ -789,6 +797,17 @@ class RakuAST::Deparse {
 
 #- Po --------------------------------------------------------------------------
 
+    multi method deparse(RakuAST::Pod::Declarator:D $ast --> Str:D) {
+        my str @parts  = $ast.leading.map: {
+            '#| ' ~ self!deparse-unquoted($_)
+        }
+        @parts.push(self.deparse($_, :skip-pod-declarator)) with $ast.WHEREFORE;
+        @parts.append: $ast.trailing.map: {
+            '#= ' ~ self!deparse-unquoted($_)
+        }
+
+        @parts.join("\n")
+    }
     multi method deparse(RakuAST::PointyBlock:D $ast --> Str:D) {
         my str @parts = '-> ';
 

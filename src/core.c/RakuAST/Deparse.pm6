@@ -304,6 +304,22 @@ class RakuAST::Deparse {
           !! $literal
     }
 
+    method !deparse-as-config(%config) {
+        my str $deparsed = %config.map({
+            my $key := .key;
+            if $key ne 'abbreviated' {
+                my $value := .value;
+                if nqp::istype($value,Bool) {
+                    ($value ?? ':' !! ':!') ~ $key
+                }
+                else {
+                    .raku  # for now
+                }
+            }
+        }).join(' ');
+        $deparsed ?? " $deparsed" !! ''
+    }
+
     method !labels(RakuAST::Statement:D $ast) {
         $ast.labels.map({ self.deparse($_) }).join
     }
@@ -512,6 +528,55 @@ class RakuAST::Deparse {
     --> Str:D) {
         $ast.compile-time-value.raku
     }
+
+#- Doc -------------------------------------------------------------------------
+
+    multi method deparse(RakuAST::Doc::Block:D $ast --> Str:D) {
+        my str $type = $ast.type;
+        my %config  := $ast.config;
+        my $body := $type
+          ~ $ast.level
+          ~ self!deparse-as-config(%config)
+          ~ "\n"
+          ~ $ast.paragraphs.map({ self!deparse-unquoted($_) }).join("\n\n");
+        %config<abbreviated>
+          ?? "=$body\n\n"
+          !! "=begin $body\n=end $type\n"
+    }
+
+    multi method deparse(RakuAST::Doc::Markup:D $ast --> Str:D) {
+        my sub deparse-join(@parts, str $delimiter = "") {
+            @parts.map({ self!deparse-unquoted($_) }).join($delimiter)
+        }
+
+        my str $letter = $ast.letter;
+        my $meta      := $ast.meta;
+
+        $letter ~ '<'~ deparse-join($ast.atoms) ~ (
+          $meta
+            ?? '|' ~ deparse-join($meta, $ast.separator) ~ '>'
+            !! '>'
+        )
+    }
+
+    multi method deparse(RakuAST::Doc::Paragraph:D $ast --> Str:D) {
+        $ast.atoms.map({ self!deparse-unquoted($_) }).join
+    }
+
+    multi method deparse(RakuAST::Doc::Verbatim:D $ast --> Str:D) {
+        my str $type = $ast.type;
+        my %config  := $ast.config;
+        my $body := $type
+          ~ $ast.level
+          ~ self!deparse-as-config(%config)
+          ~ "\n"
+          ~ self!deparse-unquoted($ast.text);
+        %config<abbreviated>
+          ?? "=$body\n\n"
+          !! "=begin $body\n=end $type\n"
+    }
+
+#- Dot -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::DottyInfix::Call:D $ --> Str:D) {
         $.dotty-infix-call
@@ -808,6 +873,7 @@ class RakuAST::Deparse {
 
         @parts.join("\n")
     }
+
     multi method deparse(RakuAST::PointyBlock:D $ast --> Str:D) {
         my str @parts = '-> ';
 

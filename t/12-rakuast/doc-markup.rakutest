@@ -1,0 +1,94 @@
+use v6.e.PREVIEW;
+use Test;
+
+plan 4;
+
+my $ast;
+my $deparsed;
+my $raku;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast      := $node;
+    $deparsed := $node.DEPARSE;
+    $raku     := 'use experimental :rakuast; ' ~ $node.raku;
+    diag $deparsed.chomp;
+}
+
+subtest 'simple bold markup' => {
+    # B<this is bold>
+    ast RakuAST::Doc::Markup.new(
+      letter => 'B',
+      atoms  => (
+        RakuAST::StrLiteral.new("this is bold"),
+      )
+    );
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, 'B<this is bold>', "$type: deparse";
+    }
+}
+
+subtest 'simple bold with italics markup' => {
+    # B<this I<is> bold>
+    ast RakuAST::Doc::Markup.new(
+      letter => 'B',
+      atoms  => (
+        RakuAST::StrLiteral.new("this "),
+        RakuAST::Doc::Markup.new(
+          letter => "I",
+          atoms  => (
+            RakuAST::StrLiteral.new("is"),
+          )
+        ),
+        RakuAST::StrLiteral.new(" bold"),
+      )
+    );
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, 'B<this I<is> bold>', "$type: deparse";
+    }
+}
+
+subtest 'link with code markup' => {
+    # L<The C<Raku> Programming Language|https://raku.org>
+    ast RakuAST::Doc::Markup.new(
+      letter => 'L',
+      atoms  => (
+        RakuAST::StrLiteral.new("The "),
+        RakuAST::Doc::Markup.new(
+          letter => "C",
+          atoms  => (
+            RakuAST::StrLiteral.new("Raku"),
+          )
+        ),
+        RakuAST::StrLiteral.new(" Programming Language"),
+      ),
+      meta  => (
+        RakuAST::StrLiteral.new("https://raku.org"),
+      )
+    );
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it,
+          'L<The C<Raku> Programming Language|https://raku.org>',
+          "$type: deparse";
+    }
+}
+
+subtest 'index entry with multiple lemmas' => {
+    # X<hash|hashes, definition of;associative arrays>
+    ast RakuAST::Doc::Markup.new(
+      letter => 'X',
+      atoms  => (
+        RakuAST::StrLiteral.new("hash"),
+      ),
+      meta  => (
+        RakuAST::StrLiteral.new("hashes, definition of"),
+        RakuAST::StrLiteral.new("associative arrays"),
+      ),
+      separator => ';',
+    );
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it,
+          'X<hash|hashes, definition of;associative arrays>',
+          "$type: deparse";
+    }
+}
+
+# vim: expandtab shiftwidth=4

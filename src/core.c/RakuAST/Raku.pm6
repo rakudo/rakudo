@@ -98,6 +98,10 @@ augment class RakuAST::Node {
               my $args := self.args;
               :$args if $args && $args.args
           },
+          'atoms', -> {
+              my $atoms := nqp::decont(self.atoms);
+              :$atoms if $atoms
+          },
           'backtrack', -> {
               my $backtrack := self.backtrack;
               as-class('backtrack', $backtrack.^name)
@@ -105,6 +109,10 @@ augment class RakuAST::Node {
           },
           'capturing', -> {
               :capturing if self.capturing
+          },
+          'config', -> {
+              my $config := nqp::decont(self.config);
+              :$config if $config
           },
           'dwim-left', -> {
               :dwim-left if self.dwim-left
@@ -121,8 +129,16 @@ augment class RakuAST::Node {
               my $labels := nqp::decont(self.labels);
               :$labels if $labels
           },
+          'level', -> {
+              my $level := self.level;
+              :$level if $level
+          },
           'match-immediately', -> {
               :match-immediately if self.match-immediately
+          },
+          'meta', -> {
+              my $meta := self.meta;
+              :$meta if $meta
           },
           'negated', -> {
               :negated if self.negated
@@ -130,6 +146,10 @@ augment class RakuAST::Node {
           'scope', -> {
               my $scope := self.scope;
               :$scope if $scope ne self.default-scope
+          },
+          'separator', -> {
+              my $separator := self.separator;
+              :$separator if $separator
           },
           'signature', -> {
               my $signature := self.signature;
@@ -296,6 +316,31 @@ augment class RakuAST::Node {
         self!literal(self.compile-time-value)
     }
 
+#- Doc -------------------------------------------------------------------------
+
+    multi method raku(RakuAST::Doc::Block:D: --> Str:D) {
+        self!nameds: <type level config paragraphs>
+    }
+
+    multi method raku(RakuAST::Doc::Markup:D: --> Str:D) {
+        self!nameds: <letter atoms meta separator>
+    }
+
+    multi method raku(RakuAST::Doc::Paragraph:D: --> Str:D) {
+        self!positionals(self.atoms)
+    }
+
+    multi method raku(RakuAST::Doc::Table:D: --> Str:D) {
+        self!nameds: <type level config headers rows>
+    }
+
+    multi method raku(RakuAST::Doc::Verbatim:D: --> Str:D) {
+        self!nameds: <type level config text>
+    }
+
+#- Dot -------------------------------------------------------------------------
+
+    # Handles all of the RakuAST::DottyInfix::xxx classes
     multi method raku(RakuAST::DottyInfixish:D: --> Str:D) {
         self!none
     }
@@ -449,7 +494,7 @@ augment class RakuAST::Node {
         self!nameds: @nameds
     }
 
-    # Generic handler for all RakuAST::Paramete::Slurpy::xxx classes
+    # Generic handler for all RakuAST::Parameter::Slurpy::xxx classes
     multi method raku(RakuAST::Parameter::Slurpy:U: --> Str:D) {
         self.^name
     }

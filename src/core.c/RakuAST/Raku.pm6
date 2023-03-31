@@ -322,6 +322,10 @@ augment class RakuAST::Node {
         self!nameds: <type level config paragraphs>
     }
 
+    multi method raku(RakuAST::Doc::Declarator:D: --> Str:D) {
+        self!nameds: <WHEREFORE leading trailing>
+    }
+
     multi method raku(RakuAST::Doc::Markup:D: --> Str:D) {
         self!nameds: <letter atoms meta separator>
     }
@@ -510,10 +514,6 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::ParameterDefaultThunk:D: --> '') { }  # XXX
 
 #- Po --------------------------------------------------------------------------
-
-    multi method raku(RakuAST::Pod::Declarator:D: --> Str:D) {
-        self!nameds: <WHEREFORE leading trailing>
-    }
 
     multi method raku(RakuAST::PointyBlock:D: --> Str:D) {
         self!nameds: self.signature.parameters-initialized

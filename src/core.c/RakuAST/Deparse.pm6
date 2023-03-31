@@ -544,6 +544,18 @@ class RakuAST::Deparse {
           !! "=begin $body\n=end $type\n"
     }
 
+    multi method deparse(RakuAST::Doc::Declarator:D $ast --> Str:D) {
+        my str @parts  = $ast.leading.map: {
+            '#| ' ~ self!deparse-unquoted($_)
+        }
+        @parts.push(self.deparse($ast.WHEREFORE, :skip-doc-declarator));
+        @parts.append: $ast.trailing.map: {
+            '#= ' ~ self!deparse-unquoted($_)
+        }
+
+        @parts.join("\n")
+    }
+
     multi method deparse(RakuAST::Doc::Markup:D $ast --> Str:D) {
         my sub deparse-join(@parts, str $delimiter = "") {
             @parts.map({ self!deparse-unquoted($_) }).join($delimiter)
@@ -861,18 +873,6 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::ParameterDefaultThunk:D $ --> '') { }
 
 #- Po --------------------------------------------------------------------------
-
-    multi method deparse(RakuAST::Pod::Declarator:D $ast --> Str:D) {
-        my str @parts  = $ast.leading.map: {
-            '#| ' ~ self!deparse-unquoted($_)
-        }
-        @parts.push(self.deparse($_, :skip-pod-declarator)) with $ast.WHEREFORE;
-        @parts.append: $ast.trailing.map: {
-            '#= ' ~ self!deparse-unquoted($_)
-        }
-
-        @parts.join("\n")
-    }
 
     multi method deparse(RakuAST::PointyBlock:D $ast --> Str:D) {
         my str @parts = '-> ';

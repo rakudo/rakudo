@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 12;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -448,6 +448,35 @@ subtest 'Simple subset with declarator pod' => {
         is $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 subset Foo of Int
+#= trailing comment
+CODE
+    }
+}
+
+subtest 'Simple regex with declarator pod' => {
+    # #| leading comment␤my regex foo { bar }␤#= trailing comment
+    ast RakuAST::RegexDeclaration.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("foo"),
+      body  => RakuAST::Regex::Sequence.new(
+        RakuAST::Regex::WithWhitespace.new(
+          RakuAST::Regex::Literal.new("bar")
+        )
+      ),
+      WHY => RakuAST::Doc::Declarator.new(
+        leading   => (
+          RakuAST::StrLiteral.new("leading comment"),
+        ),
+        trailing   => (
+          RakuAST::StrLiteral.new("trailing comment"),
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is $it, q:to/CODE/.chomp, "$type: deparse";
+#| leading comment
+my regex foo { bar }
 #= trailing comment
 CODE
     }

@@ -731,7 +731,7 @@ augment class RakuAST::Node {
         my str @nameds = 'name';
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         @nameds.push("signature") if self.signature.parameters-initialized;
-        @nameds.append: <traits body>;
+        @nameds.append: <traits body WHY>;
         self!nameds: @nameds
     }
 

@@ -1783,16 +1783,22 @@ class RakuAST::RegexDeclaration
 {
     has RakuAST::Regex $.body;
 
-    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
-            List :$traits, RakuAST::Regex :$body) {
+    method new(          str :$scope,
+               RakuAST::Name :$name,
+          RakuAST::Signature :$signature,
+                        List :$traits,
+              RakuAST::Regex :$body,
+    RakuAST::Doc::Declarator :$WHY
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature',
             $signature // RakuAST::Signature.new);
+        $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::RegexDeclaration, '$!body',
             $body // RakuAST::Regex::Assertion::Fail.new);
-        $obj.set-traits($traits);
+        $obj.set-WHY($WHY);
         $obj
     }
 

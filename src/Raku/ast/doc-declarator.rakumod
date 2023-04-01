@@ -6,7 +6,7 @@ class RakuAST::Doc::Declarator
     has List                           $.leading;
     has List                           $.trailing;
 
-    method new(:$WHEREFORE!, :$leading, :$trailing) {
+    method new(:$WHEREFORE, :$leading, :$trailing) {
         my $obj := nqp::create(self);
         $obj.set-WHEREFORE($WHEREFORE);
         $obj.set-leading($leading);
@@ -44,10 +44,13 @@ class RakuAST::Doc::Declarator
 
 # Role for objects that can have a Doc::Declarator attached
 class RakuAST::Doc::DeclaratorTarget {
-    has RakuAST::Doc::Declarator $!WHY;
+    has RakuAST::Doc::Declarator $.WHY;
 
     method set-WHY(RakuAST::Doc::Declarator $WHY) {
-        nqp::bindattr(self, RakuAST::Doc::DeclaratorTarget, '$!WHY', $WHY);
+        if $WHY {
+            nqp::bindattr(self, RakuAST::Doc::DeclaratorTarget, '$!WHY', $WHY);
+            $WHY.set-WHEREFORE(self);
+        }
         Nil
     }
 }

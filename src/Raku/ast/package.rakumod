@@ -9,15 +9,17 @@ class RakuAST::Package
   is RakuAST::TraitTarget
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::LexicalScope
+  is RakuAST::Doc::DeclaratorTarget
 {
-    has Str $.declarator;
-    has Mu $.how;
-    has Mu $.attribute-type;
+    has Str           $.declarator;
     has RakuAST::Name $.name;
-    has Str $.repr;
     has RakuAST::Code $.body;
-    has Mu $!role-group;
-    has Mu $!block-semantics-applied;
+    has Mu            $.attribute-type;
+    has Mu            $.how;
+    has Str           $.repr;
+
+    has Mu   $!role-group;
+    has Mu   $!block-semantics-applied;
     has Bool $.is-stub;
 
     # Methods and attributes are not directly added, but rather thorugh the
@@ -27,29 +29,30 @@ class RakuAST::Package
     has Mu $!attached-attributes;
     has Mu $!attached-attribute-usages;
 
-    method new(    str :$scope,
-                   Str :$declarator!,
-         RakuAST::Name :$name,
-    RakuAST::Signature :$parameterization,
-                  List :$traits,
-         RakuAST::Code :$body,
-                    Mu :$attribute-type,
-                    Mu :$how,
-                   Str :$repr
+    method new(          str :$scope,
+                         Str :$declarator!,
+               RakuAST::Name :$name,
+          RakuAST::Signature :$parameterization,
+                        List :$traits,
+               RakuAST::Code :$body,
+                          Mu :$attribute-type,
+                          Mu :$how,
+                         Str :$repr,
+    RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!declarator', $declarator);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
-        nqp::bindattr($obj, RakuAST::Package, '$!how',
-          nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how
-        );
-        nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
           nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
+        nqp::bindattr($obj, RakuAST::Package, '$!how',
+          nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how);
+        nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
 
         $obj.set-traits($traits) if $traits;
         $obj.replace-body($body, $parameterization);
+        $obj.set-WHY($WHY);
 
         # Set up internal defaults
         nqp::bindattr($obj, RakuAST::Package, '$!attached-methods', []);
@@ -66,7 +69,7 @@ class RakuAST::Package
 
         # The body of a role is internally a Sub that has the parameterization
         # of the role as the signature.  This allows a role to be selected
-        # using ordinary dispatch semantics.  The statement list gets a returni
+        # using ordinary dispatch semantics.  The statement list gets a return
         # value added, so that the role's meta-object and lexpad are returned.
         if $!declarator eq 'role' {
             $signature := RakuAST::Signature.new unless $signature;

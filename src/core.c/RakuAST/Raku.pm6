@@ -323,7 +323,9 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Doc::Declarator:D: --> Str:D) {
-        self!nameds: <WHEREFORE leading trailing>
+        self!nameds: nqp::eqaddr(self.WHEREFORE.WHY,self)
+          ?? <leading trailing>
+          !! <WHEREFORE leading trailing>
     }
 
     multi method raku(RakuAST::Doc::Markup:D: --> Str:D) {
@@ -475,7 +477,7 @@ augment class RakuAST::Node {
         }
 
         $self!nameds:
-          <scope declarator name how repr traits body>,
+          <scope declarator name how repr traits body WHY>,
           (parameterization => $signature
             if $signature && $signature.parameters.elems)
     }

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 1;
+plan 2;
 
 my $ast;
 my $deparsed;
@@ -38,6 +38,35 @@ subtest 'Simple leading and trailing pod declarator test' => {
         is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 sub a { 42 }
+#= trailing comment
+CODE
+    }
+}
+
+subtest 'Simple class with declarator pod' => {
+    # #| leading comment␤class A { }␤#= trailing comment
+    ast RakuAST::Package.new(
+      declarator => "class",
+      name       => RakuAST::Name.from-identifier("A"),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new()
+        )
+      ),
+      WHY => RakuAST::Doc::Declarator.new(
+        leading   => (
+          RakuAST::StrLiteral.new("leading comment"),
+        ),
+        trailing   => (
+          RakuAST::StrLiteral.new("trailing comment"),
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+#| leading comment
+class A { }
 #= trailing comment
 CODE
     }

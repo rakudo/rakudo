@@ -548,7 +548,7 @@ class RakuAST::Deparse {
         my str @parts  = $ast.leading.map: {
             '#| ' ~ self!deparse-unquoted($_)
         }
-        @parts.push(self.deparse($ast.WHEREFORE, :skip-doc-declarator));
+        @parts.push(self.deparse($ast.WHEREFORE, :skip-WHY));
         @parts.append: $ast.trailing.map: {
             '#= ' ~ self!deparse-unquoted($_)
         }
@@ -714,7 +714,11 @@ class RakuAST::Deparse {
 
 #- P ---------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Package:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Package:D $ast, :$skip-WHY --> Str:D) {
+        if $ast.WHY -> $WHY {
+            return self.deparse($WHY) unless $skip-WHY;
+        }
+
         my str @parts;
 
         if $ast.scope -> $scope {

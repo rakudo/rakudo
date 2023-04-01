@@ -1798,7 +1798,11 @@ class RakuAST::Deparse {
 
 #- Su --------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Sub:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Sub:D $ast, :$skip-WHY --> Str:D) {
+        if $ast.WHY -> $WHY {
+            return self.deparse($WHY) unless $skip-WHY;
+        }
+
         my str $deparsed = self!routine($ast, 'sub');
         my str $scope    = $ast.scope;
 

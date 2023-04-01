@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 6;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -15,7 +15,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 
 subtest 'Simple leading and trailing pod declarator test' => {
     # #| leading comment␤sub a { 42 }␤#= trailing comment
-    ast RakuAST::Doc::Declarator.new(
+    ast RakuAST::Doc::Declarator.new(   # created from declarator's viewpoint
       WHEREFORE => RakuAST::Sub.new(
         name => RakuAST::Name.from-identifier("a"),
         body => RakuAST::Blockoid.new(
@@ -31,6 +31,36 @@ subtest 'Simple leading and trailing pod declarator test' => {
       ),
       trailing => (
         RakuAST::StrLiteral.new("trailing comment"),
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is $it, q:to/CODE/.chomp, "$type: deparse";
+#| leading comment
+sub a { 42 }
+#= trailing comment
+CODE
+    }
+}
+
+subtest 'Simple sub with leading and trailing pod test' => {
+    # #| leading comment␤sub a { 42 }␤#= trailing comment
+    ast RakuAST::Sub.new(   # created from sub's viewpoint
+      name => RakuAST::Name.from-identifier("a"),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      ),
+      WHY  => RakuAST::Doc::Declarator.new(
+        leading => (
+          RakuAST::StrLiteral.new("leading comment"),
+        ),
+        trailing => (
+          RakuAST::StrLiteral.new("trailing comment"),
+        )
       )
     );
 

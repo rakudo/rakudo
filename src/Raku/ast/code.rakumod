@@ -1205,6 +1205,7 @@ class RakuAST::Routine
   is RakuAST::BeginTime
   is RakuAST::TraitTarget
   is RakuAST::ScopePhaser
+  is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
@@ -1561,16 +1562,24 @@ class RakuAST::Sub
 {
     has RakuAST::Blockoid $.body;
 
-    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
-            List :$traits, RakuAST::Blockoid :$body, str :$multiness) {
+    method new(          str :$scope,
+                         str :$multiness,
+               RakuAST::Name :$name,
+          RakuAST::Signature :$signature,
+                        List :$traits,
+           RakuAST::Blockoid :$body,
+    RakuAST::Doc::Declarator :$WHY
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
-        nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
-            // RakuAST::Signature.new);
-        nqp::bindattr($obj, RakuAST::Sub, '$!body', $body // RakuAST::Blockoid.new);
-        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness // '');
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature',
+          $signature // RakuAST::Signature.new);
         $obj.set-traits($traits);
+        nqp::bindattr($obj, RakuAST::Sub, '$!body',
+          $body // RakuAST::Blockoid.new);
+        $obj.set-WHY($WHY);
         $obj
     }
 

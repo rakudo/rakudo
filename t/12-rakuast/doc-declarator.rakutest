@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 3;
+plan 4;
 
 my $ast;
 my $deparsed;
@@ -96,6 +96,34 @@ subtest 'Simple enum with declarator pod' => {
         is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 enum Foo <A B C>
+#= trailing comment
+CODE
+    }
+}
+
+subtest 'Simple subset with declarator pod' => {
+    # #| leading comment␤subset Foo of Int␤#= trailing comment
+    ast RakuAST::Type::Subset.new(
+      name => RakuAST::Name.from-identifier("Foo"),
+      of   => RakuAST::Trait::Of.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier("Int")
+        )
+      ),
+      WHY => RakuAST::Doc::Declarator.new(
+        leading   => (
+          RakuAST::StrLiteral.new("leading comment"),
+        ),
+        trailing   => (
+          RakuAST::StrLiteral.new("trailing comment"),
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+#| leading comment
+subset Foo of Int
 #= trailing comment
 CODE
     }

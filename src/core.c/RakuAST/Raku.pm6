@@ -1058,7 +1058,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Subset:D: --> Str:D) {
-        self!nameds: <scope name of where traits>
+        self!nameds: <scope name of where traits WHY>
     }
 
 #- Var -------------------------------------------------------------------------

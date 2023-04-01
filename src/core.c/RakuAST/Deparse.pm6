@@ -2014,7 +2014,11 @@ class RakuAST::Deparse {
         self.deparse($ast.name)
     }
 
-    multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Type::Subset:D $ast, :$skip-WHY --> Str:D) {
+        if $ast.WHY -> $WHY {
+            return self.deparse($WHY) unless $skip-WHY;
+        }
+
         my str @parts = 'subset';
         my str $scope = $ast.scope;
 

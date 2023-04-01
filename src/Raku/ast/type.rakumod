@@ -558,26 +558,28 @@ class RakuAST::Type::Enum
 }
 
 class RakuAST::Type::Subset
-    is RakuAST::Type
-    is RakuAST::Declaration
-    is RakuAST::BeginTime
-    is RakuAST::TraitTarget
-    is RakuAST::StubbyMeta
-    is RakuAST::Attaching
-    is RakuAST::PackageInstaller
+  is RakuAST::Type
+  is RakuAST::Declaration
+  is RakuAST::BeginTime
+  is RakuAST::TraitTarget
+  is RakuAST::StubbyMeta
+  is RakuAST::Attaching
+  is RakuAST::PackageInstaller
+  is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Name       $.name;
     has RakuAST::Trait::Of  $.of;
     has RakuAST::Expression $.where;
+
     has Mu $!current-package;
     has Mu $!block;
 
-    method new(
-      str                 :$scope,
-      RakuAST::Name       :$name!,
-      RakuAST::Trait::Of  :$of,
-      RakuAST::Expression :$where,
-      List                :$traits
+    method new(          str :$scope,
+               RakuAST::Name :$name!,
+          RakuAST::Trait::Of :$of,
+         RakuAST::Expression :$where,
+                        List :$traits,
+    RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
@@ -589,11 +591,12 @@ class RakuAST::Type::Subset
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!where', $where);
             nqp::bindattr($obj, RakuAST::Type::Subset, '$!block', $where);
         }
-        $obj.handle-traits($traits) if $traits;
+        $obj.set-traits($traits) if $traits;
+        $obj.set-WHY($WHY);
         $obj
     }
 
-    method handle-traits($traits) {
+    method set-traits($traits) {
         for self.IMPL-UNWRAP-LIST($traits) {
             nqp::istype($_, RakuAST::Trait::Of)
               ?? $!of
@@ -628,6 +631,7 @@ class RakuAST::Type::Subset
         $visitor($!of)
           if $!of
           && !nqp::istype($!of, RakuAST::Declaration::External::Constant);
+        $visitor(self.WHY) if self.WHY;
     }
 
     method is-lexical() { True }

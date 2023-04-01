@@ -397,6 +397,7 @@ class RakuAST::Package
         $visitor($!name);
         self.visit-traits($visitor);
         $visitor($!body);
+        $visitor(self.WHY) if self.WHY;
     }
 
     method needs-sink-call() { False }

@@ -1042,7 +1042,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Enum:D: --> Str:D) {
-        self!nameds: <scope name term of>
+        self!nameds: <scope name term of WHY>
     }
 
     multi method raku(RakuAST::Type::Parameterized:D: --> Str:D) {

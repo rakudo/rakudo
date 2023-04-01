@@ -1982,7 +1982,11 @@ class RakuAST::Deparse {
           ~ ($ast.definite ?? ':D' !! ':U')
     }
 
-    multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Type::Enum:D $ast, :$skip-WHY --> Str:D) {
+        if $ast.WHY -> $WHY {
+            return self.deparse($WHY) unless $skip-WHY;
+        }
+
         my str @parts = 'enum';
         my str $scope = $ast.scope;
 

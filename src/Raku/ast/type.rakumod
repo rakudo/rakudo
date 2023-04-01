@@ -336,20 +336,29 @@ class RakuAST::Type::Enum
   is RakuAST::Attaching
   is RakuAST::PackageInstaller
   is RakuAST::ImplicitLookups
+  is RakuAST::Doc::DeclaratorTarget
 {
-    has RakuAST::Name           $.name;
-    has RakuAST::Expression     $.term;
-    has RakuAST::Type           $.of;
-    has Mu                      $!current-package;
-    # Note: Not using RakuAST::Type::Derived because we don't always know the base-type ahead of time
-    has Mu                      $!base-type;
+    has RakuAST::Name       $.name;
+    has RakuAST::Expression $.term;
+    has RakuAST::Type       $.of;
+    has Mu                  $!current-package;
+    # Note: Not using RakuAST::Type::Derived because we don't always know
+    # the base-type ahead of time
+    has Mu                  $!base-type;
 
-    method new(RakuAST::Name :$name, RakuAST::Expression :$term!, RakuAST::Type :$of, str :$scope) {
+    method new(          str :$scope,
+               RakuAST::Name :$name,
+               RakuAST::Type :$of,
+         RakuAST::Expression :$term!,
+    RakuAST::Doc::Declarator :$WHY
+    ) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Type::Enum, '$!name', $name // RakuAST::Name.from-identifier(''));
-        nqp::bindattr($obj, RakuAST::Type::Enum, '$!term', $term);
-        nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!name',
+          $name // RakuAST::Name.from-identifier(''));
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
+        nqp::bindattr($obj, RakuAST::Type::Enum, '$!term', $term);
+        $obj.set-WHY($WHY);
         $obj
     }
 
@@ -368,7 +377,8 @@ class RakuAST::Type::Enum
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor($!term);
-        $visitor($!of) if $!of;
+        $visitor($!of)     if $!of;
+        $visitor(self.WHY) if self.WHY;
     }
 
     method attach(RakuAST::Resolver $resolver) {

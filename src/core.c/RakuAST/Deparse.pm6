@@ -393,7 +393,7 @@ class RakuAST::Deparse {
         my $statement-list := $ast.statement-list;
         my $statements := $statement-list.statements;
 
-        if $statements.elems > 1 {
+        if $statements.elems > 1 || try $statements.head.expression.WHY {
             self!indent;
             $.block-open
               ~ self.deparse($statement-list)
@@ -548,9 +548,9 @@ class RakuAST::Deparse {
         my str @parts  = $ast.leading.map: {
             '#| ' ~ self!deparse-unquoted($_)
         }
-        @parts.push(self.deparse($ast.WHEREFORE, :skip-WHY));
+        @parts.push($*INDENT ~ self.deparse($ast.WHEREFORE, :skip-WHY));
         @parts.append: $ast.trailing.map: {
-            '#= ' ~ self!deparse-unquoted($_)
+            $*INDENT ~ '#= ' ~ self!deparse-unquoted($_)
         }
 
         @parts.join("\n")
@@ -1575,17 +1575,20 @@ class RakuAST::Deparse {
             my str $last   = $.last-statement;
             my str $end    = $.end-statement;
 
-            my str $code;
+            my $code;
             for @statements.head(*-1) -> $statement {
                 @parts.push($spaces);
-                @parts.push($code = self.deparse($statement));
+                @parts.push($code := self.deparse($statement));
                 @parts.push($code.ends-with($.bracket-close)
-                  ?? $last !! $end
+                  ?? $last
+                  !! $code.contains('#= ')  # fragile, but will do for now
+                    ?? "\n"
+                    !! $end
                 ) unless $code.ends-with($.block-close);
             }
 
             @parts.push($spaces);
-            @parts.push($code = self.deparse(@statements.tail));
+            @parts.push($code := self.deparse(@statements.tail));
             @parts.push($.last-statement)
               unless $code.ends-with($.block-close);
 
@@ -2137,7 +2140,12 @@ class RakuAST::Deparse {
       RakuAST::VarDeclaration::Placeholder::SlurpyHash:D $
     --> '%_') { }
 
-    multi method deparse(RakuAST::VarDeclaration::Simple:D $ast --> Str:D) {
+    multi method deparse(
+      RakuAST::VarDeclaration::Simple:D $ast, :$skip-WHY
+    --> Str:D) {
+        if $ast.WHY -> $WHY {
+            return self.deparse($WHY) unless $skip-WHY;
+        }
         my str @parts;
 
         @parts.push($ast.scope);

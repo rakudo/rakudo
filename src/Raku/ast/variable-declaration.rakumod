@@ -408,30 +408,49 @@ class RakuAST::VarDeclaration::Simple
   is RakuAST::Attaching
   is RakuAST::BeginTime
   is RakuAST::Term
+  is RakuAST::Doc::DeclaratorTarget
 {
-    has RakuAST::Type $.type;
-    has str $.name;
-    has str $!storage-name;
+    has RakuAST::Type        $.type;
+    has str                  $.name;
+    has str                  $!storage-name;
     has RakuAST::Initializer $.initializer;
-    has RakuAST::SemiList $.shape;
-    has RakuAST::Package $!attribute-package;
-    has RakuAST::Method $!accessor;
+    has RakuAST::SemiList    $.shape;
+    has RakuAST::Package     $!attribute-package;
+    has RakuAST::Method      $!accessor;
+
     has Mu $!container-initializer;
     has Mu $!package;
 
-    method new(str :$name!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
-               str :$scope, RakuAST::SemiList :$shape) {
+    method new(          str :$scope,
+                         str :$name!,
+               RakuAST::Type :$type,
+        RakuAST::Initializer :$initializer,
+           RakuAST::SemiList :$shape,
+    RakuAST::Doc::Declarator :$WHY
+    ) {
         my $obj := nqp::create(self);
         if nqp::chars($name) < 2 {
             nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
         }
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name', $name);
+
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape', $shape // RakuAST::SemiList);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name', $name);
+
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type',
+          $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape',
+          $shape // RakuAST::SemiList);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
-        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor', RakuAST::Method);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor',
+          RakuAST::Method);
+
+        if $WHY {
+            $scope && $scope eq 'has'
+              ?? $obj.set-WHY($WHY)
+              !! nqp::die("Declarator doc only supported on scope 'has'");
+        }
+
         $obj
     }
 
@@ -482,15 +501,12 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method visit-children(Code $visitor) {
-        my $type := $!type;
-        $visitor($type) if nqp::isconcrete($type);
-        my $initializer := $!initializer;
-        $visitor($initializer) if nqp::isconcrete($initializer);
-        my $shape := $!shape;
-        $visitor($shape) if nqp::isconcrete($shape);
-        my $accessor := $!accessor;
-        $visitor($accessor) if nqp::isconcrete($accessor);
+        $visitor($!type)        if nqp::isconcrete($!type);
+        $visitor($!initializer) if nqp::isconcrete($!initializer);
+        $visitor($!shape)       if nqp::isconcrete($!shape);
+        $visitor($!accessor)    if nqp::isconcrete($!accessor);
         self.visit-traits($visitor);
+        $visitor(self.WHY) if self.WHY;
     }
 
     method default-scope() {

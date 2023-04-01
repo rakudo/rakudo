@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 7;
+plan 12;
 
 my $ast;
 my $deparsed;
@@ -180,6 +180,217 @@ class A {
     has $.foo
     #= trailing comment
     has $.bar
+}
+CODE
+    }
+}
+
+subtest 'Simple class with declarator pod, one method' => {
+    # class A {␤    #| leading comment␤    method foo() { }␤    #= trailing comment␤}␤
+    ast RakuAST::Package.new(
+      declarator => "class",
+      name       => RakuAST::Name.from-identifier("A"),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                ),
+                WHY  => RakuAST::Doc::Declarator.new(
+                  leading  => (
+                    RakuAST::StrLiteral.new("leading comment"),
+                  ),
+                  trailing => (
+                    RakuAST::StrLiteral.new("trailing comment"),
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is $it, q:to/CODE/, "$type: deparse";
+class A {
+    #| leading comment
+    method foo { }
+    #= trailing comment
+}
+CODE
+    }
+}
+
+subtest 'Simple class with declarator pod, one submethod' => {
+    # class A {␤    #| leading comment␤    submethod foo() { }␤    #= trailing comment␤}␤
+    ast RakuAST::Package.new(
+      declarator => "class",
+      name       => RakuAST::Name.from-identifier("A"),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Submethod.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                ),
+                WHY  => RakuAST::Doc::Declarator.new(
+                  leading  => (
+                    RakuAST::StrLiteral.new("leading comment"),
+                  ),
+                  trailing => (
+                    RakuAST::StrLiteral.new("trailing comment"),
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is $it, q:to/CODE/, "$type: deparse";
+class A {
+    #| leading comment
+    submethod foo { }
+    #= trailing comment
+}
+CODE
+    }
+}
+
+subtest 'Simple class with declarator pod, one private method' => {
+    # class A {␤    #| leading comment␤    method !foo() { }␤    #= trailing comment␤}␤
+    ast RakuAST::Package.new(
+      declarator => "class",
+      name       => RakuAST::Name.from-identifier("A"),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name    => RakuAST::Name.from-identifier("foo"),
+                body    => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                ),
+                private => True,
+                WHY     => RakuAST::Doc::Declarator.new(
+                  leading  => (
+                    RakuAST::StrLiteral.new("leading comment"),
+                  ),
+                  trailing => (
+                    RakuAST::StrLiteral.new("trailing comment"),
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is $it, q:to/CODE/, "$type: deparse";
+class A {
+    #| leading comment
+    method !foo { }
+    #= trailing comment
+}
+CODE
+    }
+}
+
+subtest 'Simple class with declarator pod, one meta method' => {
+    # class A {␤    #| leading comment␤    method ^foo() { }␤    #= trailing comment␤}␤
+    ast RakuAST::Package.new(
+      declarator => "class",
+      name       => RakuAST::Name.from-identifier("A"),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                ),
+                meta => True,
+                WHY  => RakuAST::Doc::Declarator.new(
+                  leading  => (
+                    RakuAST::StrLiteral.new("leading comment"),
+                  ),
+                  trailing => (
+                    RakuAST::StrLiteral.new("trailing comment"),
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is $it, q:to/CODE/, "$type: deparse";
+class A {
+    #| leading comment
+    method ^foo { }
+    #= trailing comment
+}
+CODE
+    }
+}
+
+subtest 'Simple class with declarator pod, two methods' => {
+    # class A {␤    #| leading comment␤    method foo() { }␤    #= trailing comment␤    method bar { }␤}␤
+    ast RakuAST::Package.new(
+      declarator => "class",
+      name       => RakuAST::Name.from-identifier("A"),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("foo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                ),
+                WHY  => RakuAST::Doc::Declarator.new(
+                  leading  => (
+                    RakuAST::StrLiteral.new("leading comment"),
+                  ),
+                  trailing => (
+                    RakuAST::StrLiteral.new("trailing comment"),
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("bar"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new()
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is $it, q:to/CODE/, "$type: deparse";
+class A {
+    #| leading comment
+    method foo { }
+    #= trailing comment
+    method bar { }
 }
 CODE
     }

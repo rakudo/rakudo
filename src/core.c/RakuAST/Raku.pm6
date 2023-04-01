@@ -412,10 +412,12 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Method:D: --> Str:D) {
         my str @nameds = 'name';
+        @nameds.unshift("private")   if self.private;
+        @nameds.unshift("meta")      if self.meta;
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         @nameds.push("signature") if self.signature.parameters-initialized;
-        @nameds.append: <traits body>;
+        @nameds.append: <traits body WHY>;
         self!nameds: @nameds
     }
 
@@ -965,7 +967,7 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::Submethod:D: --> Str:D) {
         my str @nameds = 'name';
         @nameds.push("signature") if self.signature.parameters-initialized;
-        @nameds.append: <traits body>;
+        @nameds.append: <traits body WHY>;
         self!nameds: @nameds
     }
 

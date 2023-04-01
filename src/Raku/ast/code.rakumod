@@ -1703,21 +1703,32 @@ class RakuAST::Method
   is RakuAST::SinkBoundary
 {
     has RakuAST::Blockoid $.body;
-    has Bool $.meta;
-    has Bool $.private;
+    has Bool              $.meta;
+    has Bool              $.private;
 
-    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
-            List :$traits, RakuAST::Blockoid :$body, str :$multiness, Bool :$meta, Bool :$private) {
+    method new(          str :$scope,
+                         str :$multiness,
+                        Bool :$private,
+                        Bool :$meta,
+               RakuAST::Name :$name,
+          RakuAST::Signature :$signature,
+                        List :$traits,
+           RakuAST::Blockoid :$body,
+    RakuAST::Doc::Declarator :$WHY
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
-        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
-        nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
-            // RakuAST::Signature.new);
-        nqp::bindattr($obj, RakuAST::Method, '$!body', $body // RakuAST::Blockoid.new);
-        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness // '');
+        nqp::bindattr_s($obj, RakuAST::Routine, '$!multiness', $multiness //'');
+        nqp::bindattr($obj, RakuAST::Method, '$!private',
+          $private ?? True !! False);
         nqp::bindattr($obj, RakuAST::Method, '$!meta', $meta ?? True !! False);
-        nqp::bindattr($obj, RakuAST::Method, '$!private', $private ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature',
+          $signature // RakuAST::Signature.new);
         $obj.set-traits($traits);
+        nqp::bindattr($obj, RakuAST::Method, '$!body',
+          $body // RakuAST::Blockoid.new);
+        $obj.set-WHY($WHY);
         $obj
     }
 

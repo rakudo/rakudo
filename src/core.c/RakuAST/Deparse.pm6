@@ -158,19 +158,33 @@ class RakuAST::Deparse {
         $_ = $_.chomp($.indent-with) with $*INDENT;
     }
 
-    method !routine(
-      RakuAST::Routine:D  $ast,
-                     str  $kind,
-                    Bool :$curlies
+    method !method(
+      RakuAST::Methodish:D $ast, str $kind, :$curlies, :$skip-WHY
     --> Str:D) {
+        if $ast.WHY -> $WHY {
+            return self.deparse($WHY) unless $skip-WHY;
+        }
+
         my str @parts = $kind;
 
         if $ast.multiness -> $multiness {
             @parts.unshift($ast.multiness)
         }
 
-        if $ast.name -> $name {
-            @parts.push(self.deparse($name));
+        my str $scope = $ast.scope;
+        @parts.unshift($scope)
+          if $scope ne 'has' && $scope ne $ast.default-scope;
+
+        if $ast.name -> $ast-name {
+            my str $name = self.deparse($ast-name);
+            @parts.push(nqp::istype($ast,RakuAST::Method)
+              ?? $ast.private
+                ?? "!$name"
+                !! $ast.meta
+                  ?? "^$name"
+                  !! $name
+              !! $name
+            );
         }
 
         my $signature := $ast.signature;
@@ -181,19 +195,10 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($_)) for @traits;
         }
 
-        my $body := self.deparse($ast.body);
+        my str $body = self.deparse($ast.body);
         @parts.push($curlies ?? '{ ' ~ $body ~ '}' !! $body);
 
         @parts.join(' ')
-    }
-
-    method !method(RakuAST::Methodish:D $ast, str $type --> Str:D) {
-        my str $deparsed = self!routine($ast, $type, |%_);
-        my str $scope    = $ast.scope;
-
-        $scope ne 'has' && $scope ne $ast.default-scope
-          ?? "$scope $deparsed"
-          !! $deparsed
     }
 
     method !conditional($self: $ast, str $type --> Str:D) {
@@ -687,7 +692,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Method:D $ast --> Str:D) {
-        self!method($ast, 'method')
+        self!method($ast, 'method', |%_)
     }
 
 #- N ---------------------------------------------------------------------------
@@ -1264,7 +1269,7 @@ class RakuAST::Deparse {
 #- Regex::D --------------------------------------------------------------------
 
     multi method deparse(RakuAST::RegexDeclaration:D $ast --> Str:D) {
-        self!method($ast, $ast.declarator, :curlies)
+        self!method($ast, $ast.declarator, :curlies, |%_)
     }
 
 #- Regex::G --------------------------------------------------------------------
@@ -1802,17 +1807,35 @@ class RakuAST::Deparse {
         if $ast.WHY -> $WHY {
             return self.deparse($WHY) unless $skip-WHY;
         }
+        my str @parts = 'sub';
 
-        my str $deparsed = self!routine($ast, 'sub');
-        my str $scope    = $ast.scope;
+        if $ast.multiness -> $multiness {
+            @parts.unshift($ast.multiness)
+        }
 
-        $scope ne $ast.default-scope && ($ast.name || $scope ne 'anon')
-          ?? "$scope $deparsed"
-          !! $deparsed
+        my str $scope = $ast.scope;
+        @parts.unshift($scope)
+          if $scope ne $ast.default-scope && ($ast.name || $scope ne 'anon');
+
+        if $ast.name -> $name {
+            @parts.push(self.deparse($name));
+        }
+
+        my $signature := $ast.signature;
+        @parts.push(self!parenthesize($signature))
+          if $signature.parameters-initialized;
+
+        if $ast.traits -> @traits {
+            @parts.push(self.deparse($_)) for @traits;
+        }
+
+        @parts.push(self.deparse($ast.body));
+
+        @parts.join(' ')
     }
 
     multi method deparse(RakuAST::Submethod:D $ast --> Str:D) {
-        self!method($ast, 'submethod')
+        self!method($ast, 'submethod', |%_)
     }
 
     multi method deparse(RakuAST::Substitution:D $ast --> Str:D) {

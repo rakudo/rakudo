@@ -86,11 +86,8 @@ class RakuAST::Statement
     }
 
     method visit-labels(Code $visitor) {
-        my $labels := $!labels;
-        if $labels {
-            for $!labels {
-                $visitor($_);
-            }
+        for $!labels // [] {
+            $visitor($_);
         }
         Nil
     }
@@ -202,6 +199,17 @@ class RakuAST::StatementList
         nqp::push($!statements, $statement);
     }
 
+    method code-statements() {
+        my @statements;
+        for $!statements {
+            # for now: in the end these nodes *should* produce a meta
+            # object to be placed in $=pod
+            nqp::push(@statements,$_)
+              unless nqp::istype($_,RakuAST::Doc::Basic);
+        }
+        @statements
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Blob')),
@@ -211,7 +219,7 @@ class RakuAST::StatementList
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
-        my @statements := $!statements;
+        my @statements := self.code-statements;
         my $Nil := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
         for @statements {
             my $qast := $_.IMPL-TO-QAST($context);
@@ -267,7 +275,7 @@ class RakuAST::StatementList
     method propagate-sink(Bool $is-sunk, Bool :$has-block-parent) {
         # Sink all statements, with the possible exception of the last one (only if
         # we are not sunk).
-        my @statements := $!statements;
+        my @statements := self.code-statements;
         my int $i := 0;
         my int $n := nqp::elems(@statements);
         my int $wanted-statement := $is-sunk ?? -1 !! $n - 1;
@@ -284,18 +292,17 @@ class RakuAST::StatementList
     }
 
     method visit-children(Code $visitor) {
-        my @statements := $!statements;
-        for @statements {
+        for self.code-statements {
             $visitor($_);
         }
     }
 
     method is-empty() {
-        nqp::elems($!statements) == 0 ?? True !! False
+        nqp::elems(self.code-statements) == 0 ?? True !! False
     }
 
     method IMPL-CAN-INTERPRET() {
-        for $!statements {
+        for self.code-statements {
             return False unless $_.IMPL-CAN-INTERPRET;
         }
         True
@@ -303,12 +310,13 @@ class RakuAST::StatementList
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         my $result;
-        for $!statements {
+        my @statements := self.code-statements;
+        for @statements {
             $result := $_.IMPL-INTERPRET($ctx);
         }
         $!is-sunk
-                || ! $!statements
-                || $!statements[nqp::elems($!statements) - 1].IMPL-DISCARD-RESULT
+          || !@statements
+          || @statements[nqp::elems(@statements) - 1].IMPL-DISCARD-RESULT
             ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].compile-time-value
             !! $result
     }
@@ -410,8 +418,7 @@ class RakuAST::ProducesNil
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].IMPL-TO-QAST($context)
+        self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
     }
 }
 

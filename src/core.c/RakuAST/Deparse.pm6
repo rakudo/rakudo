@@ -311,15 +311,12 @@ class RakuAST::Deparse {
 
     method !deparse-as-config(%config) {
         my str $deparsed = %config.map({
-            my $key := .key;
-            if $key ne 'abbreviated' {
-                my $value := .value;
-                if nqp::istype($value,Bool) {
-                    ($value ?? ':' !! ':!') ~ $key
-                }
-                else {
-                    .raku  # for now
-                }
+            my $value := .value;
+            if nqp::istype($value,Bool) {
+                ($value ?? ':' !! ':!') ~ .key
+            }
+            else {
+                .raku  # for now
             }
         }).join(' ');
         $deparsed ?? " $deparsed" !! ''
@@ -537,14 +534,16 @@ class RakuAST::Deparse {
 #- Doc -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Doc::Block:D $ast --> Str:D) {
-        my str $type = $ast.type;
-        my %config  := $ast.config;
+        my str $type     = $ast.type;
+        my %config      := $ast.config;
+        my $abbreviated := $ast.abbreviated;
+
         my $body := $type
           ~ $ast.level
           ~ self!deparse-as-config(%config)
-          ~ "\n"
+          ~ ($abbreviated ?? " " !! "\n")
           ~ $ast.paragraphs.map({ self!deparse-unquoted($_) }).join("\n\n");
-        %config<abbreviated>
+        $abbreviated
           ?? "=$body\n\n"
           !! "=begin $body\n=end $type\n"
     }
@@ -581,14 +580,14 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Doc::Verbatim:D $ast --> Str:D) {
-        my str $type = $ast.type;
-        my %config  := $ast.config;
+        my str $type     = $ast.type;
+        my %config      := $ast.config;
         my $body := $type
           ~ $ast.level
           ~ self!deparse-as-config(%config)
           ~ "\n"
           ~ self!deparse-unquoted($ast.text);
-        %config<abbreviated>
+        $ast.abbreviated
           ?? "=$body\n\n"
           !! "=begin $body\n=end $type\n"
     }
@@ -1634,16 +1633,25 @@ class RakuAST::Deparse {
                 @parts.push($code := self.deparse($statement));
                 @parts.push($code.ends-with($.bracket-close)
                   ?? $last
-                  !! $code.contains('#= ')  # fragile, but will do for now
-                    ?? "\n"
-                    !! $end
+                  !! nqp::istype($statement, RakuAST::Doc::Basic)
+                    ?? $statement.abbreviated
+                      ?? ""
+                      !! "\n"
+                    !! $code.contains('#= ') # fragile, but will do for now
+                      ?? "\n"
+                      !! $end
                 ) unless $code.ends-with($.block-close);
             }
 
-            @parts.push($spaces);
-            @parts.push($code := self.deparse(@statements.tail));
-            @parts.push($.last-statement)
-              unless $code.ends-with($.block-close);
+            given @statements.tail -> $statement {
+                @parts.push($spaces);
+                @parts.push($code := self.deparse($statement));
+                @parts.push($.last-statement)
+                  unless (
+                    nqp::istype($statement,RakuAST::Doc::Basic)
+                      && $statement.abbreviated
+                  ) || $code.ends-with($.block-close);
+            }
 
             @parts.join
         }

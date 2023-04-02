@@ -319,7 +319,7 @@ augment class RakuAST::Node {
 #- Doc -------------------------------------------------------------------------
 
     multi method raku(RakuAST::Doc::Block:D: --> Str:D) {
-        self!nameds: <type level config paragraphs>
+        self!nameds: <type level abbreviated config paragraphs>
     }
 
     multi method raku(RakuAST::Doc::Declarator:D: --> Str:D) {
@@ -337,11 +337,11 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Doc::Table:D: --> Str:D) {
-        self!nameds: <type level config headers rows>
+        self!nameds: <type level abbreviated config headers rows>
     }
 
     multi method raku(RakuAST::Doc::Verbatim:D: --> Str:D) {
-        self!nameds: <type level config text>
+        self!nameds: <type level abbreviated config text>
     }
 
 #- Dot -------------------------------------------------------------------------

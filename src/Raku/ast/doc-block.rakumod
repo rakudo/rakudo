@@ -36,9 +36,10 @@ class RakuAST::Doc::Paragraph
 class RakuAST::Doc::Basic
   is RakuAST::Doc
 {
-    has str $.type;
-    has int $.level;
+    has str  $.type;
+    has int  $.level;
     has Hash $!config;
+    has Bool $.abbreviated;
 
     method set-type(Str $type) {
         nqp::bindattr_s(self, RakuAST::Doc::Basic, '$!type',
@@ -61,6 +62,11 @@ class RakuAST::Doc::Basic
         nqp::bindkey($!config, $key, $value)
     }
     method config() { self.IMPL-WRAP-MAP($!config) }
+
+    method set-abbreviated(Bool $value) {
+        nqp::bindattr(self, RakuAST::Doc::Basic, '$!abbreviated',
+          $value ?? True !! False);
+    }
 }
 
 # Generic block with paragraphs
@@ -69,16 +75,24 @@ class RakuAST::Doc::Block
 {
     has List $!paragraphs;
 
-    method new(Str :$type!, Int :$level, :$config, :$paragraphs) {
+    method new(Str :$type!,
+               Int :$level,
+              Hash :$config,
+              List :$paragraphs,
+              Bool :$abbreviated
+    ) {
         my $obj := nqp::create(self);
         $obj.set-type($type);
         $obj.set-level($level);
         $obj.set-config($config);
+        $obj.set-abbreviated($abbreviated);
         $obj.set-paragraphs($paragraphs);
         $obj
     }
     method visit-children(Code $visitor) {
-        $visitor(self.paragraphs);
+        for $!paragraphs {
+            $visitor($_);
+        }
     }
 
     method set-paragraphs($paragraphs) {
@@ -98,11 +112,17 @@ class RakuAST::Doc::Verbatim
 {
     has RakuAST::StrLiteral $.text;
 
-    method new(:$type!, :$level, :$text!, :$config) {
+    method new(Str :$type!,
+               Int :$level,
+               Str :$text!,
+              Hash :$config,
+              Bool :$abbreviated
+    ) {
         my $obj := nqp::create(self);
         $obj.set-type($type);
         $obj.set-level($level);
         $obj.set-config($config);
+        $obj.set-abbreviated($abbreviated);
         $obj.set-text($text);
         $obj
     }
@@ -124,18 +144,29 @@ class RakuAST::Doc::Table
     has List $!headers;
     has List $!rows;
 
-    method new(:$type, :$level, :$config, :$headers, :$rows) {
+    method new(Str :$type,
+               Int :$level,
+              Hash :$config,
+              List :$headers,
+              List :$rows,
+              Bool :$abbreviated
+    ) {
         my $obj := nqp::create(self);
         $obj.set-type($type // "table");
         $obj.set-level($level);
         $obj.set-config($config);
+        $obj.set-abbreviated($abbreviated);
         $obj.set-headers($headers);
         $obj.set-rows($rows);
         $obj
     }
     method visit-children(Code $visitor) {
-        $visitor($!headers) if nqp::elems($!headers);
-        $visitor($!rows)    if nqp::elems($!rows);
+        for $!headers {
+            $visitor($_);
+        }
+        for $!rows {
+            $visitor($_);
+        }
     }
 
     method set-headers($headers) {
@@ -173,8 +204,12 @@ class RakuAST::Doc::Markup
         $obj
     }
     method visit-children(Code $visitor) {
-        $visitor(self.atoms) if nqp::elems($!atoms);
-        $visitor(self.meta)  if nqp::elems($!meta);
+        for $!atoms {
+            $visitor($_);
+        }
+        for $!meta {
+            $visitor($_);
+        }
     }
 
     method set-letter(Str $letter) {

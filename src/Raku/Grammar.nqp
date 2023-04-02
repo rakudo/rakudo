@@ -539,6 +539,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*R;
         :my $*LITERALS;
         :my $*EXPORT;
+        :my $*IN-TYPENAME;
         :my $*NEXT_STATEMENT_ID := 1; # to give each statement an ID
         :my $*begin_compunit := 1;    # whether we're at start of a compilation unit
         <.comp_unit_stage0>
@@ -1857,7 +1858,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $*key := $<identifier>.Str }
         | <identifier>
             { $*key := $<identifier>.Str }
-            [ <.unsp>? :dba('pair value') <coloncircumfix($*key)> ]?
+            [ <.unsp>? <?{ !$*IN-TYPENAME || ($*key ne 'D' && $*key ne 'U' && $*key ne '_') }> :dba('pair value') <coloncircumfix($*key)> ]?
         | :dba('signature') '(' ~ ')' <fakesignature>
         | <coloncircumfix('')>
             { $*key := ""; }
@@ -2801,7 +2802,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | # parse ::?CLASS as special case
           '::?'<identifier> <colonpair>*
-        | <longname>
+        |
+          :my $*IN-TYPENAME := 1;
+          <longname>
           <?{
             # ::T introduces a type, so always is one
             nqp::eqat(~$<longname>, '::', 0) || $*R.is-name-known($<longname>.ast.without-colonpairs)

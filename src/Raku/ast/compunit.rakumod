@@ -156,11 +156,23 @@ class RakuAST::CompUnit
     }
 
     method add-init-phaser(RakuAST::StatementPrefix::Phaser::Init $phaser) {
+        # Cannot rely on clear-attachments here as a node's attach can be called
+        # multiple times while going up and down the tree and clear-attachments will
+        # only be called once.
+        for $!init-phasers {
+            return Nil if $_ =:= $phaser;
+        }
         nqp::push($!init-phasers, $phaser);
         Nil
     }
 
     method add-end-phaser(RakuAST::StatementPrefix::Phaser::End $phaser) {
+        # Cannot rely on clear-attachments here as a node's attach can be called
+        # multiple times while going up and down the tree and clear-attachments will
+        # only be called once.
+        for $!end-phasers {
+            return Nil if $_ =:= $phaser;
+        }
         nqp::push($!end-phasers, $phaser);
         Nil
     }

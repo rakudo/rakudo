@@ -102,27 +102,37 @@ class RakuAST::Node {
 
         # Apply any pre-children BEGIN-time effects that were not yet
         # performed (and figure out if we have to do the later).
-        my int $needs-begin-after;
+        my int $needs-begin-after := nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-after-children();
         if nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-before-children() {
             self.ensure-begin-performed($resolver, $context, :phase(1));
         }
 
-        # Visit children.
+        # Visit children. But don't run CHECK yet if this will be followed by more BEGIN handling
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only) });
+        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only || $needs-begin-after) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
         # Perform any after-children BEGIN-time effects.
-        if nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-after-children() {
+        if $needs-begin-after {
             self.ensure-begin-performed($resolver, $context, :phase(2));
         }
 
         # Unless in resolve-only mode, do other check-time activities.
         unless $resolve-only {
+            if $needs-begin-after {
+                # Run children's CHECK processing. Couldn't do it earlier as
+                # that would have interfered with our BEGIN handling.
+                $resolver.push-scope(self) if $is-scope;
+                $resolver.push-package(self) if $is-package;
+                self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only) });
+                $resolver.pop-scope() if $is-scope;
+                $resolver.pop-package() if $is-package;
+            }
+
             if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
                 self.calculate-sink();
             }

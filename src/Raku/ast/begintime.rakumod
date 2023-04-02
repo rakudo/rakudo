@@ -41,6 +41,10 @@ class RakuAST::BeginTime
         Nil
     }
 
+    method begin-performed() {
+        $!begin-performed == 3
+    }
+
     # Called when a BEGIN-time construct needs to evaluate code. Tries to
     # interpret simple things to avoid the cost of compilation.
     method IMPL-BEGIN-TIME-EVALUATE(RakuAST::Node $code, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 13;
+plan 16;
 
 my $ast;
 my $deparsed;
@@ -35,7 +35,7 @@ subtest 'Simple leading and trailing pod declarator test' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/.chomp, "$type: deparse";
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 sub a { 42 }
 #= trailing comment
@@ -65,7 +65,7 @@ subtest 'Simple sub with leading and trailing pod test' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/.chomp, "$type: deparse";
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 sub a { 42 }
 #= trailing comment
@@ -94,7 +94,7 @@ subtest 'Simple class with declarator pod' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/.chomp, "$type: deparse";
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 class A { }
 #= trailing comment
@@ -130,7 +130,7 @@ subtest 'Simple class with declarator pod, one attribute' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/, "$type: deparse";
+        is-deeply $it, q:to/CODE/, "$type: deparse";
 class A {
     #| leading comment
     has $.foo
@@ -174,7 +174,7 @@ subtest 'Simple class with declarator pod, two attributes' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/, "$type: deparse";
+        is-deeply $it, q:to/CODE/, "$type: deparse";
 class A {
     #| leading comment
     has $.foo
@@ -215,7 +215,7 @@ subtest 'Simple class with declarator pod, one method' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/, "$type: deparse";
+        is-deeply $it, q:to/CODE/, "$type: deparse";
 class A {
     #| leading comment
     method foo { }
@@ -255,7 +255,7 @@ subtest 'Simple class with declarator pod, one submethod' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/, "$type: deparse";
+        is-deeply $it, q:to/CODE/, "$type: deparse";
 class A {
     #| leading comment
     submethod foo { }
@@ -296,7 +296,7 @@ subtest 'Simple class with declarator pod, one private method' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/, "$type: deparse";
+        is-deeply $it, q:to/CODE/, "$type: deparse";
 class A {
     #| leading comment
     method !foo { }
@@ -337,7 +337,7 @@ subtest 'Simple class with declarator pod, one meta method' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/, "$type: deparse";
+        is-deeply $it, q:to/CODE/, "$type: deparse";
 class A {
     #| leading comment
     method ^foo { }
@@ -385,7 +385,7 @@ subtest 'Simple class with declarator pod, two methods' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/, "$type: deparse";
+        is-deeply $it, q:to/CODE/, "$type: deparse";
 class A {
     #| leading comment
     method foo { }
@@ -417,7 +417,7 @@ subtest 'Simple enum with declarator pod' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/.chomp, "$type: deparse";
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 enum Foo <A B C>
 #= trailing comment
@@ -445,7 +445,7 @@ subtest 'Simple subset with declarator pod' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/.chomp, "$type: deparse";
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 subset Foo of Int
 #= trailing comment
@@ -474,10 +474,123 @@ subtest 'Simple regex with declarator pod' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is $it, q:to/CODE/.chomp, "$type: deparse";
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 my regex foo { bar }
 #= trailing comment
+CODE
+    }
+}
+
+subtest 'Sub with declarator pod on parameter (1)' => {
+    # sub a (␤#| leading comment␤$b␤#= trailing comment␤) { }␤
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier("a"),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new("\$b"),
+            WHY => RakuAST::Doc::Declarator.new(
+              leading   => (
+                RakuAST::StrLiteral.new("leading comment"),
+              ),
+              trailing   => (
+                RakuAST::StrLiteral.new("trailing comment"),
+              )
+            )
+          ),
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new()
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+sub a (
+#| leading comment
+$b
+#= trailing comment
+) { }
+CODE
+    }
+}
+
+subtest 'Sub with declarator pod on parameter (2)' => {
+    # sub a (␤#| leading comment␤$b␤#= trailing comment␤␤$c,) { }␤
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier("a"),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new('$b'),
+            WHY => RakuAST::Doc::Declarator.new(
+              leading   => (
+                RakuAST::StrLiteral.new("leading comment"),
+              ),
+              trailing   => (
+                RakuAST::StrLiteral.new("trailing comment"),
+              )
+            )
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new('$c')
+          )
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new()
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+sub a (
+#| leading comment
+$b,
+#= trailing comment
+$c) { }
+CODE
+    }
+}
+
+subtest 'Sub with declarator pod on parameter (3)' => {
+    # sub a (␤#| leading comment␤$b, $c) { }␤
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier("a"),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new('$b'),
+            WHY => RakuAST::Doc::Declarator.new(
+              leading   => (
+                RakuAST::StrLiteral.new("leading comment"),
+              )
+            )
+          ),
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new('$c'),
+            WHY => RakuAST::Doc::Declarator.new(
+              leading   => (
+                RakuAST::StrLiteral.new("leading comment"),
+              )
+            )
+          )
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new()
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+sub a (
+#| leading comment
+$b,
+#| leading comment
+$c) { }
 CODE
     }
 }

@@ -553,12 +553,12 @@ class RakuAST::Deparse {
         my str @parts  = $ast.leading.map: {
             '#| ' ~ self!deparse-unquoted($_)
         }
-        @parts.push($*INDENT ~ self.deparse($ast.WHEREFORE, :skip-WHY));
+        @parts.push(self.deparse($ast.WHEREFORE, :skip-WHY));
         @parts.append: $ast.trailing.map: {
-            $*INDENT ~ '#= ' ~ self!deparse-unquoted($_)
+            '#= ' ~ self!deparse-unquoted($_)
         }
 
-        @parts.join("\n")
+        @parts.join("\n$*INDENT")
     }
 
     multi method deparse(RakuAST::Doc::Markup:D $ast --> Str:D) {
@@ -773,8 +773,13 @@ class RakuAST::Deparse {
 
 #- Parameter -------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Parameter:D $ast --> Str:D) {
-        return .raku with $ast.value;
+    multi method deparse(RakuAST::Parameter:D $ast, :$skip-WHY --> Str:D) {
+        if $ast.WHY -> $WHY {
+            return self.deparse($WHY) unless $skip-WHY;
+        }
+        orwith $ast.value {
+            return .raku
+        }
 
         my $target   := $ast.target;
         my @captures := $ast.type-captures;
@@ -1428,9 +1433,52 @@ class RakuAST::Deparse {
         my str @parts;
 
         if $ast.parameters -> @parameters {
-            @parts.push(@parameters.map({
-                self.deparse($_)
-            }).join($.list-infix-comma));
+            # need special handling for declarator doc
+            if @parameters.first(*.WHY) {
+                my $last  := @parameters.tail;
+                my str $nl = "\n$*INDENT";
+
+                my str @atoms;
+                for @parameters -> $param {
+                    my $deparsed := self.deparse($param, :skip-WHY)
+                     ~ ($param === $last ?? "" !! $.list-infix-comma);
+
+                    if $param.WHY -> $WHY {
+                        if $WHY.leading -> $leading {
+                            @atoms.push($nl);
+                            @atoms.push(
+                              $leading.map({
+                                  '#| ' ~ self!deparse-unquoted($_)
+                              }).join($nl)
+                            );
+                            @atoms.push($nl);
+                        }
+                        @atoms.push($deparsed);
+                        if $WHY.trailing -> $trailing {
+                            @atoms.push($nl);
+                            @atoms.push(
+                              $trailing.map({
+                                  '#= ' ~ self!deparse-unquoted($_)
+                              }).join($nl)
+                            );
+                            @atoms.push($nl);
+                            # one \n will get eaten if last
+                            @atoms.push("\n") if $param === $last;
+                        }
+                    }
+                    else {
+                        @atoms.push($deparsed);
+                    }
+                }
+                @parts.push(@atoms.join.subst(" \n", "\n", :g));
+            }
+
+            # no special action
+            else {
+                @parts.push(@parameters.map({
+                    self.deparse($_)
+                }).join($.list-infix-comma));
+            }
         }
         @parts.push("--> " ~ self.deparse($_)) with $ast.returns;
 
@@ -1807,6 +1855,7 @@ class RakuAST::Deparse {
         if $ast.WHY -> $WHY {
             return self.deparse($WHY) unless $skip-WHY;
         }
+
         my str @parts = 'sub';
 
         if $ast.multiness -> $multiness {

@@ -275,8 +275,9 @@ class RakuAST::Signature
     }
 }
 
-# A parameter within a signature. A parameter may result in binding or assignment
-# into a target; this is modeled by a RakuAST::ParameterTarget, which is optional.
+# A parameter within a signature. A parameter may result in binding or
+# assignment into a target; this is modeled by a RakuAST::ParameterTarget,
+# which is optional.
 class RakuAST::Parameter
   is RakuAST::Meta
   is RakuAST::Attaching
@@ -284,47 +285,68 @@ class RakuAST::Parameter
   is RakuAST::TraitTarget
   is RakuAST::BeginTime
   is RakuAST::CheckTime
+  is RakuAST::Doc::DeclaratorTarget
 {
-    has RakuAST::Type $.type;
-    has RakuAST::ParameterTarget $.target;
-    has Mu $!names;
-    has Bool $.invocant;
-    has Bool $.optional;
+    has RakuAST::Type              $.type;
+    has RakuAST::ParameterTarget   $.target;
+    has Mu                         $!names;
+    has Bool                       $.invocant;
+    has Bool                       $.optional;
     has RakuAST::Parameter::Slurpy $.slurpy;
-    has RakuAST::Expression $.default;
-    has RakuAST::Expression $.where;
-    has RakuAST::Node $!owner;
-    has RakuAST::Signature $.sub-signature;
-    has List $!type-captures;
-    has Mu $.value;
+    has RakuAST::Expressioni       $.default;
+    has RakuAST::Expression        $.where;
+    has RakuAST::Node              $!owner;
+    has RakuAST::Signature         $.sub-signature;
+    has List                       $!type-captures;
+    has Mu                         $.value;
 
-    method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
-            List :$names, Bool :$invocant, Bool :$optional,
-            RakuAST::Parameter::Slurpy :$slurpy, List :$traits,
-            RakuAST::Expression :$default, RakuAST::Expression :$where,
-            RakuAST::Signature :$sub-signature, List :$type-captures,
-            Mu :$value) {
+    method new(  RakuAST::Type :$type,
+      RakuAST::ParameterTarget :$target,
+                          List :$names,
+                          Bool :$invocant,
+                          Bool :$optional,
+    RakuAST::Parameter::Slurpy :$slurpy,
+                          List :$traits,
+           RakuAST::Expression :$default,
+           RakuAST::Expression :$where,
+            RakuAST::Signature :$sub-signature,
+                          List :$type-captures,
+                            Mu :$value,
+      RakuAST::Doc::Declarator :$WHY
+    ) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
-        $target.set-type($type) if $target && nqp::can($target, 'set-type') && $type;
-        nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!names', self.IMPL-NAMES($names));
-        nqp::bindattr($obj, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!optional', nqp::defined($optional)
+        nqp::bindattr($obj, RakuAST::Parameter, '$!type',
+          $type // RakuAST::Type);
+        $target.set-type($type)
+          if $target && nqp::can($target, 'set-type') && $type;
+        nqp::bindattr($obj, RakuAST::Parameter, '$!target',
+          $target // RakuAST::ParameterTarget);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!names',
+          self.IMPL-NAMES($names));
+        nqp::bindattr($obj, RakuAST::Parameter, '$!invocant',
+          $invocant ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!optional',
+          nqp::defined($optional)
             ?? ($optional ?? True !! False)
             !! Bool);
         nqp::bindattr($obj, RakuAST::Parameter, '$!slurpy',
-            nqp::istype($slurpy, RakuAST::Parameter::Slurpy)
-                ?? $slurpy
-                !! RakuAST::Parameter::Slurpy);
+          nqp::istype($slurpy, RakuAST::Parameter::Slurpy)
+            ?? $slurpy
+            !! RakuAST::Parameter::Slurpy);
         $obj.set-traits($traits);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!default', $default // RakuAST::Expression);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!where', $where // RakuAST::Expression);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!sub-signature', $sub-signature // RakuAST::Signature);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!type-captures', nqp::defined($type-captures)
+        nqp::bindattr($obj, RakuAST::Parameter, '$!default',
+          $default // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!where',
+          $where // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!sub-signature',
+          $sub-signature // RakuAST::Signature);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!type-captures',
+          nqp::defined($type-captures)
             ?? self.IMPL-TYPE-CAPTURES($type-captures)
             !! []);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!value', $value) if nqp::defined($value);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!value', $value)
+          if nqp::defined($value);
+        $obj.set-WHY($WHY);
         $obj
     }
 

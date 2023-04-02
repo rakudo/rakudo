@@ -533,7 +533,19 @@ class RakuAST::Deparse {
 
 #- Doc -------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Doc::Block:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Doc::Declarator:D $ast --> Str:D) {
+        my str @parts  = $ast.leading.map: {
+            '#| ' ~ self!deparse-unquoted($_)
+        }
+        @parts.push(self.deparse($ast.WHEREFORE, :skip-WHY));
+        @parts.append: $ast.trailing.map: {
+            '#= ' ~ self!deparse-unquoted($_)
+        }
+
+        @parts.join("\n$*INDENT")
+    }
+
+    multi method deparse(RakuAST::Doc::Formatted:D $ast --> Str:D) {
         my str $type     = $ast.type;
         my %config      := $ast.config;
         my $abbreviated := $ast.abbreviated;
@@ -546,18 +558,6 @@ class RakuAST::Deparse {
         $abbreviated
           ?? "=$body\n\n"
           !! "=begin $body\n=end $type\n"
-    }
-
-    multi method deparse(RakuAST::Doc::Declarator:D $ast --> Str:D) {
-        my str @parts  = $ast.leading.map: {
-            '#| ' ~ self!deparse-unquoted($_)
-        }
-        @parts.push(self.deparse($ast.WHEREFORE, :skip-WHY));
-        @parts.append: $ast.trailing.map: {
-            '#= ' ~ self!deparse-unquoted($_)
-        }
-
-        @parts.join("\n$*INDENT")
     }
 
     multi method deparse(RakuAST::Doc::Markup:D $ast --> Str:D) {
@@ -1633,7 +1633,7 @@ class RakuAST::Deparse {
                 @parts.push($code := self.deparse($statement));
                 @parts.push($code.ends-with($.bracket-close)
                   ?? $last
-                  !! nqp::istype($statement, RakuAST::Doc::Basic)
+                  !! nqp::istype($statement, RakuAST::Doc::Block)
                     ?? $statement.abbreviated
                       ?? ""
                       !! "\n"
@@ -1648,7 +1648,7 @@ class RakuAST::Deparse {
                 @parts.push($code := self.deparse($statement));
                 @parts.push($.last-statement)
                   unless (
-                    nqp::istype($statement,RakuAST::Doc::Basic)
+                    nqp::istype($statement,RakuAST::Doc::Block)
                       && $statement.abbreviated
                   ) || $code.ends-with($.block-close);
             }

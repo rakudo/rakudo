@@ -205,7 +205,7 @@ class RakuAST::StatementList
             # for now: in the end these nodes *should* produce a meta
             # object to be placed in $=pod
             nqp::push(@statements,$_)
-              unless nqp::istype($_,RakuAST::Doc::Basic);
+              unless nqp::istype($_,RakuAST::Doc::Block);
         }
         @statements
     }

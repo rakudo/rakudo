@@ -318,14 +318,14 @@ augment class RakuAST::Node {
 
 #- Doc -------------------------------------------------------------------------
 
-    multi method raku(RakuAST::Doc::Block:D: --> Str:D) {
-        self!nameds: <type level abbreviated config paragraphs>
-    }
-
     multi method raku(RakuAST::Doc::Declarator:D: --> Str:D) {
         self!nameds: nqp::eqaddr(self.WHEREFORE.WHY,self)
           ?? <leading trailing>
           !! <WHEREFORE leading trailing>
+    }
+
+    multi method raku(RakuAST::Doc::Formatted:D: --> Str:D) {
+        self!nameds: <type level abbreviated config paragraphs>
     }
 
     multi method raku(RakuAST::Doc::Markup:D: --> Str:D) {

@@ -33,7 +33,7 @@ class RakuAST::Doc::Paragraph
 }
 
 # Basic block features role
-class RakuAST::Doc::Basic
+class RakuAST::Doc::Block
   is RakuAST::Doc
 {
     has str  $.type;
@@ -42,19 +42,19 @@ class RakuAST::Doc::Basic
     has Bool $.abbreviated;
 
     method set-type(Str $type) {
-        nqp::bindattr_s(self, RakuAST::Doc::Basic, '$!type',
+        nqp::bindattr_s(self, RakuAST::Doc::Block, '$!type',
           $type // nqp::die("Must specify a type"));
         Nil
     }
 
     method set-level(Int $level) {
-        nqp::bindattr_i(self, RakuAST::Doc::Basic, '$!level', $level // 0);
+        nqp::bindattr_i(self, RakuAST::Doc::Block, '$!level', $level // 0);
         Nil
     }
     method level() { $!level ?? ~$!level !! "" }
 
     method set-config($config) {
-        nqp::bindattr(self, RakuAST::Doc::Basic, '$!config',
+        nqp::bindattr(self, RakuAST::Doc::Block, '$!config',
           $config ?? self.IMPL-UNWRAP-MAP($config) !! nqp::hash);
         Nil
     }
@@ -64,14 +64,14 @@ class RakuAST::Doc::Basic
     method config() { self.IMPL-WRAP-MAP($!config) }
 
     method set-abbreviated(Bool $value) {
-        nqp::bindattr(self, RakuAST::Doc::Basic, '$!abbreviated',
+        nqp::bindattr(self, RakuAST::Doc::Block, '$!abbreviated',
           $value ?? True !! False);
     }
 }
 
 # Generic block with paragraphs
-class RakuAST::Doc::Block
-  is RakuAST::Doc::Basic
+class RakuAST::Doc::Formatted
+  is RakuAST::Doc::Block
 {
     has List $!paragraphs;
 
@@ -96,7 +96,7 @@ class RakuAST::Doc::Block
     }
 
     method set-paragraphs($paragraphs) {
-        nqp::bindattr(self, RakuAST::Doc::Block, '$!paragraphs',
+        nqp::bindattr(self, RakuAST::Doc::Formatted, '$!paragraphs',
           $paragraphs
             ?? self.IMPL-UNWRAP-LIST($paragraphs)
             !! nqp::list);
@@ -108,7 +108,7 @@ class RakuAST::Doc::Block
 
 # Blocks just consisting of verbatim text
 class RakuAST::Doc::Verbatim
-  is RakuAST::Doc::Basic
+  is RakuAST::Doc::Block
 {
     has RakuAST::StrLiteral $.text;
 
@@ -139,7 +139,7 @@ class RakuAST::Doc::Verbatim
 
 # Table with caption and headers
 class RakuAST::Doc::Table
-  is RakuAST::Doc::Basic
+  is RakuAST::Doc::Block
 {
     has List $!headers;
     has List $!rows;

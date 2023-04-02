@@ -15,7 +15,7 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 
 subtest 'simple documentation' => {
     # =begin doc␤This is documentation␤=end doc␤
-    ast RakuAST::Doc::Block.new(
+    ast RakuAST::Doc::Formatted.new(
       type        => 'doc',
       paragraphs  => (
         RakuAST::StrLiteral.new("This is documentation"),
@@ -32,7 +32,7 @@ CODE
 
 subtest 'simple documentation abbreviated' => {
     # =doc This is documentation␤␤
-    ast RakuAST::Doc::Block.new(
+    ast RakuAST::Doc::Formatted.new(
       type        => 'doc',
       abbreviated => True,
       paragraphs  => (
@@ -49,7 +49,7 @@ CODE
 
 subtest 'simple documentation with markup' => {
     # =begin doc␤This is B<doc>umentation␤=end doc␤
-    ast RakuAST::Doc::Block.new(
+    ast RakuAST::Doc::Formatted.new(
       type        => 'doc',
       paragraphs  => (
         RakuAST::Doc::Paragraph.new(
@@ -110,7 +110,7 @@ subtest 'simple documentation in a statementlist (1)' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42)
       ),
-      RakuAST::Doc::Block.new(
+      RakuAST::Doc::Formatted.new(
         type        => 'doc',
         paragraphs  => (
           RakuAST::StrLiteral.new("This is documentation"),
@@ -132,7 +132,7 @@ CODE
 subtest 'simple documentation in a statementlist (2)' => {
     # =begin doc␤This is documentation␤=end doc␤␤42␤
     ast RakuAST::StatementList.new(
-      RakuAST::Doc::Block.new(
+      RakuAST::Doc::Formatted.new(
         type        => 'doc',
         paragraphs  => (
           RakuAST::StrLiteral.new("This is documentation"),
@@ -160,7 +160,7 @@ subtest 'abbreviated documentation in a statementlist (1)' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42)
       ),
-      RakuAST::Doc::Block.new(
+      RakuAST::Doc::Formatted.new(
         type        => 'head',
         level       => 1,
         abbreviated => True,
@@ -182,7 +182,7 @@ CODE
 subtest 'abbreviated documentation in a statementlist (2)' => {
     # =head1 ␤This is documentation␤␤42␤
     ast RakuAST::StatementList.new(
-      RakuAST::Doc::Block.new(
+      RakuAST::Doc::Formatted.new(
         type        => 'head',
         level       => 1,
         abbreviated => True,

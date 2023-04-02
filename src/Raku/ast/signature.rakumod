@@ -273,6 +273,31 @@ class RakuAST::Signature
         $visitor($!implicit-slurpy-hash) if $!implicit-slurpy-hash;
         $visitor($!returns) if $!returns;
     }
+
+    has Mu $!ins_params;
+    method IMPL-SIGNATURE-PARAMS(Mu $var) {
+        unless $!ins_params {
+            nqp::bindattr(self, RakuAST::Signature, '$!ins_params', QAST::Node.unique('__lowered_parameters_'));
+            $var.push(
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new(:name($!ins_params), :scope('local'), :decl('var')),
+                    QAST::Op.new( # Get @!params on the signature
+                        :op('getattr'),
+                        QAST::Op.new( # Get signature object
+                            :op('getattr'),
+                            QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                            QAST::WVal.new(:value(Code)),
+                            QAST::SVal.new(:value('$!signature'))
+                        ),
+                        QAST::WVal.new(:value(Signature)),
+                        QAST::SVal.new(:value('@!params'))
+                    )
+                )
+            );
+        }
+        QAST::Var.new(:name($!ins_params), :scope('local'))
+    }
 }
 
 # A parameter within a signature. A parameter may result in binding or
@@ -293,9 +318,10 @@ class RakuAST::Parameter
     has Bool                       $.invocant;
     has Bool                       $.optional;
     has RakuAST::Parameter::Slurpy $.slurpy;
-    has RakuAST::Expressioni       $.default;
+    has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
     has RakuAST::Node              $!owner;
+    has RakuAST::Package           $!package;
     has RakuAST::Signature         $.sub-signature;
     has List                       $!type-captures;
     has Mu                         $.value;
@@ -493,6 +519,8 @@ class RakuAST::Parameter
     method attach(RakuAST::Resolver $resolver) {
         nqp::bindattr(self, RakuAST::Parameter, '$!owner',
             $resolver.find-attach-target('block'));
+        nqp::bindattr(self, RakuAST::Parameter, '$!package',
+            $resolver.find-attach-target('package'));
     }
 
     method visit-children(Code $visitor) {
@@ -720,17 +748,41 @@ class RakuAST::Parameter
         if $!sub-signature {
             $!owner.set-custom-args;
         }
+
+        my $param-obj := self.meta-object;
+        my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
+        my $ptype-archetypes := $param-type.HOW.archetypes($param-type);
+        my int $is-generic  := $ptype-archetypes.generic;
+        my int $is-coercive := $ptype-archetypes.coercive;
+        my int $was-slurpy := !($!slurpy =:= RakuAST::Parameter::Slurpy);
+
+        if $is-generic && $is-coercive && !$was-slurpy && !($param-type =:= Mu) && !self.invocant {
+            $!owner.set-custom-args;
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        nqp::die('shouldnt get here') if $!sub-signature;
         # Flag constants we need to pay attention to.
         my constant SIG_ELEM_IS_RW               := 256;
         my constant SIG_ELEM_IS_COPY             := 512;
         my constant SIG_ELEM_IS_RAW              := 1024;
+        my constant SIG_ELEM_IS_COERCIVE         := 67108864;
+        my @iscont-ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
 
         # Get the parameter meta-object, since traits can change some things.
         my $param-obj := self.meta-object;
         my int $flags := nqp::getattr_i($param-obj, Parameter, '$!flags');
+        my int $is-rw := $flags +& SIG_ELEM_IS_RW;
+
+        my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
+        my $ptype-archetypes := $param-type.HOW.archetypes($param-type);
+        my int $is-generic  := $ptype-archetypes.generic;
+        my int $is-coercive := $ptype-archetypes.coercive;
+        my $nominal-type := !$is-generic && $ptype-archetypes.nominalizable
+                            ?? $param-type.HOW.nominalize($param-type)
+                            !! $param-type;
+        my int $spec  := nqp::objprimspec($nominal-type);
 
         # Take the parameter into a temporary local.
         my $name := QAST::Node.unique("__lowered_param");
@@ -750,8 +802,8 @@ class RakuAST::Parameter
         }
 
         # HLLize before type checking unless it was a slurpy (in which
-        # case we know full well what we produced).
-        unless $was-slurpy {
+        # case we know full well what we produced) or it's a native type
+        if !$was-slurpy && ($is-generic || !$spec) {
             $param-qast.push(QAST::Op.new(
                 :op('bind'),
                 $temp-qast-var,
@@ -774,79 +826,190 @@ class RakuAST::Parameter
             $decont-qast-var
         }
 
-        # Do type checks.
-        # TODO really more involved than this
-        my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
-        my $nominal-type := $param-type;
-        my int $spec  := nqp::objprimspec($nominal-type);
-        unless $nominal-type =:= Mu {
-            $context.ensure-sc($nominal-type);
-
-            if $spec {
-                $param-qast.returns($param-type);
-            }
-            elsif $nominal-type.HOW.archetypes.definite {
+        # Add type checks.
+        if !$is-generic && $spec {
+            if $is-rw {
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                    :op('istype_nd'),
-                    $get-decont-var(),
-                    QAST::WVal.new( :value($nominal-type.HOW.base_type($nominal-type)) )
-                )));
-                my $concreteness := QAST::Op.new(
-                    :op('isconcrete_nd'),
-                    $get-decont-var(),
-                );
-                unless $nominal-type.HOW.definite($nominal-type) {
-                    $concreteness := QAST::Op.new(:op('not_i'), $concreteness);
-                }
-                $param-qast.push(QAST::ParamTypeCheck.new($concreteness));
-            }
-            elsif $nominal-type.HOW.archetypes.generic {
-                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                    :op('istype_nd'),
-                    $get-decont-var(),
-                    QAST::Var.new( :name($nominal-type.HOW.name($nominal-type)), :scope<typevar> )
+                    :op(@iscont-ops[$spec]),
+                    $temp-qast-var
                 )));
             }
             else {
-                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-
-                if $!target.sigil eq '@' && $nominal-type =:= @lookups[0].resolution.compile-time-value {
-                    my $PositionalBindFailover := @lookups[1].resolution.compile-time-value;
-                    $param-qast.push(QAST::Op.new(
-                        :op('if'),
-                        QAST::Op.new(
-                            :op('istype_nd'),
-                            $get-decont-var(),
-                            QAST::WVal.new( :value($PositionalBindFailover) )
-                        ),
-                        QAST::Op.new(
-                            :op('bind'),
-                            $get-decont-var(),
-                            QAST::Op.new(
-                                :op('decont'),
-                                QAST::Op.new(
-                                    :op('bind'),
-                                    $temp-qast-var,
-                                    QAST::Op.new(
-                                        :op('callmethod'), :name('cache'),
-                                        $get-decont-var()
-                                    ))))));
-                }
-
+                $context.ensure-sc($param-type);
+                $param-qast.returns($param-type);
+            }
+        }
+        elsif !$was-slurpy {
+            # Type-check, unless it's Mu, in which case skip it.
+            if $is-generic && !$is-coercive {
+                my $genericname := $param-type.HOW.name($!package.stubbed-meta-object);
                 $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                     :op('istype_nd'),
                     $get-decont-var(),
-                    QAST::WVal.new( :value($nominal-type) )
+                    QAST::Var.new( :name($genericname), :scope<typevar> )
+                )));
+            }
+            elsif !($param-type =:= Mu) {
+                if !$ptype-archetypes.generic {
+                    if $!target.sigil eq '@' {
+                        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+                        my $PositionalBindFailover := @lookups[1].resolution.compile-time-value;
+                        $param-qast.push(QAST::Op.new(
+                            :op('if'),
+                            QAST::Op.new(
+                                :op('istype_nd'),
+                                $get-decont-var(),
+                                QAST::WVal.new( :value($PositionalBindFailover) )
+                            ),
+                            QAST::Op.new(
+                                :op('bind'),
+                                $get-decont-var(),
+                                QAST::Op.new(
+                                    :op('decont'),
+                                    QAST::Op.new(
+                                        :op('bind'),
+                                        $temp-qast-var,
+                                        QAST::Op.new(
+                                            :op('callmethod'), :name('cache'),
+                                            $get-decont-var()
+                                        ))))));
+                    }
+
+                    # Try to be smarter with coercions. We don't have to do full typecheck on them, which results in
+                    # additional call to a HOW method. Instead it's ok to check if value matches target or
+                    # constraint types.
+                    if $is-coercive && nqp::can($param-type.HOW, 'target_type') {
+                        my $constraint-type := $param-type.HOW.constraint_type($param-type);
+                        $context.ensure-sc($constraint-type);
+                        $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                                :op('unless'),
+                                QAST::Op.new(
+                                    :op('istype_nd'),
+                                    $get-decont-var(),
+                                    QAST::WVal.new( :value($param-type.HOW.target_type($param-type) ))),
+                                QAST::Op.new(
+                                    :op('istype_nd'),
+                                    $get-decont-var(),
+                                    QAST::WVal.new( :value($constraint-type))))));
+                    }
+                    else {
+                        $context.ensure-sc($param-type);
+                        $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                            :op('istype_nd'),
+                            $get-decont-var(),
+                            QAST::WVal.new( :value($param-type) )
+                        )));
+                    }
+                }
+            }
+            if nqp::istype($!type.IMPL-TARGET-TYPE, RakuAST::Type::Definedness) {
+                if $!type.IMPL-TARGET-TYPE.definite {
+                    $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('isconcrete_nd'),
+                        $get-decont-var()
+                    )));
+                }
+                else {
+                    $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('not_i'),
+                        QAST::Op.new(
+                            :op('isconcrete_nd'),
+                            $get-decont-var()
+                        ))));
+                }
+            }
+            # If marked `is rw`, do rw check.
+            if $is-rw {
+                $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                    :op('isrwcont'),
+                    $temp-qast-var,
                 )));
             }
         }
 
-        # If marked `is rw`, do rw check.
-        if $flags +& SIG_ELEM_IS_RW {
-            $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                :op('isrwcont'),
-                $temp-qast-var
-            )));
+        my $inst-param;
+        # Make sure we have (possibly instantiated) parameter object ready when we need it
+        if $is-generic || $!sub-signature {
+            my $inst-param-name := QAST::Node.unique('__lowered_param_obj_');
+            my $i := 0; #FIXME TODO XXX Need a way to know which parameter this is in the signature!
+            $param-qast.push( # Fetch instantiated Parameter object
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :name($inst-param-name), :scope('local'), :decl('var') ),
+                    QAST::Op.new(
+                        :op('atpos'),
+                        $!owner.signature.IMPL-SIGNATURE-PARAMS($param-qast),
+                        QAST::IVal.new(:value($i)))));
+            $inst-param := QAST::Var.new(:name($inst-param-name), :scope<local>);
+        }
+
+        # Handle coercion.
+        # For a generic we can't know beforehand if it's going to be a coercive or any other nominalizable. Thus
+        # we have to fetch the instantiated parameter object and do run-time processing.
+        if $is-generic {
+            # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
+            $get-decont-var := -> { NQPMu }
+            my $low-param-type := QAST::Node.unique('__lowered_param_type');
+            $param-qast.push( # Get actual parameter type
+                            QAST::Op.new(
+                                :op('bind'),
+                                QAST::Var.new(:name($low-param-type), :scope('local'), :decl('var')),
+                                QAST::Op.new(
+                                    :op('getattr'),
+                                    $inst-param,
+                                    QAST::WVal.new(:value(Parameter)),
+                                    QAST::SVal.new(:value('$!type')))));
+            $param-qast.push(
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        $temp-qast-var,
+                        QAST::Var.new(:name($low-param-type), :scope('local'))
+                    ),
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('bitand_i'),
+                            QAST::Op.new(
+                                :op('getattr'),
+                                $inst-param,
+                                QAST::WVal.new(:value(Parameter)),
+                                QAST::SVal.new(:value('$!flags'))
+                            ),
+                            QAST::IVal.new(:value(SIG_ELEM_IS_COERCIVE))
+                        ),
+                        QAST::Op.new(
+                            :op('bind'),
+                            $temp-qast-var,
+                            QAST::Op.new(
+                                :op<dispatch>,
+                                QAST::SVal.new(:value<raku-coercion>),
+                                QAST::Var.new(:name($low-param-type), :scope<local>),
+                                $temp-qast-var)))));
+        }
+        elsif $is-coercive {
+            $get-decont-var := -> { NQPMu }
+            my $coercion-type := $param-type.HOW.wrappee($param-type, :coercion);
+            my $target-type := $coercion-type.HOW.target_type($coercion-type);
+            $context.ensure-sc($param-type);
+            $context.ensure-sc($target-type);
+            $param-qast.push(
+                QAST::Op.new(
+                    :op('unless'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        $temp-qast-var,
+                        QAST::WVal.new( :value($target-type) )
+                    ),
+                    QAST::Op.new(
+                        :op('bind'),
+                        $temp-qast-var,
+                        QAST::Op.new(
+                            :op<dispatch>,
+                            QAST::SVal.new(:value<raku-coercion>),
+                            QAST::WVal.new(:value($param-type)),
+                            $temp-qast-var))));
         }
 
         # If it's optional, do any default handling.
@@ -930,8 +1093,10 @@ class RakuAST::Parameter
             $param-qast.push(QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :name('self'), :scope('lexical') ),
-                $get-decont-var()
-            ));
+                $get-decont-var() // QAST::Op.new(
+                        :op('decont'),
+                        $temp-qast-var,
+                    )));
         }
         if nqp::isconcrete($!target) {
             if $flags +& (SIG_ELEM_IS_RW +| SIG_ELEM_IS_RAW) {
@@ -939,7 +1104,7 @@ class RakuAST::Parameter
                 $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast-var));
             }
             else {
-                my $value := $get-decont-var();
+                my $value := $get-decont-var() // $temp-qast-var;
 
                 if $flags +& SIG_ELEM_IS_COPY {
                     my $sigil := $!target.sigil;

@@ -25,6 +25,10 @@ class RakuAST::Type
         }
         0
     }
+
+    method IMPL-TARGET-TYPE() {
+        self
+    }
 }
 
 # A simple type name, e.g. Int, Foo::Bar, etc.
@@ -149,6 +153,11 @@ class RakuAST::Type::Coercion
 
     method is-simple-lexical-declaration() {
         False
+    }
+
+    method IMPL-TARGET-TYPE() {
+        my $base-type := self.base-type;
+        nqp::istype($base-type, RakuAST::Type::Coercion) ?? $base-type.IMPL-TARGET-TYPE !! $base-type
     }
 }
 

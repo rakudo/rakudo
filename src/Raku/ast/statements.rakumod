@@ -58,24 +58,20 @@ class RakuAST::Label
 class RakuAST::Statement
   is RakuAST::Blorst
 {
-    has Mu $!labels;
+    has Mu  $.labels;
     has int $.trace;
     has int $.statement-id;
 
-    method add-label(RakuAST::Label $label) {
-        nqp::push(($!labels // nqp::bindattr(self, RakuAST::Statement, '$!labels', [])),
-            $label);
-        Nil
-    }
-
-    method labels() {
-        self.IMPL-WRAP-LIST($!labels // [])
-    }
-
     method set-labels(List $labels) {
-        nqp::bindattr(self, RakuAST::Statement, '$!labels', self.IMPL-UNWRAP-LIST($labels));
+        nqp::bindattr(self, RakuAST::Statement, '$!labels',
+          $labels ?? self.IMPL-UNWRAP-LIST($labels) !! []);
         Nil
     }
+    method add-label(RakuAST::Label $label) {
+        nqp::push($!labels, $label);
+        Nil
+    }
+    method labels() { self.IMPL-WRAP-LIST($!labels) }
 
     method set-statement-id(int $statement-id) {
         nqp::bindattr_i(self, RakuAST::Statement, '$!statement-id', $statement-id);
@@ -86,7 +82,7 @@ class RakuAST::Statement
     }
 
     method visit-labels(Code $visitor) {
-        for $!labels // [] {
+        for $!labels {
             $visitor($_);
         }
         Nil
@@ -430,7 +426,7 @@ class RakuAST::Statement::Empty
 {
     method new(List :$labels) {
         my $obj := nqp::create(self);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -458,7 +454,7 @@ class RakuAST::Statement::Expression
                RakuAST::StatementModifier::Loop :$loop-modifier) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!expression', $expression);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!condition-modifier',
             $condition-modifier // RakuAST::StatementModifier::Condition);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!loop-modifier',
@@ -589,7 +585,7 @@ class RakuAST::Statement::If
         nqp::bindattr($obj, RakuAST::Statement::If, '$!elsifs',
             self.IMPL-UNWRAP-LIST($elsifs // []));
         nqp::bindattr($obj, RakuAST::Statement::If, '$!else', $else // RakuAST::Block);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -748,7 +744,7 @@ class RakuAST::Statement::Unless
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Unless, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Unless, '$!body', $body);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -803,7 +799,7 @@ class RakuAST::Statement::Without
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Without, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Without, '$!body', $body);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -874,7 +870,7 @@ class RakuAST::Statement::Loop
         nqp::bindattr($obj, RakuAST::Statement::Loop, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Loop, '$!setup', $setup);
         nqp::bindattr($obj, RakuAST::Statement::Loop, '$!increment', $increment);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -1010,7 +1006,7 @@ class RakuAST::Statement::For
         nqp::bindattr($obj, RakuAST::Statement::For, '$!source', $source);
         nqp::bindattr($obj, RakuAST::Statement::For, '$!body', $body);
         nqp::bindattr_s($obj, RakuAST::Statement::For, '$!mode', $mode || 'serial');
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -1078,7 +1074,7 @@ class RakuAST::Statement::Given
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Given, '$!source', $source);
         nqp::bindattr($obj, RakuAST::Statement::Given, '$!body', $body);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -1122,7 +1118,7 @@ class RakuAST::Statement::When
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::When, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::When, '$!body', $body);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -1186,7 +1182,7 @@ class RakuAST::Statement::Default
     method new(RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Default, '$!body', $body);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 
@@ -1233,6 +1229,7 @@ class RakuAST::Statement::ExceptionHandler
     method new(RakuAST::Block :$body!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::ExceptionHandler, '$!body', $body);
+        $obj.set-labels(Mu);
         $obj
     }
 
@@ -1321,7 +1318,7 @@ class RakuAST::Statement::Use
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!categoricals', []);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
             $argument // RakuAST::Expression);
-        $obj.set-labels($labels) if $labels;
+        $obj.set-labels($labels);
         $obj
     }
 

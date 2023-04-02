@@ -327,7 +327,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statementlist($/) {
         my $list := self.r('StatementList').new();
         for $<statement> {
-            $list.push($_.ast);
+            $list.add-statement($_.ast);
         }
         self.attach: $/, $list;
     }
@@ -335,7 +335,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method semilist($/) {
         my $list := self.r('SemiList').new();
         for $<statement> {
-            $list.push($_.ast);
+            $list.add-statement($_.ast);
         }
         self.attach: $/, $list;
     }
@@ -343,7 +343,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method sequence($/) {
         my $sequence := self.r('StatementSequence').new();
         for $<statement> {
-            $sequence.push($_.ast);
+            $sequence.add-statement($_.ast);
         }
         self.attach: $/, $sequence;
     }
@@ -574,7 +574,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     )
                 );
                 $use.ensure-begin-performed($*R, $*CU.context);
-                $ast.push: $use;
+                $ast.add-statement: $use;
             }
         }
         self.attach: $/, $ast;

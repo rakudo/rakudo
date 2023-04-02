@@ -76,7 +76,7 @@ class RakuAST::Package
             $signature.set-is-on-role-body(1);
 
             $body := $body.body;
-            $body.statement-list.push(
+            $body.statement-list.add-statement(
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::Nqp.new('list',
                   RakuAST::Declaration::ResolvedConstant.new(

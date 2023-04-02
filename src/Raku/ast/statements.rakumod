@@ -187,12 +187,11 @@ class RakuAST::StatementList
         $obj
     }
 
+    method add-statement(RakuAST::Statement $statement) {
+        nqp::push($!statements, $statement);
+    }
     method statements() {
         self.IMPL-WRAP-LIST($!statements)
-    }
-
-    method push(RakuAST::Statement $statement) {
-        nqp::push($!statements, $statement);
     }
 
     method code-statements() {

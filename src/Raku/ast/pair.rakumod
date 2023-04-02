@@ -78,7 +78,7 @@ class RakuAST::ColonPair
   is RakuAST::NamedArg
 {
     has Str $.key;
-    
+
     method value() { nqp::die(self.HOW.name(self) ~ ' does not implement value') }
 
     method named-arg-name() { $!key }
@@ -95,7 +95,7 @@ class RakuAST::ColonPair
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
         ])
     }
-    
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my $pair-type := @lookups[0].resolution.compile-time-value;
@@ -182,7 +182,7 @@ class RakuAST::ColonPair::False
     method value() {
         RakuAST::Declaration::ResolvedConstant.new(compile-time-value => False)
     }
-    
+
     method simple-compile-time-quote-value() { False }
 
     method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {

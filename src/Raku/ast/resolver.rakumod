@@ -453,7 +453,7 @@ class RakuAST::Resolver {
         }
     }
 
-    # Add a node to the list of those with check-time problems. 
+    # Add a node to the list of those with check-time problems.
     method add-node-with-check-time-problems(RakuAST::CheckTime $node) {
         unless $!nodes-with-check-time-problems {
             nqp::bindattr(self, RakuAST::Resolver, '$!nodes-with-check-time-problems', []);
@@ -506,7 +506,7 @@ class RakuAST::Resolver {
             else {
                 my @sorries := RakuAST::Node.IMPL-UNWRAP-LIST($sorries);
                 return @sorries[0] if @sorries;
-            } 
+            }
         }
         Nil
     }

@@ -169,7 +169,7 @@ finalizing the meta-object.
 
 Every declaration of a symbol is a `RakuAST::Declaration`. Declarations are
 subject to instantiation when located within a `quasi`, being cloned just like
-anything else. 
+anything else.
 
 #### Lookups
 

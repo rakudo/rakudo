@@ -1,7 +1,7 @@
 # Marks nodes that are "sink boundaries": they are entry points to sinking, and
 # we don't walk into them when we are doing an outer sink. The compiler will
 # trigger sinking after it has parsed routines or the top-level compilation unit;
-# check time will make sure that a sink boundary has 
+# check time will make sure that a sink boundary has
 class RakuAST::SinkBoundary
   is RakuAST::Node
 {

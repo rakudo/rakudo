@@ -7,7 +7,7 @@ class OperatorProperties {
     has int $.fiddly;
 
     # grammar specific attributes
-    has str $.dba;             
+    has str $.dba;
     has str $.next-term;
     has str $.sub-precedence;
 

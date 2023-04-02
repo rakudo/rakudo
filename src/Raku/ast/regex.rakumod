@@ -1835,7 +1835,7 @@ class RakuAST::Regex::Quantifier
     }
 }
 
-# The zero or one (?) quantifier. 
+# The zero or one (?) quantifier.
 class RakuAST::Regex::Quantifier::ZeroOrOne
   is RakuAST::Regex::Quantifier
 {
@@ -1846,7 +1846,7 @@ class RakuAST::Regex::Quantifier::ZeroOrOne
     }
 }
 
-# The zero or more (*) quantifier. 
+# The zero or more (*) quantifier.
 class RakuAST::Regex::Quantifier::ZeroOrMore
   is RakuAST::Regex::Quantifier
 {
@@ -1857,7 +1857,7 @@ class RakuAST::Regex::Quantifier::ZeroOrMore
     }
 }
 
-# The one or more (+) quantifier. 
+# The one or more (+) quantifier.
 class RakuAST::Regex::Quantifier::OneOrMore
   is RakuAST::Regex::Quantifier
 {

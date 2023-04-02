@@ -326,7 +326,7 @@ class RakuAST::VarDeclaration::Constant
       RakuAST::IMPL::QASTContext $context
     ) {
         my $value := $!initializer.IMPL-COMPILE-TIME-VALUE(
-            $resolver, $context, :invocant-compiler(-> { $!type.meta-object }));
+            $resolver, $context, :invocant-compiler(-> { $!type.IMPL-BASE-TYPE.meta-object }));
         $!initializer.IMPL-THUNK-EXPRESSION($resolver, $context);
         nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!value', $value);
 

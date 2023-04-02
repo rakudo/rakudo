@@ -26,6 +26,10 @@ class RakuAST::Type
         0
     }
 
+    method IMPL-BASE-TYPE() {
+        self
+    }
+
     method IMPL-TARGET-TYPE() {
         self
     }
@@ -104,6 +108,10 @@ class RakuAST::Type::Derived
         $!base-type.resolve-with($resolver);
         self.set-resolution(self);
         Nil
+    }
+
+    method IMPL-BASE-TYPE() {
+        nqp::istype($!base-type, RakuAST::Type::Derived) ?? $!base-type.IMPL-BASE-TYPE !! $!base-type
     }
 }
 
@@ -297,7 +305,7 @@ class RakuAST::Type::Parameterized
             my $args := $!args.IMPL-COMPILE-TIME-VALUES;
             my @pos := $args[0];
             my %named := $args[1];
-            my $ptype := self.base-type.compile-time-value;
+            my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
             $ptype.HOW.parameterize($ptype, |@pos, |%named)
         }
         else {

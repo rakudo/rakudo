@@ -182,6 +182,8 @@ class RakuAST::Package
                     )
                 ).canonicalize(:colonpairs(0))
             ) if !nqp::eqaddr($current-package, $resolver.get-global);
+            # Update the Stash's name, too.
+            nqp::bindattr_s($type-object.WHO, Stash, '$!longname', $type-object.HOW.name($type-object));
 
             if ($scope eq 'my' || $scope eq 'our') && $!declarator ne 'role' {
                 # Need to install the package somewhere.

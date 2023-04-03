@@ -980,6 +980,12 @@ class RakuAST::Block
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
             RakuAST::Expression :$expression) {
+        self.IMPL-QAST-FORM-BLOCK-FOR-BODY($context, :$blocktype, :$expression,
+            self.IMPL-APPEND-SIGNATURE-RETURN($context,
+            $!body.IMPL-TO-QAST($context)));
+    }
+    method IMPL-QAST-FORM-BLOCK-FOR-BODY(RakuAST::IMPL::QASTContext $context, Mu $body-qast,
+            str :$blocktype, RakuAST::Expression :$expression) {
         # Form block with declarations.
         my $block := QAST::Block.new(
             :$blocktype,
@@ -988,8 +994,6 @@ class RakuAST::Block
 
         # Compile body and, if needed, a signature, and set up arity and any
         # exception rethrow logic.
-        my $body-qast := self.IMPL-APPEND-SIGNATURE-RETURN($context,
-            $!body.IMPL-TO-QAST($context));
         my $signature := self.signature || self.placeholder-signature;
         if $signature {
             $block.push($signature.IMPL-QAST-BINDINGS($context, :needs-full-binder(self.custom-args)));
@@ -1218,6 +1222,35 @@ class RakuAST::PointyBlock
         self.IMPL-STUB-CODE($resolver, $context);
 
         Nil
+    }
+
+    method IMPL-WRAP-RETURN-HANDLER(RakuAST::IMPL::QASTContext $context, QAST::Node $body) {
+        my $result := $body;
+        my $block := self.compile-time-value;
+        my $signature := nqp::getattr($block, Code, '$!signature');
+        $context.ensure-sc($block);
+
+        # Add return type check if needed.
+        # TODO also infer body type
+        my $returns := nqp::ifnull($signature.returns, Mu);
+        unless $returns =:= Mu || $returns =:= Nil || nqp::isconcrete($returns) {
+            $context.ensure-sc($returns);
+            $result := QAST::Op.new(
+                :op('p6typecheckrv'),
+                $result,
+                QAST::WVal.new( :value($block) ),
+                QAST::WVal.new( :value(Nil) )
+            );
+        }
+
+        $result
+    }
+
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str :$blocktype,
+            RakuAST::Expression :$expression) {
+        self.IMPL-QAST-FORM-BLOCK-FOR-BODY($context, :$blocktype, :$expression,
+            self.IMPL-WRAP-RETURN-HANDLER($context,
+                self.IMPL-APPEND-SIGNATURE-RETURN($context, self.body.IMPL-TO-QAST($context))))
     }
 }
 

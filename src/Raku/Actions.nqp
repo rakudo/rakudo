@@ -1657,7 +1657,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! $<blockoid>.ast
         );
         $routine.IMPL-CHECK($*R, $*CU.context, 1);
-        $routine.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $routine;
     }
 

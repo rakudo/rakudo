@@ -938,6 +938,10 @@ class RakuAST::Block
     }
 
     method PRODUCE-META-OBJECT() {
+        self.IMPL-PRODUCE-META-OBJECT
+    }
+
+    method IMPL-PRODUCE-META-OBJECT() {
         # Create block object and install signature. If it doesn't have one, then
         # we can create it based upon the implicit topic it may or may not have.
         my $block := nqp::create(Block);
@@ -1134,6 +1138,7 @@ class RakuAST::Block
 # A pointy block (-> $foo { ... }).
 class RakuAST::PointyBlock
   is RakuAST::Block
+  is RakuAST::ImplicitLookups
 {
     has RakuAST::Signature $.signature;
 
@@ -1166,7 +1171,33 @@ class RakuAST::PointyBlock
         $!signature.IMPL-HAS-PARAMETER($name)
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
+        ])
+    }
+
+    method PRODUCE-META-OBJECT() {
+        my $block := self.IMPL-PRODUCE-META-OBJECT();
+        my $signature := self.signature || self.placeholder-signature;
+
+        if $signature.meta-object.has_returns {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $Callable := @lookups[0].compile-time-value;
+            $block.HOW.mixin(
+                $block,
+                $Callable.HOW.parameterize($Callable, $signature.meta-object.returns)
+            );
+        }
+        $block
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Cannot rely on IMPL-CHECK getting run before this, as that would
+        # also run our children's BEGIN handlers which would screw up our
+        # block-or-hash detection
+        self.resolve-implicit-lookups-with($resolver);
+
         # Make sure that our placeholder signature has resolutions performed,
         # and that we don't produce a topic parameter.
         if $!signature {

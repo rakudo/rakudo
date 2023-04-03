@@ -34,7 +34,7 @@ class Perl6::Metamodel::GenericHOW
     method compose($obj) {
     }
 
-    method find_method($obj, $name) {
+    method find_method($obj, $name, *%c) {
         nqp::null()
     }
 

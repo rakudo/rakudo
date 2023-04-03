@@ -28,9 +28,20 @@ subtest 'A bare sub evaluates to a Sub' => {
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $sub := EVAL($it);
-        isa-ok $sub, Sub,
-          "$type: A sub node evaluates to a Sub";
+        isa-ok $sub, Sub, "$type: A sub node evaluates to a Sub";
     }
+
+    my $leading  := RakuAST::StrLiteral.new("leading");
+    my $trailing := RakuAST::StrLiteral.new("trailing");
+    my $rakuast-sub := $ast.expression;
+    $rakuast-sub.add-leading($leading);
+    $rakuast-sub.add-trailing($trailing);
+    isa-ok $rakuast-sub.WHY, RakuAST::Doc::Declarator,
+      'was a declarator automatically created';
+    is-deeply $rakuast-sub.WHY.leading, ($leading,),
+      'was the leading doc stored';
+    is-deeply $rakuast-sub.WHY.trailing, ($trailing,),
+      'was the trailing doc stored';
 }
 
 subtest 'A sub node evaluates to a Sub' => {

@@ -54,11 +54,29 @@ class RakuAST::Doc::DeclaratorTarget {
         Nil
     }
 
-    method add-leading($doc) {
+    method set-leading($doc) {
         (my $WHY := self.WHY)
-          ?? $WHY.add-trailing($doc)
+          ?? $WHY.set-leading($doc)
           !! self.set-WHY(RakuAST::Doc::Declarator.new(
                WHEREFORE => self, leading => $doc
+             ));
+        Nil
+    }
+
+    method add-leading($doc) {
+        (my $WHY := self.WHY)
+          ?? $WHY.add-leading($doc)
+          !! self.set-WHY(RakuAST::Doc::Declarator.new(
+               WHEREFORE => self, leading => $doc
+             ));
+        Nil
+    }
+
+    method set-trailing($doc) {
+        (my $WHY := self.WHY)
+          ?? $WHY.set-trailing($doc)
+          !! self.set-WHY(RakuAST::Doc::Declarator.new(
+               WHEREFORE => self, trailing => $doc
              ));
         Nil
     }

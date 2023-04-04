@@ -768,9 +768,11 @@ class RakuAST::VarDeclaration::Simple
         elsif $scope eq 'our' {
             # Package scoped lexical alias. We want to bind the lexical to
             # a lookup in the package.
+            my $container := $!package.WHO.VIVIFY-KEY($!name);
+            $context.ensure-sc($container);
             QAST::Op.new(
               :op('bind'),
-              QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) ),
+              QAST::Var.new( :scope('lexical'), :decl('contvar'), :name($!name), :returns($of), :value($container) ),
               QAST::Op.new(
                 :op('callmethod'), :name('VIVIFY-KEY'),
                 QAST::Op.new(:op('who'), QAST::WVal.new(:value($!package))),

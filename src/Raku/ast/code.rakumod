@@ -1538,6 +1538,7 @@ class RakuAST::Routine
         if $name && (self.scope eq 'our' || self.scope eq 'unit') {
             my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new(), :key);
             $stmts.push($block);
+            ($!package.meta-object.WHO){$name} := self.meta-object;
             $stmts.push(QAST::Op.new(
                 :op('bindkey'),
                 QAST::Op.new( :op('who'), QAST::WVal.new( :value($!package.meta-object) ) ),

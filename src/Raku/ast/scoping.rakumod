@@ -779,7 +779,6 @@ class RakuAST::PackageInstaller {
                     $target := $package;
                 }
             }
-            $lexical := $resolver.resolve-lexical-constant($final);
         }
 
         my %stash := $resolver.IMPL-STASH-HASH($target);

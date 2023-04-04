@@ -46,6 +46,15 @@ class RakuAST::Doc::Declarator
 class RakuAST::Doc::DeclaratorTarget {
     has RakuAST::Doc::Declarator $.WHY;
 
+    # A special method to create a a Declarator and connect it to the
+    # target.  Intended to be used for a .raku representation
+    method declarator-docs(:$leading, :$trailing) {
+        nqp::bindattr(self, RakuAST::Doc::DeclaratorTarget, '$!WHY',
+          RakuAST::Doc::Declarator.new(:WHEREFORE(self), :$leading, :$trailing)
+        );
+        self
+    }
+
     method set-WHY(RakuAST::Doc::Declarator $WHY) {
         if $WHY {
             nqp::bindattr(self, RakuAST::Doc::DeclaratorTarget, '$!WHY', $WHY);

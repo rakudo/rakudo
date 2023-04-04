@@ -537,7 +537,7 @@ class RakuAST::Deparse {
         my str @parts  = $ast.leading.map: {
             '#| ' ~ self!deparse-unquoted($_)
         }
-        @parts.push(self.deparse($ast.WHEREFORE, :skip-WHY));
+        @parts.push(self.deparse($ast.WHEREFORE, :skip-WHY).chomp);
         @parts.append: $ast.trailing.map: {
             '#= ' ~ self!deparse-unquoted($_)
         }

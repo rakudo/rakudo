@@ -194,6 +194,12 @@ augment class RakuAST::Node {
         self.^name ~ ($args ?? ".new(\n$args\n$*INDENT)" !! '.new')
     }
 
+    method !add-WHY($raku) {
+        (my $WHY := self.WHY)
+          ?? $raku ~ $WHY.raku(:declarator-docs)
+          !! $raku
+    }
+
 #- A ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::ApplyInfix:D: --> Str:D) {
@@ -319,9 +325,15 @@ augment class RakuAST::Node {
 #- Doc -------------------------------------------------------------------------
 
     multi method raku(RakuAST::Doc::Declarator:D: --> Str:D) {
-        self!nameds: nqp::eqaddr(self.WHEREFORE.WHY,self)
-          ?? <leading trailing>
-          !! <WHEREFORE leading trailing>
+        self!nameds: <WHEREFORE leading trailing>
+    }
+    multi method raku(
+      RakuAST::Doc::Declarator:D: :$declarator-docs!
+    --> Str:D) {
+        self!nameds(<leading trailing>).subst(
+          'RakuAST::Doc::Declarator.new(',
+          '.declarator-docs('
+        )
     }
 
     multi method raku(RakuAST::Doc::Formatted:D: --> Str:D) {
@@ -417,8 +429,9 @@ augment class RakuAST::Node {
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         @nameds.push("signature") if self.signature.parameters-initialized;
-        @nameds.append: <traits body WHY>;
-        self!nameds: @nameds
+        @nameds.append: <traits body>;
+
+        self!add-WHY(self!nameds(@nameds))
     }
 
 #- N ---------------------------------------------------------------------------
@@ -478,8 +491,8 @@ augment class RakuAST::Node {
             );
         }
 
-        $self!nameds:
-          <scope declarator name how repr traits body WHY>,
+        self!add-WHY: $self!nameds:
+          <scope declarator name how repr traits body>,
           (parameterization => $signature
             if $signature && $signature.parameters.elems)
     }
@@ -496,10 +509,10 @@ augment class RakuAST::Node {
         @nameds.push("names") if self.names.elems;
         @nameds.push("type-captures") if self.type-captures.elems;
         @nameds.append: <
-          target optional slurpy traits default where sub-signature value WHY
+          target optional slurpy traits default where sub-signature value
         >;
 
-        self!nameds: @nameds
+        self!add-WHY: self!nameds: @nameds;
     }
 
     # Generic handler for all RakuAST::Parameter::Slurpy::xxx classes
@@ -731,8 +744,9 @@ augment class RakuAST::Node {
         my str @nameds = 'name';
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         @nameds.push("signature") if self.signature.parameters-initialized;
-        @nameds.append: <traits body WHY>;
-        self!nameds: @nameds
+        @nameds.append: <traits body>;
+
+        self!add-WHY: self!nameds: @nameds;
     }
 
 #- Regex::G --------------------------------------------------------------------
@@ -960,15 +974,17 @@ augment class RakuAST::Node {
         @nameds.unshift("multiness") if self.multiness;
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         @nameds.push("signature") if self.signature.parameters-initialized;
-        @nameds.append: <traits body WHY>;
-        self!nameds: @nameds
+        @nameds.append: <traits body>;
+        
+        self!add-WHY: self!nameds: @nameds;
     }
 
     multi method raku(RakuAST::Submethod:D: --> Str:D) {
         my str @nameds = 'name';
         @nameds.push("signature") if self.signature.parameters-initialized;
-        @nameds.append: <traits body WHY>;
-        self!nameds: @nameds
+        @nameds.append: <traits body>;
+
+        self!add-WHY: self!nameds: @nameds;
     }
 
     multi method raku(RakuAST::Substitution:D: --> Str:D) {
@@ -1044,7 +1060,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Enum:D: --> Str:D) {
-        self!nameds: <scope name term of WHY>
+        self!add-WHY: self!nameds: <scope name term of>
     }
 
     multi method raku(RakuAST::Type::Parameterized:D: --> Str:D) {
@@ -1060,7 +1076,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Subset:D: --> Str:D) {
-        self!nameds: <scope name of where traits WHY>
+        self!add-WHY: self!nameds: <scope name of where traits>
     }
 
 #- Var -------------------------------------------------------------------------
@@ -1150,7 +1166,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::VarDeclaration::Simple:D: --> Str:D) {
-        self!nameds: <scope type shape name initializer WHY>
+        self!add-WHY: self!nameds: <scope type shape name initializer>
     }
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {

@@ -99,6 +99,10 @@ class RakuAST::Expression
     method IMPL-IMMEDIATELY-USES(RakuAST::Code $node) {
         $!thunks ?? True !! False
     }
+
+    method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
+        $qast
+    }
 }
 
 # Everything that is termish (a term with prefixes or postfixes applied).
@@ -252,7 +256,11 @@ class RakuAST::Infix
             self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }
         else {
-            self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
+            self.IMPL-INFIX-QAST:
+                $context,
+                $op eq '='
+                    ?? $left.IMPL-ADJUST-QAST-FOR-LVALUE($left.IMPL-TO-QAST($context))
+                    !! $left.IMPL-TO-QAST($context),
                 $right.IMPL-TO-QAST($context)
         }
     }

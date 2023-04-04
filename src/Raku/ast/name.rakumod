@@ -165,7 +165,7 @@ class RakuAST::Name
         )
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil) {
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, Bool :$global-fallback) {
         my $result := $start-package;
         my $final := $!parts[nqp::elems($!parts) - 1];
         my int $first := 0;
@@ -205,7 +205,7 @@ class RakuAST::Name
                 else { # get the Stash from all real packages
                     # We do .WHO on the current package, followed by the index into it.
                     $result := QAST::Op.new( :op('who'), $result );
-                    $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);
+                    $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil, :$global-fallback);
                 }
             }
         }
@@ -268,13 +268,15 @@ class RakuAST::Name::Part::Simple
         || $name eq 'UNIT'
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
-        QAST::Op.new(
+    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil, Bool :$global-fallback) {
+        my $op := QAST::Op.new(
             :op('callmethod'),
             :name($is-final ?? 'AT-KEY' !! 'package_at_key'),
             $stash-qast,
             QAST::SVal.new( :value($is-final && $sigil ?? $sigil ~ $!name !! $!name) )
-        )
+        );
+        $op.push(QAST::WVal.new(:value(True), :named<global_fallback>)) if $is-final && $global-fallback;
+        $op
     }
 
     method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
@@ -311,7 +313,7 @@ class RakuAST::Name::Part::Expression
         )
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil, Bool :$global-fallback) {
         QAST::Op.new(
             :op('callmethod'),
             :name($is-final ?? 'AT-KEY' !! 'package_at_key'),
@@ -341,7 +343,7 @@ class RakuAST::Name::Part::Empty
         $stash-qast
     }
 
-    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil) {
+    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil, Bool :$global-fallback) {
         $stash-qast
     }
 }

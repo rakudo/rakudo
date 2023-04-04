@@ -484,6 +484,12 @@ class RakuAST::Var::Package
         }
     }
 
+    method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
+        my $last := $qast.list[-1];
+        $qast.pop if nqp::istype($last, QAST::SpecialArg) && $last.named eq 'global_fallback';
+        $qast
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!name);
     }

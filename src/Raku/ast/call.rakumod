@@ -251,7 +251,8 @@ class RakuAST::Call::Name
                         !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
                             $context,
                             QAST::WVal.new(:value($!package)),
-                            :sigil<&>
+                            :sigil<&>,
+                            :global-fallback,
                         )
                 );
             }

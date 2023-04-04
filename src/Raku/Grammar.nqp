@@ -502,17 +502,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.set_pragma('strict',1);
 
         # Variables used during the parse.
-        my $*IN_DECL;                             # what declaration we're in
-        my $*OFTYPE;                              # type of the current declarator
-        my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
-        my $*IN_META := '';                       # parsing a metaoperator like [..]
-        my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
-        my %*QUOTE_LANGS;                         # quote language cache
-        my $*LASTQUOTE := [0,0];                  # for runaway quote detection
-        my $*SORRY_REMAINING := 10;               # decremented on each sorry; panic when 0
-        my $*BORG := {};                          # who gets blamed for a missing block
-        my $*ORIGIN-SOURCE;                       # where we get source code information from
-        my @*ORIGIN-NESTINGS := [];               # this will be used for the CompUnit object
+        my $*IN_DECL;                # what declaration we're in
+        my $*OFTYPE;                 # type of the current declarator
+        my $*LEFTSIGIL;              # sigil of LHS for item vs list assignment
+        my $*IN_META := '';          # parsing a metaoperator like [..]
+        my $*IN_REDUCE := 0;         # attempting to parse an [op] construct
+        my %*QUOTE_LANGS;            # quote language cache
+        my $*LASTQUOTE := [0,0];     # for runaway quote detection
+        my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
+        my $*BORG := {};             # who gets blamed for a missing block
+        my $*ORIGIN-SOURCE;          # where we get source code information from
+        my @*ORIGIN-NESTINGS := [];  # this will be used for the CompUnit object
         my $*COMPILING_CORE_SETTING := 0;
 
         # Variables used for Pod parsing.
@@ -540,6 +540,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*LITERALS;
         :my $*EXPORT;
         :my $*IN-TYPENAME;
+        :my $*DECLARAND;
+        :my @*LEADING-DOC := [];      # temp storage leading declarator doc
         :my $*NEXT_STATEMENT_ID := 1; # to give each statement an ID
         :my $*begin_compunit := 1;    # whether we're at start of a compilation unit
         <.comp_unit_stage0>
@@ -665,6 +667,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $has_mystery := 0; # TODO
         { $*BORG := {} }
         :my $*BLOCK;
+        :my $*DECLARAND;
         [
         | <lambda>
           :my $*GOAL := '{';
@@ -686,6 +689,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $has_mystery := 0; # TODO
         { $*BORG := {} }
         :my $*BLOCK;
+        :my $*DECLARAND;
         [
         || <?[{]>
            <.enter-block-scope('Block')>
@@ -715,6 +719,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token unit-block($decl) {
         :my $*BLOCK;
+        :my $*DECLARAND;
         {
             unless $*SCOPE eq 'unit' {
                 $/.panic("Semicolon form of '$decl' without 'unit' is illegal. You probably want to use 'unit $decl'");
@@ -2144,6 +2149,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule package_def($*PKGDECL) {
         :my $*BORG := {};
         :my $*BLOCK;
+        :my $*DECLARAND;
         :my $*PACKAGE;
         <!!{ $/.clone_braid_from(self) }>
         <longname>? {}
@@ -2340,6 +2346,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BORG := {};
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
+        :my $*DECLARAND;
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('my')>?
         {
@@ -2391,6 +2398,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BORG := {};
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
+        :my $*DECLARAND;
         <.enter-block-scope(nqp::tclc($declarator))>
         $<specials>=[<[ ! ^ ]>?]<deflongname('has')>?
         [ '(' <signature(1)> ')' ]?
@@ -2438,6 +2446,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule regex_def {
         :my $*BLOCK;
+        :my $*DECLARAND;
         <.enter-block-scope(nqp::tclc($*IN_DECL) ~ 'Declaration')>
         [
           <deflongname('has')>?
@@ -3455,6 +3464,18 @@ if $*COMPILING_CORE_SETTING {
     token comment:sym<#`> {
         '#`' <!after \s> <!opener>
         <.typed_panic: 'X::Syntax::Comment::Embedded'>
+    }
+
+    # single / multi-line leading declarator block
+    token comment:sym<#|> { '#|' \h $<attachment>=[\N*] }
+    token comment:sym<#|(...)> {
+        '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
+    }
+
+    # single / multi-line trailing declarator block
+    token comment:sym<#=> { '#=' \h+ $<attachment>=[\N*] }
+    token comment:sym<#=(...)> {
+        '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
     }
 
     ##

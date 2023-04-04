@@ -428,6 +428,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             !! self.r($*SCOPE-KIND).new;
         $*R.enter-scope($block);
         $*BLOCK := $block;
+
+        # connect any leading declarator doc that we collected already
+        if nqp::istype($block,self.r('Doc','DeclaratorTarget')) {
+            $*DECLARAND := $block;
+            if @*LEADING-DOC -> @leading {
+                $block.set-leading(@leading);
+                @*LEADING-DOC := [];
+            }
+        }
     }
 
     method leave-block-scope($/) {
@@ -2499,6 +2508,41 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $origin-source.original-line($/.from()),
             nqp::radix(10, $<line>, 0, 0)[0],
             $<filename> );
+    }
+
+    method add-leading-declarator-doc($doc) {
+        nqp::push(
+          @*LEADING-DOC,
+          self.r('StrLiteral').new($doc)
+        );
+    }
+
+    method comment:sym<#|(...)>($/) {
+        self.add-leading-declarator-doc(~$<attachment>);
+    }
+
+    method comment:sym<#|>($/) {
+        self.add-leading-declarator-doc(~$<attachment>);
+    }
+
+    method add-trailing-declarator-doc($doc) {
+        if $*DECLARAND -> $declarand {
+            $declarand.add-trailing(
+              self.r('StrLiteral').new($doc)
+            );
+        }
+        else {
+            $/.typed_panic:
+              'X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand';
+        }
+    }
+
+    method comment:sym<#=(...)>($/) {
+        self.add-trailing-declarator-doc(~$<attachment>);
+    }
+
+    method comment:sym<#=>($/) {
+        self.add-trailing-declarator-doc(~$<attachment>);
     }
 }
 

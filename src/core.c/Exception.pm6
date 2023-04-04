@@ -1869,6 +1869,10 @@ my class X::Syntax::Pod::DeclaratorTrailing does X::Syntax {
     method message() { "Opening bracket required for #= declarator block" }
 }
 
+my class X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand does X::Syntax {
+    method message() { "Missing declarand for trailing declarator doc" }
+}
+
 my class X::Syntax::Pod::BeginWithoutIdentifier does X::Syntax does X::Pod {
     method message() {
         '=begin must be followed by an identifier; (did you mean "=begin pod"?)'

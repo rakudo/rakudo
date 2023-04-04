@@ -522,6 +522,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*POD_IN_FORMATTINGCODE := 0;
         my $*POD_ALLOW_FCODES := 0b11111111111111111111111111;
         my $*POD_ANGLE_COUNT := 0;
+        my $*POD_BLOCKS_SEEN := {};
         my $*OUTER-RESOLVER := $*R;
 
         # Parse a compilation unit.

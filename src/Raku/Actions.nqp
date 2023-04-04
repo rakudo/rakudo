@@ -2518,11 +2518,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method comment:sym<#|(...)>($/) {
-        self.add-leading-declarator-doc(~$<attachment>);
+        self.add-leading-declarator-doc(~$<attachment>)
+          unless $*POD_BLOCKS_SEEN{$/.from}++;
     }
 
     method comment:sym<#|>($/) {
-        self.add-leading-declarator-doc(~$<attachment>);
+        self.add-leading-declarator-doc(~$<attachment>)
+          unless $*POD_BLOCKS_SEEN{$/.from}++;
     }
 
     method add-trailing-declarator-doc($doc) {
@@ -2538,11 +2540,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method comment:sym<#=(...)>($/) {
-        self.add-trailing-declarator-doc(~$<attachment>);
+        self.add-trailing-declarator-doc(~$<attachment>)
+          unless $*POD_BLOCKS_SEEN{$/.from}++;
     }
 
     method comment:sym<#=>($/) {
-        self.add-trailing-declarator-doc(~$<attachment>);
+        self.add-trailing-declarator-doc(~$<attachment>)
+          unless $*POD_BLOCKS_SEEN{$/.from}++;
     }
 }
 

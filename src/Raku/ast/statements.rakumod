@@ -296,6 +296,11 @@ class RakuAST::StatementList
         nqp::elems(self.code-statements) == 0 ?? True !! False
     }
 
+    method IMPL-IS-SINGLE-EXPRESSION {
+        nqp::elems($!statements) == 1
+        && nqp::istype($!statements[0], RakuAST::Statement::Expression)
+    }
+
     method IMPL-CAN-INTERPRET() {
         for self.code-statements {
             return False unless $_.IMPL-CAN-INTERPRET;

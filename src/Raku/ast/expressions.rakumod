@@ -1319,6 +1319,13 @@ class RakuAST::ApplyPostfix
     method new(:$postfix!, :$operand!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!postfix', $postfix);
+        if nqp::istype($operand, RakuAST::Circumfix::Parentheses)
+            && $operand.semilist.IMPL-IS-SINGLE-EXPRESSION
+        {
+            my $statement := self.IMPL-UNWRAP-LIST($operand.semilist.statements)[0];
+            $operand := $statement.expression
+                unless $statement.condition-modifier || $statement.loop-modifier;
+        }
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!operand', $operand);
         $obj
     }

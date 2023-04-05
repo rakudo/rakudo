@@ -422,6 +422,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('OnlyStar').new;
     }
 
+    # also connect any leading declarator doc that we collected already
+    method set-declarand($it) {
+        $*DECLARAND := $it;
+        if @*LEADING-DOC -> @leading {
+            $it.set-leading(@leading);
+            @*LEADING-DOC := [];
+        }
+        $it
+    }
+
     method enter-block-scope($/) {
         my $block := $*MULTINESS
             ?? self.r($*SCOPE-KIND).new(:multiness($*MULTINESS))
@@ -429,14 +439,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.enter-scope($block);
         $*BLOCK := $block;
 
-        # connect any leading declarator doc that we collected already
-        if nqp::istype($block,self.r('Doc','DeclaratorTarget')) {
-            $*DECLARAND := $block;
-            if @*LEADING-DOC -> @leading {
-                $block.set-leading(@leading);
-                @*LEADING-DOC := [];
-            }
-        }
+        self.set-declarand($block)
+          if nqp::istype($block,self.r('Doc','DeclaratorTarget'));
     }
 
     method leave-block-scope($/) {

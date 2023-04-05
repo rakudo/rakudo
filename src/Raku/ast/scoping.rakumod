@@ -708,7 +708,8 @@ class RakuAST::PackageInstaller {
         str $scope,
         RakuAST::Name $name,
         Mu $type-object,
-        RakuAST::Package $current-package
+        RakuAST::Package $current-package,
+        Bool :$no-lexical
      ) {
         my $target;
         my $final;
@@ -716,11 +717,13 @@ class RakuAST::PackageInstaller {
         my $pure-package-installation := nqp::istype(self, RakuAST::Package);
         if $name.is-identifier {
             $final := $name.canonicalize;
-            $lexical := $resolver.resolve-lexical-constant($final);
-            if $pure-package-installation || !$lexical {
-                $resolver.current-scope.merge-generated-lexical-declaration:
-                    :$resolver,
-                    self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $type-object);
+            unless $no-lexical {
+                $lexical := $resolver.resolve-lexical-constant($final);
+                if $pure-package-installation || !$lexical {
+                    $resolver.current-scope.merge-generated-lexical-declaration:
+                        :$resolver,
+                        self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $type-object);
+                }
             }
             # If `our`-scoped, also put it into the current package.
             if $scope eq 'our' {

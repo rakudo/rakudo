@@ -174,13 +174,16 @@ class RakuAST::Package
         if $name && !$name.is-empty {
             my $type-object := self.stubbed-meta-object;
             my $current-package := $resolver.current-package;
-            $type-object.HOW.set_name(
-                $type-object,
-                $name.qualified-with(
+            my $full-name := $current-package =:= $resolver.get-global
+                ?? $name
+                !! $name.qualified-with(
                     RakuAST::Name.from-identifier-parts(
                         |nqp::split('::', $current-package.HOW.name($current-package))
                     )
-                ).canonicalize(:colonpairs(0))
+                );
+            $type-object.HOW.set_name(
+                $type-object,
+                $full-name.canonicalize(:colonpairs(0))
             ) if !nqp::eqaddr($current-package, $resolver.get-global);
             # Update the Stash's name, too.
             nqp::bindattr_s($type-object.WHO, Stash, '$!longname', $type-object.HOW.name($type-object));
@@ -192,7 +195,7 @@ class RakuAST::Package
 
             elsif $!declarator eq 'role' {
                 # Find an appropriate existing role group
-                my $group-name := $name.canonicalize(:colonpairs(0));
+                my $group-name := $full-name.canonicalize(:colonpairs(0));
                 my $group := $resolver.resolve-lexical-constant($group-name);
                 if $group {
                     $group := $group.compile-time-value;
@@ -206,12 +209,12 @@ class RakuAST::Package
                     my $outer := $resolver.find-attach-target('block') // $resolver.find-attach-target('compunit');
                     $outer.add-generated-lexical-declaration(
                         RakuAST::VarDeclaration::Implicit::Constant.new(
-                            :name($group-name),
+                            :name($name.canonicalize(:colonpairs(0))),
                             :value($group)
                         )
                     );
                     if $scope eq 'our' {
-                        self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $group, $resolver.current-package);
+                        self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $group, $resolver.current-package, :no-lexical);
                     }
                 }
                 # Add ourselves to the role group

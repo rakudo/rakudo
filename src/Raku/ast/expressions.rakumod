@@ -887,7 +887,10 @@ class RakuAST::ApplyDottyInfix
 
 # Marker for all kinds of prefixish operators.
 class RakuAST::Prefixish
-  is RakuAST::Node { }
+  is RakuAST::Node
+{
+    method IMPL-CURRIES() { 3 }
+}
 
 # A lookup of a simple (non-meta) prefix operator.
 class RakuAST::Prefix
@@ -951,6 +954,7 @@ class RakuAST::MetaPrefix::Hyper
 # Application of a prefix operator.
 class RakuAST::ApplyPrefix
   is RakuAST::Termish
+  is RakuAST::BeginTime
 {
     has RakuAST::Prefixish $.prefix;
     has RakuAST::Expression $.operand;
@@ -960,6 +964,22 @@ class RakuAST::ApplyPrefix
         nqp::bindattr($obj, RakuAST::ApplyPrefix, '$!prefix', $prefix);
         nqp::bindattr($obj, RakuAST::ApplyPrefix, '$!operand', $operand);
         $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::bitand_i($!prefix.IMPL-CURRIES, 1) {
+            if nqp::istype($!operand, RakuAST::Term::Whatever) {
+                nqp::bindattr(self, RakuAST::ApplyPrefix, '$!operand', RakuAST::Var::Lexical.new('$_'));
+                self.IMPL-CURRY($resolver, $context, '$_');
+                $!operand.resolve-with($resolver);
+            }
+        }
+        if nqp::bitand_i($!prefix.IMPL-CURRIES, 2) {
+            if $!operand.IMPL-CURRIED {
+                $!operand.IMPL-UNCURRY;
+                self.IMPL-CURRY($resolver, $context, '$_');
+            }
+        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

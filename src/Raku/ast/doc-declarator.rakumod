@@ -15,8 +15,8 @@ class RakuAST::Doc::Declarator
     }
     method visit-children(Code $visitor) {
         $visitor($!WHEREFORE) unless nqp::eqaddr($!WHEREFORE.WHY,self);
-        $visitor($!leading)  if nqp::elems($!leading);
-        $visitor($!trailing) if nqp::elems($!trailing);
+        $visitor($_) for $!leading;
+        $visitor($_) for $!trailing;
     }
 
     method set-WHEREFORE(Mu $WHEREFORE) {

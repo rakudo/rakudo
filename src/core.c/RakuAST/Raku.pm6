@@ -129,6 +129,10 @@ augment class RakuAST::Node {
               my $labels := nqp::decont(self.labels);
               :$labels if $labels
           },
+          'leading', -> {
+              my $leading := nqp::decont(self.leading);
+              :$leading if $leading
+          },
           'level', -> {
               my $level := self.level;
               :$level if $level
@@ -161,6 +165,10 @@ augment class RakuAST::Node {
               my $slurpy := self.slurpy;
               as-class('slurpy', $slurpy.^name)
                 unless nqp::eqaddr($slurpy,RakuAST::Parameter::Slurpy)
+          },
+          'trailing', -> {
+              my $trailing := nqp::decont(self.trailing);
+              :$trailing if $trailing
           },
           'trailing-separator', -> {
               :trailing-separator if self.trailing-separator

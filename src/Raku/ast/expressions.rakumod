@@ -1040,6 +1040,8 @@ class RakuAST::Postfix
             $operand-qast,
             self.resolution.IMPL-LOOKUP-QAST($context)
     }
+
+    method IMPL-CURRIES() { 3 }
 }
 
 # The postfix exponentiation operator (2⁴⁵).
@@ -1074,6 +1076,8 @@ class RakuAST::Postfix::Power
     }
 
     method can-be-used-with-hyper() { False }
+
+    method IMPL-CURRIES() { 3 }
 }
 
 # A marker for all postcircumfixes. These each have relatively special

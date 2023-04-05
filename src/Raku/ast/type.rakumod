@@ -716,6 +716,8 @@ class RakuAST::Type::Subset
             )
           ).canonicalize(:colonpairs(0))
         ) unless nqp::eqaddr($package, $resolver.get-global);
+        # Update the Stash's name, too.
+        nqp::bindattr_s($type.WHO, Stash, '$!longname', $type.HOW.name($type));
 
         self.IMPL-INSTALL-PACKAGE(
           $resolver, self.scope, $!name, $type, $package

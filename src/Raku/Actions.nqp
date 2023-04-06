@@ -2514,28 +2514,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $<filename> );
     }
 
-    method add-leading-declarator-doc($doc) {
-        nqp::push(
-          @*LEADING-DOC,
-          self.r('StrLiteral').new($doc)
-        );
+    method add-leading-declarator-doc($/) {
+        nqp::push(@*LEADING-DOC,self.r('StrLiteral').new(~$/))
+          unless $*POD_BLOCKS_SEEN{$/.from}++;
     }
 
     method comment:sym<#|(...)>($/) {
-        self.add-leading-declarator-doc(~$<attachment>)
-          unless $*POD_BLOCKS_SEEN{$/.from}++;
+        self.add-leading-declarator-doc($<attachment>);
     }
 
     method comment:sym<#|>($/) {
-        self.add-leading-declarator-doc(~$<attachment>)
-          unless $*POD_BLOCKS_SEEN{$/.from}++;
+        self.add-leading-declarator-doc($<attachment>);
     }
 
-    method add-trailing-declarator-doc($doc) {
+    method add-trailing-declarator-doc($/) {
         if $*DECLARAND -> $declarand {
-            $declarand.add-trailing(
-              self.r('StrLiteral').new($doc)
-            );
+            $declarand.add-trailing(self.r('StrLiteral').new(~$/))
+              unless $*POD_BLOCKS_SEEN{$/.from}++;
         }
         else {
             $/.typed_panic:
@@ -2544,13 +2539,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method comment:sym<#=(...)>($/) {
-        self.add-trailing-declarator-doc(~$<attachment>)
-          unless $*POD_BLOCKS_SEEN{$/.from}++;
+        self.add-trailing-declarator-doc($<attachment>);
     }
 
     method comment:sym<#=>($/) {
-        self.add-trailing-declarator-doc(~$<attachment>)
-          unless $*POD_BLOCKS_SEEN{$/.from}++;
+        self.add-trailing-declarator-doc($<attachment>);
     }
 }
 

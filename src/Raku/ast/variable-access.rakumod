@@ -462,22 +462,27 @@ class RakuAST::Var::Package
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $sigil := $!sigil;
         if $!name.is-simple {
-            my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($!name.parts));
-            my $final := @parts[nqp::elems(@parts) - 1];
-            my $result;
-            if self.is-resolved {
-                my $name := self.resolution.lexical-name;
-                nqp::shift(@parts);
-                $result := QAST::Var.new(:$name, :scope<lexical>);
+            if $!name.is-pseudo-package {
+                $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context, :$sigil);
             }
             else {
-                $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
+                my @parts := nqp::clone(self.IMPL-UNWRAP-LIST($!name.parts));
+                my $final := @parts[nqp::elems(@parts) - 1];
+                my $result;
+                if self.is-resolved {
+                    my $name := self.resolution.lexical-name;
+                    nqp::shift(@parts);
+                    $result := QAST::Var.new(:$name, :scope<lexical>);
+                }
+                else {
+                    $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
+                }
+                for @parts {
+                    $result := QAST::Op.new( :op('who'), $result );
+                    $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);
+                }
+                $result
             }
-            for @parts {
-                $result := QAST::Op.new( :op('who'), $result );
-                $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);
-            }
-            $result
         }
         else {
             $!name.IMPL-QAST-INDIRECT-LOOKUP($context, :$sigil)

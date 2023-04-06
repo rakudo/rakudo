@@ -165,6 +165,28 @@ class RakuAST::Name
         )
     }
 
+    method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
+        my $final := $!parts[nqp::elems($!parts) - 1];
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $PseudoStash := @lookups[1];
+        my $result := QAST::Op.new(
+            :op<callmethod>,
+            :name<new>,
+            $PseudoStash.IMPL-TO-QAST($context),
+        );
+        my $first := 1;
+        for $!parts {
+            if $first { # don't call .WHO on the pseudo package itself, index into it instead
+                $first := 0;
+            }
+            else { # get the Stash from all real packages
+                $result := QAST::Op.new( :op('who'), $result );
+            }
+            $result := $_.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil);
+        }
+        $result
+    }
+
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, Bool :$global-fallback) {
         my $result := $start-package;
         my $final := $!parts[nqp::elems($!parts) - 1];
@@ -179,23 +201,7 @@ class RakuAST::Name
             return QAST::Op.new(:op<who>, $result);
         }
         if self.is-pseudo-package {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-            my $PseudoStash := @lookups[1];
-            $result := QAST::Op.new(
-                :op<callmethod>,
-                :name<new>,
-                $PseudoStash.IMPL-TO-QAST($context),
-            );
-            $first := 1;
-            for $!parts {
-                if $first { # don't call .WHO on the pseudo package itself, index into it instead
-                    $first := 0;
-                }
-                else { # get the Stash from all real packages
-                    $result := QAST::Op.new( :op('who'), $result );
-                }
-                $result := $_.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
-            }
+            $result := self.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context, :$sigil);
         }
         else {
             for $!parts {

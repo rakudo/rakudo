@@ -2336,7 +2336,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         # Build the parameter.
-        self.attach: $/, self.r('Parameter').new(|%args);
+        self.attach: $/, self.set-declarand(self.r('Parameter').new(|%args));
     }
 
     method param_term($/) {

@@ -181,22 +181,37 @@ class RakuAST::Deparse {
             );
         }
 
+        my $WHY    := $ast.WHY;
+        my $do-WHY := True;
         my $signature := $ast.signature;
-        @parts.push(self!parenthesize($signature))
-          if $signature.parameters-initialized;
+        if $signature.parameters-initialized {
+            my $deparsed := self!parenthesize($signature);
+            if $WHY && $WHY.trailing -> @trailing {
+                @parts.push('('
+                  ~ @trailing.map({
+                      "\n$*INDENT#= " ~ self!deparse-unquoted($_)
+                    })
+                  ~ $deparsed.substr(1)
+                );
+                $do-WHY := False;
+            }
+            else {
+                @parts.push($deparsed);
+            }
+        }
 
         if $ast.traits -> @traits {
             @parts.push(self.deparse($_)) for @traits;
         }
 
-        my $*WHY := $ast.WHY;
+        my $*WHY := $do-WHY && $WHY;
         my str $body = self.deparse($ast.body);
         @parts.push( $curlies
           ?? '{' ~ ($*WHY && $*WHY.trailing ?? '' !! ' ') ~ $body ~ '}'
           !! $body
         );
 
-        self!add-any-leading-doc(@parts.join(' '))
+        self!prefix-any-leading-doc(@parts.join(' '), $WHY)
     }
 
     method !conditional($self: $ast, str $type --> Str:D) {
@@ -351,8 +366,8 @@ class RakuAST::Deparse {
              )
     }
 
-    method !add-any-leading-doc(str $body) {
-        if $*WHY && $*WHY.leading -> @leading {
+    method !prefix-any-leading-doc(str $body, $WHY) {
+        if $WHY && $WHY.leading -> @leading {
             @leading.map({
                 "#| " ~ self!deparse-unquoted($_) ~ "\n$*INDENT"
             }).join ~ $body
@@ -795,7 +810,7 @@ class RakuAST::Deparse {
             !! $ast.body
         ));
 
-        self!add-any-leading-doc(@parts.join(' '))
+        self!prefix-any-leading-doc(@parts.join(' '), $*WHY)
     }
 
     multi method deparse(RakuAST::Pragma:D $ast --> Str:D) {
@@ -1892,18 +1907,33 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($name));
         }
 
+        my $WHY    := $ast.WHY;
+        my $do-WHY := True;
         my $signature := $ast.signature;
-        @parts.push(self!parenthesize($signature))
-          if $signature.parameters-initialized;
+        if $signature.parameters-initialized {
+            my $deparsed := self!parenthesize($signature);
+            if $WHY && $WHY.trailing -> @trailing {
+                @parts.push('('
+                  ~ @trailing.map({
+                      "\n$*INDENT#= " ~ self!deparse-unquoted($_)
+                    })
+                  ~ $deparsed.substr(1)
+                );
+                $do-WHY := False;
+            }
+            else {
+                @parts.push($deparsed);
+            }
+        }
 
         if $ast.traits -> @traits {
             @parts.push(self.deparse($_)) for @traits;
         }
 
-        my $*WHY := $ast.WHY;
+        my $*WHY := $do-WHY && $WHY;
         @parts.push(self.deparse($ast.body));
 
-        self!add-any-leading-doc(@parts.join(' '))
+        self!prefix-any-leading-doc(@parts.join(' '), $WHY)
     }
 
     multi method deparse(RakuAST::Submethod:D $ast --> Str:D) {

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 16;
+plan 17;
 
 my $ast;
 my $deparsed;
@@ -56,13 +56,12 @@ subtest 'Simple sub with leading and trailing pod test' => {
           )
         )
       ),
-      WHY  => RakuAST::Doc::Declarator.new(
-        leading => (
-          RakuAST::StrLiteral.new("leading comment"),
-        ),
-        trailing => (
-          RakuAST::StrLiteral.new("trailing comment"),
-        )
+    ).declarator-docs(
+      leading  => (
+        RakuAST::StrLiteral.new("leading comment"),
+      ),
+      trailing => (
+        RakuAST::StrLiteral.new("trailing comment"),
       )
     );
 
@@ -86,14 +85,13 @@ subtest 'Simple class with declarator pod' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new()
         )
+      )
+    ).declarator-docs(
+      leading  => (
+        RakuAST::StrLiteral.new("leading comment"),
       ),
-      WHY => RakuAST::Doc::Declarator.new(
-        leading   => (
-          RakuAST::StrLiteral.new("leading comment"),
-        ),
-        trailing   => (
-          RakuAST::StrLiteral.new("trailing comment"),
-        )
+      trailing => (
+        RakuAST::StrLiteral.new("trailing comment"),
       )
     );
 
@@ -118,14 +116,13 @@ subtest 'Simple class with declarator pod, one attribute' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope => "has",
-                name  => '$.foo',
-                WHY => RakuAST::Doc::Declarator.new(
-                  leading   => (
-                    RakuAST::StrLiteral.new("leading comment"),
-                  ),
-                  trailing   => (
-                    RakuAST::StrLiteral.new("trailing comment"),
-                  )
+                name  => '$.foo'
+              ).declarator-docs(
+                leading  => (
+                  RakuAST::StrLiteral.new("leading comment"),
+                ),
+                trailing => (
+                  RakuAST::StrLiteral.new("trailing comment"),
                 )
               )
             )
@@ -156,14 +153,13 @@ subtest 'Simple class with declarator pod, two attributes' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope => "has",
-                name  => '$.foo',
-                WHY => RakuAST::Doc::Declarator.new(
-                  leading   => (
-                    RakuAST::StrLiteral.new("leading comment"),
-                  ),
-                  trailing   => (
-                    RakuAST::StrLiteral.new("trailing comment"),
-                  )
+                name  => '$.foo'
+              ).declarator-docs(
+                leading   => (
+                  RakuAST::StrLiteral.new("leading comment"),
+                ),
+                trailing   => (
+                  RakuAST::StrLiteral.new("trailing comment"),
                 )
               )
             ),
@@ -203,14 +199,13 @@ subtest 'Simple class with declarator pod, one method' => {
                 name => RakuAST::Name.from-identifier("foo"),
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new()
+                )
+              ).declarator-docs(
+                leading  => (
+                  RakuAST::StrLiteral.new("leading comment"),
                 ),
-                WHY  => RakuAST::Doc::Declarator.new(
-                  leading  => (
-                    RakuAST::StrLiteral.new("leading comment"),
-                  ),
-                  trailing => (
-                    RakuAST::StrLiteral.new("trailing comment"),
-                  )
+                trailing => (
+                  RakuAST::StrLiteral.new("trailing comment"),
                 )
               )
             )
@@ -244,14 +239,13 @@ subtest 'Simple class with declarator pod, one submethod' => {
                 name => RakuAST::Name.from-identifier("foo"),
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new()
+                )
+              ).declarator-docs(
+                leading  => (
+                  RakuAST::StrLiteral.new("leading comment"),
                 ),
-                WHY  => RakuAST::Doc::Declarator.new(
-                  leading  => (
-                    RakuAST::StrLiteral.new("leading comment"),
-                  ),
-                  trailing => (
-                    RakuAST::StrLiteral.new("trailing comment"),
-                  )
+                trailing => (
+                  RakuAST::StrLiteral.new("trailing comment"),
                 )
               )
             )
@@ -286,14 +280,13 @@ subtest 'Simple class with declarator pod, one private method' => {
                 body    => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new()
                 ),
-                private => True,
-                WHY     => RakuAST::Doc::Declarator.new(
-                  leading  => (
-                    RakuAST::StrLiteral.new("leading comment"),
-                  ),
-                  trailing => (
-                    RakuAST::StrLiteral.new("trailing comment"),
-                  )
+                private => True
+              ).declarator-docs(
+                leading  => (
+                  RakuAST::StrLiteral.new("leading comment"),
+                ),
+                trailing => (
+                  RakuAST::StrLiteral.new("trailing comment"),
                 )
               )
             )
@@ -328,14 +321,13 @@ subtest 'Simple class with declarator pod, one meta method' => {
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new()
                 ),
-                meta => True,
-                WHY  => RakuAST::Doc::Declarator.new(
-                  leading  => (
-                    RakuAST::StrLiteral.new("leading comment"),
-                  ),
-                  trailing => (
-                    RakuAST::StrLiteral.new("trailing comment"),
-                  )
+                meta => True
+              ).declarator-docs(
+                leading  => (
+                  RakuAST::StrLiteral.new("leading comment"),
+                ),
+                trailing => (
+                  RakuAST::StrLiteral.new("trailing comment"),
                 )
               )
             )
@@ -369,14 +361,13 @@ subtest 'Simple class with declarator pod, two methods' => {
                 name => RakuAST::Name.from-identifier("foo"),
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new()
+                )
+              ).declarator-docs(
+                leading  => (
+                  RakuAST::StrLiteral.new("leading comment"),
                 ),
-                WHY  => RakuAST::Doc::Declarator.new(
-                  leading  => (
-                    RakuAST::StrLiteral.new("leading comment"),
-                  ),
-                  trailing => (
-                    RakuAST::StrLiteral.new("trailing comment"),
-                  )
+                trailing => (
+                  RakuAST::StrLiteral.new("trailing comment"),
                 )
               )
             ),
@@ -415,14 +406,13 @@ subtest 'Simple enum with declarator pod' => {
         segments   => (
           RakuAST::StrLiteral.new("A B C"),
         )
+      )
+    ).declarator-docs(
+      leading  => (
+        RakuAST::StrLiteral.new("leading comment"),
       ),
-      WHY => RakuAST::Doc::Declarator.new(
-        leading   => (
-          RakuAST::StrLiteral.new("leading comment"),
-        ),
-        trailing   => (
-          RakuAST::StrLiteral.new("trailing comment"),
-        )
+      trailing => (
+        RakuAST::StrLiteral.new("trailing comment"),
       )
     );
 
@@ -443,14 +433,13 @@ subtest 'Simple subset with declarator pod' => {
         RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier("Int")
         )
+      )
+    ).declarator-docs(
+      leading  => (
+        RakuAST::StrLiteral.new("leading comment"),
       ),
-      WHY => RakuAST::Doc::Declarator.new(
-        leading   => (
-          RakuAST::StrLiteral.new("leading comment"),
-        ),
-        trailing   => (
-          RakuAST::StrLiteral.new("trailing comment"),
-        )
+      trailing => (
+        RakuAST::StrLiteral.new("trailing comment"),
       )
     );
 
@@ -472,14 +461,13 @@ subtest 'Simple regex with declarator pod' => {
         RakuAST::Regex::WithWhitespace.new(
           RakuAST::Regex::Literal.new("bar")
         )
+      )
+    ).declarator-docs(
+      leading  => (
+        RakuAST::StrLiteral.new("leading comment"),
       ),
-      WHY => RakuAST::Doc::Declarator.new(
-        leading   => (
-          RakuAST::StrLiteral.new("leading comment"),
-        ),
-        trailing   => (
-          RakuAST::StrLiteral.new("trailing comment"),
-        )
+      trailing => (
+        RakuAST::StrLiteral.new("trailing comment"),
       )
     );
 
@@ -500,14 +488,13 @@ subtest 'Sub with declarator pod on parameter (1)' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new("\$b"),
-            WHY => RakuAST::Doc::Declarator.new(
-              leading   => (
-                RakuAST::StrLiteral.new("leading comment"),
-              ),
-              trailing   => (
-                RakuAST::StrLiteral.new("trailing comment"),
-              )
+            target => RakuAST::ParameterTarget::Var.new("\$b")
+          ).declarator-docs(
+            leading  => (
+              RakuAST::StrLiteral.new("leading comment"),
+            ),
+            trailing => (
+              RakuAST::StrLiteral.new("trailing comment"),
             )
           ),
         )
@@ -535,14 +522,13 @@ subtest 'Sub with declarator pod on parameter (2)' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$b'),
-            WHY => RakuAST::Doc::Declarator.new(
-              leading   => (
-                RakuAST::StrLiteral.new("leading comment"),
-              ),
-              trailing   => (
-                RakuAST::StrLiteral.new("trailing comment"),
-              )
+            target => RakuAST::ParameterTarget::Var.new('$b')
+          ).declarator-docs(
+            leading  => (
+              RakuAST::StrLiteral.new("leading comment"),
+            ),
+            trailing => (
+              RakuAST::StrLiteral.new("trailing comment"),
             )
           ),
           RakuAST::Parameter.new(
@@ -602,6 +588,49 @@ sub a (
 $b,
 #| leading comment
 $c) { }
+CODE
+    }
+}
+
+subtest 'Sub with declarator pod on parameter (4)' => {
+    # #| leadin sub␤sub a (␤#= trailing sub␤#| leading param␤$b␤#=trailing param␤) { }
+    ast RakuAST::Sub.new(
+      name      => RakuAST::Name.from-identifier("a"),
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new('$b')
+          ).declarator-docs(
+            leading  => (
+              RakuAST::StrLiteral.new("leading param"),
+            ),
+            trailing => (
+              RakuAST::StrLiteral.new("trailing param"),
+            )
+          )
+        )
+      ),
+      body      => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new()
+      )
+    ).declarator-docs(
+      leading  => (
+        RakuAST::StrLiteral.new("leading sub"),
+      ),
+      trailing => (
+        RakuAST::StrLiteral.new("trailing sub"),
+      )
+    );
+
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
+#| leading sub
+sub a (
+#= trailing sub
+#| leading param
+$b
+#= trailing param
+) { }
 CODE
     }
 }

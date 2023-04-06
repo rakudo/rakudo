@@ -535,8 +535,8 @@ class RakuAST::Call::PrivateMethod
                 $invocant-qast,
                 RakuAST::StrLiteral.new($name).IMPL-EXPR-QAST($context),
                 $!package.HOW.archetypes.parametric
-                    ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0].IMPL-EXPR-QAST($context)
-                    !! QAST::WVal.new(:value($!package)),
+                  ?? self.get-implicit-lookups.AT-POS(0).IMPL-EXPR-QAST($context)
+                  !! QAST::WVal.new(:value($!package)),
             );
             self.args.IMPL-ADD-QAST-ARGS($context, $call);
             $call
@@ -666,10 +666,9 @@ class RakuAST::Stub
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $x-stubcode := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
         my $qast := QAST::Op.new(
           :op<callmethod>, :name<new>,
-          $x-stubcode.IMPL-TO-QAST($context)
+          self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
         );
         if $!args {
             my @args := self.IMPL-UNWRAP-LIST($!args.args);

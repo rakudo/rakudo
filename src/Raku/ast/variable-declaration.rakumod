@@ -245,8 +245,7 @@ class RakuAST::TraitTarget::Variable
     }
 
     method PRODUCE-META-OBJECT() {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        my $Variable  := @lookups[0].compile-time-value;
+        my $Variable  := self.get-implicit-lookups.AT-POS(0).compile-time-value;
         my $varvar := nqp::create($Variable);
         nqp::bindattr_s($varvar, $Variable, '$!name', $!name);
         nqp::bindattr_s($varvar, $Variable, '$!scope', $!scope);
@@ -347,9 +346,8 @@ class RakuAST::VarDeclaration::Constant
       RakuAST::IMPL::QASTContext $context
     ) {
         if $!type {
-            my $type := self.IMPL-UNWRAP-LIST(
-              self.get-implicit-lookups
-            )[0].resolution.compile-time-value;
+            my $type :=
+              self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
 
             unless nqp::istype(nqp::what($!value), $type) {
                 self.add-sorry($resolver.build-exception('X::Comp::TypeCheck',
@@ -494,8 +492,9 @@ class RakuAST::VarDeclaration::Simple
             my str $sigil := self.sigil;
             return True if $sigil eq '@' || $sigil eq '%';
             return True unless $!type;
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-            return True unless nqp::objprimspec(@lookups[0].resolution.compile-time-value);
+            return True unless nqp::objprimspec(
+              self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+            );
         }
         False
     }
@@ -580,8 +579,9 @@ class RakuAST::VarDeclaration::Simple
                         RakuAST::ColonPair::Value.new(:key<shape>, :value($!shape))
                     )
                     !! RakuAST::ArgList.new;
-                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+                my $of := $!type
+                  ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+                  !! Mu;
                 my $container-initializer-ast := RakuAST::ApplyPostfix.new(
                     operand => RakuAST::Declaration::ResolvedConstant.new(
                         :compile-time-value(
@@ -688,8 +688,9 @@ class RakuAST::VarDeclaration::Simple
         return Nil if $scope eq 'our';
 
         # Calculate the type.
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+        my $of := $!type
+          ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+          !! Mu;
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
@@ -720,9 +721,10 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my str $scope := self.scope;
-        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+        my $of := $!type
+          ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+          !! Mu;
 
         if $scope eq 'my' {
             # Lexically scoped
@@ -786,7 +788,6 @@ class RakuAST::VarDeclaration::Simple
         }
         elsif $scope eq 'state' {
             # Lexically scoped state variable
-            my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
             my str $sigil := self.sigil;
             if $sigil eq '$' && nqp::objprimspec($of) {
                 nqp::die("Natively typed state variables not yet implemented");
@@ -812,12 +813,14 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $lookups := self.get-implicit-lookups;
         my str $name := $!name;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
             my str $sigil := self.sigil;
             my $var-access := QAST::Var.new( :$name, :scope<lexical> );
-            my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+            my $of := $!type
+              ?? $lookups.AT-POS(0).resolution.compile-time-value
+              !! Mu;
 
             if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
                 # Natively typed value. Need to initialize it to a default
@@ -894,7 +897,7 @@ class RakuAST::VarDeclaration::Simple
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             # These just evaluate to Nil
-            @lookups[nqp::elems(@lookups) - 1].IMPL-TO-QAST($context)
+            $lookups.tail.IMPL-TO-QAST($context)
         }
         else {
             nqp::die("Don't know how to compile initialization for scope $scope");
@@ -908,8 +911,9 @@ class RakuAST::VarDeclaration::Simple
             unless $rvalue {
                 # Potentially l-value native lookups need a lexicalref.
                 if self.sigil eq '$' && self.scope ne 'our' {
-                    my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                    my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+                    my $of := $!type
+                      ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+                      !! Mu;
                     if nqp::objprimspec($of) {
                         $scope := 'lexicalref';
                     }
@@ -1049,9 +1053,10 @@ class RakuAST::VarDeclaration::Signature
         # tell the parameter targets to create containers
         my @params := self.IMPL-UNWRAP-LIST($!signature.parameters);
 
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my $type := $!type;
-        my $of := $type ?? @lookups[0].resolution.compile-time-value !! Mu;
+        my $of := $type
+          ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+          !! Mu;
 
         for @params {
             $_.target.set-container-type($type, $of) if $type;

@@ -1186,11 +1186,14 @@ class RakuAST::PointyBlock
         my $signature := self.signature || self.placeholder-signature;
 
         if $signature.meta-object.has_returns {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $Callable := @lookups[0].compile-time-value;
+            my $Callable :=
+              self.get-implicit-lookups.AT-POS(0).compile-time-value;
             $block.HOW.mixin(
-                $block,
-                $Callable.HOW.parameterize($Callable, $signature.meta-object.returns)
+              $block,
+              $Callable.HOW.parameterize(
+                $Callable,
+                $signature.meta-object.returns
+              )
             );
         }
         $block
@@ -1322,11 +1325,14 @@ class RakuAST::Routine
         nqp::bindattr($signature.meta-object, Signature, '$!code', $routine);
 
         if $signature.meta-object.has_returns {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $Callable := @lookups[0].compile-time-value;
+            my $Callable :=
+              self.get-implicit-lookups.AT-POS(0).compile-time-value;
             $routine.HOW.mixin(
-                $routine,
-                $Callable.HOW.parameterize($Callable, $signature.meta-object.returns)
+              $routine,
+              $Callable.HOW.parameterize(
+                $Callable,
+                $signature.meta-object.returns
+              )
             );
         }
 
@@ -2156,17 +2162,18 @@ class RakuAST::QuotedRegex
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $closure := self.IMPL-CLOSURE-QAST($context, :regex);
         if $!match-immediately {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $topic := @lookups[0].IMPL-TO-QAST($context);
+            my $lookups := self.get-implicit-lookups;
+            my $topic   := $lookups.AT-POS(0).IMPL-TO-QAST($context);
+            my $slash   := $lookups.AT-POS(1).IMPL-TO-QAST($context);
+
             my $match-qast := QAST::Op.new(
-                :op('callmethod'), :name('match'),
-                $topic, $closure );
+              :op('callmethod'), :name('match'), $topic, $closure
+            );
             my int $is-multiple-match := 0;
             for self.IMPL-UNWRAP-LIST(self.adverbs) {
                 my str $norm := self.IMPL-NORMALIZE-ADVERB($_.key);
                 if self.IMPL-IS-POSITION-ADVERB($norm) {
                     # These need to be passed the end of the last match.
-                    my $slash := @lookups[1].IMPL-TO-QAST($context);
                     $match-qast.push: QAST::Op.new:
                         :named($norm), :op<if>,
                         $slash,
@@ -2186,8 +2193,7 @@ class RakuAST::QuotedRegex
                 $match-qast
             }
             else {
-                my $slash := @lookups[1].IMPL-TO-QAST($context);
-                QAST::Op.new( :op('p6store'), $slash, $match-qast )
+                QAST::Op.new(:op('p6store'), $slash, $match-qast)
             }
         }
         else {
@@ -2198,17 +2204,17 @@ class RakuAST::QuotedRegex
     }
 
     method IMPL-TWEAK-REGEX-CLONE(RakuAST::IMPL::QASTContext $context, Mu $clone) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups := self.get-implicit-lookups;
         if $context.lang-version lt 'd' {
-            my $topic := @lookups[2].IMPL-TO-QAST($context);
+            my $topic := $lookups.AT-POS(2).IMPL-TO-QAST($context);
             $topic.named('topic');
             $clone.push($topic);
         }
         else {
-            my $topic := @lookups[0].IMPL-TO-QAST($context);
+            my $topic := $lookups.AT-POS(0).IMPL-TO-QAST($context);
             $topic.named('topic');
             $clone.push($topic);
-            my $slash := @lookups[1].IMPL-TO-QAST($context);
+            my $slash := $lookups.AT-POS(1).IMPL-TO-QAST($context);
             $slash.named('slash');
             $clone.push($slash);
         }
@@ -2307,7 +2313,11 @@ class RakuAST::Substitution
         # Coerce the topic into a Str before we start (we need to do that for
         # applying the match results anyway, so may as well avoid a double
         # coercion in the call to .match also).
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $lookups    := self.get-implicit-lookups;
+        my $topic      := $lookups.AT-POS(0);
+        my $slash      := $lookups.AT-POS(1);
+        my $Positional := $lookups.AT-POS(2);
+
         my $topic-str-var := QAST::Node.unique('subst_topic_str');
         my $result := self.IMPL-SET-NODE(
             QAST::Stmts.new(
@@ -2316,7 +2326,7 @@ class RakuAST::Substitution
                     QAST::Var.new( :decl('var'), :scope('local'), :name($topic-str-var) ),
                     QAST::Op.new:
                         :op('callmethod'), :name('Str'),
-                        @lookups[0].IMPL-TO-QAST($context) ), :key);
+                        $topic.IMPL-TO-QAST($context) ), :key);
 
         # Compile the call to match the regex against the stringified topic,
         # binding it into a result variable. While emitting adverbs, take
@@ -2326,7 +2336,7 @@ class RakuAST::Substitution
             :op('callmethod'), :name('match'),
             QAST::Var.new( :scope('local'), :name($topic-str-var) ),
             $regex-closure;
-        my $match-lookup := @lookups[1].IMPL-TO-QAST($context);
+        my $match-lookup := $slash.IMPL-TO-QAST($context);
         my int $samespace := $!samespace;
         my int $sigspace := $samespace;
         my int $samecase := 0;
@@ -2396,7 +2406,6 @@ class RakuAST::Substitution
         # compiler frontend explicitly checked if it got a Match object or a
         # non-empty List. However, those are both truthy, and all the non-match
         # cases would be falsey, so we can just emit a truth test.
-        my $Positional := @lookups[2];
         $result.push: QAST::Op.new:
             :op('if'),
             QAST::Var.new( :scope('local'), :name($match-result-var) ),
@@ -2410,7 +2419,7 @@ class RakuAST::Substitution
                 !! QAST::Stmts.new(
                     QAST::Op.new(
                         :op('assign'),
-                        @lookups[0].IMPL-TO-QAST($context),
+                        $lookups.AT-POS(0).IMPL-TO-QAST($context),
                         $apply-call
                     ),
                     # If we have a list of matches, then put them into $/,
@@ -2492,8 +2501,7 @@ class RakuAST::CurryThunk
     }
 
     method IMPL-THUNK-OBJECT-TYPE() {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].compile-time-value
+        self.get-implicit-lookups.AT-POS(0).compile-time-value
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

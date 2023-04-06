@@ -431,11 +431,11 @@ class RakuAST::Type::Enum
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my @lookups     := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        my $Pair        := @lookups[0].resolution.compile-time-value;
-        my $List        := @lookups[1].resolution.compile-time-value;
-        my $Stringy     := @lookups[2].resolution.compile-time-value;
-        my $Numeric     := @lookups[3].resolution.compile-time-value;
+        my $lookups := self.get-implicit-lookups;
+        my $Pair    := $lookups.AT-POS(0).resolution.compile-time-value;
+        my $List    := $lookups.AT-POS(1).resolution.compile-time-value;
+        my $Stringy := $lookups.AT-POS(2).resolution.compile-time-value;
+        my $Numeric := $lookups.AT-POS(3).resolution.compile-time-value;
 
         my $base-type;
         my $has-base-type := False;

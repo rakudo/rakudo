@@ -88,7 +88,6 @@ class RakuAST::Trait
     method apply(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, RakuAST::TraitTarget $target, *%named) {
         unless self.applied {
             self.IMPL-CHECK($resolver, $context, False);
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $decl-target := RakuAST::Declaration::ResolvedConstant.new:
                 compile-time-value => $target.compile-time-value;
             my $args := self.IMPL-TRAIT-ARGS($resolver, $decl-target);
@@ -99,7 +98,12 @@ class RakuAST::Trait
                 );
             }
             $args.IMPL-CHECK($resolver, $context, False);
-            $target.IMPL-BEGIN-TIME-CALL(@lookups[0], $args, $resolver, $context);
+            $target.IMPL-BEGIN-TIME-CALL(
+              self.get-implicit-lookups.AT-POS(0),
+              $args,
+              $resolver,
+              $context
+            );
             self.mark-applied;
         }
     }

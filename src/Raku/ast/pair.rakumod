@@ -33,8 +33,8 @@ class RakuAST::FatArrow
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $pair-type := @lookups[0].resolution.compile-time-value;
+        my $pair-type :=
+          self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
         my $key := $!key;
         $context.ensure-sc($key);
         QAST::Op.new(
@@ -97,8 +97,8 @@ class RakuAST::ColonPair
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $pair-type := @lookups[0].resolution.compile-time-value;
+        my $pair-type :=
+          self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
         my $key := $!key;
         $context.ensure-sc($key);
         QAST::Op.new(
@@ -153,9 +153,9 @@ class RakuAST::ColonPair::True
     method IMPL-CAN-INTERPRET() { True }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $pair-type := @lookups[0].resolution.compile-time-value;
-        $pair-type.new(self.key, True)
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value.new(
+          self.key, True
+        )
     }
 }
 
@@ -194,9 +194,9 @@ class RakuAST::ColonPair::False
     method IMPL-CAN-INTERPRET() { True }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $pair-type := @lookups[0].resolution.compile-time-value;
-        $pair-type.new(self.key, False)
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value.new(
+          self.key, False
+        )
     }
 }
 
@@ -222,9 +222,9 @@ class RakuAST::ColonPair::Number
     method IMPL-CAN-INTERPRET() { True }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $pair-type := @lookups[0].resolution.compile-time-value;
-        $pair-type.new(self.key, $!value)
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value.new(
+          self.key, $!value
+        )
     }
 }
 
@@ -258,9 +258,9 @@ class RakuAST::ColonPair::Value
     method IMPL-CAN-INTERPRET() { $!value.IMPL-CAN-INTERPRET }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $pair-type := @lookups[0].resolution.compile-time-value;
-        $pair-type.new(self.key, $!value.IMPL-INTERPRET($ctx))
+        self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value.new(
+          self.key, $!value.IMPL-INTERPRET($ctx)
+        )
     }
 }
 

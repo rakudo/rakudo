@@ -299,8 +299,8 @@ class RakuAST::Infix
         if nqp::istype($right, RakuAST::RegexThunk)
             && (!nqp::can($right, 'match-immediately') || $right.match-immediately)
         {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-            my $match-type := @lookups[0].resolution.compile-time-value;
+            my $match-type :=
+              self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
             my $result-local := QAST::Node.unique('!sm-result');
             my $rhs := $right.IMPL-EXPR-QAST($context);
             return self.IMPL-TEMPORARIZE-TOPIC(

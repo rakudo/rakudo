@@ -127,8 +127,10 @@ class RakuAST::Term::TopicCall
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
-        $!call.IMPL-POSTFIX-QAST($context, $topic.resolution.IMPL-LOOKUP-QAST($context))
+        $!call.IMPL-POSTFIX-QAST(
+          $context,
+          self.get-implicit-lookups.AT-POS(0).resolution.IMPL-LOOKUP-QAST($context)
+        )
     }
 
     method visit-children(Code $visitor) {
@@ -328,11 +330,9 @@ class RakuAST::Term::Reduce
         else {
             # Form a List of the argumnets and pass it to the reducer
             # TODO thunk case
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $form-list := QAST::Op.new(
-                :op('call'),
-                :name(@lookups[0].resolution.lexical-name)
-            );
+            my $name :=
+              self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+            my $form-list := QAST::Op.new(:op('call'), :$name);
             $!args.IMPL-ADD-QAST-ARGS($context, $form-list);
             QAST::Op.new( :op<call>, $form-meta, $form-list )
         }

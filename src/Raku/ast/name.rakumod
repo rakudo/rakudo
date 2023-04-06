@@ -167,12 +167,10 @@ class RakuAST::Name
 
     method IMPL-QAST-PSEUDO-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
         my $final := $!parts[nqp::elems($!parts) - 1];
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $PseudoStash := @lookups[1];
         my $result := QAST::Op.new(
-            :op<callmethod>,
-            :name<new>,
-            $PseudoStash.IMPL-TO-QAST($context),
+          :op<callmethod>,
+          :name<new>,
+          self.get-implicit-lookups.AT-POS(1).IMPL-TO-QAST($context)
         );
         my $first := 1;
         for $!parts {
@@ -219,17 +217,15 @@ class RakuAST::Name
     }
 
     method IMPL-QAST-INDIRECT-LOOKUP(RakuAST::IMPL::QASTContext $context, str :$sigil) {
-        my $final := $!parts[nqp::elems($!parts) - 1];
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $indirect_name_lookup := @lookups[0];
-        my $PseudoStash := @lookups[1];
-        my $result := QAST::Op.new(
+        my $final   := $!parts[nqp::elems($!parts) - 1];
+        my $lookups := self.get-implicit-lookups;
+        my $result  := QAST::Op.new(
             :op<call>,
-            $indirect_name_lookup.IMPL-TO-QAST($context),
+            $lookups.AT-POS(0).IMPL-TO-QAST($context),
             QAST::Op.new(
                 :op<callmethod>,
                 :name<new>,
-                $PseudoStash.IMPL-TO-QAST($context),
+                $lookups.AT-POS(1).IMPL-TO-QAST($context),
             ),
         );
         nqp::push($result, QAST::SVal.new(:value($sigil))) if $sigil;

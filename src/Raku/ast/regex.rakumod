@@ -976,7 +976,6 @@ class RakuAST::Regex::Interpolation
         }
 
         # Fallback to slow path.
-        my $PseudoStash := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
         QAST::Regex.new:
             :rxtype<subrule>, :subtype<method>,
             QAST::NodeList.new:
@@ -988,7 +987,7 @@ class RakuAST::Regex::Interpolation
                 QAST::IVal.new( :value(0) ),
                 QAST::Op.new(
                     :op<callmethod>, :name<new>,
-                    $PseudoStash.IMPL-TO-QAST($context)
+                   self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
                 )
     }
 
@@ -1094,13 +1093,13 @@ class RakuAST::Regex::Assertion::Named
                 nqp::die('special <sym> name not yet compiled');
             }
             else {
-                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+                my $lookups := self.get-implicit-lookups;
                 my $qast;
-                if @lookups && @lookups[0].is-resolved {
+                if $lookups.elems && $lookups.AT-POS(0).is-resolved {
                     $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
                         QAST::NodeList.new:
                             QAST::SVal.new( :value('CALL_SUBRULE') ),
-                            @lookups[0].IMPL-TO-QAST($context);
+                            $lookups.AT-POS(0).IMPL-TO-QAST($context);
                 }
                 else {
                     $qast := QAST::Regex.new: :rxtype<subrule>,
@@ -1303,10 +1302,13 @@ class RakuAST::Regex::Assertion::InterpolatedBlock
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        my $PseudoStash := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
-        self.IMPL-INTERPOLATE-ASSERTION($context, %mods,
-            self.IMPL-REGEX-BLOCK-CALL($context, $!block),
-            $!sequential, $PseudoStash)
+        self.IMPL-INTERPOLATE-ASSERTION(
+          $context,
+          %mods,
+          self.IMPL-REGEX-BLOCK-CALL($context, $!block),
+          $!sequential,
+          self.get-implicit-lookups.AT-POS(0)
+        )
     }
 
     method visit-children(Code $visitor) {
@@ -1338,9 +1340,13 @@ class RakuAST::Regex::Assertion::InterpolatedVar
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        my $PseudoStash := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
-        self.IMPL-INTERPOLATE-ASSERTION($context, %mods, $!var.IMPL-TO-QAST($context),
-            $!sequential, $PseudoStash)
+        self.IMPL-INTERPOLATE-ASSERTION(
+          $context,
+          %mods,
+          $!var.IMPL-TO-QAST($context),
+          $!sequential,
+          self.get-implicit-lookups.AT-POS(0)
+        )
     }
 
     method visit-children(Code $visitor) {

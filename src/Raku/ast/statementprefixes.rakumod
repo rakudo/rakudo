@@ -148,10 +148,11 @@ class RakuAST::StatementPrefix::Try
 
         # Otherwise, need to wrap it in exception handler logic.
         else {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $nil := @lookups[0].IMPL-TO-QAST($context);
-            my $bang := @lookups[1].IMPL-TO-QAST($context);
-            my $Failure := @lookups[2].IMPL-TO-QAST($context);
+            my $lookups := self.get-implicit-lookups;
+            my $nil     := $lookups.AT-POS(0).IMPL-TO-QAST($context);
+            my $bang    := $lookups.AT-POS(1).IMPL-TO-QAST($context);
+            my $Failure := $lookups.AT-POS(2).IMPL-TO-QAST($context);
+
             my $tmp := QAST::Node.unique('fatalizee');
             my $qast := self.IMPL-CALLISH-QAST($context);
             QAST::Op.new(
@@ -327,15 +328,14 @@ class RakuAST::StatementPrefix::Start
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        my $promise := @lookups[0].IMPL-TO-QAST($context);
+        my $lookups := self.get-implicit-lookups;
         my $qast := QAST::Op.new(
             :op('callmethod'), :name('start'),
-            $promise,
+            $lookups.AT-POS(0).IMPL-TO-QAST($context),
             self.IMPL-CLOSURE-QAST($context)
         );
         unless $context.lang-version eq 'c' {
-            my $true := @lookups[1].IMPL-TO-QAST($context);
+            my $true := $lookups.AT-POS(1).IMPL-TO-QAST($context);
             $true.named('report-broken-if-sunk');
             $qast.push($true);
         }
@@ -365,8 +365,7 @@ class RakuAST::StatementPrefix::Phaser::Sinky
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].IMPL-TO-QAST($context)
+        self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context);
     }
 }
 

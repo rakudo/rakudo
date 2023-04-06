@@ -98,7 +98,7 @@ class RakuAST::Signature
             unless @param-asts && @param-asts[0].invocant {
                 my $type;
                 if $!is-on-meta-method {
-                    $type := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[0];
+                    $type := self.get-implicit-lookups.AT-POS(0);
                 }
                 elsif $!is-on-named-method {
                     if nqp::isconcrete($!method-package) {
@@ -660,8 +660,8 @@ class RakuAST::Parameter
     method IMPL-NOMINAL-TYPE() {
         my str $sigil := $!target.sigil;
         if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-            my $sigil-type := @lookups[0].resolution.compile-time-value;
+            my $sigil-type :=
+              self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
             $!type
                 ?? $sigil-type.HOW.parameterize($sigil-type,
                         $!type.resolution.compile-time-value)
@@ -669,12 +669,15 @@ class RakuAST::Parameter
         }
         else {
             if $!type {
-                my $type := $!type.meta-object;
-                $type.HOW.archetypes.nominal || $type.HOW.archetypes.coercive || $type.HOW.archetypes.generic
-                    ?? $type
-                    !! $type.HOW.archetypes.nominalizable
-                        ?? $type.HOW.nominalize($type)
-                        !! $type
+                my $type       := $!type.meta-object;
+                my $archetypes := $type.HOW.archetypes;
+                $archetypes.nominal
+                  || $archetypes.coercive
+                  || $archetypes.generic
+                  ?? $type
+                  !! $archetypes.nominalizable
+                    ?? $type.HOW.nominalize($type)
+                    !! $type
             }
             else {
                 Mu
@@ -852,8 +855,7 @@ class RakuAST::Parameter
             elsif !($param-type =:= Mu) {
                 if !$ptype-archetypes.generic {
                     if $!target.sigil eq '@' {
-                        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                        my $PositionalBindFailover := @lookups[1].resolution.compile-time-value;
+                        my $PositionalBindFailover := self.get-implicit-lookups.AT-POS(1).resolution.compile-time-value;
                         $param-qast.push(QAST::Op.new(
                             :op('if'),
                             QAST::Op.new(
@@ -1028,8 +1030,7 @@ class RakuAST::Parameter
             else {
                 my $sigil := $!target.sigil;
                 if (my $is-array := $sigil eq '@') || $sigil eq '%' {
-                    my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                    my $role := @lookups[0].resolution.compile-time-value;
+                    my $role := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
                     my $base-type := $is-array ?? Array !! Hash;
                     my $value := nqp::istype($nominal-type, $role) && nqp::can($nominal-type.HOW, 'role_arguments')
                         ?? $base-type.HOW.parameterize($base-type, |$nominal-type.HOW.role_arguments($nominal-type))

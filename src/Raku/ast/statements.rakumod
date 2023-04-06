@@ -34,8 +34,8 @@ class RakuAST::Label
     }
 
     method PRODUCE-META-OBJECT() {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        my $label-type := @lookups[0].resolution.compile-time-value;
+        my $label-type :=
+          self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
         # TODO line, prematch, postmatch
         $label-type.new(:name($!name), :line(0), :prematch(''), :postmatch(''))
     }
@@ -215,7 +215,7 @@ class RakuAST::StatementList
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
         my @statements := self.code-statements;
-        my $Nil := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1];
+        my $Nil := self.get-implicit-lookups.AT-POS(1);
         for @statements {
             my $qast := $_.IMPL-TO-QAST($context);
             my $stmt-orig := $_.origin;
@@ -226,7 +226,8 @@ class RakuAST::StatementList
                 );
             }
             if $_.trace && nqp::isconcrete($stmt-orig) && !$*CU.precompilation-mode {
-                my $Blob := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0].compile-time-value;
+                my $Blob :=
+                  self.get-implicit-lookups.AT-POS(0).compile-time-value;
                 $context.ensure-sc($Blob);
                 my $line := $stmt-orig.source.original-line($stmt-orig.from);
                 my $file := $stmt-orig.source.original-file;
@@ -317,7 +318,7 @@ class RakuAST::StatementList
         $!is-sunk
           || !@statements
           || @statements[nqp::elems(@statements) - 1].IMPL-DISCARD-RESULT
-            ?? self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[1].compile-time-value
+            ?? self.get-implicit-lookups.AT-POS(1).compile-time-value
             !! $result
     }
 }
@@ -341,11 +342,9 @@ class RakuAST::SemiList
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
         }
         else {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $list := QAST::Op.new(
-                :op('call'),
-                :name(@lookups[0].resolution.lexical-name)
-            );
+            my $name :=
+              self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+            my $list := QAST::Op.new(:op('call'), :$name);
             for @statements {
                 $list.push($_.IMPL-TO-QAST($context));
             }
@@ -391,11 +390,9 @@ class RakuAST::StatementSequence
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
         }
         elsif $n == 0 {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            QAST::Op.new(
-                :op('call'),
-                :name(@lookups[0].resolution.lexical-name)
-            )
+            my $name :=
+              self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+            QAST::Op.new(:op('call'), :$name);
         }
         else {
             my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);
@@ -633,8 +630,8 @@ class RakuAST::Statement::If
             $cur-end := $!else.IMPL-TO-QAST($context, :immediate);
         }
         else {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            $cur-end := @lookups[0].IMPL-TO-QAST($context);
+            $cur-end :=
+              self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context);
         }
 
         # Add the branches.
@@ -763,12 +760,11 @@ class RakuAST::Statement::Unless
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         QAST::Op.new(
             :op('unless'),
             $!condition.IMPL-TO-QAST($context),
             $!body.IMPL-TO-QAST($context, :immediate),
-            @lookups[0].IMPL-TO-QAST($context)
+            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
         )
     }
 
@@ -818,12 +814,11 @@ class RakuAST::Statement::Without
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         QAST::Op.new(
             :op('without'),
             $!condition.IMPL-TO-QAST($context),
             $!body.IMPL-TO-QAST($context, :immediate),
-            @lookups[0].IMPL-TO-QAST($context)
+            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
         )
     }
 
@@ -922,14 +917,15 @@ class RakuAST::Statement::Loop
             }
 
             # Prepend setup code and evaluate to Nil if not sunk.
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $wrapper := self.IMPL-SET-NODE(QAST::Stmt.new(), :key);
             if $!setup {
                 $wrapper.push($!setup.IMPL-TO-QAST($context));
             }
             $wrapper.push($loop-qast);
             unless self.sunk {
-                $wrapper.push(@lookups[0].IMPL-TO-QAST($context));
+                $wrapper.push(
+                  self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
+                );
             }
 
             $wrapper
@@ -1153,11 +1149,10 @@ class RakuAST::Statement::When
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $sm-qast := QAST::Op.new(
             :op('callmethod'), :name('ACCEPTS'),
             $!condition.IMPL-TO-QAST($context),
-            @lookups[0].IMPL-TO-QAST($context)
+            self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
         );
         QAST::Op.new(
             :op('if'),
@@ -1476,9 +1471,9 @@ class RakuAST::Statement::Require
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        my $depspec  := @lookups[0].compile-time-value;
-        my $registry := @lookups[1].compile-time-value;
+        my $lookups := self.get-implicit-lookups;
+        my $depspec  := $lookups.AT-POS(0).compile-time-value;
+        my $registry := $lookups.AT-POS(1).compile-time-value;
         my $short-name := QAST::SVal.new(:value($!module-name.canonicalize));
         $short-name.named('short-name');
 

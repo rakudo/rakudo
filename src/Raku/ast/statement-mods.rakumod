@@ -27,8 +27,7 @@ class RakuAST::StatementModifier::Condition
     }
 
     method IMPL-EMPTY(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        @lookups[0].IMPL-TO-QAST($context)
+        self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context)
     }
 
     method expression-thunk() {

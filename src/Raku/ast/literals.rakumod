@@ -270,8 +270,7 @@ class RakuAST::QuotedString
                 $result := $result.WORDS_AUTODEREF();
             }
             elsif $_ eq 'val' {
-                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-                my $val := @lookups[0].resolution.compile-time-value;
+                my $val := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
                 $result := $val($result);
             }
             elsif $_ eq 'heredoc' {
@@ -420,10 +419,9 @@ class RakuAST::QuotedString
                     !! QAST::Stmts.new( $result );
             }
             elsif $_ eq 'val' {
-                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-                $qast := QAST::Op.new(
-                    :op('call'), :name(@lookups[0].resolution.lexical-name), $qast
-                );
+                my $name :=
+                  self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
+                $qast := QAST::Op.new(:op('call'), :$name, $qast);
             }
             elsif $_ eq 'exec' {
                 $qast := QAST::Op.new(

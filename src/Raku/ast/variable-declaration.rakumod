@@ -1256,12 +1256,25 @@ class RakuAST::VarDeclaration::Implicit::Special
     method PRODUCE-META-OBJECT() {
         # Reuse the container descriptor for the common cases that we expect
         # to have.
-        my constant COMMON := nqp::hash(
-            '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
-            '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
-            '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+        my constant COMMON := nqp::list(
+            nqp::hash(),
+            nqp::hash(
+                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :dynamic, :name('$_')),
+                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+            ),
+            nqp::hash(
+                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
+                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+            ),
+            nqp::hash(
+                '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
+                '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+                '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
+            )
         );
-        my $cont-desc := COMMON{self.name} //
+        my $cont-desc := COMMON[nqp::getcomp('Raku').language_revision]{self.name} //
             ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name(self.name));
         my $container := nqp::create(Scalar);
         nqp::bindattr($container, Scalar, '$!descriptor', $cont-desc);

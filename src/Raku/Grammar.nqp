@@ -912,14 +912,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token modifier_expr($k) { <EXPR> || <.nomodexpr($k)> }
 
-    proto rule statement_mod_cond { <...> }
+    proto rule statement_mod_cond {*}
     rule statement_mod_cond:sym<if>      { <sym><.kok> <modifier_expr('if')> }
     rule statement_mod_cond:sym<unless>  { <sym><.kok> <modifier_expr('unless')> }
     rule statement_mod_cond:sym<when>    { <sym><.kok> <modifier_expr('when')> }
     rule statement_mod_cond:sym<with>    { <sym><.kok> <modifier_expr('with')> }
     rule statement_mod_cond:sym<without> { <sym><.kok> <modifier_expr('without')> }
 
-    proto rule statement_mod_loop { <...> }
+    proto rule statement_mod_loop {*}
     rule statement_mod_loop:sym<while> { <sym><.kok> <modifier_expr('while')> }
     rule statement_mod_loop:sym<until> { <sym><.kok> <modifier_expr('until')> }
     rule statement_mod_loop:sym<given> { <sym><.kok> <modifier_expr('given')> }
@@ -929,7 +929,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ## Statement prefixes
     ##
 
-    proto token statement_prefix { <...> }
+    proto token statement_prefix {*}
 
     token statement_prefix:sym<BEGIN> { <sym><.kok> <blorst> }
     token statement_prefix:sym<INIT>  { <sym><.kok> <blorst> }
@@ -1056,7 +1056,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    proto token infix_prefix_meta_operator { <...> }
+    proto token infix_prefix_meta_operator {*}
 
     token infix_prefix_meta_operator:sym<!> {
         <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
@@ -1091,7 +1091,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%list_infix)>
     }
 
-    proto token infix_postfix_meta_operator { <...> }
+    proto token infix_postfix_meta_operator {*}
 
     token infix_postfix_meta_operator:sym<=> {
         :my %prec;
@@ -1112,7 +1112,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%prec, :dba('assignment operator'), :iffy(0))> {}
     }
 
-    proto token infix_circumfix_meta_operator { <...> }
+    proto token infix_circumfix_meta_operator {*}
 
     token infix_circumfix_meta_operator:sym<« »> {
         $<opening>=[ '«' | '»' ]
@@ -1136,7 +1136,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
-    proto token prefix_postfix_meta_operator { <...> }
+    proto token prefix_postfix_meta_operator {*}
 
     token prefix_postfix_meta_operator:sym<«> {
         <sym> | '<<'
@@ -1173,7 +1173,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*LEFTSIGIL := '@'; }
     }
 
-    proto token postfix_prefix_meta_operator { <...> }
+    proto token postfix_prefix_meta_operator {*}
 
     token postfix_prefix_meta_operator:sym<»> {
         [ <sym> | $<sym> = '>>' ]
@@ -1240,7 +1240,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%methodcall)>
     }
 
-    proto token dotty { <...> }
+    proto token dotty {*}
     token dotty:sym<.> {
         <sym> <dottyop>
         <O(|%methodcall)>
@@ -1909,7 +1909,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    proto token special_variable { <...> }
+    proto token special_variable {*}
 
     token special_variable:sym<$!{ }> {
         [ '$!{' .*? '}' | '%!' ]
@@ -2124,7 +2124,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ## Declarations
     ##
 
-    proto token package_declarator { <...> }
+    proto token package_declarator {*}
     token package_declarator:sym<package> {
         <sym><.kok> <package_def('package')>
     }
@@ -2182,7 +2182,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token enter-package-scope() { <?> }
     token leave-package-scope { <?> }
 
-    proto token scope_declarator { <...> }
+    proto token scope_declarator {*}
     token scope_declarator:sym<my>    { <sym> <scoped('my')> }
     token scope_declarator:sym<our>   { <sym> <scoped('our')> }
     token scope_declarator:sym<has>   { <sym> <scoped('has')> }
@@ -2220,7 +2220,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    proto token multi_declarator { <...> }
+    proto token multi_declarator {*}
     token multi_declarator:sym<multi> {
         <sym><.kok>
         :my $*MULTINESS := 'multi';
@@ -2310,7 +2310,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    proto token initializer { <...> }
+    proto token initializer {*}
     token initializer:sym<=> {
         <sym>
         [
@@ -2418,7 +2418,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <?ENDSTMT>
     }
 
-    proto token regex_declarator { <...> }
+    proto token regex_declarator {*}
 
     token regex_declarator:sym<rule> {
         <sym><.kok>
@@ -2465,7 +2465,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ] || <.malformed('regex')>
     }
 
-    proto token type_declarator { <...> }
+    proto token type_declarator {*}
 
     token type_declarator:sym<constant> {
         :my $*IN_DECL := 'constant';
@@ -2522,7 +2522,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait_mod>
     }
 
-    proto rule trait_mod { <...> }
+    proto rule trait_mod {*}
     rule trait_mod:sym<is> {
         <sym> [ <longname><circumfix>? || <.panic: 'Invalid name'> ]
         {
@@ -2552,12 +2552,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ## Values
     ##
 
-    proto token value { <...> }
+    proto token value {*}
     token value:sym<quote>  { <quote> }
     token value:sym<number> { <number> }
     token value:sym<version> { <version> }
 
-    proto token number { <...> }
+    proto token number {*}
     token number:sym<numish>   { <numish> }
 
     token numish {
@@ -2647,7 +2647,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         \w+ | '*'
     }
 
-    proto token quote { <...> }
+    proto token quote {*}
     token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(self.slang_grammar('Quote'), "'", "'", ['q']))> }
     token quote:sym<sapos> { :dba('curly single quotes') "‘" ~ "’" <nibble(self.quote_lang(self.slang_grammar('Quote'), "‘", "’", ['q']))> }
     token quote:sym<lapos> { :dba('low curly single quotes') "‚" ~ <[’‘]> <nibble(self.quote_lang(self.slang_grammar('Quote'), "‚", ["’","‘"], ['q']))> }
@@ -3078,7 +3078,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token sigil { <[$@%&]> }
 
-    proto token twigil { <...> }
+    proto token twigil {*}
     token twigil:sym<.> { <sym> <?before \w> }
     token twigil:sym<!> { <sym> <?before \w> }
     token twigil:sym<^> { <sym> <?before \w> }
@@ -3128,7 +3128,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
     }
 
-    proto token terminator { <...> }
+    proto token terminator {*}
     token terminator:sym<;> { <?[;]> }
     token terminator:sym<)> { <?[)]> }
     token terminator:sym<]> { <?[\]]> }
@@ -3452,7 +3452,7 @@ if $*COMPILING_CORE_SETTING {
         ]
     }
 
-    proto token comment { <...> }
+    proto token comment {*}
 
     token comment:sym<#> {
        '#' {} \N*
@@ -3487,7 +3487,7 @@ if $*COMPILING_CORE_SETTING {
         <pod_block>
     }
 
-    proto token pod_content { <...> }
+    proto token pod_content {*}
 
     token pod_content:sym<block> {
         <pod_newline>*
@@ -3518,7 +3518,7 @@ if $*COMPILING_CORE_SETTING {
         <pod_newline>+
     }
 
-    proto token pod_textcontent { <...> }
+    proto token pod_textcontent {*}
 
     # for non-code (i.e., regular) text
     token pod_textcontent:sym<regular> {
@@ -3625,7 +3625,7 @@ if $*COMPILING_CORE_SETTING {
         ]
     }
 
-    proto token pod_block { <...> }
+    proto token pod_block {*}
 
     token pod_configuration($spaces = '') {
         [ [\n $spaces '=']? \h+ <colonpair> ]*

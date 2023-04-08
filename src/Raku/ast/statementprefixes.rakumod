@@ -459,25 +459,29 @@ class RakuAST::StatementPrefix::Phaser::Enter
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
-    has Scalar $.container;
+    has str $!result-name;
 
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
-        nqp::bindattr($obj, RakuAST::StatementPrefix::Phaser::Enter, '$!container', nqp::create(Scalar));
         $obj
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        ($resolver.find-attach-target('block')
-          // $resolver.find-attach-target('compunit')
-        ).add-phaser("ENTER", self);
+        nqp::bindattr_s(self, RakuAST::StatementPrefix::Phaser::Enter, '$!result-name',
+            ($resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit')
+            ).add-enter-phaser(self)
+        );
+    }
+
+    method IMPL-RESULT-NAME() {
+        $!result-name
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $container := $!container;
-        $context.ensure-sc($container);
-        QAST::WVal.new( :value($container) )
+        nqp::die("ENTER phaser not attached but result accessed") unless $!result-name;
+        QAST::Var.new(:name($!result-name), :scope<local>)
     }
 }
 

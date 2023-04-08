@@ -608,6 +608,7 @@ class RakuAST::ScopePhaser {
     has List $!CLOSE;
     has RakuAST::Block $!let;
     has RakuAST::Block $!temp;
+    has int $!next-enter-phaser-result;
 
     method add-phaser(
       Str $name,
@@ -627,6 +628,13 @@ class RakuAST::ScopePhaser {
         nqp::push($list, $phaser);
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True)
           if $has-exit-handler;
+    }
+
+    method add-enter-phaser(RakuAST::StatementPrefix::Phaser $phaser) {
+        self.add-phaser('ENTER', $phaser);
+        my $result-name := '__enter_phaser_result_' ~ $!next-enter-phaser-result;
+        nqp::bindattr_i(self, RakuAST::ScopePhaser, '$!next-enter-phaser-result', $!next-enter-phaser-result + 1);
+        $result-name
     }
 
     method set-has-let() {
@@ -704,14 +712,11 @@ class RakuAST::ScopePhaser {
         if $!ENTER {
             my $enter-setup := QAST::Stmts.new;
             for $!ENTER {
-                my $container := $_.container;
-                $context.ensure-sc($container);
+                my $result-name := $_.IMPL-RESULT-NAME;
                 $enter-setup.push(
                   QAST::Op.new(
-                    :op<bindattr>,
-                    QAST::WVal.new( :value($container) ),
-                    QAST::WVal.new( :value(Scalar) ),
-                    QAST::SVal.new( :value('$!value') ),
+                    :op<bind>,
+                    QAST::Var.new( :name($result-name), :scope<local>, :decl<var> ),
                     $_.IMPL-CALLISH-QAST($context)
                   )
                 );

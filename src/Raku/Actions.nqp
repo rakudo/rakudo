@@ -576,6 +576,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
+    method statement_control:sym<need>($/) {
+        my $ast;
+
+        my @module-names;
+        for $<module_name> {
+            @module-names.push: $_.ast;
+        }
+
+        $ast := self.r('Statement', 'Need').new(:@module-names);
+        $ast.ensure-begin-performed($*R, $*CU.context);
+
+        self.attach: $/, $ast;
+    }
+
     method load_command_line_modules($/) {
         my $M := %*COMPILING<%?OPTIONS><M>;
         my $ast := self.r('StatementList').new();

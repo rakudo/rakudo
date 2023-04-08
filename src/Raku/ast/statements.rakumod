@@ -1301,51 +1301,24 @@ class RakuAST::Categorical {
     }
 }
 
-# A use statement.
-class RakuAST::Statement::Use
-  is RakuAST::Statement
-  is RakuAST::BeginTime
-  is RakuAST::ProducesNil
-{
-    has RakuAST::Name $.module-name;
-    has RakuAST::Expression $.argument;
+class RakuAST::ModuleLoading {
     has List $!categoricals;
-
-    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
-        nqp::bindattr($obj, RakuAST::Statement::Use, '$!categoricals', []);
-        nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
-            $argument // RakuAST::Expression);
-        $obj.set-labels($labels);
-        $obj
-    }
 
     method categoricals() {
         self.IMPL-WRAP-LIST($!categoricals)
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        # Evaluate the argument to the module load, if any.
-        my $arglist := $!argument
-            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
-            !! Nil;
-
-        my $comp-unit := self.IMPL-LOAD-MODULE($resolver);
-        self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist);
-    }
-
-    method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver) {
+    method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver, RakuAST::Name $module-name) {
         # Build dependency specification for the module.
         my $dependency-specification := $resolver.resolve-name-constant(
             RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')
         ).compile-time-value;
         my $opts := nqp::hash();
-        for $!module-name.colonpairs {
+        for $module-name.colonpairs {
             $opts{$_.key} := $_.simple-compile-time-quote-value;
         }
         my $spec := $dependency-specification.new(
-            :short-name($!module-name.canonicalize(:colonpairs(False))),
+            :short-name($module-name.canonicalize(:colonpairs(False))),
             :from($opts<from> // 'Perl6'),
             :auth-matcher($opts<auth> // True),
             :api-matcher($opts<api> // True),
@@ -1360,6 +1333,69 @@ class RakuAST::Statement::Use
         my $globalish := $comp-unit.handle.globalish-package;
         self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($globalish));
         $comp-unit
+    }
+
+    method IMPL-IMPORT-ONE(RakuAST::Resolver $resolver, Mu $stash, Bool :$need-decont) {
+        my $target-scope := $resolver.current-scope;
+        for self.IMPL-SORTED-KEYS($stash) -> $key {
+            next if $key eq 'EXPORT';
+            my $value := $stash{$key};
+            if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
+                $value := nqp::decont($value);
+            }
+            my $declarand := RakuAST::Declaration::Import.new:
+                    :lexical-name($key), :compile-time-value($value);
+            $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
+
+            my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
+            if $categorical {
+                nqp::push($!categoricals, RakuAST::Categorical.new(
+                    :category($categorical[0]),
+                    :opname($categorical[1]),
+                    :subname(nqp::substr($key, 1)),
+                    :$declarand
+                ));
+            }
+        }
+    }
+
+    method IMPL-STASH-HASH(Mu $pkg) {
+        my $hash := $pkg;
+        unless nqp::ishash($hash) {
+            $hash := $hash.FLATTENABLE_HASH();
+        }
+        $hash
+    }
+}
+
+# A use statement.
+class RakuAST::Statement::Use
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::ProducesNil
+  is RakuAST::ModuleLoading
+{
+    has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.argument;
+
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
+            $argument // RakuAST::Expression);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Evaluate the argument to the module load, if any.
+        my $arglist := $!argument
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
+            !! Nil;
+
+        my $comp-unit := self.IMPL-LOAD-MODULE($resolver, $!module-name);
+        self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist);
     }
 
     method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle, Mu $arglist) {
@@ -1412,40 +1448,39 @@ class RakuAST::Statement::Use
         }
     }
 
-    method IMPL-IMPORT-ONE(RakuAST::Resolver $resolver, Mu $stash, Bool :$need-decont) {
-        my $target-scope := $resolver.current-scope;
-        for self.IMPL-SORTED-KEYS($stash) -> $key {
-            next if $key eq 'EXPORT';
-            my $value := $stash{$key};
-            if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
-                $value := nqp::decont($value);
-            }
-            my $declarand := RakuAST::Declaration::Import.new:
-                    :lexical-name($key), :compile-time-value($value);
-            $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
+    method visit-children(Code $visitor) {
+        $visitor($!module-name);
+        self.visit-labels($visitor);
+    }
+}
 
-            my $categorical := $key ~~ /^ '&' (\w+) [ ':<' (.+) '>' | ':«' (.+) '»' ] $/;
-            if $categorical {
-                nqp::push($!categoricals, RakuAST::Categorical.new(
-                    :category($categorical[0]),
-                    :opname($categorical[1]),
-                    :subname(nqp::substr($key, 1)),
-                    :$declarand
-                ));
-            }
-        }
+# A need statement.
+class RakuAST::Statement::Need
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::ProducesNil
+  is RakuAST::ModuleLoading
+{
+    has List $!module-names;
+
+    method new(List :$module-names!, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Need, '$!module-names', $module-names);
+        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
+        $obj.set-labels($labels);
+        $obj
     }
 
-    method IMPL-STASH-HASH(Mu $pkg) {
-        my $hash := $pkg;
-        unless nqp::ishash($hash) {
-            $hash := $hash.FLATTENABLE_HASH();
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        for $!module-names {
+            self.IMPL-LOAD-MODULE($resolver, $_);
         }
-        $hash
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!module-name);
+        for $!module-names {
+            $visitor($_);
+        }
         self.visit-labels($visitor);
     }
 }

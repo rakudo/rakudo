@@ -890,6 +890,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
+    rule statement_control:sym<need> {
+        <sym>
+        [
+        | <version> <.sorry('In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").')>
+        | <module_name=.longname>
+        ]+ % ','
+    }
+
     rule statement_control:sym<require> {
         <sym>
         [

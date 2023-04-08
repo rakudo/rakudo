@@ -709,17 +709,33 @@ class RakuAST::ScopePhaser {
             );
         }
 
-        if $!ENTER {
+        my $phasers := nqp::istype(self, RakuAST::Code)
+            ?? nqp::getattr(self.meta-object, Block, '$!phasers')
+            !! NQPMu;
+        if $!ENTER || nqp::ishash($phasers) && nqp::existskey($phasers, 'ENTER') {
             my $enter-setup := QAST::Stmts.new;
-            for $!ENTER {
-                my $result-name := $_.IMPL-RESULT-NAME;
-                $enter-setup.push(
-                  QAST::Op.new(
-                    :op<bind>,
-                    QAST::Var.new( :name($result-name), :scope<local>, :decl<var> ),
-                    $_.IMPL-CALLISH-QAST($context)
-                  )
-                );
+            my %seen;
+            if $!ENTER {
+                for $!ENTER {
+                    my $result-name := $_.IMPL-RESULT-NAME;
+                    $enter-setup.push(
+                      QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name($result-name), :scope<local>, :decl<var> ),
+                        $_.IMPL-CALLISH-QAST($context)
+                      )
+                    );
+                    %seen{nqp::objectid($_.meta-object)} := 1;
+                }
+            }
+            my $enter-phasers := nqp::atkey($phasers, 'ENTER');
+            if nqp::isconcrete($enter-phasers) {
+                for $enter-phasers {
+                    unless %seen{nqp::objectid($_)} {
+                        $context.ensure-sc($_);
+                        $enter-setup.push(QAST::Op.new(:op<call>, QAST::WVal.new(:value($_))));
+                    }
+                }
             }
             $qast[0].push($enter-setup);
         }

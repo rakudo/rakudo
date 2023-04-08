@@ -685,7 +685,6 @@ class RakuAST::VarDeclaration::Simple
     method PRODUCE-META-OBJECT() {
         # If it's our-scoped, then container is vivified via. package access.
         my str $scope := self.scope;
-        return $!package.WHO.VIVIFY-KEY($!name) if $scope eq 'our';
 
         # Calculate the type.
         my $of := $!type
@@ -715,8 +714,11 @@ class RakuAST::VarDeclaration::Simple
         # Otherwise, it's lexically scoped, so the meta-object is just the
         # container, if any.
         else {
+            return $!package.WHO.AT-KEY($!name) if $scope eq 'our' && $!package.WHO.EXISTS-KEY($!name);
             my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
-            self.IMPL-CONTAINER($of, $cont-desc)
+            my $cont := self.IMPL-CONTAINER($of, $cont-desc);
+            $!package.WHO.BIND-KEY($!name, $cont) if $scope eq 'our';
+            $cont
         }
     }
 

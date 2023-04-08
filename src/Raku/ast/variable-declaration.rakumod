@@ -685,7 +685,7 @@ class RakuAST::VarDeclaration::Simple
     method PRODUCE-META-OBJECT() {
         # If it's our-scoped, then container is vivified via. package access.
         my str $scope := self.scope;
-        return Nil if $scope eq 'our';
+        return $!package.WHO.VIVIFY-KEY($!name) if $scope eq 'our';
 
         # Calculate the type.
         my $of := $!type
@@ -770,7 +770,7 @@ class RakuAST::VarDeclaration::Simple
         elsif $scope eq 'our' {
             # Package scoped lexical alias. We want to bind the lexical to
             # a lookup in the package.
-            my $container := $!package.WHO.VIVIFY-KEY($!name);
+            my $container := self.meta-object;
             $context.ensure-sc($container);
             QAST::Op.new(
               :op('bind'),

@@ -601,7 +601,7 @@ class RakuAST::Statement::If
             $!then.set-implicit-topic(True, :required);
         }
         else {
-            $!then.set-implicit-topic(False, :required);
+            $!then.set-implicit-topic(False, :local);
         }
         for $!elsifs {
             $_.apply-implicit-block-semantics();
@@ -612,7 +612,7 @@ class RakuAST::Statement::If
                 $!else.set-implicit-topic(True, :required);
             }
             else {
-                $!else.set-implicit-topic(False);
+                $!else.set-implicit-topic(False, :local);
             }
         }
     }
@@ -712,7 +712,7 @@ class RakuAST::Statement::Elsif {
     }
 
     method apply-implicit-block-semantics() {
-        $!then.set-implicit-topic(False);
+        $!then.set-implicit-topic(False, :local);
     }
 
     method IMPL-QAST-TYPE() { 'if' }
@@ -750,7 +750,7 @@ class RakuAST::Statement::Unless
     }
 
     method apply-implicit-block-semantics() {
-        $!body.set-implicit-topic(False);
+        $!body.set-implicit-topic(False, :local);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -880,7 +880,7 @@ class RakuAST::Statement::Loop
     method repeat() { False }
 
     method apply-implicit-block-semantics() {
-        $!body.set-implicit-topic(False);
+        $!body.set-implicit-topic(False, :local);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

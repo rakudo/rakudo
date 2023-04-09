@@ -878,12 +878,12 @@ class RakuAST::Block
         Nil
     }
 
-    method set-implicit-topic(Bool $implicit, Bool :$required, Bool :$exception) {
+    method set-implicit-topic(Bool $implicit, Bool :$required, Bool :$exception, Bool :$local) {
         nqp::bindattr_i(self, RakuAST::Block, '$!implicit-topic-mode', $implicit
             ?? ($exception ?? 3 !!
                 $required  ?? 2 !!
                               1)
-            !! 0);
+            !! $local ?? -1 !! 0);
         Nil
     }
 
@@ -918,6 +918,10 @@ class RakuAST::Block
                 @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
                     parameter => self.signature ?? False !! True;
             }
+            elsif $!implicit-topic-mode == -1 {
+                @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
+                    parameter => False;
+            }
             elsif $!implicit-topic-mode == 2 {
                 @implicit[0] := RakuAST::VarDeclaration::Implicit::BlockTopic.new:
                     :required,
@@ -945,7 +949,7 @@ class RakuAST::Block
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
             $placeholder-signature.IMPL-CHECK($resolver, $context, True);
-            if $!implicit-topic-mode {
+            if $!implicit-topic-mode > 0 {
                 my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0];
                 $topic.set-parameter(False);
             }
@@ -971,7 +975,7 @@ class RakuAST::Block
             nqp::bindattr($block, Code, '$!signature', $signature.meta-object);
             nqp::bindattr($signature.meta-object, Signature, '$!code', $block);
         }
-        elsif $!implicit-topic-mode {
+        elsif $!implicit-topic-mode > 0 {
             my constant REQUIRED-TOPIC-SIG := -> {
                 my $param := nqp::create(Parameter);
                 nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');

@@ -302,6 +302,15 @@ class RakuAST::Var::Compiler::Line
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!line }
 }
 
+class RakuAST::Var::Compiler::Block
+  is RakuAST::Var::Compiler
+{
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+    }
+}
+
+
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler::Lookup
   is RakuAST::Var::Compiler

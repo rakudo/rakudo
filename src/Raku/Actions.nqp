@@ -1416,6 +1416,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 my int $line := $origin-source.original-line($/.from());
                 self.attach: $/, self.r('Var', 'Compiler', 'Line').new($*LITERALS.intern-int($line, 10));
             }
+            elsif $name eq '&?BLOCK' {
+                self.attach: $/, self.r('Var', 'Compiler', 'Block').new;
+            }
             else {
                 self.attach: $/, self.r('Var', 'Compiler', 'Lookup').new($name);
             }

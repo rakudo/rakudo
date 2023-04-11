@@ -1544,7 +1544,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*PACKAGE.IMPL-CHECK($*R, $*CU.context, 1);
         }
         else {
-            $*PACKAGE := self.r('Package').new: :$declarator, :$how, :$name, :$scope;
+            $*PACKAGE := my $package := self.r('Package').new: :$declarator, :$how, :$name, :$scope;
+            $package.resolve-with($*R);
         }
         self.set-declarand($/, $*PACKAGE);
     }

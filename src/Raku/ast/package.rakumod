@@ -9,6 +9,7 @@ class RakuAST::Package
   is RakuAST::TraitTarget
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::LexicalScope
+  is RakuAST::Lookup
   is RakuAST::Doc::DeclaratorTarget
 {
     has Str           $.declarator;
@@ -99,6 +100,22 @@ class RakuAST::Package
 
     method set-is-stub(Bool $is-stub) {
         nqp::bindattr(self, RakuAST::Package, '$!is-stub', $is-stub ?? True !! False);
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        if $!name {
+            my $resolved := $resolver.resolve-name-constant($!name);
+            if $resolved {
+                my $meta-object := $resolved.compile-time-value;
+                if $meta-object.HOW.HOW.name($meta-object.HOW) ne 'Perl6::Metamodel::PackageHOW'
+                    && nqp::can($meta-object.HOW, 'is_composed')
+                    && !$meta-object.HOW.is_composed($meta-object)
+                {
+                    self.set-resolution($resolved);
+                }
+            }
+        }
+        Nil
     }
 
     method default-scope() { 'our' }
@@ -277,11 +294,16 @@ class RakuAST::Package
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
-        # Create the type object and return it; this stubs the type.
-        my %options;
-        %options<name> := $!name.canonicalize if $!name;
-        %options<repr> := $!repr if $!repr;
-        $!how.new_type(|%options)
+        if self.is-resolved {
+            self.resolution.compile-time-value;
+        }
+        else {
+            # Create the type object and return it; this stubs the type.
+            my %options;
+            %options<name> := $!name.canonicalize if $!name;
+            %options<repr> := $!repr if $!repr;
+            $!how.new_type(|%options)
+        }
     }
 
     method PRODUCE-META-OBJECT() {
@@ -410,7 +432,6 @@ class RakuAST::Package
 
 class RakuAST::Package::Augmented
     is RakuAST::Package
-    is RakuAST::Lookup
 {
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-name(self.name);

@@ -541,8 +541,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*LITERALS;
         :my $*EXPORT;
         :my $*IN-TYPENAME;
-        :my $*DECLARAND;
         :my @*LEADING-DOC := [];      # temp storage leading declarator doc
+        :my $*DECLARAND;              # target for trailing declarator doc
+        :my $*DECLARAND-LINE;         # line at which declarand started
         :my $*NEXT_STATEMENT_ID := 1; # to give each statement an ID
         :my $*begin_compunit := 1;    # whether we're at start of a compilation unit
         <.comp_unit_stage0>
@@ -668,7 +669,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $has_mystery := 0; # TODO
         { $*BORG := {} }
         :my $*BLOCK;
-        :my $*DECLARAND;
         [
         | <lambda>
           :my $*GOAL := '{';
@@ -690,7 +690,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $has_mystery := 0; # TODO
         { $*BORG := {} }
         :my $*BLOCK;
-        :my $*DECLARAND;
         [
         || <?[{]>
            <.enter-block-scope('Block')>
@@ -720,7 +719,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token unit-block($decl) {
         :my $*BLOCK;
-        :my $*DECLARAND;
         {
             unless $*SCOPE eq 'unit' {
                 $/.panic("Semicolon form of '$decl' without 'unit' is illegal. You probably want to use 'unit $decl'");
@@ -2158,7 +2156,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule package_def($*PKGDECL) {
         :my $*BORG := {};
         :my $*BLOCK;
-        :my $*DECLARAND;
         :my $*PACKAGE;
         <!!{ $/.clone_braid_from(self) }>
         <longname>? {}
@@ -2355,7 +2352,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BORG := {};
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
-        :my $*DECLARAND;
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('my')>?
         {
@@ -2407,7 +2403,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BORG := {};
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
-        :my $*DECLARAND;
         <.enter-block-scope(nqp::tclc($declarator))>
         $<specials>=[<[ ! ^ ]>?]<deflongname('has')>?
         [ '(' <signature(1)> ')' ]?
@@ -2455,7 +2450,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule regex_def {
         :my $*BLOCK;
-        :my $*DECLARAND;
         <.enter-block-scope(nqp::tclc($*IN_DECL) ~ 'Declaration')>
         [
           <deflongname('has')>?
@@ -3478,7 +3472,7 @@ if $*COMPILING_CORE_SETTING {
     # single / multi-line leading declarator block
     token comment:sym<#|> { '#|' \h $<attachment>=[\N*] }
     token comment:sym<#|(...)> {
-        '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
+       '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
     }
 
     # single / multi-line trailing declarator block

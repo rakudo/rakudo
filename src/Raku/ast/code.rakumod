@@ -849,6 +849,7 @@ class RakuAST::Block
   is RakuAST::PlaceholderParameterOwner
   is RakuAST::BeginTime
   is RakuAST::ScopePhaser
+  is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Blockoid $.body;
 
@@ -1168,6 +1169,7 @@ class RakuAST::Block
 class RakuAST::PointyBlock
   is RakuAST::Block
   is RakuAST::ImplicitLookups
+  is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Signature $.signature;
 

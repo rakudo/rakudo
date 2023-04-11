@@ -19,9 +19,7 @@ subtest 'The do statement prefix works with a statement' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::StatementPrefix::Do.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::IntLiteral.new(137)
-          )
+          RakuAST::IntLiteral.new(137)
         )
       )
     );
@@ -72,10 +70,8 @@ subtest 'The quietly statement prefix works' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::StatementPrefix::Quietly.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::Call::Name.new(
-              name => RakuAST::Name.from-identifier('do-warning')
-            )
+          RakuAST::Call::Name.new(
+            name => RakuAST::Name.from-identifier('do-warning')
           )
         )
       )
@@ -128,10 +124,8 @@ subtest 'The gather statement prefix works on a statement' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::StatementPrefix::Gather.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::Call::Name.new(
-              name => RakuAST::Name.from-identifier('do-takes')
-            )
+          RakuAST::Call::Name.new(
+            name => RakuAST::Name.from-identifier('do-takes')
           )
         )
       )
@@ -213,9 +207,7 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
         ast RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::{tclc $context}.new(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::Var::Lexical.new('$c')
-              )
+              RakuAST::Var::Lexical.new('$c')
             )
           )
         );

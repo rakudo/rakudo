@@ -26,6 +26,7 @@ subtest 'simple documentation' => {
 =begin doc
 This is documentation
 =end doc
+
 CODE
     }
 }
@@ -69,6 +70,7 @@ subtest 'simple documentation with markup' => {
 =begin doc
 This is B<doc>umentation
 =end doc
+
 CODE
     }
 }
@@ -84,6 +86,7 @@ subtest 'simple doc comment' => {
 =begin comment
 This will not be rendered
 =end comment
+
 CODE
     }
 }
@@ -120,7 +123,7 @@ subtest 'simple documentation in a statementlist (1)' => {
     is-deeply $ast.EVAL, 42, 'do we get the final result';
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
-42;
+42
 =begin doc
 This is documentation
 =end doc
@@ -172,7 +175,7 @@ subtest 'abbreviated documentation in a statementlist (1)' => {
     is-deeply $ast.EVAL, 42, 'do we get the final result';
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
-42;
+42
 =head1 This is documentation
 
 CODE

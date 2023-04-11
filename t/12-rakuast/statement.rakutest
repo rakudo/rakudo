@@ -524,7 +524,7 @@ subtest 'While loop at statement level evaluates to Nil' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 while $x { --$x }
 CODE
 
@@ -559,7 +559,7 @@ subtest 'Until loop at statement level evaluates to Nil' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 until !$x { --$x }
 CODE
 
@@ -591,7 +591,7 @@ subtest 'Repeat while loop at statement level evaluates to Nil' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 repeat { --$x } while $x
 CODE
 
@@ -623,7 +623,7 @@ subtest 'Repeat until loop at statement level evaluates to Nil' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 repeat { --$x } until $x
 CODE
 
@@ -665,7 +665,7 @@ subtest 'Loop block with setup and increment expression' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 loop (my $i = 9; $i; --$i) { ++$count }
 CODE
 
@@ -825,7 +825,7 @@ subtest 'given with explicit signature' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 given $a -> $x { $x }
 CODE
 
@@ -854,7 +854,7 @@ subtest 'given with implicit signature' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 given $a { $_ }
 CODE
 
@@ -915,7 +915,7 @@ subtest 'given with when and default' => {
         )
       )
     );
-    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 given $a {
     when 2 { "two" }
     when 3 { "three" }

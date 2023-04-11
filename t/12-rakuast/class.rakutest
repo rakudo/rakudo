@@ -381,7 +381,7 @@ subtest 'class with accessor usage' => {
         )
       )
     );
-    is-deeply $deparsed, q:to/CODE/, 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 my class TestClassWithAttributeUsage {
     has Int $.bar;
     method test-meth { $!bar }

@@ -423,8 +423,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # also connect any leading declarator doc that we collected already
-    method set-declarand($it) {
-        $*DECLARAND := $it;
+    method set-declarand($/, $it) {
+        $*DECLARAND      := $it;
+        $*DECLARAND-LINE := ~$*ORIGIN-SOURCE.original-line($/.from);
         if @*LEADING-DOC -> @leading {
             $it.set-leading(@leading);
             @*LEADING-DOC := [];
@@ -439,7 +440,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.enter-scope($block);
         $*BLOCK := $block;
 
-        self.set-declarand($block)
+        self.set-declarand($/, $block)
           if nqp::istype($block,self.r('Doc','DeclaratorTarget'));
     }
 
@@ -1542,6 +1543,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             $*PACKAGE := self.r('Package').new: :$declarator, :$how, :$name, :$scope;
         }
+        self.set-declarand($/, $*PACKAGE);
     }
 
     method enter-package-scope($/) {
@@ -1650,6 +1652,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $/.typed_worry('X::Redeclaration', :symbol($name))
                   if $*R.declare-lexical($decl);
             }
+            self.set-declarand($/, $decl) if $scope eq 'has' || $scope eq 'HAS';
         }
         else {
             if $scope ne 'my' && $scope ne 'state' {
@@ -1798,6 +1801,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :scope($*SCOPE),
             :of($base-type)
         );
+        self.set-declarand($/, $decl);
         for $<trait> {
             $decl.add-trait($_.ast)
         }
@@ -1811,6 +1815,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :where($<EXPR> ?? $<EXPR>.ast !! Mu),
             :scope($*SCOPE)
         );
+        self.set-declarand($/, $decl);
         for $<trait> {
             $decl.add-trait($_.ast);
         }
@@ -2353,7 +2358,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         # Build the parameter.
-        self.attach: $/, self.set-declarand(self.r('Parameter').new(|%args));
+        self.attach: $/, self.set-declarand($/, self.r('Parameter').new(|%args));
     }
 
     method param_term($/) {
@@ -2537,7 +2542,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method comment:sym<#|(...)>($/) {
-        self.add-leading-declarator-doc($<attachment>);
+        self.add-leading-declarator-doc($<attachment><nibble>);
     }
 
     method comment:sym<#|>($/) {
@@ -2545,18 +2550,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method add-trailing-declarator-doc($/) {
-        if $*DECLARAND -> $declarand {
-            $declarand.add-trailing(self.r('StrLiteral').new(~$/))
-              unless $*POD_BLOCKS_SEEN{$/.from}++;
+        if $*POD_BLOCKS_SEEN{$/.from}++ {
+            # nothing to do, all has been done already
+        }
+        elsif $*DECLARAND
+          && $*DECLARAND-LINE eq ~$*ORIGIN-SOURCE.original-line($/.from) {
+            $*DECLARAND.add-trailing(self.r('StrLiteral').new(~$/));
         }
         else {
-            $/.typed_panic:
+            $/.typed_worry:
               'X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand';
         }
     }
 
     method comment:sym<#=(...)>($/) {
-        self.add-trailing-declarator-doc($<attachment>);
+        self.add-trailing-declarator-doc($<attachment><nibble>);
     }
 
     method comment:sym<#=>($/) {

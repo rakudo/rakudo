@@ -64,7 +64,6 @@ subtest 'Simple block with leading and trailing pod test' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        todo("grammar doesn't click yet") if $type eq 'Raku';
         is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 { #= trailing comment
@@ -94,7 +93,6 @@ subtest 'Simple pointy block with leading and trailing pod test' => {
     );
 
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        todo("grammar doesn't click yet") if $type eq 'Raku';
         is-deeply $it, q:to/CODE/.chomp, "$type: deparse";
 #| leading comment
 -> { #= trailing comment

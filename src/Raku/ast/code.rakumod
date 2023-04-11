@@ -867,10 +867,16 @@ class RakuAST::Block
     # Should this block declare a fresh implicit `$!`?
     has int $!fresh-exception;
 
-    method new(RakuAST::Blockoid :$body, Bool :$implicit-topic, Bool :$required-topic, Bool :$exception) {
+    method new(RakuAST::Blockoid :$body,
+                            Bool :$implicit-topic,
+                            Bool :$required-topic,
+                            Bool :$exception,
+        RakuAST::Doc::Declarator :$WHY
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
         $obj.set-implicit-topic($implicit-topic // 1, :required($required-topic), :$exception);
+        $obj.set-WHY($WHY);
         $obj
     }
 
@@ -1173,11 +1179,16 @@ class RakuAST::PointyBlock
 {
     has RakuAST::Signature $.signature;
 
-    method new(RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
+    method new(RakuAST::Signature :$signature,
+                RakuAST::Blockoid :$body,
+         RakuAST::Doc::Declarator :$WHY
+    ) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::PointyBlock, '$!signature', $signature
-            // RakuAST::Signature.new);
-        nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
+        nqp::bindattr($obj, RakuAST::PointyBlock, '$!signature',
+          $signature // RakuAST::Signature.new);
+        nqp::bindattr($obj, RakuAST::Block, '$!body',
+          $body // RakuAST::Blockoid.new);
+        $obj.set-WHY($WHY);
         $obj
     }
 

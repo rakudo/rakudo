@@ -253,7 +253,8 @@ augment class RakuAST::Node {
 #- B ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Block:D: --> Str:D) {
-        self!nameds: <body implicit-topic required-topic exception>
+        self!add-WHY: self!nameds:
+          <body implicit-topic required-topic exception>
     }
 
     multi method raku(RakuAST::Blockoid:D: --> Str:D) {
@@ -545,7 +546,7 @@ augment class RakuAST::Node {
 #- Po --------------------------------------------------------------------------
 
     multi method raku(RakuAST::PointyBlock:D: --> Str:D) {
-        self!nameds: self.signature.parameters-initialized
+        self!add-WHY: self!nameds: self.signature.parameters-initialized
           ?? <signature body>
           !! <body>
     }

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 28; # Do not change this file to done-testing
+plan 29; # Do not change this file to done-testing
 
 my $ast;
 my $deparsed;
@@ -1007,6 +1007,22 @@ no trace;
 CODE
 
     is-deeply EVAL($_), 42, @type[$++] for $ast, $deparsed, EVAL($raku);
+}
+
+subtest "check parsing of 'need' pragma" => {
+    # need Test
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Need.new(
+        module-names => (
+          RakuAST::Name.from-identifier("Test"),
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+need Test
+CODE
+
+    is-deeply EVAL($_), Nil, @type[$++] for $ast, $deparsed, EVAL($raku);
 }
 
 # vim: expandtab shiftwidth=4

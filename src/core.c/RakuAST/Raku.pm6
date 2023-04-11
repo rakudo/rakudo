@@ -144,6 +144,10 @@ augment class RakuAST::Node {
               my $meta := self.meta;
               :$meta if $meta
           },
+          'module-names', -> {
+              my $module-names := nqp::decont(self.module-names);
+              :$module-names if $module-names
+          },
           'negated', -> {
               :negated if self.negated
           },
@@ -906,6 +910,10 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Statement::Loop::While:D: --> Str:D) {
         self!nameds: <labels condition body>
+    }
+
+    multi method raku(RakuAST::Statement::Need:D: --> Str:D) {
+        self!nameds: <labels module-names>
     }
 
     multi method raku(RakuAST::Statement::Require:D: --> Str:D) {

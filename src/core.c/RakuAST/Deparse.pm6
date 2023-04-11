@@ -107,7 +107,7 @@ class RakuAST::Deparse {
     method end-statement(  --> ";\n")   { }
     method last-statement( --> "\n")    { }
 
-    method indent-with(       --> '    ') { }
+    method indent-with(--> '    ') { }
 
     method ternary1(--> ' ?? ') { }
     method ternary2(--> ' !! ') { }
@@ -1695,6 +1695,13 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Statement::Loop::While:D $ast --> Str:D) {
         self!labels($ast) ~ self!simple-loop($ast, 'while')
+    }
+
+    multi method deparse(RakuAST::Statement::Need:D $ast --> Str:D) {
+        self!labels($ast)
+          ~ 'need '
+          ~ $ast.module-names.map({self.deparse($_)}).join($.list-infix-comma)
+          ~ $*DELIMITER
     }
 
     multi method deparse(RakuAST::Statement::Orwith:D $ast --> Str:D) {

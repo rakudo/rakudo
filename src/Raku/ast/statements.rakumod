@@ -1465,7 +1465,8 @@ class RakuAST::Statement::Need
 
     method new(List :$module-names!, List :$labels) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Statement::Need, '$!module-names', $module-names);
+        nqp::bindattr($obj, RakuAST::Statement::Need, '$!module-names',
+          self.IMPL-UNWRAP-LIST($module-names));
         nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
         $obj.set-labels($labels);
         $obj
@@ -1476,6 +1477,8 @@ class RakuAST::Statement::Need
             self.IMPL-LOAD-MODULE($resolver, $_);
         }
     }
+
+    method module-names() { self.IMPL-WRAP-LIST($!module-names) }
 
     method visit-children(Code $visitor) {
         for $!module-names {

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 18; # Do not change this file to done-testing
+plan 19; # Do not change this file to done-testing
 
 given RakuAST::Label.new('Foo') {
     isa-ok $_, RakuAST::Label, '.new constructs a label';
@@ -14,6 +14,7 @@ given RakuAST::Label.new('Foo') {
 my $ast;
 my $deparsed;
 my $raku;
+my @type = 'AST', 'Str', 'Raku';
 sub ast(RakuAST::Node:D $node --> Nil) {
     $ast      := $node;
     $deparsed := $node.DEPARSE;
@@ -503,6 +504,27 @@ if 0 {  # runtime support for labels doesn't work yet
     # EVALling produces test output
     EVAL($ast);
     EVAL($deparsed);
+}
+}
+
+subtest "check parsing of 'need' pragma" => {
+    # need Test
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Need.new(
+        labels       => (
+          RakuAST::Label.new("FOO"),
+        ),
+        module-names => (
+          RakuAST::Name.from-identifier("Test"),
+        )
+      )
+    );
+    is-deeply $deparsed, Q:to/CODE/, 'deparse';
+FOO: need Test
+CODE
+
+if 0 {  # runtime support for labels doesn't work yet
+    is-deeply EVAL($_), Nil, @type[$++] for $ast, $deparsed, EVAL($raku);
 }
 }
 

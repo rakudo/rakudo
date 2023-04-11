@@ -495,7 +495,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.define_slang('MAIN',    self.WHAT,            self.actions);
         self.define_slang('Quote',   Raku::QGrammar,       Raku::QActions);
         self.define_slang('Regex',   Raku::RegexGrammar,   Raku::RegexActions);
-        #self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
+        self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
         #self.define_slang('Pod',     Raku::PodGrammar,     Raku::PodActions);
 
         # we default to strict!
@@ -4316,5 +4316,26 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         :my $*IN_REGEX_ASSERTION := 1;
         <!RESTRICTED>
         <arglist=.LANG('MAIN','arglist')>
+    }
+}
+
+grammar Raku::P5RegexGrammar is QRegex::P5Regex::Grammar does Raku::Common {
+    token rxstopper { <stopper> }
+
+    token p5metachar:sym<(?{ })> {
+        '(?' <?[{]> <codeblock> ')'
+    }
+
+    token p5metachar:sym<(??{ })> {
+        '(??' <?[{]> <codeblock> ')'
+    }
+
+    token p5metachar:sym<var> {
+        <?[$]> <var=.LANG('MAIN', 'variable')>
+    }
+
+    token codeblock {
+        :my $*ESCAPEBLOCK := 1;
+        <block=.LANG('MAIN','block')>
     }
 }

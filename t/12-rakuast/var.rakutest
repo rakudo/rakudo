@@ -1147,6 +1147,7 @@ subtest 'Special compiler variable $=pod' => {
     # The content of $=pod can only be set by the Raku grammar
     # in the compunit.  So we will only see Mu here.
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        todo("legacy grammar initializes correctly") if $type eq 'Str';
         is-deeply EVAL($it), Mu, "$type: EVAL";
     }
 }

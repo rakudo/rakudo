@@ -2528,7 +2528,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method pod_block:sym<finish>($/) {
-        $*CU.replace-finish-content($*LITERALS.intern-str(~$<finish>));
+#        self.attach: $/, self.r('Doc','Verbatim').new(
+#          type => "finish", :abbreviated, text => ~$<finish>
+#        );
+        $*CU.replace-finish-content(~$<finish>);
     }
 
     method comment:sym<line_directive>($/) {

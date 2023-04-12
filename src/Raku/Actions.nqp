@@ -2537,8 +2537,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method add-leading-declarator-doc($/) {
-        nqp::push(@*LEADING-DOC,self.r('StrLiteral').new(~$/))
-          unless $*POD_BLOCKS_SEEN{$/.from}++;
+        nqp::push(@*LEADING-DOC,~$/) unless $*POD_BLOCKS_SEEN{$/.from}++;
     }
 
     method comment:sym<#|(...)>($/) {
@@ -2555,7 +2554,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $*DECLARAND
           && $*DECLARAND-LINE eq ~$*ORIGIN-SOURCE.original-line($/.from) {
-            $*DECLARAND.add-trailing(self.r('StrLiteral').new(~$/));
+            $*DECLARAND.add-trailing(~$/);
         }
         else {
             $/.typed_worry:

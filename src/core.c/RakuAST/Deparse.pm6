@@ -327,7 +327,10 @@ class RakuAST::Deparse {
     }
 
     method !deparse-unquoted($ast) {
-        if nqp::istype($ast,RakuAST::StrLiteral) {
+        if nqp::istype($ast,Str) {
+            $ast
+        }
+        elsif nqp::istype($ast,RakuAST::StrLiteral) {
             $ast.value
         }
         else {

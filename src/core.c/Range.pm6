@@ -735,13 +735,6 @@ my class Range is Cool does Iterable does Positional {
             ?? "Cannot return minmax on Range with excluded ends".Failure
             !! ($!min,$!max)
     }
-
-    multi method sort(Range:D:) {
-        my $iterator := self.iterator;
-        $iterator.is-monotonically-increasing
-          ?? Seq.new($iterator)
-          !! self.list.sort
-    }
 }
 
 proto sub infix:<..>($, $, *%) is pure {*}

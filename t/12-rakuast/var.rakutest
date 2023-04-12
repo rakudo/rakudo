@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 51;
+plan 52;
 
 my $ast;
 my $deparsed;
@@ -1136,6 +1136,18 @@ subtest 'Lexical my constant with expression' => {
         isa-ok $it, Instant, "$type: did it produce an Instant";
         nok $it == now, "$type: check that time has passed";
         nok OUR::<foo>:exists, "$type: was the constant *not* installed";
+    }
+}
+
+subtest 'Special compiler variable $=pod' => {
+    # $=pod
+    ast RakuAST::Var::Pod::Pod.new;
+
+    is-deeply $deparsed, '$=pod', 'deparse';
+    # The content of $=pod can only be set by the Raku grammar
+    # in the compunit.  So we will only see Mu here.
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), Mu, "$type: EVAL";
     }
 }
 

@@ -2240,6 +2240,8 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Var::Pod::Finish:D $ --> '$=finish') { }
 
+    multi method deparse(RakuAST::Var::Pod::Pod:D $ --> '$=pod') { }
+
     multi method deparse(RakuAST::Var::PositionalCapture:D $ast --> Str:D) {
         '$' ~ $ast.index.Str
     }

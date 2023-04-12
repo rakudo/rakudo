@@ -18,7 +18,7 @@ class RakuAST::CompUnit
     has Mu $!global-package-how;
     has Mu $!init-phasers;
     has Mu $!end-phasers;
-    has Mu $!pod-blocks;
+    has Mu $.pod-content;
     has Mu $.finish-content;
     has Mu $!singleton-whatever;
     has Mu $!singleton-hyper-whatever;
@@ -60,7 +60,6 @@ class RakuAST::CompUnit
           $export-package =:= NQPMu ?? Mu !! $export-package);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!init-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-blocks', []);
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
           $precompilation-mode ?? 1 !! 0);
@@ -174,11 +173,6 @@ class RakuAST::CompUnit
             return Nil if $_ =:= $phaser;
         }
         nqp::push($!end-phasers, $phaser);
-        Nil
-    }
-
-    method add-pod-block(RakuAST::Pod::Block $block) {
-        nqp::push($!pod-blocks, $block);
         Nil
     }
 

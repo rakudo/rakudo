@@ -341,30 +341,41 @@ class RakuAST::Var::Compiler::Lookup
 
 # The base for POD variables ($=foo).
 class RakuAST::Var::Pod
-  is RakuAST::Var { }
-
-# The Pod $=finish variable.
-class RakuAST::Var::Pod::Finish
   is RakuAST::Var
   is RakuAST::Attaching
 {
     has RakuAST::CompUnit $!cu;
 
-    method new() {
-        nqp::create(self)
-    }
+    method new() { nqp::create(self) }
 
     method sigil() { '$' }
 
     method attach(RakuAST::Resolver $resolver) {
-        nqp::bindattr(self, RakuAST::Var::Pod::Finish, '$!cu',
-            $resolver.find-attach-target('compunit'));
+        nqp::bindattr(self, RakuAST::Var::Pod, '$!cu',
+          $resolver.find-attach-target('compunit'));
     }
+}
 
+# The Pod $=pod variable.
+class RakuAST::Var::Pod::Pod
+  is RakuAST::Var::Pod
+{
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $finish-content := $!cu.finish-content;
-        $context.ensure-sc($finish-content);
-        QAST::WVal.new( :value($finish-content) )
+        my $value := nqp::getattr(self, RakuAST::Var::Pod, '$!cu').pod-content;
+        $context.ensure-sc($value);
+        QAST::WVal.new(:$value)
+    }
+}
+
+# The Pod $=finish variable.
+class RakuAST::Var::Pod::Finish
+  is RakuAST::Var::Pod
+{
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value :=
+          nqp::getattr(self, RakuAST::Var::Pod, '$!cu').finish-content;
+        $context.ensure-sc($value);
+        QAST::WVal.new(:$value)
     }
 }
 

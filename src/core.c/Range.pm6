@@ -144,7 +144,8 @@ my class Range is Cool does Iterable does Positional {
         method !SET-SELF(\i)  { $!i = i - 1; self }
         method new(\i)    { nqp::create(self)!SET-SELF(i) }
         method pull-one() { ++$!i }
-        method is-lazy()  { True  }
+        method is-lazy(--> True)  { }
+        method is-monotonically-increasing(--> True) { }
     }
 
     method iterator() {
@@ -733,6 +734,13 @@ my class Range is Cool does Iterable does Positional {
           !! $!excludes-min || $!excludes-max
             ?? "Cannot return minmax on Range with excluded ends".Failure
             !! ($!min,$!max)
+    }
+
+    multi method sort(Range:D:) {
+        my $iterator := self.iterator;
+        $iterator.is-monotonically-increasing
+          ?? Seq.new($iterator)
+          !! self.list.sort
     }
 }
 

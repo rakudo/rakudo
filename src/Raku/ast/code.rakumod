@@ -1318,6 +1318,7 @@ class RakuAST::Routine
     has RakuAST::Signature $.signature;
     has str $!multiness;
     has RakuAST::Package $!package;
+    has Bool $.need-routine-variable;
 
     method multiness() {
         my $multiness := $!multiness;
@@ -1343,6 +1344,10 @@ class RakuAST::Routine
             my $package := $resolver.find-attach-target('package');
             nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
         }
+    }
+
+    method set-need-routine-variable() {
+        nqp::bindattr(self, RakuAST::Routine, '$!need-routine-variable', True);
     }
 
     method clear-attachments() {
@@ -1503,6 +1508,7 @@ class RakuAST::Routine
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'))) if $slash;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!'))) if $exclamation-mark;
         nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_'))) if $underscore;
+        nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Routine.new()) if $!need-routine-variable;
         self.IMPL-WRAP-LIST(@declarations)
     }
 

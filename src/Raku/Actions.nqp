@@ -1420,6 +1420,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             elsif $name eq '&?BLOCK' {
                 self.attach: $/, self.r('Var', 'Compiler', 'Block').new;
             }
+            elsif $name eq '&?ROUTINE' {
+                self.attach: $/, self.r('Var', 'Compiler', 'Routine').new;
+            }
             else {
                 self.attach: $/, self.r('Var', 'Compiler', 'Lookup').new($name);
             }

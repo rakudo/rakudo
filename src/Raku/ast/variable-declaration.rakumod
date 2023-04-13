@@ -1461,6 +1461,27 @@ class RakuAST::VarDeclaration::Implicit::Cursor
     }
 }
 
+# The implicit `&?ROUTINE` term declaration for the routine.
+class RakuAST::VarDeclaration::Implicit::Routine
+  is RakuAST::VarDeclaration::Implicit
+{
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '&?ROUTINE');
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        # We cannot just put the AST node's meta-object into a WVal for this, because
+        # we may be running a clone of that object.
+        QAST::Op.new:
+            :op('bind'),
+            QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) ),
+            QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
+    }
+}
+
 # The commonalities for placeholder parameters.
 class RakuAST::VarDeclaration::Placeholder
   is RakuAST::Declaration

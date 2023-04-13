@@ -310,6 +310,38 @@ class RakuAST::Var::Compiler::Block
     }
 }
 
+class RakuAST::Var::Compiler::Routine
+  is RakuAST::Var::Compiler
+  is RakuAST::Var::Lexical
+  is RakuAST::Attaching
+  is RakuAST::Lookup
+{
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!name', '&?ROUTINE');
+        $obj
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        my $routine := $resolver.find-attach-target('routine');
+        if nqp::isconcrete($routine) {
+            $routine.set-need-routine-variable();
+        }
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical('&?ROUTINE');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new(:name<&?ROUTINE>, :scope<lexical>)
+    }
+}
+
 
 # A special compiler variable that resolves to a lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler::Lookup

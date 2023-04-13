@@ -372,10 +372,10 @@ class RakuAST::Var::Pod::Finish
   is RakuAST::Var::Pod
 {
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value :=
+        my str $value :=
           nqp::getattr(self, RakuAST::Var::Pod, '$!cu').finish-content;
         $context.ensure-sc($value);
-        QAST::WVal.new(:$value)
+        QAST::SVal.new(:$value)
     }
 }
 

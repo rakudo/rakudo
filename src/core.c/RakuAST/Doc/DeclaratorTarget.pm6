@@ -21,6 +21,9 @@ augment class RakuAST::Doc::Declarator {
         $WHEREFORE.set_why($pod);
         $pod
     }
+
+    # Legacy $=pod requires an Array, so return that
+    method initialize-legacy-pods() is raw { [] }
 }
 
 # vim: expandtab shiftwidth=4

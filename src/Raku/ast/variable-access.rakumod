@@ -393,8 +393,9 @@ class RakuAST::Var::Pod::Pod
   is RakuAST::Var::Pod
 {
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.IMPL-WRAP-LIST(
-          nqp::getattr(self, RakuAST::Var::Pod, '$!cu').pod-content
+        my $value := nqp::ifnull(
+          nqp::getattr(self, RakuAST::Var::Pod, '$!cu').pod-content,
+          RakuAST::Doc::Declarator.initialize-legacy-pods
         );
         $context.ensure-sc($value);
         QAST::WVal.new(:$value)
@@ -406,10 +407,10 @@ class RakuAST::Var::Pod::Finish
   is RakuAST::Var::Pod
 {
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my str $value :=
+        my $value :=
           nqp::getattr(self, RakuAST::Var::Pod, '$!cu').finish-content;
         $context.ensure-sc($value);
-        QAST::SVal.new(:$value)
+        (nqp::isconcrete($value) ?? QAST::SVal !! QAST::WVal).new(:$value)
     }
 }
 

@@ -254,5 +254,5 @@ src/core.c/unicodey.pm6
 src/core.c/Unicode.pm6
 src/core.c/RakuAST/Deparse.pm6
 src/core.c/RakuAST/Raku.pm6
-src/core.c/RakuAST/Doc/DeclaratorTarget.pm6
+src/core.c/RakuAST/Fixups.pm6
 src/core.c/core_epilogue.pm6

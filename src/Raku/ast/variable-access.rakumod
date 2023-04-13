@@ -552,3 +552,44 @@ class RakuAST::Var::Package
         $visitor($!name);
     }
 }
+
+class RakuAST::Var::Slang
+  is RakuAST::Var
+  is RakuAST::ImplicitLookups
+{
+    has Mu $!grammar;
+    has Mu $!actions;
+
+    method new(Mu :$grammar!, Mu :$actions!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Var::Slang, '$!grammar', $grammar);
+        nqp::bindattr($obj, RakuAST::Var::Slang, '$!actions', $actions);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Slang')),
+        ])
+    }
+
+    method sigil() { '$' }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $qast := QAST::Op.new(
+            :op<callmethod>, :name<new>, :returns(self.get-implicit-lookups.AT-POS(1)),
+            QAST::Var.new( :name<Slang>, :scope<lexical> ));
+        my $g := $!grammar;
+        $context.ensure-sc($g);
+        my $a := $!actions;
+        if !nqp::isnull($g) {
+            my $wval := QAST::WVal.new( :value($g) );
+            $wval.named('grammar');
+            $qast.push($wval);
+            $wval := QAST::WVal.new( :value($a) );
+            $wval.named('actions');
+            $qast.push($wval);
+        }
+        $qast
+    }
+}

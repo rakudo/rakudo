@@ -1471,6 +1471,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                             self.r('Term', 'Self').new
                         ));
         }
+        elsif $twigil eq '~' {
+            my $grammar := $/.slang_grammar($desigilname);
+            my $actions := $/.slang_actions($desigilname);
+            self.attach: $/, self.r('Var', 'Slang').new(:$grammar, :$actions);
+        }
         else {
             nqp::die("Lookup with twigil '$twigil' NYI");
         }

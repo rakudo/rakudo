@@ -15,8 +15,6 @@ class RakuAST::Doc::Declarator
     }
     method visit-children(Code $visitor) {
         $visitor($!WHEREFORE) unless nqp::eqaddr($!WHEREFORE.WHY,self);
-        $visitor($_) for $!leading;
-        $visitor($_) for $!trailing;
     }
 
     method set-WHEREFORE(Mu $WHEREFORE) {
@@ -40,6 +38,20 @@ class RakuAST::Doc::Declarator
     }
     method add-trailing($doc) { nqp::push($!trailing, $doc) }
     method trailing() { self.IMPL-WRAP-LIST($!trailing) }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver,
+                RakuAST::IMPL::QASTContext $context) {
+        if $!WHEREFORE {
+            my $pod := self.make-legacy-pod($!WHEREFORE.meta-object);
+            my $cu  := $resolver.find-attach-target('compunit');
+            nqp::push($cu.pod-content,$pod);
+        }
+        else {
+            self.add-worry: $resolver.build-exception:
+              'X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand';
+        }
+        True
+    }
 }
 
 # Role for objects that can have a Doc::Declarator attached

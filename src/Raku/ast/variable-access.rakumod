@@ -361,7 +361,9 @@ class RakuAST::Var::Pod::Pod
   is RakuAST::Var::Pod
 {
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := nqp::getattr(self, RakuAST::Var::Pod, '$!cu').pod-content;
+        my $value := self.IMPL-WRAP-LIST(
+          nqp::getattr(self, RakuAST::Var::Pod, '$!cu').pod-content
+        );
         $context.ensure-sc($value);
         QAST::WVal.new(:$value)
     }

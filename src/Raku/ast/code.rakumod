@@ -1160,6 +1160,7 @@ class RakuAST::Block
 
     method visit-children(Code $visitor) {
         $visitor($!body);
+        $visitor(self.WHY) if self.WHY;
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -1207,6 +1208,7 @@ class RakuAST::PointyBlock
     method visit-children(Code $visitor) {
         $visitor($!signature);
         $visitor(self.body);
+        $visitor(self.WHY) if self.WHY;
     }
 
     method IMPL-HAS-PARAMETER(Str $name) {
@@ -1653,6 +1655,7 @@ class RakuAST::Routine
         $visitor($!signature);
         self.visit-traits($visitor);
         $visitor(self.body);
+        $visitor(self.WHY) if self.WHY;
     }
 
     method IMPL-CAN-INTERPRET() {

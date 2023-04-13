@@ -1,6 +1,6 @@
 # Anything RakuAST::Doc related
 class RakuAST::Doc
-  is RakuAST::Node
+  is RakuAST::CheckTime
 {
     method must-define(str $method) {
         nqp::die(self.HOW.name(self) ~ " must define a '$method' method");
@@ -11,6 +11,13 @@ class RakuAST::Doc
 
     method new(*@_, *%_) { self.cannot-be-instantiated }
     method visit-children(Code $visitor) { self.must-define("visit-children") }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        True
+    }
 }
 
 # Generic paragraph

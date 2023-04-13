@@ -63,6 +63,7 @@ class RakuAST::CompUnit
 
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
           $precompilation-mode ?? 1 !! 0);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
 
         # If CompUnit's language revision is not set explicitly then guess it

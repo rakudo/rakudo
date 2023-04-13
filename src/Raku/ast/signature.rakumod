@@ -524,11 +524,12 @@ class RakuAST::Parameter
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!type) if $!type;
-        $visitor($!target) if $!target;
-        $visitor($!default) if $!default;
-        $visitor($!where) if $!where;
+        $visitor($!type)          if $!type;
+        $visitor($!target)        if $!target;
+        $visitor($!default)       if $!default;
+        $visitor($!where)         if $!where;
         $visitor($!sub-signature) if $!sub-signature;
+        $visitor(self.WHY)        if self.WHY;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

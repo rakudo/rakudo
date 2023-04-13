@@ -1148,7 +1148,7 @@ subtest 'Special compiler variable $=pod' => {
     # in the compunit.  So we will only see Mu here.
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         todo("legacy grammar initializes correctly") if $type eq 'Str';
-        is-deeply EVAL($it), Mu, "$type: EVAL";
+        is-deeply EVAL($it), (), "$type: EVAL";
     }
 }
 
@@ -1160,6 +1160,7 @@ subtest 'Special compiler variable $=finish' => {
     # The content of $=finish can only be set by the Raku grammar
     # in the compunit.  So we will only see the empty string here.
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        todo("legacy grammar initializes to Mu") if $type eq 'Str';
         is-deeply EVAL($it), "", "$type: EVAL";
     }
 }

@@ -613,6 +613,8 @@ class RakuAST::Call::VarMethod
         $obj
     }
 
+    method can-be-used-with-hyper() { True }
+
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor(self.args);
@@ -640,6 +642,18 @@ class RakuAST::Call::VarMethod
         else {
             nqp::die('compiling complex call names NYI')
         }
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name := $!name.canonicalize;
+        my $call := QAST::Op.new:
+            :op('callmethod'), :name('dispatch:<hyper>'),
+            $operand-qast,
+            self.resolution.IMPL-LOOKUP-QAST($context),
+            QAST::SVal.new( :value('dispatch:<var>') ),
+            self.resolution.IMPL-LOOKUP-QAST($context);
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         $call
     }

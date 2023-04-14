@@ -8,8 +8,53 @@ use Text::ParseWords;
 use Getopt::Long;
 use File::Spec;
 use Cwd;
-use FindBin;
 
+# These modules can be missing in some cut-down installations of perl5, for
+# example the default system installation of perl5 on Fedora.
+#
+# This check code doesn't go into 3rdparty/nqp-configure because we use
+# FindBin to find and load it.
+BEGIN {
+    my %missing_libs;
+    eval { require FindBin };
+    $missing_libs{"FindBin"} = $@ unless $@ eq '';
+    eval { require IPC::Cmd };
+    $missing_libs{"IPC::Cmd"} = $@ unless $@ eq '';
+    eval { require ExtUtils::Command };
+    $missing_libs{"ExtUtils::Command"} = $@ unless $@ eq '';
+    eval { require Digest::SHA };
+    $missing_libs{"Digest::SHA"} = $@ unless $@ eq '';
+
+    if (keys %missing_libs) {
+        say "==== !!!! ====";
+        say "  Some essential perl5 modules are missing!";
+        say "";
+
+        print "$missing_libs{$_}\n" for (keys %missing_libs);
+        sub display_missing_lib {
+            my $libname = shift;
+            if (exists $missing_libs{$libname}) {
+                say "  - $libname (missing!)";
+            }
+            else {
+                say "  - $libname (found)";
+            }
+        }
+        say "";
+        say "This usually means you are using a cut-down installation of perl5";
+        say "which is what some linux distributions include by default.";
+        say "In order to successfully configure, compile and install nqp and";
+        say "rakudo, you will need at least these perl modules:";
+        say "";
+        display_missing_lib("FindBin");
+        display_missing_lib("IPC::Cmd");
+        display_missing_lib("ExtUtils::Command");
+        display_missing_lib("Digest::SHA");
+        exit 1;
+    }
+}
+
+use FindBin;
 
 BEGIN {
     # The .git folder is typically missing in release archives.
@@ -39,10 +84,6 @@ my $cfg    = NQP::Config::Rakudo->new;
 my $config = $cfg->config( no_ctx => 1 );
 my $lang   = $cfg->cfg('lang');
 
-# We don't use ExtUtils::Command in Configure.pl, but it is used in the Makefile
-# Try `use`ing it here so users know if they need to install this module
-# (not included with *every* Perl installation)
-use ExtUtils::Command;
 MAIN: {
     if ( -r 'config.default' ) {
         unshift @ARGV, shellwords( slurp('config.default') );

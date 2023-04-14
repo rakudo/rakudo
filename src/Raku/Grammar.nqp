@@ -544,6 +544,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my @*LEADING-DOC := [];      # temp storage leading declarator doc
         :my $*DECLARAND;              # target for trailing declarator doc
         :my $*DECLARAND-LINE;         # line at which declarand started
+        :my $*IGNORE-NEXT-DECLARAND;  # True if next declarand to be ignored
+        :my $*DECLARAND-WORRIES := {}; # $/ of worries when clearing DECLARAND
         :my $*NEXT_STATEMENT_ID := 1; # to give each statement an ID
         :my $*begin_compunit := 1;    # whether we're at start of a compilation unit
         <.comp_unit_stage0>

@@ -1,7 +1,7 @@
 # This file contains augmentations to classes that are created in the
 # RakuAST bootstrap to allow a lot of logic (which will **NOT** be
-# needed to compile the # Raku setting) to be written in Raku rather
-#than in NQP.
+# needed to compile the Raku setting) to be written in Raku rather
+# than in NQP.
 
 augment class RakuAST::Doc::Declarator {
 

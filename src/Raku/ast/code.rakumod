@@ -1658,10 +1658,10 @@ class RakuAST::Routine
 
     method visit-children(Code $visitor) {
         $visitor($!name) if $!name;
+        $visitor(self.WHY) if self.WHY;  # needs to be before signature
         $visitor($!signature);
         self.visit-traits($visitor);
         $visitor(self.body);
-        $visitor(self.WHY) if self.WHY;
     }
 
     method IMPL-CAN-INTERPRET() {

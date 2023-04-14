@@ -424,11 +424,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # also connect any leading declarator doc that we collected already
     method set-declarand($/, $it) {
-        $*DECLARAND      := $it;
-        $*DECLARAND-LINE := ~$*ORIGIN-SOURCE.original-line($/.from);
-        if @*LEADING-DOC -> @leading {
-            $it.set-leading(@leading);
-            @*LEADING-DOC := [];
+        if $*IGNORE-NEXT-DECLARAND {
+#nqp::say("ignoring declarand for " ~ $it.HOW.name($it));
+            $*IGNORE-NEXT-DECLARAND := 0;
+        }
+        else {
+            my $from    := $/.from;
+            my $worries := $*DECLARAND-WORRIES;
+            for $worries {
+                $_.value.typed_worry:
+                  'X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand'
+                  if $_.key < $from;
+                nqp::deletekey($worries, $_.key);
+            }
+
+#nqp::say("setting declarand for " ~ $it.HOW.name($it));
+            $*DECLARAND      := $it;
+            $*DECLARAND-LINE := ~$*ORIGIN-SOURCE.original-line($/.from);
+            if @*LEADING-DOC -> @leading {
+                $it.set-leading(@leading);
+                @*LEADING-DOC := [];
+            }
+            $*IGNORE-NEXT-DECLARAND := nqp::istype($it,self.r('Package'));
         }
         $it
     }
@@ -2564,16 +2581,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method add-trailing-declarator-doc($/) {
-        if $*POD_BLOCKS_SEEN{$/.from}++ {
+        my $from := $/.from;
+
+        if $*POD_BLOCKS_SEEN{$from} {
             # nothing to do, all has been done already
         }
         elsif $*DECLARAND
-          && $*DECLARAND-LINE eq ~$*ORIGIN-SOURCE.original-line($/.from) {
+          && $*DECLARAND-LINE eq ~$*ORIGIN-SOURCE.original-line($from) {
             $*DECLARAND.add-trailing(~$/);
+            ++$*POD_BLOCKS_SEEN{$from};
+            nqp::deletekey($*DECLARAND-WORRIES,$from);
         }
         else {
-            $/.typed_worry:
-              'X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand';
+            $*DECLARAND-WORRIES{$from} := $/;
         }
     }
 

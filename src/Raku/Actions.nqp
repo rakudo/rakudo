@@ -439,7 +439,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $worries := $*DECLARAND-WORRIES;
             for $worries {
                 $_.value.typed_worry:
-                  'X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand'
+                  'X::Syntax::Doc::DeclaratorTrailing::MissingDeclarand'
                   if $_.key < $from;
                 nqp::deletekey($worries, $_.key);
             }
@@ -1473,10 +1473,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $twigil eq '=' {
             if $name eq '$=pod' {
-                self.attach: $/, self.r('Var', 'Pod', 'Pod').new;
+                self.attach: $/, self.r('Var', 'Doc', 'Pod').new;
             }
             elsif $name eq '$=finish' {
-                self.attach: $/, self.r('Var', 'Pod', 'Finish').new;
+                self.attach: $/, self.r('Var', 'Doc', 'Finish').new;
             }
             else {
                 nqp::die("Pod variable $name NYI");

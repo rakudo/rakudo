@@ -2217,6 +2217,10 @@ class RakuAST::Deparse {
         $ast.name
     }
 
+    multi method deparse(RakuAST::Var::Doc::Finish:D $ --> '$=finish') { }
+
+    multi method deparse(RakuAST::Var::Doc::Pod:D $ --> '$=pod') { }
+
     multi method deparse(RakuAST::Var::Dynamic:D $ast --> Str:D) {
         $ast.name
     }
@@ -2237,10 +2241,6 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Var::Package:D $ast --> Str:D) {
         $ast.sigil ~ self.deparse($ast.name)
     }
-
-    multi method deparse(RakuAST::Var::Pod::Finish:D $ --> '$=finish') { }
-
-    multi method deparse(RakuAST::Var::Pod::Pod:D $ --> '$=pod') { }
 
     multi method deparse(RakuAST::Var::PositionalCapture:D $ast --> Str:D) {
         '$' ~ $ast.index.Str

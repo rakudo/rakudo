@@ -51,7 +51,7 @@ class RakuAST::Doc::Declarator
         }
         else {
             self.add-worry: $resolver.build-exception:
-              'X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand';
+              'X::Syntax::Doc::DeclaratorTrailing::MissingDeclarand';
         }
         True
     }

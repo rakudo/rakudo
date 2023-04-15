@@ -13,7 +13,7 @@ sub ast(RakuAST::Node:D $node, :$no-pod --> Nil) {
            infix    => RakuAST::Infix.new(","),
            operands => (
              $node,
-             RakuAST::Var::Pod::Pod.new
+             RakuAST::Var::Doc::Pod.new
            )
          );
     $deparsed := $ast.DEPARSE;

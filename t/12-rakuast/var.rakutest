@@ -1141,7 +1141,7 @@ subtest 'Lexical my constant with expression' => {
 
 subtest 'Special compiler variable $=pod' => {
     # $=pod
-    ast RakuAST::Var::Pod::Pod.new;
+    ast RakuAST::Var::Doc::Pod.new;
 
     is-deeply $deparsed, '$=pod', 'deparse';
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
@@ -1151,7 +1151,7 @@ subtest 'Special compiler variable $=pod' => {
 
 subtest 'Special compiler variable $=finish' => {
     # $=finish
-    ast RakuAST::Var::Pod::Finish.new;
+    ast RakuAST::Var::Doc::Finish.new;
 
     is-deeply $deparsed, '$=finish', 'deparse';
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {

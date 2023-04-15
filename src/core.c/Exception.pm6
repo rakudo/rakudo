@@ -1869,7 +1869,7 @@ my class X::Syntax::Pod::DeclaratorTrailing does X::Syntax {
     method message() { "Opening bracket required for #= declarator block" }
 }
 
-my class X::Syntax::Pod::DeclaratorTrailing::MissingDeclarand does X::Syntax {
+my class X::Syntax::Doc::DeclaratorTrailing::MissingDeclarand does X::Syntax {
     method message() { "Missing declarand for trailing declarator doc" }
 }
 

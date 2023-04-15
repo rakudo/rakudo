@@ -229,7 +229,7 @@ class RakuAST::CompUnit
             my $global := RakuAST::Package.new:
                     declarator => 'package',
                     how => $!global-package-how,
-                    name => RakuAST::Name.from-identifier('GLOBALish');
+                    name => RakuAST::Name.from-identifier('GLOBAL');
             nqp::push(@decls, $global);
             nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
                 name => 'GLOBALish', value => $global.compile-time-value));

@@ -1349,7 +1349,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method colonpair_variable($/) {
         if $<capvar> {
-            self.attach: $/, self.r('Var', 'NamedCapture').new($*LITERALS.intern-str(~$<desigilname>));
+            self.attach: $/, self.r('Var', 'NamedCapture').new:
+                self.r('QuotedString').new:
+                    :segments(self.r('QuotedString').IMPL-WRAP-LIST([
+                        self.r('StrLiteral').new(~$<desigilname>)
+                    ]));
         }
         else {
             my str $sigil := ~$<sigil>;

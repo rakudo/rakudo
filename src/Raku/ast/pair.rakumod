@@ -114,6 +114,26 @@ class RakuAST::ColonPair
     }
 }
 
+# Stacked colonpairs, e.g. :a:b:c which should really be a list of colonpairs
+# that gets interpolated into the surrounding list (e.g. arglist)
+class RakuAST::ColonPairs
+    is RakuAST::Node
+{
+    has Mu $.colonpairs;
+
+    method new($a, $b) {
+        my $obj := nqp::create(self);
+        if nqp::istype($a, RakuAST::ColonPairs) {
+            nqp::bindattr($obj, RakuAST::ColonPairs, '$!colonpairs', $a.colonpairs);
+        }
+        else {
+            nqp::bindattr($obj, RakuAST::ColonPairs, '$!colonpairs', [$a]);
+        }
+        nqp::push($obj.colonpairs, $b);
+        $obj
+    }
+}
+
 # The base of colonpairs that can be placed as adverbs on a quote construct.
 class RakuAST::QuotePair
   is RakuAST::ColonPair { }

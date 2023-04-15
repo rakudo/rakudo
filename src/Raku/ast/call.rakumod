@@ -7,26 +7,43 @@ class RakuAST::ArgList
 
     method new(*@args) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::ArgList, '$!args', @args);
+        nqp::bindattr($obj, RakuAST::ArgList, '$!args', []);
+        for @args {
+            $obj.push: $_;
+        }
         $obj
     }
 
     method from-comma-list(RakuAST::ApplyListInfix $comma-apply) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::ArgList, '$!args',
-            self.IMPL-UNWRAP-LIST($comma-apply.operands));
+        nqp::bindattr($obj, RakuAST::ArgList, '$!args', []);
+        for self.IMPL-UNWRAP-LIST($comma-apply.operands) {
+            $obj.push: $_;
+        }
         $obj
     }
 
     method from-invocant-list(RakuAST::ApplyListInfix $colon-apply) {
         my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ArgList, '$!args', []);
         my @args := nqp::clone(self.IMPL-UNWRAP-LIST($colon-apply.operands));
         nqp::bindattr($obj, RakuAST::ArgList, '$!invocant', nqp::shift(@args));
-        nqp::bindattr($obj, RakuAST::ArgList, '$!args', @args);
+        for @args {
+            $obj.push: $_;
+        }
         $obj
     }
 
-    method push($arg) { nqp::push($!args, $arg) }
+    method push($arg) {
+        if nqp::istype($arg, RakuAST::ColonPairs) {
+            for $arg.colonpairs {
+                self.push: $_
+            }
+        }
+        else {
+            nqp::push($!args, $arg)
+        }
+    }
 
     method has-args() { nqp::elems($!args) }
 

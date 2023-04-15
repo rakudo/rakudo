@@ -352,7 +352,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $trace := $/.pragma('trace') ?? 1 !! 0;
         my $statement-id := $*STATEMENT_ID;
         if $<EXPR> {
-            my $statement := self.r('Statement', 'Expression').new(expression => $<EXPR>.ast);
+            my $expr := $<EXPR>.ast;
+            if nqp::istype($expr, self.r('ColonPairs')) {
+                $expr := self.r('ApplyListInfix').new:
+                    :infix(self.r('Infix').new(',')),
+                    :operands($expr.colonpairs);
+            }
+            my $statement := self.r('Statement', 'Expression').new(expression => $expr);
             if $<statement_mod_cond> {
                 $statement.replace-condition-modifier($<statement_mod_cond>.ast);
             }
@@ -824,8 +830,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             elsif $KEY eq 'POSTFIX' {
                 if $<colonpair> {
-                    $/[0].ast.add-colonpair($<colonpair>.ast);
-                    make $/[0].ast;
+                    if $*FAKE_INFIX_FOUND && (nqp::istype($/[0].ast, self.r('ColonPair')) || nqp::istype($/[0].ast, self.r('ColonPairs'))) {
+                        self.attach: $/, self.r('ColonPairs').new($/[0].ast, $<colonpair>.ast);
+                    }
+                    else {
+                        $/[0].ast.add-colonpair($<colonpair>.ast);
+                        make $/[0].ast;
+                    }
                 }
                 else {
                     if nqp::istype($ast, self.r('Call', 'Name')) {
@@ -2474,6 +2485,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     nqp::istype($expr.infix, self.r('Infix')) &&
                     $expr.infix.operator eq ':' {
                 self.attach: $/, self.r('ArgList').from-invocant-list($expr);
+            }
+            elsif nqp::istype($expr, self.r('ColonPairs')) {
+                self.attach: $/, self.r('ArgList').new(|$expr.colonpairs);
             }
             else {
                 self.attach: $/, self.r('ArgList').new($expr);

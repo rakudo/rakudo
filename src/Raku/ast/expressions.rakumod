@@ -758,19 +758,32 @@ class RakuAST::ApplyListInfix
   is RakuAST::BeginTime
 {
     has RakuAST::Infixish $.infix;
-    has List $.operands;
+    has List $!operands;
 
     method new(RakuAST::Infixish :$infix!, List :$operands!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!infix', $infix);
-        nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!operands',
-            nqp::islist($operands) ?? self.IMPL-WRAP-LIST($operands) !! $operands);
+        nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!operands', my $list := []);
+        for self.IMPL-UNWRAP-LIST($operands) {
+            if nqp::istype($_, RakuAST::ColonPairs) {
+                for $_.colonpairs {
+                    nqp::push($list, $_);
+                }
+            }
+            else {
+                nqp::push($list, $_);
+            }
+        }
         $obj
+    }
+
+    method operands() {
+        self.IMPL-WRAP-LIST($!operands)
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @operands;
-        for self.IMPL-UNWRAP-LIST($!operands) {
+        for $!operands {
             @operands.push($_.IMPL-TO-QAST($context));
         }
         $!infix.IMPL-LIST-INFIX-QAST: $context, @operands;
@@ -778,7 +791,7 @@ class RakuAST::ApplyListInfix
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
-        for self.IMPL-UNWRAP-LIST($!operands) {
+        for $!operands {
             $visitor($_);
         }
     }

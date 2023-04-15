@@ -1340,10 +1340,8 @@ class RakuAST::Routine
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        if self.scope eq 'our' || self.scope eq 'unit' {
-            my $package := $resolver.find-attach-target('package');
-            nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
-        }
+        my $package := $resolver.find-attach-target('package');
+        nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
     }
 
     method set-need-routine-variable() {

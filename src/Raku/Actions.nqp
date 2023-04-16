@@ -1757,15 +1757,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method regex_declarator:sym<regex>($/) {
-        self.attach: $/, $<regex_def>.ast;
+        my $routine := $<regex_def>.ast;
+        $routine.IMPL-CHECK($*R, $*CU.context, 1);
+        self.attach: $/, $routine;
     }
 
     method regex_declarator:sym<token>($/) {
-        self.attach: $/, $<regex_def>.ast;
+        my $routine := $<regex_def>.ast;
+        $routine.IMPL-CHECK($*R, $*CU.context, 1);
+        self.attach: $/, $routine;
     }
 
     method regex_declarator:sym<rule>($/) {
-        self.attach: $/, $<regex_def>.ast;
+        my $routine := $<regex_def>.ast;
+        $routine.IMPL-CHECK($*R, $*CU.context, 1);
+        self.attach: $/, $routine;
     }
 
     method regex_def($/) {

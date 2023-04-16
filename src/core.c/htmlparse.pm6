@@ -2156,11 +2156,35 @@ augment class Str {
         }
     }
 
+    method entity2ord(Str:) is implementation-detail { $entity2ord }
 #?endif
 
 #?if jvm
     method htmlparse(Str:D: --> Nil) { }
 #?endif
+}
+
+augment class Int {
+    my $ord2entity := nqp::null;
+
+    method html-entity(Int:D: --> Str:D) {
+        if nqp::atkey(nqp::ifnull($ord2entity,ord2entity),self.Str) -> $entity {
+            "&$entity;"
+        }
+        else {
+            Nil
+        }
+    }
+
+    # ord2entity hash filler
+    sub ord2entity() {
+        my $hash := nqp::hash;
+        for Str.entity2ord {
+            my str $value = .key;
+            nqp::bindkey($hash,.Str,$value) for .value;
+        }
+        $ord2entity := $hash;  # atomic update, no thread issues
+    }
 }
 
 # vim: expandtab shiftwidth=4

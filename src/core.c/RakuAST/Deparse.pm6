@@ -2217,9 +2217,9 @@ class RakuAST::Deparse {
         $ast.name
     }
 
-    multi method deparse(RakuAST::Var::Doc::Finish:D $ --> '$=finish') { }
-
-    multi method deparse(RakuAST::Var::Doc::Pod:D $ --> '$=pod') { }
+    multi method deparse(RakuAST::Var::Doc:D $ast --> Str:D) {
+        '$=' ~ $ast.name
+    }
 
     multi method deparse(RakuAST::Var::Dynamic:D $ast --> Str:D) {
         $ast.name

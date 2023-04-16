@@ -1482,6 +1482,69 @@ class RakuAST::VarDeclaration::Implicit::Routine
     }
 }
 
+# commonalities for doc variables
+class RakuAST::VarDeclaration::Implicit::Doc
+  is RakuAST::VarDeclaration::Implicit
+  is RakuAST::CheckTime
+{
+    has Mu $.value;
+
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name',
+          self.name);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!value;
+        $context.ensure-sc($value);
+        QAST::Op.new:
+          :op('bind'),
+          QAST::Var.new(:decl('static'), :scope('lexical'), :name(
+            nqp::getattr_s(self, RakuAST::VarDeclaration::Implicit, '$!name')
+          )),
+          QAST::WVal.new(:$value);
+    }
+}
+
+# The implicit `$=pod` term declaration for rakudoc access
+class RakuAST::VarDeclaration::Implicit::Doc::Pod
+  is RakuAST::VarDeclaration::Implicit::Doc
+{
+    method name() { '$=pod' }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my $cu := $resolver.find-attach-target('compunit');
+        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
+          nqp::ifnull(
+            $cu.pod-content,
+            RakuAST::Doc::Declarator.initialize-legacy-pods
+          )
+        );
+    }
+}
+
+# The implicit `$=finish` term declaration for trailing documentation
+class RakuAST::VarDeclaration::Implicit::Doc::Finish
+  is RakuAST::VarDeclaration::Implicit::Doc
+{
+    method name() { '$=finish' }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
+          $resolver.find-attach-target('compunit').finish-content
+        );
+    }
+}
+
 # The commonalities for placeholder parameters.
 class RakuAST::VarDeclaration::Placeholder
   is RakuAST::Declaration

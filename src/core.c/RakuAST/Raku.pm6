@@ -1131,9 +1131,8 @@ augment class RakuAST::Node {
         self!nameds: <name sigil>
     }
 
-    # Generic handler for all RakuAST::Var::Doc::xxx classes
     multi method raku(RakuAST::Var::Doc:D: --> Str:D) {
-        self!none
+        self!positional(self.name)
     }
 
     multi method raku(RakuAST::Var::PositionalCapture:D: --> Str:D) {

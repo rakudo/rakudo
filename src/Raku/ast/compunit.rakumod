@@ -18,6 +18,8 @@ class RakuAST::CompUnit
     has Mu $!global-package-how;
     has Mu $!init-phasers;
     has Mu $!end-phasers;
+    has RakuAST::VarDeclaration::Implicit::Doc::Pod $.pod;
+    has RakuAST::VarDeclaration::Implicit::Doc::Finish $.finish;
     has Mu $.pod-content;
     has Mu $.finish-content;
     has Mu $!singleton-whatever;
@@ -96,6 +98,10 @@ class RakuAST::CompUnit
             nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
               RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode));
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!pod',
+              RakuAST::VarDeclaration::Implicit::Doc::Pod.new);
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!finish',
+              RakuAST::VarDeclaration::Implicit::Doc::Finish.new);
         }
 
         my $file := nqp::getlexdyn('$?FILES');
@@ -439,6 +445,8 @@ class RakuAST::CompUnit
 
     method visit-children(Code $visitor) {
         $visitor($!statement-list);
+        $visitor($!pod)    if $!pod;
+        $visitor($!finish) if $!finish;
     }
 }
 

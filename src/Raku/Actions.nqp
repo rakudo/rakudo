@@ -1472,11 +1472,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, $decl;
         }
         elsif $twigil eq '=' {
-            if $name eq '$=pod' {
-                self.attach: $/, self.r('Var', 'Doc', 'Pod').new;
-            }
-            elsif $name eq '$=finish' {
-                self.attach: $/, self.r('Var', 'Doc', 'Finish').new;
+            if $name eq '$=pod' || $name eq '$=finish' {
+                self.attach: $/, self.r('Var', 'Doc').new(nqp::substr($name,2));
             }
             else {
                 nqp::die("Pod variable $name NYI");

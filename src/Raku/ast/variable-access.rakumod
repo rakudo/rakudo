@@ -371,46 +371,22 @@ class RakuAST::Var::Compiler::Lookup
     }
 }
 
-# The base for Rakudoc variables ($=foo).
+# The base for Rakudoc variable lookup
 class RakuAST::Var::Doc
   is RakuAST::Var
-  is RakuAST::Attaching
 {
-    has RakuAST::CompUnit $!cu;
+    has str $.name;
 
-    method new() { nqp::create(self) }
-
-    method sigil() { '$' }
-
-    method attach(RakuAST::Resolver $resolver) {
-        nqp::bindattr(self, RakuAST::Var::Doc, '$!cu',
-          $resolver.find-attach-target('compunit'));
+    method new(Str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Doc, '$!name', $name);
+        $obj
     }
-}
+    method sigil()  { '$' }
+    method twigil() { '=' }
 
-# The Pod $=pod variable.
-class RakuAST::Var::Doc::Pod
-  is RakuAST::Var::Doc
-{
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := nqp::ifnull(
-          nqp::getattr(self, RakuAST::Var::Doc, '$!cu').pod-content,
-          RakuAST::Doc::Declarator.initialize-legacy-pods
-        );
-        $context.ensure-sc($value);
-        QAST::WVal.new(:$value)
-    }
-}
-
-# The Pod $=finish variable.
-class RakuAST::Var::Doc::Finish
-  is RakuAST::Var::Doc
-{
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value :=
-          nqp::getattr(self, RakuAST::Var::Doc, '$!cu').finish-content;
-        $context.ensure-sc($value);
-        (nqp::isconcrete($value) ?? QAST::SVal !! QAST::WVal).new(:$value)
+        QAST::Var.new(:name(self.sigil ~ self.twigil ~ $!name), :scope<lexical>)
     }
 }
 

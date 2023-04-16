@@ -2144,7 +2144,7 @@ augment class Str {
 
     );
 
-    method htmlparse(Str:D: --> Str:D) {
+    method html-entity-parse(Str:D: --> Str:D) {
         if nqp::atkey(
              $entity2ord,
              (self.starts-with('&') ?? self.substr(1) !! self).chomp(';')
@@ -2159,7 +2159,7 @@ augment class Str {
 #?endif
 
 #?if jvm
-    method htmlparse(Str:D: --> Nil) { }
+    method html-entity-parse(Str:D: --> Nil) { }
 #?endif
 }
 

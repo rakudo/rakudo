@@ -1,4 +1,4 @@
-augment class Str {
+my class RakuAST::HTML::Entities {
 
 #?if moar
     my constant $entity2ord = nqp::hash(
@@ -2144,10 +2144,13 @@ augment class Str {
 
     );
 
-    method html-entity-parse(Str:D: --> Str:D) is implementation-detail {
+    method parse(Str:D $entity --> Str:D) {
         if nqp::atkey(
              $entity2ord,
-             (self.starts-with('&') ?? self.substr(1) !! self).chomp(';')
+             ($entity.starts-with('&')
+               ?? $entity.substr(1)
+               !! $entity
+             ).chomp(';')
            ) -> $value {
             nqp::chr(nqp::istype($value,List) ?? $value.head !! $value)
         }
@@ -2159,7 +2162,7 @@ augment class Str {
 #?endif
 
 #?if jvm
-    method html-entity-parse(Str:D: --> Nil) is implementation-detail { }
+    method parse(Str:D: --> Nil) { }
 #?endif
 }
 

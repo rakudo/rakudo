@@ -14,7 +14,7 @@ my $start     := '#- start of generated part of HTML entities';
 my $end       := '#- end of generated part of HTML entities';
 
 # slurp the whole file and set up writing to it
-my $filename = "src/core.c/htmlparse.pm6";
+my $filename = "src/core.c/RakuAST/HTML/Entities.pm6";
 my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 

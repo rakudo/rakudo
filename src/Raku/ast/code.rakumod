@@ -1928,13 +1928,16 @@ class RakuAST::RegexDeclaration
     method IMPL-META-OBJECT-TYPE() { Regex }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST([
+        my @declarations := [
             RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')),
             RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')),
             RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')),
             RakuAST::VarDeclaration::Implicit::Self.new(),
             RakuAST::VarDeclaration::Implicit::Cursor.new(),
-        ])
+        ];
+        nqp::push(@declarations, RakuAST::VarDeclaration::Implicit::Routine.new())
+            if nqp::getattr(self, RakuAST::Routine, '$!need-routine-variable');
+        self.IMPL-WRAP-LIST(@declarations)
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {

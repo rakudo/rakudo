@@ -3629,6 +3629,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         nqp::join("\n",$lines)
     }
+
+    method leading-whitespace(Str:D: --> Str:D) is implementation-detail {
+        nqp::substr(self,0,nqp::findnotcclass(
+          nqp::const::CCLASS_WHITESPACE,self,0,nqp::chars(self)
+        ))
+    }
+
+    method trailing-whitespace(Str:D: --> Str:D) is implementation-detail {
+        nqp::substr(self,nqp::chars(self) - nqp::findnotcclass(
+          nqp::const::CCLASS_WHITESPACE,nqp::flip(self),0,nqp::chars(self)
+        ))
+    }
 }
 
 multi sub prefix:<~>(Str:D $a --> Str:D) { $a.Str }

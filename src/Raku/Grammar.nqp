@@ -2704,7 +2704,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token qok($x) {
         » <![(]>
-#        [ <?[:]> || <!{ my str $n := ~$x; $*W.is_name([$n]) || $*W.is_name(['&' ~ $n]) }> ]
+        [ <?[:]> || <!{ my str $n := ~$x; $*R.is-identifier-known($n) || $*R.is-identifier-known('&' ~ $n) }> ]
         [ \s* '#' <.panic: "# not allowed as delimiter"> ]?
         <.ws>
     }
@@ -2732,6 +2732,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*WHITESPACE_OK := ?$/[0];
+        { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx_adverbs>
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
@@ -2743,6 +2744,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*WHITESPACE_OK := ?$/[0];
+        { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx_adverbs>
         <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>

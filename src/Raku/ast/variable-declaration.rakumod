@@ -1485,9 +1485,11 @@ class RakuAST::VarDeclaration::Implicit::Routine
 # commonalities for doc variables
 class RakuAST::VarDeclaration::Implicit::Doc
   is RakuAST::VarDeclaration::Implicit
+  is RakuAST::Attaching
   is RakuAST::CheckTime
 {
     has Mu $.value;
+    has Mu $!cu;
 
     method new() {
         my $obj := nqp::create(self);
@@ -1495,6 +1497,11 @@ class RakuAST::VarDeclaration::Implicit::Doc
           self.name);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
         $obj
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!cu',
+          $resolver.find-attach-target('compunit'));
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
@@ -1519,10 +1526,11 @@ class RakuAST::VarDeclaration::Implicit::Doc::Pod
       RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my $cu := $resolver.find-attach-target('compunit');
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
           nqp::ifnull(
-            $cu.pod-content,
+            nqp::getattr(
+              self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
+            ).pod-content,
             RakuAST::Doc::Declarator.initialize-legacy-pods
           )
         );
@@ -1540,7 +1548,9 @@ class RakuAST::VarDeclaration::Implicit::Doc::Finish
       RakuAST::IMPL::QASTContext $context
     ) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
-          $resolver.find-attach-target('compunit').finish-content
+          nqp::getattr(
+            self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
+          ).finish-content,
         );
     }
 }

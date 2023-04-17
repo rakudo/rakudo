@@ -1335,6 +1335,56 @@ class RakuAST::ModuleLoading {
         $comp-unit
     }
 
+    method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle, Mu $arglist) {
+        my $EXPORT := $handle.export-package;
+        if nqp::isconcrete($EXPORT) {
+            $EXPORT := $EXPORT.FLATTENABLE_HASH();
+            # TODO deal with non-default imports due to tags
+            my @to-import := ['MANDATORY'];
+            my @positional-imports;
+            if nqp::isconcrete($arglist) {
+                my $Pair := $resolver.resolve-lexical-constant-in-setting('Pair').compile-time-value;
+                for $arglist -> $tag {
+                    if nqp::istype($tag, $Pair) {
+                        my str $tag-name := nqp::unbox_s($tag.key);
+                        unless nqp::existskey($EXPORT, $tag-name) {
+                            # TODO X::Import::NoSuchTag
+                            nqp::die('No such tag')
+                        }
+                        nqp::push(@to-import, $tag-name);
+                    }
+                    else {
+                        nqp::push(@positional-imports, $tag);
+                    }
+                }
+            }
+            else {
+                nqp::push(@to-import, 'DEFAULT');
+            }
+            for @to-import -> str $tag {
+                if nqp::existskey($EXPORT, $tag) {
+                    self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($EXPORT{$tag}.WHO));
+                }
+            }
+
+            my &EXPORT := $handle.export-sub;
+            if nqp::isconcrete(&EXPORT) {
+                my $result := &EXPORT(|@positional-imports);
+                if nqp::istype($result, Map) {
+                    my $storage := $result.hash.FLATTENABLE_HASH();
+                    self.IMPL-IMPORT-ONE(
+                        $resolver,
+                        $storage,
+                        :need-decont(!(nqp::what($result) =:= Map)),
+                    );
+                }
+                else {
+                    nqp::die("&EXPORT sub did not return a Map");
+                }
+            }
+        }
+    }
+
     method IMPL-IMPORT-ONE(RakuAST::Resolver $resolver, Mu $stash, Bool :$need-decont) {
         my $target-scope := $resolver.current-scope;
         for self.IMPL-SORTED-KEYS($stash) -> $key {
@@ -1398,58 +1448,9 @@ class RakuAST::Statement::Use
         self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist);
     }
 
-    method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle, Mu $arglist) {
-        my $EXPORT := $handle.export-package;
-        if nqp::isconcrete($EXPORT) {
-            $EXPORT := $EXPORT.FLATTENABLE_HASH();
-            # TODO deal with non-default imports due to tags
-            my @to-import := ['MANDATORY'];
-            my @positional-imports;
-            if nqp::isconcrete($arglist) {
-                my $Pair := $resolver.resolve-lexical-constant-in-setting('Pair').compile-time-value;
-                for $arglist -> $tag {
-                    if nqp::istype($tag, $Pair) {
-                        my str $tag-name := nqp::unbox_s($tag.key);
-                        unless nqp::existskey($EXPORT, $tag-name) {
-                            # TODO X::Import::NoSuchTag
-                            nqp::die('No such tag')
-                        }
-                        nqp::push(@to-import, $tag-name);
-                    }
-                    else {
-                        nqp::push(@positional-imports, $tag);
-                    }
-                }
-            }
-            else {
-                nqp::push(@to-import, 'DEFAULT');
-            }
-            for @to-import -> str $tag {
-                if nqp::existskey($EXPORT, $tag) {
-                    self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($EXPORT{$tag}.WHO));
-                }
-            }
-
-            my &EXPORT := $handle.export-sub;
-            if nqp::isconcrete(&EXPORT) {
-                my $result := &EXPORT(|@positional-imports);
-                if nqp::istype($result, Map) {
-                    my $storage := $result.hash.FLATTENABLE_HASH();
-                    self.IMPL-IMPORT-ONE(
-                        $resolver,
-                        $storage,
-                        :need-decont(!(nqp::what($result) =:= Map)),
-                    );
-                }
-                else {
-                    nqp::die("&EXPORT sub did not return a Map");
-                }
-            }
-        }
-    }
-
     method visit-children(Code $visitor) {
         $visitor($!module-name);
+        $visitor($!argument) if $!argument;
         self.visit-labels($visitor);
     }
 }
@@ -1484,6 +1485,61 @@ class RakuAST::Statement::Need
         for $!module-names {
             $visitor($_);
         }
+        self.visit-labels($visitor);
+    }
+}
+
+# An import statement.
+class RakuAST::Statement::Import
+  is RakuAST::Statement
+  is RakuAST::BeginTime
+  is RakuAST::ProducesNil
+  is RakuAST::ModuleLoading
+  is RakuAST::Lookup
+  is RakuAST::ImplicitLookups
+{
+    has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.argument;
+
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument, List :$labels) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Import, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::ModuleLoading, '$!categoricals', []);
+        nqp::bindattr($obj, RakuAST::Statement::Import, '$!argument',
+            $argument // RakuAST::Expression);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-name-constant($!module-name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Handle')),
+        ])
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Evaluate the argument to the import, if any.
+        my $arglist := $!argument
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
+            !! Nil;
+
+        my $module := self.resolution.compile-time-value;
+        my $CompUnitHandle := self.get-implicit-lookups().AT-POS(0).compile-time-value;
+        my $handle := $CompUnitHandle.from-unit($module.WHO);
+        self.IMPL-IMPORT($resolver, $handle, $arglist);
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!module-name);
+        $visitor($!argument) if $!argument;
         self.visit-labels($visitor);
     }
 }

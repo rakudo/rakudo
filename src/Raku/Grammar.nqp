@@ -899,6 +899,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]+ % ','
     }
 
+    token statement_control:sym<import> {
+        :my $*IN_DECL := 'import';
+        <sym> <.ws>
+        <module_name=.longname> [ <.spacey> <arglist> ]?
+        <.ws>
+    }
+
     rule statement_control:sym<require> {
         <sym>
         [

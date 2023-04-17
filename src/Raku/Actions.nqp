@@ -614,6 +614,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
+    method statement_control:sym<import>($/) {
+        my $ast := $<arglist><EXPR>
+          ?? self.r('Statement', 'Import').new(
+               :module-name($<module_name>.ast),
+               :argument($<arglist><EXPR>.ast)
+             )
+          !! self.r('Statement', 'Import').new(
+               :module-name($<module_name>.ast)
+             );
+        $ast.IMPL-CHECK($*R, $*CU.context, 1);
+        for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
+            $/.add-categorical(
+              $_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
+        }
+
+        self.attach: $/, $ast;
+    }
+
     method load_command_line_modules($/) {
         my $M := %*COMPILING<%?OPTIONS><M>;
         my $ast := self.r('StatementList').new();

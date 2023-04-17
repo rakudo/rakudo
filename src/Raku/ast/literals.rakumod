@@ -252,6 +252,9 @@ class RakuAST::QuotedString
                 if nqp::istype($_, RakuAST::StrLiteral) {
                     $base-from-parts := $base-from-parts ~ $_.value;
                 }
+                elsif nqp::istype($_, RakuAST::Var::Lexical) && $_.is-resolved && nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant) {
+                    $base-from-parts := $base-from-parts ~ $_.resolution.compile-time-value.Str;
+                }
                 else {
                     return Nil;
                 }

@@ -1685,7 +1685,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             !! self.r('Initializer');
         my $decl;
         if $<desigilname> {
-            my str $name := $<sigil> ~ ($<twigil> || '') ~ $<desigilname>;
+            my str $desigilname := $<desigilname><longname>
+                ?? $<desigilname><longname>.ast.canonicalize
+                !! ~$<desigilname>;
+            my str $name := $<sigil> ~ ($<twigil> || '') ~ $desigilname;
             my $shape := $<semilist> ?? $<semilist>[0].ast !! self.r('SemiList');
             $decl := self.r('VarDeclaration', 'Simple').new:
                 :$scope, :$type, :$name, :$initializer, :$shape;

@@ -2167,13 +2167,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <longname>? {}
         [ :dba('generic role')
             <?{ ($*PKGDECL // '') eq 'role' }>
-            '[' ~ ']' <signature>
+            '[' ~ ']' <signature(:ON-PACKAGE(1))>
             { $*IN_DECL := ''; }
         ]?
         <.stub-package($<longname>)>
        { $/.set_package($*PACKAGE) }
         <trait($*PACKAGE)>*
-        <.enter-package-scope>
+        <.enter-package-scope($<signature>)>
         [
         || <?[{]> { $*begin_compunit := 0; } <block>
         || ';'
@@ -2190,7 +2190,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token stub-package($*PACKAGE-NAME) { <?> }
-    token enter-package-scope() { <?> }
+    token enter-package-scope($*SIGNATURE) { <?> }
     token leave-package-scope { <?> }
 
     proto token scope_declarator {*}
@@ -2866,7 +2866,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <signature(1)>
     }
 
-    token signature($*ALLOW_INVOCANT = 0) {
+    token signature($*ALLOW_INVOCANT = 0, :$*ON-PACKAGE) {
         :my $*zone := 'posreq';
         :my $*multi_invocant := 1;
         :my @*seps := nqp::list();

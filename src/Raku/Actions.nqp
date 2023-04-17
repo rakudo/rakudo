@@ -1594,6 +1594,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Let the resolver know which package we're in.
         $*R.push-package($*PACKAGE);
+
+        if $*SIGNATURE {
+            my $parameterization := $*SIGNATURE.ast;
+            for $parameterization.IMPL-UNWRAP-LIST($parameterization.parameters) {
+                if $_.target {
+                    $*R.declare-lexical($_.target);
+                }
+            }
+        }
     }
 
     method leave-package-scope($/) {
@@ -2394,7 +2403,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my %args;
         if $<name> {
             my $decl := self.r('ParameterTarget', 'Var').new(~$<declname>);
-            $*R.declare-lexical($decl);
+            $/.typed_panic('X::Redeclaration', :symbol(~$<declname>))
+              if !$*ON-PACKAGE && $*R.declare-lexical($decl);
             %args<target> := $decl;
         }
         elsif $<signature> {
@@ -2410,8 +2420,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Create sigilless target to bind into
             my $name := $<defterm>.ast;
             my $decl := self.r('ParameterTarget', 'Term').new($name);
-            $/.typed_panic('X::Redeclaration', :symbol($name))
-              if $*R.declare-lexical($decl);
+            $/.typed_panic('X::Redeclaration', :symbol($name.canonicalize))
+              if !$*ON-PACKAGE && $*R.declare-lexical($decl);
             self.attach: $/, self.r('Parameter').new(target => $decl);
         }
         else {

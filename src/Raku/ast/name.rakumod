@@ -230,7 +230,7 @@ class RakuAST::Name
         );
         nqp::push($result, QAST::SVal.new(:value($sigil))) if $sigil;
         for $!parts {
-            nqp::push($result, $_.IMPL-QAST-INDIRECT-LOOKUP-PART($context, $result, $_ =:= $final, :$sigil));
+            nqp::push($result, $_.IMPL-QAST-INDIRECT-LOOKUP-PART($context, $result, $_ =:= $final));
         }
         $result
     }

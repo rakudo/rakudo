@@ -409,7 +409,9 @@ class RakuAST::VarDeclaration::Simple
   is RakuAST::Doc::DeclaratorTarget
 {
     has RakuAST::Type        $.type;
-    has str                  $.name;
+    has RakuAST::Name        $.desigilname;
+    has str                  $.sigil;
+    has str                  $.twigil;
     has str                  $!storage-name;
     has RakuAST::Initializer $.initializer;
     has RakuAST::SemiList    $.shape;
@@ -420,19 +422,23 @@ class RakuAST::VarDeclaration::Simple
     has Mu $!package;
 
     method new(          str :$scope,
-                         str :$name!,
+               RakuAST::Name :$desigilname!,
+                         str :$sigil,
+                         str :$twigil,
                RakuAST::Type :$type,
         RakuAST::Initializer :$initializer,
            RakuAST::SemiList :$shape,
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        if nqp::chars($name) < 2 {
+        if nqp::chars($desigilname.canonicalize) == 0 {
             nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
         }
 
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname', $desigilname);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil || '');
 
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type',
           $type // RakuAST::Type);
@@ -452,32 +458,18 @@ class RakuAST::VarDeclaration::Simple
         $obj
     }
 
+    method name() {
+        self.sigil ~ self.twigil ~ $!desigilname.canonicalize;
+    }
+
     method lexical-name() {
-        self.twigil eq '.' ?? self.sigil ~ '!' ~ self.desigilname !! $!name
-    }
-
-    method sigil() {
-        nqp::substr($!name, 0, 1)
-    }
-
-    method twigil() {
-        if nqp::chars($!name) > 2 {
-            my str $twigil := nqp::substr($!name, 1, 1);
-            nqp::index('.!^:*?=~', $twigil) >= 0 ?? $twigil !! ''
-        }
-        else {
-            ''
-        }
-    }
-
-    method desigilname() {
-        nqp::substr($!name, self.twigil ?? 2 !! 1)
+        self.twigil eq '.' ?? self.sigil ~ '!' ~ self.desigilname.canonicalize !! self.name
     }
 
     # Generate a lookup of this variable, already resolved to this declaration.
     method generate-lookup() {
         if self.is-lexical {
-            my $lookup := RakuAST::Var::Lexical.new($!name);
+            my $lookup := RakuAST::Var::Lexical.new(self.name);
             $lookup.set-resolution(self);
             $lookup
         }
@@ -534,7 +526,7 @@ class RakuAST::VarDeclaration::Simple
                 # TODO check-time error
             }
         }
-        elsif $scope eq 'our' {
+        elsif $scope eq 'our' || $!desigilname.is-multi-part {
             my $package := $resolver.current-package;
             # There is always a package, even if it's just GLOBALish
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
@@ -643,7 +635,7 @@ class RakuAST::VarDeclaration::Simple
             # For other variables the meta-object is just the container, but we
             # need instances of Variable
             my $meta := self.meta-object;
-            my $target := RakuAST::TraitTarget::Variable.new($!name, nqp::getattr(self, RakuAST::Declaration, '$!scope'), $meta, Mu, Mu);
+            my $target := RakuAST::TraitTarget::Variable.new(self.name, nqp::getattr(self, RakuAST::Declaration, '$!scope'), $meta, Mu, Mu);
             # Get around RakuAST compiler deconting all arguments:
             nqp::bindattr($target, RakuAST::TraitTarget::Variable, '$!cont', $meta);
             $target.IMPL-CHECK($resolver, $context, False);
@@ -653,7 +645,7 @@ class RakuAST::VarDeclaration::Simple
                 $variable-access.set-resolution(self);
                 my $accessor := RakuAST::Method.new(
                     :scope<has>,
-                    :name(RakuAST::Name.from-identifier(self.desigilname)),
+                    :name(RakuAST::Name.from-identifier(self.desigilname.canonicalize)),
                     :body(RakuAST::Blockoid.new(
                         RakuAST::StatementList.new(
                             RakuAST::Statement::Expression.new(:expression($variable-access)),
@@ -696,7 +688,7 @@ class RakuAST::VarDeclaration::Simple
             my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
 
             my $meta-object := $!attribute-package.attribute-type.new(
-                name => self.sigil ~ '!' ~ self.desigilname,
+                name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
                 type => $!shape && self.sigil eq '%'
                     ?? self.IMPL-CONTAINER-TYPE($of, :key-type(self.IMPL-UNWRAP-LIST($!shape.statements)[0].expression.compile-time-value))
                     !! self.IMPL-CONTAINER-TYPE($of),
@@ -714,10 +706,10 @@ class RakuAST::VarDeclaration::Simple
         # Otherwise, it's lexically scoped, so the meta-object is just the
         # container, if any.
         else {
-            return $!package.WHO.AT-KEY($!name) if $scope eq 'our' && $!package.WHO.EXISTS-KEY($!name);
+            return $!package.WHO.AT-KEY(self.name) if $scope eq 'our' && $!package.WHO.EXISTS-KEY(self.name);
             my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
             my $cont := self.IMPL-CONTAINER($of, $cont-desc);
-            $!package.WHO.BIND-KEY($!name, $cont) if $scope eq 'our';
+            $!package.WHO.BIND-KEY(self.name, $cont) if $scope eq 'our';
             $cont
         }
     }
@@ -728,19 +720,19 @@ class RakuAST::VarDeclaration::Simple
           ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
           !! Mu;
 
-        if $scope eq 'my' {
+        if $scope eq 'my' && !$!desigilname.is-multi-part {
             # Lexically scoped
             my str $sigil := self.sigil;
             if $sigil eq '$' && nqp::objprimspec($of) {
                 # Natively typed; just declare it.
                 QAST::Var.new(
-                    :scope('lexical'), :decl('var'), :name($!name),
+                    :scope('lexical'), :decl('var'), :name(self.name),
                     :returns($of)
                 )
             }
             elsif $!initializer && $!initializer.is-binding {
                 # Will be bound on first use, so just a declaration.
-                QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) )
+                QAST::Var.new( :scope('lexical'), :decl('var'), :name(self.name) )
             }
             else {
                 # Need to vivify the object. Note: maybe we want to drop the
@@ -748,7 +740,7 @@ class RakuAST::VarDeclaration::Simple
                 my $container := self.meta-object;
                 $context.ensure-sc($container);
                 my $qast := QAST::Var.new(
-                    :scope('lexical'), :decl('contvar'), :name($!name),
+                    :scope('lexical'), :decl('contvar'), :name(self.name),
                     :value($container)
                 );
                 if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
@@ -769,19 +761,17 @@ class RakuAST::VarDeclaration::Simple
                 $qast
             }
         }
-        elsif $scope eq 'our' {
+        elsif $scope eq 'our' || $!desigilname.is-multi-part {
             # Package scoped lexical alias. We want to bind the lexical to
             # a lookup in the package.
             my $container := self.meta-object;
             $context.ensure-sc($container);
+            my $lookup := $!desigilname.IMPL-QAST-PACKAGE-LOOKUP($context, $!package, :sigil($!sigil), :global-fallback);
+            $lookup.name('VIVIFY-KEY');
             QAST::Op.new(
               :op('bind'),
-              QAST::Var.new( :scope('lexical'), :decl('contvar'), :name($!name), :returns($of), :value($container) ),
-              QAST::Op.new(
-                :op('callmethod'), :name('VIVIFY-KEY'),
-                QAST::Op.new(:op('who'), QAST::WVal.new(:value($!package))),
-                QAST::SVal.new(:value($!name))
-              )
+              QAST::Var.new( :scope('lexical'), :decl('contvar'), :name(self.name), :returns($of), :value($container) ),
+              $lookup
             )
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
@@ -796,14 +786,14 @@ class RakuAST::VarDeclaration::Simple
             }
             elsif $!initializer && $!initializer.is-binding {
                 # Will be bound on first use, so just a declaration.
-                QAST::Var.new(:scope('lexical'), :decl('var'), :name($!name))
+                QAST::Var.new(:scope('lexical'), :decl('var'), :name(self.name))
             }
             else {
                 # Need to vivify the object.
                 my $container := self.meta-object;
                 $context.ensure-sc($container);
                 QAST::Var.new(
-                    :scope('lexical'), :decl('statevar'), :name($!name),
+                    :scope('lexical'), :decl('statevar'), :name(self.name),
                     :value($container)
                 )
             }
@@ -816,7 +806,7 @@ class RakuAST::VarDeclaration::Simple
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
         my $lookups := self.get-implicit-lookups;
-        my str $name := $!name;
+        my str $name := self.name;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
             my str $sigil := self.sigil;
             my $var-access := QAST::Var.new( :$name, :scope<lexical> );
@@ -919,10 +909,10 @@ class RakuAST::VarDeclaration::Simple
                     if nqp::objprimspec($of) {
                         $scope := 'lexicalref';
                     }
-                    return QAST::Var.new( :name($!name), :$scope, :returns($of) );
+                    return QAST::Var.new( :name(self.name), :$scope, :returns($of) );
                 }
             }
-            QAST::Var.new( :name($!name), :$scope )
+            QAST::Var.new( :name(self.name), :$scope )
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             nqp::die('Cannot compile lookup of attributes yet')
@@ -937,7 +927,7 @@ class RakuAST::VarDeclaration::Simple
         nqp::die('Can only compile bind to my-scoped variables') unless $scope eq 'my' || $scope eq 'state';
         QAST::Op.new(
             :op('bind'),
-            QAST::Var.new( :name($!name), :scope('lexical') ),
+            QAST::Var.new( :name(self.name), :scope('lexical') ),
             $source-qast
         )
     }
@@ -1111,14 +1101,13 @@ class RakuAST::VarDeclaration::Signature
 class RakuAST::VarDeclaration::Anonymous
   is RakuAST::VarDeclaration::Simple
 {
-    has str $.sigil;
-
     method new(str :$sigil!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
                str :$scope) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name',
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname',
             self.IMPL-GENERATE-NAME());
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Anonymous, '$!sigil', $sigil);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', '');
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
@@ -1127,19 +1116,11 @@ class RakuAST::VarDeclaration::Anonymous
     }
 
     method IMPL-GENERATE-NAME() {
-        QAST::Node.unique('ANON_VAR')
-    }
-
-    method sigil() {
-        $!sigil
-    }
-
-    method twigil() {
-        ''
+        RakuAST::Name.from-identifier(QAST::Node.unique('ANON_VAR'))
     }
 
     method desigilname() {
-        ''
+        RakuAST::Name.from-identifier('')
     }
 
     method generate-lookup() {

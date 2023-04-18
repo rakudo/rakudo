@@ -1712,14 +1712,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             !! self.r('Initializer');
         my $decl;
         if $<desigilname> {
-            my str $desigilname := $<desigilname><longname>
-                ?? $<desigilname><longname>.ast.canonicalize
-                !! ~$<desigilname>;
-            my str $name := $<sigil> ~ ($<twigil> || '') ~ $desigilname;
+            my $desigilname := $<desigilname><longname>
+                ?? $<desigilname><longname>.ast
+                !! self.r('Name').from-identifier(~$<desigilname>);
+            my str $sigil := $<sigil>;
+            my str $twigil := $<twigil> || '';
             my $shape := $<semilist> ?? $<semilist>[0].ast !! self.r('SemiList');
             $decl := self.r('VarDeclaration', 'Simple').new:
-                :$scope, :$type, :$name, :$initializer, :$shape;
+                :$scope, :$type, :$desigilname, :$sigil, :$twigil, :$initializer, :$shape;
             if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
+                my str $name := $<sigil> ~ ($<twigil> || '') ~ $desigilname;
                 $/.typed_worry('X::Redeclaration', :symbol($name))
                   if $*R.declare-lexical($decl);
             }

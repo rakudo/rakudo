@@ -36,6 +36,10 @@ class RakuAST::Name
         self.IMPL-WRAP-LIST($!parts)
     }
 
+    method is-multi-part() {
+        nqp::elems($!parts) > 1
+    }
+
     method is-identifier() {
         nqp::elems($!parts) == 1 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
     }
@@ -186,7 +190,7 @@ class RakuAST::Name
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, Bool :$global-fallback) {
-        my $result := $start-package;
+        my $result := QAST::WVal.new(:value($start-package));
         my $final := $!parts[nqp::elems($!parts) - 1];
         my int $first := 0;
         if nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL' {

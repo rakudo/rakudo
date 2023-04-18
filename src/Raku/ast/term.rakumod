@@ -43,12 +43,12 @@ class RakuAST::Term::Name
             return self.is-resolved
                 ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
                     $context,
-                    QAST::WVal.new(:value($!package)),
+                    $!package,
                     :lexical(self.resolution)
                 )
                 !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
                     $context,
-                    QAST::WVal.new(:value($!package))
+                    $!package
                 );
         }
         elsif $!name.is-indirect-lookup {

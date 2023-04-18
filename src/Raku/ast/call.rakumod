@@ -250,12 +250,12 @@ class RakuAST::Call::Name
                 return self.is-resolved
                     ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
                         $context,
-                        QAST::WVal.new(:value($!package)),
+                        $!package,
                         :lexical(self.resolution)
                     )
                     !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
                         $context,
-                        QAST::WVal.new(:value($!package))
+                        $!package
                     );
             }
             elsif $!name.is-indirect-lookup {
@@ -267,7 +267,7 @@ class RakuAST::Call::Name
                         ?? self.resolution.IMPL-LOOKUP-QAST($context)
                         !! $!name.IMPL-QAST-PACKAGE-LOOKUP(
                             $context,
-                            QAST::WVal.new(:value($!package)),
+                            $!package,
                             :sigil<&>,
                             :global-fallback,
                         )

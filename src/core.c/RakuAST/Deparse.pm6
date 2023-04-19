@@ -1669,6 +1669,12 @@ class RakuAST::Deparse {
         self!labels($ast) ~ @parts.join
     }
 
+    multi method deparse(RakuAST::Statement::Import:D $ast --> Str:D) {
+        my str @parts = 'import', self.deparse($ast.module-name);
+        @parts.push(self.deparse($_)) with $ast.argument;
+        self!labels($ast) ~ @parts.join(' ') ~ $*DELIMITER
+    }
+
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
         self!labels($ast)
           ~ 'loop ('

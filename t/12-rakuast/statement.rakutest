@@ -1017,13 +1017,30 @@ subtest "check parsing of 'need' pragma" => {
         module-names => (
           RakuAST::Name.from-identifier("Test"),
         )
+      ),
+      RakuAST::Statement::Import.new(
+        module-name => RakuAST::Name.from-identifier("Test")
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier("ok"),
+          args => RakuAST::ArgList.new(
+            RakuAST::Var::Lexical.new("\$type")
+          )
+        )
       )
     );
+
+    plan 7;  # must run this number of tests
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-need Test
+need Test;
+import Test;
+ok($type)
 CODE
 
-    is-deeply EVAL($_), Nil, @type[$++] for $ast, $deparsed, EVAL($raku);
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), True, "$type: did eval work";
+    }
 }
 
 # vim: expandtab shiftwidth=4

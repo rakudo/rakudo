@@ -893,6 +893,10 @@ augment class RakuAST::Node {
         self!nameds: <labels condition then elsifs else>
     }
 
+    multi method raku(RakuAST::Statement::Import:D: --> Str:D) {
+        self!nameds: <labels module-name argument>
+    }
+
     multi method raku(RakuAST::Statement::Loop:D: --> Str:D) {
         self!nameds: <labels setup condition increment body>
     }

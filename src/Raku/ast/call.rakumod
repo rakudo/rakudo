@@ -347,7 +347,11 @@ class RakuAST::Call::Name
         }
 
         my $call           := self.resolution;
-        my $name           := nqp::can($call, 'name') ?? $call.name !! nqp::substr($call.lexical-name, 1);
+        my $name           := nqp::can($call, 'name')
+                             ?? $call.name
+                             !! nqp::can($call, 'lexical-name')
+                               ?? nqp::substr($call.lexical-name, 1)
+                               !! '<anon>';
         if nqp::can($name, 'canonicalize') {
             $name := $name.canonicalize;
         }

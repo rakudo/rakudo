@@ -207,6 +207,7 @@ class RakuAST::Call::Name
   is RakuAST::Term
   is RakuAST::Call
   is RakuAST::Lookup
+  is RakuAST::CheckTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -328,6 +329,64 @@ class RakuAST::Call::Name
             my @pos := @args[0];
             my %named := @args[1];
             $resolved(|@pos, |%named);
+        }
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my constant deftrap := nqp::hash(
+            'say', 1, 'print', 1, 'abs', 1, 'chomp', 1, 'chop', 1, 'chr', 1, 'cos', 1,
+            'defined', 1, 'exp', 1, 'lc', 1, 'log', 1, 'mkdir', 1, 'ord', 1, 'reverse', 1,
+            'rmdir', 1, 'sin', 1, 'split', 1, 'sqrt', 1, 'uc', 1, 'unlink', 1, 'fc', 1,
+
+            'WHAT', 2, 'WHICH', 2, 'WHERE', 2, 'HOW', 2, 'WHENCE', 2, 'WHO', 2, 'VAR', 2, 'any', 2,
+            'all', 2, 'none', 2, 'one', 2, 'set', 2, 'bag', 2, 'tclc', 2, 'wordcase', 2, 'put', 2,
+        );
+
+        if !self.is-resolved {
+            return;
+        }
+
+        my $call           := self.resolution;
+        my $name           := nqp::can($call, 'name') ?? $call.name !! nqp::substr($call.lexical-name, 1);
+        if nqp::can($name, 'canonicalize') {
+            $name := $name.canonicalize;
+        }
+        my $no-args        := !self.args.has-args;
+        my $in-deftrap     := nqp::atkey(deftrap, $name) || 0;
+        my $lexical-symbol := $resolver.resolve-lexical('&' ~ $name).compile-time-value;
+        my $setting-symbol := $resolver.resolve-lexical-constant-in-setting('&' ~ $name).compile-time-value;
+        my $same           := $lexical-symbol =:= $setting-symbol;
+
+        if $same {
+            if $in-deftrap && $no-args {
+                my $orry := $*MISSING ?? "sorry" !! "worry";
+                if $in-deftrap == 1 {
+                    # probably misused P5ism
+                    self."add-$orry"(
+                        $resolver.build-exception(
+                            'X::AdHoc',
+                            payload => "Bare \"$name\", use .$name if you meant to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun"
+                        )
+                    );
+                }
+                elsif $in-deftrap == 2 {
+                    # probably misused P6ism
+                    self."add-$orry"(
+                        $resolver.build-exception(
+                            'X::AdHoc',
+                            payload => "Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)"
+                        )
+                    );
+                }
+                if $orry eq 'worry' && !$*LANG.pragma('p5isms') {
+                    self.add-sorry(
+                        $resolver.build-exception(
+                            'X::AdHoc',
+                            payload => "Argument to \"$name\" seems to be malformed"
+                        )
+                    );
+                }
+            }
         }
     }
 }

@@ -2304,18 +2304,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                                 $/.typed_panic('X::Syntax::Confused', reason => "A list operator such as \"$name\" must have whitespace before its arguments (or use parens)")
                             }
                             else {
-                                my $missing := $/.terminator() || $/.infixish();
-                                $/.'!clear_highwater'();  # don't have suppose
-                                my $orry := $missing ?? "sorry" !! "worry";
-                                if $trap == 1 {        # probably misused P5ism
-                                    $<longname>."{$orry}obs"("bare \"$name\"", ".$name if you meant to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
-                                }
-                                elsif $trap == 2 {        # probably misused P6ism
-                                    $<longname>."$orry"("Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)");
-                                }
-                                $<longname>.sorry("Argument to \"$name\" seems to be malformed")
-                                  if $orry eq 'worry'
-                                  && !$*LANG.pragma('p5isms');
+                                my $*MISSING := $/.terminator() || $/.infixish();
                             }
                         }
                     }

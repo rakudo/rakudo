@@ -727,8 +727,13 @@ class RakuAST::PackageInstaller {
             }
             # If `our`-scoped, also put it into the current package.
             if $scope eq 'our' {
-                # TODO conflicts
                 $target := $current-package;
+
+                my %stash := $resolver.IMPL-STASH-HASH($target);
+                if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object || nqp::istype(%stash{$final}.HOW, Perl6::Metamodel::PackageHOW)) {
+                    $resolver.add-sorry: $resolver.build-exception:
+                        'X::Redeclaration', :symbol($final);
+                }
             }
         }
         else {
@@ -795,7 +800,7 @@ class RakuAST::PackageInstaller {
             %stash{$final} := $lexical.compile-time-value;
         }
         if $scope eq 'our' {
-            if nqp::existskey(%stash, $final) {
+            if nqp::existskey(%stash, $final) && !(%stash{$final} =:= $type-object) {
                 nqp::setwho($type-object, %stash{$final}.WHO);
             }
             %stash{$final} := $type-object;

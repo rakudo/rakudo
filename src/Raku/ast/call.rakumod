@@ -388,7 +388,7 @@ class RakuAST::Call::Name
                         )
                     );
                 }
-                if $orry eq 'worry' && !$*LANG.pragma('p5isms') {
+                elsif $orry eq 'worry' && !$*LANG.pragma('p5isms') {
                     self.add-sorry(
                         $resolver.build-exception(
                             'X::AdHoc',

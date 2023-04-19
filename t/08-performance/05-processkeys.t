@@ -8,6 +8,7 @@ my $allowed = (
   Q{$CORE-SETTING-REV},
   Q{$DISTRO},
   Q{$ERR},
+  Q{$GROUP},
   Q{$IN},
   Q{$OUT},
   Q{$PID},
@@ -17,6 +18,8 @@ my $allowed = (
   Q{$REPO},
   Q{$SCHEDULER},
   Q{$SPEC},
+  Q{$TMPDIR},
+  Q{$USER},
   Q{%ENV},
   Q{&chdir},
 );

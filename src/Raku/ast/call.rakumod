@@ -357,8 +357,14 @@ class RakuAST::Call::Name
         }
         my $no-args        := !self.args.has-args;
         my $in-deftrap     := nqp::atkey(deftrap, $name) || 0;
-        my $lexical-symbol := $resolver.resolve-lexical('&' ~ $name).compile-time-value;
+        my $lexical-symbol := $resolver.resolve-lexical('&' ~ $name);
+        if nqp::can($lexical-symbol, 'compile-time-value') {
+            $lexical-symbol := $lexical-symbol.compile-time-value;
+        }
         my $setting-symbol := $resolver.resolve-lexical-constant-in-setting('&' ~ $name).compile-time-value;
+        if nqp::can($setting-symbol, 'compile-time-value') {
+            $setting-symbol := $setting-symbol.compile-time-value;
+        }
         my $same           := $lexical-symbol =:= $setting-symbol;
 
         if $same {

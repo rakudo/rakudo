@@ -642,7 +642,8 @@ subtest 'Loop block with setup and increment expression' => {
     # loop (my $i = 9; $i; --$i) { ++$count }
     ast RakuAST::Statement::Loop.new(
       setup => RakuAST::VarDeclaration::Simple.new(
-        name => '$i',
+        sigil => '$',
+        desigilname => RakuAST::Name.from-identifier('i'),
         initializer => RakuAST::Initializer::Assign.new(
           RakuAST::IntLiteral.new(9)
         )

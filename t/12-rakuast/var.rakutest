@@ -147,7 +147,8 @@ subtest 'variable declaration takes scope and name' => {
         # my|state $foo
         ast RakuAST::VarDeclaration::Simple.new(
           scope => $scope,
-          name  => '$foo'
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('foo'),
         );
         is-deeply $deparsed, $scope ~ ' $foo', 'deparse';
 
@@ -163,7 +164,8 @@ subtest 'Lexical variable my|state declarations work' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => $scope,
-              name  => '$foo'
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('foo'),
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -195,7 +197,8 @@ subtest 'Defaults of my|state untyped container' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => $scope,
-              name  => '$foo'
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('foo'),
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -225,7 +228,8 @@ subtest 'Typed variable my|state declaration (type matches in assignment)' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => $scope,
-              name  => '$foo',
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('foo'),
               type  => RakuAST::Type::Simple.new(
                 RakuAST::Name.from-identifier('Int')
               )
@@ -260,7 +264,8 @@ subtest 'Typed variable my|state declaration (type mismatch throws)' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => $scope,
-              name  => '$foo',
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('foo'),
               type  => RakuAST::Type::Simple.new(
                 RakuAST::Name.from-identifier('Int')
               )
@@ -302,7 +307,8 @@ subtest 'Lexical variable my|state declaration with assignment initializer' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope       => $scope,
-              name        => '$var',
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('var'),
               initializer => RakuAST::Initializer::Assign.new(
                 RakuAST::IntLiteral.new(125)
               )
@@ -341,7 +347,8 @@ subtest 'Lexical my|state array declaration with assignment initializer' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope       => $scope,
-              name        => '@var',
+              sigil       => '@',
+              desigilname => RakuAST::Name.from-identifier('var'),
               initializer => RakuAST::Initializer::Assign.new(
                 RakuAST::ApplyListInfix.new(
                   infix => RakuAST::Infix.new(','),
@@ -374,7 +381,8 @@ subtest 'Lexical my|state variable declarations with bind initializer' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope       => $scope,
-              name        => '$var',
+              sigil       => '$',
+              desigilname => RakuAST::Name.from-identifier('var'),
               initializer => RakuAST::Initializer::Bind.new(
                 RakuAST::IntLiteral.new(225)
               )
@@ -469,7 +477,9 @@ subtest 'Dynamic variable declaration and assignment, dynamic lookup' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$*var',
+          sigil       => '$',
+          twigil      => '*',
+          desigilname => RakuAST::Name.from-identifier('var'),
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::IntLiteral.new(360)
           )
@@ -507,7 +517,8 @@ subtest '@ sigil my|state var is initialized to Array' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => $scope,
-              name  => '@arr'
+              sigil => '@',
+              desigilname => RakuAST::Name.from-identifier('arr'),
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -549,7 +560,8 @@ subtest '% sigil my|state var is initialized to Hash' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => $scope,
-              name  => '%hash'
+              sigil => '%',
+              desigilname => RakuAST::Name.from-identifier('hash'),
             )
           ),
           RakuAST::Statement::Expression.new(
@@ -591,7 +603,8 @@ subtest '@ sigil my|state var with Int type is an Array' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => $scope,
-              name  => '@arr',
+              sigil => '@',
+              desigilname => RakuAST::Name.from-identifier('arr'),
               type  => RakuAST::Type::Simple.new(
                 RakuAST::Name.from-identifier('Int')
               )
@@ -636,7 +649,8 @@ subtest '% sigil my|state var with Int type is a Hash' => {
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => $scope,
-              name  => '%hash',
+              sigil => '%',
+              desigilname => RakuAST::Name.from-identifier('hash'),
               type  => RakuAST::Type::Simple.new(
                 RakuAST::Name.from-identifier('Int')
               )
@@ -712,7 +726,8 @@ subtest 'int declaration creates a native int container' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$native-int',
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-int'),
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('int')
           )
@@ -747,7 +762,8 @@ subtest 'num declaration creates a native num container' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$native-num',
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-num'),
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('num')
           )
@@ -782,7 +798,8 @@ subtest 'str declaration creates a native str container' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$native-str',
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-str'),
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('str')
           )
@@ -817,7 +834,8 @@ subtest 'Native int assign initializer works' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$native-int',
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-int'),
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('int')
           ),
@@ -844,7 +862,8 @@ subtest 'Native num assign initializer works' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$native-num',
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-num'),
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('num')
           ),
@@ -871,7 +890,8 @@ subtest 'Native str assign initializer works' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$native-str',
+          sigil => '$',
+          desigilname => RakuAST::Name.from-identifier('native-str'),
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('str')
           ),
@@ -902,7 +922,8 @@ CODE
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => 'our',
-              name  => '$var',
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('var'),
             ),
           ),
           RakuAST::Statement::Expression.new(
@@ -937,7 +958,8 @@ CODE
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => 'our',
-              name => '$x',
+              sigil => '$',
+              desigilname => RakuAST::Name.from-identifier('x'),
               initializer => RakuAST::Initializer::Assign.new(
                 RakuAST::IntLiteral.new(42)
               )
@@ -965,7 +987,8 @@ CODE
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope => 'our',
-                name => '$y',
+                sigil => '$',
+                desigilname => RakuAST::Name.from-identifier('y'),
                 initializer => RakuAST::Initializer::Assign.new(
                   RakuAST::IntLiteral.new(99)
                 )
@@ -1006,7 +1029,8 @@ subtest 'A pointy block node with a state variable' => {
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::VarDeclaration::Simple.new(
                   scope       => 'state',
-                  name        => '$foo',
+                  sigil       => '$',
+                  desigilname => RakuAST::Name.from-identifier('foo'),
                   initializer => RakuAST::Initializer::Assign.new(
                     RakuAST::IntLiteral.new(42)
                   )

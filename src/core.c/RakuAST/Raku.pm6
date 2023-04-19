@@ -1183,7 +1183,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::VarDeclaration::Simple:D: --> Str:D) {
-        self!add-WHY: self!nameds: <scope type shape name initializer>
+        self!add-WHY: self!nameds: <scope type shape sigil twigil desigilname initializer>
     }
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {

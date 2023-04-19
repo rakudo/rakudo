@@ -396,7 +396,8 @@ subtest 'Loop block with setup and increment expression' => {
     ast RakuAST::Statement::Loop.new(
       labels    => [RakuAST::Label.new("FOO")],
       setup => RakuAST::VarDeclaration::Simple.new(
-        name => '$i',
+        sigil => '$',
+        desigilname => RakuAST::Name.from-identifier('i'),
         initializer => RakuAST::Initializer::Assign.new(
           RakuAST::IntLiteral.new(9)
         )

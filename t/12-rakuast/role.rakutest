@@ -56,7 +56,9 @@ subtest 'creating a role with an attribute' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope       => "has",
-                name        => '$.a',
+                sigil       => '$',
+                twigil      => '.',
+                desigilname => RakuAST::Name.from-identifier('a'),
                 initializer => RakuAST::Initializer::Assign.new(
                   RakuAST::IntLiteral.new(42)
                 )

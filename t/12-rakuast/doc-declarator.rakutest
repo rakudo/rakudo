@@ -221,7 +221,9 @@ subtest 'Simple class with declarator pod, one attribute' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope => "has",
-                name  => '$.foo'
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('foo'),
               ).declarator-docs(
                 leading  => ("leading comment",),
                 trailing => ("trailing comment",)
@@ -264,7 +266,9 @@ subtest 'Simple class with declarator pod, two attributes' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope => "has",
-                name  => '$.foo'
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('foo'),
               ).declarator-docs(
                 leading  => ("leading comment",),
                 trailing => ("trailing comment",)
@@ -273,7 +277,9 @@ subtest 'Simple class with declarator pod, two attributes' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope => "has",
-                name  => '$.bar'
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('bar'),
               )
             )
           )

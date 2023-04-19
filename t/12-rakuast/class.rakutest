@@ -257,7 +257,9 @@ subtest 'class with attribute' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                   scope => 'has',
-                  name => '$!foo',
+                  sigil => '$',
+                  twigil => '!',
+                  desigilname => RakuAST::Name.from-identifier('foo'),
               )
             )
           )
@@ -304,7 +306,9 @@ subtest 'class with attribute and accessor' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope => 'has',
-                name  => '$.foo',
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('foo'),
                 type  => RakuAST::Type::Simple.new(
                   RakuAST::Name.from-identifier('Int')
                 )
@@ -359,7 +363,9 @@ subtest 'class with accessor usage' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Simple.new(
                 scope => 'has',
-                name  => '$.bar',
+                sigil => '$',
+                twigil => '.',
+                desigilname => RakuAST::Name.from-identifier('bar'),
                 type  => RakuAST::Type::Simple.new(
                   RakuAST::Name.from-identifier('Int')
                 )

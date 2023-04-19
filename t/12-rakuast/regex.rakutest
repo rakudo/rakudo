@@ -627,7 +627,8 @@ subtest 'Match with variable definition' => {
         RakuAST::Statement::Expression.new(
           expression => RakuAST::VarDeclaration::Simple.new(
             scope => 'my',
-            name  => '$foo'
+            sigil => '$',
+            desigilname => RakuAST::Name.from-identifier('foo'),
           )
         )
       ),

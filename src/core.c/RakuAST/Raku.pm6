@@ -112,7 +112,7 @@ augment class RakuAST::Node {
           },
           'config', -> {
               my $config := nqp::decont(self.config);
-              :$config if $config
+              :config($config.Hash) if $config
           },
           'dwim-left', -> {
               :dwim-left if self.dwim-left

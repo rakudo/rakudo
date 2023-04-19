@@ -343,10 +343,14 @@ class RakuAST::Deparse {
     }
 
     method !deparse-as-config(%config) {
-        my str $deparsed = %config.map({
-            my $value := .value;
-            if nqp::istype($value,Bool) {
-                ($value ?? ':' !! ':!') ~ .key
+        my str $deparsed = %config.sort({
+            .key eq 'numbered' ?? '' !! .key  # numbered always first
+        }).map({
+            if .key eq 'numbered' {
+                '#'
+            }
+            elsif nqp::istype(.value,Bool) {
+                (.value ?? ':' !! ':!') ~ .key
             }
             else {
                 .raku  # for now

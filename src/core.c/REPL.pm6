@@ -396,7 +396,7 @@ do {
             )
         }
 
-        method interactive_prompt($index) { "[$index] > " }
+        method interactive_prompt($index) { %*ENV<RAKU_REPL_PROMPT> // "[$index] > " }
 
         method repl-loop(:$no-exit, *%adverbs) {
             my int $stopped;     # did we press CTRL-c just now?

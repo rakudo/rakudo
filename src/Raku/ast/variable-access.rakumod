@@ -52,6 +52,12 @@ class RakuAST::Var::Lexical
             !! Nil
     }
 
+    method IMPL-IS-META-OP() {
+        ($!sigil eq '&' || $!sigil eq '')
+            && nqp::elems($!desigilname.colonpairs) == 1
+            && nqp::istype($!desigilname.colonpairs[0], RakuAST::QuotedString)
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)
     }

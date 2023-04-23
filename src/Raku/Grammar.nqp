@@ -459,9 +459,45 @@ role Raku::Common {
         my $ast := $var.ast;
         if nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT) {
             $ast.resolve-with($*R);
-            self.typed_panic('X::Undeclared',
-              symbol => $ast.name, is-compile-time => 1
-            ) unless $ast.is-resolved || $ast.sigil eq '&';
+            unless $ast.is-resolved {
+                if $ast.sigil eq '&' {
+                   if $ast.IMPL-IS-META-OP {
+                        my $cat := $ast.desigilname.canonicalize(:colonpairs(0));
+                        my $op := $ast.desigilname.colonpairs[0].literal-value;
+
+                        return self if $op eq '!=' || $op eq '≠';
+
+                        my $lang := self.'!cursor_init'($op, :p(0), :actions(self.actions));
+                        $lang.clone_braid_from(self);
+
+                        my $meth := $cat eq 'infix' || $cat eq 'prefix' || $cat eq 'postfix' ?? $cat ~ 'ish' !! $cat;
+                        $meth := 'term:sym<reduce>' if $cat eq 'prefix' && $op ~~ /^ \[ .* \] $ /;
+                        my $cursor := $lang."$meth"();
+                        my $match := $cursor.MATCH;
+                        if $cursor.pos == nqp::chars($op) && (
+                            $match<infix_prefix_meta_operator> ||
+                            $match<infix_circumfix_meta_operator> ||
+                            $match<infix_postfix_meta_operator> ||
+                            $match<prefix_postfix_meta_operator> ||
+                            $match<postfix_prefix_meta_operator> ||
+                            $match<op>)
+                        {
+                            my $META := $match.ast;
+                            $META.IMPL-CHECK($*R, $*CU.context, 1);
+                            my $meta-op := $META.IMPL-HOP-INFIX;
+                            $ast.set-resolution(self.actions.r('Declaration', 'External', 'Constant').new(
+                                :lexical-name($ast.name),
+                                :compile-time-value($meta-op),
+                            ));
+                        }
+                    }
+                }
+                else {
+                    self.typed_panic('X::Undeclared',
+                      symbol => $ast.name, is-compile-time => 1
+                    )
+                }
+            }
         }
     }
 

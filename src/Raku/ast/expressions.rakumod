@@ -375,7 +375,13 @@ class RakuAST::Infix
 
 # Meta infixes base class, mostly for type checking
 class RakuAST::MetaInfix
-  is RakuAST::Infixish { }
+  is RakuAST::Infixish {
+    method IMPL-HOP-INFIX() {
+        self.get-implicit-lookups().AT-POS(0).resolution.compile-time-value()(
+            self.infix.resolution.compile-time-value
+        )
+    }
+}
 
 # An assign meta-operator, operator on another infix.
 class RakuAST::MetaInfix::Assign
@@ -391,6 +397,12 @@ class RakuAST::MetaInfix::Assign
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_ASSIGN')),
+        ])
     }
 
     method IMPL-CURRIES() { 0 }
@@ -520,6 +532,12 @@ class RakuAST::MetaInfix::Negate
         $visitor($!infix);
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_NEGATE')),
+        ])
+    }
+
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         QAST::Op.new(
             :op('hllbool'),
@@ -556,6 +574,12 @@ class RakuAST::MetaInfix::Reverse
         $visitor($!infix);
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_REVERSE')),
+        ])
+    }
+
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         $!infix.IMPL-INFIX-QAST($context, $right-qast, $left-qast)
     }
@@ -581,6 +605,12 @@ class RakuAST::MetaInfix::Cross
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_CROSS')),
+        ])
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -613,6 +643,12 @@ class RakuAST::MetaInfix::Zip
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_ZIP')),
+        ])
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -653,6 +689,12 @@ class RakuAST::MetaInfix::Hyper
         $visitor($!infix);
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_HYPER')),
+        ])
+    }
+
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         QAST::Op.new:
             :op('call'),
@@ -672,6 +714,14 @@ class RakuAST::MetaInfix::Hyper
             $call.push: QAST::WVal.new: :value(True), :named('dwim-right');
         }
         $call
+    }
+
+    method IMPL-HOP-INFIX() {
+        self.get-implicit-lookups().AT-POS(0).resolution.compile-time-value()(
+            self.infix.resolution.compile-time-value,
+            :dwim-left($!dwim-left),
+            :dwim-right($!dwim-right)
+        )
     }
 }
 

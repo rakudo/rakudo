@@ -202,7 +202,9 @@ class RakuAST::QuotedString
         if nqp::elems($!processors) {
             for $!processors {
                 if $_ eq 'val' {
-                    nqp::push(@needed, RakuAST::Var::Lexical::Setting.new('&val'));
+                    nqp::push(@needed, RakuAST::Var::Lexical::Setting.new(
+                        :sigil<&>,
+                        :desigilname(RakuAST::Name.from-identifier('val'))));
                     last;
                 }
             }

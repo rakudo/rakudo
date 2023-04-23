@@ -10,22 +10,36 @@ class RakuAST::Var::Lexical
   is RakuAST::Var
   is RakuAST::Lookup
 {
-    has str $.name;
+    has str $.sigil;
+    has str $.twigil;
+    has RakuAST::Name $.desigilname;
 
-    method new(str $name) {
+    method new(str $name?, Str :$sigil, Str :$twigil, RakuAST::Name :$desigilname) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!name', $name);
+        if $name {
+            nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!sigil', nqp::substr($name, 0, 1));
+            nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!twigil', '');
+            nqp::bindattr($obj, RakuAST::Var::Lexical, '$!desigilname',
+                RakuAST::Name.from-identifier(nqp::substr($name, 1)))
+        }
+        else {
+            nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!sigil', $sigil);
+            nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!twigil', $twigil);
+            nqp::bindattr($obj, RakuAST::Var::Lexical, '$!desigilname', $desigilname);
+        }
         $obj
     }
 
-    method sigil() { nqp::substr($!name, 0, 1) }
+    method name() {
+        ($!sigil // '') ~ ($!twigil // '') ~ $!desigilname.canonicalize
+    }
 
     method can-be-bound-to() {
         self.is-resolved ?? self.resolution.can-be-bound-to !! False
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-lexical($!name);
+        my $resolved := $resolver.resolve-lexical(self.name);
         if $resolved {
             self.set-resolution($resolved);
         }
@@ -33,8 +47,8 @@ class RakuAST::Var::Lexical
     }
 
     method undeclared-symbol-details() {
-        self.sigil eq '&'
-            ?? RakuAST::UndeclaredSymbolDescription::Routine.new($!name)
+        $!sigil eq '&'
+            ?? RakuAST::UndeclaredSymbolDescription::Routine.new(self.name)
             !! Nil
     }
 
@@ -330,7 +344,9 @@ class RakuAST::Var::Compiler::Routine
 {
     method new() {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!name', '&?ROUTINE');
+        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!sigil', '&');
+        nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!twigil', '?');
+        nqp::bindattr($obj, RakuAST::Var::Lexical, '$!desigilname', RakuAST::Name.from-identifier('ROUTINE'));
         $obj
     }
 

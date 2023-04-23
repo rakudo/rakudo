@@ -45,7 +45,7 @@ class RakuAST::Name
     }
 
     method is-empty() {
-        nqp::elems($!parts) ?? False !! True
+        (!nqp::elems($!parts) || self.is-identifier && $!parts[0].name eq '') ?? True !! False
     }
 
     method is-simple() {

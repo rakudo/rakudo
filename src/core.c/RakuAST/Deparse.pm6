@@ -616,12 +616,7 @@ class RakuAST::Deparse {
 
 #- Doc -------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Doc::Declarator:D $ast --> Str:D) {
-        (my $wherefore := nqp::clone($ast.WHEREFORE)).set-WHY($ast);
-        self.deparse($wherefore).chomp
-    }
-
-    multi method deparse(RakuAST::Doc::Formatted:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Doc::Block:D $ast --> Str:D) {
         my str $type     = $ast.type;
         my %config      := $ast.config;
         my $abbreviated := $ast.abbreviated;
@@ -630,10 +625,17 @@ class RakuAST::Deparse {
           ~ $ast.level
           ~ self!deparse-as-config(%config)
           ~ ($abbreviated ?? " " !! "\n")
-          ~ $ast.paragraphs.map({ self!deparse-unquoted($_) }).join("\n\n");
+          ~ $ast.paragraphs.map({
+              nqp::istype($_,Str) ?? $_ !! self.deparse($_)
+            }).join("\n\n");
         $abbreviated
           ?? "=$body\n\n"
           !! "=begin $body\n=end $type\n\n"
+    }
+
+    multi method deparse(RakuAST::Doc::Declarator:D $ast --> Str:D) {
+        (my $wherefore := nqp::clone($ast.WHEREFORE)).set-WHY($ast);
+        self.deparse($wherefore).chomp
     }
 
     multi method deparse(RakuAST::Doc::Markup:D $ast --> Str:D) {
@@ -653,19 +655,6 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Doc::Paragraph:D $ast --> Str:D) {
         $ast.atoms.map({ self!deparse-unquoted($_) }).join
-    }
-
-    multi method deparse(RakuAST::Doc::Verbatim:D $ast --> Str:D) {
-        my str $type     = $ast.type;
-        my %config      := $ast.config;
-        my $body := $type
-          ~ $ast.level
-          ~ self!deparse-as-config(%config)
-          ~ "\n"
-          ~ self!deparse-unquoted($ast.text);
-        $ast.abbreviated
-          ?? "=$body\n\n"
-          !! "=begin $body\n=end $type\n\n"
     }
 
 #- Dot -------------------------------------------------------------------------

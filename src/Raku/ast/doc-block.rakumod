@@ -39,7 +39,7 @@ class RakuAST::Doc::Paragraph
     method atoms() { self.IMPL-WRAP-LIST($!atoms) }
 }
 
-# Basic block features role
+# Generic block with paragraphs
 class RakuAST::Doc::Block
   is RakuAST::Doc
 {
@@ -47,6 +47,22 @@ class RakuAST::Doc::Block
     has int  $.level;
     has Hash $!config;
     has Bool $.abbreviated;
+    has List $!paragraphs;
+
+    method new(Str :$type!,
+               Int :$level,
+              Hash :$config,
+              List :$paragraphs,
+              Bool :$abbreviated
+    ) {
+        my $obj := nqp::create(self);
+        $obj.set-type($type);
+        $obj.set-level($level);
+        $obj.set-config($config);
+        $obj.set-abbreviated($abbreviated);
+        $obj.set-paragraphs($paragraphs);
+        $obj
+    }
 
     method set-type(Str $type) {
         nqp::bindattr_s(self, RakuAST::Doc::Block, '$!type',
@@ -74,36 +90,9 @@ class RakuAST::Doc::Block
         nqp::bindattr(self, RakuAST::Doc::Block, '$!abbreviated',
           $value ?? True !! False);
     }
-}
-
-# Generic block with paragraphs
-class RakuAST::Doc::Formatted
-  is RakuAST::Doc::Block
-{
-    has List $!paragraphs;
-
-    method new(Str :$type!,
-               Int :$level,
-              Hash :$config,
-              List :$paragraphs,
-              Bool :$abbreviated
-    ) {
-        my $obj := nqp::create(self);
-        $obj.set-type($type);
-        $obj.set-level($level);
-        $obj.set-config($config);
-        $obj.set-abbreviated($abbreviated);
-        $obj.set-paragraphs($paragraphs);
-        $obj
-    }
-    method visit-children(Code $visitor) {
-        for $!paragraphs {
-            $visitor($_);
-        }
-    }
 
     method set-paragraphs($paragraphs) {
-        nqp::bindattr(self, RakuAST::Doc::Formatted, '$!paragraphs',
+        nqp::bindattr(self, RakuAST::Doc::Block, '$!paragraphs',
           $paragraphs
             ?? self.IMPL-UNWRAP-LIST($paragraphs)
             !! nqp::list);
@@ -111,86 +100,12 @@ class RakuAST::Doc::Formatted
     }
     method add-paragraph($paragraph) { nqp::push($!paragraphs, $paragraph) }
     method paragraphs() { self.IMPL-WRAP-LIST($!paragraphs) }
-}
 
-# Blocks just consisting of verbatim text
-class RakuAST::Doc::Verbatim
-  is RakuAST::Doc::Block
-{
-    has RakuAST::StrLiteral $.text;
-
-    method new(Str :$type!,
-               Int :$level,
-               Str :$text!,
-              Hash :$config,
-              Bool :$abbreviated
-    ) {
-        my $obj := nqp::create(self);
-        $obj.set-type($type);
-        $obj.set-level($level);
-        $obj.set-config($config);
-        $obj.set-abbreviated($abbreviated);
-        $obj.set-text($text);
-        $obj
-    }
     method visit-children(Code $visitor) {
-        $visitor($!text);
-    }
-
-    method set-text($text) {
-        nqp::bindattr(self, RakuAST::Doc::Verbatim, '$!text',
-          $text // RakuAST::StrLiteral.new(""));
-        Nil
-    }
-}
-
-# Table with caption and headers
-class RakuAST::Doc::Table
-  is RakuAST::Doc::Block
-{
-    has List $!headers;
-    has List $!rows;
-
-    method new(Str :$type,
-               Int :$level,
-              Hash :$config,
-              List :$headers,
-              List :$rows,
-              Bool :$abbreviated
-    ) {
-        my $obj := nqp::create(self);
-        $obj.set-type($type // "table");
-        $obj.set-level($level);
-        $obj.set-config($config);
-        $obj.set-abbreviated($abbreviated);
-        $obj.set-headers($headers);
-        $obj.set-rows($rows);
-        $obj
-    }
-    method visit-children(Code $visitor) {
-        for $!headers {
-            $visitor($_);
-        }
-        for $!rows {
+        for $!paragraphs {
             $visitor($_);
         }
     }
-
-    method set-headers($headers) {
-        nqp::bindattr(self, RakuAST::Doc::Table, '$!headers',
-          $headers ?? self.IMPL-UNWRAP-LIST($headers) !! nqp::list);
-        Nil
-    }
-    method add-header($header) { nqp::push($!headers, $header) }
-    method headers() { self.IMPL-WRAP-LIST($!headers) }
-
-    method set-rows($rows) {
-        nqp::bindattr(self, RakuAST::Doc::Table, '$!rows',
-          $rows ?? self.IMPL-UNWRAP-LIST($rows) !! nqp::list);
-        Nil
-    }
-    method add-rows($row) { nqp::push($!rows, $row) }
-    method rows() { self.IMPL-WRAP-LIST($!rows) }
 }
 
 # Doc markup support

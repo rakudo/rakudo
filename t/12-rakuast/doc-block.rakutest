@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 9;
+plan 7;
 
 my $ast;
 my $deparsed;
@@ -15,10 +15,10 @@ sub ast(RakuAST::Node:D $node --> Nil) {
 
 subtest 'simple documentation' => {
     # =begin doc␤This is documentation␤=end doc␤
-    ast RakuAST::Doc::Formatted.new(
+    ast RakuAST::Doc::Block.new(
       type        => 'doc',
       paragraphs  => (
-        RakuAST::StrLiteral.new("This is documentation"),
+        "This is documentation",
       )
     );
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
@@ -33,11 +33,11 @@ CODE
 
 subtest 'simple documentation abbreviated' => {
     # =doc This is documentation␤␤
-    ast RakuAST::Doc::Formatted.new(
+    ast RakuAST::Doc::Block.new(
       type        => 'doc',
       abbreviated => True,
       paragraphs  => (
-        RakuAST::StrLiteral.new("This is documentation"),
+        "This is documentation",
       )
     );
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
@@ -50,18 +50,18 @@ CODE
 
 subtest 'simple documentation with markup' => {
     # =begin doc␤This is B<doc>umentation␤=end doc␤
-    ast RakuAST::Doc::Formatted.new(
+    ast RakuAST::Doc::Block.new(
       type        => 'doc',
       paragraphs  => (
         RakuAST::Doc::Paragraph.new(
-          RakuAST::StrLiteral.new("This is "),
+          "This is ",
           RakuAST::Doc::Markup.new(
             letter => "B",
             atoms  => (
-              RakuAST::StrLiteral.new("doc"),
+              "doc",
             )
           ),
-          RakuAST::StrLiteral.new("umentation"),
+          "umentation",
         ),
       )
     );
@@ -75,48 +75,16 @@ CODE
     }
 }
 
-subtest 'simple doc comment' => {
-    # =begin comment␤This will not be rendered␤=end comment␤
-    ast RakuAST::Doc::Verbatim.new(
-      type  => 'comment',
-      text  => RakuAST::StrLiteral.new("This will not be rendered"),
-    );
-    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is-deeply $it, q:to/CODE/, "$type: deparse";
-=begin comment
-This will not be rendered
-=end comment
-
-CODE
-    }
-}
-
-subtest 'simple abbreviated doc comment' => {
-    # =comment␤This will not be rendered␤=end comment␤
-    ast RakuAST::Doc::Verbatim.new(
-      type        => 'comment',
-      abbreviated => True,
-      text        => RakuAST::StrLiteral.new("This will not be rendered"),
-    );
-    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
-        is-deeply $it, q:to/CODE/, "$type: deparse";
-=comment
-This will not be rendered
-
-CODE
-    }
-}
-
 subtest 'simple documentation in a statementlist (1)' => {
     # 42␤=begin doc␤This is documentation␤=end doc␤␤
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42)
       ),
-      RakuAST::Doc::Formatted.new(
+      RakuAST::Doc::Block.new(
         type        => 'doc',
         paragraphs  => (
-          RakuAST::StrLiteral.new("This is documentation"),
+          "This is documentation",
         )
       )
     );
@@ -135,10 +103,10 @@ CODE
 subtest 'simple documentation in a statementlist (2)' => {
     # =begin doc␤This is documentation␤=end doc␤␤42␤
     ast RakuAST::StatementList.new(
-      RakuAST::Doc::Formatted.new(
+      RakuAST::Doc::Block.new(
         type        => 'doc',
         paragraphs  => (
-          RakuAST::StrLiteral.new("This is documentation"),
+          "This is documentation",
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -163,12 +131,12 @@ subtest 'abbreviated documentation in a statementlist (1)' => {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42)
       ),
-      RakuAST::Doc::Formatted.new(
+      RakuAST::Doc::Block.new(
         type        => 'head',
         level       => 1,
         abbreviated => True,
         paragraphs  => (
-          RakuAST::StrLiteral.new("This is documentation"),
+          "This is documentation",
         )
       )
     );
@@ -185,13 +153,13 @@ CODE
 subtest 'abbreviated documentation in a statementlist (2)' => {
     # =head1 ␤This is documentation␤␤42␤
     ast RakuAST::StatementList.new(
-      RakuAST::Doc::Formatted.new(
+      RakuAST::Doc::Block.new(
         type        => 'head',
         level       => 1,
         abbreviated => True,
-        config      => { :numbered, :raku<lang> },
+        config      => { :numbered },
         paragraphs  => (
-          RakuAST::StrLiteral.new("This is documentation"),
+          "This is documentation",
         )
       ),
       RakuAST::Statement::Expression.new(
@@ -202,7 +170,7 @@ subtest 'abbreviated documentation in a statementlist (2)' => {
     is-deeply $ast.EVAL, 42, 'do we get the final result';
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
-=head1 # :raku("lang") This is documentation
+=head1 # This is documentation
 
 42
 CODE

@@ -671,6 +671,10 @@ class RakuAST::VarDeclaration::Simple
         self.add-sorry: $resolver.build-exception:
             'X::Dynamic::Postdeclaration', :symbol(self.name)
             if $!is-illegal-postdeclaration;
+
+        self.add-sorry: $resolver.build-exception:
+            'X::Dynamic::Package', :symbol(self.name)
+            if self.twigil eq '*' && self.desigilname.is-multi-part;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

@@ -281,7 +281,15 @@ my class Any { # declared in BOOTSTRAP
 
     proto method AT-POS(|) is nodal {*}
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
-        nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
+        nqp::iscont(SELF)
+          ?? nqp::p6scalarfromcertaindesc(
+               ContainerDescriptor::VivifyArray.new(SELF, pos)
+             )
+          !! pos
+            ?? X::OutOfRange.new(
+                 :what($*INDEX // 'Index'), :got(pos), :range<0..0>
+               ).Failure
+            !! SELF
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
         nqp::isnanorinf(pos)

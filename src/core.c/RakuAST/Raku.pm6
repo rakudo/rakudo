@@ -90,6 +90,9 @@ augment class RakuAST::Node {
         }
 
         my $special := BEGIN nqp::hash(
+          'abbreviated', -> {
+              :abbreviated if self.abbreviated
+          },
           'adverbs', -> {
               my $adverbs := nqp::decont(self.adverbs);
               :$adverbs if $adverbs

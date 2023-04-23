@@ -17,6 +17,8 @@ class RakuAST::LexicalScope
     has Mu $!catch-handlers;
     has Mu $!control-handlers;
 
+    has Hash $!used-dynamic-variables;
+
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
 
@@ -235,6 +237,22 @@ class RakuAST::LexicalScope
         nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', Mu);
         nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', Mu);
         Nil
+    }
+
+    method add-used-dynamic-variable(RakuAST::Var::Dynamic $var) {
+        unless nqp::isconcrete($!used-dynamic-variables) {
+            nqp::bindattr(self, RakuAST::LexicalScope, '$!used-dynamic-variables', {});
+        }
+        $!used-dynamic-variables{$var.name} := $var;
+    }
+
+    method clear-used-dynamic-variables() {
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!used-dynamic-variables', {});
+    }
+
+    method uses-dynamic-variable(str $name) {
+        nqp::isconcrete($!used-dynamic-variables)
+            && nqp::existskey($!used-dynamic-variables, $name)
     }
 
     method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements,

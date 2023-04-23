@@ -88,6 +88,7 @@ class RakuAST::Var::Lexical::Setting
 class RakuAST::Var::Dynamic
   is RakuAST::Var
   is RakuAST::Lookup
+  is RakuAST::Attaching
 {
     has str $.name;
 
@@ -109,6 +110,10 @@ class RakuAST::Var::Dynamic
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.current-scope.add-used-dynamic-variable(self);
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

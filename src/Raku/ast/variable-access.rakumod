@@ -89,6 +89,7 @@ class RakuAST::Var::Dynamic
   is RakuAST::Var
   is RakuAST::Lookup
   is RakuAST::Attaching
+  is RakuAST::CheckTime
 {
     has str $.name;
 
@@ -114,6 +115,12 @@ class RakuAST::Var::Dynamic
 
     method attach(RakuAST::Resolver $resolver) {
         $resolver.current-scope.add-used-dynamic-variable(self);
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.add-sorry: $resolver.build-exception:
+            'X::Dynamic::Package', :symbol($!name)
+            if nqp::index($!name, '::') >= 0;
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

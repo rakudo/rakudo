@@ -2174,7 +2174,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <longname>? {}
         [ :dba('generic role')
             <?{ ($*PKGDECL // '') eq 'role' }>
-            '[' ~ ']' <signature(:ON-PACKAGE(1))>
+            '[' ~ ']' <signature(:DECLARE-TARGETS(0))>
             { $*IN_DECL := ''; }
         ]?
         <.stub-package($<longname>)>
@@ -2870,10 +2870,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ##
 
     token fakesignature {
-        <signature(1)>
+        <signature(1, :DECLARE-TARGETS(0))>
     }
 
-    token signature($*ALLOW_INVOCANT = 0, :$*ON-PACKAGE) {
+    token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1) {
         :my $*zone := 'posreq';
         :my $*multi_invocant := 1;
         :my @*seps := nqp::list();

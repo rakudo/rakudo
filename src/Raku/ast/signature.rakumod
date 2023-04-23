@@ -300,6 +300,32 @@ class RakuAST::Signature
     }
 }
 
+class RakuAST::FakeSignature
+  is RakuAST::Meta
+  is RakuAST::Term
+  is RakuAST::LexicalScope
+{
+    has RakuAST::Signature $.signature;
+
+    method new($signature) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::FakeSignature, '$!signature', $signature);
+        $obj
+    }
+
+    method PRODUCE-META-OBJECT() {
+        $!signature.meta-object
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!signature.IMPL-TO-QAST($context)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!signature)
+    }
+}
+
 # A parameter within a signature. A parameter may result in binding or
 # assignment into a target; this is modeled by a RakuAST::ParameterTarget,
 # which is optional.

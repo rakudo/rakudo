@@ -2318,7 +2318,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ##
 
     method fakesignature($/) {
-        make $<signature>.ast
+        self.attach: $/, self.r('FakeSignature').new: $<signature>.ast
     }
 
     method signature($/) {
@@ -2424,7 +2424,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<name> {
             my $decl := self.r('ParameterTarget', 'Var').new(~$<declname>);
             $/.typed_panic('X::Redeclaration', :symbol(~$<declname>))
-              if !$*ON-PACKAGE && $*R.declare-lexical($decl);
+              if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
             %args<target> := $decl;
         }
         elsif $<signature> {
@@ -2441,7 +2441,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $name := $<defterm>.ast;
             my $decl := self.r('ParameterTarget', 'Term').new($name);
             $/.typed_panic('X::Redeclaration', :symbol($name.canonicalize))
-              if !$*ON-PACKAGE && $*R.declare-lexical($decl);
+              if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
             self.attach: $/, self.r('Parameter').new(target => $decl);
         }
         else {

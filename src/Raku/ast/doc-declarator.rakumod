@@ -42,6 +42,7 @@ class RakuAST::Doc::Declarator
     method PERFORM-CHECK(RakuAST::Resolver $resolver,
                 RakuAST::IMPL::QASTContext $context) {
         if $!WHEREFORE {
+            my $*RESOLVER := $resolver;
             my $cu := $resolver.find-attach-target('compunit');
             nqp::ifnull(
               nqp::getattr( $cu, RakuAST::CompUnit, '$!pod-content'),

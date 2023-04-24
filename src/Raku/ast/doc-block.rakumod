@@ -18,6 +18,14 @@ class RakuAST::Doc
     ) {
         True
     }
+
+    method worry-ad-hoc($resolver, $payload) {
+        self.add-worry: $resolver.build-exception: 'X::AdHoc', :$payload
+    }
+
+    method sorry-ad-hoc($resolver, $payload) {
+        self.add-sorry: $resolver.build-exception: 'X::AdHoc', :$payload
+    }
 }
 
 # Generic paragraph
@@ -31,9 +39,9 @@ class RakuAST::Doc::Paragraph
         nqp::bindattr($obj, RakuAST::Doc::Paragraph, '$!atoms', @atoms);
         $obj
     }
-    method visit-children(Code $visitor) {
-        $visitor($!atoms);
-    }
+
+    # nothing to do
+    method visit-children(Code $visitor) { }
 
     method add-atom($atom) { nqp::push($!atoms, $atom) }
     method atoms() { self.IMPL-WRAP-LIST($!atoms) }

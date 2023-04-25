@@ -40,6 +40,7 @@ augment class RakuAST::Doc::Markup {
         )
     }
 
+    # convert the contents of E<> to a codepoint
     method convert-entity(RakuAST::Doc::Markup: Str:D $entity) {
         my $codepoint := val $entity;
 
@@ -73,6 +74,7 @@ augment class RakuAST::Doc::Markup {
         $string
     }
 
+    # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D:) {
         my str $letter = self.letter;
         if $letter eq 'L' | 'E' {
@@ -100,7 +102,9 @@ augment class RakuAST::Doc::Paragraph {
     method make-legacy-pod(RakuAST::Doc::Paragraph:D:) {
         Pod::Block::Para.new(
           contents => self.atoms.map({
-              nqp::istype($_,Str) ?? $_ !! .make-legacy-pod
+              nqp::istype($_,Str)
+                ?? .lines.join(' ').trim
+                !! .make-legacy-pod
           }).Slip
         )
     }
@@ -111,6 +115,7 @@ augment class RakuAST::Doc::Paragraph {
     my int32 $open  = nqp::ord('<');
     my int32 $close = nqp::ord('>');
 
+    # create object from string, parsing any markup sequences
     method from-string(RakuAST::Doc::Paragraph:U: Str:D $string) {
         my int32 $this;       # the current grapheme
         my int32 $prev;       # the previous grapheme
@@ -143,6 +148,7 @@ augment class RakuAST::Doc::Paragraph {
             );
         }
 
+        # do all of the markup parsing in one pass
         nqp::while(
           nqp::islt_i(++$i,$elems),                             # all graphemes
           nqp::stmts(
@@ -201,7 +207,7 @@ augment class RakuAST::Doc::Paragraph {
             );
         }
 
-        # add any remaining graphemes
+        # add any (remaining) graphemes
         add-graphemes($paragraph);
 
         $paragraph
@@ -214,7 +220,9 @@ augment class RakuAST::Doc::Block {
         my str $level = self.level;
         my $config   := self.config;
         my $contents := self.paragraphs.map({
-            nqp::istype($_,Str) ?? $_ !! .make-legacy-pod
+            nqp::istype($_,Str)
+              ?? .lines.join(' ').trim
+              !! .make-legacy-pod
         }).List;
 
         $type eq 'head' && $level
@@ -226,14 +234,91 @@ augment class RakuAST::Doc::Block {
             !! $type eq 'comment'
               ?? Pod::Block::Comment.new(contents => [self.text])
               !! !$level && $type eq 'input' | 'output' | 'code'
-                ?? Pod::Block::Code.new(contents => [self.text.split("\n", :v)])
+                ?? Pod::Block::Code.new(contents => [
+                     $type eq 'code'
+                       ?? self.paragraphs.head
+                       !! self.text.split("\n", :v)
+                   ])
                 !! Pod::Block::Named.new(
                      :name($type ~ $level), :$config, :$contents
                    )
     }
 
     method text(RakuAST::Doc::Block:D:) {
-        self.paragraphs.map(*.make-legacy-pod).join
+        self.paragraphs.map({
+            nqp::istype($_,Str) ?? $_ !! .make-legacy-pod
+        }).join
+    }
+
+    # create block with type/paragraph introspection
+    method from-paragraphs(:$spaces, :$type, :@paragraphs, *%_) {
+        my $block := self.new(:$type, |%_);
+
+        # these need verbatim stuff
+        if $type eq 'comment' | 'input' | 'output' {
+            $block.add-paragraph(@paragraphs.join);
+        }
+        else {
+            my $offset := $spaces.chars;
+
+            for @paragraphs -> $paragraph {
+
+                # need further introspection
+                if nqp::istype($paragraph,Str) {
+                    my @lines;
+                    my @codes;
+
+                    sub add-lines() {
+                        $block.add-paragraph(
+                          RakuAST::Doc::Paragraph.from-string(@lines.join)
+                        );
+                        @lines = ();
+                    }
+                    sub add-codes() {
+                        $block.add-paragraph(
+                          RakuAST::Doc::Block.new(
+                            :type<code>, :paragraphs(@codes.join("\n"))
+                          )
+                        );
+                        @codes = ();
+                    }
+
+                    my str $last-leading-ws =
+                      $paragraph.leading-whitespace.substr($offset);
+                    for $paragraph.lines(:!chomp) {
+                        my $line := (.starts-with($spaces)
+                          ?? .substr($offset)
+                          !! .trim-leading
+                        ).chomp;
+                        if $line.leading-whitespace -> str $leading-ws {
+                            add-lines if @lines;
+
+                            if $leading-ws ne $last-leading-ws {
+                                add-codes if @codes;
+                                $last-leading-ws = $leading-ws;
+                                @codes = $line.substr($leading-ws.chars);
+                            }
+                            else {
+                                @codes.push: $line.substr($leading-ws.chars);
+                            }
+                        }
+                        else {
+                            add-codes if @codes;
+                            @lines.push($_);
+                        }
+                    }
+                    add-codes if @codes;
+                    add-lines if @lines;
+                }
+
+                # already introspected
+                else {
+                    $block.add-paragraph($paragraph);
+                }
+            }
+        }
+
+        $block
     }
 }
 

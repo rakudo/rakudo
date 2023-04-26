@@ -1785,16 +1785,19 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method sort(|) is nodal {*}
     multi method sort() {
-        nqp::eqaddr(
-          self.iterator.push-until-lazy(
-            my \buf := nqp::create(IterationBuffer)),
-          IterationEnd
-        ) ?? Seq.new(
-               Rakudo::Iterator.ReifiedList(
-                 Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
-               )
-             )
-          !! X::Cannot::Lazy.new(:action<sort>).throw
+        my $iterator := self.iterator;
+        $iterator.is-monotonically-increasing
+          ?? Seq.new($iterator)
+          !! nqp::eqaddr(
+               self.iterator.push-until-lazy(
+                 my \buf := nqp::create(IterationBuffer)),
+               IterationEnd
+             ) ?? Seq.new(
+                    Rakudo::Iterator.ReifiedList(
+                      Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
+                    )
+                  )
+               !! X::Cannot::Lazy.new(:action<sort>).throw
     }
     multi method sort(&by) {
         nqp::unless(

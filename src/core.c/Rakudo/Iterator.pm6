@@ -769,6 +769,7 @@ class Rakudo::Iterator {
             $!i = $i;
         }
         method count-only(--> Int:D) { $!n - $!i }
+        method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { $!i = $!n }
     }
     method CharFromTo(\min,\max,\excludes-min,\excludes-max) {
@@ -2099,6 +2100,7 @@ class Rakudo::Iterator {
             $batch-size
         }
         method is-lazy(--> True) { }
+        method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { }
     }
     my class IntRange does PredictiveIterator {
@@ -2142,6 +2144,7 @@ class Rakudo::Iterator {
             $!i = $i;                # make sure pull-one ends
         }
         method count-only(--> Int:D) { $!last - $!i + nqp::isgt_i($!i,$!last) }
+        method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
     method IntRange(\from,\to) {
@@ -4358,6 +4361,7 @@ class Rakudo::Iterator {
             $i
         }
         method is-lazy(--> True) { }
+        method is-monotonically-increasing(--> True) { }
     }
     method SuccFromInf(\i) { SuccFromInf.new(i) }
 
@@ -4401,6 +4405,7 @@ class Rakudo::Iterator {
             }
             $!i = $e.succ;
         }
+        method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { $!i = $!e.succ }
     }
     method SuccFromTo(\i,\exclude,\e) { SuccFromTo.new(i,exclude,e) }

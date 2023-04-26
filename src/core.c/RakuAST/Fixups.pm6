@@ -218,6 +218,11 @@ augment class RakuAST::Doc::Block {
     method make-legacy-pod(RakuAST::Doc::Block:D:) {
         my str $type  = self.type;
         my str $level = self.level;
+
+        # this needs code of its own, as the new grammar only collects
+        # and does not do any interpretation
+        return self.make-legacy-pod-table if $type eq 'table' and !$level;
+
         my $config   := self.config;
         my $contents := self.paragraphs.map({
             nqp::istype($_,Str)
@@ -225,23 +230,30 @@ augment class RakuAST::Doc::Block {
               !! .make-legacy-pod
         }).List;
 
-        $type eq 'head' && $level
-          ?? Pod::Heading::.new(level  => $level.Int, :$config, :$contents)
-          !! $type eq 'item'
-            ?? Pod::Item::.new(
-                 level => $level ?? $level.Int !! 1, :$config, :$contents
-               )
+        $type eq 'item'
+          ?? Pod::Item.new(
+               level => $level ?? $level.Int !! 1, :$config, :$contents
+             )
+          !! $level
+            ?? $type eq 'head'
+              ?? Pod::Heading.new(:level($level.Int), :$config, :$contents)
+              !! Pod::Block::Named.new(
+                   :name($type ~ $level), :$config, :$contents
+                 )
+            # from here on without level
             !! $type eq 'comment'
               ?? Pod::Block::Comment.new(contents => [self.text])
-              !! !$level && $type eq 'input' | 'output' | 'code'
+              !! $type eq 'input' | 'output' | 'code'
                 ?? Pod::Block::Code.new(contents => [
                      $type eq 'code'
                        ?? self.paragraphs.head
                        !! self.text.split("\n", :v)
                    ])
-                !! Pod::Block::Named.new(
-                     :name($type ~ $level), :$config, :$contents
-                   )
+                !! Pod::Block::Named.new(:name($type), :$config, :$contents)
+    }
+
+    method make-legacy-pod-table() {
+        NYI "legacy pod support for =table";
     }
 
     method text(RakuAST::Doc::Block:D:) {

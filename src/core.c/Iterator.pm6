@@ -55,13 +55,13 @@ my role Iterator {
         )
     }
 
-    # Pushes things until we hit a lazy iterator (one whose is-lazy method
-    # returns True). The default works well for non-composite iterators (that
-    # is, those that don't trigger the evaluation of other iterators): it
-    # looks at the lazy property of itself, and if it's true, does nothing,
-    # otherwise it calls push-all. If all values the iterator can produce are
-    # pushed, then IterationEnd should be returned. Otherwise, return
-    # something else (Mu will do fine).
+    # Pushes things until we hit a lazy iterator (one whose is-lazy method returns
+    # True). The default works well for non-composite iterators (that is, those
+    # that don't trigger the evaluation of other iterators): it looks at the
+    # lazy property of itself, and if it's true, does nothing, otherwise it
+    # calls push-all. If all values the iterator can produce are pushed, then
+    # IterationEnd should be returned. Otherwise, return something else (Mu
+    # will do fine).
     method push-until-lazy(\target) {
         nqp::unless(
           self.is-lazy,
@@ -110,10 +110,6 @@ my role Iterator {
     # but *not* true for iterators that typically return keys and/or values
     # from a hash.
     method is-deterministic(--> True) { }
-
-    # Whether the iterator will produce values in a monotonically increasing
-    # manner, when being compared with infix cmp.
-    method is-monotonically-increasing(--> False) { }
 }
 
 # The PredictiveIterator role is a refinement of the Iterator role for those

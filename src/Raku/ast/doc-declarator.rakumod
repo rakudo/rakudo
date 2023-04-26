@@ -43,12 +43,9 @@ class RakuAST::Doc::Declarator
                 RakuAST::IMPL::QASTContext $context) {
         if $!WHEREFORE {
             my $*RESOLVER := $resolver;
-            my $cu := $resolver.find-attach-target('compunit');
-            nqp::ifnull(
-              nqp::getattr( $cu, RakuAST::CompUnit, '$!pod-content'),
-              nqp::bindattr($cu, RakuAST::CompUnit, '$!pod-content',
-                self.initialize-legacy-pods)
-            ).push(self.make-legacy-pod($!WHEREFORE.meta-object));
+            $resolver.find-attach-target('compunit').pod-content.push(
+              self.make-legacy-pod($!WHEREFORE.meta-object)
+            );
         }
         else {
             self.add-worry: $resolver.build-exception:

@@ -586,13 +586,20 @@ class RakuAST::Parameter
             }
             nqp::bindattr($parameter, Parameter, '@!named_names', $names-str-list);
         }
-        nqp::bindattr_i($parameter, Parameter, '$!flags', self.IMPL-FLAGS());
+        nqp::bindattr_i($parameter, Parameter, '$!flags', self.IMPL-FLAGS);
         my $type := self.IMPL-NOMINAL-TYPE();
         nqp::bindattr($parameter, Parameter, '$!type', $type);
         if $!target {
             my $name := $!target.introspection-name;
-            my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
-            nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
+            my constant SIG_ELEM_IS_RW   := 256;
+            my constant SIG_ELEM_IS_COPY := 512;
+            for self.IMPL-UNWRAP-LIST(self.traits) {
+                if nqp::istype($_, RakuAST::Trait::Is) && ($_.name.canonicalize eq 'copy' || $_.name.canonicalize eq 'rw') {
+                    my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
+                    nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
+                    last;
+                }
+            }
         }
         my @post_constraints;
         if $!where {

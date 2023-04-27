@@ -43,7 +43,6 @@ my class Nil is Cool { # declared in BOOTSTRAP
     multi method contains(Nil: |    --> '') { self!warn: 'contains' }
     multi method ends-with(Nil: |   --> '') { self!warn: 'ends-with' }
     multi method flip(Nil:          --> '') { self!warn: 'flip' }
-    multi method Int(Nil: |         --> '') { self!warn: 'Int' }
     multi method indent(Nil: |      --> '') { self!warn: 'indent' }
     multi method index(Nil: |       --> '') { self!warn: 'index' }
     multi method indices(Nil: |     --> '') { self!warn: 'indices' }
@@ -63,7 +62,8 @@ my class Nil is Cool { # declared in BOOTSTRAP
     multi method uc(Nil:            --> '') { self!warn: 'uc' }
 
     # numeric coercions
-    method Numeric( --> 0) { warn "Use of Nil in numeric context" }
+    multi method Int(Nil: | --> 0) { warn "Use of Nil in numeric context" }
+    method Numeric(         --> 0) { warn "Use of Nil in numeric context" }
 
     # string coercions
     multi method gist(Nil: --> "Nil") { }

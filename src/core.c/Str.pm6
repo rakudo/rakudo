@@ -3630,6 +3630,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::join("\n",$lines)
     }
 
+    method is-whitespace(Str:D: --> Bool:D) is implementation-detail {
+        nqp::hllbool(
+          nqp::iseq_i(
+            nqp::findnotcclass(
+              nqp::const::CCLASS_WHITESPACE,self,0,nqp::chars(self)
+            ),
+            nqp::chars(self)
+          )
+        )
+    }
+
     method leading-whitespace(Str:D: --> Str:D) is implementation-detail {
         nqp::substr(self,0,nqp::findnotcclass(
           nqp::const::CCLASS_WHITESPACE,self,0,nqp::chars(self)

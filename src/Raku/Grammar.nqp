@@ -3643,9 +3643,7 @@ if $*COMPILING_CORE_SETTING {
         <.alpha> [ <[-']> | [\d* <.alpha>+] ]* $<level>=\d*
     }
 
-    proto token doc-content {*}
-
-    token doc-content:sym<block> {
+    token doc-content {
         <doc-block>
         <.doc-newline>*
     }

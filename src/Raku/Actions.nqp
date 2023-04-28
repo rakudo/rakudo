@@ -2603,13 +2603,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Name').from-identifier(~$/);
     }
 
-    method pod_block:sym<finish>($/) {
-#        self.attach: $/, self.r('Doc','Verbatim').new(
-#          type => "finish", :abbreviated, text => ~$<finish>
-#        );
-        $*CU.replace-finish-content(~$<finish>);
-    }
-
     method comment:sym<line_directive>($/) {
         my $origin-source := $*ORIGIN-SOURCE;
         $origin-source.register-line-directive(
@@ -2618,8 +2611,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $<filename> );
     }
 
+#-------------------------------------------------------------------------------
+# Declator doc handling
+
     method add-leading-declarator-doc($/) {
-        nqp::push(@*LEADING-DOC,~$/) unless $*POD_BLOCKS_SEEN{$/.from}++;
+        nqp::push(@*LEADING-DOC,~$/) unless $*DECLARATOR_DOC_SEEN{$/.from}++;
     }
 
     method comment:sym<#|(...)>($/) {
@@ -2633,13 +2629,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method add-trailing-declarator-doc($/) {
         my $from := $/.from;
 
-        if $*POD_BLOCKS_SEEN{$from} {
+        if $*DECLARATOR_DOC_SEEN{$from} {
             # nothing to do, all has been done already
         }
         elsif $*DECLARAND
           && $*DECLARAND-LINE eq ~$*ORIGIN-SOURCE.original-line($from) {
             $*DECLARAND.add-trailing(~$/);
-            ++$*POD_BLOCKS_SEEN{$from};
+            ++$*DECLARATOR_DOC_SEEN{$from};
             nqp::deletekey($*DECLARAND-WORRIES,$from);
         }
         else {
@@ -2653,6 +2649,128 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method comment:sym<#=>($/) {
         self.add-trailing-declarator-doc($<attachment>);
+    }
+
+#-------------------------------------------------------------------------------
+# Doc blocks handling
+
+    method doc-TOP($/) {
+        my $docs := nqp::elems($*SEEN);
+        if $docs > 1 {
+            nqp::die("Found $docs doc blocks instead of just one");
+        }
+        else {
+            for $*SEEN {
+                $*CU.pod-content.push($_.value.make-legacy-pod);  # for now
+            }
+        }
+    }
+
+    my sub extract-config($/) {
+        my $config := nqp::hash;
+        $config<numbered> := True if $<doc-numbered>;
+
+        if $<doc-configuration> -> $doc-configuration {
+            for $doc-configuration<doc-colonpair> {
+                my $key := ~$_<key>;
+                if $_<value> -> $value {
+                    $config{$key} := ~$value
+                }
+                elsif nqp::eqat($key,'!',0) {
+                    $config{nqp::substr($key,1)} := False;
+                }
+                else {
+                    $config{$key} := True;
+                }
+            }
+        }
+        $config
+    }
+
+    my sub extract-type($/) {
+        if $<type> -> $type {
+            my $level := 0;
+            if $type<level> -> $levelish {
+                $type := ~$type;
+                nqp::substr(
+                  $type,0,nqp::chars($type) - nqp::chars(~$levelish)
+                )
+            }
+            else {
+                ~$type;
+            }
+        }
+        else {
+            ""
+        }
+    }
+
+    my sub extract-level($/) {
+        if $<type> && $<type><level> -> $levelish {
+            +$levelish
+        }
+        else {
+            0
+        }
+    }
+
+    method doc-block:sym<finish>($/) {
+        $*CU.replace-finish-content(~$<finish>);
+    }
+
+    method doc-block:sym<begin>($/) {
+        my $SEEN := $*SEEN;
+        if $SEEN{~$/.from} {
+            return
+        }
+
+        my $config := extract-config($/);
+        my $type   := extract-type($/);
+        my $level  := extract-level($/);
+
+        my @paragraphs;
+        if $<doc-content> -> $doc-content {
+            for $doc-content {
+                my $from := ~$_.from;
+                if nqp::existskey($SEEN,$from) {
+                    nqp::push(@paragraphs,nqp::atkey($SEEN,$from));
+                    nqp::deletekey($SEEN,$from);
+                }
+                else {
+                    nqp::push(@paragraphs,~$_);
+                }
+            }
+        }
+
+        $SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+          :spaces(~$<spaces>), :$type, :$level, :$config, :@paragraphs;
+    }
+
+    method doc-block:sym<for>($/) {
+        my $config := extract-config($/);
+        my $type   := extract-type($/);
+        my $level  := extract-level($/);
+
+        my @paragraphs;
+        if $<lines> -> $lines {
+            nqp::push(@paragraphs,~$lines);
+        }
+        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+          :spaces(~$<spaces>), :$type, :$level, :$config, :@paragraphs;
+    }
+
+    method doc-block:sym<abbreviated>($/) {
+        my $config := extract-config($/);
+        my $type   := extract-type($/);
+        my $level  := extract-level($/);
+
+        my @paragraphs := nqp::list(
+          ($<header> ?? ~$<header> !! "") ~ ($<lines> ?? ~$<lines> !! "")
+        );
+
+        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+          :spaces(~$<spaces>), :$type, :$level, :$config, :abbreviated,
+          :@paragraphs;
     }
 }
 

@@ -460,6 +460,11 @@ class RakuAST::VarDeclaration::Simple
         $obj
     }
 
+    method set-initializer(RakuAST::Initializer $initializer) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!initializer',
+            $initializer // RakuAST::Initializer);
+    }
+
     method name() {
         self.sigil ~ self.twigil ~ $!desigilname.canonicalize;
     }

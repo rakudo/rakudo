@@ -2298,6 +2298,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token variable_declarator {
         :my $*IN_DECL := 'variable';
+        :my $*VARIABLE;
         :my $sigil;
         [
         | <sigil> <twigil>? <desigilname>?
@@ -2343,8 +2344,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             ]+
         ]?
         [ <.ws> <trait>+ ]?
+        <.stub-variable($/)>
         [<.ws> <initializer>]?
     }
+
+    token stub-variable($*VARIABLE-MATCH) { <?> }
 
     token desigilname {
         [

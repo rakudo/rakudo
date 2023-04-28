@@ -1702,16 +1702,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Initializer', 'CallAssign').new($<dottyop>.ast);
     }
 
-    method variable_declarator($/) {
+    method stub-variable($stub) {
+        my $/ := $*VARIABLE-MATCH;
+
         my str $scope := $*SCOPE;
         my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
 
-        $/.panic("Cannot use := to initialize an attribute")
-          if $scope eq 'has' && $<initializer><sym> eq ':=';
-
-        my $initializer := $<initializer>
-            ?? $<initializer>.ast
-            !! self.r('Initializer');
         my $decl;
         if $<desigilname> {
             my $desigilname := $<desigilname><longname>
@@ -1721,7 +1717,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my str $twigil := $<twigil> || '';
             my $shape := $<semilist> ?? $<semilist>[0].ast !! self.r('SemiList');
             $decl := self.r('VarDeclaration', 'Simple').new:
-                :$scope, :$type, :$desigilname, :$sigil, :$twigil, :$initializer, :$shape;
+                :$scope, :$type, :$desigilname, :$sigil, :$twigil, :$shape;
             if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
                 my str $name := $<sigil> ~ ($<twigil> || '') ~ $desigilname;
                 $/.typed_worry('X::Redeclaration', :symbol($name))
@@ -1737,11 +1733,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $/.panic("Cannot declare an anonymous variable with a twigil");
             }
             $decl := self.r('VarDeclaration', 'Anonymous').new:
-                :$scope, :$type, :sigil(~$<sigil>), :$initializer;
+                :$scope, :$type, :sigil(~$<sigil>);
         }
+
+        $*VARIABLE := $decl;
+    }
+
+    method variable_declarator($/) {
+        my $decl := $*VARIABLE;
+        my str $scope := $*SCOPE;
+        my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
+
+        $/.panic("Cannot use := to initialize an attribute")
+          if $scope eq 'has' && $<initializer><sym> eq ':=';
+
+        $decl.set-initializer($<initializer>.ast) if $<initializer>;
+
         for $<trait> {
             $decl.add-trait($_.ast);
         }
+
         self.attach: $/, $decl;
     }
 

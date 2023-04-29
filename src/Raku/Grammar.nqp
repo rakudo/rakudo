@@ -550,9 +550,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my @*ORIGIN-NESTINGS := [];  # this will be used for the CompUnit object
         my $*COMPILING_CORE_SETTING := 0;
 
-        # $/.from locations of declarator docs seen
-        my $*DECLARATOR_DOC_SEEN := {};
+        # $/.from locations of declarator doc and rakudo blocks that have
+        # been seen and handled before.  Needed because the grammar can
+        # actually visit the same piece of the code more than once.
+        my $*FROM-SEEN  := {};
 
+        # RakuDoc blocks collected so far, to be included with next statement
+        # into its statement list.
+        my $*DOC-BLOCKS-COLLECTED := [];
+
+        # Any resolver that exists outside this grammar: usually this is the
+        # resolver that is active whenever code is being EVALled inside BEGIN
+        # block, which would create a new resolver and put it in $*R.
         my $*OUTER-RESOLVER := $*R;
 
         # Parse a compilation unit.

@@ -1091,7 +1091,7 @@ class RakuAST::Block
     # If constructing AST synthetically, just make the correct thing in the
     # first place.
     method block-or-hash() {
-        my @statements := self.IMPL-UNWRAP-LIST(self.body.statement-list.statements);
+        my @statements := self.body.statement-list.code-statements;
         my int $num-statements := nqp::elems(@statements);
         if $num-statements == 0 {
             # Empty block is always an empty hash composer

@@ -330,29 +330,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Statements
     ##
 
+    method collect-statements($/, $typename) {
+        my $statements := self.r($typename).new;
+        for $<statement> {
+            $_.ast.add-to-statements($statements);
+        }
+        self.attach: $/, $statements;
+        $statements
+    }
+
     method statementlist($/) {
-        my $list := self.r('StatementList').new();
-        for $<statement> {
-            $list.add-statement($_.ast);
-        }
-        self.attach: $/, $list;
-    }
+        my $statements := self.collect-statements($/, 'StatementList');
 
-    method semilist($/) {
-        my $list := self.r('SemiList').new();
-        for $<statement> {
-            $list.add-statement($_.ast);
+        # Add any uncollected doc blocks.  This can happen if there
+        # are no statements in a statementlist, e.g. in a rakudoc
+        # only file.
+        for $*DOC-BLOCKS-COLLECTED {
+            $statements.add-statement($_);
         }
-        self.attach: $/, $list;
+        $*DOC-BLOCKS-COLLECTED := [];
     }
-
-    method sequence($/) {
-        my $sequence := self.r('StatementSequence').new();
-        for $<statement> {
-            $sequence.add-statement($_.ast);
-        }
-        self.attach: $/, $sequence;
-    }
+    method semilist($/) { self.collect-statements($/, 'SemiList')          }
+    method sequence($/) { self.collect-statements($/, 'StatementSequence') }
 
     method statement($/) {
         my $trace := $/.pragma('trace') ?? 1 !! 0;
@@ -390,6 +389,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         $statement.set-trace($trace);
         $statement.set-statement-id($statement-id);
+        $statement.attach-doc-blocks;
         self.attach: $/, $statement;
     }
 
@@ -2631,7 +2631,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Declator doc handling
 
     method add-leading-declarator-doc($/) {
-        nqp::push(@*LEADING-DOC,~$/) unless $*DECLARATOR_DOC_SEEN{$/.from}++;
+        nqp::push(@*LEADING-DOC,~$/) unless $*FROM-SEEN{$/.from}++;
     }
 
     method comment:sym<#|(...)>($/) {
@@ -2645,13 +2645,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method add-trailing-declarator-doc($/) {
         my $from := $/.from;
 
-        if $*DECLARATOR_DOC_SEEN{$from} {
+        if $*FROM-SEEN{$from} {
             # nothing to do, all has been done already
         }
         elsif $*DECLARAND
           && $*DECLARAND-LINE eq ~$*ORIGIN-SOURCE.original-line($from) {
             $*DECLARAND.add-trailing(~$/);
-            ++$*DECLARATOR_DOC_SEEN{$from};
+            ++$*FROM-SEEN{$from};
             nqp::deletekey($*DECLARAND-WORRIES,$from);
         }
         else {
@@ -2677,7 +2677,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             for $*SEEN {
-                $*CU.pod-content.push($_.value.make-legacy-pod);  # for now
+                $*DOC-BLOCKS-COLLECTED.push($_.value);
             }
         }
     }
@@ -2735,10 +2735,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method doc-block:sym<begin>($/) {
-        my $SEEN := $*SEEN;
-        if $SEEN{~$/.from} {
+        if $*FROM-SEEN{$/.from}++ {
             return
         }
+        my $SEEN := $*SEEN;
 
         my $config := extract-config($/);
         my $type   := extract-type($/);
@@ -2763,6 +2763,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method doc-block:sym<for>($/) {
+        if $*FROM-SEEN{$/.from}++ {
+            return
+        }
+
         my $config := extract-config($/);
         my $type   := extract-type($/);
         my $level  := extract-level($/);
@@ -2776,6 +2780,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method doc-block:sym<abbreviated>($/) {
+        if $*FROM-SEEN{$/.from}++ {
+            return
+        }
+
         my $config := extract-config($/);
         my $type   := extract-type($/);
         my $level  := extract-level($/);

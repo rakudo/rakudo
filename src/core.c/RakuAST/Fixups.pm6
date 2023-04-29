@@ -253,7 +253,7 @@ augment class RakuAST::Doc::Block {
     }
 
     method make-legacy-pod-table() {
-        NYI "legacy pod support for =table";
+        X::NYI.new(feature => "legacy pod support for =table").throw;
     }
 
     # create block with type/paragraph introspection

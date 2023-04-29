@@ -62,6 +62,11 @@ class RakuAST::Statement
     has int $.trace;
     has int $.statement-id;
 
+    # this attribute is only for collecting doc blocks in the Raku grammar
+    # so that they can be inserted into the appropriate statement list at
+    # the appropriate time.  It has no meaning anywhere else.
+    has Mu $!doc-blocks;
+
     method set-labels(List $labels) {
         nqp::bindattr(self, RakuAST::Statement, '$!labels',
           $labels ?? self.IMPL-UNWRAP-LIST($labels) !! []);
@@ -72,6 +77,27 @@ class RakuAST::Statement
         Nil
     }
     method labels() { self.IMPL-WRAP-LIST($!labels) }
+
+    # Attach any collected RakuDoc blocks to this statement
+    method attach-doc-blocks() {
+        my @collected := $*DOC-BLOCKS-COLLECTED;
+        if nqp::elems(@collected) {
+            nqp::bindattr(self, RakuAST::Statement, '$!doc-blocks', @collected);
+            $*DOC-BLOCKS-COLLECTED := [];
+        }
+    }
+
+    # Add any RakuDoc blocks attached to this statement to the given
+    # statementlisty object, and add the statement itself to it as well.
+    method add-to-statements($statements) {
+        if $!doc-blocks {
+            for $!doc-blocks {
+                $statements.add-statement($_);
+            }
+        }
+        $statements.add-statement(self);
+        Nil
+    }
 
     method set-statement-id(int $statement-id) {
         nqp::bindattr_i(self, RakuAST::Statement, '$!statement-id', $statement-id);
@@ -288,7 +314,7 @@ class RakuAST::StatementList
     }
 
     method visit-children(Code $visitor) {
-        for self.code-statements {
+        for self.IMPL-UNWRAP-LIST(self.statements) {
             $visitor($_);
         }
     }
@@ -336,7 +362,7 @@ class RakuAST::SemiList
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @statements := nqp::getattr(self, RakuAST::StatementList, '$!statements');
+        my @statements := self.code-statements;
         my int $n := nqp::elems(@statements);
         if $n == 1 {
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
@@ -353,7 +379,7 @@ class RakuAST::SemiList
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my @statements := nqp::getattr(self, RakuAST::StatementList, '$!statements');
+        my @statements := self.code-statements;
         my int $n := nqp::elems(@statements);
         if $n == 1 {
             nqp::atpos(@statements, 0).IMPL-INTERPRET($ctx)
@@ -384,7 +410,7 @@ class RakuAST::StatementSequence
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @statements := nqp::getattr(self, RakuAST::StatementList, '$!statements');
+        my @statements := self.code-statements;
         my int $n := nqp::elems(@statements);
         if $n == 1 {
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)

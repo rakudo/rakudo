@@ -110,9 +110,18 @@ class RakuAST::Doc::Block
     method paragraphs() { self.IMPL-WRAP-LIST($!paragraphs) }
 
     method visit-children(Code $visitor) {
-        for $!paragraphs {
-            $visitor($_);
-        }
+        # no serviceable parts inside
+    }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my $*RESOLVER := $resolver;
+        $resolver.find-attach-target('compunit').pod-content.push(
+          self.make-legacy-pod
+        );
+        True
     }
 }
 

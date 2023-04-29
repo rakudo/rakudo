@@ -553,6 +553,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # $/.from locations of declarator docs seen
         my $*DECLARATOR_DOC_SEEN := {};
 
+        my $*OUTER-RESOLVER := $*R;
+
         # Parse a compilation unit.
         self.comp_unit($*CU)
     }

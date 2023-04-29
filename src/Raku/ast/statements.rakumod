@@ -969,10 +969,10 @@ class RakuAST::Statement::Loop
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!condition) if $!condition;
-        $visitor($!body);
         $visitor($!setup) if $!setup;
+        $visitor($!condition) if $!condition;
         $visitor($!increment) if $!increment;
+        $visitor($!body);
         self.visit-labels($visitor);
     }
 

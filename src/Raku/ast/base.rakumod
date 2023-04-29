@@ -194,6 +194,17 @@ class RakuAST::Node {
         Nil
     }
 
+    method visit-dfs(Code $callback, Bool :$strict) {
+        my $visitor;
+        $visitor := -> $node {
+            if $callback($node) {
+                $node.visit-children($visitor);
+            }
+        }
+        self.visit-children($visitor) if $strict || $callback(self);
+        Nil
+    }
+
     method IMPL-CAN-INTERPRET() { False }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {

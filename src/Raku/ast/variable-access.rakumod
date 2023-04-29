@@ -30,6 +30,8 @@ class RakuAST::Var::Lexical
         $obj
     }
 
+    method postdeclaration-exception-name() { 'X::Redeclaration::Outer' }
+
     method name() {
         ($!sigil // '') ~ ($!twigil // '') ~ $!desigilname.canonicalize
     }
@@ -108,7 +110,6 @@ class RakuAST::Var::Lexical::Setting
 class RakuAST::Var::Dynamic
   is RakuAST::Var
   is RakuAST::Lookup
-  is RakuAST::Attaching
   is RakuAST::CheckTime
 {
     has str $.name;
@@ -133,9 +134,7 @@ class RakuAST::Var::Dynamic
         Nil
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.current-scope.add-used-dynamic-variable(self);
-    }
+    method postdeclaration-exception-name() { 'X::Dynamic::Postdeclaration' }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-sorry: $resolver.build-exception:
@@ -346,7 +345,6 @@ class RakuAST::Var::Compiler::Routine
   is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
   is RakuAST::Attaching
-  is RakuAST::Lookup
 {
     method new() {
         my $obj := nqp::create(self);

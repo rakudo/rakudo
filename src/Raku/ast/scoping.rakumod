@@ -6,6 +6,8 @@ class RakuAST::LexicalScope
     # Caching of lexical declarations in this scope due to AST nodes.
     has List $!declarations-cache;
     has Mu $!lexical-lookup-hash;
+    # Caching of lexical declarations and variables for checking order.
+    has List $!variables-cache;
 
     # Generated lexical declarations thanks to BEGIN-time constructs
     # (from `use`, `import`, generated `proto` subs, etc.)
@@ -16,8 +18,6 @@ class RakuAST::LexicalScope
     has int $!need-succeed-handler;
     has Mu $!catch-handlers;
     has Mu $!control-handlers;
-
-    has Hash $!used-dynamic-variables;
 
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
@@ -78,15 +78,21 @@ class RakuAST::LexicalScope
     method ast-lexical-declarations() {
         unless nqp::isconcrete($!declarations-cache) {
             my @declarations;
-            self.visit: -> $node {
+            my @variables;
+            self.visit-dfs: -> $node {
                 if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration {
                     nqp::push(@declarations, $node);
+                    nqp::push(@variables, $node) unless nqp::istype($node, RakuAST::Routine);
+                }
+                elsif nqp::istype($node, RakuAST::Var::Lexical) || nqp::istype($node, RakuAST::Var::Dynamic) {
+                    nqp::push(@variables, $node);
                 }
                 if $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
                     if nqp::istype($node, RakuAST::ImplicitDeclarations) {
                         for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
                             if $decl.is-simple-lexical-declaration {
                                 nqp::push(@declarations, $decl);
+                                nqp::push(@variables, $decl);
                             }
                         }
                     }
@@ -97,6 +103,7 @@ class RakuAST::LexicalScope
                 }
             }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', @declarations);
+            nqp::bindattr(self, RakuAST::LexicalScope, '$!variables-cache', @variables);
         }
         $!declarations-cache
     }
@@ -224,6 +231,24 @@ class RakuAST::LexicalScope
                 }
             }
         }
+        # Check for variables that are declared after they have already been used.
+        # That's possible with dynamics and with variables also declared in outer scope.
+        my %declarations;
+        while $!variables-cache {
+            my $var := nqp::pop($!variables-cache);
+            if nqp::istype($var, RakuAST::Declaration) {
+                %declarations{$var.lexical-name} := $var;
+            }
+            else {
+                if $var.is-resolved && nqp::existskey(%declarations, $var.name) {
+                    my $decl := %declarations{$var.name};
+                    $decl.add-sorry: $resolver.build-exception:
+                        $var.postdeclaration-exception-name,
+                        :symbol($decl.lexical-name);
+                    $resolver.add-node-with-check-time-problems($decl);
+                }
+            }
+        }
     }
 
     # This is only accurate after resolution - but since we only need it at
@@ -237,22 +262,6 @@ class RakuAST::LexicalScope
         nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', Mu);
         nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', Mu);
         Nil
-    }
-
-    method add-used-dynamic-variable(RakuAST::Var::Dynamic $var) {
-        unless nqp::isconcrete($!used-dynamic-variables) {
-            nqp::bindattr(self, RakuAST::LexicalScope, '$!used-dynamic-variables', {});
-        }
-        $!used-dynamic-variables{$var.name} := $var;
-    }
-
-    method clear-used-dynamic-variables() {
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!used-dynamic-variables', {});
-    }
-
-    method uses-dynamic-variable(str $name) {
-        nqp::isconcrete($!used-dynamic-variables)
-            && nqp::existskey($!used-dynamic-variables, $name)
     }
 
     method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements,

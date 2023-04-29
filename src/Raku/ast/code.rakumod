@@ -909,7 +909,6 @@ class RakuAST::Block
 
     method clear-attachments() {
         self.clear-handler-attachments();
-        self.clear-used-dynamic-variables();
         self.clear-placeholder-attachments();
         self.clear-phaser-attachments();
         Nil
@@ -1351,7 +1350,6 @@ class RakuAST::Routine
 
     method clear-attachments() {
         self.clear-handler-attachments();
-        self.clear-used-dynamic-variables();
         self.clear-placeholder-attachments();
         self.clear-phaser-attachments();
         Nil

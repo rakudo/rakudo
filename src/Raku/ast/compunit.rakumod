@@ -158,7 +158,6 @@ class RakuAST::CompUnit
         nqp::setelems($!init-phasers, 0);
         nqp::setelems($!end-phasers, 0);
         self.clear-handler-attachments();
-        self.clear-used-dynamic-variables();
         Nil
     }
 

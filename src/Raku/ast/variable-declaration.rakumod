@@ -418,7 +418,6 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::SemiList    $.shape;
     has RakuAST::Package     $!attribute-package;
     has RakuAST::Method      $!accessor;
-    has Bool                 $!is-illegal-postdeclaration;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -538,11 +537,6 @@ class RakuAST::VarDeclaration::Simple
             # There is always a package, even if it's just GLOBALish
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
                 $package);
-        }
-
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-illegal-postdeclaration', False);
-        if self.twigil eq '*' && $resolver.current-scope.uses-dynamic-variable(self.name) {
-            nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!is-illegal-postdeclaration', True);
         }
     }
 
@@ -673,10 +667,6 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.add-sorry: $resolver.build-exception:
-            'X::Dynamic::Postdeclaration', :symbol(self.name)
-            if $!is-illegal-postdeclaration;
-
         self.add-sorry: $resolver.build-exception:
             'X::Dynamic::Package', :symbol(self.name)
             if self.twigil eq '*' && self.desigilname.is-multi-part;

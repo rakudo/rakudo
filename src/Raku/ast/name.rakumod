@@ -272,6 +272,7 @@ class RakuAST::Name::Part::Simple
         || $name eq 'OUTERS'
         || $name eq 'SETTING'
         || $name eq 'UNIT'
+        || $name eq 'COMPILING' # seems to be reserved
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil, Bool :$global-fallback) {

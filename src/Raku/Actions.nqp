@@ -356,42 +356,41 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method statement($/) {
         my $trace := $/.pragma('trace') ?? 1 !! 0;
+        # statement ID needs to be captured before creation of statement object
         my $statement-id := $*STATEMENT_ID;
+        my $statement;
+
         if $<EXPR> {
-            my $expr := $<EXPR>.ast;
-            if nqp::istype($expr, self.r('ColonPairs')) {
-                $expr := self.r('ApplyListInfix').new:
-                    :infix(self.r('Infix').new(',')),
-                    :operands($expr.colonpairs);
+            my $expression := $<EXPR>.ast;
+            if nqp::istype($expression, self.r('ColonPairs')) {
+                $expression := self.r('ApplyListInfix').new:
+                  :infix(self.r('Infix').new(',')),
+                  :operands($expression.colonpairs);
             }
-            my $statement := self.r('Statement', 'Expression').new(expression => $expr);
+            $statement := self.r('Statement', 'Expression').new(:$expression);
             if $<statement_mod_cond> {
                 $statement.replace-condition-modifier($<statement_mod_cond>.ast);
             }
             if $<statement_mod_loop> {
                 $statement.replace-loop-modifier($<statement_mod_loop>.ast);
             }
-            $statement.set-trace($trace);
-            $statement.set-statement-id($statement-id);
-            self.attach: $/, $statement;
         }
         elsif $<statement_control> {
-            my $statement := $<statement_control>.ast;
-            $statement.set-trace($trace);
-            $statement.set-statement-id($statement-id);
-            self.attach: $/, $statement;
+            $statement := $<statement_control>.ast;
         }
-        elsif $<label> {
+        elsif $<label> {  # setting label on already created statement
             my $statement := $<statement>.ast;
             $statement.add-label($<label>.ast);
             make $statement;
+            return;       # nothing left to do here
         }
         else {
-            my $statement := self.r('Statement', 'Empty').new;
-            $statement.set-trace($trace);
-            $statement.set-statement-id($statement-id);
-            self.attach: $/, $statement
+            $statement := self.r('Statement', 'Empty').new;
         }
+
+        $statement.set-trace($trace);
+        $statement.set-statement-id($statement-id);
+        self.attach: $/, $statement;
     }
 
     method label($/) {

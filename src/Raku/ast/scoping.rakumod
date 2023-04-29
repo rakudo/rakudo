@@ -733,6 +733,14 @@ class RakuAST::PackageInstaller {
         my $final;
         my $lexical;
         my $pure-package-installation := nqp::istype(self, RakuAST::Package);
+
+        my $illegal-pseudo-package := $name.contains-pseudo-package-illegal-for-declaration;
+        $resolver.add-sorry: $resolver.build-exception:
+            'X::PseudoPackage::InDeclaration',
+                pseudo-package => $illegal-pseudo-package,
+                action => self.dba ~ ' name'
+            if $illegal-pseudo-package;
+
         if $name.is-identifier {
             $final := $name.canonicalize;
             unless $no-lexical {

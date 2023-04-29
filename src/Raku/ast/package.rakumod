@@ -133,6 +133,8 @@ class RakuAST::Package
         nqp::ifnull(nqp::atkey(HOWS,$!declarator),Metamodel::PackageHOW)
     }
 
+    method dba() { 'package' }
+
     method parameterization() {
         $!declarator eq 'role' ?? $!body.signature !! Mu
     }

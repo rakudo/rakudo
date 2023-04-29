@@ -152,6 +152,16 @@ class RakuAST::Name
         $qualified
     }
 
+    method contains-pseudo-package-illegal-for-declaration() {
+        return 'GLOBAL' if self.is-identifier && $!parts[0].name eq 'GLOBAL';
+        for $!parts {
+            return $_.name
+                if $_.is-pseudo-package
+                || nqp::istype($_, RakuAST::Name::Part::Simple) && $_.name eq 'PROCESS';
+        }
+        Nil
+    }
+
     method IMPL-IS-NQP-OP() {
         nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'nqp'
             ?? $!parts[1].name

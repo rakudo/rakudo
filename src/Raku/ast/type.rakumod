@@ -26,6 +26,8 @@ class RakuAST::Type
         0
     }
 
+    method dba() { 'type' }
+
     method IMPL-BASE-TYPE() {
         self
     }
@@ -383,6 +385,8 @@ class RakuAST::Type::Enum
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
 
+    method dba() { 'enum' }
+
     method lexical-name() { $!name.canonicalize }
 
     method generate-lookup() {
@@ -626,6 +630,8 @@ class RakuAST::Type::Subset
     method default-scope() { 'our' }
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
+
+    method dba() { 'subset' }
 
     method lexical-name() { $!name.canonicalize }
 

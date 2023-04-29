@@ -733,6 +733,13 @@ class RakuAST::Resolver::Compile
         self.new(:$setting, :outer($setting), :global(Mu))
     }
 
+    method set-setting(Str :$setting-name!) {
+        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+        my $setting := $loader.load_setting($setting-name);
+        nqp::bindattr(self, RakuAST::Resolver, '$!setting', $setting);
+        nqp::bindattr(self, RakuAST::Resolver, '$!outer', $setting);
+    }
+
     # Pushes an active lexical scope to be considered in lookup. Used only in
     # batch resolve mode.
     method push-scope(RakuAST::LexicalScope $scope) {

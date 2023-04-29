@@ -105,6 +105,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Set up the literals builder, so we can produce and intern literal
         # values.
         $*LITERALS := self.r('LiteralBuilder').new;
+
+        my %options := %*COMPILING<%?OPTIONS>;
+        my $outer_ctx := %options<outer_ctx>;
+        my $setting-name := %options<setting>;
+        my $has-outer := nqp::isconcrete($outer_ctx);
+        my $resolver_type := self.r('Resolver', 'Compile');
+
+        if $has-outer {
+            my $global := %options<global>;
+            $*R := $resolver_type.from-context(:context($outer_ctx), :$global, :resolver($*OUTER-RESOLVER));
+        }
+        else {
+            # Use CORE.c setting for a while to enable parsing of POD.
+            # $*R will be re-initialized later with a proper one. For now we need this to be able to throw exceptions.
+            $*R := $resolver_type.from-setting(:setting-name<CORE.c>);
+        }
     }
 
     method lang_setup($/) {
@@ -112,7 +128,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # TODO don't hardcode this
         my $name := 'CORE';
         my $comp := $*HLL-COMPILER;
-        my $resolver_type := self.r('Resolver', 'Compile');
         my $language-revision := $comp.language_revision;
 
         # Set up the resolver.
@@ -123,8 +138,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $has-outer := nqp::isconcrete($outer_ctx);
         my $precompilation-mode := %options<precomp>;
         if $has-outer {
-            my $global := %options<global>;
-            $*R := $resolver_type.from-context(:context($outer_ctx), :$global, :resolver($*OUTER-RESOLVER));
         }
         elsif $setting-name {
             if nqp::eqat($setting-name, 'NULL.', 0) {
@@ -132,7 +145,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $*COMPILING_CORE_SETTING := 1;
                 if $setting-name ne 'NULL.c' {
                     my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
-                    $*R := $resolver_type.from-setting(:setting($loader.previous_setting_name($setting-name)));
+                    $*R.set-setting(:setting-name($loader.previous_setting_name($setting-name)));
                 }
                 else {
                     # TODO CORE.c is being compiled. What resolver is to be used?
@@ -141,7 +154,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             else {
                 # Setting name is explicitly set. Use it to determine the default language revision.
-                $*R := $resolver_type.from-setting(:setting($setting-name));
+                $*R.set-setting(:setting-name($setting-name));
                 $language-revision := nqp::unbox_i(
                     $*R.resolve-lexical-constant-in-setting('CORE-SETTING-REV').compile-time-value );
                 $comp.set_language_revision($language-revision);
@@ -150,7 +163,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my sub resolver-from-revision() {
             $setting-name := 'CORE.' ~ $comp.lvs.p6rev($language-revision);
-            $*R := $resolver_type.from-setting(:$setting-name);
+            $*R.set-setting(:setting-name($setting-name));
         }
 
         if $<version> {
@@ -159,12 +172,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my @final-version;
             my %lang-revisions := $comp.language_revisions;
             my $modifier-deprecated;
-
-            # If no other method have initialized the resolver then use CORE.c setting for a while.
-            unless $*R {
-                # $*R will be re-initialized later with a proper one. For now we need this to be able to throw exceptions.
-                $*R := $resolver_type.from-setting(:setting-name<CORE.c>);
-            }
 
             if nqp::index($version, '*') >= 0 || nqp::index($version, '+') >= 0 {
                 # For a globbed version a bit of research needs to be done first.
@@ -246,8 +253,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $<version>.worry: "$modifier-deprecated modifier is deprecated for Raku v" ~ $comp.language_version();
             }
         }
-
-        unless nqp::isconcrete($*R) {
+        elsif !$has-outer {
             resolver-from-revision();
         }
 

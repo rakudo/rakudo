@@ -3594,7 +3594,7 @@ if $*COMPILING_CORE_SETTING {
         $<type>=<.doc-identifier>
 
         # fetch any configuration
-        <doc-configuration($<spaces>)>
+        <doc-configuration($<spaces>)>*
 
         # should now be at end of line
         <.doc-newline>+
@@ -3685,7 +3685,7 @@ if $*COMPILING_CORE_SETTING {
     }
 
     token doc-configuration($spaces = '') {
-          [\n $spaces '=']? [\h+ <doc-colonpair>]*
+          [\n $spaces '=' \h+]? <doc-colonpair> [\h+ <doc-colonpair>]*
     }
 
     token doc-newline { \h* \n }

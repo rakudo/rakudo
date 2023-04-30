@@ -2738,7 +2738,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<begin>($/) {
         if $*FROM-SEEN{$/.from}++ {
-            return
+            return;
         }
         my $SEEN := $*SEEN;
 
@@ -2766,7 +2766,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<for>($/) {
         if $*FROM-SEEN{$/.from}++ {
-            return
+            return;
         }
 
         my $config := extract-config($/);
@@ -2783,7 +2783,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<abbreviated>($/) {
         if $*FROM-SEEN{$/.from}++ {
-            return
+            return;
         }
 
         my $config := extract-config($/);

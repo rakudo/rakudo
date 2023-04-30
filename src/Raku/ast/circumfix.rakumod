@@ -81,6 +81,16 @@ class RakuAST::Circumfix::ArrayComposer
     method visit-children(Code $visitor) {
         $visitor($!semilist);
     }
+
+    method IMPL-CAN-INTERPRET() {
+        my @statements := self.IMPL-UNWRAP-LIST(self.semilist.statements);
+        nqp::elems(@statements) == 1 && @statements[0].IMPL-CAN-INTERPRET
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @statements := self.IMPL-UNWRAP-LIST(self.semilist.statements);
+        @statements[0].IMPL-INTERPRET($ctx);
+    }
 }
 
 # Hash composer circumfix. In Raku syntax, blocks and hash composers are

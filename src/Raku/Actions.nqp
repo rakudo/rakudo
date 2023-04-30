@@ -1423,6 +1423,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method compile_variable_access($/, $sigil, $twigil, $desigilname) {
+        $desigilname.IMPL-CHECK($*R, $*CU.context, 1);
         my str $name := $sigil ~ $twigil ~ $desigilname.canonicalize;
         if $twigil eq '' && $desigilname.is-empty {
             # Generate an anonymous state variable.
@@ -1721,6 +1722,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my str $sigil := $<sigil>;
             my str $twigil := $<twigil> || '';
             my $shape := $<semilist> ?? $<semilist>[0].ast !! self.r('SemiList');
+            $desigilname.IMPL-CHECK($*R, $*CU.context, 1);
             $decl := self.r('VarDeclaration', 'Simple').new:
                 :$scope, :$type, :$desigilname, :$sigil, :$twigil, :$shape;
             if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {

@@ -432,7 +432,7 @@ class RakuAST::VarDeclaration::Simple
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
-        if nqp::chars($desigilname.canonicalize) == 0 {
+        if $desigilname.is-empty {
             nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous variable; use RakuAST::VarDeclaration::Anonymous');
         }
 

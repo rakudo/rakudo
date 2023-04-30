@@ -31,7 +31,7 @@ augment class RakuAST::Doc::Markup {
     method make-legacy-pod(RakuAST::Doc::Markup:D:) {
         Pod::FormattingCode.new(
           type     => self.letter,
-          meta     => self.meta,
+          meta     => self.meta.map(*.Array),
           contents => self.atoms.map({
               nqp::istype($_,RakuAST::Doc::Markup)
                 ?? .make-legacy-pod
@@ -77,10 +77,16 @@ augment class RakuAST::Doc::Markup {
     # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D:) {
         my str $letter = self.letter;
-        if $letter eq 'L' | 'E' {
+        if $letter eq 'E' | 'L' | 'X' {
             my @atoms = self.atoms;
             if nqp::istype(@atoms.tail,Str) {
-                if $letter eq 'L' {
+                if $letter eq 'E' {
+                    self.set-atoms(
+                      self.convert-entity(my $meta := @atoms.pop)
+                    );
+                    self.set-meta($meta);
+                }
+                elsif $letter eq 'L' {
                     my ($str,$uri) = @atoms.tail.split('|',2);
                     self.set-meta($uri) if $uri;
                     $str
@@ -88,10 +94,16 @@ augment class RakuAST::Doc::Markup {
                       !! @atoms.pop;
                     self.set-atoms(@atoms.List);
                 }
-                else { # $letter eq 'E'
-                    my $str = self.convert-entity(my $meta := @atoms.pop);
-                    self.set-atoms($str);
-                    self.set-meta($meta);
+                else { # $letter eq 'X' {
+                    my ($str,$refs) = @atoms.tail.split('|',2);
+                    if $refs {
+                        self.add-meta(.split(',').List)
+                          for $refs.split(';');
+                    }
+                    $str
+                      ?? (@atoms.tail = $str)
+                      !! @atoms.pop;
+                    self.set-atoms(@atoms.List);
                 }
             }
         }

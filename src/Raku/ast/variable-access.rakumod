@@ -509,7 +509,7 @@ class RakuAST::Var::Package
     method sigil() { $!sigil }
 
     method can-be-bound-to() {
-        self.is-resolved ?? self.resolution.can-be-bound-to !! False
+        self.is-resolved ?? self.resolution.can-be-bound-to !! $!name.is-pseudo-package
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -554,6 +554,13 @@ class RakuAST::Var::Package
     method IMPL-ADJUST-QAST-FOR-LVALUE(Mu $qast) {
         my $last := $qast.list[-1];
         $qast.pop if nqp::istype($last, QAST::SpecialArg) && $last.named eq 'global_fallback';
+        $qast
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, QAST::Node $source-qast) {
+        my $qast := $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context, :sigil($!sigil));
+        $source-qast.named('BIND');
+        $qast.push($source-qast);
         $qast
     }
 

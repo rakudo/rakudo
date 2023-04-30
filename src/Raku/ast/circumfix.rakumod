@@ -47,7 +47,7 @@ class RakuAST::Circumfix::ArrayComposer
     }
 
     method canonicalize() {
-        my @statements := self.IMPL-UNWRAP-LIST(self.semilist.statements);
+        my @statements := self.semilist.code-statements;
         if nqp::elems(@statements) == 1 {
             self.IMPL-QUOTE-VALUE(@statements[0].expression.literal-value)
         }
@@ -83,12 +83,12 @@ class RakuAST::Circumfix::ArrayComposer
     }
 
     method IMPL-CAN-INTERPRET() {
-        my @statements := self.IMPL-UNWRAP-LIST(self.semilist.statements);
+        my @statements := self.semilist.code-statements;
         nqp::elems(@statements) == 1 && @statements[0].IMPL-CAN-INTERPRET
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        my @statements := self.IMPL-UNWRAP-LIST(self.semilist.statements);
+        my @statements := self.semilist.code-statements;
         my $result := @statements[0].IMPL-INTERPRET($ctx);
         Array.new($result)
     }

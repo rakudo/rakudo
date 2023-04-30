@@ -584,7 +584,7 @@ class RakuAST::VarDeclaration::Simple
                     operand => RakuAST::Declaration::ResolvedConstant.new(
                         :compile-time-value(
                             $!shape && self.sigil eq '%'
-                                ?? self.IMPL-CONTAINER-TYPE($of, :key-type(self.IMPL-UNWRAP-LIST($!shape.statements)[0].expression.compile-time-value))
+                                ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
                                 !! self.IMPL-CONTAINER-TYPE($of)
                         )
                     ),
@@ -702,7 +702,7 @@ class RakuAST::VarDeclaration::Simple
             my $meta-object := $!attribute-package.attribute-type.new(
                 name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
                 type => $!shape && self.sigil eq '%'
-                    ?? self.IMPL-CONTAINER-TYPE($of, :key-type(self.IMPL-UNWRAP-LIST($!shape.statements)[0].expression.compile-time-value))
+                    ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
                     !! self.IMPL-CONTAINER-TYPE($of),
                 has_accessor => self.twigil eq '.',
                 container_descriptor => $cont-desc,
@@ -757,7 +757,7 @@ class RakuAST::VarDeclaration::Simple
                 );
                 if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
                     my $value := $!shape && self.sigil eq '%'
-                        ?? self.IMPL-CONTAINER-TYPE($of, :key-type(self.IMPL-UNWRAP-LIST($!shape.statements)[0].expression.compile-time-value))
+                        ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
                         !! self.IMPL-CONTAINER-TYPE($of);
                     $context.ensure-sc($value);
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(

@@ -318,7 +318,7 @@ class RakuAST::StatementList
     }
 
     method visit-children(Code $visitor) {
-        for self.IMPL-UNWRAP-LIST(self.statements) {
+        for $!statements {
             $visitor($_);
         }
     }

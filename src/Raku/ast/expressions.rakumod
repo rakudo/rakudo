@@ -1261,7 +1261,7 @@ class RakuAST::Postcircumfix::HashIndex
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical(
-            nqp::elems(self.IMPL-UNWRAP-LIST($!index.statements)) > 1
+            nqp::elems($!index.code-statements) > 1
                 ?? '&postcircumfix:<{; }>'
                 !! '&postcircumfix:<{ }>');
         if $resolved {
@@ -1405,7 +1405,8 @@ class RakuAST::ApplyPostfix
         if nqp::istype($operand, RakuAST::Circumfix::Parentheses)
             && $operand.semilist.IMPL-IS-SINGLE-EXPRESSION
         {
-            my $statement := self.IMPL-UNWRAP-LIST($operand.semilist.statements)[0];
+            my $statement :=
+              self.IMPL-UNWRAP-LIST($operand.semilist.code-statements)[0];
             $operand := $statement.expression
                 unless $statement.condition-modifier || $statement.loop-modifier;
         }

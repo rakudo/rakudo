@@ -116,6 +116,7 @@ class RakuAST::Initializer::CallAssign
 
 class RakuAST::ContainerCreator {
     has Mu $!container-base-type;
+    has Bool $.forced-dynamic;
 
     method IMPL-SET-CONTAINER-BASE-TYPE(Mu $type) {
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-base-type', $type);
@@ -139,7 +140,7 @@ class RakuAST::ContainerCreator {
 
         # Form container descriptor.
         my $default := self.type ?? $of !! Any;
-        my int $dynamic := self.twigil eq '*' ?? 1 !! 0;
+        my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
         (
             nqp::eqaddr($of, Mu)
             ?? ContainerDescriptor::Untyped
@@ -429,6 +430,7 @@ class RakuAST::VarDeclaration::Simple
                RakuAST::Type :$type,
         RakuAST::Initializer :$initializer,
            RakuAST::SemiList :$shape,
+                        Bool :$forced-dynamic,
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
@@ -449,6 +451,8 @@ class RakuAST::VarDeclaration::Simple
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor',
           RakuAST::Method);
+        nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
+          $forced-dynamic ?? True !! False);
 
         if $WHY {
             $scope && $scope eq 'has'

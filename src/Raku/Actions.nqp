@@ -1723,8 +1723,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my str $twigil := $<twigil> || '';
             my $shape := $<semilist> ?? $<semilist>[0].ast !! self.r('SemiList');
             $desigilname.IMPL-CHECK($*R, $*CU.context, 1);
+            my $dynprag := $*LANG.pragma('dynamic-scope');
+            my $forced-dynamic := $dynprag
+                ?? $dynprag($sigil ~ $twigil ~ $desigilname.canonicalize)
+                !! 0;
             $decl := self.r('VarDeclaration', 'Simple').new:
-                :$scope, :$type, :$desigilname, :$sigil, :$twigil, :$shape;
+                :$scope, :$type, :$desigilname, :$sigil, :$twigil,
+                :$shape, :$forced-dynamic;
             if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
                 my str $name := $<sigil> ~ ($<twigil> || '') ~ $desigilname;
                 $/.typed_worry('X::Redeclaration', :symbol($name))
@@ -2442,7 +2447,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Work out what kind of thing we're binding into, if any.
         my %args;
         if $<name> {
-            my $decl := self.r('ParameterTarget', 'Var').new(~$<declname>);
+            my $dynprag := $*LANG.pragma('dynamic-scope');
+            my $forced-dynamic := $dynprag
+                ?? $dynprag(~$<declname>)
+                !! 0;
+            my $decl := self.r('ParameterTarget', 'Var').new(~$<declname>, :$forced-dynamic);
             $/.typed_panic('X::Redeclaration', :symbol(~$<declname>))
               if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
             %args<target> := $decl;

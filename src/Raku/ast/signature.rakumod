@@ -1249,11 +1249,13 @@ class RakuAST::ParameterTarget::Var
     has RakuAST::Type $.type;
     has Mu $!of;
 
-    method new(str $name!) {
+    method new(str $name!, Bool :$forced-dynamic) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!of', Mu);
+        nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
+          $forced-dynamic ?? True !! False);
         $obj
     }
 

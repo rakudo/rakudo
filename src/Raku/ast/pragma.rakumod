@@ -219,6 +219,20 @@ class RakuAST::Pragma
                 ).throw;
             }
         }
+        elsif $name eq 'dynamic-scope' {
+            if nqp::islist($arglist) && nqp::elems($arglist) {
+                # Just some variables.
+                my %dyn;
+                for $arglist {
+                    %dyn{$_} := 1;
+                }
+                $*LANG.set_pragma('dynamic-scope', sub ($var) { %dyn{$var} || 0 });
+            }
+            else {
+                # All variables.
+                $*LANG.set_pragma('dynamic-scope', sub ($var) { 1 });
+            }
+        }
         else {
             $resolver.build-exception("X::Pragma::Unknown",:$name).throw;
         }

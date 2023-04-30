@@ -2134,6 +2134,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
         | <sigil> <twigil>? <desigilname>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
+        | <special_variable>
         | <sigil> $<index>=[\d+]
         | <sigil> <?[<]> <postcircumfix>
         | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN_DECL }> <contextualizer>

@@ -1,44 +1,23 @@
+
 # This file contains augmentations to classes that are created in the
 # RakuAST bootstrap to allow a lot of logic (which will **NOT** be
 # needed to compile the Raku setting) to be written in Raku rather
 # than in NQP.
 
-# The "make-legacy-pod" methods will make a legacy compatible Pod
-# object, including all of its weird nesting and use of mutable
-# Arrays rather than immutable Lists
+augment class RakuAST::Doc {
 
-#=foo B<bar> L<C<foo>|zippo>>
-#
-#Pod::Block::Named.new(
-#  name => "foo",
-#  config => {},
-#  contents => [
-#    Pod::Block::Para.new(
-#      config => {},
-#      contents => [
-#        Pod::FormattingCode.new(type => "B", meta => [], config => {}, contents => ["bar"]),
-#        " ",
-#        Pod::FormattingCode.new(type => "L", meta => ["zippo"], config => {}, contents => [
-#          Pod::FormattingCode.new(type => "C", meta => [], config => {}, contents => ["foo"])
-#        ]),
-#        ">"
-#      ]
-#    )
-#  ]
-#);
-augment class RakuAST::Doc::Markup {
-
-    method make-legacy-pod(RakuAST::Doc::Markup:D:) {
-        Pod::FormattingCode.new(
-          type     => self.letter,
-          meta     => self.meta.map(*.Array),
-          contents => self.atoms.map({
-              nqp::istype($_,RakuAST::Doc::Markup)
-                ?? .make-legacy-pod
-                !! $_
-          }).List
-        )
+    # just pass it on for now, make using another class possible
+    # in the not too distant future
+    proto method podify(|) {*}
+    multi method podify() {
+        RakuAST::LegacyPodify.podify(self)
     }
+    multi method podify($WHEREFORE) {
+        RakuAST::LegacyPodify.podify(self, $WHEREFORE)
+    }
+}
+
+augment class RakuAST::Doc::Markup {
 
     # convert the contents of E<> to a codepoint
     method convert-entity(RakuAST::Doc::Markup: Str:D $entity) {
@@ -111,15 +90,6 @@ augment class RakuAST::Doc::Markup {
 }
 
 augment class RakuAST::Doc::Paragraph {
-    method make-legacy-pod(RakuAST::Doc::Paragraph:D:) {
-        Pod::Block::Para.new(
-          contents => self.atoms.map({
-              nqp::istype($_,Str)
-                ?? .lines.join(' ').trim
-                !! .make-legacy-pod
-          }).Slip
-        )
-    }
 
     # easy integer checks
     my int32 $A     = nqp::ord('A');
@@ -227,46 +197,6 @@ augment class RakuAST::Doc::Paragraph {
 }
 
 augment class RakuAST::Doc::Block {
-    method make-legacy-pod(RakuAST::Doc::Block:D:) {
-        my str $type  = self.type;
-        my str $level = self.level;
-
-        # this needs code of its own, as the new grammar only collects
-        # and does not do any interpretation
-        return self.make-legacy-pod-table if $type eq 'table' and !$level;
-
-        my $config   := self.config;
-        my $contents := self.paragraphs.map({
-            nqp::istype($_,Str)
-              ?? .lines.join(' ').trim
-              !! .make-legacy-pod
-        }).List;
-
-        $type
-          ?? $type eq 'item'
-            ?? Pod::Item.new(
-                 level => $level ?? $level.Int !! 1, :$config, :$contents
-               )
-            !! $level
-              ?? $type eq 'head'
-                ?? Pod::Heading.new(:level($level.Int), :$config, :$contents)
-                !! Pod::Block::Named.new(
-                     :name($type ~ $level), :$config, :$contents
-                   )
-              # from here on without level
-              !! $type eq 'comment'
-                ?? Pod::Block::Comment.new(:contents([self.paragraphs.head]))
-                !! $type eq 'input' | 'output' | 'code'
-                  ?? Pod::Block::Code.new(:contents([
-                       self.paragraphs.head.split("\n", :v, :skip-empty)
-                     ]))
-                  !! Pod::Block::Named.new(:name($type), :$config, :$contents)
-          !! $contents  # no type means just a string
-    }
-
-    method make-legacy-pod-table() {
-        X::NYI.new(feature => "legacy pod support for =table").throw;
-    }
 
     # create block with type/paragraph introspection
     method from-paragraphs(:$spaces, :$type, :@paragraphs, *%_) {
@@ -376,24 +306,6 @@ augment class RakuAST::Doc::Block {
         }
 
         $block
-    }
-}
-
-augment class RakuAST::Doc::Declarator {
-    method make-legacy-pod($WHEREFORE) {
-        sub normalize(@paragraphs) {
-            @paragraphs.map(*.lines.map({.trim if $_}).Slip).join(' ')
-        }
-        my $pod := Pod::Block::Declarator.new(
-          WHEREFORE => $WHEREFORE,
-          leading   => [%*ENV<RAKUDO_POD_DECL_BLOCK_USER_FORMAT>
-            ?? self.leading.join("\n")
-            !! normalize(self.leading)
-          ],
-          trailing  => [[normalize self.trailing],]
-        );
-        $WHEREFORE.set_why($pod);
-        $pod
     }
 }
 

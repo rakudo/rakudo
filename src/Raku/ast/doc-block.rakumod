@@ -119,7 +119,7 @@ class RakuAST::Doc::Block
     ) {
         my $*RESOLVER := $resolver;
         $resolver.find-attach-target('compunit').pod-content.push(
-          self.make-legacy-pod
+          self.podify
         );
         True
     }

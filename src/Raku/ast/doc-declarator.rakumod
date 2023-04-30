@@ -44,7 +44,7 @@ class RakuAST::Doc::Declarator
         if $!WHEREFORE {
             my $*RESOLVER := $resolver;
             $resolver.find-attach-target('compunit').pod-content.push(
-              self.make-legacy-pod($!WHEREFORE.meta-object)
+              self.podify($!WHEREFORE.meta-object)
             );
         }
         else {

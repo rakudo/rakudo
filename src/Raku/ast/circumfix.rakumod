@@ -89,7 +89,8 @@ class RakuAST::Circumfix::ArrayComposer
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         my @statements := self.IMPL-UNWRAP-LIST(self.semilist.statements);
-        @statements[0].IMPL-INTERPRET($ctx);
+        my $result := @statements[0].IMPL-INTERPRET($ctx);
+        Array.new($result)
     }
 }
 

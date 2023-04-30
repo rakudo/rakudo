@@ -1194,7 +1194,7 @@ class RakuAST::Postcircumfix::ArrayIndex
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical(
-            nqp::elems(self.IMPL-UNWRAP-LIST($!index.statements)) > 1
+            nqp::elems($!index.code-statements) > 1
                 ?? '&postcircumfix:<[; ]>'
                 !! '&postcircumfix:<[ ]>');
         if $resolved {

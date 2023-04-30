@@ -346,7 +346,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # are no statements in a statementlist, e.g. in a rakudoc
         # only file.
         for $*DOC-BLOCKS-COLLECTED {
-            $statements.add-statement($_);
+            $statements.add-doc-block($_);
         }
         $*DOC-BLOCKS-COLLECTED := [];
     }

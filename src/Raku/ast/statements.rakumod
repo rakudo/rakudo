@@ -92,7 +92,7 @@ class RakuAST::Statement
     method add-to-statements($statements) {
         if $!doc-blocks {
             for $!doc-blocks {
-                $statements.add-statement($_);
+                $statements.add-doc-block($_);
             }
         }
         $statements.add-statement(self);
@@ -205,30 +205,34 @@ class RakuAST::StatementList
 {
     has List $!statements;
     has int $!is-sunk;
+    has Mu   $.code-statements;  # internal only: actual code statements
 
     method new(*@statements, Bool :$trace) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::StatementList, '$!statements', @statements);
+        nqp::bindattr($obj, RakuAST::StatementList, '$!statements',@statements);
         nqp::bindattr_i($obj, RakuAST::StatementList, '$!is-sunk', 0);
+
+        # make sure any code statements are known in the internal code-only list
+        my @code;
+        nqp::bindattr($obj, RakuAST::StatementList, '$!code-statements', @code);
+        for @statements {
+            unless nqp::istype($_,RakuAST::Doc::Block) {
+                nqp::push(@code,$_);
+            }
+        }
+
         $obj
     }
 
+    method add-doc-block(RakuAST::Statement $doc-block) {
+        nqp::push($!statements, $doc-block);
+    }
     method add-statement(RakuAST::Statement $statement) {
-        nqp::push($!statements, $statement);
+        nqp::push(     $!statements, $statement);
+        nqp::push($!code-statements, $statement);
     }
     method statements() {
         self.IMPL-WRAP-LIST($!statements)
-    }
-
-    method code-statements() {
-        my @statements;
-        for $!statements {
-            # for now: in the end these nodes *should* produce a meta
-            # object to be placed in $=pod
-            nqp::push(@statements,$_)
-              unless nqp::istype($_,RakuAST::Doc::Block);
-        }
-        @statements
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

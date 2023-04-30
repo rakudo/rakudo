@@ -165,7 +165,7 @@ class RakuAST::Doc::Markup
 
     method set-atoms($atoms) {
         nqp::bindattr(self, RakuAST::Doc::Markup, '$!atoms',
-          $atoms ?? self.IMPL-UNWRAP-LIST($atoms) !! nqp::list);
+          $atoms ?? self.IMPL-UNWRAP-LIST($atoms) !! []);
         Nil
     }
     method add-atom($atom) { nqp::push($!atoms, $atom) }
@@ -173,7 +173,7 @@ class RakuAST::Doc::Markup
 
     method set-meta($meta) {
         nqp::bindattr(self, RakuAST::Doc::Markup, '$!meta',
-          $meta ?? self.IMPL-UNWRAP-LIST($meta) !! nqp::list);
+          $meta ?? self.IMPL-UNWRAP-LIST($meta) !! []);
         Nil
     }
     method add-meta($meta) { nqp::push($!meta, $meta) }

@@ -2274,6 +2274,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
            | <DECL=multi_declarator>
            ]
         || <.ws><!typename> <typo_typename> <!>
+        || <.ws>[<typename><.ws>]* <ident>
+           <?before <.ws>
+           [
+           | ':'?':'?'='
+           | <.terminator>
+           | <trait>
+           | "where" <.ws> <EXPR>
+           | $
+           ]
+           > {} <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
         || <.malformed($*SCOPE)>
         ]
     }

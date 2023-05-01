@@ -428,6 +428,7 @@ class RakuAST::StatementPrefix::Phaser::First
 {
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("FIRST", self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -439,6 +440,7 @@ class RakuAST::StatementPrefix::Phaser::Next
 {
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("NEXT", self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -450,6 +452,7 @@ class RakuAST::StatementPrefix::Phaser::Last
 {
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("LAST", self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -473,6 +476,7 @@ class RakuAST::StatementPrefix::Phaser::Enter
               // $resolver.find-attach-target('compunit')
             ).add-enter-phaser(self)
         );
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
     method IMPL-RESULT-NAME() {
@@ -493,6 +497,7 @@ class RakuAST::StatementPrefix::Phaser::Leave
 {
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("LEAVE", self, :has-exit-handler);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -504,6 +509,7 @@ class RakuAST::StatementPrefix::Phaser::Keep
 {
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("KEEP", self, :has-exit-handler);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -565,6 +571,7 @@ class RakuAST::StatementPrefix::Phaser::Pre
 
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("PRE", self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -641,6 +648,7 @@ class RakuAST::StatementPrefix::Phaser::Post
 
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("POST", self, :has-exit-handler);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -652,6 +660,7 @@ class RakuAST::StatementPrefix::Phaser::Undo
 {
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("UNDO", self, :has-exit-handler);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -663,6 +672,7 @@ class RakuAST::StatementPrefix::Phaser::End
 {
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('compunit').add-end-phaser(self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }
 
@@ -688,5 +698,6 @@ class RakuAST::StatementPrefix::Phaser::Close
 {
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("CLOSE", self);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 }

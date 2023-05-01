@@ -57,11 +57,17 @@ class RakuAST::OnlyStar
 
 # Marker for all code-y things.
 class RakuAST::Code
-  is RakuAST::Node
+  is RakuAST::Attaching
 {
     has Bool $.custom-args;
     has Mu $!qast-block;
     has str $!cuid;
+    # Only for use by the fallback resolver in dynamically compiled code!
+    has RakuAST::Resolver $!resolver;
+
+    method attach(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+    }
 
     method set-custom-args() {
         nqp::bindattr(self, RakuAST::Code, '$!custom-args', True);
@@ -94,6 +100,11 @@ class RakuAST::Code
     }
 
     method IMPL-STUB-CODE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Not all objects of certain subclasses will be attached properly,
+        # so get that resolver here
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone)
+            unless $!resolver;
+
         my $code-obj := self.meta-object;
         nqp::bindattr_s(self, RakuAST::Code, '$!cuid', QAST::Block.next-cuid());
 
@@ -124,6 +135,7 @@ class RakuAST::Code
         nqp::bindattr($code-obj, Code, '@!compstuff', @compstuff);
         $context.add-cleanup-task(sub () {
             nqp::bindattr($code-obj, Code, '@!compstuff', nqp::null());
+            nqp::bindattr(self, RakuAST::Code, '$!resolver', RakuAST::Resolver) if $context.is-precompilation-mode;
         });
 
         @compstuff[2] := sub ($orig, $clone) {
@@ -216,29 +228,31 @@ class RakuAST::Code
         );
         my $comp := $*HLL-COMPILER // nqp::getcomp("Raku");
         my $precomp := $comp.compile($compunit, :from<qast>, :compunit_ok(1));
-        $resolver := $resolver.clone;
+        {
+            my $resolver := $!resolver;
 #?if !jvm
-        nqp::dispatch(
-            'boot-syscall',
-            'set-compunit-resolver',
-            $precomp,
-            -> $name {
-                my $result := $resolver.resolve-lexical($name);
-                if $result {
-                    nqp::istype($result, RakuAST::CompileTimeValue)
-                        ?? $result.compile-time-value
-                        !! Mu
+            nqp::dispatch(
+                'boot-syscall',
+                'set-compunit-resolver',
+                $precomp,
+                -> $name {
+                    my $result := $resolver.resolve-lexical($name);
+                    if $result {
+                        nqp::istype($result, RakuAST::CompileTimeValue)
+                            ?? $result.compile-time-value
+                            !! Mu
+                    }
+                    else {
+                        nqp::die("No lexical found with name $name via resolver");
+                    }
+                },
+                -> $dyn-name {
+                    my $dynamic-fallback := $resolver.resolve-lexical-in-outer('&DYNAMIC-FALLBACK');
+                    my $without-star := nqp::replace($dyn-name, 1, 1, '');
+                    $dynamic-fallback.compile-time-value()($dyn-name, $without-star)
                 }
-                else {
-                    nqp::die("No lexical found with name $name via resolver");
-                }
-            },
-            -> $dyn-name {
-                my $dynamic-fallback := $resolver.resolve-lexical-in-outer('&DYNAMIC-FALLBACK');
-                my $without-star := nqp::replace($dyn-name, 1, 1, '');
-                $dynamic-fallback.compile-time-value()($dyn-name, $without-star)
-            }
-        );
+            );
+        }
 #?endif
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
@@ -1342,6 +1356,7 @@ class RakuAST::Routine
     method attach(RakuAST::Resolver $resolver) {
         my $package := $resolver.find-attach-target('package');
         nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
     method set-need-routine-variable() {
@@ -1751,6 +1766,7 @@ class RakuAST::Methodish
                 nqp::bindattr(self, RakuAST::Routine, '$!package', $package);
             }
         }
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
     method is-begin-performed-before-children() { True }

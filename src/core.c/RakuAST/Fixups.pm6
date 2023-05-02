@@ -91,6 +91,13 @@ augment class RakuAST::Doc::Markup {
 
 augment class RakuAST::Doc::Paragraph {
 
+    # conceptual leading whitespace of first element
+    method leading-whitespace() {
+        nqp::istype((my $first := self.atoms.head),Str)
+          ?? $first.leading-whitespace
+          !! ""
+    }
+
     # easy integer checks
     my int32 $A     = nqp::ord('A');
     my int32 $Z     = nqp::ord('Z');
@@ -198,10 +205,14 @@ augment class RakuAST::Doc::Paragraph {
 
 augment class RakuAST::Doc::Block {
 
+    # conceptual leading whitespace of first element
+    method leading-whitespace() {
+        self.paragraphs.head.leading-whitespace;
+    }
+
     # create block with type/paragraph introspection
-    method from-paragraphs(:$spaces, :$type, :@paragraphs, *%_) {
+    method from-paragraphs(:$type, :@paragraphs, *%_) {
         my $block  := self.new(:$type, |%_);
-        my $offset := $spaces.chars;
 
         # these need verbatim stuff
         if $type eq 'comment' {
@@ -210,12 +221,21 @@ augment class RakuAST::Doc::Block {
 
         # these need to be handled as code
         elsif $type eq 'code' | 'input' | 'output' {
+            my int $offset = @paragraphs.head.leading-whitespace.chars;
             $block.add-paragraph(@paragraphs.map(*.substr($offset)).join)
         }
 
         # potentially need introspection
         elsif $type eq 'pod' | 'doc' {
 
+            my str $last-leading-ws;
+            my int $offset;
+            my sub set-leading-ws($leading-ws) {
+                $last-leading-ws = $leading-ws // "";
+                $offset          = nqp::chars($last-leading-ws);
+            }
+
+            set-leading-ws(@paragraphs.head.leading-whitespace);
             for @paragraphs -> $paragraph {
 
                 # need further introspection
@@ -245,15 +265,12 @@ augment class RakuAST::Doc::Block {
                         @codes = ();
                     }
 
-                    my str $last-leading-ws =
-                      $paragraph.leading-whitespace.substr($offset);
                     for $paragraph.lines(:!chomp) {
 
                         if .is-whitespace {
                             if @codes {
-                                my int $ws-offset = $last-leading-ws.chars;
                                 @codes.push((
-                                  .chars >= $ws-offset ?? .substr($ws-offset) !! ""
+                                  .chars >= $offset ?? .substr($offset) !! ""
                                 ).chomp);
                             }
                             else {
@@ -263,7 +280,7 @@ augment class RakuAST::Doc::Block {
 
                         # not just whitespace
                         else {
-                            my $line := (.starts-with($spaces)
+                            my $line := (.starts-with($last-leading-ws)
                               ?? .substr($offset)
                               !! .trim-leading
                             ).chomp;
@@ -273,10 +290,11 @@ augment class RakuAST::Doc::Block {
                                 if $leading-ws ne $last-leading-ws {
                                     add-codes if @codes;
                                     $last-leading-ws = $leading-ws;
-                                    @codes = $line.substr($leading-ws.chars);
+                                    $offset          = nqp::chars($leading-ws);
+                                    @codes = $line.substr($offset);
                                 }
                                 else {
-                                    @codes.push: $line.substr($leading-ws.chars);
+                                    @codes.push: $line.substr($offset);
                                 }
                             }
                             else {
@@ -291,6 +309,7 @@ augment class RakuAST::Doc::Block {
 
                 # already introspected
                 else {
+                    set-leading-ws($paragraph.leading-whitespace);
                     $block.add-paragraph($paragraph);
                 }
             }
@@ -300,7 +319,7 @@ augment class RakuAST::Doc::Block {
         else {
             $block.add-paragraph(
               nqp::istype($_,Str)
-                ?? RakuAST::Doc::Paragraph.from-string(.substr($offset))
+                ?? RakuAST::Doc::Paragraph.from-string($_)
                 !! $_
             ) for @paragraphs;
         }

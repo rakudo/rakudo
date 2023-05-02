@@ -2770,7 +2770,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :spaces(~$<spaces>), :$type, :$level, :$config, :@paragraphs;
+          :$type, :$level, :$config, :@paragraphs;
     }
 
     method doc-block:sym<for>($/) {
@@ -2787,7 +2787,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             nqp::push(@paragraphs,~$lines);
         }
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :spaces(~$<spaces>), :$type, :$level, :$config, :@paragraphs;
+          :$type, :$level, :$config, :@paragraphs;
     }
 
     method doc-block:sym<abbreviated>($/) {
@@ -2800,12 +2800,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $level  := extract-level($/);
 
         my @paragraphs := nqp::list(
-          ($<header> ?? ~$<header> !! "") ~ ($<lines> ?? ~$<lines> !! "")
+          ($<header> ?? $<spaces> ~ $<header> !! "")
+            ~ ($<lines> ?? ~$<lines> !! "")
         );
 
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :spaces(~$<spaces>), :$type, :$level, :$config, :abbreviated,
-          :@paragraphs;
+          :$type, :$level, :$config, :abbreviated, :@paragraphs;
     }
 }
 

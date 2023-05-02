@@ -127,7 +127,8 @@ class RakuAST::CompUnit
 
     # Replace the finish content (text after =finish) of the compilation unit.
     method replace-finish-content(Mu $finish-content) {
-        nqp::bindattr(self, RakuAST::CompUnit, '$!finish-content', $finish-content);
+        nqp::bindattr(self, RakuAST::CompUnit, '$!finish-content',
+          nqp::hllizefor($finish-content, 'Raku'));
         Nil
     }
 

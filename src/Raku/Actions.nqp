@@ -987,7 +987,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 else {
                     if nqp::istype($ast, Nodify('Call', 'Name')) {
                         $ast.args.push: $/[0].ast;
-                        self.attach: $/, $ast;
+                        self.attach: $/, $ast,
+                        p5isms => $*LANG.pragma('p5isms'),
+                        has-terminator-or-infix => $*MISSING;
                     }
                     elsif $ast {
                         if nqp::istype($ast, Nodify('Postfixish')) {
@@ -1134,7 +1136,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                                     )
                                 )
                             )
-                        )
+                        ),
+                        :p5isms($*LANG.pragma('p5isms')),
+                        :has-terminator-or-infix($*MISSING)
                     );
                 }
                 else {
@@ -1454,7 +1458,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method term:sym<identifier>($/) {
         self.attach: $/, Nodify('Call', 'Name').new:
             name => Nodify('Name').from-identifier(~$<identifier>),
-            args => $<args>.ast;
+            args => $<args>.ast,
+            p5isms => $*LANG.pragma('p5isms'),
+            has-terminator-or-infix => $*MISSING;
     }
 
     method term:sym<nqp::op>($/) {
@@ -1476,7 +1482,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     :postfix(Nodify('Call', 'Method').new(:$name, :$args));
             }
             else {
-                self.attach: $/, Nodify('Call', 'Name').new: name => $name, args => $args
+                self.attach: $/, Nodify('Call', 'Name').new: name => $name, args => $args, p5isms => $*LANG.pragma('p5isms'), has-terminator-or-infix => $*MISSING
             }
         }
         else {

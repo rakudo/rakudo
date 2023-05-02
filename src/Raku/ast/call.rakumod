@@ -211,11 +211,15 @@ class RakuAST::Call::Name
 {
     has RakuAST::Name $.name;
     has Mu $!package;
+    has int $!p5isms;
+    has int $!has-terminator-or-infix;
 
-    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
+    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args, :$p5isms, :$has-terminator-or-infix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Call::Name, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        nqp::bindattr_i($obj, RakuAST::Call::Name, '$!p5isms', $p5isms ?? 1 !! 0);
+        nqp::bindattr_i($obj, RakuAST::Call::Name, '$!has-terminator-or-infix', $has-terminator-or-infix ?? 1 !! 0);
         $obj
     }
 
@@ -369,12 +373,12 @@ class RakuAST::Call::Name
 
         if $same {
             if $in-deftrap && $no-args {
-                my $orry := $*MISSING ?? "sorry" !! "worry";
+                my $orry := $!has-terminator-or-infix == 1 ?? "sorry" !! "worry";
                 if $in-deftrap == 1 {
                     # probably misused P5ism
                     self."add-$orry"(
                         $resolver.build-exception(
-                            'X::AdHoc',
+                            'X::Comp::AdHoc',
                             payload => "Bare \"$name\", use .$name if you meant to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun"
                         )
                     );
@@ -383,15 +387,15 @@ class RakuAST::Call::Name
                     # probably misused P6ism
                     self."add-$orry"(
                         $resolver.build-exception(
-                            'X::AdHoc',
+                            'X::Comp::AdHoc',
                             payload => "Function \"$name\" may not be called without arguments (please use () or whitespace to denote arguments, or &$name to refer to the function as a noun, or use .$name if you meant to call it as a method on \$_)"
                         )
                     );
                 }
-                elsif $orry eq 'worry' && !$*LANG.pragma('p5isms') {
+                elsif $orry eq 'worry' && $!p5isms == 0 {
                     self.add-sorry(
                         $resolver.build-exception(
-                            'X::AdHoc',
+                            'X::Comp::AdHoc',
                             payload => "Argument to \"$name\" seems to be malformed"
                         )
                     );

@@ -21,12 +21,10 @@ class RakuAST::LegacyPodify {
     multi method podify(RakuAST::Doc::Markup:D $ast) {
         Pod::FormattingCode.new(
           type     => $ast.letter,
-          meta     => $ast.meta.map(*.Array),
+          meta     => $ast.meta,
           contents => $ast.atoms.map({
-              nqp::istype($_,RakuAST::Doc::Markup)
-                ?? self.podify($_)
-                !! $_
-          }).List
+              nqp::istype($_,Str) ?? $_ !! self.podify($_)
+          }).Slip
         )
     }
 

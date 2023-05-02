@@ -2763,8 +2763,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     nqp::push(@paragraphs,nqp::atkey($SEEN,$from));
                     nqp::deletekey($SEEN,$from);
                 }
-                else {
-                    nqp::push(@paragraphs,~$_);
+                elsif ~$_ -> $text {
+                    nqp::push(@paragraphs,$text);
                 }
             }
         }
@@ -2784,7 +2784,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my @paragraphs;
         if $<lines> -> $lines {
-            nqp::push(@paragraphs,~$lines);
+            if ~$lines -> $text {
+                nqp::push(@paragraphs,$text);
+            }
         }
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
           :$type, :$level, :$config, :@paragraphs;
@@ -2799,10 +2801,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $type   := extract-type($/);
         my $level  := extract-level($/);
 
-        my @paragraphs := nqp::list(
-          ($<header> ?? $<spaces> ~ $<header> !! "")
-            ~ ($<lines> ?? ~$<lines> !! "")
-        );
+        my @paragraphs;
+        if ($<header> ?? $<spaces> ~ $<header> !! "")
+            ~ ($<lines> ?? ~$<lines> !! "") -> $text {
+            @paragraphs := nqp::list($text);
+        }
 
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
           :$type, :$level, :$config, :abbreviated, :@paragraphs;

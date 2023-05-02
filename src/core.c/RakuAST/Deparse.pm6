@@ -639,21 +639,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Doc::Markup:D $ast --> Str:D) {
-        my sub deparse-join(@parts, str $delimiter = "") {
-            @parts.map({ self!deparse-unquoted($_) }).join($delimiter)
-        }
-
-        my str $letter = $ast.letter;
-        my $meta      := $ast.meta;
-
-        $letter ~ '<'~ ($letter eq 'E'
-          ?? deparse-join($meta, ';') ~ '>'
-          !! deparse-join($ast.atoms) ~ (
-               $meta
-                 ?? '|' ~ deparse-join($meta, $ast.separator) ~ '>'
-                 !! '>'
-             )
-        )
+        $ast.Str
     }
 
     multi method deparse(RakuAST::Doc::Paragraph:D $ast --> Str:D) {

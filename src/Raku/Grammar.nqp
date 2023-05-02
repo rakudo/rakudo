@@ -3639,7 +3639,7 @@ if $*COMPILING_CORE_SETTING {
         # should now be at end of line
         <.doc-newline>+
 
-        $<lines>=[^^ \h* <![=]> \N+ \n?]+
+        $<lines>=[^^ \h* <![=]> \N+ \n?]*
     }
 
     token doc-block:sym<abbreviated> {

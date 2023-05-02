@@ -27,12 +27,15 @@ augment class RakuAST::Doc::Markup {
         if nqp::not_i(nqp::istype($codepoint,Allomorph)) {  # not numeric
             $string := RakuAST::HTML::Entities.parse($entity);
             unless $string {
-                my $worry := qq/"$entity" is not a valid HTML5 entity./;
-                if $*RESOLVER -> $resolver {
-                    self.worry-ad-hoc($resolver, $worry);
-                }
-                else {
-                    warn $worry;
+                $string := $entity.uniparse;
+                unless $string {
+                    my $worry := qq/"$entity" is not a valid HTML5 entity./;
+                    if $*RESOLVER -> $resolver {
+                        self.worry-ad-hoc($resolver, $worry);
+                    }
+                    else {
+                        warn $worry;
+                    }
                 }
             }
         }
@@ -60,10 +63,11 @@ augment class RakuAST::Doc::Markup {
             my @atoms = self.atoms;
             if nqp::istype(@atoms.tail,Str) {
                 if $letter eq 'E' {
-                    self.set-atoms(
-                      self.convert-entity(my $meta := @atoms.pop)
-                    );
-                    self.set-meta($meta);
+                    self.set-atoms;  # reset so we can add again
+                    for @atoms.pop.split(';') {
+                        self.add-meta($_);
+                        self.add-atom(self.convert-entity($_));
+                    }
                 }
                 elsif $letter eq 'L' {
                     my ($str,$uri) = @atoms.tail.split('|',2);
@@ -86,6 +90,19 @@ augment class RakuAST::Doc::Markup {
                 }
             }
         }
+    }
+
+    multi method Str(RakuAST::Doc::Markup:D:) {
+        my str $letter = self.letter;
+        $letter eq 'E'
+          ?? 'E<' ~ self.meta.join(';') ~ '>'
+          !! $letter eq 'L'
+            ?? 'L<' ~ self.atoms.join
+                  ~ '|' ~ self.meta ~ '>'
+            !! $letter eq 'X'
+              ?? 'X<' ~ self.atoms.join
+                    ~ '|' ~ self.meta.join(self.separator) ~ '>'
+              !! $letter ~ '<' ~ self.atoms.join ~ '>'
     }
 }
 

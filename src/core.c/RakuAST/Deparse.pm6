@@ -646,10 +646,13 @@ class RakuAST::Deparse {
         my str $letter = $ast.letter;
         my $meta      := $ast.meta;
 
-        $letter ~ '<'~ deparse-join($ast.atoms) ~ (
-          $meta
-            ?? '|' ~ deparse-join($meta, $ast.separator) ~ '>'
-            !! '>'
+        $letter ~ '<'~ ($letter eq 'E'
+          ?? deparse-join($meta, ';') ~ '>'
+          !! deparse-join($ast.atoms) ~ (
+               $meta
+                 ?? '|' ~ deparse-join($meta, $ast.separator) ~ '>'
+                 !! '>'
+             )
         )
     }
 

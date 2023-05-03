@@ -31,9 +31,14 @@ class RakuAST::LegacyPodify {
     multi method podify(RakuAST::Doc::Paragraph:D $ast) {
         Pod::Block::Para.new(
           contents => $ast.atoms.map({
-              nqp::istype($_,Str)
-                ?? .lines.map(*.words.join(' ')).join(' ').trim
-                !! self.podify($_)
+              if nqp::istype($_,Str) {
+                  if .lines.map(*.words.join(' ')).join(' ').trim -> $string {
+                      $string
+                  }
+              }
+              else {
+                  self.podify($_);
+              }
           }).Slip
         )
     }

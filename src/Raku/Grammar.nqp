@@ -555,6 +555,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # actually visit the same piece of the code more than once.
         my $*FROM-SEEN  := {};
 
+        # Set to True if parsing inside a DOC-BLOCK, to prevent attaching
+        # of doc blocks to statements that will not actually be CHECKed
+        my $*PARSING-DOC-BLOCK;
+
         # RakuDoc blocks collected so far, to be included with next statement
         # into its statement list.
         my $*DOC-BLOCKS-COLLECTED := [];
@@ -3556,9 +3560,11 @@ if $*COMPILING_CORE_SETTING {
     ##
 
     token doc-TOP {
+        { $*PARSING-DOC-BLOCK := 1 }
         :my $*SEEN := {};
         <.doc-newline>*
         <doc-block>
+        { $*PARSING-DOC-BLOCK := 0 }
     }
 
     proto token doc-block {*}
@@ -3636,6 +3642,9 @@ if $*COMPILING_CORE_SETTING {
         # identifier indicates type of block
         $<type>=<.doc-identifier>
 
+        # fetch any configuration
+        <doc-configuration($<spaces>)>*
+
         # should now be at end of line
         <.doc-newline>+
 
@@ -3676,16 +3685,16 @@ if $*COMPILING_CORE_SETTING {
 
     token doc-numbered { <.after [^|\s]> '#' <.before \s> }
 
-    token doc-colonpair {
-        ':'
-        [
-          $<key>=['!'? <.doc-identifier>]
-          | [ $<key>=<.doc-identifier> '<' $<value>=<-[>]>* '>' ]
-        ]
-    }
-
     token doc-configuration($spaces = '') {
-          [\n $spaces '=' \h+]? <doc-colonpair> [\h+ <doc-colonpair>]*
+
+          # either more config on next line, or after some whitespace
+          [[\n $spaces '=' \h+] | \h+]
+
+          # at least one colonpair
+          <colonpair>
+
+          # and maybe more after some whitespace
+          [\h+ <colonpair>]*
     }
 
     token doc-newline { \h* \n }

@@ -389,7 +389,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         $statement.set-trace($trace);
         $statement.set-statement-id($statement-id);
-        $statement.attach-doc-blocks;
+        unless $*PARSING-DOC-BLOCK {
+            $statement.attach-doc-blocks;
+        }
         self.attach: $/, $statement;
     }
 
@@ -436,7 +438,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # also connect any leading declarator doc that we collected already
     method set-declarand($/, $it) {
         if $*IGNORE-NEXT-DECLARAND {
-#nqp::say("ignoring declarand for " ~ $it.HOW.name($it));
             $*IGNORE-NEXT-DECLARAND := 0;
         }
         else {
@@ -449,7 +450,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 nqp::deletekey($worries, $_.key);
             }
 
-#nqp::say("setting declarand for " ~ $it.HOW.name($it));
             $*DECLARAND      := $it;
             $*DECLARAND-LINE := ~$*ORIGIN-SOURCE.original-line($/.from);
             if @*LEADING-DOC -> @leading {
@@ -2698,16 +2698,58 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $config<numbered> := True if $<doc-numbered>;
 
         if $<doc-configuration> -> $doc-configuration {
-            for $doc-configuration<doc-colonpair> {
-                my $key := ~$_<key>;
-                if $_<value> -> $value {
-                    $config{$key} := ~$value
-                }
-                elsif nqp::eqat($key,'!',0) {
-                    $config{nqp::substr($key,1)} := False;
-                }
-                else {
-                    $config{$key} := True;
+            for $doc-configuration -> $/ {
+                for $<colonpair> -> $/ {
+                    my $key := ~$<identifier>;
+                    if $<num> -> $int {                # :42bar
+                        my @result := nqp::radix(10,~$int,0,0x02);
+                        $config{$key} := @result[0];
+                    }
+                    elsif $<coloncircumfix> -> $ccf {  # :bar("foo",42)
+                        my $ast := $ccf.ast;
+                        if nqp::istype($ast,RakuAST::QuotedString) {
+                            $config{$key} := $ast.literal-value;
+                        }
+                        else {
+                            my $expr :=
+                              $ccf<circumfix><semilist><statement>[0]<EXPR>;
+                            if $expr<value> -> $value {
+                                $config{$key} := +$value<number>;
+                            }
+                            else {
+                                my @values;
+                                my int $i;
+                                while $expr[$i++] -> $value {
+                                    my $ast := $value.ast;
+                                    nqp::push(
+                                      @values,
+                                      nqp::istype($ast,RakuAST::QuotedString)
+                                        ?? $ast.literal-value
+                                        !! +$value<value><number>
+                                    );
+                                }
+                                if nqp::elems(@values) -> $elems {
+                                    $config{$key} := $elems == 1
+                                      ?? @values[0]
+                                      !! @values;
+                                }
+                            }
+                        }
+                    }
+                    elsif $<var> {                     # :$bar
+                        nqp::die("cannot handle variables in RakuDoc config");
+                    }
+                    else {                             # :!bar | :bar
+                        # this is a ginormous hack to be able to pass the
+                        # concept of True / False back to HLL, as the True
+                        # and False are **NOT** known in the HLL world.
+                        # The codepoints used are:
+                        #   22A8 TRUE ⊨
+                        #   22AD NOT TRUE ⊭
+                        # which will be converted to HLL True / False in
+                        # RakuAST::Doc::Block.from-paragraphs
+                        $config{$key} := $<neg> ?? '⊭' !! '⊨';
+                    }
                 }
             }
         }

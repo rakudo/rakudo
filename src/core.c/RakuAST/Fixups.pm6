@@ -230,18 +230,6 @@ augment class RakuAST::Doc::Block {
     # create block with type/paragraph introspection
     method from-paragraphs(:$type, :$config, :@paragraphs, *%_) {
 
-        # Normalize True/False values in config
-        for $config.kv -> $key, $value {
-            if nqp::istype($value,Str) {
-                if $value eq '⊨' {
-                    $config.BIND-KEY($key,True);
-                }
-                elsif $value eq '⊭' {
-                    $config.BIND-KEY($key,False);
-                }
-            }
-        }
-
         # set up basic block
         my $block := self.new(:$type, :$config, |%_);
 

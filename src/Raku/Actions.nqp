@@ -2740,15 +2740,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         nqp::die("cannot handle variables in RakuDoc config");
                     }
                     else {                             # :!bar | :bar
-                        # this is a ginormous hack to be able to pass the
-                        # concept of True / False back to HLL, as the True
-                        # and False are **NOT** known in the HLL world.
-                        # The codepoints used are:
-                        #   22A8 TRUE ⊨
-                        #   22AD NOT TRUE ⊭
-                        # which will be converted to HLL True / False in
-                        # RakuAST::Doc::Block.from-paragraphs
-                        $config{$key} := $<neg> ?? '⊭' !! '⊨';
+                        $config{$key} :=
+                          $*R.resolve-lexical-constant-in-setting(
+                            $<neg> ?? 'False' !! 'True'
+                          ).compile-time-value;
                     }
                 }
             }

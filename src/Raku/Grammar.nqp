@@ -3569,6 +3569,7 @@ if $*COMPILING_CORE_SETTING {
 
     proto token doc-block {*}
 
+    # handle =finish and friends
     token doc-block:sym<finish> {
         ^^ \h*
         [
@@ -3579,6 +3580,23 @@ if $*COMPILING_CORE_SETTING {
         $<finish> = .*
     }
 
+    # handle =begin comment
+    token doc-block:sym<comment> {
+
+        # save any leading whitespace from start of line
+        ^^ $<spaces>=[ \h* ]
+
+        # start of 'begin comment' block
+        '=begin' \h+ 'comment' <doc-configuration($<spaces>)>* <doc-newline>+
+
+        # fetch all non-empty lines, *NOT* looking at =pod markers
+        $<lines>=[^^ \h* \N+ \n?]*?
+
+        # until the matching end block
+        ^^ $<spaces> '=end' \h+ 'comment' [<doc-newline> | $]
+    }
+
+    # handle all the other =begin
     token doc-block:sym<begin> {
 
         # save any leading whitespace from start of line
@@ -3605,7 +3623,7 @@ if $*COMPILING_CORE_SETTING {
         # should now be at end of line
         <.doc-newline>+
 
-        # get any content
+        # get any doc blocks
         <doc-content>*
 
         # until the end marker

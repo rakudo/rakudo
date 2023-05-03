@@ -2787,6 +2787,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*CU.replace-finish-content(~$<finish>);
     }
 
+    method doc-block:sym<comment>($/) {
+        if $*FROM-SEEN{$/.from}++ {
+            return;
+        }
+
+        my $config := extract-config($/);
+
+        my @paragraphs;
+        if $<lines> -> $lines {
+            if ~$lines -> $text {
+                nqp::push(@paragraphs,$text);
+            }
+        }
+
+        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+          :type<comment>, :$config, :@paragraphs;
+    }
+
     method doc-block:sym<begin>($/) {
         if $*FROM-SEEN{$/.from}++ {
             return;

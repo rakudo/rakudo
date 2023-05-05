@@ -3,6 +3,39 @@
 
 class RakuAST::LegacyPodify {
 
+    # basically mangle text to just single spaces
+    my sub sanitize(Str:D $string --> Str:D) {
+        $string eq "\n"
+          ?? ' '
+          !! $string
+               .subst(/ \n+ $/)
+               .subst("\n",  ' ', :global)
+               .subst(/\s+/, ' ', :global)
+    }
+
+    # flatten the markup into a string, needed for V<>
+    my sub flatten(RakuAST::Doc::Markup:D $markup, :$inner --> Str:D) {
+        my str @parts;
+        for $markup.atoms {
+            @parts.push: nqp::isstr($_) ?? $_ !! flatten($_, :inner);
+        }
+
+        # V<> inside V<> *are* rendered
+        if $inner {
+            @parts.unshift: '<';
+            @parts.unshift: $markup.letter;
+            @parts.push: '>';
+        }
+
+        nqp::join('',@parts)
+    }
+
+    # produce list without last if last is \n
+    my sub no-last-nl($list) {
+        my $last := $list.tail;
+        $list.head({ $_ - (nqp::istype($last,Str) && $last eq "\n") })
+    }
+
     proto method podify(|) {*}
 
     # Base class catcher
@@ -19,26 +52,26 @@ class RakuAST::LegacyPodify {
     }
 
     multi method podify(RakuAST::Doc::Markup:D $ast) {
-        Pod::FormattingCode.new(
-          type     => $ast.letter,
-          meta     => $ast.meta,
-          contents => $ast.atoms.map({
-              nqp::istype($_,Str) ?? $_ !! self.podify($_)
-          }).Slip
+        my str $letter = $ast.letter;
+        $letter eq 'V'
+          ?? flatten($ast)
+          !! Pod::FormattingCode.new(
+               type     => $letter,
+               meta     => $ast.meta,
+               contents => $ast.atoms.map({
+                   nqp::istype($_,Str)
+                     ?? ($++ ?? $_ !! .trim-leading)  # first must be trimmed
+                     !! self.podify($_)
+               }).Slip
         )
     }
 
     multi method podify(RakuAST::Doc::Paragraph:D $ast) {
         Pod::Block::Para.new(
-          contents => $ast.atoms.map({
-              if nqp::istype($_,Str) {
-                  if .lines.map(*.words.join(' ')).join(' ').trim -> $string {
-                      $string
-                  }
-              }
-              else {
-                  self.podify($_);
-              }
+          contents => no-last-nl($ast.atoms).map({
+              nqp::istype($_,Str)
+                ?? sanitize($_) || Empty
+                !! self.podify($_)
           }).Slip
         )
     }
@@ -52,10 +85,15 @@ class RakuAST::LegacyPodify {
         return self.podify-table($ast) if $type eq 'table' and !$level;
 
         my $config   := $ast.config;
-        my $contents := $ast.paragraphs.map({
-            nqp::istype($_,Str)
-              ?? .lines.join(' ').trim
-              !! self.podify($_)
+        my $contents := no-last-nl($ast.paragraphs).map({
+            if nqp::istype($_,Str) {
+                if sanitize(.trim-leading) -> $contents {
+                    Pod::Block::Para.new(:$contents)
+                }
+            }
+            else {
+                self.podify($_)
+            }
         }).List;
 
         $type
@@ -74,7 +112,9 @@ class RakuAST::LegacyPodify {
                 ?? Pod::Block::Comment.new(:contents([$ast.paragraphs.head]))
                 !! $type eq 'input' | 'output' | 'code'
                   ?? Pod::Block::Code.new(:contents([
-                       $ast.paragraphs.head.split("\n", :v, :skip-empty)
+                       no-last-nl(
+                         $ast.paragraphs.head.split("\n", :v, :skip-empty).List
+                       )
                      ]))
                   !! Pod::Block::Named.new(:name($type), :$config, :$contents)
           !! $contents  # no type means just a string

@@ -627,7 +627,7 @@ class RakuAST::Deparse {
           ~ ($abbreviated ?? " " !! "\n")
           ~ $ast.paragraphs.map({
               nqp::istype($_,Str) ?? $_ !! self.deparse($_)
-            }).join("\n\n");
+            }).join("\n");
         $abbreviated
           ?? "=$body\n\n"
           !! "=begin $body\n=end $type\n\n"

@@ -129,19 +129,29 @@ class RakuAST::Doc::Block
 class RakuAST::Doc::Markup
   is RakuAST::Doc
 {
-    has str  $.letter;
-    has List $!atoms;
-    has List $!meta;
-    has str  $.separator;
+    has str  $.letter;     # the letter of Markup: A..Z
+    has str  $.opener;     # opening sequence: < << «
+    has str  $.closer;     # closing sequence: > >> »
+    has str  $.separator;  # separator inside meta: for deparsing mainly
+    has List $!atoms;      # any contents of this markup (str | nested markup)
+    has List $!meta;       # any meta info (e.g. url | lemma | original value)
 
-    method new(:$letter!, :$atoms, :$meta, :$separator) {
+    method new(:$letter!, :$opener, :$closer, :$atoms, :$meta, :$separator) {
         my $obj := nqp::create(self);
-        $obj.set-letter($letter);
+        nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!letter',
+          $letter // nqp::die("Must specify a letter"));
+        nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!opener',
+          $opener // '<');
+        nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!closer',
+          $closer // '>');
+        nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!separator',
+          $separator // "");
+
         $obj.set-atoms($atoms);
         $obj.set-meta($meta);
-        $obj.set-separator($separator);
         $obj
     }
+
     method visit-children(Code $visitor) {
         for $!atoms {
             $visitor($_);
@@ -149,18 +159,6 @@ class RakuAST::Doc::Markup
         for $!meta {
             $visitor($_);
         }
-    }
-
-    method set-letter(Str $letter) {
-        nqp::bindattr_s(self, RakuAST::Doc::Markup, '$!letter',
-          $letter // nqp::die("Must specify a letter"));
-        Nil
-    }
-
-    method set-separator(Str $separator) {
-        nqp::bindattr_s(self, RakuAST::Doc::Markup, '$!separator',
-          $separator // "");
-        Nil
     }
 
     method set-atoms($atoms?) {

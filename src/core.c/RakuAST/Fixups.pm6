@@ -94,15 +94,24 @@ augment class RakuAST::Doc::Markup {
 
     multi method Str(RakuAST::Doc::Markup:D:) {
         my str $letter = self.letter;
-        $letter eq 'E'
-          ?? 'E<' ~ self.meta.join(';') ~ '>'
-          !! $letter eq 'L'
-            ?? 'L<' ~ self.atoms.join
-                  ~ '|' ~ self.meta ~ '>'
-            !! $letter eq 'X'
-              ?? 'X<' ~ self.atoms.join
-                    ~ '|' ~ self.meta.join(self.separator) ~ '>'
-              !! $letter ~ '<' ~ self.atoms.join ~ '>'
+        my str @parts  = $letter, self.opener;
+        if $letter eq 'E' {
+            @parts.push: self.meta.join(';');
+        }
+        else {
+            @parts.push: self.atoms.join;
+
+            if $letter eq 'L' {
+                @parts.push: '|';
+                @parts.push: self.meta.join;
+            }
+            elsif $letter eq 'X' {
+                @parts.push: '|';
+                @parts.push: self.meta.join(self.separator);
+            }
+        }
+        @parts.push: self.closer;
+        @parts.join
     }
 }
 
@@ -129,8 +138,8 @@ augment class RakuAST::Doc::Paragraph {
         my int32 @graphemes;  # graphemes collected so far
 
         my $paragraph := RakuAST::Doc::Paragraph.new;
-        my $markups   := nqp::list;  # stack of Markup objects
-        my $current;                 # current Markup object
+        my $markups   := nqp::list;    # stack of Markup objects
+        my $current;                   # current Markup object
 
         nqp::strtocodes($string,nqp::const::NORMALIZE_NFC,@codes);
         my int $i     = -1;
@@ -166,7 +175,7 @@ augment class RakuAST::Doc::Paragraph {
                   nqp::pop_i(@graphemes),  # letter is not part of string
                   add-graphemes(collector),
                   nqp::push($markups,RakuAST::Doc::Markup.new(
-                    :letter(nqp::chr($prev))
+                    :letter(nqp::chr($prev)), :opener('<'), :closer('>')
                   ))
                 ),
                 nqp::push_i(@graphemes,$this),                  # bare <
@@ -213,10 +222,16 @@ augment class RakuAST::Doc::Paragraph {
             );
         }
 
-        # add any (remaining) graphemes
-        add-graphemes($paragraph);
+        # no markup seen, so the string itself is fine
+        if nqp::elems(@graphemes) == $elems {
+            $string
+        }
 
-        $paragraph
+        # some markup created
+        else {
+            add-graphemes($paragraph);
+            $paragraph
+        }
     }
 }
 
@@ -228,7 +243,7 @@ augment class RakuAST::Doc::Block {
     }
 
     # create block with type/paragraph introspection
-    method from-paragraphs(:$type, :$config, :@paragraphs, *%_) {
+    method from-paragraphs(:$spaces = '', :$type, :$config, :@paragraphs, *%_) {
 
         # set up basic block
         my $block := self.new(:$type, :$config, |%_);
@@ -254,7 +269,7 @@ augment class RakuAST::Doc::Block {
                 $offset          = nqp::chars($last-leading-ws);
             }
 
-            set-leading-ws(@paragraphs.head.leading-whitespace);
+            set-leading-ws($spaces);
             for @paragraphs -> $paragraph {
 
                 # need further introspection
@@ -272,7 +287,10 @@ augment class RakuAST::Doc::Block {
                         my $code := @codes.join("\n");
                         my $last := $block.paragraphs.tail;
 
-                        $last && $last.type && $last.type eq 'code'
+                        $last
+                          && nqp::not_i(nqp::istype($last,Str))
+                          && $last.type
+                          && $last.type eq 'code'
                           ?? $last.set-paragraphs(  # combine with previous
                                $last.paragraphs.head ~ "\n" ~ $code
                              )
@@ -293,7 +311,7 @@ augment class RakuAST::Doc::Block {
                                 ).chomp);
                             }
                             else {
-                                @lines.push($_);
+                                @lines.push("\n");  # lose any other whitespace
                             }
                         }
 
@@ -302,7 +320,7 @@ augment class RakuAST::Doc::Block {
                             my $line := (.starts-with($last-leading-ws)
                               ?? .substr($offset)
                               !! .trim-leading
-                            ).chomp;
+                            );
                             if $line.leading-whitespace -> str $leading-ws {
                                 add-lines if @lines;
 
@@ -310,10 +328,10 @@ augment class RakuAST::Doc::Block {
                                     add-codes if @codes;
                                     $last-leading-ws = $leading-ws;
                                     $offset          = nqp::chars($leading-ws);
-                                    @codes = $line.substr($offset);
+                                    @codes = $line.substr($offset).chomp;
                                 }
                                 else {
-                                    @codes.push: $line.substr($offset);
+                                    @codes.push: $line.substr($offset).chomp;
                                 }
                             }
                             else {

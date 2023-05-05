@@ -2825,7 +2825,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :$type, :$level, :$config, :@paragraphs;
+          :spaces(~$<spaces>), :$type, :$level, :$config, :@paragraphs;
     }
 
     method doc-block:sym<for>($/) {

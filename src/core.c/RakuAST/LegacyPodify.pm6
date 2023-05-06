@@ -13,15 +13,33 @@ class RakuAST::LegacyPodify {
                .subst(/\s+/, ' ', :global)
     }
 
+    # hide the outer markup
+    my sub hide(RakuAST::Doc::Markup:D $markup) {
+        my @atoms = $markup.atoms;
+        given @atoms.head {
+            nqp::istype($_,Str)
+              ?? ($_ = $markup.opener ~ $_)
+              !! @atoms.unshift($markup.opener)
+        }
+        given @atoms.tail {
+            nqp::istype($_,Str)
+              ?? ($_ = $_ ~ $markup.closer)
+              !! @atoms.posh($markup.closer)
+        }
+        nqp::istype(@atoms.are,Str)
+          ?? @atoms.join
+          !! @atoms.map({ nqp::istype($_,Str) ?? $_ !! .podify }).Slip
+    }
+
     # flatten the markup into a string, needed for V<>
-    my sub flatten(RakuAST::Doc::Markup:D $markup, :$inner --> Str:D) {
+    my sub flatten(RakuAST::Doc::Markup:D $markup, :$render --> Str:D) {
         my str @parts;
         for $markup.atoms {
-            @parts.push: nqp::isstr($_) ?? $_ !! flatten($_, :inner);
+            @parts.push: nqp::isstr($_) ?? $_ !! flatten($_, :render);
         }
 
         # V<> inside V<> *are* rendered
-        if $inner {
+        if $render {
             @parts.unshift: '<';
             @parts.unshift: $markup.letter;
             @parts.push: '>';
@@ -34,6 +52,44 @@ class RakuAST::LegacyPodify {
     my sub no-last-nl($list) {
         my $last := $list.tail;
         $list.head({ $_ - (nqp::istype($last,Str) && $last eq "\n") })
+    }
+
+    # create podified contents for atoms
+    method !contentify-atoms($ast) {
+        my str @parts;
+        my @atoms = $ast.atoms.map({
+            nqp::istype($_,Str) ?? $_ !! .podify  # may Slip
+        }).map({
+
+            # collect any strings
+            if nqp::istype($_,Str) {
+                @parts.push: $_;
+                Empty
+            }
+
+            # something else, produce with any strings preceding
+            elsif @parts {
+                my str $string = @parts.join;
+                @parts = ();
+                ($string, $_).Slip
+            }
+
+            # just produce, already podified
+            else {
+                $_
+            }
+        });
+
+        # collect any uncollected strings so far
+        @atoms.push: @parts.join if @parts;
+
+        # string at left needs to be trimmed left
+        if @atoms.head <-> $_ {
+            $_ = .trim-leading if nqp::istype($_,Str);
+        }
+
+        # return strings if just strings
+        nqp::istype(@atoms.are,Str) ?? @atoms.join !! @atoms
     }
 
     proto method podify(|) {*}
@@ -53,17 +109,15 @@ class RakuAST::LegacyPodify {
 
     multi method podify(RakuAST::Doc::Markup:D $ast) {
         my str $letter = $ast.letter;
-        $letter eq 'V'
-          ?? flatten($ast)
-          !! Pod::FormattingCode.new(
-               type     => $letter,
-               meta     => $ast.meta,
-               contents => $ast.atoms.map({
-                   nqp::istype($_,Str)
-                     ?? ($++ ?? $_ !! .trim-leading)  # first must be trimmed
-                     !! self.podify($_)
-               }).Slip
-        )
+        $letter eq ""
+          ?? hide($ast)
+          !! $letter eq 'V'
+            ?? flatten($ast)
+            !! Pod::FormattingCode.new(
+                 type     => $letter,
+                 meta     => $ast.meta,
+                 contents => self!contentify-atoms($ast)
+               )
     }
 
     multi method podify(RakuAST::Doc::Paragraph:D $ast) {

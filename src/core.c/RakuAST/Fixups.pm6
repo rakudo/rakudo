@@ -125,31 +125,57 @@ augment class RakuAST::Doc::Paragraph {
     }
 
     # easy integer checks
-    my int32 $A     = nqp::ord('A');
-    my int32 $Z     = nqp::ord('Z');
-    my int32 $open  = nqp::ord('<');
-    my int32 $close = nqp::ord('>');
+    my int32 $open   = nqp::ord('<');
+    my int32 $close  = nqp::ord('>');
+    my int32 $oopen  = nqp::ord('«');
+    my int32 $cclose = nqp::ord('»');
+
+    # default letters allowed: A..Z
+    my constant $default-allowed := nqp::hash(
+      '65',1, '66',1, '67',1, '68',1, '69',1, '70',1, '71',1, '72',1, '73',1,
+      '74',1, '75',1, '76',1, '77',1, '78',1, '79',1, '80',1, '81',1, '82',1,
+      '83',1, '84',1, '85',1, '86',1, '87',1, '88',1, '89',1, '90',1
+    );
 
     # create object from string, parsing any markup sequences
-    method from-string(RakuAST::Doc::Paragraph:U: Str:D $string) {
+    method from-string(RakuAST::Doc::Paragraph:U: Str:D $string, :$allow) {
+
+        # set up hash with allowed codes
+        my $allowed;
+        if $allow {
+            $allowed := nqp::hash;
+            nqp::bindkey($allowed,nqp::ord($_),1) for @$allow;
+        }
+        else {
+            $allowed := $default-allowed;
+        }
+
         my int32 $this;       # the current grapheme
         my int32 $prev;       # the previous grapheme
         my int32 @codes;      # the graphemes of the given string
         my int32 @graphemes;  # graphemes collected so far
 
         my $paragraph := RakuAST::Doc::Paragraph.new;
-        my $markups   := nqp::list;    # stack of Markup objects
-        my $current;                   # current Markup object
+        my $markups   := nqp::list;  # stack of Markup objects
+        my $current;                 # current Markup object
 
         nqp::strtocodes($string,nqp::const::NORMALIZE_NFC,@codes);
-        my int $i     = -1;
-        my int $elems = nqp::elems(@codes);
+        my int $i     = -1;                  # index of current char
+        my int $elems = nqp::elems(@codes);  # number of codes to parse
+        my int $openers;                     # number of consecutive openers
 
         # return the object currently collecting
         sub collector() {
             nqp::elems($markups)
               ?? nqp::atpos($markups,nqp::sub_i(nqp::elems($markups),1))
               !! $paragraph
+        }
+
+        # return the opener of the Markup object currently collecting
+        sub opener() {
+            nqp::elems($markups)
+              ?? nqp::atpos($markups,nqp::sub_i(nqp::elems($markups),1)).opener
+              !! ""
         }
 
         # add collected graphemes to given object, if any, and reset
@@ -163,28 +189,78 @@ augment class RakuAST::Doc::Paragraph {
             );
         }
 
-        # do all of the markup parsing in one pass
+        # calculate the number of openers
+        sub calculate-openers() {
+            ($openers = 1),
+            nqp::if(
+              nqp::iseq_i($this,$open),
+              nqp::stmts(
+                nqp::while(
+                  nqp::islt_i(++$i,$elems)
+                    && nqp::iseq_i(nqp::atpos_i(@codes,$i),$open),
+                  ++$openers
+                ),
+                --$i  # gone one too far
+              )
+            )
+        }
+
+        # create new Markup object for given letter and stack it
+        sub push-markup(str $letter --> Nil) {
+            nqp::push($markups,$current := RakuAST::Doc::Markup.new(
+              :letter($letter),
+              :opener(nqp::x(
+                nqp::if(nqp::iseq_i($this,$open),'<','«'),$openers
+              )),
+              :closer(nqp::x(
+                nqp::if(nqp::iseq_i($this,$open),'>','»'),$openers
+              ))
+            ))
+        }
+
+        # Do all of the markup parsing in one pass.  The idea behind this
+        # is that we don't need to create a Match object for every character
+        # being checked.  And we also work on integer codepoints to prevent
+        # having to create a string object for each codepoint being checked:
+        # comparing integers is what computers do very well.  The actual
+        # string can also be accessed at the same index: that is used to
+        # quickly check matching the current opener / closer, which may be
+        # multi character in the case of << >>.
         nqp::while(
-          nqp::islt_i(++$i,$elems),                             # all graphemes
+          nqp::islt_i(++$i,$elems),                        # for all graphemes
           nqp::stmts(
             nqp::if(
-              nqp::iseq_i(($this = nqp::atpos_i(@codes,$i)),$open),
-              nqp::if(                                          # <
-                nqp::isge_i($prev,$A) && nqp::isle_i($prev,$Z),
-                nqp::stmts(                                     # A<
+              nqp::iseq_i(($this = nqp::atpos_i(@codes,$i)),$open)
+                || nqp::iseq_i($this,$oopen),
+              nqp::if(                                     # < or «
+                nqp::existskey($allowed,$prev),
+                nqp::stmts(                                # A<
                   nqp::pop_i(@graphemes),  # letter is not part of string
                   add-graphemes(collector),
-                  nqp::push($markups,RakuAST::Doc::Markup.new(
-                    :letter(nqp::chr($prev)), :opener('<'), :closer('>')
-                  ))
+                  calculate-openers,
+                  push-markup(nqp::chr($prev))
                 ),
-                nqp::push_i(@graphemes,$this),                  # bare <
+                nqp::if(                                   # bare <
+                  nqp::eqat($string,opener,$i),
+                  nqp::stmts(                              # same, must balance
+                    add-graphemes(collector),
+                    calculate-openers,
+                    push-markup("")        # fake markup to ensure balanced
+                  ),
+                  nqp::push_i(@graphemes,$this)            # bare < or «
+                )
               ),
-              nqp::if(                                          # not <
-                nqp::iseq_i($this,$close),
-                nqp::if(                                        # >
+
+              nqp::if(                                     # not < or «
+                $current && (
+                  (nqp::iseq_i($this,$close)
+                    && nqp::eqat($string,$current.closer,$i)
+                  ) || nqp::iseq_i($this,$cclose)
+                ),
+                nqp::if(                                   # > or »
                   nqp::elems($markups),
-                  nqp::stmts(                                   # markups left
+                  nqp::stmts(                              # markups left
+                    ($i = $i + nqp::chars($current.closer) - 1),
                     add-graphemes($current := nqp::pop($markups)),
                     nqp::if(
                       nqp::istype($current,RakuAST::Doc::Markup),
@@ -192,9 +268,9 @@ augment class RakuAST::Doc::Paragraph {
                     ),
                     collector.add-atom($current)
                   ),
-                  nqp::push_i(@graphemes,$this),                # bare >
+                  nqp::push_i(@graphemes,$this)            # bare > or »
                 ),
-                nqp::push_i(@graphemes,$this),                  # grapheme
+                nqp::push_i(@graphemes,$this)              # other grapheme
               )
             ),
             ($prev = $this)
@@ -210,7 +286,7 @@ augment class RakuAST::Doc::Paragraph {
                 self.worry-ad-hoc($resolver, $worry);
             }
             else {
-                warn $worry;
+               warn $worry;
             }
 
             nqp::while(

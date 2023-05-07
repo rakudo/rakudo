@@ -125,10 +125,10 @@ augment class RakuAST::Doc::Paragraph {
     }
 
     # easy integer checks
-    my int32 $open   = nqp::ord('<');
-    my int32 $close  = nqp::ord('>');
-    my int32 $oopen  = nqp::ord('«');
-    my int32 $cclose = nqp::ord('»');
+    my int32 $open   =  60;  # <
+    my int32 $close  =  62;  # >
+    my int32 $oopen  = 171;  # «
+    my int32 $cclose = 187;  # »
 
     # default letters allowed: A..Z
     my constant $default-allowed := nqp::hash(

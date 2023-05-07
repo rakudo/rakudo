@@ -395,6 +395,32 @@ class RakuAST::StatementPrefix::Phaser::Begin
     }
 }
 
+# The CHECK phaser.
+class RakuAST::StatementPrefix::Phaser::Check
+  is RakuAST::StatementPrefix::Phaser
+  is RakuAST::Attaching
+{
+    has Scalar $.container;
+
+    method new(RakuAST::Blorst $blorst) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
+        nqp::bindattr($obj, RakuAST::StatementPrefix::Phaser::Check,
+          '$!container', nqp::create(Scalar));
+        $obj
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('compunit').add-check-phaser(self);
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $container := $!container;
+        $context.ensure-sc($container);
+        QAST::WVal.new( :value($container) )
+    }
+}
+
 # The INIT phaser.
 class RakuAST::StatementPrefix::Phaser::Init
   is RakuAST::StatementPrefix::Phaser

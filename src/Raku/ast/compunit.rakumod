@@ -16,6 +16,7 @@ class RakuAST::CompUnit
     has int $!is-sunk;
     has int $!is-eval;
     has Mu $!global-package-how;
+    has Mu $!check-phasers;
     has Mu $!init-phasers;
     has Mu $!end-phasers;
     has RakuAST::VarDeclaration::Implicit::Doc::Pod $.pod;
@@ -60,6 +61,7 @@ class RakuAST::CompUnit
         );
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
           $export-package =:= NQPMu ?? Mu !! $export-package);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!check-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!init-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
 
@@ -156,16 +158,28 @@ class RakuAST::CompUnit
     }
 
     method clear-attachments() {
+        nqp::setelems($!check-phasers, 0);
         nqp::setelems($!init-phasers, 0);
         nqp::setelems($!end-phasers, 0);
         self.clear-handler-attachments();
         Nil
     }
 
+    method add-check-phaser(RakuAST::StatementPrefix::Phaser::Check $phaser) {
+        # Cannot rely on clear-attachments here as a node's attach can be
+        # called multiple times while going up and down the tree and
+        # clear-attachments will only be called once.
+        for $!check-phasers {
+            return Nil if $_ =:= $phaser;
+        }
+        nqp::push($!check-phasers, $phaser);
+        Nil
+    }
+
     method add-init-phaser(RakuAST::StatementPrefix::Phaser::Init $phaser) {
-        # Cannot rely on clear-attachments here as a node's attach can be called
-        # multiple times while going up and down the tree and clear-attachments will
-        # only be called once.
+        # Cannot rely on clear-attachments here as a node's attach can be
+        # called multiple times while going up and down the tree and
+        # clear-attachments will only be called once.
         for $!init-phasers {
             return Nil if $_ =:= $phaser;
         }
@@ -174,9 +188,9 @@ class RakuAST::CompUnit
     }
 
     method add-end-phaser(RakuAST::StatementPrefix::Phaser::End $phaser) {
-        # Cannot rely on clear-attachments here as a node's attach can be called
-        # multiple times while going up and down the tree and clear-attachments will
-        # only be called once.
+        # Cannot rely on clear-attachments here as a node's attach can be
+        # called multiple times while going up and down the tree and
+        # clear-attachments will only be called once.
         for $!end-phasers {
             return Nil if $_ =:= $phaser;
         }
@@ -373,19 +387,23 @@ class RakuAST::CompUnit
             QAST::Stmts.new(
                 QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
                 self.IMPL-QAST-DECLS($context),
-                self.IMPL-QAST-INIT-PHASERS($context),
+                self.IMPL-QAST-VALUE-PHASERS($context, $!check-phasers),
+                self.IMPL-QAST-VALUE-PHASERS($context, $!init-phasers),
                 self.IMPL-QAST-END-PHASERS($context),
                 self.IMPL-QAST-CTXSAVE($context),
                 self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
             )
     }
 
-    method IMPL-QAST-INIT-PHASERS(RakuAST::IMPL::QASTContext $context) {
-        my $init-setup := QAST::Stmts.new;
-        for $!init-phasers {
+    method IMPL-QAST-VALUE-PHASERS(
+      RakuAST::IMPL::QASTContext $context,
+                            List $phasers
+    ) {
+        my $setup := QAST::Stmts.new;
+        for $phasers {
             my $container := $_.container;
             $context.ensure-sc($container);
-            $init-setup.push(
+            $setup.push(
                 QAST::Op.new(
                     :op<bindattr>,
                     QAST::WVal.new( :value($container) ),
@@ -395,7 +413,7 @@ class RakuAST::CompUnit
                 )
             );
         }
-        $init-setup
+        $setup
     }
 
     method IMPL-QAST-END-PHASERS(RakuAST::IMPL::QASTContext $context) {

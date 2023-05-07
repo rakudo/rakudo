@@ -723,6 +723,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('StatementPrefix', 'Phaser', $name).new($<blorst>.ast);
     }
 
+    method statement_prefix:sym<CHECK>($/) { self.setup-phaser($/, 'Check') }
     method statement_prefix:sym<INIT>($/)  { self.setup-phaser($/, 'Init')  }
     method statement_prefix:sym<END>($/)   { self.setup-phaser($/, 'End')   }
     method statement_prefix:sym<ENTER>($/) { self.setup-phaser($/, 'Enter') }

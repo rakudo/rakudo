@@ -1010,6 +1010,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement_prefix:sym<QUIT>  { <sym><.kok> <blorst> }
     token statement_prefix:sym<CLOSE> { <sym><.kok> <blorst> }
 
+    token statement_prefix:sym<DOC>     {
+        <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>
+        <blorst>
+    }
+
     token statement_prefix:sym<race>    { <sym><.kok> <blorst> }
     token statement_prefix:sym<hyper>   { <sym><.kok> <blorst> }
     token statement_prefix:sym<lazy>    { <sym><.kok> <blorst> }

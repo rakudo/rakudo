@@ -736,6 +736,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement_prefix:sym<QUIT>($/)  { self.setup-phaser($/, 'Quit')  }
     method statement_prefix:sym<CLOSE>($/) { self.setup-phaser($/, 'Close') }
 
+    method statement_prefix:sym<DOC>($/) {
+        if %*COMPILING<%?OPTIONS><doc> {
+            my $phase := ~$<phase>;
+            $phase eq 'BEGIN'
+              ?? self.statement_prefix:sym<BEGIN>($/)
+              !! self.setup-phaser($/, nqp::tclc($phase));
+        }
+        else {
+            nqp::deletekey($/,'blorst'); # XXX find other way to disable
+        }
+    }
+
     method statement_prefix:sym<race>($/) {
         my $blorst := $<blorst>.ast;
         if nqp::istype($blorst, self.r('Statement', 'For')) {

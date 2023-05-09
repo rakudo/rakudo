@@ -550,6 +550,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my @*ORIGIN-NESTINGS := [];  # this will be used for the CompUnit object
         my $*COMPILING_CORE_SETTING := 0;
 
+        # This contains the given options, from the command line if invoked
+        # from there, otherwise from EVAL invocations.
+        my %*OPTIONS := %*COMPILING<%?OPTIONS>;
+
         # $/.from locations of declarator doc and rakudo blocks that have
         # been seen and handled before.  Needed because the grammar can
         # actually visit the same piece of the code more than once.

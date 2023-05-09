@@ -106,7 +106,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # values.
         $*LITERALS := self.r('LiteralBuilder').new;
 
-        my %options := %*COMPILING<%?OPTIONS>;
+        my %options := %*OPTIONS;
         my $outer_ctx := %options<outer_ctx>;
         my $setting-name := %options<setting>;
         my $has-outer := nqp::isconcrete($outer_ctx);
@@ -132,7 +132,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Set up the resolver.
 
-        my %options := %*COMPILING<%?OPTIONS>;
+        my %options := %*OPTIONS;
         my $outer_ctx := %options<outer_ctx>;
         my $setting-name := %options<setting>;
         my $has-outer := nqp::isconcrete($outer_ctx);
@@ -306,7 +306,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Sort out sinking; the compilation unit is sunk as a whole if we are
         # not in a REPL or EVAL context.
-        $cu.mark-sunk() unless nqp::existskey(%*COMPILING<%?OPTIONS>, 'outer_ctx');
+        $cu.mark-sunk() unless nqp::existskey(%*OPTIONS, 'outer_ctx');
         $cu.calculate-sink();
 
         # Have check time.
@@ -638,7 +638,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method load_command_line_modules($/) {
-        my $M := %*COMPILING<%?OPTIONS><M>;
+        my $M := %*OPTIONS<M>;
         my $ast := self.r('StatementList').new();
         if nqp::defined($M) {
             for nqp::islist($M) ?? $M !! [$M] -> $longname {
@@ -737,7 +737,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement_prefix:sym<CLOSE>($/) { self.setup-phaser($/, 'Close') }
 
     method statement_prefix:sym<DOC>($/) {
-        if %*COMPILING<%?OPTIONS><doc> {
+        if %*OPTIONS<doc> {
             my $phase := ~$<phase>;
             $phase eq 'BEGIN'
               ?? self.statement_prefix:sym<BEGIN>($/)

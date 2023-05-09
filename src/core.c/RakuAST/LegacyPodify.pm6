@@ -141,7 +141,9 @@ class RakuAST::LegacyPodify {
             return self.podify-table($ast)
               if $type eq 'table';
             return self.podify-code($ast)
-              if $type eq 'code' | 'input' | 'output'
+              if $type eq 'code' | 'input' | 'output';
+            return self.podify-defn($ast)
+              if $type eq 'defn';
         }
 
         my $config   := $ast.config;
@@ -193,6 +195,24 @@ class RakuAST::LegacyPodify {
             }).List;
 
         Pod::Block::Code.new: :$contents, :config($ast.config)
+    }
+
+    method podify-defn(RakuAST::Doc::Block:D $ast) {
+        my @paragraphs = $ast.paragraphs;
+
+        my $first := @paragraphs.shift;
+        $first    := $first.atoms.map(*.Str).join
+          unless nqp::istype($first,Str);
+        my ($term, $para) = $first.split("\n",2).map(&sanitize);
+
+        my @contents = Pod::Block::Para.new(:contents($para));
+        for @paragraphs {
+            @contents.push: nqp::istype($_,Str)
+              ?? Pod::Block::Para.new(:contents(.chomp))
+              !! .podify
+        }
+
+        Pod::Defn.new: :$term, :@contents, :config($ast.config)
     }
 
     multi method podify(RakuAST::Doc::Declarator:D $ast, $WHEREFORE) {

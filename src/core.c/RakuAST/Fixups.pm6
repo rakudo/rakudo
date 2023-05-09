@@ -331,14 +331,14 @@ augment class RakuAST::Doc::Block {
 
         # originally verbatim, but may need postprocessing
         elsif $type eq 'code' | 'input' | 'output' {
-            if nqp::hllizefor($config<allow>,'Raku') -> $allow {
-                $block.add-paragraph($_)
-                  for RakuAST::Doc::Paragraph.from-string(
-                    @paragraphs.head, :$allow
-                  );
-            }
-            else {
-                $block.add-paragraph(@paragraphs.head);
+            if @paragraphs.head -> $pod {
+                if nqp::hllizefor($config<allow>,'Raku') -> $allow {
+                    $block.add-paragraph($_)
+                      for RakuAST::Doc::Paragraph.from-string($pod, :$allow);
+                }
+                else {
+                    $block.add-paragraph($pod);
+                }
             }
         }
 

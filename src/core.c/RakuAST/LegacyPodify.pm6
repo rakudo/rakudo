@@ -49,9 +49,10 @@ class RakuAST::LegacyPodify {
     }
 
     # produce list without last if last is \n
-    my sub no-last-nl($list) {
-        my $last := $list.tail;
-        $list.head({ $_ - (nqp::istype($last,Str) && $last eq "\n") })
+    my sub no-last-nl(\list) {
+        my @parts = list;
+        @parts.pop if nqp::istype($_,Str) && $_ eq "\n" given @parts.tail;
+        @parts
     }
 
     # create podified contents for atoms
@@ -134,9 +135,14 @@ class RakuAST::LegacyPodify {
         my str $type  = $ast.type;
         my str $level = $ast.level;
 
-        # this needs code of its own, as the new grammar only collects
+        # these need code of its own, as the new grammar only collects
         # and does not do any interpretation
-        return self.podify-table($ast) if $type eq 'table' and !$level;
+        unless $level {
+            return self.podify-table($ast)
+              if $type eq 'table';
+            return self.podify-code($ast)
+              if $type eq 'code' | 'input' | 'output'
+        }
 
         my $config   := $ast.config;
         my $contents := no-last-nl($ast.paragraphs).map({
@@ -163,19 +169,30 @@ class RakuAST::LegacyPodify {
                    )
               # from here on without level
               !! $type eq 'comment'
-                ?? Pod::Block::Comment.new(:contents([$ast.paragraphs.head]))
-                !! $type eq 'input' | 'output' | 'code'
-                  ?? Pod::Block::Code.new(:contents([
-                       no-last-nl(
-                         $ast.paragraphs.head.split("\n", :v, :skip-empty).List
-                       )
-                     ]))
-                  !! Pod::Block::Named.new(:name($type), :$config, :$contents)
+                ?? Pod::Block::Comment.new(
+                     :$config, :contents([$ast.paragraphs.head])
+                   )
+                !! Pod::Block::Named.new(:name($type), :$config, :$contents)
           !! $contents  # no type means just a string
     }
 
     method podify-table(RakuAST::Doc::Block:D $ast) {
         X::NYI.new(feature => "legacy pod support for =table").throw;
+    }
+
+    method podify-code(RakuAST::Doc::Block:D $ast) {
+        my $contents := $ast.paragraphs.head;
+
+        $contents := nqp::istype($contents,Str)
+          ?? no-last-nl($contents.split("\n", :v, :skip-empty)).List
+          # assume a paragraph with string / markup atoms
+          !! $contents.atoms.map({
+                nqp::istype($_,Str)
+                  ?? .split("\n", :v, :skip-empty).Slip
+                  !! .podify
+            }).List;
+
+        Pod::Block::Code.new: :$contents, :config($ast.config)
     }
 
     multi method podify(RakuAST::Doc::Declarator:D $ast, $WHEREFORE) {

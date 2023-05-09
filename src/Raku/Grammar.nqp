@@ -3586,20 +3586,23 @@ if $*COMPILING_CORE_SETTING {
         $<finish> = .*
     }
 
-    # handle =begin comment
-    token doc-block:sym<comment> {
+    # handle =begin on verbatim blocks
+    token doc-block:sym<verbatim> {
 
         # save any leading whitespace from start of line
         ^^ $<spaces>=[ \h* ]
 
         # start of 'begin comment' block
-        '=begin' \h+ 'comment' <doc-configuration($<spaces>)>* <doc-newline>+
+        '=begin' \h+ $<type>=[ 'comment' | 'code' | 'input' | 'output' ]
+
+        # fetch any configuration
+        <doc-configuration($<spaces>)>* <doc-newline>+
 
         # fetch all non-empty lines, *NOT* looking at =pod markers
         $<lines>=[^^ \h* \N+ \n?]*?
 
         # until the matching end block
-        ^^ $<spaces> '=end' \h+ 'comment' [<doc-newline> | $]
+        ^^ $<spaces> '=end' \h+ $<type> [<doc-newline> | $]
     }
 
     # handle all the other =begin

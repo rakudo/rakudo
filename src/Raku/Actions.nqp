@@ -2710,6 +2710,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $config := nqp::hash;
         $config<numbered> := True if $<doc-numbered>;
 
+        my sub literalize($value) {
+            my $ast := $value.ast;
+            nqp::istype($ast,RakuAST::QuotedString)
+              ?? $ast.literal-value
+              !! +$value<value><number>
+        }
+
         if $<doc-configuration> -> $doc-configuration {
             for $doc-configuration -> $/ {
                 for $<colonpair> -> $/ {
@@ -2727,24 +2734,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                             my $expr :=
                               $ccf<circumfix><semilist><statement>[0]<EXPR>;
                             if $expr<value> -> $value {
-                                $config{$key} := +$value<number>;
+                                $config{$key} := literalize($value);
                             }
                             else {
                                 my @values;
                                 my int $i;
                                 while $expr[$i++] -> $value {
-                                    my $ast := $value.ast;
-                                    nqp::push(
-                                      @values,
-                                      nqp::istype($ast,RakuAST::QuotedString)
-                                        ?? $ast.literal-value
-                                        !! +$value<value><number>
-                                    );
+                                    @values.push: literalize($value);
                                 }
                                 if nqp::elems(@values) -> $elems {
                                     $config{$key} := $elems == 1
                                       ?? @values[0]
-                                      !! @values;
+                                      !! nqp::hllizefor(@values, 'Raku');
                                 }
                             }
                         }
@@ -2795,7 +2796,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*CU.replace-finish-content(~$<finish>);
     }
 
-    method doc-block:sym<comment>($/) {
+    method doc-block:sym<verbatim>($/) {
         if $*FROM-SEEN{$/.from}++ {
             return;
         }
@@ -2810,7 +2811,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :type<comment>, :$config, :@paragraphs;
+          :spaces(~$<spaces>), :type(~$<type>), :$config, :@paragraphs;
     }
 
     method doc-block:sym<begin>($/) {

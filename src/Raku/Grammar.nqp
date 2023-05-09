@@ -3677,7 +3677,7 @@ if $*COMPILING_CORE_SETTING {
         <doc-configuration($<spaces>)>*
 
         # should now be at end of line
-        <.doc-newline>+
+        <.doc-newline>
 
         $<lines>=[^^ \h* <![=]> \N+ \n?]*
     }

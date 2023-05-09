@@ -744,7 +744,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               !! self.setup-phaser($/, nqp::tclc($phase));
         }
         else {
-            nqp::deletekey($/,'blorst'); # XXX find other way to disable
+            self.attach: $/, self.Nil
         }
     }
 
@@ -1377,10 +1377,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method Nil() {
+        self.r('Term', 'Name').new(self.r('Name').from-identifier('Nil'))
+    }
+
     method coloncircumfix($/) {
-        self.attach: $/, $<circumfix>
-            ?? $<circumfix>.ast
-            !! self.r('Term', 'Name').new(self.r('Name').from-identifier('Nil'));
+        self.attach: $/, $<circumfix> ?? $<circumfix>.ast !! self.Nil
     }
 
     method colonpair_variable($/) {

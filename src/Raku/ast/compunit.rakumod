@@ -121,6 +121,46 @@ class RakuAST::CompUnit
         self.IMPL-CHECK($resolver, $!context, False);
     }
 
+    # Add the AST for handling legacy doc generation
+    method add-INIT-phaser-for-doc-handling($type) {
+# use Pod::To::$type;
+# say Pod::To::$type.render($=pod);
+# exit
+        my $name := RakuAST::Name.from-identifier-parts("Pod","To",$type);
+        $!statement-list.add-statement: RakuAST::Statement::Expression.new(
+          expression => RakuAST::StatementPrefix::Phaser::Init.new(
+            RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Use.new(module-name => $name),
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier("say"),
+                      args => RakuAST::ArgList.new(
+                        RakuAST::ApplyPostfix.new(
+                          operand => RakuAST::Type::Simple.new($name),
+                          postfix => RakuAST::Call::Method.new(
+                            name => RakuAST::Name.from-identifier("render"),
+                            args => RakuAST::ArgList.new(
+                              RakuAST::Var::Doc.new("pod")
+                            )
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  RakuAST::Statement::Expression.new(
+                    expression => RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier("exit")
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+    }
+
     # Replace the statement list of the compilation unit.
     method replace-statement-list(RakuAST::StatementList $statement-list) {
         nqp::bindattr(self, RakuAST::CompUnit, '$!statement-list', $statement-list);
@@ -178,15 +218,15 @@ class RakuAST::CompUnit
     }
 
     method add-check-phaser(RakuAST::StatementPrefix::Phaser::Check $phaser) {
-        self.add-phaser($!check-phasers, $phaser)
+        self.add-phaser($!check-phasers, $phaser);
     }
 
     method add-init-phaser(RakuAST::StatementPrefix::Phaser::Init $phaser) {
-        self.add-phaser($!init-phasers, $phaser)
+        self.add-phaser($!init-phasers, $phaser);
     }
 
     method add-end-phaser(RakuAST::StatementPrefix::Phaser::End $phaser) {
-        self.add-phaser($!end-phasers, $phaser)
+        self.add-phaser($!end-phasers, $phaser);
     }
 
     method queue-heredoc($herestub) {

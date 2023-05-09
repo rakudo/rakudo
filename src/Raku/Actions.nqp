@@ -309,6 +309,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $cu.mark-sunk() unless nqp::existskey(%*OPTIONS, 'outer_ctx');
         $cu.calculate-sink();
 
+        # if --doc specified, add INIT phaser that handles that
+        if %*OPTIONS<doc> -> $type {
+            $cu.add-INIT-phaser-for-doc-handling($type);
+        }
+
         # Have check time.
         $cu.check($*R);
         my $compilation-exception := $*R.produce-compilation-exception;

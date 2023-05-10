@@ -178,7 +178,8 @@ class RakuAST::LegacyPodify {
           !! $contents  # no type means just a string
     }
 
-    method podify-table(RakuAST::Doc::Block:D $ast) {
+    proto method podify-table(|) {*}
+    multi method podify-table(|) {  # placeholder for now
         X::NYI.new(feature => "legacy pod support for =table").throw;
     }
 

@@ -342,6 +342,10 @@ augment class RakuAST::Doc::Block {
             }
         }
 
+        elsif $type eq 'table' {
+            self.interpret-as-table($spaces, @paragraphs);
+        }
+
         # potentially need introspection
         elsif $type eq 'pod' | 'doc' {
 
@@ -449,6 +453,9 @@ augment class RakuAST::Doc::Block {
 
         $block
     }
+
+    proto method interpret-as-table(|) {*}
+    multi method interpret-as-table(|) { }  # placeholder for now
 }
 
 # vim: expandtab shiftwidth=4

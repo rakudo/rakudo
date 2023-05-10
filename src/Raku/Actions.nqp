@@ -987,9 +987,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 else {
                     if nqp::istype($ast, Nodify('Call', 'Name')) {
                         $ast.args.push: $/[0].ast;
-                        self.attach: $/, $ast,
-                        p5isms => $*LANG.pragma('p5isms'),
-                        has-terminator-or-infix => $*MISSING;
+                        self.attach: $/, $ast;
                     }
                     elsif $ast {
                         if nqp::istype($ast, Nodify('Postfixish')) {

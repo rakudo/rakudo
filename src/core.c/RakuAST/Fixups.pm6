@@ -1,3 +1,4 @@
+my class RakuAST::LegacyPodify { ... }
 
 # This file contains augmentations to classes that are created in the
 # RakuAST bootstrap to allow a lot of logic (which will **NOT** be
@@ -343,7 +344,7 @@ augment class RakuAST::Doc::Block {
         }
 
         elsif $type eq 'table' {
-            self.interpret-as-table($spaces, @paragraphs);
+            $block.interpret-as-table($spaces, @paragraphs);
         }
 
         # potentially need introspection

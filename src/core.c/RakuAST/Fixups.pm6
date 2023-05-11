@@ -5,6 +5,13 @@ my class RakuAST::LegacyPodify { ... }
 # needed to compile the Raku setting) to be written in Raku rather
 # than in NQP.
 
+my class RakuAST::Doc::Row {
+    has str  $.column-dividers;
+    has      $.column-offsets is built(:bind);  # native int array
+    has      $.cells          is built(:bind);  # native str array
+    has Bool $.multi-line     is built(False);  # columns are multi-line
+}
+
 augment class RakuAST::Doc {
 
     # just pass it on for now, make using another class possible

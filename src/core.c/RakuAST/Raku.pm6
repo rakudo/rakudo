@@ -364,6 +364,10 @@ augment class RakuAST::Node {
         self!positionals(self.atoms)
     }
 
+    multi method raku(RakuAST::Doc::Row:D: --> Str:D) {
+        self!nameds: <column-dividers column-offsets cells>
+    }
+
 #- Dot -------------------------------------------------------------------------
 
     # Handles all of the RakuAST::DottyInfix::xxx classes

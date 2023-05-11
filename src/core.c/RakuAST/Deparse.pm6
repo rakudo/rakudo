@@ -646,6 +646,10 @@ class RakuAST::Deparse {
         $ast.atoms.map({ self!deparse-unquoted($_) }).join
     }
 
+    multi method deparse(RakuAST::Doc::Row:D $ast --> Str:D) {
+        $ast.Str
+    }
+
 #- Dot -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::DottyInfix::Call:D $ --> Str:D) {

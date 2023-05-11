@@ -140,7 +140,7 @@ class RakuAST::LegacyPodify {
         unless $level {
             return self.podify-table($ast)
               if $type eq 'table';
-            return self.podify-code($ast)
+            return self.podify-code($ast, $type.tc)
               if $type eq 'code' | 'input' | 'output';
             return self.podify-defn($ast)
               if $type eq 'defn';
@@ -183,7 +183,7 @@ class RakuAST::LegacyPodify {
         X::NYI.new(feature => "legacy pod support for =table").throw;
     }
 
-    method podify-code(RakuAST::Doc::Block:D $ast) {
+    method podify-code(RakuAST::Doc::Block:D $ast, str $type) {
         my $contents := $ast.paragraphs.head;
 
         $contents := nqp::istype($contents,Str)
@@ -195,7 +195,7 @@ class RakuAST::LegacyPodify {
                   !! .podify
             }).List;
 
-        Pod::Block::Code.new: :$contents, :config($ast.config)
+        ::("Pod::Block::$type").new: :$contents, :config($ast.config)
     }
 
     method podify-defn(RakuAST::Doc::Block:D $ast) {

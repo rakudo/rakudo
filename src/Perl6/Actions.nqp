@@ -10967,7 +10967,7 @@ Did you mean a call like '"
         my $config   := $<pod_configuration>.ast;
         my @contents := $<delimited_code_content>.ast;
         @contents    := Perl6::Pod::serialize_array(@contents).compile_time_value;
-        make Perl6::Pod::serialize_object('Pod::Block::Code',
+        make Perl6::Pod::serialize_object('Pod::Block::' ~ nqp::tclc($<typ>),
                                           :@contents,:$config).compile_time_value
     }
 
@@ -11013,7 +11013,7 @@ Did you mean a call like '"
             nqp::splice(@contents, $_.ast, +@contents, 0);
         }
         @contents  := Perl6::Pod::serialize_array(@contents).compile_time_value;
-        make Perl6::Pod::serialize_object('Pod::Block::Code',
+        make Perl6::Pod::serialize_object('Pod::Block::' ~ nqp::tclc($<pod-delim-code-typ>),
                                           :@contents,:$config).compile_time_value;
     }
 
@@ -11041,7 +11041,7 @@ Did you mean a call like '"
         }
         @contents := Perl6::Pod::serialize_array(@contents).compile_time_value;
         make Perl6::Pod::serialize_object(
-            'Pod::Block::Code', :@contents
+            'Pod::Block::' ~ nqp::tclc($<pod-delim-code-typ>), :@contents
         ).compile_time_value
     }
 

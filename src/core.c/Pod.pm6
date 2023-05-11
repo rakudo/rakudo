@@ -33,6 +33,8 @@ my class Pod::Block {
 my class Pod::Block::Para    is Pod::Block { }
 my class Pod::Block::Comment is Pod::Block { }
 my class Pod::Block::Code    is Pod::Block { }
+my class Pod::Block::Input   is Pod::Block { }
+my class Pod::Block::Output  is Pod::Block { }
 
 my class Pod::Block::Named is Pod::Block {
     has $.name;

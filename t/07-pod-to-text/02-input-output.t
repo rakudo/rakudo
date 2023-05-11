@@ -61,7 +61,7 @@ say 1;
 say 2;
 =end input
 $r = $=pod[++$p];
-isa-ok $r, Pod::Block::Code;
+isa-ok $r, Pod::Block::Input;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
@@ -75,7 +75,7 @@ say 1;
 say 2;
 
 $r = $=pod[++$p];
-isa-ok $r, Pod::Block::Code;
+isa-ok $r, Pod::Block::Input;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
@@ -89,7 +89,7 @@ say 1;
 say 2;
 
 $r = $=pod[++$p];
-isa-ok $r, Pod::Block::Code;
+isa-ok $r, Pod::Block::Input;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
@@ -106,7 +106,7 @@ say 1;
 say 2;
 =end output
 $r = $=pod[++$p];
-isa-ok $r, Pod::Block::Code;
+isa-ok $r, Pod::Block::Output;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
@@ -120,7 +120,7 @@ say 1;
 say 2;
 
 $r = $=pod[++$p];
-isa-ok $r, Pod::Block::Code;
+isa-ok $r, Pod::Block::Output;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,
@@ -134,7 +134,7 @@ say 1;
 say 2;
 
 $r = $=pod[++$p];
-isa-ok $r, Pod::Block::Code;
+isa-ok $r, Pod::Block::Output;
 # code blocks should get indented 4 spaces by Pod::To::Text
 $rp = Pod::To::Text.render($r),
 is $rp,

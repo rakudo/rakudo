@@ -14,6 +14,8 @@ sub pod2text($pod) is export {
     given $pod {
         when Pod::Heading           { heading2text($pod)             }
         when Pod::Block::Code       { code2text($pod)                }
+        when Pod::Block::Input      { code2text($pod)                }
+        when Pod::Block::Output     { code2text($pod)                }
         when Pod::Block::Named      { named2text($pod)               }
         when Pod::Block::Para       { para2text($pod)                }
         when Pod::Block::Table      { table2text($pod)               }

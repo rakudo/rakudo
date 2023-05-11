@@ -351,8 +351,9 @@ class RakuAST::VarDeclaration::Constant
               self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
 
             unless nqp::istype(nqp::what($!value), $type) {
+                my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
                 self.add-sorry($resolver.build-exception('X::Comp::TypeCheck',
-                  operation => 'constant declaration',
+                  operation => 'constant declaration of ' ~ ($name || '<anon>'),
                   expected  => $type,
                   got       => $!value
                 ));

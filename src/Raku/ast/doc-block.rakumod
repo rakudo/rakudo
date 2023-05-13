@@ -19,12 +19,24 @@ class RakuAST::Doc
         True
     }
 
-    method worry-ad-hoc($resolver, $payload) {
-        self.add-worry: $resolver.build-exception: 'X::AdHoc', :$payload
+    method worry-ad-hoc(Str $payload) {
+        if $*RESOLVER -> $resolver {
+            $resolver.add-worry:
+              $resolver.build-exception: 'X::AdHoc', :$payload;
+        }
+        else {
+            nqp::say($payload)
+        }
     }
 
-    method sorry-ad-hoc($resolver, $payload) {
-        self.add-sorry: $resolver.build-exception: 'X::AdHoc', :$payload
+    method sorry-ad-hoc(Str $payload) {
+        if $*RESOLVER -> $resolver {
+            $resolver.add-sorry:
+              $resolver.build-exception: 'X::AdHoc', :$payload;
+        }
+        else {
+            nqp::die($payload);
+        }
     }
 }
 

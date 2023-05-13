@@ -3679,7 +3679,7 @@ if $*COMPILING_CORE_SETTING {
         # should now be at end of line
         <.doc-newline>
 
-        $<lines>=[^^ \h* <![=]> \N+ \n?]*
+        $<lines>=[^^ \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]*
     }
 
     token doc-block:sym<abbreviated> {
@@ -3698,7 +3698,7 @@ if $*COMPILING_CORE_SETTING {
         [ [ \h+ $<header>=[\N+ \n?]? ] | <doc-newline> ]
 
         # and any following lines as well
-        $<lines>=[^^ \h* <![=]> \N+ \n?]*
+        $<lines>=[^^ \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]*
     }
 
     token doc-block:sym<lines> {

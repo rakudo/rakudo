@@ -624,7 +624,7 @@ class RakuAST::Deparse {
         my $body := $type
           ~ $ast.level
           ~ self!deparse-as-config(%config)
-          ~ ($abbreviated ?? " " !! "\n")
+          ~ ($abbreviated && $type ne 'table' ?? " " !! "\n")
           ~ $ast.paragraphs.map({
               nqp::istype($_,Str) ?? $_ !! self.deparse($_)
             }).join("\n");

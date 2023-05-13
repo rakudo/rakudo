@@ -12,6 +12,9 @@ class RakuAST::LegacyPodify {
                .subst("\n",  ' ', :global)
                .subst(/\s+/, ' ', :global)
     }
+    my sub sanitize-and-trim(Str:D $string --> Str:D) {
+        sanitize($string).trim
+    }
 
     # hide the outer markup
     my sub hide(RakuAST::Doc::Markup:D $markup) {
@@ -178,9 +181,74 @@ class RakuAST::LegacyPodify {
           !! $contents  # no type means just a string
     }
 
-    proto method podify-table(|) {*}
-    multi method podify-table(|) {  # placeholder for now
-        X::NYI.new(feature => "legacy pod support for =table").throw;
+    method podify-table(RakuAST::Doc::Block:D $ast) {
+        my @rows    = $ast.paragraphs.grep(RakuAST::Doc::Row);
+        my $config := $ast.config;
+
+        # determine whether we have headers
+        my $headers;
+        with $config<header-row> -> $index {
+            $headers := @rows.splice($index, 1);
+        }
+
+        # no explicitel header specification: use legacy heuristic of
+        # second divider being different from the first divider
+        else {
+            my $seen-row;
+            my $first-divider;
+            for $ast.paragraphs {
+                # is it a divider?
+                if nqp::istype($_,Str) {
+
+                    # seen a divider after a row before?
+                    if $first-divider.defined {
+                        $headers := @rows.shift if $_ ne $first-divider;
+                        last;  # different, we're done!
+                    }
+
+                    # seen a row before?
+                    elsif $seen-row {
+                        $first-divider := $_;
+                    }
+                }
+
+                # it's a row
+                else {
+                    $seen-row = True;
+                }
+            }
+        }
+
+        my $has-data;              # flag: True if actual rows where found
+        my $previous-was-divider;  # flag: True if previous row was divider
+        for $ast.paragraphs -> $row {
+            if nqp::istype($row,Str) {
+                if $previous-was-divider {
+                    $ast.sorry-ad-hoc:
+                      "Table has multiple interior row separator lines.",
+                      "dummy argument that is somehow needed";
+                    last;
+                }
+                $previous-was-divider := True;
+            }
+            else {
+                $has-data             := True;
+                $previous-was-divider := False;
+            }
+        }
+
+        $ast.sorry-ad-hoc(
+          "Table has no data.",
+          "dummy argument that is somehow needed"
+        ) unless $has-data;
+
+        $headers := [.cells.map(&sanitize-and-trim)] with $headers;
+        Pod::Block::Table.new(
+          caption  => $config<caption> // "",
+          headers  => $headers // [],
+          config   => $config,
+          contents => @rows.map({ [.cells.map(&sanitize-and-trim)] })
+        )
     }
 
     method podify-code(RakuAST::Doc::Block:D $ast) {

@@ -2721,7 +2721,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $ast := $value.ast;
             nqp::istype($ast,RakuAST::QuotedString)
               ?? $ast.literal-value
-              !! +$value<value><number>
+              !! nqp::hllizefor(+$value<value><number>,'Raku')
         }
 
         if $<doc-configuration> -> $doc-configuration {
@@ -2730,7 +2730,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     my $key := ~$<identifier>;
                     if $<num> -> $int {                # :42bar
                         my @result := nqp::radix(10,~$int,0,0x02);
-                        $config{$key} := @result[0];
+                        $config{$key} := nqp::hllizefor(@result[0],'Raku');
                     }
                     elsif $<coloncircumfix> -> $ccf {  # :bar("foo",42)
                         my $ast := $ccf.ast;

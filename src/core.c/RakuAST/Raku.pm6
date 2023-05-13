@@ -41,10 +41,15 @@ augment class RakuAST::Node {
 
     our sub rakufy($value) {
         if nqp::istype($value,List) && $value -> @elements {
-            indent;
-            my str $list = @elements.map({ $*INDENT ~ .raku }).join(",\n");
-            dedent;
-            "(\n$list,\n$*INDENT)"
+            if nqp::istype(@elements.are,Int) {
+                "(@elements.join(',')" ~ (@elements == 1 ?? ',)' !! ')')
+            }
+            else {
+                indent;
+                my str $list = @elements.map({ $*INDENT ~ .raku }).join(",\n");
+                dedent;
+                "(\n$list,\n$*INDENT)"
+            }
         }
         else {
             nqp::istype($value,Bool)
@@ -112,6 +117,21 @@ augment class RakuAST::Node {
           },
           'capturing', -> {
               :capturing if self.capturing
+          },
+          'cells', -> {
+              if self.cells -> @cells is copy {
+                  :@cells
+              }
+          },
+          'column-dividers', -> {
+              if self.column-dividers -> $column-dividers {
+                  :$column-dividers
+              }
+          },
+          'column-offsets', -> {
+              if self.column-offsets -> @column-offsets is copy {
+                  :@column-offsets
+              }
           },
           'config', -> {
               my $config := nqp::decont(self.config);
@@ -362,10 +382,6 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Doc::Paragraph:D: --> Str:D) {
         self!positionals(self.atoms)
-    }
-
-    multi method raku(RakuAST::Doc::Row:D: --> Str:D) {
-        self!nameds: <column-dividers column-offsets cells>
     }
 
 #- Dot -------------------------------------------------------------------------

@@ -2717,11 +2717,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $config := nqp::hash;
         $config<numbered> := True if $<doc-numbered>;
 
-        my sub literalize($value) {
-            my $ast := $value.ast;
+        my sub literalize($expr) {
+            my $ast := $expr.ast;
             nqp::istype($ast,RakuAST::QuotedString)
               ?? $ast.literal-value
-              !! nqp::hllizefor(+$value<value><number>,'Raku')
+              !! nqp::istype($ast,RakuAST::Literal)
+                ?? $ast.compile-time-value
+                !! nqp::hllizefor(+$expr<value><number>,'Raku')
         }
 
         if $<doc-configuration> -> $doc-configuration {

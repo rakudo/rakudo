@@ -45,35 +45,34 @@ my class RakuAST::Doc::Row is RakuAST::Node {
     }
 
     multi method Str(RakuAST::Doc::Row:D:) {
-        my str $dividers = $!column-dividers;
-        my $offsets     := $!column-offsets;
+        my str $dividers = nqp::hllizefor($!column-dividers,'Raku') // '';
 
         # Stringify the given strings with the current dividers / offsets
         my sub stringify-cells(\cells) {
             my int $columns = cells.elems;
-
             my str @parts;    # atoms of string to be assembled
-            my int $start;    # start of the next cell contents
-            my str $divider;  # the current divider
-            my int $offset;   # the current offset
-            my int $times;    # number of spaces that should be inserted
 
             my int $i = -1;
-            nqp::while(
-              nqp::islt_i(++$i,$columns),
-              nqp::stmts(                                    # for all columns
-                @parts.push(nqp::atpos_s(cells,$i)),
-                nqp::if(
-                  ($divider = nqp::substr($dividers,$i,1)),
-                  nqp::stmts(                                # not last/virtual
+            if $dividers {
+                nqp::while(
+                  nqp::islt_i(++$i,$columns),
+                  nqp::stmts(
+                    @parts.push(nqp::atpos_s(cells,$i)),
                     @parts.push(' '),
-                    @parts.push($divider),
+                    @parts.push(nqp::substr($dividers,$i,1)),
                     @parts.push(' ')
-                  ),
-                  @parts.push('  ')
-                )
-              )
-            );
+                  )
+                );
+            }
+            else {
+                nqp::while(
+                  nqp::islt_i(++$i,$columns),
+                  nqp::stmts(
+                    @parts.push(nqp::atpos_s(cells,$i)),
+                    @parts.push('  '),
+                  )
+                );
+            }
             @parts.join.trim-trailing
         }
 
@@ -535,114 +534,228 @@ augment class RakuAST::Doc::Block {
     my int @row-dividers;
     @row-dividers[.ord] = 1 for ' ', '_', '-', '+', '|', '=';
 
-    # Parse the given line and find out the offsets of columns and any dividers
-    my sub columnify($line) {
+    my int32 $space =  32;  # " "
+    my int32 $plus  =  43;  # "+"
+    my int32 $pipe  = 124;  # "|"
 
-        nqp::strtocodes($line,nqp::const::NORMALIZE_NFC,my int32 @codes);
+    method interpret-as-table(RakuAST::Doc::Block:D: $spaces, @matched --> Nil) {
 
-        my int32 $space =  32;  # " "
-        my int32 $plus  =  43;  # "+"
-        my int32 $pipe  = 124;  # "|"
+        # Set up the lines to be parsed
+        my str @lines = @matched.join.subst(/ \n+ $/).lines;
 
-        my int $elems = nqp::elems(@codes);
-        @codes.push($space);  # create virtual space at end for trailing |
-        my str @dividers;     # strings of dividers encountered
-        my int @offsets;      # offsets where columns start (except first)
+        # Error handling for mixed column divider types
+        my sub mixed-up($line) {
+            self.sorry-ad-hoc(
+              "Table has a mixture of visible and invisible column-separator types
+in line '$line'",
+              "dummy argument that is somehow needed"
+            );
+        }
 
-        # Check the current line for column dividers.  Sets the @dividers
-        # and @offsets arrays, returns whether this line should be considered
-        # a row (any char that is not a row|column divider).
-        my sub inspect-real-dividers() {
-            my int $prev = $space;
-            my int $curr;
-            my int $is-row;
-            my int $i = -1;
-            nqp::while(
-              nqp::islt_i(++$i,$elems),
-              nqp::if(                                    # for all chars
-                nqp::iseq_i(($curr = nqp::atpos_i(@codes,$i)),$pipe)
-                  || nqp::iseq_i($curr,$plus),
-                nqp::stmts(                               # | or +
-                  nqp::push_s(@dividers,nqp::chr($curr)),
-                  nqp::if(
-                    nqp::iseq_i($prev,$space)
-                      && nqp::iseq_i(
-                           nqp::atpos_i(@codes,nqp::add_i($i,1)),
-                           $space
-                         ),
-                    nqp::stmts(                           # real column divider
-                      nqp::push_i(@offsets,++$i),
-                      ($prev = 0),
+        # Parse the given lines assuming virtual dividers were used.
+        # Quits if actual dividers were found after it found rows with
+        # virtual dividers, or any empty array if none were found so far.
+        # Otherwise returns a Seq of RakuAST::Doc::Row objects with Str
+        # row dividers.
+        my sub parse-assuming-virtual-dividers() {
+            my int   $start;
+            my @codes-per-row;
+            my @offsets-per-line;
+
+            for @lines -> str $line {
+                nqp::strtocodes($line,nqp::const::NORMALIZE_NFC,my int32 @codes);
+                my int $elems = nqp::elems(@codes);
+                my int @offsets;
+
+                my int $is-row;
+                my int $no-more-leading;
+                my int $prev;
+                my int $curr;
+                my int $i = -1;
+                nqp::while(
+                  nqp::islt_i(++$i,$elems),
+                  nqp::stmts(                              # for all chars
+                    nqp::if(
+                      nqp::iseq_i(($curr = nqp::atpos_i(@codes,$i)),$space)
+                        && nqp::iseq_i($prev,$space),
+                      nqp::if(                             # found 2 spaces
+                        $no-more-leading,
+                        nqp::stmts(                        # in a column
+                          nqp::while(                      # eat next spaces
+                            nqp::islt_i(++$i,$elems)
+                              && nqp::iseq_i(nqp::atpos_i(@codes,$i),$space),
+                            nqp::null
+                          ),
+                          nqp::if(                         # done eating spaces
+                            nqp::islt_i($i,$elems),
+                            nqp::stmts(                    # NOT at end
+                              ($no-more-leading = 1),
+                              @offsets.push($i),
+                            ),
+                          ),
+                          --$i                             # one too far
+                        ),
+                      ),
+                      nqp::stmts(                          # not 2 spaces
+                        nqp::if(
+                          nqp::atpos_i(@row-dividers,$curr),
+                          nqp::if(                         # a divider
+                            $is-row
+                              && (nqp::iseq_i($curr,$pipe)
+                                   || nqp::iseq_i($curr,$plus)),
+                            nqp::if(                       # visual divider
+                              @codes-per-row.elems,
+                              mixed-up($line),             # mixed, give up
+                              (return ())                  # handle elsewhere
+                            )
+                          ),
+                          ($is-row = 1)                    # NOT a divider
+                        ),
+                        nqp::if(
+                          nqp::isne_i($curr,$space),
+                          ($no-more-leading = 1)
+                        )
+                      )
+                    ),
+                    ($prev = $curr)
+                  )
+                );
+
+                # offsets on divider lines do not count
+                if $is-row {
+                    @codes-per-row.push: @codes;
+                    @offsets-per-line.push: @offsets;
+                }
+                else {
+                    @offsets-per-line.push: Any;
+                }
+            }
+
+            # Calculate the valid column offsets from the offsets seen
+            # so far.  Only offsets that are either past the end of a
+            # row, or which only have a space at *each* row two positions
+            # before that offset, are accepted.  Return them in ascending
+            # order.
+            my int @column-offsets = @offsets-per-line.map({
+                .Slip if $_
+            }).unique.grep({
+                my int $offset = $_ - 2;  # must have 2 spaces before
+                # disqualify any offset that has a defined non-space
+                # char on any of the rows
+                !@codes-per-row.first: -> @codes {
+                    $offset < nqp::elems(@codes)
+                      && nqp::isne_i(nqp::atpos_i(@codes,$offset),$space)
+                }
+            }).sort;
+
+            # Process all of the info into the final Seq
+            @lines.kv.map: -> $index, str $line {
+
+                # it's a row, build it from cells and offsets
+                if @offsets-per-line[$index].defined {
+                    my int $chars = nqp::chars($line);
+                    my int $start;
+                    my str @cells;
+                    for @column-offsets -> int $offset {
+                        @cells.push: $start > $chars
+                          ?? ''
+                          !! nqp::substr($line,$start,$offset - $start - 2);
+                        $start = $offset;
+                    }
+                    @cells.push: $start > $chars
+                      ?? ''
+                      !! nqp::substr($line,$start);
+                    RakuAST::Doc::Row.new(:@column-offsets, :@cells)
+                }
+
+                #divider
+                else {
+                    $line
+                }
+            }
+        }
+
+        # Parse the given line and find out offsets of columns and dividers
+        my sub columnify($line) {
+
+            nqp::strtocodes($line,nqp::const::NORMALIZE_NFC,my int32 @codes);
+
+            my int $elems = nqp::elems(@codes);
+            @codes.push($space);  # create virtual space at end for trailing |
+            my str @dividers;     # strings of dividers encountered
+            my int @offsets;      # offsets where columns start (except first)
+
+            # Check the current line for column dividers.  Sets the @dividers
+            # and @offsets arrays, returns whether this line should be considered
+            # a row (any char that is not a row|column divider).
+            my sub inspect-real-dividers() {
+                my int $prev = $space;  # fake space at start for leading |
+                my int $curr;
+                my int $is-row;
+                my int $i = -1;
+                nqp::while(
+                  nqp::islt_i(++$i,$elems),
+                  nqp::if(                                    # for all chars
+                    nqp::iseq_i(($curr = nqp::atpos_i(@codes,$i)),$pipe)
+                      || nqp::iseq_i($curr,$plus),
+                    nqp::stmts(                               # | or +
+                      nqp::push_s(@dividers,nqp::chr($curr)),
+                      nqp::if(
+                        nqp::iseq_i($prev,$space)
+                          && nqp::iseq_i(
+                               nqp::atpos_i(@codes,nqp::add_i($i,1)),
+                               $space
+                             ),
+                        nqp::stmts(                           # real column divider
+                          nqp::push_i(@offsets,++$i),
+                          ($prev = 0),
+                        )
+                      )
+                    ),
+                    nqp::stmts(                               # NOT | or +
+                      nqp::unless(
+                        nqp::atpos_i(@row-dividers,$curr),
+                        ($is-row = 1),                        # not a row divider
+                      ),
+                      ($prev = $curr)
                     )
                   )
-                ),
-                nqp::stmts(                               # NOT | or +
-                  nqp::unless(
-                    nqp::atpos_i(@row-dividers,$curr),
-                    ($is-row = 1),                        # not a row divider
-                  ),
-                  ($prev = $curr)
-                )
-              )
-            );
-            $is-row
-        }
-
-        # Already determined this is a row, but no column dividers were
-        # seen.  Test whether virtual dividers (two+ consecutive spaces)
-        # can be found, and use the positions after that as offsets.
-        my sub inspect-virtual-dividers() {
-            my int $seen;    # number of spaces seen
-            my int $i = -1;
-            nqp::while(
-              nqp::islt_i(++$i,$elems),
-              nqp::if(                                    # for all chars
-                nqp::iseq_i(nqp::atpos_i(@codes,$i),$space),
-                ++$seen,                                  # a space!
-                nqp::stmts(                               # NOT a space
-                  nqp::if(
-                    nqp::isge_i($seen,2),
-                    nqp::push_i(@offsets,$i - 1)          # found start of cell
-                  ),
-                  ($seen = 0)
-                )
-              )
-            );
-        }
-
-        # is it a row
-        if inspect-real-dividers() {
-
-            # no dividers yet, means virtual dividers
-            inspect-virtual-dividers unless @dividers;
-
-            my int $start;
-            my str @cells;
-
-            for @offsets -> int $offset {
-                @cells.push: nqp::substr($line,$start,$offset - $start - 2);
-                $start = $offset + 1;
+                );
+                $is-row
             }
-            @cells.push: nqp::substr($line,$start);
 
-            RakuAST::Doc::Row.new(
-              :column-dividers(@dividers.join),
-              :column-offsets(@offsets),
-              :@cells
-            )
+            # is it a row
+            if inspect-real-dividers() {
+
+                # no dividers found, must have at least one
+                mixed-up($line) unless nqp::elems(@dividers);
+
+                my int $start;
+                my str @cells;
+
+                for @offsets -> int $offset {
+                    @cells.push: nqp::substr($line,$start,$offset - $start - 2);
+                    $start = $offset + 1;
+                }
+                @cells.push: nqp::substr($line,$start);
+
+                RakuAST::Doc::Row.new(
+                  :column-dividers(@dividers.join),
+                  :column-offsets(@offsets),
+                  :@cells
+                )
+            }
+
+            # not a row, so a row divider, so return as is
+            else {
+                $line
+            }
         }
 
-        # not a row, so a row divider, so return as is
-        else {
-            $line
-        }
-    }
-
-    method interpret-as-table(RakuAST::Doc::Block:D: $spaces, @paragraphs --> Nil) {
-        my @rows;                  # paragraphs as they should be stored
+        my @sofar;       # rows collected so far
+        my @paragraphs;  # ready made paragraphs for Block object
         my $merge-multi-row;       # whether to merge multiple rows
         my str @leading-dividers;  # leading dividers, to be prepended at end
-        my @sofar;                 # rows collected so far
 
         # Add the rows collected so far, merge them if so specified
         # or implied by the occurrence of multiple dividers
@@ -650,52 +763,51 @@ augment class RakuAST::Doc::Block {
             if $merge && @sofar > 1 {
                 my $first := @sofar.shift;
                 $first.merge-rows(@sofar.splice);
-                @rows.push: $first;
+                @paragraphs.push: $first;
             }
             else {
-                @rows.append: @sofar;
+                @paragraphs.append: @sofar;
             }
             @sofar = ();
         }
 
-        my $has-data;  # flag: True if actual rows where found
-        my $no-column-dividers;  # if defined, 0 = column dividers found, 1 = not
-        for @paragraphs.join.subst(/ \n+ $/).lines.map(&columnify) {
-            if nqp::istype($_,Str) {  # a divider
-                if @rows {  # not the first divider, implies mult-line mode
+        # First try virtual dividers, then visual if failed
+        my @rows = parse-assuming-virtual-dividers;
+        @rows = @lines.map(&columnify) unless @rows;
+
+        # Post-process rows, merging where appropriat
+        for @rows {
+            # a divider
+            if nqp::istype($_,Str) {
+
+                # not first divider, implies multi-line mode from now on
+                if @paragraphs {
                     if @sofar {
                         $merge-multi-row := True;
                         add-rows-collected-sofar;
                     }
+                    @paragraphs.push: $_;
                 }
 
-                else {  # first divider will *always* merge multiple rows
+                # first divider will *always* merge multiple rows
+                elsif @sofar {
                     add-rows-collected-sofar(:merge);
+                    @paragraphs.push: $_;
                 }
-                @rows.push: $_;
+
+                # divider *before* any data row, keep them for later
+                else {
+                    @leading-dividers.push: $_;
+                }
             }
             else {  # NOT a divider
-                my str $column-dividers = .column-dividers;
-                with $no-column-dividers {
-                    self.sorry-ad-hoc(
-                      "Table has a mixture of visible and invisible column-separator types.",
-                      "dummy argument that is somehow needed"
-                    ) if $no-column-dividers
-                           != nqp::not_i(nqp::chars($column-dividers));
-                }
-                else {
-                    $no-column-dividers =
-                      nqp::not_i(nqp::chars($column-dividers));
-                }
-
                 @sofar.push: $_;
-                $has-data := True;
             }
         }
 
         add-rows-collected-sofar;
-        @rows.prepend(@leading-dividers) if @leading-dividers;
-        self.set-paragraphs(@rows);
+        @paragraphs.prepend(@leading-dividers) if @leading-dividers;
+        self.set-paragraphs(@paragraphs);
     }
 }
 

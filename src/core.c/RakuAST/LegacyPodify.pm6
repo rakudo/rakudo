@@ -191,19 +191,23 @@ class RakuAST::LegacyPodify {
             $headers := @rows.splice($index, 1);
         }
 
-        # no explicitel header specification: use legacy heuristic of
+        # no explicit header specification: use legacy heuristic of
         # second divider being different from the first divider
         else {
             my $seen-row;
             my $first-divider;
+            my int $other-dividers;
             for $ast.paragraphs {
                 # is it a divider?
                 if nqp::istype($_,Str) {
 
                     # seen a divider after a row before?
                     if $first-divider.defined {
-                        $headers := @rows.shift if $_ ne $first-divider;
-                        last;  # different, we're done!
+                        if $_ ne $first-divider {
+                            $headers := @rows.shift;
+                            last;  # different, we're done!
+                        }
+                        ++$other-dividers;
                     }
 
                     # seen a row before?
@@ -217,6 +221,10 @@ class RakuAST::LegacyPodify {
                     $seen-row = True;
                 }
             }
+
+            # set headers if only one divider was seen after the first row
+            $headers := @rows.shift
+              if !$headers && $first-divider.defined && !$other-dividers;
         }
 
         my $has-data;              # flag: True if actual rows where found

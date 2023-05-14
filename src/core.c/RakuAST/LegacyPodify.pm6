@@ -12,8 +12,22 @@ class RakuAST::LegacyPodify {
                .subst("\n",  ' ', :global)
                .subst(/\s+/, ' ', :global)
     }
+
+    # sanitize the given string, including any handling of Z<markup>
     my sub sanitize-and-trim(Str:D $string --> Str:D) {
-        sanitize($string).trim
+        my $sanitized := RakuAST::Doc::Paragraph.from-string(
+          sanitize($string), :allow<Z>
+        );
+        (nqp::istype($sanitized,Str)
+          ?? $sanitized
+          !! $sanitized.atoms.map({
+                 nqp::istype($_,Str)
+                   ?? $_
+                   !! .letter eq 'Z'
+                     ?? ""
+                     !! .Str
+             }).join
+        ).trim
     }
 
     # hide the outer markup
@@ -185,6 +199,14 @@ class RakuAST::LegacyPodify {
         my @rows    = $ast.paragraphs.grep(RakuAST::Doc::Row);
         my $config := $ast.config;
 
+        # Make sure that all rows have the same number of cells
+        my $nr-columns := @rows.map(*.cells.elems).max;
+        my sub spread(\cells) {
+            cells.elems == $nr-columns
+              ?? cells
+              !! (cells.Slip, ("" xx $nr-columns - cells.elems).Slip)
+        }
+
         # determine whether we have headers
         my $headers;
         with $config<header-row> -> $index {
@@ -197,7 +219,13 @@ class RakuAST::LegacyPodify {
             my $seen-row;
             my $first-divider;
             my int $other-dividers;
-            for $ast.paragraphs {
+
+            # Create list of paragraphs without any trailing divider,
+            # to make the header determination logic easier.
+            my @paragraphs = $ast.paragraphs;
+            @paragraphs.pop if nqp::istype(@paragraphs.tail,Str);
+
+            for @paragraphs {
                 # is it a divider?
                 if nqp::istype($_,Str) {
 
@@ -250,12 +278,12 @@ class RakuAST::LegacyPodify {
           "dummy argument that is somehow needed"
         ) unless $has-data;
 
-        $headers := [.cells.map(&sanitize-and-trim)] with $headers;
+        $headers := [spread .cells.map(&sanitize-and-trim)] with $headers;
         Pod::Block::Table.new(
           caption  => $config<caption> // "",
           headers  => $headers // [],
           config   => $config,
-          contents => @rows.map({ [.cells.map(&sanitize-and-trim)] })
+          contents => @rows.map({ [spread .cells.map(&sanitize-and-trim)] })
         )
     }
 

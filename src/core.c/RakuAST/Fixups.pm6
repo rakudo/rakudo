@@ -21,7 +21,17 @@ my class RakuAST::Doc::Row is RakuAST::Node {
             # simplified for now, assuming no format strings in cells
             for @rows -> $row {
                 my $other    := $row.cells;
-                my int $elems = nqp::elems(@merged) max nqp::elems($other);
+                my int $elems = nqp::elems($other);
+
+                if nqp::isgt_i($elems,nqp::elems(@merged)) {
+                    nqp::until(
+                      nqp::isge_i(nqp::elems(@merged),$elems),
+                      nqp::push_s(@merged,"")
+                    );
+                }
+                else {
+                    $elems = nqp::elems(@merged);
+                }
 
                 my int $i = -1;
                 nqp::while(
@@ -49,31 +59,33 @@ my class RakuAST::Doc::Row is RakuAST::Node {
 
         # Stringify the given strings with the current dividers / offsets
         my sub stringify-cells(\cells) {
-            my int $columns = cells.elems;
-            my str @parts;    # atoms of string to be assembled
-
-            my int $i = -1;
             if $dividers {
+                my int $columns = cells.elems;
+                my int $i = -1;  # column index
+                my int $j = -1;  # offset index
+
+                my str @parts;   # atoms of string to be assembled
+
+                # push divider if first cell started with divider
+                if nqp::iseq_i(nqp::atpos_i($!column-offsets,0),2) {
+                    @parts.push(nqp::substr($dividers,++$j,1));
+                    @parts.push(' ');
+                }
+
                 nqp::while(
                   nqp::islt_i(++$i,$columns),
                   nqp::stmts(
                     @parts.push(nqp::atpos_s(cells,$i)),
                     @parts.push(' '),
-                    @parts.push(nqp::substr($dividers,$i,1)),
+                    @parts.push(nqp::substr($dividers,++$j,1)),
                     @parts.push(' ')
                   )
                 );
+                @parts.join.trim-trailing
             }
             else {
-                nqp::while(
-                  nqp::islt_i(++$i,$columns),
-                  nqp::stmts(
-                    @parts.push(nqp::atpos_s(cells,$i)),
-                    @parts.push('  '),
-                  )
-                );
+                cells.join('  ')
             }
-            @parts.join.trim-trailing
         }
 
         # cells may contain multiple lines, implies visual dividers
@@ -386,6 +398,10 @@ augment class RakuAST::Doc::Paragraph {
             $paragraph
         }
     }
+
+    multi method Str(RakuAST::Doc::Paragraph:D:) {
+        self.atoms.map(*.Str).join
+    }
 }
 
 augment class RakuAST::Doc::Block {
@@ -542,6 +558,41 @@ augment class RakuAST::Doc::Block {
 
         # Set up the lines to be parsed
         my str @lines = @matched.join.subst(/ \n+ $/).lines;
+        return unless @lines;  # nothing to do
+
+        # Remove common leading whitespace from all lines
+        if @lines[0].leading-whitespace.chars -> int $leading is copy {
+            my int $i;
+            my int $elems = nqp::elems(@lines);
+            my int $offset;
+            my str $line;
+            nqp::while(
+              $leading && nqp::islt_i(++$i,$elems),
+              nqp::stmts(
+                ($line = nqp::atpos_s(@lines,$i)),
+                nqp::if(
+                  nqp::islt_i(
+                    ($offset = nqp::findnotcclass(
+                      nqp::const::CCLASS_WHITESPACE,$line,0,nqp::chars($line)
+                    )),
+                    $leading
+                  ),
+                  ($leading = $offset)
+                )
+              )
+            );
+
+            # found common whitespace
+            if $leading {
+                $i = -1;
+                nqp::while(
+                  nqp::islt_i(++$i,$elems),
+                  nqp::bindpos_s(@lines,$i,
+                    nqp::substr(nqp::atpos_s(@lines,$i),$leading)
+                  )
+                );
+            }
+        }
 
         # Error handling for mixed column divider types
         my sub mixed-up($line) {
@@ -636,7 +687,7 @@ in line '$line'",
             # row, or which only have a space at *each* row two positions
             # before that offset, are accepted.  Return them in ascending
             # order.
-            my int @column-offsets = @offsets-per-line.map({
+            my int @offsets = @offsets-per-line.map({
                 .Slip if $_
             }).unique.grep({
                 my int $offset = $_ - 2;  # must have 2 spaces before
@@ -648,6 +699,12 @@ in line '$line'",
                 }
             }).sort;
 
+            # To provide consistency with offsets produced by
+            # columnify, we prefix the offset of the first
+            # column
+            my int @column-offsets = @offsets;
+            @column-offsets.unshift(0);
+
             # Process all of the info into the final Seq
             @lines.kv.map: -> $index, str $line {
 
@@ -656,12 +713,13 @@ in line '$line'",
                     my int $chars = nqp::chars($line);
                     my int $start;
                     my str @cells;
-                    for @column-offsets -> int $offset {
+                    for @offsets -> int $offset {
                         @cells.push: $start > $chars
                           ?? ''
                           !! nqp::substr($line,$start,$offset - $start - 2);
                         $start = $offset;
                     }
+
                     @cells.push: $start > $chars
                       ?? ''
                       !! nqp::substr($line,$start);
@@ -707,7 +765,7 @@ in line '$line'",
                                $space
                              ),
                         nqp::stmts(                           # real column divider
-                          nqp::push_i(@offsets,++$i),
+                          nqp::push_i(@offsets,nqp::add_i(++$i,1)),
                           ($prev = 0),
                         )
                       )
@@ -730,14 +788,23 @@ in line '$line'",
                 # no dividers found, must have at least one
                 mixed-up($line) unless nqp::elems(@dividers);
 
+                my int $chars = nqp::chars($line);
                 my int $start;
                 my str @cells;
 
                 for @offsets -> int $offset {
-                    @cells.push: nqp::substr($line,$start,$offset - $start - 2);
-                    $start = $offset + 1;
+                    # If the first offset is 2, then this implies that
+                    # the line started with a divider, so there is no
+                    # cell to push here, as there is no cell before it
+                    unless $offset == 2 {
+                        @cells.push:
+                          nqp::substr($line,$start,$offset - $start - 3)
+                          unless $start > $chars;
+                    }
+                    $start = $offset;
                 }
-                @cells.push: nqp::substr($line,$start);
+                @cells.push: nqp::substr($line,$start)
+                  unless $start > $chars;
 
                 RakuAST::Doc::Row.new(
                   :column-dividers(@dividers.join),
@@ -775,6 +842,10 @@ in line '$line'",
         my @rows = parse-assuming-virtual-dividers;
         @rows = @lines.map(&columnify) unless @rows;
 
+        # get rid of any last divider to make multi-row merge checks
+        # easier
+        my $last-divider := @rows.pop if nqp::istype(@rows.tail,Str);
+
         # Post-process rows, merging where appropriat
         for @rows {
             # a divider
@@ -807,6 +878,7 @@ in line '$line'",
 
         add-rows-collected-sofar;
         @paragraphs.prepend(@leading-dividers) if @leading-dividers;
+        @paragraphs.push($_) with $last-divider;
         self.set-paragraphs(@paragraphs);
     }
 }

@@ -225,7 +225,11 @@ class RakuAST::LegacyPodify {
                 ?? Pod::Block::Comment.new(
                      :$config, :contents([$ast.paragraphs.head])
                    )
-                !! Pod::Block::Named.new(:name($type), :$config, :$contents)
+                !! $type eq 'config' && $ast.abbreviated
+                  ?? Pod::Config.new(
+                       :type($ast.paragraphs.head), :config($ast.config)
+                     )
+                  !! Pod::Block::Named.new(:name($type), :$config, :$contents)
           !! $contents  # no type means just a string
     }
 

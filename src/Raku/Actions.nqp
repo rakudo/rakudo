@@ -2870,6 +2870,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :$type, :$level, :$config, :@paragraphs;
     }
 
+    method doc-block:sym<config>($/) {
+        if $*FROM-SEEN{$/.from}++ {
+            return;
+        }
+
+        my $config     := extract-config($/);
+        my @paragraphs := nqp::list(~$<header>);
+
+        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+          :type<config>, :$config, :abbreviated, :@paragraphs;
+    }
+
     method doc-block:sym<abbreviated>($/) {
         if $*FROM-SEEN{$/.from}++ {
             return;

@@ -3679,7 +3679,22 @@ if $*COMPILING_CORE_SETTING {
         # should now be at end of line
         <.doc-newline>
 
+        # and any following lines as well
         $<lines>=[^^ \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]*
+    }
+
+    token doc-block:sym<config> {
+
+        # save any leading whitespace from start of line
+        ^^ $<spaces>=[ \h* ]
+        # custom config madness
+        '=config' \h+ $<header>=<.doc-identifier>
+
+        # fetch any configuration
+        <doc-configuration($<spaces>)>*
+
+        # should now be at end of line
+        <.doc-newline>
     }
 
     token doc-block:sym<abbreviated> {

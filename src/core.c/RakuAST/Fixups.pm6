@@ -105,6 +105,11 @@ my class RakuAST::Doc::Row is RakuAST::Node {
             stringify-cells($!cells)
         }
     }
+
+    # conceptual leading whitespace of first element
+    method leading-whitespace() {
+        $!cells.head.leading-whitespace
+    }
 }
 
 augment class RakuAST::Doc {
@@ -408,7 +413,7 @@ augment class RakuAST::Doc::Block {
 
     # conceptual leading whitespace of first element
     method leading-whitespace() {
-        self.paragraphs.head.leading-whitespace;
+        self.paragraphs.head.leading-whitespace
     }
 
     # create block with type/paragraph introspection

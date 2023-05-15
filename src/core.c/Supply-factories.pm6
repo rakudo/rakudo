@@ -76,8 +76,79 @@
         method sane(--> True) { }
         method serial(--> True) { }
     }
-    method interval(Supply:U: $interval, $delay = 0, :$scheduler = $*SCHEDULER) {
-        Supply.new(Interval.new(:$interval, :$delay, :$scheduler));
+
+    class IntervalBetween does Tappable {
+        has $!scheduler;
+        has $!interval;
+        has $!delay;
+
+        submethod BUILD(:$!scheduler, :$!interval, :$!delay --> Nil) { }
+
+        my class IntervalCancellation is Cancellation {
+            has $!delegate;
+#?if moar
+            has atomicint $!cancelled;
+#?endif
+#?if !moar
+            has Int:D $!cancelled is default(0);
+#?endif
+            has $!lock;
+
+            submethod BUILD(--> Nil) {
+                $!lock = Lock.new;
+            }
+
+            method change-delegate($delegate) {
+                $!lock.protect: { $!delegate = $delegate }
+            }
+
+            method cancelled {
+                atomic-fetch($!cancelled) > 0
+            }
+
+            method cancel() {
+                $!lock.protect: {
+                    unless self.cancelled {
+                        $!delegate.cancel with $!delegate;
+                        atomic-assign($!cancelled, 1);
+                    }
+                }
+            }
+        }
+
+        method tap(&emit, &, &, &tap) {
+            my $i = 0;
+            my $lock = Lock::Async.new;
+            my $cancellation = IntervalCancellation.new;
+            my &code = -> {
+                $lock.protect: { emit $i++ };
+                CATCH { $cancellation.cancel if $cancellation }
+            }
+            $lock.protect: {
+                $cancellation.change-delegate: $!scheduler
+                        .cue({ execute(&code, $cancellation, $!interval, $!scheduler) }, :in($!delay));
+                my $t = Tap.new({ $cancellation.cancel });
+                tap($t);
+                $t
+            }
+        }
+
+        my sub execute(&code, $cancellation, $in, $scheduler) {
+            return if $cancellation.cancelled;
+            code();
+            return if $cancellation.cancelled;
+            $cancellation.change-delegate: $scheduler
+                    .cue({ execute(&code, $cancellation, $in, $scheduler) }, :$in);
+        }
+
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
+    }
+    method interval(Supply:U: $interval, $delay = 0, :$between = False, :$scheduler = $*SCHEDULER) {
+        $between
+        ?? Supply.new(IntervalBetween.new(:$interval, :$delay, :$scheduler))
+        !! Supply.new(Interval.new(:$interval, :$delay, :$scheduler));
     }
 
     ##

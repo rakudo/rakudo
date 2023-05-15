@@ -3,14 +3,48 @@
 
 class RakuAST::LegacyPodify {
 
+    my int32 $nl     = 10;  # "\n"
+    my int32 $space  = 32;  # " "
+    my int32 $bslash = 92;  # "\\"
+    my int   $gcprop = nqp::unipropcode("General_Category");
+
     # basically mangle text to just single spaces
-    my sub sanitize(Str:D $string --> Str:D) {
-        $string eq "\n"
-          ?? ' '
-          !! $string
-               .subst(/ \n+ $/)
-               .subst("\n",  ' ', :global)
-               .subst(/\s+/, ' ', :global)
+    my sub sanitize(str $string --> Str:D) {
+        return ' ' if $string eq "\n";
+
+        nqp::strtocodes($string,nqp::const::NORMALIZE_NFC,my int32 @input);
+        my int $end = nqp::elems(@input);
+        return '' unless $end;
+
+        # remove any trailing newlines
+        nqp::while(
+          $end && nqp::iseq_i(nqp::atpos_i(@input,--$end),$nl),
+          nqp::pop_i(@input)
+        );
+
+        my int32 @output;
+        my int32 $curr;
+        my int32 $prev;
+        my int $i = -1;
+
+        nqp::while(
+          nqp::isle_i(++$i,$end),
+          nqp::if(                                  # for all codes
+            nqp::iseq_i(($curr = nqp::atpos_i(@input,$i)),$nl)
+              || nqp::iseq_i($curr,$space)
+              || nqp::iseq_s(nqp::getuniprop_str($curr,$gcprop),'Zs'),
+            nqp::if(                                # \n or \h
+              nqp::isne_i($prev,$space),
+              nqp::push_i(@output,$prev = $space),  # first space
+            ),
+            nqp::if(                                # not \n nor \h
+              nqp::isne_i($curr,$bslash),
+              nqp::push_i(@output,$prev = $curr)    # not a \\
+            )
+          )
+        );
+
+        nqp::strfromcodes(@output)
     }
 
     # sanitize the given string, including any handling of Z<markup>

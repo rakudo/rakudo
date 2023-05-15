@@ -550,9 +550,10 @@ augment class RakuAST::Doc::Block {
     my int @row-dividers;
     @row-dividers[.ord] = 1 for ' ', '_', '-', '+', '|', '=';
 
-    my int32 $space =  32;  # " "
-    my int32 $plus  =  43;  # "+"
-    my int32 $pipe  = 124;  # "|"
+    my int32 $space  =  32;  # " "
+    my int32 $plus   =  43;  # "+"
+    my int32 $pipe   = 124;  # "|"
+    my int   $gcprop = nqp::unipropcode("General_Category");
 
     method interpret-as-table(RakuAST::Doc::Block:D: $spaces, @matched --> Nil) {
 
@@ -736,6 +737,12 @@ in line '$line'",
         # Parse the given line and find out offsets of columns and dividers
         my sub columnify($line) {
 
+            # is a given codepoint horizontal whitespace
+            my sub is-ws(int $codepoint) {
+                nqp::iseq_i($codepoint,$space)
+                  || nqp::iseq_s(nqp::getuniprop_str($codepoint,$gcprop),'Zs')
+            }
+
             nqp::strtocodes($line,nqp::const::NORMALIZE_NFC,my int32 @codes);
 
             my int $elems = nqp::elems(@codes);
@@ -744,36 +751,32 @@ in line '$line'",
             my int @offsets;      # offsets where columns start (except first)
 
             # Check the current line for column dividers.  Sets the @dividers
-            # and @offsets arrays, returns whether this line should be considered
-            # a row (any char that is not a row|column divider).
+            # and @offsets arrays, returns whether this line should be
+            # considered a row (any char that is not a row|column divider).
             my sub inspect-real-dividers() {
-                my int $prev = $space;  # fake space at start for leading |
-                my int $curr;
-                my int $is-row;
-                my int $i = -1;
+                my int32 $prev = $space;  # fake space at start for leading |
+                my int32 $curr;
+                my int   $is-row;
+                my int   $i = -1;
                 nqp::while(
                   nqp::islt_i(++$i,$elems),
-                  nqp::if(                                    # for all chars
+                  nqp::if(                              # for all chars
                     nqp::iseq_i(($curr = nqp::atpos_i(@codes,$i)),$pipe)
                       || nqp::iseq_i($curr,$plus),
-                    nqp::stmts(                               # | or +
+                    nqp::stmts(                         # | or +
                       nqp::push_s(@dividers,nqp::chr($curr)),
                       nqp::if(
-                        nqp::iseq_i($prev,$space)
-                          && nqp::iseq_i(
-                               nqp::atpos_i(@codes,nqp::add_i($i,1)),
-                               $space
-                             ),
-                        nqp::stmts(                           # real column divider
+                        is-ws($prev) && is-ws(nqp::atpos_i(@codes,$i + 1)),
+                        nqp::stmts(                     # real column divider
                           nqp::push_i(@offsets,nqp::add_i(++$i,1)),
                           ($prev = 0),
                         )
                       )
                     ),
-                    nqp::stmts(                               # NOT | or +
+                    nqp::stmts(                         # NOT | or +
                       nqp::unless(
                         nqp::atpos_i(@row-dividers,$curr),
-                        ($is-row = 1),                        # not a row divider
+                        ($is-row = 1),                  # not a row divider
                       ),
                       ($prev = $curr)
                     )

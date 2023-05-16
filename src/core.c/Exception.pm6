@@ -120,7 +120,7 @@ my class X::SecurityPolicy::Eval is X::SecurityPolicy {
 }
 
 my class X::AdHoc is Exception {
-    has $.payload = "Unexplained error";
+    has $.payload is default(Nil) = "Unexplained error";
 
     my role SlurpySentry { }
 

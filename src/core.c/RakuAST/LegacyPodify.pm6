@@ -3,9 +3,12 @@
 
 class RakuAST::LegacyPodify {
 
-    my int32 $nl     = 10;  # "\n"
-    my int32 $space  = 32;  # " "
-    my int32 $bslash = 92;  # "\\"
+    my int32 $nl     =     10;  # "\n"
+    my int32 $space  =     32;  # " "
+    my int32 $nbsp   = 0x00A0;  # NO-BREAK SPACE
+    my int32 $nnbsp  = 0x202F;  # NARROW NO-BREAK SPACE
+    my int32 $wj     = 0x2060;  # WORD JOINER
+    my int32 $zwnbsp = 0xFEFF;  # ZERO WIDTH NO-BREAK SPACE
     my int   $gcprop = nqp::unipropcode("General_Category");
 
     # basically mangle text to just single spaces
@@ -25,27 +28,29 @@ class RakuAST::LegacyPodify {
         my int32 @output;
         my int32 $curr;
         my int32 $prev;
+        my str   $prop;
         my int $i = -1;
 
+        # step through all codes, make the non-breaking whitespace act as
+        # normal characters, and collapse all other consecutive whitespace
+        # into a single space character
         nqp::while(
           nqp::isle_i(++$i,$end),
-          nqp::if(                                  # for all codes
-            nqp::iseq_i(($curr = nqp::atpos_i(@input,$i)),$nl)
-              || nqp::iseq_i($curr,$space)
-              || nqp::iseq_s(nqp::getuniprop_str($curr,$gcprop),'Zs'),
-            nqp::if(                                # \n or \h
-              nqp::isne_i($prev,$space),
-              nqp::stmts(                           # keep 1st horizontal space
-                nqp::push_i(
-                  @output,
-                  nqp::if(nqp::iseq_i($curr,$nl),$space,$curr)
-                ),
-                ($prev = $space)                    # may it look like normal
-              )
-            ),
-            nqp::if(                                # not \n nor \h
-              nqp::isne_i($curr,$bslash),
-              nqp::push_i(@output,$prev = $curr)    # not a \\
+          nqp::if(                                    # for all codes
+            nqp::iseq_i(($curr = nqp::atpos_i(@input,$i)),$nbsp)
+              || nqp::iseq_i($curr,$nnbsp)
+              || nqp::iseq_i($curr,$wj)
+              || nqp::iseq_i($curr,$zwnbsp),
+            nqp::push_i(@output,$prev = $curr),       # non-breaking whitespace
+            nqp::if(                                  # not nb whitespace
+              nqp::iseq_s(($prop=nqp::getuniprop_str($curr,$gcprop)),'Zs')
+                || nqp::iseq_s($prop,'Cf')
+                || nqp::iseq_s($prop,'Cc'),
+              nqp::if(                                # all other whitespace
+                nqp::isne_i($prev,$space),
+                nqp::push_i(@output,$prev = $space),  # after non-ws, add space
+              ),
+              nqp::push_i(@output,$prev = $curr)      # all ok, just copy
             )
           )
         );
@@ -54,7 +59,7 @@ class RakuAST::LegacyPodify {
     }
 
     # sanitize the given string, including any handling of Z<markup>
-    my sub sanitize-and-trim(Str:D $string --> Str:D) {
+    my sub table-sanitize(Str:D $string --> Str:D) {
         my $sanitized := RakuAST::Doc::Paragraph.from-string(
           sanitize($string), :allow<Z>
         );
@@ -67,7 +72,7 @@ class RakuAST::LegacyPodify {
                      ?? ""
                      !! .Str
              }).join
-        ).trim
+        ).trim.subst(Q/\+/, '+', :global).subst(Q/\|/, '|', :global)
     }
 
     # hide the outer markup
@@ -322,12 +327,12 @@ class RakuAST::LegacyPodify {
           "dummy argument that is somehow needed"
         ) unless $has-data;
 
-        $headers := [spread .cells.map(&sanitize-and-trim)] with $headers;
+        $headers := [spread .cells.map(&table-sanitize)] with $headers;
         Pod::Block::Table.new(
           caption  => $config<caption> // "",
           headers  => $headers // [],
           config   => $config,
-          contents => @rows.map({ [spread .cells.map(&sanitize-and-trim)] })
+          contents => @rows.map({ [spread .cells.map(&table-sanitize)] })
         )
     }
 

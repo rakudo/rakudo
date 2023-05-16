@@ -2715,7 +2715,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     my sub extract-config($/) {
         my $config := nqp::hash;
-        $config<numbered> := True if $<doc-numbered>;
+        $config<numbered> := 1 if $<doc-numbered>;
 
         if $<doc-configuration> -> $doc-configuration {
             for $doc-configuration -> $/ {

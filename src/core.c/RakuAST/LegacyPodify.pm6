@@ -35,7 +35,13 @@ class RakuAST::LegacyPodify {
               || nqp::iseq_s(nqp::getuniprop_str($curr,$gcprop),'Zs'),
             nqp::if(                                # \n or \h
               nqp::isne_i($prev,$space),
-              nqp::push_i(@output,$prev = $space),  # first space
+              nqp::stmts(                           # keep 1st horizontal space
+                nqp::push_i(
+                  @output,
+                  nqp::if(nqp::iseq_i($curr,$nl),$space,$curr)
+                ),
+                ($prev = $space)                    # may it look like normal
+              )
             ),
             nqp::if(                                # not \n nor \h
               nqp::isne_i($curr,$bslash),

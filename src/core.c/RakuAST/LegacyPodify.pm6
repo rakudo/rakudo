@@ -380,9 +380,9 @@ class RakuAST::LegacyPodify {
         my $trailing := normalize $ast.trailing;
 
         my %args;
-        %args<WHEREFORE> := $WHEREFORE;
-        %args<leading>   := [$leading]  if $leading;
-        %args<trailing>  := [$trailing] if $trailing;
+        %args<WHEREFORE> = $WHEREFORE;
+        %args<leading>   = [$leading]  if $leading;
+        %args<trailing>  = [$trailing] if $trailing;
 
         my $pod := Pod::Block::Declarator.new(|%args);
         $WHEREFORE.set_why($pod);

@@ -373,14 +373,18 @@ class RakuAST::LegacyPodify {
         sub normalize(@paragraphs) {
             @paragraphs.map(*.lines.map({.trim if $_}).Slip).join(' ')
         }
-        my $pod := Pod::Block::Declarator.new(
-          WHEREFORE => $WHEREFORE,
-          leading   => [%*ENV<RAKUDO_POD_DECL_BLOCK_USER_FORMAT>
-            ?? $ast.leading.join("\n")
-            !! normalize($ast.leading)
-          ],
-          trailing  => [[normalize $ast.trailing],]
-        );
+
+        my $leading := %*ENV<RAKUDO_POD_DECL_BLOCK_USER_FORMAT>
+          ?? $ast.leading.join("\n")
+          !! normalize($ast.leading);
+        my $trailing := normalize $ast.trailing;
+
+        my %args;
+        %args<WHEREFORE> := $WHEREFORE;
+        %args<leading>   := [$leading]  if $leading;
+        %args<trailing>  := [$trailing] if $trailing;
+
+        my $pod := Pod::Block::Declarator.new(|%args);
         $WHEREFORE.set_why($pod);
         $pod
     }

@@ -62,6 +62,7 @@ class RakuAST::Doc::Block
     has Hash $!config;
     has Bool $.abbreviated;
     has List $!paragraphs;
+    has int  $!pod-index;
 
     method new(Str :$type!,
                Int :$level,
@@ -75,6 +76,14 @@ class RakuAST::Doc::Block
         $obj.set-config($config);
         $obj.set-abbreviated($abbreviated);
         $obj.set-paragraphs($paragraphs);
+
+        if nqp::isconcrete($*LEGACY-POD-INDEX) {
+            nqp::bindattr_i($obj,RakuAST::Doc::Block,
+              '$!pod-index', $*LEGACY-POD-INDEX++);
+        }
+        else {
+            nqp::bindattr_i($obj,RakuAST::Doc::Block,'$!pod-index',-1);
+        }
         $obj
     }
 
@@ -124,8 +133,8 @@ class RakuAST::Doc::Block
       RakuAST::IMPL::QASTContext $context
     ) {
         my $*RESOLVER := $resolver;
-        $resolver.find-attach-target('compunit').pod-content.push(
-          self.podify
+        $resolver.find-attach-target('compunit').set-pod-content(
+          $!pod-index, self.podify
         );
         True
     }

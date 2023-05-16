@@ -554,6 +554,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # from there, otherwise from EVAL invocations.
         my %*OPTIONS := %*COMPILING<%?OPTIONS>;
 
+        # This contains the current index to determine the order in which
+        # legacy $=pod is being filled by ::Doc::Block and ::Doc::Declarator
+        # blocks.  Whenever a new object of these is made, the value of
+        # this dynamic variable will be stored in the object, and then
+        # incremented.  At CHECK time, the generated Pod:: objects will
+        # be bound to the index given at creation time.
+        my $*LEGACY-POD-INDEX := 0;
+
         # $/.from locations of declarator doc and rakudo blocks that have
         # been seen and handled before.  Needed because the grammar can
         # actually visit the same piece of the code more than once.

@@ -119,6 +119,17 @@ class RakuAST::CompUnit
     method check(RakuAST::Resolver $resolver) {
         $!mainline.IMPL-CHECK($resolver, $!context, False);
         self.IMPL-CHECK($resolver, $!context, False);
+
+        # Not all RakuAST::Doc objects actually have their PERFORM-CHECK
+        # method called on them, causing holes to occur in $=pod (albeit
+        # that the blocks that *are* generated, are in the correct order).
+        # So run over the array and filter out any undefined elements.
+        my int $elems := $!pod-content.elems;
+        my int $i     := $elems;
+        my $pod := $!pod-content;
+        while --$i >= 0 {
+            $pod.splice($i,1) unless $pod.EXISTS-POS($i);
+        }
     }
 
     # Add the AST for handling legacy doc generation
@@ -203,6 +214,20 @@ class RakuAST::CompUnit
         nqp::setelems($!end-phasers, 0);
         self.clear-handler-attachments();
         Nil
+    }
+
+    # Set the pod content at the indicated position
+    method set-pod-content(int $i, $pod) {
+
+        # don't know where to set, so just push
+        if $i == -1 {
+            $!pod-content.push($pod);
+        }
+
+        # set in assigned position
+        else {
+            $!pod-content.ASSIGN-POS($i,$pod);
+        }
     }
 
     # helper method for a given phasers list

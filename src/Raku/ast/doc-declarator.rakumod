@@ -6,12 +6,22 @@ class RakuAST::Doc::Declarator
     has RakuAST::Doc::DeclaratorTarget $.WHEREFORE;
     has List                           $.leading;
     has List                           $.trailing;
+    has int                            $!pod-index;
 
     method new(:$WHEREFORE, :$leading, :$trailing) {
         my $obj := nqp::create(self);
         $obj.set-WHEREFORE($WHEREFORE);
         $obj.set-leading($leading);
         $obj.set-trailing($trailing);
+
+        if nqp::isconcrete($*LEGACY-POD-INDEX) {
+            nqp::bindattr_i($obj,RakuAST::Doc::Declarator, 
+              '$!pod-index', $*LEGACY-POD-INDEX++);
+        }
+        else {
+            nqp::bindattr_i($obj,RakuAST::Doc::Declarator,'$!pod-index',-1);
+        }
+
         $obj
     }
     method visit-children(Code $visitor) {
@@ -44,9 +54,9 @@ class RakuAST::Doc::Declarator
                 RakuAST::IMPL::QASTContext $context) {
         if $!WHEREFORE {
             my $*RESOLVER := $resolver;
-            $resolver.find-attach-target('compunit').pod-content.push(
-              self.podify($!WHEREFORE.meta-object)
-            );
+            $resolver.find-attach-target('compunit').set-pod-content(
+              $!pod-index, self.podify($!WHEREFORE.meta-object)
+            )
         }
         else {
             self.add-worry: $resolver.build-exception:

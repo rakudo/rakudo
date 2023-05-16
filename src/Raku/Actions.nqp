@@ -2717,15 +2717,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $config := nqp::hash;
         $config<numbered> := True if $<doc-numbered>;
 
-        my sub literalize($expr) {
-            my $ast := $expr.ast;
-            nqp::istype($ast,RakuAST::QuotedString)
-              ?? $ast.literal-value
-              !! nqp::istype($ast,RakuAST::Literal)
-                ?? $ast.compile-time-value
-                !! nqp::hllizefor(+$expr<value><number>,'Raku')
-        }
-
         if $<doc-configuration> -> $doc-configuration {
             for $doc-configuration -> $/ {
                 for $<colonpair> -> $/ {
@@ -2735,28 +2726,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         $config{$key} := nqp::hllizefor(@result[0],'Raku');
                     }
                     elsif $<coloncircumfix> -> $ccf {  # :bar("foo",42)
-                        my $ast := $ccf.ast;
-                        if nqp::istype($ast,RakuAST::QuotedString) {
-                            $config{$key} := $ast.literal-value;
+                        my $value := $ccf.ast.literalize;
+                        if $value.defined {
+                            $config{$key} := $value;
                         }
                         else {
-                            my $expr :=
-                              $ccf<circumfix><semilist><statement>[0]<EXPR>;
-                            if $expr<value> -> $value {
-                                $config{$key} := literalize($value);
-                            }
-                            else {
-                                my @values;
-                                my int $i;
-                                while $expr[$i++] -> $value {
-                                    @values.push: literalize($value);
-                                }
-                                if nqp::elems(@values) -> $elems {
-                                    $config{$key} := $elems == 1
-                                      ?? @values[0]
-                                      !! nqp::hllizefor(@values, 'Raku');
-                                }
-                            }
+                            nqp::die("'$ccf' is not constant");
                         }
                     }
                     elsif $<var> {                     # :$bar

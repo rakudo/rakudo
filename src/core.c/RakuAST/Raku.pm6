@@ -6,6 +6,8 @@
 # unimplemented classes in a sensible way.
 
 augment class RakuAST::Node {
+
+    # Allow calling .EVAL on any RakuAST::Node
     method EVAL(RakuAST::Node:D: *%opts) {
         use MONKEY-SEE-NO-EVAL;
         EVAL self, context => CALLER::, |%opts

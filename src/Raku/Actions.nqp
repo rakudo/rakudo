@@ -1677,6 +1677,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
     }
 
+    method multi_declarator:sym<only>($/) {
+        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
+    }
+
     method multi_declarator:sym<null>($/) {
         self.attach: $/, $<declarator>.ast;
     }

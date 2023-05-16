@@ -2315,6 +2315,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
         [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
     }
+    token multi_declarator:sym<only> {
+        <sym><.kok>
+        :my $*MULTINESS := 'only';
+        [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
+        [ <declarator> || <routine_def('sub')> || <.malformed('only')> ]
+    }
     token multi_declarator:sym<null> {
         :my $*MULTINESS := '';
         <declarator>

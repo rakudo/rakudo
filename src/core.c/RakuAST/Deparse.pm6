@@ -2244,7 +2244,7 @@ class RakuAST::Deparse {
         my str $sigil = $ast.sigil;
         my str $scope = $ast.scope;
 
-        $sigil eq '$' && $scope eq 'state'
+        $scope eq 'state'
           ?? $sigil
           !! "$scope $sigil"
     }
@@ -2298,6 +2298,22 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::VarDeclaration::Placeholder::SlurpyHash:D $
     --> '%_') { }
+
+    multi method deparse(RakuAST::VarDeclaration::Signature:D $ast --> Str:D) {
+        my str @parts = $ast.scope;
+
+        if $ast.type -> $type {
+            @parts.push(self.deparse($type));
+        }
+
+        @parts.push('(' ~ self.deparse($ast.signature) ~ ')');
+
+        if $ast.initializer -> $initializer {
+            @parts.push(self.deparse($initializer));
+        }
+
+        @parts.join(' ')
+    }
 
     multi method deparse(RakuAST::VarDeclaration::Simple:D $ast --> Str:D) {
         my str @parts;

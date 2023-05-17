@@ -15,7 +15,7 @@ augment class RakuAST::Node {
 
     proto method raku(RakuAST::Node:) {
         CATCH {
-            when X::Multi::NoMatch {
+            when X::Multi::NoMatch | X::Multi::Ambiguous {
                 die "No .raku method implemented for {self.^name} objects yet";
             }
         }
@@ -1201,6 +1201,10 @@ augment class RakuAST::Node {
     multi method raku(
       RakuAST::VarDeclaration::Placeholder::SlurpyHash:D: --> Str:D) {
         self!none
+    }
+
+    multi method raku(RakuAST::VarDeclaration::Signature:D: --> Str:D) {
+        self!nameds: <signature scope type initializer>
     }
 
     multi method raku(RakuAST::VarDeclaration::Simple:D: --> Str:D) {

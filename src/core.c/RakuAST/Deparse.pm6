@@ -629,8 +629,8 @@ class RakuAST::Deparse {
               nqp::istype($_,Str) ?? $_ !! self.deparse($_)
             }).join("\n");
         $abbreviated
-          ?? "=$body\n\n"
-          !! "=begin $body\n=end $type\n\n"
+          ?? "\n=$body\n"
+          !! "\n=begin $body.chomp()\n=end $type\n"
     }
 
     multi method deparse(RakuAST::Doc::Declarator:D $ast --> Str:D) {

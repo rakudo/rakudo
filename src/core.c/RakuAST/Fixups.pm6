@@ -446,98 +446,7 @@ augment class RakuAST::Doc::Block {
 
         # potentially need introspection
         elsif $type eq 'pod' | 'doc' {
-
-            my str $initial-ws     = $spaces;
-            my int $initial-offset = nqp::chars($spaces);
-
-            my str $current-ws;
-            my int $current-offset;
-
-            # set current whitespace / offset conveniently
-            sub set-current-ws($ws) {
-                $current-ws = $ws // '';
-                $current-offset = nqp::chars($current-ws);
-            }
-
-            set-current-ws($initial-ws);
-            for @paragraphs -> $paragraph {
-
-                # need further introspection
-                if nqp::istype($paragraph,Str) {
-                    my @lines;
-                    my @codes;
-
-                    # store collected lines as the next paragraph
-                    sub add-lines() {
-                        $block.add-paragraph(
-                          RakuAST::Doc::Paragraph.from-string(@lines.join)
-                        );
-                        @lines = ();
-                    }
-
-                    # store collected code as the next paragraph
-                    sub add-codes() {
-                        my $code := @codes.join("\n");
-                        my $last := $block.paragraphs.tail;
-
-                        $block.add-paragraph(
-                          RakuAST::Doc::Block.new(
-                            :type<code>, :paragraphs(@codes.join("\n"))
-                          )
-                        );
-                        @codes = ();
-                    }
-
-                    for $paragraph.lines(:!chomp) {
-
-                        if .is-whitespace {
-                            @codes
-                              ?? @codes.push('')
-                              !! @lines.push("\n");
-                        }
-
-                        elsif .leading-whitespace eq $current-ws {
-                            @codes
-                              ?? @codes.push(.substr($current-offset).chomp)
-                              !! @lines.push(.trim-leading);
-                        }
-
-                        # change in leading whitespace
-                        else {
-                            my str $ws      = .leading-whitespace;
-                            my int $leading = nqp::chars($ws);
-
-                            # deeper indented, start / continue code block
-                            if $leading > $current-offset {
-                                add-lines if @lines;
-                                set-current-ws($ws) unless @codes;
-                                @codes.push: .substr($current-offset).chomp;
-                            }
-
-                            # (still) indented, so start new code block
-                            elsif $leading > $initial-offset {
-                                add-codes if @codes;
-                                set-current-ws($ws);
-                                @codes.push: .substr($current-offset).chomp;
-                            }
-
-                            # back to original level, or even less
-                            else {
-                                add-codes if @codes;
-                                @lines.push: .trim-leading;
-                            }
-                        }
-                    }
-                    add-codes if @codes;
-                    add-lines if @lines;
-                }
-
-                # already introspected
-                else {
-                    set-current-ws($paragraph.leading-whitespace);
-                    $block.add-paragraph($paragraph);
-                }
-            }
+            $block.interpret-implicit-code-blocks($spaces, @paragraphs);
         }
 
         # these just need the paragraphs
@@ -888,6 +797,100 @@ in line '$line'",
         @paragraphs.prepend(@leading-dividers) if @leading-dividers;
         @paragraphs.push($_) with $last-divider;
         self.set-paragraphs(@paragraphs);
+    }
+
+    method interpret-implicit-code-blocks(RakuAST::Doc::Block:D: $spaces, @paragraphs) {
+        my str $initial-ws     = $spaces;
+        my int $initial-offset = nqp::chars($spaces);
+
+        my str $current-ws;
+        my int $current-offset;
+
+        # set current whitespace / offset conveniently
+        sub set-current-ws($ws) {
+            $current-ws = $ws // '';
+            $current-offset = nqp::chars($current-ws);
+        }
+
+        set-current-ws($initial-ws);
+        for @paragraphs -> $paragraph {
+
+            # need further introspection
+            if nqp::istype($paragraph,Str) {
+                my @lines;
+                my @codes;
+
+                # store collected lines as the next paragraph
+                sub add-lines() {
+                    self.add-paragraph(
+                      RakuAST::Doc::Paragraph.from-string(@lines.join)
+                    );
+                    @lines = ();
+                }
+
+                # store collected code as the next paragraph
+                sub add-codes() {
+                    my $code := @codes.join("\n");
+                    my $last := self.paragraphs.tail;
+
+                    self.add-paragraph(
+                      RakuAST::Doc::Block.new(
+                        :type<code>, :paragraphs(@codes.join("\n"))
+                      )
+                    );
+                    @codes = ();
+                }
+
+                for $paragraph.lines(:!chomp) {
+
+                    if .is-whitespace {
+                        @codes
+                          ?? @codes.push('')
+                          !! @lines.push("\n");
+                    }
+
+                    elsif .leading-whitespace eq $current-ws {
+                        @codes
+                          ?? @codes.push(.substr($current-offset).chomp)
+                          !! @lines.push(.trim-leading);
+                    }
+
+                    # change in leading whitespace
+                    else {
+                        my str $ws      = .leading-whitespace;
+                        my int $leading = nqp::chars($ws);
+
+                        # deeper indented, start / continue code block
+                        if $leading > $current-offset {
+                            add-lines if @lines;
+                            set-current-ws($ws) unless @codes;
+                            @codes.push: .substr($current-offset).chomp;
+                        }
+
+                        # (still) indented, so start new code block
+                        elsif $leading > $initial-offset {
+                            add-codes if @codes;
+                            set-current-ws($ws);
+                            @codes.push: .substr($current-offset).chomp;
+                        }
+
+                        # back to original level, or even less
+                        else {
+                            add-codes if @codes;
+                            @lines.push: .trim-leading;
+                        }
+                    }
+                }
+                add-codes if @codes;
+                add-lines if @lines;
+            }
+
+            # already introspected
+            else {
+                set-current-ws($paragraph.leading-whitespace);
+                self.add-paragraph($paragraph);
+            }
+        }
     }
 }
 

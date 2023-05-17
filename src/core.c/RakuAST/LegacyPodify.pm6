@@ -371,7 +371,10 @@ class RakuAST::LegacyPodify {
 
     multi method podify(RakuAST::Doc::Declarator:D $ast, $WHEREFORE) {
         sub normalize(@paragraphs) {
-            @paragraphs.map(*.lines.map({.trim if $_}).Slip).join(' ')
+            @paragraphs
+              .map(*.lines.map({.trim if $_}).Slip)
+              .join(' ')
+              .trim-trailing
         }
 
         my $leading := %*ENV<RAKUDO_POD_DECL_BLOCK_USER_FORMAT>

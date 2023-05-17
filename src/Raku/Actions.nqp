@@ -466,6 +466,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $it
     }
 
+    # Steal the information of the current declarand into the given
+    # declarand, and make that the declarand.  Needed for cases like
+    # subsets with a where, where the where block is seen *before*
+    # the subset, causing leading declarator doc to be attached to
+    # the block, rather than to the subset.
+    method steal-declarand($/, $it) {
+        $it.set-WHY($*DECLARAND.cut-WHY);
+        $*DECLARAND      := $it;
+        $*DECLARAND-LINE := ~$*ORIGIN-SOURCE.original-line($/.from);
+    }
+
     method enter-block-scope($/) {
         my $block := $*MULTINESS
             ?? self.r($*SCOPE-KIND).new(:multiness($*MULTINESS))
@@ -1932,12 +1943,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method type_declarator:sym<subset>($/) {
-        my $decl := self.r('Type', 'Subset').new(
+        my $where := $<EXPR> ?? $<EXPR>.ast !! Mu;
+        my $decl  := self.r('Type', 'Subset').new(
             :name($<longname>.ast),
-            :where($<EXPR> ?? $<EXPR>.ast !! Mu),
+            :where($where),
             :scope($*SCOPE)
         );
-        self.set-declarand($/, $decl);
+
+        $where && $*DECLARAND
+          ?? self.steal-declarand($/, $decl)
+          !! self.set-declarand($/, $decl);
+
         for $<trait> {
             $decl.add-trait($_.ast);
         }

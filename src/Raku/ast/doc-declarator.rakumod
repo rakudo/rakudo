@@ -87,6 +87,12 @@ class RakuAST::Doc::DeclaratorTarget {
         Nil
     }
 
+    method cut-WHY() {
+        my $WHY := nqp::getattr(self,RakuAST::Doc::DeclaratorTarget,'$!WHY');
+        nqp::bindattr(self,RakuAST::Doc::DeclaratorTarget,'$!WHY',Mu);
+        $WHY
+    }
+
     method set-leading($doc) {
         (my $WHY := self.WHY)
           ?? $WHY.set-leading($doc)

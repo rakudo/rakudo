@@ -12,7 +12,7 @@ class RakuAST::LegacyPodify {
     my int   $gcprop = nqp::unipropcode("General_Category");
 
     # basically mangle text to just single spaces
-    my sub sanitize(str $string --> Str:D) {
+    my sub sanitize(str $string, :$add-space --> Str:D) {
         return ' ' if $string eq "\n";
 
         nqp::strtocodes($string,nqp::const::NORMALIZE_NFC,my int32 @input);
@@ -54,6 +54,9 @@ class RakuAST::LegacyPodify {
             )
           )
         );
+
+        # add a space if there is something and were asked to add one
+        @output.push($space) if $add-space && nqp::elems(@output);
 
         nqp::strfromcodes(@output)
     }
@@ -184,10 +187,12 @@ class RakuAST::LegacyPodify {
     }
 
     multi method podify(RakuAST::Doc::Paragraph:D $ast) {
+        my int $left = $ast.atoms.elems;
         Pod::Block::Para.new(
           contents => no-last-nl($ast.atoms).map({
+              --$left;
               nqp::istype($_,Str)
-                ?? sanitize($_) || Empty
+                ?? sanitize($_, :add-space($left && .ends-with("\n"))) || Empty
                 !! self.podify($_)
           }).Slip
         )
@@ -204,6 +209,8 @@ class RakuAST::LegacyPodify {
               if $type eq 'table';
             return self.podify-code($ast)
               if $type eq 'code' | 'input' | 'output';
+            return self.podify-implicit-code($ast)
+              if $type eq 'implicit-code';
             return self.podify-defn($ast)
               if $type eq 'defn';
         }
@@ -337,18 +344,25 @@ class RakuAST::LegacyPodify {
     }
 
     method podify-code(RakuAST::Doc::Block:D $ast) {
-        my $contents := $ast.paragraphs.head;
+        my @contents = $ast.paragraphs.map({
+            (nqp::istype($_,Str)
+              ?? .split("\n", :v, :skip-empty)
+              # assume a paragraph with string / markup atoms
+              !! .atoms.map({
+                    nqp::istype($_,Str)
+                      ?? .split("\n", :v, :skip-empty).Slip
+                      !! .podify
+                 })
+            ).Slip
+        });
 
-        $contents := nqp::istype($contents,Str)
-          ?? no-last-nl($contents.split("\n", :v, :skip-empty)).List
-          # assume a paragraph with string / markup atoms
-          !! $contents.atoms.map({
-                nqp::istype($_,Str)
-                  ?? .split("\n", :v, :skip-empty).Slip
-                  !! .podify
-            }).List;
+        Pod::Block::Code.new: :@contents, :config($ast.config)
+    }
 
-        Pod::Block::Code.new: :$contents, :config($ast.config)
+    method podify-implicit-code(RakuAST::Doc::Block:D $ast) {
+        Pod::Block::Code.new:
+          :contents($ast.paragraphs.head.trim)
+          :config($ast.config)
     }
 
     method podify-defn(RakuAST::Doc::Block:D $ast) {

@@ -429,10 +429,11 @@ augment class RakuAST::Doc::Block {
 
         # originally verbatim, but may need postprocessing
         elsif $type eq 'code' | 'input' | 'output' {
-            if @paragraphs.head -> $pod {
+            for @paragraphs -> $pod {
                 if nqp::hllizefor($config<allow>,'Raku') -> $allow {
-                    $block.add-paragraph($_)
-                      for RakuAST::Doc::Paragraph.from-string($pod, :$allow);
+                    $block.add-paragraph(
+                      RakuAST::Doc::Paragraph.from-string($pod, :$allow)
+                    );
                 }
                 else {
                     $block.add-paragraph($pod);
@@ -812,44 +813,48 @@ in line '$line'",
             $current-offset = nqp::chars($current-ws);
         }
 
+        # store collected lines as the next paragraph
+        my @lines;
+        sub add-lines() {
+            self.add-paragraph(
+              RakuAST::Doc::Paragraph.from-string(@lines.join)
+            );
+            @lines = ();
+        }
+
+        # store collected code as the next paragraph
+        my @codes;
+        sub add-codes() {
+            my $code := @codes.join("\n");
+            my $last := self.paragraphs.tail;
+
+            self.add-paragraph(
+              RakuAST::Doc::Block.new(
+                :type<implicit-code>, :paragraphs(@codes.join("\n"))
+              )
+            );
+            @codes = ();
+        }
+
         set-current-ws($initial-ws);
         for @paragraphs -> $paragraph {
 
             # need further introspection
             if nqp::istype($paragraph,Str) {
-                my @lines;
-                my @codes;
-
-                # store collected lines as the next paragraph
-                sub add-lines() {
-                    self.add-paragraph(
-                      RakuAST::Doc::Paragraph.from-string(@lines.join)
-                    );
-                    @lines = ();
-                }
-
-                # store collected code as the next paragraph
-                sub add-codes() {
-                    my $code := @codes.join("\n");
-                    my $last := self.paragraphs.tail;
-
-                    self.add-paragraph(
-                      RakuAST::Doc::Block.new(
-                        :type<code>, :paragraphs(@codes.join("\n"))
-                      )
-                    );
-                    @codes = ();
-                }
 
                 for $paragraph.lines(:!chomp) {
 
+                    # only whitespace means adding to what we're collecting
                     if .is-whitespace {
                         @codes
                           ?? @codes.push('')
                           !! @lines.push("\n");
                     }
 
-                    elsif .leading-whitespace eq $current-ws {
+                    # leading whitespace is the same, or we're collecting
+                    # lines and the last line was not empty
+                    elsif .leading-whitespace eq $current-ws
+                      || (@lines && @lines.tail ne "\n") {
                         @codes
                           ?? @codes.push(.substr($current-offset).chomp)
                           !! @lines.push(.trim-leading);
@@ -881,16 +886,20 @@ in line '$line'",
                         }
                     }
                 }
-                add-codes if @codes;
                 add-lines if @lines;
             }
 
             # already introspected
             else {
+                add-codes if @codes;
+                add-lines if @lines;
                 set-current-ws($paragraph.leading-whitespace);
                 self.add-paragraph($paragraph);
             }
         }
+
+        add-codes if @codes;
+        add-lines if @lines;
     }
 }
 

@@ -75,7 +75,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
                 nqp::while(
                   nqp::islt_i(++$i,$columns),
                   nqp::stmts(
-                    @parts.push(nqp::atpos_s(cells,$i)),
+                    @parts.push(cells.AT-POS($i).Str),
                     @parts.push(' '),
                     @parts.push(nqp::substr($dividers,++$j,1)),
                     @parts.push(' ')
@@ -519,6 +519,9 @@ in line '$line'",
             );
         }
 
+        my str @allow = self.config<allow> // Empty;
+        @allow.push: 'Z' unless @allow.first('Z');
+
         # Parse the given lines assuming virtual dividers were used.
         # Quits if actual dividers were found after it found rows with
         # virtual dividers, or any empty array if none were found so far.
@@ -626,20 +629,26 @@ in line '$line'",
 
                 # it's a row, build it from cells and offsets
                 if @offsets-per-line[$index].defined {
-                    my int $chars = nqp::chars($line);
+                    my     $cells := nqp::create(IterationBuffer);
+                    my int $chars  = nqp::chars($line);
                     my int $start;
-                    my str @cells;
+
                     for @offsets -> int $offset {
-                        @cells.push: $start > $chars
+                        $cells.push: $start > $chars
                           ?? ''
-                          !! nqp::substr($line,$start,$offset - $start - 2);
+                          !! RakuAST::Doc::Paragraph.from-string(
+                               nqp::substr($line,$start,$offset - $start - 2),
+                               :@allow
+                             );
                         $start = $offset;
                     }
 
-                    @cells.push: $start > $chars
+                    $cells.push: $start > $chars
                       ?? ''
-                      !! nqp::substr($line,$start);
-                    RakuAST::Doc::Row.new(:@column-offsets, :@cells)
+                      !! RakuAST::Doc::Paragraph.from-string(
+                           nqp::substr($line,$start), :@allow
+                         );
+                    RakuAST::Doc::Row.new(:@column-offsets, :cells($cells.List))
                 }
 
                 #divider
@@ -715,14 +724,16 @@ in line '$line'",
                     # the line started with a divider, so there is no
                     # cell to push here, as there is no cell before it
                     unless $offset == 2 {
-                        $cells.push:
-                          nqp::substr($line,$start,$offset - $start - 3)
-                          unless $start > $chars;
+                        $cells.push: RakuAST::Doc::Paragraph.from-string(
+                          nqp::substr($line,$start,$offset - $start - 3),
+                          :@allow
+                        ) unless $start > $chars;
                     }
                     $start = $offset;
                 }
-                $cells.push: nqp::substr($line,$start)
-                  unless $start > $chars;
+                $cells.push: RakuAST::Doc::Paragraph.from-string(
+                  nqp::substr($line,$start), :@allow
+                ) unless $start > $chars;
 
                 RakuAST::Doc::Row.new(
                   :column-dividers(@dividers.join),

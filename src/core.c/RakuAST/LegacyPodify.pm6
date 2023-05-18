@@ -61,20 +61,17 @@ class RakuAST::LegacyPodify {
         nqp::strfromcodes(@output)
     }
 
-    # sanitize the given string, including any handling of Z<markup>
-    my sub table-sanitize(Str:D $string --> Str:D) {
-        my $sanitized := RakuAST::Doc::Paragraph.from-string(
-          sanitize($string), :allow<Z>
-        );
-        (nqp::istype($sanitized,Str)
-          ?? $sanitized
-          !! $sanitized.atoms.map({
-                 nqp::istype($_,Str)
-                   ?? $_
-                   !! .letter eq 'Z'
-                     ?? ""
-                     !! .Str
+    # sanitize the given cell, including any handling of markup
+    my sub table-sanitize($cell --> Str:D) {
+        sanitize(nqp::istype($cell,RakuAST::Doc::Paragraph)
+          ?? $cell.atoms.map({
+               nqp::istype($_,Str)
+                 ?? $_
+                 !! .letter eq 'Z'
+                   ?? ""
+                   !! .Str
              }).join
+          !! $cell
         ).trim.subst(Q/\+/, '+', :global).subst(Q/\|/, '|', :global)
     }
 

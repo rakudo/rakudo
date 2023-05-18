@@ -429,15 +429,24 @@ augment class RakuAST::Doc::Block {
 
         # originally verbatim, but may need postprocessing
         elsif $type eq 'code' | 'input' | 'output' {
-            for @paragraphs -> $pod {
-                if nqp::hllizefor($config<allow>,'Raku') -> $allow {
-                    $block.add-paragraph(
-                      RakuAST::Doc::Paragraph.from-string($pod, :$allow)
-                    );
+            my int $offset = $spaces.chars;
+            my str @allow  = nqp::hllizefor($config<allow>,'Raku') // ();
+
+            if $offset || @allow {
+                for @paragraphs -> $pod is copy {
+                    $pod = $pod.lines(:!chomp).map({
+                        .starts-with($spaces) ?? .substr($offset) !! $_
+                    }).join if $offset;
+
+                    @allow
+                      ?? $block.add-paragraph(
+                           RakuAST::Doc::Paragraph.from-string($pod, :@allow)
+                         )
+                      !! $block.add-paragraph($pod);
                 }
-                else {
-                    $block.add-paragraph($pod);
-                }
+            }
+            else {
+                $block.add-paragraph($_) for @paragraphs;
             }
         }
 

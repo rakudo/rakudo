@@ -57,11 +57,11 @@ class RakuAST::Doc::Block
   is RakuAST::Doc
   is RakuAST::CheckTime
 {
-    has str  $.type;
-    has int  $.level;
-    has Hash $!config;
-    has Bool $.abbreviated;
-    has List $!paragraphs;
+    has str  $.type;         # the type (e.g. "doc", "head", "item", etc)
+    has int  $.level;        # the level (default "", or numeric 1..N)
+    has Hash $!config;       # the config hash (e.g. :numbered, :allow<B>)
+    has Bool $.abbreviated;  # bool: true if =item rather than =begin item
+    has List $!paragraphs;   # the actual content
     has int  $!pod-index;
 
     method new(Str :$type!,

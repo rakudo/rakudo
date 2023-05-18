@@ -21,7 +21,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
             # simplified for now, assuming no format strings in cells
             for @rows -> $row {
                 my $other    := $row.cells;
-                my int $elems = nqp::elems($other);
+                my int $elems = $other.elems;
 
                 if nqp::isgt_i($elems,nqp::elems(@merged)) {
                     nqp::until(
@@ -35,11 +35,11 @@ my class RakuAST::Doc::Row is RakuAST::Node {
 
                 my int $i = -1;
                 nqp::while(
-                  nqp::islt_i(++$i,$elems) && nqp::atpos_s($other,$i),
+                  nqp::islt_i(++$i,$elems) && $other.AT-POS($i),
                   nqp::bindpos_s(@merged,$i,
                     nqp::concat(
                       nqp::atpos_s(@merged,$i),
-                      nqp::concat("\n", nqp::atpos_s($other,$i))
+                      nqp::concat("\n", $other.AT-POS($i))
                     )
                   )
                 );
@@ -706,28 +706,28 @@ in line '$line'",
                 # no dividers found, must have at least one
                 mixed-up($line) unless nqp::elems(@dividers);
 
-                my int $chars = nqp::chars($line);
+                my     $cells := nqp::create(IterationBuffer);
+                my int $chars  = nqp::chars($line);
                 my int $start;
-                my str @cells;
 
                 for @offsets -> int $offset {
                     # If the first offset is 2, then this implies that
                     # the line started with a divider, so there is no
                     # cell to push here, as there is no cell before it
                     unless $offset == 2 {
-                        @cells.push:
+                        $cells.push:
                           nqp::substr($line,$start,$offset - $start - 3)
                           unless $start > $chars;
                     }
                     $start = $offset;
                 }
-                @cells.push: nqp::substr($line,$start)
+                $cells.push: nqp::substr($line,$start)
                   unless $start > $chars;
 
                 RakuAST::Doc::Row.new(
                   :column-dividers(@dividers.join),
                   :column-offsets(@offsets),
-                  :@cells
+                  :cells($cells.List)
                 )
             }
 

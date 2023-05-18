@@ -456,7 +456,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
 
             $*DECLARAND      := $it;
-            $*DECLARAND-LINE := ~$*ORIGIN-SOURCE.original-line($/.from);
+            $*DECLARAND-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
             if @*LEADING-DOC -> @leading {
                 $it.set-leading(@leading);
                 @*LEADING-DOC := [];
@@ -474,7 +474,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method steal-declarand($/, $it) {
         $it.set-WHY($*DECLARAND.cut-WHY);
         $*DECLARAND      := $it;
-        $*DECLARAND-LINE := ~$*ORIGIN-SOURCE.original-line($/.from);
+        $*DECLARAND-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
     }
 
     method enter-block-scope($/) {
@@ -2699,11 +2699,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $*FROM-SEEN{$from} {
             # nothing to do, all has been done already
         }
-        elsif $*DECLARAND
-          && $*DECLARAND-LINE eq ~$*ORIGIN-SOURCE.original-line($from) {
-            $*DECLARAND.add-trailing(~$/);
-            ++$*FROM-SEEN{$from};
-            nqp::deletekey($*DECLARAND-WORRIES,$from);
+        elsif $*DECLARAND {
+            my $orig-line := +$*ORIGIN-SOURCE.original-line($from);
+            # accept the trailing declarator doc if it is on the same line
+            # as the declarand, or it is on the *start* of the next line
+            # (-4 to get to the newline in "\n#= ")
+            if $*DECLARAND-LINE == $orig-line
+              || ($*DECLARAND-LINE + 1 == $orig-line
+                   && nqp::substr($/.orig,$from - 4,1) eq "\n") {
+                $*DECLARAND.add-trailing(~$/);
+                ++$*FROM-SEEN{$from};
+                nqp::deletekey($*DECLARAND-WORRIES,$from);
+            }
+            else {
+                $*DECLARAND-WORRIES{$from} := $/;
+            }
         }
         else {
             $*DECLARAND-WORRIES{$from} := $/;

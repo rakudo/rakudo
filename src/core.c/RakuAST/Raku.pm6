@@ -279,7 +279,7 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Block:D: --> Str:D) {
         self!add-WHY: self!nameds:
-          <body implicit-topic required-topic exception>
+          <implicit-topic required-topic exception body>
     }
 
     multi method raku(RakuAST::Blockoid:D: --> Str:D) {
@@ -899,7 +899,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Statement::For:D: --> Str:D) {
-        self!nameds: <labels source body mode>
+        self!nameds: <labels mode source body>
     }
 
     multi method raku(RakuAST::Statement::Given:D: --> Str:D) {

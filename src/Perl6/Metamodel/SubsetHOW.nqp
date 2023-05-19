@@ -37,6 +37,15 @@ class Perl6::Metamodel::SubsetHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
+    method mro($obj, *%named) {
+        my @mro;
+        @mro.push($obj);
+        for $!refinee.HOW.mro($!refinee, |%named) {
+            @mro.push($_);
+        }
+        @mro
+    }
+
     method BUILD(:$refinee, :$refinement) {
         $!refinee := $refinee;
         $!refinement := $refinement;

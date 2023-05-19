@@ -1,3 +1,4 @@
+my class Allomorph { ... }
 my role X::Comp { ... }
 my class X::ControlFlow { ... }
 my role X::Control { ... }
@@ -2014,21 +2015,24 @@ my class X::Syntax::Number::LiteralType does X::Syntax {
     has $.varname;
     has $.vartype;
     has $.value;
-    has $.valuetype;
-    has $.suggestiontype;
-    has $.native;
+    has $.valuetype      = $!value.^name;
+    has $.suggestiontype = ($!vartype,$!valuetype).are.^name;
+    has $.native         = nqp::objprimspec($!valuetype);
 
     method message() {
         my $vartype := $!vartype.WHAT.^name;
-        my $conversionmethod := $vartype;
+        my $conversionmethod := $vartype.tclc;
         $vartype := $vartype.lc if $.native;
         my $vt := $!value.^name;
-        my $value := $vt eq "IntStr" || $vt eq "NumStr" || $vt eq "RatStr" || $vt eq "ComplexStr"
-            ?? $!value.Str
-            !! $!value.raku;
-        my $val = "Cannot assign a literal of type {$.valuetype} ($value) to { $.native ?? "a native" !! "a" } variable of type $vartype. You can declare the variable to be of type $.suggestiontype, or try to coerce the value with { $value ~ '.' ~ $conversionmethod } or $conversionmethod\($value\)";
+        my $value := nqp::istype($.value,Allomorph)
+          ?? $!value.Str
+          !! $!value.raku;
+        my $val = "Cannot assign a literal of type $.valuetype ($value) to
+        a { "native" if $.native } variable of type $vartype. You can declare
+        the variable to be of type $.suggestiontype, or try to coerce the
+        value with $value.$conversionmethod or $conversionmethod\($value\)";
         try $val ~= ", or just write the value as " ~ $!value."$vartype"().raku;
-        $val;
+        "$val.".naive-word-wrapper
     }
 }
 

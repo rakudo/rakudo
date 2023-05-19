@@ -2021,7 +2021,7 @@ my class X::Syntax::Number::LiteralType does X::Syntax {
 
     method message() {
         my $vartype := $!vartype.WHAT.^name;
-        my $conversionmethod := $vartype.tclc;
+        my $conversionmethod := $vartype.tc;
         $vartype := $vartype.lc if $.native;
         my $vt := $!value.^name;
         my $value := nqp::istype($.value,Allomorph)

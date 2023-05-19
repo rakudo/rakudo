@@ -204,7 +204,7 @@ class RakuAST::LegacyPodify {
         unless $level {
             return self.podify-table($ast)
               if $type eq 'table';
-            return self.podify-code($ast)
+            return self.podify-code($ast, $type)
               if $type eq 'code' | 'input' | 'output';
             return self.podify-implicit-code($ast)
               if $type eq 'implicit-code';
@@ -340,7 +340,7 @@ class RakuAST::LegacyPodify {
         )
     }
 
-    method podify-code(RakuAST::Doc::Block:D $ast) {
+    method podify-code(RakuAST::Doc::Block:D $ast, Str:D $type) {
         my @contents = $ast.paragraphs.map({
             (nqp::istype($_,Str)
               ?? .split("\n", :v, :skip-empty)
@@ -353,7 +353,7 @@ class RakuAST::LegacyPodify {
             ).Slip
         });
 
-        Pod::Block::Code.new: :@contents, :config($ast.config)
+        ::("Pod::Block::$type.tc()").new: :@contents, :config($ast.config)
     }
 
     method podify-implicit-code(RakuAST::Doc::Block:D $ast) {

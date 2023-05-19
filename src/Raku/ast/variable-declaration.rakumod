@@ -675,6 +675,28 @@ class RakuAST::VarDeclaration::Simple
         self.add-sorry: $resolver.build-exception:
             'X::Dynamic::Package', :symbol(self.name)
             if self.twigil eq '*' && self.desigilname.is-multi-part;
+
+        my $type := self.type;
+        if nqp::istype($type,RakuAST::Type::Simple) {
+            my $initializer := self.initializer;
+            if nqp::istype($initializer,RakuAST::Initializer::Assign)
+                 || nqp::istype($initializer,RakuAST::Initializer::Bind) {
+                my $expression := $initializer.expression;
+                if nqp::istype($expression,RakuAST::Literal) {
+                    my $vartype := $type.PRODUCE-META-OBJECT;
+                    if nqp::objprimspec($vartype) {
+                        $vartype := $vartype.HOW.mro($vartype)[1];
+                    }
+
+                    my $value := $expression.compile-time-value;
+                    unless nqp::istype($value,$vartype) {
+                        $resolver.add-sorry: $resolver.build-exception:
+                          'X::Syntax::Number::LiteralType',
+                          :varname(self.name), :$vartype, :$value
+                    }
+                }
+            }
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

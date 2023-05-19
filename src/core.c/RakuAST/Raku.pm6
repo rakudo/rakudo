@@ -205,6 +205,10 @@ augment class RakuAST::Node {
           'traits', -> {
               my $traits := nqp::decont(self.traits);
               :$traits if $traits
+          },
+          'twigil', -> {
+              my $twigil := self.twigil;
+              :$twigil if $twigil
           }
         );
 

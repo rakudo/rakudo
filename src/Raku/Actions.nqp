@@ -450,7 +450,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $worries := $*DECLARAND-WORRIES;
             for $worries {
                 $_.value.typed_worry:
-                  'X::Syntax::Doc::DeclaratorTrailing::MissingDeclarand'
+                  'X::Syntax::Doc::Declarator::MissingDeclarand'
                   if $_.key < $from;
                 nqp::deletekey($worries, $_.key);
             }

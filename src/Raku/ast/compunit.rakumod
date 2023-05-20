@@ -117,6 +117,13 @@ class RakuAST::CompUnit
     # any CHECK-time error checking. This may also produce information useful
     # during optimization, though will not do any transforms in and of itself.
     method check(RakuAST::Resolver $resolver) {
+        if @*LEADING-DOC {
+            $resolver.add-worry:
+              $resolver.build-exception:
+                'X::Syntax::Doc::Declarator::MissingDeclarand',
+                :position<leading>;
+        }
+
         $!mainline.IMPL-CHECK($resolver, $!context, False);
         self.IMPL-CHECK($resolver, $!context, False);
 

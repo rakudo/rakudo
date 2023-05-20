@@ -375,49 +375,53 @@ class RakuAST::StatementPrefix::Phaser::Begin
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::BeginTime
 {
-    has Mu $!produced-value;
+    has Mu $!value;
 
     # Perform BEGIN-time evaluation.
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
 
         nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1); # avoid infinite loop
-        my $value-producer := self.IMPL-BEGIN-TIME-EVALUATE(self, $resolver, $context);
+        my $producer := self.IMPL-BEGIN-TIME-EVALUATE(self,$resolver,$context);
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
-            '$!produced-value', $value-producer());
+          '$!value', $producer());
         Nil
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := $!produced-value;
+        my $value := $!value;
         $context.ensure-sc($value);
-        QAST::WVal.new( :$value )
+        QAST::WVal.new(:$value)
     }
 }
 
 # The CHECK phaser.
 class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::StatementPrefix::Phaser
-  is RakuAST::Attaching
+  is RakuAST::CheckTime
 {
-    has Scalar $.container;
+    has Mu $!value;
 
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
-        nqp::bindattr($obj, RakuAST::StatementPrefix::Phaser::Check,
-          '$!container', nqp::create(Scalar));
         $obj
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('compunit').add-check-phaser(self);
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $producer := RakuAST::BeginTime.IMPL-BEGIN-TIME-EVALUATE(
+          nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst'),
+          $resolver, $context);
+
+        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Check, '$!value',
+          nqp::istype($producer,Code) ?? $producer() !! $producer);
+        Nil
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $container := $!container;
-        $context.ensure-sc($container);
-        QAST::WVal.new( :value($container) )
+        my $value := $!value;
+        $context.ensure-sc($value);
+        QAST::WVal.new(:$value)
     }
 }
 

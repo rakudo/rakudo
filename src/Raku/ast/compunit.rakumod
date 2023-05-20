@@ -16,7 +16,6 @@ class RakuAST::CompUnit
     has int $!is-sunk;
     has int $!is-eval;
     has Mu $!global-package-how;
-    has Mu $!check-phasers;
     has Mu $!init-phasers;
     has Mu $!end-phasers;
     has RakuAST::VarDeclaration::Implicit::Doc::Pod $.pod;
@@ -61,7 +60,6 @@ class RakuAST::CompUnit
         );
         nqp::bindattr($obj, RakuAST::CompUnit, '$!export-package',
           $export-package =:= NQPMu ?? Mu !! $export-package);
-        nqp::bindattr($obj, RakuAST::CompUnit, '$!check-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!init-phasers', []);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
 
@@ -216,7 +214,6 @@ class RakuAST::CompUnit
     }
 
     method clear-attachments() {
-        nqp::setelems($!check-phasers, 0);
         nqp::setelems($!init-phasers, 0);
         nqp::setelems($!end-phasers, 0);
         self.clear-handler-attachments();
@@ -247,10 +244,6 @@ class RakuAST::CompUnit
         }
         nqp::push($phasers, $phaser);
         Nil
-    }
-
-    method add-check-phaser(RakuAST::StatementPrefix::Phaser::Check $phaser) {
-        self.add-phaser($!check-phasers, $phaser);
     }
 
     method add-init-phaser(RakuAST::StatementPrefix::Phaser::Init $phaser) {
@@ -450,20 +443,16 @@ class RakuAST::CompUnit
             QAST::Stmts.new(
                 QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
                 self.IMPL-QAST-DECLS($context),
-                self.IMPL-QAST-VALUE-PHASERS($context, $!check-phasers),
-                self.IMPL-QAST-VALUE-PHASERS($context, $!init-phasers),
+                self.IMPL-QAST-INIT-PHASERS($context),
                 self.IMPL-QAST-END-PHASERS($context),
                 self.IMPL-QAST-CTXSAVE($context),
                 self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context)),
             )
     }
 
-    method IMPL-QAST-VALUE-PHASERS(
-      RakuAST::IMPL::QASTContext $context,
-                            List $phasers
-    ) {
+    method IMPL-QAST-INIT-PHASERS(RakuAST::IMPL::QASTContext $context) {
         my $setup := QAST::Stmts.new;
-        for $phasers {
+        for $!init-phasers {
             my $container := $_.container;
             $context.ensure-sc($container);
             $setup.push(

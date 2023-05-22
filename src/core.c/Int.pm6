@@ -259,6 +259,10 @@ my class Int does Real { # declared in BOOTSTRAP
             }
         }
     }
+
+    method upperize(Int:D: --> Str:D) is implementation-detail {
+        self.Str.trans('-0123456789' => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹')
+    }
 }
 
 multi sub prefix:<++>(Int:D $a is rw --> Int:D) {

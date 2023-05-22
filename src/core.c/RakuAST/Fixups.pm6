@@ -5,10 +5,37 @@ my class RakuAST::LegacyPodify { ... }
 # needed to compile the Raku setting) to be written in Raku rather
 # than in NQP.
 
+augment class RakuAST::Node {
+
+    # Helper method to produce the outer Rakudoc objects of a given
+    # AST (aka, the RakuAST::Doc::Block and RakuAST::Doc::Declarator
+    # objects).  Note that the RakuAST::Doc::Block may have embedded
+    # RakuAST::Doc::Block in its .paragraphs, so recursion may be
+    # necessary.
+    method rakudoc(RakuAST::Node:D:) {
+        my $nodes := IterationBuffer.new;
+
+        my sub visitor($ast --> Nil) {
+            if nqp::istype($ast,RakuAST::Doc::Block) {
+                $nodes.push($ast);
+            }
+            elsif nqp::istype($ast,RakuAST::Doc::DeclaratorTarget) {
+                $nodes.push($_) with $ast.WHY;
+            }
+            else {
+                $ast.visit-children(&visitor);
+            }
+        }
+
+        self.visit-children(&visitor);
+        $nodes.List
+    }
+}
+
 my class RakuAST::Doc::Row is RakuAST::Node {
     has str  $.column-dividers;
     has      $.column-offsets is built(:bind);  # native int array
-    has      $.cells          is built(:bind);  # native str array
+    has      $.cells          is built(:bind);  # Str or Markup
     has Bool $.multi-line     is built(False);  # columns are multi-line
 
     # Merge the cells of one or more rows with the current, by

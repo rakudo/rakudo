@@ -3597,14 +3597,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $width = nqp::chars($indent);
 
         for self.words -> str $word {
-            if $width + nqp::chars($word) >= $max {
+            my int $visible-width = $word.subst(/\e '[' \d+ m/, :global).chars;
+            if $width + $visible-width >= $max {
                 if nqp::elems($line) {
                     nqp::push_s(
                       $lines,
                       nqp::concat($indent,nqp::join(" ",$line))
                     );
                     $line := nqp::list_s($word);
-                    $width = nqp::chars($indent) + nqp::chars($word);
+                    $width = nqp::chars($indent) + $visible-width;
                 }
                 else {
                     nqp::push_s($lines,nqp::concat($indent,$word));
@@ -3613,7 +3614,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             else {
                 nqp::push_s($line,$word);
-                $width = $width + 1 + nqp::chars($word);
+                $width = $width + 1 + $visible-width;
             }
 
             # double space after . or ?

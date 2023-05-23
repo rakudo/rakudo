@@ -14,6 +14,7 @@ my %provides =
     "snapper"                       => "lib/snapper.rakumod",
     "safe-snapper"                  => "lib/safe-snapper.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
+    "RakuDoc::To::Text"             => "lib/RakuDoc/To/Text.rakumod",
 ;
 
 %provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"

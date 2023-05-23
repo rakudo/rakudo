@@ -89,7 +89,8 @@ class RakuAST::Doc::DeclaratorTarget {
 
     method cut-WHY() {
         my $WHY := nqp::getattr(self,RakuAST::Doc::DeclaratorTarget,'$!WHY');
-        nqp::bindattr(self,RakuAST::Doc::DeclaratorTarget,'$!WHY',Mu);
+        nqp::bindattr(self,RakuAST::Doc::DeclaratorTarget,'$!WHY',
+          RakuAST::Doc::Declarator);
         $WHY
     }
 

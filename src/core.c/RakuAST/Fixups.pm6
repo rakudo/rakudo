@@ -21,6 +21,7 @@ augment class RakuAST::Node {
             }
             elsif nqp::istype($ast,RakuAST::Doc::DeclaratorTarget) {
                 $nodes.push($_) with $ast.WHY;
+                $ast.visit-children(&visitor);
             }
             else {
                 $ast.visit-children(&visitor);

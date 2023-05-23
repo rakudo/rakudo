@@ -621,16 +621,23 @@ class RakuAST::Deparse {
         my %config      := $ast.config;
         my $abbreviated := $ast.abbreviated;
 
-        my $body := $type
-          ~ $ast.level
-          ~ self!deparse-as-config(%config)
-          ~ ($abbreviated && $type ne 'table' ?? " " !! "\n")
-          ~ $ast.paragraphs.map({
-              nqp::istype($_,Str) ?? $_ !! self.deparse($_)
-            }).join("\n");
-        $abbreviated
-          ?? "\n=$body\n"
-          !! "\n=begin $body.chomp()\n=end $type\n"
+        if $type eq 'implicit-code' {
+             $ast.paragraphs.map({
+               nqp::istype($_,Str) ?? $_ !! self.deparse($_)
+             }).join("\n").indent(4) ~ "\n"
+        }
+        else {
+            my $body := $type
+              ~ $ast.level
+              ~ self!deparse-as-config(%config)
+              ~ ($abbreviated && $type ne 'table' ?? " " !! "\n")
+              ~ $ast.paragraphs.map({
+                  nqp::istype($_,Str) ?? $_ !! self.deparse($_)
+                }).join("\n");
+            $abbreviated
+              ?? "\n=$body\n"
+              !! "\n=begin $body.chomp()\n=end $type\n"
+        }
     }
 
     multi method deparse(RakuAST::Doc::Declarator:D $ast --> Str:D) {

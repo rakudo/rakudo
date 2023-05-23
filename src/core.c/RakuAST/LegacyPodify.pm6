@@ -263,51 +263,10 @@ class RakuAST::LegacyPodify {
         # determine whether we have headers
         my $headers;
         with $config<header-row> -> $index {
-            $headers := @rows.splice($index, 1);
+            $headers := @rows.splice($index, 1).head;
         }
 
-        # no explicit header specification: use legacy heuristic of
-        # second divider being different from the first divider
-        else {
-            my $seen-row;
-            my $first-divider;
-            my int $other-dividers;
-
-            # Create list of paragraphs without any trailing divider,
-            # to make the header determination logic easier.
-            my @paragraphs = $ast.paragraphs;
-            @paragraphs.pop if nqp::istype(@paragraphs.tail,Str);
-
-            for @paragraphs {
-                # is it a divider?
-                if nqp::istype($_,Str) {
-
-                    # seen a divider after a row before?
-                    if $first-divider.defined {
-                        if $_ ne $first-divider {
-                            $headers := @rows.shift;
-                            last;  # different, we're done!
-                        }
-                        ++$other-dividers;
-                    }
-
-                    # seen a row before?
-                    elsif $seen-row {
-                        $first-divider := $_;
-                    }
-                }
-
-                # it's a row
-                else {
-                    $seen-row = True;
-                }
-            }
-
-            # set headers if only one divider was seen after the first row
-            $headers := @rows.shift
-              if !$headers && $first-divider.defined && !$other-dividers;
-        }
-
+        # some legacy sanity checks
         my $has-data;              # flag: True if actual rows where found
         my $previous-was-divider;  # flag: True if previous row was divider
         for $ast.paragraphs -> $row {
@@ -325,12 +284,12 @@ class RakuAST::LegacyPodify {
                 $previous-was-divider := False;
             }
         }
-
         $ast.sorry-ad-hoc(
           "Table has no data.",
           "dummy argument that is somehow needed"
         ) unless $has-data;
 
+        # wrap up
         $headers := [spread .cells.map(&table-sanitize)] with $headers;
         Pod::Block::Table.new(
           caption  => $config<caption> // "",

@@ -555,7 +555,8 @@ in line '$line'",
             );
         }
 
-        my str @allow = self.config<allow> // Empty;
+        my %config    = self.config;
+        my str @allow = %config<allow> // Empty;
         @allow.push: 'Z' unless @allow.first('Z');
 
         # Parse the given lines assuming virtual dividers were used.
@@ -811,7 +812,7 @@ in line '$line'",
         # easier
         my $last-divider := @rows.pop if nqp::istype(@rows.tail,Str);
 
-        # Post-process rows, merging where appropriat
+        # Post-process rows, merging where appropriate
         for @rows {
             # a divider
             if nqp::istype($_,Str) {
@@ -840,10 +841,51 @@ in line '$line'",
                 @sofar.push: $_;
             }
         }
-
         add-rows-collected-sofar;
+
+        # no explicit header specification: use legacy heuristic of
+        # second divider being different from the first divider
+        unless %config<header-row> {
+            my $seen-row;
+            my $first-divider;
+            my int $other-dividers;
+
+            for @paragraphs {
+                # is it a divider?
+                if nqp::istype($_,Str) {
+
+                    # seen a divider after a row before?
+                    if $first-divider.defined {
+                        if $_ ne $first-divider {
+                            %config<header-row> := 0;
+                            last;  # different, we're done!
+                        }
+                        ++$other-dividers;
+                    }
+
+                    # seen a row before?
+                    elsif $seen-row {
+                        $first-divider := $_;
+                    }
+                }
+
+                # it's a row
+                else {
+                    $seen-row = True;
+                }
+            }
+
+            # set headers if only one divider was seen after the first row
+            %config<header-row> := 0
+              if %config<header-row>:!exists
+              && $first-divider.defined
+              && !$other-dividers;
+        }
+
+        # post-process and save
         @paragraphs.prepend(@leading-dividers) if @leading-dividers;
         @paragraphs.push($_) with $last-divider;
+        self.set-config(%config.Map);
         self.set-paragraphs(@paragraphs);
     }
 

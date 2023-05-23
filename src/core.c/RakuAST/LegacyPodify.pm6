@@ -354,7 +354,7 @@ class RakuAST::LegacyPodify {
 
         my %args;
         %args<WHEREFORE> = $WHEREFORE;
-        %args<leading>   = [$leading]  if $leading;
+        %args<leading>   =  $leading   if $leading;
         %args<trailing>  = [$trailing] if $trailing;
 
         my $pod := Pod::Block::Declarator.new(|%args);

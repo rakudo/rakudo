@@ -67,6 +67,10 @@ my class Int does Real { # declared in BOOTSTRAP
         $_ := self.Str;
         $superscript ?? .trans('-0123456789' => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹') !! $_
     }
+    multi method Str(Int:D: :$subscript! --> Str:D) {
+        $_ := self.Str;
+        $subscript ?? .trans('-0123456789' => '₋₀₁₂₃₄₅₆₇₈₉') !! $_
+    }
 
     method Num(Int:D: --> Num:D) {
         nqp::p6box_n(nqp::tonum_I(self));

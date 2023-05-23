@@ -218,23 +218,35 @@ my sub table2text(RakuAST::Doc::Block:D $ast) {
 
     my str @parts;
     my int $header-row = $config<header-row> // -1;
-    my int $index      = -1;
-    my int $row-width;
-    @parts.push($_) for $ast.paragraphs.map({
-        my str $text = rakudoc2text($_);
-        $row-width max= $text.chars;
-        ++$index == $header-row
-          ?? colored($text, 'bold')
-          !! $text
+    my int $header-width;
+    my int $row        = -1;
+    @parts.push("  $_") for $ast.paragraphs.map({
+        # a divider row
+        when Str {
+            $_;
+        }
+        # an actual row
+        default {
+            my str $text = rakudoc2text($_);
+            if ++$row == $header-row {
+                $header-width = $text.chars;
+                colored($text, 'bold')
+            }
+            else {
+                $text
+            }
+        }
     });
 
     # center and underline any caption on top
-    if $config<caption> -> str $caption {
-        my int $caption-width = $caption.chars;
-        my str $text = colored($caption, 'underline');
-        @parts.unshift: $caption-width >= $row-width
+    if $config<caption> -> $caption {
+        my str $text = $caption.Str;  # also handle :caption<foo bar>
+        my int $caption-width = $text.chars;
+        $text = colored($text, 'underline');
+        @parts.unshift: '  ' ~ ($caption-width >= $header-width
           ?? $text
-          !! (' ' x ($row-width - $caption-width) / 2) ~ $text;
+          !! (' ' x ($header-width - $caption-width) / 2) ~ $text
+        );
     }
 
     @parts.join("\n") ~ "\n\n"

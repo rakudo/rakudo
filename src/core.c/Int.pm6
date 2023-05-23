@@ -61,7 +61,11 @@ my class Int does Real { # declared in BOOTSTRAP
     }
 
     multi method Str(Int:D: --> Str:D) {
-        nqp::p6box_s(nqp::tostr_I(self));
+        nqp::p6box_s(nqp::tostr_I(self))
+    }
+    multi method Str(Int:D: :$superscript! --> Str:D) {
+        $_ := self.Str;
+        $superscript ?? .trans('-0123456789' => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹') !! $_
     }
 
     method Num(Int:D: --> Num:D) {
@@ -258,10 +262,6 @@ my class Int does Real { # declared in BOOTSTRAP
                   !! Range.new( -Inf, Inf, :excludes-min, :excludes-max )
             }
         }
-    }
-
-    method superize(Int:D: --> Str:D) is implementation-detail {
-        self.Str.trans('-0123456789' => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹')
     }
 }
 

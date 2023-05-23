@@ -997,7 +997,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Postfix::Power:D $ast --> Str:D) {
-        $ast.power.superize
+        $ast.power.Str(:superscript)
     }
 
     multi method deparse(RakuAST::Prefix:D $ast --> Str:D) {

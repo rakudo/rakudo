@@ -53,7 +53,7 @@ my proto sub rakudoc2text(|) is export {
             my $index = 0;
 
             @parts.push: "NOTES\n-----\n";
-            @parts.push: (++$index).superize ~ " $_\n" for @notes;
+            @parts.push: (++$index).Str(:superscript) ~ " $_\n" for @notes;
         }
         @parts.join
     }
@@ -151,7 +151,7 @@ my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
             # remember the URL as a note
             if $ast.meta.head -> $url {
                 @*NOTES.push: $url;
-                $text ~ @*NOTES.elems.superize
+                $text ~ @*NOTES.elems.Str(:superscript)
             }
 
             # no URL specified

@@ -70,13 +70,7 @@ my multi sub rakudoc2text(RakuAST::Node:D $ast --> Str:D) {
 
 # the general handler, with specific sub-actions
 my multi sub rakudoc2text(RakuAST::Doc::Block:D $ast --> Str:D) {
-    state $needs-leading-nl;
-
-    my str $type   = $ast.type;
-    my str $prefix = $needs-leading-nl && $type ne 'item' ?? "\n" !! '';
-    $needs-leading-nl = $type eq 'item';
-
-    $prefix ~ do given $type {
+    given $ast.type {
         when 'code'          { code2text($ast)    }
         when 'comment'       { ''                 }
         when 'config'        { ''                 }
@@ -200,8 +194,8 @@ my sub code2text(RakuAST::Doc::Block:D $ast --> Str:D) {
 
 # handle =head
 my sub heading2text(RakuAST::Doc::Block:D $ast --> Str:D) {
-    my str $text  = textify($ast);
-    $text ~= ('-' x $text.chars - 1) ~ "\n";
+    my str $text = textify($ast).trim-trailing;
+    $text = $text ~ "\n" ~ ('-' x $text.chars) ~ "\n";
 
     my int $level = $ast.level.Int;
     $text.indent($level > 2 ?? 4 !! ($level - 1) * 2)

@@ -15,15 +15,16 @@ class RakuAST::LegacyPodify {
     my sub sanitize(str $string, :$add-space --> Str:D) {
         return ' ' if $string eq "\n";
 
+        # work with integers instead of characters for speed
         nqp::strtocodes($string,nqp::const::NORMALIZE_NFC,my int32 @input);
-        my int $end = nqp::elems(@input);
-        return '' unless $end;
 
         # remove any trailing newlines
+        my int $elems = nqp::elems(@input);
         nqp::while(
-          $end && nqp::iseq_i(nqp::atpos_i(@input,--$end),$nl),
+          $elems && nqp::iseq_i(nqp::atpos_i(@input,--$elems),$nl),
           nqp::pop_i(@input)
         );
+        return '' unless $elems = nqp::elems(@input);
 
         my int32 @output;
         my int32 $curr;
@@ -35,7 +36,7 @@ class RakuAST::LegacyPodify {
         # normal characters, and collapse all other consecutive whitespace
         # into a single space character
         nqp::while(
-          nqp::isle_i(++$i,$end),
+          nqp::islt_i(++$i,$elems),
           nqp::if(                                    # for all codes
             nqp::iseq_i(($curr = nqp::atpos_i(@input,$i)),$nbsp)
               || nqp::iseq_i($curr,$nnbsp)
@@ -43,7 +44,7 @@ class RakuAST::LegacyPodify {
               || nqp::iseq_i($curr,$zwnbsp),
             nqp::push_i(@output,$prev = $curr),       # non-breaking whitespace
             nqp::if(                                  # not nb whitespace
-              nqp::iseq_s(($prop=nqp::getuniprop_str($curr,$gcprop)),'Zs')
+              nqp::iseq_s(($prop = nqp::getuniprop_str($curr,$gcprop)),'Zs')
                 || nqp::iseq_s($prop,'Cf')
                 || nqp::iseq_s($prop,'Cc'),
               nqp::if(                                # all other whitespace
@@ -57,7 +58,6 @@ class RakuAST::LegacyPodify {
 
         # add a space if there is something and were asked to add one
         @output.push($space) if $add-space && nqp::elems(@output);
-
         nqp::strfromcodes(@output)
     }
 
@@ -238,7 +238,9 @@ class RakuAST::LegacyPodify {
               # from here on without level
               !! $type eq 'comment'
                 ?? Pod::Block::Comment.new(
-                     :$config, :contents([$ast.paragraphs.head])
+                     :$config, :contents([
+                       $ast.paragraphs.head.trim-trailing ~ "\n"
+                     ])
                    )
                 !! $type eq 'config' && $ast.abbreviated
                   ?? Pod::Config.new(
@@ -311,6 +313,10 @@ class RakuAST::LegacyPodify {
                  })
             ).Slip
         });
+
+        # only keep one "\n" at end
+        @contents.pop while @contents.tail eq "\n";
+        @contents.push("\n");
 
         ::("Pod::Block::$type.tc()").new: :@contents, :config($ast.config)
     }

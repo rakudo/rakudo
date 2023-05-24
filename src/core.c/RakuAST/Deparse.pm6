@@ -246,9 +246,7 @@ class RakuAST::Deparse {
         $ast.segments.map({
             nqp::istype($_,RakuAST::StrLiteral)
               ?? .value.raku.substr(1,*-1)
-              !! nqp::istype($_,RakuAST::Block)
-                ?? self.deparse($_).chomp
-                !! self.deparse($_)
+              !! self.deparse($_)
             }).join
     }
 
@@ -635,8 +633,8 @@ class RakuAST::Deparse {
                   nqp::istype($_,Str) ?? $_ !! self.deparse($_)
                 }).join("\n");
             $abbreviated
-              ?? "\n=$body\n"
-              !! "\n=begin $body.chomp()\n=end $type\n"
+              ?? "=$body"
+              !! "=begin $body=end $type\n"
         }
     }
 

@@ -33,11 +33,7 @@ my role PositionalBindFailover {
           !! List.from-iterator(self.iterator)
     }
 
-    method iterator() {
-        die "Method 'iterator' must be implemented by "
-          ~ self.^name
-          ~ " because it is required by roles: PositionalBindFailover";
-    }
+    method iterator() { ... }
 }
 nqp::p6configposbindfailover(Positional, PositionalBindFailover); # Binder
 Routine.'!configure_positional_bind_failover'(Positional, PositionalBindFailover); # Multi-dispatch

@@ -137,7 +137,8 @@ my class Range is Cool does Iterable does Positional {
         method !SET-SELF(\i)  { $!i = i - 1; self }
         method new(\i)    { nqp::create(self)!SET-SELF(i) }
         method pull-one() { ++$!i }
-        method is-lazy()  { True  }
+        method is-lazy(--> True)  { }
+        method is-monotonically-increasing(--> True) { }
     }
 
     method iterator() {

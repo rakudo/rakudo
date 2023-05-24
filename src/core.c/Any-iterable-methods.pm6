@@ -972,6 +972,9 @@ Consider using a block if any of these are necessary for your mapping code."
             $!index = $i;
         }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     method !grep-k(Callable:D $test) { Seq.new(Grep-K.new(self,$test)) }
 
@@ -1028,6 +1031,9 @@ Consider using a block if any of these are necessary for your mapping code."
             );
         }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     method !grep-kv(Callable:D $test) { Seq.new(Grep-KV.new(self,$test)) }
 
@@ -1071,6 +1077,9 @@ Consider using a block if any of these are necessary for your mapping code."
             $!index = $i;
         }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     method !grep-p(Callable:D $test) { Seq.new(Grep-P.new(self,$test)) }
 
@@ -1085,6 +1094,9 @@ Consider using a block if any of these are necessary for your mapping code."
         method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
         method is-lazy() { $!iter.is-lazy }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     method !grep-callable(Callable:D $test) {
         sub judge(Mu $result, Mu $value) is raw {
@@ -1785,16 +1797,19 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method sort(|) is nodal {*}
     multi method sort() {
-        nqp::eqaddr(
-          self.iterator.push-until-lazy(
-            my \buf := nqp::create(IterationBuffer)),
-          IterationEnd
-        ) ?? Seq.new(
-               Rakudo::Iterator.ReifiedList(
-                 Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
-               )
-             )
-          !! X::Cannot::Lazy.new(:action<sort>).throw
+        my $iterator := self.iterator;
+        $iterator.is-monotonically-increasing
+          ?? Seq.new($iterator)
+          !! nqp::eqaddr(
+               $iterator.push-until-lazy(
+                 my \buf := nqp::create(IterationBuffer)),
+               IterationEnd
+             ) ?? Seq.new(
+                    Rakudo::Iterator.ReifiedListMonotonicallyIncreasing(
+                      Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
+                    )
+                  )
+               !! X::Cannot::Lazy.new(:action<sort>).throw
     }
     multi method sort(&by) {
         nqp::unless(
@@ -1807,13 +1822,14 @@ Consider using a block if any of these are necessary for your mapping code."
         );
 
         Seq.new(
-          Rakudo::Iterator.ReifiedList(
-            nqp::eqaddr(&by,&infix:<cmp>)
-              ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
-              !! &by.count < 2
+          nqp::eqaddr(&by,&infix:<cmp>)
+            ?? Rakudo::Iterator.ReifiedListMonotonicallyIncreasing(
+                 Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
+               )
+            !! Rakudo::Iterator.ReifiedList(&by.count < 2
                 ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(  buf.List,&by)
                 !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(buf.List,&by)
-          )
+               )
         )
     }
 
@@ -1871,6 +1887,9 @@ Consider using a block if any of these are necessary for your mapping code."
         }
         method is-lazy() { $!iter.is-lazy }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     multi method unique() { Seq.new(Unique.new(self)) }
@@ -1919,6 +1938,9 @@ Consider using a block if any of these are necessary for your mapping code."
             )
         }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     multi method unique( :&as! ) { Seq.new(Unique-As.new(self,&as)) }
 
@@ -1962,6 +1984,9 @@ Consider using a block if any of these are necessary for your mapping code."
         }
         method is-lazy() { $!iter.is-lazy }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     multi method repeated() { Seq.new(Repeated.new(self)) }
 
@@ -2006,6 +2031,9 @@ Consider using a block if any of these are necessary for your mapping code."
         }
         method is-lazy() { $!iter.is-lazy }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     multi method repeated( :&as! ) { Seq.new(Repeated-As.new(self,&as)) }
 
@@ -2085,6 +2113,9 @@ Consider using a block if any of these are necessary for your mapping code."
         }
         method is-lazy() { $!iter.is-lazy }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     multi method squish( :&as!, :&with = &[===] ) {
         Seq.new(Squish-As.new(self.iterator, &as, &with))
@@ -2154,6 +2185,9 @@ Consider using a block if any of these are necessary for your mapping code."
         }
         method is-lazy() { $!iter.is-lazy }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iter.is-monotonically-increasing
+        }
     }
     multi method squish( :&with = &[===] ) {
         Seq.new(Squish-With.new(self.iterator,&with))

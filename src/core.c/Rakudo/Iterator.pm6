@@ -433,12 +433,22 @@ class Rakudo::Iterator {
         }
     }
     my class AllButLast does Iterator does AllButLastRole {
+
+        # Override default from Iterator
         method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iterator.is-monotonically-increasing
+        }
     }
     my class AllButLastPredictive does PredictiveIterator does AllButLastRole {
         method count-only() { ($!iterator.count-only || 1) - 1 }
         method bool-only()  {  $!iterator.count-only > 1       }
+
+        # Override default from Iterator
         method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iterator.is-monotonically-increasing
+        }
     }
 
     proto method AllButLast(|) {*}
@@ -499,7 +509,12 @@ class Rakudo::Iterator {
               )
             )
         }
-        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-deterministic(--> Bool:D) {
+            $!iterator.is-deterministic
+        }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iterator.is-monotonically-increasing
+        }
     }
     method AllButLastNValues(\iterator, \n) {
         n == 1
@@ -559,7 +574,12 @@ class Rakudo::Iterator {
               target.push(associative.AT-KEY(key))
             )
         }
-        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-deterministic(--> Bool:D) {
+            $!iterator.is-deterministic
+        }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iterator.is-monotonically-increasing
+        }
     }
     method AssociativeIterableKeys(\asso, \iterable) {
         AssociativeIterableKeys.new(asso,iterable.iterator)
@@ -626,8 +646,11 @@ class Rakudo::Iterator {
             )
           )
         }
-        method is-lazy() { $!iterator.is-lazy }
+        method is-lazy(--> Bool:D)          { $!iterator.is-lazy          }
         method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iterator.is-monotonically-increasing
+        }
     }
     method Batch(\iterator,\size,\partial) { Batch.new(iterator,size,partial) }
 
@@ -769,6 +792,7 @@ class Rakudo::Iterator {
             $!i = $i;
         }
         method count-only(--> Int:D) { $!n - $!i }
+        method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { $!i = $!n }
     }
     method CharFromTo(\min,\max,\excludes-min,\excludes-max) {
@@ -1101,7 +1125,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method is-lazy() { nqp::hllbool($!lazy) }
+        method is-lazy(--> Bool:D) { nqp::hllbool($!lazy) }
     }
     method CrossIterables(@iterables) {
         nqp::isgt_i(@iterables.elems,0)  # reifies
@@ -1861,6 +1885,9 @@ class Rakudo::Iterator {
         }
         method is-lazy() { $!source.is-lazy }
         method is-deterministic(--> Bool:D) { $!source.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!source.is-monotonically-increasing
+        }
     }
     method Flat(\iterator) { Flat.new(iterator) }
 
@@ -2099,6 +2126,7 @@ class Rakudo::Iterator {
             $batch-size
         }
         method is-lazy(--> True) { }
+        method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { }
     }
     my class IntRange does PredictiveIterator {
@@ -2142,6 +2170,7 @@ class Rakudo::Iterator {
             $!i = $i;                # make sure pull-one ends
         }
         method count-only(--> Int:D) { $!last - $!i + nqp::isgt_i($!i,$!last) }
+        method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
     method IntRange(\from,\to) {
@@ -2211,6 +2240,9 @@ class Rakudo::Iterator {
         }
         method is-lazy() { $!iterator.is-lazy }
         method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iterator.is-monotonically-increasing
+        }
         method sink-all(--> IterationEnd) {
             nqp::until(
               nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd),
@@ -2343,6 +2375,9 @@ class Rakudo::Iterator {
             )
         }
         method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iterator.is-monotonically-increasing
+        }
     }
     method LastNValues(\iterator, \n, \action, $full = 0) {
         LastNValues.new(iterator, n, action, $full)
@@ -2389,22 +2424,23 @@ class Rakudo::Iterator {
             iter
         }
 
+        method !iterator() {
+            nqp::ifnull($!iterator, $!iterator := $!iterable.iterator)
+        }
+
         method pull-one() is raw {
-            nqp::ifnull(
-              $!iterator,
-              $!iterator := $!iterable.iterator
-            ).pull-one
+            self!iterator.pull-one
         }
 
         method push-exactly(\target, int $n) {
-            nqp::ifnull(
-              $!iterator,
-              $!iterator := $!iterable.iterator
-            ).push-exactly(target, $n);
+            self!iterator.push-exactly(target, $n)
         }
 
         method is-lazy(--> True) { }
-        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-deterministic(--> Bool:D) { self!iterator.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            self!iterator.is-monotonically-increasing
+        }
     }
     method Lazy(\iterable) { Lazy.new(iterable) }
 
@@ -3165,6 +3201,9 @@ class Rakudo::Iterator {
             );
         }
         method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
+        method is-monotonically-increasing(--> Bool:D) {
+            $!iterator.is-monotonically-increasing
+        }
     }
     method NextNValues(\iterator, \times) { NextNValues.new(iterator, times) }
 
@@ -3605,8 +3644,16 @@ class Rakudo::Iterator {
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
-    method ReifiedList(\list) {
-        ReifiedListIterator.new(list)
+    method ReifiedList(\list) { ReifiedListIterator.new(list) }
+
+    # Return an iterator for a List that has been completely reified
+    # already *AND* is sorted with increasing values.  Returns an nqp::null
+    # for elements that don't exist before the end of the reified list.
+    class ReifiedListIteratorMonotonicallyIncreasing is ReifiedListIterator {
+        method is-monotonically-increasing(--> True) { }
+    }
+    method ReifiedListMonotonicallyIncreasing(\list) {
+        ReifiedListIteratorMonotonicallyIncreasing.new(list)
     }
 
     # Return an iterator for a List/Array that has been completely reified,
@@ -4358,6 +4405,7 @@ class Rakudo::Iterator {
             $i
         }
         method is-lazy(--> True) { }
+        method is-monotonically-increasing(--> True) { }
     }
     method SuccFromInf(\i) { SuccFromInf.new(i) }
 
@@ -4401,6 +4449,7 @@ class Rakudo::Iterator {
             }
             $!i = $e.succ;
         }
+        method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { $!i = $!e.succ }
     }
     method SuccFromTo(\i,\exclude,\e) { SuccFromTo.new(i,exclude,e) }

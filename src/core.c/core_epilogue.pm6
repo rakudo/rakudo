@@ -151,7 +151,7 @@ augment class Cool {
     }
 
     # Allow for creating an AST out of a string, for core debugging mainly
-    method AST(Cool:D: :$run, :$compunit) {
+    method AST(Cool:D: :$run, :$compunit, :$expression) {
 
         # Make sure we don't use the EVAL's MAIN context for the
         # currently compiling compilation unit
@@ -177,7 +177,9 @@ augment class Cool {
 
         $run
           ?? EVAL($ast)
-          !! $compunit ?? $ast !! $ast.statement-list
+          !! $expression
+            ?? $ast.statement-list.statements.head.expression
+            !! $compunit ?? $ast !! $ast.statement-list
     }
 }
 

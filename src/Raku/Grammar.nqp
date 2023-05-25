@@ -617,8 +617,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token bom { \xFEFF }
 
     rule lang_setup($*outer-cu) {
-        # TODO validate this and pay attention to it in actions
-        [ <.ws>? 'use' <version> ';'? ]?
+        [
+          <.ws>? 'use' <version> ';'? { } # <-- update $/ so we can grab $<version>
+          # we parse out the numeral, since we could have "6d"
+          :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
+          [
+          ||  <?{ $version == 6 }> { Raku::Actions.lang_setup2($/) }
+          ||  { # Setup default language so we can throw an exception
+                  my $requested := ~$<version>;
+                  $<version> := 'v6.c';
+                  Raku::Actions.lang_setup2($/);
+                  self.typed_panic: 'X::Language::Unsupported', version => $requested;
+              }
+          ]
+      ]
     }
 
     rule load_command_line_modules {

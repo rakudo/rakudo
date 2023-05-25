@@ -123,7 +123,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method lang_setup($/) {
+    method lang_setup2($/) {
         # Calculate the setting name to use.
         # TODO don't hardcode this
         my $name := 'CORE';

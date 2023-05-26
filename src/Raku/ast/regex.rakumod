@@ -1566,6 +1566,7 @@ class RakuAST::Regex::CharClassElement::Property
 # including characters, ranges, and backslash sequences.
 class RakuAST::Regex::CharClassElement::Enumeration
   is RakuAST::Regex::CharClassElement
+  is RakuAST::CheckTime
 {
     has Mu $!elements;
 
@@ -1574,18 +1575,28 @@ class RakuAST::Regex::CharClassElement::Enumeration
         nqp::bindattr($obj, RakuAST::Regex::CharClassElement, '$!negated',
             $negated ?? True !! False);
         my @elements := self.IMPL-UNWRAP-LIST($elements);
-        for @elements {
-            unless nqp::istype($_, RakuAST::Regex::CharClassEnumerationElement) {
-                nqp::die('Can only construct a RakuAST::Regex::CharClassElement with elements of type RakuAST::Regex::CharClassEnumerationElement')
-            }
-        }
-        nqp::bindattr($obj, RakuAST::Regex::CharClassElement::Enumeration, '$!elements',
-            @elements);
+        nqp::bindattr($obj, RakuAST::Regex::CharClassElement::Enumeration,
+          '$!elements', self.IMPL-UNWRAP-LIST($elements));
         $obj
     }
 
     method elements() {
         self.IMPL-WRAP-LIST($!elements)
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::elems($!elements) {
+            for $!elements {
+                unless nqp::istype($_,RakuAST::Regex::CharClassEnumerationElement) {
+                    self.add-sorry: $resolver.build-exception: 'X::AdHoc',
+                      payload => "Character classes can only be built with RakuAST::Regex::CharClassEnumerationElement objects, not with " ~ $_.HOW.name($_) ~ " elements";
+                }
+            }
+        }
+        else {
+            self.add-worry: $resolver.build-exception: 'X::AdHoc',
+              payload => "Character classes without elements will never match"
+        }
     }
 
     method IMPL-CCLASS-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $first) {

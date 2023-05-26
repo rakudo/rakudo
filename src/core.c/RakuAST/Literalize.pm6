@@ -42,7 +42,11 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::ApplyInfix:D:) {
         if infix-op(self.infix.operator) -> &op {
-            op(self.left.literalize, self.right.literalize)
+            my $left  := self.left.literalize;
+            my $right := self.right.literalize;
+            nqp::istype($left,Nil) || nqp::istype($right,Nil)
+              ?? die(Nil)
+              !! op($left,$right)
         }
         else {
             die(Nil)
@@ -180,10 +184,6 @@ augment class RakuAST::Node {
           !! $name eq 'False'
             ?? False
             !! die(Nil)
-    }
-
-    multi method literalize(RakuAST::Term::Named:D:) {
-        self!literal(self.name)
     }
 
     multi method literalize(RakuAST::Term::RadixNumber:D:) {

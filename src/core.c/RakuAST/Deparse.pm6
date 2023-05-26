@@ -1500,7 +1500,7 @@ class RakuAST::Deparse {
         @parts.unshift($scope)
           if $scope ne 'has' && $scope ne $ast.default-scope;
 
-        @parts.push(self.deparse($ast.name));
+        @parts.push(self.deparse($_)) with $ast.name;
 
         # at least one parameter with declarator doc
         my $signature := $ast.signature;

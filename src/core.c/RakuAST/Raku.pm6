@@ -176,6 +176,9 @@ augment class RakuAST::Node {
           'negated', -> {
               :negated if self.negated
           },
+          'off', -> {
+              :off if self.off
+          },
           'scope', -> {
               my $scope := self.scope;
               :$scope if $scope ne self.default-scope

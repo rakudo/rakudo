@@ -21,15 +21,43 @@ augment class RakuAST::Node {
             }
             elsif nqp::istype($ast,RakuAST::Doc::DeclaratorTarget) {
                 $nodes.push($_) with $ast.WHY;
-                $ast.visit-children(&visitor);
             }
-            else {
-                $ast.visit-children(&visitor);
-            }
+            $ast.visit-children(&visitor);
         }
 
         self.visit-children(&visitor);
         $nodes.List
+    }
+
+    # Return list of RakuAST nodes that match
+    multi method grep(RakuAST::Node:D: $test) {
+        my $nodes := nqp::create(IterationBuffer);
+
+        my sub visitor($ast --> Nil) {
+            $nodes.push($ast) if $test.ACCEPTS($ast);
+            $ast.visit-children(&visitor);
+        }
+
+        self.visit-children(&visitor);
+        $nodes.List;
+    }
+
+    # Return first of RakuAST nodes that match
+    multi method first(RakuAST::Node:D: $test) {
+        CATCH {
+            return .payload.head
+              if nqp::istype($_,X::AdHoc)
+              && nqp::istype(.payload,List);
+        }
+
+        my $nodes := nqp::create(IterationBuffer);
+
+        my sub visitor($ast --> Nil) {
+            die ($ast,) if $test.ACCEPTS($ast);
+            $ast.visit-children(&visitor);
+        }
+
+        self.visit-children(&visitor);
     }
 }
 

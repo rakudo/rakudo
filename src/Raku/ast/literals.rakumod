@@ -14,6 +14,11 @@ class RakuAST::Literal
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
+
+    method new(Mu $value) {
+        my $type := $value.HOW.name($value) ~ 'Literal';
+        RakuAST.WHO{$type}.new($value)
+    }
 }
 
 class RakuAST::IntLiteral

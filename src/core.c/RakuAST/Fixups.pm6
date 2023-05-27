@@ -39,25 +39,37 @@ augment class RakuAST::Node {
         }
 
         self.visit-children(&visitor);
-        $nodes.List;
+        my $grepped := $nodes.List;
+
+        # return proper representation
+        %_<kv>
+          ?? $grepped.kv
+          !! %_<p>
+            ?? $grepped.pairs
+            !! %_<k>
+              ?? $grepped.keys
+              !! $nodes.Seq
     }
 
     # Return first of RakuAST nodes that match
-    multi method first(RakuAST::Node:D: $test) {
-        CATCH {
-            return .payload.head
-              if nqp::istype($_,X::AdHoc)
-              && nqp::istype(.payload,List);
+    multi method first(RakuAST::Node:D: $test, :$end) {
+        if $end {
+            self.grep($test).tail
         }
+        else {
+            CATCH {
+                return .payload.head
+                  if nqp::istype($_,X::AdHoc)
+                  && nqp::istype(.payload,List);
+            }
 
-        my $nodes := nqp::create(IterationBuffer);
+            my sub visitor($ast --> Nil) {
+                die ($ast,) if $test.ACCEPTS($ast);
+                $ast.visit-children(&visitor);
+            }
 
-        my sub visitor($ast --> Nil) {
-            die ($ast,) if $test.ACCEPTS($ast);
-            $ast.visit-children(&visitor);
+            self.visit-children(&visitor);
         }
-
-        self.visit-children(&visitor);
     }
 }
 

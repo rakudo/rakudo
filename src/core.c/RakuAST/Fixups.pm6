@@ -21,10 +21,17 @@ augment class RakuAST::Node {
             elsif nqp::istype($ast,RakuAST::Doc::DeclaratorTarget) {
                 take $_ with $ast.WHY;
             }
-            $ast.visit-children(&?ROUTINE);
+            $ast.visit-chidren(&?ROUTINE);
         }
 
         gather self.visit-children(&visitor)
+    }
+
+    # Helper sub to set @*LINEAGE inside visitor code
+    my sub beget($parent, &doula --> Nil) {
+        @*LINEAGE.unshift: $parent;
+        $parent.visit-children(&doula);
+        @*LINEAGE.shift;
     }
 
     # Process all nodes with given mapper
@@ -32,61 +39,81 @@ augment class RakuAST::Node {
 
         my sub visitor($ast --> Nil) {
             my $result := mapper($ast);
-            take $result unless $result =:= Empty;
-            $ast.visit-children(&?ROUTINE);
+            take $result unless nqp::eqaddr($result,Empty);
+            beget $ast, &?ROUTINE;
         }
 
-        gather self.visit-children(&visitor)
+        gather {
+            my @*LINEAGE;
+            self.visit-children(&visitor);
+        }
     }
 
     # Return list of RakuAST nodes that match
     multi method grep(RakuAST::Node:D: $test) {
-        my $nodes := nqp::create(IterationBuffer);
-
         my int $index = -1;
         my sub k($ast --> Nil) {
             take ++$index if $test.ACCEPTS($ast);
-            $ast.visit-children(&?ROUTINE);
+            beget $ast, &?ROUTINE;
         }
         my sub kv($ast --> Nil) {
             if $test.ACCEPTS($ast) {
                 take ++$index;
                 take $ast;
             }
-            $ast.visit-children(&?ROUTINE);
+            beget $ast, &?ROUTINE;
         }
         my sub p($ast --> Nil) {
             take Pair.new(++$index, $ast) if $test.ACCEPTS($ast);
-            $ast.visit-children(&?ROUTINE);
+            beget $ast, &?ROUTINE;
         }
         my sub v($ast --> Nil) {
             take $ast if $test.ACCEPTS($ast);
-            $ast.visit-children(&?ROUTINE);
+            beget $ast, &?ROUTINE;
         }
 
-        gather self.visit-children(
-          %_<k> ?? &k !! %_<kv> ?? &kv !! %_<p> ?? &p !! &v
-        )
+        gather {
+            my @*LINEAGE;
+            self.visit-children:
+              %_<k> ?? &k !! %_<kv> ?? &kv !! %_<p> ?? &p !! &v;
+        }
     }
 
     # Return first of RakuAST nodes that match
     multi method first(RakuAST::Node:D: $test, :$end) {
         if $end {
-            self.grep($test).tail
+            my $nodes := nqp::create(IterationBuffer);
+            my sub visitor($ast --> Nil) {
+                $nodes.push($ast);
+                $nodes.push(@*LINEAGE.List);
+                beget $ast, &?ROUTINE;
+            }
+
+            my @*LINEAGE;
+            self.visit-children(&visitor);
+
+            my $found := Nil;
+            $nodes.List.reverse.map: -> @*LINEAGE, $ast {
+                if $test.ACCEPTS($ast) {
+                    $found := $ast;
+                    last;
+                }
+            }
+            $found
         }
         else {
-            CATCH {
-                return .payload.head
-                  if nqp::istype($_,X::AdHoc)
-                  && nqp::istype(.payload,List);
-            }
-
             my sub visitor($ast --> Nil) {
-                die ($ast,) if $test.ACCEPTS($ast);
-                $ast.visit-children(&?ROUTINE);
+                if $test.ACCEPTS($ast) {
+                    take $ast;
+                    last;
+                }
+                beget $ast, &?ROUTINE;
             }
 
-            self.visit-children(&visitor);
+            (gather {
+                my @*LINEAGE;
+                self.visit-children(&visitor);
+            }).head
         }
     }
 }

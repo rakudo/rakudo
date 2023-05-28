@@ -1830,6 +1830,12 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
+      RakuAST::StatementPrefix::Phaser::Check:D $ast
+    --> Str:D) {
+        'CHECK ' ~ self.deparse($ast.blorst)
+    }
+
+    multi method deparse(
       RakuAST::StatementPrefix::Phaser::Close:D $ast
     --> Str:D) {
         'CLOSE ' ~ self.deparse($ast.blorst)
@@ -1842,21 +1848,15 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
-      RakuAST::StatementPrefix::Phaser::First:D $ast
-    --> Str:D) {
-        'FIRST ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Last:D $ast
-    --> Str:D) {
-        'LAST ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
       RakuAST::StatementPrefix::Phaser::Enter:D $ast
     --> Str:D) {
         'ENTER ' ~ self.deparse($ast.blorst)
+    }
+
+    multi method deparse(
+      RakuAST::StatementPrefix::Phaser::First:D $ast
+    --> Str:D) {
+        'FIRST ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(
@@ -1869,6 +1869,12 @@ class RakuAST::Deparse {
       RakuAST::StatementPrefix::Phaser::Keep:D $ast
     --> Str:D) {
         'KEEP ' ~ self.deparse($ast.blorst)
+    }
+
+    multi method deparse(
+      RakuAST::StatementPrefix::Phaser::Last:D $ast
+    --> Str:D) {
+        'LAST ' ~ self.deparse($ast.blorst)
     }
 
     multi method deparse(

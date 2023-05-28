@@ -13,42 +13,60 @@ augment class RakuAST::Node {
     # RakuAST::Doc::Block in its .paragraphs, so recursion may be
     # necessary.
     method rakudoc(RakuAST::Node:D:) {
-        my $nodes := IterationBuffer.new;
 
         my sub visitor($ast --> Nil) {
             if nqp::istype($ast,RakuAST::Doc::Block) {
-                $nodes.push($ast);
+                take $ast;
             }
             elsif nqp::istype($ast,RakuAST::Doc::DeclaratorTarget) {
-                $nodes.push($_) with $ast.WHY;
+                take $_ with $ast.WHY;
             }
-            $ast.visit-children(&visitor);
+            $ast.visit-children(&?ROUTINE);
         }
 
-        self.visit-children(&visitor);
-        $nodes.List
+        gather self.visit-children(&visitor)
+    }
+
+    # Process all nodes with given mapper
+    multi method map(RakuAST::Node:D: &mapper) {
+
+        my sub visitor($ast --> Nil) {
+            my $result := mapper($ast);
+            take $result unless $result =:= Empty;
+            $ast.visit-children(&?ROUTINE);
+        }
+
+        gather self.visit-children(&visitor)
     }
 
     # Return list of RakuAST nodes that match
     multi method grep(RakuAST::Node:D: $test) {
         my $nodes := nqp::create(IterationBuffer);
 
-        my sub visitor($ast --> Nil) {
-            $nodes.push($ast) if $test.ACCEPTS($ast);
-            $ast.visit-children(&visitor);
+        my int $index = -1;
+        my sub k($ast --> Nil) {
+            take ++$index if $test.ACCEPTS($ast);
+            $ast.visit-children(&?ROUTINE);
+        }
+        my sub kv($ast --> Nil) {
+            if $test.ACCEPTS($ast) {
+                take ++$index;
+                take $ast;
+            }
+            $ast.visit-children(&?ROUTINE);
+        }
+        my sub p($ast --> Nil) {
+            take Pair.new(++$index, $ast) if $test.ACCEPTS($ast);
+            $ast.visit-children(&?ROUTINE);
+        }
+        my sub v($ast --> Nil) {
+            take $ast if $test.ACCEPTS($ast);
+            $ast.visit-children(&?ROUTINE);
         }
 
-        self.visit-children(&visitor);
-        my $grepped := $nodes.List;
-
-        # return proper representation
-        %_<kv>
-          ?? $grepped.kv
-          !! %_<p>
-            ?? $grepped.pairs
-            !! %_<k>
-              ?? $grepped.keys
-              !! $nodes.Seq
+        gather self.visit-children(
+          %_<k> ?? &k !! %_<kv> ?? &kv !! %_<p> ?? &p !! &v
+        )
     }
 
     # Return first of RakuAST nodes that match
@@ -65,7 +83,7 @@ augment class RakuAST::Node {
 
             my sub visitor($ast --> Nil) {
                 die ($ast,) if $test.ACCEPTS($ast);
-                $ast.visit-children(&visitor);
+                $ast.visit-children(&?ROUTINE);
             }
 
             self.visit-children(&visitor);

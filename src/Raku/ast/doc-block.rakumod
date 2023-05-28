@@ -45,8 +45,13 @@ class RakuAST::Doc::Paragraph
         $obj
     }
 
-    # nothing to do
-    method visit-children(Code $visitor) { }
+    method visit-children(Code $visitor) {
+        for $!atoms {
+            if nqp::istype($_,RakuAST::Node) {
+                $visitor($_);
+            }
+        }
+    }
 
     method add-atom($atom) { nqp::push($!atoms, $atom) }
     method atoms() { self.IMPL-WRAP-LIST($!atoms) }
@@ -125,7 +130,11 @@ class RakuAST::Doc::Block
     method paragraphs() { self.IMPL-WRAP-LIST($!paragraphs) }
 
     method visit-children(Code $visitor) {
-        # no serviceable parts inside
+        for $!paragraphs {
+            if nqp::istype($_,RakuAST::Node) {
+                $visitor($_);
+            }
+        }
     }
 
     method PERFORM-CHECK(
@@ -169,10 +178,14 @@ class RakuAST::Doc::Markup
 
     method visit-children(Code $visitor) {
         for $!atoms {
-            $visitor($_);
+            if nqp::istype($_,RakuAST::Node) {
+                $visitor($_);
+            }
         }
         for $!meta {
-            $visitor($_);
+            if nqp::istype($_,RakuAST::Node) {
+                $visitor($_);
+            }
         }
     }
 

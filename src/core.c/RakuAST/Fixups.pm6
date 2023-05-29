@@ -13,18 +13,15 @@ augment class RakuAST::Node {
     # RakuAST::Doc::Block in its .paragraphs, so recursion may be
     # necessary.
     method rakudoc(RakuAST::Node:D:) {
-
-        my sub visitor($ast --> Nil) {
+        gather self.visit-children: -> $ast --> Nil {
             if nqp::istype($ast,RakuAST::Doc::Block) {
                 take $ast;
             }
             elsif nqp::istype($ast,RakuAST::Doc::DeclaratorTarget) {
                 take $_ with $ast.WHY;
             }
-            $ast.visit-chidren(&?ROUTINE);
+            $ast.visit-chidren(&?BLOCK);
         }
-
-        gather self.visit-children(&visitor)
     }
 
     # Helper sub to set @*LINEAGE inside visitor code
@@ -36,16 +33,13 @@ augment class RakuAST::Node {
 
     # Process all nodes with given mapper
     multi method map(RakuAST::Node:D: &mapper) {
-
-        my sub visitor($ast --> Nil) {
-            my $result := mapper($ast);
-            take $result unless nqp::eqaddr($result,Empty);
-            beget $ast, &?ROUTINE;
-        }
-
         gather {
             my @*LINEAGE;
-            self.visit-children(&visitor);
+            self.visit-children: -> $ast --> Nil {
+                my $result := mapper($ast);
+                take $result unless nqp::eqaddr($result,Empty);
+                beget $ast, &?BLOCK;
+            }
         }
     }
 
@@ -83,16 +77,16 @@ augment class RakuAST::Node {
     multi method first(RakuAST::Node:D: $test, :$end) {
         if $end {
             my $nodes := nqp::create(IterationBuffer);
-            my sub visitor($ast --> Nil) {
+            my @*LINEAGE;
+
+            self.visit-children: -> $ast --> Nil {
                 $nodes.push($ast);
                 $nodes.push(@*LINEAGE.List);
-                beget $ast, &?ROUTINE;
+                beget $ast, &?BLOCK;
             }
 
-            my @*LINEAGE;
-            self.visit-children(&visitor);
-
             my $found := Nil;
+            # must use .map as .grep doesn't take 2 arg Callables
             $nodes.List.reverse.map: -> @*LINEAGE, $ast {
                 if $test.ACCEPTS($ast) {
                     $found := $ast;
@@ -102,17 +96,15 @@ augment class RakuAST::Node {
             $found
         }
         else {
-            my sub visitor($ast --> Nil) {
-                if $test.ACCEPTS($ast) {
-                    take $ast;
-                    last;
-                }
-                beget $ast, &?ROUTINE;
-            }
-
             (gather {
                 my @*LINEAGE;
-                self.visit-children(&visitor);
+                self.visit-children: -> $ast --> Nil {
+                    if $test.ACCEPTS($ast) {
+                        take $ast;
+                        last;
+                    }
+                    beget $ast, &?BLOCK;
+                }
             }).head
         }
     }

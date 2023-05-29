@@ -1550,12 +1550,9 @@ class RakuAST::VarDeclaration::Implicit::Doc::Pod
       RakuAST::IMPL::QASTContext $context
     ) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
-          nqp::ifnull(
-            nqp::getattr(
-              self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
-            ).pod-content,
-            RakuAST::Doc::Declarator.initialize-legacy-pods
-          )
+          nqp::getattr(
+            self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
+          ).pod-content
         );
     }
 }

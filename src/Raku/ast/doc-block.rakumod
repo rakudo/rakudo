@@ -145,9 +145,18 @@ class RakuAST::Doc::Block
       RakuAST::IMPL::QASTContext $context
     ) {
         my $*RESOLVER := $resolver;
-        $resolver.find-attach-target('compunit').set-pod-content(
-          $!pod-index, self.podify
-        );
+        my $cu        := $resolver.find-attach-target('compunit');
+        if $!type eq 'data' {
+            my $store := $cu.data-content;
+            my $data  := self.Str.trim-trailing;
+
+            (my $key := $!config<key>)
+              ?? $store.ASSIGN-KEY($key, $data)
+              !! $store.push($data);
+        }
+        else {
+            $cu.set-pod-content($!pod-index, self.podify);
+        }
         True
     }
 }

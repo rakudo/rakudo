@@ -18,9 +18,11 @@ class RakuAST::CompUnit
     has Mu $!global-package-how;
     has Mu $!init-phasers;
     has Mu $!end-phasers;
-    has RakuAST::VarDeclaration::Implicit::Doc::Pod $.pod;
+    has RakuAST::VarDeclaration::Implicit::Doc::Pod    $.pod;
+    has RakuAST::VarDeclaration::Implicit::Doc::Data   $.data;
     has RakuAST::VarDeclaration::Implicit::Doc::Finish $.finish;
     has Mu $.pod-content;
+    has Mu $.data-content;
     has Mu $.finish-content;
     has Mu $!singleton-whatever;
     has Mu $!singleton-hyper-whatever;
@@ -66,6 +68,7 @@ class RakuAST::CompUnit
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!precompilation-mode',
           $precompilation-mode ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', Array.new);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!data-content', nqp::null);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
 
         # If CompUnit's language revision is not set explicitly then guess it
@@ -100,6 +103,8 @@ class RakuAST::CompUnit
               RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode));
             nqp::bindattr($obj, RakuAST::CompUnit, '$!pod',
               RakuAST::VarDeclaration::Implicit::Doc::Pod.new);
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!data',
+              RakuAST::VarDeclaration::Implicit::Doc::Data.new);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!finish',
               RakuAST::VarDeclaration::Implicit::Doc::Finish.new);
         }
@@ -232,6 +237,16 @@ class RakuAST::CompUnit
         else {
             $!pod-content.ASSIGN-POS($i,$pod);
         }
+    }
+
+    # fetch =data content object, or create if doesn't exist yet
+    method data-content() {
+        nqp::ifnull(
+          $!data-content,
+          nqp::bindattr(self,RakuAST::CompUnit,'$!data-content',
+            RakuAST::Doc::Block.PodData
+          )
+        )
     }
 
     # helper method for a given phasers list
@@ -517,6 +532,7 @@ class RakuAST::CompUnit
     method visit-children(Code $visitor) {
         $visitor($!statement-list);
         $visitor($!pod)    if $!pod;
+        $visitor($!data)   if $!data;
         $visitor($!finish) if $!finish;
     }
 }

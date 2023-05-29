@@ -1557,6 +1557,27 @@ class RakuAST::VarDeclaration::Implicit::Doc::Pod
     }
 }
 
+# The implicit `$=data` term declaration for =data access
+class RakuAST::VarDeclaration::Implicit::Doc::Data
+  is RakuAST::VarDeclaration::Implicit::Doc
+{
+    method name() { '$=data' }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
+          nqp::ifnull(
+            nqp::getattr(
+              self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
+            ).data-content,
+            Mu
+          )
+        );
+    }
+}
+
 # The implicit `$=finish` term declaration for trailing documentation
 class RakuAST::VarDeclaration::Implicit::Doc::Finish
   is RakuAST::VarDeclaration::Implicit::Doc

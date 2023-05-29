@@ -1,5 +1,18 @@
 my class RakuAST::LegacyPodify { ... }
 
+# A class that acts as a Hash as well as an Array, with $=data semantics.
+# This needs to live rather late to have "handles" support actually working
+# in the setting.
+my class Pod::Data does Iterable {
+    has %.Hash handles <
+      AT-KEY ASSIGN-KEY BIND-KEY EXISTS-KEY DELETE-KEY Map
+      keys kv pairs anti-pairs
+    >;
+    has @.Array handles <
+      AT-POS ASSIGN-POS BIND-POS EXISTS-POS DELETE-POS List
+      values push pop shift unshift splice slice iterator
+    >;
+}
 
 # This file contains augmentations to classes that are created in the
 # RakuAST bootstrap to allow a lot of logic (which will **NOT** be
@@ -569,6 +582,9 @@ augment class RakuAST::Doc::Paragraph {
 
 augment class RakuAST::Doc::Block {
 
+    # return a new Pod::Data class instance
+    method PodData() { Pod::Data.new }
+
     # conceptual leading whitespace of first element
     method leading-whitespace() {
         self.paragraphs.head.leading-whitespace
@@ -1120,6 +1136,10 @@ in line '$line'",
 
         add-codes if @codes;
         add-lines if @lines;
+    }
+
+    multi method Str(RakuAST::Doc::Block:D:) {
+        self.paragraphs.map(*.Str).join
     }
 }
 

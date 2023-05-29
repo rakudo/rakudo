@@ -154,9 +154,7 @@ class RakuAST::Doc::Block
               ?? $store.ASSIGN-KEY($key, $data)
               !! $store.push($data);
         }
-        else {
-            $cu.set-pod-content($!pod-index, self.podify);
-        }
+        $cu.set-pod-content($!pod-index, self.podify);
         True
     }
 }

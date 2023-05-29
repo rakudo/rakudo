@@ -131,7 +131,10 @@ class RakuAST::Doc::Block
 
     method visit-children(Code $visitor) {
         for $!paragraphs {
-            if nqp::istype($_,RakuAST::Node) {
+            if nqp::istype($_,RakuAST::Doc::Block) {
+                # no action
+            }
+            elsif nqp::istype($_,RakuAST::Node) {
                 $visitor($_);
             }
         }

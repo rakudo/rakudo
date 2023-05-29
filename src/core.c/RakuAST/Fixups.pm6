@@ -1,5 +1,6 @@
 my class RakuAST::LegacyPodify { ... }
 
+
 # This file contains augmentations to classes that are created in the
 # RakuAST bootstrap to allow a lot of logic (which will **NOT** be
 # needed to compile the Raku setting) to be written in Raku rather
@@ -32,18 +33,56 @@ augment class RakuAST::Node {
     }
 
     # Process all nodes with given mapper
-    multi method map(RakuAST::Node:D: &mapper) {
+    multi method map(RakuAST::Node:D: &mapper, :$depth-first) {
         gather {
             my @*LINEAGE;
-            self.visit-children: -> $ast --> Nil {
-                my $result := mapper($ast);
-                take $result unless nqp::eqaddr($result,Empty);
-                beget $ast, &?BLOCK;
-            }
+            self.visit-children: $depth-first
+              ?? -> $ast --> Nil {
+                     beget $ast, &?BLOCK;
+                     my $result := mapper($ast);
+                     take $result unless nqp::eqaddr($result,Empty);
+                 }
+              !! -> $ast --> Nil {
+                     my $result := mapper($ast);
+                     take $result unless nqp::eqaddr($result,Empty);
+                     beget $ast, &?BLOCK;
+                 }
         }
     }
 
-    # Return list of RakuAST nodes that match
+    # Return list of RakuAST nodes that match, potentially depth-first
+    multi method grep(RakuAST::Node:D: $test, :$depth-first!) {
+        my int $index = -1;
+        my sub k($ast --> Nil) {
+            beget $ast, &?ROUTINE;
+            take ++$index if $test.ACCEPTS($ast);
+        }
+        my sub kv($ast --> Nil) {
+            beget $ast, &?ROUTINE;
+            if $test.ACCEPTS($ast) {
+                take ++$index;
+                take $ast;
+            }
+        }
+        my sub p($ast --> Nil) {
+            beget $ast, &?ROUTINE;
+            take Pair.new(++$index, $ast) if $test.ACCEPTS($ast);
+        }
+        my sub v($ast --> Nil) {
+            beget $ast, &?ROUTINE;
+            take $ast if $test.ACCEPTS($ast);
+        }
+
+        $depth-first
+          ?? gather {
+                 my @*LINEAGE;
+                 self.visit-children:
+                   %_<k> ?? &k !! %_<kv> ?? &kv !! %_<p> ?? &p !! &v;
+             }
+          !! self.grep($test)
+    }
+
+    # Return list of RakuAST nodes that match, breadth first
     multi method grep(RakuAST::Node:D: $test) {
         my int $index = -1;
         my sub k($ast --> Nil) {
@@ -74,16 +113,22 @@ augment class RakuAST::Node {
     }
 
     # Return first of RakuAST nodes that match
-    multi method first(RakuAST::Node:D: $test, :$end) {
+    multi method first(RakuAST::Node:D: $test, :$end, :$depth-first) {
         if $end {
             my $nodes := nqp::create(IterationBuffer);
             my @*LINEAGE;
 
-            self.visit-children: -> $ast --> Nil {
-                $nodes.push($ast);
-                $nodes.push(@*LINEAGE.List);
-                beget $ast, &?BLOCK;
-            }
+            self.visit-children: $depth-first
+              ?? -> $ast --> Nil {
+                     beget $ast, &?BLOCK;
+                     $nodes.push($ast);
+                     $nodes.push(@*LINEAGE.List);
+                 }
+              !! -> $ast --> Nil {
+                     $nodes.push($ast);
+                     $nodes.push(@*LINEAGE.List);
+                     beget $ast, &?BLOCK;
+                 }
 
             my $found := Nil;
             # must use .map as .grep doesn't take 2 arg Callables
@@ -98,13 +143,21 @@ augment class RakuAST::Node {
         else {
             (gather {
                 my @*LINEAGE;
-                self.visit-children: -> $ast --> Nil {
-                    if $test.ACCEPTS($ast) {
-                        take $ast;
-                        last;
-                    }
-                    beget $ast, &?BLOCK;
-                }
+                self.visit-children: $depth-first
+                  ?? -> $ast --> Nil {
+                         beget $ast, &?BLOCK;
+                         if $test.ACCEPTS($ast) {
+                             take $ast;
+                             last;
+                         }
+                     }
+                  !! -> $ast --> Nil {
+                         if $test.ACCEPTS($ast) {
+                             take $ast;
+                             last;
+                         }
+                         beget $ast, &?BLOCK;
+                     }
             }).head
         }
     }

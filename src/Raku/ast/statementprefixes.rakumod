@@ -38,6 +38,8 @@ class RakuAST::StatementPrefix::Do
   is RakuAST::StatementPrefix
   is RakuAST::SinkPropagator
 {
+    method type() { "do" }
+
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
     }
@@ -52,6 +54,8 @@ class RakuAST::StatementPrefix::Quietly
   is RakuAST::StatementPrefix
   is RakuAST::SinkPropagator
 {
+    method type() { "quietly" }
+
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
     }
@@ -70,6 +74,8 @@ class RakuAST::StatementPrefix::Quietly
 class RakuAST::StatementPrefix::Race
   is RakuAST::StatementPrefix
 {
+    method type() { "race" }
+
     method allowed-on-for-statement() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -84,6 +90,8 @@ class RakuAST::StatementPrefix::Race
 class RakuAST::StatementPrefix::Hyper
   is RakuAST::StatementPrefix
 {
+    method type() { "hyper" }
+
     method allowed-on-for-statement() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -98,6 +106,8 @@ class RakuAST::StatementPrefix::Hyper
 class RakuAST::StatementPrefix::Lazy
   is RakuAST::StatementPrefix
 {
+    method type() { "lazy" }
+
     method allowed-on-for-statement() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -112,6 +122,7 @@ class RakuAST::StatementPrefix::Lazy
 class RakuAST::StatementPrefix::Eager
   is RakuAST::StatementPrefix
 {
+    method type() { "eager" }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
@@ -127,6 +138,8 @@ class RakuAST::StatementPrefix::Try
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitLookups
 {
+    method type() { "try" }
+
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
     }
@@ -277,6 +290,8 @@ class RakuAST::StatementPrefix::Gather
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::SinkPropagator
 {
+    method type() { "gather" }
+
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(True);
     }
@@ -293,6 +308,8 @@ class RakuAST::StatementPrefix::Start
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::ImplicitLookups
 {
+    method type() { "start" }
+
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False);
     }
@@ -377,6 +394,8 @@ class RakuAST::StatementPrefix::Phaser::Begin
 {
     has Mu $!value;
 
+    method type() { "BEGIN" }
+
     # Perform BEGIN-time evaluation.
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
@@ -401,6 +420,8 @@ class RakuAST::StatementPrefix::Phaser::Check
   is RakuAST::CheckTime
 {
     has Mu $!value;
+
+    method type() { "CHECK" }
 
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
@@ -432,6 +453,8 @@ class RakuAST::StatementPrefix::Phaser::Init
 {
     has Scalar $.container;
 
+    method type() { "INIT" }
+
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
@@ -456,6 +479,8 @@ class RakuAST::StatementPrefix::Phaser::First
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "FIRST" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("FIRST", self);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
@@ -468,6 +493,8 @@ class RakuAST::StatementPrefix::Phaser::Next
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "NEXT" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("NEXT", self);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
@@ -480,6 +507,8 @@ class RakuAST::StatementPrefix::Phaser::Last
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "LAST" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("LAST", self);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
@@ -493,6 +522,8 @@ class RakuAST::StatementPrefix::Phaser::Enter
   is RakuAST::Attaching
 {
     has str $!result-name;
+
+    method type() { "ENTER" }
 
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
@@ -525,6 +556,8 @@ class RakuAST::StatementPrefix::Phaser::Leave
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "LEAVE" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("LEAVE", self, :has-exit-handler);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
@@ -537,6 +570,8 @@ class RakuAST::StatementPrefix::Phaser::Keep
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "KEEP" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("KEEP", self, :has-exit-handler);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
@@ -549,6 +584,8 @@ class RakuAST::StatementPrefix::Phaser::Pre
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+
+    method type() { "PRE" }
 
     method new(RakuAST::Blorst $blorst, Str $condition?) {
         my $obj := nqp::create(self);
@@ -611,6 +648,7 @@ class RakuAST::StatementPrefix::Phaser::Post
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "POST" }
 
     method new(RakuAST::Blorst $blorst, Str $condition?) {
         my $obj  := nqp::create(self);
@@ -688,6 +726,8 @@ class RakuAST::StatementPrefix::Phaser::Undo
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "UNDO" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("UNDO", self, :has-exit-handler);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
@@ -700,6 +740,8 @@ class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "END" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('compunit').add-end-phaser(self);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
@@ -711,6 +753,8 @@ class RakuAST::StatementPrefix::Phaser::Quit
   is RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::Attaching
 {
+    method type() { "QUIT" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("QUIT", self);
     }
@@ -726,6 +770,8 @@ class RakuAST::StatementPrefix::Phaser::Close
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
+    method type() { "CLOSE" }
+
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('block').add-phaser("CLOSE", self);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);

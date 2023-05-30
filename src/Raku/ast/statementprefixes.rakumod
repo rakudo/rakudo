@@ -473,48 +473,6 @@ class RakuAST::StatementPrefix::Phaser::Init
     }
 }
 
-# The FIRST phaser.
-class RakuAST::StatementPrefix::Phaser::First
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
-{
-    method type() { "FIRST" }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("FIRST", self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
-}
-
-# The NEXT phaser.
-class RakuAST::StatementPrefix::Phaser::Next
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
-{
-    method type() { "NEXT" }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("NEXT", self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
-}
-
-# The LAST phaser.
-class RakuAST::StatementPrefix::Phaser::Last
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
-{
-    method type() { "LAST" }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("LAST", self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
-}
-
 # The ENTER phaser.
 class RakuAST::StatementPrefix::Phaser::Enter
   is RakuAST::StatementPrefix::Phaser
@@ -550,39 +508,91 @@ class RakuAST::StatementPrefix::Phaser::Enter
     }
 }
 
-# The LEAVE phaser.
-class RakuAST::StatementPrefix::Phaser::Leave
+# The END phaser.
+class RakuAST::StatementPrefix::Phaser::End
   is RakuAST::StatementPrefix::Phaser::Sinky
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
-    method type() { "LEAVE" }
+    method type() { "END" }
 
     method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("LEAVE", self, :has-exit-handler);
+        $resolver.find-attach-target('compunit').add-end-phaser(self);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
+}
+
+# The QUIT phaser.
+class RakuAST::StatementPrefix::Phaser::Quit
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::Attaching
+{
+    method type() { "QUIT" }
+
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-phaser("QUIT", self);
+    }
+
+    method meta-object() {
+        self.blorst.meta-object
+    }
+}
+
+# base class for all other phasers that are connect to the current block
+class RakuAST::StatementPrefix::Phaser::Block
+  is RakuAST::StatementPrefix::Phaser::Sinky
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::Attaching
+{
+    method attach(RakuAST::Resolver $resolver) {
+        $resolver.find-attach-target('block').add-phaser(
+          self.type, self, :has-exit-handler(self.exit-handler));
+        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
+    }
+
+    method exit-handler() { False }
+}
+
+# The FIRST phaser.
+class RakuAST::StatementPrefix::Phaser::First
+  is RakuAST::StatementPrefix::Phaser::Block
+{
+    method type() { "FIRST" }
+}
+
+# The NEXT phaser.
+class RakuAST::StatementPrefix::Phaser::Next
+  is RakuAST::StatementPrefix::Phaser::Block
+{
+    method type() { "NEXT" }
+}
+
+# The LAST phaser.
+class RakuAST::StatementPrefix::Phaser::Last
+  is RakuAST::StatementPrefix::Phaser::Block
+{
+    method type() { "LAST" }
+}
+
+# The LEAVE phaser.
+class RakuAST::StatementPrefix::Phaser::Leave
+  is RakuAST::StatementPrefix::Phaser::Block
+{
+    method type() { "LEAVE" }
+    method exit-handler() { True }
 }
 
 # The KEEP phaser.
 class RakuAST::StatementPrefix::Phaser::Keep
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::StatementPrefix::Phaser::Block
 {
     method type() { "KEEP" }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("KEEP", self, :has-exit-handler);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
+    method exit-handler() { True }
 }
 
 # The PRE phaser.
 class RakuAST::StatementPrefix::Phaser::Pre
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::StatementPrefix::Phaser::Block
 {
 
     method type() { "PRE" }
@@ -635,20 +645,14 @@ class RakuAST::StatementPrefix::Phaser::Pre
 
         $obj
     }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("PRE", self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
 }
 
 # The POST phaser.
 class RakuAST::StatementPrefix::Phaser::Post
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::StatementPrefix::Phaser::Block
 {
     method type() { "POST" }
+    method exit-handler() { True }
 
     method new(RakuAST::Blorst $blorst, Str $condition?) {
         my $obj  := nqp::create(self);
@@ -713,67 +717,19 @@ class RakuAST::StatementPrefix::Phaser::Post
 
         $obj
     }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("POST", self, :has-exit-handler);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
 }
 
 # The UNDO phaser.
 class RakuAST::StatementPrefix::Phaser::Undo
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::StatementPrefix::Phaser::Block
 {
     method type() { "UNDO" }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("UNDO", self, :has-exit-handler);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
-}
-
-# The END phaser.
-class RakuAST::StatementPrefix::Phaser::End
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
-{
-    method type() { "END" }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('compunit').add-end-phaser(self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
-}
-
-# The QUIT phaser.
-class RakuAST::StatementPrefix::Phaser::Quit
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::Attaching
-{
-    method type() { "QUIT" }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("QUIT", self);
-    }
-
-    method meta-object() {
-        self.blorst.meta-object
-    }
+    method exit-handler() { True }
 }
 
 # The CLOSE phaser.
 class RakuAST::StatementPrefix::Phaser::Close
-  is RakuAST::StatementPrefix::Phaser::Sinky
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::Attaching
+  is RakuAST::StatementPrefix::Phaser::Block
 {
     method type() { "CLOSE" }
-
-    method attach(RakuAST::Resolver $resolver) {
-        $resolver.find-attach-target('block').add-phaser("CLOSE", self);
-        nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
-    }
 }

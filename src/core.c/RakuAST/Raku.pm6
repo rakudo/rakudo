@@ -145,10 +145,17 @@ augment class RakuAST::Node {
           'dwim-right', -> {
               :dwim-right if self.dwim-right
           },
+          'elsifs', -> {
+              my $elsifs := nqp::decont(self.elsifs);
+              :$elsifs if $elsifs
+          },
           'how', -> {
               my $how := self.how;
               as-class('how', $how.^name.subst("Perl6::"))
                 unless nqp::eqaddr($how,self.default-how)
+          },
+          'implicit-topic', -> {
+              :implicit-topic if self.implicit-topic
           },
           'labels', -> {
               my $labels := nqp::decont(self.labels);

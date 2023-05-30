@@ -75,7 +75,11 @@ subtest 'Block with CATCH/default handles exception and evaluates to Nil' => {
     );
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 {
-    CATCH { default { $handled++ } }
+    CATCH {
+        default {
+            $handled++
+        }
+    }
     die("oops")
 }
 CODE
@@ -269,7 +273,12 @@ subtest 'Block with INIT phaser thunk' => {
         )
       )
     );
-    is-deeply $deparsed, '-> { INIT ++$init }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    INIT ++$init
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $init = 0;
@@ -313,11 +322,14 @@ subtest 'Block with INIT phaser block' => {
         )
       )
     );
+
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
--> { INIT {
-    ++$init;
-    42
-} }
+-> {
+    INIT {
+        ++$init;
+        42
+    }
+}
 CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
@@ -353,7 +365,12 @@ subtest 'Block with ENTER phaser thunk' => {
         )
       )
     );
-    is-deeply $deparsed,'-> { ENTER ++$enter }', 'deparse';
+
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+-> {
+    ENTER ++$enter
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -400,11 +417,14 @@ subtest 'Block with ENTER phaser block' => {
         )
       )
     );
+
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
--> { ENTER {
-    ++$enter;
-    42
-} }
+-> {
+    ENTER {
+        ++$enter;
+        42
+    }
+}
 CODE
 
     for
@@ -517,7 +537,9 @@ subtest 'LEAVE phaser block being run' => {
     is-deeply $deparsed, qq:!c:!s:to/CODE/.chomp, 'deparse';
 {
     $done = False;
-    LEAVE { pass("leaving") }
+    LEAVE {
+        pass("leaving")
+    }
     $done = True
 }
 CODE
@@ -637,8 +659,12 @@ subtest 'KEEP / UNDO phaser block successful exit' => {
 
     is-deeply $deparsed, Q:!c:!s:to/CODE/.chomp, 'deparse';
 -> {
-    KEEP { ++$keep }
-    UNDO { ++$undo }
+    KEEP {
+        ++$keep
+    }
+    UNDO {
+        ++$undo
+    }
     42
 }
 CODE
@@ -771,8 +797,12 @@ subtest 'KEEP / UNDO phaser block UNsuccessful exit' => {
 
     is-deeply $deparsed, Q:!c:!s:to/CODE/.chomp, 'deparse';
 -> {
-    KEEP { ++$keep }
-    UNDO { ++$undo }
+    KEEP {
+        ++$keep
+    }
+    UNDO {
+        ++$undo
+    }
     Int
 }
 CODE
@@ -828,7 +858,11 @@ subtest 'END phaser block being run' => {
       )
     );
 
-    is-deeply $deparsed, 'END { pass("leaving END block") }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+END {
+    pass("leaving END block")
+}
+CODE
 
     is-deeply $_, Nil, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
@@ -933,7 +967,9 @@ subtest 'For loop with FIRST phaser block' => {
     plan 7;  # FIRST tests need to be run
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 for ^3 {
-    FIRST { is-deeply($run, 0, "inside FIRST") }
+    FIRST {
+        is-deeply($run, 0, "inside FIRST")
+    }
     ++$run
 }
 CODE
@@ -1045,8 +1081,12 @@ subtest 'For loop with NEXT / LAST phaser block' => {
     );
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 for ^3 {
-    NEXT { ++$next }
-    LAST { ++$last }
+    NEXT {
+        ++$next
+    }
+    LAST {
+        ++$last
+    }
 }
 CODE
 
@@ -1086,7 +1126,12 @@ subtest 'Block with CLOSE phaser thunk' => {
         )
       )
     );
-    is-deeply $deparsed, '-> { CLOSE ++$close }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    CLOSE ++$close
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -1132,7 +1177,14 @@ subtest 'Block with CLOSE phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, '-> { CLOSE { ++$close } }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    CLOSE {
+        ++$close
+    }
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -1180,7 +1232,14 @@ subtest 'Block with QUIT phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, '-> { QUIT { $quit = $_ } }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    QUIT {
+        $quit = $_
+    }
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -1219,7 +1278,12 @@ subtest 'Block with PRE phaser thunk' => {
         )
       )
     );
-    is-deeply $deparsed, '-> { PRE ++$pre }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    PRE ++$pre
+}
+CODE
 
     # succeeding
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
@@ -1270,7 +1334,14 @@ subtest 'Block with PRE phaser block' => {
         )
       )
     );
-    is-deeply $deparsed, '-> { PRE { ++$pre } }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    PRE {
+        ++$pre
+    }
+}
+CODE
 
     # succeeding
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
@@ -1319,6 +1390,7 @@ subtest 'Block with POST phaser thunk' => {
         )
       )
     );
+
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 -> {
     POST $post = $_;
@@ -1383,9 +1455,12 @@ subtest 'Block with POST phaser block' => {
         )
       )
     );
+
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 -> {
-    POST { $post = $_ }
+    POST {
+        $post = $_
+    }
     $result
 }
 CODE

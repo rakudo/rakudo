@@ -61,9 +61,13 @@ subtest 'Create a class with a method' => {
         )
       )
     );
-    is-deeply $deparsed,
-      'my class TestClassWithMethods { method test-meth { 456 } }',
-      'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithMethods {
+    method test-meth {
+        456
+    }
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -106,9 +110,13 @@ subtest 'Create a class with a submethod' => {
         )
       )
     );
-    is-deeply $deparsed,
-      'my class TestClassWithSubmethods { submethod test-submeth { 137 } }',
-      'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithSubmethods {
+    submethod test-submeth {
+        137
+    }
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -266,9 +274,11 @@ subtest 'class with attribute' => {
         )
       )
     );
-    is-deeply $deparsed,
-      'my class TestClassWithAttribute { has $!foo }',
-      'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithAttribute {
+    has $!foo
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -318,9 +328,11 @@ subtest 'class with attribute and accessor' => {
         )
       )
     );
-    is-deeply $deparsed,
-      'my class TestClassWithAttributeAccessor { has Int $.foo }',
-      'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class TestClassWithAttributeAccessor {
+    has Int $.foo
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -390,7 +402,9 @@ subtest 'class with accessor usage' => {
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 my class TestClassWithAttributeUsage {
     has Int $.bar;
-    method test-meth { $!bar }
+    method test-meth {
+        $!bar
+    }
 }
 CODE
 
@@ -509,9 +523,13 @@ subtest 'class that hides Any' => {
         )
       )
     );
-    is-deeply $deparsed,
-      'my class HidesAny hides Any { method list { nextsame() } }',
-      'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my class HidesAny hides Any {
+    method list {
+        nextsame()
+    }
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $class := EVAL($it);

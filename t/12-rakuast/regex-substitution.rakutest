@@ -175,7 +175,12 @@ subtest 'Simple Callable substitution on variable' => {
         )
       )
     );
-    is-deeply $deparsed, '$string ~~ s/o/{ $x }/', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+$string ~~ s/o/{
+    $x
+}/
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $string = "foo";

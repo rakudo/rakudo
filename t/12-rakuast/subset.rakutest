@@ -94,7 +94,11 @@ subtest 'Subset with a where block' => {
       )
     );
 
-    is-deeply $deparsed, 'my subset Foo of Int where { $_ %% 2 }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my subset Foo of Int where {
+    $_ %% 2
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -144,9 +148,11 @@ subtest 'Subset with a where pointy block' => {
       )
     );
 
-    is-deeply $deparsed,
-      'my subset Foo of Int where -> $a { $a %% 2 }',
-      'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my subset Foo of Int where -> $a {
+    $a %% 2
+}
+CODE
 
     for
       'AST', EVAL($ast),

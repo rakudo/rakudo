@@ -118,7 +118,7 @@ subtest 'Heredoc involving an interpolated block' => {
     );
 
     is-deeply $deparsed,
-      qq:!s:!c|qq:to//\nAn { $bv } block\n\n|,
+      qq:!s:!c|qq:to//\nAn {\n    $bv\n} block\n\n|,
       'deparse';
 
     is-deeply $_, "An interpolated block\n", @type[$++]

@@ -466,18 +466,8 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Blockoid:D $ast, :$multi --> Str:D) {
         my $statement-list := $ast.statement-list;
-        my @statements := $statement-list.statements;
 
-        sub has-WHY($statement) {
-            nqp::istype($statement,RakuAST::Statement::Expression)
-              && nqp::istype(
-                   $statement.expression,
-                   RakuAST::Doc::DeclaratorTarget
-                 )
-              && $statement.expression.WHY
-        }
-
-        if $multi || @statements > 1 || has-WHY(@statements.head) {
+        if $multi || $statement-list.statements {
             self!indent;
             $.block-open
               ~ self.deparse($statement-list)
@@ -485,11 +475,7 @@ class RakuAST::Deparse {
               ~ $.bracket-close
         }
         else {
-            $*DELIMITER = "";
-            my str @parts = $.bracket-open;
-            @parts.push(self.deparse(@statements.head)) if @statements;
-            @parts.push($.bracket-close);
-            @parts.join(' ')
+            "$.bracket-open $.bracket-close"
         }
     }
 
@@ -1747,7 +1733,9 @@ class RakuAST::Deparse {
                 $*DELIMITER = $statement === $last-statement
                   ?? $.last-statement
                   !! $.end-statement;
-                my str $deparsed = self.deparse($statement);
+                my $deparsed := self.deparse($statement);
+                $deparsed := $deparsed.chop(2) if $deparsed.ends-with("};\n");
+
                 @parts.push($spaces);
                 @parts.push($deparsed);
                 @parts.push("\n") if $deparsed.ends-with('}');
@@ -1803,90 +1791,9 @@ class RakuAST::Deparse {
 
 #- Statement::Prefix -----------------------------------------------------------
 
-    multi method deparse(RakuAST::StatementPrefix::Do:D $ast --> Str:D) {
-        'do ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(RakuAST::StatementPrefix::Eager:D $ast --> Str:D) {
-        'eager ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(RakuAST::StatementPrefix::Gather:D $ast --> Str:D) {
-        'gather ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(RakuAST::StatementPrefix::Hyper:D $ast --> Str:D) {
-        'hyper ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(RakuAST::StatementPrefix::Lazy:D $ast --> Str:D) {
-        'lazy ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Begin:D $ast
-    --> Str:D) {
-        'BEGIN ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Check:D $ast
-    --> Str:D) {
-        'CHECK ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Close:D $ast
-    --> Str:D) {
-        'CLOSE ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::End:D $ast
-    --> Str:D) {
-        'END ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Enter:D $ast
-    --> Str:D) {
-        'ENTER ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::First:D $ast
-    --> Str:D) {
-        'FIRST ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Init:D $ast
-    --> Str:D) {
-        'INIT ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Keep:D $ast
-    --> Str:D) {
-        'KEEP ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Last:D $ast
-    --> Str:D) {
-        'LAST ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Leave:D $ast
-    --> Str:D) {
-        'LEAVE ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Next:D $ast
-    --> Str:D) {
-        'NEXT ' ~ self.deparse($ast.blorst)
+    # handles most statement prefixes and phasers
+    multi method deparse(RakuAST::StatementPrefix:D $ast --> Str:D) {
+        $ast.type ~ ' ' ~ self.deparse($ast.blorst).chomp
     }
 
     multi method deparse(
@@ -1901,7 +1808,7 @@ class RakuAST::Deparse {
           nqp::istype($expression,RakuAST::ApplyPostfix)
             ?? $expression.operand
             !! $expression
-        )
+        ).chomp
     }
 
     multi method deparse(
@@ -1915,35 +1822,7 @@ class RakuAST::Deparse {
           nqp::istype($expression,RakuAST::ApplyPostfix)
             ?? $expression.operand
             !! $expression
-        )
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Quit:D $ast
-    --> Str:D) {
-        'QUIT ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(
-      RakuAST::StatementPrefix::Phaser::Undo:D $ast
-    --> Str:D) {
-        'UNDO ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(RakuAST::StatementPrefix::Quietly:D $ast --> Str:D) {
-        'quietly ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(RakuAST::StatementPrefix::Race:D $ast --> Str:D) {
-        'race ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(RakuAST::StatementPrefix::Start:D $ast --> Str:D) {
-        'start ' ~ self.deparse($ast.blorst)
-    }
-
-    multi method deparse(RakuAST::StatementPrefix::Try:D $ast --> Str:D) {
-        'try ' ~ self.deparse($ast.blorst)
+        ).chomp
     }
 
 #- Str -------------------------------------------------------------------------

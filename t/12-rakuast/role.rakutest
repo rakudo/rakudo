@@ -68,7 +68,11 @@ subtest 'creating a role with an attribute' => {
         )
       )
     );
-    is-deeply $deparsed, 'my role A { has $.a = 42 }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my role A {
+    has $.a = 42
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $role := EVAL($it);
@@ -181,7 +185,14 @@ subtest 'creating a parameterized role' => {
         )
       )
     );
-    is-deeply $deparsed, 'my role D[$a = 42] { method a { $a } }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my role D[$a = 42] {
+    method a {
+        $a
+    }
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $role := EVAL($it);
@@ -248,10 +259,13 @@ subtest 'creating a parameterized role with a type capture' => {
         )
       )
     );
-    is-deeply
-      $deparsed,
-      'my role E[::T = Str] { method a (T:D $a) { $a } }',
-      'deparsed';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+my role E[::T = Str] {
+    method a (T:D $a) {
+        $a
+    }
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $role := EVAL($it);

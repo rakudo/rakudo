@@ -27,7 +27,11 @@ subtest 'A pointy block node evaluates to a Block' => {
         )
       )
     );
-    is-deeply $deparsed, '-> { 101 }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> {
+    101
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -69,7 +73,11 @@ subtest 'A pointy block node taking a parameter evaluates to a Block' => {
         )
       )
     );
-    is-deeply $deparsed, '-> $param { $param }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+-> $param {
+    $param
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -111,7 +119,11 @@ subtest 'Bare block at statement level is executed' => {
         )
       )
     );
-    is-deeply $deparsed, '{ $x++ }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+{
+    $x++
+}
+CODE
 
     my $expected = 99;
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $block {
@@ -146,7 +158,11 @@ subtest 'Bare block in parentheses evaluates to Block' => {
         )
       )
     );
-    is-deeply $deparsed, '({ $x++ })', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+({
+    $x++
+})
+CODE
 
     my $expected = 99;
     for
@@ -188,7 +204,11 @@ subtest 'Block has default parameter' => {
         )
       )
     );
-    is-deeply $deparsed, '({ $_ })', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+({
+    $_
+})
+CODE
 
     for
       'AST', EVAL($ast),

@@ -64,7 +64,12 @@ subtest 'A sub node evaluates to a Sub' => {
         )
       )
     );
-    is-deeply $deparsed, 'sub ($param) { $param }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub ($param) {
+    $param
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $sub := EVAL($it);
@@ -115,7 +120,9 @@ subtest 'Can call a named sub declaration' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-sub my-sub ($param) { $param }
+sub my-sub ($param) {
+    $param
+}
 my-sub(66)
 CODE
 
@@ -146,7 +153,9 @@ subtest 'A routine declared anonymous does not declare anything' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-anon sub my-sub { 66 }
+anon sub my-sub {
+    66
+}
 my-sub()
 CODE
 
@@ -175,7 +184,12 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
         )
       )
     );
-    is-deeply $deparsed, 'sub foo returns Int { 66 }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub foo returns Int {
+    66
+}
+CODE
 
     package one {
         my $sub := EVAL($ast);
@@ -220,7 +234,12 @@ subtest 'Return type constraint' => {
         )
       )
     );
-    is-deeply $deparsed, 'sub foo returns Int { $x }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub foo returns Int {
+    $x
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $sub := EVAL($it);
@@ -259,7 +278,12 @@ subtest 'Using return with acceptable type works' => {
         )
       )
     );
-    is-deeply $deparsed, 'sub foo returns Int { return($x) }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub foo returns Int {
+    return($x)
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $sub := EVAL($it);
@@ -288,7 +312,12 @@ subtest 'Using a string literal works' => {
         )
       )
     );
-    is-deeply $deparsed, 'sub ("Bee") { 42 }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub ("Bee") {
+    42
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $sub := EVAL($it);
@@ -319,7 +348,12 @@ subtest 'creating a proto sub works' => {
         )
       )
     );
-    is-deeply $deparsed, 'proto sub zippo (|) { 42 }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+proto sub zippo (|) {
+    42
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         my $sub := EVAL($it);
@@ -353,7 +387,9 @@ subtest 'creating a multi sub without proto works' => {
     );
 
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-multi sub frobnicate { 42 }
+multi sub frobnicate {
+    42
+}
 &frobnicate
 CODE
 
@@ -383,7 +419,11 @@ subtest 'creating a multi sub with existing proto works' => {
       )
     );
 
-    is-deeply $deparsed, 'multi sub frobnicate { 42 }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+multi sub frobnicate {
+    42
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         proto sub frobnicate (|) {*}

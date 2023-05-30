@@ -86,7 +86,9 @@ subtest 'Basic if structure with a label' => {
       )
     );
     is-deeply $deparsed, Q:to/CODE/, 'deparse';
-FOO: if $a { 1 }
+FOO: if $a {
+    1
+}
 CODE
 
 if 0 {  # runtime support for labels doesn't work yet
@@ -127,7 +129,9 @@ subtest 'Basic with structure with label' => {
       ),
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-FOO: with $a -> $x { $x }
+FOO: with $a -> $x {
+    $x
+}
 CODE
 
 if 0 {  # runtime support for labels doesn't work yet
@@ -165,7 +169,9 @@ subtest 'simple unless with a false condition and a label' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-FOO: unless $x { ++$y }
+FOO: unless $x {
+    ++$y
+}
 CODE
 
 if 0 {  # runtime support for labels doesn't work yet
@@ -201,7 +207,9 @@ subtest 'simple without with an undefined condition and a label' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/, 'deparse';
-FOO: without $x { $y++ }
+FOO: without $x {
+    $y++
+}
 CODE
 
 if 0 {  # runtime support for labels doesn't work yet
@@ -238,7 +246,9 @@ subtest 'given with explicit signature' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-FOO: given $a -> $x { $x }
+FOO: given $a -> $x {
+    $x
+}
 CODE
 
 if 0 {  # runtime support for labels doesn't work yet
@@ -275,7 +285,9 @@ subtest 'While loop at statement level evaluates to Nil' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-FOO: while $x { --$x }
+FOO: while $x {
+    --$x
+}
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -311,7 +323,9 @@ subtest 'Until loop at statement level evaluates to Nil' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-FOO: until !$x { --$x }
+FOO: until !$x {
+    --$x
+}
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -344,7 +358,9 @@ subtest 'Repeat while loop at statement level evaluates to Nil' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-FOO: repeat { --$x } while $x
+FOO: repeat {
+    --$x
+} while $x
 CODE
 
     for 'AST', $ast,  'Str', $deparsed -> $type, $it {
@@ -377,7 +393,9 @@ subtest 'Repeat until loop at statement level evaluates to Nil' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-FOO: repeat { --$x } until $x
+FOO: repeat {
+    --$x
+} until $x
 CODE
 
     for 'AST', $ast, 'DEPARSE', $deparsed -> $type, $it {
@@ -421,7 +439,9 @@ subtest 'Loop block with setup and increment expression' => {
       )
     );
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-FOO: loop (my $i = 9; $i; --$i) { ++$count }
+FOO: loop (my $i = 9; $i; --$i) {
+    ++$count
+}
 CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
@@ -464,7 +484,11 @@ subtest 'Statement level for loop' => {
         )
       )
     );
-    is-deeply $deparsed, 'FOO: for 2 .. 7 -> $x { ++$count }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+FOO: for 2 .. 7 -> $x {
+    ++$count
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed -> $type, $it {
         $count = 0;

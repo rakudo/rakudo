@@ -132,7 +132,11 @@ subtest 'Optional Scalar parameter defaults to type object' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (Int $x?) { $x }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (Int $x?) {
+    $x
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -173,7 +177,11 @@ subtest 'One required named parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (:$named!) { $named }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (:$named!) {
+    $named
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -222,7 +230,11 @@ subtest 'Required named parameter with alias' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (:first(:fst($var))!) { $var }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (:first(:fst($var))!) {
+    $var
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -274,7 +286,11 @@ subtest 'Slurpy hash parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (*%h) { %h }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (*%h) {
+    %h
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -318,7 +334,11 @@ subtest 'Slurpy flattening array parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (*@a) { @a }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (*@a) {
+    @a
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -364,7 +384,11 @@ subtest 'Slurpy non-flattening array parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (**@a) { @a }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (**@a) {
+    @a
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -412,7 +436,11 @@ subtest 'Slurpy single arg rule array parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (+@a) { @a }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (+@a) {
+    @a
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -462,7 +490,11 @@ subtest 'Sigilless parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (Int \trm) { trm }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (Int \trm) {
+    trm
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -500,7 +532,11 @@ subtest 'Capture parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (|c) { c }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (|c) {
+    c
+}
+CODE
 
     for
       'AST', EVAL($ast),

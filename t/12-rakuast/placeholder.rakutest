@@ -26,7 +26,11 @@ subtest 'Placeholder positional parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub { $^pos }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub {
+    $^pos
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -64,7 +68,11 @@ subtest 'Placeholder named parameter' => {
       )
     );
 
-    is-deeply $deparsed, 'sub { $:named }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub {
+    $:named
+}
+CODE
 
     # for some reason, using $deparsed here causes an error
     for 'AST', EVAL($ast), 'Str', EVAL($ast.DEPARSE) -> $type, $sub {
@@ -101,7 +109,11 @@ subtest 'Placeholder slurpy array' => {
       )
     );
 
-    is-deeply $deparsed, 'sub { @_ }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub {
+    @_
+}
+CODE
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         is $sub.signature.params.elems, 1,
@@ -133,7 +145,11 @@ subtest 'Placeholder slurpy hash' => {
       )
     );
 
-    is-deeply $deparsed, 'sub { %_ }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub {
+    %_
+}
+CODE
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         is $sub.signature.params.elems, 1,
@@ -172,7 +188,11 @@ subtest 'Placeholder fake slurpy array' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (@_) { @_ }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (@_) {
+    @_
+}
+CODE
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         is $sub.signature.params.elems, 1,
@@ -213,7 +233,11 @@ subtest 'Placeholder fake slurpy hash' => {
       )
     );
 
-    is-deeply $deparsed, 'sub (%_) { %_ }', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+sub (%_) {
+    %_
+}
+CODE
 
     for 'AST', EVAL($ast), 'Str', EVAL($deparsed) -> $type, $sub {
         is $sub.signature.params.elems, 1,

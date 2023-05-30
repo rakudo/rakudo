@@ -47,8 +47,12 @@ subtest 'The do statement prefix works with a block' => {
       )
     );
 
-    is-deeply $deparsed, 'do { 199 }
-', 'deparse';
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+do {
+    199
+}
+CODE
+
     is-deeply $_, 199, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
@@ -102,8 +106,13 @@ subtest 'The quietly statement prefix works' => {
         )
       )
     );
-    is-deeply $deparsed, 'quietly { do-warning() }
-', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+quietly {
+    do-warning()
+}
+CODE
+
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $warned = False;
@@ -172,8 +181,12 @@ subtest 'The gather statement prefix works on a block' => {
         )
       )
     );
-    is-deeply $deparsed, 'gather { do-takes() }
-', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/, 'deparse';
+gather {
+    do-takes()
+}
+CODE
 
     $done = False;
     for
@@ -240,8 +253,12 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
             )
           )
         );
-        is-deeply $deparsed, $context ~ ' { $c }
-', 'deparse';
+
+        is-deeply $deparsed, qq:!c:to/CODE/, 'deparse';
+$context {
+    \$c
+}
+CODE
 
         for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
             $c = ContextMe.new;
@@ -300,7 +317,12 @@ subtest 'try statement prefix with block producing value results' => {
         )
       )
     );
-    is-deeply $deparsed, 'try { 999 }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+try {
+    999
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), 999, "$type: correct result";
@@ -326,7 +348,12 @@ subtest 'try statement prefix with throwing block handles the exception' => {
         )
       )
     );
-    is-deeply $deparsed, 'try { die("another day") }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+try {
+    die("another day")
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $! = 42;
@@ -367,7 +394,12 @@ subtest 'start statement prefix with block evaluates to Promise' => {
         )
       )
     );
-    is-deeply $deparsed, 'start { 137 }', 'deparse';
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+start {
+    137
+}
+CODE
 
     for
       'AST', EVAL($ast),

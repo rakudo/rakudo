@@ -107,9 +107,14 @@ class RakuAST::Circumfix::HashComposer
 
     method new(RakuAST::Expression $expression?) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Circumfix::HashComposer, '$!expression',
-            $expression // RakuAST::Expression);
+        $obj.set-expression($expression);
         $obj
+    }
+
+    method set-expression(RakuAST::Expression $expression) {
+        nqp::bindattr(self, RakuAST::Circumfix::HashComposer, '$!expression',
+            $expression // RakuAST::Expression);
+        Nil
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {

@@ -6,8 +6,14 @@ class RakuAST::StatementModifier
 
     method new(RakuAST::Expression $expression) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::StatementModifier, '$!expression', $expression);
+        $obj.set-expression($expression);
         $obj
+    }
+
+    method set-expression(RakuAST::Expression $expression) {
+        nqp::bindattr(self, RakuAST::StatementModifier, '$!expression',
+            $expression // RakuAST::Expression);
+        Nil
     }
 
     method visit-children(Code $visitor) {

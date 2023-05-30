@@ -484,13 +484,19 @@ class RakuAST::Statement::Expression
                RakuAST::StatementModifier::Condition :$condition-modifier,
                RakuAST::StatementModifier::Loop :$loop-modifier) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Statement::Expression, '$!expression', $expression);
+        $obj.set-expression($expression);
         $obj.set-labels($labels);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!condition-modifier',
             $condition-modifier // RakuAST::StatementModifier::Condition);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!loop-modifier',
             $loop-modifier // RakuAST::StatementModifier::Loop);
         $obj
+    }
+
+    method set-expression(RakuAST::Expression $expression) {
+        nqp::bindattr(self, RakuAST::Statement::Expression, '$!expression',
+          $expression // RakuAST::Expression);
+        Nil
     }
 
     method replace-condition-modifier(RakuAST::StatementModifier::Condition $condition-modifier) {

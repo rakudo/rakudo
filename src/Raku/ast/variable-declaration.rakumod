@@ -43,8 +43,13 @@ class RakuAST::Initializer::Assign
 
     method new(RakuAST::Expression $expression) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Initializer::Assign, '$!expression', $expression);
+        $obj.set-expression($expression);
         $obj
+    }
+
+    method set-expression(RakuAST::Expression $expression) {
+        nqp::bindattr(self, RakuAST::Initializer::Assign, '$!expression',
+          $expression // RakuAST::Expression);
     }
 
     method visit-children(Code $visitor) {
@@ -64,8 +69,14 @@ class RakuAST::Initializer::Bind
 
     method new(RakuAST::Expression $expression) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Initializer::Bind, '$!expression', $expression);
+        $obj.set-expression($expression);
         $obj
+    }
+
+    method set-expression(RakuAST::Expression $expression) {
+        nqp::bindattr(self, RakuAST::Initializer::Bind, '$!expression',
+            $expression // RakuAST::Expression);
+        Nil
     }
 
     method is-binding() { True }

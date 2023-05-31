@@ -1511,7 +1511,10 @@ class RakuAST::Deparse {
 #- S ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
-        $ast.statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
+        my @statements := $ast.statements;
+        @statements == 1
+          ?? self.deparse(@statements.head.expression)
+          !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
     }
 
     multi method deparse(RakuAST::Signature:D $ast --> Str:D) {

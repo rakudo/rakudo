@@ -183,7 +183,7 @@ augment class RakuAST::Node {
           ?? True
           !! $name eq 'False'
             ?? False
-            !! die(Nil)
+            !! self.resolution.compile-time-value
     }
 
     multi method literalize(RakuAST::Term::RadixNumber:D:) {

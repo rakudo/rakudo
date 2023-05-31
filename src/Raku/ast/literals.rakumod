@@ -21,6 +21,7 @@ class RakuAST::Literal
         nqp::bindattr(self, RakuAST::Literal, '$!value', $value);
     }
 
+    method expression() { self }
     method type() { $!value.WHAT }
     method compile-time-value() { $!value }
     method IMPL-CAN-INTERPRET() { True }

@@ -42,7 +42,7 @@ my $version-nqp    = %*ENV<VERSION_NQP>    // (try slurp ‘VERSION_NQP’   ) /
 my $version-rakudo = %*ENV<VERSION_RAKUDO> // (try slurp ‘VERSION_RAKUDO’) // $version;
 
 my $branch         = %*ENV<BRANCH> // (try slurp ‘BRANCH’)
-                     // ‘master’;
+                     // ‘main’;
 my $branch-moar    = %*ENV<BRANCH_MOAR>    // (try slurp ‘BRANCH_MOAR’   ) // $branch;
 my $branch-nqp     = %*ENV<BRANCH_NQP>     // (try slurp ‘BRANCH_NQP’    ) // $branch;
 my $branch-rakudo  = %*ENV<BRANCH_RAKUDO>  // (try slurp ‘BRANCH_RAKUDO’ ) // $branch;

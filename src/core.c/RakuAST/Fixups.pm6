@@ -34,7 +34,7 @@ augment class RakuAST::Node {
             elsif nqp::istype($ast,RakuAST::Doc::DeclaratorTarget) {
                 take $_ with $ast.WHY;
             }
-            $ast.visit-chidren(&?BLOCK);
+            $ast.visit-children(&?BLOCK);
         }
     }
 

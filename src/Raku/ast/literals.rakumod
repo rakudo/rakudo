@@ -3,41 +3,47 @@ class RakuAST::Literal
   is RakuAST::Term
   is RakuAST::CompileTimeValue
 {
-    method type() { self.value.WHAT }
-    method compile-time-value() { self.value }
+    has str $!typename;
+    has Mu  $.value;
+
+    method new(Mu $value) {
+        my $typename := $value.HOW.name($value);
+        my $obj := nqp::create(nqp::eqaddr(self,RakuAST::Literal)
+          ?? RakuAST.WHO{$typename ~ 'Literal'}
+          !! self
+        );
+        nqp::bindattr(  $obj, RakuAST::Literal, '$!value',    $value);
+        nqp::bindattr_s($obj, RakuAST::Literal, '$!typename', $typename);
+        $obj
+    }
+
+    method set-value(Mu $value) {
+        nqp::bindattr(self, RakuAST::Literal, '$!value', $value);
+    }
+
+    method expression() { self }
+    method type() { $!value.WHAT }
+    method compile-time-value() { $!value }
     method IMPL-CAN-INTERPRET() { True }
-    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { self.value }
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
+
+    method ast-type {
+        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($!typename))
+    }
 
     # default for non int/str/num literals
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := self.value;
+        my $value := $!value;
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
-    }
-
-    method new(Mu $value) {
-        my $type := $value.HOW.name($value) ~ 'Literal';
-        RakuAST.WHO{$type}.new($value)
     }
 }
 
 class RakuAST::IntLiteral
   is RakuAST::Literal
 {
-    has Int $.value;
-
-    method new(Int $value) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::IntLiteral, '$!value', $value);
-        $obj
-    }
-
-    method ast-type {
-        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
-    }
-
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := $!value;
+        my $value := self.value;
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
         nqp::isbig_I($value)
@@ -53,20 +59,8 @@ class RakuAST::IntLiteral
 class RakuAST::NumLiteral
   is RakuAST::Literal
 {
-    has Num $.value;
-
-    method new(Num $value) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::NumLiteral, '$!value', $value);
-        $obj
-    }
-
-    method ast-type {
-        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Num'))
-    }
-
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := $!value;
+        my $value := self.value;
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new($wval,'Nn', QAST::NVal.new(:value(nqp::unbox_n($value))))
@@ -75,51 +69,23 @@ class RakuAST::NumLiteral
 
 class RakuAST::RatLiteral
   is RakuAST::Literal
-{
-    has Rat $.value;
-
-    method new(Rat $value) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::RatLiteral, '$!value', $value);
-        $obj
-    }
-
-    method ast-type {
-        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Rat'))
-    }
-}
+{ }
 
 class RakuAST::ComplexLiteral
   is RakuAST::Literal
-{
-    has Complex $.value;
-
-    method new(Complex $value) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::ComplexLiteral, '$!value', $value);
-        $obj
-    }
-
-    method ast-type {
-        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Complex'))
-    }
-}
+{ }
 
 class RakuAST::VersionLiteral
   is RakuAST::Literal
-{
-    has Version $.value;
+{ }
 
-    method new($value) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::VersionLiteral, '$!value', $value);
-        $obj
-    }
+class RakuAST::ListLiteral
+  is RakuAST::Literal
+{ }
 
-    method ast-type {
-        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Version'))
-    }
-}
+class RakuAST::MapLiteral
+  is RakuAST::Literal
+{ }
 
 # A StrLiteral is a basic string literal without any kind of interpolation
 # taking place. It may be placed in the tree directly, but a compiler will
@@ -127,24 +93,8 @@ class RakuAST::VersionLiteral
 class RakuAST::StrLiteral
   is RakuAST::Literal
 {
-    has Str $.value;
-
-    method new(Str $value) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::StrLiteral, '$!value', $value);
-        $obj
-    }
-
-    method ast-type {
-        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Str'))
-    }
-
-    method set-value(Str $value) {
-        nqp::bindattr(self, RakuAST::StrLiteral, '$!value', $value);
-    }
-
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $value := $!value;
+        my $value := self.value;
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new($wval,'Ss', QAST::SVal.new(:value(nqp::unbox_s($value))))

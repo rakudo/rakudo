@@ -66,7 +66,7 @@ augment class RakuAST::Node {
     method !none() { self.^name ~ '.new' }
 
     method !literal($value) {
-        self.^name ~ '.new(' ~ $value.raku ~ ')';
+        self.^name ~ '.new(' ~ nqp::decont($value).raku ~ ')';
     }
 
     method !positional($value) {
@@ -351,10 +351,6 @@ augment class RakuAST::Node {
 
 #- Co --------------------------------------------------------------------------
 
-    multi method raku(RakuAST::ComplexLiteral:D: --> Str:D) {
-        self!literal(self.value)
-    }
-
     multi method raku(RakuAST::CompUnit:D: :$compunit --> Str:D) {
         # XXX need to handle .finish-content and other arguments
         self!nameds: <statement-list comp-unit-name setting-name>
@@ -445,14 +441,15 @@ augment class RakuAST::Node {
         self!positional(self.postfixish)
     }
 
-    multi method raku(RakuAST::IntLiteral:D: --> Str:D) {
-        self!literal(self.value)
-    }
-
 #- L ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Label:D: --> Str:D) {
         self!nameds: <name>
+    }
+
+    # handles all RakuAST::xxxLiteral classes
+    multi method raku(RakuAST::Literal:D: --> Str:D) {
+        self!literal(self.value)
     }
 
 #- M ---------------------------------------------------------------------------
@@ -502,10 +499,6 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Nqp::Const:D: --> Str:D) {
         $*INDENT ~ 'RakuAST::Nqp::Const.new(' ~ self.name.raku ~ ')'
-    }
-
-    multi method raku(RakuAST::NumLiteral:D: --> Str:D) {
-        self!literal(self.value)
     }
 
 #- O ---------------------------------------------------------------------------
@@ -627,12 +620,6 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::QuoteWordsAtom:D: --> Str:D) {
         self!positional(self.atom)
-    }
-
-#- R ---------------------------------------------------------------------------
-
-    multi method raku(RakuAST::RatLiteral:D: --> Str:D) {
-        self!literal(self.value)
     }
 
 #- Regex -----------------------------------------------------------------------
@@ -1007,12 +994,6 @@ augment class RakuAST::Node {
         self!positional(self.blorst.condition-modifier.expression)
     }
 
-#- Str -------------------------------------------------------------------------
-
-    multi method raku(RakuAST::StrLiteral:D: --> Str:D) {
-        self!literal(self.value)
-    }
-
 #- Stu -------------------------------------------------------------------------
 
     multi method raku(RakuAST::Stub:D: --> Str:D) {
@@ -1227,12 +1208,6 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {
         self!nameds: <scope type name initializer>
-    }
-
-#- Version ---------------------------------------------------------------------
-
-    multi method raku(RakuAST::VersionLiteral:D: --> Str:D) {
-        self!positional(self.value)
     }
 }
 

@@ -568,10 +568,6 @@ class RakuAST::Deparse {
 
 #- Co --------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::ComplexLiteral:D $ast --> Str:D) {
-        $ast.value.raku
-    }
-
     multi method deparse(RakuAST::CompUnit:D $ast --> Str:D) {
         my str $deparsed = self.deparse($ast.statement-list);
         with $ast.finish-content {
@@ -701,14 +697,15 @@ class RakuAST::Deparse {
         $.dotty-infix-call-assign ~ self.deparse($ast.postfixish).substr(1)
     }
 
-    multi method deparse(RakuAST::IntLiteral:D $ast --> Str:D) {
-        $ast.value.raku
-    }
-
 #- L ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Label:D $ast --> Str:D) {
         $ast.name ~ ': '
+    }
+
+    # handles all RakuAST::xxxLiteral classes
+    multi method deparse(RakuAST::Literal:D $ast --> Str:D) {
+        $ast.value.raku
     }
 
 #- M ---------------------------------------------------------------------------
@@ -755,10 +752,6 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Nqp::Const:D $ast --> Str:D) {
         "nqp::const::" ~ $ast.name
-    }
-
-    multi method deparse(RakuAST::NumLiteral:D $ast --> Str:D) {
-        $ast.value.raku
     }
 
 #- O ---------------------------------------------------------------------------
@@ -1036,12 +1029,6 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::QuoteWordsAtom:D $ast --> Str:D) {
         self.deparse($ast.atom)
-    }
-
-#- R ---------------------------------------------------------------------------
-
-    multi method deparse(RakuAST::RatLiteral:D $ast --> Str:D) {
-        $ast.value.raku
     }
 
 #- Regex -----------------------------------------------------------------------
@@ -1524,7 +1511,10 @@ class RakuAST::Deparse {
 #- S ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
-        $ast.statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
+        my @statements := $ast.statements;
+        @statements == 1
+          ?? self.deparse(@statements.head.expression)
+          !! @statements.map({ self.deparse($_) }).join($.list-infix-semi-colon)
     }
 
     multi method deparse(RakuAST::Signature:D $ast --> Str:D) {
@@ -1823,12 +1813,6 @@ class RakuAST::Deparse {
             ?? $expression.operand
             !! $expression
         ).chomp
-    }
-
-#- Str -------------------------------------------------------------------------
-
-    multi method deparse(RakuAST::StrLiteral:D $ast --> Str:D) {
-        $ast.value.raku
     }
 
 #- Stu -------------------------------------------------------------------------
@@ -2244,11 +2228,6 @@ class RakuAST::Deparse {
         @parts.join
     }
 
-#- Version ---------------------------------------------------------------------
-
-    multi method deparse(RakuAST::VersionLiteral:D $ast --> Str:D) {
-        $ast.value.raku
-    }
 }
 
 nqp::bindhllsym('Raku', 'DEPARSE', RakuAST::Deparse);

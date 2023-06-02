@@ -550,6 +550,7 @@ my @allowed =
       Q{Grammar},
       Q{HardRoutine},
       Q{Hash},
+      Q{Hashray},
       Q{Hyper},
       Q{HyperConfiguration},
       Q{HyperSeq},

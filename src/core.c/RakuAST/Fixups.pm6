@@ -3,7 +3,7 @@ my class RakuAST::LegacyPodify { ... }
 # A class that acts as a Hash as well as an Array, with $=data semantics.
 # This needs to live rather late to have "handles" support actually working
 # in the setting.
-my class Pod::Data does Iterable {
+my class Hashray does Iterable {
     has %.Hash handles <
       AT-KEY ASSIGN-KEY BIND-KEY EXISTS-KEY DELETE-KEY Map
       keys kv pairs anti-pairs
@@ -582,8 +582,8 @@ augment class RakuAST::Doc::Paragraph {
 
 augment class RakuAST::Doc::Block {
 
-    # return a new Pod::Data class instance
-    method PodData() { Pod::Data.new }
+    # return a new Hashray class instance
+    method Hashray() { Hashray.new }
 
     # conceptual leading whitespace of first element
     method leading-whitespace() {

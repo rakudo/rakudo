@@ -2007,7 +2007,7 @@ class RakuAST::RegexThunk
         # Create Regex object.
         my $regex := nqp::create(Regex);
         nqp::bindattr($regex, Code, '$!signature', $signature);
-        nqp::bindattr_s($regex, Regex, '$!source', self.origin.Str);
+        nqp::bindattr_s($regex, Regex, '$!source', self.origin ?? self.origin.Str !! self.DEPARSE);
         nqp::bindattr($signature, Signature, '$!code', $regex);
         $regex
     }

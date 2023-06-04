@@ -560,7 +560,7 @@ my class IO::Handle {
         $result
     }
 
-    multi method Supply(IO::Handle:D: :$size = $*DEFAULT-READ-ELEMS --> Supply:D) {
+    multi method Supply(IO::Handle:D: :$size = 1 --> Supply:D) {
         if $!decoder { # handle is in character mode
             supply {
                 my int $chars = $size;

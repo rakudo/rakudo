@@ -51,6 +51,9 @@ role Raku::CommonActions {
     # information as we go. This factors out that process and attaches
     # the AST to the match object.
     method attach($/, $node, :$as-key-origin) {
+        if nqp::istype($node, Nodify('ParseTime')) {
+            $node.ensure-parse-performed($*R, $*CU.context);
+        }
         if nqp::istype($node, Nodify('ImplicitLookups')) {
             $node.resolve-implicit-lookups-with($*R);
         }
@@ -605,6 +608,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! Nodify($*SCOPE-KIND).new;
         $*R.enter-scope($block);
         $*BLOCK := $block;
+        if nqp::istype($block, Nodify('ParseTime')) {
+            $block.ensure-parse-performed($*R, $*CU.context);
+        }
 
         self.set-declarand($/, $block)
           if nqp::istype($block,Nodify('Doc','DeclaratorTarget'));
@@ -2003,10 +2009,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Perform BEGIN-time effects (declaring the package, applying traits,
         # etc.)
         my $R := $*R;
-        $*PACKAGE.ensure-begin-performed($R, $*CU.context);
+        my $package := $*PACKAGE;
+        if nqp::istype($package, Nodify('ParseTime')) {
+            $package.ensure-parse-performed($R, $*CU.context);
+        }
+        $package.ensure-begin-performed($R, $*CU.context);
 
         # Let the resolver know which package we're in.
-        $R.push-package($*PACKAGE);
+        $R.push-package($package);
 
         if $*SIGNATURE {
             my $params := $*SIGNATURE.ast;

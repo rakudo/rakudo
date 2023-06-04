@@ -151,7 +151,13 @@ augment class Cool {
     }
 
     # Allow for creating an AST out of a string, for core debugging mainly
-    method AST(Cool:D: :$run, :$compunit, :$expression) {
+    method AST(Cool:D:
+      :$run,
+      :$compunit,
+      :$expression,
+      :$grammar = nqp::gethllsym('Raku','Grammar'),
+      :$actions = nqp::gethllsym('Raku','Actions'),
+    ) {
 
         # Make sure we don't use the EVAL's MAIN context for the
         # currently compiling compilation unit
@@ -170,10 +176,7 @@ augment class Cool {
           :global(GLOBAL),
           :language_version($compiler.language_version),
           |(:optimize($_) with $compiler.cli-options<optimize>),
-          :target<ast>,
-          :compunit_ok(1),
-          :grammar(nqp::gethllsym('Raku','Grammar')),
-          :actions(nqp::gethllsym('Raku','Actions'));
+          :target<ast>, :compunit_ok(1), :$grammar, :$actions;
 
         $run
           ?? EVAL($ast)

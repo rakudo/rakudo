@@ -372,12 +372,16 @@ augment class RakuAST::Doc::Markup {
             @parts.push: self.atoms.join;
 
             if $letter eq 'L' {
-                @parts.push: '|';
-                @parts.push: self.meta.join;
+                if self.meta.join -> $meta {
+                    @parts.push: '|';
+                    @parts.push: $meta;
+                }
             }
             elsif $letter eq 'X' {
-                @parts.push: '|';
-                @parts.push: self.meta.join(self.separator);
+                if self.meta.join(self.separator) -> $meta {
+                    @parts.push: '|';
+                    @parts.push: $meta;
+                }
             }
         }
         @parts.push: self.closer;

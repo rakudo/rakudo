@@ -791,9 +791,7 @@ class RakuAST::Type::Subset
             :scope(self.scope);
     }
 
-    method is-begin-performed-after-children() { True }
-
-    method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.apply-traits($resolver, $context, self);
 
         my $block := $!block;

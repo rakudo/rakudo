@@ -114,18 +114,12 @@ class RakuAST::Node {
             self.apply-implicit-block-semantics();
         }
 
-        # Apply any pre-children BEGIN-time effects that were not yet
-        # performed (and figure out if we have to do the later).
-        my int $needs-begin-after := nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-after-children();
-        if nqp::istype(self, RakuAST::BeginTime) && self.is-begin-performed-before-children() {
-            self.ensure-begin-performed($resolver, $context, :phase(1));
-        }
-
         # Visit children. But don't run CHECK yet if this will be followed by more BEGIN handling
+        my int $is-begin-time := nqp::istype(self, RakuAST::BeginTime);
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;
-        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only || $needs-begin-after) });
+        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $context, $resolve-only || $is-begin-time) });
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
@@ -133,13 +127,13 @@ class RakuAST::Node {
         if $is-parse-time {
             self.ensure-parse-performed($resolver, $context);
         }
-        if $needs-begin-after {
-            self.ensure-begin-performed($resolver, $context, :phase(2));
+        if $is-begin-time {
+            self.ensure-begin-performed($resolver, $context);
         }
 
         # Unless in resolve-only mode, do other check-time activities.
         unless $resolve-only {
-            if $needs-begin-after {
+            if $is-begin-time {
                 # Run children's CHECK processing. Couldn't do it earlier as
                 # that would have interfered with our BEGIN handling.
                 $resolver.push-scope(self) if $is-scope;

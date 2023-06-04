@@ -11,22 +11,13 @@ class RakuAST::BeginTime
         nqp::die('Missing PERFORM-BEGIN implementation in ' ~ self.HOW.name(self))
     }
 
-    # Should the BEGIN-time effects be performed before or after the parse of
-    # this node or both?
-    method is-begin-performed-before-children() { False }
-    method is-begin-performed-after-children() { !self.is-begin-performed-before-children }
-
     # Ensure the begin-time effects are performed.
     method ensure-begin-performed(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, int :$phase) {
         unless $!begin-performed {
             self.PERFORM-BEGIN($resolver, $context);
-            nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 3);
+            nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 1);
         }
         Nil
-    }
-
-    method begin-performed() {
-        $!begin-performed == 3
     }
 
     # Called when a BEGIN-time construct needs to evaluate code. Tries to

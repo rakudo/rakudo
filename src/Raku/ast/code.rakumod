@@ -439,8 +439,6 @@ class RakuAST::ExpressionThunk
         ''
     }
 
-    method is-begin-performed-before-children() { False }
-
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
 
@@ -1078,8 +1076,6 @@ class RakuAST::Block
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Code'))
         ])
     }
-
-    method is-begin-performed-before-children() { False }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Make sure that our placeholder signature has resolutions performed,
@@ -2327,8 +2323,6 @@ class RakuAST::RegexThunk
         )
     }
 
-    method is-begin-performed-before-children() { False }
-
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
 
@@ -2424,11 +2418,8 @@ class RakuAST::QuotedMatchConstruct
         }
     }
 
-    method is-begin-performed-before-children() { False }
-
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
-
         Nil
     }
 }

@@ -629,7 +629,7 @@ augment class RakuAST::Doc::Block {
         }
 
         # potentially need introspection
-        elsif $type eq 'pod' | 'doc' {
+        elsif $type eq 'pod' | 'rakudoc' {
             $block.interpret-implicit-code-blocks($spaces, @paragraphs);
         }
 

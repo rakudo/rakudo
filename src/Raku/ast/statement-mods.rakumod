@@ -272,9 +272,6 @@ class RakuAST::StatementModifier::Condition::Thunk
         Nil
     }
 
-    method is-begin-performed-before-children() { False }
-    method is-begin-performed-after-children() { False }
-
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         Nil
     }

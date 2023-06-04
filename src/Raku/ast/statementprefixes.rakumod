@@ -213,12 +213,8 @@ class RakuAST::StatementPrefix::Thunky
   is RakuAST::Code
   is RakuAST::BeginTime
 {
-
-    method is-begin-performed-before-children() { False }
-
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.IMPL-STUB-CODE($resolver, $context);
-
         Nil
     }
 

@@ -152,11 +152,11 @@ augment class Cool {
 
     # Allow for creating an AST out of a string, for core debugging mainly
     method AST(Cool:D:
-      :$run,
-      :$compunit,
-      :$expression,
-      :$grammar = nqp::gethllsym('Raku','Grammar'),
-      :$actions = nqp::gethllsym('Raku','Actions'),
+      Bool :$run,
+      Bool :$compunit,
+      Bool :$expression,
+      Mu   :$grammar = nqp::gethllsym('Raku','Grammar'),
+      Mu   :$actions = nqp::gethllsym('Raku','Actions'),
     ) {
 
         # Make sure we don't use the EVAL's MAIN context for the

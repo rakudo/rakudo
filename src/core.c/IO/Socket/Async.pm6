@@ -199,6 +199,36 @@ my class IO::Socket::Async {
         $p
     }
 
+    method connect-path(IO::Socket::Async:U: Str() $path,
+                   :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
+        my $p = Promise.new;
+        my $v = $p.vow;
+        my $encoding = Encoding::Registry.find($enc);
+        nqp::dispatch('boot-syscall', 'async-unix-connect',
+            $scheduler.queue,
+            -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
+                if err {
+                    $v.break(err);
+                }
+                else {
+                    my $client_socket := nqp::create(self);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!VMIO', socket);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!enc', $encoding.name);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!encoder',
+                        $encoding.encoder());
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-host', peer-host);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!peer-port', peer-port);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-host', socket-host);
+                    nqp::bindattr($client_socket, IO::Socket::Async, '$!socket-port', socket-port);
+
+                    setup-close($client_socket);
+                    $v.keep($client_socket);
+                }
+            },
+            nqp::unbox_s($path), SocketCancellation);
+        $p
+    }
+
     class ListenSocket is Tap {
         has Promise $!VMIO-tobe   is built;
         has Promise $.socket-host is built;
@@ -307,6 +337,102 @@ my class IO::Socket::Async {
         my $encoding = Encoding::Registry.find($enc);
         Supply.new: SocketListenerTappable.new:
             :$host, :$port, :$backlog, :$encoding, :$scheduler
+    }
+
+    my class SocketUnixListenerTappable does Tappable {
+        has $!path;
+        has $!backlog;
+        has $!encoding;
+        has $!scheduler;
+
+        method new(:$path!, :$backlog!, :$encoding!, :$scheduler!) {
+            self.CREATE!SET-SELF($path, $backlog, $encoding, $scheduler)
+        }
+
+        method !SET-SELF($!path, $!backlog, $!encoding, $!scheduler) { self }
+
+        method tap(&emit, &done, &quit, &tap) {
+            my $lock := Lock::Async.new;
+            my $tap;
+            my int $finished = 0;
+            my Promise $VMIO-tobe   .= new;
+            my Promise $socket-host .= new;
+            my Promise $socket-port .= new;
+            my $VMIO-vow = $VMIO-tobe.vow;
+            my $host-vow = $socket-host.vow;
+            my $port-vow = $socket-port.vow;
+            $lock.protect: {
+                CATCH {
+                    default {
+                        tap($tap = ListenSocket.new({ Nil },
+                            :$VMIO-tobe, :$socket-host, :$socket-port)) unless $tap;
+                        quit($_);
+                    }
+                }
+ 
+                my $cancellation := nqp::dispatch('boot-syscall', 'async-unix-listen',
+                    $!scheduler.queue(:hint-affinity),
+                    -> Mu \client-socket, Mu \err, Mu \peer-host, Mu \peer-port,
+                       Mu \server-socket, Mu \socket-host, Mu \socket-port {
+                        $lock.protect: {
+                            if $finished {
+                                # do nothing
+                            }
+                            elsif err {
+                                my $exc = X::AdHoc.new(payload => err);
+                                quit($exc);
+                                $host-vow.break($exc) unless $host-vow.promise;
+                                $port-vow.break($exc) unless $port-vow.promise;
+                                $finished = 1;
+                            }
+                            elsif client-socket {
+                                my $client_socket := nqp::create(IO::Socket::Async);
+                                nqp::bindattr($client_socket, IO::Socket::Async,
+                                    '$!VMIO', client-socket);
+                                nqp::bindattr($client_socket, IO::Socket::Async,
+                                    '$!enc', $!encoding.name);
+                                nqp::bindattr($client_socket, IO::Socket::Async,
+                                    '$!encoder', $!encoding.encoder());
+                                nqp::bindattr($client_socket, IO::Socket::Async,
+                                    '$!peer-host', peer-host);
+                                nqp::bindattr($client_socket, IO::Socket::Async,
+                                    '$!peer-port', peer-port);
+                                nqp::bindattr($client_socket, IO::Socket::Async,
+                                    '$!socket-host', socket-host);
+                                nqp::bindattr($client_socket, IO::Socket::Async,
+                                    '$!socket-port', socket-port);
+                                setup-close($client_socket);
+                                emit($client_socket);
+                            }
+                            elsif server-socket {
+                                $VMIO-vow.keep(server-socket);
+                                $host-vow.keep(~socket-host);
+                                $port-vow.keep(+socket-port);
+                            }
+                        }
+                    },
+                    nqp::unbox_s($!path), nqp::unbox_i($!backlog), SocketCancellation);
+                $tap = ListenSocket.new: {
+                    my $p = Promise.new;
+                    my $v = $p.vow;
+                    nqp::cancelnotify($cancellation, $!scheduler.queue, { $v.keep(True); });
+                    $p
+                }, :$VMIO-tobe, :$socket-host, :$socket-port;
+                tap($tap);
+            }
+            $tap
+        }
+
+        method live(--> False) { }
+        method sane(--> True) { }
+        method serial(--> True) { }
+    }
+
+    method listen-path(IO::Socket::Async:U: Str() $path,
+                  Int() $backlog = 128, :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
+        my $encoding = Encoding::Registry.find($enc);
+        Supply.new: SocketUnixListenerTappable.new:
+            :$path, :$backlog, :$encoding, :$scheduler
     }
 
     method native-descriptor(--> Int) {

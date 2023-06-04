@@ -9,7 +9,7 @@ class RakuAST::Package
   is RakuAST::IMPL::ImmediateBlockUser
   is RakuAST::Declaration
   is RakuAST::AttachTarget
-  is RakuAST::BeginTime
+  is RakuAST::ParseTime
   is RakuAST::TraitTarget
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::LexicalScope
@@ -133,15 +133,11 @@ class RakuAST::Package
         $package
     }
 
-    method PERFORM-BEGIN(
-               RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
-    ) {
-        # Note that this early return is actually not effective as the
-        # begin handler will already be run when the parser enters the
-        # package and we only know that it's a stub when we are done
-        # parsing the body.
-        return Nil if $!is-stub;
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+         # Note that this early return is actually not effective as the begin handler will
+         # already be run when the parser enters the package and we only know that it's a
+         # stub when we are done parsing the body.
+         return Nil if $!is-stub;
 
         # Install the symbol.
         my str $scope := self.scope;

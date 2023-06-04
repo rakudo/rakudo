@@ -18,25 +18,9 @@ class RakuAST::BeginTime
 
     # Ensure the begin-time effects are performed.
     method ensure-begin-performed(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, int :$phase) {
-        if nqp::can(self, 'PERFORM-BEGIN-BEFORE-CHILDREN') || nqp::can(self, 'PERFORM-BEGIN-AFTER-CHILDREN') {
-            if $phase == 0 && self.is-begin-performed-before-children || $phase == 1 {
-                unless $!begin-performed +& 1 {
-                    self.PERFORM-BEGIN-BEFORE-CHILDREN($resolver, $context);
-                    nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed',  $!begin-performed +| 1);
-                }
-            }
-            if $phase == 0 && self.is-begin-performed-after-children || $phase == 2 {
-                unless $!begin-performed +& 2 {
-                    self.PERFORM-BEGIN-AFTER-CHILDREN($resolver, $context);
-                    nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', $!begin-performed +| 2);
-                }
-            }
-        }
-        else {
-            unless $!begin-performed {
-                self.PERFORM-BEGIN($resolver, $context);
-                nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 3);
-            }
+        unless $!begin-performed {
+            self.PERFORM-BEGIN($resolver, $context);
+            nqp::bindattr_i(self, RakuAST::BeginTime, '$!begin-performed', 3);
         }
         Nil
     }

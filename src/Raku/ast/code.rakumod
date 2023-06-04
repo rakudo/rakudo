@@ -1467,6 +1467,7 @@ class RakuAST::Routine
   is RakuAST::AttachTarget
   is RakuAST::PlaceholderParameterOwner
   is RakuAST::ImplicitLookups
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::TraitTarget
   is RakuAST::ScopePhaser
@@ -1591,10 +1592,7 @@ class RakuAST::Routine
         $routine
     }
 
-    method is-begin-performed-before-children() { True }
-    method is-begin-performed-after-children() { True }
-
-    method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
             $placeholder-signature.IMPL-ENSURE-IMPLICITS;
@@ -1604,7 +1602,7 @@ class RakuAST::Routine
         }
     }
 
-    method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
@@ -2007,10 +2005,7 @@ class RakuAST::Methodish
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
-    method is-begin-performed-before-children() { True }
-    method is-begin-performed-after-children() { True }
-
-    method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := nqp::getattr(self, RakuAST::Routine, '$!package');
         my $package-is-role := $package && $package.declarator eq 'role';
         my $placeholder-signature := self.placeholder-signature;
@@ -2039,10 +2034,7 @@ class RakuAST::Methodish
         }
     }
 
-    method PERFORM-BEGIN-AFTER-CHILDREN(
-               RakuAST::Resolver $resolver,
-      RakuAST::IMPL::QASTContext $context
-    ) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := nqp::getattr(self,RakuAST::Routine,'$!package');
         my str $name := self.name ?? self.name.canonicalize !! '';
 

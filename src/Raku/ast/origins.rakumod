@@ -31,6 +31,10 @@ class RakuAST::Origin {
     method is-key() { nqp::isconcrete($!nestings) ?? True !! False }
 
     method as-match() { $!source.match-from(self) }
+
+    method Str() {
+        nqp::substr($!source.orig, $!from, $!to - $!from)
+    }
 }
 
 # The class is supposed to mimic NQPMatch up to the level to make it usable as QAST::Node.node value.

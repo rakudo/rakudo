@@ -3,7 +3,7 @@
 class RakuAST::Signature
   is RakuAST::Meta
   is RakuAST::ImplicitLookups
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
   is RakuAST::Term
 {
     has List $.parameters;
@@ -40,14 +40,11 @@ class RakuAST::Signature
           !! False
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        # If we're the signature for a method...
-        if $!is-on-method {
-            # ... retrieve the enclosing package so we can set an implicit
-            # invocant parameter up correctly.
-            nqp::bindattr(self, RakuAST::Signature, '$!method-package',
-                $resolver.find-attach-target('package'));
-        }
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Retrieve the enclosing package so we can set an implicit
+        # invocant parameter up correctly if we end up on a method.
+        nqp::bindattr(self, RakuAST::Signature, '$!method-package',
+            $resolver.find-attach-target('package'));
     }
 
     method set-is-on-method(Bool $is-on-method) {
@@ -346,9 +343,9 @@ class RakuAST::FakeSignature
 # which is optional.
 class RakuAST::Parameter
   is RakuAST::Meta
-  is RakuAST::Attaching
   is RakuAST::ImplicitLookups
   is RakuAST::TraitTarget
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::Doc::DeclaratorTarget
@@ -586,7 +583,7 @@ class RakuAST::Parameter
         @type-captures
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Parameter, '$!owner',
             $resolver.find-attach-target('block'));
         nqp::bindattr(self, RakuAST::Parameter, '$!package',
@@ -1339,7 +1336,6 @@ class RakuAST::ParameterTarget::Var
   is RakuAST::ContainerCreator
   is RakuAST::BeginTime
   is RakuAST::CheckTime
-  is RakuAST::Attaching
 {
     has str $.name;
     has RakuAST::Type $.type;
@@ -1519,8 +1515,6 @@ class RakuAST::ParameterTarget::Var
     method default-scope() { 'my' }
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our', 'has', 'HAS']) }
-
-    method is-begin-performed-before-children() { True }
 
     method visit-children(Code $visitor) {
         # We don't want to visit the declaration if it is a topic variable,

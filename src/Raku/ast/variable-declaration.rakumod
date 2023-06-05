@@ -344,7 +344,6 @@ class RakuAST::TraitTarget::Variable
 class RakuAST::VarDeclaration::Constant
   is RakuAST::Declaration
   is RakuAST::TraitTarget
-  is RakuAST::Attaching
   is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::CompileTimeValue
@@ -380,16 +379,6 @@ class RakuAST::VarDeclaration::Constant
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our']) }
     method is-simple-lexical-declaration() { True }
     method needs-sink-call() { False }
-
-    method attach(RakuAST::Resolver $resolver) {
-        if self.scope eq 'our' {
-            # There is always a package, even if it's just GLOBALish
-            nqp::bindattr(
-              self, RakuAST::VarDeclaration::Constant, '$!package',
-              $resolver.current-package
-            );
-        }
-    }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -429,6 +418,11 @@ class RakuAST::VarDeclaration::Constant
         nqp::bindattr(self, RakuAST::VarDeclaration::Constant, '$!value', $value);
 
         if self.scope eq 'our' {
+            # There is always a package, even if it's just GLOBALish
+            nqp::bindattr(
+              self, RakuAST::VarDeclaration::Constant, '$!package',
+              $resolver.current-package
+            );
             my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
             if $!package.WHO.EXISTS-KEY($name) {
                 nqp::die("already have an 'our constant $name' in the package");
@@ -507,7 +501,6 @@ class RakuAST::VarDeclaration::Simple
   is RakuAST::TraitTarget
   is RakuAST::ContainerCreator
   is RakuAST::Meta
-  is RakuAST::Attaching
   is RakuAST::BeginTime
   is RakuAST::CheckTime
   is RakuAST::Term
@@ -665,28 +658,6 @@ class RakuAST::VarDeclaration::Simple
         $scope eq 'has' || $scope eq 'HAS'
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        if self.is-attribute || self.twigil eq '.' {
-            my $attribute-package := $resolver.find-attach-target('package');
-            if $attribute-package {
-                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
-                    $attribute-package);
-            }
-            else {
-                # TODO check-time error
-            }
-        }
-        elsif self.scope eq 'our' || $!desigilname.is-multi-part {
-            my $package := $resolver.current-package;
-            # There is always a package, even if it's just GLOBALish
-            nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
-                $package);
-        }
-
-        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!generics-package',
-            $resolver.find-attach-target('generics-pad'));
-    }
-
     method IMPL-OF-TYPE() {
         $!type
           ?? ($!type.is-resolved
@@ -711,14 +682,35 @@ class RakuAST::VarDeclaration::Simple
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        if $!attribute-package && self.is-attribute {
-            $!attribute-package.can-have-attributes
-              ?? $!attribute-package.ATTACH-ATTRIBUTE(self)
-              !! $resolver.add-worry:  # XXX should be self.add-worry
-                   $resolver.build-exception: 'X::Attribute::Package',
-                     name         => self.name,
-                     package-kind => $!attribute-package.declarator;
+        if self.is-attribute || self.twigil eq '.' {
+            my $attribute-package := $resolver.find-attach-target('package');
+            if $attribute-package {
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!attribute-package',
+                    $attribute-package);
+                if self.is-attribute {
+                    if $!attribute-package.can-have-attributes {
+                        $!attribute-package.ATTACH-ATTRIBUTE(self);
+                    }
+                    else {
+                        $resolver.add-worry:  # XXX should be self.add-worry
+                            $resolver.build-exception: 'X::Attribute::Package',
+                                name         => self.name,
+                                package-kind => $!attribute-package.declarator;
+                    }
+                }
+            }
+            else {
+                # TODO check-time error
+            }
         }
+        elsif self.scope eq 'our' || $!desigilname.is-multi-part {
+            my $package := $resolver.current-package;
+            # There is always a package, even if it's just GLOBALish
+            nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
+                $package);
+        }
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!generics-package',
+            $resolver.find-attach-target('generics-pad'));
 
         # Process traits for `is Type` and `of Type`, which get special
         # handling by the compiler.
@@ -1275,7 +1267,6 @@ class RakuAST::VarDeclaration::Signature
   is RakuAST::ImplicitLookups
   is RakuAST::TraitTarget
   is RakuAST::CheckTime
-  is RakuAST::Attaching
   is RakuAST::BeginTime
   is RakuAST::Term
 {
@@ -1324,8 +1315,33 @@ class RakuAST::VarDeclaration::Signature
         $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        my @lookups;
+        # If it's our-scoped, we need the package to bind it from.
         my str $scope := self.scope;
+        if $scope eq 'our' {
+            @lookups.push(RakuAST::Var::Compiler::Lookup.new('$?PACKAGE'));
+        }
+        # If we have a type, we need to resolve that.
+        elsif $!type {
+            @lookups.push($!type);
+        }
+        # If we're has/HAS scope, we need Nil to evaluate to.
+        if $scope eq 'has' || $scope eq 'HAS' {
+            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
+        }
+        self.IMPL-WRAP-LIST(@lookups)
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $traits := self.IMPL-UNWRAP-LIST(self.traits);
+        my str $scope := self.scope;
+        for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+            for $traits {
+                $param.target.replace-scope($scope);
+                $param.target.add-trait(nqp::clone($_)) if $param.target;
+            }
+        }
         if $scope eq 'has' || $scope eq 'HAS' {
             my $attribute-package := $resolver.find-attach-target('package');
             if $attribute-package {
@@ -1350,31 +1366,7 @@ class RakuAST::VarDeclaration::Signature
             nqp::bindattr(self, RakuAST::VarDeclaration::Signature, '$!package',
                 $package);
         }
-    }
 
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups;
-        # If it's our-scoped, we need the package to bind it from.
-        my str $scope := self.scope;
-        if $scope eq 'our' {
-            @lookups.push(RakuAST::Var::Compiler::Lookup.new('$?PACKAGE'));
-        }
-        # If we have a type, we need to resolve that.
-        elsif $!type {
-            @lookups.push($!type);
-        }
-        # If we're has/HAS scope, we need Nil to evaluate to.
-        if $scope eq 'has' || $scope eq 'HAS' {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
-        }
-        self.IMPL-WRAP-LIST(@lookups)
-    }
-
-    method is-begin-performed-before-children() { True }
-
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $traits := self.IMPL-UNWRAP-LIST(self.traits);
-        my $scope := self.scope;
         my $binding := self.initializer && self.initializer.is-binding;
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
             $param.target.set-bindable(False) if $binding;
@@ -1958,7 +1950,7 @@ class RakuAST::VarDeclaration::Implicit::State
 # commonalities for doc variables
 class RakuAST::VarDeclaration::Implicit::Doc
   is RakuAST::VarDeclaration::Implicit
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
   is RakuAST::CheckTime
 {
     has Mu $.value;
@@ -1972,7 +1964,7 @@ class RakuAST::VarDeclaration::Implicit::Doc
         $obj
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!cu',
           $resolver.find-attach-target('compunit'));
     }
@@ -2092,7 +2084,6 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
 # The commonalities for placeholder parameters.
 class RakuAST::VarDeclaration::Placeholder
   is RakuAST::Declaration
-  is RakuAST::Attaching
   is RakuAST::Term
   is RakuAST::BeginTime
   is RakuAST::CheckTime
@@ -2103,13 +2094,6 @@ class RakuAST::VarDeclaration::Placeholder
 
     method generate-parameter() {
         nqp::die('Missing generate-parameter implementation')
-    }
-
-    method attach(RakuAST::Resolver $resolver) {
-        my $owner := $resolver.find-attach-target('block');
-        if $owner {
-            $owner.add-placeholder-parameter(self);
-        }
     }
 
     method default-scope() { 'my' }
@@ -2127,8 +2111,12 @@ class RakuAST::VarDeclaration::Placeholder
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        $resolver.find-attach-target('block').add-generated-lexical-declaration(self)
-            unless $!already-declared;
+        my $owner := $resolver.find-attach-target('block');
+        if $owner {
+            $owner.add-placeholder-parameter(self);
+            $owner.add-generated-lexical-declaration(self)
+                unless $!already-declared;
+        }
     }
 
     method PERFORM-CHECK(

@@ -242,13 +242,6 @@ class RakuAST::CompUnit
         self.IMPL-WRAP-LIST(['compunit'])
     }
 
-    method clear-attachments() {
-        nqp::setelems($!init-phasers, 0);
-        nqp::setelems($!end-phasers, 0);
-        self.clear-handler-attachments();
-        Nil
-    }
-
     # Set the pod content at the indicated position
     method set-pod-content(int $i, $pod) {
 

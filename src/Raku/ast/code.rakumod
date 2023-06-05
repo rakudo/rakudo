@@ -57,7 +57,7 @@ class RakuAST::OnlyStar
 
 # Marker for all code-y things.
 class RakuAST::Code
-  is RakuAST::Attaching
+  is RakuAST::ParseTime
 {
     has Bool $.custom-args;
     has Mu $!qast-block;
@@ -65,7 +65,7 @@ class RakuAST::Code
     # Only for use by the fallback resolver in dynamically compiled code!
     has RakuAST::Resolver $!resolver;
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
@@ -1030,13 +1030,6 @@ class RakuAST::Block
         self.IMPL-WRAP-LIST(['block'])
     }
 
-    method clear-attachments() {
-        self.clear-handler-attachments();
-        self.clear-placeholder-attachments();
-        self.clear-phaser-attachments();
-        Nil
-    }
-
     method propagate-sink(Bool $is-sunk) {
         $!body.apply-sink($is-sunk);
     }
@@ -1458,7 +1451,6 @@ class RakuAST::Routine
   is RakuAST::Code
   is RakuAST::StubbyMeta
   is RakuAST::Declaration
-  is RakuAST::Attaching
   is RakuAST::ImplicitDeclarations
   is RakuAST::AttachTarget
   is RakuAST::PlaceholderParameterOwner
@@ -1494,7 +1486,7 @@ class RakuAST::Routine
         self.IMPL-WRAP-LIST(['routine', 'block'])
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := $resolver.find-attach-target('package');
         nqp::bindattr(self, RakuAST::Routine, '$!package', $package // $resolver.global-package);
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
@@ -1502,13 +1494,6 @@ class RakuAST::Routine
 
     method set-need-routine-variable() {
         nqp::bindattr(self, RakuAST::Routine, '$!need-routine-variable', True);
-    }
-
-    method clear-attachments() {
-        self.clear-handler-attachments();
-        self.clear-placeholder-attachments();
-        self.clear-phaser-attachments();
-        Nil
     }
 
     method build-bind-exception(RakuAST::Resolver $resolver) {
@@ -1588,20 +1573,11 @@ class RakuAST::Routine
         $routine
     }
 
-    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $placeholder-signature := self.placeholder-signature;
-        if $placeholder-signature {
-            $placeholder-signature.IMPL-ENSURE-IMPLICITS;
-        }
-        if $!signature {
-            $!signature.IMPL-ENSURE-IMPLICITS;
-        }
-    }
-
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # Make sure that our placeholder signature has resolutions performed.
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
+            $placeholder-signature.IMPL-ENSURE-IMPLICITS;
             $placeholder-signature.IMPL-CHECK($resolver, $context, True);
         }
         # Make sure that our signature has resolutions performed.
@@ -1981,7 +1957,6 @@ class RakuAST::Sub
 # (be it the main Raku language or the regex language).
 class RakuAST::Methodish
   is RakuAST::Routine
-  is RakuAST::Attaching
 {
     method default-scope() {
         self.name ?? 'has' !! 'anon'
@@ -1991,7 +1966,7 @@ class RakuAST::Methodish
         self.IMPL-WRAP-LIST(['has', 'my', 'anon', 'our'])
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if self.scope eq 'has' || self.scope eq 'our' {
             my $package := $resolver.find-attach-target('package');
             if $package {
@@ -2001,7 +1976,7 @@ class RakuAST::Methodish
         nqp::bindattr(self, RakuAST::Code, '$!resolver', $resolver.clone);
     }
 
-    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := nqp::getattr(self, RakuAST::Routine, '$!package');
         my $package-is-role := $package && $package.declarator eq 'role';
         my $placeholder-signature := self.placeholder-signature;
@@ -2012,6 +1987,7 @@ class RakuAST::Methodish
             $placeholder-signature.set-is-on-role-method(True) if $package-is-role;
             $placeholder-signature.attach($resolver);
             $placeholder-signature.IMPL-ENSURE-IMPLICITS;
+            $placeholder-signature.IMPL-BEGIN($resolver, $context);
         }
         # Make sure that our signature has resolutions performed.
         my $signature := self.signature;
@@ -2028,10 +2004,7 @@ class RakuAST::Methodish
             $signature.attach($resolver);
             $signature.IMPL-ENSURE-IMPLICITS;
         }
-    }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $package := nqp::getattr(self,RakuAST::Routine,'$!package');
         my str $name := self.name ?? self.name.canonicalize !! '';
 
         if $package {
@@ -2050,17 +2023,6 @@ class RakuAST::Methodish
               $resolver.build-exception: 'X::Useless::Declaration',
                 name  => $name,
                 where => 'the mainline';
-        }
-
-        # Make sure that our placeholder signature has resolutions performed.
-        my $placeholder-signature := self.placeholder-signature;
-        if $placeholder-signature {
-            $placeholder-signature.IMPL-CHECK($resolver, $context, True);
-        }
-        # Make sure that our signature has resolutions performed.
-        my $signature := self.signature;
-        if $signature {
-            $signature.IMPL-CHECK($resolver, $context, True);
         }
 
         if self.multiness eq 'proto' {

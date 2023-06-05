@@ -279,13 +279,6 @@ class RakuAST::LexicalScope
         $!catch-handlers ?? True !! False
     }
 
-    method clear-handler-attachments() {
-        nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 0);
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', Mu);
-        nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', Mu);
-        Nil
-    }
-
     method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements,
                                         Bool :$is-handler) {
         # If it's an exception handler, add rethrow logic.

@@ -120,9 +120,6 @@ class RakuAST::Node {
         if nqp::istype(self, RakuAST::ImplicitLookups) {
             self.resolve-implicit-lookups-with($resolver);
         }
-        if nqp::istype(self, RakuAST::Attaching) {
-            self.attach($resolver);
-        }
 
         # Visit children.
         my int $is-package := nqp::istype(self, RakuAST::Package);

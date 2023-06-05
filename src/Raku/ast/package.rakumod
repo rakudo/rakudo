@@ -296,9 +296,9 @@ class RakuAST::Package
 class RakuAST::Package::Attachable
   is RakuAST::Package
 {
-    # Methods and attributes are not directly added, but rather through the
-    # RakuAST::Attaching mechanism. Attribute usages are also attached for
-    # checking after compose time.
+    # Methods and attributes are not directly added, but rather thorugh the
+    # attach target mechanism. Attribute usages are also attached for checking
+    # after compose time.
     has Mu $!attached-methods;
     has Mu $!attached-attributes;
     has Mu $!attached-attribute-usages;

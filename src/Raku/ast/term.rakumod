@@ -224,7 +224,7 @@ class RakuAST::Term::Rand
 # The whatever (*) term.
 class RakuAST::Term::Whatever
   is RakuAST::Term
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has RakuAST::CompUnit $!enclosing-comp-unit;
 
@@ -232,7 +232,7 @@ class RakuAST::Term::Whatever
         nqp::create(self)
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $compunit := $resolver.find-attach-target('compunit');
         $compunit.ensure-singleton-whatever($resolver);
         nqp::bindattr(self, RakuAST::Term::Whatever, '$!enclosing-comp-unit', $compunit);
@@ -279,7 +279,7 @@ class RakuAST::WhateverCode::Argument
 # The hyper whatever (**) term.
 class RakuAST::Term::HyperWhatever
   is RakuAST::Term
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has RakuAST::CompUnit $!enclosing-comp-unit;
 
@@ -287,7 +287,7 @@ class RakuAST::Term::HyperWhatever
         nqp::create(self)
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $compunit := $resolver.find-attach-target('compunit');
         $compunit.ensure-singleton-hyper-whatever($resolver);
         nqp::bindattr(self, RakuAST::Term::HyperWhatever, '$!enclosing-comp-unit', $compunit);

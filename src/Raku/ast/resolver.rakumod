@@ -37,7 +37,6 @@ class RakuAST::Resolver {
 
     # Push an attachment target, so children can attach to it.
     method push-attach-target(RakuAST::AttachTarget $target) {
-        $target.clear-attachments();
         for $target.IMPL-UNWRAP-LIST($target.attach-target-names()) -> str $name {
             my @stack := $!attach-targets{$name};
             unless nqp::isconcrete(@stack) {

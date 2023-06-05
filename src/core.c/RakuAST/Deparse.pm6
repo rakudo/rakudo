@@ -340,18 +340,17 @@ class RakuAST::Deparse {
         }
     }
 
-    method !deparse-as-config(%config) {
+    method !deparse-as-config(%config, :$abbreviated) {
         my str $deparsed = %config.sort({
             .key eq 'numbered' ?? '' !! .key  # numbered always first
         }).map({
             if .key eq 'numbered' {
-                '#'
-            }
-            elsif nqp::istype(.value,Bool) {
-                (.value ?? ':' !! ':!') ~ .key
+                $abbreviated ?? '#' !! ':numbered'
             }
             else {
-                .raku  # for now
+                nqp::istype(.value,Bool)
+                  ?? (.value ?? ':' !! ':!') ~ .key
+                  !! .raku
             }
         }).join(' ');
         $deparsed ?? " $deparsed" !! ''
@@ -600,20 +599,22 @@ class RakuAST::Deparse {
         my str $type     = $ast.type;
         my %config      := $ast.config;
         my $abbreviated := $ast.abbreviated;
+        my $paragraphs  := $ast.paragraphs.map({
+          nqp::istype($_,Str) ?? $_ !! self.deparse($_)
+        }).join("\n");
 
         if $type eq 'implicit-code' {
-             $ast.paragraphs.map({
-               nqp::istype($_,Str) ?? $_ !! self.deparse($_)
-             }).join("\n").indent(4) ~ "\n"
+             $paragraphs.indent(4) ~ "\n"
+        }
+        elsif $type eq 'config' {
+            '=config ' ~ $paragraphs ~ self!deparse-as-config(%config)
         }
         else {
             my $body := $type
               ~ $ast.level
-              ~ self!deparse-as-config(%config)
+              ~ self!deparse-as-config(%config, :$abbreviated)
               ~ ($abbreviated && $type ne 'table' ?? " " !! "\n")
-              ~ $ast.paragraphs.map({
-                  nqp::istype($_,Str) ?? $_ !! self.deparse($_)
-                }).join("\n");
+              ~ $paragraphs;
             $abbreviated
               ?? "=$body"
               !! "=begin $body=end $type\n"

@@ -122,8 +122,15 @@ class RakuAST::CompUnit
         $obj
     }
 
+    # Perform all outstanding BEGIN-time activities on the compilation unit.
+    # This implies outstanding parse-time activities.
+    method begin(RakuAST::Resolver $resolver) {
+        $!mainline.IMPL-BEGIN($resolver, $!context);
+        self.IMPL-BEGIN($resolver, $!context);
+    }
+
     # Perform all CHECK-time activities on the compilation unit. This includes
-    # doing any symbol resolution, any leftover sink marking, and performing
+    # doing function resolution, any leftover sink marking, and performing
     # any CHECK-time error checking. This may also produce information useful
     # during optimization, though will not do any transforms in and of itself.
     method check(RakuAST::Resolver $resolver) {

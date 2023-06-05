@@ -1152,7 +1152,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Var::PositionalCapture:D: --> Str:D) {
-        self!positional(self.index)
+        self!literal(self.index)
     }
 
 #- VarDeclaration --------------------------------------------------------------

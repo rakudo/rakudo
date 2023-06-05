@@ -601,7 +601,7 @@ augment class RakuAST::Doc::Block {
         my $block := self.new(:$type, :$config, |%_);
 
         # always verbatim
-        if $type eq 'comment' {
+        if $type eq 'comment' | 'data' {
             $block.add-paragraph(@paragraphs.head.join);
         }
 

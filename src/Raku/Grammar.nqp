@@ -3611,7 +3611,7 @@ if $*COMPILING_CORE_SETTING {
         ^^ $<spaces>=[ \h* ]
 
         # start of 'begin comment' block
-        '=begin' \h+ $<type>=[ 'comment' | 'code' | 'input' | 'output' ]
+        '=begin' \h+ $<type>=[ 'comment' | 'code' | 'data' | 'input' | 'output' ]
 
         # fetch any configuration
         <doc-configuration($<spaces>)>* <doc-newline>+

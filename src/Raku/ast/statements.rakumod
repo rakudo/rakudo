@@ -416,13 +416,14 @@ class RakuAST::StatementSequence
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my @statements := self.code-statements;
         my int $n := nqp::elems(@statements);
-        if $n == 1 {
-            nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
-        }
-        elsif $n == 0 {
+        if $n == 0 || $n == 1 && nqp::istype(nqp::atpos(@statements, 0),
+                    RakuAST::Statement::Empty) {
             my $name :=
               self.get-implicit-lookups.AT-POS(0).resolution.lexical-name;
             QAST::Op.new(:op('call'), :$name);
+        }
+        elsif $n == 1 {
+            nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
         }
         else {
             my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new, :key);

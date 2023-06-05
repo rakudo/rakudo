@@ -2959,6 +2959,9 @@ my class X::DateTime::InvalidDeltaUnit does X::Temporal {
         "Cannot use unit $.unit with Date.delta";
     }
 }
+my class X::Temporal::OutOfRange is X::OutOfRange does X::Temporal {
+}
+
 
 my class X::Eval::NoSuchLang is Exception {
     has $.lang;

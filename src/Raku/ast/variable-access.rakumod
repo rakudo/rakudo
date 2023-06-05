@@ -213,7 +213,7 @@ class RakuAST::Var::Dynamic
 class RakuAST::Var::Attribute
   is RakuAST::Var
   is RakuAST::ImplicitLookups
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has str $.name;
     has RakuAST::Package $!package;
@@ -232,7 +232,7 @@ class RakuAST::Var::Attribute
         nqp::objprimspec($attr-type) ?? False !! True
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $package := $resolver.find-attach-target('package');
         if $package {
             # We can't check attributes exist until we compose the
@@ -365,7 +365,7 @@ class RakuAST::Var::Compiler::Block
 class RakuAST::Var::Compiler::Routine
   is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     method new() {
         my $obj := nqp::create(self);
@@ -375,7 +375,7 @@ class RakuAST::Var::Compiler::Routine
         $obj
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $routine := $resolver.find-attach-target('routine');
         if nqp::isconcrete($routine) {
             $routine.set-need-routine-variable();

@@ -1264,7 +1264,7 @@ class RakuAST::Statement::When
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
   is RakuAST::ImplicitLookups
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -1286,7 +1286,7 @@ class RakuAST::Statement::When
         $!body.body.apply-sink(False); # Used as enclosing block outcome
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
         if $block {
@@ -1375,7 +1375,7 @@ class RakuAST::Statement::Default
   is RakuAST::Statement
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
     has RakuAST::Block $.body;
 
@@ -1394,7 +1394,7 @@ class RakuAST::Statement::Default
         $!body.body.apply-sink(False); # Used as enclosing block outcome
     }
 
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
         if $block {
@@ -1451,9 +1451,9 @@ class RakuAST::Statement::ExceptionHandler
 # A CATCH statement.
 class RakuAST::Statement::Catch
   is RakuAST::Statement::ExceptionHandler
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
         if $block {
@@ -1468,9 +1468,9 @@ class RakuAST::Statement::Catch
 # A CONTROL statement.
 class RakuAST::Statement::Control
   is RakuAST::Statement::ExceptionHandler
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
 {
-    method attach(RakuAST::Resolver $resolver) {
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $block := $resolver.find-attach-target('block') //
             $resolver.find-attach-target('compunit');
         if $block {

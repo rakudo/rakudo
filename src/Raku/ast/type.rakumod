@@ -461,7 +461,6 @@ class RakuAST::Type::Enum
   is RakuAST::Declaration
   is RakuAST::BeginTime
   is RakuAST::TraitTarget
-  is RakuAST::Attaching
   is RakuAST::PackageInstaller
   is RakuAST::ImplicitLookups
   is RakuAST::Doc::DeclaratorTarget
@@ -513,10 +512,6 @@ class RakuAST::Type::Enum
         $visitor(self.WHY) if self.WHY;
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
-    }
-
     method is-lexical() { True }
     method is-simple-lexical-declaration() { False }
 
@@ -546,6 +541,8 @@ class RakuAST::Type::Enum
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Type::Enum, '$!current-package', $resolver.current-package);
+
         my $lookups := self.get-implicit-lookups;
         my $Pair    := $lookups.AT-POS(0).resolution.compile-time-value;
         my $List    := $lookups.AT-POS(1).resolution.compile-time-value;
@@ -693,10 +690,9 @@ class RakuAST::Type::Subset
   is RakuAST::Type
   is RakuAST::Lookup
   is RakuAST::Declaration
-  is RakuAST::BeginTime
   is RakuAST::TraitTarget
   is RakuAST::StubbyMeta
-  is RakuAST::Attaching
+  is RakuAST::BeginTime
   is RakuAST::PackageInstaller
   is RakuAST::Doc::DeclaratorTarget
 {
@@ -754,10 +750,6 @@ class RakuAST::Type::Subset
         $lookup
     }
 
-    method attach(RakuAST::Resolver $resolver) {
-        nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
-    }
-
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor($!block) if $!block;
@@ -793,6 +785,8 @@ class RakuAST::Type::Subset
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        nqp::bindattr(self, RakuAST::Type::Subset, '$!current-package', $resolver.current-package);
+
         self.apply-traits($resolver, $context, self);
 
         my $block := $!block;

@@ -1607,9 +1607,9 @@ class RakuAST::Routine
         # Make sure that our signature has resolutions performed.
         if $!signature {
             $!signature.set-default-type(
-                RakuAST::Type::Simple.new(
+                RakuAST::Type::Setting.new(
                     RakuAST::Name.from-identifier('Any'),
-                ),
+                ).to-begin-time($resolver, $context)
             );
             $!signature.IMPL-ENSURE-IMPLICITS;
             $!signature.IMPL-CHECK($resolver, $context, True);
@@ -2017,9 +2017,9 @@ class RakuAST::Methodish
         my $signature := self.signature;
         if $signature {
             $signature.set-default-type(
-                RakuAST::Type::Simple.new(
+                RakuAST::Type::Setting.new(
                     RakuAST::Name.from-identifier('Any'),
-                ),
+                ).to-begin-time($resolver, $context)
             );
             $signature.set-is-on-method(True);
             $signature.set-is-on-named-method(True) if self.name;

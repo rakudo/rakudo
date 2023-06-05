@@ -2547,25 +2547,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method decint($/) {
-        self.attach: $/, $*LITERALS.intern-int: ~$/, 10, -> {
+        make $*LITERALS.intern-int: ~$/, 10, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method hexint($/) {
-        self.attach: $/, $*LITERALS.intern-int: ~$/, 16, -> {
+        make $*LITERALS.intern-int: ~$/, 16, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method octint($/) {
-        self.attach: $/, $*LITERALS.intern-int: ~$/, 8, -> {
+        make $*LITERALS.intern-int: ~$/, 8, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
 
     method binint($/) {
-        self.attach: $/, $*LITERALS.intern-int: ~$/, 2, -> {
+        make $*LITERALS.intern-int: ~$/, 2, -> {
             $/.panic("'$/' is not a valid number")
         }
     }
@@ -2574,7 +2574,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method signed-integer($/) {
         my $integer := $<integer>.ast;
-        self.attach: $/, $<sign> eq '-' || $<sign> eq '−'
+        make $<sign> eq '-' || $<sign> eq '−'
             ?? nqp::neg_I($integer, $integer.WHAT)
             !! $integer;
     }
@@ -2706,11 +2706,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method version($/) {
         # We don't self.attach: $/, an object for the initial language version line,
         # which occurs before a setting is loaded.
-        self.attach($/, Nodify('VersionLiteral').new(
+        make Nodify('VersionLiteral').new(
           $*R.resolve-lexical-constant('Version').compile-time-value.new(
             ~$<vstr>
           )
-        )) if $*R;
+        ) if $*R;
     }
 
     method quote:sym<apos>($/)  { self.attach: $/, $<nibble>.ast; }
@@ -3135,15 +3135,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method morename($/) {
         if $<identifier> {
-            self.attach: $/, Nodify('Name','Part','Simple').new(~$<identifier>);
+            make Nodify('Name','Part','Simple').new(~$<identifier>);
         }
         elsif $<EXPR> {
             my $ast := $<EXPR>.ast;
-            $ast.IMPL-CHECK($*R, $*CU.context, True);
-            self.attach: $/, Nodify('Name', 'Part', 'Expression').new($ast);
+            $ast.to-begin-time($*R, $*CU.context);
+            make Nodify('Name', 'Part', 'Expression').new($ast);
         }
         else {
-            self.attach: $/, Nodify('Name', 'Part', 'Empty');
+            make Nodify('Name', 'Part', 'Empty');
         }
     }
 
@@ -3479,7 +3479,7 @@ class Raku::QActions is HLL::Actions does Raku::CommonActions {
           ?? nqp::chr($<integer>.made)
           !! nqp::strfromname(~$/);
         $codepoint := self.deprecated-charnames($/) if $codepoint eq '';
-        self.attach: $/, $codepoint;
+        make $codepoint;
     }
 
     # Check for deprecated charnames: worry if a deprecated one is found
@@ -3559,8 +3559,8 @@ Please use $worry.";
     }
 
     method backslash:sym<qq>($/) { self.attach: $/, $<quote>.ast; }
-    method backslash:sym<\\>($/) { self.attach: $/, '\\' }
-    method backslash:delim ($/) { self.attach: $/, $<text>.Str; }
+    method backslash:sym<\\>($/) { make '\\' }
+    method backslash:delim ($/) { make $<text>.Str }
     method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
     method backslash:sym<misc>($/) { make ~$/; }
     method backslash:sym<c>($/) { make $<charspec>.ast }
@@ -3598,7 +3598,7 @@ Please use $worry.";
 
     method escape:sym<#>($/) { make ''; }
 
-    method escape:sym<\\>($/)  { self.attach: $/, $<item>.ast  }
+    method escape:sym<\\>($/)  { make $<item>.ast }
     method escape:sym<$>($/)   { self.attach: $/, $<EXPR>.ast  }
     method escape:sym<@>($/)   { self.attach: $/, $<EXPR>.ast  }
     method escape:sym<%>($/)   { self.attach: $/, $<EXPR>.ast  }

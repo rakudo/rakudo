@@ -54,6 +54,9 @@ role Raku::CommonActions {
         if nqp::istype($node, Nodify('ParseTime')) {
             $node.ensure-parse-performed($*R, $*CU.context);
         }
+        if nqp::istype($node, Nodify('BeginTime')) {
+            $node.ensure-begin-performed($*R, $*CU.context);
+        }
         if nqp::istype($node, Nodify('ImplicitLookups')) {
             $node.resolve-implicit-lookups-with($*R);
         }
@@ -527,7 +530,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $*IN-LOOP {
             $block.set-is-loop-body;
         }
-        $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }
 
@@ -547,7 +549,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $block := $*BLOCK;
         # Wrap the statements into a (non-existing) blockoid
         $block.replace-body(Nodify('Blockoid').new($<statementlist>.ast));
-        $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }
 
@@ -738,7 +739,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $argument := $argument.ast if $argument;
 
             my $ast := $Pragma.new(:$name, :$argument, :off);
-            $ast.ensure-begin-performed($*R, $*CU.context);
             self.attach: $/, $ast;
         }
         else {
@@ -780,7 +780,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         my $ast := Nodify('Statement', 'Need').new(:@module-names);
-        $ast.ensure-begin-performed($*R, $*CU.context);
 
         self.attach: $/, $ast;
     }
@@ -806,7 +805,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             module-name => $<module-name>.ast,
             argument => $<EXPR> ?? $<EXPR>.ast !! Nodify('Expression'),
         );
-        $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;
     }
 
@@ -2013,7 +2011,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if nqp::istype($package, Nodify('ParseTime')) {
             $package.ensure-parse-performed($R, $*CU.context);
         }
-        $package.ensure-begin-performed($R, $*CU.context);
 
         # Let the resolver know which package we're in.
         $R.push-package($package);
@@ -2263,7 +2260,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! $<blockoid>.ast
         );
         $method.IMPL-CHECK($*R, $*CU.context, 1);
-        $method.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $method;
     }
 
@@ -2287,7 +2283,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $regex.replace-body($<nibble>.ast);
         $regex.IMPL-CHECK($*R, $*CU.context, 1);
-        $regex.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $regex;
     }
 
@@ -2433,7 +2428,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :argument($circumfix ?? $circumfix.ast !! Mu)
             );
 
-        $trait.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $trait;
     }
 

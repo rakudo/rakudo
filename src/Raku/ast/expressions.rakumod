@@ -952,6 +952,26 @@ class RakuAST::ApplyDottyInfix
 class RakuAST::Prefixish
   is RakuAST::Node
 {
+    has List $.colonpairs;
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!colonpairs.push: $pair;
+    }
+
+    method visit-colonpairs(Code $visitor) {
+        for $!colonpairs {
+            $visitor($_);
+        }
+    }
+
+    method IMPL-ADD-COLONPAIRS-TO-OP(RakuAST::IMPL::QASTContext $context, Mu $op) {
+        for $!colonpairs {
+            my $val-ast := $_.named-arg-value.IMPL-TO-QAST($context);
+            $val-ast.named($_.named-arg-name);
+            $op.push($val-ast);
+        }
+    }
+
     method IMPL-CURRIES() { 3 }
 }
 
@@ -965,6 +985,7 @@ class RakuAST::Prefix
     method new(str $operator) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Prefix, '$!operator', $operator);
+        nqp::bindattr($obj, RakuAST::Prefixish, '$!colonpairs', []);
         $obj
     }
 
@@ -978,7 +999,9 @@ class RakuAST::Prefix
 
     method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
-        QAST::Op.new( :op('call'), :$name, $operand-qast )
+        my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
+        $op
     }
 
     method IMPL-HOP-PREFIX-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -996,17 +1019,20 @@ class RakuAST::MetaPrefix::Hyper
     method new(RakuAST::Prefix $prefix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaPrefix::Hyper, '$!prefix', $prefix);
+        nqp::bindattr($obj, RakuAST::Prefixish, '$!colonpairs', []);
         $obj
     }
 
     method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        QAST::Op.new:
+        my $op := QAST::Op.new:
             :op('call'),
             QAST::Op.new(
                 :op('callstatic'), :name('&METAOP_HYPER_PREFIX'),
                 $!prefix.IMPL-HOP-PREFIX-QAST($context)
             ),
-            $operand-qast
+            $operand-qast;
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
+        $op
     }
 
     method visit-children(Code $visitor) {
@@ -1027,6 +1053,10 @@ class RakuAST::ApplyPrefix
         nqp::bindattr($obj, RakuAST::ApplyPrefix, '$!prefix', $prefix);
         nqp::bindattr($obj, RakuAST::ApplyPrefix, '$!operand', $operand);
         $obj
+    }
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!prefix.add-colonpair($pair);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -1280,8 +1310,8 @@ class RakuAST::Postcircumfix::HashIndex
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
-        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
     }
 

@@ -4,6 +4,7 @@
 class RakuAST::Term::Name
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     has RakuAST::Name $.name;
     has Mu $!package;
@@ -19,7 +20,7 @@ class RakuAST::Term::Name
         nqp::bindattr(self, RakuAST::Term::Name, '$!package', $package);
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-name($!name);
         if $resolved {
             self.set-resolution($resolved);
@@ -94,24 +95,23 @@ class RakuAST::Term::False {
 class RakuAST::Term::Self
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
   is RakuAST::CheckTime
 {
     method new() {
         nqp::create(self)
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('self');
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless self.is-resolved {
-            self.add-sorry:
-              $resolver.build-exception: 'X::Syntax::Self::WithoutObject';
+            self.add-sorry($resolver.build-exception('X::Syntax::Self::WithoutObject'))
         }
     }
 
@@ -155,6 +155,7 @@ class RakuAST::Term::TopicCall
 class RakuAST::Term::Named
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     has str $.name;
 
@@ -164,7 +165,7 @@ class RakuAST::Term::Named
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-term($!name);
         if $resolved {
             self.set-resolution($resolved);
@@ -181,12 +182,13 @@ class RakuAST::Term::Named
 class RakuAST::Term::EmptySet
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('&set');
         if $resolved {
             self.set-resolution($resolved);
@@ -203,12 +205,13 @@ class RakuAST::Term::EmptySet
 class RakuAST::Term::Rand
   is RakuAST::Term
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     method new() {
         nqp::create(self)
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical('&rand');
         if $resolved {
             self.set-resolution($resolved);

@@ -764,14 +764,10 @@ class RakuAST::ImplicitLookups
     # Drive the implicit lookups to their begin time.
     method implicit-lookups-to-begin-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         for self.IMPL-UNWRAP-LIST(self.get-implicit-lookups()) {
-            $_.to-begin-time($resolver, $context);
-            # TODO Eliminate when resolve-with is gone
             # We use null to pad out lookup lists so that they always
             # have the same number of elements regardless of whether
             # some lookups can only be conditionally included in the list
-            if !nqp::isnull($_) && nqp::can($_, 'resolve-with') {
-                $_.resolve-with($resolver);
-            }
+            $_.to-begin-time($resolver, $context) unless nqp::isnull($_);
         }
     }
 }

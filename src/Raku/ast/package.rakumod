@@ -94,28 +94,6 @@ class RakuAST::Package
         nqp::bindattr(self, RakuAST::Package, '$!is-stub', $is-stub ?? True !! False);
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
-        if $!augmented {
-            my $resolved := $resolver.resolve-name(self.name);
-            if $resolved {
-                self.set-resolution($resolved);
-            }
-        }
-        elsif $!name {
-            my $resolved := $resolver.resolve-name-constant($!name);
-            if $resolved {
-                my $meta := $resolved.compile-time-value;
-                my $how  := $meta.HOW;
-                if $how.HOW.name($how) ne 'Perl6::Metamodel::PackageHOW'
-                  && nqp::can($how, 'is_composed')
-                  && !$how.is_composed($meta) {
-                    self.set-resolution($resolved);
-                }
-            }
-        }
-        Nil
-    }
-
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
 
     method clear-attachments() {
@@ -134,10 +112,29 @@ class RakuAST::Package
     }
 
     method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-         # Note that this early return is actually not effective as the begin handler will
-         # already be run when the parser enters the package and we only know that it's a
-         # stub when we are done parsing the body.
-         return Nil if $!is-stub;
+        if $!augmented {
+            my $resolved := $resolver.resolve-name(self.name);
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        elsif $!name {
+            my $resolved := $resolver.resolve-name-constant($!name);
+            if $resolved {
+                my $meta := $resolved.compile-time-value;
+                my $how  := $meta.HOW;
+                if $how.HOW.name($how) ne 'Perl6::Metamodel::PackageHOW'
+                  && nqp::can($how, 'is_composed')
+                  && !$how.is_composed($meta) {
+                    self.set-resolution($resolved);
+                }
+            }
+        }
+
+        # Note that this early return is actually not effective as the begin handler will
+        # already be run when the parser enters the package and we only know that it's a
+        # stub when we are done parsing the body.
+        return Nil if $!is-stub;
 
         # Install the symbol.
         my str $scope := self.scope;

@@ -87,6 +87,25 @@ class RakuAST::Node {
         self
     }
 
+    # Bring the node up to parse time. Returns the node itself.
+    method to-parse-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self, RakuAST::ParseTime) {
+            self.ensure-parse-performed($resolver, $context);
+        }
+        self
+    }
+
+    # Bring the node up to begin time. Returns the node itself.
+    method to-begin-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self, RakuAST::ParseTime) {
+            self.ensure-parse-performed($resolver, $context);
+        }
+        if nqp::istype(self, RakuAST::BeginTime) {
+            self.ensure-begin-performed($resolver, $context);
+        }
+        self
+    }
+
     # Perform CHECK-time activities on this node.
     method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Bool $resolve-only) {
         # Ensure parse time was performed already before visiting children, when it is a

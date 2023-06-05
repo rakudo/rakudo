@@ -736,7 +736,9 @@ class RakuAST::UndeclaredSymbolDescription::Routine
 # of symbols as part of their compilation. For example, a positional regex
 # access depends on `&postcircumfix:<[ ]>` and `$/`, while an `unless`
 # statement depends on `Empty` (as that's what it evaluates to in the case
-# there the condition is not matched).
+# there the condition is not matched). Implicit lookups are not children of
+# the node, but they will receive their parse/begin time prior to the node's
+# parse time.
 class RakuAST::ImplicitLookups
   is RakuAST::Node
 {
@@ -759,13 +761,15 @@ class RakuAST::ImplicitLookups
             !! self.IMPL-WRAP-LIST([])
     }
 
-    # Resolve the implicit lookups if needed.
-    method resolve-implicit-lookups-with(RakuAST::Resolver $resolver) {
+    # Drive the implicit lookups to their begin time.
+    method implicit-lookups-to-begin-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         for self.IMPL-UNWRAP-LIST(self.get-implicit-lookups()) {
+            $_.to-begin-time($resolver, $context);
+            # TODO Eliminate when resolve-with is gone
             # We use null to pad out lookup lists so that they always
             # have the same number of elements regardless of whether
             # some lookups can only be conditionally included in the list
-            unless nqp::isnull($_) || $_.is-resolved {
+            if !nqp::isnull($_) && nqp::can($_, 'resolve-with') {
                 $_.resolve-with($resolver);
             }
         }

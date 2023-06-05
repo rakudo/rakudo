@@ -83,6 +83,9 @@ class RakuAST::Node {
 
     # Bring the node up to parse time. Returns the node itself.
     method to-parse-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self, RakuAST::ImplicitLookups) {
+            self.implicit-lookups-to-begin-time($resolver, $context);
+        }
         if nqp::istype(self, RakuAST::ParseTime) {
             self.ensure-parse-performed($resolver, $context);
         }
@@ -91,6 +94,9 @@ class RakuAST::Node {
 
     # Bring the node up to begin time. Returns the node itself.
     method to-begin-time(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::istype(self, RakuAST::ImplicitLookups) {
+            self.implicit-lookups-to-begin-time($resolver, $context);
+        }
         if nqp::istype(self, RakuAST::ParseTime) {
             self.ensure-parse-performed($resolver, $context);
         }
@@ -104,6 +110,12 @@ class RakuAST::Node {
     # the compiler, this is done while parsing takes place. For a synthetic AST, however, it needs
     # to be performed.
     method IMPL-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Ensure implicit lookups are driven to their begin state ahead of the node's parse
+        # time (in that sense, they are a bit like implicit children of the node).
+        if nqp::istype(self, RakuAST::ImplicitLookups) {
+            self.implicit-lookups-to-begin-time($resolver, $context);
+        }
+
         # Ensure parse time was performed already before visiting children, when it is a
         # lexical scope that we are entering.
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
@@ -113,12 +125,9 @@ class RakuAST::Node {
             $is-parse-time := 0;
         }
 
-        # TODO Cleanup legacy phase actions
+        # TODO Move all resolve-with into parse time or begin time
         if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {
             self.resolve-with($resolver);
-        }
-        if nqp::istype(self, RakuAST::ImplicitLookups) {
-            self.resolve-implicit-lookups-with($resolver);
         }
 
         # Visit children.
@@ -145,12 +154,12 @@ class RakuAST::Node {
     # parse time has already completely happened.
     method IMPL-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Bool $resolve-only) {
         # Apply implicit block semantics.
-        my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         if nqp::istype(self, RakuAST::ImplicitBlockSemanticsProvider) {
             self.apply-implicit-block-semantics();
         }
 
         # Visit children and do their CHECK time.
+        my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
         $resolver.push-package(self) if $is-package;

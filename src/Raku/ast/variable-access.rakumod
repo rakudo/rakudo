@@ -9,6 +9,8 @@ class RakuAST::Var
 class RakuAST::Var::Lexical
   is RakuAST::Var
   is RakuAST::Lookup
+  is RakuAST::ParseTime
+  is RakuAST::CheckTime
 {
     has str $.sigil;
     has str $.twigil;
@@ -46,12 +48,20 @@ class RakuAST::Var::Lexical
             !! nqp::findmethod(RakuAST::Node, 'build-bind-exception')(self, $resolver)
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical(self.name);
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        unless self.is-resolved {
+            my $resolved := $resolver.resolve-lexical(self.name);
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
     }
 
     method undeclared-symbol-details() {
@@ -102,12 +112,11 @@ class RakuAST::Var::Lexical
 class RakuAST::Var::Lexical::Constant
   is RakuAST::Var::Lexical
 {
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical-constant(self.name);
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
     }
 }
 
@@ -115,14 +124,12 @@ class RakuAST::Var::Lexical::Constant
 # version of a routine).
 class RakuAST::Var::Lexical::Setting
   is RakuAST::Var::Lexical
-  is RakuAST::Lookup
 {
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical-constant-in-setting(self.name);
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
     }
 }
 
@@ -130,6 +137,7 @@ class RakuAST::Var::Lexical::Setting
 class RakuAST::Var::Dynamic
   is RakuAST::Var
   is RakuAST::Lookup
+  is RakuAST::ParseTime
   is RakuAST::CheckTime
 {
     has str $.name;
@@ -146,12 +154,11 @@ class RakuAST::Var::Dynamic
 
     method needs-resolution() { False }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical($!name, :current-scope-only);
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
     }
 
     method postdeclaration-exception-name() { 'X::Dynamic::Postdeclaration' }
@@ -413,7 +420,7 @@ class RakuAST::Var::Compiler::Block
 class RakuAST::Var::Compiler::Routine
   is RakuAST::Var::Compiler
   is RakuAST::Var::Lexical
-  is RakuAST::BeginTime
+  is RakuAST::ParseTime
 {
     method new() {
         my $obj := nqp::create(self);
@@ -423,19 +430,16 @@ class RakuAST::Var::Compiler::Routine
         $obj
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $routine := $resolver.find-attach-target('routine');
         if nqp::isconcrete($routine) {
             $routine.set-need-routine-variable();
         }
-    }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical('&?ROUTINE');
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -448,6 +452,7 @@ class RakuAST::Var::Compiler::Routine
 class RakuAST::Var::Compiler::Lookup
   is RakuAST::Var::Compiler
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     has str $.name;
 
@@ -459,12 +464,11 @@ class RakuAST::Var::Compiler::Lookup
 
     method sigil() { nqp::substr($!name, 0, 1) }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $resolved := $resolver.resolve-lexical($!name);
         if $resolved {
             self.set-resolution($resolved);
         }
-        Nil
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -564,6 +568,7 @@ class RakuAST::Var::NamedCapture
 class RakuAST::Var::Package
   is RakuAST::Var
   is RakuAST::Lookup
+  is RakuAST::ParseTime
 {
     has str $.sigil;
     has RakuAST::Name $.name;
@@ -587,7 +592,7 @@ class RakuAST::Var::Package
             !! nqp::findmethod(RakuAST::Node, 'build-bind-exception')(self, $resolver)
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my @parts := self.IMPL-UNWRAP-LIST($!name.parts);
         my $resolved := $resolver.resolve-name(RakuAST::Name.new(@parts[0]));
         if $resolved {

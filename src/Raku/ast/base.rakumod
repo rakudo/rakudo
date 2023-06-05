@@ -125,11 +125,6 @@ class RakuAST::Node {
             $is-parse-time := 0;
         }
 
-        # TODO Move all resolve-with into parse time or begin time
-        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {
-            self.resolve-with($resolver);
-        }
-
         # Visit children.
         my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
@@ -167,15 +162,6 @@ class RakuAST::Node {
         $resolver.pop-scope() if $is-scope;
         $resolver.pop-package() if $is-package;
 
-        # Do resolution.
-        # TODO eliminate in favor of it happening at explicit parse/begin/check times
-        if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {
-            self.resolve-with($resolver);
-            if !$resolve-only && !self.is-resolved && self.needs-resolution {
-                $resolver.add-node-unresolved-after-check-time(self);
-            }
-        }
-
         # Unless in resolve-only mode, do other check-time activities.
         # TODO eliminate resolve-only, since that's just check time.
         unless $resolve-only {
@@ -188,6 +174,9 @@ class RakuAST::Node {
                 if self.has-check-time-problems {
                     $resolver.add-node-with-check-time-problems(self);
                 }
+            }
+            if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved && self.needs-resolution {
+                $resolver.add-node-unresolved-after-check-time(self);
             }
         }
 

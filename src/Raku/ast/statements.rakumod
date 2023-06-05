@@ -1696,6 +1696,7 @@ class RakuAST::Statement::Need
 # An import statement.
 class RakuAST::Statement::Import
   is RakuAST::Statement
+  is RakuAST::ParseTime
   is RakuAST::BeginTime
   is RakuAST::ProducesNil
   is RakuAST::ModuleLoading
@@ -1715,18 +1716,17 @@ class RakuAST::Statement::Import
         $obj
     }
 
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-name-constant($!module-name);
-        if $resolved {
-            self.set-resolution($resolved);
-        }
-        Nil
-    }
-
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'Handle')),
         ])
+    }
+
+    method PERFORM-PARSE(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $resolved := $resolver.resolve-name-constant($!module-name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

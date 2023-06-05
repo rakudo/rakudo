@@ -1993,9 +1993,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :$how, :$name, :$scope, :$augmented
         );
 
-        $augmented
-          ?? $package.IMPL-CHECK($*R, $*CU.context, 1)
-          !! $package.resolve-with($*R);
+        $package.IMPL-CHECK($*R, $*CU.context, 1) if $augmented;
 
         self.set-declarand($/, $*PACKAGE := $package);
     }

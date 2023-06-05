@@ -729,7 +729,7 @@ role Raku::Common {
         return Nil if nqp::isconcrete($*DECLARE-TARGETS) && $*DECLARE-TARGETS == 0;
 
         # Nothing to do?
-        $ast.resolve-with($*R);
+        $ast.ensure-parse-performed($*R, $*CU.context);
         return Nil if $ast.is-resolved;
 
         my $name := $ast.name;

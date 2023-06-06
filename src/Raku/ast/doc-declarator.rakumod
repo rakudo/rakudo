@@ -53,10 +53,13 @@ class RakuAST::Doc::Declarator
     method PERFORM-CHECK(RakuAST::Resolver $resolver,
                 RakuAST::IMPL::QASTContext $context) {
         if $!WHEREFORE {
-            my $*RESOLVER := $resolver;
-            $resolver.find-attach-target('compunit').set-pod-content(
-              $!pod-index, self.podify($!WHEREFORE.meta-object)
-            )
+            my $meta := $!WHEREFORE.meta-object;
+            if $meta.HOW.name($meta) ne 'Any' {
+                my $*RESOLVER := $resolver;
+                $resolver.find-attach-target('compunit').set-pod-content(
+                  $!pod-index, self.podify($meta)
+                );
+            }
         }
         else {
             self.add-worry: $resolver.build-exception:

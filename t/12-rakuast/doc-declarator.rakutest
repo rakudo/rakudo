@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 19;
+plan 20;
 
 my $ast;
 my $deparsed;
@@ -762,7 +762,7 @@ CODE
 }
 
 subtest 'Sub with declarator pod on parameter (4)' => {
-    # #| leadin sub␤sub a (␤#= trailing sub␤#| leading param␤$b␤#=trailing param␤) { }␤$=pod
+    # #| leading sub␤sub a (␤#= trailing sub␤#| leading param␤$b␤#=trailing param␤) { }␤$=pod
     ast RakuAST::Sub.new(
       name      => RakuAST::Name.from-identifier("a"),
       signature => RakuAST::Signature.new(
@@ -814,6 +814,27 @@ CODE
               "$type: is the trailing $name correct";
         }
     }
+}
+
+subtest 'a simple lexical var' => {
+    # #| leading comment␤my $foo; #= trailing comment␤$=pod
+    ast RakuAST::VarDeclaration::Simple.new(
+      scope       => "my",
+      sigil       => '$',
+      desigilname => RakuAST::Name.from-identifier('foo'),
+    ).declarator-docs(
+      leading  => ("leading comment",),
+      trailing => ("trailing comment",)
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading comment
+my $foo #= trailing comment
+, $=pod
+CODE
+
+    # since the $=pod semantics are unsure, we're not going
+    # to test that here and now
 }
 
 # vim: expandtab shiftwidth=4

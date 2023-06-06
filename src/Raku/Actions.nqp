@@ -1770,7 +1770,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $/.typed_worry('X::Redeclaration', :symbol($name))
                   if $*R.declare-lexical($decl);
             }
-            self.set-declarand($/, $decl) if $scope eq 'has' || $scope eq 'HAS';
+            self.set-declarand($/, $decl);
         }
         else {
             if $scope ne 'my' && $scope ne 'state' {

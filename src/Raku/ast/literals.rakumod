@@ -3,17 +3,24 @@ class RakuAST::Literal
   is RakuAST::Term
   is RakuAST::CompileTimeValue
 {
-    has str $!typename;
+    has Str $!typename;
     has Mu  $.value;
 
     method new(Mu $value) {
+        nqp::die("Please use RakuAST::Literal.from-value()")
+          if nqp::eqaddr(self,RakuAST::Literal);
+
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Literal, '$!value',    $value);
+        nqp::bindattr($obj, RakuAST::Literal, '$!typename', nqp::null);
+        $obj
+    }
+
+    method from-value(Mu $value) {
         my $typename := $value.HOW.name($value);
-        my $obj := nqp::create(nqp::eqaddr(self,RakuAST::Literal)
-          ?? RakuAST.WHO{$typename ~ 'Literal'}
-          !! self
-        );
-        nqp::bindattr(  $obj, RakuAST::Literal, '$!value',    $value);
-        nqp::bindattr_s($obj, RakuAST::Literal, '$!typename', $typename);
+        my $obj := nqp::create(RakuAST.WHO{$typename ~ 'Literal'});
+        nqp::bindattr($obj, RakuAST::Literal, '$!value',    $value);
+        nqp::bindattr($obj, RakuAST::Literal, '$!typename', $typename);
         $obj
     }
 
@@ -28,7 +35,15 @@ class RakuAST::Literal
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 
     method ast-type {
-        RakuAST::Type::Simple.new(RakuAST::Name.from-identifier($!typename))
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier(
+            nqp::ifnull(
+              $!typename,
+              nqp::bindattr(self,RakuAST::Literal,'$!typename',
+                $!value.HOW.name($!value))
+            )
+          )
+        )
     }
 
     # default for non int/str/num literals

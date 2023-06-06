@@ -225,16 +225,14 @@ class RakuAST::LegacyPodify {
         }).List;
 
         $type
-          ?? $type eq 'item'
-            ?? Pod::Item.new(
-                 level => $level ?? $level.Int !! 1, :$config, :$contents
+          ?? $type eq 'item' | 'head'
+            ?? ($type eq 'item' ?? Pod::Item !! Pod::Heading).new(
+                 :level($level ?? $level.Int !! 1), :$config, :$contents
                )
             !! $level
-              ?? $type eq 'head'
-                ?? Pod::Heading.new(:level($level.Int), :$config, :$contents)
-                !! Pod::Block::Named.new(
-                     :name($type ~ $level), :$config, :$contents
-                   )
+              ?? Pod::Block::Named.new(
+                   :name($type ~ $level), :$config, :$contents
+                 )
               # from here on without level
               !! $type eq 'comment'
                 ?? Pod::Block::Comment.new(

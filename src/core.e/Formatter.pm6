@@ -406,17 +406,17 @@ class Formatter {
 
         # show character representation of codepoint value
         method directive:sym<c>($/ --> Nil) {
-            my $size := size($/);
+            # chrify(parameter)
+            my $ast := ast-call-sub('chrify', parameter($/));
 
-            # parameter.chr
-            my $ast := ast-call-method(parameter($/), 'chr');
-
-            if $size {
+            if size($/) -> $size {
                 # str-(left|right)-justified($size, $ast)
                 $ast := ast-call-sub(
                   has_minus($/)
                     ?? "str-left-justified"
-                    !! "str-right-justified",
+                    !! has_zero($/)
+                      ?? "pad-zeroes-str"
+                      !! "str-right-justified",
                   $size,
                   $ast
                 );
@@ -704,6 +704,9 @@ class Formatter {
              )
           !! $string
     }
+
+    # RUNTIME create .chr of given value
+    sub chrify($value) { $value.Numeric.chr }
 
     # RUNTIME set up value for scientific notation
     proto sub scientify(|) {*}

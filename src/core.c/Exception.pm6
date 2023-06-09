@@ -2502,11 +2502,18 @@ my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.directive;
     has str $.expected;
     has str $.format;
-    has $.value;
+    has Mu  $.value;
+    method value() {
+        nqp::istype($!value,List)
+          ?? (' (' ~ Rakudo::Internals.SHORT-STRING($!value[0]) ~ ')')
+          !! nqp::isconcrete($!value)
+            ?? (' (' ~ Rakudo::Internals.SHORT-STRING($!value) ~ ')')
+            !! "";
+    }
     method message() {
         (($.expected
-          ?? "Directive %$.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
-          !! "Directive %$.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
+          ?? "Directive %$.directive expected a $.expected value, not a $.type$.value"
+          !! "Directive %$.directive not applicable for value of type $.type$.value"
         ) ~ " in format '$.format'").naive-word-wrapper
     }
 }

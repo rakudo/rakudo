@@ -41,7 +41,10 @@ class RakuAST::Name
     }
 
     method is-identifier() {
-        nqp::elems($!parts) == 1 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+        nqp::elems($!parts) == 1 && (
+            nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
+            || nqp::istype($!parts[0], RakuAST::Name::Part::Expression) && $!parts[0].has-compile-time-name
+        )
     }
 
     method is-empty() {
@@ -116,8 +119,13 @@ class RakuAST::Name
                 nqp::push_s($canon-parts, '');
             }
             elsif nqp::istype($_, RakuAST::Name::Part::Expression) {
-                nqp::push_s($canon-parts, '') if nqp::elems($!parts) == 1;
-                nqp::push_s($canon-parts, '(' ~ $_.expr.DEPARSE ~ ')');
+                if $_.has-compile-time-name {
+                    nqp::push_s($canon-parts, $_.name);
+                }
+                else {
+                    nqp::push_s($canon-parts, '') if nqp::elems($!parts) == 1;
+                    nqp::push_s($canon-parts, '(' ~ $_.expr.DEPARSE ~ ')');
+                }
             }
             else {
                 nqp::die('canonicalize NYI for non-simple name part ' ~ $_.HOW.name($_));
@@ -252,6 +260,10 @@ class RakuAST::Name
 
 # Marker role for a part of a name.
 class RakuAST::Name::Part {
+    method is-pseudo-package() {
+        False
+    }
+
     method visit-children(Code $visitor) {
     }
 }
@@ -345,6 +357,14 @@ class RakuAST::Name::Part::Expression
 
     method visit-children(Code $visitor) {
         $visitor($!expr);
+    }
+
+    method has-compile-time-name() {
+        nqp::defined($!expr.literalize)
+    }
+
+    method name() {
+        $!expr.literalize // nqp::die('Name ' ~ $!expr.DEPARSE ~ ' is not compile-time known')
     }
 }
 

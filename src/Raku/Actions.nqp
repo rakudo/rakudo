@@ -2632,6 +2632,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         elsif $<EXPR> {
             my $expr := $<EXPR>.ast;
+            $expr.IMPL-CHECK($*R, $*CU.context, True);
             self.attach: $/, self.r('Name', 'Part', 'Expression').new($expr);
         }
         else {

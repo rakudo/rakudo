@@ -58,10 +58,10 @@ subtest "name from expressions" => {
       )
     );
     isa-ok $_, RakuAST::Name, '.new constructs a name';
-    nok .is-identifier, 'the element is NOT considered an identifier';
+    ok .is-identifier, 'the element is NOT considered an identifier';
     is-deeply .parts.elems, 1, 'Has one parts';
     isa-ok .parts[0], RakuAST::Name::Part::Expression, 'second part is ok';
-    is-deeply .DEPARSE, '::("Int")', 'deparses in an expected way';
+    is-deeply .DEPARSE, 'Int', 'deparses in an expected way';
     is-deeply .raku, q:to/CODE/.chomp, "rakufies in an expected way";
 RakuAST::Name.new(
   RakuAST::Name::Part::Expression.new(

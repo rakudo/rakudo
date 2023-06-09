@@ -198,7 +198,9 @@ my class X::Method::NotFound is Exception {
     method !create-message() {
         my @message = $.private
           ?? "No such private method '!$.method' for invocant $.of-type"
-          !! "No such method '$.method' for invocant $.of-type";
+          !! nqp::istype($.invocant,Str)
+            ?? "No such method '$.method' for string '$.invocant'"
+            !! "No such method '$.method' for invocant $.of-type";
 
         @!tips.push: "You actually called '$.method' on a container, was that what you intended?" if $.containerized;
 

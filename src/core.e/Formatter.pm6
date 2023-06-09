@@ -506,7 +506,9 @@ class Formatter {
         # show unsigned decimal (integer) value
         method directive:sym<u>($/ --> Nil) {
             my $size := size($/);
-            my $ast  := ast-call-sub("unsigned-int", parameter($/));
+            my $ast  := ast-call-sub(
+              "unsigned-int", literal-string($*FORMAT), parameter($/)
+            );
 
             # handle zero padding / left / right justification
             if $size {
@@ -548,15 +550,15 @@ class Formatter {
 
     # RUNTIME: wrong type of arg thrower
     sub throw-type(
-      str $directive, str $expected, $type, $value
+      str $format, str $directive, str $expected, Mu $value
     ) is hidden-from-backtrace {
         X::Str::Sprintf::Directives::BadType.new(
-          :$directive, :$expected, :$type, :$value
+          :$format, :$directive, :$expected, :type($value.^name), :$value
         ).throw
     }
 
     # RUNTIME number of arguments checker
-    sub check-args(@args, @directives--> Nil) {
+    sub check-args(str $format, @args, @directives--> Nil) {
         my $args       := nqp::getattr(@args,List,'$!reified');
         my $directives := nqp::getattr(@directives,List,'$!reified');
 
@@ -564,7 +566,7 @@ class Formatter {
         if nqp::not_i(nqp::isconcrete($args))
           || nqp::isne_i(nqp::elems($args),nqp::elems($directives)) {
             throw-count(
-              @directives.Str,
+              $format,
               nqp::elems($args),
               nqp::elems($directives)
             )
@@ -577,11 +579,8 @@ class Formatter {
               nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($args)),
               nqp::unless(
                 Cool.ACCEPTS(nqp::atpos($args,$i)),
-                throw-type(
-                  nqp::atpos($directives,$_),
-                  "Cool",
-                  nqp::atpos($args,$_).^name,
-                  nqp::atpos($args,$_)
+                throw-type($format,
+                  nqp::atpos($directives,$i), "Cool", nqp::atpos($args,$i)
                 )
               )
             );
@@ -589,21 +588,19 @@ class Formatter {
     }
 
     # RUNTIME number of arguments checker for single expected argument
-    sub check-one-arg(@args, Str:D $directive --> Nil) {
+    sub check-one-arg(str $format, @args, Str:D $directive --> Nil) {
         my $args := nqp::getattr(@args,List,'$!reified');
 
         # number of args matches, check type
         if nqp::isconcrete($args) && nqp::iseq_i(nqp::elems($args),1) {
-            throw-type(
-              $directive,
-              "Cool",
-              nqp::atpos($args,0).^name,
-              nqp::atpos($args,0)
+            throw-type($format,
+              $directive, "Cool", nqp::atpos($args,0)
             ) unless Cool.ACCEPTS(nqp::atpos($args,0))
         }
         # number of args doesn't match
         else {
             throw-count(
+              $format,
               $directive,
               nqp::isconcrete($args) ?? nqp::elems($args) !! 0,
               1
@@ -612,20 +609,20 @@ class Formatter {
     }
 
     # RUNTIME number of arguments checker for NO expected argument
-    sub check-no-arg(@args --> Nil) {
+    sub check-no-arg(str $format, @args --> Nil) {
         my $args := nqp::getattr(@args,List,'$!reified');
-        throw-count('', nqp::elems($args), 0)
+        throw-count($format, '', nqp::elems($args), 0)
           if nqp::isconcrete($args) && nqp::elems($args);
     }
 
     # RUNTIME check if value is positive integer and stringify
     proto sub unsigned-int(|) {*}
-    multi sub unsigned-int($arg) {
-        unsigned-int($arg.Numeric.Int)
+    multi sub unsigned-int(Str:D $format, $arg) {
+        unsigned-int($format, $arg.Numeric.Int)
     }
-    multi sub unsigned-int(Int:D $arg) {
+    multi sub unsigned-int(Str:D $format, Int:D $arg) {
         nqp::islt_I($arg,0)
-          ?? throw-type("u", "UInt", $arg.^name, $arg)
+          ?? throw-type($format, "u", "UInt", $arg)
           !! $arg.Str
     }
 
@@ -762,8 +759,9 @@ class Formatter {
 
     # Return AST for given format
     method AST(Str(Cool) $format) {
-        my @*DIRECTIVES;          # the directives seen
-        my $*NEXT-PARAMETER = 0;  # index of next parameter to be expected
+        my $*FORMAT        := $format;  # for error message generation
+        my @*DIRECTIVES;                # the directives seen
+        my $*NEXT-PARAMETER = 0;        # index of next parameter to be expected
 
         if Syntax.parse($format, actions => Actions) -> $parsed {
             my @parts = $parsed<statement>.map: *.made;
@@ -777,6 +775,7 @@ class Formatter {
                     $ast := RakuAST::Call::Name.new(
                       name => RakuAST::Name.from-identifier('check-one-arg'),
                       args => RakuAST::ArgList.new(
+                        RakuAST::StrLiteral.new($format),
                         RakuAST::Var::Lexical.new('@args'),
                         RakuAST::StrLiteral.new(@directives[0])
                       )
@@ -792,10 +791,11 @@ class Formatter {
                       } )]
                     );
 
-                    # check-args(@args, $ast)
+                    # check-args($format, @args, $ast)
                     $ast := RakuAST::Call::Name.new(
                       name => RakuAST::Name.from-identifier('check-args'),
                       args => RakuAST::ArgList.new(
+                        RakuAST::StrLiteral.new($format),
                         RakuAST::Var::Lexical.new('@args'),
                         RakuAST::Statement::Expression.new(:expression($ast))
                       )
@@ -832,12 +832,13 @@ class Formatter {
 
             # no directives, just a string
             else {
-                # check-no-arg(@args); $format
+                # check-no-arg($format, @args); $format.subst('%%','%',:g)
                 $ast := RakuAST::StatementList.new(
                   RakuAST::Statement::Expression.new(:expression(
                     RakuAST::Call::Name.new(
                       name => RakuAST::Name.from-identifier('check-no-arg'),
                       args => RakuAST::ArgList.new(
+                        RakuAST::StrLiteral.new($format),
                         RakuAST::Var::Lexical.new('@args')
                       )
                     )

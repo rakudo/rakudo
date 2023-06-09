@@ -3038,7 +3038,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | '(' ~ ')' <signature>
         | $<declname>=[
             <sigil>
-#            <twigil>?
+            <twigil>?
             [
 #            || <?{ $<sigil>.Str eq '&' }>
 #               [<?identifier> {} <name=.sublongname> | <sigterm>]

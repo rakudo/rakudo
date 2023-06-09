@@ -491,6 +491,10 @@ class RakuAST::VarDeclaration::Simple
         self.twigil eq '.' ?? self.sigil ~ '!' ~ self.desigilname.canonicalize !! self.name
     }
 
+    method set-type($type) {
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $type);
+    }
+
     # Generate a lookup of this variable, already resolved to this declaration.
     method generate-lookup() {
         if self.is-lexical {
@@ -1029,6 +1033,7 @@ class RakuAST::VarDeclaration::Signature
         $visitor($type) if nqp::isconcrete($type);
         my $initializer := $!initializer;
         $visitor($initializer) if nqp::isconcrete($initializer);
+        self.visit-traits($visitor);
     }
 
     method default-scope() {
@@ -1057,6 +1062,14 @@ class RakuAST::VarDeclaration::Signature
             if $attribute-package {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Signature, '$!attribute-package',
                     $attribute-package);
+                for self.IMPL-UNWRAP-LIST(self.signature.parameters) {
+                    #TODO this should probably live in the target's attach method
+                    if $_.target && nqp::istype($_.target, RakuAST::ParameterTarget::Var) {
+                        $_.target.replace-scope($scope);
+                        nqp::bindattr($_.target, RakuAST::ParameterTarget::Var, '$!attribute-package',
+                            $attribute-package);
+                    }
+                }
             }
             else {
                 # TODO check-time error
@@ -1088,9 +1101,16 @@ class RakuAST::VarDeclaration::Signature
         self.IMPL-WRAP-LIST(@lookups)
     }
 
+    method is-begin-performed-before-children() { True }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if $!attribute-package {
-            $!attribute-package.ATTACH-ATTRIBUTE(self);
+        my $traits := self.IMPL-UNWRAP-LIST(self.traits);
+        my $scope := self.scope;
+        for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
+            for $traits {
+                $param.target.replace-scope($scope);
+                $param.target.add-trait($_) if $param.target;
+            }
         }
     }
 

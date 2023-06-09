@@ -1240,14 +1240,19 @@ class RakuAST::ParameterTarget
 # A binding of a parameter into a lexical variable (with sigil).
 class RakuAST::ParameterTarget::Var
   is RakuAST::ParameterTarget
-  is RakuAST::Declaration
+  is RakuAST::TraitTarget
   is RakuAST::Meta
   is RakuAST::ContainerCreator
+  is RakuAST::BeginTime
   is RakuAST::CheckTime
+  is RakuAST::Attaching
 {
     has str $.name;
     has RakuAST::Type $.type;
     has Mu $!of;
+    has RakuAST::Package $!attribute-package;
+    has RakuAST::VarDeclaration::Simple $!declaration;
+    has str $!scope;
 
     method new(str $name!, Bool :$forced-dynamic) {
         my $obj := nqp::create(self);
@@ -1256,6 +1261,21 @@ class RakuAST::ParameterTarget::Var
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!of', Mu);
         nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
           $forced-dynamic ?? True !! False);
+        my $sigil := $obj.sigil;
+        my $twigil := $obj.twigil;
+        nqp::bindattr(
+            $obj,
+            RakuAST::ParameterTarget::Var,
+            '$!declaration',
+            RakuAST::VarDeclaration::Simple.new(
+                :scope($obj.scope),
+                :desigilname(RakuAST::Name.from-identifier($obj.desigilname)),
+                :$sigil,
+                :$twigil,
+                :type(Mu),
+                :$forced-dynamic,
+            )
+        );
         $obj
     }
 
@@ -1267,11 +1287,20 @@ class RakuAST::ParameterTarget::Var
         $!name
     }
 
+    method scope() {
+        $!scope // self.default-scope
+    }
+
+    method replace-scope($scope) {
+        nqp::bindattr_s(self, RakuAST::ParameterTarget::Var, '$!scope', $scope);
+        if $!declaration {
+            $!declaration.replace-scope($scope);
+        }
+    }
+
     # Generate a lookup of this parameter, already resolved to this declaration.
     method generate-lookup() {
-        my $lookup := RakuAST::Var::Lexical.new($!name);
-        $lookup.set-resolution(self);
-        $lookup
+        $!declaration.generate-lookup
     }
 
     method sigil() {
@@ -1279,7 +1308,17 @@ class RakuAST::ParameterTarget::Var
     }
 
     method twigil() {
-        ''
+        if nqp::chars($!name) > 2 {
+            my str $twigil := nqp::substr($!name, 1, 1);
+            nqp::index('.!^:*?=~', $twigil) >= 0 ?? $twigil !! ''
+        }
+        else {
+            ''
+        }
+    }
+
+    method desigilname() {
+        nqp::substr($!name, self.twigil ?? 2 !! 1)
     }
 
     method can-be-bound-to() {
@@ -1288,6 +1327,7 @@ class RakuAST::ParameterTarget::Var
 
     method set-type(RakuAST::Type $type) {
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!type', $type);
+        $!declaration.set-type($type) if $!declaration;
         Nil
     }
 
@@ -1300,6 +1340,10 @@ class RakuAST::ParameterTarget::Var
         nqp::bindattr(self, RakuAST::ParameterTarget::Var, '$!of', $of);
     }
 
+    method attach(RakuAST::Resolver $resolver) {
+        $!declaration.attach($resolver);
+    }
+
     method PRODUCE-META-OBJECT() {
         nqp::bindattr(
             self,
@@ -1308,32 +1352,26 @@ class RakuAST::ParameterTarget::Var
             $!type.resolution.compile-time-value
         ) if $!type && nqp::eqaddr($!of, Mu);
 
-        my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($!of);
-        self.IMPL-CONTAINER($!of, $cont-desc)
+        $!declaration.meta-object
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        my $container := self.meta-object;
-        $context.ensure-sc($container);
-        QAST::Var.new(
-            :decl(nqp::objprimspec($!of) ?? 'var' !! 'contvar'),
-            :scope('lexical'),
-            :name($!name),
-            :value($container),
-            :returns($!of)
-        )
+        $!declaration.IMPL-QAST-DECL($context)
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
-        QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new( :scope('lexical'), :name($!name) ),
-            $source-qast
-        )
+        $!declaration.IMPL-BIND-QAST($context, $source-qast)
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :name($!name), :scope('lexical') )
+        $!declaration.IMPL-LOOKUP-QAST($context)
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $var := $!declaration;
+        for self.IMPL-UNWRAP-LIST(self.traits) {
+            $var.add-trait($_);
+        }
     }
 
     method PERFORM-CHECK(
@@ -1347,7 +1385,13 @@ class RakuAST::ParameterTarget::Var
 
     method default-scope() { 'my' }
 
-    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my', 'our', 'has', 'HAS']) }
+
+    method is-begin-performed-before-children() { True }
+
+    method visit-children(Code $visitor) {
+        $visitor($!declaration);
+    }
 }
 
 # A binding of a parameter into a lexical term.

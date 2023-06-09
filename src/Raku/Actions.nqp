@@ -1709,8 +1709,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $initializer := $<initializer>
                 ?? $<initializer>.ast
                 !! self.r('Initializer');
-            self.attach: $/, self.r('VarDeclaration', 'Signature').new:
+
+            my $decl := self.r('VarDeclaration', 'Signature').new:
                 :signature($<signature>.ast), :$scope, :$type, :$initializer;
+            for $<trait> {
+                $decl.add-trait($_.ast);
+            }
+            self.attach: $/, $decl;
         }
         elsif $<routine_declarator> {
             self.attach: $/, $<routine_declarator>.ast;

@@ -1109,7 +1109,7 @@ class RakuAST::VarDeclaration::Signature
         for self.IMPL-UNWRAP-LIST(self.signature.parameters) -> $param {
             for $traits {
                 $param.target.replace-scope($scope);
-                $param.target.add-trait($_) if $param.target;
+                $param.target.add-trait(nqp::clone($_)) if $param.target;
             }
         }
     }

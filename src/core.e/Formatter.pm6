@@ -273,7 +273,7 @@ class Formatter {
             }
 
             # parameter($/).Int
-            my $ast := ast-call-method($parameter, 'Int');
+            my $ast := ast-call-sub('intify', $parameter);
 
             # $ast.(Str || .base($base))
             $ast := $base == 10
@@ -437,7 +437,7 @@ class Formatter {
 
             # scientify($precision,$ast)
             my $ast := ast-call-sub(
-              'scientify', $<sym>.Str, $precision, parameter($/)
+              'scientify', literal-string($<sym>.Str), $precision, parameter($/)
             );
 
             make plus-minus-zero($/, $size, $ast);
@@ -619,14 +619,15 @@ class Formatter {
     }
 
     # RUNTIME check if value is positive integer and stringify
-    sub unsigned-int(Cool:D $arg) {
-        my $value := $arg.Int;
-
-        # number of args matches, check type
-        nqp::islt_I($value,0)
-          ?? throw-type("u", "UInt", $arg.^name, $value)
-          !! $value.Str
-        }
+    proto sub unsigned-int(|) {*}
+    multi sub unsigned-int($arg) {
+        unsigned-int($arg.Numeric.Int)
+    }
+    multi sub unsigned-int(Int:D $arg) {
+        nqp::islt_I($arg,0)
+          ?? throw-type("u", "UInt", $arg.^name, $arg)
+          !! $arg.Str
+    }
 
     # RUNTIME prefix space if string not starting with "+" or "-"
     sub prefix-space(str $string) {
@@ -706,17 +707,24 @@ class Formatter {
     }
 
     # RUNTIME create .chr of given value
-    sub chrify($value) { $value.Numeric.chr }
+    proto sub intify(|) {*}
+    multi sub intify(Int:D $value) { $value             }
+    multi sub intify(      $value) { $value.Numeric.Int }
+
+    # RUNTIME create .chr of given value
+    proto sub chrify(|) {*}
+    multi sub chrify(Int:D $value) { $value.chr         }
+    multi sub chrify(      $value) { $value.Numeric.chr }
 
     # RUNTIME set up value for scientific notation
     proto sub scientify(|) {*}
-    multi sub scientify($letter, $positions, Str:D $value --> Str:D) {
+    multi sub scientify($letter, $positions, $value --> Str:D) {
         scientify($letter, $positions, $value.Numeric)
     }
-    multi sub scientify($letter, $positions, Cool:D $value --> Str:D) {
+    multi sub scientify($letter, $positions, Numeric:D $value --> Str:D) {
         if $value {
-            my int $exponent = $value ?? $value.abs.log(10).floor !! 0;
-            my int $abs-expo = $exponent.abs;
+            my $exponent := $value ?? $value.abs.log(10).floor !! 0;
+            my $abs-expo := $exponent.abs;
             pad-zeroes-precision(
               $positions,
               ($value / 10 ** $exponent).round(10**-$positions).Str

@@ -1268,8 +1268,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<variable>.ast;
     }
 
-    method term:sym<package_declarator>($/) {
-        self.attach: $/, $<package_declarator>.ast;
+    method term:sym<package-declarator>($/) {
+        self.attach: $/, $<package-declarator>.ast;
     }
 
     method term:sym<scope_declarator>($/) {
@@ -1588,13 +1588,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Declarations
     ##
 
-    method package_declarator:sym<package>($/) { self.attach: $/, $<package_def>.ast; }
-    method package_declarator:sym<module>($/)  { self.attach: $/, $<package_def>.ast; }
-    method package_declarator:sym<class>($/)   { self.attach: $/, $<package_def>.ast; }
-    method package_declarator:sym<grammar>($/) { self.attach: $/, $<package_def>.ast; }
-    method package_declarator:sym<role>($/)    { self.attach: $/, $<package_def>.ast; }
-    method package_declarator:sym<knowhow>($/) { self.attach: $/, $<package_def>.ast; }
-    method package_declarator:sym<native>($/)  { self.attach: $/, $<package_def>.ast; }
+    method package-declarator:sym<package>($/) { self.attach: $/, $<package_def>.ast; }
+    method package-declarator:sym<module>($/)  { self.attach: $/, $<package_def>.ast; }
+    method package-declarator:sym<class>($/)   { self.attach: $/, $<package_def>.ast; }
+    method package-declarator:sym<grammar>($/) { self.attach: $/, $<package_def>.ast; }
+    method package-declarator:sym<role>($/)    { self.attach: $/, $<package_def>.ast; }
+    method package-declarator:sym<knowhow>($/) { self.attach: $/, $<package_def>.ast; }
+    method package-declarator:sym<native>($/)  { self.attach: $/, $<package_def>.ast; }
 
     sub is-yada($/) {
         $<blockoid><statementlist>

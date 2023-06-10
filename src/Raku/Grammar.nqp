@@ -1817,7 +1817,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<colonpair>          { <colonpair> }
     token term:sym<variable>           { <variable> { $*VAR := $<variable> unless $*VAR; } }
-    token term:sym<package_declarator> { <package_declarator> }
+    token term:sym<package-declarator> { <package-declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
@@ -2205,26 +2205,26 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ## Declarations
     ##
 
-    proto token package_declarator {*}
-    token package_declarator:sym<package> {
+    proto token package-declarator {*}
+    token package-declarator:sym<package> {
         <sym><.kok> <package_def('package')>
     }
-    token package_declarator:sym<module> {
+    token package-declarator:sym<module> {
         <sym><.kok> <package_def('module')>
     }
-    token package_declarator:sym<class> {
+    token package-declarator:sym<class> {
         <sym><.kok> <package_def('class')>
     }
-    token package_declarator:sym<grammar> {
+    token package-declarator:sym<grammar> {
         <sym><.kok> <package_def('grammar')>
     }
-    token package_declarator:sym<role> {
+    token package-declarator:sym<role> {
         <sym><.kok> <package_def('role')>
     }
-    token package_declarator:sym<knowhow> {
+    token package-declarator:sym<knowhow> {
         <sym><.kok> <package_def('knowhow')>
     }
-    token package_declarator:sym<native> {
+    token package-declarator:sym<native> {
         <sym><.kok> <package_def('native')>
     }
 
@@ -2284,7 +2284,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
            [
            | <DECL=declarator>
            | <DECL=regex_declarator>
-           | <DECL=package_declarator>
+           | <DECL=package-declarator>
            | [<typename><.ws>]+
              {
                 if nqp::elems($<typename>) > 1 {

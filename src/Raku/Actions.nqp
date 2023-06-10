@@ -1131,8 +1131,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             nqp::die('unknown kind of infix');
         }
-        if $<infix_postfix_meta_operator> {
-            $ast := $<infix_postfix_meta_operator>.ast.new($ast);
+        if $<infix-postfix-meta-operator> {
+            $ast := $<infix-postfix-meta-operator>.ast.new($ast);
         }
         self.attach: $/, $ast;
     }
@@ -1160,7 +1160,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('MetaInfix', 'Zip').new($<infixish>.ast);
     }
 
-    method infix_postfix_meta_operator:sym<=>($/) {
+    method infix-postfix-meta-operator:sym<=>($/) {
         self.attach: $/, self.r('MetaInfix', 'Assign');
     }
 

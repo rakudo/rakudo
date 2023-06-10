@@ -477,7 +477,7 @@ role Raku::Common {
                         if $cursor.pos == nqp::chars($op) && (
                             $match<infix-prefix-meta-operator> ||
                             $match<infix-circumfix-meta-operator> ||
-                            $match<infix_postfix_meta_operator> ||
+                            $match<infix-postfix-meta-operator> ||
                             $match<prefix_postfix_meta_operator> ||
                             $match<postfix_prefix_meta_operator> ||
                             $match<op>)
@@ -1115,7 +1115,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             | <infix> { $*OPER := $<infix> }
             | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
             ]
-            [ <?before '='> <infix_postfix_meta_operator> { $*OPER := $<infix_postfix_meta_operator> } ]?
+            [ <?before '='> <infix-postfix-meta-operator> { $*OPER := $<infix-postfix-meta-operator> } ]?
         ]
         <OPER=.AS_MATCH($*OPER)>
         { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
@@ -1169,9 +1169,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%list_infix)>
     }
 
-    proto token infix_postfix_meta_operator {*}
+    proto token infix-postfix-meta-operator {*}
 
-    token infix_postfix_meta_operator:sym<=> {
+    token infix-postfix-meta-operator:sym<=> {
         :my %prec;
         :my %fudge_oper;
         '='
@@ -2853,7 +2853,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <.ws>
             [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
             [ <infixish> || <.missing: "assignment operator"> ]
-            [ <?{ $<infixish>.Str eq '=' || $<infixish><infix_postfix_meta_operator> }> || <.malformed: "assignment operator"> ]
+            [ <?{ $<infixish>.Str eq '=' || $<infixish><infix-postfix-meta-operator> }> || <.malformed: "assignment operator"> ]
             <.ws>
             [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
         ||

@@ -1826,7 +1826,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<*>                  { <sym> }
     token term:sym<**>                 { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> } }
-    token term:sym<type_declarator>    { <type_declarator> }
+    token term:sym<type-declarator>    { <type-declarator> }
     token term:sym<value>              { <value> }
 
     token term:sym<::?IDENT> {
@@ -2342,7 +2342,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <variable-declarator>
         | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine-declarator>
-        | <type_declarator>
+        | <type-declarator>
         ]
     }
 
@@ -2562,9 +2562,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ] || <.malformed('regex')>
     }
 
-    proto token type_declarator {*}
+    proto token type-declarator {*}
 
-    token type_declarator:sym<constant> {
+    token type-declarator:sym<constant> {
         :my $*IN-DECL := 'constant';
         <sym><.kok>
         [
@@ -2582,7 +2582,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.cheat-heredoc>?
     }
 
-    token type_declarator:sym<enum> {
+    token type-declarator:sym<enum> {
         <sym><.kok>
         :my $*IN-DECL := 'enum';
         [
@@ -2598,7 +2598,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?[<(«]> <term> <.ws> || <.panic: 'An enum must supply an expression using <>, «», or ()'> ]
     }
 
-    rule type_declarator:sym<subset> {
+    rule type-declarator:sym<subset> {
         :my $*IN-DECL := 'subset';
         <sym><.kok>
         [

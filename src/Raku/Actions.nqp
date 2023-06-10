@@ -1288,8 +1288,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<regex-declarator>.ast;
     }
 
-    method term:sym<type_declarator>($/) {
-        self.attach: $/, $<type_declarator>.ast;
+    method term:sym<type-declarator>($/) {
+        self.attach: $/, $<type-declarator>.ast;
     }
 
     method term:sym<statement-prefix>($/) {
@@ -1700,8 +1700,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<variable-declarator> {
             self.attach: $/, $<variable-declarator>.ast;
         }
-        elsif $<type_declarator> {
-            self.attach: $/, $<type_declarator>.ast;
+        elsif $<type-declarator> {
+            self.attach: $/, $<type-declarator>.ast;
         }
         elsif $<signature> {
             my str $scope := $*SCOPE;
@@ -1876,7 +1876,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $regex;
     }
 
-    method type_declarator:sym<constant>($/) {
+    method type-declarator:sym<constant>($/) {
         # Provided it's named, install it.
         my %args;
         if $<defterm> {
@@ -1926,7 +1926,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $decl;
     }
 
-    method type_declarator:sym<enum>($/) {
+    method type-declarator:sym<enum>($/) {
         # TODO: <variable> being defined means we should throw an NYI
         # Need to support anonymous enums
         my $name := $<longname>
@@ -1947,7 +1947,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $decl;
     }
 
-    method type_declarator:sym<subset>($/) {
+    method type-declarator:sym<subset>($/) {
         my $where := $<EXPR> ?? $<EXPR>.ast !! Mu;
         my $decl  := self.r('Type', 'Subset').new(
             :name($<longname>.ast),

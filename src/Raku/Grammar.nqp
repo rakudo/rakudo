@@ -2437,10 +2437,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> <.end_keyword> <routine-def=.key-origin('routine-def', 'sub')>
     }
     token routine-declarator:sym<method> {
-        <sym> <.end_keyword> <method_def=.key-origin('method_def', 'method')>
+        <sym> <.end_keyword> <method-def=.key-origin('method-def', 'method')>
     }
     token routine-declarator:sym<submethod> {
-        <sym> <.end_keyword> <method_def=.key-origin('method_def', 'submethod')>
+        <sym> <.end_keyword> <method-def=.key-origin('method-def', 'submethod')>
     }
 
     rule routine-def($declarator) {
@@ -2494,7 +2494,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.leave-block-scope>
     }
 
-    rule method_def($declarator) {
+    rule method-def($declarator) {
         :my $*BORG := {};
         :my $*IN-DECL := $declarator;
         :my $*BLOCK;

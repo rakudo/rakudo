@@ -1812,10 +1812,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<routine-def>.ast;
     }
     method routine-declarator:sym<method>($/) {
-        self.attach: $/, $<method_def>.ast;
+        self.attach: $/, $<method-def>.ast;
     }
     method routine-declarator:sym<submethod>($/) {
-        self.attach: $/, $<method_def>.ast;
+        self.attach: $/, $<method-def>.ast;
     }
 
     method routine-def($/) {
@@ -1831,7 +1831,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $routine;
     }
 
-    method method_def($/) {
+    method method-def($/) {
         my $routine := $*BLOCK;
         if $<signature> {
             $routine.replace-signature($<signature>.ast);

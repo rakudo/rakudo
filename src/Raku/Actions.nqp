@@ -1681,15 +1681,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method multi-declarator:sym<multi>($/) {
-        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
+        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine-def>.ast;
     }
 
     method multi-declarator:sym<proto>($/) {
-        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
+        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine-def>.ast;
     }
 
     method multi-declarator:sym<only>($/) {
-        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
+        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine-def>.ast;
     }
 
     method multi-declarator:sym<null>($/) {
@@ -1809,7 +1809,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method routine-declarator:sym<sub>($/) {
-        self.attach: $/, $<routine_def>.ast;
+        self.attach: $/, $<routine-def>.ast;
     }
     method routine-declarator:sym<method>($/) {
         self.attach: $/, $<method_def>.ast;
@@ -1818,7 +1818,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<method_def>.ast;
     }
 
-    method routine_def($/) {
+    method routine-def($/) {
         my $routine := $*BLOCK;
         if $<signature> {
             $routine.replace-signature($<signature>.ast);

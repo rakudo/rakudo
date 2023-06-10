@@ -2315,19 +2315,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym><.kok>
         :my $*MULTINESS := 'multi';
         [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine_def('sub')> || <.malformed('multi')> ]
+        [ <declarator> || <routine-def('sub')> || <.malformed('multi')> ]
     }
     token multi-declarator:sym<proto> {
         <sym><.kok>
         :my $*MULTINESS := 'proto';
         [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine_def('sub')> || <.malformed('proto')> ]
+        [ <declarator> || <routine-def('sub')> || <.malformed('proto')> ]
     }
     token multi-declarator:sym<only> {
         <sym><.kok>
         :my $*MULTINESS := 'only';
         [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine_def('sub')> || <.malformed('only')> ]
+        [ <declarator> || <routine-def('sub')> || <.malformed('only')> ]
     }
     token multi-declarator:sym<null> {
         :my $*MULTINESS := '';
@@ -2434,7 +2434,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token routine-declarator {*}
     token routine-declarator:sym<sub> {
-        <sym> <.end_keyword> <routine_def=.key-origin('routine_def', 'sub')>
+        <sym> <.end_keyword> <routine-def=.key-origin('routine-def', 'sub')>
     }
     token routine-declarator:sym<method> {
         <sym> <.end_keyword> <method_def=.key-origin('method_def', 'method')>
@@ -2443,7 +2443,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> <.end_keyword> <method_def=.key-origin('method_def', 'submethod')>
     }
 
-    rule routine_def($declarator) {
+    rule routine-def($declarator) {
         :my $*BORG := {};
         :my $*IN-DECL := $declarator;
         :my $*BLOCK;

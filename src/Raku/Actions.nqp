@@ -681,37 +681,37 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Statement modifiers
     ##
 
-    method modifier_expr($/) {
+    method modifier-expr($/) {
         self.attach: $/, $<EXPR>.ast;
     }
 
     method statement-mod-cond:sym<if>($/) {
-        self.attach: $/, self.r('StatementModifier', 'If').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'If').new($<modifier-expr>.ast);
     }
     method statement-mod-cond:sym<unless>($/) {
-        self.attach: $/, self.r('StatementModifier', 'Unless').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'Unless').new($<modifier-expr>.ast);
     }
     method statement-mod-cond:sym<when>($/) {
-        self.attach: $/, self.r('StatementModifier', 'When').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'When').new($<modifier-expr>.ast);
     }
     method statement-mod-cond:sym<with>($/) {
-        self.attach: $/, self.r('StatementModifier', 'With').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'With').new($<modifier-expr>.ast);
     }
     method statement-mod-cond:sym<without>($/) {
-        self.attach: $/, self.r('StatementModifier', 'Without').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'Without').new($<modifier-expr>.ast);
     }
 
     method statement_mod_loop:sym<while>($/) {
-        self.attach: $/, self.r('StatementModifier', 'While').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'While').new($<modifier-expr>.ast);
     }
     method statement_mod_loop:sym<until>($/) {
-        self.attach: $/, self.r('StatementModifier', 'Until').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'Until').new($<modifier-expr>.ast);
     }
     method statement_mod_loop:sym<given>($/) {
-        self.attach: $/, self.r('StatementModifier', 'Given').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'Given').new($<modifier-expr>.ast);
     }
     method statement_mod_loop:sym<for>($/) {
-        self.attach: $/, self.r('StatementModifier', 'For').new($<modifier_expr>.ast);
+        self.attach: $/, self.r('StatementModifier', 'For').new($<modifier-expr>.ast);
     }
 
     ##

@@ -981,20 +981,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self
     }
 
-    token modifier_expr($k) { <EXPR> || <.nomodexpr($k)> }
+    token modifier-expr($k) { <EXPR> || <.nomodexpr($k)> }
 
     proto rule statement-mod-cond {*}
-    rule statement-mod-cond:sym<if>      { <sym><.kok> <modifier_expr('if')> }
-    rule statement-mod-cond:sym<unless>  { <sym><.kok> <modifier_expr('unless')> }
-    rule statement-mod-cond:sym<when>    { <sym><.kok> <modifier_expr('when')> }
-    rule statement-mod-cond:sym<with>    { <sym><.kok> <modifier_expr('with')> }
-    rule statement-mod-cond:sym<without> { <sym><.kok> <modifier_expr('without')> }
+    rule statement-mod-cond:sym<if>      { <sym><.kok> <modifier-expr('if')> }
+    rule statement-mod-cond:sym<unless>  { <sym><.kok> <modifier-expr('unless')> }
+    rule statement-mod-cond:sym<when>    { <sym><.kok> <modifier-expr('when')> }
+    rule statement-mod-cond:sym<with>    { <sym><.kok> <modifier-expr('with')> }
+    rule statement-mod-cond:sym<without> { <sym><.kok> <modifier-expr('without')> }
 
     proto rule statement_mod_loop {*}
-    rule statement_mod_loop:sym<while> { <sym><.kok> <modifier_expr('while')> }
-    rule statement_mod_loop:sym<until> { <sym><.kok> <modifier_expr('until')> }
-    rule statement_mod_loop:sym<given> { <sym><.kok> <modifier_expr('given')> }
-    rule statement_mod_loop:sym<for>   { <sym><.kok> <modifier_expr('for')> }
+    rule statement_mod_loop:sym<while> { <sym><.kok> <modifier-expr('while')> }
+    rule statement_mod_loop:sym<until> { <sym><.kok> <modifier-expr('until')> }
+    rule statement_mod_loop:sym<given> { <sym><.kok> <modifier-expr('given')> }
+    rule statement_mod_loop:sym<for>   { <sym><.kok> <modifier-expr('for')> }
 
     ##
     ## Statement prefixes

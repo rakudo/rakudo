@@ -1989,140 +1989,140 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    proto token special_variable {*}
+    proto token special-variable {*}
 
-    token special_variable:sym<$!{ }> {
+    token special-variable:sym<$!{ }> {
         [ '$!{' .*? '}' | '%!' ]
         <.obsvar('%!')>
     }
 
-    token special_variable:sym<$`> {
+    token special-variable:sym<$`> {
         <sym>  <?before \s | ',' | <.terminator> >
         <.obsvar('$`')>
     }
 
-    token special_variable:sym<$@> {
+    token special-variable:sym<$@> {
         <sym> <[ \s ; , ) ]> .
         <.obsvar('$@')>
     }
 
-    token special_variable:sym<$#> {
+    token special-variable:sym<$#> {
         <sym> <identifier>
         {}
         <.obsvar('$#', ~$<identifier>)>
     }
 
-    token special_variable:sym<$$> {
+    token special-variable:sym<$$> {
         <sym> \W
         <.obsvar('$$')>
     }
 
-    token special_variable:sym<$&> {
+    token special-variable:sym<$&> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('$&')>
     }
 
-    token special_variable:sym<@+> {
+    token special-variable:sym<@+> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('@+')>
     }
 
-    token special_variable:sym<%+> {
+    token special-variable:sym<%+> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('%+')>
     }
 
-    token special_variable:sym<$+[ ]> {
+    token special-variable:sym<$+[ ]> {
         '$+['
         <.obsvar('@+')>
     }
 
-    token special_variable:sym<@+[ ]> {
+    token special-variable:sym<@+[ ]> {
         '@+['
         <.obsvar('@+')>
     }
 
-    token special_variable:sym<@+{ }> {
+    token special-variable:sym<@+{ }> {
         '@+{'
         <.obsvar('%+')>
     }
 
-    token special_variable:sym<@-> {
+    token special-variable:sym<@-> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('@-')>
     }
 
-    token special_variable:sym<%-> {
+    token special-variable:sym<%-> {
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('%-')>
     }
 
-    token special_variable:sym<$-[ ]> {
+    token special-variable:sym<$-[ ]> {
         '$-['
         <.obsvar('@-')>
     }
 
-    token special_variable:sym<@-[ ]> {
+    token special-variable:sym<@-[ ]> {
         '@-['
         <.obsvar('@-')>
     }
 
-    token special_variable:sym<%-{ }> {
+    token special-variable:sym<%-{ }> {
         '@-{'
         <.obsvar('%-')>
     }
 
-    token special_variable:sym<$/> {
+    token special-variable:sym<$/> {
         <sym> <?before \h* '=' \h* <.[ ' " ]> >
         <.obsvar('$/')>
     }
 
-    token special_variable:sym<$\\> {
+    token special-variable:sym<$\\> {
         '$\\' <?before \s | ',' | '=' | <.terminator> >
         <.obsvar('$\\')>
     }
 
-    token special_variable:sym<$|> {
+    token special-variable:sym<$|> {
         <sym> <?before \h* '='>
         <.obsvar('$|')>
     }
 
-    token special_variable:sym<$;> {
+    token special-variable:sym<$;> {
         <sym> <?before \h* '='>
         <.obsvar('$;')>
     }
 
-    token special_variable:sym<$'> { #'
+    token special-variable:sym<$'> { #'
         <sym> <?before \s | ',' | <.terminator> >
         <.obsvar('$' ~ "'")>
     }
 
-    token special_variable:sym<$"> {
+    token special-variable:sym<$"> {
         <sym> <?before \h* '='>
         <.obsvar('$"')>
     }
 
-    token special_variable:sym<$,> {
+    token special-variable:sym<$,> {
         <sym> <?before \h* '='>
         <.obsvar('$,')>
     }
 
-    token special_variable:sym<$.> {
+    token special-variable:sym<$.> {
         <sym> {} <!before \w | '(' | ':' | '^' >
         <.obsvar('$.')>
     }
 
-    token special_variable:sym<$?> {
+    token special-variable:sym<$?> {
         <sym> {} <!before \w | '('>
         <.obsvar('$?')>
     }
 
-    token special_variable:sym<$]> {
+    token special-variable:sym<$]> {
         <sym> {} <!before \w | '('>
         <.obsvar('$]')>
     }
 
-    regex special_variable:sym<${ }> {
+    regex special-variable:sym<${ }> {
         <sigil> '{' {} $<text>=[.*?] '}'
         <!{ $*IN_DECL }>
         <!{ $<text> ~~ / '=>' || ':'<:alpha> || '|%' / }>
@@ -2156,7 +2156,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
         | <sigil> <twigil>? <desigilname>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
-        | <special_variable>
+        | <special-variable>
         | <sigil> $<index>=[\d+]
         | <sigil> <?[<]> <postcircumfix>
         | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN_DECL }> <contextualizer>

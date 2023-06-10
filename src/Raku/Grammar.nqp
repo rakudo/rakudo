@@ -1948,7 +1948,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | :dba('signature') '(' ~ ')' <fakesignature>
         | <coloncircumfix('')>
             { $*key := ""; }
-        | <var=.colonpair_variable>
+        | <var=.colonpair-variable>
             { $*key := $<var><desigilname>.Str; self.check-variable($<var>); }
         ]
     }
@@ -1981,7 +1981,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token colonpair_variable {
+    token colonpair-variable {
         <sigil> {}
         [
         | <twigil>? <desigilname>

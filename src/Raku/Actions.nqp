@@ -1401,7 +1401,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<circumfix> ?? $<circumfix>.ast !! self.Nil
     }
 
-    method colonpair_variable($/) {
+    method colonpair-variable($/) {
         if $<capvar> {
             self.attach: $/, self.r('Var', 'NamedCapture').new:
                 self.r('QuotedString').new:

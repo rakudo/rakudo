@@ -224,7 +224,16 @@ class RakuAST::QuotedString
                 if nqp::istype($_, RakuAST::StrLiteral) {
                     $base-from-parts := $base-from-parts ~ $_.value;
                 }
-                elsif nqp::istype($_, RakuAST::Var::Lexical) && $_.is-resolved && nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant) {
+                elsif nqp::istype($_, RakuAST::QuoteWordsAtom)
+                    && nqp::istype($_.atom, RakuAST::QuotedString)
+                    && my $nested-str := $_.atom.literal-value
+                {
+                    $base-from-parts := $base-from-parts ~ $nested-str;
+                }
+                elsif nqp::istype($_, RakuAST::Var::Lexical)
+                    && $_.is-resolved
+                    && nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant)
+                {
                     $base-from-parts := $base-from-parts ~ $_.resolution.compile-time-value.Str;
                 }
                 else {

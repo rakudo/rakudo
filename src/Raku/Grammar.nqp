@@ -690,7 +690,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <EXPR> :dba('statement end')
             [
             || <?MARKED('endstmt')>
-            || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>?
+            || :dba('statement modifier') <.ws> <statement-mod-cond> <statement_mod_loop>?
             || :dba('statement modifier loop') <.ws> <statement_mod_loop>
                 {
                     my $sp := $<EXPR><statement_prefix>;
@@ -983,12 +983,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token modifier_expr($k) { <EXPR> || <.nomodexpr($k)> }
 
-    proto rule statement_mod_cond {*}
-    rule statement_mod_cond:sym<if>      { <sym><.kok> <modifier_expr('if')> }
-    rule statement_mod_cond:sym<unless>  { <sym><.kok> <modifier_expr('unless')> }
-    rule statement_mod_cond:sym<when>    { <sym><.kok> <modifier_expr('when')> }
-    rule statement_mod_cond:sym<with>    { <sym><.kok> <modifier_expr('with')> }
-    rule statement_mod_cond:sym<without> { <sym><.kok> <modifier_expr('without')> }
+    proto rule statement-mod-cond {*}
+    rule statement-mod-cond:sym<if>      { <sym><.kok> <modifier_expr('if')> }
+    rule statement-mod-cond:sym<unless>  { <sym><.kok> <modifier_expr('unless')> }
+    rule statement-mod-cond:sym<when>    { <sym><.kok> <modifier_expr('when')> }
+    rule statement-mod-cond:sym<with>    { <sym><.kok> <modifier_expr('with')> }
+    rule statement-mod-cond:sym<without> { <sym><.kok> <modifier_expr('without')> }
 
     proto rule statement_mod_loop {*}
     rule statement_mod_loop:sym<while> { <sym><.kok> <modifier_expr('while')> }

@@ -372,8 +372,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   :operands($expression.colonpairs);
             }
             $statement := self.r('Statement', 'Expression').new(:$expression);
-            if $<statement_mod_cond> {
-                $statement.replace-condition-modifier($<statement_mod_cond>.ast);
+            if $<statement-mod-cond> {
+                $statement.replace-condition-modifier($<statement-mod-cond>.ast);
             }
             if $<statement_mod_loop> {
                 $statement.replace-loop-modifier($<statement_mod_loop>.ast);
@@ -685,19 +685,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<EXPR>.ast;
     }
 
-    method statement_mod_cond:sym<if>($/) {
+    method statement-mod-cond:sym<if>($/) {
         self.attach: $/, self.r('StatementModifier', 'If').new($<modifier_expr>.ast);
     }
-    method statement_mod_cond:sym<unless>($/) {
+    method statement-mod-cond:sym<unless>($/) {
         self.attach: $/, self.r('StatementModifier', 'Unless').new($<modifier_expr>.ast);
     }
-    method statement_mod_cond:sym<when>($/) {
+    method statement-mod-cond:sym<when>($/) {
         self.attach: $/, self.r('StatementModifier', 'When').new($<modifier_expr>.ast);
     }
-    method statement_mod_cond:sym<with>($/) {
+    method statement-mod-cond:sym<with>($/) {
         self.attach: $/, self.r('StatementModifier', 'With').new($<modifier_expr>.ast);
     }
-    method statement_mod_cond:sym<without>($/) {
+    method statement-mod-cond:sym<without>($/) {
         self.attach: $/, self.r('StatementModifier', 'Without').new($<modifier_expr>.ast);
     }
 

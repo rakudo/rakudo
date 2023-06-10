@@ -1821,7 +1821,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<scope-declarator>   { <scope-declarator> }
     token term:sym<routine-declarator> { <routine-declarator> }
     token term:sym<multi-declarator>   { <?before 'multi'|'proto'|'only'> <multi-declarator> }
-    token term:sym<regex_declarator>   { <regex_declarator> }
+    token term:sym<regex-declarator>   { <regex-declarator> }
     token term:sym<statement-prefix>   { <statement-prefix> }
     token term:sym<*>                  { <sym> }
     token term:sym<**>                 { <sym> }
@@ -2283,7 +2283,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || <.ws>
            [
            | <DECL=declarator>
-           | <DECL=regex_declarator>
+           | <DECL=regex-declarator>
            | <DECL=package-declarator>
            | [<typename><.ws>]+
              {
@@ -2516,9 +2516,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <?ENDSTMT>
     }
 
-    proto token regex_declarator {*}
+    proto token regex-declarator {*}
 
-    token regex_declarator:sym<rule> {
+    token regex-declarator:sym<rule> {
         <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
@@ -2527,7 +2527,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <regex_def>
     }
 
-    token regex_declarator:sym<token> {
+    token regex-declarator:sym<token> {
         <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
@@ -2535,7 +2535,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <regex_def>
     }
 
-    token regex_declarator:sym<regex> {
+    token regex-declarator:sym<regex> {
         <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;

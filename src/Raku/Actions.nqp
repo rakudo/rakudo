@@ -1284,8 +1284,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<multi-declarator>.ast;
     }
 
-    method term:sym<regex_declarator>($/) {
-        self.attach: $/, $<regex_declarator>.ast;
+    method term:sym<regex-declarator>($/) {
+        self.attach: $/, $<regex-declarator>.ast;
     }
 
     method term:sym<type_declarator>($/) {
@@ -1853,15 +1853,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $routine;
     }
 
-    method regex_declarator:sym<regex>($/) {
+    method regex-declarator:sym<regex>($/) {
         self.attach: $/, $<regex_def>.ast;
     }
 
-    method regex_declarator:sym<token>($/) {
+    method regex-declarator:sym<token>($/) {
         self.attach: $/, $<regex_def>.ast;
     }
 
-    method regex_declarator:sym<rule>($/) {
+    method regex-declarator:sym<rule>($/) {
         self.attach: $/, $<regex_def>.ast;
     }
 

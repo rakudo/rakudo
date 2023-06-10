@@ -439,6 +439,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::SemiList    $.shape;
     has RakuAST::Package     $!attribute-package;
     has RakuAST::Method      $!accessor;
+    has RakuAST::Type        $!conflicting-type;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -581,7 +582,10 @@ class RakuAST::VarDeclaration::Simple
 
         for @traits {
             if nqp::istype($_, RakuAST::Trait::Of) {
-                nqp::die('of trait not yet implemented on variables');
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $!type) if $!type;
+                nqp::gethllsym('nqp', 'note')($_.type.dump);
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $_.type);
+                next;
             }
             elsif nqp::istype($_, RakuAST::Trait::Is) {
                 my $type := $_.resolved-name;
@@ -699,6 +703,11 @@ class RakuAST::VarDeclaration::Simple
             'X::Dynamic::Package', :symbol(self.name)
             if self.twigil eq '*' && self.desigilname.is-multi-part;
 
+        self.add-sorry: $resolver.build-exception:
+            'X::Syntax::Variable::ConflictingTypes',
+            :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
+            if $!conflicting-type;
+
         my $type := self.type;
         if nqp::istype($type,RakuAST::Type::Simple) {
             my $initializer := self.initializer;
@@ -742,7 +751,9 @@ class RakuAST::VarDeclaration::Simple
 
         # Calculate the type.
         my $of := $!type
-          ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+          ?? $!type.is-resolved
+            ?? $!type.resolution.compile-time-value
+            !! self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
           !! Mu;
 
         # If it's has scoped, we'll need to build an attribute.

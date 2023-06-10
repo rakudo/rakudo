@@ -1119,8 +1119,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<infix-prefix-meta-operator> {
             $ast := $<infix-prefix-meta-operator>.ast;
         }
-        elsif $<infix_circumfix_meta_operator> {
-            $ast := $<infix_circumfix_meta_operator>.ast;
+        elsif $<infix-circumfix-meta-operator> {
+            $ast := $<infix-circumfix-meta-operator>.ast;
         }
         elsif $<infixish> {
             $ast := self.r('BracketedInfix').new($<infixish>.ast);
@@ -1164,14 +1164,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('MetaInfix', 'Assign');
     }
 
-    method infix_circumfix_meta_operator:sym<« »>($/) {
+    method infix-circumfix-meta-operator:sym<« »>($/) {
         self.attach: $/, self.r('MetaInfix', 'Hyper').new:
             infix => $<infixish>.ast,
             dwim-left => $<opening> eq '«',
             dwim-right => $<closing> eq '»'
     }
 
-    method infix_circumfix_meta_operator:sym«<< >>»($/) {
+    method infix-circumfix-meta-operator:sym«<< >>»($/) {
         self.attach: $/, self.r('MetaInfix', 'Hyper').new:
             infix => $<infixish>.ast,
             dwim-left => $<opening> eq '<<',

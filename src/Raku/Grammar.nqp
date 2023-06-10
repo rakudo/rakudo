@@ -476,7 +476,7 @@ role Raku::Common {
                         my $match := $cursor.MATCH;
                         if $cursor.pos == nqp::chars($op) && (
                             $match<infix-prefix-meta-operator> ||
-                            $match<infix_circumfix_meta_operator> ||
+                            $match<infix-circumfix-meta-operator> ||
                             $match<infix_postfix_meta_operator> ||
                             $match<prefix_postfix_meta_operator> ||
                             $match<postfix_prefix_meta_operator> ||
@@ -1110,7 +1110,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     $*OPER := $<variable>;
                     self.check-variable($<variable>);
                 }
-            | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
+            | <infix-circumfix-meta-operator> { $*OPER := $<infix-circumfix-meta-operator> }
             | <infix-prefix-meta-operator> { $*OPER := $<infix-prefix-meta-operator> }
             | <infix> { $*OPER := $<infix> }
             | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
@@ -1190,9 +1190,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%prec, :dba('assignment operator'), :iffy(0))> {}
     }
 
-    proto token infix_circumfix_meta_operator {*}
+    proto token infix-circumfix-meta-operator {*}
 
-    token infix_circumfix_meta_operator:sym<« »> {
+    token infix-circumfix-meta-operator:sym<« »> {
         $<opening>=[ '«' | '»' ]
         {} <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
@@ -1200,7 +1200,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {} <O=.AS_MATCH($<infixish><OPER><O>)>
     }
 
-    token infix_circumfix_meta_operator:sym«<< >>» {
+    token infix-circumfix-meta-operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish('HYPER')>
         $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]

@@ -534,7 +534,9 @@ class RakuAST::Var::Package
                 if self.is-resolved {
                     my $name := self.resolution.lexical-name;
                     nqp::shift(@parts);
-                    $result := QAST::Var.new(:$name, :scope<lexical>);
+                    $result := nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+                        ?? QAST::WVal.new(:value(self.resolution.compile-time-value))
+                        !! QAST::Var.new(:$name, :scope<lexical>);
                 }
                 else {
                     $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));

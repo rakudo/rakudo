@@ -649,7 +649,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | $
         | <?before <.[\)\]\}]>>
-        | [ <statement=.key-origin('statement')> <.eat_terminator> ]*
+        | [ <statement=.key-origin('statement')> <.eat-terminator> ]*
         ]
         <.set_braid_from(self)>   # any language tweaks must not escape
         <!!{ nqp::rebless($/, self.WHAT); 1 }>
@@ -660,7 +660,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ''
         [
         | <?before <.[)\]}]> >
-        | [<statement><.eat_terminator> ]*
+        | [<statement><.eat-terminator> ]*
         ]
     }
 
@@ -669,7 +669,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ''
         [
         | <?before <.[)\]}]> >
-        | [<statement><.eat_terminator> ]*
+        | [<statement><.eat-terminator> ]*
         ]
     }
 
@@ -711,7 +711,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <identifier> ':' <?[\s]> <.ws>
     }
 
-    token eat_terminator {
+    token eat-terminator {
         || ';'
         || <?MARKED('endstmt')> <.ws>
         || <?before ')' | ']' | '}' >
@@ -4051,7 +4051,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         ':' <?before ['my'|'constant'|'state'|'our'|'temp'|'let'] >> >
         <statement=.LANG('MAIN', 'statement')>
         <!RESTRICTED>
-        <.LANG('MAIN', 'eat_terminator')>
+        <.LANG('MAIN', 'eat-terminator')>
     }
 
     token metachar:sym<{ }> {

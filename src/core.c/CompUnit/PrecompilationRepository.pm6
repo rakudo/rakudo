@@ -519,7 +519,7 @@ Need to re-check dependencies.")
             $id,
             $store.new-unit(
               :$id,
-              :@dependencies
+              :@dependencies,
               :$source-checksum,
               :bytecode($bc.slurp(:bin))
             ),

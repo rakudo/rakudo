@@ -1818,7 +1818,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<colonpair>          { <colonpair> }
     token term:sym<variable>           { <variable> { $*VAR := $<variable> unless $*VAR; } }
     token term:sym<package-declarator> { <package-declarator> }
-    token term:sym<scope_declarator>   { <scope_declarator> }
+    token term:sym<scope-declarator>   { <scope-declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
@@ -2262,17 +2262,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token enter-package-scope($*SIGNATURE) { <?> }
     token leave-package-scope { <?> }
 
-    proto token scope_declarator {*}
-    token scope_declarator:sym<my>    { <sym> <scoped('my')> }
-    token scope_declarator:sym<our>   { <sym> <scoped('our')> }
-    token scope_declarator:sym<has>   { <sym> <scoped('has')> }
-    token scope_declarator:sym<HAS>   { <sym> <scoped('HAS')> }
-    token scope_declarator:sym<anon>  { <sym> <scoped('anon')> }
-    token scope_declarator:sym<state> { <sym> <scoped('state')> }
-    token scope_declarator:sym<unit>  { <sym> <scoped('unit')> }
+    proto token scope-declarator {*}
+    token scope-declarator:sym<my>    { <sym> <scoped('my')> }
+    token scope-declarator:sym<our>   { <sym> <scoped('our')> }
+    token scope-declarator:sym<has>   { <sym> <scoped('has')> }
+    token scope-declarator:sym<HAS>   { <sym> <scoped('HAS')> }
+    token scope-declarator:sym<anon>  { <sym> <scoped('anon')> }
+    token scope-declarator:sym<state> { <sym> <scoped('state')> }
+    token scope-declarator:sym<unit>  { <sym> <scoped('unit')> }
 
-    token scope_declarator:sym<augment>   { <sym> <scoped('augment')> }
-    token scope_declarator:sym<supersede> {
+    token scope-declarator:sym<augment>   { <sym> <scoped('augment')> }
+    token scope-declarator:sym<supersede> {
         <sym> <scoped('supersede')> <.NYI('"supersede"')>
     }
 

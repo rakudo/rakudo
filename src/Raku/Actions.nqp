@@ -1272,8 +1272,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<package-declarator>.ast;
     }
 
-    method term:sym<scope_declarator>($/) {
-        self.attach: $/, $<scope_declarator>.ast;
+    method term:sym<scope-declarator>($/) {
+        self.attach: $/, $<scope-declarator>.ast;
     }
 
     method term:sym<routine_declarator>($/) {
@@ -1666,15 +1666,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.pop-package();
     }
 
-    method scope_declarator:sym<my>($/)    { self.attach: $/, $<scoped>.ast; }
-    method scope_declarator:sym<our>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope_declarator:sym<has>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope_declarator:sym<HAS>($/)   { self.attach: $/, $<scoped>.ast; }
-    method scope_declarator:sym<anon>($/)  { self.attach: $/, $<scoped>.ast; }
-    method scope_declarator:sym<state>($/) { self.attach: $/, $<scoped>.ast; }
-    method scope_declarator:sym<unit>($/)  { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<my>($/)    { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<our>($/)   { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<has>($/)   { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<HAS>($/)   { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<anon>($/)  { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<state>($/) { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<unit>($/)  { self.attach: $/, $<scoped>.ast; }
 
-    method scope_declarator:sym<augment>($/) { self.attach: $/, $<scoped>.ast; }
+    method scope-declarator:sym<augment>($/) { self.attach: $/, $<scoped>.ast; }
 
     method scoped($/) {
         self.attach: $/, $<DECL>.ast;

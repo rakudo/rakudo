@@ -3607,6 +3607,13 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
     }
 }
 
+my class X::CompUnit::META::DependencySyntax is Exception {
+    has Str:D $.reason is required;
+    method message {
+        "Invalid syntax of dependency specification in META6.json: $.reason"
+    }
+}
+
 my class X::InvalidCodepoint is Exception {
     has $.code;
     method message() {

@@ -1,6 +1,7 @@
+BEGIN %*ENV<RAKUDO_NO_PRECOMP_DIST> = 1;
 my constant Staging = "lib/CompUnit/Repository/Staging.rakumod".IO.slurp.EVAL;
 
-my %provides = 
+my %provides =
     "Test"                          => "lib/Test.rakumod",
     "NativeCall"                    => "lib/NativeCall.rakumod",
     "NativeCall::Types"             => "lib/NativeCall/Types.rakumod",

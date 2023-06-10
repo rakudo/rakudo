@@ -220,6 +220,44 @@ class CompUnit::Repository::FileSystem
 
         return ($distribution,);
     }
+    multi method candidates(Str:D :$file!, Str:D :$name!, :$auth, :$ver, :$api) {
+        my $spec = CompUnit::DependencySpecification.new(
+            short-name      => $name,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
+        );
+
+        with self.candidates($spec) {
+            my $matches := .grep: { .meta<files>{$file}:exists }
+
+            my $absolutified-metas := $matches.map: {
+                my %meta = .meta;
+                next unless (%meta<source> = $!prefix.add(%meta<files>{$file})).e;
+                $_
+            }
+
+            return $absolutified-metas
+        }
+    }
+    multi method candidates(Str:D :$file!, :$auth, :$ver, :$api) {
+        my $spec = CompUnit::DependencySpecification.new(
+            short-name      => $file,
+            auth-matcher    => $auth,
+            version-matcher => $ver,
+            api-matcher     => $api,
+        );
+
+        with self.candidates($spec) {
+            my $absolutified-metas := .map: {
+                my $meta = .meta;
+                next unless ($meta<source> = self!files-prefix.add($meta<files>{$file})).e;
+                $_
+            }
+
+            return $absolutified-metas
+        }
+    }
 
     proto method files(|) {*}
     multi method files($file, Str:D :$name!, :$auth, :$ver, :$api) {
@@ -231,15 +269,15 @@ class CompUnit::Repository::FileSystem
         );
 
         with self.candidates($spec) {
-            my $matches := $_.grep: { .meta<files>{$file}:exists }
+            my $matches := .grep: { .meta<files>{$file}:exists }
 
             my $absolutified-metas := $matches.map: {
-                my $meta      = $_.meta;
-                $meta<source> = $!prefix.add($meta<files>{$file});
-                $meta;
+                my %meta = .meta;
+                next unless (%meta<source> = $!prefix.add(%meta<files>{$file})).e;
+                %meta
             }
 
-            return $absolutified-metas.grep(*.<source>.e);
+            return $absolutified-metas
         }
     }
     multi method files($file, :$auth, :$ver, :$api) {
@@ -251,13 +289,13 @@ class CompUnit::Repository::FileSystem
         );
 
         with self.candidates($spec) {
-            my $absolutified-metas := $_.map: {
-                my $meta      = $_.meta;
-                $meta<source> = self!files-prefix.add($meta<files>{$file});
-                $meta;
+            my $absolutified-metas := .map: {
+                my $meta = .meta;
+                next unless ($meta<source> = self!files-prefix.add($meta<files>{$file})).e;
+                $meta
             }
 
-            return $absolutified-metas.grep(*.<source>.e);
+            return $absolutified-metas
         }
     }
 

@@ -211,6 +211,7 @@ src/core.c/Distribution/Hash.pm6
 src/core.c/Distribution/Path.pm6
 src/core.c/Distribution/Resource.pm6
 src/core.c/Distribution/Resources.pm6
+src/core.c/Distribution/Utils.pm6
 src/core.c/CompUnit/DependencySpecification.pm6
 src/core.c/CompUnit/Handle.pm6
 src/core.c/CompUnit/Loader.pm6

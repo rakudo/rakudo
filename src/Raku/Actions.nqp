@@ -1588,13 +1588,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Declarations
     ##
 
-    method package-declarator:sym<package>($/) { self.attach: $/, $<package_def>.ast; }
-    method package-declarator:sym<module>($/)  { self.attach: $/, $<package_def>.ast; }
-    method package-declarator:sym<class>($/)   { self.attach: $/, $<package_def>.ast; }
-    method package-declarator:sym<grammar>($/) { self.attach: $/, $<package_def>.ast; }
-    method package-declarator:sym<role>($/)    { self.attach: $/, $<package_def>.ast; }
-    method package-declarator:sym<knowhow>($/) { self.attach: $/, $<package_def>.ast; }
-    method package-declarator:sym<native>($/)  { self.attach: $/, $<package_def>.ast; }
+    method package-declarator:sym<package>($/) { self.attach: $/, $<package-def>.ast; }
+    method package-declarator:sym<module>($/)  { self.attach: $/, $<package-def>.ast; }
+    method package-declarator:sym<class>($/)   { self.attach: $/, $<package-def>.ast; }
+    method package-declarator:sym<grammar>($/) { self.attach: $/, $<package-def>.ast; }
+    method package-declarator:sym<role>($/)    { self.attach: $/, $<package-def>.ast; }
+    method package-declarator:sym<knowhow>($/) { self.attach: $/, $<package-def>.ast; }
+    method package-declarator:sym<native>($/)  { self.attach: $/, $<package-def>.ast; }
 
     sub is-yada($/) {
         $<blockoid><statementlist>
@@ -1603,7 +1603,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                ~~ /^ \s* ['...'|'???'|'!!!'|'…'] \s* $/;
     }
 
-    method package_def($/) {
+    method package-def($/) {
         my $package := $*PACKAGE;
         my $body := $<block> ?? $<block>.ast !! $<unit-block>.ast;
 

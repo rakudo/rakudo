@@ -2629,13 +2629,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
     }
-    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad_trait_typename>] }
-    rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
-    rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }
-    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>]
+    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad-trait-typename>] }
+    rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad-trait-typename>] }
+    rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad-trait-typename>] }
+    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad-trait-typename>]
                                   || 'return' <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'> }
 
-    token bad_trait_typename {
+    token bad-trait-typename {
         || <longname> {
                 my $name := $<longname>.ast;
                 $/.typed_panic('X::InvalidType',

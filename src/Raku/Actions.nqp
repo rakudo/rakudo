@@ -1276,8 +1276,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<scope-declarator>.ast;
     }
 
-    method term:sym<routine_declarator>($/) {
-        self.attach: $/, $<routine_declarator>.ast
+    method term:sym<routine-declarator>($/) {
+        self.attach: $/, $<routine-declarator>.ast
     }
 
     method term:sym<multi-declarator>($/) {
@@ -1717,8 +1717,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             self.attach: $/, $decl;
         }
-        elsif $<routine_declarator> {
-            self.attach: $/, $<routine_declarator>.ast;
+        elsif $<routine-declarator> {
+            self.attach: $/, $<routine-declarator>.ast;
         }
         elsif $<defterm> {
             my str $scope := $*SCOPE;
@@ -1808,13 +1808,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $decl;
     }
 
-    method routine_declarator:sym<sub>($/) {
+    method routine-declarator:sym<sub>($/) {
         self.attach: $/, $<routine_def>.ast;
     }
-    method routine_declarator:sym<method>($/) {
+    method routine-declarator:sym<method>($/) {
         self.attach: $/, $<method_def>.ast;
     }
-    method routine_declarator:sym<submethod>($/) {
+    method routine-declarator:sym<submethod>($/) {
         self.attach: $/, $<method_def>.ast;
     }
 

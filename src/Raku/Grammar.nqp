@@ -1819,7 +1819,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<variable>           { <variable> { $*VAR := $<variable> unless $*VAR; } }
     token term:sym<package-declarator> { <package-declarator> }
     token term:sym<scope-declarator>   { <scope-declarator> }
-    token term:sym<routine_declarator> { <routine_declarator> }
+    token term:sym<routine-declarator> { <routine-declarator> }
     token term:sym<multi-declarator>   { <?before 'multi'|'proto'|'only'> <multi-declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
     token term:sym<statement-prefix>   { <statement-prefix> }
@@ -2341,7 +2341,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable-declarator>
         | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
-        | <routine_declarator>
+        | <routine-declarator>
         | <type_declarator>
         ]
     }
@@ -2432,14 +2432,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> [ <.ws> <dottyop> || <.malformed: 'mutator method call'> ]
     }
 
-    proto token routine_declarator {*}
-    token routine_declarator:sym<sub> {
+    proto token routine-declarator {*}
+    token routine-declarator:sym<sub> {
         <sym> <.end_keyword> <routine_def=.key-origin('routine_def', 'sub')>
     }
-    token routine_declarator:sym<method> {
+    token routine-declarator:sym<method> {
         <sym> <.end_keyword> <method_def=.key-origin('method_def', 'method')>
     }
-    token routine_declarator:sym<submethod> {
+    token routine-declarator:sym<submethod> {
         <sym> <.end_keyword> <method_def=.key-origin('method_def', 'submethod')>
     }
 

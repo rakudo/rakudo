@@ -1116,8 +1116,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $ast := self.r('Infix').new(~$<infix>, :properties($operator_properties.new-compat(|%prec)));
             }
         }
-        elsif $<infix_prefix_meta_operator> {
-            $ast := $<infix_prefix_meta_operator>.ast;
+        elsif $<infix-prefix-meta-operator> {
+            $ast := $<infix-prefix-meta-operator>.ast;
         }
         elsif $<infix_circumfix_meta_operator> {
             $ast := $<infix_circumfix_meta_operator>.ast;
@@ -1137,11 +1137,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
-    method infix_prefix_meta_operator:sym<!>($/) {
+    method infix-prefix-meta-operator:sym<!>($/) {
         self.attach: $/, self.r('MetaInfix', 'Negate').new($<infixish>.ast);
     }
 
-    method infix_prefix_meta_operator:sym<R>($/) {
+    method infix-prefix-meta-operator:sym<R>($/) {
         self.attach: $/, self.r('MetaInfix', 'Reverse').new($<infixish>.ast);
     }
 
@@ -1152,11 +1152,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $O;
     }
 
-    method infix_prefix_meta_operator:sym<X>($/) {
+    method infix-prefix-meta-operator:sym<X>($/) {
         self.attach: $/, self.r('MetaInfix', 'Cross').new($<infixish>.ast);
     }
 
-    method infix_prefix_meta_operator:sym<Z>($/) {
+    method infix-prefix-meta-operator:sym<Z>($/) {
         self.attach: $/, self.r('MetaInfix', 'Zip').new($<infixish>.ast);
     }
 

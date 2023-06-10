@@ -475,7 +475,7 @@ role Raku::Common {
                         my $cursor := $lang."$meth"();
                         my $match := $cursor.MATCH;
                         if $cursor.pos == nqp::chars($op) && (
-                            $match<infix_prefix_meta_operator> ||
+                            $match<infix-prefix-meta-operator> ||
                             $match<infix_circumfix_meta_operator> ||
                             $match<infix_postfix_meta_operator> ||
                             $match<prefix_postfix_meta_operator> ||
@@ -1111,7 +1111,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     self.check-variable($<variable>);
                 }
             | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
-            | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
+            | <infix-prefix-meta-operator> { $*OPER := $<infix-prefix-meta-operator> }
             | <infix> { $*OPER := $<infix> }
             | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
             ]
@@ -1134,9 +1134,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    proto token infix_prefix_meta_operator {*}
+    proto token infix-prefix-meta-operator {*}
 
-    token infix_prefix_meta_operator:sym<!> {
+    token infix-prefix-meta-operator:sym<!> {
         <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
         <!{ $<infixish>.Str eq '=' }>
         [
@@ -1146,7 +1146,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token infix_prefix_meta_operator:sym<R> {
+    token infix-prefix-meta-operator:sym<R> {
         <sym> <infixish('R')> {}
         <.can-meta($<infixish>, "reverse the args of")>
         <O=.revO($<infixish>)>
@@ -1157,13 +1157,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <?>
     }
 
-    token infix_prefix_meta_operator:sym<X> {
+    token infix-prefix-meta-operator:sym<X> {
         <sym> <infixish('X')> {}
         <.can-meta($<infixish>, "cross with")>
         <O(|%list_infix)>
     }
 
-    token infix_prefix_meta_operator:sym<Z> {
+    token infix-prefix-meta-operator:sym<Z> {
         <sym> <infixish('Z')> {}
         <.can-meta($<infixish>, "zip with")>
         <O(|%list_infix)>

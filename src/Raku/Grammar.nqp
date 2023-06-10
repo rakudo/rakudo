@@ -1082,7 +1082,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
-    method can_meta($op, $meta, $reason = "fiddly") {
+    method can-meta($op, $meta, $reason = "fiddly") {
         if $op<OPER> && $op<OPER><O>.made{$reason} == 1 {
             self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
         }
@@ -1140,7 +1140,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
         <!{ $<infixish>.Str eq '=' }>
         [
-        || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O>.made<iffy> }>
+        || <.can-meta($<infixish>, "negate")> <?{ $<infixish><OPER><O>.made<iffy> }>
            <O=.AS_MATCH($<infixish><OPER><O>)>
         || { self.typed_panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O>.made<dba>, reason => "not iffy enough" }
         ]
@@ -1148,7 +1148,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token infix_prefix_meta_operator:sym<R> {
         <sym> <infixish('R')> {}
-        <.can_meta($<infixish>, "reverse the args of")>
+        <.can-meta($<infixish>, "reverse the args of")>
         <O=.revO($<infixish>)>
     }
 
@@ -1159,13 +1159,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token infix_prefix_meta_operator:sym<X> {
         <sym> <infixish('X')> {}
-        <.can_meta($<infixish>, "cross with")>
+        <.can-meta($<infixish>, "cross with")>
         <O(|%list_infix)>
     }
 
     token infix_prefix_meta_operator:sym<Z> {
         <sym> <infixish('Z')> {}
-        <.can_meta($<infixish>, "zip with")>
+        <.can-meta($<infixish>, "zip with")>
         <O(|%list_infix)>
     }
 
@@ -1176,8 +1176,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %fudge_oper;
         '='
         { %fudge_oper<OPER> := $*OPER }
-        <.can_meta(%fudge_oper, "make assignment out of")>
-        [ <!{ $*OPER<O>.made<diffy> }> || <.can_meta(%fudge_oper, "make assignment out of", "diffy")> ]
+        <.can-meta(%fudge_oper, "make assignment out of")>
+        [ <!{ $*OPER<O>.made<diffy> }> || <.can-meta(%fudge_oper, "make assignment out of", "diffy")> ]
         {
             $<sym> := $*OPER<sym> ~ '=';
             if $*OPER<O>.made<prec> gt 'g=' {
@@ -1196,7 +1196,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $<opening>=[ '«' | '»' ]
         {} <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing("« or »")> ]
-        <.can_meta($<infixish>, "hyper with")>
+        <.can-meta($<infixish>, "hyper with")>
         {} <O=.AS_MATCH($<infixish><OPER><O>)>
     }
 
@@ -2189,7 +2189,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ']'
         { $op := $<op>; }
 
-        <.can_meta($op, "reduce with")>
+        <.can-meta($op, "reduce with")>
 
         [
         || <!{ $op<OPER><O>.made<diffy> }>

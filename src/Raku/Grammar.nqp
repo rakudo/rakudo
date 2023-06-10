@@ -690,12 +690,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <EXPR> :dba('statement end')
             [
             || <?MARKED('endstmt')>
-            || :dba('statement modifier') <.ws> <statement-mod-cond> <statement_mod_loop>?
-            || :dba('statement modifier loop') <.ws> <statement_mod_loop>
+            || :dba('statement modifier') <.ws> <statement-mod-cond> <statement-mod-loop>?
+            || :dba('statement modifier loop') <.ws> <statement-mod-loop>
                 {
                     my $sp := $<EXPR><statement_prefix>;
                     if $sp && $sp<sym> eq 'do' {
-                        my $s := $<statement_mod_loop><sym>;
+                        my $s := $<statement-mod-loop><sym>;
                         $/.obs("do..." ~ $s, "repeat...while or repeat...until")
                           unless $*LANG.pragma('p5isms');
                     }
@@ -990,11 +990,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement-mod-cond:sym<with>    { <sym><.kok> <modifier-expr('with')> }
     rule statement-mod-cond:sym<without> { <sym><.kok> <modifier-expr('without')> }
 
-    proto rule statement_mod_loop {*}
-    rule statement_mod_loop:sym<while> { <sym><.kok> <modifier-expr('while')> }
-    rule statement_mod_loop:sym<until> { <sym><.kok> <modifier-expr('until')> }
-    rule statement_mod_loop:sym<given> { <sym><.kok> <modifier-expr('given')> }
-    rule statement_mod_loop:sym<for>   { <sym><.kok> <modifier-expr('for')> }
+    proto rule statement-mod-loop {*}
+    rule statement-mod-loop:sym<while> { <sym><.kok> <modifier-expr('while')> }
+    rule statement-mod-loop:sym<until> { <sym><.kok> <modifier-expr('until')> }
+    rule statement-mod-loop:sym<given> { <sym><.kok> <modifier-expr('given')> }
+    rule statement-mod-loop:sym<for>   { <sym><.kok> <modifier-expr('for')> }
 
     ##
     ## Statement prefixes

@@ -375,8 +375,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $<statement-mod-cond> {
                 $statement.replace-condition-modifier($<statement-mod-cond>.ast);
             }
-            if $<statement_mod_loop> {
-                $statement.replace-loop-modifier($<statement_mod_loop>.ast);
+            if $<statement-mod-loop> {
+                $statement.replace-loop-modifier($<statement-mod-loop>.ast);
             }
         }
         elsif $<statement-control> {
@@ -701,16 +701,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('StatementModifier', 'Without').new($<modifier-expr>.ast);
     }
 
-    method statement_mod_loop:sym<while>($/) {
+    method statement-mod-loop:sym<while>($/) {
         self.attach: $/, self.r('StatementModifier', 'While').new($<modifier-expr>.ast);
     }
-    method statement_mod_loop:sym<until>($/) {
+    method statement-mod-loop:sym<until>($/) {
         self.attach: $/, self.r('StatementModifier', 'Until').new($<modifier-expr>.ast);
     }
-    method statement_mod_loop:sym<given>($/) {
+    method statement-mod-loop:sym<given>($/) {
         self.attach: $/, self.r('StatementModifier', 'Given').new($<modifier-expr>.ast);
     }
-    method statement_mod_loop:sym<for>($/) {
+    method statement-mod-loop:sym<for>($/) {
         self.attach: $/, self.r('StatementModifier', 'For').new($<modifier-expr>.ast);
     }
 

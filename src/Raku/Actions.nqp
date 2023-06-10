@@ -1697,8 +1697,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method declarator($/) {
-        if $<variable_declarator> {
-            self.attach: $/, $<variable_declarator>.ast;
+        if $<variable-declarator> {
+            self.attach: $/, $<variable-declarator>.ast;
         }
         elsif $<type_declarator> {
             self.attach: $/, $<type_declarator>.ast;
@@ -1791,7 +1791,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*VARIABLE := $decl;
     }
 
-    method variable_declarator($/) {
+    method variable-declarator($/) {
         my $decl := $*VARIABLE;
         my str $scope := $*SCOPE;
         my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');

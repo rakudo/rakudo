@@ -2339,14 +2339,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | '\\' <defterm>
             [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
-        | <variable_declarator>
+        | <variable-declarator>
         | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine_declarator>
         | <type_declarator>
         ]
     }
 
-    token variable_declarator {
+    token variable-declarator {
         :my $*IN-DECL := 'variable';
         :my $*VARIABLE;
         :my $sigil;

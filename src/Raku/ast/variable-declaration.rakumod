@@ -209,6 +209,11 @@ class RakuAST::ContainerCreator {
                     !! Hash;
             }
             else {
+                if nqp::objprimspec($of) {
+                    nqp::die("Natively typed state variables not yet implemented") if self.scope eq 'state';
+                    return nqp::null;
+                }
+
                 $container-base-type := Scalar;
                 $container-type := Scalar;
             }
@@ -576,7 +581,7 @@ class RakuAST::VarDeclaration::Simple
 
         for @traits {
             if nqp::istype($_, RakuAST::Trait::Of) {
-                npq::die('of trait not yet implemented on variables');
+                nqp::die('of trait not yet implemented on variables');
             }
             elsif nqp::istype($_, RakuAST::Trait::Is) {
                 my $type := $_.resolved-name;
@@ -883,7 +888,7 @@ class RakuAST::VarDeclaration::Simple
                         nqp::die('Can only compile an assign initializer on a native');
                     }
                 }
-                elsif $prim-spec == 1 {
+                elsif $prim-spec == 1 || ($prim-spec >= 4 && $prim-spec <= 10) {
                     $init := QAST::IVal.new( :value(0) );
                 }
                 elsif $prim-spec == 2 {

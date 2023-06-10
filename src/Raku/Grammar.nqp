@@ -455,7 +455,7 @@ role Raku::Common {
         self;
     }
 
-    method check_variable($var) {
+    method check-variable($var) {
         my $ast := $var.ast;
         if nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT) {
             $ast.resolve-with($*R);
@@ -1108,7 +1108,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 {
                     $<variable><O> := self.O(:prec<t=>, :assoc<left>, :dba<additive>).MATCH unless $<variable><O>;
                     $*OPER := $<variable>;
-                    self.check_variable($<variable>);
+                    self.check-variable($<variable>);
                 }
             | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
             | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
@@ -1360,7 +1360,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <longname> {
                 if $<longname> eq '::' { self.malformed("class-qualified postfix call") }
           }
-#        | <?[$@&]> <variable> { self.check_variable($<variable>) }
+#        | <?[$@&]> <variable> { self.check-variable($<variable>) }
         | <?['"]>
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>
@@ -1753,7 +1753,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
         {
             if $*VAR {
-                self.check_variable($*VAR);
+                self.check-variable($*VAR);
                 $*VAR := 0;
             }
         }
@@ -1949,7 +1949,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <coloncircumfix('')>
             { $*key := ""; }
         | <var=.colonpair_variable>
-            { $*key := $<var><desigilname>.Str; self.check_variable($<var>); }
+            { $*key := $<var><desigilname>.Str; self.check-variable($<var>); }
         ]
     }
 
@@ -4065,7 +4065,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         <?before <.sigil> $<twigil>=[<.alpha> | <+[\W]-[\s]><.alpha> | '(']>
         <!before <.sigil> <.rxstopper> >
         <var=.LANG('MAIN', 'variable')>
-        { self.check_variable($<var>) }
+        { self.check-variable($<var>) }
         [
             <?before '.'? <.[ \[ \{ \< ]>>
             <.worry: "Apparent subscript will be treated as regex">

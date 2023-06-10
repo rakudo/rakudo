@@ -38,8 +38,10 @@ class RakuAST::Term::Name
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        # TODO indirects, trailing ::, etc.
-        if $!name.is-package-lookup {
+        if $!name.is-pseudo-package {
+            $!name.IMPL-QAST-PSEUDO-PACKAGE-LOOKUP($context);
+        }
+        elsif $!name.is-package-lookup {
             return self.is-resolved
                 ?? $!name.IMPL-QAST-PACKAGE-LOOKUP(
                     $context,

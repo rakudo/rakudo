@@ -952,13 +952,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method postfixish($/) {
         my $ast := $<OPER>.ast // self.r('Postfix').new(~$<postfix><sym>);
-        if $<postfix_prefix_meta_operator> {
-            $ast := $<postfix_prefix_meta_operator>.ast.new($ast);
+        if $<postfix-prefix-meta-operator> {
+            $ast := $<postfix-prefix-meta-operator>.ast.new($ast);
         }
         self.attach: $/, $ast;
     }
 
-    method postfix_prefix_meta_operator:sym<»>($/) {
+    method postfix-prefix-meta-operator:sym<»>($/) {
         # Check if we are inside «...» quoters and complain if the hyper creates
         # ambiguity with the quoters, since user may not wanted to have a hyper
         my str $sym := ~$<sym>;

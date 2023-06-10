@@ -479,7 +479,7 @@ role Raku::Common {
                             $match<infix-circumfix-meta-operator> ||
                             $match<infix-postfix-meta-operator> ||
                             $match<prefix-postfix-meta-operator> ||
-                            $match<postfix_prefix_meta_operator> ||
+                            $match<postfix-prefix-meta-operator> ||
                             $match<op>)
                         {
                             my $META := $match.ast;
@@ -1233,7 +1233,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 
         :dba('postfix')
-        [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>?]?
+        [ ['.' <.unsp>?]? <postfix-prefix-meta-operator> <.unsp>?]?
         [
         | <OPER=postfix>
         | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
@@ -1241,7 +1241,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | '.' <?[ [ { < ]> <OPER=postcircumfix>
         | <OPER=dotty>
         | <OPER=privop>
-        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
+        | <?{ $<postfix-prefix-meta-operator> && !$*QSIGIL }>
             [
             || <?space> <.missing: "postfix">
             || <?alpha> <.missing: "dot on method call">
@@ -1251,9 +1251,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*LEFTSIGIL := '@'; }
     }
 
-    proto token postfix_prefix_meta_operator {*}
+    proto token postfix-prefix-meta-operator {*}
 
-    token postfix_prefix_meta_operator:sym<»> {
+    token postfix-prefix-meta-operator:sym<»> {
         [ <sym> | $<sym> = '>>' ]
         [ <!{ $*QSIGIL }> || <![(]> ]
     }

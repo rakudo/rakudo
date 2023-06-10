@@ -537,10 +537,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.set_pragma('strict',1);
 
         # Variables used during the parse.
-        my $*IN_DECL;                # what declaration we're in
+        my $*IN-DECL;                # what declaration we're in
         my $*OFTYPE;                 # type of the current declarator
         my $*LEFTSIGIL;              # sigil of LHS for item vs list assignment
-        my $*IN_META := '';          # parsing a metaoperator like [..]
+        my $*IN-META := '';          # parsing a metaoperator like [..]
         my $*IN_REDUCE := 0;         # attempting to parse an [op] construct
         my %*QUOTE-LANGS;            # quote language cache
         my $*LASTQUOTE := [0,0];     # for runaway quote detection
@@ -782,7 +782,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 $/.panic("Semicolon form of '$decl' without 'unit' is illegal. You probably want to use 'unit $decl'");
             }
         }
-        { $*IN_DECL := ''; }
+        { $*IN-DECL := ''; }
         <.enter-block-scope('Block')>
         <statementlist=.key-origin('statementlist')>
         <.leave-block-scope>
@@ -955,7 +955,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token statement-control:sym<import> {
-        :my $*IN_DECL := 'import';
+        :my $*IN-DECL := 'import';
         <sym> <.ws>
         <module_name=.longname> [ <.spacey> <arglist> ]?
         <.ws>
@@ -1094,8 +1094,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim, :noinfix($preclim eq 'y='));
     }
 
-    token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
-        :my $*IN_META := $in_meta;
+    token infixish($in_meta = nqp::getlexdyn('$*IN-META')) {
+        :my $*IN-META := $in_meta;
         :my $*OPER;
         <!stdstopper>
         <!infixstopper>
@@ -1113,7 +1113,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             | <infix-circumfix-meta-operator> { $*OPER := $<infix-circumfix-meta-operator> }
             | <infix-prefix-meta-operator> { $*OPER := $<infix-prefix-meta-operator> }
             | <infix> { $*OPER := $<infix> }
-            | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
+            | <?{ $*IN-META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN-META)>
             ]
             [ <?before '='> <infix-postfix-meta-operator> { $*OPER := $<infix-postfix-meta-operator> } ]?
         ]
@@ -1467,14 +1467,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<+&>   { <sym>  <O(|%multiplicative)> }
     token infix:sym<~&>   { <sym>  <O(|%multiplicative)> }
     token infix:sym<?&>   { <sym>  <O(|%multiplicative, :iffy(1))> }
-    token infix:sym«+<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
-    token infix:sym«+>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }
-    token infix:sym«~<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
-    token infix:sym«~>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }
+    token infix:sym«+<»   { <sym> [ <!{ $*IN-META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
+    token infix:sym«+>»   { <sym> [ <!{ $*IN-META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }
+    token infix:sym«~<»   { <sym> [ <!{ $*IN-META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
+    token infix:sym«~>»   { <sym> [ <!{ $*IN-META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }
 
-    token infix:sym«<<» { <sym> <!{ $*IN_META }> <?[\s]> <.sorryobs('<< to do left shift', '+< or ~<')> <O(|%multiplicative)> }
+    token infix:sym«<<» { <sym> <!{ $*IN-META }> <?[\s]> <.sorryobs('<< to do left shift', '+< or ~<')> <O(|%multiplicative)> }
 
-    token infix:sym«>>» { <sym> <!{ $*IN_META }> <?[\s]> <.sorryobs('>> to do right shift', '+> or ~>')> <O(|%multiplicative)> }
+    token infix:sym«>>» { <sym> <!{ $*IN-META }> <?[\s]> <.sorryobs('>> to do right shift', '+> or ~>')> <O(|%multiplicative)> }
 
     token infix:sym<+>    { <sym>  <O(|%additive)> }
     token infix:sym<->    {
@@ -1633,7 +1633,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<=> {
         <sym>
         [
-        || <?{ $*LEFTSIGIL eq '$' || $*IN_META }> <O(|%item_assignment)>
+        || <?{ $*LEFTSIGIL eq '$' || $*IN-META }> <O(|%item_assignment)>
         || <O(|%list_assignment)>
         ]
         { $*LEFTSIGIL := '' }
@@ -1652,7 +1652,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<xor>  { <sym> >> <O(|%loose_or, :iffy(1))> }
     token infix:sym<orelse> { <sym> >> <O(|%loose_orelse, :assoc<list>, :pasttype<defor>)> }
 
-    token infix:sym<..>   { <sym> [<!{ $*IN_META }> <?[)\]]> <.panic: "Please use ..* for indefinite range">]? <O(|%structural)> }
+    token infix:sym<..>   { <sym> [<!{ $*IN-META }> <?[)\]]> <.panic: "Please use ..* for indefinite range">]? <O(|%structural)> }
     token infix:sym<^..>  { <sym> <O(|%structural)> }
     token infix:sym<..^>  { <sym> <O(|%structural)> }
     token infix:sym<^..^> { <sym> <O(|%structural)> }
@@ -1971,10 +1971,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token coloncircumfix($front) {
-        # reset $*IN_DECL in case this colonpair is part of var we're
+        # reset $*IN-DECL in case this colonpair is part of var we're
         # declaring, since colonpair might have other vars. Don't make those
         # think we're declaring them
-        :my $*IN_DECL := '';
+        :my $*IN-DECL := '';
         [
         | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
         | {} <circumfix>
@@ -2124,7 +2124,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     regex special-variable:sym<${ }> {
         <sigil> '{' {} $<text>=[.*?] '}'
-        <!{ $*IN_DECL }>
+        <!{ $*IN-DECL }>
         <!{ $<text> ~~ / '=>' || ':'<:alpha> || '|%' / }>
         <!{ $<text> ~~ / ^ \s* $ / }>
         <?{
@@ -2151,7 +2151,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token variable {
-        :my $*IN_META := '';
+        :my $*IN-META := '';
         [
         | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
         | <sigil> <twigil>? <desigilname>
@@ -2159,7 +2159,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <special-variable>
         | <sigil> $<index>=[\d+]
         | <sigil> <?[<]> <postcircumfix>
-        | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN_DECL }> <contextualizer>
+        | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN-DECL }> <contextualizer>
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
@@ -2167,7 +2167,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token contextualizer {
         :dba('contextualizer')
-        [ <?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer"> ]?
+        [ <?{ $*IN-DECL }> <.panic: "Cannot declare a contextualizer"> ]?
         [
         | <sigil> '(' ~ ')'    <coercee=sequence>
         | <sigil> <?[ \[ \{ ]> <coercee=circumfix>
@@ -2237,7 +2237,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ :dba('generic role')
             <?{ ($*PKGDECL // '') eq 'role' }>
             '[' ~ ']' <signature(:DECLARE-TARGETS(0))>
-            { $*IN_DECL := ''; }
+            { $*IN-DECL := ''; }
         ]?
         <.stub-package($<longname>)>
        { $/.set_package($*PACKAGE) }
@@ -2347,7 +2347,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token variable_declarator {
-        :my $*IN_DECL := 'variable';
+        :my $*IN-DECL := 'variable';
         :my $*VARIABLE;
         :my $sigil;
         [
@@ -2356,7 +2356,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # TODO error cases for when you declare something you're not allowed to
         ]
         {
-            $*IN_DECL := '';
+            $*IN-DECL := '';
             $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL;
             $sigil := $<sigil>.Str;
         }
@@ -2404,7 +2404,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <?before <.sigil> <.sigil> > <variable>
         | <?sigil>
-          [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
+          [ <?{ $*IN-DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
           <variable> { $*VAR := $<variable> }
         | <longname>
         ]
@@ -2445,7 +2445,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule routine_def($declarator) {
         :my $*BORG := {};
-        :my $*IN_DECL := $declarator;
+        :my $*IN-DECL := $declarator;
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('my')>?
@@ -2465,7 +2465,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
         [ '(' <signature> ')' ]?
         <trait($*BLOCK)>* :!s
-        { $*IN_DECL := ''; }
+        { $*IN-DECL := ''; }
         [
         || ';'
             {
@@ -2496,13 +2496,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule method_def($declarator) {
         :my $*BORG := {};
-        :my $*IN_DECL := $declarator;
+        :my $*IN-DECL := $declarator;
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
         $<specials>=[<[ ! ^ ]>?]<deflongname('has')>?
         [ '(' <signature(1)> ')' ]?
         <trait($*BLOCK)>* :!s
-        { $*IN_DECL := ''; }
+        { $*IN-DECL := ''; }
         [
         || <onlystar>
         || <blockoid>
@@ -2522,7 +2522,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        :my $*IN_DECL := 'rule';
+        :my $*IN-DECL := 'rule';
         :my $*WHITESPACE_OK := 1;
         <regex_def>
     }
@@ -2531,7 +2531,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        :my $*IN_DECL := 'token';
+        :my $*IN-DECL := 'token';
         <regex_def>
     }
 
@@ -2539,17 +2539,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym><.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        :my $*IN_DECL := 'regex';
+        :my $*IN-DECL := 'regex';
         <regex_def>
     }
 
     rule regex_def {
         :my $*BLOCK;
-        <.enter-block-scope(nqp::tclc($*IN_DECL) ~ 'Declaration')>
+        <.enter-block-scope(nqp::tclc($*IN-DECL) ~ 'Declaration')>
         [
           <deflongname('has')>?
           { if $<longname> { %*RX<name> := ~$<deflongname>.ast } }
-          { $*IN_DECL := '' }
+          { $*IN-DECL := '' }
           [ '(' <signature> ')' ]?
           <trait($*BLOCK)>*
           '{'
@@ -2565,14 +2565,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token type_declarator {*}
 
     token type_declarator:sym<constant> {
-        :my $*IN_DECL := 'constant';
+        :my $*IN-DECL := 'constant';
         <sym><.kok>
         [
         | '\\'? <defterm>
         | <variable>  # for new &infix:<foo> synonyms
         | <?>
         ]
-        { $*IN_DECL := ''; }
+        { $*IN-DECL := ''; }
         <.ws>
 
         <trait>*
@@ -2584,13 +2584,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token type_declarator:sym<enum> {
         <sym><.kok>
-        :my $*IN_DECL := 'enum';
+        :my $*IN-DECL := 'enum';
         [
         | <longname>
         | <variable>
         | <?>
         ]
-        { $*IN_DECL := '' }
+        { $*IN-DECL := '' }
         <.ws>
 
         <trait>*
@@ -2599,14 +2599,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule type_declarator:sym<subset> {
-        :my $*IN_DECL := 'subset';
+        :my $*IN-DECL := 'subset';
         <sym><.kok>
         [
             [
                 [
                     <longname>
                 ]
-                { $*IN_DECL := '' }
+                { $*IN-DECL := '' }
                 <trait>*
                 [ where <EXPR('e=')> ]?
             ]
@@ -2615,7 +2615,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule trait($*TARGET?) {
-        :my $*IN_DECL := '';
+        :my $*IN-DECL := '';
         <trait_mod>
     }
 
@@ -2966,7 +2966,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]+ % <param_sep>
         <.ws>
         [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' > || <.malformed('parameter')> ]
-        { $*IN_DECL := ''; }
+        { $*IN-DECL := ''; }
         [ '-->' <.ws> [ || [<typename>|<value>||<typo_typename(1)>] <.ws>
                            [ || <?[ { ) ]>
                              || <?before <.param_sep>? <.parameter>>
@@ -3022,7 +3022,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule post_constraint {
-        :my $*IN_DECL := '';
+        :my $*IN-DECL := '';
         :dba('constraint')
         [
         | '[' ~ ']' <signature>
@@ -3049,7 +3049,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           ]
 
           :dba('shape declaration')
-          :my $*IN_DECL := '';
+          :my $*IN-DECL := '';
           [
 #          | <?before ':('>  ':'  # XXX allow fakesig parsed as subsig for the moment
           | <?before '('>         <.sorry: "Shape declaration with () is reserved;\n  please use whitespace if you meant a subsignature for unpacking,\n  or use the :() form if you meant to add signature info to the function's type">
@@ -3077,12 +3077,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule default_value {
-        :my $*IN_DECL := '';
+        :my $*IN-DECL := '';
         '=' <EXPR('i=')>
     }
 
     token type_constraint {
-        :my $*IN_DECL := '';
+        :my $*IN-DECL := '';
         [
         | <value>
         | [ <[-−]> :my $*NEGATE_VALUE := 1; | '+' ] $<value>=<numish>

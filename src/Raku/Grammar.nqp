@@ -602,7 +602,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*IGNORE-NEXT-DECLARAND;  # True if next declarand to be ignored
         :my $*DECLARAND-WORRIES := {}; # $/ of worries when clearing DECLARAND
         :my $*NEXT_STATEMENT_ID := 1; # to give each statement an ID
-        :my $*FAKE_INFIX_FOUND := 0;
+        :my $*FAKE-INFIX-FOUND := 0;
         :my $*begin_compunit := 1;    # whether we're at start of a compilation unit
         <.comp_unit_stage0>
         <.lang_setup($outer-cu)>
@@ -1101,7 +1101,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!infixstopper>
         :dba('infix')
         [
-        | <!{ $*IN_REDUCE }> <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
+        | <!{ $*IN_REDUCE }> <colonpair> <fake-infix> { $*OPER := $<fake-infix> }
         |   [
             | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
             | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
@@ -1121,9 +1121,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
     }
 
-    token fake_infix {
+    token fake-infix {
         <O(|%item_assignment, :assoc<unary>, :fake<1>, :dba<adverb>)>
-        { $*FAKE_INFIX_FOUND := 1 }
+        { $*FAKE-INFIX-FOUND := 1 }
     }
 
     regex infixstopper {
@@ -1670,7 +1670,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O(|%chaining)> }
 
     token circumfix:sym<( )> {
-        :my $*FAKE_INFIX_FOUND := 0;
+        :my $*FAKE-INFIX-FOUND := 0;
         :dba('parenthesized expression')
         '(' ~ ')' <semilist>
     }
@@ -1681,7 +1681,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token circumfix:sym<{ }> {
-        :my $*FAKE_INFIX_FOUND := 0;
+        :my $*FAKE-INFIX-FOUND := 0;
         <?[{]> <pblock>
         { $*BORG<block> := $<pblock> }
     }
@@ -3099,7 +3099,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token args($*INVOCANT_OK = 0) {
         :my $*INVOCANT;
         :my $*GOAL := '';
-        :my $*FAKE_INFIX_FOUND := 0;
+        :my $*FAKE-INFIX-FOUND := 0;
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>

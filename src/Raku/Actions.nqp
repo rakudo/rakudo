@@ -882,7 +882,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             elsif $KEY eq 'POSTFIX' {
                 if $<colonpair> {
-                    if $*FAKE_INFIX_FOUND && (nqp::istype($/[0].ast, self.r('ColonPair')) || nqp::istype($/[0].ast, self.r('ColonPairs'))) {
+                    if $*FAKE-INFIX-FOUND && (nqp::istype($/[0].ast, self.r('ColonPair')) || nqp::istype($/[0].ast, self.r('ColonPairs'))) {
                         self.attach: $/, self.r('ColonPairs').new($/[0].ast, $<colonpair>.ast);
                     }
                     else {
@@ -1106,7 +1106,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method infixish($/) {
-        return 0 if $<fake_infix>;
+        return 0 if $<fake-infix>;
 
         my $ast;
         if $<infix> {

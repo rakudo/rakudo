@@ -292,7 +292,7 @@ role Raku::Common {
     method missing($what) {
         self.typed_panic('X::Syntax::Missing', :$what);
     }
-    method missing_block($borg, $has_mystery) {
+    method missing-block($borg, $has_mystery) {
         my $marked := self.MARKED('ws');
         my $pos := $marked ?? $marked.from !! self.pos;
 
@@ -738,7 +738,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <.enter-block-scope('Block')>
           <blockoid>
           <.leave-block-scope>
-        || <.missing_block($borg, $has_mystery)>
+        || <.missing-block($borg, $has_mystery)>
         ]
     }
 
@@ -753,7 +753,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
            <.enter-block-scope('Block')>
            <blockoid>
            <.leave-block-scope>
-        || <.missing_block($borg, $has_mystery)>
+        || <.missing-block($borg, $has_mystery)>
         ]
     }
 
@@ -771,7 +771,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <statementlist=.key-origin('statementlist')>
           [<.cheat-heredoc> || '}']
           <?ENDSTMT>
-        || <.missing_block($borg, $has_mystery)>
+        || <.missing-block($borg, $has_mystery)>
         ]
     }
 

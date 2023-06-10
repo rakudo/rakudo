@@ -379,8 +379,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $statement.replace-loop-modifier($<statement_mod_loop>.ast);
             }
         }
-        elsif $<statement_control> {
-            $statement := $<statement_control>.ast;
+        elsif $<statement-control> {
+            $statement := $<statement-control>.ast;
         }
         elsif $<label> {  # setting label on already created statement
             my $statement := $<statement>.ast;
@@ -492,7 +492,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.leave-scope();
     }
 
-    method statement_control:sym<if>($/) {
+    method statement-control:sym<if>($/) {
         my $condition := $<condition>[0].ast;
         my $then := $<then>[0].ast;
         my @elsifs;
@@ -511,31 +511,31 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :$condition, :$then, :@elsifs, :$else;
     }
 
-    method statement_control:sym<unless>($/) {
+    method statement-control:sym<unless>($/) {
         self.attach: $/, self.r('Statement', 'Unless').new:
             condition => $<EXPR>.ast,
             body => $<pblock>.ast;
     }
 
-    method statement_control:sym<without>($/) {
+    method statement-control:sym<without>($/) {
         self.attach: $/, self.r('Statement', 'Without').new:
             condition => $<EXPR>.ast,
             body => $<pblock>.ast;
     }
 
-    method statement_control:sym<while>($/) {
+    method statement-control:sym<while>($/) {
         self.attach: $/, self.r('Statement', 'Loop', $<sym> eq 'while' ?? 'While' !! 'Until').new:
             condition => $<EXPR>.ast,
             body => $<pblock>.ast;
     }
 
-    method statement_control:sym<repeat>($/) {
+    method statement-control:sym<repeat>($/) {
         self.attach: $/, self.r('Statement', 'Loop', $<wu> eq 'while' ?? 'RepeatWhile' !! 'RepeatUntil').new:
             condition => $<EXPR>.ast,
             body => $<pblock>.ast;
     }
 
-    method statement_control:sym<loop>($/) {
+    method statement-control:sym<loop>($/) {
         my %parts;
         %parts<setup> := $<e1>.ast if $<e1>;
         %parts<condition> := $<e2>.ast if $<e2>;
@@ -544,37 +544,37 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Statement', 'Loop').new(|%parts);
     }
 
-    method statement_control:sym<for>($/) {
+    method statement-control:sym<for>($/) {
         self.attach: $/, self.r('Statement', 'For').new:
             source => $<EXPR>.ast,
             body => $<pblock>.ast;
     }
 
-    method statement_control:sym<given>($/) {
+    method statement-control:sym<given>($/) {
         self.attach: $/, self.r('Statement', 'Given').new:
             source => $<EXPR>.ast,
             body => $<pblock>.ast;
     }
 
-    method statement_control:sym<when>($/) {
+    method statement-control:sym<when>($/) {
         self.attach: $/, self.r('Statement', 'When').new:
             condition => $<EXPR>.ast,
             body => $<pblock>.ast;
     }
 
-    method statement_control:sym<default>($/) {
+    method statement-control:sym<default>($/) {
         self.attach: $/, self.r('Statement', 'Default').new(body => $<block>.ast);
     }
 
-    method statement_control:sym<CATCH>($/) {
+    method statement-control:sym<CATCH>($/) {
         self.attach: $/, self.r('Statement', 'Catch').new(body => $<block>.ast);
     }
 
-    method statement_control:sym<CONTROL>($/) {
+    method statement-control:sym<CONTROL>($/) {
         self.attach: $/, self.r('Statement', 'Control').new(body => $<block>.ast);
     }
 
-    method statement_control:sym<no>($/) {
+    method statement-control:sym<no>($/) {
         my str $name := ~$<module_name>;
         my $Pragma   := self.r('Pragma');
         if $Pragma.IS-PRAGMA($name) {
@@ -589,7 +589,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method statement_control:sym<use>($/) {
+    method statement-control:sym<use>($/) {
         my str $name := ~$<module_name>;
         my $Pragma   := self.r('Pragma');
         my $ast;
@@ -621,7 +621,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
-    method statement_control:sym<need>($/) {
+    method statement-control:sym<need>($/) {
         my $ast;
 
         my @module-names;
@@ -635,7 +635,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
-    method statement_control:sym<import>($/) {
+    method statement-control:sym<import>($/) {
         my $ast := $<arglist><EXPR>
           ?? self.r('Statement', 'Import').new(
                :module-name($<module_name>.ast),
@@ -670,7 +670,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $ast;
     }
 
-    method statement_control:sym<require>($/) {
+    method statement-control:sym<require>($/) {
         #TODO non-trivial cases, args
         self.attach: $/, self.r('Statement', 'Require').new(
             module-name => $<module_name>.ast,

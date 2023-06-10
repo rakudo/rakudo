@@ -686,7 +686,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         [
         | <label> <statement>
-        | <statement_control>
+        | <statement-control>
         | <EXPR> :dba('statement end')
             [
             || <?MARKED('endstmt')>
@@ -791,9 +791,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token enter-block-scope($*SCOPE-KIND) { <?> }
     token leave-block-scope() { <?> }
 
-    proto rule statement_control {*}
+    proto rule statement-control {*}
 
-    rule statement_control:sym<if> {
+    rule statement-control:sym<if> {
         $<sym>=[if|with]<.kok> {}
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -814,7 +814,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
     }
 
-    rule statement_control:sym<unless> {
+    rule statement-control:sym<unless> {
         $<sym>='unless'<.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -828,7 +828,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    rule statement_control:sym<without> {
+    rule statement-control:sym<without> {
         $<sym>='without'<.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -842,7 +842,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    rule statement_control:sym<while> {
+    rule statement-control:sym<while> {
         $<sym>=[while|until]<.kok> {}
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -850,7 +850,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pblock>
     }
 
-    rule statement_control:sym<repeat> {
+    rule statement-control:sym<repeat> {
         <sym><.kok> {}
         [
         | $<wu>=[while|until]<.kok>
@@ -864,7 +864,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token statement_control:sym<loop> {
+    token statement-control:sym<loop> {
         <sym><.kok>
         :s''
         [
@@ -890,7 +890,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <block>
     }
 
-    rule statement_control:sym<for> {
+    rule statement-control:sym<for> {
         <sym><.kok> {}
         [ <?before 'my'? '$'\w+\s+'(' >
             <.typed_panic: 'X::Syntax::P5'> ]?
@@ -902,11 +902,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pblock>
     }
 
-    rule statement_control:sym<foreach> {
+    rule statement-control:sym<foreach> {
         <sym><.end_keyword> <.obs("'foreach'", "'for'")>
     }
 
-    rule statement_control:sym<given> {
+    rule statement-control:sym<given> {
         <sym><.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -914,7 +914,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pblock>
     }
 
-    rule statement_control:sym<when> {
+    rule statement-control:sym<when> {
         <sym><.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -922,20 +922,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pblock>
     }
 
-    rule statement_control:sym<default> {
+    rule statement-control:sym<default> {
         <sym><.kok> <block>
     }
 
-    rule statement_control:sym<CATCH> { <sym> <block> }
-    rule statement_control:sym<CONTROL> { <sym> <block> }
+    rule statement-control:sym<CATCH> { <sym> <block> }
+    rule statement-control:sym<CONTROL> { <sym> <block> }
 
-    token statement_control:sym<no> {
+    token statement-control:sym<no> {
         <sym> <.ws>
         <module_name=.longname> [ <.spacey> <arglist> ]?
         <.ws>
     }
 
-    token statement_control:sym<use> {
+    token statement-control:sym<use> {
         # TODO this is massively simplified
         <sym> <.ws>
         [
@@ -946,7 +946,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
-    rule statement_control:sym<need> {
+    rule statement-control:sym<need> {
         <sym>
         [
         | <version> <.sorry('In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").')>
@@ -954,14 +954,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]+ % ','
     }
 
-    token statement_control:sym<import> {
+    token statement-control:sym<import> {
         :my $*IN_DECL := 'import';
         <sym> <.ws>
         <module_name=.longname> [ <.spacey> <arglist> ]?
         <.ws>
     }
 
-    rule statement_control:sym<require> {
+    rule statement-control:sym<require> {
         <sym>
         [
         | <module_name=.longname>

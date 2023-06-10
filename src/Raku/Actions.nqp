@@ -3008,7 +3008,7 @@ class Raku::QActions is HLL::Actions does Raku::CommonActions {
     method backslash:sym<f>($/) { make "\c[12]" }
     method backslash:sym<n>($/) {
         my str $nl := $*R.resolve-lexical('$?NL').compile-time-value;
-        if nqp::can($/, 'parsing_heredoc') {
+        if nqp::can($/, 'parsing-heredoc') {
             # In heredocs, we spit out a QAST::SVal here to prevent newlines
             # being taken literally and affecting the dedent.
             make self.r('Heredoc', 'InterpolatedWhiteSpace').new($*LITERALS.intern-str($nl));
@@ -3019,7 +3019,7 @@ class Raku::QActions is HLL::Actions does Raku::CommonActions {
     }
     method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
     method backslash:sym<r>($/) {
-        if nqp::can($/, 'parsing_heredoc') {
+        if nqp::can($/, 'parsing-heredoc') {
             make self.r('Heredoc', 'InterpolatedWhiteSpace').new($*LITERALS.intern-str("\r"));
         }
         else {
@@ -3027,7 +3027,7 @@ class Raku::QActions is HLL::Actions does Raku::CommonActions {
         }
     }
     method backslash:sym<rn>($/) {
-        if nqp::can($/, 'parsing_heredoc') {
+        if nqp::can($/, 'parsing-heredoc') {
             make self.r('Heredoc', 'InterpolatedWhiteSpace').new($*LITERALS.intern-str("\r\n"));
         }
         else {
@@ -3035,7 +3035,7 @@ class Raku::QActions is HLL::Actions does Raku::CommonActions {
         }
     }
     method backslash:sym<t>($/) {
-        if nqp::can($/, 'parsing_heredoc') {
+        if nqp::can($/, 'parsing-heredoc') {
             make self.r('Heredoc', 'InterpolatedWhiteSpace').new($*LITERALS.intern-str("\t"));
         }
         else {

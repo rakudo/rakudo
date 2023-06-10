@@ -151,7 +151,7 @@ role Raku::Common {
     role herestop {
         token starter { <!> }
         token stopper { ^^ {} $<ws>=(\h*) $*DELIM \h* $$ [\r\n | \v]? }
-        method parsing_heredoc() { 1 }
+        method parsing-heredoc() { 1 }
     }
 
     method heredoc () {

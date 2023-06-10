@@ -693,7 +693,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             || :dba('statement modifier') <.ws> <statement-mod-cond> <statement-mod-loop>?
             || :dba('statement modifier loop') <.ws> <statement-mod-loop>
                 {
-                    my $sp := $<EXPR><statement_prefix>;
+                    my $sp := $<EXPR><statement-prefix>;
                     if $sp && $sp<sym> eq 'do' {
                         my $s := $<statement-mod-loop><sym>;
                         $/.obs("do..." ~ $s, "repeat...while or repeat...until")
@@ -1000,42 +1000,42 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ## Statement prefixes
     ##
 
-    proto token statement_prefix {*}
+    proto token statement-prefix {*}
 
-    token statement_prefix:sym<BEGIN> { <sym><.kok> <blorst> }
-    token statement_prefix:sym<CHECK> { <sym><.kok> <blorst> }
-    token statement_prefix:sym<INIT>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<END>   { <sym><.kok> <blorst> }
+    token statement-prefix:sym<BEGIN> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<CHECK> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<INIT>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<END>   { <sym><.kok> <blorst> }
 
-    token statement_prefix:sym<ENTER> { <sym><.kok> <blorst> }
-    token statement_prefix:sym<LEAVE> { <sym><.kok> <blorst> }
-    token statement_prefix:sym<KEEP>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<UNDO>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<ENTER> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<LEAVE> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<KEEP>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<UNDO>  { <sym><.kok> <blorst> }
 
-    token statement_prefix:sym<FIRST> { <sym><.kok> <blorst> }
-    token statement_prefix:sym<NEXT>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<LAST>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<FIRST> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<NEXT>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<LAST>  { <sym><.kok> <blorst> }
 
-    token statement_prefix:sym<PRE>   { <sym><.kok> <blorst> }
-    token statement_prefix:sym<POST>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<PRE>   { <sym><.kok> <blorst> }
+    token statement-prefix:sym<POST>  { <sym><.kok> <blorst> }
 
-    token statement_prefix:sym<QUIT>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<CLOSE> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<QUIT>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<CLOSE> { <sym><.kok> <blorst> }
 
-    token statement_prefix:sym<DOC>     {
+    token statement-prefix:sym<DOC>     {
         <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>
         <blorst>
     }
 
-    token statement_prefix:sym<race>    { <sym><.kok> <blorst> }
-    token statement_prefix:sym<hyper>   { <sym><.kok> <blorst> }
-    token statement_prefix:sym<lazy>    { <sym><.kok> <blorst> }
-    token statement_prefix:sym<eager>   { <sym><.kok> <blorst> }
-    token statement_prefix:sym<try>     { <sym><.kok> <blorst> }
-    token statement_prefix:sym<do>      { <sym><.kok> <blorst> }
-    token statement_prefix:sym<quietly> { <sym><.kok> <blorst> }
-    token statement_prefix:sym<gather>  { <sym><.kok> <blorst> }
-    token statement_prefix:sym<start>   { <sym><.kok> <blorst> }
+    token statement-prefix:sym<race>    { <sym><.kok> <blorst> }
+    token statement-prefix:sym<hyper>   { <sym><.kok> <blorst> }
+    token statement-prefix:sym<lazy>    { <sym><.kok> <blorst> }
+    token statement-prefix:sym<eager>   { <sym><.kok> <blorst> }
+    token statement-prefix:sym<try>     { <sym><.kok> <blorst> }
+    token statement-prefix:sym<do>      { <sym><.kok> <blorst> }
+    token statement-prefix:sym<quietly> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<gather>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<start>   { <sym><.kok> <blorst> }
 
     token blorst {
         [
@@ -1822,7 +1822,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<multi_declarator>   { <?before 'multi'|'proto'|'only'> <multi_declarator> }
     token term:sym<regex_declarator>   { <regex_declarator> }
-    token term:sym<statement_prefix>   { <statement_prefix> }
+    token term:sym<statement-prefix>   { <statement-prefix> }
     token term:sym<*>                  { <sym> }
     token term:sym<**>                 { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> } }

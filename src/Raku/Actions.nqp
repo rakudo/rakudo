@@ -718,18 +718,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Statement prefixes
     ##
 
-    method statement_prefix:sym<BEGIN>($/) {
+    method statement-prefix:sym<BEGIN>($/) {
         my $ast := self.r('StatementPrefix', 'Phaser', 'Begin').new($<blorst>.ast);
         $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;
     }
 
-    method statement_prefix:sym<PRE>($/) {
+    method statement-prefix:sym<PRE>($/) {
         self.attach: $/, self.r(
           'StatementPrefix', 'Phaser', 'Pre'
         ).new($<blorst>.ast, ~$<blorst>);
     }
-    method statement_prefix:sym<POST>($/) {
+    method statement-prefix:sym<POST>($/) {
         self.attach: $/, self.r(
           'StatementPrefix', 'Phaser', 'Post'
         ).new($<blorst>.ast, ~$<blorst>);
@@ -739,24 +739,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('StatementPrefix', 'Phaser', $name).new($<blorst>.ast);
     }
 
-    method statement_prefix:sym<CHECK>($/) { self.setup-phaser($/, 'Check') }
-    method statement_prefix:sym<INIT>($/)  { self.setup-phaser($/, 'Init')  }
-    method statement_prefix:sym<END>($/)   { self.setup-phaser($/, 'End')   }
-    method statement_prefix:sym<ENTER>($/) { self.setup-phaser($/, 'Enter') }
-    method statement_prefix:sym<LEAVE>($/) { self.setup-phaser($/, 'Leave') }
-    method statement_prefix:sym<KEEP>($/)  { self.setup-phaser($/, 'Keep')  }
-    method statement_prefix:sym<UNDO>($/)  { self.setup-phaser($/, 'Undo')  }
-    method statement_prefix:sym<FIRST>($/) { self.setup-phaser($/, 'First') }
-    method statement_prefix:sym<NEXT>($/)  { self.setup-phaser($/, 'Next')  }
-    method statement_prefix:sym<LAST>($/)  { self.setup-phaser($/, 'Last')  }
-    method statement_prefix:sym<QUIT>($/)  { self.setup-phaser($/, 'Quit')  }
-    method statement_prefix:sym<CLOSE>($/) { self.setup-phaser($/, 'Close') }
+    method statement-prefix:sym<CHECK>($/) { self.setup-phaser($/, 'Check') }
+    method statement-prefix:sym<INIT>($/)  { self.setup-phaser($/, 'Init')  }
+    method statement-prefix:sym<END>($/)   { self.setup-phaser($/, 'End')   }
+    method statement-prefix:sym<ENTER>($/) { self.setup-phaser($/, 'Enter') }
+    method statement-prefix:sym<LEAVE>($/) { self.setup-phaser($/, 'Leave') }
+    method statement-prefix:sym<KEEP>($/)  { self.setup-phaser($/, 'Keep')  }
+    method statement-prefix:sym<UNDO>($/)  { self.setup-phaser($/, 'Undo')  }
+    method statement-prefix:sym<FIRST>($/) { self.setup-phaser($/, 'First') }
+    method statement-prefix:sym<NEXT>($/)  { self.setup-phaser($/, 'Next')  }
+    method statement-prefix:sym<LAST>($/)  { self.setup-phaser($/, 'Last')  }
+    method statement-prefix:sym<QUIT>($/)  { self.setup-phaser($/, 'Quit')  }
+    method statement-prefix:sym<CLOSE>($/) { self.setup-phaser($/, 'Close') }
 
-    method statement_prefix:sym<DOC>($/) {
+    method statement-prefix:sym<DOC>($/) {
         if %*OPTIONS<doc> {
             my $phase := ~$<phase>;
             $phase eq 'BEGIN'
-              ?? self.statement_prefix:sym<BEGIN>($/)
+              ?? self.statement-prefix:sym<BEGIN>($/)
               !! self.setup-phaser($/, nqp::tclc($phase));
         }
         else {
@@ -764,7 +764,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method statement_prefix:sym<race>($/) {
+    method statement-prefix:sym<race>($/) {
         my $blorst := $<blorst>.ast;
         if nqp::istype($blorst, self.r('Statement', 'For')) {
             $blorst.replace-mode('race');
@@ -775,7 +775,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method statement_prefix:sym<hyper>($/) {
+    method statement-prefix:sym<hyper>($/) {
         my $blorst := $<blorst>.ast;
         if nqp::istype($blorst, self.r('Statement', 'For')) {
             $blorst.replace-mode('hyper');
@@ -786,7 +786,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method statement_prefix:sym<lazy>($/) {
+    method statement-prefix:sym<lazy>($/) {
         my $blorst := $<blorst>.ast;
         if nqp::istype($blorst, self.r('Statement', 'For')) {
             $blorst.replace-mode('lazy');
@@ -797,27 +797,27 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method statement_prefix:sym<eager>($/) {
+    method statement-prefix:sym<eager>($/) {
         self.attach: $/, self.r('StatementPrefix', 'Eager').new($<blorst>.ast);
     }
 
-    method statement_prefix:sym<try>($/) {
+    method statement-prefix:sym<try>($/) {
         self.attach: $/, self.r('StatementPrefix', 'Try').new($<blorst>.ast);
     }
 
-    method statement_prefix:sym<do>($/) {
+    method statement-prefix:sym<do>($/) {
         self.attach: $/, self.r('StatementPrefix', 'Do').new($<blorst>.ast);
     }
 
-    method statement_prefix:sym<quietly>($/) {
+    method statement-prefix:sym<quietly>($/) {
         self.attach: $/, self.r('StatementPrefix', 'Quietly').new($<blorst>.ast);
     }
 
-    method statement_prefix:sym<gather>($/) {
+    method statement-prefix:sym<gather>($/) {
         self.attach: $/, self.r('StatementPrefix', 'Gather').new($<blorst>.ast);
     }
 
-    method statement_prefix:sym<start>($/) {
+    method statement-prefix:sym<start>($/) {
         self.attach: $/, self.r('StatementPrefix', 'Start').new($<blorst>.ast);
     }
 
@@ -1292,8 +1292,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<type_declarator>.ast;
     }
 
-    method term:sym<statement_prefix>($/) {
-        self.attach: $/, $<statement_prefix>.ast;
+    method term:sym<statement-prefix>($/) {
+        self.attach: $/, $<statement-prefix>.ast;
     }
 
     method term:sym<*>($/) {

@@ -2524,7 +2524,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'rule';
         :my $*WHITESPACE_OK := 1;
-        <regex_def>
+        <regex-def>
     }
 
     token regex-declarator:sym<token> {
@@ -2532,7 +2532,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'token';
-        <regex_def>
+        <regex-def>
     }
 
     token regex-declarator:sym<regex> {
@@ -2540,10 +2540,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'regex';
-        <regex_def>
+        <regex-def>
     }
 
-    rule regex_def {
+    rule regex-def {
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($*IN-DECL) ~ 'Declaration')>
         [

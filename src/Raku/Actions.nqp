@@ -1854,18 +1854,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method regex-declarator:sym<regex>($/) {
-        self.attach: $/, $<regex_def>.ast;
+        self.attach: $/, $<regex-def>.ast;
     }
 
     method regex-declarator:sym<token>($/) {
-        self.attach: $/, $<regex_def>.ast;
+        self.attach: $/, $<regex-def>.ast;
     }
 
     method regex-declarator:sym<rule>($/) {
-        self.attach: $/, $<regex_def>.ast;
+        self.attach: $/, $<regex-def>.ast;
     }
 
-    method regex_def($/) {
+    method regex-def($/) {
         my $regex := $*BLOCK;
         if $<signature> {
             $regex.replace-signature($<signature>.ast);

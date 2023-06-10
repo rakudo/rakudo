@@ -1280,8 +1280,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<routine_declarator>.ast
     }
 
-    method term:sym<multi_declarator>($/) {
-        self.attach: $/, $<multi_declarator>.ast;
+    method term:sym<multi-declarator>($/) {
+        self.attach: $/, $<multi-declarator>.ast;
     }
 
     method term:sym<regex_declarator>($/) {
@@ -1680,19 +1680,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<DECL>.ast;
     }
 
-    method multi_declarator:sym<multi>($/) {
+    method multi-declarator:sym<multi>($/) {
         self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
     }
 
-    method multi_declarator:sym<proto>($/) {
+    method multi-declarator:sym<proto>($/) {
         self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
     }
 
-    method multi_declarator:sym<only>($/) {
+    method multi-declarator:sym<only>($/) {
         self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine_def>.ast;
     }
 
-    method multi_declarator:sym<null>($/) {
+    method multi-declarator:sym<null>($/) {
         self.attach: $/, $<declarator>.ast;
     }
 

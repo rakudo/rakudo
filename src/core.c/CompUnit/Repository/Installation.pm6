@@ -45,6 +45,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     my class InstalledDistribution is Distribution::Hash {
+        submethod TWEAK {
+            # Secure the original source checksum
+            self.checksum;
+            with self.meta {
+                .<ver> = Version.new: .<ver> // '0';
+                .<api> = Version.new: .<api> // '0';
+            }
+        }
         method content($address) {
             my $entry = $.meta<provides>.values.first: { $_{$address}:exists };
             my $file = $entry
@@ -72,7 +80,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         has $.dist-id;
         has $.read-dist;
         has $!installed-dist;
-        has $.meta;
+        has $!meta is built;
 
         # Parses dist info from json and populates $.meta with any new fields
         method !dist {
@@ -104,6 +112,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             %hash;
         }
         method content($content-id --> IO::Handle:D) { self!dist.content($content-id) }
+        method checksum { self!dist.checksum }
         method Str { CompUnit::Repository::Distribution.new(self).Str }
         method id { $.dist-id }
     }
@@ -166,11 +175,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     }
 
     method !read-dist(Str:D $id) {
-        my %meta := Rakudo::Internals::JSON.from-json:
-          self!dist-dir.add($id).slurp;
-        %meta<ver> := Version.new: %meta<ver> // '0';
-        %meta<api> := Version.new: %meta<api> // '0';
-        %meta
+        Rakudo::Internals::JSON.from-json: self!dist-dir.add($id).slurp;
     }
 
     method !repository-version(--> Int:D) {
@@ -614,8 +619,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $*RESOURCES := Distribution::Resources.new:
               :repo(self), :$dist-id;
 
-            # could load precompiled (the fast path in production)
             my $repo-prefix := self!repo-prefix;
+            my $dist-src :=
+                ($repo-prefix
+                    ?? $repo-prefix ~ .relative($!prefix)
+                    !! ~$_)
+                with $!prefix.add('dist/' ~ $dist-id);
+
+            # could load precompiled (the fast path in production)
             if $precomp.try-load(
               CompUnit::PrecompilationDependency::File.new(
                 :id(CompUnit::PrecompilationId.new-without-check($repo-id)),
@@ -623,7 +634,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                        ?? $repo-prefix ~ $loader.relative($!prefix)
                        !! $loader.absolute
                     ),
+                :$dist-src,
                 :checksum(%meta<checksum> // Str),
+                :dist-checksum($distribution.checksum),
                 :$spec,
               ),
               :source($loader),

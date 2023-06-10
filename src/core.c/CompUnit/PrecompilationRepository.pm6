@@ -273,8 +273,11 @@ Need to re-check dependencies.")
         return $_ if $_ := $loaded-lock.protect: { nqp::atkey($loaded,$id.Str) };
 
         if self!load-file(@precomp-stores, $id) -> $unit {
+            my $distribution = $*DISTRIBUTION;
             if (not $since or $unit.modified > $since)
                 and (not $source or ($checksum //= $source.CHECKSUM) eq $unit.source-checksum)
+                and (not ($unit.dist-checksum xor $distribution))
+                and (!$distribution or $unit.dist-checksum eq $distribution.checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
                 my $unit-checksum := $unit.checksum;
@@ -288,11 +291,9 @@ Need to re-check dependencies.")
             else {
                 $!RMD("Outdated precompiled {$unit}{
                     $source ?? " for $source" !! ''
-                }\n    mtime: {$unit.modified}{
-                    $since ?? ", since: $since" !! ''}
-                \n    checksum: {
-                    $unit.source-checksum
-                }, expected: $checksum")
+                }\n    mtime: {$unit.modified}, since: {
+                    $since // 'none'
+                }\n    checksum: {$unit.source-checksum}, expected: {$checksum // 'none'}")
                   if $!RMD;
 
                 $unit.close;
@@ -351,15 +352,19 @@ Need to re-check dependencies.")
         my $io    := $store.destination($compiler-id, $id);
         return False unless $io;
 
+        my $distribution := $*DISTRIBUTION;
+
         if $force {
             return self!already-precompiled($path,$source-name,$io,1)
               if $precomp-stores
-              and my $unit := self!load-refreshed-file($precomp-stores, $id)
-              and do {
-                         LEAVE $unit.close;
-                         $path.CHECKSUM eq $unit.source-checksum
-                         and self!load-dependencies($unit, $precomp-stores)
-                     }
+                  and my $unit := self!load-refreshed-file($precomp-stores, $id)
+                  and do {
+                            LEAVE $unit.close;
+                            $path.CHECKSUM eq $unit.source-checksum
+                            and not ($unit.dist-checksum xor $distribution) 
+                            and (!$distribution or $unit.dist-checksum eq $distribution.checksum)
+                            and self!load-dependencies($unit, $precomp-stores)
+                        }
         }
 
         elsif Rakudo::Internals.FILETEST-ES($io.absolute) {
@@ -384,7 +389,6 @@ Need to re-check dependencies.")
         }
 
         my $stagestats   := Rakudo::Internals.STAGESTATS;
-        my $distribution := $*DISTRIBUTION;
         nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',
           $distribution ?? $distribution.serialize !! '{}');
 
@@ -510,8 +514,10 @@ Need to re-check dependencies.")
         nqp::bindattr(@dependencies,List,'$!reified',$dependencies);
 
         my $source-checksum := $path.CHECKSUM;
-        $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
-          if $!RMD;
+        my $dist-checksum := $distribution ?? $distribution.checksum !! '';
+        $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum" 
+              ~ ", dist.checksum: $dist-checksum")
+            if $!RMD;
 
         $store.store-repo-id($compiler-id, $id, :repo-id($REPO.id));
         $store.store-unit(
@@ -521,6 +527,7 @@ Need to re-check dependencies.")
               :$id,
               :@dependencies
               :$source-checksum,
+              :$dist-checksum,
               :bytecode($bc.slurp(:bin))
             ),
         );

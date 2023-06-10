@@ -206,6 +206,7 @@ src/core.c/Compiler.pm6
 src/core.c/Raku.pm6
 src/core.c/Rakudo/Internals/JSON.pm6
 src/core.c/Distribution.pm6
+src/core.c/Distribution/Checksum.pm6
 src/core.c/Distribution/Locally.pm6
 src/core.c/Distribution/Hash.pm6
 src/core.c/Distribution/Path.pm6

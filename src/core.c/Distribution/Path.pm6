@@ -15,6 +15,8 @@ class Distribution::Path does Distribution::Locally {
         die "No meta file located at $!meta-file.path()"
           unless $!meta-file.e;
         %!meta := Rakudo::Internals::JSON.from-json($!meta-file.slurp);
+        # Secure the original checksum before we modify the meta
+        self.checksum;
         %!meta<files> := my %files;
 
         # set up scripts in bin from file system (not in META)

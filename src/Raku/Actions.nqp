@@ -940,13 +940,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method prefixish($/) {
         my $ast := $<OPER>.ast // self.r('Prefix').new(~$<prefix><sym>);
-        if $<prefix_postfix_meta_operator> {
-            $ast := $<prefix_postfix_meta_operator>.ast.new($ast);
+        if $<prefix-postfix-meta-operator> {
+            $ast := $<prefix-postfix-meta-operator>.ast.new($ast);
         }
         self.attach: $/, $ast;
     }
 
-    method prefix_postfix_meta_operator:sym<«>($/) {
+    method prefix-postfix-meta-operator:sym<«>($/) {
         make self.r('MetaPrefix', 'Hyper');
     }
 

@@ -478,7 +478,7 @@ role Raku::Common {
                             $match<infix-prefix-meta-operator> ||
                             $match<infix-circumfix-meta-operator> ||
                             $match<infix-postfix-meta-operator> ||
-                            $match<prefix_postfix_meta_operator> ||
+                            $match<prefix-postfix-meta-operator> ||
                             $match<postfix_prefix_meta_operator> ||
                             $match<op>)
                         {
@@ -1210,13 +1210,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token prefixish {
         :dba('prefix')
         <OPER=prefix>
-        <prefix_postfix_meta_operator>?
+        <prefix-postfix-meta-operator>?
         <.ws>
     }
 
-    proto token prefix_postfix_meta_operator {*}
+    proto token prefix-postfix-meta-operator {*}
 
-    token prefix_postfix_meta_operator:sym<«> {
+    token prefix-postfix-meta-operator:sym<«> {
         <sym> | '<<'
     }
 

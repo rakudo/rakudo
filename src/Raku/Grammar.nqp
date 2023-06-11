@@ -2305,7 +2305,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
            | $
            ]
            > {} <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
-        || <.ws><!typename> <typo_typename> <!>
+        || <.ws><!typename> <typo-typename> <!>
         || <.malformed($*SCOPE)>
         ]
     }
@@ -2933,7 +2933,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [<.ws> 'of' <.ws> <typename> ]?
     }
 
-    token typo_typename($panic = 0) {
+    token typo-typename($panic = 0) {
         <longname>
         {
           #TODO bring back suggestions for which types may have been meant
@@ -2969,7 +2969,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
         [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' > || <.malformed('parameter')> ]
         { $*IN-DECL := ''; }
-        [ '-->' <.ws> [ || [<typename>|<value>||<typo_typename(1)>] <.ws>
+        [ '-->' <.ws> [ || [<typename>|<value>||<typo-typename(1)>] <.ws>
                            [ || <?[ { ) ]>
                              || <?before <.param_sep>? <.parameter>>
                                 <.malformed('return value (return constraints only allowed at the end of the signature)')>

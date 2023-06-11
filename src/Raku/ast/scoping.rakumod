@@ -114,6 +114,14 @@ class RakuAST::LexicalScope
         self.IMPL-WRAP-LIST($!generated-lexical-declarations // [])
     }
 
+    method lexical-declarations() {
+        my $declarations := nqp::clone(self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations));
+        for ($!generated-lexical-declarations // []) {
+            nqp::push($declarations, $_);
+        }
+        self.IMPL-WRAP-LIST($declarations)
+    }
+
     # Add a generated lexical declaration.
     method add-generated-lexical-declaration(RakuAST::Declaration $declaration) {
         unless $!generated-lexical-declarations {

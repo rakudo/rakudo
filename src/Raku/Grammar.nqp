@@ -494,7 +494,7 @@ role Raku::Common {
                 }
                 else {
                     self.typed_panic('X::Undeclared',
-                      symbol => $ast.name, is-compile-time => 1
+                      symbol => $ast.name, is-compile-time => 1, suggestions => $*R.suggest-lexicals($ast.name)
                     )
                 }
             }

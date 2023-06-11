@@ -917,6 +917,163 @@ class RakuAST::Resolver::Compile
         }
         RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
+
+    # this levenshtein implementation is used to suggest good alternatives
+    # when deriving from an unknown/typo'd class.
+    method levenshtein($a, $b) {
+        my %memo;
+        my int $alen := nqp::chars($a);
+        my int $blen := nqp::chars($b);
+
+        return 0 if $alen == 0 || $blen == 0;
+
+        my sub changecost(str $ac, str $bc) {
+            my sub issigil($_) { nqp::index('$@%&|', $_) != -1 };
+            return 0 if $ac eq $bc;
+            return 0.1 if nqp::fc($ac) eq nqp::fc($bc);
+            return 0.5 if issigil($ac) && issigil($bc);
+            1;
+        }
+
+        my sub levenshtein_impl(int $apos, int $bpos, num $estimate) {
+            my $key := "$apos:$bpos";
+
+            return %memo{$key} if nqp::existskey(%memo, $key);
+
+            # if either cursor reached the end of the respective string,
+            # the result is the remaining length of the other string.
+            my sub check(int $pos1, int $len1, int $pos2, int $len2) {
+                if $pos2 == $len2 {
+                    return $len1 - $pos1;
+                }
+                -1;
+            }
+
+            my int $check := check($apos, $alen, $bpos, $blen);
+            return $check unless $check == -1;
+            $check := check($bpos, $blen, $apos, $alen);
+            return $check unless $check == -1;
+
+            my str $achar := nqp::substr($a, $apos, 1);
+            my str $bchar := nqp::substr($b, $bpos, 1);
+
+            my num $cost := changecost($achar, $bchar);
+
+            # hyphens and underscores cost half when adding/deleting.
+            my num $addcost := 1;
+            $addcost := 0.5 if $bchar eq "-" || $bchar eq "_";
+
+            my num $delcost := 1;
+            $delcost := 0.5 if $achar eq "-" || $achar eq "_";
+
+            my num $ca := nqp::add_n(levenshtein_impl($apos+1, $bpos,   nqp::add_n($estimate, $delcost)), $delcost); # what if we remove the current letter from A?
+            my num $cb := nqp::add_n(levenshtein_impl($apos,   $bpos+1, nqp::add_n($estimate, $addcost)), $addcost); # what if we add the current letter from B?
+            my num $cc := nqp::add_n(levenshtein_impl($apos+1, $bpos+1, nqp::add_n($estimate, $cost)), $cost); # what if we change/keep the current letter?
+
+            # the result is the shortest of the three sub-tasks
+            my num $distance;
+            $distance := $ca if nqp::isle_n($ca, $cb) && nqp::isle_n($ca, $cc);
+            $distance := $cb if nqp::isle_n($cb, $ca) && nqp::isle_n($cb, $cc);
+            $distance := $cc if nqp::isle_n($cc, $ca) && nqp::isle_n($cc, $cb);
+
+            # switching two letters costs only 1 instead of 2.
+            if $apos + 1 <= $alen && $bpos + 1 <= $blen &&
+               nqp::eqat($a, $bchar, $apos + 1) && nqp::eqat($b, $achar, $bpos + 1) {
+                my num $cd := nqp::add_n(levenshtein_impl($apos+2, $bpos+2, nqp::add_n($estimate, 1)), 1);
+                $distance := $cd if nqp::islt_n($cd, $distance);
+            }
+
+            %memo{$key} := $distance;
+        }
+
+        return levenshtein_impl(0, 0, 0e0);
+    }
+
+    method make_levenshtein_evaluator($orig_name, @candidates) {
+        my $find-count := 0;
+        my $try-count := 0;
+        my &inner := my sub ($name) {
+            # difference in length is a good lower bound.
+            $try-count := $try-count + 1;
+            return 0 if $find-count > 20 || $try-count > 1000;
+            my $parlen := nqp::chars($orig_name);
+            my $lendiff := nqp::chars($name) - $parlen;
+            $lendiff := -$lendiff if $lendiff < 0;
+            return 1 if nqp::isge_n($lendiff, nqp::mul_n($parlen, 0.3));
+
+            my num $dist := nqp::div_n(self.levenshtein($orig_name, $name), $parlen);
+            my $target := -1;
+            $target := @candidates[0] if nqp::isle_n($dist, 0.1);
+            $target := @candidates[1] if nqp::islt_n(0.1, $dist) && nqp::isle_n($dist, 0.2);
+            $target := @candidates[2] if nqp::islt_n(0.2, $dist) && nqp::isle_n($dist, 0.35);
+            if $target != -1 {
+                my $name-str := nqp::box_s($name, Str);
+                nqp::push($target, $name-str);
+                $find-count := $find-count + 1;
+            }
+            1;
+        }
+        return &inner;
+    }
+
+    method levenshtein_candidate_heuristic(@candidates, $target) {
+        # only take a few suggestions
+        my $to-add := 5;
+        for @candidates[0] {
+            $target.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+        $to-add := $to-add - 1 if +@candidates[0] > 0;
+        for @candidates[1] {
+            $target.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+        $to-add := $to-add - 2 if +@candidates[1] > 0;
+        for @candidates[2] {
+            $target.push($_) if $to-add > 0;
+            $to-add := $to-add - 1;
+        }
+    }
+
+    method suggest-lexicals(Str $name) {
+        my @suggestions;
+        my @candidates := [[], [], []];
+        my &inner-evaluator := self.make_levenshtein_evaluator($name, @candidates);
+        my %seen;
+        %seen{$name} := 1;
+        sub evaluate($name, $value, $has_value) {
+            # the descriptor identifies variables.
+            return 1 if nqp::existskey(%seen, $name);
+            %seen{$name} := 1;
+            return &inner-evaluator($name);
+        }
+
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            for $scope.lexical-declarations {
+                my $name := $_.lexical-name;
+                next if nqp::existskey(%seen, $name);
+                %seen{$name} := 1;
+                &inner-evaluator($name);
+            }
+        }
+
+        my $ctx := nqp::getattr(self, RakuAST::Resolver, '$!outer');
+        while !nqp::isnull($ctx) {
+            for $ctx -> $name {
+                next if nqp::existskey(%seen, $name);
+                %seen{$name} := 1;
+                &inner-evaluator($name);
+            }
+            $ctx := nqp::ctxouter($ctx);
+        }
+
+        self.levenshtein_candidate_heuristic(@candidates, @suggestions);
+        return @suggestions;
+    }
 }
 
 # Information about a lexical scope that we are currently compiling.
@@ -955,6 +1112,17 @@ class RakuAST::Resolver::Compile::Scope
         else {
             $!live-decl-map{$name} // $!scope.find-generated-lexical($name) // Nil
         }
+    }
+
+    method lexical-declarations() {
+        my $declarations := $!scope.lexical-declarations;
+        my @declarations := $!scope.IMPL-UNWRAP-LIST($declarations);
+        unless $!batch-mode {
+            for $!live-decl-map {
+                nqp::push(@declarations, $_.value);
+            }
+        }
+        @declarations
     }
 
     method declare-lexical(RakuAST::Declaration $decl) {

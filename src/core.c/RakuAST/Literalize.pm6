@@ -6,16 +6,12 @@
 # impossible to do so.
 
 augment class RakuAST::Node {
+    my class CannotLiteralize is Exception { }
+
     proto method literalize(RakuAST::Node:) {
         CATCH {
-            when X::Multi::NoMatch {
-                note "No .literalize method implemented for {
-                    self.^name
-                } objects yet";
+            when CannotLiteralize {
                 return Nil;
-            }
-            when X::AdHoc {
-                return Nil if nqp::eqaddr(.payload,Nil);
             }
         }
         unless $++ {
@@ -40,16 +36,20 @@ augment class RakuAST::Node {
 
 #- A ---------------------------------------------------------------------------
 
+    multi method literalize(RakuAST::Node:D:) {
+        nqp::die('literalize on ' ~ self.HOW.name(self) ~ ' NYI');
+    }
+
     multi method literalize(RakuAST::ApplyInfix:D:) {
         if infix-op(self.infix.operator) -> &op {
             my $left  := self.left.literalize;
             my $right := self.right.literalize;
             nqp::istype($left,Nil) || nqp::istype($right,Nil)
-              ?? die(Nil)
+              ?? CannotLiteralize.new.throw
               !! op($left,$right)
         }
         else {
-            die(Nil)
+            CannotLiteralize.new.throw
         }
     }
 
@@ -63,7 +63,7 @@ augment class RakuAST::Node {
             op(self.operands.map(*.literalize))
         }
         else {
-            die(Nil)
+            CannotLiteralize.new.throw
         }
     }
 
@@ -72,7 +72,7 @@ augment class RakuAST::Node {
             op(self.operand.literalize)
         }
         else {
-            die(Nil)
+            CannotLiteralize.new.throw
         }
     }
 
@@ -156,7 +156,7 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::Statement::Expression:D:) {
         if self.condition-modifier // self.loop-modifier {
-            die(Nil);
+            CannotLiteralize.new.throw
         }
         else {
             self.expression.literalize
@@ -193,6 +193,10 @@ augment class RakuAST::Node {
     }
 
 #- Var -------------------------------------------------------------------------
+
+    multi method literalize(RakuAST::Var::Lexical:D:) {
+        CannotLiteralize.new.throw
+    }
 
     multi method literalize(RakuAST::Var::Compiler::File:D:) {
         self.file

@@ -139,27 +139,27 @@ class RakuAST::Deparse {
         die "You cannot deparse a $ast.^name() type object";
     }
 
-    # helper method for deparsing contextualizers, sadly no private multis yet
-    proto method context-target(|) is implementation-detail {*}
-    multi method context-target(RakuAST::StatementSequence $target --> str) {
-        self!parenthesize($target)
+#-------------------------------------------------------------------------------
+# Helper methods
+
+    # helper method for deparsing contextualizers
+    proto method context-target(|) {*}
+    multi method context-target(RakuAST::StatementSequence $target --> Str:D) {
+        self.parenthesize($target)
     }
-    multi method context-target($target --> str) {
+    multi method context-target($target --> Str:D) {
         self.deparse($target)
     }
 
-#-------------------------------------------------------------------------------
-# Private helper methods
-
-    method !indent($indent = $.indent-with--> Str:D) {
+    method indent($indent = $.indent-with--> Str:D) {
         $_ = $_ ~ $indent with $*INDENT;
     }
 
-    method !dedent($indent = $.indent-with--> Str:D) {
+    method dedent($indent = $.indent-with--> Str:D) {
         $_ = $_.chomp($indent) with $*INDENT;
     }
 
-    method !handle-signature($ast, str $header) {
+    method handle-signature($ast, str $header) {
         my str @parts = $header;
 
         sub add-traits() {
@@ -173,21 +173,21 @@ class RakuAST::Deparse {
         if $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
             @parts.push("(\n");
-            @parts = self!add-any-docs(@parts.join(' '), $WHY)
+            @parts = self.add-any-docs(@parts.join(' '), $WHY)
               ~ self.deparse($signature)
               ~ ')';
             add-traits;
         }
 
         else {
-            @parts.push(self!parenthesize($signature))
+            @parts.push(self.parenthesize($signature))
               if $signature.parameters-initialized;
             add-traits;
 
             if $WHY {
                 $*DELIMITER = "";
                 @parts.push('{');
-                return self!add-any-docs(@parts.join(' '), $WHY)
+                return self.add-any-docs(@parts.join(' '), $WHY)
                   ~ self.deparse($ast.body, :multi).substr(2)  # lose {\n
             }
         }
@@ -197,7 +197,7 @@ class RakuAST::Deparse {
 
     }
 
-    method !method(RakuAST::Methodish:D $ast, str $kind --> Str:D) {
+    method method(RakuAST::Methodish:D $ast, str $kind --> Str:D) {
         my str @parts = $kind;
 
         if $ast.multiness -> $multiness {
@@ -220,29 +220,29 @@ class RakuAST::Deparse {
             );
         }
 
-        self!handle-signature($ast, @parts.join(' '))
+        self.handle-signature($ast, @parts.join(' '))
     }
 
-    method !conditional($self: $ast, str $type --> Str:D) {
+    method conditional($self: $ast, str $type --> Str:D) {
         "$type $self.deparse($ast.condition) $self.deparse($ast.then)$.last-statement"
     }
 
-    method !negated-conditional($self: $ast, str $type --> Str:D) {
+    method negated-conditional($self: $ast, str $type --> Str:D) {
         "$type $self.deparse($ast.condition) $self.deparse($ast.body)$.last-statement"
     }
 
-    method !simple-loop($ast, str $type --> Str:D) {
+    method simple-loop($ast, str $type --> Str:D) {
         ($type,self.deparse($ast.condition),self.deparse($ast.body)).join(' ')
     }
 
-    method !simple-repeat($ast, str $type --> Str:D) {
+    method simple-repeat($ast, str $type --> Str:D) {
        'repeat '
          ~ self.deparse($ast.body).chomp
          ~ " $type "
          ~ self.deparse($ast.condition)
     }
 
-    method !assemble-quoted-string($ast --> Str:D) {
+    method assemble-quoted-string($ast --> Str:D) {
         $ast.segments.map({
             nqp::istype($_,RakuAST::StrLiteral)
               ?? .value.raku.substr(1,*-1)
@@ -265,13 +265,13 @@ class RakuAST::Deparse {
       'words',      'qqw/',
     ;
 
-    method !multiple-processors(str $string, @processors --> Str:D) {
+    method multiple-processors(str $string, @processors --> Str:D) {
         "qq@processors.map({
             %processor-attribute{$_} // NYI("String processors '$_'")
         }).join()/$string/"
     }
 
-    method !branches(RakuAST::Regex::Branching:D $ast, str $joiner --> Str:D) {
+    method branches(RakuAST::Regex::Branching:D $ast, str $joiner --> Str:D) {
         if $ast.branches -> @branches {
             @branches.map({ self.deparse($_) }).join($joiner)
         }
@@ -280,42 +280,42 @@ class RakuAST::Deparse {
         }
     }
 
-    method !quantifier(
+    method quantifier(
       RakuAST::Regex::Quantifier:D $ast, str $quantifier
     --> Str:D) {
         $quantifier ~ self.deparse($ast.backtrack)
     }
 
-    method !parenthesize($ast --> Str:D) {
+    method parenthesize($ast --> Str:D) {
         $.parens-open
           ~ ($ast.defined ?? self.deparse($ast).chomp !! '')
           ~ $.parens-close
     }
 
-    method !bracketize($ast --> Str:D) {
+    method bracketize($ast --> Str:D) {
         $.bracket-open
           ~ ($ast.defined ?? self.deparse($ast) !! '')
           ~ $.bracket-close
     }
 
-    method !squarize($ast --> Str:D) {
+    method squarize($ast --> Str:D) {
         $.square-open
           ~ ($ast.defined ?? self.deparse($ast) !! '')
           ~ $.square-close
     }
 
-    method !typish-trait($ast --> Str:D) {
+    method typish-trait($ast --> Str:D) {
         $ast.IMPL-TRAIT-NAME ~ ' ' ~ self.deparse($ast.type)
     }
 
-    method !method-call($ast, str $dot, $macroish? --> Str:D) {
+    method method-call($ast, str $dot, $macroish? --> Str:D) {
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
 
-        $dot ~ $name ~ ($macroish ?? '' !! self!parenthesize($ast.args))
+        $dot ~ $name ~ ($macroish ?? '' !! self.parenthesize($ast.args))
     }
 
-    method !quote-if-needed(str $literal) {
+    method quote-if-needed(str $literal) {
         my int $find = nqp::findnotcclass(
           nqp::const::CCLASS_WORD,$literal,0,nqp::chars($literal)
         );
@@ -324,7 +324,7 @@ class RakuAST::Deparse {
           !! $literal.raku  # need quoting
     }
 
-    method !deparse-unquoted($ast) {
+    method deparse-unquoted($ast) {
         if nqp::istype($ast,Str) {
             $ast
         }
@@ -340,7 +340,7 @@ class RakuAST::Deparse {
         }
     }
 
-    method !deparse-as-config(%config, :$abbreviated) {
+    method deparse-as-config(%config, :$abbreviated) {
         my str $deparsed = %config.sort({
             .key eq 'numbered' ?? '' !! .key  # numbered always first
         }).map({
@@ -356,11 +356,11 @@ class RakuAST::Deparse {
         $deparsed ?? " $deparsed" !! ''
     }
 
-    method !labels(RakuAST::Statement:D $ast) {
+    method labels(RakuAST::Statement:D $ast) {
         $ast.labels.map({ self.deparse($_) }).join
     }
 
-    method !use-no(str $what, $ast) {
+    method use-no(str $what, $ast) {
         my str @parts = $what, self.deparse($ast.module-name);
 
         if $ast.argument -> $argument {
@@ -368,13 +368,13 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($argument));
         }
 
-        self!labels($ast) ~ @parts.join
+        self.labels($ast) ~ @parts.join
     }
 
-    method !prefix-any-leading-doc(str $body, $WHY) {
+    method prefix-any-leading-doc(str $body, $WHY) {
         if $WHY && $WHY.leading -> @leading {
             @leading.map({
-                "#| " ~ self!deparse-unquoted($_) ~ "\n$*INDENT"
+                "#| " ~ self.deparse-unquoted($_) ~ "\n$*INDENT"
             }).join ~ $body
         }
         else {
@@ -382,10 +382,10 @@ class RakuAST::Deparse {
         }
     }
 
-    method !postfix-any-trailing-doc(str $body, $WHY) {
+    method postfix-any-trailing-doc(str $body, $WHY) {
         if $WHY && $WHY.trailing -> @trailing {
             my str @lines = @trailing.map: {
-                self!deparse-unquoted($_).lines(:!chomp).Slip
+                self.deparse-unquoted($_).lines(:!chomp).Slip
             }
             ($body ~ $*DELIMITER).chomp ~ (@lines > 1
               ?? ' #=｢' ~ @lines.join() ~ "｣\n"
@@ -396,9 +396,9 @@ class RakuAST::Deparse {
         }
     }
 
-    method !add-any-docs(str $body, $WHY) {
-        self!postfix-any-trailing-doc(
-          self!prefix-any-leading-doc($body, $WHY), $WHY
+    method add-any-docs(str $body, $WHY) {
+        self.postfix-any-trailing-doc(
+          self.prefix-any-leading-doc($body, $WHY), $WHY
         )
     }
 
@@ -455,7 +455,7 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Block:D $ast --> Str:D) {
         if $ast.WHY -> $WHY {
             $*DELIMITER = "";
-            self!add-any-docs('{', $WHY)
+            self.add-any-docs('{', $WHY)
               ~ self.deparse($ast.body, :multi).substr(2)  # lose {\n
         }
         else {
@@ -467,10 +467,10 @@ class RakuAST::Deparse {
         my $statement-list := $ast.statement-list;
 
         if $multi || $statement-list.statements {
-            self!indent;
+            self.indent;
             $.block-open
               ~ self.deparse($statement-list)
-              ~ self!dedent
+              ~ self.dedent
               ~ $.bracket-close
         }
         else {
@@ -481,52 +481,52 @@ class RakuAST::Deparse {
 #- Call ------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Call::MaybeMethod:D $ast --> Str:D) {
-        self!method-call($ast, '.?')
+        self.method-call($ast, '.?')
     }
 
     multi method deparse(RakuAST::Call::MetaMethod:D $ast --> Str:D) {
-        self!method-call($ast, '.^')
+        self.method-call($ast, '.^')
     }
 
     multi method deparse(RakuAST::Call::Method:D $ast --> Str:D) {
-        self!method-call($ast, '.', $ast.macroish)
+        self.method-call($ast, '.', $ast.macroish)
     }
 
     multi method deparse(RakuAST::Call::PrivateMethod:D $ast --> Str:D) {
-        self!method-call($ast, '!')
+        self.method-call($ast, '!')
     }
 
     multi method deparse(RakuAST::Call::QuotedMethod:D $ast --> Str:D) {
-        self!method-call($ast, '.')
+        self.method-call($ast, '.')
     }
 
     multi method deparse(RakuAST::Call::VarMethod:D $ast --> Str:D) {
-        self!method-call($ast, '.&')
+        self.method-call($ast, '.&')
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
         my $name := self.deparse($ast.name);
         $name.ends-with('::')
           ?? $name
-          !! $name ~ self!parenthesize($ast.args)
+          !! $name ~ self.parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {
-        self!parenthesize($ast.args)
+        self.parenthesize($ast.args)
     }
 
 #- Circumfix -------------------------------------------------------------------
 
     multi method deparse(RakuAST::Circumfix::ArrayComposer:D $ast --> Str:D) {
-        self!squarize($ast.semilist)
+        self.squarize($ast.semilist)
     }
 
     multi method deparse(RakuAST::Circumfix::HashComposer:D $ast --> Str:D) {
-        self!bracketize($ast.expression)
+        self.bracketize($ast.expression)
     }
 
     multi method deparse(RakuAST::Circumfix::Parentheses:D $ast --> Str:D) {
-        self!parenthesize($ast.semilist)
+        self.parenthesize($ast.semilist)
     }
 
 #- ColonPair -------------------------------------------------------------------
@@ -607,12 +607,12 @@ class RakuAST::Deparse {
              $paragraphs.indent(4) ~ "\n"
         }
         elsif $type eq 'config' {
-            '=config ' ~ $paragraphs ~ self!deparse-as-config(%config)
+            '=config ' ~ $paragraphs ~ self.deparse-as-config(%config)
         }
         else {
             my $body := $type
               ~ $ast.level
-              ~ self!deparse-as-config(%config, :$abbreviated)
+              ~ self.deparse-as-config(%config, :$abbreviated)
               ~ ($abbreviated && $type ne 'table' ?? " " !! "\n")
               ~ $paragraphs;
             $abbreviated
@@ -631,7 +631,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Doc::Paragraph:D $ast --> Str:D) {
-        $ast.atoms.map({ self!deparse-unquoted($_) }).join
+        $ast.atoms.map({ self.deparse-unquoted($_) }).join
     }
 
     multi method deparse(RakuAST::Doc::Row:D $ast --> Str:D) {
@@ -663,7 +663,7 @@ class RakuAST::Deparse {
 #- H ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Heredoc:D $ast --> Str:D) {
-        my $string := self!assemble-quoted-string($ast);
+        my $string := self.assemble-quoted-string($ast);
         my @processors = $ast.processors;
         @processors.push('heredoc');
 
@@ -672,7 +672,7 @@ class RakuAST::Deparse {
           ?? ''
           !! " " x ($stop.chars - $stop.trim-leading.chars);
 
-        self!multiple-processors($stop.trim, @processors)
+        self.multiple-processors($stop.trim, @processors)
           ~ "\n"
           ~ $string.chomp('\n').split(Q/\n/).map({
               $_ ?? "$indent$_\n" !! "\n"
@@ -738,7 +738,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Method:D $ast --> Str:D) {
-        self!method($ast, 'method')
+        self.method($ast, 'method')
     }
 
 #- N ---------------------------------------------------------------------------
@@ -748,7 +748,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Nqp:D $ast --> Str:D) {
-        "nqp::" ~ $ast.op ~ self!parenthesize($ast.args)
+        "nqp::" ~ $ast.op ~ self.parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Nqp::Const:D $ast --> Str:D) {
@@ -801,7 +801,7 @@ class RakuAST::Deparse {
 
         if $ast.WHY -> $WHY {
             @parts.push('{');
-            self!add-any-docs(@parts.join(' '), $WHY).chomp
+            self.add-any-docs(@parts.join(' '), $WHY).chomp
               ~ self.deparse($body, :multi).substr(1).chomp
         }
         else {
@@ -819,7 +819,7 @@ class RakuAST::Deparse {
 #- Parameter -------------------------------------------------------------------
 
     multi method deparse(RakuAST::Parameter:D $ast --> Str:D) {
-        return self!add-any-docs(.raku, $ast.WHY) with $ast.value;
+        return self.add-any-docs(.raku, $ast.WHY) with $ast.value;
 
         my $target   := $ast.target;
         my @captures := $ast.type-captures;
@@ -888,7 +888,7 @@ class RakuAST::Deparse {
             @parts.push($.assign ~ self.deparse($default));
         }
 
-        self!add-any-docs(@parts.join, $ast.WHY)
+        self.add-any-docs(@parts.join, $ast.WHY)
     }
 
     multi method deparse(RakuAST::Parameter::Slurpy:U $ --> '') { }
@@ -936,7 +936,7 @@ class RakuAST::Deparse {
         if $signature.parameters-initialized
           && $signature.parameters.first(*.WHY) {
             @parts.push("\n");
-            @parts = self!add-any-docs(@parts.join(' '), $WHY)
+            @parts = self.add-any-docs(@parts.join(' '), $WHY)
               ~ self.deparse($signature);
         }
 
@@ -947,7 +947,7 @@ class RakuAST::Deparse {
             if $WHY {
                 $*DELIMITER = "";
                 @parts.push('{');
-                return self!add-any-docs(@parts.join(' '), $WHY)
+                return self.add-any-docs(@parts.join(' '), $WHY)
                   ~ self.deparse($ast.body, :multi).substr(2)  # lose {\n
             }
         }
@@ -957,11 +957,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Postcircumfix::ArrayIndex:D $ast --> Str:D) {
-        self!squarize($ast.index)
+        self.squarize($ast.index)
     }
 
     multi method deparse(RakuAST::Postcircumfix::HashIndex:D $ast --> Str:D) {
-        self!bracketize($ast.index)
+        self.bracketize($ast.index)
     }
 
     multi method deparse(
@@ -994,7 +994,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::QuotedString:D $ast --> Str:D) {
-        my str $string = self!assemble-quoted-string($ast);
+        my str $string = self.assemble-quoted-string($ast);
 
         if $ast.processors -> @processors {
             if @processors == 1 && @processors.head -> $processor {
@@ -1016,11 +1016,11 @@ class RakuAST::Deparse {
                     $.double-pointy-open ~ $string ~ $.double-pointy-close
                 }
                 else {
-                    self!multiple-processors($string, @processors)
+                    self.multiple-processors($string, @processors)
                 }
             }
             else {
-                self!multiple-processors($string, @processors)
+                self.multiple-processors($string, @processors)
             }
         }
         else {
@@ -1065,11 +1065,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Literal:D $ast --> Str:D) {
-        self!quote-if-needed($ast.text)
+        self.quote-if-needed($ast.text)
     }
 
     multi method deparse(RakuAST::Regex::Alternation:D $ast --> Str:D) {
-        self!branches($ast, $.regex-alternation)
+        self.branches($ast, $.regex-alternation)
     }
 
 #- Regex::Assertion ------------------------------------------------------------
@@ -1087,7 +1087,7 @@ class RakuAST::Deparse {
         my $args := $ast.args;
         '<'
           ~ self.deparse($ast.callee)
-          ~ ($args && $args.args ?? self!parenthesize($args) !! "")
+          ~ ($args && $args.args ?? self.parenthesize($args) !! "")
           ~ '>'
     }
 
@@ -1131,7 +1131,7 @@ class RakuAST::Deparse {
     --> Str:D) {
         ($ast.capturing ?? '<' !! '<.')
           ~ self.deparse($ast.name)
-          ~ self!parenthesize($ast.args)
+          ~ self.parenthesize($ast.args)
           ~ '>'
     }
 
@@ -1204,7 +1204,7 @@ class RakuAST::Deparse {
 #- Regex::C --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::CapturingGroup:D $ast --> Str:D) {
-        self!parenthesize($ast.regex)
+        self.parenthesize($ast.regex)
     }
 
 #- Regex::Charclass ------------------------------------------------------------
@@ -1317,13 +1317,13 @@ class RakuAST::Deparse {
 #- Regex::Co -------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::Conjunction:D $ast --> Str:D) {
-        self!branches($ast, $.regex-conjunction)
+        self.branches($ast, $.regex-conjunction)
     }
 
 #- Regex::G --------------------------------------------------------------------
 
     multi method deparse(RakuAST::Regex::Group:D $ast --> Str:D) {
-        self!squarize($ast.regex)
+        self.squarize($ast.regex)
     }
 
 #- Regex::I --------------------------------------------------------------------
@@ -1387,17 +1387,17 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::Quantifier::BlockRange:D $ast
     --> Str:D) {
-        self!quantifier($ast, '** ' ~ self.deparse($ast.block))
+        self.quantifier($ast, '** ' ~ self.deparse($ast.block))
     }
 
     multi method deparse(
       RakuAST::Regex::Quantifier::OneOrMore:D $ast
     --> Str:D) {
-        self!quantifier($ast, '+')
+        self.quantifier($ast, '+')
     }
 
     multi method deparse(RakuAST::Regex::Quantifier::Range:D $ast --> Str:D) {
-        self!quantifier(
+        self.quantifier(
           $ast,
           '** '
             ~ ($ast.min.defined
@@ -1411,13 +1411,13 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::Quantifier::ZeroOrMore:D $ast
     --> Str:D) {
-        self!quantifier($ast, '*')
+        self.quantifier($ast, '*')
     }
 
     multi method deparse(
       RakuAST::Regex::Quantifier::ZeroOrOne:D $ast
     --> Str:D) {
-        self!quantifier($ast, '?')
+        self.quantifier($ast, '?')
     }
 
     multi method deparse(RakuAST::Regex::Quote:D $ast --> Str:D) {
@@ -1442,13 +1442,13 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::SequentialAlternation:D $ast
     --> Str:D) {
-        self!branches($ast, $.regex-sequential-alternation)
+        self.branches($ast, $.regex-sequential-alternation)
     }
 
     multi method deparse(
       RakuAST::Regex::SequentialConjunction:D $ast
     --> Str:D) {
-        self!branches($ast, $.regex-sequential-conjunction)
+        self.branches($ast, $.regex-sequential-conjunction)
     }
 
     multi method deparse(RakuAST::Regex::Statement:D $ast --> Str:D) {
@@ -1486,7 +1486,7 @@ class RakuAST::Deparse {
 
         # no parameters with declarator doc
         else {
-            @parts.push(self!parenthesize($signature))
+            @parts.push(self.parenthesize($signature))
               if $signature.parameters-initialized;
         }
 
@@ -1496,7 +1496,7 @@ class RakuAST::Deparse {
 
         if $ast.WHY -> $WHY {
             @parts.push('{');
-            @parts = self!add-any-docs(@parts.join(' '), $WHY);
+            @parts = self.add-any-docs(@parts.join(' '), $WHY);
         }
         else {
             @parts.push('{ ');
@@ -1529,13 +1529,13 @@ class RakuAST::Deparse {
                 my $*DELIMITER = $.list-infix-comma.trim ~ "\n";
 
                 my str @atoms;
-                self!indent('  ');
+                self.indent('  ');
                 for @parameters -> $param {
                     $*DELIMITER = "\n" if $param === $last;
                     @atoms.push($*INDENT);
                     @atoms.push(self.deparse($param));
                 }
-                self!dedent('  ');
+                self.dedent('  ');
 
                 @parts.push(@atoms.join);
             }
@@ -1560,23 +1560,23 @@ class RakuAST::Deparse {
 #- Statement -------------------------------------------------------------------
 
     multi method deparse(RakuAST::Statement::Catch:D $ast --> Str:D) {
-        self!labels($ast) ~ 'CATCH ' ~ self.deparse($ast.body)
+        self.labels($ast) ~ 'CATCH ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Control:D $ast --> Str:D) {
-        self!labels($ast) ~ 'CONTROL ' ~ self.deparse($ast.body)
+        self.labels($ast) ~ 'CONTROL ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Default:D $ast --> Str:D) {
-        self!labels($ast) ~ 'default ' ~ self.deparse($ast.body)
+        self.labels($ast) ~ 'default ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Elsif:D $ast --> Str:D) {
-        self!conditional($ast, 'elsif')  # cannot have labels
+        self.conditional($ast, 'elsif')  # cannot have labels
     }
 
     multi method deparse(RakuAST::Statement::Empty:D $ast --> Str:D) {
-        self!labels($ast) ~ $*DELIMITER
+        self.labels($ast) ~ $*DELIMITER
     }
 
     multi method deparse(RakuAST::Statement::Expression:D $ast --> Str:D) {
@@ -1591,7 +1591,7 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($loop));
         }
 
-        self!labels($ast)
+        self.labels($ast)
           ~ @parts.join(' ')
           ~ (nqp::istype($expression,RakuAST::Doc::DeclaratorTarget)
               ?? ""
@@ -1610,11 +1610,11 @@ class RakuAST::Deparse {
             @parts.unshift($mode) if $mode ne 'serial';
         }
 
-        self!labels($ast) ~ @parts.join(' ')
+        self.labels($ast) ~ @parts.join(' ')
     }
 
     multi method deparse(RakuAST::Statement::Given:D $ast --> Str:D) {
-        self!labels($ast)
+        self.labels($ast)
           ~ 'given '
           ~ self.deparse($ast.source)
           ~ ' '
@@ -1622,7 +1622,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Statement::If:D $ast --> Str:D) {
-        my str @parts = self!conditional($ast, $ast.IMPL-QAST-TYPE);
+        my str @parts = self.conditional($ast, $ast.IMPL-QAST-TYPE);
 
         if $ast.elsifs -> @elsifs {
             @parts.push(self.deparse($_)) for @elsifs;
@@ -1634,17 +1634,17 @@ class RakuAST::Deparse {
             @parts.push($.last-statement);
         }
 
-        self!labels($ast) ~ @parts.join
+        self.labels($ast) ~ @parts.join
     }
 
     multi method deparse(RakuAST::Statement::Import:D $ast --> Str:D) {
         my str @parts = 'import', self.deparse($ast.module-name);
         @parts.push(self.deparse($_)) with $ast.argument;
-        self!labels($ast) ~ @parts.join(' ') ~ $*DELIMITER
+        self.labels($ast) ~ @parts.join(' ') ~ $*DELIMITER
     }
 
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
-        self!labels($ast)
+        self.labels($ast)
           ~ 'loop ('
           ~ self.deparse($ast.setup)
           ~ $.loop-separator
@@ -1658,47 +1658,47 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Statement::Loop::RepeatUntil:D $ast
     --> Str:D) {
-        self!labels($ast) ~ self!simple-repeat($ast, 'until')
+        self.labels($ast) ~ self.simple-repeat($ast, 'until')
     }
 
     multi method deparse(
       RakuAST::Statement::Loop::RepeatWhile:D $ast --> Str:D) {
-        self!labels($ast) ~ self!simple-repeat($ast, 'while')
+        self.labels($ast) ~ self.simple-repeat($ast, 'while')
     }
 
     multi method deparse(RakuAST::Statement::Loop::Until:D $ast --> Str:D) {
-        self!labels($ast) ~ self!simple-loop($ast, 'until')
+        self.labels($ast) ~ self.simple-loop($ast, 'until')
     }
 
     multi method deparse(RakuAST::Statement::Loop::While:D $ast --> Str:D) {
-        self!labels($ast) ~ self!simple-loop($ast, 'while')
+        self.labels($ast) ~ self.simple-loop($ast, 'while')
     }
 
     multi method deparse(RakuAST::Statement::Need:D $ast --> Str:D) {
-        self!labels($ast)
+        self.labels($ast)
           ~ 'need '
           ~ $ast.module-names.map({self.deparse($_)}).join($.list-infix-comma)
           ~ $*DELIMITER
     }
 
     multi method deparse(RakuAST::Statement::Orwith:D $ast --> Str:D) {
-        self!conditional($ast, 'orwith')  # cannot have labels
+        self.conditional($ast, 'orwith')  # cannot have labels
     }
 
     multi method deparse(RakuAST::Statement::Require:D $ast --> Str:D) {
-        self!labels($ast) ~ 'require ' ~ self.deparse($ast.module-name)
+        self.labels($ast) ~ 'require ' ~ self.deparse($ast.module-name)
     }
 
     multi method deparse(RakuAST::Statement::Unless:D $ast --> Str:D) {
-        self!labels($ast) ~ self!negated-conditional($ast, 'unless');
+        self.labels($ast) ~ self.negated-conditional($ast, 'unless');
     }
 
     multi method deparse(RakuAST::Statement::Use:D $ast --> Str:D) {
-        self!use-no("use ", $ast) ~ $*DELIMITER
+        self.use-no("use ", $ast) ~ $*DELIMITER
     }
 
     multi method deparse(RakuAST::Statement::When:D $ast --> Str:D) {
-        self!labels($ast)
+        self.labels($ast)
           ~ 'when '
           ~ self.deparse($ast.condition)
           ~ ' '
@@ -1706,7 +1706,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Statement::Without:D $ast --> Str:D) {
-        self!labels($ast) ~ self!negated-conditional($ast, 'without');
+        self.labels($ast) ~ self.negated-conditional($ast, 'without');
     }
 
     multi method deparse(RakuAST::StatementList:D $ast --> Str:D) {
@@ -1844,11 +1844,11 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($name));
         }
 
-        self!handle-signature($ast, @parts.join(' '))
+        self.handle-signature($ast, @parts.join(' '))
     }
 
     multi method deparse(RakuAST::Submethod:D $ast --> Str:D) {
-        self!method($ast, 'submethod')
+        self.method($ast, 'submethod')
     }
 
     multi method deparse(RakuAST::Substitution:D $ast --> Str:D) {
@@ -1887,7 +1887,7 @@ class RakuAST::Deparse {
 #- Term ------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Term::Capture:D $ast --> Str:D) {
-        Q/\/ ~ self!parenthesize($ast.source)
+        Q/\/ ~ self.parenthesize($ast.source)
     }
 
     multi method deparse(RakuAST::Term::EmptySet:D $ --> Str:D) {
@@ -1925,7 +1925,7 @@ class RakuAST::Deparse {
           ~ $.reduce-close
           ~ ($args.defined && $args.elems == 1
               ?? self.deparse($args)
-              !! self!parenthesize($args)
+              !! self.parenthesize($args)
             )
     }
 
@@ -1993,19 +1993,19 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Trait::Hides:D $ast --> Str:D) {
-        self!typish-trait($ast)
+        self.typish-trait($ast)
     }
 
     multi method deparse(RakuAST::Trait::Does:D $ast --> Str:D) {
-        self!typish-trait($ast)
+        self.typish-trait($ast)
     }
 
     multi method deparse(RakuAST::Trait::Of:D $ast --> Str:D) {
-        self!typish-trait($ast)
+        self.typish-trait($ast)
     }
 
     multi method deparse(RakuAST::Trait::Returns:D $ast --> Str:D) {
-        self!typish-trait($ast)
+        self.typish-trait($ast)
     }
 
 #- Type ------------------------------------------------------------------------
@@ -2034,7 +2034,7 @@ class RakuAST::Deparse {
         @parts.push(self.deparse($_)) with $ast.name;
         @parts.push(self.deparse($ast.term));
 
-        self!add-any-docs(@parts.join(' '), $ast.WHY)
+        self.add-any-docs(@parts.join(' '), $ast.WHY)
     }
 
     multi method deparse(RakuAST::Type::Parameterized:D $ast --> Str:D) {
@@ -2063,7 +2063,7 @@ class RakuAST::Deparse {
         @parts.push(self.deparse($_)) for $ast.traits;
         @parts.push('where ' ~ self.deparse($_)) with $ast.where;
 
-        self!add-any-docs(@parts.join(' '), $ast.WHY)
+        self.add-any-docs(@parts.join(' '), $ast.WHY)
     }
 
 #- Var -------------------------------------------------------------------------
@@ -2207,7 +2207,7 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($initializer));
         }
 
-        self!add-any-docs(@parts.join, $ast.WHY)
+        self.add-any-docs(@parts.join, $ast.WHY)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Term:D $ast --> Str:D) {

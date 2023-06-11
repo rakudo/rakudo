@@ -2662,7 +2662,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | 'NaN' >>
         | <integer>
         | <decimal-number>
-        | <rad_number>
+        | <radix-number>
         | <rat_number>
         | <complex_number>
         | 'Inf' >>
@@ -2703,7 +2703,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token sign { '+' | '-' | '−' | '' }
 
-    token rad_number {
+    token radix-number {
         ':' $<radix> = [\d+] <.unsp>?
         :my $r := nqp::radix(10, $<radix>, 0, 0)[0];
         {}           # don't recurse in lexer

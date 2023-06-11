@@ -2054,8 +2054,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<decimal-number> {
             self.attach: $/, $<decimal-number>.ast;
         }
-        elsif $<rad_number> {
-            self.attach: $/, $<rad_number>.ast;
+        elsif $<radix-number> {
+            self.attach: $/, $<radix-number>.ast;
         }
         elsif $<rat_number> {
             self.attach: $/, $<rat_number>.ast;
@@ -2127,7 +2127,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method rad_number($/) {
+    method radix-number($/) {
         my $literals := $*LITERALS;
         if $<bracket> {
             self.attach: $/, self.r('Term', 'RadixNumber').new:

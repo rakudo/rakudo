@@ -3013,12 +3013,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait>*
         <post-constraint>*
         [
-            <default_value>
+            <default-value>
             [ <modifier=.trait> {
-                self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default_value>
+                self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default-value>
             }]?
             [ <modifier=.post-constraint> {
-                self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
+                self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default-value>
             }]?
         ]?
     }
@@ -3078,7 +3078,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    rule default_value {
+    rule default-value {
         :my $*IN-DECL := '';
         '=' <EXPR('i=')>
     }

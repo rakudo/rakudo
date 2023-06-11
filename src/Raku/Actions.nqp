@@ -2473,8 +2473,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<trait> {
             $parameter.add-trait($_.ast);
         }
-        if $<default_value> {
-            $parameter.set-default($<default_value>.ast);
+        if $<default-value> {
+            $parameter.set-default($<default-value>.ast);
         }
         if $<post-constraint> {
             if $<post-constraint>[0]<EXPR> {
@@ -2544,7 +2544,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $parameter;
     }
 
-    method default_value($/) {
+    method default-value($/) {
         make $<EXPR>.ast;
     }
 

@@ -2998,7 +2998,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | $<quant>=['\\'|'|'] <param-var> {
                 $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param-var>);
             }
-          | $<quant>=['\\'|'|'|'+'] <param_term>
+          | $<quant>=['\\'|'|'|'+'] <param-term>
           | [ <param-var> | <named_param> ] $<quant>=['?'|'!'|<?>]
           | <?>
           ]
@@ -3006,7 +3006,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | $<quant>=['\\'|'|'] <param-var> {
               $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param-var>);
           }
-        | $<quant>=['\\'|'|'|'+'] <param_term>
+        | $<quant>=['\\'|'|'|'+'] <param-term>
         | [ <param-var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         ]
         <.ws>
@@ -3062,7 +3062,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token param_term {
+    token param-term {
         <defterm>?
     }
 

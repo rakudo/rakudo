@@ -2427,7 +2427,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method parameter($/) {
         my $parameter := $<param-var>   ?? $<param-var>.ast   !!
                          $<named_param> ?? $<named_param>.ast !!
-                         $<param_term>  ?? $<param_term>.ast  !!
+                         $<param-term>  ?? $<param-term>.ast  !!
                          self.r('Parameter').new;
         my $capture := self.r('Type', 'Capture');
         my $raku-type := self.r('Type');
@@ -2508,7 +2508,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.set-declarand($/, self.r('Parameter').new(|%args));
     }
 
-    method param_term($/) {
+    method param-term($/) {
         if $<defterm> {
             # Create sigilless target to bind into
             my $name := $<defterm>.ast;

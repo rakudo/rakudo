@@ -2060,8 +2060,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<rational-number> {
             self.attach: $/, $<rational-number>.ast;
         }
-        elsif $<complex_number> {
-            self.attach: $/, $<complex_number>.ast;
+        elsif $<complex-number> {
+            self.attach: $/, $<complex-number>.ast;
         }
         elsif $<unum> {
             my $code := nqp::ord($/.Str);
@@ -2212,11 +2212,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
     }
 
-    method complex_number($/) {
-        self.attach: $/, $<bare_complex_number>.ast;
+    method complex-number($/) {
+        self.attach: $/, $<bare-complex-number>.ast;
     }
 
-    method bare_complex_number($/) {
+    method bare-complex-number($/) {
         self.attach: $/, self.r('ComplexLiteral').new(
           $*LITERALS.intern-complex(~$<re>, ~$<im>)
         );

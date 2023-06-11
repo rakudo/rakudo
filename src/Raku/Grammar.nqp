@@ -903,7 +903,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule statement-control:sym<foreach> {
-        <sym><.end_keyword> <.obs("'foreach'", "'for'")>
+        <sym><.end-keyword> <.obs("'foreach'", "'for'")>
     }
 
     rule statement-control:sym<given> {
@@ -1023,7 +1023,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<CLOSE> { <sym><.kok> <blorst> }
 
     token statement-prefix:sym<DOC>     {
-        <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end_keyword><.ws>
+        <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end-keyword><.ws>
         <blorst>
     }
 
@@ -1767,7 +1767,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<self> {
-        <sym> <.end_keyword>
+        <sym> <.end-keyword>
     }
 
     token term:sym<now> { <sym> <.tok> }
@@ -1781,7 +1781,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> »
         [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
         [ <?before '()'> <.obs('rand()', 'rand')> ]?
-        <.end_keyword>
+        <.end-keyword>
     }
 
     token term:sym<...> {
@@ -2277,7 +2277,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token scoped($*SCOPE) {
-        <.end_keyword>
+        <.end-keyword>
         :dba('scoped declarator')
         [
         || <.ws>
@@ -2434,13 +2434,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token routine-declarator {*}
     token routine-declarator:sym<sub> {
-        <sym> <.end_keyword> <routine-def=.key-origin('routine-def', 'sub')>
+        <sym> <.end-keyword> <routine-def=.key-origin('routine-def', 'sub')>
     }
     token routine-declarator:sym<method> {
-        <sym> <.end_keyword> <method-def=.key-origin('method-def', 'method')>
+        <sym> <.end-keyword> <method-def=.key-origin('method-def', 'method')>
     }
     token routine-declarator:sym<submethod> {
-        <sym> <.end_keyword> <method-def=.key-origin('method-def', 'submethod')>
+        <sym> <.end-keyword> <method-def=.key-origin('method-def', 'submethod')>
     }
 
     rule routine-def($declarator) {
@@ -3192,18 +3192,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token lambda { '->' | '<->' }
 
-    token end_keyword {
+    token end-keyword {
         » <!before <.[ \( \\ ' \- ]> || \h* '=>'>
     }
 
     token end_prefix {
-        <.end_keyword> \s*
+        <.end-keyword> \s*
     }
 
     token spacey { <?[\s#]> }
 
     token kok {
-        <.end_keyword>
+        <.end-keyword>
         [
         || <?before <.[ \s \# ]> > <.ws>
         || <?{
@@ -3216,7 +3216,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token tok {
-        <.end_keyword>
+        <.end-keyword>
         <!{
             my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
             $*R.is-identifier-known($n) || $*R.is-identifier-known('&' ~ $n)

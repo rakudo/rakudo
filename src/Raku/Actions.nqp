@@ -1476,9 +1476,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     self.attach: $/, self.r('Var', 'Lexical').new(:$sigil, :$desigilname);
                 }
                 else {
-                    my $decl := self.r('VarDeclaration','Auto').new(
-                      scope => "our", name => $name
-                    );
+                    my $decl := self.r('VarDeclaration', 'Auto').new:
+                        :scope<our>, :$desigilname, :$sigil, :$twigil;
                     $*R.declare-lexical($decl);
                     self.attach: $/, $decl;
                 }

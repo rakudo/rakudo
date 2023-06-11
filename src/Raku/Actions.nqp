@@ -3006,7 +3006,7 @@ class Raku::QActions is HLL::Actions does Raku::CommonActions {
     method backslash:sym<e>($/) { make "\c[27]" }
     method backslash:sym<f>($/) { make "\c[12]" }
     method backslash:sym<n>($/) {
-        my str $nl := $*R.resolve-lexical('$?NL').compile-time-value;
+        my str $nl := $*R.resolve-lexical-constant('$?NL').compile-time-value;
         if nqp::can($/, 'parsing-heredoc') {
             # In heredocs, we spit out a QAST::SVal here to prevent newlines
             # being taken literally and affecting the dedent.

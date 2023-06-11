@@ -543,6 +543,32 @@ class RakuAST::Declaration::External::Constant
     }
 }
 
+# A lexical declaration that comes with an external symbol, which has a fixed
+# value available during compilation but still has to be looked up during
+# runtime.
+class RakuAST::Declaration::External::Setting
+  is RakuAST::Declaration::External
+  is RakuAST::CompileTimeValue
+  is RakuAST::Declaration::Mergeable
+{
+    has Mu $.compile-time-value;
+
+    method new(str :$lexical-name!, Mu :$compile-time-value!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration::External, '$!lexical-name', $lexical-name);
+        nqp::bindattr($obj, RakuAST::Declaration::External::Setting,
+            '$!compile-time-value', $compile-time-value);
+        $obj
+    }
+
+    method set-value(Mu $compile-time-value) {
+        nqp::bindattr(self, RakuAST::Declaration::External::Setting,
+            '$!compile-time-value', $compile-time-value);
+    }
+
+    method type() { $!compile-time-value.WHAT }
+}
+
 # An imported lexical declaration. Has a compile-time value. Must create a
 # lexical slot for itself in the scope it is installed in.
 class RakuAST::Declaration::Import

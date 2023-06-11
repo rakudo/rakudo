@@ -301,7 +301,7 @@ class RakuAST::Resolver {
                     # Things in the setting are assumed constant.
                     if $seen-setting {
                         my $compile-time-value := nqp::atkey($ctx, $name);
-                        return RakuAST::Declaration::External::Constant.new(
+                        return RakuAST::Declaration::External::Setting.new(
                             :lexical-name($name), :$compile-time-value);
                     }
                     else {

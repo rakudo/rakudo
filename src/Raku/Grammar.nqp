@@ -1590,8 +1590,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token infix:sym«=>» { <sym> <O(|%item_assignment)> }
 
-    token prefix:sym<so> { <sym><.end_prefix> <O(|%loose_unary)> }
-    token prefix:sym<not>  { <sym><.end_prefix> <O(|%loose_unary)> }
+    token prefix:sym<so> { <sym><.end-prefix> <O(|%loose_unary)> }
+    token prefix:sym<not>  { <sym><.end-prefix> <O(|%loose_unary)> }
 
     token infix:sym<minmax> { <sym> >> <O(|%list_infix)> }
 
@@ -3196,7 +3196,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         » <!before <.[ \( \\ ' \- ]> || \h* '=>'>
     }
 
-    token end_prefix {
+    token end-prefix {
         <.end-keyword> \s*
     }
 

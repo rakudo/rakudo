@@ -211,51 +211,29 @@ class RakuAST::QuotedString
         }
     }
 
-    # Tries to get a literal value for the quoted string. If that is not
-    # possible, returns Nil.
-    method literal-value() {
-        my $base-str;
-        if nqp::elems($!segments) == 1 && nqp::istype($!segments[0], RakuAST::StrLiteral) {
-            $base-str := $!segments[0].value;
-        }
-        else {
-            my str $base-from-parts := '';
-            for $!segments {
-                if nqp::istype($_, RakuAST::StrLiteral) {
-                    $base-from-parts := $base-from-parts ~ $_.value;
-                }
-                elsif nqp::istype($_, RakuAST::QuoteWordsAtom)
-                    && nqp::istype($_.atom, RakuAST::QuotedString)
-                    && my $nested-str := $_.atom.literal-value
-                {
-                    $base-from-parts := $base-from-parts ~ $nested-str;
-                }
-                elsif nqp::istype($_, RakuAST::Var::Lexical)
-                    && $_.is-resolved
-                    && nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant)
-                {
-                    $base-from-parts := $base-from-parts ~ $_.resolution.compile-time-value.Str;
-                }
-                else {
-                    return Nil;
-                }
-            }
-            $base-str := nqp::box_s($base-from-parts, Str);
-        }
-        my $result := $base-str;
+    method IMPL-PROCESS-PART($result, $part) {
+        return Nil if $part =:= Nil;
         for $!processors {
             if $_ eq 'words' {
-                return Nil unless nqp::istype($result, Str);
-                $result := $result.WORDS_AUTODEREF();
+                return Nil unless nqp::istype($part, Str);
+                my @parts;
+                for $part.WORDS_AUTODEREF.FLATTENABLE_LIST {
+                    nqp::push(@parts, $_);
+                }
+                $part := @parts;
             }
             elsif $_ eq 'quotewords' {
-                return Nil unless nqp::istype($result, Str);
+                return Nil unless nqp::istype($part, Str);
                 #TODO actually implement special handling of « »
-                $result := $result.WORDS_AUTODEREF();
+                my @parts;
+                for $part.WORDS_AUTODEREF.FLATTENABLE_LIST {
+                    nqp::push(@parts, $_);
+                }
+                $part := @parts;
             }
             elsif $_ eq 'val' {
                 my $val := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
-                $result := $val($result);
+                $part := $val(nqp::hllizefor($part, 'Raku'));
             }
             elsif $_ eq 'heredoc' {
             }
@@ -263,7 +241,73 @@ class RakuAST::QuotedString
                 return Nil;
             }
         }
-        return $result;
+        if nqp::islist($part) {
+            for $part {
+                nqp::push($result, $_);
+            }
+        }
+        elsif nqp::istype($part, List) {
+            for $part.FLATTENABLE_LIST {
+                nqp::push($result, $_);
+            }
+        }
+        else {
+            nqp::push($result, $part);
+        }
+        True
+    }
+
+    # Tries to get a literal value for the quoted string. If that is not
+    # possible, returns Nil.
+    method literal-value() {
+        my @parts;
+        for $!segments {
+            if nqp::istype($_, RakuAST::StrLiteral) {
+                self.IMPL-PROCESS-PART(@parts, $_.value) || return Nil;
+            }
+            elsif nqp::istype($_, RakuAST::QuoteWordsAtom)
+                && nqp::istype($_.atom, RakuAST::QuotedString)
+                && my $nested-str := $_.atom.literal-value
+            {
+                return Nil if $nested-str =:= Nil;
+
+                if nqp::istype($nested-str, Str) {
+                    nqp::push(@parts, $nested-str);
+                }
+                elsif nqp::istype($nested-str, List) {
+                    for $nested-str.FLATTENABLE_LIST {
+                        nqp::push(@parts, $_);
+                    }
+                }
+            }
+            elsif nqp::istype($_, RakuAST::Var::Lexical)
+                && $_.is-resolved
+                && nqp::istype($_.resolution, RakuAST::VarDeclaration::Constant)
+            {
+                self.IMPL-PROCESS-PART(@parts, $_.resolution.compile-time-value.Str) || return Nil;
+            }
+            else {
+                return Nil;
+            }
+        }
+
+        my int $return-list := 0;
+        for $!processors {
+            if $_ eq 'words' {
+                $return-list := 1;
+            }
+            elsif $_ eq 'quotewords' {
+                $return-list := 1;
+            }
+            elsif $_ eq 'val' && nqp::elems(@parts) == 1 {
+                $return-list := 0;
+            }
+        }
+        return $return-list
+            ?? nqp::hllizefor(@parts, 'Raku')
+            !! nqp::elems(@parts) == 1
+                ?? @parts[0] # need to preserve val() result
+                !! nqp::box_s(nqp::join('', @parts), Str);
     }
 
     # Checks if this is an empty words list, as seen in a form like %h<>.

@@ -69,7 +69,9 @@ class RakuAST::Name
     }
 
     method is-indirect-lookup() {
-        nqp::elems($!parts) == 1 && nqp::istype($!parts[0], RakuAST::Name::Part::Expression)
+        for $!parts {
+            return True if nqp::istype($_, RakuAST::Name::Part::Expression);
+        }
     }
 
     method has-colonpair($key) {

@@ -2426,7 +2426,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method parameter($/) {
         my $parameter := $<param-var>   ?? $<param-var>.ast   !!
-                         $<named_param> ?? $<named_param>.ast !!
+                         $<named-param> ?? $<named-param>.ast !!
                          $<param-term>  ?? $<param-term>.ast  !!
                          self.r('Parameter').new;
         my $capture := self.r('Type', 'Capture');
@@ -2523,12 +2523,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method named_param($/) {
+    method named-param($/) {
         my $parameter;
         if $<name> {
             # Explicitly specified name to attach.
-            if $<named_param> {
-                $parameter := $<named_param>.ast;
+            if $<named-param> {
+                $parameter := $<named-param>.ast;
             }
             else {
                 $parameter := $<param-var>.ast;

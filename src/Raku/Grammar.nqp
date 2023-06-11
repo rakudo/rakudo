@@ -2999,7 +2999,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param-var>);
             }
           | $<quant>=['\\'|'|'|'+'] <param-term>
-          | [ <param-var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+          | [ <param-var> | <named-param> ] $<quant>=['?'|'!'|<?>]
           | <?>
           ]
         | $<quant>=['**'|'*'|'+'] <param-var>
@@ -3007,7 +3007,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param-var>);
           }
         | $<quant>=['\\'|'|'|'+'] <param-term>
-        | [ <param-var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+        | [ <param-var> | <named-param> ] $<quant>=['?'|'!'|<?>]
         ]
         <.ws>
         <trait>*
@@ -3066,13 +3066,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <defterm>?
     }
 
-    token named_param {
+    token named-param {
         :my $*GOAL := ')';
         :dba('named parameter')
         ':'
         [
         | <name=.identifier> '('
-            <.ws> [ <named_param> | <param-var> ] <.ws>
+            <.ws> [ <named-param> | <param-var> ] <.ws>
             [ ')' || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'> ]
         | <param-var>
         ]

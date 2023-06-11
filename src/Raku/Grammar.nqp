@@ -2758,7 +2758,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $qm;
         'q'
         [
-        | <quote_mod> {} <.qok($/)> { $qm := $<quote_mod>.Str } <quibble(self.slang_grammar('Quote'), 'q', $qm)>
+        | <quote-modifier> {} <.qok($/)> { $qm := $<quote-modifier>.Str } <quibble(self.slang_grammar('Quote'), 'q', $qm)>
         | {} <.qok($/)> <quibble(self.slang_grammar('Quote'), 'q')>
         ]
     }
@@ -2766,7 +2766,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $qm;
         'qq'
         [
-        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(self.slang_grammar('Quote'), 'qq', $qm)>
+        | <quote-modifier> { $qm := $<quote-modifier>.Str } <.qok($/)> <quibble(self.slang_grammar('Quote'), 'qq', $qm)>
         | {} <.qok($/)> <quibble(self.slang_grammar('Quote'), 'qq')>
         ]
     }
@@ -2774,22 +2774,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $qm;
         'Q'
         [
-        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(self.slang_grammar('Quote'), $qm)>
+        | <quote-modifier> { $qm := $<quote-modifier>.Str } <.qok($/)> <quibble(self.slang_grammar('Quote'), $qm)>
         | {} <.qok($/)> <quibble(self.slang_grammar('Quote'))>
         ]
     }
 
-    proto token quote_mod   {*}
-    token quote_mod:sym<w>  { <sym> }
-    token quote_mod:sym<ww> { <sym> }
-    token quote_mod:sym<x>  { <sym> }
-    token quote_mod:sym<to> { <sym> }
-    token quote_mod:sym<s>  { <sym> }
-    token quote_mod:sym<a>  { <sym> }
-    token quote_mod:sym<h>  { <sym> }
-    token quote_mod:sym<f>  { <sym> }
-    token quote_mod:sym<c>  { <sym> }
-    token quote_mod:sym<b>  { <sym> }
+    proto token quote-modifier   {*}
+    token quote-modifier:sym<w>  { <sym> }
+    token quote-modifier:sym<ww> { <sym> }
+    token quote-modifier:sym<x>  { <sym> }
+    token quote-modifier:sym<to> { <sym> }
+    token quote-modifier:sym<s>  { <sym> }
+    token quote-modifier:sym<a>  { <sym> }
+    token quote-modifier:sym<h>  { <sym> }
+    token quote-modifier:sym<f>  { <sym> }
+    token quote-modifier:sym<c>  { <sym> }
+    token quote-modifier:sym<b>  { <sym> }
 
     token qok($x) {
         » <![(]>

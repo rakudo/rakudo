@@ -2992,7 +2992,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token parameter {
         [
-        | <type_constraint>+
+        | <type-constraint>+
           [
           | $<quant>=['**'|'*'|'+'] <param-var>
           | $<quant>=['\\'|'|'] <param-var> {
@@ -3083,7 +3083,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         '=' <EXPR('i=')>
     }
 
-    token type_constraint {
+    token type-constraint {
         :my $*IN-DECL := '';
         [
         | <value>

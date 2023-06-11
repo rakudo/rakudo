@@ -2433,7 +2433,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $raku-type := self.r('Type');
         my $raku-quotedstring := self.r('QuotedString');
         my $raku-compiletimevalue := self.r('CompileTimeValue');
-        for $<type_constraint> {
+        for $<type-constraint> {
             my $type-constraint := $_.ast;
             if nqp::istype($type-constraint, $capture) {
                 $parameter.add-type-capture($type-constraint);
@@ -2548,7 +2548,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $<EXPR>.ast;
     }
 
-    method type_constraint($/) {
+    method type-constraint($/) {
         self.attach: $/, $<typename> ?? $<typename>.ast !! $<value>.ast;
     }
 

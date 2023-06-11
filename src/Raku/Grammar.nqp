@@ -2663,7 +2663,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <integer>
         | <decimal-number>
         | <radix-number>
-        | <rat_number>
+        | <rational-number>
         | <complex_number>
         | 'Inf' >>
         | $<uinf>='∞'
@@ -2723,8 +2723,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token rat_number { '<' <bare_rat_number> '>' }
-    token bare_rat_number {
+    token rational-number { '<' <bare-rational-number> '>' }
+    token bare-rational-number {
         <?before <.[-−+0..9<>:boxd]>+? '/'>
         <nu=.signed-integer> '/' <de=integer>
     }

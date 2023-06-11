@@ -2057,8 +2057,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<radix-number> {
             self.attach: $/, $<radix-number>.ast;
         }
-        elsif $<rat_number> {
-            self.attach: $/, $<rat_number>.ast;
+        elsif $<rational-number> {
+            self.attach: $/, $<rational-number>.ast;
         }
         elsif $<complex_number> {
             self.attach: $/, $<complex_number>.ast;
@@ -2202,11 +2202,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method rat_number($/) {
-        self.attach: $/, $<bare_rat_number>.ast;
+    method rational-number($/) {
+        self.attach: $/, $<bare-rational-number>.ast;
     }
 
-    method bare_rat_number($/) {
+    method bare-rational-number($/) {
         self.attach: $/, self.r('RatLiteral').new(
           $*LITERALS.intern-rat($<nu>.ast, $<de>.ast)
         );

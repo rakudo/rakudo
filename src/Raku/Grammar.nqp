@@ -3011,19 +3011,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
         <.ws>
         <trait>*
-        <post_constraint>*
+        <post-constraint>*
         [
             <default_value>
             [ <modifier=.trait> {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default_value>
             }]?
-            [ <modifier=.post_constraint> {
+            [ <modifier=.post-constraint> {
                 self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
             }]?
         ]?
     }
 
-    rule post_constraint {
+    rule post-constraint {
         :my $*IN-DECL := '';
         :dba('constraint')
         [

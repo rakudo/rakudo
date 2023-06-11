@@ -2476,12 +2476,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<default_value> {
             $parameter.set-default($<default_value>.ast);
         }
-        if $<post_constraint> {
-            if $<post_constraint>[0]<EXPR> {
-                $parameter.set-where($<post_constraint>[0].ast);
+        if $<post-constraint> {
+            if $<post-constraint>[0]<EXPR> {
+                $parameter.set-where($<post-constraint>[0].ast);
             }
-            elsif $<post_constraint>[0]<signature> {
-                $parameter.set-sub-signature($<post_constraint>[0].ast);
+            elsif $<post-constraint>[0]<signature> {
+                $parameter.set-sub-signature($<post-constraint>[0].ast);
             }
         }
         self.attach: $/, $parameter;
@@ -2552,7 +2552,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<typename> ?? $<typename>.ast !! $<value>.ast;
     }
 
-    method post_constraint($/) {
+    method post-constraint($/) {
         if $<EXPR> {
             make $<EXPR>.ast;
         }

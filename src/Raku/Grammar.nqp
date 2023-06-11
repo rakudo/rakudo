@@ -2994,20 +2994,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <type_constraint>+
           [
-          | $<quant>=['**'|'*'|'+'] <param_var>
-          | $<quant>=['\\'|'|'] <param_var> {
-                $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+          | $<quant>=['**'|'*'|'+'] <param-var>
+          | $<quant>=['\\'|'|'] <param-var> {
+                $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param-var>);
             }
           | $<quant>=['\\'|'|'|'+'] <param_term>
-          | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+          | [ <param-var> | <named_param> ] $<quant>=['?'|'!'|<?>]
           | <?>
           ]
-        | $<quant>=['**'|'*'|'+'] <param_var>
-        | $<quant>=['\\'|'|'] <param_var> {
-              $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+        | $<quant>=['**'|'*'|'+'] <param-var>
+        | $<quant>=['\\'|'|'] <param-var> {
+              $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param-var>);
           }
         | $<quant>=['\\'|'|'|'+'] <param_term>
-        | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+        | [ <param-var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         ]
         <.ws>
         <trait>*
@@ -3033,7 +3033,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token param_var {
+    token param-var {
         :dba('formal parameter')
         [
         | '[' ~ ']' <signature>
@@ -3072,9 +3072,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ':'
         [
         | <name=.identifier> '('
-            <.ws> [ <named_param> | <param_var> ] <.ws>
+            <.ws> [ <named_param> | <param-var> ] <.ws>
             [ ')' || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'> ]
-        | <param_var>
+        | <param-var>
         ]
     }
 

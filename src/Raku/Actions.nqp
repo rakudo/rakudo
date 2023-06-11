@@ -2425,7 +2425,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method parameter($/) {
-        my $parameter := $<param_var>   ?? $<param_var>.ast   !!
+        my $parameter := $<param-var>   ?? $<param-var>.ast   !!
                          $<named_param> ?? $<named_param>.ast !!
                          $<param_term>  ?? $<param_term>.ast  !!
                          self.r('Parameter').new;
@@ -2487,7 +2487,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $parameter;
     }
 
-    method param_var($/) {
+    method param-var($/) {
         # Work out what kind of thing we're binding into, if any.
         my %args;
         if $<name> {
@@ -2531,14 +2531,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $parameter := $<named_param>.ast;
             }
             else {
-                $parameter := $<param_var>.ast;
+                $parameter := $<param-var>.ast;
             }
             $parameter.add-name(~$<name>);
         }
         else {
             # Name comes from the parameter variable.
-            $parameter := $<param_var>.ast;
-            my $name-match := $<param_var><name>;
+            $parameter := $<param-var>.ast;
+            my $name-match := $<param-var><name>;
             $parameter.add-name($name-match ?? ~$name-match !! '');
         }
         self.attach: $/, $parameter;

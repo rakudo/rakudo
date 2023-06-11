@@ -2805,7 +2805,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         '/'
         <nibble(self.quote-lang(self.slang_grammar('Regex'), '/', '/'))>
         [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
-        <.old_rx_mods>?
+        <.old-rx-modifiers>?
     }
     token quote:sym<rx>   {
         <sym>
@@ -2814,7 +2814,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {} <.qok($/)>
         <rx_adverbs>
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
-        <!old_rx_mods>
+        <!old-rx-modifiers>
     }
     token quote:sym<m> {
         <sym> (s)**0..1
@@ -2825,7 +2825,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.qok($/)>
         <rx_adverbs>
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
-        <!old_rx_mods>
+        <!old-rx-modifiers>
     }
 
     token quote:sym<s> {
@@ -2837,7 +2837,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.qok($/)>
         <rx_adverbs>
         <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>
-        [ <?{ $<sibble><infixish> }> || <.old_rx_mods>? ]
+        [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
     token sibble($l, $lang2, @lang2tweaks?) {
@@ -2862,7 +2862,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token old_rx_mods {
+    token old-rx-modifiers {
         (<[ i g s m x c e ]>)
         {
             my $m := $/[0].Str;

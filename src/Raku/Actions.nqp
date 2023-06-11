@@ -2251,11 +2251,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method quote:sym<rx>($/) {
         self.attach: $/, self.r('QuotedRegex').new:
             body => $<quibble>.ast,
-            adverbs => $<rx_adverbs>.ast;
+            adverbs => $<rx-adverbs>.ast;
     }
 
     method quote:sym<m>($/) {
-        my @adverbs := $<rx_adverbs>.ast // nqp::list;
+        my @adverbs := $<rx-adverbs>.ast // nqp::list;
         @adverbs.push(self.r('ColonPair','True').new("s"))
           if nqp::elems($/[0]);  # handling ms//
 
@@ -2267,7 +2267,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Substitution').new:
             immutable => $<sym> eq 'S',
             samespace => ?$/[0],
-            adverbs => $<rx_adverbs>.ast,
+            adverbs => $<rx-adverbs>.ast,
             pattern => $<sibble><left>.ast,
             infix => $<sibble><infixish> ?? $<sibble><infixish>.ast !! self.r('Infixish'),
             replacement => $<sibble><right>.ast;
@@ -2290,7 +2290,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         'samespace', 's',
         'mm', 'm',
         'samemark', 'm');
-    method rx_adverbs($/) {
+    method rx-adverbs($/) {
         my @pairs;
         for $<quotepair> {
             my $ast := $_.ast;

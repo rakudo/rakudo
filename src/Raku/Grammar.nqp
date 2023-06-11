@@ -2812,7 +2812,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         {} <.qok($/)>
-        <rx_adverbs>
+        <rx-adverbs>
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
         <!old-rx-modifiers>
     }
@@ -2823,7 +2823,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*WHITESPACE_OK := ?$/[0];
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
-        <rx_adverbs>
+        <rx-adverbs>
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
         <!old-rx-modifiers>
     }
@@ -2835,7 +2835,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*WHITESPACE_OK := ?$/[0];
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
-        <rx_adverbs>
+        <rx-adverbs>
         <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
@@ -2881,7 +2881,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> {} <.qok($/)> <.obs('qr for regex quoting', 'rx//')>
     }
 
-    token rx_adverbs() {
+    token rx-adverbs() {
         [ <quotepair> <.ws> ]*
     }
 

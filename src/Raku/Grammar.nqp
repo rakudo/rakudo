@@ -1890,7 +1890,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [
                 <?[(]> <?{ $*is-type }>
                 '(' <.ws> [
-                    || <accept=.maybe_typename> <?{
+                    || <accept=.maybe-typename> <?{
                            my $it := $<accept>.ast;
                            nqp::istype($it,self.actions.r('Type','Coercion'))
                              || $*R.is-name-type($it.name)
@@ -2944,7 +2944,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
     }
 
-    method maybe_typename() {
+    method maybe-typename() {
         return self.typename();
         CATCH { return self.'!cursor_start_cur'() }
     }

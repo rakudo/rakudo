@@ -2456,7 +2456,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 my $category := $<deflongname><name>.Str;
 
                 my $opname := $cf<circumfix>
-                    ?? $cf<circumfix><nibble>.ast.literal-value // $cf<circumfix><semilist>
+                    ?? $cf<circumfix><nibble>
+                        ?? $cf<circumfix><nibble>.ast.literal-value // ~$cf<circumfix><nibble>
+                        !! $cf<circumfix><semilist>
                     !! '';
                 my $canname := $category ~ ':sym' ~ self.actions.r('ColonPairish').IMPL-QUOTE-VALUE($opname.Str);
 

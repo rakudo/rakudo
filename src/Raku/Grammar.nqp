@@ -2661,7 +2661,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | 'NaN' >>
         | <integer>
-        | <dec_number>
+        | <decimal-number>
         | <rad_number>
         | <rat_number>
         | <complex_number>
@@ -2690,7 +2690,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token signed-number { <sign> <number> }
 
-    token dec_number {
+    token decimal-number {
         :dba('decimal number')
         [
         | $<coeff> = [               '.' <frac=.decint> ] <escale>?

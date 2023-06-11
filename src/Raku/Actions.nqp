@@ -2051,8 +2051,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<integer> {
             self.attach: $/, self.r('IntLiteral').new($<integer>.ast);
         }
-        elsif $<dec_number> {
-            self.attach: $/, $<dec_number>.ast;
+        elsif $<decimal-number> {
+            self.attach: $/, $<decimal-number>.ast;
         }
         elsif $<rad_number> {
             self.attach: $/, $<rad_number>.ast;
@@ -2116,7 +2116,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             !! $integer;
     }
 
-    method dec_number($/) {
+    method decimal-number($/) {
         if $<escale> { # wants a Num
             self.attach: $/, self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
         }

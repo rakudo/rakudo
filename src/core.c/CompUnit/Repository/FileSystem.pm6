@@ -61,7 +61,9 @@ class CompUnit::Repository::FileSystem
                     grep { .defined }, (.id with self.next-repo), slip # slip next repo id into hash parts to be hashed together
                     map  { nqp::sha1($_) },
                     map  { $distribution.content($_).open(:enc<iso-8859-1>).slurp(:close) },
-                    $distribution.meta<provides>.values.unique.sort;
+                    sort unique flat
+                    $distribution.meta<files>.grep(*.key.starts-with('resources/')).map(*.value),
+                    $distribution.meta<provides>.values;
                 nqp::sha1($parts.join(''));
             }
         }

@@ -257,6 +257,7 @@ class RakuAST::Deparse {
       scope-my       => 'my',
       scope-our      => 'our',
       scope-state    => 'state',
+      scope-unit     => 'unit',
 
       stmt-prefix-do       => 'do',
       stmt-prefix-eager    => 'eager',
@@ -631,10 +632,13 @@ class RakuAST::Deparse {
         }
     }
 
-    multi method deparse(RakuAST::Blockoid:D $ast, :$multi --> Str:D) {
+    multi method deparse(RakuAST::Blockoid:D $ast, :$multi, :$unit --> Str:D) {
         my $statement-list := $ast.statement-list;
 
-        if $multi || $statement-list.statements {
+        if $unit {
+            self.deparse($statement-list)
+        }
+        elsif $multi || $statement-list.statements {
             self.indent;
             $.block-open
               ~ self.deparse($statement-list)
@@ -930,9 +934,10 @@ class RakuAST::Deparse {
 #- P ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Package:D $ast --> Str:D) {
+        my str $scope = $ast.scope;
         my str @parts;
 
-        if $ast.scope -> $scope {
+        if $scope {
             @parts.push(self.xsyn('scope', $scope))
               if $scope ne $ast.default-scope;
         }
@@ -969,9 +974,20 @@ class RakuAST::Deparse {
           !! $ast.body;
 
         if $ast.WHY -> $WHY {
-            @parts.push('{');
-            self.add-any-docs(@parts.join(' '), $WHY).chomp
-              ~ self.deparse($body, :multi).substr(1).chomp
+            if $scope eq 'unit' {
+                self.add-any-docs(@parts.join(' ') ~ ';', $WHY)
+                  ~ self.deparse($body, :unit).chomp
+            }
+            else {
+                @parts.push('{');
+                self.add-any-docs(@parts.join(' '), $WHY).chomp
+                  ~ self.deparse($body, :multi).substr(1).chomp
+            }
+        }
+        elsif $scope eq 'unit' {
+            @parts.join(' ')
+              ~ $.end-statement
+              ~ self.deparse($body, :unit).chomp
         }
         else {
             @parts.push(self.deparse($body));

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 12;
+plan 13;
 
 my $ast;
 my $deparsed;
@@ -537,6 +537,50 @@ CODE
           "$type: Class with hides trait gets correct name";
         is-deeply $class.list, Nil,
           "$type: Calling .list will not dispatch to Any.list";
+    }
+}
+
+subtest 'unit scoped class' => {
+    # unit class Goo; method goo { 42 }
+    ast RakuAST::Package.new(
+      scope      => "unit",
+      declarator => "class",
+      name       => RakuAST::Name.from-identifier("Goo"),
+      body       => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier("goo"),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(42)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    ).declarator-docs(
+      leading  => ("leading",),
+      trailing => ("trailing",)
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+#| leading
+unit class Goo; #= trailing
+method goo {
+    42
+}
+CODE
+
+    for 'AST', $ast -> $type, $it {  # Redeclaration of symbol 'Goo'
+#    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        my $class := EVAL($it);
+        is $class.^name, 'Goo', "$type: unit scoped class is returned";
+        is-deeply $class.goo, 42, "$type: Calling .goo works";
     }
 }
 

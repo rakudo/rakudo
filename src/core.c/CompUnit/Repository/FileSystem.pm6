@@ -12,13 +12,16 @@ class CompUnit::Repository::FileSystem
     has $!precomp-store;
     has $!distribution;
     has $!files-prefix;
-
-    my constant @extensions = <.rakumod .pm6 .pm>;
+    has @.extensions = <.rakumod .pm6 .pm>;
 
     method TWEAK(--> Nil) {
         $!loaded-lock := Lock.new;
         $!seen-lock := Lock.new;
         $!seen := nqp::hash;
+
+        # turn ".rakumod .pm6" into ".rakumod", ".pm6"
+        # for e.g. file#extensions<.rakumod .pm6>#lib
+        @!extensions = @!extensions.words;
     }
 
     # An equivalent of self.candidates($spec).head that caches the best match
@@ -209,7 +212,7 @@ class CompUnit::Repository::FileSystem
 
             # Break the !distribution cache if we failed to find a match using the cached distribution
             # but still found an existing file that matches the $spec.short-name
-            return Empty unless @extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ $_) }).first(*.f);
+            return Empty unless @!extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ $_) }).first(*.f);
             $!distribution := Nil;
             $distribution = self!distribution;
         }
@@ -320,11 +323,12 @@ class CompUnit::Repository::FileSystem
           .subst(:g, /\:\:+/, '::')
           .subst(/^.*?'::'/, '')
           .subst(/\..*/, '')
-        }{ .IO.extension } = $_
-          for ls($!prefix.absolute).grep(*.ends-with(any(@extensions)));
+        }{ '.' ~ .IO.extension } = $_
+          for ls($!prefix.absolute).grep(*.ends-with(any(@!extensions)));
 
-        # make sure .rakumod has precedence over .pm6 and .pm
-        $_ = .<rakumod> // .<pm6> // .<pm> for %provides.values;
+        # precedence is determined by the order of @!extensions
+        $_ = @!extensions.map(-> $ext { $_{$ext} }).first(*.defined)
+            for %provides.values;
 
         Distribution::Hash.new(:$prefix, %(
           name      => ~$!prefix,  # must make up a name when using -Ilib

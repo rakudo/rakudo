@@ -244,7 +244,7 @@ class RakuAST::CompUnit
         nqp::ifnull(
           $!data-content,
           nqp::bindattr(self,RakuAST::CompUnit,'$!data-content',
-            RakuAST::Doc::Block.PodData
+            RakuAST::Doc::Block.Hashray
           )
         )
     }

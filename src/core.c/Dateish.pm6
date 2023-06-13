@@ -49,7 +49,7 @@ my role Dateish {
 
     # shortcut for out of range throwing
     method !oor($what, $got, $range) {
-        X::OutOfRange.new(:$what, :$got, :$range).throw
+        X::Temporal::OutOfRange.new(:$what, :$got, :$range).throw
     }
 
     # shortcut for invalid format throwing

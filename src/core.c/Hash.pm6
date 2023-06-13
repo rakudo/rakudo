@@ -88,14 +88,7 @@ my class Hash { # declared in BOOTSTRAP
               $x.PUSH_FROM_MAP($temp),
               nqp::if(
                 nqp::eqaddr(($y := $iter.pull-one),IterationEnd),
-                nqp::if(
-                  nqp::istype($x,Failure),
-                  $x.throw,
-                  X::Hash::Store::OddNumber.new(
-                    found => nqp::add_i(nqp::mul_i(nqp::elems($storage),2),1),
-                    last  => $x
-                  ).throw
-                ),
+                $temp.store-odd-number($x),
                 $temp.STORE_AT_KEY($x,$y)
               )
             )

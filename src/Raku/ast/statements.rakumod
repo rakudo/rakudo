@@ -414,7 +414,12 @@ class RakuAST::StatementSequence
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @statements := self.code-statements;
+        my @statements;
+        for self.code-statements {
+            @statements.push($_)
+              unless nqp::istype($_,RakuAST::Statement::Empty);
+        }
+
         my int $n := nqp::elems(@statements);
         if $n == 1 {
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)

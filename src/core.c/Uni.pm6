@@ -4,6 +4,7 @@ my class NFKC is repr('VMArray') is array_type(uint32) { ... }
 my class NFKD is repr('VMArray') is array_type(uint32) { ... }
 
 my class X::InvalidCodepoint { ... }
+my class Encoding::Registry { ... }
 
 my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_type(uint32) {
 
@@ -147,6 +148,17 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     multi method raku(Uni:D:) {
         'Uni.new(' ~ self.list.fmt('0x%04x', ', ') ~ ')' ~
             (self.WHAT === Uni ?? '' !! '.' ~ self.^name);
+    }
+
+    method encode(Str:D $encoding = 'utf8',
+      :$replacement, Bool() :$translate-nl = False, :$strict --> Blob:D) {
+        my $encoder = Encoding::Registry.find($encoding)
+            .encoder(:$replacement, :$translate-nl, :$strict);
+        my $buf = Buf.new;
+        for self.list -> $character {
+            $buf.append($encoder.encode-chars($character.chr));
+        }
+        $buf;
     }
 }
 

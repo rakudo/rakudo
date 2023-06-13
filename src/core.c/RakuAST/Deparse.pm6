@@ -140,161 +140,18 @@ class RakuAST::Deparse {
     }
 
 #-------------------------------------------------------------------------------
-# Code language translators
+# Provide translation for given syntax feature of Raku
 
-    my constant %default-translation =
-      block-default  => 'default',
-      block-else     => 'else',
-      block-elsif    => 'elsif',
-      block-for      => 'for',
-      block-given    => 'given',
-      block-if       => 'if',
-      block-loop     => 'loop',
-      block-orwith   => 'orwith',
-      block-repeat   => 'repeat',
-      block-unless   => 'unless',
-      block-until    => 'until',
-      block-when     => 'when',
-      block-while    => 'while',
-      block-with     => 'with',
-      block-without  => 'without',
-
-      infix-after      => 'after',
-      infix-and        => 'and',
-      infix-andthen    => 'andthen',
-      infix-before     => 'before',
-      infix-but        => 'but',
-      infix-cmp        => 'cmp',
-      infix-coll       => 'coll',
-      infix-div        => 'div',
-      infix-does       => 'does',
-      infix-eq         => 'eq',
-      infix-ff         => 'ff',
-      infix-fff        => 'fff',
-      infix-gcd        => 'gcd',
-      infix-ge         => 'ge',
-      infix-gt         => 'gt',
-      infix-le         => 'le',
-      infix-lcm        => 'lcm',
-      infix-leg        => 'leg',
-      infix-lt         => 'lt',
-      infix-max        => 'max',
-      infix-min        => 'min',
-      infix-minmax     => 'minmax',
-      infix-mod        => 'mod',
-      infix-ne         => 'ne',
-      infix-notandthen => 'notandthen',
-      infix-o          => 'o',
-      infix-or         => 'or',
-      infix-orelse     => 'orelse',
-      infix-unicmp     => 'unicmp',
-      infix-x          => 'x',
-      infix-X          => 'X',
-      infix-xx         => 'xx',
-      infix-Z          => 'Z',
-      'infix-ff^'      => 'ff^',
-      'infix-fff^'     => 'fff^',
-      'infix-(cont)'   => '(cont)',
-      'infix-(elem)'   => '(elem)',
-      'infix-^ff'      => '^ff',
-      'infix-^fff'     => '^fff',
-      'infix-^ff^'     => '^ff^',
-      'infix-^fff^'    => '^fff^',
-
-      modifier-for     => 'for',
-      modifier-given   => 'given',
-      modifier-if      => 'if',
-      modifier-unless  => 'unless',
-      modifier-until   => 'until',
-      modifier-when    => 'when',
-      modifier-while   => 'while',
-      modifier-with    => 'with',
-      modifier-without => 'without',
-
-      multi-multi => 'multi',
-      multi-only  => 'only',
-      multi-proto => 'proto',
-
-      package-class   => 'class',
-      package-grammar => 'grammar',
-      package-module  => 'module',
-      package-package => 'package',
-      package-role    => 'role',
-
-      phaser-BEGIN   => 'BEGIN',
-      phaser-CATCH   => 'CATCH',
-      phaser-CHECK   => 'CHECK',
-      phaser-CLOSE   => 'CLOSE',
-      phaser-CONTROL => 'CONTROL',
-      phaser-DOC     => 'DOC',
-      phaser-END     => 'END',
-      phaser-ENTER   => 'ENTER',
-      phaser-FIRST   => 'FIRST',
-      phaser-INIT    => 'INIT',
-      phaser-KEEP    => 'KEEP',
-      phaser-LAST    => 'LAST',
-      phaser-LEAVE   => 'LEAVE',
-      phaser-NEXT    => 'NEXT',
-      phaser-PRE     => 'PRE',
-      phaser-POST    => 'POST',
-      phaser-QUIT    => 'QUIT',
-      phaser-UNDO    => 'UNDO',
-
-      prefix-not => 'not',
-      prefix-so  => 'so',
-
-      routine-method    => 'method',
-      routine-sub       => 'sub',
-      routine-regex     => 'regex',
-      routine-rule      => 'rule',
-      routine-submethod => 'submethod',
-      routine-token     => 'token',
-
-      scope-anon     => 'anon',
-      scope-constant => 'constant',
-      scope-has      => 'has',
-      scope-HAS      => 'HAS',
-      scope-my       => 'my',
-      scope-our      => 'our',
-      scope-state    => 'state',
-      scope-unit     => 'unit',
-
-      stmt-prefix-do       => 'do',
-      stmt-prefix-eager    => 'eager',
-      stmt-prefix-gather   => 'gather',
-      stmt-prefix-hyper    => 'hyper',
-      stmt-prefix-lazy     => 'lazy',
-      stmt-prefix-quietly  => 'quietly',
-      stmt-prefix-race     => 'race',
-      stmt-prefix-sink     => 'sink',
-      stmt-prefix-start    => 'start',
-      stmt-prefix-try      => 'try',
-      stmt-prefix-react    => 'react',
-      stmt-prefix-whenever => 'whenever',
-
-      trait-does    => 'does',
-      trait-hides   => 'hides',
-      trait-is      => 'is',
-      trait-of      => 'of',
-      trait-returns => 'returns',
-
-      type-enum   => 'enum',
-      type-subset => 'subset',
-
-      use-import  => 'import',
-      use-need    => 'need',
-      use-no      => 'no',
-      use-require => 'require',
-      use-use     => 'use',
-    ;
-    method syntax-translation() { %default-translation }
-
-    # provide translation for given syntax feature of Raku
-    method xsyn(str $prefix, str $key) {
-        self.syntax-translation.AT-KEY("$prefix-$key")
-          || ($key if $prefix eq 'infix' | 'prefix')
-          || die "Could not find translation for '$key' in '$prefix'";
-    }
+    # The default implementation of the "xsyn" method is basically a
+    # no-op, because it will ignore the prefix (which can be any of
+    # <block core infix modifier multi package phaser prefix routine
+    # scope stmt-prefix trait type use>).  The idea is that you can
+    # either mixin a role with this method (such as RakuAST::Deparse::Dutch)
+    # that will provide translations of the Raku Programming Language
+    # syntax elements to a language different from English.  Please
+    # see lib/RakuAST/Deparse/CORE.rakumod for the default mapping and
+    # an example of implementation of the "xsyn" method for translations.
+    method xsyn(str $prefix, str $key) { $key }
 
 #-------------------------------------------------------------------------------
 # Helper methods
@@ -471,11 +328,13 @@ class RakuAST::Deparse {
         self.xsyn('trait', $ast.IMPL-TRAIT-NAME) ~ ' ' ~ self.deparse($ast.type)
     }
 
-    method method-call($ast, str $dot, $macroish? --> Str:D) {
+    method method-call($ast, str $dot, $macroish?, :$xsyn --> Str:D) {
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
 
-        $dot ~ $name ~ ($macroish ?? '' !! self.parenthesize($ast.args))
+        $dot
+          ~ ($xsyn ?? self.xsyn('core', $name) !! $name)
+          ~ ($macroish ?? '' !! self.parenthesize($ast.args))
     }
 
     method quote-if-needed(str $literal) {
@@ -661,7 +520,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Call::Method:D $ast --> Str:D) {
-        self.method-call($ast, '.', $ast.macroish)
+        self.method-call($ast, '.', $ast.macroish, :xsyn)
     }
 
     multi method deparse(RakuAST::Call::PrivateMethod:D $ast --> Str:D) {
@@ -677,7 +536,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
-        my $name := self.deparse($ast.name);
+        my $name := self.xsyn('core', self.deparse($ast.name));
         $name.ends-with('::')
           ?? $name
           !! $name ~ self.parenthesize($ast.args)

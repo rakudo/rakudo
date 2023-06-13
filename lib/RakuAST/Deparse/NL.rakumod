@@ -6,7 +6,7 @@
 
 use v6.e.PREVIEW;
 
-unit role RakuAST::Deparse::Dutch;
+unit role RakuAST::Deparse::NL;
 
 my constant %translation =
   block-default  => 'indien-niets',

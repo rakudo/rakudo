@@ -336,11 +336,17 @@ class RakuAST::Node {
 
     # Hook into the Raku RakuAST::Deparse class (by default) or any other
     # class that has been put into the hllsym hash for 'Raku'
-    method DEPARSE($class?) {
-        ($class =:= NQPMu
-          ?? nqp::gethllsym('Raku','DEPARSE')
-          !! $class
-        ).deparse(self)
+    method DEPARSE($it?) {
+        if $it =:= NQPMu {
+            nqp::gethllsym('Raku','DEPARSE').deparse(self)
+        }
+        elsif nqp::can($it.HOW,'pun') {  # it's a role
+            my $base := nqp::clone(nqp::gethllsym('Raku','DEPARSE'));
+            $base.HOW.mixin($base,$it).BUILD_LEAST_DERIVED({}).deparse(self)
+        }
+        else {
+            $it.deparse(self)
+        }
     }
 
     method IMPL-SORTED-KEYS(Mu $hash) {

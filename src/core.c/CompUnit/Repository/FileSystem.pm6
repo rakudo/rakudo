@@ -288,10 +288,8 @@ class CompUnit::Repository::FileSystem
     # but probably a poorly formed one.
     method !dist-from-ls {
         my $prefix := self!files-prefix;
-        my &ls := {
-            Rakudo::Internals.DIR-RECURSE($_).map:
-              *.IO.relative($prefix).subst(:g, '\\', '/')
-        }
+        my &ls := { Rakudo::Internals.DIR-RECURSE($_).map(*.IO) }
+        my &to-relative := { $_.relative($prefix).subst(:g, '\\', '/') }
 
         # files is a non-spec internal field used by
         # CompUnit::Repository::Installation included to make cross CUR
@@ -299,7 +297,7 @@ class CompUnit::Repository::FileSystem
         my %files;
 
         # all the files in bin
-        %files{$_} = $_ for ls($prefix.child('bin').absolute);
+        %files{$_} = $_ for ls($prefix.child('bin').absolute).map(&to-relative);
 
         # all the files in resources
         %files{ m/^resources\/libraries\/(.*)/
@@ -307,7 +305,7 @@ class CompUnit::Repository::FileSystem
                ~ ($0.IO.dirname eq '.' ?? '' !! $0.IO.dirname ~ "/")
                ~ $0.IO.basename.subst(/^lib/, '').subst(/\..*/, '')
           !! $_
-        } = $_ for ls($prefix.child('resources').absolute);
+        } = $_ for ls($prefix.child('resources').absolute).map(&to-relative);
 
         # already grepped resources/ for %files, so reuse that information
         my @resources := %files.keys
@@ -318,7 +316,7 @@ class CompUnit::Repository::FileSystem
         # Set up hash of hashes of files found that could be modules.
         # Then select the most prominent one from there when done.
         my %provides-exts = @!extensions.map(* => True);
-        my $provides-files := ls($!prefix.absolute).grep({ my $ext = ".{$_.IO.extension}"; %provides-exts{$ext} });
+        my $provides-files := ls($!prefix.absolute).grep({ my $ext = ".{$_.extension}"; %provides-exts{$ext} });
         my %provides;
         %provides{
           .subst(:g, /\//, "::")
@@ -326,7 +324,7 @@ class CompUnit::Repository::FileSystem
           .subst(/^.*?'::'/, '')
           .subst(/\..*/, '')
         }{ '.' ~ .IO.extension } = $_
-          for $provides-files;
+          for $provides-files.map(&to-relative);
 
         # precedence is determined by the order of @!extensions
         $_ = @!extensions.map(-> $ext { $_{$ext} }).first(*.defined)

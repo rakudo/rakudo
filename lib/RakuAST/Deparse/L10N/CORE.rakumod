@@ -31,7 +31,7 @@
 
 use v6.e.PREVIEW;
 
-unit role RakuAST::Deparse::CORE;
+unit role RakuAST::Deparse::L10N::CORE;
 
 my constant %translation =
   block-default  => 'default',

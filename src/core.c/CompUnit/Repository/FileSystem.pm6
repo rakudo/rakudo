@@ -200,7 +200,7 @@ class CompUnit::Repository::FileSystem
         ));
     }
     multi method candidates(CompUnit::DependencySpecification $spec) {
-        return Empty unless $spec.from eq 'Raku' | 'Perl6';
+        return Empty unless $spec.from eq 'Raku' || $spec.from eq 'Perl6';
 
         my $distribution = self!distribution;
 
@@ -317,6 +317,8 @@ class CompUnit::Repository::FileSystem
 
         # Set up hash of hashes of files found that could be modules.
         # Then select the most prominent one from there when done.
+        my %provides-exts = @!extensions.map(* => True);
+        my $provides-files := ls($!prefix.absolute).grep({ my $ext = ".{$_.IO.extension}"; %provides-exts{$ext} });
         my %provides;
         %provides{
           .subst(:g, /\//, "::")
@@ -324,7 +326,7 @@ class CompUnit::Repository::FileSystem
           .subst(/^.*?'::'/, '')
           .subst(/\..*/, '')
         }{ '.' ~ .IO.extension } = $_
-          for ls($!prefix.absolute).grep(*.ends-with(any(@!extensions)));
+          for $provides-files;
 
         # precedence is determined by the order of @!extensions
         $_ = @!extensions.map(-> $ext { $_{$ext} }).first(*.defined)

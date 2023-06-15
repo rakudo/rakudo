@@ -13,6 +13,32 @@
 class RakuAST::Deparse {
 
 #-------------------------------------------------------------------------------
+# General lookup hashes
+
+    my constant %processor-attribute =
+      'exec',       ':x',
+      'quotewords', ':ww',
+      'val',        ':v',
+      'words',      ':w',
+      'heredoc',    ':to',
+    ;
+
+    my constant %single-processor-prefix =
+      'exec',       'qx/',
+      'quotewords', 'qqww/',
+      'val',        'qq:v/',
+      'words',      'qqw/',
+    ;
+
+    my constant %twigil2type = <
+      !  var-attribute
+      .  var-attribute
+      ?  var-compiler
+      *  var-compiler
+      =  var-rakudoc
+    >;
+
+#-------------------------------------------------------------------------------
 # These methods are effectively constants that can be overridden by a
 # subclass.
 
@@ -142,16 +168,32 @@ class RakuAST::Deparse {
 #-------------------------------------------------------------------------------
 # Provide translation for given syntax feature of Raku
 
-    # The default implementation of the "xsyn" method is basically a
-    # no-op, because it will ignore the prefix (which can be any of
-    # <block core infix modifier multi package phaser prefix routine
-    # scope stmt-prefix trait type use>).  The idea is that you can
-    # either mixin a role with this method (such as RakuAST::Deparse::Dutch)
-    # that will provide translations of the Raku Programming Language
-    # syntax elements to a language different from English.  Please
-    # see lib/RakuAST/Deparse/CORE.rakumod for the default mapping and
-    # an example of implementation of the "xsyn" method for translations.
+    # The default implementation of the "xsyn" method is basically a no-op,
+    # because it will ignore the prefix (which can be any of <block core
+    # infix modifier multi package phaser prefix routine scope stmt-prefix
+    # trait type use>).  The idea is that you can mixin a role with this
+    # method (such as RakuAST::Deparse::L10N::NL) that will provide
+    # translations of the Raku Programming Language syntax elements to a
+    # language different from English.
+    #
+    # Please see lib/RakuAST/Deparse/L10N/CORE.rakumod for the default
+    # mapping and an example of implementation of the "xsyn" method for
+    # translations.
     method xsyn(str $prefix, str $key) { $key }
+
+#-------------------------------------------------------------------------------
+# Provide highlighting for given syntax feature of Raku
+
+    # The default implementation of the "hsyn" method is basically a no-op,
+    # because it will ignore the prefix (which can be any of <block core
+    # infix modifier multi package phaser prefix routine scope stmt-prefix
+    # trait type use>).  The idea is that you can mixin a role with this
+    # method (such as RakuAST::Deparse::Highlight::HTML) to provide some
+    # kind of syntax highlighting.
+    #
+    # Please see lib/RakuAST/Deparse/Highlight/HTML.rakumod for an example
+    # of implementation of the "hsyn" method for highlighting.
+    method hsyn(str $prefix, str $key) { $key }
 
 #-------------------------------------------------------------------------------
 # Helper methods
@@ -212,10 +254,10 @@ class RakuAST::Deparse {
     }
 
     method method(RakuAST::Methodish:D $ast, str $kind --> Str:D) {
-        my str @parts = self.xsyn('routine', $kind);
+        my str @parts = self.syn-routine($kind);
 
         if $ast.multiness -> $multiness {
-            @parts.unshift(self.xsyn('multi', $multiness));
+            @parts.unshift(self.syn-multi($multiness));
         }
 
         my str $scope = $ast.scope;
@@ -238,26 +280,26 @@ class RakuAST::Deparse {
     }
 
     method conditional($self: $ast, str $type --> Str:D) {
-        self.xsyn('block', $type)
+        self.syn-block($type)
          ~ " $self.deparse($ast.condition) $self.deparse($ast.then)$.last-statement"
     }
 
     method negated-conditional($self: $ast, str $type --> Str:D) {
-        self.xsyn('block', $type)
+        self.syn-block($type)
           ~ " $self.deparse($ast.condition) $self.deparse($ast.body)$.last-statement"
     }
 
     method simple-loop($self: $ast, str $type --> Str:D) {
-        self.xsyn('block', $type)
+        self.syn-block($type)
           ~ " $self.deparse($ast.condition) $self.deparse($ast.body)"
     }
 
     method simple-repeat($ast, str $type --> Str:D) {
-       self.xsyn('block', 'repeat')
+       self.syn-block('repeat')
          ~ ' '
          ~ self.deparse($ast.body).chomp
          ~ ' '
-         ~ self.xsyn('modifier', $type)
+         ~ self.syn-modifier($type)
          ~ ' '
          ~ self.deparse($ast.condition)
     }
@@ -269,21 +311,6 @@ class RakuAST::Deparse {
               !! self.deparse($_)
             }).join
     }
-
-    my constant %processor-attribute =
-      'exec',       ':x',
-      'quotewords', ':ww',
-      'val',        ':v',
-      'words',      ':w',
-      'heredoc',    ':to',
-    ;
-
-    my constant %single-processor-prefix =
-      'exec',       'qx/',
-      'quotewords', 'qqww/',
-      'val',        'qq:v/',
-      'words',      'qqw/',
-    ;
 
     method multiple-processors(str $string, @processors --> Str:D) {
         "qq@processors.map({
@@ -325,14 +352,14 @@ class RakuAST::Deparse {
     }
 
     method typish-trait($ast --> Str:D) {
-        self.xsyn('trait', $ast.IMPL-TRAIT-NAME) ~ ' ' ~ self.deparse($ast.type)
+        self.syn-trait($ast.IMPL-TRAIT-NAME) ~ ' ' ~ self.deparse($ast.type)
     }
 
     method method-call($ast, str $dot, $macroish?, :$xsyn --> Str:D) {
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
 
-        $dot
+        self.syn-routine($dot)
           ~ ($xsyn ?? self.xsyn('core', $name) !! $name)
           ~ ($macroish ?? '' !! self.parenthesize($ast.args))
     }
@@ -362,22 +389,6 @@ class RakuAST::Deparse {
         }
     }
 
-    method deparse-as-config(%config, :$abbreviated) {
-        my str $deparsed = %config.sort({
-            .key eq 'numbered' ?? '' !! .key  # numbered always first
-        }).map({
-            if .key eq 'numbered' {
-                $abbreviated ?? '#' !! ':numbered'
-            }
-            else {
-                nqp::istype(.value,Bool)
-                  ?? (.value ?? ':' !! ':!') ~ .key
-                  !! .raku
-            }
-        }).join(' ');
-        $deparsed ?? " $deparsed" !! ''
-    }
-
     method labels(RakuAST::Statement:D $ast) {
         $ast.labels.map({ self.deparse($_) }).join
     }
@@ -397,7 +408,8 @@ class RakuAST::Deparse {
     method prefix-any-leading-doc(str $body, $WHY) {
         if $WHY && $WHY.leading -> @leading {
             @leading.map({
-                "#| " ~ self.deparse-unquoted($_) ~ "\n$*INDENT"
+                self.hsyn('doc-leading', "#| " ~ self.deparse-unquoted($_))
+                  ~ "\n$*INDENT"
             }).join ~ $body
         }
         else {
@@ -410,9 +422,13 @@ class RakuAST::Deparse {
             my str @lines = @trailing.map: {
                 self.deparse-unquoted($_).lines(:!chomp).Slip
             }
-            ($body ~ $*DELIMITER).chomp ~ (@lines > 1
-              ?? ' #=｢' ~ @lines.join() ~ "｣\n"
-              !! " #= @lines.head()\n")
+            ($body ~ $*DELIMITER).chomp
+              ~ ' '
+              ~ self.hsyn('doc-trailing', @lines > 1
+                  ?? '#=｢' ~ @lines.join() ~ '｣'
+                  !! "#= @lines.head()"
+                )
+              ~ "\n"
         }
         else {
             $body ~ $*DELIMITER
@@ -426,7 +442,57 @@ class RakuAST::Deparse {
     }
 
     method statement-modifier(str $type, $ast) {
-        self.xsyn('modifier', $type) ~ ' ' ~ self.deparse($ast.expression)
+        self.syn-modifier($type) ~ ' ' ~ self.deparse($ast.expression)
+    }
+
+    method syn-block(str $type) {
+        self.hsyn("block-$type", self.xsyn('block', $type))
+    }
+
+    method syn-infix(str $operator) {
+        self.hsyn("infix", self.xsyn('infix', $operator))
+    }
+
+    method syn-infix-ws(Str:D $operator) {
+        $operator.leading-whitespace
+          ~ self.hsyn("infix", self.xsyn('infix', $operator.trim))
+          ~ $operator.trailing-whitespace
+    }
+
+    method syn-modifier(str $type) {
+        self.hsyn("modifier-$type", self.xsyn('modifier', $type))
+    }
+
+    method syn-multi(str $type) {
+        self.hsyn("multi-$type", self.xsyn('multi', $type))
+    }
+
+    method syn-package(str $declarator) {
+        self.hsyn("package-$declarator", self.xsyn('package', $declarator))
+    }
+
+    method syn-phaser(str $phaser) {
+        self.hsyn("phaser-$phaser", self.xsyn('phaser', $phaser))
+    }
+
+    method syn-routine(str $type) {
+        self.hsyn("routine-$type", self.xsyn('routine', $type))
+    }
+
+    method syn-scope(str $scope) {
+        self.hsyn("scope-$scope", self.xsyn('scope', $scope))
+    }
+
+    method syn-trait(str $trait) {
+        self.hsyn("trait-$trait", self.xsyn('trait', $trait))
+    }
+
+    method syn-type($type) {
+        self.hsyn('type', self.deparse($type))
+    }
+
+    method syn-typer($typer) {
+        self.hsyn('typer',self.xsyn('typer', $typer))
     }
 
 #- A ---------------------------------------------------------------------------
@@ -470,7 +536,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyPrefix:D $ast --> Str:D) {
-        self.xsyn('prefix', self.deparse($ast.prefix))
+        self.hsyn('prefix', self.xsyn('prefix', self.deparse($ast.prefix)))
           ~ self.deparse($ast.operand)
     }
 
@@ -628,27 +694,80 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Doc::Block:D $ast --> Str:D) {
         my str $type     = $ast.type;
-        my %config      := $ast.config;
         my $abbreviated := $ast.abbreviated;
-        my $paragraphs  := $ast.paragraphs.map({
+
+        # handle any config
+        my str $config = $ast.config.sort({
+            .key eq 'numbered' ?? '' !! .key  # numbered always first
+        }).map({
+            if .key eq 'numbered' {
+                $abbreviated ?? '#' !! ':numbered'
+            }
+            else {
+                nqp::istype(.value,Bool)
+                  ?? (.value ?? ':' !! ':!') ~ .key
+                  !! .raku
+            }
+        }).join(' ');
+        $config = $config
+          ?? ' ' ~ self.hsyn('rakudoc-config', $config)
+          !! "";
+
+        my $paragraphs := $ast.paragraphs.map({
           nqp::istype($_,Str) ?? $_ !! self.deparse($_)
         }).join("\n");
 
         if $type eq 'implicit-code' {
-             $paragraphs.indent(4) ~ "\n"
+            my $result := $paragraphs.indent(4) ~ "\n";
+            $result := self.deparse($_) with try $result.AST;
+            self.hsyn('rakudoc-verbatim', $result)
         }
-        elsif $type eq 'config' {
-            '=config ' ~ $paragraphs ~ self.deparse-as-config(%config)
+        elsif $type eq 'code' {
+            $paragraphs := self.deparse($_) with try $paragraphs.AST;
+            if $abbreviated {
+                self.hsyn('rakudoc-type', '=code') ~ "\n" ~ $paragraphs
+            }
+            else {
+                $type = ' ' ~ self.hsyn('rakudoc-type', $type);
+                self.hsyn('rakudoc-prefix', '=begin')
+                  ~ $type
+                  ~ $config
+                  ~ "\n"
+                  ~ self.hsyn('rakudoc-verbatim', $paragraphs)
+                  ~ self.hsyn('rakudoc-type', '=end')
+                  ~ $type
+                  ~ "\n"
+            }
         }
         else {
-            my $body := $type
-              ~ $ast.level
-              ~ self.deparse-as-config(%config, :$abbreviated)
-              ~ ($abbreviated && $type ne 'table' ?? " " !! "\n")
-              ~ $paragraphs;
-            $abbreviated
-              ?? "=$body"
-              !! "=begin $body=end $type\n"
+            $paragraphs := self.hsyn(
+              $type eq 'comment' | 'data'
+                ?? 'rakudoc-verbatim'
+                !! 'rakudoc-content',
+              $paragraphs
+            );
+
+            if $type eq 'config' {
+                self.hsyn('rakudoc-type','=config')
+                  ~ ' ' ~ $paragraphs ~ $config
+            }
+            elsif $abbreviated {
+                self.hsyn('rakudoc-type', '=' ~ $type ~ $ast.level)
+                  ~ $config
+                  ~ ($type eq 'table' ?? "\n" !! ' ')
+                  ~ $paragraphs
+            }
+            else {
+                $type = ' ' ~ self.hsyn('rakudoc-type', $type ~ $ast.level);
+                self.hsyn('rakudoc-prefix', '=begin')
+                  ~ $type
+                  ~ $config
+                  ~ "\n"
+                  ~ $paragraphs
+                  ~ self.hsyn('rakudoc-prefix', '=end')
+                  ~ $type
+                  ~ "\n"
+            }
         }
     }
 
@@ -714,58 +833,61 @@ class RakuAST::Deparse {
 #- I ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Infix:D $ast --> Str:D) {
-        self.xsyn('infix', $ast.operator)
+        self.syn-infix($ast.operator)
     }
 
     multi method deparse(RakuAST::Initializer::Assign:D $ast --> Str:D) {
-        $.assign ~ self.deparse($ast.expression)
+        self.syn-infix-ws($.assign) ~ self.deparse($ast.expression)
     }
 
     multi method deparse(RakuAST::Initializer::Bind:D $ast --> Str:D) {
-        $.bind ~ self.deparse($ast.expression)
+        self.syn-infix-ws($.bind) ~ self.deparse($ast.expression)
     }
 
     multi method deparse(RakuAST::Initializer::CallAssign:D $ast --> Str:D) {
-        $.dotty-infix-call-assign ~ self.deparse($ast.postfixish).substr(1)
+        self.syn-infix-ws($.dotty-infix-call-assign)
+          ~ self.deparse($ast.postfixish).substr(1)
     }
 
 #- L ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Label:D $ast --> Str:D) {
-        $ast.name ~ ': '
+        self.hsyn('label', $ast.name ~ ': ')
     }
 
     # handles all RakuAST::xxxLiteral classes
     multi method deparse(RakuAST::Literal:D $ast --> Str:D) {
-        $ast.value.raku
+        self.hsyn('literal', $ast.value.raku)
     }
 
 #- M ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::MetaInfix::Assign:D $ast --> Str:D) {
-        self.deparse($ast.infix) ~ '='
+        self.syn-infix(self.deparse($ast.infix) ~ '=')
     }
 
     multi method deparse(RakuAST::MetaInfix::Cross:D $ast --> Str:D) {
-        'X' ~ self.deparse($ast.infix)
+        self.syn-infix('X' ~ self.deparse($ast.infix))
     }
 
     multi method deparse(RakuAST::MetaInfix::Hyper:D $ast --> Str:D) {
-        ($ast.dwim-left ?? '<<' !! '>>')
-          ~ self.deparse($ast.infix)
-          ~ ($ast.dwim-right ?? '>>' !! '<<')
+        self.hsyn('infix',
+          ($ast.dwim-left ?? '<<' !! '>>')
+            ~ self.xsyn('infix', self.deparse($ast.infix))
+            ~ ($ast.dwim-right ?? '>>' !! '<<')
+        )
     }
 
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
-        self.deparse($ast.infix) ~ '!'
+        self.syn-infix(self.deparse($ast.infix) ~ '!')
     }
 
     multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {
-        'R' ~ self.deparse($ast.infix)
+        self.syn-infix('R' ~ self.deparse($ast.infix))
     }
 
     multi method deparse(RakuAST::MetaInfix::Zip:D $ast --> Str:D) {
-        'Z' ~ self.deparse($ast.infix)
+        self.syn-infix('Z' ~ self.deparse($ast.infix))
     }
 
     multi method deparse(RakuAST::Method:D $ast --> Str:D) {
@@ -779,11 +901,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Nqp:D $ast --> Str:D) {
-        "nqp::" ~ $ast.op ~ self.parenthesize($ast.args)
+        self.hsyn('nqp', "nqp::" ~ $ast.op) ~ self.parenthesize($ast.args)
     }
 
     multi method deparse(RakuAST::Nqp::Const:D $ast --> Str:D) {
-        "nqp::const::" ~ $ast.name
+        self.hsyn('nqp', "nqp::const::" ~ $ast.name)
     }
 
 #- O ---------------------------------------------------------------------------
@@ -797,12 +919,12 @@ class RakuAST::Deparse {
         my str @parts;
 
         if $scope {
-            @parts.push(self.xsyn('scope', $scope))
+            @parts.push(self.syn-scope($scope))
               if $scope ne $ast.default-scope;
         }
 
-        my str $declarator = self.xsyn('package', $ast.declarator);
-        @parts.push($declarator);
+        my str $declarator = $ast.declarator;
+        @parts.push(self.syn-package($declarator));
 
         my str $name = self.deparse($ast.name);
         if $ast.parameterization -> $signature {
@@ -855,7 +977,9 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Pragma:D $ast --> Str:D) {
-        my str @parts = self.xsyn('use', $ast.off ?? "no" !! "use"), $ast.name;
+        my str @parts =
+          self.hsyn('use', self.xsyn('use', $ast.off ?? "no" !! "use")),
+          self.hsyn('pragma', $ast.name);
         @parts.push(self.deparse($_)) with $ast.argument;
         @parts.join(' ') ~ $*DELIMITER
     }
@@ -863,7 +987,8 @@ class RakuAST::Deparse {
 #- Parameter -------------------------------------------------------------------
 
     multi method deparse(RakuAST::Parameter:D $ast --> Str:D) {
-        return self.add-any-docs(.raku, $ast.WHY) with $ast.value;
+        return self.add-any-docs(self.hsyn('literal',.raku), $ast.WHY)
+          with $ast.value;
 
         my $target   := $ast.target;
         my @captures := $ast.type-captures;
@@ -928,8 +1053,9 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($ast.slurpy));
         }
 
+        @parts = self.hsyn('param', @parts.join);
         if $ast.default -> $default {
-            @parts.push($.assign ~ self.deparse($default));
+            @parts.push(self.syn-infix-ws($.assign) ~ self.deparse($default));
         }
 
         self.add-any-docs(@parts.join, $ast.WHY)
@@ -1068,7 +1194,7 @@ class RakuAST::Deparse {
             }
         }
         else {
-            '"' ~ $string ~ '"'
+            self.hsyn('literal', '"' ~ $string ~ '"')
         }
     }
 
@@ -1512,7 +1638,7 @@ class RakuAST::Deparse {
         my str @parts = self.xsyn('routine', $ast.declarator);
 
         if $ast.multiness -> $multiness {
-            @parts.unshift(self.xsyn('multi', $multiness));
+            @parts.unshift(self.syn-multi($multiness));
         }
 
         my str $scope = $ast.scope;
@@ -1606,17 +1732,17 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Statement::Catch:D $ast --> Str:D) {
         self.labels($ast)
-          ~ self.xsyn('phaser', 'CATCH') ~ ' ' ~ self.deparse($ast.body)
+          ~ self.syn-phaser('CATCH') ~ ' ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Control:D $ast --> Str:D) {
         self.labels($ast)
-          ~ self.xsyn('phaser', 'CONTROL') ~ ' ' ~ self.deparse($ast.body)
+          ~ self.syn-phaser('CONTROL') ~ ' ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Default:D $ast --> Str:D) {
         self.labels($ast)
-          ~ self.xsyn('block', 'default') ~ ' ' ~ self.deparse($ast.body)
+          ~ self.syn-block('default') ~ ' ' ~ self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Statement::Elsif:D $ast --> Str:D) {
@@ -1649,7 +1775,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Statement::For:D $ast --> Str:D) {
         my str @parts =
-          self.xsyn('block', 'for'),
+          self.syn-block('for'),
           self.deparse($ast.source),
           self.deparse($ast.body)
         ;
@@ -1663,7 +1789,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Statement::Given:D $ast --> Str:D) {
         self.labels($ast)
-          ~ self.xsyn('block', 'given')
+          ~ self.syn-block('given')
           ~ ' '
           ~ self.deparse($ast.source)
           ~ ' '
@@ -1678,7 +1804,7 @@ class RakuAST::Deparse {
         }
 
         if $ast.else -> $else {
-            @parts.push(self.xsyn('block', 'else'));
+            @parts.push(self.syn-block('else'));
             @parts.push(' ');
             @parts.push(self.deparse($else));
             @parts.push($.last-statement);
@@ -1696,7 +1822,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
         self.labels($ast)
-          ~ self.xsyn('block', 'loop')
+          ~ self.syn-block('loop')
           ~ ' ('
           ~ self.deparse($ast.setup)
           ~ $.loop-separator
@@ -1753,7 +1879,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Statement::When:D $ast --> Str:D) {
         self.labels($ast)
-          ~ self.xsyn('block', 'when')
+          ~ self.syn-block('when')
           ~ ' '
           ~ self.deparse($ast.condition)
           ~ ' '
@@ -1839,13 +1965,13 @@ class RakuAST::Deparse {
 
     # handles all statement prefixes
     multi method deparse(RakuAST::StatementPrefix:D $ast --> Str:D) {
-        self.xsyn('prefix', $ast.type)
+        self.hsyn('stmt-prefix', self.xsyn('stmt-prefix', $ast.type))
           ~ ' ' ~ self.deparse($ast.blorst).chomp
     }
 
     # handles most phasers
     multi method deparse(RakuAST::StatementPrefix::Phaser:D $ast --> Str:D) {
-        self.xsyn('phaser', $ast.type) ~ ' ' ~ self.deparse($ast.blorst).chomp
+        self.syn-phaser($ast.type) ~ ' ' ~ self.deparse($ast.blorst).chomp
     }
 
     multi method deparse(
@@ -1856,7 +1982,7 @@ class RakuAST::Deparse {
         # becomes the condition modifier
         my $expression := $ast.blorst.body.statement-list.statements.head
           .condition-modifier.expression;
-        self.xsyn('phaser', 'POST') ~ ' ' ~ self.deparse(
+        self.syn-phaser('POST') ~ ' ' ~ self.deparse(
           nqp::istype($expression,RakuAST::ApplyPostfix)
             ?? $expression.operand
             !! $expression
@@ -1870,7 +1996,7 @@ class RakuAST::Deparse {
         # wraps the original blorst into a statement in which the blorst
         # becomes the condition modifier
         my $expression := $ast.blorst.condition-modifier.expression;
-        self.xsyn('phaser', 'PRE') ~ ' ' ~ self.deparse(
+        self.syn-phaser('PRE') ~ ' ' ~ self.deparse(
           nqp::istype($expression,RakuAST::ApplyPostfix)
             ?? $expression.operand
             !! $expression
@@ -1880,21 +2006,22 @@ class RakuAST::Deparse {
 #- Stu -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Stub:D $ast --> Str:D) {
+        my str $hsyn = self.hsyn('stub', $ast.name);
         if $ast.args -> $real-args {
-            $ast.name ~ ' ' ~ self.deparse($real-args)
+            $hsyn ~ ' ' ~ self.deparse($real-args)
         }
         else {
-            $ast.name
+            $hsyn
         }
     }
 
 #- Su --------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Sub:D $ast --> Str:D) {
-        my str @parts = self.xsyn('routine', 'sub');
+        my str @parts = self.syn-routine('sub');
 
         if $ast.multiness -> $multiness {
-            @parts.unshift(self.xsyn('multi', $multiness))
+            @parts.unshift(self.syn-multi($multiness))
         }
 
         my str $scope = $ast.scope;
@@ -1991,7 +2118,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Self:D $ --> Str:D) {
-        $.term-self
+        self.hsyn('invocant', $.term-self)
     }
 
     multi method deparse(RakuAST::Term::TopicCall:D $ast --> Str:D) {
@@ -1999,7 +2126,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Whatever:D $ --> Str:D) {
-        $.term-whatever
+        self.hsyn('var-term', $.term-whatever)
     }
 
 #- Ternary ---------------------------------------------------------------------
@@ -2019,7 +2146,9 @@ class RakuAST::Deparse {
 
         # already have a place to store heredocs
         else {
-            my str @parts = self.deparse($ast.condition), $.ternary1;
+            my str @parts =
+              self.deparse($ast.condition),
+              self.hsyn('ternary', $.ternary1);
 
             # helper sup for a ternary part
             sub deparse-part($node --> Nil) {
@@ -2034,7 +2163,7 @@ class RakuAST::Deparse {
             }
 
             deparse-part($ast.then);
-            @parts.push($.ternary2);
+            @parts.push(self.hsyn('ternary', $.ternary2));
             deparse-part($ast.else);
 
             @parts.join
@@ -2044,7 +2173,7 @@ class RakuAST::Deparse {
 #- Trait -----------------------------------------------------------------------
 
     multi method deparse(RakuAST::Trait::Is:D $ast --> Str:D) {
-        my str $base = self.xsyn('trait', $ast.IMPL-TRAIT-NAME)
+        my str $base = self.syn-trait($ast.IMPL-TRAIT-NAME)
           ~ ' '
           ~ self.deparse($ast.name);
         with $ast.argument {
@@ -2089,10 +2218,10 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {
-        my str @parts = self.xsyn('type', 'enum');
+        my str @parts = self.syn-typer('enum');
 
         my str $scope = $ast.scope;
-        @parts.unshift(self.xsyn('scope', $scope))
+        @parts.unshift(self.syn-scope($scope))
           if $scope && $scope ne $ast.default-scope;
 
         @parts.unshift(self.deparse($_)) with $ast.of;
@@ -2119,10 +2248,10 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Type::Subset:D $ast --> Str:D) {
-        my str @parts = self.xsyn('type', 'subset');
+        my str @parts = self.syn-typer('subset');
 
         my str $scope = $ast.scope;
-        @parts.unshift(self.xsyn('scope', $scope))
+        @parts.unshift(self.syn-scope($scope))
           if $scope && $scope ne $ast.default-scope;
 
         @parts.push(self.deparse($ast.name));
@@ -2136,48 +2265,48 @@ class RakuAST::Deparse {
 #- Var -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Var::Attribute:D $ast --> Str:D) {
-        $ast.name
+        self.hsyn('var-attribute', $ast.name)
     }
 
     multi method deparse(RakuAST::Var::Compiler::File:D $ast --> Str:D) {
-        $.var-compiler-file
+        self.hsyn('var-compile',$.var-compiler-file)
     }
 
     multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> Str:D) {
-        $.var-compiler-line
+        self.hsyn('var-compile', $.var-compiler-line)
     }
 
     multi method deparse(RakuAST::Var::Compiler::Lookup:D $ast --> Str:D) {
-        $ast.name
+        self.hsyn('var-compile', $ast.name)
     }
 
     multi method deparse(RakuAST::Var::Doc:D $ast --> Str:D) {
-        '$=' ~ $ast.name
+        self.hsyn('var-rakudoc', '$=' ~ $ast.name)
     }
 
     multi method deparse(RakuAST::Var::Dynamic:D $ast --> Str:D) {
-        $ast.name
+        self.hsyn('var-dynamic', $ast.name)
     }
 
     multi method deparse(RakuAST::Var::Lexical:D $ast --> Str:D) {
         my $name := $ast.name;
-        $name.starts-with('$whatevercode_arg_') ?? '*' !! $name
+        self.hsyn('var-lexical',$name.starts-with('$whatevercode_arg_') ?? '*' !! $name)
     }
 
     multi method deparse(RakuAST::Var::Lexical::Setting:D $ast --> Str:D) {
-        'SETTING::<' ~ $ast.name ~ '>'
+        self.hsyn('var-setting', 'SETTING::<' ~ $ast.name ~ '>')
     }
 
     multi method deparse(RakuAST::Var::NamedCapture:D $ast --> Str:D) {
-        '$' ~ self.deparse($ast.index)
+        self.hsyn('cap-named', '$' ~ self.deparse($ast.index))
     }
 
     multi method deparse(RakuAST::Var::Package:D $ast --> Str:D) {
-        $ast.sigil ~ self.deparse($ast.name)
+        self.hsyn('var-package', $ast.sigil ~ self.deparse($ast.name))
     }
 
     multi method deparse(RakuAST::Var::PositionalCapture:D $ast --> Str:D) {
-        '$' ~ $ast.index.Str
+        self.hsyn('cap-positional', '$' ~ $ast.index.Str)
     }
 
 #- VarDeclaration --------------------------------------------------------------
@@ -2199,10 +2328,10 @@ class RakuAST::Deparse {
         my str @parts;
 
         my str $scope = $ast.scope;
-        @parts.push(self.xsyn('scope', $scope))
+        @parts.push(self.syn-scope($scope))
           if $scope ne $ast.default-scope;
 
-        @parts.push(self.deparse($_)) with $ast.type;
+        @parts.push(self.syn-type($_)) with $ast.type;
         @parts.push(self.xsyn('scope', 'constant'));
         @parts.push($ast.name);
         if $ast.traits -> @traits {
@@ -2214,16 +2343,16 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::VarDeclaration::Implicit:D $ast --> Str:D) {
-        $ast.name
+        self.hsyn('var-implicit', $ast.name)
     }
 
     multi method deparse(
       RakuAST::VarDeclaration::Implicit::Constant:D $ast
     --> Str:D) {
-        (self.xsyn('scope', 'my'),
-          self.xsyn('scope', 'constant'),
-          $ast.name,
-          '=',
+        (self.hsyn('scope-my', self.xsyn('scope', 'my')),
+          self.hsyn('scope-constant', self.xsyn('scope', 'constant')),
+          self.hsyn('var-term', $ast.name),
+          self.hsyn('infix', '='),
           $ast.value.raku
         ).join(' ')
     }
@@ -2231,30 +2360,32 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::VarDeclaration::Placeholder::Named:D $ast
     --> Str:D) {
-        .substr(0, 1) ~ ':' ~ .substr(1) given $ast.lexical-name
+        self.hsyn('var-placeholder', .substr(0, 1) ~ ':' ~ .substr(1))
+          given $ast.lexical-name
     }
 
     multi method deparse(
       RakuAST::VarDeclaration::Placeholder::Positional:D $ast
     --> Str:D) {
-        .substr(0, 1) ~ '^' ~ .substr(1) given $ast.lexical-name
+        self.hsyn('var-placeholder', .substr(0, 1) ~ '^' ~ .substr(1))
+          given $ast.lexical-name
     }
 
     multi method deparse(
       RakuAST::VarDeclaration::Placeholder::SlurpyArray:D $
-    --> '@_') { }
+    --> Str:D) {
+        self.hsyn('var-placeholder', '@_')
+    }
 
     multi method deparse(
       RakuAST::VarDeclaration::Placeholder::SlurpyHash:D $
-    --> '%_') { }
+    --> Str:D) {
+        self.hsyn('var-placeholder', '%_')
+    }
 
     multi method deparse(RakuAST::VarDeclaration::Signature:D $ast --> Str:D) {
-        my str @parts = self.xsyn('scope', $ast.scope);
-
-        if $ast.type -> $type {
-            @parts.push(self.deparse($type));
-        }
-
+        my str @parts = self.syn-scope($ast.scope);
+        @parts.push(self.syn-type($_)) with $ast.type;
         @parts.push('(' ~ self.deparse($ast.signature) ~ ')');
 
         if $ast.initializer -> $initializer {
@@ -2265,17 +2396,21 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::VarDeclaration::Simple:D $ast --> Str:D) {
+        my str $scope = $ast.scope;
         my str @parts;
 
-        @parts.push(self.xsyn('scope', $ast.scope));
+        @parts.push(self.syn-scope($ast.scope));
         @parts.push(' ');
 
         if $ast.type -> $type {
-            @parts.push(self.deparse($type));
+            @parts.push(self.syn-type($type));
             @parts.push(' ');
         }
 
-        @parts.push($ast.name);
+        my str $twigil = $ast.twigil;
+        @parts.push(
+          self.hsyn(%twigil2type{$twigil} // 'var-lexical', $ast.name)
+        );
 
         if $ast.initializer -> $initializer {
             @parts.push(self.deparse($initializer));
@@ -2287,16 +2422,16 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::VarDeclaration::Term:D $ast --> Str:D) {
         my str @parts;
 
-        @parts.push(self.xsyn('scope', $ast.scope));
+        @parts.push(self.syn-scope($ast.scope));
         @parts.push(' ');
 
         if $ast.type -> $type {
-            @parts.push(self.deparse($type));
+            @parts.push(self.syn-type($type));
             @parts.push(' ');
         }
 
         @parts.push(Q/\/);
-        @parts.push(self.deparse($ast.name));
+        @parts.push(self.hsyn('var-term', self.deparse($ast.name)));
 
         @parts.push(self.deparse($ast.initializer));
 

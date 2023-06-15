@@ -16,6 +16,8 @@ my %provides =
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
     "RakuDoc::To::Text"             => "lib/RakuDoc/To/Text.rakumod",
     "RakuAST::Deparse::L10N::NL"    => "lib/RakuAST/Deparse/L10N/NL.rakumod",
+    "RakuAST::Deparse::Highlight::HTML"
+      => "lib/RakuAST/Deparse/Highlight/HTML.rakumod",
 ;
 
 %provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"

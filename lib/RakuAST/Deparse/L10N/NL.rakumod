@@ -346,8 +346,8 @@ my constant %translation =
   trait-of      => 'net-als',
   trait-returns => 'geeft-terug',
 
-#  type-enum   => 'enum',
-#  type-subset => 'subset',
+#  typer-enum   => 'enum',
+#  typer-subset => 'subset',
 
   use-import  => 'importeer',
   use-need    => 'behoeft',

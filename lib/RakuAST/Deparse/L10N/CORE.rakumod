@@ -23,7 +23,7 @@
 #   scope        types of scope ("my","our","state", etc.)
 #   stmt-prefix  statement prefixes ("do","eager","lazy", etc.)
 #   trait        types of traits ("is","does","returns", etc.)
-#   type         type constructors ("enum","subset")
+#   typer         type constructors ("enum","subset")
 #   use          use related ("use","no","require", etc.)
 #
 # If you call the .DEPARSE method with a role compatible with this role,
@@ -371,8 +371,8 @@ my constant %translation =
   trait-of      => 'of',
   trait-returns => 'returns',
 
-  type-enum   => 'enum',
-  type-subset => 'subset',
+  typer-enum   => 'enum',
+  typer-subset => 'subset',
 
   use-import  => 'import',
   use-need    => 'need',

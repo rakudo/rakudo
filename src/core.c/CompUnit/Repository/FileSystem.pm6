@@ -60,12 +60,13 @@ class CompUnit::Repository::FileSystem
     method id() {
         ⚛$!id // cas $!id, {
             $_ // do with self!distribution -> $distribution {
+                my $meta6 := Rakudo::Internals::JSON.to-json: :sorted-keys, $distribution.meta.hash;
                 my $parts :=
                     grep { .defined }, (.id with self.next-repo), slip # slip next repo id into hash parts to be hashed together
                     map  { nqp::sha1($_) },
                     map  { $distribution.content($_).open(:enc<iso-8859-1>).slurp(:close) },
                     $distribution.meta<provides>.values.unique.sort;
-                nqp::sha1($parts.join(''));
+                nqp::sha1($meta6 ~ $parts.join(''));
             }
         }
     }

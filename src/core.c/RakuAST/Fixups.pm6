@@ -1147,4 +1147,19 @@ in line '$line'",
     }
 }
 
+augment class RakuAST::Type::Enum {
+
+    # Hidden enumeration traits get mixed in.  We don't want to expose
+    # these for .raku and .DEPARSE.  This creates a clone with a clean
+    # set of traits and returns that.
+    method clean-clone(RakuAST::Type::Enum:D:) {
+        my $enum := self.clone;
+        $enum.set-traits(self.traits.grep({
+            !(nqp::istype($_,RakuAST::Trait::Does)
+              && .type.name.canonicalize.ends-with('Enumeration'))
+        }).List);
+        $enum
+    }
+}
+
 # vim: expandtab shiftwidth=4

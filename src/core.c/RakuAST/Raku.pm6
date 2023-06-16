@@ -1093,7 +1093,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Enum:D: --> Str:D) {
-        self!add-WHY: self!nameds: <scope name term of>
+        self!add-WHY: self.clean-clone!nameds: <scope name of traits term>
     }
 
     multi method raku(RakuAST::Type::Parameterized:D: --> Str:D) {

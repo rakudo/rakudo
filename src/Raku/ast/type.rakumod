@@ -368,6 +368,7 @@ class RakuAST::Type::Enum
     method new(          str :$scope,
                RakuAST::Name :$name,
                RakuAST::Type :$of,
+                        List :$traits,
          RakuAST::Expression :$term!,
     RakuAST::Doc::Declarator :$WHY
     ) {
@@ -376,6 +377,7 @@ class RakuAST::Type::Enum
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!name',
           $name // RakuAST::Name.from-identifier(''));
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!of', $of);
+        $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::Type::Enum, '$!term', $term);
         $obj.set-WHY($WHY);
         $obj

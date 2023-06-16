@@ -2233,6 +2233,10 @@ class RakuAST::Deparse {
 
         @parts.unshift(self.deparse($_)) with $ast.of;
         @parts.push(self.deparse($_)) with $ast.name;
+
+        if $ast.clean-clone.traits -> @traits {
+            @parts.push(self.deparse($_)) for @traits;
+        }
         @parts.push(self.deparse($ast.term));
 
         self.add-any-docs(@parts.join(' '), $ast.WHY)

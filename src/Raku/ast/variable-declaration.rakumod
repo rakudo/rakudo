@@ -449,6 +449,7 @@ class RakuAST::VarDeclaration::Simple
                          str :$sigil,
                          str :$twigil,
                RakuAST::Type :$type,
+                        List :$traits,
         RakuAST::Initializer :$initializer,
            RakuAST::SemiList :$shape,
                         Bool :$forced-dynamic,
@@ -468,6 +469,7 @@ class RakuAST::VarDeclaration::Simple
           $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!shape',
           $shape // RakuAST::SemiList);
+        $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!accessor',

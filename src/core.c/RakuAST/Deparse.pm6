@@ -2412,6 +2412,13 @@ class RakuAST::Deparse {
           self.hsyn(%twigil2type{$twigil} // 'var-lexical', $ast.name)
         );
 
+        if $ast.traits -> @traits {
+            for @traits {
+                @parts.push(' ');
+                @parts.push(self.deparse($_));
+            }
+        }
+
         if $ast.initializer -> $initializer {
             @parts.push(self.deparse($initializer));
         }

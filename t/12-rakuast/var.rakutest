@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 52;
+plan 53;
 
 my $ast;
 my $deparsed;
@@ -1185,6 +1185,32 @@ subtest 'Special compiler variable $=finish' => {
     is-deeply $deparsed, '$=finish', 'deparse';
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         is-deeply EVAL($it), Mu, "$type: EVAL";
+    }
+}
+
+subtest 'variable with a trait' => {
+    # my $a is default(42)
+    ast RakuAST::VarDeclaration::Simple.new(
+      scope       => "my",
+      sigil       => "\$",
+      desigilname => RakuAST::Name.from-identifier("a"),
+      traits      => (
+        RakuAST::Trait::Is.new(
+          name     => RakuAST::Name.from-identifier("default"),
+          argument => RakuAST::Circumfix::Parentheses.new(
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(42)
+              )
+            )
+          )
+        ),
+      )
+    );
+
+    is-deeply $deparsed, 'my $a is default(42)', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 42, "$type: EVAL";
     }
 }
 

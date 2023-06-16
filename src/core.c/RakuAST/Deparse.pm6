@@ -995,7 +995,7 @@ class RakuAST::Deparse {
         my str @parts;
         if !@captures && $ast.type -> $type {
             my str $deparsed = self.deparse($type);
-            if $deparsed ne 'SETTING::<Any>' {
+            unless $deparsed eq 'Any' | 'SETTING::<Any>' {
                 @parts.push($deparsed);
                 @parts.push(' ') if $target;
             }
@@ -1046,6 +1046,13 @@ class RakuAST::Deparse {
                 }
                 elsif $ast.is-declared-required {
                     @parts.push('!');
+                }
+            }
+
+            if $ast.traits -> @traits {
+                for @traits {
+                    @parts.push(' ');
+                    @parts.push(self.deparse($_));
                 }
             }
         }

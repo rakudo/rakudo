@@ -199,6 +199,7 @@ my class IO::Socket::Async {
         $p
     }
 
+#?if moar
     method connect-path(IO::Socket::Async:U: Str() $path,
                    :$enc = 'utf-8', :$scheduler = $*SCHEDULER) {
         my $p = Promise.new;
@@ -228,6 +229,7 @@ my class IO::Socket::Async {
             nqp::unbox_s($path), SocketCancellation);
         $p
     }
+#?endif
 
     class ListenSocket is Tap {
         has Promise $!VMIO-tobe   is built;
@@ -339,6 +341,7 @@ my class IO::Socket::Async {
             :$host, :$port, :$backlog, :$encoding, :$scheduler
     }
 
+#?if moar
     my class SocketUnixListenerTappable does Tappable {
         has $!path;
         has $!backlog;
@@ -434,6 +437,7 @@ my class IO::Socket::Async {
         Supply.new: SocketUnixListenerTappable.new:
             :$path, :$backlog, :$encoding, :$scheduler
     }
+#?endif
 
     method native-descriptor(--> Int) {
         nqp::filenofh($!VMIO)

@@ -391,14 +391,18 @@ class RakuAST::VarDeclaration::Constant
               :decl('static'), :scope('lexical'), :name($!name), :value($!value)
             )
         );
-        self.scope eq 'our'
-          ?? QAST::Op.new(
-               :op('callmethod'), :name('BIND-KEY'),
-               QAST::Op.new(:op('who'), QAST::WVal.new(:value($!package))),
-               QAST::SVal.new(:value($!name)),
-               $constant
-             )
-          !! $constant
+        if self.scope eq 'our' {
+            $context.ensure-sc($!package);
+            QAST::Op.new(
+                :op('callmethod'), :name('BIND-KEY'),
+                QAST::Op.new(:op('who'), QAST::WVal.new(:value($!package))),
+                QAST::SVal.new(:value($!name)),
+                $constant
+            )
+        }
+        else {
+            $constant
+        }
     }
 
     method compile-time-value() { $!value }

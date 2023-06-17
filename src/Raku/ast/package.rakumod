@@ -423,7 +423,7 @@ class RakuAST::Package
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!name);
+        $visitor($!name) if $!name;
         self.visit-traits($visitor);
         $visitor($!body);
         $visitor(self.WHY) if self.WHY;

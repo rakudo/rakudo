@@ -1,6 +1,6 @@
 class RakuAST::Resolver {
     # The setting.
-    has Mu $!setting;
+    has Mu $.setting;
 
     # Our outer context. When not an EVAL, this is the same as $!setting.
     has Mu $!outer;

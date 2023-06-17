@@ -116,6 +116,7 @@ class RakuAST::Code
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
             my $code-obj := nqp::getcodeobj(nqp::curcode());
             unless $precomp {
+                my $*IMPL-COMPILE-DYNAMICALLY := 1;
                 my $block := self.IMPL-QAST-BLOCK($context, :blocktype<declaration_static>);
                 $precomp := self.IMPL-COMPILE-DYNAMICALLY($resolver, $context, $block);
             }

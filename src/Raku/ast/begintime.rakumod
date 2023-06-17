@@ -48,6 +48,7 @@ class RakuAST::BeginTime
     # Called when a BEGIN-time construct needs to evaluate code. Tries to
     # interpret simple things to avoid the cost of compilation.
     method IMPL-BEGIN-TIME-EVALUATE(RakuAST::Node $code, RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $*IMPL-COMPILE-DYNAMICALLY := 1;
         $code.IMPL-CHECK($resolver, $context, False);
         if $code.IMPL-CAN-INTERPRET {
             $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
@@ -71,6 +72,7 @@ class RakuAST::BeginTime
     # with a set of arguments.
     method IMPL-BEGIN-TIME-CALL(RakuAST::Node $callee, RakuAST::ArgList $args,
             RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $*IMPL-COMPILE-DYNAMICALLY := 1;
         if $callee.is-resolved && nqp::istype($callee.resolution, RakuAST::CompileTimeValue) &&
                 $args.IMPL-CAN-INTERPRET {
             my $resolved := $callee.resolution.compile-time-value;

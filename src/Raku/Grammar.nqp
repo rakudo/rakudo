@@ -596,14 +596,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*LITERALS;
         :my $*EXPORT;
         :my $*IN-TYPENAME;
-        :my @*LEADING-DOC := [];      # temp storage leading declarator doc
-        :my $*DECLARAND;              # target for trailing declarator doc
-        :my $*DECLARAND-LINE;         # line at which declarand started
-        :my $*IGNORE-NEXT-DECLARAND;  # True if next declarand to be ignored
-        :my $*DECLARAND-WORRIES := {}; # $/ of worries when clearing DECLARAND
-        :my $*NEXT_STATEMENT_ID := 1; # to give each statement an ID
+        :my @*LEADING-DOC := [];         # temp storage leading declarator doc
+        :my $*DECLARAND;                 # target for trailing declarator doc
+        :my $*LAST-TRAILING-LINE := -1;  # number of last line with trailing doc
+        :my $*IGNORE-NEXT-DECLARAND;     # True if next declarand to be ignored
+        :my $*DECLARAND-WORRIES := {};   # $/ of worries when clearing DECLARAND
+        :my $*NEXT_STATEMENT_ID := 1;    # to give each statement an ID
         :my $*FAKE-INFIX-FOUND := 0;
-        :my $*begin_compunit := 1;    # whether we're at start of a compilation unit
+        :my $*begin_compunit := 1;       # at start of a compilation unit?
         <.comp_unit_stage0>
         <.lang_setup($outer-cu)>
 
@@ -3570,15 +3570,15 @@ if $*COMPILING_CORE_SETTING {
     }
 
     # single / multi-line leading declarator block
-    token comment:sym<#|> { '#|' \h $<attachment>=[\N*] }
+    token comment:sym<#|> { '#|' \h $<attachment>=[\N* \n?] }
     token comment:sym<#|(...)> {
        '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
     }
 
     # single / multi-line trailing declarator block
-    token comment:sym<#=> { '#=' \h+ $<attachment>=[\N*] }
+    token comment:sym<#=> { '#=' \h+ $<attachment>=[\N* \n?] }
     token comment:sym<#=(...)> {
-        '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
+        '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))> \n?
     }
 
     ##

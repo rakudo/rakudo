@@ -407,10 +407,12 @@ class RakuAST::Deparse {
 
     method prefix-any-leading-doc(str $body, $WHY) {
         if $WHY && $WHY.leading -> @leading {
-            @leading.map({
-                self.hsyn('doc-leading', "#| " ~ self.deparse-unquoted($_))
-                  ~ "\n$*INDENT"
-            }).join ~ $body
+            self.hsyn('doc-leading', @leading.map({
+                self.deparse-unquoted($_).lines(:!chomp).Slip
+            }).map({
+                "#| $_$*INDENT"
+            }).join)
+              ~ $body
         }
         else {
             $body
@@ -420,13 +422,13 @@ class RakuAST::Deparse {
     method postfix-any-trailing-doc(str $body, $WHY) {
         if $WHY && $WHY.trailing -> @trailing {
             my str @lines = @trailing.map: {
-                self.deparse-unquoted($_).lines(:!chomp).Slip
+                self.deparse-unquoted($_).lines.Slip
             }
             ($body ~ $*DELIMITER).chomp
-              ~ ' '
-              ~ self.hsyn('doc-trailing', @lines > 1
-                  ?? '#=｢' ~ @lines.join() ~ '｣'
-                  !! "#= @lines.head()"
+              ~ (@lines > 1 ?? "\n" !! ' ')
+              ~ self.hsyn(
+                  'doc-trailing',
+                  @lines.map({ "#= $_" }).join("$*INDENT\n")
                 )
               ~ "\n"
         }

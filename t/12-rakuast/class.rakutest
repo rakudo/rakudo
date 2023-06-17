@@ -565,8 +565,8 @@ subtest 'unit scoped class' => {
         )
       )
     ).declarator-docs(
-      leading  => ("leading",),
-      trailing => ("trailing",)
+      leading  => ("leading\n",),
+      trailing => ("trailing\n",)
     );
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 #| leading

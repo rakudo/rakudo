@@ -455,8 +455,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 nqp::deletekey($worries, $_.key);
             }
 
-            $*DECLARAND      := $it;
-            $*DECLARAND-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
+            $*DECLARAND          := $it;
+            $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($from);
+
             if @*LEADING-DOC -> @leading {
                 $it.set-leading(@leading);
                 @*LEADING-DOC := [];
@@ -473,8 +474,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # the block, rather than to the subset.
     method steal-declarand($/, $it) {
         $it.set-WHY($*DECLARAND.cut-WHY);
-        $*DECLARAND      := $it;
-        $*DECLARAND-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
+        $*DECLARAND          := $it;
+        $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
     }
 
     method enter-block-scope($/) {
@@ -2705,20 +2706,37 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method add-trailing-declarator-doc($/) {
         my $from := $/.from;
 
+        sub accept($/) {
+            $*DECLARAND.add-trailing(~$/);
+            ++$*FROM-SEEN{$from};
+            nqp::deletekey($*DECLARAND-WORRIES,$from);
+        }
+
         if $*FROM-SEEN{$from} {
             # nothing to do, all has been done already
         }
         elsif $*DECLARAND {
-            my $orig-line := +$*ORIGIN-SOURCE.original-line($from);
+            my $line := +$*ORIGIN-SOURCE.original-line($from);
             # accept the trailing declarator doc if it is on the same line
             # as the declarand, or it is on the *start* of the next line
             # (-4 to get to the newline in "\n#= ")
-            if $*DECLARAND-LINE == $orig-line
-              || ($*DECLARAND-LINE + 1 == $orig-line
-                   && nqp::substr($/.orig,$from - 4,1) eq "\n") {
-                $*DECLARAND.add-trailing(~$/);
-                ++$*FROM-SEEN{$from};
-                nqp::deletekey($*DECLARAND-WORRIES,$from);
+            if $line == $*LAST-TRAILING-LINE {
+                accept($/);
+            }
+            elsif $line == $*LAST-TRAILING-LINE + 1 {
+                my $orig := $/.orig;
+
+                # verify \n \s* #=
+                my $i    := $from - 3;
+                while nqp::eqat($orig,' ',--$i) { }
+
+                if nqp::eqat($orig,"\n",$i) {
+                    accept($/);
+                    $*LAST-TRAILING-LINE := $line;
+                }
+                else {
+                    $*DECLARAND-WORRIES{$from} := $/;
+                }
             }
             else {
                 $*DECLARAND-WORRIES{$from} := $/;

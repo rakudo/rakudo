@@ -183,11 +183,24 @@ augment class RakuAST::Node {
     multi method literalize(RakuAST::Term::Name:D:) {
         my str $name = self.name.canonicalize;
 
-        $name eq 'True'
-          ?? True
-          !! $name eq 'False'
-            ?? False
-            !! self.resolution.compile-time-value
+        if $name eq 'True' {
+            True
+        }
+        elsif $name eq 'False' {
+            False
+        }
+        else {
+            unless self.is-resolved {
+                self.resolve-with($_) with $*RESOLVER;
+            }
+
+            with try self.resolution andthen .compile-time-value {
+                $_
+            }
+            else {
+                CannotLiteralize.new.throw;
+            }
+        }
     }
 
     multi method literalize(RakuAST::Term::RadixNumber:D:) {

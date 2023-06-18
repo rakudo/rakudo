@@ -418,7 +418,11 @@ augment class RakuAST::Doc::Paragraph {
         my $allowed;
         if $allow {
             $allowed := nqp::hash;
-            nqp::bindkey($allowed,nqp::ord($_),1) for @$allow;
+            for @$allow {
+                .uniprop eq 'Lu'
+                  ?? nqp::bindkey($allowed,nqp::ord($_),1)
+                  !! self.worry-ad-hoc("Illegal markup: '$_' is not an uppercase letter");
+            }
         }
         else {
             $allowed := $default-allowed;
@@ -660,7 +664,9 @@ augment class RakuAST::Doc::Block {
     my int32 $pipe   = 124;  # "|"
     my int   $gcprop = nqp::unipropcode("General_Category");
 
-    method interpret-as-table(RakuAST::Doc::Block:D: $spaces, @matched --> Nil) {
+    method interpret-as-table(RakuAST::Doc::Block:D:
+      $spaces, @matched
+    --> Nil) {
 
         # Set up the lines to be parsed
         my str @lines = @matched.join.subst(/ \n+ $/).lines;
@@ -709,8 +715,9 @@ in line '$line'",
             );
         }
 
-        my %config    = self.config;
-        my str @allow = %config<allow> // Empty;
+        my %config = self.config;
+        my str @allow;
+        @allow = $_ with %config<allow> andthen .literalize;
         @allow.push: 'Z' unless @allow.first('Z');
 
         # Parse the given lines assuming virtual dividers were used.
@@ -1050,6 +1057,9 @@ in line '$line'",
         my str $current-ws;
         my int $current-offset;
 
+        my str @allow;
+        @allow = $_ with self.config<allow> andthen .literalize;
+
         # set current whitespace / offset conveniently
         sub set-current-ws($ws) {
             $current-ws = $ws // '';
@@ -1060,7 +1070,7 @@ in line '$line'",
         my @lines;
         sub add-lines() {
             self.add-paragraph(
-              RakuAST::Doc::Paragraph.from-string(@lines.join)
+              RakuAST::Doc::Paragraph.from-string(@lines.join, :@allow)
             );
             @lines = ();
         }

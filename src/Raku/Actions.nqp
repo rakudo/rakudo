@@ -2778,27 +2778,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             for $doc-configuration -> $/ {
                 for $<colonpair> -> $/ {
                     my $key := ~$<identifier>;
-                    if $<num> -> $int {                # :42bar
-                        my @result := nqp::radix(10,~$int,0,0x02);
-                        $config{$key} := nqp::hllizefor(@result[0],'Raku');
+                    if $<num> -> $int {
+                        $config{$key} := RakuAST::IntLiteral.new(+$int);
                     }
                     elsif $<coloncircumfix> -> $ccf {  # :bar("foo",42)
-                        my $value := $ccf.ast.literalize;
-                        if $value.defined {
-                            $config{$key} := $value;
-                        }
-                        else {
-                            nqp::die("'$ccf' is not constant");
-                        }
+                        $config{$key} := $ccf.ast;
                     }
-                    elsif $<var> {                     # :$bar
-                        nqp::die("cannot handle variables in RakuDoc config");
+                    elsif $<var> -> $var {             # :$bar
+                        $config{$key} := $var.ast;
                     }
                     else {                             # :!bar | :bar
-                        $config{$key} :=
-                          $*R.resolve-lexical-constant-in-setting(
-                            $<neg> ?? 'False' !! 'True'
-                          ).compile-time-value;
+                        $config{$key} := (
+                          $<neg> ?? RakuAST::Term::False !! RakuAST::Term::True
+                        ).new;
                     }
                 }
             }

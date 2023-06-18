@@ -13,23 +13,21 @@ class RakuAST::Doc
     method visit-children(Code $visitor) { self.must-define("visit-children") }
 
     method worry-ad-hoc(Str $payload) {
-        if $*RESOLVER -> $resolver {
-            $resolver.add-worry:
-              $resolver.build-exception: 'X::AdHoc', :$payload;
-        }
-        else {
-            nqp::say($payload)
-        }
+        my $resolver := $*RESOLVER;
+        $resolver
+          ?? $resolver.add-worry(
+               $resolver.build-exception: 'X::AdHoc', :$payload
+             )
+          !! nqp::say($payload);
     }
 
     method sorry-ad-hoc(Str $payload) {
-        if $*RESOLVER -> $resolver {
-            $resolver.add-sorry:
-              $resolver.build-exception: 'X::AdHoc', :$payload;
-        }
-        else {
-            nqp::die($payload);
-        }
+        my $resolver := $*RESOLVER;
+        $resolver
+          ?? $resolver.add-sorry(
+               $resolver.build-exception: 'X::AdHoc', :$payload
+             )
+          !! nqp::die($payload);
     }
 }
 
@@ -62,12 +60,13 @@ class RakuAST::Doc::Block
   is RakuAST::Doc
   is RakuAST::CheckTime
 {
-    has str  $.type;         # the type (e.g. "doc", "head", "item", etc)
-    has int  $.level;        # the level (default "", or numeric 1..N)
-    has Hash $!config;       # the config hash (e.g. :numbered, :allow<B>)
-    has Bool $.abbreviated;  # bool: true if =item rather than =begin item
-    has List $!paragraphs;   # the actual content
-    has int  $!pod-index;
+    has str  $.type;             # the type (e.g. "doc", "head", "item", etc)
+    has int  $.level;            # the level (default "", or numeric 1..N)
+    has Hash $!config;           # the config hash (e.g. :numbered, :allow<B>)
+    has Bool $.abbreviated;      # bool: true if =item rather than =begin item
+    has List $!paragraphs;       # the actual content
+    has int  $!pod-index;        # index in $=pod
+    has Mu   $!resolved-config;  # HLL-resolved config
 
     method new(Str :$type!,
                Int :$level,
@@ -132,7 +131,8 @@ class RakuAST::Doc::Block
     method visit-children(Code $visitor) {
         for $!paragraphs {
             if nqp::istype($_,RakuAST::Doc::Block) {
-                # no action
+                my $*INNER-BLOCK := True;
+                $visitor($_);
             }
             elsif nqp::istype($_,RakuAST::Node) {
                 $visitor($_);
@@ -145,16 +145,25 @@ class RakuAST::Doc::Block
       RakuAST::IMPL::QASTContext $context
     ) {
         my $*RESOLVER := $resolver;
-        my $cu        := $resolver.find-attach-target('compunit');
-        if $!type eq 'data' {
-            my $store := $cu.data-content;
-            my $data  := self.Str.trim-trailing;
-
-            (my $key := $!config<key>)
-              ?? $store.ASSIGN-KEY($key, $data)
-              !! $store.push($data);
+        my $failed := self.literalize-config;
+        if $failed {
+            self.sorry-ad-hoc("'$failed' is not constant in configuration");
         }
-        $cu.set-pod-content($!pod-index, self.podify);
+
+        # in an outermost block
+        unless $*INNER-BLOCK {
+            my $cu := $resolver.find-attach-target('compunit');
+            if $!type eq 'data' {
+                my $store := $cu.data-content;
+                my $data  := self.Str.trim-trailing;
+
+                (my $key := $!config<key>)
+                  ?? $store.ASSIGN-KEY($key, $data)
+                  !! $store.push($data);
+            }
+            $cu.set-pod-content($!pod-index, self.podify);
+        }
+
         True
     }
 }

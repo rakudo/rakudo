@@ -608,7 +608,10 @@ augment class RakuAST::Doc::Block {
         # originally verbatim, but may need postprocessing
         elsif $type eq 'code' | 'input' | 'output' {
             my int $offset = $spaces.chars;
-            my str @allow  = nqp::hllizefor($config<allow>,'Raku') // ();
+
+            # get any allowed setting
+            my str @allow;
+            @allow = $_ with $config<allow> andthen .literalize;
 
             if $offset || @allow {
                 for @paragraphs -> $pod is copy {
@@ -1144,6 +1147,27 @@ in line '$line'",
 
     multi method Str(RakuAST::Doc::Block:D:) {
         self.paragraphs.map(*.Str).join
+    }
+
+    # Post-process any unresolved asts in the config
+    method literalize-config() {
+        my $config   := self.config;
+        my %resolved := $config.Hash;
+        %resolved.deepmap({
+            if nqp::istype($_,RakuAST::Node) {
+                my $value := .literalize;
+                $value.defined
+                  ?? ($_ = $value)       # ok, update in hash
+                  !! (return .DEPARSE);  # failed, stop now, and return
+            }
+        });
+        nqp::bindattr(self, RakuAST::Doc::Block, '$!resolved-config',
+          %resolved.Map);
+        Nil
+    }
+
+    method resolved-config() {
+        nqp::getattr(self, RakuAST::Doc::Block, '$!resolved-config') // Map.new
     }
 }
 

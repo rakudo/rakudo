@@ -49,7 +49,7 @@ augment class RakuAST::Node {
               !! op($left,$right)
         }
         else {
-            CannotLiteralize.new.throw
+            CannotLiteralize.new.throw;
         }
     }
 
@@ -63,7 +63,7 @@ augment class RakuAST::Node {
             op(self.operands.map(*.literalize))
         }
         else {
-            CannotLiteralize.new.throw
+            CannotLiteralize.new.throw;
         }
     }
 
@@ -72,7 +72,7 @@ augment class RakuAST::Node {
             op(self.operand.literalize)
         }
         else {
-            CannotLiteralize.new.throw
+            CannotLiteralize.new.throw;
         }
     }
 
@@ -120,6 +120,10 @@ augment class RakuAST::Node {
         self.compile-time-value
     }
 
+    multi method literalize(RakuAST::Declaration::External:D:) {
+        CannotLiteralize.new.throw;
+    }
+
 #- F ---------------------------------------------------------------------------
 
     multi method literalize(RakuAST::FatArrow:D:) {
@@ -156,7 +160,7 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::Statement::Expression:D:) {
         if self.condition-modifier // self.loop-modifier {
-            CannotLiteralize.new.throw
+            CannotLiteralize.new.throw;
         }
         else {
             self.expression.literalize
@@ -195,7 +199,12 @@ augment class RakuAST::Node {
 #- Var -------------------------------------------------------------------------
 
     multi method literalize(RakuAST::Var::Lexical:D:) {
-        CannotLiteralize.new.throw
+        with self.resolution andthen try .compile-time-value {
+            $_
+        }
+        else {
+            CannotLiteralize.new.throw;
+        }
     }
 
     multi method literalize(RakuAST::Var::Compiler::File:D:) {
@@ -204,6 +213,10 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::Var::Compiler::Line:D:) {
         self.line
+    }
+
+    multi method literalize(RakuAST::VarDeclaration::Constant:D:) {
+        self.compile-time-value
     }
 }
 

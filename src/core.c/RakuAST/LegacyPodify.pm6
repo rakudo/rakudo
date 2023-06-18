@@ -212,7 +212,7 @@ class RakuAST::LegacyPodify {
               if $type eq 'defn';
         }
 
-        my $config   := $ast.config;
+        my $config   := $ast.resolved-config;
         my $contents := no-last-nl($ast.paragraphs).map({
             if nqp::istype($_,Str) {
                 if sanitize(.trim-leading) -> $contents {
@@ -242,7 +242,7 @@ class RakuAST::LegacyPodify {
                    )
                 !! $type eq 'config' && $ast.abbreviated
                   ?? Pod::Config.new(
-                       :type($ast.paragraphs.head), :config($ast.config)
+                       :type($ast.paragraphs.head), :$config
                      )
                   !! Pod::Block::Named.new(:name($type), :$config, :$contents)
           !! $contents  # no type means just a string
@@ -250,7 +250,7 @@ class RakuAST::LegacyPodify {
 
     method podify-table(RakuAST::Doc::Block:D $ast) {
         my @rows    = $ast.paragraphs.grep(RakuAST::Doc::Row);
-        my $config := $ast.config;
+        my $config := $ast.resolved-config // Map.new;
 
         # Make sure that all rows have the same number of cells
         my $nr-columns := @rows.map(*.cells.elems).max;
@@ -316,13 +316,14 @@ class RakuAST::LegacyPodify {
         @contents.pop while @contents.tail eq "\n";
         @contents.push("\n");
 
-        ::("Pod::Block::$type.tc()").new: :@contents, :config($ast.config)
+        ::("Pod::Block::$type.tc()").new:
+          :@contents, :config($ast.resolved-config)
     }
 
     method podify-implicit-code(RakuAST::Doc::Block:D $ast) {
         Pod::Block::Code.new:
           :contents($ast.paragraphs.head.trim)
-          :config($ast.config)
+          :config($ast.resolved-config)
     }
 
     method podify-defn(RakuAST::Doc::Block:D $ast) {
@@ -340,7 +341,8 @@ class RakuAST::LegacyPodify {
               !! .podify
         }
 
-        Pod::Defn.new: :$term, :@contents, :config($ast.config)
+        Pod::Defn.new:
+          :$term, :@contents, :config($ast.resolved-config)
     }
 
     multi method podify(RakuAST::Doc::Declarator:D $ast, $WHEREFORE) {

@@ -702,13 +702,17 @@ class RakuAST::Deparse {
         my str $config = $ast.config.sort({
             .key eq 'numbered' ?? '' !! .key  # numbered always first
         }).map({
-            if .key eq 'numbered' {
-                $abbreviated ?? '#' !! ':numbered'
+            my str $key = .key;
+            if $key eq 'numbered' && $abbreviated {
+                '#'
             }
             else {
-                nqp::istype(.value,Bool)
-                  ?? (.value ?? ':' !! ':!') ~ .key
-                  !! .raku
+                my $deparsed := self.deparse(.value);
+                $deparsed eq 'True'
+                  ?? ":$key"
+                  !! $deparsed eq 'False'
+                    ?? ":!$key"
+                    !! ":$key$deparsed"
             }
         }).join(' ');
         $config = $config
@@ -1980,6 +1984,7 @@ class RakuAST::Deparse {
 
     # handles most phasers
     multi method deparse(RakuAST::StatementPrefix::Phaser:D $ast --> Str:D) {
+        my $*DELIMITER = '';
         self.syn-phaser($ast.type) ~ ' ' ~ self.deparse($ast.blorst).chomp
     }
 

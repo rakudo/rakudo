@@ -302,13 +302,9 @@ class CompUnit::RepositoryRegistry {
         Nil
     }
 
-    method run-script($script, :$name, :$auth, :$ver, :$api) {
-        shift @*ARGS if $name;
-        shift @*ARGS if $auth;
-        shift @*ARGS if $ver;
-
+    method run-script($script) {
         my @installations = $*REPO.repo-chain.grep(CompUnit::Repository::Installation);
-        my @metas = @installations.map({ .files("bin/$script", :$name, :$auth, :$ver).head }).grep(*.defined);
+        my @metas = @installations.map({ .files("bin/$script").head }).grep(*.defined);
         unless +@metas {
             @metas = flat @installations.map({ .files("bin/$script").Slip }).grep(*.defined);
             if +@metas {

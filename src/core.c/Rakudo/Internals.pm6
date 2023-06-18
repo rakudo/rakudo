@@ -1385,24 +1385,26 @@ my class Rakudo::Internals {
               nqp::chars(my str $entry = self!next),
               nqp::stmts(
                 (my str $path = nqp::concat($!abspath,$entry)),
-                nqp::if(
-                  $!file.ACCEPTS($entry) &&
-                    (try nqp::stat($path,nqp::const::STAT_ISREG)),
-                  (return $path),
+                (try
                   nqp::if(
-                    $!dir.ACCEPTS($entry) &&
-                      (try nqp::stat($path,nqp::const::STAT_ISDIR)),
-                    nqp::stmts(
-                      nqp::if(
-                        (try nqp::fileislink($path)),
-                        $path = IO::Path.new(
-                          $path,:CWD($!abspath)).resolve.absolute
-                      ),
-                      nqp::unless(
-                        nqp::existskey($!seen,$path),
-                        nqp::stmts(
-                          nqp::bindkey($!seen,$path,1),
-                          nqp::push_s($!todo,$path)
+                    $!file.ACCEPTS($entry) &&
+                      nqp::stat($path,nqp::const::STAT_ISREG),
+                    (return $path),
+                    nqp::if(
+                      $!dir.ACCEPTS($entry) &&
+                        nqp::stat($path,nqp::const::STAT_ISDIR),
+                      nqp::stmts(
+                        nqp::if(
+                          nqp::fileislink($path),
+                          $path = IO::Path.new(
+                            $path,:CWD($!abspath)).resolve.absolute
+                        ),
+                        nqp::unless(
+                          nqp::existskey($!seen,$path),
+                          nqp::stmts(
+                            nqp::bindkey($!seen,$path,1),
+                            nqp::push_s($!todo,$path)
+                          )
                         )
                       )
                     )

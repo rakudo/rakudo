@@ -1386,12 +1386,12 @@ my class Rakudo::Internals {
               nqp::stmts(
                 (my str $path = nqp::concat($!abspath,$entry)),
                 nqp::if(
-                  (try nqp::stat($path,nqp::const::STAT_ISREG))
-                    && $!file.ACCEPTS($entry),
+                  $!file.ACCEPTS($entry) &&
+                    (try nqp::stat($path,nqp::const::STAT_ISREG)),
                   (return $path),
                   nqp::if(
-                    (try nqp::stat($path,nqp::const::STAT_ISDIR))
-                      && $!dir.ACCEPTS($entry),
+                    $!dir.ACCEPTS($entry) &&
+                      (try nqp::stat($path,nqp::const::STAT_ISDIR)),
                     nqp::stmts(
                       nqp::if(
                         (try nqp::fileislink($path)),

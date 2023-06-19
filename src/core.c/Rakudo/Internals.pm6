@@ -1385,7 +1385,7 @@ my class Rakudo::Internals {
               nqp::chars(my str $entry = self!next),
               nqp::stmts(
                 (my str $path = nqp::concat($!abspath,$entry)),
-                (try
+                nqp::handle(
                   nqp::if(
                     $!file.ACCEPTS($entry) &&
                       nqp::stat($path,nqp::const::STAT_ISREG),
@@ -1408,7 +1408,8 @@ my class Rakudo::Internals {
                         )
                       )
                     )
-                  )
+                  ),
+                  'CATCH', 0
                 )
               )
             );

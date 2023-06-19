@@ -1383,29 +1383,28 @@ my class Rakudo::Internals {
         method pull-one() {
             nqp::while(
               nqp::chars(my str $entry = self!next),
-              nqp::if(
-                nqp::stat(
-                  (my str $path = nqp::concat($!abspath,$entry)),
-                  nqp::const::STAT_EXISTS
-                ),
-                nqp::if(
-                  nqp::stat($path,nqp::const::STAT_ISREG)
-                    && $!file.ACCEPTS($entry),
-                  (return $path),
+              nqp::stmts(
+                (my str $path = nqp::concat($!abspath,$entry)),
+                (try
                   nqp::if(
-                    nqp::stat($path,nqp::const::STAT_ISDIR)
-                      && $!dir.ACCEPTS($entry),
-                    nqp::stmts(
-                      nqp::if(
-                        nqp::fileislink($path),
-                        $path = IO::Path.new(
-                          $path,:CWD($!abspath)).resolve.absolute
-                      ),
-                      nqp::unless(
-                        nqp::existskey($!seen,$path),
-                        nqp::stmts(
-                          nqp::bindkey($!seen,$path,1),
-                          nqp::push_s($!todo,$path)
+                    $!file.ACCEPTS($entry) &&
+                      nqp::stat($path,nqp::const::STAT_ISREG),
+                    (return $path),
+                    nqp::if(
+                      $!dir.ACCEPTS($entry) &&
+                        nqp::stat($path,nqp::const::STAT_ISDIR),
+                      nqp::stmts(
+                        nqp::if(
+                          nqp::fileislink($path),
+                          $path = IO::Path.new(
+                            $path,:CWD($!abspath)).resolve.absolute
+                        ),
+                        nqp::unless(
+                          nqp::existskey($!seen,$path),
+                          nqp::stmts(
+                            nqp::bindkey($!seen,$path,1),
+                            nqp::push_s($!todo,$path)
+                          )
                         )
                       )
                     )

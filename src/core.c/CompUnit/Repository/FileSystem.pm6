@@ -289,7 +289,9 @@ class CompUnit::Repository::FileSystem
     # but probably a poorly formed one.
     method !dist-from-ls {
         my $prefix := self!files-prefix;
-        my &ls := { Rakudo::Internals.DIR-RECURSE($_).map(*.IO) }
+        my $SPEC := $*SPEC;
+        my $CWD := $*CWD;
+        my &ls := { Rakudo::Internals.DIR-RECURSE($_).map({ IO::Path.new($_, :$SPEC, :$CWD) }) }
         my &to-relative := { $_.relative($prefix).subst(:g, '\\', '/') }
 
         # files is a non-spec internal field used by

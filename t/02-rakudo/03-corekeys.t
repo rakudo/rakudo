@@ -814,6 +814,7 @@ my @allowed =
         Q{&snitch},
         Q{&term:<nano>},
         Q{CORE-SETTING-REV},
+        Q{Format},
         Q{Formatter},
         Q{Grammar},
         Q{PseudoStash},

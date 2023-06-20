@@ -17,7 +17,8 @@
 # - https://github.com/Raku/old-issue-tracker/issues/4892
 #   say sprintf("%e",1000)    # should be 1.0... instead of 10....
 
-# the grammar for parsing format strings
+# The grammar for parsing format strings.  Intentionally globally visible
+# to allow the ecosystem to subclass it if necessary
 grammar Formatter::Syntax {
     token TOP { ^ <statement>* $ }
 
@@ -98,7 +99,7 @@ grammar Formatter::Syntax {
 
 class Formatter {
     # class to be used with Grammar to turn format into array of pieces of code
-    class Actions {
+    my class Actions {
         my $knowhow := nqp::knowhow().new_type(:repr("P6bigint"));
         my $zero    := nqp::box_i(0, $knowhow);
 
@@ -899,6 +900,22 @@ class Formatter {
     }
 }
 
+# The class underlying the (future) format string quote type.  An instance
+# contains a Callable that will be called with the CALL-ME method.
+# Otherwise acts as a normal string.
+my class Format is Str {
+    has &.code;
+
+    method new(Str:D $format) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj,Str,'$!value',$format);
+        nqp::bindattr($obj,Format,'&!code',Formatter.CODE($format));
+        $obj
+    }
+
+    method CALL-ME(*@args) { &!code(@args) }
+}
+
 # the procedural frontend of sprintf functionality
 proto sub zprintf($, |) {*}
 multi sub zprintf(Str(Cool) $format, \value) {
@@ -910,8 +927,8 @@ multi sub zprintf(Str(Cool) $format, @args) {
 multi sub zprintf(Str(Cool) $format, *@args) {
     Formatter.new($format)(@args)
 }
-multi sub zprintf(&code, *@args) {
-    code(@args)
+multi sub zprintf(Format:D $format, *@args) {
+    $format(@args)
 }
 
 augment class Cool {

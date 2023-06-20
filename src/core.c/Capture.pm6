@@ -184,7 +184,7 @@ my class Capture { # declared in BOOTSTRAP
     multi method Bool(Capture:D:) {
         nqp::hllbool(
           (nqp::isconcrete(@!list) && nqp::elems(@!list))
-            || (nqp::isconcrete(@!list) && nqp::elems(%!hash))
+            || (nqp::isconcrete(%!hash) && nqp::elems(%!hash))
         )
     }
 

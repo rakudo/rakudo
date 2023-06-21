@@ -932,6 +932,71 @@ my class Format is Str {
     }
 
     method CALL-ME(*@args) { &!code(@args) }
+
+    method handle-iterator(Format:D:
+      Iterator:D $iterator, $separator = "\n"
+    --> Str:D) is implementation-detail {
+        my &handler := &!code;
+
+        if $!count {
+            my str @parts;
+            if $!count == 1 {
+                my $list := nqp::create(IterationBuffer);
+                my @args := $list.List;
+
+                nqp::until(
+                  nqp::eqaddr(
+                    nqp::bindpos($list,0,$iterator.pull-one),
+                    IterationEnd
+                  ),
+                  nqp::push_s(@parts,handler(@args))
+                );
+            }
+            else {
+                my sub next-batch() {
+                    my $buffer   := nqp::create(IterationBuffer);
+                    my int $count = $!count + 1;
+                    nqp::while(
+                      --$count,
+                      nqp::if(
+                        nqp::eqaddr(
+                          (my $pulled := $iterator.pull-one),
+                          IterationEnd
+                        ),
+                        ($count = 1),
+                        nqp::push($buffer,$pulled)
+                      )
+                    );
+                    
+                    my int $found = nqp::elems($buffer);
+                    $found
+                      ?? $found == $!count
+                        ?? $buffer.List
+                        !! self!throw-count(nqp::elems($buffer), $!count)
+                      !! Nil
+                }
+
+                my int $count = $!count + 1;
+                nqp::while(
+                  (my $params := next-batch),
+                  nqp::push_s(@parts,handler($params))
+                );
+            }
+
+            @parts.join($separator);
+        }
+        else {
+            nqp::eqaddr($iterator.pull-one,IterationEnd)
+              ?? ''
+              !! self!throw-count(0, 1)
+        }
+    }
+
+    method !throw-count($args-have, $args-used) is hidden-from-backtrace {
+        X::Str::Sprintf::Directives::Count.new(
+          :$args-have, :$args-used, :format(self)
+        ).throw
+    }
 }
 
 # the procedural frontend of sprintf functionality

@@ -35,6 +35,26 @@ augment class Any {
 }
 
 #-------------------------------------------------------------------------------
+augment class Bag {
+
+    # add support for Format formats
+    multi method fmt(Baggy:D: Format:D $format, $separator = "\n" --> Str:D) {
+        $format.handle-iterator:
+          ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
+    }
+}
+
+#-------------------------------------------------------------------------------
+augment class BagHash {
+
+    # add support for Format formats
+    multi method fmt(BagHash:D: Format:D $format, $separator = "\n" --> Str:D) {
+        $format.handle-iterator:
+          ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
+    }
+}
+
+#-------------------------------------------------------------------------------
 augment class Complex {
 
     # handle sign correctly
@@ -68,6 +88,45 @@ augment class Int {
 }
 
 #-------------------------------------------------------------------------------
+augment class List {
+
+    # add support for Format formats
+    multi method fmt(List:D: Format:D $format, $separator = ' ' --> Str:D) {
+        $format.handle-iterator: self.iterator, $separator
+    }
+}
+
+#-------------------------------------------------------------------------------
+augment class Map {
+
+    # add support for Format formats
+    multi method fmt(Map:D: Format:D $format, $separator = "\n" --> Str:D) {
+        $format.handle-iterator:
+          ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
+    }
+}
+
+#-------------------------------------------------------------------------------
+augment class Mix {
+
+    # add support for Format formats
+    multi method fmt(Mix:D: Format:D $format, $separator = "\n" --> Str:D) {
+        $format.handle-iterator:
+          ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
+    }
+}
+
+#-------------------------------------------------------------------------------
+augment class MixHash {
+
+    # add support for Format formats
+    multi method fmt(MixHash:D: Format:D $format, $separator = "\n" --> Str:D) {
+        $format.handle-iterator:
+          ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
+    }
+}
+
+#-------------------------------------------------------------------------------
 augment class Num {
 
     # handle negative logs being Complex
@@ -92,6 +151,15 @@ augment class Num {
 }
 
 #-------------------------------------------------------------------------------
+augment class Pair {
+
+    # add support for Format formats
+    multi method fmt(Pair:D: Format:D $format --> Str:D) {
+        $format($!key, $!value)
+    }
+}
+
+#-------------------------------------------------------------------------------
 augment class Range {
 
     # handle Range.Bool correctly
@@ -100,6 +168,40 @@ augment class Range {
           ?? ($!max - $!excludes-max - $!min - $!excludes-min) > -1
           !! nqp::not_i(nqp::eqaddr(self.iterator.pull-one,IterationEnd))
         )
+    }
+}
+
+#-------------------------------------------------------------------------------
+augment class Seq {
+
+    # add support for Format formats
+    multi method fmt(Seq:D: Format:D $format, $separator = ' ' --> Str:D) {
+        self.is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('.fmt',"")
+          !! $format.handle-iterator: self.iterator, $separator
+    }
+}
+
+#-------------------------------------------------------------------------------
+augment class Set {
+
+    # Add support for Format formats.   Note that the invocant is marked
+    # as Setty rather than Set, because this will serve as the handler
+    # for the SetHash class.  Sadly, it is not possible to augment roles,
+    # otherwise the Setty role itself would have been augmented.
+    multi method fmt(Set:D: Format:D $format, $separator = "\n" --> Str:D) {
+        $format.handle-iterator:
+          ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
+    }
+}
+
+#-------------------------------------------------------------------------------
+augment class SetHash {
+
+    # add support for Format formats
+    multi method fmt(SetHash:D: Cool:D $format, $separator = "\n" --> Str:D) {
+        $format.handle-iterator:
+          ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
     }
 }
 

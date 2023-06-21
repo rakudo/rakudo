@@ -865,7 +865,12 @@ class Formatter {
               ),
               body => RakuAST::Blockoid.new($ast)
             );
-            $ast
+
+            # Temporary solution to allow Format objects to have a .count
+            # method to indicate the number of expected arguments to the
+            # format.
+            my int $count = @*DIRECTIVES.elems;
+            $ast but role { method count { $count } }
         }
         else {
             die "huh?"
@@ -873,7 +878,16 @@ class Formatter {
     }
 
     # Return Callable for given format
-    method CODE(Str(Cool) $format --> Callable:D) { EVAL self.AST($format) }
+    method CODE(Str(Cool) $format --> Callable:D) {
+        my     $ast  := self.AST($format);
+
+        # Temporary solution to allow Format objects to have a .count
+        # method to indicate the number of expected arguments to the
+        # format.
+        my int $count = $ast.count;
+        $ast.EVAL but role { method count { $count } }
+
+    }
 
     # actual workhorse for sprintf()
     my $FORMATS := nqp::hash;  # where we keep our formats
@@ -904,12 +918,16 @@ class Formatter {
 # contains a Callable that will be called with the CALL-ME method.
 # Otherwise acts as a normal string.
 my class Format is Str {
-    has &.code;
+    has int $.count;
+    has     &.code;
 
     method new(Str:D $format) {
+        my &code := Formatter.CODE($format);
+
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,Str,'$!value',$format);
-        nqp::bindattr($obj,Format,'&!code',Formatter.CODE($format));
+        nqp::bindattr_i($obj,Format,'$!count',&code.count);
+        nqp::bindattr($obj,Format,'&!code',&code);
         $obj
     }
 

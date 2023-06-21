@@ -38,7 +38,7 @@ my class Seq is Cool does Iterable does Sequence {
             !! X::Seq::Consumed.new.throw
     }
 
-    multi method Seq(Seq:D:)   { self }
+    multi method Seq(Seq:D:) { self }
 
     method Capture() {
         self.List.Capture

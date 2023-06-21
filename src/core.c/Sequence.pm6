@@ -67,7 +67,8 @@ my role Sequence does PositionalBindFailover {
 
     multi method eager(::?CLASS:D:) { List.from-iterator(self.iterator).eager }
 
-    method fmt(|c) {
+    proto method fmt(|) {*}
+    multi method fmt(Sequence:D: |c) {
         self.cache.fmt(|c)
     }
 

@@ -76,7 +76,8 @@ my class Cool { # declared in BOOTSTRAP
     proto method encode($?, *%) {*}
     multi method encode(Cool:D: |c) { self.Str.encode(|c) }
 
-    method fmt(Str(Cool) $format = '%s') {
+    proto method fmt(|) {*}
+    multi method fmt(Str(Cool) $format = '%s') {
         Rakudo::Internals.initialize-sprintf-handler;
         nqp::p6box_s(
             nqp::sprintf(nqp::unbox_s($format), nqp::list(self))

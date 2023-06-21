@@ -24,7 +24,8 @@ my role QuantHash does Associative {
 
     multi method list(QuantHash:D:) { self.pairs.cache }
 
-    method fmt(QuantHash: Cool $format = "%s\t\%s", $sep = "\n") {
+    proto method fmt(|) {*}
+    multi method fmt(QuantHash:D: Str:D $format = "%s\t\%s", $sep = "\n") {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
           ?? self.keys.fmt($format, $sep)
           !! self.pairs.fmt($format, $sep)

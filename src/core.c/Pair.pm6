@@ -174,7 +174,8 @@ my class Pair does Associative {
           }
     }
 
-    method fmt($format = "%s\t%s") {
+    proto method fmt(|) {*}
+    multi method fmt(Pair:D: Cool:D $format = "%s\t%s" --> Str:D) {
         sprintf($format, $!key, $!value);
     }
 

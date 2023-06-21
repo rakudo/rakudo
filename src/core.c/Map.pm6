@@ -540,7 +540,7 @@ ERROR
     method FLATTENABLE_LIST() is implementation-detail { nqp::list() }
     method FLATTENABLE_HASH() is implementation-detail { $!storage }
 
-    method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n" --> Str:D) {
+    multi method fmt(Map:D: Str:D $format = "%s\t\%s", $sep = "\n" --> Str:D) {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
           ?? self.keys.fmt($format, $sep)
           !! self.pairs.fmt($format, $sep)

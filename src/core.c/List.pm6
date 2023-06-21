@@ -389,7 +389,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method fmt(|) {*}
     multi method fmt(List:D: --> Str:D) {
         nqp::if(
           self.elems,                                 # reifies

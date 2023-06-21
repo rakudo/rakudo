@@ -392,16 +392,15 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     proto method fmt(|) {*}
     multi method fmt(List:D: --> Str:D) {
         nqp::if(
-          (my int $elems = self.elems),             # reifies
+          self.elems,                                 # reifies
           nqp::stmts(
-            (my $list    := $!reified),
-            (my $strings := nqp::setelems(nqp::list_s,$elems)),
-            (my int $i = -1),
+            (my $list    := nqp::clone($!reified)),
+            (my $strings := nqp::list_s),
             nqp::while(
-              nqp::islt_i(++$i,$elems),
-              nqp::bindpos_s($strings,$i,nqp::atpos($list,$i).Str)
+              nqp::elems($list),
+              nqp::push_s($strings,nqp::shift($list).Str)
             ),
-            nqp::p6box_s(nqp::join(' ',$strings))
+            nqp::join(' ',$strings)
           ),
           ''
         )
@@ -416,11 +415,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           nqp::iseq_s($format,'%s') && nqp::iseq_s($separator,' '),
           self.fmt,
           nqp::if(
-            (my int $elems = self.elems),             # reifies
+            self.elems,                               # reifies
             nqp::stmts(
-              (my $list    := $!reified),
-              (my $strings := nqp::setelems(nqp::list_s,$elems)),
-              (my int $i = -1),
+              (my $list    := nqp::clone($!reified)),
+              (my $strings := nqp::list_s),
               nqp::if(
                 nqp::iseq_i(                          # only one % in format?
                   nqp::elems(nqp::split('%',$format)),
@@ -430,20 +428,20 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                        2
                      ),
                 nqp::while(                           # only a single %s
-                  nqp::islt_i(++$i,$elems),
-                  nqp::bindpos_s($strings,$i,
+                  nqp::elems($list),
+                  nqp::push_s($strings,
                     nqp::if(
-                      nqp::istype((my $elem := nqp::atpos($list,$i)),List),
+                      nqp::istype((my $elem := nqp::shift($list)),List),
                       $elem.fmt($format, $separator),
                       nqp::join($elem.Str,$parts)
                     )
                   )
                 ),
                 nqp::while(                           # something else
-                  nqp::islt_i(++$i,$elems),
-                  nqp::bindpos_s($strings,$i,
+                  nqp::elems($list),
+                  nqp::push_s($strings,
                     nqp::if(
-                      nqp::istype(($elem := nqp::atpos($list,$i)),List),
+                      nqp::istype(($elem := nqp::shift($list)),List),
                       $elem.fmt($format, $separator),
                       $elem.fmt($format)
                     )

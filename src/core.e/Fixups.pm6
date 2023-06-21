@@ -76,12 +76,12 @@ augment class Int {
           !! nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self)))
     }
 
-    # allow 42.roll to be short for (1..42).roll
+    # allow 42.roll to be short for (^42).roll
     proto method roll(|) {*}
     multi method roll() { nqp::rand_I(self,Int) }
     multi method roll($count) { (^self).roll($count) }
 
-    # allow 42.pick to be short for (1..42).pick
+    # allow 42.pick to be short for (^42).pick
     proto method pick(|) {*}
     multi method pick() { nqp::rand_I(self,Int) }
     multi method pick($count) { (^self).pick($count) }

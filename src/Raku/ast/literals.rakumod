@@ -498,7 +498,7 @@ class RakuAST::QuotedString
                 my $Format := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
                 $qast := QAST::Op.new(
                   :op('callmethod'), :name('new'),
-                  QAST::WVal.new($Format),
+                  QAST::WVal.new( :value($Format)),
                   $qast
                 );
             }

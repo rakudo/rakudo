@@ -922,7 +922,7 @@ my class Format is Str {
     has     &.code;
 
     method new(Str:D $format) {
-        my &code := Formatter.CODE($format);
+        my &code := Formatter.new($format);
 
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,Str,'$!value',$format);

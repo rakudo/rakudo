@@ -1007,6 +1007,8 @@ my class Format is Str {
           :$args-have, :$args-used, :format(self)
         ).throw
     }
+
+    multi method raku(Format:D:) { 'Format.new(' ~ self.Str::raku ~ ')' }
 }
 
 # the procedural frontend of sprintf functionality

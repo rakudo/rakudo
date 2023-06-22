@@ -38,7 +38,7 @@ augment class Any {
 augment class Bag {
 
     # add support for Format formats
-    multi method fmt(Baggy:D: Format:D $format, $separator = "\n" --> Str:D) {
+    multi method fmt(Bag:D: Format:D $format, $separator = "\n" --> Str:D) {
         $format.handle-iterator:
           ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
     }
@@ -92,7 +92,9 @@ augment class List {
 
     # add support for Format formats
     multi method fmt(List:D: Format:D $format, $separator = ' ' --> Str:D) {
-        $format.handle-iterator: self.iterator, $separator
+        self.is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('.fmt',"")
+          !! $format.handle-iterator: self.iterator, $separator
     }
 }
 
@@ -199,7 +201,7 @@ augment class Set {
 augment class SetHash {
 
     # add support for Format formats
-    multi method fmt(SetHash:D: Cool:D $format, $separator = "\n" --> Str:D) {
+    multi method fmt(SetHash:D: Format:D $format, $separator = "\n" --> Str:D) {
         $format.handle-iterator:
           ($format.count == 1 ?? self.keys !! self.kv).iterator, $separator
     }

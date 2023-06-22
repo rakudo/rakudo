@@ -938,9 +938,13 @@ my class Format is Str {
     --> Str:D) is implementation-detail {
         my &handler := &!code;
 
+        # at least one arg required for format
         if $!count {
             my str @parts;
             if $!count == 1 {
+                # hacky bits to easily generate lists for callable
+                # as this currently always expects an array, even
+                # if there is only one argument expected
                 my $list := nqp::create(IterationBuffer);
                 my @args := $list.List;
 
@@ -952,7 +956,11 @@ my class Format is Str {
                   nqp::push_s(@parts,handler(@args))
                 );
             }
+
+            # 2 or more args required
             else {
+
+                # collect values for args, throw if insufficient
                 my sub next-batch() {
                     my $buffer   := nqp::create(IterationBuffer);
                     my int $count = $!count + 1;
@@ -976,7 +984,6 @@ my class Format is Str {
                       !! Nil
                 }
 
-                my int $count = $!count + 1;
                 nqp::while(
                   (my $params := next-batch),
                   nqp::push_s(@parts,handler($params))
@@ -985,6 +992,8 @@ my class Format is Str {
 
             @parts.join($separator);
         }
+
+        # no args, throw if any values
         else {
             nqp::eqaddr($iterator.pull-one,IterationEnd)
               ?? ''
@@ -992,6 +1001,7 @@ my class Format is Str {
         }
     }
 
+    # helper for throwing
     method !throw-count($args-have, $args-used) is hidden-from-backtrace {
         X::Str::Sprintf::Directives::Count.new(
           :$args-have, :$args-used, :format(self)

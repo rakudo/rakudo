@@ -85,7 +85,12 @@ role Raku::Common {
 
             for @extra_tweaks {
                 my $t := $_[0];
-                if nqp::can($lang, "tweak_$t") {
+                if $t eq 'o' || $t eq 'format' {
+                    nqp::getcomp('Raku').language_revision >= 3
+                      ?? ($lang := $lang.tweak_o($_[1]))
+                      !! self.sorry("Unrecognized adverb: :$t");
+                }
+                elsif nqp::can($lang, "tweak_$t") {
                     $lang := $lang."tweak_$t"($_[1]);
                 }
                 else {
@@ -2792,6 +2797,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token quote-modifier:sym<f>  { <sym> }
     token quote-modifier:sym<c>  { <sym> }
     token quote-modifier:sym<b>  { <sym> }
+    token quote-modifier:sym<o>  { <sym> }
 
     token qok($x) {
         » <![(]>
@@ -3875,6 +3881,10 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
     }
 
+    role o {
+        method postprocessors () { nqp::list_s('format') }
+    }
+
     role to[$herelang] {
         method herelang() { $herelang }
         method postprocessors () { nqp::list_s('heredoc') } # heredoc strings are the only postproc when present
@@ -3930,6 +3940,9 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     method tweak_function($v)   { self.tweak_f($v) }
     method tweak_c($v)          { self.apply_tweak($v ?? c1 !! c0) }
     method tweak_closure($v)    { self.tweak_c($v) }
+
+    method tweak_o($v)      { self.truly($v, ':o');      self.apply_tweak(o) }
+    method tweak_format($v) { self.truly($v, ':format'); self.apply_tweak(o) }
 
     my role postproc[@curlist] {
         method postprocessors() {

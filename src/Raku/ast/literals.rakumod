@@ -142,7 +142,7 @@ class RakuAST::QuotedString
     }
 
     method IMPL-CHECK-PROCESSORS(Mu $processors) {
-        my constant VALID := nqp::hash('words', Mu, 'quotewords', Mu, 'val', Mu, 'exec', Mu, 'heredoc', Mu);
+        my constant VALID := nqp::hash('words', Mu, 'quotewords', Mu, 'val', Mu, 'exec', Mu, 'heredoc', Mu, 'format', Mu);
         my @result;
         for self.IMPL-UNWRAP-LIST($processors // []) {
             if nqp::existskey(VALID, $_) {
@@ -175,6 +175,11 @@ class RakuAST::QuotedString
                     nqp::push(@needed, RakuAST::Var::Lexical::Setting.new(
                         :sigil<&>,
                         :desigilname(RakuAST::Name.from-identifier('val'))));
+                    last;
+                }
+                elsif $_ eq 'format' {
+                    nqp::push(@needed, RakuAST::Var::Lexical::Setting.new(
+                        :desigilname(RakuAST::Name.from-identifier('Format'))));
                     last;
                 }
             }
@@ -236,6 +241,8 @@ class RakuAST::QuotedString
                 $part := $val(nqp::hllizefor($part, 'Raku'));
             }
             elsif $_ eq 'heredoc' {
+            }
+            elsif $_ eq 'format' {
             }
             else {
                 return Nil;
@@ -338,14 +345,40 @@ class RakuAST::QuotedString
         # If we can constant fold it, just produce the constant.
         my $literal-value := self.literal-value;
         if nqp::isconcrete($literal-value) {
+
+            # format string
+            if $!processors && $!processors[0] eq 'format' {
+                my $Format := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+
+# The below code "should" work, but doesn't because references to internal
+# subs (such as "str-right-justified") appear to be QASTed correctly, but
+# when executed, do *not* call the unit in question, but simply return the
+# arguments that were given.  Not sure what is going on here.  For now,
+# create the format at run-time: it will still get cached, but *will* incur
+# a performance penalty at runtime, which is too bad because the whole idea
+# of a quote string format, was to create all of this at compile time.
+#
+#                my $format := $Format.new($literal-value);
+#                $context.ensure-sc($format);
+#                return QAST::WVal.new(:value($format));
+
+                # for now, until above fixed
+                $context.ensure-sc($literal-value);
+                return QAST::Op.new(
+                  :op('callmethod'), :name('new'),
+                  QAST::WVal.new( :value($Format) ),
+                  QAST::WVal.new( :value($literal-value) )
+                );
+            }
+
             $context.ensure-sc($literal-value);
             my $wval := QAST::WVal.new( :value($literal-value) );
             return nqp::istype($literal-value, Str)
                 ?? QAST::Want.new(
-                    $wval,
-                    'Ss',
-                    QAST::SVal.new( :value(nqp::unbox_s($literal-value)) )
-                )
+                     $wval,
+                     'Ss',
+                     QAST::SVal.new( :value(nqp::unbox_s($literal-value)) )
+                   )
                 !! $wval;
         }
 
@@ -459,6 +492,14 @@ class RakuAST::QuotedString
             elsif $_ eq 'heredoc' {
                 $qast := QAST::Op.new(
                     :op('die_s'), QAST::SVal.new( :value("Premature heredoc consumption") )
+                );
+            }
+            elsif $_ eq 'format' {
+                my $Format := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+                $qast := QAST::Op.new(
+                  :op('callmethod'), :name('new'),
+                  QAST::WVal.new($Format),
+                  $qast
                 );
             }
             else {

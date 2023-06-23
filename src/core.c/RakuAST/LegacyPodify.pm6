@@ -327,18 +327,9 @@ class RakuAST::LegacyPodify {
     }
 
     method podify-defn(RakuAST::Doc::Block:D $ast) {
-        my @paragraphs = $ast.paragraphs;
-
-        my $first := @paragraphs.shift;
-        $first    := $first.atoms.map(*.Str).join
-          unless nqp::istype($first,Str);
-        my ($term, $para) = $first.split("\n",2).map(&sanitize);
-
-        my @contents = Pod::Block::Para.new(:contents($para));
-        for @paragraphs {
-            @contents.push: nqp::istype($_,Str)
-              ?? Pod::Block::Para.new(:contents(.chomp))
-              !! .podify
+        my $term    := sanitize $ast.paragraphs.head.Str;
+        my @contents = $ast.paragraphs.skip.map: {
+            Pod::Block::Para.new(:contents(sanitize(.Str)))
         }
 
         Pod::Defn.new:

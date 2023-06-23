@@ -644,6 +644,18 @@ augment class RakuAST::Doc::Block {
             $block.interpret-implicit-code-blocks($spaces, @paragraphs);
         }
 
+        elsif $type eq 'defn' {
+            my @parts = @paragraphs;
+            # first line is the term, separate that
+            @parts.splice(0,1,@parts.head.split("\n",2));
+
+            $block.add-paragraph(
+              nqp::istype($_,Str)
+                ?? RakuAST::Doc::Paragraph.from-string($_)
+                !! $_
+            ) for @parts;
+        }
+
         # these just need the paragraphs
         else {
             $block.add-paragraph(

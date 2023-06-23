@@ -482,7 +482,7 @@ Need to re-check dependencies.")
         my $seen := nqp::hash;
 
         for nqp::join('',$out).lines.unique -> str $outstr {
-            if nqp::atpos(nqp::radix(16,$outstr,0,0),2) == 40
+            if nqp::atpos(nqp::radix_I(16,$outstr,0,0,Int),2) == 40
               && nqp::eqat($outstr,"\0",40)
               && nqp::chars($outstr) > 41 {
                 my $dependency :=

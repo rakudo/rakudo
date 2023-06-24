@@ -213,7 +213,8 @@ class CompUnit::Repository::FileSystem
 
             # Break the !distribution cache if we failed to find a match using the cached distribution
             # but still found an existing file that matches the $spec.short-name
-            return Empty unless @!extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ ".$_") }).first(*.f);
+            my $name-path := $spec.short-name.subst(:g, "::", $*SPEC.dir-sep);
+            return Empty unless @!extensions.map({ $!prefix.add($name-path ~ '.' ~ $_) }).first(*.f);
             $!distribution := Nil;
             $distribution = self!distribution;
         }

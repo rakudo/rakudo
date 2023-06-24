@@ -12,7 +12,7 @@ class CompUnit::Repository::FileSystem
     has $!precomp-store;
     has $!distribution;
     has $!files-prefix;
-    has @.extensions = <.rakumod .pm6 .pm>;
+    has @.extensions = <rakumod pm6 pm>;
 
     method TWEAK(--> Nil) {
         $!loaded-lock := Lock.new;
@@ -213,7 +213,7 @@ class CompUnit::Repository::FileSystem
 
             # Break the !distribution cache if we failed to find a match using the cached distribution
             # but still found an existing file that matches the $spec.short-name
-            return Empty unless @!extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ $_) }).first(*.f);
+            return Empty unless @!extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ ".$_") }).first(*.f);
             $!distribution := Nil;
             $distribution = self!distribution;
         }
@@ -319,14 +319,14 @@ class CompUnit::Repository::FileSystem
         # Set up hash of hashes of files found that could be modules.
         # Then select the most prominent one from there when done.
         my %provides-exts = @!extensions.map(* => True);
-        my $provides-files := ls($!prefix.absolute).grep({ my $ext = ".{$_.extension}"; %provides-exts{$ext} });
+        my $provides-files := ls($!prefix.absolute).grep({ my $ext = $_.extension; %provides-exts{$ext} });
         my %provides;
         %provides{
           .subst(:g, /\//, "::")
           .subst(:g, /\:\:+/, '::')
           .subst(/^.*?'::'/, '')
           .subst(/\..*/, '')
-        }{ '.' ~ $SPEC.extension($_) } = $_
+        }{ $SPEC.extension($_) } = $_
           for $provides-files.map(&to-relative);
 
         # precedence is determined by the order of @!extensions

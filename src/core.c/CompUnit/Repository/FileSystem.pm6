@@ -326,7 +326,7 @@ class CompUnit::Repository::FileSystem
           .subst(:g, /\:\:+/, '::')
           .subst(/^.*?'::'/, '')
           .subst(/\..*/, '')
-        }{ '.' ~ IO::Path.new($_, :$SPEC, :$CWD).extension } = $_
+        }{ '.' ~ $SPEC.extension($_) } = $_
           for $provides-files.map(&to-relative);
 
         # precedence is determined by the order of @!extensions

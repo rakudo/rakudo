@@ -100,8 +100,6 @@ grammar Formatter::Syntax {
 class Formatter {
     # class to be used with Grammar to turn format into array of pieces of code
     my class Actions {
-        my $knowhow := nqp::knowhow().new_type(:repr("P6bigint"));
-        my $zero    := nqp::box_i(0, $knowhow);
 
         # helper sub to check if a flag is set
         sub has_hash($/)  { "#" (elem) $<flags>.map: *.Str }

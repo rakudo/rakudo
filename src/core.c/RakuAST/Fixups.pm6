@@ -309,8 +309,7 @@ augment class RakuAST::Doc::Markup {
                 $string := $entity.uniparse;
                 unless $string {
                     self.worry-ad-hoc:
-                      qq/"$entity" is not a valid HTML5 entity./,
-                      "dummy argument that is somehow needed";
+                      qq/"$entity" is not a valid HTML5 entity./;
                 }
             }
         }
@@ -319,44 +318,45 @@ augment class RakuAST::Doc::Markup {
         }
         else {
             self.sorry-ad-hoc:
-              "Codepoint $codepoint ($codepoint.base(16)) is out of bounds in E<>",
-              "dummy argument that is somehow needed";
+              "Codepoint $codepoint ($codepoint.base(16)) is out of bounds in E<>";
             $string := '';
         }
         $string
     }
 
     # set up meta info from the last atom as appropriate
-    method check-meta(RakuAST::Doc::Markup:D:) {
+    method check-meta(RakuAST::Doc::Markup:D: $allow) {
         my str $letter = self.letter;
         if $letter eq 'E' | 'L' | 'X' {
-            my @atoms = self.atoms;
-            if nqp::istype(@atoms.tail,Str) {
-                if $letter eq 'E' {
+            if $letter eq 'L' {
+                my ($str,$uri) = self.Str.substr(2,*-1).split('|',2);
+                self.set-meta($uri) if $uri;
+                my $redone :=
+                  RakuAST::Doc::Paragraph.from-string($str, :$allow);
+                self.set-atoms(
+                  nqp::istype($redone,Str) ?? $redone !! $redone.atoms
+                );
+            }
+            elsif $letter eq 'X' {
+                my ($str,$refs) = self.Str.substr(2,*-1).split('|',2);
+                if $refs {
+                    self.add-meta(.split(',').List)
+                      for $refs.split(';');
+                }
+                my $redone :=
+                  RakuAST::Doc::Paragraph.from-string($refs, :$allow);
+                self.set-atoms(
+                  nqp::istype($redone,Str) ?? $redone !! $redone.atoms
+                );
+            }
+            else {  # $letter eq 'E'
+                my @atoms = self.atoms;
+                if nqp::istype(@atoms.tail,Str) {
                     self.set-atoms;  # reset so we can add again
                     for @atoms.pop.split(';') {
                         self.add-meta($_);
                         self.add-atom(self.convert-entity($_));
                     }
-                }
-                elsif $letter eq 'L' {
-                    my ($str,$uri) = @atoms.tail.split('|',2);
-                    self.set-meta($uri) if $uri;
-                    $str
-                      ?? (@atoms.tail = $str)
-                      !! @atoms.pop;
-                    self.set-atoms(@atoms.List);
-                }
-                else { # $letter eq 'X' {
-                    my ($str,$refs) = @atoms.tail.split('|',2);
-                    if $refs {
-                        self.add-meta(.split(',').List)
-                          for $refs.split(';');
-                    }
-                    $str
-                      ?? (@atoms.tail = $str)
-                      !! @atoms.pop;
-                    self.set-atoms(@atoms.List);
                 }
             }
         }
@@ -542,7 +542,7 @@ augment class RakuAST::Doc::Paragraph {
                     add-graphemes($current := nqp::pop($markups)),
                     nqp::if(
                       nqp::istype($current,RakuAST::Doc::Markup),
-                      $current.check-meta
+                      $current.check-meta($allow)
                     ),
                     collector.add-atom($current)
                   ),
@@ -559,8 +559,7 @@ augment class RakuAST::Doc::Paragraph {
         if nqp::elems($markups) -> int $elems {
             self.worry-ad-hoc: 'Pod formatting code '
               ~ nqp::atpos($markups,nqp::sub_i($elems,1)).letter
-              ~ " missing endtag '>'.",
-              "dummy argument that is somehow needed";
+              ~ " missing endtag '>'.";
 
             nqp::while(
               nqp::elems($markups),

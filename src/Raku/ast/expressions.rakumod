@@ -729,6 +729,7 @@ class RakuAST::MetaInfix::Hyper
 class RakuAST::ApplyInfix
   is RakuAST::Expression
   is RakuAST::BeginTime
+  is RakuAST::CheckTime
 {
     has RakuAST::Infixish $.infix;
     has RakuAST::Expression $.left;
@@ -785,6 +786,22 @@ class RakuAST::ApplyInfix
         $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, $!left, $!right);
     }
 
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if nqp::eqaddr($!infix.WHAT,RakuAST::MetaInfix::Assign)
+          && $!infix.infix.operator eq ',' {
+            my $sigil := (try $!left.sigil) // '';
+            if $sigil eq '$' || $sigil eq '@' {
+                $resolver.add-worry:
+                  $resolver.build-exception: 'X::AdHoc',
+                    payload => "Using ,= on a "
+                      ~ ($sigil eq '$' ?? 'scalar' !! 'array')
+                      ~ " is probably NOT what you want, as it will create\n"
+                      ~ "a self-referential structure with little meaning";
+            }
+        }
+        True
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-INFIX-COMPILE($context, $!left, $!right)
     }
@@ -798,7 +815,7 @@ class RakuAST::ApplyInfix
     method IMPL-CAN-INTERPRET() { self.left.IMPL-CAN-INTERPRET && self.right.IMPL-CAN-INTERPRET && self.infix.IMPL-CAN-INTERPRET }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        return self.infix.IMPL-INTERPRET($ctx, nqp::list($!left, $!right));
+        self.infix.IMPL-INTERPRET($ctx, nqp::list($!left, $!right))
     }
 }
 

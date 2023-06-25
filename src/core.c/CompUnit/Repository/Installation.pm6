@@ -326,13 +326,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         # identity changes with every installation of a dist.
         $!id = Any;
 
-        if $precompile {
+        my $precomp := self.precomp-repository;
+
+        if $precompile && $precomp.may-precomp() {
             my $head := $*REPO;
             CATCH { PROCESS::<$REPO> := $head }
             # Precomp files should only depend on downstream repos
             PROCESS::<$REPO> := self;
 
-            my $precomp = self.precomp-repository;
             my $repo-prefix = self!repo-prefix;
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);

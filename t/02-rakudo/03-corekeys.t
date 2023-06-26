@@ -812,6 +812,7 @@ my @allowed =
         Q{&zprintf},
         Q{&snip},
         Q{&snitch},
+        Q{&sprintf},
         Q{&term:<nano>},
         Q{CORE-SETTING-REV},
         Q{Format},

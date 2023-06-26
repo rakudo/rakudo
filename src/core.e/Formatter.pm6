@@ -1010,6 +1010,10 @@ my class Format is Str {
 }
 
 # the procedural frontend of sprintf functionality
+multi sub sprintf(Format:D $format, *@args) {  # until zprintf gone
+    $format(@args)
+}
+
 proto sub zprintf($, |) {*}
 multi sub zprintf(Str(Cool) $format, \value) {
     Formatter.new($format)(nqp::list(value))

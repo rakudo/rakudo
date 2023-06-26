@@ -564,11 +564,7 @@ class Formatter {
         # number of args doesn't match
         if nqp::not_i(nqp::isconcrete($args))
           || nqp::isne_i(nqp::elems($args),nqp::elems($directives)) {
-            throw-count(
-              $format,
-              nqp::elems($args),
-              nqp::elems($directives)
-            )
+            throw-count($format, nqp::elems($args), nqp::elems($directives))
         }
 
         # check types
@@ -600,7 +596,6 @@ class Formatter {
         else {
             throw-count(
               $format,
-              $directive,
               nqp::isconcrete($args) ?? nqp::elems($args) !! 0,
               1
             )
@@ -610,7 +605,7 @@ class Formatter {
     # RUNTIME number of arguments checker for NO expected argument
     sub check-no-arg(str $format, @args --> Nil) {
         my $args := nqp::getattr(@args,List,'$!reified');
-        throw-count($format, '', nqp::elems($args), 0)
+        throw-count($format, nqp::elems($args), 0)
           if nqp::isconcrete($args) && nqp::elems($args);
     }
 
@@ -758,8 +753,18 @@ class Formatter {
 
     # Return AST for given format
     method AST(Str(Cool) $format) {
+
+        # If we don't have a DIRECTIVES array yet, create one and call
+        # ourselves again, now *with* the DIRECTIVES array being available.
+        # This allows an external caller (such as Format.new) to set up
+        # their own DIRECTIVES array and so be able to find out what the
+        # directives were.
+        if nqp::istype(@*DIRECTIVES,Failure) {
+            my @*DIRECTIVES := my str @;  # the directives seen
+            return &?ROUTINE(self, $format);
+        }
+
         my $*FORMAT        := $format;  # for error message generation
-        my @*DIRECTIVES;                # the directives seen
         my $*NEXT-PARAMETER = 0;        # index of next parameter to be expected
 
         if Syntax.parse($format, actions => Actions) -> $parsed {
@@ -863,12 +868,6 @@ class Formatter {
               ),
               body => RakuAST::Blockoid.new($ast)
             );
-
-            # Temporary solution to allow Format objects to have a .count
-            # method to indicate the number of expected arguments to the
-            # format.
-            my int $count = @*DIRECTIVES.elems;
-            $ast but role { method count { $count } }
         }
         else {
             die "huh?"
@@ -877,13 +876,7 @@ class Formatter {
 
     # Return Callable for given format
     method CODE(Str(Cool) $format --> Callable:D) {
-        my     $ast  := self.AST($format);
-
-        # Temporary solution to allow Format objects to have a .count
-        # method to indicate the number of expected arguments to the
-        # format.
-        my int $count = $ast.count;
-        $ast.EVAL but role { method count { $count } }
+        self.AST($format).EVAL
 
     }
 
@@ -916,30 +909,35 @@ class Formatter {
 # contains a Callable that will be called with the CALL-ME method.
 # Otherwise acts as a normal string.
 my class Format is Str {
-    has int $.count;
+    has str @.directives;
     has     &.code;
 
     method new(Str:D $format) {
+        my @*DIRECTIVES := my str @;
         my &code := Formatter.new($format);
 
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,Str,'$!value',$format);
-        nqp::bindattr_i($obj,Format,'$!count',&code.count);
+        nqp::bindattr($obj,Format,'@!directives',@*DIRECTIVES);
         nqp::bindattr($obj,Format,'&!code',&code);
         $obj
     }
 
+    method count() { nqp::elems(@!directives) }
+
     method CALL-ME(*@args) { &!code(@args) }
 
+    # Helper method for .fmt support
     method handle-iterator(Format:D:
       Iterator:D $iterator, $separator = "\n"
     --> Str:D) is implementation-detail {
-        my &handler := &!code;
+        my &handler  := &!code;
+        my int $count = self.count;
 
         # at least one arg required for format
-        if $!count {
+        if $count {
             my str @parts;
-            if $!count == 1 {
+            if $count == 1 {
                 # hacky bits to easily generate lists for callable
                 # as this currently always expects an array, even
                 # if there is only one argument expected
@@ -960,25 +958,25 @@ my class Format is Str {
 
                 # collect values for args, throw if insufficient
                 my sub next-batch() {
-                    my $buffer   := nqp::create(IterationBuffer);
-                    my int $count = $!count + 1;
+                    my $buffer  := nqp::create(IterationBuffer);
+                    my int $todo = $count + 1;
                     nqp::while(
-                      --$count,
+                      --$todo,
                       nqp::if(
                         nqp::eqaddr(
                           (my $pulled := $iterator.pull-one),
                           IterationEnd
                         ),
-                        ($count = 1),
+                        ($todo = 1),
                         nqp::push($buffer,$pulled)
                       )
                     );
                     
                     my int $found = nqp::elems($buffer);
                     $found
-                      ?? $found == $!count
+                      ?? $found == $count
                         ?? $buffer.List
-                        !! self!throw-count(nqp::elems($buffer), $!count)
+                        !! self!throw-count(nqp::elems($buffer), $count)
                       !! Nil
                 }
 

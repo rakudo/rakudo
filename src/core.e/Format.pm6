@@ -7,9 +7,9 @@ my class Format is Str {
     has str @.directives;
     has     &.code;
 
-    method new(Str:D $format) {
+    method new(Str:D $format, :$class = Formatter) {
         my @*DIRECTIVES := my str @;
-        my &code := Formatter.new($format);
+        my &code := $class.new($format);
 
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,Str,'$!value',$format);

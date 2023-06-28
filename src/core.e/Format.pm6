@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# The class underlying the format string quote  :o/:format type.  An instance
+# The class underlying the format string quote q:o/:format type.  An instance
 # contains a Callable that will be called with the CALL-ME method.
 # Otherwise acts as a normal string.
 
@@ -18,33 +18,40 @@ my class Format is Str {
         $obj
     }
 
-    method count() { nqp::elems(@!directives) }
+    method signature() { &!code.signature       }
+    method arity()     { &!code.signature.arity }
+    method count()     { &!code.signature.count }
 
-    method CALL-ME(*@args) { &!code(@args) }
+    method CALL-ME(|c) {
+        CATCH {
+            die ("Error occurred during processing format '"
+              ~ self
+              ~ "' with value"
+              ~ (c == 1 ?? " " !! "s ")
+              ~ c.raku.substr(1)
+              ~ ":"
+            ).naive-word-wrapper
+              ~ "\n\n"
+              ~ .message.indent(4)
+        }
+
+        &!code(|c)
+    }
 
     # Helper method for .fmt support
     method handle-iterator(Format:D:
       Iterator:D $iterator, $separator = "\n"
     --> Str:D) is implementation-detail {
         my &handler  := &!code;
-        my int $count = self.count;
+        my int $count = self.signature.count;
 
         # at least one arg required for format
         if $count {
             my str @parts;
             if $count == 1 {
-                # hacky bits to easily generate lists for callable
-                # as this currently always expects an array, even
-                # if there is only one argument expected
-                my $list := nqp::create(IterationBuffer);
-                my @args := $list.List;
-
                 nqp::until(
-                  nqp::eqaddr(
-                    nqp::bindpos($list,0,$iterator.pull-one),
-                    IterationEnd
-                  ),
-                  nqp::push_s(@parts,handler(@args))
+                  nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+                  nqp::push_s(@parts,handler($pulled))
                 );
             }
 
@@ -77,7 +84,7 @@ my class Format is Str {
 
                 nqp::while(
                   (my $params := next-batch),
-                  nqp::push_s(@parts,handler($params))
+                  nqp::push_s(@parts,handler(|$params))
                 );
             }
 

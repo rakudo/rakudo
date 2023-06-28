@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 31;
+plan 32;
 
 my $ast;
 my $deparsed;
@@ -459,6 +459,31 @@ subtest 'Correct outcome of ternary operator' => {
     $a = 0;
     is-deeply $_, 33, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Correct outcome of nested ternary operator' => {
+    # $a ?? $b ?? 22 !! 33 !! 44
+    ast RakuAST::Ternary.new(
+      condition => RakuAST::Var::Lexical.new("\$a"),
+      then      => RakuAST::Ternary.new(
+        condition => RakuAST::Var::Lexical.new("\$b"),
+        then      => RakuAST::IntLiteral.new(22),
+        else      => RakuAST::IntLiteral.new(33)
+      ),
+      else      => RakuAST::IntLiteral.new(44)
+    );
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+$a
+  ?? $b
+    ?? 22
+    !! 33
+  !! 44
+CODE
+
+    for 0,0,44, 1,0,33, 0,1,44, 1,2,22 -> $a, $b, $result {
+        is-deeply $_, $result, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
 }
 
 subtest 'Application of dotty infix `.`' => {

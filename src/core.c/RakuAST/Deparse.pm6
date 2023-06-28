@@ -2150,38 +2150,50 @@ class RakuAST::Deparse {
 
         # no place to store heredocs, make one, try again, add them at the end
         if nqp::istype($heredoc,Failure) {
+            my $*TERNARY = "";  # indenting for nested ternaries
+
             $heredoc := my $*HEREDOC := my str @;
             my $deparsed := self.deparse($ast);
 
-            nqp::elems($heredoc)
+            return nqp::elems($heredoc)
               ?? $deparsed ~ $heredoc.join ~ "\n"
               !! $deparsed
         }
 
         # already have a place to store heredocs
-        else {
-            my str @parts =
-              self.deparse($ast.condition),
-              self.hsyn('ternary', $.ternary1);
+        my $then := $ast.then;
+        my $else := $ast.else;
+        my $intern := $*TERNARY;
+        my $nested := $intern
+          || nqp::istype($then,RakuAST::Ternary)
+          || nqp::istype($else,RakuAST::Ternary);
+        my str $indent = $nested
+          ?? "\n" ~ ($intern ~= '  ').chop  # assume 1 space left of ?? !!
+          !! '';
 
-            # helper sup for a ternary part
-            sub deparse-part($node --> Nil) {
-                if nqp::istype($node,RakuAST::Heredoc) {
-                    my str ($header,$rest) = self.deparse($node).split("\n",2);
-                    @parts.push($header);
-                    $heredoc.push("\n" ~ $rest.chomp);
-                }
-                else {
-                    @parts.push(self.deparse($node));
-                }
+        my str @parts =
+          self.deparse($ast.condition),
+          $indent,
+          self.hsyn('ternary', $.ternary1);
+
+        # helper sub for a ternary part
+        sub deparse-part($node --> Nil) {
+            if nqp::istype($node,RakuAST::Heredoc) {
+                my str ($header,$rest) = self.deparse($node).split("\n",2);
+                @parts.push($header);
+                $heredoc.push("\n" ~ $rest.chomp);
             }
-
-            deparse-part($ast.then);
-            @parts.push(self.hsyn('ternary', $.ternary2));
-            deparse-part($ast.else);
-
-            @parts.join
+            else {
+                @parts.push(self.deparse($node));
+            }
         }
+
+        deparse-part($then);
+        @parts.push($indent);
+        @parts.push(self.hsyn('ternary', $.ternary2));
+        deparse-part($else);
+
+        @parts.join
     }
 
 #- Trait -----------------------------------------------------------------------

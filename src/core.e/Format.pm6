@@ -43,10 +43,9 @@ my class Format is Str {
       Iterator:D $iterator, $separator = "\n"
     --> Str:D) is implementation-detail {
         my &handler  := &!code;
-        my int $count = self.signature.count;
 
         # at least one arg required for format
-        if $count {
+        if self.count -> int $count {
             my str @parts;
             if $count == 1 {
                 nqp::until(

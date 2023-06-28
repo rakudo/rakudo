@@ -3079,7 +3079,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # System variables which are considered deprecated. Keys are variable names, values are list of revision which
     # deprecates the variable, and alternative to be used instead.
     my %variable_deprecations := nqp::hash(
-        '$*PERL', nqp::list('e', '$*RAKU'),
+        '$*PERL', nqp::list(3, '$*RAKU'),
     );
 
     sub make_variable_from_parts($/, @name, $sigil, $twigil, $desigilname) {
@@ -3089,7 +3089,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @deprecation;
 
         if nqp::existskey(%variable_deprecations, $name)
-            && nqp::isge_s(
+            && nqp::isge_i(
                 nqp::getcomp('Raku').language_revision,
                 %variable_deprecations{$name}[0])
         {

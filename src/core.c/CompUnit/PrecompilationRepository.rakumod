@@ -180,19 +180,20 @@ Need to re-check dependencies.")
 
             if $resolve {
                 my str $serialized-id = $dependency.serialize;
-                nqp::ifnull(
-                  nqp::atkey($resolved,$serialized-id),
-                  nqp::if(do {
-                        my $comp-unit := $REPO.resolve($dependency.spec);
-                        $!RMD("Old id: $dependency.id(), new id: {
-                            $comp-unit and $comp-unit.repo-id
-                        }")
-                          if $!RMD;
+                $loaded-lock.protect: {
+                    nqp::ifnull(
+                      nqp::atkey($resolved,$serialized-id),
+                      nqp::bindkey($resolved,$serialized-id, do {
+                            my $comp-unit := $REPO.resolve($dependency.spec);
+                            $!RMD("Old id: $dependency.id(), new id: {
+                                $comp-unit and $comp-unit.repo-id
+                            }") if $!RMD;
 
-                        $comp-unit and $comp-unit.repo-id eq $dependency.id
-                    },
-                    $loaded-lock.protect({ nqp::bindkey($resolved,$serialized-id, 1) }),
-                    (return False)));
+                            return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
+                            True;
+                        })
+                    );
+                }
             }
 
             my $dependency-precomp := @precomp-stores

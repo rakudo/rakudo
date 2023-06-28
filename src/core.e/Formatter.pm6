@@ -4,9 +4,9 @@
 # it contains a Callable that will process the parameters doing all of the
 # necessary checks and conversions.
 #
-# If not found, it will parse the format with the Syntax grammar and the
-# Actions class, which will create the RakuAST nodes for it and store the
-# Callable in the hash and then run that Callable.
+# If not found, it will parse the format with the Formatter:: Syntax grammar
+# and the Formatter::Actions class, which will create the RakuAST nodes for
+# it and store the Callable in the hash.
 #
 # TODO:
 # - generate code that uses native ops and variables where possible
@@ -16,86 +16,6 @@
 #   say sprintf('%f %f %f %f', Mu, Any, Nil, NaN);
 # - https://github.com/Raku/old-issue-tracker/issues/4892
 #   say sprintf("%e",1000)    # should be 1.0... instead of 10....
-
-# The grammar for parsing format strings.  Intentionally globally visible
-# to allow the ecosystem to subclass it if necessary
-grammar Formatter::Syntax {
-    token TOP { ^ <statement>* $ }
-
-    method panic($message, $payload) {
-        my $ex := nqp::newexception();
-        nqp::setmessage($ex, $message);
-        nqp::setpayload($ex, $payload);
-        nqp::throw($ex);
-    }
-
-    token statement {
-        [
-        | <?[%]> [ <directive>
-          || <.panic(
-            "'"
-              ~ self.orig.substr(1)
-              ~ "' is not valid in sprintf format sequence '"
-              ~ self.orig
-              ~ "'",
-            nqp::hash(
-              'BAD_DIRECTIVE',
-              nqp::hash(
-                'DIRECTIVE', self.orig.substr(1),
-                'SEQUENCE', self.orig
-              )
-            )
-          )> ]
-        | <![%]> <literal>
-        ]
-    }
-
-    proto token directive { <...> }
-    token directive:sym<b> {
-        '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[bB]>
-    }
-    token directive:sym<c> {
-        '%' <idx>? <flags>* <size>? <sym>
-    }
-    token directive:sym<d> {
-        '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[dDi]>
-    }
-    token directive:sym<e> {
-        '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[eE]>
-    }
-    token directive:sym<f> {
-        '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[fF]>
-    }
-    token directive:sym<g> {
-        '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[gG]>
-    }
-    token directive:sym<o> {
-        '%' <idx>? <flags>* <size>? <precision>? <sym>
-    }
-    token directive:sym<O> {
-        '%' <idx>? <flags>* <size>? <precision>? <sym>
-    }
-    token directive:sym<s> {
-        '%' <idx>? <flags>* <size>? <precision>? <sym>
-    }
-    token directive:sym<u> {
-        '%' <idx>? <flags>* <size>? <sym>
-    }
-    token directive:sym<x> {
-        '%' <idx>? <flags>* <size>? <precision>? $<sym>=<[xX]>
-    }
-    token directive:sym<%> { '%%' }
-
-    token literal { <-[%]>+ }
-
-    token idx { [\d+] '$' }
-
-    token flags { <[\ +0#-]> }
-
-    token size { \d* | $<star>='*' <idx>? }
-
-    token precision { '.' <size>? }
-}
 
 class Formatter {
     # class to be used with Grammar to turn format into array of pieces of code

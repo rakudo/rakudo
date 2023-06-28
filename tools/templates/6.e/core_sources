@@ -5,6 +5,7 @@ src/core.e/EXPORTHOW.pm6
 src/core.e/array_multislice.pm6
 src/core.e/hash_multislice.pm6
 src/core.e/Formatter.pm6
+src/core.e/Format.pm6
 src/core.e/Rakudo/Iterator.pm6
 src/core.e/Fixups.pm6
 src/core.e/additions.pm6

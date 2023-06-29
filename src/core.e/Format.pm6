@@ -116,25 +116,19 @@ my class Format is Str {
 
 # the procedural frontend of sprintf functionality
 multi sub sprintf(Format:D $format, *@args) {  # until zprintf gone
-    $format(@args)
+    $format(|@args)
 }
 
 proto sub zprintf($, |) {*}
 multi sub zprintf(Str(Cool) $format, \value) {
-    Formatter.new($format)(nqp::list(value))
+    Formatter.new($format)(value)
 }
-multi sub zprintf(Str(Cool) $format, @args) {
-    Formatter.new($format)(@args)
-}
-multi sub zprintf(Str(Cool) $format, *@args) {
-    Formatter.new($format)(@args)
-}
-multi sub zprintf(Format:D $format, *@args) {
-    $format(@args)
+multi sub zprintf(Str(Cool) $format, |c) {
+    Formatter.new($format)(|c)
 }
 
 augment class Cool {
-    method zprintf(*@args) { zprintf(self, @args) }
+    method zprintf(|c) { zprintf(self,|c) }
 }
 
 # vim: expandtab shiftwidth=4

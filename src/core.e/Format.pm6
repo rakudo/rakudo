@@ -106,6 +106,9 @@ my class Format is Str {
     }
 
     multi method raku(Format:D:) { 'Format.new(' ~ self.Str::raku ~ ')' }
+
+    # mostly for debugging, but also for consistency
+    method AST(Format:D:) { Formatter.AST: self }
 }
 
 #-------------------------------------------------------------------------------

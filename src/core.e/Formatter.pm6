@@ -122,28 +122,19 @@ our class Formatter {
 
     # provide left justification of string
     our sub str-left-justified(int $positions, Str:D $string) {
-        nqp::islt_i($positions,0)
-          ?? &?ROUTINE(nqp::neg_i($positions), $string)
-          !! nqp::islt_i(nqp::chars($string),$positions)
-            ?? nqp::concat(
-                 $string,
-                 nqp::x(' ',nqp::sub_i($positions,nqp::chars($string)))
+        nqp::islt_i(nqp::chars($string),nqp::abs_i($positions))
+          ?? nqp::concat(
+               $string,nqp::x(
+                 ' ',nqp::sub_i(nqp::abs_i($positions),nqp::chars($string))
                )
-            !! $string
+             )
+          !! $string
     }
 
     # provide right justification of string
-    our sub str-right-justified(int $positions is copy, Str:D $string) {
+    our sub str-right-justified(int $positions, Str:D $string) {
         nqp::islt_i($positions,0)
-          ?? nqp::islt_i(
-               nqp::chars($string),
-               ($positions = nqp::neg_i($positions))
-             )
-            ?? nqp::concat(
-                 $string,
-                 nqp::x(' ',nqp::sub_i($positions,nqp::chars($string)))
-               )
-            !! $string
+          ?? str-left-justified($positions, $string)
           !! nqp::islt_i(nqp::chars($string),$positions)
             ?? nqp::concat(
                  nqp::x(' ',nqp::sub_i($positions,nqp::chars($string))),

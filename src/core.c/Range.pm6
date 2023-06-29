@@ -856,4 +856,8 @@ multi sub infix:<cmp>(Range:D \a, Num(Real) $b) { a cmp ($b..$b) }
 multi sub infix:<cmp>(Positional \a, Range:D \b) { a cmp b.list }
 multi sub infix:<cmp>(Range:D \a, Positional \b) { a.list cmp b }
 
+multi sub max   (Range:D $range) { $range.max    }
+multi sub min   (Range:D $range) { $range.min    }
+multi sub minmax(Range:D $range) { $range.minmax }
+
 # vim: expandtab shiftwidth=4

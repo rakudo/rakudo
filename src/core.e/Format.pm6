@@ -4,8 +4,8 @@
 # Otherwise acts as a normal string.
 
 my class Format is Str {
-    has str @.directives;
-    has     &.code;
+    has str @!directives;
+    has     &!code;
 
     method new(Str:D $format, :$class = Formatter) {
         my @*DIRECTIVES := my str @;
@@ -18,9 +18,10 @@ my class Format is Str {
         $obj
     }
 
-    method signature() { &!code.signature       }
-    method arity()     { &!code.signature.arity }
-    method count()     { &!code.signature.count }
+    method directives(Format:D:) { @!directives.List      }
+    method Callable(Format:D:)   { &!code                 }
+    method arity(Format:D:)      { &!code.signature.arity }
+    method count(Format:D:)      { &!code.signature.count }
 
     method CALL-ME(|c) {
         CATCH {
@@ -45,9 +46,9 @@ my class Format is Str {
         my &handler  := &!code;
 
         # at least one arg required for format
-        if self.count -> int $count {
+        if self.arity -> int $arity {
             my str @parts;
-            if $count == 1 {
+            if $arity == 1 {
                 nqp::until(
                   nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
                   nqp::push_s(@parts,handler($pulled))
@@ -60,7 +61,7 @@ my class Format is Str {
                 # collect values for args, throw if insufficient
                 my sub next-batch() {
                     my $buffer  := nqp::create(IterationBuffer);
-                    my int $todo = $count + 1;
+                    my int $todo = $arity + 1;
                     nqp::while(
                       --$todo,
                       nqp::if(
@@ -75,9 +76,9 @@ my class Format is Str {
                     
                     my int $found = nqp::elems($buffer);
                     $found
-                      ?? $found == $count
+                      ?? $found == $arity
                         ?? $buffer.List
-                        !! self!throw-count(nqp::elems($buffer), $count)
+                        !! self!throw-arity(nqp::elems($buffer), $arity)
                       !! Nil
                 }
 
@@ -94,12 +95,12 @@ my class Format is Str {
         else {
             nqp::eqaddr($iterator.pull-one,IterationEnd)
               ?? ''
-              !! self!throw-count(0, 1)
+              !! self!throw-arity(0, 1)
         }
     }
 
     # helper for throwing
-    method !throw-count($args-have, $args-used) is hidden-from-backtrace {
+    method !throw-arity($args-have, $args-used) is hidden-from-backtrace {
         X::Str::Sprintf::Directives::Count.new(
           :$args-have, :$args-used, :format(self)
         ).throw

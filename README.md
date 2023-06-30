@@ -23,7 +23,7 @@ text file.
 
 ## Building and Installing Rakudo
 
-[![Build Status](https://dev.azure.com/Rakudo/rakudo/_apis/build/status/rakudo.rakudo?branchName=master)](https://dev.azure.com/Rakudo/rakudo/_build/latest?definitionId=1&branchName=master)
+[![Build Status](https://dev.azure.com/Rakudo/rakudo/_apis/build/status/rakudo.rakudo?branchName=main)](https://dev.azure.com/Rakudo/rakudo/_build/latest?definitionId=1&branchName=main)
 
 See the `INSTALL.md` file for detailed prerequisites and build and
 installation instructions. Check `CAVEATS.md` for platform specific notes.

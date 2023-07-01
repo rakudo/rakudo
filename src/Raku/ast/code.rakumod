@@ -252,8 +252,9 @@ class RakuAST::Code
                     $dynamic-fallback.compile-time-value()($dyn-name, $without-star)
                 }
             );
-        }
 #?endif
+        }
+
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
 

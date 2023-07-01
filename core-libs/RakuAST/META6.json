@@ -1,0 +1,13 @@
+{
+    "name" : "RakuAST",
+    "api" : "6.c",
+    "version" : "2023.05-1",
+    "auth" : "Yet Another Society",
+    "description" : "RakuAST related modules",
+    "provides" : {
+        "RakuAST::Deparse::Highlight::CORE" : "lib/RakuAST/Deparse/Highlight/CORE.rakumod",
+        "RakuAST::Deparse::Highlight::HTML" : "lib/RakuAST/Deparse/Highlight/HTML.rakumod",
+        "RakuAST::Deparse::L10N::CORE" : "lib/RakuAST/Deparse/L10N/CORE.rakumod",
+        "RakuAST::Deparse::L10N::NL" : "lib/RakuAST/Deparse/L10N/NL.rakumod"
+    }
+}

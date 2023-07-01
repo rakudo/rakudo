@@ -1,0 +1,10 @@
+{
+    "name" : "newline",
+    "api" : "6.c",
+    "version" : "2023.05-1",
+    "auth" : "Yet Another Society",
+    "description" : "newline related modules",
+    "provides" : {
+        "newline" : "lib/newline.rakumod"
+    }
+}

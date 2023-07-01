@@ -1,0 +1,13 @@
+{
+    "name" : "Telemetry",
+    "api" : "6.c",
+    "version" : "2023.05-1",
+    "auth" : "Yet Another Society",
+    "description" : "Telemetry related modules",
+    "provides" : {
+        "Telemetry" : "lib/Telemetry.rakumod",
+        "snapper" : "lib/snapper.rakumod",
+        "safe-snapper" : "lib/safe-snapper.rakumod"
+
+    }
+}

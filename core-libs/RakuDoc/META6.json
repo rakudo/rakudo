@@ -1,0 +1,11 @@
+{
+    "name" : "RakuDoc",
+    "api" : "6.c",
+    "version" : "2023.05-1",
+    "auth" : "Yet Another Society",
+    "description" : "RakuDoc related modules",
+    "provides" : {
+        "Pod::To::Text" : "lib/Pod/To/Text.rakumod",
+        "RakuDoc::To::Text" : "lib/RakuDoc/To/Text.rakumod"
+    }
+}

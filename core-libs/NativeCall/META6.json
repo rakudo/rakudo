@@ -1,0 +1,14 @@
+{
+    "name" : "NativeCall",
+    "api" : "6.c",
+    "version" : "2023.05-1",
+    "auth" : "Yet Another Society",
+    "description" : "NativeCall",
+    "provides" : {
+        "NativeCall" : "lib/NativeCall.rakumod",
+        "NativeCall::Dispatcher" : "lib/NativeCall/Dispatcher.rakumod",
+        "NativeCall::Types" : "lib/NativeCall/Types.rakumod",
+        "NativeCall::Compiler::GNU" : "lib/NativeCall/Compiler/GNU.rakumod",
+        "NativeCall::Compiler::MSVC" : "lib/NativeCall/Compiler/MSVC.rakumod"
+    }
+}

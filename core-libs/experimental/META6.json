@@ -1,0 +1,10 @@
+{
+    "name" : "experimental",
+    "api" : "6.c",
+    "version" : "2023.05-1",
+    "auth" : "Yet Another Society",
+    "description" : "experimental related modules",
+    "provides" : {
+        "experimental" : "lib/experimental.rakumod"
+    }
+}

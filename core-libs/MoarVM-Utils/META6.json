@@ -1,0 +1,15 @@
+{
+    "name" : "MoarVM-Utils",
+    "api" : "6.c",
+    "version" : "2023.05-1",
+    "auth" : "Yet Another Society",
+    "description" : "Repository modules for doing a staging installation",
+    "provides" : {
+        "SL" : "lib/SL.rakumod",
+        "SIL" : "lib/SIL.rakumod",
+        "MoarVM::Profiler" : "lib/MoarVM/Profiler.rakumod",
+        "MoarVM::SL" : "lib/MoarVM/SL.rakumod",
+        "MoarVM::SIL" : "lib/MoarVM/SIL.rakumod",
+        "MoarVM::Spesh" : "lib/MoarVM/Spesh.rakumod"
+    }
+}

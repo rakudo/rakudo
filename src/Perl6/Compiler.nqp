@@ -220,10 +220,6 @@ class Perl6::Compiler is HLL::Compiler {
             %options<doc> := 'Text';
         }
 
-        if nqp::existskey(%options, 'nqp-lib') {
-            note('Option `--nqp-lib` is deprecated, has no effect and will be removed in 2021.06.');
-        }
-
         my $argiter := nqp::iterator(@args);
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
         nqp::bindhllsym('Raku', '$!ARGITER', $argiter);

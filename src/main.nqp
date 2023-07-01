@@ -39,7 +39,6 @@ my @clo := $comp.commandline_options();
 @clo.push('c');
 @clo.push('I=s');
 @clo.push('M=s');
-@clo.push('nqp-lib=s');
 @clo.push('rakudo-home=s');
 
 #?if js

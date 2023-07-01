@@ -183,7 +183,6 @@ my class Any { # declared in BOOTSTRAP
     method permutations(|c) is nodal { self.list.permutations(|c) }
     method join($separator = '') is nodal { self.list.join($separator) }
 
-    # XXX GLR Do we need tree post-GLR?
     proto method tree(|) is nodal {*}
     multi method tree(Any:U:) { self }
     multi method tree(Any:D:) {

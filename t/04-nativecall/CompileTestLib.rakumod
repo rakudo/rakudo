@@ -46,9 +46,9 @@ sub compile_cpp_test_lib($name) is export {
 
     my (@fails, $succeeded);
     for @cmds -> $cmd {
-        my $handle = shell("$cmd 2>&1", :out);
-        my $output = $handle.out.slurp-rest;
-        if $handle.out.close.status {
+        my $proc = shell("$cmd 2>&1", :out);
+        my $output = $proc.out.slurp-rest;
+        if $proc.out.close.status {
             @fails.push: "Running '$cmd':\n$output"
         }
         else {

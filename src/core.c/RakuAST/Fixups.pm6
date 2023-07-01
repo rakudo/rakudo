@@ -670,9 +670,10 @@ augment class RakuAST::Doc::Block {
     my int @row-dividers;
     @row-dividers[.ord] = 1 for ' ', '_', '-', '+', '|', '=';
 
-    my int32 $space  =  32;  # " "
-    my int32 $plus   =  43;  # "+"
-    my int32 $pipe   = 124;  # "|"
+    my int32 $space     =  32;  # " "
+    my int32 $plus      =  43;  # "+"
+    my int32 $backslash =  92;  # "\\"
+    my int32 $pipe      = 124;  # "|"
     my int   $gcprop = nqp::unipropcode("General_Category");
 
     method interpret-as-table(RakuAST::Doc::Block:D:
@@ -779,6 +780,7 @@ in line '$line'"
                           nqp::atpos_i(@row-dividers,$curr),
                           nqp::if(                         # a divider
                             $is-row
+                              && nqp::isne_i($prev,$backslash)
                               && (nqp::iseq_i($curr,$pipe)
                                    || nqp::iseq_i($curr,$plus)),
                             nqp::if(                       # visual divider

@@ -721,8 +721,7 @@ augment class RakuAST::Doc::Block {
         my sub mixed-up($line) {
             self.sorry-ad-hoc(
               "Table has a mixture of visible and invisible column-separator types
-in line '$line'",
-              "dummy argument that is somehow needed"
+in line '$line'"
             );
         }
 

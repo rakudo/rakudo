@@ -344,7 +344,7 @@ augment class RakuAST::Doc::Markup {
                       for $refs.split(';');
                 }
                 my $redone :=
-                  RakuAST::Doc::Paragraph.from-string($refs, :$allow);
+                  RakuAST::Doc::Paragraph.from-string($str, :$allow);
                 self.set-atoms(
                   nqp::istype($redone,Str) ?? $redone !! $redone.atoms
                 );

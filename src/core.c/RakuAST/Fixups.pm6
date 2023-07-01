@@ -1147,6 +1147,7 @@ in line '$line'"
                         # back to original level, or even less
                         else {
                             add-codes if @codes;
+                            set-current-ws($ws);
                             @lines.push: .trim-leading;
                         }
                     }

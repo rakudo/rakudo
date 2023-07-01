@@ -48,12 +48,12 @@ sub compile_cpp_test_lib($name) is export {
     for @cmds -> $cmd {
         my $proc = shell("$cmd 2>&1", :out);
         my $output = $proc.out.slurp(:close);
-        if $proc.status {
-            @fails.push: "Running '$cmd':\n$output"
-        }
-        else {
+        if so $proc {
             $succeeded = 1;
             last
+        }
+        else {
+            @fails.push: "Running '$cmd':\n$output"
         }
     }
     fail @fails.join('=' x 80 ~ "\n") unless $succeeded;

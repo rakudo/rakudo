@@ -299,17 +299,22 @@ augment class RakuAST::Doc {
 augment class RakuAST::Doc::Markup {
 
     # convert the contents of E<> to a codepoint
-    method convert-entity(RakuAST::Doc::Markup: Str:D $entity) {
+    method !convert-entity(RakuAST::Doc::Markup: Str:D $entity) {
         my $codepoint := val $entity;
 
         my $string;
         if nqp::not_i(nqp::istype($codepoint,Allomorph)) {  # not numeric
-            $string := RakuAST::HTML::Entities.parse($entity);
-            unless $string {
-                $string := $entity.uniparse;
+            if $entity.is-whitespace {
+                $string := Nil;
+            }
+            else {
+                $string := RakuAST::HTML::Entities.parse($entity);
                 unless $string {
-                    self.worry-ad-hoc:
-                      qq/"$entity" is not a valid HTML5 entity./;
+                    $string := $entity.uniparse;
+                    unless $string {
+                        self.worry-ad-hoc:
+                          qq/"$entity" is not a valid HTML5 entity./;
+                    }
                 }
             }
         }
@@ -363,9 +368,14 @@ augment class RakuAST::Doc::Markup {
                 my @atoms = self.atoms;
                 if nqp::istype(@atoms.tail,Str) {
                     self.set-atoms;  # reset so we can add again
-                    for @atoms.pop.split(';') {
-                        self.add-meta($_);
-                        self.add-atom(self.convert-entity($_));
+                    for @atoms.pop.split(';') -> $entity {
+                        with self!convert-entity($entity) -> $converted {
+                            self.add-meta($entity);
+                            self.add-atom($converted);
+                        }
+                        else {
+                            self.add-atom($entity);
+                        }
                     }
                 }
             }

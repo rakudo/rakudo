@@ -327,12 +327,20 @@ augment class RakuAST::Doc::Markup {
     # extract any meta information from the last atom
     method !extract-meta() {
         my @atoms       = self.atoms;
-        my ($str,$meta) = @atoms.tail.split('|', 2);
-        if $meta {
-            $str ?? (@atoms[*-1] = $str) !! @atoms.pop;
-            self.set-atoms(@atoms.List);
-            $meta
+        my $last       := @atoms.tail;
+        if nqp::istype($last,Str) {
+            my ($str,$meta) = @atoms.tail.split('|', 2);
+            if $meta {
+                $str ?? ($last = $str) !! @atoms.pop;
+                self.set-atoms(@atoms.List);
+                $meta
+            }
+            else {
+                Nil
+            }
         }
+
+        # missing | while there *are* atoms
         else {
             Nil
         }

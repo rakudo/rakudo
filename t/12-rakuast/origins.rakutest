@@ -1,11 +1,11 @@
 use v6.e.PREVIEW;
+use lib <t/packages core-libs/Test>;
 use nqp;
 use NQPP6QRegex:from<NQP>;
 use NQPHLL:from<NQP>;
 use Perl6::Compiler:from<NQP>;
 use Raku::Grammar:from<NQP>;
 use Raku::Actions:from<NQP>;
-use lib $?FILE.IO.parent(2).add('packages');
 use Test;
 use Test::Helpers;
 

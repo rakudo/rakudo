@@ -1,4 +1,4 @@
-use lib <t/packages/>;
+use lib <t/packages/ core-libs/Test>;
 use Test;
 use Test::Helpers;
 $*VM.name eq 'moar' or plan :skip-all<These tests are only for MoarVM backend>;

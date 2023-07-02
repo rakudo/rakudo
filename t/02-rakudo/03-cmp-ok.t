@@ -1,5 +1,5 @@
 use v6;
-use lib <lib  t/packages t/02-rakudo/test-packages>;
+use lib <t/packages t/02-rakudo/test-packages core-libs/Test>;
 use Test;
 use Test::Helpers;
 use CustomOps; # test cmp-ok handling custom infixes that we imported

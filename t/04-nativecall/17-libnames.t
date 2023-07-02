@@ -1,6 +1,6 @@
 use v6;
 
-use lib <lib>;
+use lib <core-libs/Test core-libs/NativeCall>;
 use NativeCall :TEST;
 use Test;
 

@@ -1,6 +1,6 @@
 use v6;
 
-use lib <lib t/04-nativecall>;
+use lib <t/04-nativecall core-libs/Test core-libs/NativeCall>;
 use CompileTestLib;
 use NativeCall;
 use Test;

@@ -1,6 +1,6 @@
 use v6;
 
-use lib <lib>;
+use lib <core-libs/Test>;
 use Test;
 
 my $approx1 = is_approx 1, 1, 'is_approx with description';

@@ -1,4 +1,5 @@
 use v6.e.PREVIEW;
+use lib <core-libs/experimental core-libs/Test>;
 use Test;
 
 plan 34; # Do not change this file to done-testing because of END block tests

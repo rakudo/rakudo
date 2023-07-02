@@ -1,4 +1,4 @@
-use lib <t/packages>;
+use lib <t/packages core-libs/Test>;
 use Test::Helpers::QAST;
 use Test;
 plan 4;

@@ -1,6 +1,6 @@
 use v6;
 
-use lib <lib>;
+use lib <core-libs/Test core-libs/NativeCall>;
 use nqp;
 use NQPHLL:from<NQP>;
 use NativeCall;

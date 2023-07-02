@@ -1,5 +1,5 @@
 use v6;
-use lib <t/packages/>;
+use lib <t/packages/ core-libs/Test core-libs/Telemetry>;
 use Test;
 use Test::Helpers;
 
@@ -92,6 +92,7 @@ is @report[1], 'Number of Snapshots: 0', 'line 2 of report';
 { # https://github.com/rakudo/rakudo/issues/1714
     (temp %*ENV)<RAKUDO_REPORT_COLUMNS> = 'blahblah';
     is-run ｢
+      use lib <core-libs/Telemetry>;
       use snapper;
       for ^1_000 {
           (^100).race(batch=>1).map({ $_ }).List

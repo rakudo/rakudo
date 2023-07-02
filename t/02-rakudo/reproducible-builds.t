@@ -2,12 +2,14 @@ my constant $lib = $*TMPDIR.child("rakudo-lib" ~ (^2**128).pick.base(36));
 BEGIN {
     $lib.child('NativeCall').mkdir;
     $lib.child('NativeCall').child('Compiler').mkdir;
-    'lib'.IO.child('NativeCall.rakumod').copy: $lib.child('NativeCall.rakumod');
-    'lib'.IO.child('NativeCall').child('Types.rakumod').copy: $lib.child('NativeCall').child('Types.rakumod');
-    'lib'.IO.child('NativeCall').child('Compiler').child('GNU.rakumod').copy: $lib.child('NativeCall').child('Compiler').child('GNU.rakumod');
-    'lib'.IO.child('NativeCall').child('Compiler').child('MSVC.rakumod').copy: $lib.child('NativeCall').child('Compiler').child('MSVC.rakumod');
+    'core-libs/NativeCall'.IO.child('lib/NativeCall.rakumod').copy: $lib.child('NativeCall.rakumod');
+    'core-libs/NativeCall'.IO.child('lib/NativeCall').child('Types.rakumod').copy: $lib.child('NativeCall').child('Types.rakumod');
+    'core-libs/NativeCall'.IO.child('lib/NativeCall').child('Dispatcher.rakumod').copy: $lib.child('NativeCall').child('Dispatcher.rakumod');
+    'core-libs/NativeCall'.IO.child('lib/NativeCall').child('Compiler').child('GNU.rakumod').copy: $lib.child('NativeCall').child('Compiler').child('GNU.rakumod');
+    'core-libs/NativeCall'.IO.child('lib/NativeCall').child('Compiler').child('MSVC.rakumod').copy: $lib.child('NativeCall').child('Compiler').child('MSVC.rakumod');
 }
 use lib $lib;
+use lib <core-libs/Test>;
 
 use Test;
 use NativeCall; # precompile dependencies
@@ -23,7 +25,7 @@ my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.i
 my constant $id = CompUnit::PrecompilationId.new-without-check('6B7A1AECF02807F30DDAD99C02C34440CA036AF6');
 for ^2 -> $run {
     $precompilation-repository.precompile(
-        'lib/NativeCall.rakumod'.IO,
+        'core-libs/NativeCall/lib/NativeCall.rakumod'.IO,
         $id,
         :force,
     );

@@ -1,4 +1,5 @@
 use v6;
+use lib <core-libs/Test>;
 use Test;
 
 BEGIN unless $*VM ~~ "jvm" { plan 0; skip-rest "jvm only test"; done-testing; exit 0; };

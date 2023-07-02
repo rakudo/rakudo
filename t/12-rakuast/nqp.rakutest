@@ -1,4 +1,5 @@
 use v6.e.PREVIEW;
+use lib <core-libs/experimental core-libs/Test>;
 use Test;
 
 plan 4;

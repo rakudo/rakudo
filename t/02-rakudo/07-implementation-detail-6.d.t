@@ -1,4 +1,5 @@
 use v6.d;
+use lib <core-libs/Test>;
 use Test;
 
 plan 4;

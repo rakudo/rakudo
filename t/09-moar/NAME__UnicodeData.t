@@ -1,5 +1,5 @@
+use lib <t/09-moar core-libs/Test>;
 use Test;
-use lib 't/09-moar';
 use UnipropCheck;
 # Please edit UnipropCheck.rakumod to change todo settings!
 sub MAIN (Str $folder?, Bool:D :$debug = False) {

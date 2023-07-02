@@ -1,5 +1,5 @@
 use v6;
-use lib 'lib';
+use lib <core-libs/Test>;
 use Test;
 
 plan 11;

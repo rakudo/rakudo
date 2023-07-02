@@ -1,10 +1,11 @@
+use lib <core-libs/experimental core-libs/Test>;
 # Without the 'use experimental' there will be mismatch of &trait_mod:<will> proto and candidates
 use experimental :will-complain;
 use Test;
 
-BEGIN if $*VM.name eq 'jvm' {
-    plan :skip-all<some subs are not defined on JVM backend>;
-};
+#BEGIN if $*VM.name eq 'jvm' {
+#    plan :skip-all<some subs are not defined on JVM backend>;
+#};
 
 plan +my @protos := all-the-protos;
 

@@ -1,4 +1,4 @@
-use lib <t/packages/02-rakudo/lib>;
+use lib <t/packages/02-rakudo/lib core-libs/Test core-libs/NativeCall>;
 use Test;
 
 BEGIN if $*VM.name eq 'jvm' {

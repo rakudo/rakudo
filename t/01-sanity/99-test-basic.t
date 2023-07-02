@@ -1,6 +1,6 @@
 use v6;
 
-use lib <lib>;
+use lib <core-libs/Test>;
 use Test;
 # plan *;     # This does not test having a real plan.
 

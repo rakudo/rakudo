@@ -1,3 +1,4 @@
+use lib <core-libs/Test>;
 use Test;
 
 BEGIN unless $*VM ~~ "js" { plan 0; skip-rest "js only test"; done-testing; exit 0; };

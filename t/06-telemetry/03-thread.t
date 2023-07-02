@@ -1,4 +1,5 @@
 use v6;
+use lib <core-libs/Test core-libs/Telemetry>;
 
 # extensive tests for Telemetry::Instrument::Thread
 

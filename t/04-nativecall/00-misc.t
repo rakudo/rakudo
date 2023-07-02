@@ -1,4 +1,4 @@
-use lib <t/packages/  t/04-nativecall  lib>;
+use lib <t/packages/  t/04-nativecall  core-libs/Test core-libs/NativeCall>;
 use NativeCall;
 use Test;
 use Test::Helpers;
@@ -42,7 +42,7 @@ unless $*DISTRO.is-win { # https://github.com/rakudo/rakudo/issues/3244
         say NCstrlen '12345';
     ｣;
     is-run ｢say NCstrlen '1234567'; say NCstrlen '123456789'｣,
-        :compiler-args[«-I "$dir.absolute()" -MFoo»], :out("3\n5\n7\n9\n"),
+        :compiler-args[«-I "$dir.absolute()" -I core-libs/NativeCall -MFoo»], :out("3\n5\n7\n9\n"),
     'no segfaults when using NC routine after using it during precomp';
 }
 

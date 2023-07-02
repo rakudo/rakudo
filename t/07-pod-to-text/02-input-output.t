@@ -1,4 +1,5 @@
 use v6.c;
+use lib <core-libs/Test core-libs/RakuDoc>;
 use Test;
 
 use Pod::To::Text;

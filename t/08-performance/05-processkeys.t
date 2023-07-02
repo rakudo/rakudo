@@ -1,3 +1,4 @@
+use lib <core-libs/Test>;
 use Test;
 plan 2;
 

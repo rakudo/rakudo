@@ -1,4 +1,5 @@
 use v6;
+use lib <core-libs/Test>;
 use Test;
 
 my @true-tests  = [^10,  5], [^Inf,  42], [-Inf .. Inf, Inf], [-Inf..Inf, -Inf];

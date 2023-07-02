@@ -1,4 +1,4 @@
-use lib <t/packages/>;
+use lib <t/packages/ core-libs/Test>;
 use Test;
 use Test::Helpers;
 
@@ -7,7 +7,7 @@ plan 5;
 # https://github.com/rakudo/rakudo/issues/1534
 {
     (temp %*ENV)<MVM_SPESH_BLOCKING  MVM_SPESH_NODELAY> = 1, 1;
-    is-run ｢use Test; use Test; print "pass"｣, :out<pass>, :compiler-args[<-I lib>],
+    is-run ｢use Test; use Test; print "pass"｣, :out<pass>, :compiler-args[<-I core-libs/Test>],
         'no SPESH crashes with duplicate `use Test`';
 }
 

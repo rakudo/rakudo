@@ -1,4 +1,4 @@
-use lib <t/packages/>;
+use lib <t/packages/ core-libs/Test>;
 use Test;
 use Test::Helpers;
 use nqp;

@@ -1,3 +1,4 @@
+use lib <core-libs/Test>;
 use Test;
 
 my $skip = %*ENV<RAKUDO_RUN_TIMING_TESTS> ?? 0 !! 3;

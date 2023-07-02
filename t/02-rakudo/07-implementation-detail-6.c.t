@@ -1,4 +1,5 @@
 use v6.c;
+use lib <core-libs/Test>;
 use Test;
 
 plan 4;

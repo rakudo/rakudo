@@ -324,12 +324,21 @@ augment class RakuAST::Doc::Markup {
         $string
     }
 
+    # split string on the last pipe character seen
+    method !last-pipe-splitter() {
+        my str $haystack = self.Str.substr(2,*-1);
+        my int $pipe     = nqp::rindex($haystack,'|');
+        $pipe == -1
+          ?? ($haystack, '')
+          !! (nqp::substr($haystack,0,$pipe), nqp::substr($haystack,$pipe + 1))
+    }
+
     # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D: $allow) {
         my str $letter = self.letter;
         if $letter eq 'E' | 'L' | 'X' {
             if $letter eq 'L' {
-                my ($str,$uri) = self.Str.substr(2,*-1).split('|',2);
+                my ($str,$uri) = self!last-pipe-splitter;
                 self.set-meta($uri) if $uri;
                 my $redone :=
                   RakuAST::Doc::Paragraph.from-string($str, :$allow);
@@ -338,7 +347,7 @@ augment class RakuAST::Doc::Markup {
                 );
             }
             elsif $letter eq 'X' {
-                my ($str,$refs) = self.Str.substr(2,*-1).split('|',2);
+                my ($str,$refs) = self!last-pipe-splitter;
                 if $refs {
                     self.add-meta(.split(',').List)
                       for $refs.split(';');

@@ -346,7 +346,7 @@ augment class RakuAST::Doc::Markup {
                 self.set-meta($_) with self!extract-meta;
             }
             elsif $letter eq 'X' {
-                if self.extract-meta -> $meta {
+                if self!extract-meta -> $meta {
                     self.add-meta(.split(',').List)
                       for $meta.split(';');
                 }

@@ -436,6 +436,7 @@ augment class RakuAST::Doc::Paragraph {
         my $paragraph := RakuAST::Doc::Paragraph.new;
         my $markups   := nqp::list;  # stack of Markup objects
         my $current;                 # current Markup object
+        my str $closer = "\0";       # the currently expected closer
 
         nqp::strtocodes($string,nqp::const::NORMALIZE_NFC,@codes);
         my int $i     = -1;                  # index of current char
@@ -490,7 +491,7 @@ augment class RakuAST::Doc::Paragraph {
               :opener(nqp::x(
                 nqp::if(nqp::iseq_i($this,$open),'<','«'),$openers
               )),
-              :closer(nqp::x(
+              :closer($closer = nqp::x(
                 nqp::if(nqp::iseq_i($this,$open),'>','»'),$openers
               ))
             ))
@@ -531,20 +532,24 @@ augment class RakuAST::Doc::Paragraph {
 
               nqp::if(                                     # not < or «
                 $current && (
-                  (nqp::iseq_i($this,$close)
-                    && nqp::eqat($string,$current.closer,$i)
-                  ) || nqp::iseq_i($this,$cclose)
+                  (nqp::iseq_i($this,$close) || nqp::iseq_i($this,$cclose))
+                    && nqp::eqat($string,$closer,$i)
                 ),
                 nqp::if(                                   # > or »
                   nqp::elems($markups),
                   nqp::stmts(                              # markups left
-                    ($i = $i + nqp::chars($current.closer) - 1),
-                    add-graphemes($current := nqp::pop($markups)),
+                    ($i = $i + nqp::chars($closer) - 1),
+                    add-graphemes(nqp::pop($markups)),
                     nqp::if(
                       nqp::istype($current,RakuAST::Doc::Markup),
                       $current.check-meta($allow)
                     ),
-                    collector.add-atom($current)
+                    collector.add-atom($current),
+                    ($closer = nqp::if(
+                      nqp::istype(($current := collector),RakuAST::Doc::Markup),
+                      $current.closer,
+                      "\0"
+                    ))
                   ),
                   nqp::push_i(@graphemes,$this)            # bare > or »
                 ),
@@ -557,9 +562,9 @@ augment class RakuAST::Doc::Paragraph {
 
         # we have open markups left
         if nqp::elems($markups) -> int $elems {
-            self.worry-ad-hoc: 'Pod formatting code '
-              ~ nqp::atpos($markups,nqp::sub_i($elems,1)).letter
-              ~ " missing endtag '>'.";
+            my $markup := nqp::atpos($markups,nqp::sub_i($elems,1));
+            self.worry-ad-hoc:
+              "RakuDoc markup code $markup.letter() missing endtag '$markup.closer()'.";
 
             nqp::while(
               nqp::elems($markups),

@@ -121,7 +121,9 @@ class RakuAST::LegacyPodify {
     method !contentify-atoms($ast) {
         my str @parts;
         my @atoms = $ast.atoms.map({
-            nqp::istype($_,Str) ?? sanitize($_) !! .podify  # may Slip
+            nqp::istype($_,Str)
+              ?? sanitize(.subst("\n", ' ', :g))
+              !! .podify  # may Slip
         }).map({
 
             # collect any strings

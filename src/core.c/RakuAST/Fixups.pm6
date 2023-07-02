@@ -324,13 +324,18 @@ augment class RakuAST::Doc::Markup {
         $string
     }
 
-    # split string on the last pipe character seen
-    method !last-pipe-splitter() {
-        my str $haystack = self.Str.substr(2,*-1);
-        my int $pipe     = nqp::rindex($haystack,'|');
-        $pipe == -1
-          ?? ($haystack, '')
-          !! (nqp::substr($haystack,0,$pipe), nqp::substr($haystack,$pipe + 1))
+    # extract any meta information from the last atom
+    method !extract-meta() {
+        my @atoms       = self.atoms;
+        my ($str,$meta) = @atoms.tail.split('|', 2);
+        if $meta {
+            $str ?? (@atoms[*-1] = $str) !! @atoms.pop;
+            self.set-atoms(@atoms.List);
+            $meta
+        }
+        else {
+            Nil
+        }
     }
 
     # set up meta info from the last atom as appropriate
@@ -338,25 +343,13 @@ augment class RakuAST::Doc::Markup {
         my str $letter = self.letter;
         if $letter eq 'E' | 'L' | 'X' {
             if $letter eq 'L' {
-                my ($str,$uri) = self!last-pipe-splitter;
-                self.set-meta($uri) if $uri;
-                my $redone :=
-                  RakuAST::Doc::Paragraph.from-string($str, :$allow);
-                self.set-atoms(
-                  nqp::istype($redone,Str) ?? $redone !! $redone.atoms
-                );
+                self.set-meta($_) with self!extract-meta;
             }
             elsif $letter eq 'X' {
-                my ($str,$refs) = self!last-pipe-splitter;
-                if $refs {
+                if self.extract-meta -> $meta {
                     self.add-meta(.split(',').List)
-                      for $refs.split(';');
+                      for $meta.split(';');
                 }
-                my $redone :=
-                  RakuAST::Doc::Paragraph.from-string($str, :$allow);
-                self.set-atoms(
-                  nqp::istype($redone,Str) ?? $redone !! $redone.atoms
-                );
             }
             else {  # $letter eq 'E'
                 my @atoms = self.atoms;

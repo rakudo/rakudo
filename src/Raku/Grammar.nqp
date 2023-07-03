@@ -3665,7 +3665,7 @@ if $*COMPILING_CORE_SETTING {
           $<type> [ <.doc-newline> | $ ]
 
           # alas, a mismatch
-          || $<instead>=<.doc-identifier>? <.typed-panic(
+          || $<instead>=<.doc-identifier>? <.typed_panic(
                'X::Syntax::Pod::BeginWithoutEnd.new',
                type    => ~$<type>,
                spaces  => ~$<spaces>,

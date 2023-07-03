@@ -450,14 +450,20 @@ augment class RakuAST::Doc::Paragraph {
 
         my int32 $this;       # the current grapheme
         my int32 $prev;       # the previous grapheme
+        my int32 $stopper;    # the current (first) stopper grapheme
         my int32 @codes;      # the graphemes of the given string
         my int32 @graphemes;  # graphemes collected so far
 
         my $paragraph := RakuAST::Doc::Paragraph.new;
         my $markups   := nqp::list;  # stack of Markup objects
         my $current;                 # current Markup object
-        my str $closer = "\0";       # the currently expected closer
 
+        # Sadly, NFC normalization will not normalize synthetics
+        # to their internal value, but will instead drop them in
+        # here decomposed.  This means that the index $i can NOT
+        # be used to do an eqat in the original string, as the
+        # the index would get out of sync when a synthetic is
+        # encountered.
         nqp::strtocodes($string,nqp::const::NORMALIZE_NFC,@codes);
         my int $i     = -1;                  # index of current char
         my int $elems = nqp::elems(@codes);  # number of codes to parse
@@ -511,10 +517,35 @@ augment class RakuAST::Doc::Paragraph {
               :opener(nqp::x(
                 nqp::if(nqp::iseq_i($this,$open),'<','«'),$openers
               )),
-              :closer($closer = nqp::x(
+              :closer(nqp::x(
                 nqp::if(nqp::iseq_i($this,$open),'>','»'),$openers
               ))
-            ))
+            ));
+            $stopper = nqp::iseq_i($this,$open) ?? $close !! $cclose;
+        }
+
+        # Whether we're at a real stopper (after the initial stopper
+        # matched, but there are potentially multiple stoppers needed
+        # e.g. in case of >> as a stopper.
+        sub is-real-stopper() {
+            nqp::if(
+              nqp::istype($current,RakuAST::Doc::Markup)
+                && (my int $todo = $current.closer.chars - 1),
+              nqp::stmts(
+                (my int $j = $i),
+                nqp::while(
+                  nqp::iseq_i(nqp::atpos_i(@codes,++$j),$stopper)
+                    && --$todo,
+                  nqp::null
+                ),
+                nqp::if(
+                  $todo,
+                  0,             # not all stoppers found
+                  ($i = $j - 1)  # advance index, also: True
+                )
+              ),
+              1  # single char stopper, or no Markup
+            )
         }
 
         # Do all of the markup parsing in one pass.  The idea behind this
@@ -551,25 +582,20 @@ augment class RakuAST::Doc::Paragraph {
               ),
 
               nqp::if(                                     # not < or «
-                $current && (
-                  (nqp::iseq_i($this,$close) || nqp::iseq_i($this,$cclose))
-                    && nqp::eqat($string,$closer,$i)
-                ),
+                nqp::iseq_i($this,$stopper) && is-real-stopper,
                 nqp::if(                                   # > or »
                   nqp::elems($markups),
                   nqp::stmts(                              # markups left
-                    ($i = $i + nqp::chars($closer) - 1),
                     add-graphemes(nqp::pop($markups)),
                     nqp::if(
                       nqp::istype($current,RakuAST::Doc::Markup),
                       $current.check-meta($allow)
                     ),
                     collector.add-atom($current),
-                    ($closer = nqp::if(
-                      nqp::istype(($current := collector),RakuAST::Doc::Markup),
-                      $current.closer,
-                      "\0"
-                    ))
+                    ($stopper =
+                      nqp::istype(($current := collector),RakuAST::Doc::Markup)
+                        && nqp::ord($current.closer)
+                    )
                   ),
                   nqp::push_i(@graphemes,$this)            # bare > or »
                 ),

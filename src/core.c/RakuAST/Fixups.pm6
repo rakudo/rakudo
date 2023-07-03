@@ -540,8 +540,8 @@ augment class RakuAST::Doc::Paragraph {
                 ),
                 nqp::if(
                   $todo,
-                  0,             # not all stoppers found
-                  ($i = $j - 1)  # advance index, also: True
+                  0,         # not all stoppers found
+                  ($i = $j)  # advance index, also: True
                 )
               ),
               1  # single char stopper, or no Markup

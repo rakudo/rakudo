@@ -3601,14 +3601,10 @@ if $*COMPILING_CORE_SETTING {
 
     proto token doc-block {*}
 
-    # handle =finish and friends
+    # handle =finish
     token doc-block:sym<finish> {
         ^^ \h*
-        [
-            | '=begin' \h+ 'finish' <doc-newline>
-            | '=for'   \h+ 'finish' <doc-newline>
-            | '=finish' <doc-newline>
-        ]
+        '=finish' <doc-newline>
         $<finish> = .*
     }
 

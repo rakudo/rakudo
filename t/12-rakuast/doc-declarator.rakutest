@@ -823,18 +823,47 @@ subtest 'a simple lexical var' => {
       sigil       => '$',
       desigilname => RakuAST::Name.from-identifier('foo'),
     ).declarator-docs(
-      leading  => ("leading comment\n",),
-      trailing => ("trailing comment\n",)
+      leading  => ("leading B<comment>\n",),
+      trailing => ("trailing C<comment>\n",)
     );
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
-#| leading comment
-my $foo #= trailing comment
+#| leading B<comment>
+my $foo #= trailing C<comment>
 , $=pod
 CODE
 
     # since the $=pod semantics are unsure, we're not going
     # to test that here and now
+
+    is-deeply
+      $ast.first(RakuAST::Doc::DeclaratorTarget).WHY.paragraphs,
+      (RakuAST::Doc::Paragraph.new(
+        "leading ",
+        RakuAST::Doc::Markup.new(
+          letter => "B",
+          opener => "<",
+          closer => ">",
+          atoms  => (
+            "comment",
+          )
+        ),
+        "\n"
+      ),
+      RakuAST::Doc::Paragraph.new(
+        "trailing ",
+        RakuAST::Doc::Markup.new(
+          letter => "C",
+          opener => "<",
+          closer => ">",
+          atoms  => (
+            "comment",
+          )
+        ),
+        "\n"
+      )
+    ),
+    'did we find the paragraphs ok';
 }
 
 # vim: expandtab shiftwidth=4

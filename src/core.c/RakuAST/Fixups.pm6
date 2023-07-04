@@ -1260,4 +1260,21 @@ augment class RakuAST::Type::Enum {
     }
 }
 
+augment class RakuAST::Doc::Declarator {
+
+    # Return a 2-element list with all of the leading doc joined and
+    # parsed as the first elements, and the trailing doc joined and
+    # parsed as the second element
+    method paragraphs() {
+        $!paragraphs
+          // nqp::bindattr(self,RakuAST::Doc::Declarator,'$!paragraphs',
+               (self.leading, self.trailing).map({
+                 $_
+                   ?? RakuAST::Doc::Paragraph.from-string(.join("\n"))
+                   !! ''
+               }).List
+             )
+    }
+}
+
 # vim: expandtab shiftwidth=4

@@ -7,6 +7,7 @@ class RakuAST::Doc::Declarator
     has List                           $.leading;
     has List                           $.trailing;
     has int                            $!pod-index;
+    has List                           $!paragraphs;
 
     method new(:$WHEREFORE, :$leading, :$trailing) {
         my $obj := nqp::create(self);

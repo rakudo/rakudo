@@ -650,6 +650,8 @@ augment class RakuAST::Doc::Block {
 
     # create block with type/paragraph introspection
     method from-paragraphs(:$spaces = '', :$type, :$config, :@paragraphs, *%_) {
+        my constant %implicit =
+          :1defn, :1item, :1nested, :1pod, :1rakudoc, :1section;
 
         # set up basic block
         my $block := self.new(:$type, :$config, |%_);
@@ -689,21 +691,16 @@ augment class RakuAST::Doc::Block {
             $block.interpret-as-table($spaces, @paragraphs);
         }
 
-        # potentially need introspection
-        elsif $type eq 'pod' | 'rakudoc' {
-            $block.interpret-implicit-code-blocks($spaces, @paragraphs);
-        }
-
         elsif $type eq 'defn' {
             my @parts = @paragraphs;
             # first line is the term, separate that
             @parts.splice(0,1,@parts.head.split("\n",2));
 
-            $block.add-paragraph(
-              nqp::istype($_,Str)
-                ?? RakuAST::Doc::Paragraph.from-string($_)
-                !! $_
-            ) for @parts;
+            $block.interpret-implicit-code-blocks($spaces, @parts);
+        }
+
+        elsif %implicit.AT-KEY($type) {
+            $block.interpret-implicit-code-blocks($spaces, @paragraphs);
         }
 
         # these just need the paragraphs

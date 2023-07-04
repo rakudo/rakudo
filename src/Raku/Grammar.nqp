@@ -3621,7 +3621,7 @@ if $*COMPILING_CORE_SETTING {
         <doc-configuration($<spaces>)>* <doc-newline>+
 
         # fetch all non-empty lines, *NOT* looking at =pod markers
-        $<lines>=[^^ \h* \N+ \n?]*?
+        $<lines>=[^^ \N* \n?]*?
 
         # until the matching end block
         ^^ $<spaces> '=end' \h+ $<type> [<doc-newline> | $]

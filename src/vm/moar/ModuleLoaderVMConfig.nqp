@@ -1,7 +1,6 @@
 role Perl6::ModuleLoaderVMConfig {
     method vm_search_paths() {
         my @search_paths;
-        @search_paths.push(nqp::gethllsym('default', 'SysConfig').rakudo-home() ~ '/lib');
         @search_paths
     }
 

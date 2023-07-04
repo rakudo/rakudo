@@ -95,15 +95,21 @@ class RakuAST::LegacyPodify {
 
     # flatten the markup into a string, needed for V<>
     my sub flatten(RakuAST::Doc::Markup:D $markup, :$render --> Str:D) {
-        my str @parts;
-        for $markup.atoms {
-            @parts.push: nqp::isstr($_) ?? $_ !! flatten($_, :render);
+        my str @parts = $markup.atoms.map: {
+            nqp::istype($_,RakuAST::Doc::Markup) ?? flatten($_, :render) !! $_
         }
 
         # V<> inside V<> *are* rendered
         if $render {
             @parts.unshift: '<';
             @parts.unshift: $markup.letter;
+
+            if $markup.meta -> @meta {
+                $markup.letter eq 'E'
+                  ?? @parts.pop # stringification so far is incorrect
+                  !! @parts.push('|');
+                @parts.push: @meta.join($markup.separator)
+            }
             @parts.push: '>';
         }
 

@@ -60,9 +60,20 @@ my class Version {
         self
     }
 
-    multi method new(Version:) { $v }
-    multi method new(Version: Whatever) { $vw }
-    multi method new(Version: @parts, Str:D $string, Int() $plus = 0, Int() $whatever = 0) {
+    multi method new(Version:)               { $v   }
+    multi method new(Version: '6')           { $v6  }
+    multi method new(Version: '6.c')         { $v6c }
+    multi method new(Version: '6.d')         { $v6d }
+    multi method new(Version: '6.e.PREVIEW') { $v6e }  # update on language
+    multi method new(Version: '6.*')         { $v6e }  # level bump
+    multi method new(Version: Whatever)      { $vw  }
+
+    multi method new(Version:
+            @parts,
+      Str:D $string,
+      Int() $plus     = 0,
+      Int() $whatever = 0
+    ) {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$whatever,$string)
     }
 
@@ -70,86 +81,84 @@ my class Version {
         # we comb the version string for /:r '*' || \d+ || <.alpha>+/, which
         # will become our parts. The `*` becomes a Whatever, numbers Numeric,
         # and the rest of the parts remain as strings
-        nqp::stmts(
-          (my int $pos),
-          (my int $chars = nqp::chars($s)),
-          (my int $mark),
-          (my int $whatever = 0),
-          (my $strings := nqp::list_s),
-          (my $parts   := nqp::list),
-          nqp::while(
-            nqp::islt_i($pos, $chars),
+        my int $pos;
+        my int $chars = nqp::chars($s);
+        my int $mark;
+        my int $whatever;
+        my $strings := nqp::list_s;
+        my $parts   := nqp::list;
+
+        nqp::while(
+          nqp::islt_i($pos, $chars),
+          nqp::if(
+            nqp::eqat($s, '*', $pos),
+            nqp::stmts( # Whatever portion
+              nqp::push_s($strings, '*'),
+              nqp::push($parts,      * ),
+              ($whatever = 1),
+              ($pos = nqp::add_i($pos, 1))
+            ),
             nqp::if(
-              nqp::eqat($s, '*', $pos),
-              nqp::stmts( # Whatever portion
-                nqp::push_s($strings, '*'),
-                nqp::push($parts,      * ),
-                ($whatever = 1),
-                ($pos = nqp::add_i($pos, 1))),
-              nqp::if(
-                nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
-                nqp::stmts( # we're at the start of a numeric portion
+              nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
+              nqp::stmts( # we're at the start of a numeric portion
+                ($mark = $pos),
+                ($pos = nqp::add_i($pos, 1)),
+                nqp::while( # seek the end of numeric portion
+                  nqp::islt_i($pos, $chars)
+                  && nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
+                  ($pos = nqp::add_i($pos, 1))),
+                nqp::push($parts, # grab numeric portion
+                  nqp::atpos(
+                    nqp::radix(
+                      10,
+                      nqp::push_s($strings, nqp::substr($s, $mark,
+                        nqp::sub_i($pos, $mark))),
+                      0, 0),
+                    0
+                  )
+                )
+              ),
+              nqp::if( # same idea as for numerics, except for <.alpha> class
+                nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
+                  || nqp::iseq_i(nqp::ord($s, $pos), 95),
+                nqp::stmts( # we're at the start of a alpha portion
                   ($mark = $pos),
                   ($pos = nqp::add_i($pos, 1)),
-                  nqp::while( # seek the end of numeric portion
+                  nqp::while( # seek the end of alpha portion
                     nqp::islt_i($pos, $chars)
-                    && nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
+                    && (nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
+                      || nqp::iseq_i(nqp::ord($s, $pos), 95)),
                     ($pos = nqp::add_i($pos, 1))),
-                  nqp::push($parts, # grab numeric portion
-                    nqp::atpos(
-                      nqp::radix(
-                        10,
-                        nqp::push_s($strings, nqp::substr($s, $mark,
-                          nqp::sub_i($pos, $mark))),
-                        0, 0),
-                      0))),
-                nqp::if( # same idea as for numerics, except for <.alpha> class
-                  nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
-                  || nqp::iseq_i(nqp::ord($s, $pos), 95),
-                  nqp::stmts( # we're at the start of a alpha portion
-                    ($mark = $pos),
-                    ($pos = nqp::add_i($pos, 1)),
-                    nqp::while( # seek the end of alpha portion
-                      nqp::islt_i($pos, $chars)
-                      && (nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
-                        || nqp::iseq_i(nqp::ord($s, $pos), 95)),
-                      ($pos = nqp::add_i($pos, 1))),
-                    nqp::push($parts, # grab alpha portion
-                      nqp::push_s($strings, nqp::substr($s, $mark,
-                        nqp::sub_i($pos, $mark))))),
-                  ($pos = nqp::add_i($pos, 1)))))),
-          nqp::if(
-            nqp::elems($strings), # return false if we didn't get any parts
-            nqp::stmts(
-              (my int $plus = nqp::eqat($s, '+',
-                nqp::sub_i(nqp::chars($s), 1))),
-              nqp::create(self)!SET-SELF($parts, $plus, $whatever,
-                nqp::concat(nqp::join('.', $strings), $plus ?? '+' !! '')))))
+                  nqp::push($parts, # grab alpha portion
+                    nqp::push_s($strings, nqp::substr($s, $mark,
+                      nqp::sub_i($pos, $mark)
+                    ))
+                  )
+                ),
+                ($pos = nqp::add_i($pos, 1))
+              )
+            )
+          )
+        );
+
+        nqp::if(
+          nqp::elems($strings), # return false if we didn't get any parts
+          nqp::stmts(
+            (my int $plus = nqp::eqat($s, '+',nqp::sub_i(nqp::chars($s), 1))),
+            nqp::create(self)!SET-SELF($parts, $plus, $whatever,
+              nqp::concat(nqp::join('.', $strings), $plus ?? '+' !! '')
+            )
+          )
+        )
     }
 
     multi method new(Version: Str() $s) {
-        nqp::if(
-          nqp::iseq_s($s,'6.d'),
-          $v6d,
+        nqp::unless(
+          self!SLOW-NEW($s),
           nqp::if(
-            nqp::iseq_s($s,'6.c'),
-            $v6c,
-            nqp::if(
-              nqp::iseq_s($s,'6'),
-              $v6,
-              nqp::if(
-                nqp::iseq_s($s,'6.e.PREVIEW'),
-                $v6e,
-                nqp::unless(
-                  self!SLOW-NEW($s),
-                  nqp::if(
-                    nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
-                    $vplus,
-                    self.new
-                  )
-                )
-              )
-            )
+            nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
+            $vplus,
+            self.new
           )
         )
     }

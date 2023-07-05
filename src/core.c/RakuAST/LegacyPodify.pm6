@@ -93,29 +93,6 @@ class RakuAST::LegacyPodify {
           !! @atoms.map({ nqp::istype($_,Str) ?? $_ !! .podify }).Slip
     }
 
-    # flatten the markup into a string, needed for V<>
-    my sub flatten(RakuAST::Doc::Markup:D $markup, :$render --> Str:D) {
-        my str @parts = $markup.atoms.map: {
-            nqp::istype($_,RakuAST::Doc::Markup) ?? flatten($_, :render) !! $_
-        }
-
-        # V<> inside V<> *are* rendered
-        if $render {
-            @parts.unshift: '<';
-            @parts.unshift: $markup.letter;
-
-            if $markup.meta -> @meta {
-                $markup.letter eq 'E'
-                  ?? @parts.pop # stringification so far is incorrect
-                  !! @parts.push('|');
-                @parts.push: @meta.join($markup.separator)
-            }
-            @parts.push: '>';
-        }
-
-        nqp::join('',@parts)
-    }
-
     # produce list without last if last is \n
     my sub no-last-nl(\list) {
         my @parts = list;
@@ -183,7 +160,7 @@ class RakuAST::LegacyPodify {
         $letter eq ""
           ?? hide($ast)
           !! $letter eq 'V'
-            ?? flatten($ast)
+            ?? self!contentify-atoms($ast)
             !! Pod::FormattingCode.new(
                  type     => $letter,
                  meta     => $ast.meta,
@@ -192,15 +169,31 @@ class RakuAST::LegacyPodify {
     }
 
     multi method podify(RakuAST::Doc::Paragraph:D $ast) {
-        my int $left = $ast.atoms.elems;
-        Pod::Block::Para.new(
-          contents => no-last-nl($ast.atoms).map({
-              --$left;
-              nqp::istype($_,Str)
-                ?? sanitize($_, :add-space($left && .ends-with("\n"))) || Empty
-                !! self.podify($_)
-          }).Slip
-        )
+        my     @atoms := $ast.atoms;
+        my int $left   = @atoms.elems;
+        my @contents = no-last-nl(@atoms).map: {
+            --$left;
+            nqp::istype($_,Str)
+              ?? sanitize($_, :add-space($left && .ends-with("\n"))) || Empty
+              !! self.podify($_)
+        }
+
+        my int $i;  # start at 2nd element
+        my int $elems = @contents.elems;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::if(
+            nqp::istype(@contents[$i],Str)
+              && nqp::istype(@contents[my int $j = $i - 1],Str),
+            nqp::stmts(
+              (@contents[$j] ~= @contents.splice($i,1).head),
+              --$i,
+              --$elems
+            )
+          )
+        );
+
+        Pod::Block::Para.new(:@contents)
     }
 
     multi method podify(RakuAST::Doc::Block:D $ast) {

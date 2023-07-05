@@ -629,6 +629,38 @@ augment class RakuAST::Doc::Paragraph {
         # some markup created
         else {
             add-graphemes($paragraph);
+
+            # flatten the markup into a string, needed for V<> and C<>
+            sub verbatimize(RakuAST::Doc::Markup:D $markup, :$render --> Str:D) {
+                my str @parts = $markup.atoms.map: {
+                    nqp::istype($_,RakuAST::Doc::Markup)
+                      ?? verbatimize($_, :render)
+                      !! $_
+                }
+
+                # V<> inside V<> *are* rendered
+                if $render {
+                    @parts.unshift: '<';
+                    @parts.unshift: $markup.letter;
+
+                    if $markup.meta -> @meta {
+                        $markup.letter eq 'E'
+                          ?? @parts.pop # stringification so far is incorrect
+                          !! @parts.push('|');
+                        @parts.push: @meta.join($markup.separator)
+                    }
+                    @parts.push: '>';
+                }
+
+                nqp::join('',@parts)
+            }
+
+            # make sure that outer C<> and V<> sequences are verbatimized
+            for $paragraph.atoms {
+                .set-atoms(verbatimize($_).List)
+                  if nqp::istype($_,RakuAST::Doc::Markup)
+                  && .letter eq 'C' | 'V';
+            }
             $paragraph
         }
     }

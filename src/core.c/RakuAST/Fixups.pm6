@@ -651,7 +651,7 @@ augment class RakuAST::Doc::Block {
     # create block with type/paragraph introspection
     method from-paragraphs(:$spaces = '', :$type, :$config, :@paragraphs, *%_) {
         my constant %implicit =
-          :1defn, :1item, :1nested, :1pod, :1rakudoc, :1section;
+          :1cell, :1defn, :1item, :1nested, :1pod, :1rakudoc, :1section;
 
         # set up basic block
         my $block := self.new(:$type, :$config, |%_);

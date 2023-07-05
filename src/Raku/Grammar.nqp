@@ -3603,9 +3603,7 @@ if $*COMPILING_CORE_SETTING {
 
     # handle =finish
     token doc-block:sym<finish> {
-        ^^ \h*
-        '=finish' <doc-newline>
-        $<finish> = .*
+        ^^ \h* '=finish' <doc-newline> $<finish> = .*
     }
 
     # handle =begin on verbatim blocks
@@ -3641,9 +3639,6 @@ if $*COMPILING_CORE_SETTING {
 
         # must have some whitespace between header and type
         \h+
-
-        # but type may not be "finish", handled separately
-        <!.before 'finish'>
 
         # identifier indicates type of block
         $<type>=<.doc-identifier>

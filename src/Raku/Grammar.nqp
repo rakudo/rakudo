@@ -2743,7 +2743,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token version {
-        <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' '+'?]
+        <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' ['+' | '-']? ]
         <!before '-'|\'> # cheat because of LTM fail
     }
 

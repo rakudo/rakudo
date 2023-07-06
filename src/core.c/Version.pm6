@@ -179,13 +179,13 @@ my class Version {
               !! nqp::atpos($!parts,$i);
 
             # if whatever here, no more check this iteration
-            unless nqp::istype($v,Whatever) {
+            unless nqp::eqaddr($v,Whatever) {
                 my $o := nqp::isge_i($i,$oelems)
                   ?? 0
                   !! nqp::atpos(oparts,$i);
 
                 # if whatever there, no more to check this iteration
-                unless nqp::istype($o,Whatever) {
+                unless nqp::eqaddr($o,Whatever) {
                     return nqp::hllbool($!plus) if $o after  $v;
                     return False                if $o before $v;
                 }

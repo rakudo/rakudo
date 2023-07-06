@@ -77,7 +77,7 @@ sub MAIN(*@ARGS) {
         }
     }
     my $*STACK-ID := 0;
-    $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'), |%defaults);
+    $comp.command_line(@ARGS, :encoding('utf8'), |%defaults);
 
     # do all the necessary actions at the end, if any
     if nqp::gethllsym('Raku', '&THE_END') -> $THE_END {

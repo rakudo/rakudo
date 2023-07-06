@@ -258,10 +258,10 @@ multi sub infix:<eqv>(Version:D $a, Version:D $b --> Bool:D) {
     nqp::hllbool(
       nqp::eqaddr($a,$b)
         || (nqp::eqaddr($a.WHAT,$b.WHAT)
-             && nqp::iseq_s(
-               nqp::getattr_s($a,Version,'$!string'),
-               nqp::getattr_s($b,Version,'$!string')
-             )
+             && (nqp::iseq_s(
+                  nqp::getattr_s($a,Version,'$!string'),
+                  nqp::getattr_s($b,Version,'$!string')
+                ) || nqp::eqaddr(($a cmp $b),Order::Same))
            )
     )
 }

@@ -235,7 +235,8 @@ multi sub infix:<eqv>(Version:D $a, Version:D $b --> Bool:D) {
              && nqp::iseq_s(
                nqp::getattr_s($a,Version,'$!string'),
                nqp::getattr_s($b,Version,'$!string')
-             ))
+             )
+           )
     )
 }
 
@@ -259,8 +260,13 @@ multi sub infix:<cmp>(Version:D $a, Version:D $b) {
                 nqp::if(
                   nqp::istype($a-part,Int) && nqp::istype($b-part,Str),
                   More,
-                  ($a-part cmp $b-part)))),
-              return $ret))),
+                  ($a-part cmp $b-part)
+                )
+              )),
+              return $ret
+            )
+          )
+        ),
         nqp::while(
           ib, # check from right
           nqp::stmts(
@@ -273,10 +279,18 @@ multi sub infix:<cmp>(Version:D $a, Version:D $b) {
                 nqp::if(
                   nqp::istype($a-part,Int) && nqp::istype($b-part,Str),
                   More,
-                  ($a-part cmp $b-part)))),
-              return $ret))),
+                  ($a-part cmp $b-part)
+                )
+              )),
+              return $ret
+            )
+          )
+        ),
         (     nqp::getattr_i($a,Version,'$!plus')
-          cmp nqp::getattr_i($b,Version,'$!plus'))))
+          cmp nqp::getattr_i($b,Version,'$!plus')
+        )
+      )
+    )
 }
 
 multi sub infix:«<=>»(Version:D $a, Version:D $b) { $a cmp $b         }

@@ -382,6 +382,66 @@ augment class RakuAST::Doc::Markup {
         }
     }
 
+    # flatten this markup recursively
+    method flatten(RakuAST::Doc::Markup:D: :$container--> Str:D) {
+        my str @parts = self.atoms.map: {
+            nqp::istype($_,RakuAST::Doc::Markup) ?? .flatten(:container) !! $_
+        }
+
+        if $container {
+            @parts.unshift: $!opener;
+            @parts.unshift: $!letter;
+        }
+
+        if self.meta -> @meta {
+            $!letter eq 'E'
+              ?? @parts.pop # stringification so far is incorrect
+              !! @parts.push('|');
+            @parts.push: @meta.join($!separator)
+        }
+
+        @parts.push: $!closer if $container;
+        nqp::join('',@parts)
+    }
+
+    # splat letterless markups
+    method splat-letterless(RakuAST::Doc::Markup:D: --> Nil) {
+        my @atoms;
+
+        # join any string atom with previous string atom, else push
+        sub splat($atom) {
+            nqp::istype($atom,Str) && nqp::istype(@atoms.tail,Str)
+              ?? (@atoms.tail ~= $atom)
+              !! @atoms.push($atom)
+        }
+
+        for self.atoms -> $atom {
+            if nqp::istype($atom,RakuAST::Doc::Markup) {
+                $atom.verbatimize;  # recurse first
+
+                if $atom.letter {
+                    splat($atom)
+                }
+                else {
+                    splat($atom.opener);
+                    splat($_) for $atom.atoms;
+                    splat($atom.closer);
+                }
+            }
+            else {
+                splat($atom)
+            }
+        }
+        self.set-atoms(@atoms.List);
+    }
+
+    # recursively verbatimize any C<> and V<> markups and splay <> markup
+    method verbatimize(RakuAST::Doc::Markup:D: --> Nil) {
+        $!letter eq 'C' | 'V'
+          ?? self.set-atoms(self.flatten.List)
+          !! self.splat-letterless
+    }
+
     multi method Str(RakuAST::Doc::Markup:D:) {
         my str $letter = self.letter;
         my str @parts  = $letter, self.opener;
@@ -629,38 +689,7 @@ augment class RakuAST::Doc::Paragraph {
         # some markup created
         else {
             add-graphemes($paragraph);
-
-            # flatten the markup into a string, needed for V<> and C<>
-            sub verbatimize(RakuAST::Doc::Markup:D $markup, :$render --> Str:D) {
-                my str @parts = $markup.atoms.map: {
-                    nqp::istype($_,RakuAST::Doc::Markup)
-                      ?? verbatimize($_, :render)
-                      !! $_
-                }
-
-                # V<> inside V<> *are* rendered
-                if $render {
-                    @parts.unshift: '<';
-                    @parts.unshift: $markup.letter;
-
-                    if $markup.meta -> @meta {
-                        $markup.letter eq 'E'
-                          ?? @parts.pop # stringification so far is incorrect
-                          !! @parts.push('|');
-                        @parts.push: @meta.join($markup.separator)
-                    }
-                    @parts.push: '>';
-                }
-
-                nqp::join('',@parts)
-            }
-
-            # make sure that outer C<> and V<> sequences are verbatimized
-            for $paragraph.atoms {
-                .set-atoms(verbatimize($_).List)
-                  if nqp::istype($_,RakuAST::Doc::Markup)
-                  && .letter eq 'C' | 'V';
-            }
+            .verbatimize for $paragraph.atoms.grep(RakuAST::Doc::Markup);
             $paragraph
         }
     }

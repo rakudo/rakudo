@@ -86,7 +86,7 @@ class RakuAST::LegacyPodify {
         given @atoms.tail {
             nqp::istype($_,Str)
               ?? ($_ = $_ ~ $markup.closer)
-              !! @atoms.posh($markup.closer)
+              !! @atoms.push($markup.closer)
         }
         nqp::istype(@atoms.are,Str)
           ?? @atoms.join
@@ -157,15 +157,15 @@ class RakuAST::LegacyPodify {
 
     multi method podify(RakuAST::Doc::Markup:D $ast) {
         my str $letter = $ast.letter;
-        $letter eq ""
-          ?? hide($ast)
-          !! $letter eq 'V'
-            ?? self!contentify-atoms($ast)
-            !! Pod::FormattingCode.new(
-                 type     => $letter,
-                 meta     => $ast.meta,
-                 contents => self!contentify-atoms($ast)
-               )
+        $letter eq 'V'
+          ?? $ast.atoms.head.subst("\n", ' ', :g)
+          !! Pod::FormattingCode.new(
+               type     => $letter,
+               meta     => $ast.meta,
+               contents => $letter eq 'C'
+                 ?? $ast.atoms.head.subst("\n", ' ', :g)
+                 !! self!contentify-atoms($ast)
+             )
     }
 
     multi method podify(RakuAST::Doc::Paragraph:D $ast) {

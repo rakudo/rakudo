@@ -173,24 +173,42 @@ my class Version {
         my int $max-elems = nqp::isge_i($oelems,$elems) ?? $oelems !! $elems;
 
         my int $i = -1;
-        while nqp::islt_i(++$i,$max-elems) {
-            my $v := nqp::isge_i($i,$elems)
-              ?? Whatever
-              !! nqp::atpos($!parts,$i);
+        nqp::while(
+          nqp::islt_i(++$i,$max-elems),
+          nqp::stmts(
+            (my $v := nqp::if(
+              nqp::isge_i($i,$elems),
+              Whatever,
+              nqp::atpos($!parts,$i)
+            )),
 
             # if whatever here, no more check this iteration
-            unless nqp::eqaddr($v,Whatever) {
-                my $o := nqp::isge_i($i,$oelems)
-                  ?? 0
-                  !! nqp::atpos(oparts,$i);
+            nqp::unless(
+              nqp::eqaddr($v,Whatever),
+              nqp::stmts(
+                (my $o := nqp::if(
+                  nqp::isge_i($i,$oelems),
+                  0,
+                  nqp::atpos(oparts,$i)
+                )),
 
                 # if whatever there, no more to check this iteration
-                unless nqp::eqaddr($o,Whatever) {
-                    return nqp::hllbool($!plus) if $o after  $v;
-                    return False                if $o before $v;
-                }
-            }
-        }
+                nqp::unless(
+                  nqp::eqaddr($o,Whatever),
+                  nqp::if(
+                    ($o after $v),
+                    (return nqp::hllbool($!plus)),
+                    nqp::if(
+                      ($o before $v),
+                      (return False)
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
         True
     }
 

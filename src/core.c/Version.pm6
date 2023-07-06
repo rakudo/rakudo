@@ -65,8 +65,8 @@ my class Version {
     multi method new(Version: '6.*')         { $v6e }  # level bump
     multi method new(Version: Whatever)      { $vw  }
 
-    multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
-        nqp::create(self)!SET-SELF(@parts.eager, $plus, $string)
+    multi method new(Version: @parts, Str:D $string, Int() $plus = 0, $?) {
+        nqp::create(self)!SET-SELF(@parts.List, $plus, $string)
     }
 
     method !SLOW-NEW(str $s) {
@@ -212,6 +212,16 @@ my class Version {
 
     method parts() { nqp::hllize($!parts) }
     method plus()  { nqp::hllbool($!plus) }
+    method whatever() { 
+        my int $i     = -1;
+        my int $elems = nqp::elems($!parts);
+        nqp::until(
+          nqp::iseq_i(++$i,$elems)
+            || nqp::istype(nqp::atpos($!parts,$i),Whatever),
+          nqp::null
+        );
+        nqp::hllbool(nqp::isne_i($i,$elems))
+    }
 
     method Version() { self }
 }

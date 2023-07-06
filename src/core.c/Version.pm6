@@ -85,7 +85,7 @@ my class Version {
             nqp::eqat($s, '*', $pos),
             nqp::stmts( # Whatever portion
               nqp::push_s($strings, '*'),
-              nqp::push($parts,      * ),
+              nqp::push($parts,Whatever),
               ($pos = nqp::add_i($pos, 1))
             ),
             nqp::if(
@@ -217,7 +217,7 @@ my class Version {
         my int $elems = nqp::elems($!parts);
         nqp::until(
           nqp::iseq_i(++$i,$elems)
-            || nqp::istype(nqp::atpos($!parts,$i),Whatever),
+            || nqp::eqaddr(nqp::atpos($!parts,$i),Whatever),
           nqp::null
         );
         nqp::hllbool(nqp::isne_i($i,$elems))

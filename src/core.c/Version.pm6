@@ -49,6 +49,13 @@ my class Version {
         nqp::bindattr_s($version,Version,'$!string',"");
         $version
     }
+    my constant $vminus = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list);
+        nqp::bindattr_i($version,Version,'$!plus',  -1);
+        nqp::bindattr_s($version,Version,'$!string',"");
+        $version
+    }
 
     method !SET-SELF(\parts,\plus,\string) {
         $!parts := nqp::getattr(parts,List,'$!reified');
@@ -101,9 +108,13 @@ my class Version {
                   nqp::atpos(
                     nqp::radix(
                       10,
-                      nqp::push_s($strings, nqp::substr($s, $mark,
-                        nqp::sub_i($pos, $mark))),
-                      0, 0),
+                      nqp::push_s(
+                        $strings,
+                        nqp::substr($s, $mark, nqp::sub_i($pos, $mark))
+                      ),
+                      0,
+                      0
+                    ),
                     0
                   )
                 )
@@ -118,11 +129,12 @@ my class Version {
                     nqp::islt_i($pos, $chars)
                     && (nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
                       || nqp::iseq_i(nqp::ord($s, $pos), 95)),
-                    ($pos = nqp::add_i($pos, 1))),
+                    ($pos = nqp::add_i($pos, 1))
+                  ),
                   nqp::push($parts, # grab alpha portion
-                    nqp::push_s($strings, nqp::substr($s, $mark,
-                      nqp::sub_i($pos, $mark)
-                    ))
+                    nqp::push_s(
+                      $strings, nqp::substr($s, $mark, nqp::sub_i($pos, $mark))
+                    )
                   )
                 ),
                 ($pos = nqp::add_i($pos, 1))
@@ -132,25 +144,21 @@ my class Version {
         );
 
         nqp::if(
-          nqp::elems($strings), # return false if we didn't get any parts
+          nqp::elems($strings),
           nqp::stmts(
-            (my int $plus = nqp::eqat($s, '+',nqp::sub_i(nqp::chars($s), 1))),
+            (my str $last = nqp::substr($s,nqp::sub_i(nqp::chars($s),1))),
+            (my int $plus = nqp::iseq_s($last,'+') - nqp::iseq_s($last,'-')),
             nqp::create(self)!SET-SELF($parts, $plus,
-              nqp::concat(nqp::join('.', $strings), $plus ?? '+' !! '')
+              nqp::concat(nqp::join('.',$strings),nqp::if($plus,$last,''))
             )
-          )
+          ),
+          Nil  # no parts found
         )
     }
 
     multi method new(Version: Str() $s) {
-        nqp::unless(
-          self!SLOW-NEW($s),
-          nqp::if(
-            nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
-            $vplus,
-            $v
-          )
-        )
+        self!SLOW-NEW($s)
+          // ($s.ends-with('+') ?? $vplus !! $s.ends-with('-') ?? $vminus !! $v)
     }
 
     multi method Str(Version:D:)  { nqp::p6box_s($!string) }
@@ -196,11 +204,11 @@ my class Version {
                 nqp::unless(
                   nqp::eqaddr($o,Whatever),
                   nqp::if(
-                    ($o after $v),
-                    (return nqp::hllbool($!plus)),
+                    nqp::eqaddr((my $order := $o cmp $v),Order::More),
+                    (return nqp::hllbool(nqp::isgt_i($!plus,0))),
                     nqp::if(
-                      ($o before $v),
-                      (return False)
+                      nqp::eqaddr($order,Order::Less),
+                      (return nqp::hllbool(nqp::islt_i($!plus,0)))
                     )
                   )
                 )
@@ -229,7 +237,8 @@ my class Version {
     }
 
     method parts() { nqp::hllize($!parts) }
-    method plus()  { nqp::hllbool($!plus) }
+    method plus()  { nqp::hllbool(nqp::iseq_i($!plus, 1)) }
+    method minus() { nqp::hllbool(nqp::iseq_i($!plus,-1)) }
     method whatever() { 
         my int $i     = -1;
         my int $elems = nqp::elems($!parts);

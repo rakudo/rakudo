@@ -158,7 +158,7 @@ my class Version {
           nqp::if(
             nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
             $vplus,
-            self.new
+            $v
           )
         )
     }

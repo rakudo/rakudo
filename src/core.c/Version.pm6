@@ -2,7 +2,6 @@ my class Version {
     # class Version {
     #     has $!parts;
     #     has int $!plus;
-    #     has int $!whatever;
     #     has str $!string;
     # }
 
@@ -16,7 +15,6 @@ my class Version {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts',   nqp::list(*));
         nqp::bindattr_i($version,Version,'$!plus',   -1);
-        nqp::bindattr_i($version,Version,'$!whatever',1);
         nqp::bindattr_s($version,Version,'$!string', "*");
         $version
     }
@@ -52,10 +50,9 @@ my class Version {
         $version
     }
 
-    method !SET-SELF(\parts,\plus,\whatever,\string) {
+    method !SET-SELF(\parts,\plus,\string) {
         $!parts := nqp::getattr(parts,List,'$!reified');
         $!plus   = plus;
-        $!whatever = whatever;
         $!string = string;
         self
     }
@@ -68,13 +65,8 @@ my class Version {
     multi method new(Version: '6.*')         { $v6e }  # level bump
     multi method new(Version: Whatever)      { $vw  }
 
-    multi method new(Version:
-            @parts,
-      Str:D $string,
-      Int() $plus     = 0,
-      Int() $whatever = 0
-    ) {
-        nqp::create(self)!SET-SELF(@parts.eager,$plus,$whatever,$string)
+    multi method new(Version: @parts, Str:D $string, Int() $plus = 0) {
+        nqp::create(self)!SET-SELF(@parts.eager, $plus, $string)
     }
 
     method !SLOW-NEW(str $s) {
@@ -84,7 +76,6 @@ my class Version {
         my int $pos;
         my int $chars = nqp::chars($s);
         my int $mark;
-        my int $whatever;
         my $strings := nqp::list_s;
         my $parts   := nqp::list;
 
@@ -95,7 +86,6 @@ my class Version {
             nqp::stmts( # Whatever portion
               nqp::push_s($strings, '*'),
               nqp::push($parts,      * ),
-              ($whatever = 1),
               ($pos = nqp::add_i($pos, 1))
             ),
             nqp::if(
@@ -145,7 +135,7 @@ my class Version {
           nqp::elems($strings), # return false if we didn't get any parts
           nqp::stmts(
             (my int $plus = nqp::eqat($s, '+',nqp::sub_i(nqp::chars($s), 1))),
-            nqp::create(self)!SET-SELF($parts, $plus, $whatever,
+            nqp::create(self)!SET-SELF($parts, $plus,
               nqp::concat(nqp::join('.', $strings), $plus ?? '+' !! '')
             )
           )
@@ -222,7 +212,6 @@ my class Version {
 
     method parts() { nqp::hllize($!parts) }
     method plus()  { nqp::hllbool($!plus) }
-    method whatever() { nqp::hllbool($!whatever) }
 
     method Version() { self }
 }

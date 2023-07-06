@@ -3808,12 +3808,10 @@ BEGIN {
     # class Version {
     #     has $!parts;
     #     has int $!plus;
-    #     has int $!whatever;
     #     has str $!string;
     Version.HOW.add_parent(Version, Any);
     Version.HOW.add_attribute(Version, Attribute.new(:name('$!parts'), :type(Mu), :package(Version)));
     Version.HOW.add_attribute(Version, Attribute.new(:name('$!plus'), :type(int), :package(Version)));
-    Version.HOW.add_attribute(Version, Attribute.new(:name('$!whatever'), :type(int), :package(Version)));
     Version.HOW.add_attribute(Version, Attribute.new(:name('$!string'), :type(str), :package(Version)));
     Version.HOW.compose_repr(Version);
 

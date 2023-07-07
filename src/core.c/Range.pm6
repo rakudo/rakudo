@@ -414,6 +414,18 @@ my class Range is Cool does Iterable does Positional {
     multi method ACCEPTS(Range:D \SELF: Junction:D $topic) {
         $topic.THREAD: { SELF.ACCEPTS($_) }
     }
+    multi method ACCEPTS(Range:D: Version:D $version) {
+        my $first := $version cmp $!min;
+        nqp::if(
+          nqp::eqaddr($first,Order::More)
+            || (nqp::not_i($!excludes-min) && nqp::eqaddr($first,Order::Same)),
+          nqp::hllbool(
+            nqp::eqaddr((my $last := $version cmp $!max),Order::Less)
+              || (nqp::not_i($!excludes-max) && nqp::eqaddr($last,Order::Same))
+          ),
+          False
+        )
+    }
     multi method ACCEPTS(Range:D: Cool:D \got) {
         nqp::if(
             $!is-int && nqp::istype(got, Int),
@@ -786,6 +798,9 @@ multi sub prefix:<^>(Int:D $max) {
     $range
 }
 multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
+multi sub prefix:<^>(Version:D $max) {
+    Range.new(Version.new, $max, :excludes-max)
+}
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b --> Bool:D) {
     nqp::hllbool(

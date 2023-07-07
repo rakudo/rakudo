@@ -319,6 +319,10 @@ multi sub infix:<cmp>(Version:D $a, Version:D $b) {
     )
 }
 
+multi sub prefix:<^>(Version:D $max) {
+    Range.new(Version.new, $max, :excludes-max)
+}
+
 multi sub infix:«<=>»(Version:D $a, Version:D $b) { $a cmp $b         }
 multi sub infix:«<»  (Version:D $a, Version:D $b) { $a cmp $b == Less }
 multi sub infix:«<=» (Version:D $a, Version:D $b) { $a cmp $b != More }

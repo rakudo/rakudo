@@ -798,9 +798,6 @@ multi sub prefix:<^>(Int:D $max) {
     $range
 }
 multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
-multi sub prefix:<^>(Version:D $max) {
-    Range.new(Version.new, $max, :excludes-max)
-}
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b --> Bool:D) {
     nqp::hllbool(

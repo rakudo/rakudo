@@ -755,6 +755,23 @@ class RakuAST::Deparse {
                   ~ "\n"
             }
         }
+        elsif $type eq 'alias' {
+            if $abbreviated {
+                self.hsyn('rakudoc-type', '=alias')
+                  ~ ' '
+                  ~ $paragraphs.subst("\n", ' ', :1x)
+            }
+            else {
+                $type = ' ' ~ self.hsyn('rakudoc-type', $type);
+                self.hsyn('rakudoc-prefix', '=begin')
+                  ~ $type
+                  ~ $config
+                  ~ "\n$paragraphs"
+                  ~ self.hsyn('rakudoc-type', '=end')
+                  ~ $type
+                  ~ "\n"
+            }
+        }
         else {
             $paragraphs := self.hsyn(
               $type eq 'comment' | 'data'

@@ -752,11 +752,31 @@ augment class RakuAST::Doc::Block {
             $block.interpret-as-table($spaces, @paragraphs);
         }
 
+        elsif $type eq 'alias' {
+            my @parts = @paragraphs;
+            # first line is the lemma, separate that
+            @parts.splice(0,1,@parts.head.split(/ \s+ /,2));
+
+            # lemma does not allow markup
+            $block.add-paragraph(@parts.shift);
+
+            # add rest with possible markup
+            $block.add-paragraph(
+              nqp::istype($_,Str)
+                ?? RakuAST::Doc::Paragraph.from-string($_)
+                !! $_
+            ) for @parts;
+        }
+
         elsif $type eq 'defn' {
             my @parts = @paragraphs;
-            # first line is the term, separate that
+            # first line is the lemma, separate that
             @parts.splice(0,1,@parts.head.split("\n",2));
 
+            # lemma does not allow markup
+            $block.add-paragraph(@parts.shift);
+
+            # add rest with implicit code block detection
             $block.interpret-implicit-code-blocks($spaces, @parts);
         }
 

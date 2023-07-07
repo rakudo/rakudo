@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 8;
+plan 9;
 
 my $ast;
 my $deparsed;
@@ -190,6 +190,33 @@ subtest 'abbreviated alias in a statement list' => {
     for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
         is-deeply $it, q:to/CODE/, "$type: deparse";
 =alias FOO bar
+42
+CODE
+    }
+}
+
+subtest 'abbreviated defn in a statement list' => {
+    # =defn Foo Bar␤zar␤42␤
+    ast RakuAST::StatementList.new(
+      RakuAST::Doc::Block.new(
+        type        => 'defn',
+        abbreviated => True,
+        paragraphs  => (
+          "Foo Bar",
+          "baz\n\n",
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(42)
+      )
+    );
+
+    is-deeply $ast.EVAL, 42, 'do we get the final result';
+    for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+        is-deeply $it, q:to/CODE/, "$type: deparse";
+=defn Foo Bar
+baz
+
 42
 CODE
     }

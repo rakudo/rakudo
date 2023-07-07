@@ -3599,6 +3599,16 @@ if $*COMPILING_CORE_SETTING {
         { $*PARSING-DOC-BLOCK := 0 }
     }
 
+    # directives that may not be used as block names
+    token rakudoc-directives {
+        alias | begin | config | end | finish | for
+    }
+
+    # directives that may not be used as block names
+    token rakudoc-verbatim-blocks {
+        comment | code | data | input | output
+    }
+
     proto token doc-block {*}
 
     # handle =finish
@@ -3613,7 +3623,7 @@ if $*COMPILING_CORE_SETTING {
         ^^ $<spaces>=[ \h* ]
 
         # start of 'begin comment' block
-        '=begin' \h+ $<type>=[ 'comment' | 'code' | 'data' | 'input' | 'output' ]
+        '=begin' \h+ $<type>=<.rakudoc-verbatim-blocks>
 
         # fetch any configuration
         <doc-configuration($<spaces>)>* <doc-newline>+
@@ -3639,6 +3649,15 @@ if $*COMPILING_CORE_SETTING {
 
         # must have some whitespace between header and type
         \h+
+
+        # may not be a directive name
+        [ $<directive>=<.rakudoc-directives> {
+              self.typed_panic(
+                'X::Syntax::Pod::BeginWithDirective',
+                :directive(~$<directive>)
+              )
+          }
+        ]?
 
         # identifier indicates type of block
         $<type>=<.doc-identifier>
@@ -3682,6 +3701,16 @@ if $*COMPILING_CORE_SETTING {
 
         # must have some whitespace between header and type
         \h+
+
+        # may not be a directive name
+        [ $<directive>=<.rakudoc-directives> {
+              self.typed_panic(
+                'X::Syntax::Pod::BeginWithDirective',
+                :directive(~$<directive>),
+                :for<for>
+              )
+          }
+        ]?
 
         # identifier indicates type of block
         $<type>=<.doc-identifier>

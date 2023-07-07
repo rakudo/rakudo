@@ -1896,6 +1896,14 @@ my class X::Syntax::Pod::BeginWithoutEnd does X::Syntax does X::Pod {
     }
 }
 
+my class X::Syntax::Pod::BeginWithDirective does X::Syntax does X::Pod {
+    has $.directive;
+    has $.for = 'begin';
+    method message() {
+        "=$.for may not be followed by directive '$.directive'"
+    }
+}
+
 my class X::Syntax::Confused does X::Syntax {
     has $.reason = 'unknown';
     method message() { $.reason eq 'unknown' ?? 'Confused' !! $.reason }

@@ -1,3 +1,6 @@
+# necessary stubs
+my class X::Range::CannotIterate { ... }
+
 # This class contains generally usable methods creating Iterators.
 # There are two reasons for having this in a separate class:
 #
@@ -4407,7 +4410,11 @@ class Rakudo::Iterator {
         method is-lazy(--> True) { }
         method is-monotonically-increasing(--> True) { }
     }
-    method SuccFromInf(\i) { SuccFromInf.new(i) }
+    method SuccFromInf(\i) {
+        i.can('succ')
+          ?? SuccFromInf.new(i)
+          !! X::Range::CannotIterate.new(:min(i)).throw
+    }
 
     # Returns an iterator for a range of generic values that have a
     # .succ method to indicate the next logical value.  Takes the initial
@@ -4452,7 +4459,11 @@ class Rakudo::Iterator {
         method is-monotonically-increasing(--> True) { }
         method sink-all(--> IterationEnd) { $!i = $!e.succ }
     }
-    method SuccFromTo(\i,\exclude,\e) { SuccFromTo.new(i,exclude,e) }
+    method SuccFromTo(\i,\exclude,\e) {
+        i.can('succ')
+          ?? SuccFromTo.new(i,exclude,e)
+          !! X::Range::CannotIterate.new(:min(i)).throw
+    }
 
     # Returns an iterator that takes a source iterator and a value, and
     # produces a lazy iterator that will first produce decontainerized

@@ -2552,6 +2552,13 @@ my class X::Range::Incomparable is Exception {
     }
 }
 
+my class X::Range::CannotIterate is Exception {
+    has $.min;
+    method message() {
+        "Range cannot be iterated over because its starting point '$.min.raku()' does not have a '.succ' method".naive-word-wrapper
+    }
+}
+
 my class X::Sequence::Deduction is Exception {
     has $.from;
     method message() {

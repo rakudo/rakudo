@@ -1176,7 +1176,7 @@ in line '$line'"
                     # seen a divider after a row before?
                     if $first-divider.defined {
                         if $_ ne $first-divider {
-                            %config<header-row> := 0;
+                            %config<header-row> := RakuAST::IntLiteral.new(0);
                             last;  # different, we're done!
                         }
                         ++$other-dividers;
@@ -1195,7 +1195,7 @@ in line '$line'"
             }
 
             # set headers if only one divider was seen after the first row
-            %config<header-row> := 0
+            %config<header-row> := RakuAST::IntLiteral.new(0)
               if %config<header-row>:!exists
               && $first-divider.defined
               && !$other-dividers;

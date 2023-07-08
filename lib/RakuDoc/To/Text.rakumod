@@ -29,10 +29,17 @@ my constant %formats =
   R => "inverse"
 ;
 
-# Provide any colorization services for markup
-my &colored = do {
-    (try 'use Terminal::ANSIColor; &colored'.EVAL)
-      // -> $text, $ {$text }
+my &colored := INIT {
+    my $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name =>
+          RakuAST::Name.from-identifier-parts("Terminal","ANSIColor")
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Var::Lexical.new("\&colored")
+      )
+    );
+    (try $ast.EVAL) // -> $text, $ { $text }
 }
 
 #-- primary dispatchers --------------------------------------------------------

@@ -3607,11 +3607,6 @@ if $*COMPILING_CORE_SETTING {
         alias | begin | config | end | finish | for
     }
 
-    # directives that may not be used as block names
-    token rakudoc-verbatim-blocks {
-        comment | code | data | input | output
-    }
-
     proto token doc-block {*}
 
     # handle =finish
@@ -3626,7 +3621,7 @@ if $*COMPILING_CORE_SETTING {
         ^^ $<spaces>=[ \h* ]
 
         # start of 'begin comment' block
-        '=begin' \h+ $<type>=<.rakudoc-verbatim-blocks>
+        '=begin' \h+ $<type>=[ comment | code | data | input | output ]
 
         # fetch any configuration
         <doc-configuration($<spaces>)>* <doc-newline>+

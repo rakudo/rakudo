@@ -354,28 +354,26 @@ augment class RakuAST::Doc::Markup {
     # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D: $allow) {
         my str $letter = self.letter;
-        if $letter eq 'E' | 'L' | 'X' {
-            if $letter eq 'L' {
-                self.set-meta($_) with self!extract-meta;
+        if $letter eq 'L' {
+            self.set-meta($_) with self!extract-meta;
+        }
+        elsif $letter eq 'M' | 'X' {
+            if self!extract-meta -> $meta {
+                self.add-meta(.trim.split(',')>>.trim.List)
+                  for $meta.split(';');
             }
-            elsif $letter eq 'X' {
-                if self!extract-meta -> $meta {
-                    self.add-meta(.split(',').List)
-                      for $meta.split(';');
-                }
-            }
-            else {  # $letter eq 'E'
-                my @atoms = self.atoms;
-                if nqp::istype(@atoms.tail,Str) {
-                    self.set-atoms;  # reset so we can add again
-                    for @atoms.pop.split(';') -> $entity {
-                        with self!convert-entity($entity) -> $converted {
-                            self.add-meta($entity);
-                            self.add-atom($converted);
-                        }
-                        else {
-                            self.add-atom($entity);
-                        }
+        }
+        elsif $letter eq 'E' {
+            my @atoms = self.atoms;
+            if nqp::istype(@atoms.tail,Str) {
+                self.set-atoms;  # reset so we can add again
+                for @atoms.pop.split(';') -> $entity {
+                    with self!convert-entity($entity) -> $converted {
+                        self.add-meta($entity);
+                        self.add-atom($converted);
+                    }
+                    else {
+                        self.add-atom($entity);
                     }
                 }
             }

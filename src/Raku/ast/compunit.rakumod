@@ -144,10 +144,11 @@ class RakuAST::CompUnit
 
     # Add the AST for handling legacy doc generation
     method add-INIT-phaser-for-doc-handling($type) {
+        my $Pod := nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_POD'),'Pod');
 # use Pod::To::$type;
 # say Pod::To::$type.render($=pod);
 # exit
-        my $name := RakuAST::Name.from-identifier-parts("Pod","To",$type);
+        my $name := RakuAST::Name.from-identifier-parts($Pod,"To",$type);
         $!statement-list.add-statement: RakuAST::Statement::Expression.new(
           expression => RakuAST::StatementPrefix::Phaser::Init.new(
             RakuAST::Block.new(

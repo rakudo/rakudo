@@ -3723,10 +3723,24 @@ if $*COMPILING_CORE_SETTING {
         $<lines>=[[^^ \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
     }
 
+    token doc-block:sym<alias> {
+
+        # save any leading whitespace from start of line
+        ^^ $<spaces>=[ \h* ]
+
+        # fetch lemma as first line
+        '=alias' \h+ $<lemma>=<.doc-identifier> \h+ $<first>=\N+
+
+        [\n $<spaces> '=' \h+ $<line>=\N+]*
+
+        \n?
+    }
+
     token doc-block:sym<config> {
 
         # save any leading whitespace from start of line
         ^^ $<spaces>=[ \h* ]
+
         # custom config madness
         '=config' \h+ $<header>=<.doc-identifier>
 
@@ -3740,14 +3754,14 @@ if $*COMPILING_CORE_SETTING {
     token doc-block:sym<abbreviated> {
 
         # save any leading whitespace from start of line
-        ^^ $<spaces>=[ \h* ]
+        ^^ $<spaces>=[ \h* ] '='
 
-        # but type may not be "end" or "for", handled separately
-        <!.before '=begin' | '=end' | '=for'>
+        # handled elsewhere
+        <!.before <.rakudoc-directives>>
 
         # start of an abbreviated doc block with an optional hash
         # char to indicate :numbered in config, or just a string
-        '=' $<type>=<.doc-identifier> [\h+ <doc-numbered>]?
+        $<type>=<.doc-identifier> [\h+ <doc-numbered>]?
 
         # the rest of the line is considered content
         [ [ \h+ $<header>=[\N+ \n?]? ] | <doc-newline> ]

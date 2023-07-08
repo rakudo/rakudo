@@ -715,6 +715,27 @@ augment class RakuAST::Doc::Block {
         self.paragraphs.head.leading-whitespace
     }
 
+    # create block from alias
+    method from-alias(:$lemma, :@paragraphs, *%_) {
+
+        # set up basic block
+        my $block := self.new(:type<alias>, :abbreviated, |%_);
+
+        # add rest with possible markup
+        my $paragraph :=
+          RakuAST::Doc::Paragraph.from-string(@paragraphs.join("\n"));
+
+        # collect alias info if being collected
+        my $aliases := $*DOC-ALIASES;
+        nqp::bindkey($aliases,$lemma,$paragraph)
+          unless nqp::istype($aliases,Failure);
+
+        $block.add-paragraph($lemma);
+        $block.add-paragraph($paragraph);
+
+        $block
+    }
+
     # create block with type/paragraph introspection
     method from-paragraphs(:$spaces = '', :$type, :$config, :@paragraphs, *%_) {
         my constant %implicit =
@@ -756,31 +777,6 @@ augment class RakuAST::Doc::Block {
 
         elsif $type eq 'table' {
             $block.interpret-as-table($spaces, @paragraphs);
-        }
-
-        elsif $type eq 'alias' {
-            my @parts = @paragraphs;
-
-            # separate first word: lemma does not allow markup
-            @parts.splice(0,1,@parts.head.split(/ \s+ /,2));
-            my str $lemma = @parts.shift;
-
-            # add rest with possible markup
-            $block.add-paragraph(
-              nqp::istype($_,Str)
-                ?? RakuAST::Doc::Paragraph.from-string($_)
-                !! $_
-            ) for @parts;
-
-            # collect alias info if being collected
-            my $aliases := $*DOC-ALIASES;
-            nqp::bindkey(
-              $aliases,
-              $lemma,
-              nqp::clone(nqp::getattr($block.paragraphs,List,'$!reified'))
-            ) unless nqp::istype($aliases,Failure);
-
-            $block.add-paragraph($lemma, :at-start);
         }
 
         elsif $type eq 'defn' {

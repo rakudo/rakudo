@@ -705,11 +705,21 @@ class RakuAST::Deparse {
 #- Doc -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Doc::Block:D $ast --> Str:D) {
-        my str $type     = $ast.type;
-        my $abbreviated := $ast.abbreviated;
+        my str $type = $ast.type;
+
+        # special handling for alias directive
+        if $type eq 'alias' {
+            my ($lemma, $paragraph) = $ast.paragraphs;
+            $paragraph = self.deparse($paragraph)
+              unless nqp::istype($paragraph,Str);
+
+            return self.hsyn('rakudoc-type', '=alias')
+              ~ " $lemma $paragraph.subst("\n", "\n= ", :global)\n"
+        }
 
         # handle any config
-        my str $config = $ast.config.sort({
+        my $abbreviated := $ast.abbreviated;
+        my str $config   = $ast.config.sort({
             .key eq 'numbered' ?? '' !! .key  # numbered always first
         }).map({
             my str $key = .key;
@@ -750,23 +760,6 @@ class RakuAST::Deparse {
                   ~ $config
                   ~ "\n"
                   ~ self.hsyn('rakudoc-verbatim', $paragraphs)
-                  ~ self.hsyn('rakudoc-type', '=end')
-                  ~ $type
-                  ~ "\n"
-            }
-        }
-        elsif $type eq 'alias' {
-            if $abbreviated {
-                self.hsyn('rakudoc-type', '=alias')
-                  ~ ' '
-                  ~ $paragraphs.subst("\n", ' ', :1x)
-            }
-            else {
-                $type = ' ' ~ self.hsyn('rakudoc-type', $type);
-                self.hsyn('rakudoc-prefix', '=begin')
-                  ~ $type
-                  ~ $config
-                  ~ "\n$paragraphs"
                   ~ self.hsyn('rakudoc-type', '=end')
                   ~ $type
                   ~ "\n"

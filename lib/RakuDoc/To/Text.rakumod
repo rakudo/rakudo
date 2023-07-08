@@ -71,6 +71,7 @@ my multi sub rakudoc2text(RakuAST::Node:D $ast --> Str:D) {
 # the general handler, with specific sub-actions
 my multi sub rakudoc2text(RakuAST::Doc::Block:D $ast --> Str:D) {
     given $ast.type {
+        when 'alias'         { ''                 }
         when 'code'          { code2text($ast)    }
         when 'comment'       { ''                 }
         when 'config'        { ''                 }
@@ -139,7 +140,10 @@ my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
     else {
         my str $text = $ast.atoms.map(&rakudoc2text).join;
 
-        if $letter eq 'L' {
+        if $letter eq 'A' {
+            rakudoc2text $ast.meta.head
+        }
+        elsif $letter eq 'L' {
             $text = colored($text, 'underline');
 
             # remember the URL as a note

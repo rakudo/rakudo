@@ -380,6 +380,14 @@ augment class RakuAST::Doc::Markup {
                 }
             }
         }
+        elsif $letter eq 'A' {
+            my $aliases := $*DOC-ALIASES;
+            unless nqp::istype($aliases,Failure) {
+                if nqp::atkey($aliases,self.atoms.head) -> $alias {
+                    self.set-meta($alias);
+                }
+            }
+        }
     }
 
     # flatten this markup recursively
@@ -754,11 +762,10 @@ augment class RakuAST::Doc::Block {
 
         elsif $type eq 'alias' {
             my @parts = @paragraphs;
-            # first line is the lemma, separate that
-            @parts.splice(0,1,@parts.head.split(/ \s+ /,2));
 
-            # lemma does not allow markup
-            $block.add-paragraph(@parts.shift);
+            # separate first word: lemma does not allow markup
+            @parts.splice(0,1,@parts.head.split(/ \s+ /,2));
+            my str $lemma = @parts.shift;
 
             # add rest with possible markup
             $block.add-paragraph(
@@ -766,6 +773,16 @@ augment class RakuAST::Doc::Block {
                 ?? RakuAST::Doc::Paragraph.from-string($_)
                 !! $_
             ) for @parts;
+
+            # collect alias info if being collected
+            my $aliases := $*DOC-ALIASES;
+            nqp::bindkey(
+              $aliases,
+              $lemma,
+              nqp::clone(nqp::getattr($block.paragraphs,List,'$!reified'))
+            ) unless nqp::istype($aliases,Failure);
+
+            $block.add-paragraph($lemma, :at-start);
         }
 
         elsif $type eq 'defn' {

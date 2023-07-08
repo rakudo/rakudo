@@ -125,7 +125,11 @@ class RakuAST::Doc::Block
             !! nqp::list);
         Nil
     }
-    method add-paragraph($paragraph) { nqp::push($!paragraphs, $paragraph) }
+    method add-paragraph($paragraph, :$at-start) {
+        $at-start
+          ?? nqp::unshift($!paragraphs, $paragraph)
+          !! nqp::push(   $!paragraphs, $paragraph)
+    }
     method paragraphs() { self.IMPL-WRAP-LIST($!paragraphs) }
 
     method visit-children(Code $visitor) {

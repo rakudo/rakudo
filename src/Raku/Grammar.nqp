@@ -580,6 +580,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # into its statement list.
         my $*DOC-BLOCKS-COLLECTED := [];
 
+        # RakuDoc aliases (=alias -> A<>) collected so far
+        my $*DOC-ALIASES := {};
+
         # Any resolver that exists outside this grammar: usually this is the
         # resolver that is active whenever code is being EVALled inside BEGIN
         # block, which would create a new resolver and put it in $*R.

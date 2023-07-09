@@ -325,7 +325,8 @@ and, by default, also executes the compiled code.
 
   -                    read program source from STDIN or start REPL if a TTY
   -c                   check syntax only (runs BEGIN and CHECK blocks)
-  --doc                extract documentation and print it as text
+  --rakudoc            extract documentation and print it as text
+  --rakudoc=module     use RakuDoc::To::[module] to render inline documentation
   -e program           one line of program, strict is enabled by default
   -h, --help           display this help text
   -n                   run program once for each line of input
@@ -340,6 +341,7 @@ and, by default, also executes the compiled code.
   -V                   print configuration summary
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
+  --doc                extract documentation and print it as text
   --doc=module         use Pod::To::[module] to render inline documentation
   --repl-mode=interactive|non-interactive
                        when running without "-e" or filename arguments,

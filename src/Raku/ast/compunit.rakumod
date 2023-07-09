@@ -146,12 +146,21 @@ class RakuAST::CompUnit
     }
 
     # Add the AST for handling legacy doc generation
-    method add-INIT-phaser-for-doc-handling($type) {
-        my $Pod := nqp::ifnull(nqp::atkey(nqp::getenvhash,'RAKUDO_POD'),'Pod');
+    method add-INIT-phaser-for-doc-handling($base, $type) {
+
+        # Determine which module to load.  If single element type, then it
+        # is $base::To::$type.  If multi-element, those are the name parts
+        # to use.
+        my @parts := nqp::split('::',$type);
+        if nqp::elems(@parts) == 1 {
+            nqp::unshift(@parts,'To');
+            nqp::unshift(@parts,$base);
+        }
+
 # use Pod::To::$type;
 # say Pod::To::$type.render($=pod);
 # exit
-        my $name := RakuAST::Name.from-identifier-parts($Pod,"To",$type);
+        my $name := RakuAST::Name.from-identifier-parts(|@parts);
         $!statement-list.add-statement: RakuAST::Statement::Expression.new(
           expression => RakuAST::StatementPrefix::Phaser::Init.new(
             RakuAST::Block.new(
@@ -168,7 +177,7 @@ class RakuAST::CompUnit
                             name => RakuAST::Name.from-identifier("render"),
                             args => RakuAST::ArgList.new(
                               RakuAST::Var::Doc.new(
-                                $Pod eq 'Pod' ?? "pod" !! "rakudoc"
+                                $base eq 'Pod' ?? "pod" !! "rakudoc"
                               )
                             )
                           )

@@ -310,8 +310,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $cu.calculate-sink();
 
         # if --doc specified, add INIT phaser that handles that
-        if %*OPTIONS<doc> -> $type {
-            $cu.add-INIT-phaser-for-doc-handling($type);
+        if nqp::existskey(%*OPTIONS,'doc') {
+            $cu.add-INIT-phaser-for-doc-handling(
+              'Pod', %*OPTIONS<doc> || 'Text'
+            );
+        }
+        elsif nqp::existskey(%*OPTIONS,'rakudoc') {
+            $cu.add-INIT-phaser-for-doc-handling(
+              'RakuDoc', %*OPTIONS<rakudoc> || 'Text'
+            );
         }
 
         # Have check time.

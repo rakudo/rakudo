@@ -20,27 +20,30 @@ unit class RakuDoc::To::Text;
 
 method render($ast) { $ast.map(&rakudoc2text).join }
 
+# colorless ANSI constants
+my constant RESET         = "\e[0m";
+my constant BOLD-ON       = "\e[1m";
+my constant ITALIC-ON     = "\e[3m";
+my constant UNDERLINE-ON  = "\e[4m";
+my constant INVERSE-ON    = "\e[7m";
+my constant BOLD-OFF      = "\e[22m";
+my constant ITALIC-OFF    = "\e[23m";
+my constant UNDERLINE-OFF = "\e[24m";
+my constant INVERSE-OFF   = "\e[27m";
+
+my sub bold(str $text)      { BOLD-ON      ~ $text ~ BOLD-OFF      }
+my sub italic(str $text)    { ITALIC-ON    ~ $text ~ ITALIC-OFF    }
+my sub underline(str $text) { UNDERLINE-ON ~ $text ~ UNDERLINE-OFF }
+my sub inverse(str $text)   { INVERSE-ON   ~ $text ~ INVERSE-OFF   }
+
 # ANSI formatting allowed
 my constant %formats =
-  B => "bold",
-  C => "bold",
-  L => "underline",
-  D => "underline",
-  R => "inverse"
+  B => &bold,
+  C => &bold,
+  L => &underline,
+  D => &underline,
+  R => &inverse,
 ;
-
-my sub default-colored(\text, $) { text }
-my &colored := INIT {
-    (try RakuAST::StatementList.new(
-      RakuAST::Statement::Use.new(
-        module-name =>
-          RakuAST::Name.from-identifier-parts("Terminal","ANSIColor")
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new("\&colored")
-      )
-    ).EVAL) // &default-colored
-}
 
 #-- primary dispatchers --------------------------------------------------------
 
@@ -117,7 +120,7 @@ my multi sub rakudoc2text(RakuAST::Doc::DeclaratorTarget:D $ast --> Str:D) {
     sub accept($_) {
         .cut-WHY;
         my str $deparsed = .DEPARSE;
-        @parts.push(colored($deparsed, 'bold'));
+        @parts.push(bold($deparsed));
         @parts.push('-' x $deparsed.lines.map(*.chars).max);
     }
 
@@ -158,7 +161,7 @@ my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
         my str $text = $ast.atoms.map(&rakudoc2text).join;
 
         if $letter eq 'L' {
-            $text = colored($text, 'underline');
+            $text = underline($text);
 
             # remember the URL as a note
             if $ast.meta.head -> $url {
@@ -172,7 +175,7 @@ my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
             }
         }
         elsif $letter eq 'X' {
-            $text = colored($text, 'bold');
+            $text = bold($text);
 
             # remember the xref as a note
             if $ast.meta -> @meta {
@@ -185,8 +188,8 @@ my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
                 $text
             }
         }
-        elsif %formats{$letter} -> $format {
-            colored($text, $format)
+        elsif %formats{$letter} -> &hilight {
+            hilight($text)
         }
         else {
              $text
@@ -257,7 +260,7 @@ my sub table2text(RakuAST::Doc::Block:D $ast) {
             my str $text = rakudoc2text($_);
             if ++$row == $header-row {
                 $header-width = $text.chars;
-                colored($text, 'bold')
+                bold($text)
             }
             else {
                 $text
@@ -269,7 +272,7 @@ my sub table2text(RakuAST::Doc::Block:D $ast) {
     if $config<caption> -> $caption {
         my str $text = $caption.Str;  # also handle :caption<foo bar>
         my int $caption-width = $text.chars;
-        $text = colored($text, 'underline');
+        $text = underline($text);
         @parts.unshift: '  ' ~ ($caption-width >= $header-width
           ?? $text
           !! (' ' x ($header-width - $caption-width) / 2) ~ $text
@@ -283,7 +286,7 @@ my sub table2text(RakuAST::Doc::Block:D $ast) {
 my sub block2text(RakuAST::Doc::Block:D $ast --> Str:D) {
     my str $type = $ast.type;
 
-    colored($type, 'bold')
+    bold($type)
       ~ "\n" ~ ('-' x $type.chars)
       ~ "\n" ~ paragraphify($ast)
 }

@@ -35,6 +35,7 @@ my @clo := $comp.commandline_options();
 @clo.push('n');
 @clo.push('p');
 @clo.push('doc=s?');
+@clo.push('rakudoc=s?');
 @clo.push('optimize=s?');
 @clo.push('c');
 @clo.push('I=s');

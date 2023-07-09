@@ -1588,7 +1588,7 @@ class RakuAST::VarDeclaration::Implicit::Doc
     }
 }
 
-# The implicit `$=pod` term declaration for rakudoc access
+# The implicit `$=pod` term declaration for legacy pod access
 class RakuAST::VarDeclaration::Implicit::Doc::Pod
   is RakuAST::VarDeclaration::Implicit::Doc
 {
@@ -1641,6 +1641,48 @@ class RakuAST::VarDeclaration::Implicit::Doc::Finish
           nqp::getattr(
             self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
           ).finish-content,
+        );
+    }
+}
+
+# The implicit `$=rakudoc` term declaration for RakuDoc access
+class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
+  is RakuAST::VarDeclaration::Implicit::Doc
+{
+    method name() { '$=rakudoc' }
+
+    method fetch-blocks(RakuAST::StatementList $statement-list) {
+        for nqp::getattr(
+          $statement-list,RakuAST::StatementList,'$!statements'
+        ) {
+            if nqp::istype($_,RakuAST::Doc::Block) {
+                nqp::push($*RAKUDOC,$_);
+            }
+            elsif nqp::istype($_,RakuAST::Doc::DeclaratorTarget) {
+                if $_.WHY -> $declarator {
+                    nqp::push($*RAKUDOC,$_);
+                }
+            }
+            elsif nqp::istype($_,RakuAST::Blockoid) {
+                self.fetch-blocks($_.statement-list);
+            }
+        }
+    }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my $*RAKUDOC := [];
+        self.fetch-blocks(
+          nqp::getattr(
+            self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
+          ).statement-list,
+          "foo"  # no idea why this is needed
+        );
+
+        nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',
+          self.IMPL-WRAP-LIST($*RAKUDOC)
         );
     }
 }

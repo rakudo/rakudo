@@ -18,9 +18,10 @@ class RakuAST::CompUnit
     has Mu $!global-package-how;
     has Mu $!init-phasers;
     has Mu $!end-phasers;
-    has RakuAST::VarDeclaration::Implicit::Doc::Pod    $.pod;
-    has RakuAST::VarDeclaration::Implicit::Doc::Data   $.data;
-    has RakuAST::VarDeclaration::Implicit::Doc::Finish $.finish;
+    has RakuAST::VarDeclaration::Implicit::Doc::Pod     $.pod;
+    has RakuAST::VarDeclaration::Implicit::Doc::Data    $.data;
+    has RakuAST::VarDeclaration::Implicit::Doc::Finish  $.finish;
+    has RakuAST::VarDeclaration::Implicit::Doc::Rakudoc $.rakudoc;
     has Mu $.pod-content;
     has Mu $.data-content;
     has Mu $.finish-content;
@@ -107,6 +108,8 @@ class RakuAST::CompUnit
               RakuAST::VarDeclaration::Implicit::Doc::Data.new);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!finish',
               RakuAST::VarDeclaration::Implicit::Doc::Finish.new);
+            nqp::bindattr($obj, RakuAST::CompUnit, '$!rakudoc',
+              RakuAST::VarDeclaration::Implicit::Doc::Rakudoc.new);
         }
 
         my $file := nqp::getlexdyn('$?FILES');
@@ -164,7 +167,9 @@ class RakuAST::CompUnit
                           postfix => RakuAST::Call::Method.new(
                             name => RakuAST::Name.from-identifier("render"),
                             args => RakuAST::ArgList.new(
-                              RakuAST::Var::Doc.new("pod")
+                              RakuAST::Var::Doc.new(
+                                $Pod eq 'Pod' ?? "pod" !! "rakudoc"
+                              )
                             )
                           )
                         )
@@ -532,9 +537,10 @@ class RakuAST::CompUnit
 
     method visit-children(Code $visitor) {
         $visitor($!statement-list);
-        $visitor($!pod)    if $!pod;
-        $visitor($!data)   if $!data;
-        $visitor($!finish) if $!finish;
+        $visitor($!pod)     if $!pod;
+        $visitor($!data)    if $!data;
+        $visitor($!finish)  if $!finish;
+        $visitor($!rakudoc) if $!rakudoc;
     }
 }
 

@@ -1,4 +1,4 @@
-# This is a proof-of-concept renderer of Rakudoc, based on a given
+# This is a proof-of-concept renderer of RakuDoc, based on a given
 # RakuAST tree.  One either calls this as a class method:
 #
 # use RakuDoc::To::Text;
@@ -18,7 +18,7 @@ use experimental :rakuast;
 
 unit class RakuDoc::To::Text;
 
-method render($ast) { rakudoc2text($ast) }
+method render($ast) { $ast.map(&rakudoc2text).join }
 
 # ANSI formatting allowed
 my constant %formats =
@@ -29,8 +29,9 @@ my constant %formats =
   R => "inverse"
 ;
 
+my sub default-colored(\text, $) { text }
 my &colored := INIT {
-    my $ast := RakuAST::StatementList.new(
+    (try RakuAST::StatementList.new(
       RakuAST::Statement::Use.new(
         module-name =>
           RakuAST::Name.from-identifier-parts("Terminal","ANSIColor")
@@ -38,8 +39,7 @@ my &colored := INIT {
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Var::Lexical.new("\&colored")
       )
-    );
-    (try $ast.EVAL) // -> $text, $ { $text }
+    ).EVAL) // &default-colored
 }
 
 #-- primary dispatchers --------------------------------------------------------
@@ -54,13 +54,21 @@ my proto sub rakudoc2text(|) is export {
     # the first time we call
     else {
         my @*NOTES;
+        my @*XREFS;
         my str @parts = {*}
 
         if @*NOTES -> @notes {
             my $index = 0;
 
-            @parts.push: "NOTES\n-----\n";
+            @parts.push: "\nNOTES\n-----\n";
             @parts.push: (++$index).Str(:superscript) ~ " $_\n" for @notes;
+        }
+
+        if @*XREFS -> @xrefs {
+            my $index = 0;
+
+            @parts.push: "\nREFERENCES\n----------\n";
+            @parts.push: (++$index).Str(:superscript) ~ " $_\n" for @xrefs;
         }
         @parts.join
     }
@@ -82,18 +90,18 @@ my multi sub rakudoc2text(RakuAST::Doc::Block:D $ast --> Str:D) {
         when 'code'          { code2text($ast)    }
         when 'comment'       { ''                 }
         when 'config'        { ''                 }
-        when 'doc'           { paragraphify($ast) }
         when 'head'          { heading2text($ast) }
         when 'implicit-code' { code2text($ast)    }
         when 'item'          { item2text($ast)    }
         when 'pod'           { paragraphify($ast) }
+        when 'rakudoc'       { paragraphify($ast) }
         when 'table'         { table2text($ast)   }
         default              { block2text($ast)   }
     }
 }
 
-# handle any declarator doc
-my multi sub rakudoc2text(RakuAST::Doc::Declarator:D $ast --> Str:D) {
+# handle any declarator targets
+my multi sub rakudoc2text(RakuAST::Doc::DeclaratorTarget:D $ast --> Str:D) {
     my str @parts;
 
     # an empty body so that scopes will be rendered as { ... }
@@ -106,25 +114,23 @@ my multi sub rakudoc2text(RakuAST::Doc::Declarator:D $ast --> Str:D) {
     );
 
     # get the subject of the documentation
-    with $ast.WHEREFORE -> $target {
-        sub accept($_) {
-            .cut-WHY;
-            my str $deparsed = .DEPARSE;
-            @parts.push(colored($deparsed, 'bold'));
-            @parts.push('-' x $deparsed.lines.map(*.chars).max);
-        }
+    sub accept($_) {
+        .cut-WHY;
+        my str $deparsed = .DEPARSE;
+        @parts.push(colored($deparsed, 'bold'));
+        @parts.push('-' x $deparsed.lines.map(*.chars).max);
+    }
 
-        given $target.clone {
-            when RakuAST::Routine | RakuAST::Package {
-                .replace-body($empty-body);
-                accept($_);
-            }
-            when RakuAST::VarDeclaration::Simple {
-                accept($_) if .scope eq 'has' | 'HAS';
-            }
-            default {
-                accept($_);
-            }
+    given $ast.clone {
+        when RakuAST::Routine | RakuAST::Package {
+            .replace-body($empty-body);
+            accept($_);
+        }
+        when RakuAST::VarDeclaration::Simple {
+            accept($_);
+        }
+        default {
+            accept($_);
         }
     }
 
@@ -133,8 +139,9 @@ my multi sub rakudoc2text(RakuAST::Doc::Declarator:D $ast --> Str:D) {
         $doc.join("\n").lines.map(*.trim-leading).join("\n")
     }
 
-    @parts.push(normalize($_)) with $ast.leading;
-    @parts.push(normalize($_)) with $ast.trailing;
+    @parts.push(normalize($_)) with try $ast.WHY.leading;
+    @parts.push(normalize($_)) with try $ast.WHY.trailing;
+    @parts.push("");
     @parts.join("\n");
 }
 
@@ -144,13 +151,13 @@ my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
     if $letter eq 'Z' {
         ''
     }
+    elsif $letter eq 'A' {
+        rakudoc2text $ast.meta.head
+    }
     else {
         my str $text = $ast.atoms.map(&rakudoc2text).join;
 
-        if $letter eq 'A' {
-            rakudoc2text $ast.meta.head
-        }
-        elsif $letter eq 'L' {
+        if $letter eq 'L' {
             $text = colored($text, 'underline');
 
             # remember the URL as a note
@@ -164,10 +171,25 @@ my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
                 $text
             }
         }
+        elsif $letter eq 'X' {
+            $text = colored($text, 'bold');
+
+            # remember the xref as a note
+            if $ast.meta -> @meta {
+                @*XREFS.push: @meta.map(*.join(', ')).join('; ');
+                $text ~ @*XREFS.elems.Str(:subscript)
+            }
+
+            # no URL specified
+            else {
+                $text
+            }
+        }
+        elsif %formats{$letter} -> $format {
+            colored($text, $format)
+        }
         else {
-            (my $format := %formats{$letter})
-              ?? colored($text, $format)
-              !! $text
+             $text
         }
     }
 }
@@ -219,7 +241,7 @@ my sub item2text(RakuAST::Doc::Block:D $ast --> Str:D)  {
 
 # handle =table
 my sub table2text(RakuAST::Doc::Block:D $ast) {
-    my $config := $ast.config;
+    my $config := $ast.resolved-config;
 
     my str @parts;
     my int $header-row = $config<header-row> // -1;

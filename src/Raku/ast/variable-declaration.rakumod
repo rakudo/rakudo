@@ -1658,9 +1658,11 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
             if nqp::istype($_,RakuAST::Doc::Block) {
                 nqp::push($*RAKUDOC,$_);
             }
-            elsif nqp::istype($_,RakuAST::Doc::DeclaratorTarget) {
-                if $_.WHY -> $declarator {
-                    nqp::push($*RAKUDOC,$_);
+            elsif nqp::istype($_,RakuAST::Statement::Expression) {
+                my $expression := $_.expression;
+                if nqp::istype($expression,RakuAST::Doc::DeclaratorTarget)
+                  && $expression.WHY {
+                    nqp::push($*RAKUDOC,$expression);
                 }
             }
             elsif nqp::istype($_,RakuAST::Blockoid) {
@@ -1677,8 +1679,7 @@ class RakuAST::VarDeclaration::Implicit::Doc::Rakudoc
         self.fetch-blocks(
           nqp::getattr(
             self,RakuAST::VarDeclaration::Implicit::Doc,'$!cu'
-          ).statement-list,
-          "foo"  # no idea why this is needed
+          ).statement-list
         );
 
         nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::Doc, '$!value',

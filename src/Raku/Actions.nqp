@@ -2920,6 +2920,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :lemma(~$<lemma>), :@paragraphs
     }
 
+    method doc-block:sym<column-row>($/) {
+        if $*FROM-SEEN{$/.from}++ {
+            return;
+        }
+
+        my $config := extract-config($/);
+
+        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+          :type(~$<type>), :$config, :abbreviated
+    }
+
     method doc-block:sym<config>($/) {
         if $*FROM-SEEN{$/.from}++ {
             return;

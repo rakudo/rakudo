@@ -3604,7 +3604,7 @@ if $*COMPILING_CORE_SETTING {
 
     # directives that may not be used as block names
     token rakudoc-directives {
-        alias | begin | config | end | finish | for
+        alias | begin | column | config | end | finish | for | row
     }
 
     proto token doc-block {*}
@@ -3734,6 +3734,21 @@ if $*COMPILING_CORE_SETTING {
         [\n $<spaces> '=' \h+ $<line>=\N+]*
 
         \n?
+    }
+
+    token doc-block:sym<column-row> {
+
+        # save any leading whitespace from start of line
+        ^^ $<spaces>=[ \h* ]
+
+        # custom config madness
+        '=' $<type>=[ column | row ]
+
+        # fetch any configuration
+        <doc-configuration($<spaces>)>*
+
+        # should now be at end of line
+        <.doc-newline>
     }
 
     token doc-block:sym<config> {

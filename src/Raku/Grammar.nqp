@@ -1596,7 +1596,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%conditional, :reducecheck<ternary>)>
     }
 
-    token infix:sym«=>» { <sym> <O(|%item_assignment)> }
+    token infix:sym«=>» {
+        $<sym>=[ '=>' | '⇒' ]
+        <O(|%item_assignment)>
+    }
 
     token prefix:sym<so> { <sym><.end-prefix> <O(|%loose_unary)> }
     token prefix:sym<not>  { <sym><.end-prefix> <O(|%loose_unary)> }
@@ -1782,7 +1785,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<time> { <sym> <.tok> }
 
-    token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* '=>'> }
+    token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]> }
 
     token term:sym<rand> {
         <!{ $*LANG.pragma('p5isms') }>
@@ -1820,7 +1823,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<fatarrow> {
-        <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
+        <key=.identifier> \h* [ '=>' | '⇒' ] <.ws> <val=.EXPR('i<=')>
     }
 
     token term:sym<colonpair>          { <colonpair> }
@@ -2133,7 +2136,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     regex special-variable:sym<${ }> {
         <sigil> '{' {} $<text>=[.*?] '}'
         <!{ $*IN-DECL }>
-        <!{ $<text> ~~ / '=>' || ':'<:alpha> || '|%' / }>
+        <!{ $<text> ~~ / [ '=>' | '⇒' ] || ':'<:alpha> || '|%' / }>
         <!{ $<text> ~~ / ^ \s* $ / }>
         <?{
             my $sigil := $<sigil>.Str;
@@ -3202,7 +3205,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token lambda { '->' | '→' | '<->' | '↔' }
 
     token end-keyword {
-        » <!before <.[ \( \\ ' \- ]> || \h* '=>'>
+        » <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]>
     }
 
     token end-prefix {

@@ -1405,7 +1405,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # TODO: report the correct bracket in error message
     token postfix:sym«->» {
-        <sym>
+        $<sym>=[ '->' | '→' ]
         [
         |  ['[' | '{' | '(' ] <.obs('->(), ->{} or ->[] as postfix dereferencer', '.(), .[] or .{} to deref, or whitespace to delimit a pointy block')>
         | <.obs('-> as postfix', 'either . to call a method, or whitespace to delimit a pointy block')>
@@ -3199,7 +3199,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token twigil:sym<=> { <sym> <?before \w> }
     token twigil:sym<~> { <sym> <?before \w> }
 
-    token lambda { '->' | '<->' }
+    token lambda { '->' | '→' | '<->' | '↔' }
 
     token end-keyword {
         » <!before <.[ \( \\ ' \- ]> || \h* '=>'>

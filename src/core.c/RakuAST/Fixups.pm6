@@ -361,6 +361,7 @@ augment class RakuAST::Doc::Markup {
             if self!extract-meta -> $meta {
                 self.add-meta(.trim.split(',')>>.trim.List)
                   for $meta.split(';');
+                self.set-separator(';');
             }
         }
         elsif $letter eq 'E' {
@@ -463,10 +464,11 @@ augment class RakuAST::Doc::Markup {
                     @parts.push: $meta;
                 }
             }
-            elsif $letter eq 'X' {
-                if self.meta.join(self.separator) -> $meta {
+            elsif $letter eq 'D' | 'M' | 'X' {
+                if self.meta -> @meta {
                     @parts.push: '|';
-                    @parts.push: $meta;
+                    @parts.push:
+                      @meta.map({ $_.join(", ") }).join(self.separator ~ ' ');
                 }
             }
         }

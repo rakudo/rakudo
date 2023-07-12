@@ -191,11 +191,10 @@ class RakuAST::Doc::Markup
           $opener // '<');
         nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!closer',
           $closer // '>');
-        nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!separator',
-          $separator // "");
 
         $obj.set-atoms($atoms);
         $obj.set-meta($meta);
+        $obj.set-separator($separator);
         $obj
     }
 
@@ -227,4 +226,9 @@ class RakuAST::Doc::Markup
     }
     method add-meta($meta) { nqp::push($!meta, $meta) }
     method meta() { self.IMPL-WRAP-LIST($!meta) }
+
+    method set-separator($separator) {
+        nqp::bindattr_s(self, RakuAST::Doc::Markup, '$!separator',
+          $separator // "");
+    }
 }

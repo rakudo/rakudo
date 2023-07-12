@@ -357,7 +357,7 @@ augment class RakuAST::Doc::Markup {
         if $letter eq 'L' {
             self.set-meta($_) with self!extract-meta;
         }
-        elsif $letter eq 'M' | 'X' {
+        elsif $letter eq 'D' | 'M' | 'X' {
             if self!extract-meta -> $meta {
                 self.add-meta(.trim.split(',')>>.trim.List)
                   for $meta.split(';');

@@ -12,7 +12,6 @@ role Perl6::Metamodel::RoleContainer {
     method roles-ordered($obj, @roles, :$transitive = 1, :$mro = 0) {
         if $transitive {
             my @result;
-            $mro := nqp::can(self, 'c3_merge') if $mro;
             for @roles {
                 my @r := $mro ?? [] !! @result;
                 nqp::push(@r, $_);
@@ -21,7 +20,7 @@ role Perl6::Metamodel::RoleContainer {
                 }
                 nqp::push(@result, @r) if $mro;
             }
-            $mro  ?? self.c3_merge(@result) !! @result;
+            $mro  ?? Perl6::Metamodel::Configuration.c3_merge(@result) !! @result;
         }
         else {
             @roles

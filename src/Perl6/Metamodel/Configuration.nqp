@@ -87,6 +87,72 @@ class Perl6::Metamodel::Configuration {
     # Register HLL symbol for code which doesn't have direct access to this class. For example, moar/Perl6/Ops.nqp
     # relies on this symbol.
     nqp::bindhllsym('Raku', 'METAMODEL_CONFIGURATION', Perl6::Metamodel::Configuration);
+
+    # C3 merge routine.
+    method c3_merge(@merge_list) {
+        my @result;
+        my $accepted;
+        my $something_accepted := 0;
+        my $cand_count := 0;
+
+        # Try to find something appropriate to add to the MRO.
+        for @merge_list {
+            my @cand_list := $_;
+            if nqp::elems(@cand_list) {
+                my $rejected := 0;
+                my $cand_class := @cand_list[0];
+                $cand_count := $cand_count + 1;
+                for @merge_list {
+                    # Skip current list.
+                    unless $_ =:= @cand_list {
+                        # Is current candidate in the tail? If so, reject.
+                        my $cur_pos := 1;
+                        while $cur_pos <= nqp::elems($_) {
+                            if nqp::decont($_[$cur_pos]) =:= nqp::decont($cand_class) {
+                                $rejected := 1;
+                            }
+                            $cur_pos := $cur_pos + 1;
+                        }
+                    }
+
+                }
+                # If we didn't reject it, this candidate will do.
+                unless $rejected {
+                    $accepted := $cand_class;
+                    $something_accepted := 1;
+                    last;
+                }
+            }
+        }
+
+        # If we never found any candidates, return an empty list.
+        if $cand_count == 0 {
+            return @result;
+        }
+
+        # If we didn't find anything to accept, error.
+        unless $something_accepted {
+            nqp::die("Could not build C3 linearization: ambiguous hierarchy");
+        }
+
+        # Otherwise, remove what was accepted from the merge lists.
+        my int $i := -1;
+        while ++$i < nqp::elems(@merge_list) {
+            my @new_list;
+            for @merge_list[$i] {
+                unless nqp::decont($_) =:= nqp::decont($accepted) {
+                    @new_list.push($_);
+                }
+            }
+            @merge_list[$i] := @new_list;
+        }
+
+        # Need to merge what remains of the list, then put what was accepted on
+        # the start of the list, and we're done.
+        @result := self.c3_merge(@merge_list);
+        @result.unshift($accepted);
+        return @result;
+    }
 }
 
 # vim: expandtab sw=4

@@ -3723,7 +3723,7 @@ if $*COMPILING_CORE_SETTING {
         <.doc-newline>
 
         # and any following lines as well
-        $<lines>=[[^^ \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
+        $<lines>=[[^^ $<spaces> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
     }
 
     token doc-block:sym<alias> {
@@ -3785,7 +3785,7 @@ if $*COMPILING_CORE_SETTING {
         [ [ \h+ $<header>=[\N+ \n?]? ] | <doc-newline> ]
 
         # and any following lines as well
-        $<lines>=[[^^ \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
+        $<lines>=[[^^ $<spaces> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
     }
 
     token doc-block:sym<lines> {

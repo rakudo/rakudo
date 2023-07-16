@@ -204,6 +204,17 @@ my class Promise does Awaitable {
         }
     }
 
+    method !PLANNED-THEN(\then-promise, \vow, \then-code) {
+        # Push 2 entries to $!thens: something that starts the then code,
+        # and something that handles its exceptions. They will be sent to the
+        # scheduler when this promise is kept or broken.
+        nqp::bindattr(then-promise, Promise, '$!dynamic_context', nqp::ctx());
+        nqp::push(nqp::ifnull($!thens, ($!thens := nqp::list)), then-code);
+        nqp::push($!thens, -> $ex { vow.break($ex) });
+        nqp::unlock($!lock);
+        then-promise
+    }
+
     method then(Promise:D: &code) {
         nqp::lock($!lock);
         if $!status == Broken || $!status == Kept {
@@ -212,20 +223,53 @@ my class Promise does Awaitable {
             self.WHAT.start( { code(self) }, :$!scheduler);
         }
         else {
-            # Create a Promise, and push 2 entries to $!thens: something that
-            # starts the then code, and something that handles its exceptions.
-            # They will be sent to the scheduler when this promise is kept or
-            # broken.
             my $then-p := self.new(:$!scheduler);
-            nqp::bindattr($then-p, Promise, '$!dynamic_context', nqp::ctx());
             my $vow := $then-p.vow;
-            nqp::push(
-              nqp::ifnull($!thens,($!thens := nqp::list)),
-              { my $*PROMISE := $then-p; $vow.keep(code(self)) }
-            );
-            nqp::push($!thens, -> $ex { $vow.break($ex) });
+            self!PLANNED-THEN($then-p, $vow, { my $*PROMISE := $then-p; $vow.keep(code(self)) } )
+        }
+    }
+
+    method andthen(Promise:D: &code) {
+        nqp::lock($!lock);
+        if $!status == Broken {
             nqp::unlock($!lock);
-            $then-p
+            self.WHAT.broken($!result)
+        }
+        elsif $!status == Kept {
+            # Already have the result, start immediately.
+            nqp::unlock($!lock);
+            self.WHAT.start( { code(self) }, :$!scheduler);
+        }
+        else {
+            my $then-p := self.new(:$!scheduler);
+            my $vow := $then-p.vow;
+            self!PLANNED-THEN( $then-p,
+                               $vow,
+                               { $!status == Kept
+                                    ?? do { my $*PROMISE := $then-p; $vow.keep(code(self)) }
+                                    !! $vow.break($!result) })
+        }
+    }
+
+    method orelse(Promise:D: &code) {
+        nqp::lock($!lock);
+        if $!status == Broken {
+            nqp::unlock($!lock);
+            self.WHAT.start( { code(self) }, :$!scheduler);
+        }
+        elsif $!status == Kept {
+            # Already have the result, start immediately.
+            nqp::unlock($!lock);
+            self.WHAT.kept($!result);
+        }
+        else {
+            my $then-p := self.new(:$!scheduler);
+            my $vow := $then-p.vow;
+            self!PLANNED-THEN( $then-p,
+                               $vow,
+                               { $!status == Kept
+                                   ?? $vow.keep($!result)
+                                   !! do { my $*PROMISE := $then-p; $vow.keep(code(self)) } })
         }
     }
 

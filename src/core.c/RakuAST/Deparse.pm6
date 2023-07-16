@@ -705,22 +705,22 @@ class RakuAST::Deparse {
 #- Doc -------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Doc::Block:D $ast --> Str:D) {
-        my str $type = $ast.type;
+        my str $margin = $ast.margin;
+        my str $type   = $ast.type;
 
-        # special handling for alias directive
+        # handle =alias directive
         if $type eq 'alias' {
-            my str $margin = $ast.margin;
             my ($lemma, $paragraph) = $ast.paragraphs;
             $paragraph = self.deparse($paragraph)
               unless nqp::istype($paragraph,Str);
 
-            return 
-              $margin
-              ~ self.hsyn('rakudoc-type', '=alias')
+            return $margin
+              ~ '='
+              ~ self.hsyn('rakudoc-type', $type)
               ~ " $lemma $paragraph.subst("\n", "\n$margin= ", :global)\n"
         }
 
-        # handle any config
+        # preprocess any config
         my $abbreviated := $ast.abbreviated;
         my str $config   = $ast.config.sort({
             .key eq 'numbered' ?? '' !! .key  # numbered always first
@@ -739,8 +739,16 @@ class RakuAST::Deparse {
             }
         }).join(' ');
         $config = $config
-          ?? ' ' ~ self.hsyn('rakudoc-config', $config)
-          !! "";
+          ?? ' ' ~ self.hsyn('rakudoc-config', $config) ~ "\n"
+          !! "\n";
+
+        # handle =row / =column directives
+        if $type eq 'row' | 'column' {
+            return $margin
+              ~ '='
+              ~ self.hsyn('rakudoc-type', $type)
+              ~ $config
+        }
 
         my $paragraphs := $ast.paragraphs.map({
           nqp::istype($_,Str) ?? $_ !! self.deparse($_)
@@ -760,7 +768,6 @@ class RakuAST::Deparse {
                 '=for '
                 ~ self.hsyn('rakudoc-type', $type)
                 ~ $config
-                ~ "\n"
                 ~ self.hsyn('rakudoc-verbatim', $paragraphs.chomp)
             }
             else {
@@ -768,7 +775,6 @@ class RakuAST::Deparse {
                 self.hsyn('rakudoc-prefix', '=begin')
                   ~ $type
                   ~ $config
-                  ~ "\n"
                   ~ self.hsyn('rakudoc-verbatim', $paragraphs)
                   ~ self.hsyn('rakudoc-type', '=end')
                   ~ $type
@@ -789,7 +795,7 @@ class RakuAST::Deparse {
             }
             elsif $abbreviated {
                 self.hsyn('rakudoc-type', '=' ~ $type ~ $ast.level)
-                  ~ $config
+                  ~ $config.chomp
                   ~ ($type eq 'table' ?? "\n" !! ' ')
                   ~ $paragraphs
             }
@@ -797,7 +803,6 @@ class RakuAST::Deparse {
                   '=for '
                   ~ self.hsyn('rakudoc-type', $type ~ $ast.level)
                   ~ $config
-                  ~ "\n"
                   ~ $paragraphs.chomp
             }
             else {
@@ -805,7 +810,6 @@ class RakuAST::Deparse {
                 self.hsyn('rakudoc-prefix', '=begin')
                   ~ $type
                   ~ $config
-                  ~ "\n"
                   ~ $paragraphs
                   ~ self.hsyn('rakudoc-prefix', '=end')
                   ~ $type

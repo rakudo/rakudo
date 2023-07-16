@@ -3743,7 +3743,7 @@ if $*COMPILING_CORE_SETTING {
     token doc-block:sym<column-row> {
 
         # save any leading whitespace from start of line
-        ^^ $<spaces>=[ \h* ]
+        ^^ $<margin>=[ \h* ]
 
         # custom config madness
         '=' $<type>=[ column | row ]

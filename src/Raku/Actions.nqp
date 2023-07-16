@@ -2855,6 +2855,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :margin(~$<margin>), :lemma(~$<lemma>), :@paragraphs
     }
 
+    method doc-block:sym<column-row>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            $*SEEN{$/.from} := RakuAST::Doc::Block.new:
+               :directive, :margin(~$<margin>), :type(~$<type>),
+              :config(extract-config($/))
+        }
+    }
+
     method doc-block:sym<verbatim>($/) {
         if $*FROM-SEEN{$/.from}++ {
             return;
@@ -2918,17 +2926,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
           :$type, :$level, :$config, :@paragraphs;
-    }
-
-    method doc-block:sym<column-row>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
-
-        my $config := extract-config($/);
-
-        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :type(~$<type>), :$config, :abbreviated
     }
 
     method doc-block:sym<config>($/) {

@@ -192,6 +192,10 @@ augment class RakuAST::Node {
           'off', -> {
               :off if self.off
           },
+          'paragraphs', -> {
+              my @paragraphs := self.paragraphs;
+              :@paragraphs if @paragraphs.elems
+          },
           'scope', -> {
               my $scope := self.scope;
               :$scope if $scope ne self.default-scope

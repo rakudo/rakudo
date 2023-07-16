@@ -717,11 +717,11 @@ augment class RakuAST::Doc::Block {
         self.paragraphs.head.leading-whitespace
     }
 
-    # create block from alias
+    # create block from =alias
     method from-alias(:$lemma, :@paragraphs, *%_) {
 
         # set up basic block
-        my $block := self.new(:type<alias>, :abbreviated, |%_);
+        my $block := self.new(:type<alias>, :directive, |%_);
 
         # add rest with possible markup
         my $paragraph :=

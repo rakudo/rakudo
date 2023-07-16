@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 9;
+plan 11;
 
 my $ast;
 my $deparsed;
@@ -170,13 +170,13 @@ CODE
     }
 }
 
-subtest 'abbreviated alias in a statement list' => {
+subtest 'alias directive in a statement list' => {
     #     =alias FOO bar␤    = 137␤42␤
     ast RakuAST::StatementList.new(
       RakuAST::Doc::Block.new(
         margin      => '    ',
         type        => 'alias',
-        abbreviated => True,
+        directive   => True,
         paragraphs  => (
           "FOO",
           "bar\n137",
@@ -194,6 +194,33 @@ subtest 'abbreviated alias in a statement list' => {
     = 137
 42
 CODE
+    }
+}
+
+for <row column> -> $name {
+    subtest 'row directive in a statement list' => {
+        #     =$type :align<left middle>␤42␤
+        ast RakuAST::StatementList.new(
+          RakuAST::Doc::Block.new(
+            margin    => '    ',
+            type      => $name,
+            directive => True,
+            config    => ${:foo(RakuAST::Term::Name.new(
+              RakuAST::Name.from-identifier("True")
+            ))}
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        );
+
+        is-deeply $ast.EVAL, 42, 'do we get the final result';
+        for 'Str', $deparsed, 'Raku', $raku.EVAL.DEPARSE -> $type, $it {
+            is-deeply $it, qq:to/CODE/, "$type: deparse";
+        =$name :foo
+    42
+    CODE
+        }
     }
 }
 

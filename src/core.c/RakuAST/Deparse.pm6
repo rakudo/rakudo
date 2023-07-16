@@ -751,7 +751,14 @@ class RakuAST::Deparse {
         elsif $type eq 'code' {
             $paragraphs := self.deparse($_) with try $paragraphs.AST;
             if $abbreviated {
-                self.hsyn('rakudoc-type', '=code') ~ "\n" ~ $paragraphs
+                '=' ~ self.hsyn('rakudoc-type', 'code') ~ "\n" ~ $paragraphs
+            }
+            elsif $ast.for {
+                '=for '
+                ~ self.hsyn('rakudoc-type', $type)
+                ~ $config
+                ~ "\n"
+                ~ self.hsyn('rakudoc-verbatim', $paragraphs.chomp)
             }
             else {
                 $type = ' ' ~ self.hsyn('rakudoc-type', $type);
@@ -782,6 +789,13 @@ class RakuAST::Deparse {
                   ~ $config
                   ~ ($type eq 'table' ?? "\n" !! ' ')
                   ~ $paragraphs
+            }
+            elsif $ast.for {
+                  '=for '
+                  ~ self.hsyn('rakudoc-type', $type ~ $ast.level)
+                  ~ $config
+                  ~ "\n"
+                  ~ $paragraphs.chomp
             }
             else {
                 $type = ' ' ~ self.hsyn('rakudoc-type', $type ~ $ast.level);

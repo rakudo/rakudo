@@ -98,7 +98,7 @@ augment class RakuAST::Node {
 
         my $special := BEGIN nqp::hash(
           'abbreviated', -> {
-              :abbreviated if self.abbreviated
+              :abbreviated if self.abbreviated && !self.directive
           },
           'adverbs', -> {
               my $adverbs := nqp::decont(self.adverbs);
@@ -139,6 +139,9 @@ augment class RakuAST::Node {
               my $config := nqp::decont(self.config);
               :config($config.Hash) if $config
           },
+          'directive', -> {
+              :directive if self.directive
+          },
           'dwim-left', -> {
               :dwim-left if self.dwim-left
           },
@@ -148,6 +151,9 @@ augment class RakuAST::Node {
           'elsifs', -> {
               my $elsifs := nqp::decont(self.elsifs);
               :$elsifs if $elsifs
+          },
+          'for', -> {
+              :for if self.for
           },
           'how', -> {
               my $how := self.how;
@@ -373,7 +379,7 @@ augment class RakuAST::Node {
 #- Doc -------------------------------------------------------------------------
 
     multi method raku(RakuAST::Doc::Block:D: --> Str:D) {
-        self!nameds: <type level abbreviated config paragraphs>
+        self!nameds: <type level directive for  abbreviated config paragraphs>
     }
 
     multi method raku(RakuAST::Doc::Declarator:D: --> Str:D) {

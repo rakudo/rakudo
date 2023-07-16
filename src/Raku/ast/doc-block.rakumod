@@ -63,8 +63,8 @@ class RakuAST::Doc::Block
     has str  $.type;             # the type (e.g. "doc", "head", "item", etc)
     has int  $.level;            # the level (default "", or numeric 1..N)
     has Hash $!config;           # the config hash (e.g. :numbered, :allow<B>)
-    has Bool $.abbreviated;      # bool: true if =item rather than =begin item
     has List $!paragraphs;       # the actual content
+    has int  $.status;           # 0 =begin, 1 =for, 2 =abbrev, 3 =directive
     has int  $!pod-index;        # index in $=pod
     has Mu   $!resolved-config;  # HLL-resolved config
 
@@ -72,14 +72,19 @@ class RakuAST::Doc::Block
                Int :$level,
               Hash :$config,
               List :$paragraphs,
+              Bool :$directive,
+              Bool :$for,
               Bool :$abbreviated
     ) {
         my $obj := nqp::create(self);
         $obj.set-type($type);
         $obj.set-level($level);
         $obj.set-config($config);
-        $obj.set-abbreviated($abbreviated);
         $obj.set-paragraphs($paragraphs);
+
+        my int $status :=
+          $directive ?? 3 !! $abbreviated ?? 2 !! $for ?? 1 !! 0;
+        nqp::bindattr_i($obj,RakuAST::Doc::Block,'$!status',$status);
 
         if nqp::isconcrete($*LEGACY-POD-INDEX) {
             nqp::bindattr_i($obj,RakuAST::Doc::Block,
@@ -113,11 +118,6 @@ class RakuAST::Doc::Block
     }
     method config() { self.IMPL-WRAP-MAP($!config) }
 
-    method set-abbreviated(Bool $value) {
-        nqp::bindattr(self, RakuAST::Doc::Block, '$!abbreviated',
-          $value ?? True !! False);
-    }
-
     method set-paragraphs($paragraphs) {
         nqp::bindattr(self, RakuAST::Doc::Block, '$!paragraphs',
           $paragraphs
@@ -131,6 +131,11 @@ class RakuAST::Doc::Block
           !! nqp::push(   $!paragraphs, $paragraph)
     }
     method paragraphs() { self.IMPL-WRAP-LIST($!paragraphs) }
+
+    method block()       { $!status == 0 }
+    method for()         { $!status == 1 }
+    method abbreviated() { $!status >= 2 }
+    method directive()   { $!status == 3 }
 
     method visit-children(Code $visitor) {
         for $!paragraphs {

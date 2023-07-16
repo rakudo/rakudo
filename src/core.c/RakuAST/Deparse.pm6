@@ -709,12 +709,15 @@ class RakuAST::Deparse {
 
         # special handling for alias directive
         if $type eq 'alias' {
+            my str $margin = $ast.margin;
             my ($lemma, $paragraph) = $ast.paragraphs;
             $paragraph = self.deparse($paragraph)
               unless nqp::istype($paragraph,Str);
 
-            return self.hsyn('rakudoc-type', '=alias')
-              ~ " $lemma $paragraph.subst("\n", "\n= ", :global)\n"
+            return 
+              $margin
+              ~ self.hsyn('rakudoc-type', '=alias')
+              ~ " $lemma $paragraph.subst("\n", "\n$margin= ", :global)\n"
         }
 
         # handle any config

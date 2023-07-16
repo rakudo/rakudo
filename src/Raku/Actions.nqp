@@ -2839,6 +2839,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*CU.replace-finish-content(~$<finish>);
     }
 
+    method doc-block:sym<alias>($/) {
+        if $*FROM-SEEN{$/.from}++ {
+            return;
+        }
+
+        my @paragraphs := nqp::list(~$<first>);
+        if $<line> -> @lines {
+            for @lines {
+                nqp::push(@paragraphs,~$_);
+            }
+        }
+
+        $*SEEN{$/.from} := RakuAST::Doc::Block.from-alias:
+          :margin(~$<margin>), :lemma(~$<lemma>), :@paragraphs
+    }
+
     method doc-block:sym<verbatim>($/) {
         if $*FROM-SEEN{$/.from}++ {
             return;
@@ -2902,22 +2918,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
           :$type, :$level, :$config, :@paragraphs;
-    }
-
-    method doc-block:sym<alias>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
-
-        my @paragraphs := nqp::list(~$<first>);
-        if $<line> -> @lines {
-            for @lines {
-                nqp::push(@paragraphs,~$_);
-            }
-        }
-
-        $*SEEN{$/.from} := RakuAST::Doc::Block.from-alias:
-          :lemma(~$<lemma>), :@paragraphs
     }
 
     method doc-block:sym<column-row>($/) {

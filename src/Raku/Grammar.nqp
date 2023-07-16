@@ -3617,6 +3617,20 @@ if $*COMPILING_CORE_SETTING {
         ^^ \h* '=finish' <doc-newline> $<finish> = .*
     }
 
+    # handle =alias
+    token doc-block:sym<alias> {
+
+        # save any leading whitespace from start of line
+        ^^ $<margin>=[ \h* ]
+
+        # fetch lemma as first line
+        '=alias' \h+ $<lemma>=<.doc-identifier> \h+ $<first>=\N+
+
+        [\n $<margin> '=' \h+ $<line>=\N+]*
+
+        \n?
+    }
+
     # handle =begin on verbatim blocks
     token doc-block:sym<verbatim> {
 
@@ -3724,19 +3738,6 @@ if $*COMPILING_CORE_SETTING {
 
         # and any following lines as well
         $<lines>=[[^^ $<spaces> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
-    }
-
-    token doc-block:sym<alias> {
-
-        # save any leading whitespace from start of line
-        ^^ $<spaces>=[ \h* ]
-
-        # fetch lemma as first line
-        '=alias' \h+ $<lemma>=<.doc-identifier> \h+ $<first>=\N+
-
-        [\n $<spaces> '=' \h+ $<line>=\N+]*
-
-        \n?
     }
 
     token doc-block:sym<column-row> {

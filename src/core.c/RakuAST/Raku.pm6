@@ -379,7 +379,8 @@ augment class RakuAST::Node {
 #- Doc -------------------------------------------------------------------------
 
     multi method raku(RakuAST::Doc::Block:D: --> Str:D) {
-        self!nameds: <type level directive for  abbreviated config paragraphs>
+        self!nameds:
+          <margin type level directive for  abbreviated config paragraphs>
     }
 
     multi method raku(RakuAST::Doc::Declarator:D: --> Str:D) {

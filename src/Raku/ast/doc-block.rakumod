@@ -60,6 +60,7 @@ class RakuAST::Doc::Block
   is RakuAST::Doc
   is RakuAST::CheckTime
 {
+    has str  $.margin;           # the left margin to be applied
     has str  $.type;             # the type (e.g. "doc", "head", "item", etc)
     has int  $.level;            # the level (default "", or numeric 1..N)
     has Hash $!config;           # the config hash (e.g. :numbered, :allow<B>)
@@ -68,7 +69,8 @@ class RakuAST::Doc::Block
     has int  $!pod-index;        # index in $=pod
     has Mu   $!resolved-config;  # HLL-resolved config
 
-    method new(Str :$type!,
+    method new(Str :$margin,
+               Str :$type!,
                Int :$level,
               Hash :$config,
               List :$paragraphs,
@@ -77,6 +79,7 @@ class RakuAST::Doc::Block
               Bool :$abbreviated
     ) {
         my $obj := nqp::create(self);
+        $obj.set-margin($margin);
         $obj.set-type($type);
         $obj.set-level($level);
         $obj.set-config($config);
@@ -94,6 +97,11 @@ class RakuAST::Doc::Block
             nqp::bindattr_i($obj,RakuAST::Doc::Block,'$!pod-index',-1);
         }
         $obj
+    }
+
+    method set-margin(Str $margin) {
+        nqp::bindattr_s(self, RakuAST::Doc::Block, '$!margin', $margin // "");
+        Nil
     }
 
     method set-type(Str $type) {

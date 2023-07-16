@@ -750,6 +750,16 @@ class RakuAST::Deparse {
               ~ $config
         }
 
+        # handle =config directive
+        elsif $type eq 'config' {
+            return $margin
+              ~ '='
+              ~ self.hsyn('rakudoc-type', $type)
+              ~ ' '
+              ~ $ast.paragraphs.head
+              ~ $config
+        }
+
         my $paragraphs := $ast.paragraphs.map({
           nqp::istype($_,Str) ?? $_ !! self.deparse($_)
         }).join("\n");
@@ -789,11 +799,7 @@ class RakuAST::Deparse {
               $paragraphs
             );
 
-            if $type eq 'config' {
-                self.hsyn('rakudoc-type','=config')
-                  ~ ' ' ~ $paragraphs ~ $config
-            }
-            elsif $abbreviated {
+            if $abbreviated {
                 self.hsyn('rakudoc-type', '=' ~ $type ~ $ast.level)
                   ~ $config.chomp
                   ~ ($type eq 'table' ?? "\n" !! ' ')

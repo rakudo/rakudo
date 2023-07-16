@@ -2784,24 +2784,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $config := nqp::hash;
         $config<numbered> := 1 if $<doc-numbered>;
 
-        if $<doc-configuration> -> $doc-configuration {
-            for $doc-configuration -> $/ {
-                for $<colonpair> -> $/ {
-                    my $key := ~$<identifier>;
-                    if $<num> -> $int {
-                        $config{$key} := RakuAST::IntLiteral.new(+$int);
-                    }
-                    elsif $<coloncircumfix> -> $ccf {  # :bar("foo",42)
-                        $config{$key} := $ccf.ast;
-                    }
-                    elsif $<var> -> $var {             # :$bar
-                        $config{$key} := $var.ast;
-                    }
-                    else {                             # :!bar | :bar
-                        $config{$key} := (
-                          $<neg> ?? RakuAST::Term::False !! RakuAST::Term::True
-                        ).new;
-                    }
+        if $<colonpair> -> @colonpairs {
+            for @colonpairs -> $/ {
+                my $key := ~$<identifier>;
+                if $<num> -> $int {
+                    $config{$key} := RakuAST::IntLiteral.new(+$int);
+                }
+                elsif $<coloncircumfix> -> $ccf {  # :bar("foo",42)
+                    $config{$key} := $ccf.ast;
+                }
+                elsif $<var> -> $var {             # :$bar
+                    $config{$key} := $var.ast;
+                }
+                else {                             # :!bar | :bar
+                    $config{$key} := (
+                      $<neg> ?? RakuAST::Term::False !! RakuAST::Term::True
+                    ).new;
                 }
             }
         }
@@ -2858,8 +2856,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method doc-block:sym<column-row>($/) {
         unless $*FROM-SEEN{$/.from}++ {
             $*SEEN{$/.from} := RakuAST::Doc::Block.new:
-               :directive, :margin(~$<margin>), :type(~$<type>),
+              :directive, :margin(~$<margin>), :type(~$<type>),
               :config(extract-config($/))
+        }
+    }
+
+    method doc-block:sym<config>($/) {
+        unless $*FROM-SEEN{$/.from}++ {
+            $*SEEN{$/.from} := RakuAST::Doc::Block.new:
+              :directive, :margin(~$<margin>), :type<config>,
+              :config(extract-config($/)),
+              :paragraphs(nqp::list(~$<doc-identifier>))
         }
     }
 
@@ -2926,18 +2933,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
           :$type, :$level, :$config, :@paragraphs;
-    }
-
-    method doc-block:sym<config>($/) {
-        if $*FROM-SEEN{$/.from}++ {
-            return;
-        }
-
-        my $config     := extract-config($/);
-        my @paragraphs := nqp::list(~$<header>);
-
-        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :type<config>, :$config, :abbreviated, :@paragraphs;
     }
 
     method doc-block:sym<abbreviated>($/) {

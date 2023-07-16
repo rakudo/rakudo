@@ -3631,6 +3631,34 @@ if $*COMPILING_CORE_SETTING {
         \n?
     }
 
+    # handle =column / =row
+    token doc-block:sym<column-row> {
+
+        # save any leading whitespace from start of line
+        ^^ $<margin>=[ \h* ]
+
+        # custom config madness
+        '=' $<type>=[ column | row ]
+
+        # fetch any configuration
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
+
+        # should now be at end of line
+        <.doc-newline>
+    }
+
+    # handle =config
+    token doc-block:sym<config> {
+
+        ^^ $<margin>=[ \h* ] '=config' \h+ <doc-identifier>
+
+        # fetch any configuration
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
+
+        # should now be at end of line
+        <.doc-newline>
+    }
+
     # handle =begin on verbatim blocks
     token doc-block:sym<verbatim> {
 
@@ -3641,7 +3669,10 @@ if $*COMPILING_CORE_SETTING {
         '=begin' \h+ $<type>=[ comment | code | data | input | output ]
 
         # fetch any configuration
-        <doc-configuration($<spaces>)>* <doc-newline>+
+        [ [\n $<spaces> '=']? \h+ <colonpair> ]*
+
+        # any number of newlines
+        <.doc-newline>+
 
         # fetch all non-empty lines, *NOT* looking at =pod markers
         $<lines>=[^^ \N* \n?]*?
@@ -3678,7 +3709,7 @@ if $*COMPILING_CORE_SETTING {
         $<type>=<.doc-identifier>
 
         # fetch any configuration
-        <doc-configuration($<spaces>)>*
+        [ [\n $<spaces> '=']? \h+ <colonpair> ]*
 
         # should now be at end of line
         <.doc-newline>+
@@ -3731,43 +3762,13 @@ if $*COMPILING_CORE_SETTING {
         $<type>=<.doc-identifier>
 
         # fetch any configuration
-        <doc-configuration($<spaces>)>*
+        [ [\n $<spaces> '=']? \h+ <colonpair> ]*
 
         # should now be at end of line
         <.doc-newline>
 
         # and any following lines as well
         $<lines>=[[^^ $<spaces> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
-    }
-
-    token doc-block:sym<column-row> {
-
-        # save any leading whitespace from start of line
-        ^^ $<margin>=[ \h* ]
-
-        # custom config madness
-        '=' $<type>=[ column | row ]
-
-        # fetch any configuration
-        <doc-configuration($<spaces>)>*
-
-        # should now be at end of line
-        <.doc-newline>
-    }
-
-    token doc-block:sym<config> {
-
-        # save any leading whitespace from start of line
-        ^^ $<spaces>=[ \h* ]
-
-        # custom config madness
-        '=config' \h+ $<header>=<.doc-identifier>
-
-        # fetch any configuration
-        <doc-configuration($<spaces>)>*
-
-        # should now be at end of line
-        <.doc-newline>
     }
 
     token doc-block:sym<abbreviated> {
@@ -3803,18 +3804,6 @@ if $*COMPILING_CORE_SETTING {
     }
 
     token doc-numbered { <.after [^|\s]> '#' <.before \s> }
-
-    token doc-configuration($spaces = '') {
-
-          # either more config on next line, or after some whitespace
-          [[\n $spaces '=' \h+] | \h+]
-
-          # at least one colonpair
-          <colonpair>
-
-          # and maybe more after some whitespace
-          [\h+ <colonpair>]*
-    }
 
     token doc-newline { \h* \n }
 }

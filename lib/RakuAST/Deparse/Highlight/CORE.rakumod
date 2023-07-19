@@ -24,7 +24,7 @@
 #   param               any parameter in a signature
 #   pragma              any pragma (strict, fatal, ...)
 #   prefix              any prefix operator
-#   rakudoc-xxx         types of rakudoc (prefix,type,config,verbatim,content)
+#   rakudoc-xxx         types of rakudoc (type,config,verbatim,table,content)
 #   routine-xxx         named code blocks (sub, method, submethod, ...)
 #   scope-xxx           scope xxx (my, our, state, ...)
 #   stmt-prefix         statement prefixes ("do","eager","lazy", etc.)

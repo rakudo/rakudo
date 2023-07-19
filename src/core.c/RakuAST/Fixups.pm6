@@ -252,10 +252,10 @@ my class RakuAST::Doc::Row is RakuAST::Node {
                     @parts.push(' ')
                   )
                 );
-                @parts.join.trim-trailing
+                @parts.join.trim-trailing ~ "\n"
             }
             else {
-                cells.join('  ')
+                cells.join('  ') ~ "\n"
             }
         }
 
@@ -268,7 +268,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
                     (@rows[++$row] // (@rows[$row] := my str @)).push: $_;
                 }
             }
-            @rows.map(&stringify-cells).join("\n")
+            @rows.map(&stringify-cells).join
         }
 
         # only a single line
@@ -717,11 +717,47 @@ augment class RakuAST::Doc::Block {
         self.paragraphs.head.leading-whitespace
     }
 
+    # remove left margin whitespace, if any
+    method !marginalize(@raw) {
+
+        # some whitespace at margin
+        if self.margin.chars -> int $margin {
+            my $buffer := nqp::create(IterationBuffer);
+
+            for @raw -> $lines {
+                $buffer.push: $lines.lines(:!chomp).map({
+                    if .leading-whitespace.chars >= $margin {
+                        .substr($margin)
+                    }
+                    elsif .is-whitespace {
+                        "\n"
+                    }
+                    else {
+                        self.worry-ad-hoc:
+                          "'$_.chomp()'
+does not have enough whitespace to allow for a margin of $margin positions";
+                        .trim-leading
+                    }
+                }).join;
+            }
+
+            $buffer.List
+        }
+
+        # no whitespace at left margin
+        else {
+            @raw
+        }
+    }
+
     # create block from =alias
-    method from-alias(:$lemma, :@paragraphs, *%_) {
+    method from-alias(
+      :$lemma, :paragraphs(@raw), *%_
+    --> RakuAST::Doc::Block:D) {
 
         # set up basic block
-        my $block := self.new(:type<alias>, :directive, |%_);
+        my $block      := self.new(|%_);
+        my @paragraphs := $block!marginalize(@raw);
 
         # add rest with possible markup
         my $paragraph :=
@@ -739,38 +775,31 @@ augment class RakuAST::Doc::Block {
     }
 
     # create block with type/paragraph introspection
-    method from-paragraphs(:$spaces = '', :$type, :$config, :@paragraphs, *%_) {
+    method from-paragraphs(:paragraphs(@raw), *%_ --> RakuAST::Doc::Block:D) {
         my constant %implicit =
           :1cell, :1defn, :1item, :1nested, :1pod, :1rakudoc, :1section;
 
         # set up basic block
-        my $block := self.new(:$type, :$config, |%_);
+        my $block      := self.new(|%_);
+        my @paragraphs := $block!marginalize(@raw);
 
         # always verbatim
+        my str $type = $block.type;
         if $type eq 'comment' | 'data' {
             $block.add-paragraph(@paragraphs.head.join);
         }
 
         # originally verbatim, but may need postprocessing
         elsif $type eq 'code' | 'input' | 'output' {
-            my int $offset = $spaces.chars;
 
             # get any allowed setting
             my str @allow;
-            @allow = $_ with $config<allow> andthen .literalize;
+            @allow = $_ with $block.config<allow> andthen .literalize;
 
-            if $offset || @allow {
-                for @paragraphs -> $pod is copy {
-                    $pod = $pod.lines(:!chomp).map({
-                        .starts-with($spaces) ?? .substr($offset) !! $_
-                    }).join if $offset;
-
-                    @allow
-                      ?? $block.add-paragraph(
-                           RakuAST::Doc::Paragraph.from-string($pod, :@allow)
-                         )
-                      !! $block.add-paragraph($pod);
-                }
+            if @allow {
+                $block.add-paragraph(
+                  RakuAST::Doc::Paragraph.from-string($_, :@allow)
+                ) for @paragraphs;
             }
             else {
                 $block.add-paragraph($_) for @paragraphs;
@@ -778,7 +807,7 @@ augment class RakuAST::Doc::Block {
         }
 
         elsif $type eq 'table' {
-            $block.interpret-as-table($spaces, @paragraphs);
+            $block.interpret-as-table(@paragraphs);
         }
 
         elsif $type eq 'defn' {
@@ -790,11 +819,11 @@ augment class RakuAST::Doc::Block {
             $block.add-paragraph(@parts.shift);
 
             # add rest with implicit code block detection
-            $block.interpret-implicit-code-blocks($spaces, @parts);
+            $block.interpret-implicit-code-blocks(@parts);
         }
 
         elsif %implicit.AT-KEY($type) {
-            $block.interpret-implicit-code-blocks($spaces, @paragraphs);
+            $block.interpret-implicit-code-blocks(@paragraphs);
         }
 
         # these just need the paragraphs
@@ -818,9 +847,7 @@ augment class RakuAST::Doc::Block {
     my int32 $pipe      = 124;  # "|"
     my int   $gcprop = nqp::unipropcode("General_Category");
 
-    method interpret-as-table(RakuAST::Doc::Block:D:
-      $spaces, @matched
-    --> Nil) {
+    method interpret-as-table(RakuAST::Doc::Block:D: @matched --> Nil) {
 
         # Set up the lines to be parsed
         my str @lines = @matched.join.subst(/ \n+ $/).lines;
@@ -1204,10 +1231,7 @@ in line '$line'"
         self.set-paragraphs(@paragraphs);
     }
 
-    method interpret-implicit-code-blocks(RakuAST::Doc::Block:D: $spaces, @paragraphs) {
-        my str $initial-ws     = $spaces;
-        my int $initial-offset = nqp::chars($spaces);
-
+    method interpret-implicit-code-blocks(RakuAST::Doc::Block:D: @paragraphs) {
         my str $current-ws;
         my int $current-offset;
 
@@ -1237,13 +1261,14 @@ in line '$line'"
 
             self.add-paragraph(
               RakuAST::Doc::Block.new(
-                :type<implicit-code>, :paragraphs(@codes.join("\n"))
+                :margin($current-ws), :type<implicit-code>,
+                :paragraphs(@codes.join)
               )
             );
             @codes = ();
         }
 
-        set-current-ws($initial-ws);
+        set-current-ws("");
         for @paragraphs -> $paragraph {
 
             # need further introspection
@@ -1253,9 +1278,7 @@ in line '$line'"
 
                     # only whitespace means adding to what we're collecting
                     if .is-whitespace {
-                        @codes
-                          ?? @codes.push('')
-                          !! @lines.push("\n");
+                        (@codes || @lines).push("\n");
                     }
 
                     # leading whitespace is the same, or we're collecting
@@ -1263,7 +1286,7 @@ in line '$line'"
                     elsif .leading-whitespace eq $current-ws
                       || (@lines && @lines.tail ne "\n") {
                         @codes
-                          ?? @codes.push(.substr($current-offset).chomp)
+                          ?? @codes.push(.substr($current-offset))
                           !! @lines.push(.trim-leading);
                     }
 
@@ -1276,14 +1299,14 @@ in line '$line'"
                         if $leading > $current-offset {
                             add-lines if @lines;
                             set-current-ws($ws) unless @codes;
-                            @codes.push: .substr($current-offset).chomp;
+                            @codes.push: .substr($current-offset);
                         }
 
                         # (still) indented, so start new code block
-                        elsif $leading > $initial-offset {
+                        elsif $leading {
                             add-codes if @codes;
                             set-current-ws($ws);
-                            @codes.push: .substr($current-offset).chomp;
+                            @codes.push: .substr($current-offset);
                         }
 
                         # back to original level, or even less

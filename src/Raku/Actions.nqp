@@ -2850,7 +2850,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-alias:
-          :margin(~$<margin>), :lemma(~$<lemma>), :@paragraphs
+          :directive, :margin(~$<margin>), :type<alias>,
+          :lemma(~$<lemma>), :@paragraphs
     }
 
     method doc-block:sym<column-row>($/) {
@@ -2885,7 +2886,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :spaces(~$<spaces>), :type(~$<type>), :$config, :@paragraphs;
+          :margin(~$<margin>), :type(~$<type>), :$config, :@paragraphs;
     }
 
     method doc-block:sym<begin>($/) {
@@ -2913,7 +2914,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :spaces(~$<spaces>), :$type, :$level, :$config, :@paragraphs;
+          :margin(~$<margin>), :$type, :$level, :$config, :@paragraphs;
     }
 
     method doc-block:sym<for>($/) {
@@ -2932,7 +2933,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :$type, :$level, :$config, :@paragraphs;
+          :margin(~$<margin>), :for, :$type, :$level, :$config, :@paragraphs;
     }
 
     method doc-block:sym<abbreviated>($/) {
@@ -2945,13 +2946,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $level  := extract-level($/);
 
         my @paragraphs;
-        if ($<header> ?? $<spaces> ~ $<header> !! "")
+        if ($<header> ?? $<margin> ~ $<header> !! "")
             ~ ($<lines> ?? ~$<lines> !! "") -> $text {
             @paragraphs := nqp::list($text);
         }
 
         $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
-          :$type, :$level, :$config, :abbreviated, :@paragraphs;
+          :margin(~$<margin>), :abbreviated, :$type, :$level, :$config,
+          :@paragraphs;
     }
 }
 

@@ -175,6 +175,10 @@ augment class RakuAST::Node {
               my $level := self.level;
               :$level if $level
           },
+          'margin', -> {
+              my $margin := self.margin;
+              :$margin if $margin
+          },
           'match-immediately', -> {
               :match-immediately if self.match-immediately
           },

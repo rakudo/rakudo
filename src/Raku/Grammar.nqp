@@ -3663,13 +3663,13 @@ if $*COMPILING_CORE_SETTING {
     token doc-block:sym<verbatim> {
 
         # save any leading whitespace from start of line
-        ^^ $<spaces>=[ \h* ]
+        ^^ $<margin>=[ \h* ]
 
         # start of 'begin comment' block
         '=begin' \h+ $<type>=[ comment | code | data | input | output ]
 
         # fetch any configuration
-        [ [\n $<spaces> '=']? \h+ <colonpair> ]*
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
         # any number of newlines
         <.doc-newline>+
@@ -3678,14 +3678,14 @@ if $*COMPILING_CORE_SETTING {
         $<lines>=[^^ \N* \n?]*?
 
         # until the matching end block
-        ^^ $<spaces> '=end' \h+ $<type> [<doc-newline> | $]
+        ^^ $<margin> '=end' \h+ $<type> [<.doc-newline> | $]
     }
 
     # handle all the other =begin
     token doc-block:sym<begin> {
 
         # save any leading whitespace from start of line
-        ^^ $<spaces>=[ \h* ]
+        ^^ $<margin>=[ \h* ]
 
         # start of 'begin' doc block should have type on same line
         '=begin'
@@ -3709,7 +3709,7 @@ if $*COMPILING_CORE_SETTING {
         $<type>=<.doc-identifier>
 
         # fetch any configuration
-        [ [\n $<spaces> '=']? \h+ <colonpair> ]*
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
         # should now be at end of line
         <.doc-newline>+
@@ -3718,7 +3718,7 @@ if $*COMPILING_CORE_SETTING {
         <doc-content>*
 
         # until the end marker
-        ^^ $<spaces> '=end' \h+
+        ^^ $<margin> '=end' \h+
 
         [
           # we're all good, same identifier as at beginning
@@ -3728,7 +3728,7 @@ if $*COMPILING_CORE_SETTING {
           || $<instead>=<.doc-identifier>? <.typed_panic(
                'X::Syntax::Pod::BeginWithoutEnd.new',
                type    => ~$<type>,
-               spaces  => ~$<spaces>,
+               spaces  => ~$<margin>,
                instead => $<instead> ?? ~$<instead> !! ''
               )>
         ]
@@ -3737,7 +3737,7 @@ if $*COMPILING_CORE_SETTING {
     token doc-block:sym<for> {
 
         # save any leading whitespace from start of line
-        ^^ $<spaces>=[ \h* ]
+        ^^ $<margin>=[ \h* ]
 
         # start of a 'for' doc block should have type on same line
         '=for'
@@ -3762,19 +3762,19 @@ if $*COMPILING_CORE_SETTING {
         $<type>=<.doc-identifier>
 
         # fetch any configuration
-        [ [\n $<spaces> '=']? \h+ <colonpair> ]*
+        [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
         # should now be at end of line
         <.doc-newline>
 
         # and any following lines as well
-        $<lines>=[[^^ $<spaces> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
+        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
     }
 
     token doc-block:sym<abbreviated> {
 
         # save any leading whitespace from start of line
-        ^^ $<spaces>=[ \h* ] '='
+        ^^ $<margin>=[ \h* ] '='
 
         # handled elsewhere
         <!.before <.rakudoc-directives>>
@@ -3784,10 +3784,10 @@ if $*COMPILING_CORE_SETTING {
         $<type>=<.doc-identifier> [\h+ <doc-numbered>]?
 
         # the rest of the line is considered content
-        [ [ \h+ $<header>=[\N+ \n?]? ] | <doc-newline> ]
+        [ [ \h+ $<header>=[\N+ \n?]? ] | <.doc-newline> ]
 
         # and any following lines as well
-        $<lines>=[[^^ $<spaces> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
+        $<lines>=[[^^ $<margin> \h* [ <-[=\n]> | '=' ** 2..* ] \N* \n? ]* \n*]
     }
 
     token doc-block:sym<lines> {

@@ -497,12 +497,13 @@ my class IO::Path is Cool does IO {
               :path($!os-path), :$uid, :$gid, :os-error(.Str) );
         }}
         my str $path = self.absolute;
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
         $uid = $uid.defined
           ?? $uid.UInt
-          !! nqp::stat($path,nqp::const::STAT_UID);
+          !! nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_UID);
         $gid = $gid.defined
           ?? $gid.UInt
-          !! nqp::stat($path,nqp::const::STAT_GID);
+          !! nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_GID);
         nqp::chown($path, nqp::unbox_u($uid), nqp::unbox_u($gid))
     }
 
@@ -533,9 +534,10 @@ my class IO::Path is Cool does IO {
         CATCH { default {
             fail X::IO::Mkdir.new(:path($!os-path), :$mode, os-error => .Str);
         }}
+        my str $abspath = $.absolute;
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($abspath), 0);
         nqp::unless(
-          nqp::stat((my str $abspath = $.absolute),nqp::const::STAT_EXISTS)
-            && nqp::stat($abspath,nqp::const::STAT_ISDIR),
+          nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS) && nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_ISDIR),
           nqp::mkdir($abspath,$mode)
         );
         self
@@ -682,10 +684,11 @@ my class IO::Path is Cool does IO {
         # check if we need a BOM
         if $enc eq 'utf16' {
 
+           my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
            # add a BOM if writing starts at beginning of file
            if $mode eq 'w'
-             || nqp::not_i(nqp::stat($path,nqp::const::STAT_EXISTS))
-             || nqp::not_i(nqp::stat($path,nqp::const::STAT_FILESIZE)) {
+             || nqp::not_i(nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS))
+             || nqp::not_i(nqp::dispatch("boot-syscall", "stat-filesize", $stat)) {
                 nqp::unshift_i($blob,254);
                 nqp::unshift_i($blob,255);
            }
@@ -695,14 +698,18 @@ my class IO::Path is Cool does IO {
     }
 
     method user(IO::Path:D:) {
-        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
-          ?? nqp::stat($path,nqp::const::STAT_UID)
+        my str $path = self.absolute;
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_UID)
           !! self!does-not-exist("user")
     }
 
     method group(IO::Path:D:) {
-        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
-          ?? nqp::stat($path,nqp::const::STAT_GID)
+        my str $path = self.absolute;
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_GID)
           !! self!does-not-exist("group")
     }
 
@@ -766,92 +773,122 @@ my class IO::Path is Cool does IO {
         nqp::hllbool(Rakudo::Internals.FILETEST-E(self.absolute))
     }
     method d(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-D($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_ISDIR))
           !! self!does-not-exist("d")
     }
 
     method f(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-F($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_ISREG))
           !! self!does-not-exist("f")
     }
 
     method s(IO::Path:D: --> Int:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? Rakudo::Internals.FILETEST-S($!os-path)
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_FILESIZE)
           !! self!does-not-exist("s")
     }
 
     method l(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-LE(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-L($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 1);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_ISLNK))
           !! self!does-not-exist("l")
     }
 
     method r(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-R($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-readable", $stat))
           !! self!does-not-exist("r")
     }
 
     method w(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-W($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-writable", $stat))
           !! self!does-not-exist("w")
     }
 
     method rw(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-RW($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-readable", $stat) && nqp::dispatch("boot-syscall", "stat-is-writable", $stat))
           !! self!does-not-exist("rw")
     }
 
     method x(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-X($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-executable", $stat))
           !! self!does-not-exist("x")
     }
 
     method rwx(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-RWX($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-readable", $stat) && nqp::dispatch("boot-syscall", "stat-is-writable", $stat) && nqp::dispatch("boot-syscall", "stat-is-executable", $stat))
           !! self!does-not-exist("rwx")
     }
 
     method z(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-Z($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_FILESIZE) == 0
           !! self!does-not-exist("z")
     }
 
     method created(IO::Path:D: --> Instant:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CREATED($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-time", $stat, nqp::const::STAT_CREATETIME))
           !! self!does-not-exist("created")
     }
 
     method modified(IO::Path:D: --> Instant:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-time", $stat, nqp::const::STAT_MODIFYTIME))
           !! self!does-not-exist("modified")
     }
 
     method accessed(IO::Path:D: --> Instant:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-time", $stat, nqp::const::STAT_ACCESSTIME))
           !! self!does-not-exist("accessed")
     }
 
     method changed(IO::Path:D: --> Instant:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!os-path))
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-time", $stat, nqp::const::STAT_CHANGETIME))
           !! self!does-not-exist("changed")
     }
 
     method mode(IO::Path:D: --> IntStr:D) {
-        if Rakudo::Internals.FILETEST-E(self.absolute) {  # sets $!os-path
-            my Int $mode := Rakudo::Internals.FILETEST-MODE($!os-path);
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        if nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS) {  # sets $!os-path
+            my Int $mode := nqp::bitand_i(nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_PLATFORM_MODE), 0o7777);
             my str $str   = nqp::base_I($mode,8);
             IntStr.new(
               $mode,
@@ -864,20 +901,26 @@ my class IO::Path is Cool does IO {
     }
 
     method inode(IO::Path:D: --> Int:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_INODE)
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_PLATFORM_INODE)
           !! self!does-not-exist("inode")
     }
 
     method dev(IO::Path:D: --> Int:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_DEV)
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_ISDEV)
           !! self!does-not-exist("dev")
     }
 
     method devtype(IO::Path:D: --> Int:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
-          ?? nqp::stat($!os-path, nqp::const::STAT_PLATFORM_DEVTYPE)
+        my str $path = self.absolute; # sets $!os-path
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
+          ?? nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_PLATFORM_DEV)
           !! self!does-not-exist("devtype")
     }
 

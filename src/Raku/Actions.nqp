@@ -2077,42 +2077,85 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<numish>.ast;
     }
 
+    sub ord-to-numerator($ord) {
+        nqp::coerce_si(
+          nqp::getuniprop_str(
+            $ord, nqp::unipropcode("Numeric_Value_Numerator")
+          )
+        )
+    }
+    sub ord-to-denominator($ord) {
+        nqp::coerce_si(
+          nqp::getuniprop_str(
+            $ord, nqp::unipropcode("Numeric_Value_Denominator")
+          )
+        )
+    }
+
     method numish($/) {
-        if $<integer> {
-            self.attach: $/, self.r('IntLiteral').new($<integer>.ast);
+        my $attachee;
+
+        # 42
+        if $<integer> -> $integer {
+            $attachee := self.r('IntLiteral').new($integer.ast);
         }
-        elsif $<decimal-number> {
-            self.attach: $/, $<decimal-number>.ast;
+
+        # 42.137
+        elsif $<decimal-number> -> $decimal {
+            $attachee := $decimal.ast;
         }
-        elsif $<radix-number> {
-            self.attach: $/, $<radix-number>.ast;
+
+        # :16(42)
+        elsif $<radix-number> -> $radix {
+            $attachee := $radix.ast;
         }
-        elsif $<rational-number> {
-            self.attach: $/, $<rational-number>.ast;
+
+        # -22/33
+        elsif $<rational-number> -> $rational {
+            $attachee := $rational.ast;
         }
-        elsif $<complex-number> {
-            self.attach: $/, $<complex-number>.ast;
+
+        # 42+i1
+        elsif $<complex-number> -> $complex {
+            $attachee := $complex.ast;
         }
+
+        # Ⅼ or ⅔
         elsif $<unum> {
-            my $code := nqp::ord($/.Str);
-            my int $nu := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Numerator"));
-            my int $de := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Denominator"));
+            my $ord := nqp::ord($/.Str);
+            my int $nu := ord-to-numerator($ord);
+            my int $de := ord-to-denominator($ord);
+
+            # Ⅼ
             if !$de || $de == 1 {
-                self.attach: $/, self.r('IntLiteral').new($*LITERALS.intern-int($nu, 10));
+                $attachee := self.r('IntLiteral').new(
+                  $*LITERALS.intern-int($nu, 10)
+                );
             }
+
+            # ⅔
             else {
-                self.attach: $/, self.r('RatLiteral').new($*LITERALS.intern-rat(
-                    $*LITERALS.intern-int($nu, 10),
-                    $*LITERALS.intern-int($de, 10)
-                ));
+                my $LITERALS := $*LITERALS;
+                $attachee := self.r('RatLiteral').new(
+                  $LITERALS.intern-rat(
+                    $LITERALS.intern-int($nu, 10),
+                    $LITERALS.intern-int($de, 10)
+                  )
+                );
             }
         }
-        elsif $<uinf> {
-            self.attach: $/, self.r('NumLiteral').new($*LITERALS.intern-num('Inf'));
-        }
+
+        # ∞ or other floating point value
         else {
-            self.attach: $/, self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
+            $attachee := self.r('NumLiteral').new(
+              $*LITERALS.intern-num($<uinf>
+                ?? "Inf"  # ∞
+                !! ~$/    # other floating point value
+              )
+            );
         }
+
+        self.attach: $/, $attachee;
     }
 
     method decint($/) {

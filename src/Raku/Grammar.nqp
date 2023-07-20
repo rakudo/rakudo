@@ -1401,7 +1401,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postfix:sym<--> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<⚛++> { <sym>  <O(|%autoincrement)> }
     token postfix:sym<⚛--> { <sym>  <O(|%autoincrement)> }
-    token postfix:sym<ⁿ> { <sign=[⁻⁺¯]>? <dig=[⁰¹²³⁴⁵⁶⁷⁸⁹]>+ <O(|%autoincrement)> }
+
+    token super-sign    { <[⁻⁺¯]> }
+    token sub-sign      { <[₊₋]>  }
+    token super-integer { <[⁰¹²³⁴⁵⁶⁷⁸⁹]>+ }
+    token sub-integer   { <[₀₁₂₃₄₅₆₇₈₉]>+ }
+    token power         { <super-sign>? <super-integer> }
+
+    token postfix:sym<ⁿ> { <power> <O(|%autoincrement)> }
 
     # TODO: report the correct bracket in error message
     token postfix:sym«->» {

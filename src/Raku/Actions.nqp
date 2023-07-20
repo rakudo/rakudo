@@ -1104,17 +1104,33 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method postfix:sym<ⁿ>($/) {
-        my $Int := $*LITERALS.int-type;
-        my $power := nqp::box_i(0, $Int);
-        for $<dig> {
-            $power := nqp::add_I(
-                nqp::mul_I($power, nqp::box_i(10, $Int), $Int),
-                nqp::box_i(nqp::index("⁰¹²³⁴⁵⁶⁷⁸⁹", $_), $Int),
-                $Int);
+    sub super-int-to-Int($digits, $sign = "") {
+        intify($sign, $digits, "⁰¹²³⁴⁵⁶⁷⁸⁹")
+    }
+    sub sub-int-to-Int($digits, $sign = "") {
+        intify($sign, $digits, "₀₁₂₃₄₅₆₇₈₉")
+    }
+
+    sub intify($sign, $digits, $from) {
+        my $Int       := $*LITERALS.int-type;
+        my $value     := nqp::box_i(0, $Int);
+        my int $i     := -1;
+        my int $chars := nqp::chars($digits);
+
+        while ++$i < $chars {
+            $value := nqp::add_I(
+              nqp::mul_I($value, nqp::box_i(10, $Int), $Int),
+              nqp::box_i(nqp::index($from, nqp::substr($digits,$i,1)), $Int),
+              $Int
+            );
         }
-        $power := nqp::neg_I($power, $Int) if $<sign> eq '⁻' || $<sign> eq '¯';
-        self.attach: $/, self.r('Postfix', 'Power').new($power);
+        $sign eq '⁻' || $sign eq '¯' ?? nqp::neg_I($value,$Int) !! $value
+    }
+
+    method postfix:sym<ⁿ>($/) {
+        self.attach: $/, self.r('Postfix', 'Power').new(
+          super-int-to-Int(~$<power><super-integer>, ~$<power><super-sign>)
+        );
     }
 
     method infixish($/) {

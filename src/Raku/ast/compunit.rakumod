@@ -616,14 +616,14 @@ class RakuAST::LiteralBuilder {
         nqp::box_s($chars, Str)
     }
 
-    # Build a Rat constant and intern it.
-    method intern-rat($whole-part, $fractional-part) {
+    # Build a Rat constant from whole.fraction and intern it.
+    method intern-decimal($whole-part, $fractional-part) {
         # TODO interning
-        self.build-rat($whole-part, $fractional-part)
+        self.build-decimal($whole-part, $fractional-part)
     }
 
-    # Build a Rat constant, but do not intern it.
-    method build-rat(Mu $whole-part, Mu $fractional-part) {
+    # Build a Rat constant from whole.fraction, but do not intern it.
+    method build-decimal(Mu $whole-part, Mu $fractional-part) {
         # Whole part may be provided as an Int already, or may be missing.
         my $parti;
         if nqp::isconcrete($whole-part) {
@@ -654,13 +654,23 @@ class RakuAST::LiteralBuilder {
             $partf := self.intern-int(1, 10);
         }
 
-        # Produce the Rat object.
+        self.build-rat($parti, $partf)
+    }
+
+    # Build a Rat constant from numerator/denominator and intern it.
+    method intern-rat($numerator, $denominator) {
+        # TODO interning
+        self.build-rat($numerator, $denominator)
+    }
+
+    # Build a Rat constant from integer numerator / denominator
+    method build-rat(Mu $numerator, Mu $denominator) {
         unless $!has-cached-rat {
             nqp::bindattr(self, RakuAST::LiteralBuilder, '$!cached-rat',
               $!resolver.resolve-lexical-constant-in-setting('Rat').compile-time-value);
             nqp::bindattr_i(self, RakuAST::LiteralBuilder, '$!has-cached-rat', 1);
         }
-        $!cached-rat.new($parti, $partf)
+        $!cached-rat.new($numerator, $denominator)
     }
 
     # Build a Complex constant and intern it.

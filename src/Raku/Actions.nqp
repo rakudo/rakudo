@@ -2194,7 +2194,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
         }
         else { # wants a Rat
-            self.attach: $/, self.r('RatLiteral').new($*LITERALS.intern-rat(
+            self.attach: $/, self.r('RatLiteral').new($*LITERALS.intern-decimal(
                 $<int> ?? $<int>.ast !! NQPMu,
                 ~$<frac>));
         }
@@ -2267,7 +2267,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);
 
             if $fpart != 1 { # non-unit fractional part, wants Rat
-                self.attach: $/, self.r('RatLiteral').new($literals.intern-rat($ipart, $fpart));
+                self.attach: $/, self.r('RatLiteral').new($literals.intern-decimal($ipart, $fpart));
             }
             else { # wants Int
                 self.attach: $/, self.r('IntLiteral').new($ipart);
@@ -2281,7 +2281,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method bare-rational-number($/) {
         self.attach: $/, self.r('RatLiteral').new(
-          $*LITERALS.intern-rat($<nu>.ast, $<de>.ast)
+          $*LITERALS.intern-decimal($<nu>.ast, $<de>.ast)
         );
     }
 

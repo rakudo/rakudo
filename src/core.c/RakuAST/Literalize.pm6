@@ -71,7 +71,10 @@ augment class RakuAST::Node {
     multi method literalize(RakuAST::ApplyPostfix:D:) {
         my $postfix := self.postfix;
 
-        if nqp::istype($postfix,RakuAST::Postfix::Power) {
+        if nqp::istype($postfix,RakuAST::Postfix::Vulgar) {
+            self.operand.literalize + $postfix.vulgar
+        }
+        elsif nqp::istype($postfix,RakuAST::Postfix::Power) {
             self.operand.literalize ** $postfix.power
         }
         else {

@@ -610,6 +610,10 @@ augment class RakuAST::Node {
         self!literal(self.power)
     }
 
+    multi method raku(RakuAST::Postfix::Vulgar:D: --> Str:D) {
+        self!literal(self.vulgar)
+    }
+
     multi method raku(RakuAST::Prefix:D: --> Str:D) {
         self!literal(self.operator)
     }

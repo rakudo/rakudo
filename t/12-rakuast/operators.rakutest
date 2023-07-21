@@ -179,6 +179,20 @@ subtest 'Application of a negative power postfix operator' => {
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
+# XXX enable test when RAKUDO_RAKUAST=1 is default
+#subtest 'Application of a vulgar postfix operator' => {
+#    # 3²/₃
+#    ast RakuAST::ApplyPostfix.new(
+#      operand => RakuAST::IntLiteral.new(3),
+#      postfix => RakuAST::Postfix::Vulgar.new(2/3)
+#    );
+#
+#    is-deeply $deparsed, '3²/₃', 'deparse';
+#    is-deeply $_, 11/3 , @type[$++]
+#      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+#    is-deeply EVAL("3⅔"), 11/3, 'unicode';
+#}
+
 subtest 'Application of a (user-defined) postfix operator to a literal' => {
     sub postfix:<!>($n) {
         [*] 1..$n

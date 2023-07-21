@@ -1406,9 +1406,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token sub-sign      { <[₊₋]>  }
     token super-integer { <[⁰¹²³⁴⁵⁶⁷⁸⁹]>+ }
     token sub-integer   { <[₀₁₂₃₄₅₆₇₈₉]>+ }
-    token power         { <super-sign>? <super-integer> }
 
-    token postfix:sym<ⁿ> { <power> <O(|%autoincrement)> }
+    token power {
+        <super-sign>? <super-integer>
+    }
+    token vulgar {
+          <[ ½ ↉ ⅓ ⅔ ¼ ¾ ⅕ ⅖ ⅗ ⅘ ⅙ ⅚ ⅐ ⅛ ⅜ ⅝ ⅞ ⅑ ⅒ ]>
+        | [ <super-integer> '/' <sub-integer> ]
+    }
+
+    token postfix:sym<ⁿ> { <power>  <O(|%autoincrement)> }
+    token postfix:sym<+> { <vulgar> <O(|%autoincrement)> }
 
     # TODO: report the correct bracket in error message
     token postfix:sym«->» {

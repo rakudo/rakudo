@@ -1133,6 +1133,32 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
     }
 
+    method postfix:sym<+>($/) {
+        my $v := $<vulgar>;
+        my int $nu;
+        my int $de;
+
+        # 4²/₃₃
+        if $v<super-integer> -> $super {
+            $nu := super-int-to-Int(~$super);
+            $de := sub-int-to-Int(~$v<sub-integer>);
+            if $nu >= $de {
+                $/.panic("Numerator must be less than denominator: $nu >= $de")
+            }
+        }
+
+        # 22⅔
+        else {
+            my $ord := nqp::ord(~$v);
+            $nu := ord-to-numerator($ord);
+            $de := ord-to-denominator($ord);
+        }
+
+        self.attach: $/, self.r('Postfix', 'Vulgar').new(
+          $*LITERALS.intern-rat($nu, $de)
+        );
+    }
+
     method infixish($/) {
         return 0 if $<fake-infix>;
 
@@ -3327,18 +3353,19 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                 :block($<codeblock>.ast), :backtrack($<backmod>.ast);
         }
         else {
+            my $LITERALS := $*LITERALS;
             my $min := $<min>
-                ?? $*LITERALS.build-int(~$<min>, 10)
-                !! $*LITERALS.int-type;
+                ?? $LITERALS.build-int(~$<min>, 10)
+                !! $LITERALS.int-type;
             my $max;
             if !$<max> {
                 $max := $min;
             }
             elsif $<max> eq '*' {
-                $max := $*LITERALS.int-type;
+                $max := $LITERALS.int-type;
             }
             else {
-                $max := $*LITERALS.build-int(~$<max>, 10);
+                $max := $LITERALS.build-int(~$<max>, 10);
             }
             my int $excludes-min := $<from> eq '^';
             my int $excludes-max := $<upto> eq '^';

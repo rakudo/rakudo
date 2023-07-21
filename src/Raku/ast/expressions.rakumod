@@ -1174,20 +1174,38 @@ class RakuAST::Postfix
     method IMPL-CURRIES() { 3 }
 }
 
-# The postfix exponentiation operator (2⁴⁵).
-class RakuAST::Postfix::Power
+# Base class for literal postfixes
+class RakuAST::Postfix::Literal
   is RakuAST::Postfixish
   is RakuAST::Lookup
 {
-    has Int $.power;
+    has Mu $!value;
 
-    method new(Int $power) {
+    method new(Mu $value) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Postfix::Power, '$!power', $power);
+        nqp::bindattr($obj, RakuAST::Postfix::Literal, '$!value', $value);
         nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
 
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name := self.resolution.lexical-name;
+        $context.ensure-sc($!value);
+        QAST::Op.new:
+            :op('call'), :$name,
+            $operand-qast,
+            QAST::WVal.new( :value($!value) )
+    }
+
+    method can-be-used-with-hyper() { False }
+
+    method IMPL-CURRIES() { 3 }
+}
+
+# The postfix exponentiation operator (2⁴⁵).
+class RakuAST::Postfix::Power
+  is RakuAST::Postfix::Literal
+{
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-postfix('ⁿ');
         if $resolved {
@@ -1196,18 +1214,22 @@ class RakuAST::Postfix::Power
         Nil
     }
 
-    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $name := self.resolution.lexical-name;
-        $context.ensure-sc($!power);
-        QAST::Op.new:
-            :op('call'), :$name,
-            $operand-qast,
-            QAST::WVal.new( :value($!power) )
+    method power() { nqp::getattr(self,RakuAST::Postfix::Literal,'$!value') }
+}
+
+# The postfix vulgar operator (4⅔ or 4²/₃).
+class RakuAST::Postfix::Vulgar
+  is RakuAST::Postfix::Literal
+{
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-infix('+');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
     }
 
-    method can-be-used-with-hyper() { False }
-
-    method IMPL-CURRIES() { 3 }
+    method vulgar() { nqp::getattr(self,RakuAST::Postfix::Literal,'$!value') }
 }
 
 # A marker for all postcircumfixes. These each have relatively special

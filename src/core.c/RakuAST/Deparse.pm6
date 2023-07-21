@@ -1212,6 +1212,11 @@ class RakuAST::Deparse {
         $ast.power.Str(:superscript)
     }
 
+    multi method deparse(RakuAST::Postfix::Vulgar:D $ast --> Str:D) {
+        my $rat := $ast.vulgar;
+        "$rat.numerator.Str(:superscript)/$rat.denominator.Str(:subscript)"
+    }
+
     multi method deparse(RakuAST::Prefix:D $ast --> Str:D) {
         self.xsyn('prefix', $ast.operator)
     }

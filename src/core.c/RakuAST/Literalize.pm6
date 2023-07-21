@@ -7,6 +7,7 @@
 
 augment class RakuAST::Node {
     my class CannotLiteralize is Exception { }
+    my sub alas() { CannotLiteralize.new.throw }
 
     proto method literalize(RakuAST::Node:) {
         CATCH {
@@ -45,11 +46,11 @@ augment class RakuAST::Node {
             my $left  := self.left.literalize;
             my $right := self.right.literalize;
             nqp::istype($left,Nil) || nqp::istype($right,Nil)
-              ?? CannotLiteralize.new.throw
+              ?? alas
               !! op($left,$right)
         }
         else {
-            CannotLiteralize.new.throw;
+            alas;
         }
     }
 
@@ -63,7 +64,7 @@ augment class RakuAST::Node {
             op(self.operands.map(*.literalize))
         }
         else {
-            CannotLiteralize.new.throw;
+            alas;
         }
     }
 
@@ -74,7 +75,7 @@ augment class RakuAST::Node {
             self.operand.literalize ** $postfix.power
         }
         else {
-            CannotLiteralize.new.throw;
+            alas;
         }
     }
 
@@ -83,7 +84,7 @@ augment class RakuAST::Node {
             op(self.operand.literalize)
         }
         else {
-            CannotLiteralize.new.throw;
+            alas;
         }
     }
 
@@ -132,7 +133,7 @@ augment class RakuAST::Node {
     }
 
     multi method literalize(RakuAST::Declaration::External:D:) {
-        CannotLiteralize.new.throw;
+        alas;
     }
 
 #- F ---------------------------------------------------------------------------
@@ -171,7 +172,7 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::Statement::Expression:D:) {
         if self.condition-modifier // self.loop-modifier {
-            CannotLiteralize.new.throw;
+            alas;
         }
         else {
             self.expression.literalize
@@ -209,7 +210,7 @@ augment class RakuAST::Node {
                 $_
             }
             else {
-                CannotLiteralize.new.throw;
+                alas;
             }
         }
     }
@@ -227,7 +228,7 @@ augment class RakuAST::Node {
             $_
         }
         else {
-            CannotLiteralize.new.throw;
+            alas;
         }
     }
 

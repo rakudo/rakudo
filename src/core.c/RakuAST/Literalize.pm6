@@ -28,7 +28,7 @@ augment class RakuAST::Node {
         ::(Q/&infix:</ ~ $op ~ Q/>/) // ::(Q/&infix:«/ ~ $op ~ Q/»/)
     }
 
-    # Return a Callable for the given infix op as string, returns
+    # Return a Callable for the given prefix op as string, returns
     # a Failure if the prefix op could not be found
     my sub prefix-op(str $op) {
         ::(Q/&prefix:</ ~ $op ~ Q/>/) // ::(Q/&prefix:«/ ~ $op ~ Q/»/)
@@ -61,6 +61,17 @@ augment class RakuAST::Node {
         }
         elsif infix-op(self.infix.operator) -> &op {
             op(self.operands.map(*.literalize))
+        }
+        else {
+            CannotLiteralize.new.throw;
+        }
+    }
+
+    multi method literalize(RakuAST::ApplyPostfix:D:) {
+        my $postfix := self.postfix;
+
+        if nqp::istype($postfix,RakuAST::Postfix::Power) {
+            self.operand.literalize ** $postfix.power
         }
         else {
             CannotLiteralize.new.throw;

@@ -774,6 +774,19 @@ does not have enough whitespace to allow for a margin of $margin positions";
         $block
     }
 
+    # fetch any :allow config setting
+    method !fetch-allow() {
+        with self.config<allow> {
+            return .literalize
+        }
+        orwith $*CONFIG {
+            with .AT-KEY(self.type) {
+                return .literalize with .AT-KEY("allow");
+            }
+        }
+        ()
+    }
+
     # create block with type/paragraph introspection
     method from-paragraphs(:paragraphs(@raw), *%_ --> RakuAST::Doc::Block:D) {
         my constant %implicit =
@@ -791,16 +804,16 @@ does not have enough whitespace to allow for a margin of $margin positions";
 
         # originally verbatim, but may need postprocessing
         elsif $type eq 'code' | 'input' | 'output' {
+            my str @allow = $block!fetch-allow;
 
-            # get any allowed setting
-            my str @allow;
-            @allow = $_ with $block.config<allow> andthen .literalize;
-
+            # allow some markup codes
             if @allow {
                 $block.add-paragraph(
                   RakuAST::Doc::Paragraph.from-string($_, :@allow)
                 ) for @paragraphs;
             }
+
+            # no markup codes
             else {
                 $block.add-paragraph($_) for @paragraphs;
             }
@@ -896,8 +909,7 @@ in line '$line'"
         }
 
         my %config = self.config;
-        my str @allow;
-        @allow = $_ with %config<allow> andthen .literalize;
+        my str @allow = self!fetch-allow;
         @allow.push: 'Z' unless @allow.first('Z');
 
         # Parse the given lines assuming virtual dividers were used.
@@ -1234,9 +1246,7 @@ in line '$line'"
     method interpret-implicit-code-blocks(RakuAST::Doc::Block:D: @paragraphs) {
         my str $current-ws;
         my int $current-offset;
-
-        my str @allow;
-        @allow = $_ with self.config<allow> andthen .literalize;
+        my str @allow = self!fetch-allow;
 
         # set current whitespace / offset conveniently
         sub set-current-ws($ws) {

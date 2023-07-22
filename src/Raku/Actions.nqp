@@ -2949,10 +2949,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method doc-block:sym<config>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := RakuAST::Doc::Block.new:
+            $*SEEN{$/.from} := RakuAST::Doc::Block.from-config:
               :directive, :margin(~$<margin>), :type<config>,
-              :config(extract-config($/)),
-              :paragraphs(nqp::list(~$<doc-identifier>))
+              :config(extract-config($/)), :key(~$<doc-identifier>)
         }
     }
 

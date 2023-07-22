@@ -776,15 +776,29 @@ does not have enough whitespace to allow for a margin of $margin positions";
 
     # fetch any :allow config setting
     method !fetch-allow() {
-        with self.config<allow> {
-            return .literalize
+        if self.config<allow> -> $allow {
+            return $allow.literalize
         }
-        orwith $*CONFIG {
-            with .AT-KEY(self.type) {
-                return .literalize with .AT-KEY("allow");
+        elsif $*DOC-CONFIG -> $CONFIG {
+            if $CONFIG{self.type} // $CONFIG{""} -> $config {
+                return .literalize with $config<allow>;
             }
         }
         ()
+    }
+
+    # create block from =config
+    method from-config(:$key, *%_) {
+        my $block := self.new(:paragraphs(nqp::list($key)), |%_);
+
+        # Save the configuration in the dynamic config if possible.
+        # Note that the values in the configuration hash are Maps
+        # of which the values are RakuAST objects that will need
+        # literalization before actually usable.
+        my $CONFIG := $*DOC-CONFIG;  # may be a BOOTHash
+        $CONFIG{$key} := $block.config unless nqp::istype($CONFIG,Failure);
+
+        $block
     }
 
     # create block with type/paragraph introspection
@@ -795,18 +809,11 @@ does not have enough whitespace to allow for a margin of $margin positions";
         # set up basic block
         my $block      := self.new(|%_);
         my @paragraphs := $block!marginalize(@raw);
-
-        # always verbatim
-        my str $type = $block.type;
-        if $type eq 'comment' | 'data' {
-            $block.add-paragraph(@paragraphs.head.join);
-        }
+        my str @allow = $block!fetch-allow;
 
         # originally verbatim, but may need postprocessing
-        elsif $type eq 'code' | 'input' | 'output' {
-            my str @allow = $block!fetch-allow;
-
-            # allow some markup codes
+        my str $type = $block.type;
+        if $type eq 'code' | 'comment' | 'data' | 'input' | 'output' {
             if @allow {
                 $block.add-paragraph(
                   RakuAST::Doc::Paragraph.from-string($_, :@allow)
@@ -820,7 +827,7 @@ does not have enough whitespace to allow for a margin of $margin positions";
         }
 
         elsif $type eq 'table' {
-            $block.interpret-as-table(@paragraphs);
+            $block.interpret-as-table(@paragraphs, @allow);
         }
 
         elsif $type eq 'defn' {
@@ -832,18 +839,18 @@ does not have enough whitespace to allow for a margin of $margin positions";
             $block.add-paragraph(@parts.shift);
 
             # add rest with implicit code block detection
-            $block.interpret-implicit-code-blocks(@parts);
+            $block.interpret-implicit-code-blocks(@parts, @allow);
         }
 
         elsif %implicit.AT-KEY($type) {
-            $block.interpret-implicit-code-blocks(@paragraphs);
+            $block.interpret-implicit-code-blocks(@paragraphs, @allow);
         }
 
         # these just need the paragraphs
         else {
             $block.add-paragraph(
               nqp::istype($_,Str)
-                ?? RakuAST::Doc::Paragraph.from-string($_)
+                ?? RakuAST::Doc::Paragraph.from-string($_, :@allow)
                 !! $_
             ) for @paragraphs;
         }
@@ -860,7 +867,9 @@ does not have enough whitespace to allow for a margin of $margin positions";
     my int32 $pipe      = 124;  # "|"
     my int   $gcprop = nqp::unipropcode("General_Category");
 
-    method interpret-as-table(RakuAST::Doc::Block:D: @matched --> Nil) {
+    method interpret-as-table(RakuAST::Doc::Block:D:
+      @matched, @allow is copy
+    --> Nil) {
 
         # Set up the lines to be parsed
         my str @lines = @matched.join.subst(/ \n+ $/).lines;
@@ -909,7 +918,6 @@ in line '$line'"
         }
 
         my %config = self.config;
-        my str @allow = self!fetch-allow;
         @allow.push: 'Z' unless @allow.first('Z');
 
         # Parse the given lines assuming virtual dividers were used.
@@ -1243,10 +1251,11 @@ in line '$line'"
         self.set-paragraphs(@paragraphs);
     }
 
-    method interpret-implicit-code-blocks(RakuAST::Doc::Block:D: @paragraphs) {
+    method interpret-implicit-code-blocks(RakuAST::Doc::Block:D:
+      @paragraphs, @allow
+    ) {
         my str $current-ws;
         my int $current-offset;
-        my str @allow = self!fetch-allow;
 
         # set current whitespace / offset conveniently
         sub set-current-ws($ws) {
@@ -1266,9 +1275,6 @@ in line '$line'"
         # store collected code as the next paragraph
         my @codes;
         sub add-codes() {
-            my $code := @codes.join("\n");
-            my $last := self.paragraphs.tail;
-
             self.add-paragraph(
               RakuAST::Doc::Block.new(
                 :margin($current-ws), :type<implicit-code>,

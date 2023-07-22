@@ -583,6 +583,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # RakuDoc aliases (=alias -> A<>) collected so far
         my $*DOC-ALIASES := {};
 
+        # RakuDoc config info (=config foo :allow<B C>)
+        my $*DOC-CONFIG := {};
+
         # Any resolver that exists outside this grammar: usually this is the
         # resolver that is active whenever code is being EVALled inside BEGIN
         # block, which would create a new resolver and put it in $*R.
@@ -3665,7 +3668,7 @@ if $*COMPILING_CORE_SETTING {
     # handle =config
     token doc-block:sym<config> {
 
-        ^^ $<margin>=[ \h* ] '=config' \h+ <doc-identifier>
+        ^^ $<margin>=[ \h* ] '=config' [\h+ <doc-identifier>]?
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*

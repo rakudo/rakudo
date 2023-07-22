@@ -322,9 +322,12 @@ class RakuAST::LegacyPodify {
     }
 
     method podify-implicit-code(RakuAST::Doc::Block:D $ast) {
-        Pod::Block::Code.new:
-          :contents($ast.paragraphs.head.trim)
-          :config($ast.resolved-config)
+        my $contents := $ast.paragraphs.head;
+        $contents := nqp::istype($contents,Str)
+          ?? $contents.trim
+          !! $contents.podify;
+
+        Pod::Block::Code.new: :$contents, :config($ast.resolved-config)
     }
 
     method podify-defn(RakuAST::Doc::Block:D $ast) {

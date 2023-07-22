@@ -787,6 +787,16 @@ does not have enough whitespace to allow for a margin of $margin positions";
         ()
     }
 
+    # fetch :allow setting for given type
+    method !fetch-allow-for-type(str $type) {
+        if $*DOC-CONFIG -> $CONFIG {
+            if $CONFIG{$type} -> $config {
+                return .literalize with $config<allow>;
+            }
+        }
+        ()
+    }
+
     # create block from =config
     method from-config(:$key, *%_) {
         my $block := self.new(:paragraphs(nqp::list($key)), |%_);
@@ -1256,6 +1266,7 @@ in line '$line'"
     ) {
         my str $current-ws;
         my int $current-offset;
+        my str @implicit-allow = self!fetch-allow-for-type('implicit-code');
 
         # set current whitespace / offset conveniently
         sub set-current-ws($ws) {
@@ -1278,7 +1289,12 @@ in line '$line'"
             self.add-paragraph(
               RakuAST::Doc::Block.new(
                 :margin($current-ws), :type<implicit-code>,
-                :paragraphs(@codes.join)
+                :paragraphs(@implicit-allow
+                  ?? RakuAST::Doc::Paragraph.from-string(
+                       @codes.join, :allow(@implicit-allow)
+                     )
+                  !! @codes.join
+                )
               )
             );
             @codes = ();

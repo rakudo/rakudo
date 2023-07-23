@@ -352,7 +352,7 @@ augment class RakuAST::Doc::Markup {
     }
 
     # set up meta info from the last atom as appropriate
-    method check-meta(RakuAST::Doc::Markup:D: $allow) {
+    method check-meta(RakuAST::Doc::Markup:D:) {
         my str $letter = self.letter;
         if $letter eq 'L' {
             self.set-meta($_) with self!extract-meta;
@@ -491,30 +491,10 @@ augment class RakuAST::Doc::Paragraph {
     my int32 $close  =  62;  # >
     my int32 $oopen  = 171;  # «
     my int32 $cclose = 187;  # »
-
-    # default letters allowed: A..Z
-    my constant $default-allowed := nqp::hash(
-      '65',1, '66',1, '67',1, '68',1, '69',1, '70',1, '71',1, '72',1, '73',1,
-      '74',1, '75',1, '76',1, '77',1, '78',1, '79',1, '80',1, '81',1, '82',1,
-      '83',1, '84',1, '85',1, '86',1, '87',1, '88',1, '89',1, '90',1
-    );
+    my int   $gcprop = BEGIN nqp::unipropcode("General_Category");
 
     # create object from string, parsing any markup sequences
-    method from-string(RakuAST::Doc::Paragraph:U: Str:D $string, :$allow) {
-
-        # set up hash with allowed codes
-        my $allowed;
-        if $allow {
-            $allowed := nqp::hash;
-            for @$allow {
-                .uniprop eq 'Lu'
-                  ?? nqp::bindkey($allowed,nqp::ord($_),1)
-                  !! self.worry-ad-hoc("Illegal markup: '$_' is not an uppercase letter");
-            }
-        }
-        else {
-            $allowed := $default-allowed;
-        }
+    method from-string(RakuAST::Doc::Paragraph:U: Str:D $string) {
 
         my int32 $this;       # the current grapheme
         my int32 $prev;       # the previous grapheme
@@ -631,7 +611,7 @@ augment class RakuAST::Doc::Paragraph {
               nqp::iseq_i(($this = nqp::atpos_i(@codes,$i)),$open)
                 || nqp::iseq_i($this,$oopen),
               nqp::if(                                     # < or «
-                nqp::existskey($allowed,$prev),
+                nqp::iseq_s(nqp::getuniprop_str($prev,$gcprop),'Lu'),
                 nqp::stmts(                                # A<
                   nqp::pop_i(@graphemes),  # letter is not part of string
                   add-graphemes(collector),
@@ -657,7 +637,7 @@ augment class RakuAST::Doc::Paragraph {
                     add-graphemes(nqp::pop($markups)),
                     nqp::if(
                       nqp::istype($current,RakuAST::Doc::Markup),
-                      $current.check-meta($allow)
+                      $current.check-meta
                     ),
                     collector.add-atom($current),
                     ($stopper =
@@ -774,29 +754,6 @@ does not have enough whitespace to allow for a margin of $margin positions";
         $block
     }
 
-    # fetch any :allow config setting
-    method !fetch-allow() {
-        if self.config<allow> -> $allow {
-            return $allow.literalize
-        }
-        elsif $*DOC-CONFIG -> $CONFIG {
-            if $CONFIG{self.type} // $CONFIG{""} -> $config {
-                return .literalize with $config<allow>;
-            }
-        }
-        ()
-    }
-
-    # fetch :allow setting for given type
-    method !fetch-allow-for-type(str $type) {
-        if $*DOC-CONFIG -> $CONFIG {
-            if $CONFIG{$type} -> $config {
-                return .literalize with $config<allow>;
-            }
-        }
-        ()
-    }
-
     # create block from =config
     method from-config(:$key, *%_) {
         my $block := self.new(:paragraphs(nqp::list($key)), |%_);
@@ -819,25 +776,22 @@ does not have enough whitespace to allow for a margin of $margin positions";
         # set up basic block
         my $block      := self.new(|%_);
         my @paragraphs := $block!marginalize(@raw);
-        my str @allow = $block!fetch-allow;
 
-        # originally verbatim, but may need postprocessing
+        # verbatim, no postprocessing
         my str $type = $block.type;
-        if $type eq 'code' | 'comment' | 'data' | 'input' | 'output' {
-            if @allow {
-                $block.add-paragraph(
-                  RakuAST::Doc::Paragraph.from-string($_, :@allow)
-                ) for @paragraphs;
-            }
+        if $type eq 'comment' | 'data' {
+            $block.add-paragraph($_) for @paragraphs;
+        }
 
-            # no markup codes
-            else {
-                $block.add-paragraph($_) for @paragraphs;
-            }
+        # verbatim, needs postprocessing
+        elsif $type eq 'code' | 'input' | 'output' {
+            $block.add-paragraph(
+              RakuAST::Doc::Paragraph.from-string($_)
+            ) for @paragraphs;
         }
 
         elsif $type eq 'table' {
-            $block.interpret-as-table(@paragraphs, @allow);
+            $block.interpret-as-table(@paragraphs);
         }
 
         elsif $type eq 'defn' {
@@ -849,18 +803,18 @@ does not have enough whitespace to allow for a margin of $margin positions";
             $block.add-paragraph(@parts.shift);
 
             # add rest with implicit code block detection
-            $block.interpret-implicit-code-blocks(@parts, @allow);
+            $block.interpret-implicit-code-blocks(@parts);
         }
 
         elsif %implicit.AT-KEY($type) {
-            $block.interpret-implicit-code-blocks(@paragraphs, @allow);
+            $block.interpret-implicit-code-blocks(@paragraphs);
         }
 
         # these just need the paragraphs
         else {
             $block.add-paragraph(
               nqp::istype($_,Str)
-                ?? RakuAST::Doc::Paragraph.from-string($_, :@allow)
+                ?? RakuAST::Doc::Paragraph.from-string($_)
                 !! $_
             ) for @paragraphs;
         }
@@ -877,9 +831,7 @@ does not have enough whitespace to allow for a margin of $margin positions";
     my int32 $pipe      = 124;  # "|"
     my int   $gcprop = nqp::unipropcode("General_Category");
 
-    method interpret-as-table(RakuAST::Doc::Block:D:
-      @matched, @allow is copy
-    --> Nil) {
+    method interpret-as-table(RakuAST::Doc::Block:D: @matched --> Nil) {
 
         # Set up the lines to be parsed
         my str @lines = @matched.join.subst(/ \n+ $/).lines;
@@ -928,7 +880,6 @@ in line '$line'"
         }
 
         my %config = self.config;
-        @allow.push: 'Z' unless @allow.first('Z');
 
         # Parse the given lines assuming virtual dividers were used.
         # Quits if actual dividers were found after it found rows with
@@ -1046,8 +997,7 @@ in line '$line'"
                         $cells.push: $start > $chars
                           ?? ''
                           !! RakuAST::Doc::Paragraph.from-string(
-                               nqp::substr($line,$start,$offset - $start - 2),
-                               :@allow
+                               nqp::substr($line,$start,$offset - $start - 2)
                              );
                         $start = $offset;
                     }
@@ -1055,7 +1005,7 @@ in line '$line'"
                     $cells.push: $start > $chars
                       ?? ''
                       !! RakuAST::Doc::Paragraph.from-string(
-                           nqp::substr($line,$start), :@allow
+                           nqp::substr($line,$start)
                          );
                     RakuAST::Doc::Row.new(:@column-offsets, :cells($cells.List))
                 }
@@ -1134,14 +1084,13 @@ in line '$line'"
                     # cell to push here, as there is no cell before it
                     unless $offset == 2 {
                         $cells.push: RakuAST::Doc::Paragraph.from-string(
-                          nqp::substr($line,$start,$offset - $start - 3),
-                          :@allow
+                          nqp::substr($line,$start,$offset - $start - 3)
                         ) unless $start > $chars;
                     }
                     $start = $offset;
                 }
                 $cells.push: RakuAST::Doc::Paragraph.from-string(
-                  nqp::substr($line,$start), :@allow
+                  nqp::substr($line,$start)
                 ) unless $start > $chars;
 
                 RakuAST::Doc::Row.new(
@@ -1261,12 +1210,9 @@ in line '$line'"
         self.set-paragraphs(@paragraphs);
     }
 
-    method interpret-implicit-code-blocks(RakuAST::Doc::Block:D:
-      @paragraphs, @allow
-    ) {
+    method interpret-implicit-code-blocks(RakuAST::Doc::Block:D: @paragraphs) {
         my str $current-ws;
         my int $current-offset;
-        my str @implicit-allow = self!fetch-allow-for-type('implicit-code');
 
         # set current whitespace / offset conveniently
         sub set-current-ws($ws) {
@@ -1278,7 +1224,7 @@ in line '$line'"
         my @lines;
         sub add-lines() {
             self.add-paragraph(
-              RakuAST::Doc::Paragraph.from-string(@lines.join, :@allow)
+              RakuAST::Doc::Paragraph.from-string(@lines.join)
             );
             @lines = ();
         }
@@ -1289,12 +1235,7 @@ in line '$line'"
             self.add-paragraph(
               RakuAST::Doc::Block.new(
                 :margin($current-ws), :type<implicit-code>,
-                :paragraphs(@implicit-allow
-                  ?? RakuAST::Doc::Paragraph.from-string(
-                       @codes.join, :allow(@implicit-allow)
-                     )
-                  !! @codes.join
-                )
+                :paragraphs(RakuAST::Doc::Paragraph.from-string(@codes.join))
               )
             );
             @codes = ();

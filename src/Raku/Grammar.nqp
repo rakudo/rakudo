@@ -4055,8 +4055,8 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     method tweak_c($v)          { self.apply_tweak($v ?? c1 !! c0) }
     method tweak_closure($v)    { self.tweak_c($v) }
 
-    method tweak_o($v)      { self.truly($v, ':o');      self.apply_tweak(o) }
-    method tweak_format($v) { self.truly($v, ':format'); self.apply_tweak(o) }
+    method tweak_o($v)      { $v ?? self.apply_tweak(o) !! self }
+    method tweak_format($v) { self.tweak_o($v) }
 
     my role postproc[@curlist] {
         method postprocessors() {

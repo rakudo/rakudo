@@ -59,6 +59,9 @@ role Raku::Common {
     token starter { <!> }
     token stopper { <!> }
 
+    # Updates to the quote lang cache need to be thread-safe
+    my $quote-lang-lock := NQPLock.new;
+
     # Define a quote language, a combination of a base grammar with a
     # set of base tweaks, and a set of additional tweaks.  For a quote
     # string such as qq:!s/foo bar/.
@@ -154,19 +157,15 @@ role Raku::Common {
 
         # need caching
         else {
-            # Read thread-safe from the cache
-            my %cache := nqp::clone(%*QUOTE-LANGS);
-            if nqp::existskey(%cache,$key) {
-                $quote-lang := nqp::atkey(%cache,$key);
-            }
+            my %cache := %*QUOTE-LANGS;
 
-            # Create new type and update the cache in a thread-safe manner,
-            # don't care if the same type will be potentially be created
-            # more than once.
-            else {
-                $quote-lang   := %cache{$key} := create-quote-lang-type();
-                %*QUOTE-LANGS := %cache;
-            }
+            # Read from / Update to cache in a thread-safe manner
+            nqp::lock($quote-lang-lock);
+            $quote-lang := nqp::ifnull(
+              nqp::atkey(%cache,$key),
+              nqp::bindkey(%cache,$key,create-quote-lang-type())
+            );
+            nqp::unlock($quote-lang-lock);
         }
 
         $quote-lang.set_package(self.package);

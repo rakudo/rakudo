@@ -61,6 +61,7 @@ role STD {
     token starter { <!> }
     token stopper { <!> }
 
+    my $quote-lang-lock := NQPLock.new;
     method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
         sub lang_key() {
             my $stopstr := nqp::istype($stop,VMArray) ?? nqp::join(' ',$stop) !! $stop;
@@ -109,9 +110,11 @@ role STD {
         # Get language from cache or derive it.
         my $key := lang_key();
         my %quote_lang_cache := $*W.quote_lang_cache;
+        nqp::lock($quote-lang-lock);
         my $quote_lang := nqp::existskey(%quote_lang_cache, $key) && $key ne 'NOCACHE'
             ?? %quote_lang_cache{$key}
             !! (%quote_lang_cache{$key} := con_lang());
+        nqp::unlock($quote-lang-lock);
         $quote_lang.set_package(self.package);
         $quote_lang;
     }

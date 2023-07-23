@@ -59,44 +59,76 @@ role Raku::Common {
     token starter { <!> }
     token stopper { <!> }
 
-    method quote-lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
-        sub lang_key() {
-            my $stopstr := nqp::istype($stop,VMArray) ?? nqp::join(' ',$stop) !! $stop;
-            my @keybits := [
-                self.HOW.name(self), $l.HOW.name($l), $start, $stopstr
-            ];
-            for @base_tweaks {
-                @keybits.push($_);
+    # Define a quote language, a combination of a base grammar with a
+    # set of base tweaks, and a set of additional tweaks.  For a quote
+    # string such as qq:!s/foo bar/.
+    method quote-lang(
+      $l,             # grammar class to be used
+      $start,         # the starter string
+      $stop,          # the string marking the end of the quote language
+      @base_tweaks?,  # base tweak, e.g. 'q' for q/foobar/
+      @extra_tweaks?  # :adverbs, 's' in q:s/foobar/, as [key,Bool] lists
+    ) {
+
+        # Check validity of extra tweaks
+        for @extra_tweaks {
+            my $t := $_[0];
+            if $t eq 'o' || $t eq 'format' {
+                unless nqp::getcomp('Raku').language_revision >= 3 {
+                    self.panic("Unrecognized adverb: :$t");
+                }
             }
+        }
+
+        # Return a key to identify this quote language in a cache.  The
+        # .WHICH of the quote language, if you will.
+        sub key-for-quote-lang() {
+
+            # No caching if :to is involved
             for @extra_tweaks {
                 if $_[0] eq 'to' {
                     return 'NOCACHE';
                 }
+            }
+
+            # Assemble the parts of the key
+            my @keybits := [self.HOW.name(self), $l.HOW.name($l), $start];
+            @keybits.push(nqp::istype($stop,VMArray)
+              ?? nqp::join(' ',$stop)
+              !! $stop
+            );
+            for @base_tweaks {
+                @keybits.push($_);
+            }
+            for @extra_tweaks {
+                # cannot use nqp::join as [1] is a Bool, ::join expects strings
                 @keybits.push($_[0] ~ '=' ~ $_[1]);
             }
+
             nqp::join("\0", @keybits)
         }
-        sub con_lang() {
-            my $lang := $l.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
+
+        # Create a new type for the given quote language arguments
+        sub create-quote-lang-type() {
+            my $lang := $l.'!cursor_init'(
+              self.orig(), :p(self.pos()), :shared(self.'!shared'())
+            );
             $lang.clone_braid_from(self);
+
+            # mixin all if the base tweaks
             for @base_tweaks {
                 $lang := $lang."tweak_$_"(1);
             }
 
+            # mixin any extra tweaks
             for @extra_tweaks {
                 my $t := $_[0];
-                if $t eq 'o' || $t eq 'format' {
-                    nqp::getcomp('Raku').language_revision >= 3
-                      ?? ($lang := $lang.tweak_o($_[1]))
-                      !! self.sorry("Unrecognized adverb: :$t");
-                }
-                elsif nqp::can($lang, "tweak_$t") {
-                    $lang := $lang."tweak_$t"($_[1]);
-                }
-                else {
-                    self.sorry("Unrecognized adverb: :$t");
-                }
+                nqp::can($lang, "tweak_$t")
+                  ?? ($lang := $lang."tweak_$t"($_[1]))
+                  !! self.panic("Unrecognized adverb: :$t");
             }
+
+            # make sure any actions are available and the stopper is known
             for self.slangs {
                 if nqp::istype($lang, $_.value) {
                     $lang.set_actions(self.slang_actions($_.key));
@@ -104,24 +136,48 @@ role Raku::Common {
                 }
             }
             $lang.set_pragma("STOPPER",$stop);
-            nqp::istype($stop,VMArray) ||
-            $start ne $stop ?? $lang.balanced($start, $stop)
-                            !! $lang.unbalanced($stop);
+
+            # balanced if stopper different from starter, or multiple stoppers
+            nqp::istype($stop,VMArray) || $start ne $stop
+              ?? $lang.balanced($start, $stop)
+              !! $lang.unbalanced($stop)
         }
 
-        # Get language from cache or derive it.
-        my $key := lang_key();
-        my %quote-lang-cache := %*QUOTE-LANGS;
-        my $quote-lang := nqp::existskey(%quote-lang-cache, $key) && $key ne 'NOCACHE'
-            ?? %quote-lang-cache{$key}
-            !! (%quote-lang-cache{$key} := con_lang());
+        # get language from cache or derive it.
+        my $key := key-for-quote-lang();
+        my $quote-lang;
+
+        # don't cache
+        if $key eq 'NOCACHE' {
+            $quote-lang := create-quote-lang-type();
+        }
+
+        # need caching
+        else {
+            # Read thread-safe from the cache
+            my %cache := nqp::clone(%*QUOTE-LANGS);
+            if nqp::existskey(%cache,$key) {
+                $quote-lang := nqp::atkey(%cache,$key);
+            }
+
+            # Create new type and update the cache in a thread-safe manner,
+            # don't care if the same type will be potentially be created
+            # more than once.
+            else {
+                $quote-lang   := %cache{$key} := create-quote-lang-type();
+                %*QUOTE-LANGS := %cache;
+            }
+        }
+
         $quote-lang.set_package(self.package);
-        $quote-lang;
+        $quote-lang
     }
 
     # Note, $lang must carry its own actions by the time we call this.
     method nibble($lang) {
-        $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'())).nibbler().set_braid_from(self)
+        $lang.'!cursor_init'(
+          self.orig(), :p(self.pos()), :shared(self.'!shared'())
+        ).nibbler.set_braid_from(self)
     }
 
     method fail-terminator ($/, $start, $stop, $line?) {

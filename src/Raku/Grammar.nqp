@@ -87,13 +87,6 @@ role Raku::Common {
         # .WHICH of the quote language, if you will.
         sub key-for-quote-lang() {
 
-            # No caching if :to is involved
-            for @extra_tweaks {
-                if $_[0] eq 'to' {
-                    return 'NOCACHE';
-                }
-            }
-
             # Assemble the parts of the key
             my @keybits := [self.HOW.name(self), $l.HOW.name($l), $start];
             @keybits.push(nqp::istype($stop,VMArray)
@@ -104,8 +97,10 @@ role Raku::Common {
                 @keybits.push($_);
             }
             for @extra_tweaks {
-                # cannot use nqp::join as [1] is a Bool, ::join expects strings
-                @keybits.push($_[0] ~ '=' ~ $_[1]);
+                @keybits.push($_[0] eq 'to'
+                  ?? 'HEREDOC'            # all heredocs share the same lang
+                  !! $_[0] ~ '=' ~ $_[1]  # cannot use nqp::join as [1] is Bool
+                );
             }
 
             nqp::join("\0", @keybits)
@@ -147,26 +142,17 @@ role Raku::Common {
         }
 
         # get language from cache or derive it.
-        my $key := key-for-quote-lang();
+        my $key   := key-for-quote-lang();
+        my %cache := %*QUOTE-LANGS;
         my $quote-lang;
 
-        # don't cache
-        if $key eq 'NOCACHE' {
-            $quote-lang := create-quote-lang-type();
-        }
-
-        # need caching
-        else {
-            my %cache := %*QUOTE-LANGS;
-
-            # Read from / Update to cache in a thread-safe manner
-            nqp::lock($quote-lang-lock);
-            $quote-lang := nqp::ifnull(
-              nqp::atkey(%cache,$key),
-              nqp::bindkey(%cache,$key,create-quote-lang-type())
-            );
-            nqp::unlock($quote-lang-lock);
-        }
+        # Read from / Update to cache in a thread-safe manner
+        nqp::lock($quote-lang-lock);
+        $quote-lang := nqp::ifnull(
+          nqp::atkey(%cache,$key),
+          nqp::bindkey(%cache,$key,create-quote-lang-type())
+        );
+        nqp::unlock($quote-lang-lock);
 
         $quote-lang.set_package(self.package);
         $quote-lang

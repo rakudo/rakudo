@@ -684,14 +684,20 @@ my class IO::Path is Cool does IO {
         # check if we need a BOM
         if $enc eq 'utf16' {
 
-           my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
-           # add a BOM if writing starts at beginning of file
-           if $mode eq 'w'
-             || nqp::not_i(nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS))
-             || nqp::not_i(nqp::dispatch("boot-syscall", "stat-filesize", $stat)) {
+            # add a BOM if (over)writing 
+            if $mode eq 'w' {
                 nqp::unshift_i($blob,254);
                 nqp::unshift_i($blob,255);
-           }
+            }
+            # or appending to a new or existing, but zero-length, file
+            else {
+                my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+                if nqp::not_i(nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)) ||
+                   nqp::not_i(nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_FILESIZE)) {
+                    nqp::unshift_i($blob,254);
+                    nqp::unshift_i($blob,255);
+                }
+            }
         }
 
         spurt-blob($path, $mode, $blob)

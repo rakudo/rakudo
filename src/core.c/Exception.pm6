@@ -2094,7 +2094,7 @@ my class X::Syntax::Regex::UnrecognizedModifier does X::Syntax {
 }
 
 my class X::Syntax::Regex::NullRegex does X::Syntax {
-    method message() { 'Null regex not allowed' }
+    method message() { "Null regex not allowed.  Please use .comb if you wanted to produce a sequence of characters from a string.".naive-word-wrapper }
 }
 
 my class X::Syntax::Regex::MalformedRange does X::Syntax {

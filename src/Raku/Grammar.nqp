@@ -144,11 +144,10 @@ role Raku::Common {
         # get language from cache or derive it.
         my $key   := key-for-quote-lang();
         my %cache := %*QUOTE-LANGS;
-        my $quote-lang;
 
         # Read from / Update to cache in a thread-safe manner
         nqp::lock($quote-lang-lock);
-        $quote-lang := nqp::ifnull(
+        my $quote-lang := nqp::ifnull(
           nqp::atkey(%cache,$key),
           nqp::bindkey(%cache,$key,create-quote-lang-type())
         );

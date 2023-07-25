@@ -72,10 +72,10 @@ role STD {
                 @keybits.push($_);
             }
             for @extra_tweaks {
-                @keybits.push($_[0] eq 'to'
-                  ?? 'HEREDOC'            # all heredocs share the same lang
-                  !! $_[0] ~ '=' ~ $_[1]  # cannot use nqp::join as [1] is Bool
-                );
+                if $_[0] eq 'to' {
+                    return 'NOCACHE';
+                }
+                @keybits.push($_[0] ~ '=' ~ $_[1]);
             }
             nqp::join("\0", @keybits)
         }
@@ -111,10 +111,9 @@ role STD {
         my $key := lang_key();
         my %quote_lang_cache := $*W.quote_lang_cache;
         nqp::lock($quote-lang-lock);
-        my $quote_lang := nqp::ifnull(
-          nqp::atkey(%quote_lang_cache,$key),
-          nqp::bindkey(%quote_lang_cache,$key,con_lang())
-        );
+        my $quote_lang := nqp::existskey(%quote_lang_cache, $key) && $key ne 'NOCACHE'
+            ?? %quote_lang_cache{$key}
+            !! (%quote_lang_cache{$key} := con_lang());
         nqp::unlock($quote-lang-lock);
         $quote_lang.set_package(self.package);
         $quote_lang;

@@ -101,9 +101,9 @@ class RakuAST::LegacyPodify {
     }
 
     # create podified contents for atoms
-    method !contentify-atoms($ast) {
+    method !contentify(@source) {
         my str @parts;
-        my @atoms = $ast.atoms.map({
+        my @atoms = @source.map({
             nqp::istype($_,Str)
               ?? sanitize(.subst("\n", ' ', :g))
               !! .podify  # may Slip
@@ -156,18 +156,55 @@ class RakuAST::LegacyPodify {
     }
 
     multi method podify(RakuAST::Doc::Markup:D $ast) {
+        # This markup is allowed
         my str $letter = $ast.letter;
-        %*OK{$letter}
-          ?? $letter eq 'V'
-            ?? $ast.atoms.head.subst("\n", ' ', :g)
-            !! Pod::FormattingCode.new(
-                 type     => $letter,
-                 meta     => $ast.meta,
-                 contents => $letter eq 'C'
-                   ?? $ast.atoms.head.subst("\n", ' ', :g)
-                   !! self!contentify-atoms($ast)
-               )
-          !! $ast.Str
+
+        # make sure we have properly podified meta data
+        my @meta = do if $letter ne 'E' && $ast.meta -> @_ {
+            self!contentify(@_)
+        }
+
+        # Markup is allowed
+        if %*OK{$letter} {
+            $letter eq 'V'
+              ?? $ast.atoms.head.subst("\n", ' ', :g)
+              !! Pod::FormattingCode.new(
+                   type     => $letter,
+                   meta     => @meta,
+                   contents => $letter eq 'C'
+                     ?? $ast.atoms.head.subst("\n", ' ', :g)
+                     !! self!contentify($ast.atoms)
+                 )
+        }
+
+        # Meta on markup that itself is not allowed
+        elsif @meta {
+            my @atoms  = self!contentify($ast.atoms);
+
+            @atoms.unshift: nqp::istype(@atoms.head,Str)
+              ?? $letter ~ $ast.opener ~ @atoms.shift
+              !! $letter ~ $ast.opener;
+
+            @atoms.push: nqp::istype(@atoms.tail,Str)
+              ?? @atoms.pop ~ "|"
+              !! "|";
+
+            @atoms.push: nqp::istype(@meta.head,Str)
+              ?? @atoms.pop ~ @meta.shift
+              !! @meta.shift;
+            @atoms.append: @meta;
+
+            @atoms.push: nqp::istype(@atoms.tail,Str)
+              ?? @atoms.pop ~ $ast.closer
+              !! $ast.closer;
+
+            @atoms.List
+        }
+
+        # No meta on unallowed markup
+        else {
+            $ast.Str
+        }
     }
 
     multi method podify(RakuAST::Doc::Paragraph:D $ast) {
@@ -328,8 +365,8 @@ class RakuAST::LegacyPodify {
               !! .atoms.map({
                     nqp::istype($_,Str)
                       ?? .split("\n", :v, :skip-empty).Slip
-                      !! nqp::istype($_,RakuAST::Doc::Markup) && %*OK{.letter}
-                        ?? .podify
+                      !! nqp::istype($_,RakuAST::Doc::Markup)
+                        ?? .podify.Slip
                         !! .Str
                  })
             ).Slip

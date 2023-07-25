@@ -404,7 +404,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Doc::Markup:D: --> Str:D) {
-        self!nameds: <letter opener closer atoms meta separator>
+        self!nameds: <letter opener closer atoms meta>
     }
 
     multi method raku(RakuAST::Doc::Paragraph:D: --> Str:D) {

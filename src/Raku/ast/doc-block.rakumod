@@ -192,11 +192,10 @@ class RakuAST::Doc::Markup
     has str  $.letter;     # the letter of Markup: A..Z
     has str  $.opener;     # opening sequence: < << «
     has str  $.closer;     # closing sequence: > >> »
-    has str  $.separator;  # separator inside meta: for deparsing mainly
     has List $!atoms;      # any contents of this markup (str | nested markup)
     has List $!meta;       # any meta info (e.g. url | lemma | original value)
 
-    method new(:$letter!, :$opener, :$closer, :$atoms, :$meta, :$separator) {
+    method new(:$letter!, :$opener, :$closer, :$atoms, :$meta) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!letter',
           $letter // nqp::die("Must specify a letter"));
@@ -207,7 +206,6 @@ class RakuAST::Doc::Markup
 
         $obj.set-atoms($atoms);
         $obj.set-meta($meta);
-        $obj.set-separator($separator);
         $obj
     }
 
@@ -239,9 +237,4 @@ class RakuAST::Doc::Markup
     }
     method add-meta($meta) { nqp::push($!meta, $meta) }
     method meta() { self.IMPL-WRAP-LIST($!meta) }
-
-    method set-separator($separator) {
-        nqp::bindattr_s(self, RakuAST::Doc::Markup, '$!separator',
-          $separator // "");
-    }
 }

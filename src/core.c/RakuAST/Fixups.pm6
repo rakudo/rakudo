@@ -329,40 +329,58 @@ augment class RakuAST::Doc::Markup {
         $string
     }
 
-    # extract any meta information from the last atom
-    method !extract-meta() {
-        my @atoms       = self.atoms;
-        my $last       := @atoms.tail;
-        if nqp::istype($last,Str) {
-            my ($str,$meta) = @atoms.tail.split('|', 2);
-            if $meta {
-                $str ?? ($last = $str) !! @atoms.pop;
-                self.set-atoms(@atoms.List);
-                $meta
+    # Extract any meta information from the atoms, perform the expected
+    # flattening of 'C', 'V' and letterless markup, and set that in the
+    # meta information of the given markup
+    method !extract-meta(--> Nil) {
+        my @atoms;
+        my @meta;
+        for self.atoms {
+            if nqp::istype($_,RakuAST::Doc::Markup) {
+                if @meta {
+                    my str $letter = .letter;
+                    # flatten verbatim markup here
+                    if $letter eq "" {
+                        my $atom := .opener ~ .atoms ~ .closer;
+                        @meta.push: nqp::istype(@meta.tail,Str)
+                          ?? @meta.pop ~ $atom
+                          !! $atom;
+                    }
+                    else {
+                        .set-atoms(.atoms.join) if $letter eq 'C' | 'V';
+                        @meta.push($_);
+                    }
+                }
+                else {
+                    @atoms.push($_);
+                }
+            }
+
+            # it's a string
+            elsif @meta {
+                @meta.push: nqp::istype(@meta.tail,RakuAST::Doc::Markup)
+                  ?? $_
+                  !! @meta.pop ~ $_;
             }
             else {
-                Nil
+                my ($before, $after) = nqp::hllize($_).split("|", 2);
+                @atoms.push($before) if $before;
+                @meta.push($_)     with $after;
             }
         }
 
-        # missing | while there *are* atoms
-        else {
-            Nil
+        if @meta {
+            self.set-atoms(@atoms);
+            @meta.shift if @meta > 1 && !@meta.head;  # empty leading string
+            self.set-meta(@meta);
         }
     }
 
     # set up meta info from the last atom as appropriate
     method check-meta(RakuAST::Doc::Markup:D:) {
-        my str $letter = self.letter;
-        if $letter eq 'L' {
-            self.set-meta($_) with self!extract-meta;
-        }
-        elsif $letter eq 'D' | 'M' | 'X' {
-            if self!extract-meta -> $meta {
-                self.add-meta(.trim.split(',')>>.trim.List)
-                  for $meta.split(';');
-                self.set-separator(';');
-            }
+        my str $letter = $!letter;
+        if $letter eq 'L' | 'D' | 'M' | 'X' {
+            self!extract-meta;
         }
         elsif $letter eq 'E' {
             my @atoms = self.atoms;
@@ -404,7 +422,7 @@ augment class RakuAST::Doc::Markup {
             $!letter eq 'E'
               ?? @parts.pop # stringification so far is incorrect
               !! @parts.push('|');
-            @parts.push: @meta.join($!separator)
+            @parts.push: @meta.join
         }
 
         @parts.push: $!closer if $container;
@@ -468,7 +486,7 @@ augment class RakuAST::Doc::Markup {
                 if self.meta -> @meta {
                     @parts.push: '|';
                     @parts.push:
-                      @meta.map({ $_.join(", ") }).join(self.separator ~ ' ');
+                      @meta.map({ $_.join(", ") }).join(' ');
                 }
             }
         }

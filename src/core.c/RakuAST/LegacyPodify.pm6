@@ -236,42 +236,27 @@ class RakuAST::LegacyPodify {
     }
 
     multi method podify(RakuAST::Doc::Block:D $ast) {
-        my str $type = $ast.type;
-        my $config  := $ast.resolved-config;
 
         # Set up dynamic lookup for allowable markup letters
-        my %*OK := do {
-            # default for allowable markup letters
-            my constant %OK  = ("A".."Z").map: { $_ => True }
-            my constant %NOK = ();
-
-            # a specific set
-            if $config && $config<allow> -> $allow {
-                Map.new( @$allow.map( { $_ => True } ) )
-            }
-
-            # all or nothing
-            else {
-                $type eq <code defn implicit-code input output table>.any
-                  ?? %NOK
-                  !! %OK
-            }
-        }
+        my %*OK := $ast.allowed-markup;
 
         # These need code of its own, as the new grammar only collects
         # and does not do any interpretation
+        my str $type  = $ast.type;
         my str $level = $ast.level;
         unless $level {
-            return self.podify-table($ast, $config)
+            return self.podify-table($ast)
               if $type eq 'table';
-            return self.podify-verbatim($ast, $type, $config)
+            return self.podify-verbatim($ast, $type)
               if $type eq 'code' | 'input' | 'output';
-            return self.podify-implicit-code($ast, $config)
+            return self.podify-implicit-code($ast)
               if $type eq 'implicit-code';
             return self.podify-defn($ast)
               if $type eq 'defn';
         }
 
+        # no more special casing
+        my $config   := $ast.resolved-config;
         my $contents := no-last-nl($ast.paragraphs).map({
             if nqp::istype($_,Str) {
                 if sanitize(.trim-leading) -> $contents {
@@ -307,8 +292,9 @@ class RakuAST::LegacyPodify {
           !! $contents  # no type means just a string
     }
 
-    method podify-table(RakuAST::Doc::Block:D $ast, $config) {
-        my @rows = $ast.paragraphs.grep(RakuAST::Doc::Row);
+    method podify-table(RakuAST::Doc::Block:D $ast) {
+        my $config := $ast.resolved-config;
+        my @rows    = $ast.paragraphs.grep(RakuAST::Doc::Row);
 
         # Make sure that all rows have the same number of cells
         my $nr-columns := @rows.map(*.cells.elems).max;
@@ -357,7 +343,8 @@ class RakuAST::LegacyPodify {
         )
     }
 
-    method podify-verbatim(RakuAST::Doc::Block:D $ast, Str:D $type, $config) {
+    method podify-verbatim(RakuAST::Doc::Block:D $ast, Str:D $type) {
+        my $config  := $ast.resolved-config;
         my @contents = $ast.paragraphs.map({
             (nqp::istype($_,Str)
               ?? .split("\n", :v, :skip-empty)
@@ -379,9 +366,10 @@ class RakuAST::LegacyPodify {
         ::("Pod::Block::$type.tc()").new: :@contents, :$config
     }
 
-    method podify-implicit-code(RakuAST::Doc::Block:D $ast, $config) {
+    method podify-implicit-code(RakuAST::Doc::Block:D $ast) {
         Pod::Block::Code.new:
-          :contents($ast.paragraphs.head.Str.trim), :$config
+          :contents($ast.paragraphs.head.Str.trim),
+          :config($ast.resolved-config)
     }
 
     method podify-defn(RakuAST::Doc::Block:D $ast) {

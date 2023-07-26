@@ -715,6 +715,31 @@ augment class RakuAST::Doc::Block {
         self.paragraphs.head.leading-whitespace
     }
 
+    # return a Map with allowed markup codes as keys, conceptually
+    method allowed-markup(RakuAST::Doc::Block:D:) {
+
+        # default for allowable markup letters
+        my class OK is Map {
+            method AT-KEY(Str:D $letter --> Bool:D) { $letter.uniprop eq 'Lu' }
+        }
+        my class NOK is Map {
+            method AT-KEY(Str:D $ --> False) { }
+        }
+
+        # a specific set
+        my $config := self.resolved-config;
+        if $config && $config<allow> -> $allow {
+            Map.new( @$allow.map( { $_ => True } ) )
+        }
+
+        # all or nothing
+        else {
+            $!type eq <code defn implicit-code input output table>.any
+              ?? NOK
+              !! OK
+        }
+    }
+
     # remove left margin whitespace, if any
     method !marginalize(@raw) {
 

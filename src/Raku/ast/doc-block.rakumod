@@ -140,7 +140,7 @@ class RakuAST::Doc::Block
     }
     method paragraphs() { self.IMPL-WRAP-LIST($!paragraphs) }
 
-    method block()       { $!status == 0 }
+    method delimited()   { $!status == 0 }
     method for()         { $!status == 1 }
     method abbreviated() { $!status >= 2 }
     method directive()   { $!status == 3 }

@@ -3866,28 +3866,63 @@ if $*COMPILING_CORE_SETTING {
     token doc-newline { \h* \n }
 }
 
+#-------------------------------------------------------------------------------
+# The base grammar for supported quote languages in Raku.  It provides a
+# large number of roles to tweak the base grammer into a grammar that can be
+# used for a specific set of quote language adverbs.  Generally, each adverb
+# has an "on" version (with postfix "1") and an "off" version (with postfixi
+# "0").
 grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
-    proto token escape {*}
+
+#-------------------------------------------------------------------------------
+# Escape sequences
+
+    proto token escape    {*}
     proto token backslash {*}
 
+    # Allow for general backslash support, aka "qq" and friends
     role b1 {
-        token escape:sym<\\> { <sym> {} <item=.backslash> }
-        token backslash:sym<qq> { <?[q]> <quote=.LANG('MAIN','quote')> }
-        token backslash:sym<\\> { <text=.sym> }
-        token backslash:delim { <text=.starter> | <text=.stopper> }
+
+        # simple backslash sequences
         token backslash:sym<a> { <sym> }
         token backslash:sym<b> { <sym> }
-        token backslash:sym<c> { <sym> <charspec> }
         token backslash:sym<e> { <sym> }
         token backslash:sym<f> { <sym> }
-        token backslash:sym<N> { <?before 'N{'<.[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>  }
         token backslash:sym<n> { <sym> }
-        token backslash:sym<o> { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ] }
         token backslash:sym<r> { <sym> }
-        token backslash:sym<rn> { 'r\n' }
         token backslash:sym<t> { <sym> }
-        token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
         token backslash:sym<0> { <sym> }
+
+        token escape:sym<\\> {
+            <sym> {} <item=.backslash>
+        }
+        token backslash:sym<qq> {
+            <?[q]> <quote=.LANG('MAIN','quote')>
+        }
+        token backslash:sym<\\> {
+            <text=.sym>
+        }
+        token backslash:delim {
+            <text=.starter> | <text=.stopper>
+        }
+        token backslash:sym<c> {
+            <sym> <charspec>
+        }
+        token backslash:sym<N> {
+            <?before 'N{'<.[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>
+        }
+        token backslash:sym<o> {
+            :dba('octal character')
+            <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ]
+        }
+        token backslash:sym<rn> { 'r\n' }
+        token backslash:sym<misc> { \W }
+
+        token backslash:sym<x> {
+            :dba('hex character')
+            <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ]
+        }
+
         token backslash:sym<1> {
             <[1..9]>\d* {
               self.typed_panic: 'X::Backslash::UnrecognizedSequence',
@@ -3900,26 +3935,31 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
               :sequence($/[0].Str)
           }
         }
-        token backslash:sym<misc> { \W }
     }
 
+    # do NOT allow any backslashes, aka "q"
     role b0 {
         token escape:sym<\\> { <!> }
     }
 
+#-------------------------------------------------------------------------------
+# Interpolation
+
+    # interpolate scalars ($)
     role s1 {
         token escape:sym<$> {
             :my $*QSIGIL := '$';
             <?[$]>
             <!RESTRICTED>
-            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
+            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+               || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
         }
     }
 
-    role s0 {
-        token escape:sym<$> { <!> }
-    }
+    # do NOT interpolate scalars
+    role s0 { token escape:sym<$> { <!> } }
 
+    # interpolate arrays (@)
     role a1 {
         token escape:sym<@> {
             :my $*QSIGIL := '@';
@@ -3929,10 +3969,10 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
     }
 
-    role a0 {
-        token escape:sym<@> { <!> }
-    }
+    # do NOT interpolate arrays
+    role a0 { token escape:sym<@> { <!> } }
 
+    # interpolate hashes (%)
     role h1 {
         token escape:sym<%> {
             :my $*QSIGIL := '%';
@@ -3942,10 +3982,10 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
     }
 
-    role h0 {
-        token escape:sym<%> { <!> }
-    }
+    # do NOT interpolate hashes
+    role h0 { token escape:sym<%> { <!> } }
 
+    # interpolate subroutine calls (&)
     role f1 {
         token escape:sym<&> {
             :my $*QSIGIL := '&';
@@ -3955,18 +3995,24 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
     }
 
-    role f0 {
-        token escape:sym<&> { <!> }
-    }
+    # do NOT interpolate function calls
+    role f0 { token escape:sym<&> { <!> } }
 
+    # allow interpolated closures ({...})
     role c1 {
-        token escape:sym<{ }> { :my $*ESCAPEBLOCK := 1; <?[{]> <!RESTRICTED> <block=.LANG('MAIN','block')> }
+        token escape:sym<{ }> {
+            :my $*ESCAPEBLOCK := 1;
+            <?[{]> <!RESTRICTED> <block=.LANG('MAIN','block')>
+        }
     }
 
-    role c0 {
-        token escape:sym<{ }> { <!> }
-    }
+    # do NOT allow interpolated closures
+    role c0 { token escape:sym<{ }> { <!> } }
 
+#-------------------------------------------------------------------------------
+# Affecting global behaviour of quote languages
+
+    # allow for quoted words
     role ww {
         token escape:sym<'> {
             <?[ ' " ‘ ‚ ’ “ „ ” ｢ ]> <quote=.LANG('MAIN','quote')>
@@ -3979,15 +4025,19 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
     }
 
+    # allow for format specification
     role o {
         method postprocessors () { nqp::list_s('format') }
     }
 
+    # base role for heredocs
     role to[$herelang] {
         method herelang() { $herelang }
-        method postprocessors () { nqp::list_s('heredoc') } # heredoc strings are the only postproc when present
+        # heredoc strings are the only postproc when present
+        method postprocessors () { nqp::list_s('heredoc') }
     }
 
+    # base role for q//, aka '' parsing
     role q {
         token starter { \' }
         token stopper { \' }
@@ -4004,50 +4054,39 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         method tweak_qq($v) { self.panic("Too late for :qq") }
     }
 
+    # base role for qq//, aka "" parsing
     role qq does b1 does s1 does a1 does h1 does f1 does c1 {
         token starter { \" }
         token stopper { \" }
-        method tweak_q($v) { self.panic("Too late for :q") }
+        method tweak_q($v)  { self.panic("Too late for :q")  }
         method tweak_qq($v) { self.panic("Too late for :qq") }
     }
 
+#-------------------------------------------------------------------------------
+# Helper methods that map a given adverb to the appropriate tweak.  The
+# naming of the "tweak_" indicates the adverb they are being associated with.
+# See the "create-quote-lang-type" sub on where this is being done.
+
+    # helper method for quote lang adverbs that cannot be negated
     method truly($bool, $opt) {
-        self.sorry("Cannot negate $opt adverb") unless $bool;
-        self;
+        $bool
+          ?? self
+          !! self.sorry("Cannot negate $opt adverb")
     }
 
+    # helper method to mixin a give role
     method apply_tweak($role) {
         my $target := nqp::can(self, 'herelang') ?? self.herelang !! self;
         $target.HOW.mixin($target, $role);
         self
     }
 
-    method tweak_q($v)          { self.truly($v, ':q'); self.apply_tweak(Raku::QGrammar::q) }
-    method tweak_single($v)     { self.tweak_q($v) }
-    method tweak_qq($v)         { self.truly($v, ':qq'); self.apply_tweak(Raku::QGrammar::qq); }
-    method tweak_double($v)     { self.tweak_qq($v) }
-    method tweak_b($v)          { self.apply_tweak($v ?? b1 !! b0) }
-    method tweak_backslash($v)  { self.tweak_b($v) }
-    method tweak_s($v)          { self.apply_tweak($v ?? s1 !! s0) }
-    method tweak_scalar($v)     { self.tweak_s($v) }
-    method tweak_a($v)          { self.apply_tweak($v ?? a1 !! a0) }
-    method tweak_array($v)      { self.tweak_a($v) }
-    method tweak_h($v)          { self.apply_tweak($v ?? h1 !! h0) }
-    method tweak_hash($v)       { self.tweak_h($v) }
-    method tweak_f($v)          { self.apply_tweak($v ?? f1 !! f0) }
-    method tweak_function($v)   { self.tweak_f($v) }
-    method tweak_c($v)          { self.apply_tweak($v ?? c1 !! c0) }
-    method tweak_closure($v)    { self.tweak_c($v) }
-
-    method tweak_o($v)      { $v ?? self.apply_tweak(o) !! self }
-    method tweak_format($v) { self.tweak_o($v) }
-
+    # helper role to set the post-processors
     my role postproc[@curlist] {
-        method postprocessors() {
-            @curlist;
-        }
+        method postprocessors() { @curlist }
     }
 
+    # helper method to add a post-processor
     method add-postproc(str $newpp) {
         my $target := nqp::can(self, 'herelang') ?? self.herelang !! self;
 
@@ -4062,28 +4101,63 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         self
     }
 
-    method tweak_x($v)          { $v ?? self.add-postproc("exec") !! self }
-    method tweak_exec($v)       { self.tweak_x($v) }
-    method tweak_w($v)          { $v ?? self.add-postproc("words") !! self }
-    method tweak_words($v)      { self.tweak_w($v) }
-    method tweak_ww($v)         { $v ?? self.add-postproc("quotewords").apply_tweak(ww) !! self }
-    method tweak_quotewords($v) { self.tweak_ww($v) }
-    method tweak_v($v)          { $v ?? self.add-postproc("val") !! self }
-    method tweak_val($v)        { self.tweak_v($v) }
-
+    # tweaks that can NOT be negated
+    method tweak_q($v) {
+        self.truly($v, ':q');
+        self.apply_tweak(Raku::QGrammar::q)
+    }
+    method tweak_qq($v) {
+        self.truly($v, ':qq');
+        self.apply_tweak(Raku::QGrammar::qq)
+    }
+    method tweak_regex($v) {
+        self.truly($v, ':regex');
+        self.slang_grammar('Regex')
+    }
     method tweak_to($v) {
         self.truly($v, ':to');
         # the cursor_init is to ensure it's been initialized the same way
         # 'self' was back in quote-lang
         my $q := self.slang_grammar('Quote');
-        $q.HOW.mixin($q, to.HOW.curry(to, self)).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
+        $q.HOW.mixin(
+          $q, to.HOW.curry(to, self)
+        ).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
     }
-    method tweak_heredoc($v)    { self.tweak_to($v) }
 
-    method tweak_regex($v) {
-        self.truly($v, ':regex');
-        return self.slang_grammar('Regex');
+    # tweaks that disable when negated
+    method tweak_a($v) { self.apply_tweak($v ?? a1 !! a0) }
+    method tweak_b($v) { self.apply_tweak($v ?? b1 !! b0) }
+    method tweak_c($v) { self.apply_tweak($v ?? c1 !! c0) }
+    method tweak_f($v) { self.apply_tweak($v ?? f1 !! f0) }
+    method tweak_h($v) { self.apply_tweak($v ?? h1 !! h0) }
+    method tweak_s($v) { self.apply_tweak($v ?? s1 !! s0) }
+
+    method tweak_o($v) { $v ?? self.apply_tweak(o) !! self }
+    method tweak_x($v) { $v ?? self.add-postproc("exec")  !! self }
+    method tweak_w($v) { $v ?? self.add-postproc("words") !! self }
+    method tweak_v($v) { $v ?? self.add-postproc("val")   !! self }
+    method tweak_ww($v) {
+        $v ?? self.add-postproc("quotewords").apply_tweak(ww) !! self
     }
+
+    # tweaks accessed by their long adverb name, mapping to short
+    method tweak_array($v)      { self.tweak_a($v)  }
+    method tweak_backslash($v)  { self.tweak_b($v)  }
+    method tweak_closure($v)    { self.tweak_c($v)  }
+    method tweak_double($v)     { self.tweak_qq($v) }
+    method tweak_exec($v)       { self.tweak_x($v)  }
+    method tweak_format($v)     { self.tweak_o($v)  }
+    method tweak_function($v)   { self.tweak_f($v)  }
+    method tweak_hash($v)       { self.tweak_h($v)  }
+    method tweak_heredoc($v)    { self.tweak_to($v) }
+    method tweak_quotewords($v) { self.tweak_ww($v) }
+    method tweak_scalar($v)     { self.tweak_s($v)  }
+    method tweak_single($v)     { self.tweak_q($v)  }
+    method tweak_val($v)        { self.tweak_v($v)  }
+    method tweak_words($v)      { self.tweak_w($v)  }
+
+#-------------------------------------------------------------------------------
+# Actual slang nibbling logic
 
     token nibbler {
         :my @*nibbles;
@@ -4136,6 +4210,10 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     }
 }
 
+#-------------------------------------------------------------------------------
+# Grammar to parse Raku regexes, mostly consisting of overrides allowing
+# HLL actions on what is an NQP grammar
+
 grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
     method throw_unrecognized_metachar ($metachar) {
         self.typed_sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
@@ -4147,14 +4225,30 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         self.typed_panic('X::Syntax::Regex::UnrecognizedModifier', :$modifier);
     }
 
-    method throw_malformed_range() { self.typed_sorry('X::Syntax::Regex::MalformedRange') }
-    method throw_confused() { self.typed_sorry('X::Syntax::Confused') }
-    method throw_unspace($char) { self.typed_sorry('X::Syntax::Regex::Unspace', :$char) }
-    method throw_regex_not_terminated() { self.typed_sorry('X::Syntax::Regex::Unterminated') }
-    method throw_spaces_in_bare_range() { self.typed_sorry('X::Syntax::Regex::SpacesInBareRange') }
-    method throw_non_quantifiable() { self.typed_sorry('X::Syntax::Regex::NonQuantifiable') }
-    method throw_solitary_quantifier() { self.typed_panic('X::Syntax::Regex::SolitaryQuantifier') }
-    method throw_solitary_backtrack_control() { self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl') }
+    method throw_malformed_range() {
+        self.typed_sorry('X::Syntax::Regex::MalformedRange');
+    }
+    method throw_confused() {
+        self.typed_sorry('X::Syntax::Confused');
+    }
+    method throw_unspace($char) {
+        self.typed_sorry('X::Syntax::Regex::Unspace', :$char);
+    }
+    method throw_regex_not_terminated() {
+        self.typed_sorry('X::Syntax::Regex::Unterminated');
+    }
+    method throw_spaces_in_bare_range() {
+        self.typed_sorry('X::Syntax::Regex::SpacesInBareRange');
+    }
+    method throw_non_quantifiable() {
+        self.typed_sorry('X::Syntax::Regex::NonQuantifiable');
+    }
+    method throw_solitary_quantifier() {
+        self.typed_panic('X::Syntax::Regex::SolitaryQuantifier');
+    }
+    method throw_solitary_backtrack_control() {
+        self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl');
+    }
 
     token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
 
@@ -4185,7 +4279,6 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         ]?
         <.SIGOK>
     }
-
 
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
@@ -4266,6 +4359,9 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         <arglist=.LANG('MAIN','arglist')>
     }
 }
+
+#-------------------------------------------------------------------------------
+# Grammar to parse PCRE like regexes
 
 grammar Raku::P5RegexGrammar is QRegex::P5Regex::Grammar does Raku::Common {
     token rxstopper { <stopper> }

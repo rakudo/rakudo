@@ -65,7 +65,7 @@ class RakuAST::Doc::Block
     has int  $.level;            # the level (default "", or numeric 1..N)
     has Hash $!config;           # the config hash (e.g. :numbered, :allow<B>)
     has List $!paragraphs;       # the actual content
-    has int  $.status;           # 0 =begin, 1 =for, 2 =abbrev, 3 =directive
+    has int  $!status;           # 0 =begin, 1 =for, 2 =abbrev, 3 =directive
     has int  $!pod-index;        # index in $=pod
     has Mu   $!resolved-config;  # HLL-resolved config
 

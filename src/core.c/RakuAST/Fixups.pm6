@@ -708,10 +708,10 @@ augment class RakuAST::Doc::Paragraph {
 augment class RakuAST::Doc::Block {
 
     # return a new Hashray class instance
-    method Hashray() { Hashray.new }
+    method Hashray() is implementation-detail { Hashray.new }
 
     # conceptual leading whitespace of first element
-    method leading-whitespace() {
+    method leading-whitespace() is implementation-detail {
         self.paragraphs.head.leading-whitespace
     }
 
@@ -776,7 +776,7 @@ does not have enough whitespace to allow for a margin of $margin positions";
     # create block from =alias
     method from-alias(
       :$lemma, :paragraphs(@raw), *%_
-    --> RakuAST::Doc::Block:D) {
+    --> RakuAST::Doc::Block:D) is implementation-detail {
 
         # set up basic block
         my $block      := self.new(|%_);
@@ -798,7 +798,7 @@ does not have enough whitespace to allow for a margin of $margin positions";
     }
 
     # create block from =config
-    method from-config(:$key, *%_) {
+    method from-config(:$key, *%_) is implementation-detail {
         my $block := self.new(:paragraphs(nqp::list($key)), |%_);
 
         # Save the configuration in the dynamic config if possible.
@@ -834,7 +834,7 @@ does not have enough whitespace to allow for a margin of $margin positions";
         }
 
         elsif $type eq 'table' {
-            $block.interpret-as-table(@paragraphs);
+            $block!interpret-as-table(@paragraphs);
         }
 
         elsif $type eq 'defn' {
@@ -846,11 +846,11 @@ does not have enough whitespace to allow for a margin of $margin positions";
             $block.add-paragraph(@parts.shift);
 
             # add rest with implicit code block detection
-            $block.interpret-implicit-code-blocks(@parts);
+            $block!interpret-implicit-code-blocks(@parts);
         }
 
         elsif %implicit.AT-KEY($type) {
-            $block.interpret-implicit-code-blocks(@paragraphs);
+            $block!interpret-implicit-code-blocks(@paragraphs);
         }
 
         # these just need the paragraphs
@@ -874,7 +874,7 @@ does not have enough whitespace to allow for a margin of $margin positions";
     my int32 $pipe      = 124;  # "|"
     my int   $gcprop = nqp::unipropcode("General_Category");
 
-    method interpret-as-table(RakuAST::Doc::Block:D: @matched --> Nil) {
+    method !interpret-as-table(@matched --> Nil) {
 
         # Set up the lines to be parsed
         my str @lines = @matched.join.subst(/ \n+ $/).lines;
@@ -1253,7 +1253,7 @@ in line '$line'"
         self.set-paragraphs(@paragraphs);
     }
 
-    method interpret-implicit-code-blocks(RakuAST::Doc::Block:D: @paragraphs) {
+    method !interpret-implicit-code-blocks(@paragraphs) {
         my str $current-ws;
         my int $current-offset;
 

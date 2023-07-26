@@ -88,6 +88,10 @@ my multi sub rakudoc2text(RakuAST::Node:D $ast --> Str:D) {
 
 # the general handler, with specific sub-actions
 my multi sub rakudoc2text(RakuAST::Doc::Block:D $ast --> Str:D) {
+
+    # Set up dynamic lookup for allowable markup letters
+    my %*OK := $ast.allowed-markup;
+
     given $ast.type {
         when 'alias'         { ''                 }
         when 'code'          { code2text($ast)    }
@@ -151,7 +155,20 @@ my multi sub rakudoc2text(RakuAST::Doc::DeclaratorTarget:D $ast --> Str:D) {
 # handle any markup such as B<foo>
 my multi sub rakudoc2text(RakuAST::Doc::Markup:D $ast --> Str:D) {
     my str $letter = $ast.letter;
-    if $letter eq 'Z' {
+    if !%*OK{$letter} {
+        if $letter ne 'E' && $ast.meta -> @meta {
+            $letter
+              ~ $ast.opener
+              ~ $ast.atoms.map(&rakudoc2text).join
+              ~ "|"
+              ~ @meta.map(&rakudoc2text).join
+              ~ $ast.closer
+        }
+        else {
+            $ast.Str
+        }
+    }
+    elsif $letter eq 'Z' {
         ''
     }
     elsif $letter eq 'A' {

@@ -585,7 +585,6 @@ class RakuAST::VarDeclaration::Simple
         for @traits {
             if nqp::istype($_, RakuAST::Trait::Of) {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $!type) if $!type;
-                nqp::gethllsym('nqp', 'note')($_.type.dump);
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $_.type);
                 next;
             }

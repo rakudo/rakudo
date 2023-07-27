@@ -42,6 +42,12 @@ my class Version {
         nqp::bindattr_s($version,Version,'$!string',"6.e.PREVIEW");
         $version
     }
+    my constant $v6star = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"e","PREVIEW"));
+        nqp::bindattr_s($version,Version,'$!string',"6.*");
+        $version
+    }
     my constant $vplus = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list);
@@ -64,13 +70,13 @@ my class Version {
         self
     }
 
-    multi method new(Version:)               { $v   }
-    multi method new(Version: '6')           { $v6  }
-    multi method new(Version: '6.c')         { $v6c }
-    multi method new(Version: '6.d')         { $v6d }
-    multi method new(Version: '6.e.PREVIEW') { $v6e }  # update on language
-    multi method new(Version: '6.*')         { $v6e }  # level bump
-    multi method new(Version: Whatever)      { $vw  }
+    multi method new(Version:)               { $v      }
+    multi method new(Version: '6')           { $v6     }
+    multi method new(Version: '6.c')         { $v6c    }
+    multi method new(Version: '6.d')         { $v6d    }
+    multi method new(Version: '6.e.PREVIEW') { $v6e    }  # update on language
+    multi method new(Version: '6.*')         { $v6star }  # level bump
+    multi method new(Version: Whatever)      { $vw     }
 
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0, $?) {
         nqp::create(self)!SET-SELF(@parts.List, $plus, $string)

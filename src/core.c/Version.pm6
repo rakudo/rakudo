@@ -5,17 +5,22 @@ my class Version {
     #     has str $!string;
     # }
 
+    # Define a constant string for Whatever so that we can use
+    # nqp::eqaddr to see whether a part of the version is a Whatever
+    # without actually using the Whatever type object.
+    my constant star = '*';
+
     my constant $v  = do {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list());
         nqp::bindattr_s($version,Version,'$!string',"");
         $version
     }
-    my constant $vw = do {
+    my constant $vstar = do {
         my $version := nqp::create(Version);
-        nqp::bindattr(  $version,Version,'$!parts',   nqp::list(*));
+        nqp::bindattr(  $version,Version,'$!parts',  nqp::list(star));
         nqp::bindattr_i($version,Version,'$!plus',   -1);
-        nqp::bindattr_s($version,Version,'$!string', "*");
+        nqp::bindattr_s($version,Version,'$!string', '*');
         $version
     }
     my constant $v6  = do {
@@ -44,7 +49,7 @@ my class Version {
     }
     my constant $v6star = do {
         my $version := nqp::create(Version);
-        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"e","PREVIEW"));
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,star));
         nqp::bindattr_s($version,Version,'$!string',"6.*");
         $version
     }
@@ -76,7 +81,8 @@ my class Version {
     multi method new(Version: '6.d')         { $v6d    }
     multi method new(Version: '6.e.PREVIEW') { $v6e    }  # update on language
     multi method new(Version: '6.*')         { $v6star }  # level bump
-    multi method new(Version: Whatever)      { $vw     }
+    multi method new(Version: '*')           { $vstar  }
+    multi method new(Version: Whatever)      { $vstar  }
 
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0, $?) {
         nqp::create(self)!SET-SELF(@parts.List, $plus, $string)
@@ -84,8 +90,8 @@ my class Version {
 
     method !SLOW-NEW(str $s) {
         # we comb the version string for /:r '*' || \d+ || <.alpha>+/, which
-        # will become our parts. The `*` becomes a Whatever, numbers Numeric,
-        # and the rest of the parts remain as strings
+        # will become our parts. Decimal numbers are converted to Ints, and
+        # the rest of the parts remain as strings
         my int $pos;
         my int $chars = nqp::chars($s);
         my int $mark;
@@ -98,18 +104,18 @@ my class Version {
             nqp::eqat($s, '*', $pos),
             nqp::stmts( # Whatever portion
               nqp::push_s($strings, '*'),
-              nqp::push($parts,Whatever),
-              ($pos = nqp::add_i($pos, 1))
+              nqp::push($parts,star),
+              ++$pos
             ),
             nqp::if(
               nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
               nqp::stmts( # we're at the start of a numeric portion
-                ($mark = $pos),
-                ($pos = nqp::add_i($pos, 1)),
+                ($mark = $pos++),
                 nqp::while( # seek the end of numeric portion
                   nqp::islt_i($pos, $chars)
                   && nqp::iscclass(nqp::const::CCLASS_NUMERIC, $s, $pos),
-                  ($pos = nqp::add_i($pos, 1))),
+                  ++$pos
+                ),
                 nqp::push($parts, # grab numeric portion
                   nqp::atpos(
                     nqp::radix(
@@ -129,13 +135,12 @@ my class Version {
                 nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
                   || nqp::iseq_i(nqp::ord($s, $pos), 95),
                 nqp::stmts( # we're at the start of a alpha portion
-                  ($mark = $pos),
-                  ($pos = nqp::add_i($pos, 1)),
+                  ($mark = $pos++),
                   nqp::while( # seek the end of alpha portion
                     nqp::islt_i($pos, $chars)
                     && (nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $s, $pos)
                       || nqp::iseq_i(nqp::ord($s, $pos), 95)),
-                    ($pos = nqp::add_i($pos, 1))
+                    ++$pos
                   ),
                   nqp::push($parts, # grab alpha portion
                     nqp::push_s(
@@ -143,7 +148,7 @@ my class Version {
                     )
                   )
                 ),
-                ($pos = nqp::add_i($pos, 1))
+                ++$pos
               )
             )
           )
@@ -181,7 +186,7 @@ my class Version {
         }
     }
     multi method ACCEPTS(Version:D: Version:D $other) {
-        my \oparts       := nqp::getattr(nqp::decont($other),Version,'$!parts');
+        my \oparts       := nqp::getattr($other,Version,'$!parts');
         my int $oelems    = nqp::isnull(oparts) ?? 0 !! nqp::elems(oparts);
         my int $elems     = nqp::elems($!parts);
         my int $max-elems = nqp::isge_i($oelems,$elems) ?? $oelems !! $elems;
@@ -192,13 +197,13 @@ my class Version {
           nqp::stmts(
             (my $v := nqp::if(
               nqp::isge_i($i,$elems),
-              Whatever,
+              star,
               nqp::atpos($!parts,$i)
             )),
 
             # if whatever here, no more check this iteration
             nqp::unless(
-              nqp::eqaddr($v,Whatever),
+              nqp::eqaddr($v,star),
               nqp::stmts(
                 (my $o := nqp::if(
                   nqp::isge_i($i,$oelems),
@@ -208,7 +213,7 @@ my class Version {
 
                 # if whatever there, no more to check this iteration
                 nqp::unless(
-                  nqp::eqaddr($o,Whatever),
+                  nqp::eqaddr($o,star),
                   nqp::if(
                     nqp::eqaddr((my $order := $o cmp $v),Order::More),
                     (return nqp::hllbool(nqp::isgt_i($!plus,0))),
@@ -245,12 +250,12 @@ my class Version {
     method parts() { nqp::hllize($!parts) }
     method plus()  { nqp::hllbool(nqp::iseq_i($!plus, 1)) }
     method minus() { nqp::hllbool(nqp::iseq_i($!plus,-1)) }
-    method whatever() { 
+    method whatever() {
         my int $i     = -1;
         my int $elems = nqp::elems($!parts);
         nqp::until(
           nqp::iseq_i(++$i,$elems)
-            || nqp::eqaddr(nqp::atpos($!parts,$i),Whatever),
+            || nqp::eqaddr(nqp::atpos($!parts,$i),star),
           nqp::null
         );
         nqp::hllbool(nqp::isne_i($i,$elems))

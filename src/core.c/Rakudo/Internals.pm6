@@ -1384,27 +1384,25 @@ my class Rakudo::Internals {
             nqp::while(
               nqp::chars(my str $entry = self!next),
               nqp::stmts(
-                (next if $entry eq '.' or $entry eq '..'),
                 (my str $path = nqp::concat($!abspath,$entry)),
-                (try
+                (my $stat := nqp::dispatch('boot-syscall', 'file-stat', nqp::decont_s($path), 0)),
+                nqp::if(
+                  nqp::dispatch('boot-syscall', 'stat-flags', $stat, nqp::const::STAT_ISREG) && $!file.ACCEPTS($entry),
+                  (return $path),
                   nqp::if(
-                      (my $s := nqp::dispatch('boot-syscall', 'file-stat', nqp::decont_s($path), 0)) && nqp::dispatch('boot-syscall', 'stat-flags', $s, nqp::const::STAT_ISREG) && $!file.ACCEPTS($entry),
-                    (return $path),
-                    nqp::if(
-                      $!dir.ACCEPTS($entry) &&
-                        nqp::dispatch('boot-syscall', 'stat-flags', $s, nqp::const::STAT_ISDIR),
-                      nqp::stmts(
-                        nqp::if(
-                          nqp::fileislink($path),
-                          $path = IO::Path.new(
-                            $path,:CWD($!abspath)).resolve.absolute
-                        ),
-                        nqp::unless(
-                          nqp::existskey($!seen,$path),
-                          nqp::stmts(
-                            nqp::bindkey($!seen,$path,1),
-                            nqp::push_s($!todo,$path)
-                          )
+                    $!dir.ACCEPTS($entry) &&
+                      nqp::dispatch('boot-syscall', 'stat-flags', $stat, nqp::const::STAT_ISDIR),
+                    nqp::stmts(
+                      nqp::if(
+                        nqp::fileislink($path),
+                        $path = IO::Path.new(
+                          $path,:CWD($!abspath)).resolve.absolute
+                      ),
+                      nqp::unless(
+                        nqp::existskey($!seen,$path),
+                        nqp::stmts(
+                          nqp::bindkey($!seen,$path,1),
+                          nqp::push_s($!todo,$path)
                         )
                       )
                     )

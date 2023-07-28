@@ -116,11 +116,11 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     multi method gist(Regex:D:) {
-        nqp::ifnull($!source,'')
+        nqp::isnull_s($!source) ?? '' !! $!source
     }
 
     multi method raku(Regex:D:) {
-        nqp::ifnull($!source,'')
+        nqp::isnull_s($!source) ?? '' !! $!source
     }
 
     method clone(Mu :$topic is raw, Mu :$slash is raw --> Regex) {

@@ -787,16 +787,28 @@ class RakuAST::ApplyInfix
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if nqp::eqaddr($!infix.WHAT,RakuAST::MetaInfix::Assign)
-          && $!infix.infix.operator eq ',' {
-            my $sigil := (try $!left.sigil) // '';
-            if $sigil eq '$' || $sigil eq '@' {
-                $resolver.add-worry:
-                  $resolver.build-exception: 'X::AdHoc',
-                    payload => "Using ,= on a "
-                      ~ ($sigil eq '$' ?? 'scalar' !! 'array')
-                      ~ " is probably NOT what you want, as it will create\n"
-                      ~ "a self-referential structure with little meaning";
+
+        # handle op=
+        if nqp::eqaddr($!infix.WHAT,RakuAST::MetaInfix::Assign) {
+            if $!infix.infix.operator eq ',' {
+                my $sigil := (try $!left.sigil) // '';
+                if $sigil eq '$' || $sigil eq '@' {
+                    $resolver.add-worry:
+                      $resolver.build-exception: 'X::AdHoc',
+                        payload => "Using ,= on a "
+                          ~ ($sigil eq '$' ?? 'scalar' !! 'array')
+                          ~ " is probably NOT what you want, as it will create\n"
+                          ~ "a self-referential structure with little meaning";
+                }
+            }
+        }
+
+        # a "normal" infix op
+        elsif nqp::istype($!infix,RakuAST::Infix) {
+            if $!infix.operator eq ':='
+              && nqp::istype($!left,RakuAST::Literal) {
+                $resolver.add-sorry:
+                  $resolver.build-exception: 'X::Bind';
             }
         }
         True

@@ -2616,6 +2616,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     rule regex-def {
         :my $*BLOCK;
+        :my $type := $*IN-DECL;
         <.enter-block-scope(nqp::tclc($*IN-DECL) ~ 'Declaration')>
         [
           <deflongname('has')>?
@@ -2630,7 +2631,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           ]
           '}'<!RESTRICTED><?ENDSTMT>
           <.leave-block-scope>
-        ] || <.malformed('regex')>
+        ] || <.malformed($type)>
     }
 
     proto token type-declarator {*}

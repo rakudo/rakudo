@@ -2865,7 +2865,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    my sub extract-config($/) {
+    method extract-config($/) {
         my $config := nqp::hash;
         $config<numbered> := 1 if $<doc-numbered>;
 
@@ -2873,7 +2873,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             for @colonpairs -> $/ {
                 my $key := ~$<identifier>;
                 if $<num> -> $int {
-                    $config{$key} := RakuAST::IntLiteral.new(+$int);
+                    $config{$key} := self.r('IntLiteral').new(+$int);
                 }
                 elsif $<coloncircumfix> -> $ccf {  # :bar("foo",42)
                     $config{$key} := $ccf.ast;
@@ -2882,16 +2882,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $config{$key} := $var.ast;
                 }
                 else {                             # :!bar | :bar
-                    $config{$key} := (
-                      $<neg> ?? RakuAST::Term::False !! RakuAST::Term::True
-                    ).new;
+                    $config{$key} := 
+                      self.r('Term', $<neg> ?? 'False' !! 'True').new;
                 }
             }
         }
         $config
     }
 
-    my sub extract-type($/) {
+    method extract-type($/) {
         if $<type> -> $type {
             my $level := 0;
             if $type<level> -> $levelish {
@@ -2909,7 +2908,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    my sub extract-level($/) {
+    method extract-level($/) {
         if $<type> && $<type><level> -> $levelish {
             +$levelish
         }
@@ -2934,24 +2933,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
 
-        $*SEEN{$/.from} := RakuAST::Doc::Block.from-alias:
+        $*SEEN{$/.from} := self.r('Doc','Block').from-alias:
           :directive, :margin(~$<margin>), :type<alias>,
           :lemma(~$<lemma>), :@paragraphs
     }
 
     method doc-block:sym<column-row>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := RakuAST::Doc::Block.new:
+            $*SEEN{$/.from} := self.r('Doc','Block').new:
               :directive, :margin(~$<margin>), :type(~$<type>),
-              :config(extract-config($/))
+              :config(self.extract-config($/))
         }
     }
 
     method doc-block:sym<config>($/) {
         unless $*FROM-SEEN{$/.from}++ {
-            $*SEEN{$/.from} := RakuAST::Doc::Block.from-config:
+            $*SEEN{$/.from} := self.r('Doc','Block').from-config:
               :directive, :margin(~$<margin>), :type<config>,
-              :config(extract-config($/)), :key(~$<doc-identifier>)
+              :config(self.extract-config($/)), :key(~$<doc-identifier>)
         }
     }
 
@@ -2960,7 +2959,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             return;
         }
 
-        my $config := extract-config($/);
+        my $config := self.extract-config($/);
 
         my @paragraphs;
         if $<lines> -> $lines {
@@ -2969,7 +2968,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
 
-        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+        $*SEEN{$/.from} := self.r('Doc','Block').from-paragraphs:
           :margin(~$<margin>), :type(~$<type>), :$config, :@paragraphs;
     }
 
@@ -2979,9 +2978,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         my $SEEN := $*SEEN;
 
-        my $config := extract-config($/);
-        my $type   := extract-type($/);
-        my $level  := extract-level($/);
+        my $config := self.extract-config($/);
+        my $type   := self.extract-type($/);
+        my $level  := self.extract-level($/);
 
         my @paragraphs;
         if $<doc-content> -> $doc-content {
@@ -2997,7 +2996,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
 
-        $SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+        $SEEN{$/.from} := self.r('Doc','Block').from-paragraphs:
           :margin(~$<margin>), :$type, :$level, :$config, :@paragraphs;
     }
 
@@ -3006,9 +3005,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             return;
         }
 
-        my $config := extract-config($/);
-        my $type   := extract-type($/);
-        my $level  := extract-level($/);
+        my $config := self.extract-config($/);
+        my $type   := self.extract-type($/);
+        my $level  := self.extract-level($/);
 
         my @paragraphs;
         if $<lines> -> $lines {
@@ -3016,7 +3015,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 nqp::push(@paragraphs,$text);
             }
         }
-        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+        $*SEEN{$/.from} := self.r('Doc','Block').from-paragraphs:
           :margin(~$<margin>), :for, :$type, :$level, :$config, :@paragraphs;
     }
 
@@ -3025,9 +3024,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             return;
         }
 
-        my $config := extract-config($/);
-        my $type   := extract-type($/);
-        my $level  := extract-level($/);
+        my $config := self.extract-config($/);
+        my $type   := self.extract-type($/);
+        my $level  := self.extract-level($/);
 
         my @paragraphs;
         if ($<header> ?? $<margin> ~ $<header> !! "")
@@ -3035,7 +3034,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             @paragraphs := nqp::list($text);
         }
 
-        $*SEEN{$/.from} := RakuAST::Doc::Block.from-paragraphs:
+        $*SEEN{$/.from} := self.r('Doc','Block').from-paragraphs:
           :margin(~$<margin>), :abbreviated, :$type, :$level, :$config,
           :@paragraphs;
     }

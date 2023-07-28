@@ -1336,17 +1336,17 @@ class RakuAST::VarDeclaration::Implicit::Special
         # to have.
         my constant COMMON := nqp::list(
             nqp::hash(),
-            nqp::hash(
+            nqp::hash(  # 6.c
                 '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :dynamic, :name('$_')),
                 '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
                 '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             ),
-            nqp::hash(
+            nqp::hash(  # 6.d
                 '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
                 '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
                 '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
             ),
-            nqp::hash(
+            nqp::hash(  # 6.e
                 '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
                 '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
                 '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
@@ -1356,7 +1356,7 @@ class RakuAST::VarDeclaration::Implicit::Special
             ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name(self.name));
         my $container := nqp::create(Scalar);
         nqp::bindattr($container, Scalar, '$!descriptor', $cont-desc);
-        nqp::bindattr($container, Scalar, '$!value', Any);
+        nqp::bindattr($container, Scalar, '$!value', $cont-desc.default);
         $container
     }
 

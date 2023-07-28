@@ -734,7 +734,7 @@ augment class RakuAST::Doc::Block {
 
         # all or nothing
         else {
-            $!type eq <code defn implicit-code input output table>.any
+            $!type eq <code defn implicit-code table>.any
               ?? NOK
               !! OK
         }

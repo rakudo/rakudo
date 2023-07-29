@@ -1626,7 +1626,15 @@ class RakuAST::Deparse {
     multi method deparse(
       RakuAST::Regex::Quantifier::BlockRange:D $ast
     --> Str:D) {
-        self.quantifier($ast, '** ' ~ self.deparse($ast.block))
+        my $backtrack := $ast.backtrack;
+
+        '**'
+          ~ (self.deparse($backtrack) unless nqp::eqaddr(
+              $ast.backtrack,
+              RakuAST::Regex::Backtrack
+            ))
+          ~ ' '
+          ~ self.deparse($ast.block)
     }
 
     multi method deparse(
@@ -1636,15 +1644,34 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Quantifier::Range:D $ast --> Str:D) {
-        self.quantifier(
-          $ast,
-          '** '
-            ~ ($ast.min.defined
-                ??  $ast.min ~ ($ast.excludes-min ?? '^' !! '') ~ '..'
-                !! '')
-            ~ ($ast.excludes-max ?? '^' !! '')
-            ~ ($ast.max // '*')
-        )
+        my str @parts = '**';
+
+        my $backtrack := $ast.backtrack;
+        @parts.push(self.deparse($backtrack))
+          unless nqp::eqaddr($backtrack,RakuAST::Regex::Backtrack);
+        @parts.push(' ');
+
+        with $ast.min -> $min {
+            @parts.push($min.Str);
+            with $ast.max -> $max {
+                if $min != $max {
+                    @parts.push('^') if $ast.excludes-min;
+                    @parts.push('..');
+                    @parts.push('^') if $ast.excludes-max;
+                    @parts.push($max.Str);
+                }
+            }
+            else {
+                @parts.push('^') if $ast.excludes-min;
+                @parts.push('..*');
+            }
+        }
+        else {
+            @parts.push('^') if $ast.excludes-max;
+            @parts.push($ast.max.Str);
+        }
+
+        @parts.join
     }
 
     multi method deparse(

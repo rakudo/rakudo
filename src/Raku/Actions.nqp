@@ -500,6 +500,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.leave-scope();
     }
 
+    method statement-control:sym<also>($/) {
+        if $*PACKAGE -> $package {
+            for $<trait> {
+                $package.add-trait($_.ast);
+            }
+            $package.apply-traits($*R, $*CU.context, $package);
+            self.attach: $/, self.r('Statement','Empty').new;
+        }
+        else {
+            $/.panic("Found 'also' outside of any package");
+        }
+    }
+
     method statement-control:sym<if>($/) {
         my $condition := $<condition>[0].ast;
         my $then := $<then>[0].ast;

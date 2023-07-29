@@ -844,6 +844,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto rule statement-control {*}
 
+    rule statement-control:sym<also> {
+        <sym><.kok>
+        [ <trait>+ || <.panic: "No valid trait found after 'also'"> ]
+    }
+
     rule statement-control:sym<if> {
         $<sym>=[if|with]<.kok> {}
         :my $*GOAL := '{';

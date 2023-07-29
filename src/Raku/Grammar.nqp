@@ -2315,6 +2315,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
         <.stub-package($<longname>)>
        { $/.set_package($*PACKAGE) }
+        :my $*ALSO-TARGET := $*PACKAGE;
         <trait($*PACKAGE)>*
         <.enter-package-scope($<signature>)>
         [
@@ -2540,6 +2541,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
         [ '(' <signature> ')' ]?
+        :my $*ALSO-TARGET := $*BLOCK;
         <trait($*BLOCK)>* :!s
         { $*IN-DECL := ''; }
         [

@@ -501,15 +501,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement-control:sym<also>($/) {
-        if $*PACKAGE -> $package {
+        if $*ALSO-TARGET -> $target {
             for $<trait> {
-                $package.add-trait($_.ast);
+                $target.add-trait($_.ast);
             }
-            $package.apply-traits($*R, $*CU.context, $package);
+            $target.apply-traits($*R, $*CU.context, $target);
             self.attach: $/, self.r('Statement','Empty').new;
         }
         else {
-            $/.panic("Found 'also' outside of any package");
+            $/.panic("Could not find target for 'also'");
         }
     }
 

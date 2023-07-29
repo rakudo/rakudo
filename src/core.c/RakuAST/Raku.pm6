@@ -152,6 +152,12 @@ augment class RakuAST::Node {
               my $elsifs := nqp::decont(self.elsifs);
               :$elsifs if $elsifs
           },
+          'excludes-max', -> {
+              :excludes-max if self.excludes-max
+          },
+          'excludes-min', -> {
+              :excludes-min if self.excludes-min
+          },
           'for', -> {
               :for if self.for
           },

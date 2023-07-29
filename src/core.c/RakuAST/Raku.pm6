@@ -1092,13 +1092,13 @@ augment class RakuAST::Node {
 
 #- Trait -----------------------------------------------------------------------
 
-    # Generic handler for most RakuAST::Trait::xxx classes
-    multi method raku(RakuAST::Trait:D: --> Str:D) {
-        self!positional(self.type)
-    }
-
     multi method raku(RakuAST::Trait::Is:D: --> Str:D) {
         self!nameds: <name argument>
+    }
+
+    # Generic handler for the RakuAST::Trait::Type classes
+    multi method raku(RakuAST::Trait::Type:D: --> Str:D) {
+        self!positional(self.type)
     }
 
 #- Type ------------------------------------------------------------------------

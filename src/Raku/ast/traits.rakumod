@@ -163,19 +163,16 @@ class RakuAST::Trait::Is
     }
 }
 
-# The hides trait.
-class RakuAST::Trait::Hides
+class RakuAST::Trait::Type
   is RakuAST::Trait
 {
     has RakuAST::Type $.type;
 
     method new(RakuAST::Type $type) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Trait::Hides, '$!type', $type);
+        nqp::bindattr($obj, RakuAST::Trait::Type, '$!type', $type);
         $obj
     }
-
-    method IMPL-TRAIT-NAME() { 'hides' }
 
     method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
         RakuAST::ArgList.new($target, $!type)
@@ -184,75 +181,34 @@ class RakuAST::Trait::Hides
     method visit-children(Code $visitor) {
         $visitor($!type);
     }
+}
+
+# The hides trait.
+class RakuAST::Trait::Hides
+  is RakuAST::Trait::Type
+{
+    method IMPL-TRAIT-NAME() { 'hides' }
 }
 
 # The does trait.
 class RakuAST::Trait::Does
-  is RakuAST::Trait
+  is RakuAST::Trait::Type
 {
-    has RakuAST::Type $.type;
-
-    method new(RakuAST::Type $type) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Trait::Does, '$!type', $type);
-        $obj
-    }
-
     method IMPL-TRAIT-NAME() { 'does' }
-
-    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
-        RakuAST::ArgList.new($target, $!type)
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor($!type);
-    }
 }
 
 # The of trait.
 class RakuAST::Trait::Of
-  is RakuAST::Trait
+  is RakuAST::Trait::Type
 {
-    has RakuAST::Type $.type;
-
-    method new(RakuAST::Type $type) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Trait::Of, '$!type', $type);
-        $obj
-    }
-
     method IMPL-TRAIT-NAME() { 'of' }
-
-    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
-        RakuAST::ArgList.new($target, $!type)
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor($!type);
-    }
 }
 
 # The returns trait.
 class RakuAST::Trait::Returns
-  is RakuAST::Trait
+  is RakuAST::Trait::Type
 {
-    has RakuAST::Type $.type;
-
-    method new(RakuAST::Type $type) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Trait::Of, '$!type', $type);
-        $obj
-    }
-
     method IMPL-TRAIT-NAME() { 'returns' }
-
-    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
-        RakuAST::ArgList.new($target, $!type)
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor($!type);
-    }
 }
 
 # The will trait.

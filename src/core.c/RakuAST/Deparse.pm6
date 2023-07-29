@@ -351,10 +351,6 @@ class RakuAST::Deparse {
           ~ $.square-close
     }
 
-    method typish-trait($ast --> Str:D) {
-        self.syn-trait($ast.IMPL-TRAIT-NAME) ~ ' ' ~ self.deparse($ast.type)
-    }
-
     method method-call($ast, str $dot, $macroish?, :$xsyn --> Str:D) {
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
@@ -2293,20 +2289,8 @@ class RakuAST::Deparse {
         }
     }
 
-    multi method deparse(RakuAST::Trait::Hides:D $ast --> Str:D) {
-        self.typish-trait($ast)
-    }
-
-    multi method deparse(RakuAST::Trait::Does:D $ast --> Str:D) {
-        self.typish-trait($ast)
-    }
-
-    multi method deparse(RakuAST::Trait::Of:D $ast --> Str:D) {
-        self.typish-trait($ast)
-    }
-
-    multi method deparse(RakuAST::Trait::Returns:D $ast --> Str:D) {
-        self.typish-trait($ast)
+    multi method deparse(RakuAST::Trait::Type:D $ast --> Str:D) {
+        self.syn-trait($ast.IMPL-TRAIT-NAME) ~ ' ' ~ self.deparse($ast.type)
     }
 
 #- Type ------------------------------------------------------------------------

@@ -17,6 +17,7 @@
 #   invocant            self
 #   label               any label (FOO:)
 #   literal             any literal value ('foo', 42, ...)
+#   markup-L            rakudoc markup (B<foo>, ...) with L being the letter
 #   modifier-xxx        statement modifiers (if, while, when, with, ...)
 #   multi               types of multi (only, proto, multi)
 #   nqp                 any nqp:: ops (nqp::while, nqp::iseq_i, ...)

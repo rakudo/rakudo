@@ -193,7 +193,8 @@ class RakuAST::Deparse {
     #
     # Please see lib/RakuAST/Deparse/Highlight/HTML.rakumod for an example
     # of implementation of the "hsyn" method for highlighting.
-    method hsyn(str $prefix, str $key) { $key }
+    proto method hsyn(|) {*}
+    multi method hsyn(Str:D $prefix, Str:D $key) { $key }
 
 #-------------------------------------------------------------------------------
 # Helper methods
@@ -813,8 +814,8 @@ class RakuAST::Deparse {
               $type eq 'comment' | 'data' | 'input' | 'output'
                 ?? 'rakudoc-verbatim'
                 !! 'rakudoc-content',
-              $paragraphs
-            );
+              $paragraphs.chomp
+            ) ~ "\n";
 
             $abbreviated
               ?? "$prefix$config.chomp() $paragraphs.trim-leading()\n"
@@ -830,7 +831,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Doc::Markup:D $ast --> Str:D) {
-        $ast.Str
+        self.hsyn("markup-$ast.letter()", $ast.Str)
     }
 
     multi method deparse(RakuAST::Doc::Paragraph:D $ast --> Str:D) {

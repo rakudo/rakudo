@@ -543,8 +543,11 @@ augment class RakuAST::Node {
             );
         }
 
+        my @traits = self.traits.grep(!*.from-also);
         self!add-WHY: $self!nameds:
-          <scope declarator name how repr traits body>,
+          <scope declarator name how repr>,
+          (traits => @traits if @traits),
+          'body',
           (parameterization => $signature
             if $signature && $signature.parameters.elems)
     }

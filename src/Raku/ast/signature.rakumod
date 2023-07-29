@@ -1450,6 +1450,15 @@ class RakuAST::ParameterTarget::Term
 
 # Marker for all kinds of slurpy behavior.
 class RakuAST::Parameter::Slurpy {
+
+    # These classes purely exist as markers and don't need to be
+    # instantiated.  However, some people might do that and then
+    # find deparsing doesn't work because deparsing only checks
+    # for the type objects.  Alternately, we could make calling
+    # .new here a worry, but that also seems a bit over the top.
+    # So just return the type object as if .new was never called.
+    method new() { self }
+
     method IMPL-FLAGS(str $sigil) {
         # Not slurpy, so no flags
         0

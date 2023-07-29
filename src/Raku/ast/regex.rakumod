@@ -1989,6 +1989,14 @@ class RakuAST::Regex::BacktrackModifiedAtom
 class RakuAST::Regex::Backtrack
   is RakuAST::Node
 {
+    # These classes purely exist as markers and don't need to be
+    # instantiated.  However, some people might do that and then
+    # find deparsing doesn't work because deparsing only checks
+    # for the type objects.  Alternately, we could make calling
+    # .new here a worry, but that also seems a bit over the top.
+    # So just return the type object as if .new was never called.
+    method new() { self }
+
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
         $quant-qast.backtrack('r') if %mods<r>;
         $quant-qast

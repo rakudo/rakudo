@@ -107,9 +107,6 @@ class RakuAST::Trait
             self.mark-applied;
         }
     }
-
-    # traits are not from an "also" by default
-    method from-also() { False }
 }
 
 # The is trait.
@@ -117,10 +114,9 @@ class RakuAST::Trait::Is
   is RakuAST::Trait
   is RakuAST::BeginTime
 {
-    has RakuAST::Name       $.name;
-    has RakuAST::Circumfix  $.argument;
+    has RakuAST::Name $.name;
+    has RakuAST::Circumfix $.argument;
     has RakuAST::Term::Name $.resolved-name;
-    has Bool                $.from-also;
 
     method new(RakuAST::Name :$name!, RakuAST::Circumfix :$argument) {
         my $obj := nqp::create(self);
@@ -128,11 +124,6 @@ class RakuAST::Trait::Is
         nqp::bindattr($obj, RakuAST::Trait::Is, '$!argument',
             $argument // RakuAST::Circumfix);
         $obj
-    }
-
-    method set-from-also($from-also) {
-        nqp::bindattr(self, RakuAST::Trait::Is, '$!from-also',
-          $from-also ?? True !! False);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -200,17 +191,11 @@ class RakuAST::Trait::Does
   is RakuAST::Trait
 {
     has RakuAST::Type $.type;
-    has Bool          $.from-also;
 
     method new(RakuAST::Type $type) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Trait::Does, '$!type', $type);
         $obj
-    }
-
-    method set-from-also($from-also) {
-        nqp::bindattr(self, RakuAST::Trait::Does, '$!from-also',
-          $from-also ?? True !! False);
     }
 
     method IMPL-TRAIT-NAME() { 'does' }

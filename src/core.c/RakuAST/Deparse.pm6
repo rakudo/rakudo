@@ -996,8 +996,7 @@ class RakuAST::Deparse {
 
         if $ast.traits -> @traits {
             for @traits -> $trait {
-                @parts.push(self.deparse($trait))
-                  unless try $trait.from-also;
+                @parts.push(self.deparse($trait));
             }
         }
 

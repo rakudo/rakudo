@@ -1923,6 +1923,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method regex-def($/) {
         my $regex := $*BLOCK;
+        $regex.set-source(~$/);
         if $<signature> {
             $regex.replace-signature($<signature>.ast);
         }

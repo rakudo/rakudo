@@ -1913,14 +1913,17 @@ class RakuAST::Submethod
 # implies its own lexical scope.
 class RakuAST::RegexDeclaration
   is RakuAST::Methodish
+  is RakuAST::CheckTime
 {
     has RakuAST::Regex $.body;
+    has            str $.source;
 
     method new(          str :$scope,
                RakuAST::Name :$name,
           RakuAST::Signature :$signature,
                         List :$traits,
               RakuAST::Regex :$body,
+                         str :$source,
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
@@ -1931,6 +1934,7 @@ class RakuAST::RegexDeclaration
         $obj.set-traits($traits);
         nqp::bindattr($obj, RakuAST::RegexDeclaration, '$!body',
             $body // RakuAST::Regex::Assertion::Fail.new);
+        $obj.set-source($source);
         $obj.set-WHY($WHY);
         $obj
     }
@@ -1940,6 +1944,23 @@ class RakuAST::RegexDeclaration
     method replace-body(RakuAST::Regex $new-body) {
         nqp::bindattr(self, RakuAST::RegexDeclaration, '$!body', $new-body);
         Nil
+    }
+
+    method set-source($source) {
+        nqp::bindattr_s(self, RakuAST::RegexDeclaration, '$!source',
+          $source // '');
+        Nil
+    }
+
+    method PERFORM-CHECK(
+      RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my $meta := self.meta-object;
+        nqp::bindattr_s($meta, $meta.WHAT, '$!source',
+          self.declarator ~ ' ' ~ $!source
+        );
+        True
     }
 
     method IMPL-META-OBJECT-TYPE() { Regex }

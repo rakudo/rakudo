@@ -163,7 +163,7 @@ class RakuAST::Doc::Block
     ) {
         my $*RESOLVER := $resolver;
         my $failed := self.literalize-config;
-        if $failed {
+        if nqp::eqaddr($failed,RakuAST::Node::CannotLiteralize) {
             self.sorry-ad-hoc("'$failed' is not constant in configuration");
         }
 

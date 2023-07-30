@@ -6,13 +6,13 @@
 # impossible to do so.
 
 augment class RakuAST::Node {
-    my class CannotLiteralize is Exception { }
+    our class CannotLiteralize is Exception { }
     my sub alas() { CannotLiteralize.new.throw }
 
     proto method literalize(RakuAST::Node:) {
         CATCH {
             when CannotLiteralize {
-                return Nil;
+                return CannotLiteralize;
             }
         }
         unless $++ {
@@ -36,10 +36,6 @@ augment class RakuAST::Node {
     }
 
 #- A ---------------------------------------------------------------------------
-
-    multi method literalize(RakuAST::Node:D:) {
-        nqp::die('literalize on ' ~ self.HOW.name(self) ~ ' NYI');
-    }
 
     multi method literalize(RakuAST::ApplyInfix:D:) {
         if infix-op(self.infix.operator) -> &op {
@@ -152,6 +148,12 @@ augment class RakuAST::Node {
         self.value
     }
 
+#- N ---------------------------------------------------------------------------
+
+    multi method literalize(RakuAST::Node:D:) {
+        nqp::die('literalize on ' ~ self.HOW.name(self) ~ ' NYI');
+    }
+
 #- Q ---------------------------------------------------------------------------
 
     multi method literalize(RakuAST::QuotedString:D:) {
@@ -222,6 +224,19 @@ augment class RakuAST::Node {
         (self.multi-part ?? &UNBASE_BRACKET !! &UNBASE)(
           self.radix, self.value.literalize
         )
+    }
+
+    multi method literalize(RakuAST::Type::Simple:D:) {
+        unless self.is-resolved {
+            self.resolve-with($_) with $*RESOLVER;
+        }
+
+        with try self.resolution {
+            .compile-time-value
+        }
+        else {
+            alas;
+        }
     }
 
 #- Var -------------------------------------------------------------------------

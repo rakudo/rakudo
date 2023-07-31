@@ -3809,32 +3809,3 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         make $<arglist>.ast;
     }
 }
-
-class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
-    method p5metachar:sym<(?{ })>($/) {
-        self.attach: $/, self.r('Regex', 'Block').new($<codeblock>.ast);
-    }
-
-    method p5metachar:sym<(??{ })>($/) {
-        my $sequential := $*SEQ ?? 1 !! 0;
-        self.attach: $/, self.r('Regex', 'Assertion', 'InterpolatedBlock').new:
-            :block($<codeblock>.ast), :$sequential;
-    }
-
-    method p5metachar:sym<var>($/) {
-        my $sequential := $*SEQ ?? 1 !! 0;
-        self.attach: $/, self.r('Regex', 'Interpolation').new(:var($<var>.ast), :$sequential);
-    }
-
-    method store_regex_nfa($code_obj, $block, $nfa) {
-        $code_obj.SET_NFA($nfa.save);
-    }
-
-    method codeblock($/) {
-        make $<block>.ast;
-    }
-
-    method arglist($/) {
-        make $<arglist>.ast;
-    }
-}

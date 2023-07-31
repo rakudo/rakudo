@@ -283,7 +283,7 @@ my class X::Method::NotFound is Exception {
             }
 
             # handle special unintrospectable cases
-            for <HOW WHAT WHO> -> $method_name {
+            for <HOW WHAT WHO>.grep(* ne $.method) -> $method_name {
                 find_public_suggestion($.method, $method_name);
             }
         }

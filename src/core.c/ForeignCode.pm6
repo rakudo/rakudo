@@ -100,9 +100,7 @@ $lang = 'Raku' if $lang eq 'perl6';
 
         my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
 
-        my $LANG := $context<%?LANG>:exists
-                        ?? $context<%?LANG>
-                        !! (CALLERS::<%?LANG>:exists ?? CALLERS::<%?LANG> !! Nil);
+        my $LANG := $context<%?LANG>:exists ?? $context<%?LANG> !! Nil;
         my $*INSIDE-EVAL := 1;
         $compiled := $compiler.compile:
             $code,

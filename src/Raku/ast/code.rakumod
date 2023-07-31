@@ -1107,70 +1107,93 @@ class RakuAST::Block
     method block-or-hash() {
         my @statements := self.body.statement-list.code-statements;
         my int $num-statements := nqp::elems(@statements);
+
+        # Empty block is always an empty hash composer
         if $num-statements == 0 {
-            # Empty block is always an empty hash composer
-            RakuAST::Circumfix::HashComposer.new
+            return RakuAST::Circumfix::HashComposer.new
         }
+
+        # Multiple statements is always a block
         elsif $num-statements > 1 {
-            # Multiple statements is always a block
-            self
+            return self
         }
+
+        # Not a statement always means block
+        my $statement := @statements[0];
+        unless nqp::istype($statement, RakuAST::Statement::Expression) {
+            return self;
+        }
+
+        # If it's a comma list, then obtain the first element. Otherwise,
+        # we have the thing to test already.
+        my $expression := $statement.expression;
+        my int $is-comma := nqp::istype($expression, RakuAST::ApplyListInfix) &&
+            nqp::istype($expression.infix, RakuAST::Infix) &&
+            $expression.infix.operator eq ',';
+        my $test := $is-comma
+            ?? self.IMPL-UNWRAP-LIST($expression.operands)[0]
+            !! $expression;
+
+        # A fatarrow is ok
+        if nqp::istype($test,RakuAST::FatArrow) {
+        }
+        # A colonpair is ok
+        elsif nqp::istype($test,RakuAST::ColonPair) {
+        }
+        # A hash sigil'd variable is ok
+        elsif nqp::istype($test,RakuAST::Var) && $test.sigil eq '%' {
+        }
+        # Some kind of infix may be ok
+        elsif nqp::istype($test,RakuAST::ApplyInfix) {
+
+            # Get the proper infix to check
+            my $infix := $test.infix;
+            if nqp::istype($infix,RakuAST::Infix) {
+            }
+            elsif nqp::istype($infix,RakuAST::MetaInfix::Reverse) {
+                $infix := $infix.infix;
+            }
+
+            # It's a block as no valid infix found
+            else {
+                return self
+            }
+
+            # It's a block if not a fat arrow
+            return self unless $infix.operator eq '=>';
+        }
+
+        # It's a block as nothing recognizable
         else {
-            # Must be an expression statement.
-            my $statement := @statements[0];
-            unless nqp::istype($statement, RakuAST::Statement::Expression) {
-                return self;
-            }
-            my $expression := $statement.expression;
-
-            # If it's a comma list, then obtain the first element. Otherwise,
-            # we have the thing to test already.
-            my int $is-comma := nqp::istype($expression, RakuAST::ApplyListInfix) &&
-                nqp::istype($expression.infix, RakuAST::Infix) &&
-                $expression.infix.operator eq ',';
-            my $test := $is-comma
-                ?? self.IMPL-UNWRAP-LIST($expression.operands)[0]
-                !! $expression;
-
-            # It's a block unless we have:
-            return self unless
-                # A fatarrow or colonpair
-                nqp::istype($test, RakuAST::FatArrow) ||
-                nqp::istype($test, RakuAST::ColonPair) ||
-                # The Pair infix operator
-                nqp::istype($test, RakuAST::ApplyInfix) &&
-                    nqp::istype($test.infix, RakuAST::Infix) &&
-                    $test.infix.operator eq '=>' ||
-                # A hash sigil'd variable
-                nqp::istype($test, RakuAST::Var) && $test.sigil eq '%';
-
-            # Looks like a hash, but check for declarations or $_ usage.
-            my int $seen-decl-or-topic;
-            $expression.visit: -> $node {
-                # Don't walk into other scopes
-                if nqp::istype($node, RakuAST::LexicalScope) {
-                    0
-                }
-                # If it's a declaration, it blocks; walk no futher
-                elsif nqp::istype($node, RakuAST::Declaration) {
-                    $seen-decl-or-topic := 1;
-                    0
-                }
-                # If it's a usage of the topic, it also blocks; walk no further
-                elsif nqp::istype($node, RakuAST::Var::Lexical) && $node.name eq '$_' ||
-                    nqp::istype($node, RakuAST::Term::TopicCall) {
-                    $seen-decl-or-topic := 1;
-                    0
-                }
-                # Otherwise, keep looking
-                else {
-                    1
-                }
-            }
-            $seen-decl-or-topic
-                ?? self
-                !! RakuAST::Circumfix::HashComposer.new($expression)
+            return self;
         }
+
+        # Looks like a hash, but check for declarations or $_ usage.
+        my int $seen-decl-or-topic;
+        $expression.visit: -> $node {
+            # Don't walk into other scopes
+            if nqp::istype($node, RakuAST::LexicalScope) {
+                0
+            }
+            # If it's a declaration, it blocks; walk no futher
+            elsif nqp::istype($node, RakuAST::Declaration) {
+                $seen-decl-or-topic := 1;
+                0
+            }
+            # If it's a usage of the topic, it also blocks; walk no further
+            elsif nqp::istype($node, RakuAST::Var::Lexical) && $node.name eq '$_' ||
+                nqp::istype($node, RakuAST::Term::TopicCall) {
+                $seen-decl-or-topic := 1;
+                0
+            }
+            # Otherwise, keep looking
+            else {
+                1
+            }
+        }
+        $seen-decl-or-topic
+            ?? self
+            !! RakuAST::Circumfix::HashComposer.new($expression)
     }
 
     method visit-children(Code $visitor) {

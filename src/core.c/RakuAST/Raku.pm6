@@ -169,6 +169,9 @@ augment class RakuAST::Node {
           'implicit-topic', -> {
               :implicit-topic if self.implicit-topic
           },
+          'inverted', -> {
+              :inverted if self.inverted
+          },
           'labels', -> {
               my $labels := nqp::decont(self.labels);
               :$labels if $labels

@@ -1528,7 +1528,18 @@ class RakuAST::Deparse {
         @parts.push(':');
         @parts.push('!') if $ast.inverted;
         @parts.push($ast.property);
-        @parts.push(self.deparse($_)) with $ast.predicate;
+
+        with $ast.predicate {
+            if nqp::istype($_,RakuAST::StrLiteral) {
+                @parts.push('<');
+                @parts.push(self.deparse-unquoted($_));
+                @parts.push('>');
+            }
+            else {
+                @parts.push(self.deparse($_))
+            }
+        }
+
         @parts.join
     }
 

@@ -54,7 +54,7 @@ $lang = 'Raku' if $lang eq 'perl6';
 
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
                     # currently compiling compilation unit
-    my $context := nqp::defined($ctx) ?? $ctx !! CALLER::;
+    my $context := nqp::defined($ctx) ?? $ctx !! CALLER::LEXICAL::;
     my $compiled;
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
 
@@ -145,7 +145,7 @@ multi sub EVAL(
 
 proto sub EVALFILE($, *%) {*}
 multi sub EVALFILE($filename, :$lang = 'Raku', :$check) {
-    EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
+    EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::LEXICAL::), :$filename
 }
 
 # vim: expandtab shiftwidth=4

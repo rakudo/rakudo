@@ -412,7 +412,7 @@ my class Cool { # declared in BOOTSTRAP
     multi method trim-trailing(Cool:D:) { self.Str.trim-trailing }
 
     method EVAL(*%opts) {
-        EVAL(self, context => CALLER::, |%opts);
+        EVAL(self, context => CALLER::LEXICAL::, |%opts);
     }
 
     method Failure(Cool:D:) is hidden-from-backtrace { Failure.new(self) }

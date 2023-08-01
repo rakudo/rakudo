@@ -34,6 +34,12 @@ class RakuAST::ArgList
         $obj
     }
 
+    method arg-at-pos(int $pos) { nqp::atpos($!args,$pos) }
+    method set-arg-at-pos(int $pos, RakuAST::Expression $arg) {
+        nqp::bindpos($!args,$pos,$arg);
+        Nil
+    }
+
     method push($arg) {
         if nqp::istype($arg, RakuAST::ColonPairs) {
             for $arg.colonpairs {

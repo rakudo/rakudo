@@ -732,23 +732,25 @@ class RakuAST::ApplyInfix
   is RakuAST::CheckTime
 {
     has RakuAST::Infixish $.infix;
-    has RakuAST::Expression $.left;
-    has RakuAST::Expression $.right;
+    has RakuAST::ArgList  $.args;
 
     method new(RakuAST::Infixish :$infix!, RakuAST::Expression :$left!,
             RakuAST::Expression :$right!) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!infix', $infix);
+        nqp::bindattr($obj,RakuAST::ApplyInfix,'$!infix',$infix);
+        nqp::bindattr($obj,RakuAST::ApplyInfix,'$!args',RakuAST::ArgList.new);
         $obj.set-left($left);
         $obj.set-right($right);
         $obj
     }
 
+    method left() { $!args.arg-at-pos(0) }
     method set-left(RakuAST::Expression $left) {
-        nqp::bindattr(self, RakuAST::ApplyInfix, '$!left', $left);
+        $!args.set-arg-at-pos(0, $left);
     }
+    method right() { $!args.arg-at-pos(1) }
     method set-right(RakuAST::Expression $right) {
-        nqp::bindattr(self, RakuAST::ApplyInfix, '$!right', $right);
+        $!args.set-arg-at-pos(1, $right);
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {

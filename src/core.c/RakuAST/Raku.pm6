@@ -10,7 +10,7 @@ augment class RakuAST::Node {
     # Allow calling .EVAL on any RakuAST::Node
     method EVAL(RakuAST::Node:D: *%opts) {
         use MONKEY-SEE-NO-EVAL;
-        EVAL self, context => CALLER::, |%opts
+        EVAL self, context => CALLER::LEXICAL::, |%opts
     }
 
     proto method raku(RakuAST::Node:) {

@@ -81,7 +81,7 @@ class CompUnit::PrecompilationRepository::Default
         CATCH {
             default {
                 nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
-                .throw;
+                .rethrow;
             }
         }
         $!RMD("Loading precompiled\n$unit")

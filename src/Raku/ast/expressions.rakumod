@@ -752,13 +752,18 @@ class RakuAST::ApplyInfix
     method set-right(RakuAST::Expression $right) {
         $!args.set-arg-at-pos(1, $right);
     }
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!args.push($pair);
+        Nil
+    }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $infix := $!infix;
-        my $left  := self.left;
-        my $right := self.right;
+        my $infix   := $!infix;
+        my $CURRIES := $infix.IMPL-CURRIES;
+        my $left    := self.left;
+        my $right   := self.right;
 
-        if nqp::bitand_i($infix.IMPL-CURRIES, 2) && (my $curried := $left.IMPL-CURRIED) {
+        if nqp::bitand_i($CURRIES,2) && (my $curried := $left.IMPL-CURRIED) {
             my $params := $left.IMPL-UNCURRY;
             self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
             $curried := self.IMPL-CURRIED;
@@ -766,7 +771,7 @@ class RakuAST::ApplyInfix
                 $curried.IMPL-ADD-PARAM($_.target.lexical-name);
             }
         }
-        if nqp::bitand_i($infix.IMPL-CURRIES, 1) {
+        if nqp::bitand_i($CURRIES, 1) {
             for "left", "right" {
                 my $operand := self."$_"();
                 if nqp::istype($operand, RakuAST::Term::Whatever) {
@@ -784,7 +789,7 @@ class RakuAST::ApplyInfix
                 }
             }
         }
-        if nqp::bitand_i($infix.IMPL-CURRIES, 2) && ($curried := $right.IMPL-CURRIED) {
+        if nqp::bitand_i($CURRIES, 2) && ($curried := $right.IMPL-CURRIED) {
             my $params := $right.IMPL-UNCURRY;
             self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
             $curried := self.IMPL-CURRIED;
@@ -834,19 +839,16 @@ class RakuAST::ApplyInfix
     }
 
     method visit-children(Code $visitor) {
-        $visitor(self.left);
         $visitor($!infix);
-        $visitor(self.right);
+        $visitor($!args)
     }
 
     method IMPL-CAN-INTERPRET() {
-        self.left.IMPL-CAN-INTERPRET
-          && $!infix.IMPL-CAN-INTERPRET
-          && self.right.IMPL-CAN-INTERPRET
+        $!infix.IMPL-CAN-INTERPRET && $!args.IMPL-CAN-INTERPRET
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        $!infix.IMPL-INTERPRET($ctx, nqp::list(self.left, self.right))
+        $!infix.IMPL-INTERPRET($ctx, self.IMPL-UNWRAP-LIST($!args.args) );
     }
 }
 

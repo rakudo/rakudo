@@ -821,8 +821,7 @@ class RakuAST::ApplyInfix
 
         # a "normal" infix op
         elsif nqp::istype($infix,RakuAST::Infix) {
-            if $infix.operator eq ':='
-              && nqp::istype($left,RakuAST::Literal) {
+            if $infix.operator eq ':=' && !$left.can-be-bound-to {
                 $resolver.add-sorry:
                   $resolver.build-exception: 'X::Bind';
             }

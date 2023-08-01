@@ -54,7 +54,7 @@ $lang = 'Raku' if $lang eq 'perl6';
 
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
                     # currently compiling compilation unit
-    my $context := nqp::defined($ctx) ?? $ctx !! CALLER::;
+    my $context := nqp::defined($ctx) ?? $ctx !! CALLER::LEXICAL::;
     my $compiled;
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
 
@@ -100,9 +100,7 @@ $lang = 'Raku' if $lang eq 'perl6';
 
         my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
 
-        my $LANG := $context<%?LANG>:exists
-                        ?? $context<%?LANG>
-                        !! (CALLERS::<%?LANG>:exists ?? CALLERS::<%?LANG> !! Nil);
+        my $LANG := $context<%?LANG>:exists ?? $context<%?LANG> !! Nil;
         my $*INSIDE-EVAL := 1;
         $compiled := $compiler.compile:
             $code,
@@ -145,7 +143,7 @@ multi sub EVAL(
 
 proto sub EVALFILE($, *%) {*}
 multi sub EVALFILE($filename, :$lang = 'Raku', :$check) {
-    EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
+    EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::LEXICAL::), :$filename
 }
 
 # vim: expandtab shiftwidth=4

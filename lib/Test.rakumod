@@ -261,9 +261,9 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     #  #3 handles all the rest by escaping '<' and '>' with backslashes.
     #     Note: #3 doesn't eliminate #1, as #3 fails with '<' operator
     my $matcher = nqp::istype($op, Callable) ?? $op
-        !! &CALLERS::("infix:<$op>") #1
-            // &CALLERS::("infix:«$op»") #2
-            // &CALLERS::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
+        !! &CALLER::LEXICAL::("infix:<$op>") #1
+            // &CALLER::LEXICAL::("infix:«$op»") #2
+            // &CALLER::LEXICAL::("infix:<$op.subst(/<?before <[<>]>>/, "\\", :g)>"); #3
 
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);

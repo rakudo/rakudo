@@ -189,6 +189,11 @@ class RakuAST::ArgList
 # method calls).
 class RakuAST::Call {
     has RakuAST::ArgList $.args;
+
+    method add-colonpair(RakuAST::ColonPair $pair) {
+        $!args.push($pair);
+        Nil
+    }
 }
 
 # A call to a named sub.

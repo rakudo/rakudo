@@ -739,23 +739,34 @@ class RakuAST::ApplyInfix
             RakuAST::Expression :$right!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyInfix, '$!infix', $infix);
-        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!left', $left);
-        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!right', $right);
+        $obj.set-left($left);
+        $obj.set-right($right);
         $obj
     }
 
+    method set-left(RakuAST::Expression $left) {
+        nqp::bindattr(self, RakuAST::ApplyInfix, '$!left', $left);
+    }
+    method set-right(RakuAST::Expression $right) {
+        nqp::bindattr(self, RakuAST::ApplyInfix, '$!right', $right);
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if nqp::bitand_i($!infix.IMPL-CURRIES, 2) && (my $curried := $!left.IMPL-CURRIED) {
-            my $params := $!left.IMPL-UNCURRY;
+        my $infix := $!infix;
+        my $left  := self.left;
+        my $right := self.right;
+
+        if nqp::bitand_i($infix.IMPL-CURRIES, 2) && (my $curried := $left.IMPL-CURRIED) {
+            my $params := $left.IMPL-UNCURRY;
             self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
             $curried := self.IMPL-CURRIED;
             for $params {
                 $curried.IMPL-ADD-PARAM($_.target.lexical-name);
             }
         }
-        if nqp::bitand_i($!infix.IMPL-CURRIES, 1) {
-            for '$!left', '$!right' {
-                my $operand := nqp::getattr(self, RakuAST::ApplyInfix, $_);
+        if nqp::bitand_i($infix.IMPL-CURRIES, 1) {
+            for "left", "right" {
+                my $operand := self."$_"();
                 if nqp::istype($operand, RakuAST::Term::Whatever) {
                     my $curried := self.IMPL-CURRIED;
                     my $param_name := '$whatevercode_arg_' ~ ($curried ?? $curried.IMPL-NUM-PARAMS + 1 !! 1);
@@ -767,12 +778,12 @@ class RakuAST::ApplyInfix
                     else {
                         $param := self.IMPL-CURRY($resolver, $context, $param_name).IMPL-LAST-PARAM;
                     }
-                    nqp::bindattr(self, RakuAST::ApplyInfix, $_, $param.target.generate-lookup);
+                    self."set-$_"($param.target.generate-lookup);
                 }
             }
         }
-        if nqp::bitand_i($!infix.IMPL-CURRIES, 2) && ($curried := $!right.IMPL-CURRIED) {
-            my $params := $!right.IMPL-UNCURRY;
+        if nqp::bitand_i($infix.IMPL-CURRIES, 2) && ($curried := $right.IMPL-CURRIED) {
+            my $params := $right.IMPL-UNCURRY;
             self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
             $curried := self.IMPL-CURRIED;
             my $param-num := $curried.IMPL-NUM-PARAMS;
@@ -783,15 +794,18 @@ class RakuAST::ApplyInfix
             }
         }
 
-        $!infix.IMPL-THUNK-ARGUMENTS($resolver, $context, $!left, $!right);
+        $infix.IMPL-THUNK-ARGUMENTS($resolver, $context, $left, $right);
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $infix := $!infix;
+        my $left  := self.left;
+        my $right := self.right;
 
         # handle op=
-        if nqp::eqaddr($!infix.WHAT,RakuAST::MetaInfix::Assign) {
-            if $!infix.infix.operator eq ',' {
-                my $sigil := (try $!left.sigil) // '';
+        if nqp::eqaddr($infix.WHAT,RakuAST::MetaInfix::Assign) {
+            if $infix.infix.operator eq ',' {
+                my $sigil := (try $left.sigil) // '';
                 if $sigil eq '$' || $sigil eq '@' {
                     $resolver.add-worry:
                       $resolver.build-exception: 'X::AdHoc',
@@ -804,9 +818,9 @@ class RakuAST::ApplyInfix
         }
 
         # a "normal" infix op
-        elsif nqp::istype($!infix,RakuAST::Infix) {
-            if $!infix.operator eq ':='
-              && nqp::istype($!left,RakuAST::Literal) {
+        elsif nqp::istype($infix,RakuAST::Infix) {
+            if $infix.operator eq ':='
+              && nqp::istype($left,RakuAST::Literal) {
                 $resolver.add-sorry:
                   $resolver.build-exception: 'X::Bind';
             }
@@ -815,19 +829,23 @@ class RakuAST::ApplyInfix
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!infix.IMPL-INFIX-COMPILE($context, $!left, $!right)
+        $!infix.IMPL-INFIX-COMPILE($context, self.left, self.right)
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!left);
+        $visitor(self.left);
         $visitor($!infix);
-        $visitor($!right);
+        $visitor(self.right);
     }
 
-    method IMPL-CAN-INTERPRET() { self.left.IMPL-CAN-INTERPRET && self.right.IMPL-CAN-INTERPRET && self.infix.IMPL-CAN-INTERPRET }
+    method IMPL-CAN-INTERPRET() {
+        self.left.IMPL-CAN-INTERPRET
+          && $!infix.IMPL-CAN-INTERPRET
+          && self.right.IMPL-CAN-INTERPRET
+    }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
-        self.infix.IMPL-INTERPRET($ctx, nqp::list($!left, $!right))
+        $!infix.IMPL-INTERPRET($ctx, nqp::list(self.left, self.right))
     }
 }
 

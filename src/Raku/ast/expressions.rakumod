@@ -408,14 +408,14 @@ class RakuAST::MetaInfix::Assign
     method IMPL-CURRIES() { 0 }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        # TODO case-analyzed assignments
-        my $temp := QAST::Node.unique('meta_assign');
-        my $bind-lhs := QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new( :decl('var'), :scope('local'), :name($temp) ),
-            $left-qast
-        );
         if nqp::istype($!infix, RakuAST::Infix) && $!infix.properties.short-circuit {
+            # TODO case-analyzed assignments
+            my $temp := QAST::Node.unique('meta_assign');
+            my $bind-lhs := QAST::Op.new(
+              :op<bind>,
+              QAST::Var.new(:decl('var'), :scope('local'), :name($temp)),
+              $left-qast
+            );
             # Compile the short-circuit ones "inside out", so we can avoid the
             # assignment.
             QAST::Stmt.new(
@@ -432,17 +432,8 @@ class RakuAST::MetaInfix::Assign
             )
         }
         else {
-            QAST::Stmt.new(
-                $bind-lhs,
-                QAST::Op.new(
-                    :op('assign'),
-                    QAST::Var.new( :scope('local'), :name($temp) ),
-                    $!infix.IMPL-INFIX-QAST(
-                        $context,
-                        QAST::Var.new( :scope('local'), :name($temp) ),
-                        $right-qast
-                    )
-                )
+            QAST::Op.new(:op<call>,
+              self.IMPL-HOP-INFIX-QAST($context) , $left-qast, $right-qast
             )
         }
     }

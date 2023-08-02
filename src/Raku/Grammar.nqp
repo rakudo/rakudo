@@ -1093,7 +1093,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token blorst {
         [
         | <?[{]> <block>
-        | <![;]> <statement> <.cheat-heredoc>?
+        | <![;]> <block=.statement> <.cheat-heredoc>?
         || <.missing: 'block or statement'>
         ]
     }

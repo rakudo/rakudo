@@ -787,9 +787,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Statement prefixes
 
     # Helper method to normalize a blorst
-    method blorst($/) {
-        self.attach: $/, $<block> ?? $<block>.ast !! $<statement>.ast;
-    }
+    method blorst($/) { self.attach: $/, $<block>.ast }
 
     # Helper method for setting up simple prefix that just take a blorst
     method SP-prefix($/, $name) {

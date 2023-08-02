@@ -698,53 +698,65 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
     }
 
-    ##
-    ## Statement modifiers
-    ##
+#-------------------------------------------------------------------------------
+# Statement modifiers
 
+    # Helper method to attach an expression
     method modifier-expr($/) {
         self.attach: $/, $<EXPR>.ast;
     }
 
-    method statement-mod-cond:sym<if>($/) {
-        self.attach: $/, self.r('StatementModifier', 'If').new($<modifier-expr>.ast);
-    }
-    method statement-mod-cond:sym<unless>($/) {
-        self.attach: $/, self.r('StatementModifier', 'Unless').new($<modifier-expr>.ast);
-    }
-    method statement-mod-cond:sym<when>($/) {
-        self.attach: $/, self.r('StatementModifier', 'When').new($<modifier-expr>.ast);
-    }
-    method statement-mod-cond:sym<with>($/) {
-        self.attach: $/, self.r('StatementModifier', 'With').new($<modifier-expr>.ast);
-    }
-    method statement-mod-cond:sym<without>($/) {
-        self.attach: $/, self.r('StatementModifier', 'Without').new($<modifier-expr>.ast);
+    # Helper method for setting up statement modifiers
+    method SM-cond($/, $name) {
+        self.attach: $/,
+          self.r('StatementModifier', $name).new($<modifier-expr>.ast)
     }
 
-    method statement-mod-loop:sym<while>($/) {
-        self.attach: $/, self.r('StatementModifier', 'While').new($<modifier-expr>.ast);
-    }
-    method statement-mod-loop:sym<until>($/) {
-        self.attach: $/, self.r('StatementModifier', 'Until').new($<modifier-expr>.ast);
-    }
-    method statement-mod-loop:sym<given>($/) {
-        self.attach: $/, self.r('StatementModifier', 'Given').new($<modifier-expr>.ast);
-    }
-    method statement-mod-loop:sym<for>($/) {
-        self.attach: $/, self.r('StatementModifier', 'For').new($<modifier-expr>.ast);
+    # Simple statement modifiers
+    method statement-mod-cond:sym<if>($/)      { self.SM-cond($/, 'If')      }
+    method statement-mod-cond:sym<unless>($/)  { self.SM-cond($/, 'Unless')  }
+    method statement-mod-cond:sym<when>($/)    { self.SM-cond($/, 'When')    }
+    method statement-mod-cond:sym<with>($/)    { self.SM-cond($/, 'With')    }
+    method statement-mod-cond:sym<without>($/) { self.SM-cond($/, 'Without') }
+
+    # Statement modifiers that set $_
+    method statement-mod-loop:sym<for>($/)     { self.SM-cond($/, 'For')     }
+    method statement-mod-loop:sym<given>($/)   { self.SM-cond($/, 'Given')   }
+    method statement-mod-loop:sym<until>($/)   { self.SM-cond($/, 'Until')   }
+    method statement-mod-loop:sym<while>($/)   { self.SM-cond($/, 'While')   }
+
+#-------------------------------------------------------------------------------
+# Phasers
+
+    # Helper method for setting up simple phasers that just take a blorst
+    method SP-phaser($/, $name) {
+        self.attach: $/,
+          self.r('StatementPrefix', 'Phaser', $name).new($<blorst>.ast)
     }
 
-    ##
-    ## Statement prefixes
-    ##
+    # Simple phasers that just take a blorst
+    method statement-prefix:sym<CHECK>($/) { self.SP-phaser($/, 'Check') }
+    method statement-prefix:sym<CLOSE>($/) { self.SP-phaser($/, 'Close') }
+    method statement-prefix:sym<END>($/)   { self.SP-phaser($/, 'End')   }
+    method statement-prefix:sym<ENTER>($/) { self.SP-phaser($/, 'Enter') }
+    method statement-prefix:sym<FIRST>($/) { self.SP-phaser($/, 'First') }
+    method statement-prefix:sym<INIT>($/)  { self.SP-phaser($/, 'Init')  }
+    method statement-prefix:sym<KEEP>($/)  { self.SP-phaser($/, 'Keep')  }
+    method statement-prefix:sym<LAST>($/)  { self.SP-phaser($/, 'Last')  }
+    method statement-prefix:sym<LEAVE>($/) { self.SP-phaser($/, 'Leave') }
+    method statement-prefix:sym<NEXT>($/)  { self.SP-phaser($/, 'Next')  }
+    method statement-prefix:sym<QUIT>($/)  { self.SP-phaser($/, 'Quit')  }
+    method statement-prefix:sym<UNDO>($/)  { self.SP-phaser($/, 'Undo')  }
 
+    # BEGIN phaser needs to be executed *now* and produce a value
     method statement-prefix:sym<BEGIN>($/) {
-        my $ast := self.r('StatementPrefix', 'Phaser', 'Begin').new($<blorst>.ast);
+        my $ast :=
+          self.r('StatementPrefix','Phaser','Begin').new($<blorst>.ast);
         $ast.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $ast;
     }
 
+    # PRE/POST phasers need a stringification of the blorst as well
     method statement-prefix:sym<PRE>($/) {
         self.attach: $/, self.r(
           'StatementPrefix', 'Phaser', 'Pre'
@@ -756,95 +768,61 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         ).new($<blorst>.ast, ~$<blorst>);
     }
 
-    method setup-phaser($/, $name) {
-        self.attach: $/, self.r('StatementPrefix', 'Phaser', $name).new($<blorst>.ast);
-    }
-
-    method statement-prefix:sym<CHECK>($/) { self.setup-phaser($/, 'Check') }
-    method statement-prefix:sym<INIT>($/)  { self.setup-phaser($/, 'Init')  }
-    method statement-prefix:sym<END>($/)   { self.setup-phaser($/, 'End')   }
-    method statement-prefix:sym<ENTER>($/) { self.setup-phaser($/, 'Enter') }
-    method statement-prefix:sym<LEAVE>($/) { self.setup-phaser($/, 'Leave') }
-    method statement-prefix:sym<KEEP>($/)  { self.setup-phaser($/, 'Keep')  }
-    method statement-prefix:sym<UNDO>($/)  { self.setup-phaser($/, 'Undo')  }
-    method statement-prefix:sym<FIRST>($/) { self.setup-phaser($/, 'First') }
-    method statement-prefix:sym<NEXT>($/)  { self.setup-phaser($/, 'Next')  }
-    method statement-prefix:sym<LAST>($/)  { self.setup-phaser($/, 'Last')  }
-    method statement-prefix:sym<QUIT>($/)  { self.setup-phaser($/, 'Quit')  }
-    method statement-prefix:sym<CLOSE>($/) { self.setup-phaser($/, 'Close') }
-
+    # DOC phaser only works if so activated on command line
     method statement-prefix:sym<DOC>($/) {
-        if %*OPTIONS<doc> {
+        if %*OPTIONS<doc> || %*OPTIONS<rakudoc> {
             my $phase := ~$<phase>;
             $phase eq 'BEGIN'
               ?? self.statement-prefix:sym<BEGIN>($/)
-              !! self.setup-phaser($/, nqp::tclc($phase));
+              !! self.SP-phaser($/, nqp::tclc($phase));
         }
+
+        # not activated
         else {
             self.attach: $/, self.Nil
         }
     }
 
-    method statement-prefix:sym<race>($/) {
-        my $blorst := $<blorst>.ast;
-        if nqp::istype($blorst, self.r('Statement', 'For')) {
-            $blorst.replace-mode('race');
-            self.attach: $/, $blorst;
-        }
-        else {
-            self.attach: $/, self.r('StatementPrefix', 'Race').new($blorst);
-        }
-    }
+#-------------------------------------------------------------------------------
+# Statement prefixes
 
-    method statement-prefix:sym<hyper>($/) {
-        my $blorst := $<blorst>.ast;
-        if nqp::istype($blorst, self.r('Statement', 'For')) {
-            $blorst.replace-mode('hyper');
-            self.attach: $/, $blorst;
-        }
-        else {
-            self.attach: $/, self.r('StatementPrefix', 'Hyper').new($blorst);
-        }
-    }
-
-    method statement-prefix:sym<lazy>($/) {
-        my $blorst := $<blorst>.ast;
-        if nqp::istype($blorst, self.r('Statement', 'For')) {
-            $blorst.replace-mode('lazy');
-            self.attach: $/, $blorst;
-        }
-        else {
-            self.attach: $/, self.r('StatementPrefix', 'Lazy').new($blorst);
-        }
-    }
-
-    method statement-prefix:sym<eager>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Eager').new($<blorst>.ast);
-    }
-
-    method statement-prefix:sym<try>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Try').new($<blorst>.ast);
-    }
-
-    method statement-prefix:sym<do>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Do').new($<blorst>.ast);
-    }
-
-    method statement-prefix:sym<quietly>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Quietly').new($<blorst>.ast);
-    }
-
-    method statement-prefix:sym<gather>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Gather').new($<blorst>.ast);
-    }
-
-    method statement-prefix:sym<start>($/) {
-        self.attach: $/, self.r('StatementPrefix', 'Start').new($<blorst>.ast);
-    }
-
+    # Helper method to normalize a blorst
     method blorst($/) {
         self.attach: $/, $<block> ?? $<block>.ast !! $<statement>.ast;
     }
+
+    # Helper method for setting up simple prefix that just take a blorst
+    method SP-prefix($/, $name) {
+        self.attach: $/,
+          self.r('StatementPrefix', $name).new($<blorst>.ast)
+    }
+
+    # Simple prefixes that just take a blorst
+    method statement-prefix:sym<do>($/)      { self.SP-prefix($/, 'Do')      }
+    method statement-prefix:sym<eager>($/)   { self.SP-prefix($/, 'Eager')   }
+    method statement-prefix:sym<gather>($/)  { self.SP-prefix($/, 'Gather')  }
+    method statement-prefix:sym<quietly>($/) { self.SP-prefix($/, 'Quietly') }
+    method statement-prefix:sym<start>($/)   { self.SP-prefix($/, 'Start')   }
+    method statement-prefix:sym<try>($/)     { self.SP-prefix($/, 'Try')     }
+
+    # Helper method for statement prefixes that modify for loops
+    method SP-looper($/, $mode) {
+        my $ast := $<blorst>.ast;
+        if nqp::istype($ast, self.r('Statement', 'For')) {
+            $ast.replace-mode(nqp::lc($mode));
+            self.attach: $/, $ast;
+        }
+        else {
+            self.SP-prefix($/, $mode);
+        }
+    }
+
+    # Prefixes that work differently on for loops
+    method statement-prefix:sym<hyper>($/) { self.SP-looper($/, 'Hyper') }
+    method statement-prefix:sym<lazy>($/)  { self.SP-looper($/, 'Lazy')  }
+    method statement-prefix:sym<race>($/)  { self.SP-looper($/, 'Race')  }
+
+#-------------------------------------------------------------------------------
 
     ##
     ## Expression parsing and operators

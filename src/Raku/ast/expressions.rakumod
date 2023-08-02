@@ -507,7 +507,7 @@ class RakuAST::FunctionInfix
     }
 }
 
-# A negate meta-operator.
+# The negate infix meta-operator (e.g. $a !cmp $b)
 class RakuAST::MetaInfix::Negate
   is RakuAST::MetaInfix
 {
@@ -530,22 +530,17 @@ class RakuAST::MetaInfix::Negate
     }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        QAST::Op.new(
-            :op('hllbool'),
-            QAST::Op.new(
-                :op('not_i'),
-                QAST::Op.new(
-                    :op('istrue'),
-                    $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
-                )
-            )
+        QAST::Op.new(:op<hllbool>,
+          QAST::Op.new(:op<isfalse>,
+            $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
+          )
         )
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new:
-            :op('call'), :name('&METAOP_NEGATE'),
-            $!infix.IMPL-HOP-INFIX-QAST($context)
+        QAST::Op.new(:op<call>,
+          :name<&METAOP_NEGATE>, $!infix.IMPL-HOP-INFIX-QAST($context)
+        )
     }
 }
 

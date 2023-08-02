@@ -804,19 +804,23 @@ class RakuAST::ApplyInfix
         $infix.IMPL-THUNK-ARGUMENTS($resolver, $context, $left, $right);
     }
 
-    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
         my $infix := $!infix;
         my $left  := self.left;
         my $right := self.right;
 
         # handle op=
         if nqp::eqaddr($infix.WHAT,RakuAST::MetaInfix::Assign) {
-            if $infix.infix.operator eq ',' {
+            my str $operator := $infix.infix.operator;
+            if $operator eq ',' || $operator eq 'xx' {
                 my $sigil := (try $left.sigil) // '';
                 if $sigil eq '$' || $sigil eq '@' {
                     $resolver.add-worry:
                       $resolver.build-exception: 'X::AdHoc',
-                        payload => "Using ,= on a "
+                        payload => "Using $operator on a "
                           ~ ($sigil eq '$' ?? 'scalar' !! 'array')
                           ~ " is probably NOT what you want, as it will create\n"
                           ~ "a self-referential structure with little meaning";

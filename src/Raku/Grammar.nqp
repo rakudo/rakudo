@@ -1028,71 +1028,68 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     ##
-    ## Statement modifiers
     ##
 
+#-------------------------------------------------------------------------------
+# Statement modifiers
+
+    # Helper method for error handling
     method nomodexpr($k) {
         self.'!clear_highwater'();
-        self.typed_panic( 'X::Syntax::Confused', reason => "Missing expression for '$k' statement modifier" );
+        self.typed_panic: 'X::Syntax::Confused',
+          reason => "Missing expression for '$k' statement modifier";
         self
     }
 
+    # Helper token for error handling
     token modifier-expr($k) { <EXPR> || <.nomodexpr($k)> }
 
+    # Simple statement modifiers
     proto rule statement-mod-cond {*}
-    rule statement-mod-cond:sym<if>      { <sym><.kok> <modifier-expr('if')> }
-    rule statement-mod-cond:sym<unless>  { <sym><.kok> <modifier-expr('unless')> }
-    rule statement-mod-cond:sym<when>    { <sym><.kok> <modifier-expr('when')> }
-    rule statement-mod-cond:sym<with>    { <sym><.kok> <modifier-expr('with')> }
+    rule statement-mod-cond:sym<if>      { <sym><.kok> <modifier-expr('if')>      }
+    rule statement-mod-cond:sym<unless>  { <sym><.kok> <modifier-expr('unless')>  }
+    rule statement-mod-cond:sym<when>    { <sym><.kok> <modifier-expr('when')>    }
+    rule statement-mod-cond:sym<with>    { <sym><.kok> <modifier-expr('with')>    }
     rule statement-mod-cond:sym<without> { <sym><.kok> <modifier-expr('without')> }
 
     proto rule statement-mod-loop {*}
-    rule statement-mod-loop:sym<while> { <sym><.kok> <modifier-expr('while')> }
-    rule statement-mod-loop:sym<until> { <sym><.kok> <modifier-expr('until')> }
+    rule statement-mod-loop:sym<for>   { <sym><.kok> <modifier-expr('for')>   }
     rule statement-mod-loop:sym<given> { <sym><.kok> <modifier-expr('given')> }
-    rule statement-mod-loop:sym<for>   { <sym><.kok> <modifier-expr('for')> }
+    rule statement-mod-loop:sym<until> { <sym><.kok> <modifier-expr('until')> }
+    rule statement-mod-loop:sym<while> { <sym><.kok> <modifier-expr('while')> }
 
-    ##
-    ## Statement prefixes
-    ##
+#-------------------------------------------------------------------------------
+# Phasers
 
+    # Simple phasers that just take a blorst
     proto token statement-prefix {*}
-
     token statement-prefix:sym<BEGIN> { <sym><.kok> <blorst> }
     token statement-prefix:sym<CHECK> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<INIT>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<CLOSE> { <sym><.kok> <blorst> }
     token statement-prefix:sym<END>   { <sym><.kok> <blorst> }
-
     token statement-prefix:sym<ENTER> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<LEAVE> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<FIRST> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<INIT>  { <sym><.kok> <blorst> }
     token statement-prefix:sym<KEEP>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<LAST>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<LEAVE> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<NEXT>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<POST>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<PRE>   { <sym><.kok> <blorst> }
+    token statement-prefix:sym<QUIT>  { <sym><.kok> <blorst> }
     token statement-prefix:sym<UNDO>  { <sym><.kok> <blorst> }
 
-    token statement-prefix:sym<FIRST> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<NEXT>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<LAST>  { <sym><.kok> <blorst> }
-
-    token statement-prefix:sym<PRE>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<POST>  { <sym><.kok> <blorst> }
-
-    token statement-prefix:sym<QUIT>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<CLOSE> { <sym><.kok> <blorst> }
-
-    token statement-prefix:sym<DOC>     {
-        <sym><.kok> $<phase>=['BEGIN' || 'CHECK' || 'INIT']<.end-keyword><.ws>
+    # DOC phaser also takes a "sub" phaser identifier
+    token statement-prefix:sym<DOC> {
+        <sym><.kok>
+        $<phase>=[BEGIN || CHECK || INIT]<.end-keyword><.ws>
         <blorst>
     }
 
-    token statement-prefix:sym<race>    { <sym><.kok> <blorst> }
-    token statement-prefix:sym<hyper>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<lazy>    { <sym><.kok> <blorst> }
-    token statement-prefix:sym<eager>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<try>     { <sym><.kok> <blorst> }
-    token statement-prefix:sym<do>      { <sym><.kok> <blorst> }
-    token statement-prefix:sym<quietly> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<gather>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<start>   { <sym><.kok> <blorst> }
+#-------------------------------------------------------------------------------
+# Statement prefixes
 
+    # Generic "BLock OR STatement" token
     token blorst {
         [
         | <?[{]> <block>
@@ -1100,6 +1097,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || <.missing: 'block or statement'>
         ]
     }
+
+    # Simple prefixes that just take a blorst
+    token statement-prefix:sym<do>      { <sym><.kok> <blorst> }
+    token statement-prefix:sym<eager>   { <sym><.kok> <blorst> }
+    token statement-prefix:sym<gather>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<quietly> { <sym><.kok> <blorst> }
+    token statement-prefix:sym<try>     { <sym><.kok> <blorst> }
+    token statement-prefix:sym<start>   { <sym><.kok> <blorst> }
+
+    # Prefixes that work differently on for loops
+    token statement-prefix:sym<hyper>   { <sym><.kok> <blorst> }
+    token statement-prefix:sym<lazy>    { <sym><.kok> <blorst> }
+    token statement-prefix:sym<race>    { <sym><.kok> <blorst> }
+
+#-------------------------------------------------------------------------------
 
     ##
     ## Expression parsing and operators

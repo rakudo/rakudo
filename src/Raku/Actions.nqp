@@ -803,6 +803,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-prefix:sym<gather>($/)  { self.SP-prefix($/, 'Gather')  }
     method statement-prefix:sym<quietly>($/) { self.SP-prefix($/, 'Quietly') }
     method statement-prefix:sym<start>($/)   { self.SP-prefix($/, 'Start')   }
+    method statement-prefix:sym<supply>($/)  { self.SP-prefix($/, 'Supply')  }
     method statement-prefix:sym<try>($/)     { self.SP-prefix($/, 'Try')     }
 
     # Helper method for statement prefixes that modify for loops

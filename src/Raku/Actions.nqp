@@ -500,6 +500,83 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*R.leave-scope();
     }
 
+    method load_command_line_modules($/) {
+        my $M := %*OPTIONS<M>;
+        my $ast := self.r('StatementList').new();
+        if nqp::defined($M) {
+            for nqp::islist($M) ?? $M !! [$M] -> $longname {
+                my $use := self.r('Statement', 'Use').new(
+                    module-name => self.r('Name').from-identifier-parts(
+                        |nqp::split('::', $longname)
+                    )
+                );
+                $use.ensure-begin-performed($*R, $*CU.context);
+                $ast.add-statement: $use;
+            }
+        }
+        self.attach: $/, $ast;
+    }
+
+#-------------------------------------------------------------------------------
+# Statement control
+
+    # Handling of simple control statements that take a block
+    method statement-control:sym<default>($/) {
+        self.attach: $/, self.r('Statement', 'Default').new(body => $<block>.ast);
+    }
+
+    method statement-control:sym<CATCH>($/) {
+        self.attach: $/, self.r('Statement', 'Catch').new(body => $<block>.ast);
+    }
+
+    method statement-control:sym<CONTROL>($/) {
+        self.attach: $/, self.r('Statement', 'Control').new(body => $<block>.ast);
+    }
+
+    # Handling of simple control statements that take a pointy block
+    method statement-control:sym<for>($/) {
+        self.attach: $/, self.r('Statement', 'For').new:
+            source => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement-control:sym<given>($/) {
+        self.attach: $/, self.r('Statement', 'Given').new:
+            source => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement-control:sym<repeat>($/) {
+        self.attach: $/, self.r('Statement', 'Loop', $<wu> eq 'while' ?? 'RepeatWhile' !! 'RepeatUntil').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement-control:sym<unless>($/) {
+        self.attach: $/, self.r('Statement', 'Unless').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement-control:sym<when>($/) {
+        self.attach: $/, self.r('Statement', 'When').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement-control:sym<while>($/) {
+        self.attach: $/, self.r('Statement', 'Loop', $<sym> eq 'while' ?? 'While' !! 'Until').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement-control:sym<without>($/) {
+        self.attach: $/, self.r('Statement', 'Without').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    # Control statements that need more handling
     method statement-control:sym<also>($/) {
         if $*ALSO-TARGET -> $target {
             for $<trait> {
@@ -532,30 +609,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :$condition, :$then, :@elsifs, :$else;
     }
 
-    method statement-control:sym<unless>($/) {
-        self.attach: $/, self.r('Statement', 'Unless').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
-    }
-
-    method statement-control:sym<without>($/) {
-        self.attach: $/, self.r('Statement', 'Without').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
-    }
-
-    method statement-control:sym<while>($/) {
-        self.attach: $/, self.r('Statement', 'Loop', $<sym> eq 'while' ?? 'While' !! 'Until').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
-    }
-
-    method statement-control:sym<repeat>($/) {
-        self.attach: $/, self.r('Statement', 'Loop', $<wu> eq 'while' ?? 'RepeatWhile' !! 'RepeatUntil').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
-    }
-
     method statement-control:sym<loop>($/) {
         my %parts;
         %parts<setup> := $<e1>.ast if $<e1>;
@@ -565,36 +618,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Statement', 'Loop').new(|%parts);
     }
 
-    method statement-control:sym<for>($/) {
-        self.attach: $/, self.r('Statement', 'For').new:
-            source => $<EXPR>.ast,
-            body => $<pblock>.ast;
-    }
+#-------------------------------------------------------------------------------
+# Pragma and module loading related statements
 
-    method statement-control:sym<given>($/) {
-        self.attach: $/, self.r('Statement', 'Given').new:
-            source => $<EXPR>.ast,
-            body => $<pblock>.ast;
-    }
-
-    method statement-control:sym<when>($/) {
-        self.attach: $/, self.r('Statement', 'When').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
-    }
-
-    method statement-control:sym<default>($/) {
-        self.attach: $/, self.r('Statement', 'Default').new(body => $<block>.ast);
-    }
-
-    method statement-control:sym<CATCH>($/) {
-        self.attach: $/, self.r('Statement', 'Catch').new(body => $<block>.ast);
-    }
-
-    method statement-control:sym<CONTROL>($/) {
-        self.attach: $/, self.r('Statement', 'Control').new(body => $<block>.ast);
-    }
-
+    # "no foo" can only mean a pragma at the moment
     method statement-control:sym<no>($/) {
         my str $name := ~$<module_name>;
         my $Pragma   := self.r('Pragma');
@@ -643,14 +670,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement-control:sym<need>($/) {
-        my $ast;
-
         my @module-names;
         for $<module_name> {
             @module-names.push: $_.ast;
         }
 
-        $ast := self.r('Statement', 'Need').new(:@module-names);
+        my $ast := self.r('Statement', 'Need').new(:@module-names);
         $ast.ensure-begin-performed($*R, $*CU.context);
 
         self.attach: $/, $ast;
@@ -671,23 +696,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               $_.category, $_.opname, $_.canname, $_.subname, $_.declarand);
         }
 
-        self.attach: $/, $ast;
-    }
-
-    method load_command_line_modules($/) {
-        my $M := %*OPTIONS<M>;
-        my $ast := self.r('StatementList').new();
-        if nqp::defined($M) {
-            for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                my $use := self.r('Statement', 'Use').new(
-                    module-name => self.r('Name').from-identifier-parts(
-                        |nqp::split('::', $longname)
-                    )
-                );
-                $use.ensure-begin-performed($*R, $*CU.context);
-                $ast.add-statement: $use;
-            }
-        }
         self.attach: $/, $ast;
     }
 

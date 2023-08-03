@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 14;
+plan 16;
 
 my $ast;
 my $deparsed;
@@ -458,6 +458,72 @@ subtest 'A start has a fresh $!' => {
     {
         my $! = 137;
         nok await(EVAL(EVAL $raku)) ~~ 137, 'Raku: A start has a fresh $!';
+    }
+}
+
+subtest 'supply statement prefix with expression evaluates to Supply' => {
+    # supply emit(42)
+    ast RakuAST::StatementPrefix::Supply.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier("emit"),
+          args => RakuAST::ArgList.new(
+            RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    # must be this number of tests
+    plan 7;
+
+    is-deeply $deparsed, 'supply emit(42)', 'deparse';
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $supply {
+        isa-ok $supply, Supply, $type;
+        $supply.tap({ is $_, 42, 'emitted value ok' });
+    }
+}
+
+subtest 'supply statement prefix with block evaluates to Supply' => {
+    # supply { emit(42) }
+    ast RakuAST::StatementPrefix::Supply.new(
+      RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier("emit"),
+                args => RakuAST::ArgList.new(
+                  RakuAST::IntLiteral.new(42)
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    # must be this number of tests
+    plan 7;
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+supply {
+    emit(42)
+}
+CODE
+
+    for
+      'AST', EVAL($ast),
+      'Str', EVAL($deparsed),
+      'Raku', EVAL(EVAL $raku)
+    -> $type, $supply {
+        isa-ok $supply, Supply, $type;
+        $supply.tap({ is $_, 42, 'emitted value ok' });
     }
 }
 

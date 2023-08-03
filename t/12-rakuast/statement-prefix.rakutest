@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 16;
+plan 18;
 
 my $ast;
 my $deparsed;
@@ -524,6 +524,58 @@ CODE
     -> $type, $supply {
         isa-ok $supply, Supply, $type;
         $supply.tap({ is $_, 42, 'emitted value ok' });
+    }
+}
+
+subtest 'react statement prefix with expression evaluates to Nil' => {
+    # react $a = 42
+    ast RakuAST::StatementPrefix::React.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Var::Lexical.new("\$a"),
+          infix => RakuAST::Infix.new("="),
+          right => RakuAST::IntLiteral.new(42)
+        )
+      )
+    );
+
+    is-deeply $deparsed, 'react $a = 42', 'deparse';
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL $raku -> $type, $it {
+        my $a;
+        is-deeply EVAL($it), Nil, "$type: is the result Nil";
+        is-deeply $a, 42, "$type: did the code get run";
+    }
+}
+
+subtest 'react statement block with expression evaluates to Nil' => {
+    # react { $a = 42 }
+    ast RakuAST::StatementPrefix::React.new(
+      RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::ApplyInfix.new(
+                left  => RakuAST::Var::Lexical.new("\$a"),
+                infix => RakuAST::Infix.new("="),
+                right => RakuAST::IntLiteral.new(42)
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+react {
+    $a = 42
+}
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL $raku -> $type, $it {
+        my $a;
+        is-deeply EVAL($it), Nil, "$type: is the result Nil";
+        is-deeply $a, 42, "$type: did the code get run";
     }
 }
 

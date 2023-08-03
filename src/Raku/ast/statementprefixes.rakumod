@@ -360,6 +360,52 @@ class RakuAST::StatementPrefix::Start
     }
 }
 
+# The `react` statement prefix.
+class RakuAST::StatementPrefix::React
+  is RakuAST::StatementPrefix::Thunky
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    method type() { "react" }
+
+    method propagate-sink(Bool $is-sunk) {
+        self.blorst.apply-sink(False);
+    }
+
+    method apply-implicit-block-semantics() {
+        self.blorst.set-fresh-variables(:match, :exception)
+          if nqp::istype(self.blorst, RakuAST::Block);
+    }
+
+    method IMPL-QAST-FORM-BLOCK(
+      RakuAST::IMPL::QASTContext  $context,
+                             str :$blocktype,
+             RakuAST::Expression :$expression
+    ) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
+        }
+        else {
+            my $block := QAST::Block.new(
+                :blocktype('declaration_static'),
+                QAST::Stmts.new(
+                  RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')).IMPL-QAST-DECL($context),
+                    RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')).IMPL-QAST-DECL($context),
+                    self.blorst.IMPL-TO-QAST($context)
+                ));
+            $block.arity(0);
+            $block
+        }
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(:op<call>,
+          :name<&REACT>,
+          self.IMPL-CLOSURE-QAST($context)
+        )
+    }
+}
+
 # The `supply` statement prefix.
 class RakuAST::StatementPrefix::Supply
   is RakuAST::StatementPrefix::Thunky

@@ -301,47 +301,62 @@ class RakuAST::StatementPrefix::Gather
     }
 }
 
-# The `start` statement prefix.
-class RakuAST::StatementPrefix::Start
+# Statement prefix base class for generic blorst handling
+class RakuAST::StatementPrefix::Blorst
   is RakuAST::StatementPrefix::Thunky
   is RakuAST::SinkPropagator
   is RakuAST::ImplicitBlockSemanticsProvider
-  is RakuAST::ImplicitLookups
 {
-    method type() { "start" }
-
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False);
     }
 
     method apply-implicit-block-semantics() {
         self.blorst.set-fresh-variables(:match, :exception)
-            if nqp::istype(self.blorst, RakuAST::Block);
+          if nqp::istype(self.blorst, RakuAST::Block);
     }
+
+    method IMPL-QAST-FORM-BLOCK(
+      RakuAST::IMPL::QASTContext  $context,
+                             str :$blocktype,
+             RakuAST::Expression :$expression
+    ) {
+        if nqp::istype(self.blorst, RakuAST::Block) {
+            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
+        }
+        else {
+            my $block := QAST::Block.new(
+              :blocktype('declaration_static'),
+              QAST::Stmts.new(
+                RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')).IMPL-QAST-DECL($context),
+                RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')).IMPL-QAST-DECL($context),
+                self.blorst.IMPL-TO-QAST($context)
+              ));
+            $block.arity(0);
+            $block
+        }
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(:op<call>,
+          :name('&' ~ nqp::uc(self.type)),
+          self.IMPL-CLOSURE-QAST($context)
+        )
+    }
+}
+
+# The `start` statement prefix.
+class RakuAST::StatementPrefix::Start
+  is RakuAST::StatementPrefix::Blorst
+  is RakuAST::ImplicitLookups
+{
+    method type() { "start" }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Promise')),
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('True')),
         ])
-    }
-
-    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context,
-            str :$blocktype, RakuAST::Expression :$expression) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
-        }
-        else {
-            my $block := QAST::Block.new(
-                :blocktype('declaration_static'),
-                QAST::Stmts.new(
-                    RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')).IMPL-QAST-DECL($context),
-                    RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')).IMPL-QAST-DECL($context),
-                    self.blorst.IMPL-TO-QAST($context)
-                ));
-            $block.arity(0);
-            $block
-        }
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -362,94 +377,16 @@ class RakuAST::StatementPrefix::Start
 
 # The `react` statement prefix.
 class RakuAST::StatementPrefix::React
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::StatementPrefix::Blorst
 {
     method type() { "react" }
-
-    method propagate-sink(Bool $is-sunk) {
-        self.blorst.apply-sink(False);
-    }
-
-    method apply-implicit-block-semantics() {
-        self.blorst.set-fresh-variables(:match, :exception)
-          if nqp::istype(self.blorst, RakuAST::Block);
-    }
-
-    method IMPL-QAST-FORM-BLOCK(
-      RakuAST::IMPL::QASTContext  $context,
-                             str :$blocktype,
-             RakuAST::Expression :$expression
-    ) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
-        }
-        else {
-            my $block := QAST::Block.new(
-                :blocktype('declaration_static'),
-                QAST::Stmts.new(
-                  RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')).IMPL-QAST-DECL($context),
-                    RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')).IMPL-QAST-DECL($context),
-                    self.blorst.IMPL-TO-QAST($context)
-                ));
-            $block.arity(0);
-            $block
-        }
-    }
-
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(:op<call>,
-          :name<&REACT>,
-          self.IMPL-CLOSURE-QAST($context)
-        )
-    }
 }
 
 # The `supply` statement prefix.
 class RakuAST::StatementPrefix::Supply
-  is RakuAST::StatementPrefix::Thunky
-  is RakuAST::SinkPropagator
-  is RakuAST::ImplicitBlockSemanticsProvider
+  is RakuAST::StatementPrefix::Blorst
 {
     method type() { "supply" }
-
-    method propagate-sink(Bool $is-sunk) {
-        self.blorst.apply-sink(False);
-    }
-
-    method apply-implicit-block-semantics() {
-        self.blorst.set-fresh-variables(:match, :exception)
-          if nqp::istype(self.blorst, RakuAST::Block);
-    }
-
-    method IMPL-QAST-FORM-BLOCK(
-      RakuAST::IMPL::QASTContext  $context,
-                             str :$blocktype,
-             RakuAST::Expression :$expression
-    ) {
-        if nqp::istype(self.blorst, RakuAST::Block) {
-            self.blorst.IMPL-QAST-FORM-BLOCK($context, :$blocktype, :$expression)
-        }
-        else {
-            my $block := QAST::Block.new(
-                :blocktype('declaration_static'),
-                QAST::Stmts.new(
-                  RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')).IMPL-QAST-DECL($context),
-                    RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')).IMPL-QAST-DECL($context),
-                    self.blorst.IMPL-TO-QAST($context)
-                ));
-            $block.arity(0);
-            $block
-        }
-    }
-
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(:op<call>,
-          :name<&SUPPLY>,
-          self.IMPL-CLOSURE-QAST($context)
-        )
-    }
 }
 
 # Done by all phasers. Serves as little more than a marker for phasers, for

@@ -522,61 +522,64 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # Handling of simple control statements that take a block
     method statement-control:sym<default>($/) {
-        self.attach: $/, self.r('Statement', 'Default').new(body => $<block>.ast);
+        self.attach: $/,
+          self.r('Statement', 'Default').new(body => $<block>.ast);
     }
 
     method statement-control:sym<CATCH>($/) {
-        self.attach: $/, self.r('Statement', 'Catch').new(body => $<block>.ast);
+        self.attach: $/,
+          self.r('Statement', 'Catch').new(body => $<block>.ast);
     }
 
     method statement-control:sym<CONTROL>($/) {
-        self.attach: $/, self.r('Statement', 'Control').new(body => $<block>.ast);
+        self.attach: $/,
+          self.r('Statement', 'Control').new(body => $<block>.ast);
     }
 
     # Handling of simple control statements that take a pointy block
     method statement-control:sym<for>($/) {
-        self.attach: $/, self.r('Statement', 'For').new:
-            source => $<EXPR>.ast,
-            body => $<pblock>.ast;
+        self.attach: $/,
+          self.r('Statement', 'For').new:
+            source => $<EXPR>.ast, body => $<pblock>.ast;
     }
 
     method statement-control:sym<given>($/) {
-        self.attach: $/, self.r('Statement', 'Given').new:
-            source => $<EXPR>.ast,
-            body => $<pblock>.ast;
+        self.attach: $/,
+          self.r('Statement', 'Given').new:
+            source => $<EXPR>.ast, body => $<pblock>.ast;
     }
 
     method statement-control:sym<repeat>($/) {
-        self.attach: $/, self.r('Statement', 'Loop', $<wu> eq 'while' ?? 'RepeatWhile' !! 'RepeatUntil').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
+        self.attach: $/,
+          self.r('Statement', 'Loop', 'Repeat' ~ nqp::tclc(~$<wu>)).new:
+            condition => $<EXPR>.ast, body => $<pblock>.ast;
     }
 
     method statement-control:sym<unless>($/) {
-        self.attach: $/, self.r('Statement', 'Unless').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
+        self.attach: $/,
+          self.r('Statement', 'Unless').new:
+            condition => $<EXPR>.ast, body => $<pblock>.ast;
     }
 
     method statement-control:sym<when>($/) {
-        self.attach: $/, self.r('Statement', 'When').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
+        self.attach: $/,
+          self.r('Statement', 'When').new:
+            condition => $<EXPR>.ast, body => $<pblock>.ast;
     }
 
     method statement-control:sym<while>($/) {
-        self.attach: $/, self.r('Statement', 'Loop', $<sym> eq 'while' ?? 'While' !! 'Until').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
+        self.attach: $/,
+          self.r('Statement', 'Loop', nqp::tclc(~$<sym>)).new:
+            condition => $<EXPR>.ast, body => $<pblock>.ast;
     }
 
     method statement-control:sym<without>($/) {
-        self.attach: $/, self.r('Statement', 'Without').new:
-            condition => $<EXPR>.ast,
-            body => $<pblock>.ast;
+        self.attach: $/,
+          self.r('Statement', 'Without').new:
+            condition => $<EXPR>.ast, body => $<pblock>.ast;
     }
 
-    # Control statements that need more handling
+    # Dummy control statement to set a trait on a target
     method statement-control:sym<also>($/) {
         if $*ALSO-TARGET -> $target {
             for $<trait> {
@@ -590,6 +593,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    # Basic if / with handling
     method statement-control:sym<if>($/) {
         my $condition := $<condition>[0].ast;
         my $then := $<then>[0].ast;
@@ -597,24 +601,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $index := 0;
         for $<sym> {
             if $index > 0 {
-                my $elsif-type := $_ eq 'orwith' ?? 'Orwith' !! 'Elsif';
-                @elsifs.push: self.r('Statement', $elsif-type).new:
+                @elsifs.push:
+                  self.r('Statement', nqp::tclc(~$_)).new:
                     condition => $<condition>[$index].ast,
-                    then => $<then>[$index].ast;
+                    then      => $<then>[$index].ast;
             }
-            $index++;
+            ++$index;
         }
         my $else := $<else> ?? $<else>.ast !! self.r('Block');
-        self.attach: $/, self.r('Statement', $<sym>[0] eq 'with' ?? 'With' !! 'If').new:
+        self.attach: $/, self.r('Statement', nqp::tclc(~$<sym>[0])).new:
             :$condition, :$then, :@elsifs, :$else;
     }
 
+    # Basic loop handling
     method statement-control:sym<loop>($/) {
         my %parts;
-        %parts<setup> := $<e1>.ast if $<e1>;
+        %parts<setup>     := $<e1>.ast if $<e1>;
         %parts<condition> := $<e2>.ast if $<e2>;
         %parts<increment> := $<e3>.ast if $<e3>;
-        %parts<body> := $<block>.ast;
+        %parts<body>      := $<block>.ast;
         self.attach: $/, self.r('Statement', 'Loop').new(|%parts);
     }
 

@@ -842,11 +842,65 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token enter-block-scope($*SCOPE-KIND) { <?> }
     token leave-block-scope() { <?> }
 
+#-------------------------------------------------------------------------------
+# Statement control
+
     proto rule statement-control {*}
 
-    rule statement-control:sym<also> {
+    # Simple control statements that take a block
+    rule statement-control:sym<default> { <sym><.kok> <block> }
+    rule statement-control:sym<CATCH>   { <sym><.kok> <block> }
+    rule statement-control:sym<CONTROL> { <sym><.kok> <block> }
+
+    # Simple control statements that take a pointy block
+    rule statement-control:sym<given> {
         <sym><.kok>
-        [ <trait>+ || <.panic: "No valid trait found after 'also'"> ]
+        :my $*GOAL := '{';
+        :my $*BORG := {};
+        <EXPR>
+        <pblock>
+    }
+    rule statement-control:sym<when> {
+        <sym><.kok>
+        :my $*GOAL := '{';
+        :my $*BORG := {};
+        <EXPR>
+        <pblock>
+    }
+    rule statement-control:sym<while> {
+        $<sym>=[while|until]<.kok> {}
+        :my $*GOAL := '{';
+        :my $*BORG := {};
+        <EXPR>
+        <pblock>
+    }
+
+    # Control statements that take a pointy block without else/elsif/orwith
+    rule statement-control:sym<unless> {
+        <sym><.kok>
+        :my $*GOAL := '{';
+        :my $*BORG := {};
+        <EXPR>
+        <pblock>
+        [ <!before [els[e|if]|orwith]» >
+            || $<wrong-keyword>=[els[e|if]|orwith]» {}
+                <.typed_panic: 'X::Syntax::UnlessElse',
+                    keyword => ~$<wrong-keyword>,
+                >
+        ]
+    }
+    rule statement-control:sym<without> {
+        <sym><.kok>
+        :my $*GOAL := '{';
+        :my $*BORG := {};
+        <EXPR>
+        <pblock>
+        [ <!before [els[e|if]|orwith]» >
+            || $<wrong-keyword>=[els[e|if]|orwith]» {}
+                <.typed_panic: 'X::Syntax::WithoutElse',
+                    keyword => ~$<wrong-keyword>,
+                >
+        ]
     }
 
     rule statement-control:sym<if> {
@@ -870,36 +924,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
     }
 
-    rule statement-control:sym<unless> {
-        $<sym>='unless'<.kok>
-        :my $*GOAL := '{';
-        :my $*BORG := {};
-        <EXPR>
-        <pblock>
-        [ <!before [els[e|if]|orwith]» >
-            || $<wrong-keyword>=[els[e|if]|orwith]» {}
-                <.typed_panic: 'X::Syntax::UnlessElse',
-                    keyword => ~$<wrong-keyword>,
-                >
-        ]
-    }
-
-    rule statement-control:sym<without> {
-        $<sym>='without'<.kok>
-        :my $*GOAL := '{';
-        :my $*BORG := {};
-        <EXPR>
-        <pblock>
-        [ <!before [els[e|if]|orwith]» >
-            || $<wrong-keyword>=[els[e|if]|orwith]» {}
-                <.typed_panic: 'X::Syntax::WithoutElse',
-                    keyword => ~$<wrong-keyword>,
-                >
-        ]
-    }
-
-    rule statement-control:sym<while> {
-        $<sym>=[while|until]<.kok> {}
+    rule statement-control:sym<for> {
+        <sym><.kok> {}
+        [ <?before 'my'? '$'\w+\s+'(' >
+            <.typed_panic: 'X::Syntax::P5'> ]?
+        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
+            <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
@@ -946,44 +976,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <block>
     }
 
-    rule statement-control:sym<for> {
-        <sym><.kok> {}
-        [ <?before 'my'? '$'\w+\s+'(' >
-            <.typed_panic: 'X::Syntax::P5'> ]?
-        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
-            <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
-        :my $*GOAL := '{';
-        :my $*BORG := {};
-        <EXPR>
-        <pblock>
-    }
-
+    # handle people coming from Perl
     rule statement-control:sym<foreach> {
         <sym><.end-keyword> <.obs("'foreach'", "'for'")>
     }
 
-    rule statement-control:sym<given> {
+    # Not really control statements, more grammar tweaks
+    rule statement-control:sym<also> {
         <sym><.kok>
-        :my $*GOAL := '{';
-        :my $*BORG := {};
-        <EXPR>
-        <pblock>
+        [ <trait>+ || <.panic: "No valid trait found after 'also'"> ]
     }
 
-    rule statement-control:sym<when> {
-        <sym><.kok>
-        :my $*GOAL := '{';
-        :my $*BORG := {};
-        <EXPR>
-        <pblock>
-    }
-
-    rule statement-control:sym<default> {
-        <sym><.kok> <block>
-    }
-
-    rule statement-control:sym<CATCH> { <sym> <block> }
-    rule statement-control:sym<CONTROL> { <sym> <block> }
+#-------------------------------------------------------------------------------
+# Pragma and module loading related statements
 
     token statement-control:sym<no> {
         <sym> <.ws>

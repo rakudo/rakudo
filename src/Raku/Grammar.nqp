@@ -595,6 +595,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my @*ORIGIN-NESTINGS := [];  # this will be used for the CompUnit object
         my $*COMPILING_CORE_SETTING := 0;
 
+        # -1 indicates we're outside of any "supply" or "react" block
+        my $*WHENEVER-COUNT := -1;
+
         # This contains the given options, from the command line if invoked
         # from there, otherwise from EVAL invocations.
         my %*OPTIONS := %*COMPILING<%?OPTIONS>;
@@ -903,6 +906,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    # Handle "if" / "with"
     rule statement-control:sym<if> {
         $<sym>=[if|with]<.kok> {}
         :my $*GOAL := '{';
@@ -924,6 +928,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
     }
 
+    # Handle "for"
     rule statement-control:sym<for> {
         <sym><.kok> {}
         [ <?before 'my'? '$'\w+\s+'(' >
@@ -936,6 +941,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pblock>
     }
 
+    # Handle repeat ... while | until
     rule statement-control:sym<repeat> {
         <sym><.kok> {}
         [
@@ -950,6 +956,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    # Handle whenever inside supply / react
+    rule statement-control:sym<whenever> {
+        <sym><.kok>
+        [
+        || <?{ nqp::getcomp('Raku').language_revision == 1
+                 || $*WHENEVER-COUNT >= 0 }>
+        || <.typed_panic('X::Comp::WheneverOutOfScope')>
+        ]
+        { $*WHENEVER-COUNT++ }
+        :my $*GOAL := '{';
+        :my $*BORG := {};
+        <EXPR> <pblock>
+    }
+
+    # Handle basic loop / C-style loop
     token statement-control:sym<loop> {
         <sym><.kok>
         :s''
@@ -1108,15 +1129,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<eager>   { <sym><.kok> <blorst> }
     token statement-prefix:sym<gather>  { <sym><.kok> <blorst> }
     token statement-prefix:sym<quietly> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<react>   { <sym><.kok> <blorst> }
     token statement-prefix:sym<start>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<supply>  { <sym><.kok> <blorst> }
     token statement-prefix:sym<try>     { <sym><.kok> <blorst> }
 
     # Prefixes that work differently on for loops
     token statement-prefix:sym<hyper>   { <sym><.kok> <blorst> }
     token statement-prefix:sym<lazy>    { <sym><.kok> <blorst> }
     token statement-prefix:sym<race>    { <sym><.kok> <blorst> }
+
+    # Prefixes that allow "whenever" inside them
+    token statement-prefix:sym<react> {
+        :my $*WHENEVER-COUNT := 0;
+        <sym><.kok> <blorst>
+    }
+    token statement-prefix:sym<supply> {
+        :my $*WHENEVER-COUNT := 0;
+        <sym><.kok> <blorst>
+    }
 
 #-------------------------------------------------------------------------------
 

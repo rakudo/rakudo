@@ -1990,6 +1990,15 @@ class RakuAST::Deparse {
           ~ self.deparse($ast.body)
     }
 
+    multi method deparse(RakuAST::Statement::Whenever:D $ast --> Str:D) {
+        self.labels($ast)
+          ~ self.syn-block('whenever')
+          ~ ' '
+          ~ self.deparse($ast.trigger)
+          ~ ' '
+          ~ self.deparse($ast.body)
+    }
+
     multi method deparse(RakuAST::Statement::Without:D $ast --> Str:D) {
         self.labels($ast) ~ self.negated-conditional($ast, 'without');
     }

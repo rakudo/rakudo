@@ -567,6 +567,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             condition => $<EXPR>.ast, body => $<pblock>.ast;
     }
 
+    method statement-control:sym<whenever>($/) {
+        self.attach: $/,
+          self.r('Statement', 'Whenever').new:
+            trigger => $<EXPR>.ast, body => $<pblock>.ast;
+    }
+
     method statement-control:sym<while>($/) {
         self.attach: $/,
           self.r('Statement', 'Loop', nqp::tclc(~$<sym>)).new:

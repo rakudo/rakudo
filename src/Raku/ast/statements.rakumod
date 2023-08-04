@@ -1210,6 +1210,52 @@ class RakuAST::Statement::When
     }
 }
 
+# A whenever statement.
+class RakuAST::Statement::Whenever
+  is RakuAST::Statement
+  is RakuAST::SinkPropagator
+  is RakuAST::ImplicitBlockSemanticsProvider
+{
+    has RakuAST::Expression $.trigger;
+    has RakuAST::Block      $.body;
+
+    method new(
+      RakuAST::Expression :$trigger!,
+           RakuAST::Block :$body!,
+                     List :$labels
+    ) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj,RakuAST::Statement::Whenever,'$!trigger',$trigger);
+        nqp::bindattr($obj,RakuAST::Statement::Whenever,'$!body',$body);
+        $obj.set-labels($labels);
+        $obj
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!trigger.apply-sink(False);
+        $!body.body.apply-sink($is-sunk);
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(True, :required);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(:op<call>, :name<&WHENEVER>,
+          QAST::Op.new(:op<hllize>,
+            $!trigger.IMPL-TO-QAST($context)
+          ),
+          $!body.IMPL-TO-QAST($context)
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!trigger);
+        $visitor($!body);
+        self.visit-labels($visitor);
+    }
+}
+
 # A default statement.
 class RakuAST::Statement::Default
   is RakuAST::Statement

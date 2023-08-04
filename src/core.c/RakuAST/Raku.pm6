@@ -983,6 +983,10 @@ augment class RakuAST::Node {
         self!nameds: <labels condition body>
     }
 
+    multi method raku(RakuAST::Statement::Whenever:D: --> Str:D) {
+        self!nameds: <labels trigger body>
+    }
+
     multi method raku(RakuAST::Statement::Without:D: --> Str:D) {
         self!nameds: <labels condition body>
     }

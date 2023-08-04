@@ -462,13 +462,23 @@ subtest 'A start has a fresh $!' => {
 }
 
 subtest 'supply statement prefix with expression evaluates to Supply' => {
-    # supply emit(42)
+    # supply whenever 42 { .emit }
     ast RakuAST::StatementPrefix::Supply.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Call::Name.new(
-          name => RakuAST::Name.from-identifier("emit"),
-          args => RakuAST::ArgList.new(
-            RakuAST::IntLiteral.new(42)
+      RakuAST::Statement::Whenever.new(
+        trigger => RakuAST::IntLiteral.new(42),
+        body    => RakuAST::Block.new(
+          implicit-topic => True,
+          required-topic => 1,
+          body           => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::Term::TopicCall.new(
+                  RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier("emit")
+                  )
+                )
+              )
+            )
           )
         )
       )
@@ -477,7 +487,11 @@ subtest 'supply statement prefix with expression evaluates to Supply' => {
     # must be this number of tests
     plan 7;
 
-    is-deeply $deparsed, 'supply emit(42)', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+supply whenever 42 {
+    .emit()
+}
+CODE
 
     for
       'AST', EVAL($ast),
@@ -490,16 +504,26 @@ subtest 'supply statement prefix with expression evaluates to Supply' => {
 }
 
 subtest 'supply statement prefix with block evaluates to Supply' => {
-    # supply { emit(42) }
+    # supply { whenever 42 { .emit } }
     ast RakuAST::StatementPrefix::Supply.new(
       RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-              expression => RakuAST::Call::Name.new(
-                name => RakuAST::Name.from-identifier("emit"),
-                args => RakuAST::ArgList.new(
-                  RakuAST::IntLiteral.new(42)
+            RakuAST::Statement::Whenever.new(
+              trigger => RakuAST::IntLiteral.new(42),
+              body    => RakuAST::Block.new(
+                implicit-topic => True,
+                required-topic => 1,
+                body           => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Term::TopicCall.new(
+                        RakuAST::Call::Method.new(
+                          name => RakuAST::Name.from-identifier("emit")
+                        )
+                      )
+                    )
+                  )
                 )
               )
             )
@@ -513,7 +537,9 @@ subtest 'supply statement prefix with block evaluates to Supply' => {
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 supply {
-    emit(42)
+    whenever 42 {
+        .emit()
+    }
 }
 CODE
 
@@ -528,18 +554,33 @@ CODE
 }
 
 subtest 'react statement prefix with expression evaluates to Nil' => {
-    # react $a = 42
+    # react whenever 42 { $a = $_ }
     ast RakuAST::StatementPrefix::React.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::ApplyInfix.new(
-          left  => RakuAST::Var::Lexical.new("\$a"),
-          infix => RakuAST::Infix.new("="),
-          right => RakuAST::IntLiteral.new(42)
+      RakuAST::Statement::Whenever.new(
+        trigger => RakuAST::IntLiteral.new(42),
+        body    => RakuAST::Block.new(
+          implicit-topic => True,
+          required-topic => 1,
+          body           => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new("\$a"),
+                  infix => RakuAST::Infix.new("="),
+                  right => RakuAST::Var::Lexical.new("\$_")
+                )
+              )
+            )
+          )
         )
       )
     );
 
-    is-deeply $deparsed, 'react $a = 42', 'deparse';
+    is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
+react whenever 42 {
+    $a = $_
+}
+CODE
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL $raku -> $type, $it {
         my $a;
@@ -549,16 +590,27 @@ subtest 'react statement prefix with expression evaluates to Nil' => {
 }
 
 subtest 'react statement block with expression evaluates to Nil' => {
-    # react { $a = 42 }
+    # react { whenever 42 { $a = $_ } }
     ast RakuAST::StatementPrefix::React.new(
       RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-              expression => RakuAST::ApplyInfix.new(
-                left  => RakuAST::Var::Lexical.new("\$a"),
-                infix => RakuAST::Infix.new("="),
-                right => RakuAST::IntLiteral.new(42)
+            RakuAST::Statement::Whenever.new(
+              trigger => RakuAST::IntLiteral.new(42),
+              body    => RakuAST::Block.new(
+                implicit-topic => True,
+                required-topic => 1,
+                body           => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::Var::Lexical.new("\$a"),
+                        infix => RakuAST::Infix.new("="),
+                        right => RakuAST::Var::Lexical.new("\$_")
+                      )
+                    )
+                  )
+                )
               )
             )
           )
@@ -568,7 +620,9 @@ subtest 'react statement block with expression evaluates to Nil' => {
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 react {
-    $a = 42
+    whenever 42 {
+        $a = $_
+    }
 }
 CODE
 

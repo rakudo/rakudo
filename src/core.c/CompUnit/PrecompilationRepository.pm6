@@ -9,8 +9,13 @@ role CompUnit::PrecompilationRepository {
 
     method load(CompUnit::PrecompilationId $id --> Nil) { }
 
-    method may-precomp(--> True) {
-        # would be a good place to check an environment variable
+    has Bool $!may-precomp;
+    method may-precomp(--> Bool:D) {
+      nqp::if(
+        nqp::defined($!may-precomp),
+        $!may-precomp,
+        ($!may-precomp := !nqp::hllbool(nqp::if(nqp::atkey(%*ENV,'RAKUDO_NO_PRECOMPILATION'), 1, 0)))
+      )
     }
 }
 

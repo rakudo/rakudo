@@ -255,7 +255,7 @@ sub guess-name-mangler(Routine $r, $name, Str $libname) {
     }
 }
 
-my Lock $setup-lock .= new;
+INIT my Lock $setup-lock .= new;
 
 sub resolve-libname($libname) {
     CATCH { default { note $_ } }

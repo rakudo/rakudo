@@ -106,7 +106,7 @@ class Kernel does Systemic {
         $!bits
           ?? $!bits
           # naive approach
-          !! ($!bits := $.hardware ~~ m/_64|w|amd64/ ?? 64 !! 32);
+          !! ($!bits := $.hardware ~~ m/ _64 | w | amd64 | arm64 / ?? 64 !! 32);
     }
 
     method hostname(--> Str:D) {

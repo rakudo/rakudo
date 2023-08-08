@@ -1549,7 +1549,15 @@ Consider using a block if any of these are necessary for your mapping code."
           Nil
         )
     }
-    method !iterator-and-first($action,\first) is raw {
+
+    # Returns an iterator only if there is at least one value that
+    # can be produced.  If the iterator is lazy, throws an error
+    # with the action that is specified as the first argument.
+    # Assigns the produced value in the variable that must be
+    # specified as the second argument.
+    method iterator-and-first(
+      $action, $first is rw
+    ) is implementation-detail {
         nqp::if(
           self.is-lazy,
           X::Cannot::Lazy.new(:$action).throw,
@@ -1560,7 +1568,7 @@ Consider using a block if any of these are necessary for your mapping code."
               nqp::if(
                 nqp::isconcrete($pulled),
                 nqp::stmts(
-                  (first = $pulled),
+                  ($first = $pulled),
                   (return $iterator)
                 )
               )
@@ -1589,7 +1597,7 @@ Consider using a block if any of these are necessary for your mapping code."
     proto method min (|) is nodal {*}
     multi method min() {
         nqp::if(
-          (my $iter := self!iterator-and-first(".min",my $min)),
+          (my $iter := self.iterator-and-first(".min",my $min)),
           nqp::until(
             nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
             nqp::if(
@@ -1608,7 +1616,7 @@ Consider using a block if any of these are necessary for your mapping code."
           { &by($^a) cmp &by($^b) }
         );
         nqp::if(
-          (my $iter := self!iterator-and-first(".min",my $min)),
+          (my $iter := self.iterator-and-first(".min",my $min)),
           nqp::until(
             nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
             nqp::if(
@@ -1624,7 +1632,7 @@ Consider using a block if any of these are necessary for your mapping code."
     proto method max (|) is nodal {*}
     multi method max() {
         nqp::if(
-          (my $iter := self!iterator-and-first(".max",my $max)),
+          (my $iter := self.iterator-and-first(".max",my $max)),
           nqp::until(
             nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
             nqp::if(
@@ -1644,7 +1652,7 @@ Consider using a block if any of these are necessary for your mapping code."
         );
 
         nqp::if(
-          (my $iter := self!iterator-and-first(".max",my $max)),
+          (my $iter := self.iterator-and-first(".max",my $max)),
           nqp::until(
             nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd),
             nqp::if(
@@ -1701,7 +1709,7 @@ Consider using a block if any of these are necessary for your mapping code."
     proto method minmax (|) is nodal {*}
     multi method minmax() {
         nqp::if(
-          (my $iter := self!iterator-and-first(".minmax",my $pulled)),
+          (my $iter := self.iterator-and-first(".minmax",my $pulled)),
           nqp::stmts(
             nqp::if(
               nqp::istype($pulled,Range),
@@ -1747,7 +1755,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
     multi method minmax(&by) {
         nqp::if(
-          (my $iter := self!iterator-and-first(".minmax",my $pulled)),
+          (my $iter := self.iterator-and-first(".minmax",my $pulled)),
           nqp::stmts(
             (my $cmp = nqp::if(
               nqp::iseq_i(&by.arity,2),&by,{ &by($^a) cmp &by($^b) })

@@ -1338,78 +1338,60 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
+    # helper method for .sort
+    method !reify-for-sort(--> Nil) {
+        nqp::if(
+          nqp::isconcrete($!todo),
+          nqp::stmts(
+            $!todo.reify-until-lazy,
+            nqp::if(
+              $!todo.fully-reified,
+              ($!todo := nqp::null),
+              self.throw-iterator-cannot-be-lazy('.sort')
+            )
+          )
+        );
+    }
+
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     multi method sort(List:D: --> Seq:D) {
-        nqp::stmts(
-          nqp::if(
-            nqp::isconcrete($!todo),
-            nqp::stmts(
-              $!todo.reify-until-lazy,
-              nqp::if(
-                $!todo.fully-reified,
-                ($!todo := nqp::null),
-                self.throw-iterator-cannot-be-lazy('.sort')
-              )
-            )
-          ),
-          Seq.new(
-            nqp::if(
-              nqp::isconcrete($!reified),
-              Rakudo::Iterator.ReifiedList(
-                Rakudo::Sorting.MERGESORT-REIFIED-LIST(
-                  nqp::p6bindattrinvres(
-                    nqp::create(List),List,'$!reified',
-                    nqp::clone(nqp::getattr(self,List,'$!reified'))
-                  )
-                )
-              ),
-              Rakudo::Iterator.Empty
-            )
-          )
-        )
+        self!reify-for-sort;
+
+        Seq.new:
+          nqp::isconcrete($!reified) && nqp::elems($!reified)
+            ?? Rakudo::Iterator.ReifiedList(
+                 Rakudo::Sorting.MERGESORT-REIFIED-LIST(
+                   nqp::p6bindattrinvres(
+                     nqp::create(List),List,'$!reified', nqp::clone($!reified)
+                   )
+                 )
+               )
+            !! Rakudo::Iterator.Empty
     }
     multi method sort(List:D: &by --> Seq:D) {
-        nqp::stmts(
-          nqp::if(
-            nqp::isconcrete($!todo),
-            nqp::stmts(
-              $!todo.reify-until-lazy,
-              nqp::if(
-                $!todo.fully-reified,
-                ($!todo := nqp::null),
-                self.throw-iterator-cannot-be-lazy('.sort')
-              )
-            )
-          ),
-          Seq.new(
-            nqp::if(
-              nqp::isconcrete($!reified),
-              Rakudo::Iterator.ReifiedList(
-                nqp::if(
-                  nqp::eqaddr(&by,&infix:<cmp>),
-                  Rakudo::Sorting.MERGESORT-REIFIED-LIST(
-                    nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-                      nqp::clone(nqp::getattr(self,List,'$!reified')))
-                  ),
-                  nqp::if(
-                    &by.count < 2,
-                    Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-                      nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-                        nqp::getattr(self,List,'$!reified')),
-                      &by
-                    ),
-                    Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
-                      nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-                        nqp::clone(nqp::getattr(self,List,'$!reified'))),
-                      &by
-                    )
-                  )
-                )
-              ),
-              Rakudo::Iterator.Empty
-            )
-          )
-        )
+        nqp::eqaddr(&by,&infix:<cmp>)
+          ?? (return self.sort)
+          !! self!reify-for-sort;
+
+        Seq.new:
+          nqp::isconcrete($!reified) && nqp::elems($!reified)
+            ?? Rakudo::Iterator.ReifiedList(&by.arity < 2
+              ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
+                   nqp::p6bindattrinvres(
+                     nqp::create(List),List,'$!reified',
+                     nqp::getattr(self,List,'$!reified')
+                   ),
+                   &by
+                 )
+              !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(
+                   nqp::p6bindattrinvres(
+                     nqp::create(List),List,'$!reified',
+                     nqp::clone(nqp::getattr(self,List,'$!reified'))
+                   ),
+                   &by
+                 )
+               )
+            !! Rakudo::Iterator.Empty
     }
     multi method tail(List:D:) is raw {
         nqp::isconcrete($!todo)

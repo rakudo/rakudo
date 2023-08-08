@@ -173,6 +173,11 @@ proto sub infix:<coll>(  $, $, *% --> Order:D) {*}
 # integer value for comparison.
 augment class Any {
 
+    # Make sure given comparator has an arity of 2
+    method !comparator(&by) {
+        nqp::iseq_i(&by.arity,2) ?? &by !! { by($^a) cmp by($^b) }
+    }
+
     # Common logic for minpairs / maxpairs
     method !minmaxpairs(\order) {
         my $iter   := self.pairs.iterator;
@@ -234,11 +239,8 @@ augment class Any {
         nqp::defined($min) ?? $min !! Inf
     }
     multi method min(Any:D: &by) {
-        my &comparator := nqp::if(
-          nqp::iseq_i(&by.arity,2),
-          &by,
-          { &by($^a) cmp &by($^b) }
-        );
+        my &comparator := self!comparator(&by);
+
         nqp::if(
           (my $iter := self.iterator-and-first(".min", my $min)),
           nqp::until(
@@ -289,11 +291,7 @@ augment class Any {
         nqp::defined($max) ??  $max !! -Inf
     }
     multi method max(Any:D: &by) {
-        my &comparator := nqp::if(
-          nqp::iseq_i(&by.arity,2),
-          &by,
-          { &by($^a) cmp &by($^b) }
-        );
+        my &comparator := self!comparator(&by);
 
         nqp::if(
           (my $iter := self.iterator-and-first(".max", my $max)),

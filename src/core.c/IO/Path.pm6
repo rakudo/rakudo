@@ -704,16 +704,14 @@ my class IO::Path is Cool does IO {
     }
 
     method user(IO::Path:D:) {
-        my str $path = self.absolute;
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::dispatch("boot-syscall", "stat-uid", $stat)
           !! self!does-not-exist("user")
     }
 
     method group(IO::Path:D:) {
-        my str $path = self.absolute;
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::dispatch("boot-syscall", "stat-gid", $stat)
           !! self!does-not-exist("group")
@@ -779,120 +777,105 @@ my class IO::Path is Cool does IO {
         nqp::hllbool(Rakudo::Internals.FILETEST-E(self.absolute))
     }
     method d(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-dir", $stat))
           !! self!does-not-exist("d")
     }
 
     method f(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-reg", $stat))
           !! self!does-not-exist("f")
     }
 
     method s(IO::Path:D: --> Int:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::dispatch("boot-syscall", "stat-filesize", $stat)
           !! self!does-not-exist("s")
     }
 
     method l(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 1);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 1);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-link", $stat))
           !! self!does-not-exist("l")
     }
 
     method r(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-readable", $stat))
           !! self!does-not-exist("r")
     }
 
     method w(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-writable", $stat))
           !! self!does-not-exist("w")
     }
 
     method rw(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-readable", $stat) && nqp::dispatch("boot-syscall", "stat-is-writable", $stat))
           !! self!does-not-exist("rw")
     }
 
     method x(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-executable", $stat))
           !! self!does-not-exist("x")
     }
 
     method rwx(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::hllbool(nqp::dispatch("boot-syscall", "stat-is-readable", $stat) && nqp::dispatch("boot-syscall", "stat-is-writable", $stat) && nqp::dispatch("boot-syscall", "stat-is-executable", $stat))
           !! self!does-not-exist("rwx")
     }
 
     method z(IO::Path:D: --> Bool:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::dispatch("boot-syscall", "stat-filesize", $stat) == 0
           !! self!does-not-exist("z")
     }
 
     method created(IO::Path:D: --> Instant:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-create-time-num", $stat))
           !! self!does-not-exist("created")
     }
 
     method modified(IO::Path:D: --> Instant:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-modify-time-num", $stat))
           !! self!does-not-exist("modified")
     }
 
     method accessed(IO::Path:D: --> Instant:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-access-time-num", $stat))
           !! self!does-not-exist("accessed")
     }
 
     method changed(IO::Path:D: --> Instant:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-change-time-num", $stat))
           !! self!does-not-exist("changed")
     }
 
     method mode(IO::Path:D: --> IntStr:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         if nqp::dispatch("boot-syscall", "stat-exists", $stat) {  # sets $!os-path
             my Int $mode := nqp::bitand_i(nqp::dispatch("boot-syscall", "stat-mode", $stat), 0o7777);
             my str $str   = nqp::base_I($mode,8);
@@ -907,24 +890,21 @@ my class IO::Path is Cool does IO {
     }
 
     method inode(IO::Path:D: --> Int:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::dispatch("boot-syscall", "stat-inode", $stat)
           !! self!does-not-exist("inode")
     }
 
     method dev(IO::Path:D: --> Int:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::dispatch("boot-syscall", "stat-dev", $stat)
           !! self!does-not-exist("dev")
     }
 
     method devtype(IO::Path:D: --> Int:D) {
-        my str $path = self.absolute; # sets $!os-path
-        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s($path), 0);
+        my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-exists", $stat)
           ?? nqp::dispatch("boot-syscall", "stat-dev-type", $stat)
           !! self!does-not-exist("devtype")

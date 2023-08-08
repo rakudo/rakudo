@@ -254,6 +254,24 @@ augment class Any {
         nqp::defined($min) ?? $min !! Inf
     }
 
+    method !order-map(\order, &mapper) {
+        (nqp::elems(my $result := self!minmaxpairs(order))
+          ?? $result.map(&mapper)
+          !! $result
+        ).List
+    }
+
+    multi method min(Any:D: :$k!) {
+        $k ?? self!order-map(Order::Less, *.key) !! self.min
+    }
+    multi method min(Any:D: :$v!) {
+        $v ?? self!order-map(Order::Less, *.value) !! self.min
+    }
+    multi method min(Any:D: :$kv!) {
+        $kv ?? self!order-map(Order::Less, { |(.key, .value) }) !! self.min
+    }
+    multi method min(Any:D: :$p!) { $p ?? self.minpairs !! self.min }
+
     proto method max (|) is nodal {*}
     multi method max(Any:D:) {
         nqp::if(
@@ -291,6 +309,16 @@ augment class Any {
 
         nqp::defined($max) ?? $max !! -Inf
     }
+    multi method max(Any:D: :$k!) {
+        $k ?? self!order-map(Order::More, *.key) !! self.max
+    }
+    multi method max(Any:D: :$v!) {
+        $v ?? self!order-map(Order::More, *.value) !! self.max
+    }
+    multi method max(Any:D: :$kv!) {
+        $kv ?? self!order-map(Order::More, { |(.key, .value) }) !! self.max
+    }
+    multi method max(Any:D: :$p!) { $p ?? self.maxpairs !! self.max }
 
     method !minmax-range-init(
       $value, $mi is rw, $exmi is rw, $ma is rw, $exma is rw

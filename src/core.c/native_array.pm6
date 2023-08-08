@@ -575,7 +575,7 @@ my class array does Iterable does Positional {
                 ),
                 Range.new($min,$max)
               ),
-              Range.new(Inf,-Inf)
+              Range.Inf-Inf
             )
         }
         method iterator(strarray:D: --> PredictiveIterator:D) {
@@ -1198,7 +1198,7 @@ my class array does Iterable does Positional {
                 ),
                 Range.new($min,$max)
               ),
-              Range.new(Inf,-Inf)
+              Range.Inf-Inf
             )
         }
         method iterator(intarray:D: --> PredictiveIterator:D) {
@@ -1863,7 +1863,7 @@ my class array does Iterable does Positional {
                 ),
                 Range.new($min,$max)
               ),
-              Range.new(Inf,-Inf)
+              Range.Inf-Inf
             )
         }
         method iterator(uintarray:D: --> PredictiveIterator:D) {
@@ -2528,7 +2528,7 @@ my class array does Iterable does Positional {
                 ),
                 Range.new($min,$max)
               ),
-              Range.new(Inf,-Inf)
+              Range.Inf-Inf
             )
         }
         method iterator(numarray:D: --> PredictiveIterator:D) {

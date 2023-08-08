@@ -730,6 +730,10 @@ my class Range is Cool does Iterable does Positional {
     }
 }
 
+augment class Range {
+    method Inf-Inf() is implementation-detail { BEGIN Range.new(Inf, -Inf) }
+}
+
 proto sub infix:<..>($, $, *%) is pure {*}
 multi sub infix:<..>(Int:D $min, Int:D $max) {
     my $range := nqp::create(Range);

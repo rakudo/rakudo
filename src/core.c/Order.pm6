@@ -412,7 +412,7 @@ augment class Any {
 
         nqp::defined($min)
           ?? Range.new($min,$max,:$excludes-min,:$excludes-max)
-          !! Range.new(Inf,-Inf)
+          !! Range.Inf-Inf
     }
 
     multi method minmax(Any:D: &by) {
@@ -462,7 +462,7 @@ augment class Any {
 
         nqp::defined($min)
           ?? Range.new($min,$max,:$excludes-min,:$excludes-max)
-          !! Range.new(Inf,-Inf)
+          !! Range.Inf-Inf
     }
 }
 

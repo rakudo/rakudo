@@ -174,12 +174,13 @@ proto sub infix:<coll>(  $, $, *% --> Order:D) {*}
 augment class Any {
 
     # Make sure given comparator has an arity of 2
-    method !comparator(&by) {
+    my sub aritize22(&by) {
         nqp::iseq_i(&by.arity,2) ?? &by !! { by($^a) cmp by($^b) }
     }
 
     # Common logic for minpairs / maxpairs
-    method !minmaxpairs(\order) {
+    method !minmaxpairs(\order, &by) {
+        my &comparator := aritize22(&by);
         my $iter   := self.pairs.iterator;
         my $result := nqp::create(IterationBuffer);
 
@@ -198,7 +199,10 @@ augment class Any {
               nqp::if(
                 nqp::isconcrete(my $value := $pair.value),
                 nqp::if(
-                  nqp::eqaddr((my $cmp-result := $value cmp $target),order),
+                  nqp::eqaddr(
+                    (my $cmp-result := comparator($value,$target)),
+                    order
+                  ),
                   nqp::stmts(                       # new best
                     nqp::push(nqp::setelems($result,0),$pair),
                     nqp::bind($target,$value)
@@ -217,10 +221,14 @@ augment class Any {
     }
 
     proto method minpairs(|) {*}
-    multi method minpairs(Any:D:) { self!minmaxpairs(Order::Less).List }
+    multi method minpairs(Any:D: &by = &infix:<cmp>) {
+        self!minmaxpairs(Order::Less, &by).List
+    }
 
     proto method maxpairs(|) {*}
-    multi method maxpairs(Any:D:) { self!minmaxpairs(Order::More).List }
+    multi method maxpairs(Any:D: &by = &infix:<cmp>) {
+        self!minmaxpairs(Order::More, &by).List
+    }
 
     proto method min (|) is nodal {*}
     multi method min(Any:D:) {
@@ -239,7 +247,7 @@ augment class Any {
         nqp::defined($min) ?? $min !! Inf
     }
     multi method min(Any:D: &by) {
-        my &comparator := self!comparator(&by);
+        my &comparator := aritize22(&by);
 
         nqp::if(
           (my $iter := self.iterator-and-first(".min", my $min)),
@@ -256,23 +264,27 @@ augment class Any {
         nqp::defined($min) ?? $min !! Inf
     }
 
-    method !order-map(\order, &mapper) {
-        (nqp::elems(my $result := self!minmaxpairs(order))
+    method !order-map(\order, &by, &mapper) {
+        (nqp::elems(my $result := self!minmaxpairs(order, &by))
           ?? $result.map(&mapper)
           !! $result
         ).List
     }
 
-    multi method min(Any:D: :$k!) {
-        $k ?? self!order-map(Order::Less, *.key) !! self.min
+    multi method min(Any:D: &by = &infix:<cmp>, :$k!) {
+        $k ?? self!order-map(Order::Less, &by, *.key) !! self.min
     }
-    multi method min(Any:D: :$v!) {
-        $v ?? self!order-map(Order::Less, *.value) !! self.min
+    multi method min(Any:D: &by = &infix:<cmp>, :$v!) {
+        $v ?? self!order-map(Order::Less, &by, *.value) !! self.min
     }
-    multi method min(Any:D: :$kv!) {
-        $kv ?? self!order-map(Order::Less, { |(.key, .value) }) !! self.min
+    multi method min(Any:D: &by = &infix:<cmp>, :$kv!) {
+        $kv
+          ?? self!order-map(Order::Less, &by, { |(.key, .value) })
+          !! self.min
     }
-    multi method min(Any:D: :$p!) { $p ?? self.minpairs !! self.min }
+    multi method min(Any:D: &by = &infix:<cmp>, :$p!) {
+        $p ?? self.minpairs(&by) !! self.min(&by)
+    }
 
     proto method max (|) is nodal {*}
     multi method max(Any:D:) {
@@ -291,7 +303,7 @@ augment class Any {
         nqp::defined($max) ??  $max !! -Inf
     }
     multi method max(Any:D: &by) {
-        my &comparator := self!comparator(&by);
+        my &comparator := aritize22(&by);
 
         nqp::if(
           (my $iter := self.iterator-and-first(".max", my $max)),
@@ -307,16 +319,18 @@ augment class Any {
 
         nqp::defined($max) ?? $max !! -Inf
     }
-    multi method max(Any:D: :$k!) {
-        $k ?? self!order-map(Order::More, *.key) !! self.max
+    multi method max(Any:D: &by = &infix:<cmp>, :$k!) {
+        $k ?? self!order-map(Order::More, &by, *.key) !! self.max
     }
-    multi method max(Any:D: :$v!) {
-        $v ?? self!order-map(Order::More, *.value) !! self.max
+    multi method max(Any:D: &by = &infix:<cmp>, :$v!) {
+        $v ?? self!order-map(Order::More, &by, *.value) !! self.max
     }
-    multi method max(Any:D: :$kv!) {
-        $kv ?? self!order-map(Order::More, { |(.key, .value) }) !! self.max
+    multi method max(Any:D: &by = &infix:<cmp>, :$kv!) {
+        $kv ?? self!order-map(Order::More, &by, { |(.key, .value) }) !! self.max
     }
-    multi method max(Any:D: :$p!) { $p ?? self.maxpairs !! self.max }
+    multi method max(Any:D: &by = &infix:<cmp>, :$p!) {
+        $p ?? self.maxpairs(&by) !! self.max(&by)
+    }
 
     method !minmax-range-init(
       $value, $mi is rw, $exmi is rw, $ma is rw, $exma is rw
@@ -417,9 +431,7 @@ augment class Any {
         nqp::if(
           (my $iter := self.iterator-and-first(".minmax",my $pulled)),
           nqp::stmts(
-            (my &comparator = nqp::if(
-              nqp::iseq_i(&by.arity,2),&by,{ &by($^a) cmp &by($^b) })
-            ),
+            (my &comparator = aritize22(&by)),
             nqp::if(
               nqp::istype($pulled,Range),
               self!minmax-range-init($pulled,

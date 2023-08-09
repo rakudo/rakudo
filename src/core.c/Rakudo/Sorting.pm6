@@ -1,13 +1,5 @@
 my class Rakudo::Sorting {
 
-    # Return new IterationBuffer with the two given values
-    sub IB2(Mu \one,Mu \two --> IterationBuffer) {
-        my $buf := nqp::create(IterationBuffer);
-        nqp::bindpos($buf,0,one);
-        nqp::bindpos($buf,1,two);
-        $buf
-    }
-
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.
     method MERGESORT-REIFIED-LIST(\list) {
@@ -81,17 +73,20 @@ my class Rakudo::Sorting {
 
                 ($width = nqp::add_i($width,$width))
               )
-            ),
-            nqp::p6bindattrinvres(list,List,'$!reified',$A)
+            )
           ),
+
+          # N <= 2
           nqp::if(
-            nqp::islt_i($n,2)
-              || nqp::isle_i(nqp::atpos($A,0) cmp nqp::atpos($A,1),0),
-            list,  # nothing to be done, we already have the result
-            nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
-              IB2(nqp::atpos($A,1),nqp::atpos($A,0)))
+            nqp::iseq_i($n,2) && nqp::eqaddr(
+              nqp::atpos($A,0) cmp nqp::atpos($A,1),
+              Order::More
+            ),
+            nqp::push($A,nqp::shift($A))  # wrong order, so swap
           )
-        )
+        );
+
+        nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 
     # Takes the HLL List to be sorted *in place* using a comparator
@@ -177,17 +172,20 @@ my class Rakudo::Sorting {
 
                 ($width = nqp::add_i($width,$width))
               )
-            ),
-            nqp::p6bindattrinvres(list,List,'$!reified',$A)
+            )
           ),
+
+          # N <= 2
           nqp::if(
-            nqp::islt_i($n,2)
-              || nqp::isle_i(comparator(nqp::atpos($A,0),nqp::atpos($A,1)),0),
-            list,  # nothing to be done, we already have the result
-            nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
-              IB2(nqp::atpos($A,1),nqp::atpos($A,0)))
+            nqp::iseq_i($n,2) && nqp::isgt_i(
+              comparator(nqp::atpos($A,0),nqp::atpos($A,1)),
+              0
+            ),
+            nqp::push($A,nqp::shift($A))  # wrong order, so swap
           )
-        )
+        );
+
+        nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 
     # Takes the HLL List to be sorted *in place* using the comparator
@@ -263,21 +261,24 @@ my class Rakudo::Sorting {
 
                 ($width = nqp::add_i($width,$width))
               )
-            ),
-            nqp::p6bindattrinvres(list,List,'$!reified',$A)
+            )
           ),
+
+          # N <= 2
           nqp::if(
-            nqp::islt_i($n,2)
-              || nqp::isle_i(comparator(nqp::atpos($A,0),nqp::atpos($A,1)),0),
-            list,  # nothing to be done, we already have the result
-            nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
-              IB2(nqp::atpos($A,1),nqp::atpos($A,0)))
+            nqp::iseq_i($n,2) && nqp::eqaddr(
+              comparator(nqp::atpos($A,0),nqp::atpos($A,1)),
+              Order::More
+            ),
+            nqp::push($A,nqp::shift($A))  # wrong order, so swap
           )
-        )
+        );
+
+        nqp::p6bindattrinvres(list,List,'$!reified',$A)
     }
 
     # Takes the HLL List to be sorted *in place* using the mapper
-    method MERGESORT-REIFIED-LIST-AS(\list,&mapper) {
+    method MERGESORT-REIFIED-LIST-AS(\list, &mapper) {
         nqp::if(
           nqp::isgt_i((my int $n = nqp::elems(
             my $O := nqp::getattr(list,List,'$!reified')    # Original
@@ -363,19 +364,20 @@ my class Rakudo::Sorting {
               nqp::islt_i(($s = nqp::add_i($s,1)),$n),
               nqp::bindpos($S,$s,nqp::atpos($O,nqp::atpos_i($A,$s)))
             ),
-            nqp::p6bindattrinvres(list,List,'$!reified',$S)
+            nqp::bindattr(list,List,'$!reified',$S)
           ),
 
-          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-            nqp::if(
-              nqp::islt_i($n,2)
-                || nqp::isle_i(
-                    mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),0),
-              $O,  # nothing to be done, we already have the result
-              IB2(nqp::atpos($O,1),nqp::atpos($O,0))  # need to swap
-            )
+          # N <= 2
+          nqp::if(
+            nqp::iseq_i($n,2) && nqp::eqaddr(
+              mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),
+              Order::More
+            ),
+            nqp::push($O,nqp::shift($O))  # wrong order, so swap
           )
-        )
+        );
+
+        list   # we did changes in place
     }
 #- start of generated part of sorting strarray logic --------------------------
 #- Generated on 2022-02-17T16:35:04+01:00 by ./tools/build/makeNATIVE_SORTING.raku

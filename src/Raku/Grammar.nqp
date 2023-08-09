@@ -1,5 +1,4 @@
 use NQPP6QRegex;
-use NQPP5QRegex;
 use Raku::Actions;
 
 my role startstops[$start, $stop1, $stop2] {
@@ -576,7 +575,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.define_slang('MAIN',    self.WHAT,            self.actions);
         self.define_slang('Quote',   Raku::QGrammar,       Raku::QActions);
         self.define_slang('Regex',   Raku::RegexGrammar,   Raku::RegexActions);
-        self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
 
         # we default to strict!
         self.set_pragma('strict',1);
@@ -2683,7 +2681,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           '{'
           [
 #          | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-          | <nibble(self.quote-lang(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), '{', '}'))>
+          | <nibble(self.quote-lang(self.slang_grammar('Regex'), '{', '}'))>
           ]
           '}'<!RESTRICTED><?ENDSTMT>
           <.leave-block-scope>
@@ -2942,7 +2940,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*INTERPOLATE := 1;
         {} <.qok($/)>
         <rx-adverbs>
-        <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
+        <quibble(self.slang_grammar('Regex'))>
         <!old-rx-modifiers>
     }
     token quote:sym<m> {
@@ -2953,7 +2951,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx-adverbs>
-        <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
+        <quibble(self.slang_grammar('Regex'))>
         <!old-rx-modifiers>
     }
 
@@ -2965,7 +2963,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>
+        <sibble(self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4414,29 +4412,5 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         :my $*IN_REGEX_ASSERTION := 1;
         <!RESTRICTED>
         <arglist=.LANG('MAIN','arglist')>
-    }
-}
-
-#-------------------------------------------------------------------------------
-# Grammar to parse PCRE like regexes
-
-grammar Raku::P5RegexGrammar is QRegex::P5Regex::Grammar does Raku::Common {
-    token rxstopper { <stopper> }
-
-    token p5metachar:sym<(?{ })> {
-        '(?' <?[{]> <codeblock> ')'
-    }
-
-    token p5metachar:sym<(??{ })> {
-        '(??' <?[{]> <codeblock> ')'
-    }
-
-    token p5metachar:sym<var> {
-        <?[$]> <var=.LANG('MAIN', 'variable')>
-    }
-
-    token codeblock {
-        :my $*ESCAPEBLOCK := 1;
-        <block=.LANG('MAIN','block')>
     }
 }

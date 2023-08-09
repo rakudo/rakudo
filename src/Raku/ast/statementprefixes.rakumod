@@ -345,6 +345,27 @@ class RakuAST::StatementPrefix::Blorst
     }
 }
 
+# The `once` statement prefix.
+class RakuAST::StatementPrefix::Once
+  is RakuAST::StatementPrefix::Blorst
+{
+    method type() { "once" }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $sym := QAST::Node.unique('once_');
+        QAST::Op.new(:op<decont>,
+          QAST::Op.new(:op<if>,
+            QAST::Op.new(:op<p6stateinit>),
+            QAST::Op.new(:op<p6store>,
+              QAST::Var.new(:name($sym), :scope<lexical>),
+              QAST::Op.new(:op<call>, self.IMPL-CLOSURE-QAST($context))
+            ),
+            QAST::Var.new(:name($sym), :scope<lexical>)
+          )
+        )
+    }
+}
+
 # The `start` statement prefix.
 class RakuAST::StatementPrefix::Start
   is RakuAST::StatementPrefix::Blorst

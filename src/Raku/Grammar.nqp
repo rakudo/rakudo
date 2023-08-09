@@ -1128,6 +1128,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<do>      { <sym><.kok> <blorst> }
     token statement-prefix:sym<eager>   { <sym><.kok> <blorst> }
     token statement-prefix:sym<gather>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<once>    { <sym><.kok> <blorst> }
     token statement-prefix:sym<quietly> { <sym><.kok> <blorst> }
     token statement-prefix:sym<start>   { <sym><.kok> <blorst> }
     token statement-prefix:sym<try>     { <sym><.kok> <blorst> }

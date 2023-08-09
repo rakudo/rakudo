@@ -93,6 +93,14 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
     PROCESS::<$HOME> := $HOME # bind container so Nil default is kept
 }
 
+Rakudo::Internals.REGISTER-DYNAMIC: '$*WARNINGS', {
+    PROCESS::<$WARNINGS> := (my $what := %*ENV<RAKU_WARNINGS>)
+      ?? nqp::istype((my $lookup := ::("CX::Warn::$what.tc()")),Failure)
+        ?? $lookup.throw
+        !! $lookup
+      !! CX::Warn;
+}
+
 {
     sub fetch($what) {
         once if !Rakudo::Internals.IS-WIN && try { qx/LC_MESSAGES=POSIX id/ } -> $id {

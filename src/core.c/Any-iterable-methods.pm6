@@ -2333,8 +2333,8 @@ multi sub infix:<min>(num $a, num $b) {
 multi sub infix:<min>(+args is raw) { args.min }
 
 proto sub min(|) is pure {*}
-multi sub min(+args, :&by!) { args.min(&by) }
-multi sub min(+args)        { args.min      }
+multi sub min(+args, :&by!, *%_) { args.min(&by, |%_) }
+multi sub min(+args, *%_)        { args.min(|%_)      }
 
 proto sub infix:<max>(|) is pure {*}
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
@@ -2355,8 +2355,8 @@ multi sub infix:<max>(num $a, num $b) {
 multi sub infix:<max>(+args) { args.max }
 
 proto sub max(|) is pure {*}
-multi sub max(+args, :&by!) { args.max(&by) }
-multi sub max(+args)        { args.max }
+multi sub max(+args, :&by!, *%_) { args.max(&by, |%_) }
+multi sub max(+args, *%_)        { args.max(|%_)      }
 
 proto sub infix:<minmax>(|) is pure {*}
 multi sub infix:<minmax>(+args) { args.minmax }

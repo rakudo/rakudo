@@ -1382,7 +1382,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-INDICES(
                      self!deep-clone, &by // &[cmp]
                    )
-              !! Empty
+              !! ()
         }
 
         # no keys requested

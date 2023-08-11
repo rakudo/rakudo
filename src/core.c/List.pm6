@@ -1551,7 +1551,7 @@ multi flat(**@list is raw) { @list.flat }
 multi flat(Iterable \a)    {     a.flat }
 
 proto sub infix:<xx>(Mu $?, $?, *%) {*}
-multi sub infix:<xx>() { "No zero-arg meaning for infix:<xx>".Failure }
+multi sub infix:<xx>() { "infix:<xx>".no-zero-arg }
 multi sub infix:<xx>(Mu \x) { x }
 multi sub infix:<xx>(&x, Num:D() $n) {
     infix:<xx>(&x, $n == Inf ?? Whatever !! $n.Int);

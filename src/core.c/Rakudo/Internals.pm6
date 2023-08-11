@@ -1696,7 +1696,7 @@ my class Rakudo::Internals {
         my $metaop_assign := nqp::create(Rakudo::Internals::IterationSet);
         for (
           &[+], -> Mu \a, Mu \b { a = a.DEFINITE ?? a + b !! +b },
-          &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! "No zero-arg meaning for infix:<%>".Failure },
+          &[%], -> Mu \a, Mu \b { a = a.DEFINITE ?? a % b !! "infix:<%>".no-zero-arg },
           &[-], -> Mu \a, Mu \b { a = a.DEFINITE ?? a - b !! -b },
           &[*], -> Mu \a, Mu \b { a = a.DEFINITE ?? a * b !! +b },
           &[~], -> Mu \a, Mu \b { a = a.DEFINITE ?? a ~ b !! ~b },

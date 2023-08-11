@@ -9,6 +9,7 @@ my class X::Str::Match::x { ... }
 my class X::Str::Subst::Adverb { ... }
 my class X::Str::Trans::IllegalKey { ... }
 my class X::Str::Trans::InvalidArg { ... }
+my class X::NoZeroArgMeaning { ... }
 my class X::Numeric::Confused { ... }
 my class X::Syntax::Number::RadixOutOfRange { ... }
 
@@ -3652,6 +3653,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::substr(self,nqp::chars(self) - nqp::findnotcclass(
           nqp::const::CCLASS_WHITESPACE,nqp::flip(self),0,nqp::chars(self)
         ))
+    }
+
+    method no-zero-arg(Str:D:
+    ) is implementation-detail is hidden-from-backtrace {
+        X::NoZeroArgMeaning.new(:name(self)).Failure
     }
 }
 

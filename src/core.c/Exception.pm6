@@ -2668,6 +2668,11 @@ my class X::ControlFlow::Return is X::ControlFlow {
     }
 }
 
+my class X::NoZeroArgMeaning is Exception {
+    has $.name;
+    method message() { "No zero-argument meaning for: $.name" }
+}
+
 my class X::Composition::NotComposable does X::Comp {
     has $.target-name;
     has $.composer;

@@ -1597,6 +1597,7 @@ multi sub infix:<xx>(Mu \x, Int:D $n) is pure {
 }
 
 proto sub reverse(|)   {*}
+multi sub reverse()    { "reverse()".no-zero-arg }
 multi sub reverse(@a)  { @a.reverse }
 multi sub reverse(+@a) { @a.reverse }
 

@@ -295,6 +295,7 @@ multi sub chown(*@filenames, :$uid, :$gid) {
 }
 
 proto sub unlink(|) {*}
+multi sub unlink() { "unlink()".no-zero-arg }
 multi sub unlink(*@filenames) {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.unlink }
@@ -302,6 +303,7 @@ multi sub unlink(*@filenames) {
 }
 
 proto sub rmdir(|) {*}
+multi sub rmdir() { "rmdir()".no-zero-arg }
 multi sub rmdir(*@filenames) {
     my @ok;
     for @filenames -> $file { @ok.push($file) if $file.IO.rmdir }

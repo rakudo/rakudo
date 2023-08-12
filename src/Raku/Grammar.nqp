@@ -2023,11 +2023,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             ]?
         || [ \\ <?before '('> ]? <args(1)>
            {
+                my $name := ~$<longname>;
                 if !$<args><invocant> {
-                    my $name := ~$<longname>;
                     if $*BORG<block> {
                         unless $*BORG<name> {
                             $*BORG<name> := $*BORG<name> // $name;
+                        }
+                    }
+                }
+                unless $*LANG.pragma('p5isms') {
+                    if $name eq 'say' || $name eq 'put' || $name eq 'print' {
+                        my $al := $<args><arglist>;
+                        my int $ok := 0;
+                        $ok := 1 unless $al<EXPR> eq '';
+                        $ok := 1 if $<args><semiarglist>;
+                        unless $ok {
+                            $<longname>.sorryobs("bare \"$name\"", ".$name if to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
                         }
                     }
                 }

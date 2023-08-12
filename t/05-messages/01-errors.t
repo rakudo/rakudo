@@ -232,7 +232,7 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
     throws-like q| class RT123078_3 { method !bar { }; method baz { } }; RT123078_3.new.bar |,
         X::Method::NotFound,
         message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_3'>>/, /\s+ Did \s+ you \s+ mean/),
-        suggestions => <Bag baz>,
+        suggestions => <Bag VAR baz>,
         'a private method of the same name as the public missing method is not suggested for out-of-class call';
     throws-like q| <a a b>.uniq |,
         X::Method::NotFound,

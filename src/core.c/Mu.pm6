@@ -30,9 +30,12 @@ my class Mu { # declared in BOOTSTRAP
         topic.THREAD: { SELF.ACCEPTS: $_ }
     }
 
-    method WHERE() {
-        nqp::p6box_i(nqp::where(self))
-    }
+    # Mostly for introspection purposes, and to allow foo."$bar"() syntax
+    method HOW(Mu \SELF:)   { nqp::how(SELF)   }
+    method VAR(Mu \SELF:)   { nqp::p6var(SELF) }
+    method WHAT(Mu \SELF:)  { nqp::what(SELF)  }
+    method WHERE(Mu \SELF:) { nqp::where(SELF) }
+    method WHO(Mu \SELF:)   { nqp::who(SELF)   }
 
     proto method WHICH(|) {*}
     multi method WHICH(Mu:U: --> ValueObjAt:D) {

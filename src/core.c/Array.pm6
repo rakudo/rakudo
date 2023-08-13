@@ -33,50 +33,13 @@ my class Array { # declared in BOOTSTRAP
         }
     }
 
-    my class ListReificationTarget {
-        has $!target;
-
-        method new(\target) {
-            nqp::p6bindattrinvres(nqp::create(self), self, '$!target', target);
-        }
-
-        method push(Mu \value --> Nil) {
-            nqp::push($!target,nqp::decont(value));
-        }
-
-        method append(IterationBuffer:D \buffer --> Nil) {
-            nqp::splice($!target,buffer,nqp::elems($!target),0)
-        }
-    }
-
     multi method clone(Array:D: --> Array:D) {
-        my \iter := self.iterator;
-        my \result := nqp::p6bindattrinvres(
-          nqp::create(self),
-          Array,
-          '$!descriptor',
-          nqp::isnull($!descriptor) ?? (nqp::null) !! nqp::clone($!descriptor)
-        );
-
-        nqp::if(
-          nqp::eqaddr(
-            IterationEnd,
-            iter.push-until-lazy:
-              my \target := ArrayReificationTarget.new(
-                (my \buffer := nqp::create(IterationBuffer)),
-                nqp::clone($!descriptor))),
-          nqp::p6bindattrinvres(result, List, '$!reified', buffer),
-          nqp::stmts(
-            nqp::bindattr(result, List, '$!reified', buffer),
-            nqp::bindattr((my \todo := nqp::create(List::Reifier)),
-              List::Reifier,'$!current-iter', iter),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reified', buffer),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reification-target', target),
-            nqp::p6bindattrinvres(result, List, '$!todo', todo)
-          )
-        )
+        # from-list seems apt until we need to copy information that rub does.
+        # This includes the state of initialization of variables or attributes!
+        nqp::stmts( # No sinkerino.
+          (my $copy := self.rub),
+          ($copy.STORE: self, :INITIALIZE),
+          $copy)
     }
 
     my class Todo does Iterator {
@@ -181,145 +144,82 @@ my class Array { # declared in BOOTSTRAP
                )
             !! Rakudo::Iterator.Empty            # nothing now or in the future
     }
-    method from-iterator(Array:U: Iterator $iter --> Array:D) {
-        nqp::if(
-          nqp::eqaddr(
-            $iter.push-until-lazy(
-              my \target := ArrayReificationTarget.new(
-                (my \buffer := nqp::create(IterationBuffer)),
-                BEGIN nqp::getcurhllsym('default_cont_spec')
-              )
-            ),
-            IterationEnd
-          ),
-          nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',buffer),
-          nqp::stmts(
-            nqp::bindattr((my \result := nqp::create(self)),
-              List,'$!reified',buffer),
-            nqp::bindattr((my \todo := nqp::create(List::Reifier)),
-              List::Reifier,'$!current-iter',$iter),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reified',buffer),
-            nqp::bindattr(todo,
-              List::Reifier,'$!reification-target',target),
-            nqp::p6bindattrinvres(result,List,'$!todo',todo)
-          )
-        )
+    method make-iterator(Array:D: Iterator $iter --> Array:D) {
+        my $todo := nqp::create(List::Reifier);
+        nqp::bindattr($todo,List::Reifier,'$!current-iter',$iter);
+        nqp::bindattr(self,List,'$!reified',
+          nqp::bindattr($todo,List::Reifier,'$!reified',
+            nqp::create(IterationBuffer)));
+        nqp::p6bindattrinvres(self,List,'$!todo',
+          nqp::p6bindattrinvres($todo,List::Reifier,'$!reification-target',
+            (self.reification-target)))
     }
-    method from-list(Array:U: Mu \list --> Array:D) {
-        my \params   := nqp::getattr(list,List,'$!reified');
-        my int $elems = list.elems;  # reifies
-        my int $i     = -1;
-        my \reified  := nqp::create(IterationBuffer);
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::bindpos(
-            reified, $i,
-            nqp::p6scalarwithvalue(
-              (BEGIN nqp::getcurhllsym('default_cont_spec')),
-              nqp::decont(nqp::atpos(params,$i))
-            )
-          )
-        );
-        nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',reified)
-    }
-
-    # handle non-straightforward shapes
-    method !difficult-shape(\shape --> Array:D) {
-        nqp::if(
-          Metamodel::EnumHOW.ACCEPTS(shape.HOW),
-          self.set-shape(shape.^elems),
-          nqp::stmts(
-            warn("Ignoring [{ shape.^name }] as shape specification, did you mean 'my { shape.^name } @foo' ?"),
-            nqp::create(self)
-          )
-        )
+    method from-list(Array:U: Iterable:D $list --> Array:D) {
+        # Lists like to be reified first in Array's case, so that we do.
+        nqp::create(self).make-iterable($list.imbue)
     }
 
     proto method new(|) {*}
-    multi method new(Array: :$shape! --> Array:D) {
-        nqp::isconcrete($shape)
-          ?? self.set-shape($shape)
-          !! self!difficult-shape($shape)
-    }
     multi method new(Array: --> Array:D) {
-        nqp::create(self)
+        self.rub
     }
-    multi method new(Array: \values, :$shape! --> Array:D) {
-        (nqp::isconcrete($shape)
-          ?? self.set-shape($shape)
-          !! self!difficult-shape($shape)
-        ).STORE(values)
+    multi method new(Array: :$shape! --> Array:D) {
+        self.dim($shape)
     }
-    multi method new(Array: \values --> Array:D) {
-        nqp::create(self).STORE(values)
+    multi method new(Array: Mu $values is raw --> Array:D) {
+        self.rub.STORE($values, :INITIALIZE)
     }
-    multi method new(Array: **@values is raw, :$shape! --> Array:D) {
-        (nqp::isconcrete($shape)
-          ?? self.set-shape($shape)
-          !! self!difficult-shape($shape)
-        ).STORE(@values)
+    multi method new(Array: Mu $values is raw, :$shape! --> Array:D) {
+        self.dim($shape).STORE($values, :INITIALIZE)
     }
     multi method new(Array: **@values is raw --> Array:D) {
-        nqp::create(self).STORE(@values)
+        self.rub.STORE(@values, :INITIALIZE)
+    }
+    multi method new(Array: **@values is raw, :$shape! --> Array:D) {
+        self.dim($shape).STORE(@values, :INITIALIZE)
     }
 
     proto method STORE(Array:D: |) {*}
-    multi method STORE(Array:D: Iterable:D \iterable --> Array:D) {
-        $!descriptor := $!descriptor.next
-            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
-        my \buffer = nqp::create(IterationBuffer);
+    multi method STORE(Array:D: Iterable:D $iterable is raw --> Array:D) {
         nqp::if(
-          nqp::iscont(iterable),
-          nqp::stmts(                          # only a single element
-            nqp::push(
-              buffer,
-              nqp::p6scalarwithvalue($!descriptor,iterable)
-            ),
-            nqp::bindattr(self,List,'$!todo',Mu)
-          ),
-          nqp::if(                             # a real iterator with N elems
-            nqp::eqaddr(
-              (my \iter = iterable.iterator).push-until-lazy(
-                (my \target = ArrayReificationTarget.new(
-                  buffer,nqp::decont($!descriptor)
-                ))
-              ),
-              IterationEnd
-            ),
-            nqp::bindattr(self,List,'$!todo',Mu),  # exhausted
-            nqp::stmts(                            # still left to do
-              nqp::bindattr(self,List,'$!todo',
-                my \todo = nqp::create(List::Reifier)),
-              nqp::bindattr(todo,List::Reifier,'$!reified',buffer),
-              nqp::bindattr(todo,List::Reifier,'$!current-iter',iter),
-              nqp::bindattr(todo,List::Reifier,'$!reification-target',target),
-            )
-          )
-        );
-        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+          nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute),
+          ($!descriptor := $!descriptor.next));
+        nqp::iscont($iterable) ?? (self.make-itemized: $iterable) !! (self.make-iterable: $iterable)
     }
-    multi method STORE(Array:D: QuantHash:D \qh --> Array:D) {
-        $!descriptor := $!descriptor.next
-            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
-        my \buffer = nqp::create(IterationBuffer);
-        nqp::iscont(qh)
-          ?? nqp::push(buffer,nqp::p6scalarwithvalue($!descriptor,qh))
-          !! qh.iterator.push-all(
-               ArrayReificationTarget.new(buffer,nqp::decont($!descriptor))
-             );
-        nqp::bindattr(self,List,'$!todo',Mu);  # exhausted
-        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+    multi method STORE(Array:D: Iterator:D $iterator is raw --> Array:D) {
+        nqp::if(
+          nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute),
+          ($!descriptor := $!descriptor.next));
+        nqp::iscont($iterator) ?? (self.make-itemized: $iterator) !! (self.make-iterator: $iterator)
     }
-    multi method STORE(Array:D: Mu \item --> Array:D) {
-        $!descriptor := $!descriptor.next
-            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
+    multi method STORE(Array:D: Mu $item is raw --> Array:D) {
+        nqp::if(
+          nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute),
+          ($!descriptor := $!descriptor.next));
+        self.make-itemized: $item
+    }
+
+    method make-itemized(Array:D: Mu $item is raw --> Array:D) {
         nqp::push(
-          (my \buffer = nqp::create(IterationBuffer)),
-          nqp::p6scalarwithvalue($!descriptor, item)
-        );
-        nqp::bindattr(self,List,'$!todo',Mu);
-        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
+          (my $buffer := nqp::create(IterationBuffer)),
+          nqp::p6scalarwithvalue($!descriptor,$item));
+        nqp::bindattr(self,List,'$!todo',nqp::null());
+        nqp::p6bindattrinvres(self,List,'$!reified',$buffer)
+    }
+
+    method make-iterable(Array:D: Mu $iterable --> Array:D) {
+        my $source := $iterable.iterator;
+        my $buffer := nqp::create(IterationBuffer);
+        my $target := ArrayReificationTarget.new: $buffer, $!descriptor;
+        nqp::bindattr(self,List,'$!todo',nqp::if(
+          nqp::eqaddr(($source.push-until-lazy: $target),IterationEnd),
+          nqp::null(),
+          nqp::stmts(
+            (my $todo := nqp::create(List::Reifier)),
+            nqp::bindattr($todo,List::Reifier,'$!current-iter',$source),
+            nqp::bindattr($todo,List::Reifier,'$!reified',$buffer),
+            nqp::p6bindattrinvres($todo,List::Reifier,'$!reification-target',$target))));
+        nqp::p6bindattrinvres(self,List,'$!reified',$buffer)
     }
 
     method reification-target(Array:D: --> ArrayReificationTarget:D) {
@@ -1384,51 +1284,6 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method WHICH(Array:D: --> ObjAt:D) { self.Mu::WHICH }
 
-    my constant \dim2role =
-      nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
-
-    proto method set-shape(|) is implementation-detail {*}
-    multi method set-shape(Whatever) is raw {
-        nqp::create(self.WHAT)
-    }
-    multi method set-shape(\shape) is raw {
-        self.set-shape(shape.List)
-    }
-    multi method set-shape(List:D \shape) is raw {
-        my int $dims = shape.elems;  # reifies
-        my $reified := nqp::getattr(nqp::decont(shape),List,'$!reified');
-
-        # just a list with Whatever, so no shape
-        if nqp::iseq_i($dims,1)
-          && nqp::istype(nqp::atpos($reified,0),Whatever) {
-            nqp::create(self.WHAT)
-        }
-
-        # we haz dimensions
-        elsif $dims {
-            my $what := self.WHAT.^mixin(
-              nqp::atpos(dim2role,nqp::isle_i($dims,3) && $dims)
-            );
-            $what.^set_name(self.^name)           # correct name if needed
-              if nqp::isne_s($what.^name,self.^name);
-
-            my $array := nqp::p6bindattrinvres(
-              nqp::create($what),List,'$!reified',
-              Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,nqp::knowhow,Mu)
-            );
-            nqp::p6bindattrinvres($array,$what,'$!shape',nqp::decont(shape))
-        }
-
-        # flatland
-        else {
-            X::NotEnoughDimensions.new(
-              operation         => 'create',
-              got-dimensions    => 0,
-              needed-dimensions => '',
-            ).throw
-        }
-    }
-
     my class LTHandle {
         has Mu $!reified;
         has Mu $!todo;
@@ -1454,12 +1309,102 @@ my class Array { # declared in BOOTSTRAP
         if nqp::isconcrete(of) {
             die "Can not parameterize {arr.^name} with {of.raku}"
         }
+        elsif nqp::eqaddr(of,Mu) {
+            arr
+        }
         else {
             my $what := arr.^mixin(Array::Typed[of]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name("{arr.^name}[{of.^name}]");
             $what
         }
+    }
+
+    method rub(Array: --> Array:D) {
+        nqp::if(
+          nqp::isconcrete(self),
+          nqp::p6bindattrinvres(nqp::create(self),$?CLASS,'$!descriptor',$!descriptor),
+          nqp::create(self))
+    }
+
+    my knowhow UniversalArray {
+        sub DIMENSION(Mu, Any $args) is raw {
+            my constant \dim2role = nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
+
+            # Calculate new meta-object (probably hitting caches in most cases).
+            # We need to take the base of any mixin to prevent overlapping of
+            # Shaped roles. This could perhaps be taken advantage of to enforce
+            # an order on our own mixins, but also means user mixins get erased.
+            my \H := nqp::how_nd((my \T := $args.AT-POS: 0));
+            my int $d = nqp::sub_i(($args.elems),1);
+            my $base := H.mixin_base(T).^parameterize(T.of);
+            my $type := $base.^mixin: nqp::atpos(dim2role,(nqp::isle_i($d,3) && $d));
+            $type.^set_name: $base.^name;
+
+            # We're caching a definitive initial instance to clone sparingly.
+            $type.rub
+        }
+
+        BEGIN Metamodel::Primitives.set_parameterizer: $?PACKAGE, &DIMENSION;
+    }
+
+    proto method dim(Array: $ --> Array:D) {*}
+    multi method dim(Array: Whatever) {
+        self.rub
+    }
+    multi method dim(Array: List:D $shape is copy) {
+        my $reified := nqp::getattr(($shape := $shape.eager),List,'$!reified');
+        my int $dims = nqp::isconcrete($reified) && nqp::elems($reified);
+
+        # Just a list with Whatever, so no shape.
+        if nqp::iseq_i($dims,1) && nqp::istype(nqp::atpos($reified,0),Whatever) {
+            self.rub
+        }
+        # We haz dimensions.
+        elsif nqp::isgt_i($dims,0) {
+            # Bind array storage for this shape to an instantiated template.
+            my $copy := nqp::clone(nqp::parameterizetype(
+              UniversalArray,
+              nqp::setelems(nqp::list(nqp::what_nd(self)),nqp::add_i($dims,1))));
+            nqp::bindattr($copy,nqp::what_nd($copy),'$!shape',$shape);
+            nqp::if(nqp::isconcrete(self),nqp::bindattr($copy,Array,'$!descriptor',$!descriptor));
+            nqp::p6bindattrinvres($copy,List,'$!reified',
+              (Rakudo::Internals.SHAPED-ARRAY-STORAGE: $shape, nqp::knowhow, Mu))
+        }
+        # We haz lotsa dimensions!
+        elsif $dims {
+            X::TooManyDimensions.new(
+                operation         => 'create',
+                got-dimensions    => (my uint $ = $dims),
+                needed-dimensions => 'positively signable',
+            ).throw;
+        }
+        # Flatland.
+        else {
+            X::NotEnoughDimensions.new(
+                operation         => 'create',
+                got-dimensions    => 0,
+                needed-dimensions => 'positively signable',
+            ).throw;
+        }
+    }
+    multi method dim(Array: Mu:D $shape) {
+        # TODO: Should be combined with List:D as List:D(Mu) once performant.
+        self.dim: $shape.List
+    }
+    multi method dim(Array: Mu:U $shape) {
+        nqp::if(
+          nqp::istype_nd($shape.HOW,Metamodel::EnumHOW),
+          (self.dim: $shape.^elems.List),
+          nqp::stmts(
+            (my str $what = $shape.^name),
+            (warn "Ignoring [$what] as shape specification. Did you mean 'my $what @'?"),
+            (self.rub)))
+    }
+
+    proto method set-shape(|) is implementation-detail {*}
+    multi method set-shape(Array: |args) is raw {
+        self.dim: |args
     }
 }
 

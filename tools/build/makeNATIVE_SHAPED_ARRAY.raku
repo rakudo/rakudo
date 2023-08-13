@@ -112,26 +112,7 @@ while @lines {
             )
         }
 
-        my class NATCPY-#type# does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_#postfix#($!list,$!indices,
-                  nqp::multidimref_#postfix#($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-#type#.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-#type# does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -145,9 +126,20 @@ while @lines {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-#type#.new(to,from).sink-all;
-            to
+
+        my class Copy:<#type#> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_#postfix#($!list,$!indices,
+                  nqp::atposnd_#postfix#($!from,$!indices))
+            }
         }
 
         my class ITERCPY-#type# does Rakudo::Iterator::ShapeBranch {
@@ -216,19 +208,27 @@ while @lines {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<#type#>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,#Type#),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<#type#>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -246,7 +246,10 @@ while @lines {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape

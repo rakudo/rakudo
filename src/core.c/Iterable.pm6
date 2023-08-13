@@ -20,6 +20,8 @@ my role Iterable {
 
     method flat(Iterable:D:) { Seq.new(Rakudo::Iterator.Flat(self.iterator)) }
 
+    method imbue(Iterable:D:) { nqp::create(List).make-iterable(self) }
+
     method lazy-if($flag) { $flag ?? self.lazy !! self }
 
     method lazy() {

@@ -3714,8 +3714,8 @@ BEGIN {
     #     has Mu $!reified;
     #     has Mu $!todo;
     List.HOW.add_parent(List, Cool);
-    List.HOW.add_attribute(List, storage_attr('$!reified', Mu, List, Mu));
-    List.HOW.add_attribute(List, storage_attr('$!todo', Mu, List, Mu));
+    List.HOW.add_attribute(List, scalar_attr('$!reified', Mu, List, :!auto_viv_container));
+    List.HOW.add_attribute(List, scalar_attr('$!todo', Mu, List, :!auto_viv_container));
     List.HOW.compose_repr(List);
 
     # class Slip is List {

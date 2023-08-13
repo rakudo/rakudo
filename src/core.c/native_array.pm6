@@ -4,29 +4,13 @@ my class X::TooManyDimensions { ... }
 my class X::TypeCheck::Assignment { ... }
 
 my class array does Iterable does Positional {
+    multi method new(array:)              { self.rub }
+    multi method new(array: Mu $v is raw) { self.rub.STORE($v) }
+    multi method new(array: **@v)         { self.rub.STORE(@v) }
 
-    multi method new(array:)      { self!create }
-    multi method new(array: @v)   { self!create.STORE(@v) }
-    multi method new(array: **@v) { self!create.STORE(@v) }
-
-    multi method new(array: :$shape!)       { self!create-ws($shape) }
-    multi method new(array: @v, :$shape!)   { self!create-ws($shape).STORE(@v) }
-    multi method new(array: **@v, :$shape!) { self!create-ws($shape).STORE(@v) }
-
-    method !create() {
-        nqp::isnull(nqp::typeparameterized(self))
-         ?? X::MustBeParametric.new(:type(self)).throw
-         !! nqp::create(self)
-    }
-    method !create-ws($shape) {
-        nqp::isnull(nqp::typeparameterized(self))
-          ?? X::MustBeParametric.new(:type(self)).throw
-          !! nqp::isconcrete($shape)
-            ?? self.set-shape($shape)
-            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
-              ?? self.set-shape($shape.^elems)
-              !! nqp::create(self)
-    }
+    multi method new(array: :$shape!)               { self.dim($shape) }
+    multi method new(array: Mu $v is raw, :$shape!) { self.dim($shape).STORE($v) }
+    multi method new(array: **@v, :$shape!)         { self.dim($shape).STORE(@v) }
 
     proto method STORE(array:D: |) {*}
     multi method STORE(array:D: *@values) { self.STORE(@values) }
@@ -2749,7 +2733,7 @@ my class array does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-10-28T05:59:19-03:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2810,26 +2794,7 @@ my class array does Iterable does Positional {
             )
         }
 
-        my class NATCPY-int does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_i($!list,$!indices,
-                  nqp::multidimref_i($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-int.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-int does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -2843,9 +2808,20 @@ my class array does Iterable does Positional {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-int.new(to,from).sink-all;
-            to
+
+        my class Copy:<int> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_i($!list,$!indices,
+                  nqp::atposnd_i($!from,$!indices))
+            }
         }
 
         my class ITERCPY-int does Rakudo::Iterator::ShapeBranch {
@@ -2914,19 +2890,27 @@ my class array does Iterable does Positional {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<int>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,Int),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<int>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -2944,7 +2928,10 @@ my class array does Iterable does Positional {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape
@@ -3252,7 +3239,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapeduintarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-10-28T05:59:19-03:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapeduintarray does shapedarray {
@@ -3313,26 +3300,7 @@ my class array does Iterable does Positional {
             )
         }
 
-        my class NATCPY-uint does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_u($!list,$!indices,
-                  nqp::multidimref_u($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-uint.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-uint does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -3346,9 +3314,20 @@ my class array does Iterable does Positional {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-uint.new(to,from).sink-all;
-            to
+
+        my class Copy:<uint> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_u($!list,$!indices,
+                  nqp::atposnd_u($!from,$!indices))
+            }
         }
 
         my class ITERCPY-uint does Rakudo::Iterator::ShapeBranch {
@@ -3417,19 +3396,27 @@ my class array does Iterable does Positional {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<uint>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,UInt),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<uint>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -3447,7 +3434,10 @@ my class array does Iterable does Positional {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape
@@ -3755,7 +3745,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapeduintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-10-28T05:59:19-03:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -3816,26 +3806,7 @@ my class array does Iterable does Positional {
             )
         }
 
-        my class NATCPY-num does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_n($!list,$!indices,
-                  nqp::multidimref_n($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-num.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-num does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -3849,9 +3820,20 @@ my class array does Iterable does Positional {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-num.new(to,from).sink-all;
-            to
+
+        my class Copy:<num> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_n($!list,$!indices,
+                  nqp::atposnd_n($!from,$!indices))
+            }
         }
 
         my class ITERCPY-num does Rakudo::Iterator::ShapeBranch {
@@ -3920,19 +3902,27 @@ my class array does Iterable does Positional {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<num>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,Num),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<num>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -3950,7 +3940,10 @@ my class array does Iterable does Positional {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape
@@ -4258,7 +4251,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2022-02-16T12:09:03+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-10-28T05:59:19-03:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -4319,26 +4312,7 @@ my class array does Iterable does Positional {
             )
         }
 
-        my class NATCPY-str does Rakudo::Iterator::ShapeLeaf {
-            has Mu $!from;
-            method !INIT(Mu \to, Mu \from) {
-                nqp::stmts(
-                  ($!from := from),
-                  self!SET-SELF(to)
-                )
-            }
-            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
-            method result(--> Nil) {
-                nqp::bindposnd_s($!list,$!indices,
-                  nqp::multidimref_s($!from,$!indices))
-            }
-        }
-        sub NATCPY(Mu \to, Mu \from) is raw {
-            NATCPY-str.new(to,from).sink-all;
-            to
-        }
-
-        my class OBJCPY-str does Rakudo::Iterator::ShapeLeaf {
+        my class Copy:<obj> does Rakudo::Iterator::ShapeLeaf {
             has Mu $!from;
             method !INIT(Mu \to, Mu \from) {
                 nqp::stmts(
@@ -4352,9 +4326,20 @@ my class array does Iterable does Positional {
                   nqp::atposnd($!from,$!indices))
             }
         }
-        sub OBJCPY(Mu \to, Mu \from) is raw {
-            OBJCPY-str.new(to,from).sink-all;
-            to
+
+        my class Copy:<str> does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_s($!list,$!indices,
+                  nqp::atposnd_s($!from,$!indices))
+            }
         }
 
         my class ITERCPY-str does Rakudo::Iterator::ShapeBranch {
@@ -4423,19 +4408,27 @@ my class array does Iterable does Positional {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            EQV_DIMENSIONS(self,from)
-              ?? NATCPY(self,from)
-              !! X::Assignment::ArrayShapeMismatch.new(
-                   source-shape => from.shape,
-                   target-shape => self.shape
-                 ).throw
+            nqp::if(
+              EQV_DIMENSIONS(self,from),
+              nqp::stmts(
+                Copy:<str>.new(self,from).sink-all,
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
               nqp::istype(from.of,Str),
               nqp::if(
                 EQV_DIMENSIONS(self,from),
-                NATCPY(self,from),
+                nqp::stmts(
+                  Copy:<str>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                   source-shape => from.shape,
                   target-shape => self.shape
@@ -4453,7 +4446,10 @@ my class array does Iterable does Positional {
               nqp::can(from,'shape'),
               nqp::if(
                 from.shape eqv self.shape,
-                OBJCPY(self,from),
+                nqp::stmts(
+                  Copy:<obj>.new(self,from).sink-all,
+                  self
+                ),
                 X::Assignment::ArrayShapeMismatch.new(
                     source-shape => from.shape,
                     target-shape => self.shape
@@ -4791,52 +4787,95 @@ my class array does Iterable does Positional {
         $what
     }
 
-    # poor man's 3x4 matrix
-    constant typedim2role := nqp::list(nqp::null,
-      nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
-      nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
-      nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray),
-      nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,
-      nqp::list(shapeduintarray,shaped1uintarray,shaped2uintarray,shaped3uintarray),
-    );
-
-    proto method set-shape(|) is implementation-detail {*}
-    multi method set-shape(Whatever) is raw {
-        nqp::create(self.WHAT)
+    method rub(array: --> array:D) {
+        # Despite an instance likely having its parameter, CREATE doesn't care.
+        nqp::ifnull(nqp::typeparameterized(self),(X::MustBeParametric.new(:type(self)).throw));
+        nqp::create(self)
     }
-    multi method set-shape(\shape) is raw {
-        self.set-shape(shape.List)
-    }
-    multi method set-shape(List:D \shape) is raw {
-        my int $dims = shape.elems;  # reifies
-        my $reified := nqp::getattr(nqp::decont(shape),List,'$!reified');
 
-        # just a list with Whatever, so no shape
-        if nqp::iseq_i($dims,1)
-          && nqp::istype(nqp::atpos($reified,0),Whatever) {
-            nqp::create(self.WHAT)
-        }
-        elsif $dims {
+    my knowhow UniversalArray {
+        sub DIMENSION(Mu, Any $args) is raw {
+            my constant typedim2role := nqp::list(nqp::null,
+              nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
+              nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
+              nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray),
+              nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,
+              nqp::list(shapeduintarray,shaped1uintarray,shaped2uintarray,shaped3uintarray));
+
             # Calculate new meta-object (probably hitting caches in most cases).
-            my \shaped-type = self.WHAT.^mixin(
-              nqp::atpos(
-                nqp::atpos(typedim2role,nqp::objprimspec(my \T = self.of)),
-                nqp::isle_i($dims,3) && $dims
-              )
-            );
-            shaped-type.^set_name(self.WHAT.^name)        # set name if needed
-              if nqp::isne_s(shaped-type.^name,self.WHAT.^name);
+            # We need to take the base of any mixin to prevent overlapping of
+            # Shaped roles. This could perhaps be taken advantage of to enforce
+            # an order on our own mixins, but also means user mixins get erased.
+            my \H := nqp::how_nd((my \T := $args.AT-POS: 0));
+            my int $d = nqp::sub_i(($args.elems),1);
+            my $base := H.mixin_base(T).^parameterize((my \E := T.of));
+            my $type := $base.^mixin: nqp::atpos(
+              nqp::atpos(typedim2role,nqp::objprimspec(E)),
+              (nqp::isle_i($d,3) && $d));
+            my $meta := nqp::how_nd($type);
+            $meta.set_name: $type, $base.^name;
 
-            # Allocate array storage for this shape, based on calculated type.
-            Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,shaped-type.HOW,T)
+            # We're caching a definitive initial HOW through which we can reify.
+            $meta
         }
+
+        BEGIN Metamodel::Primitives.set_parameterizer: $?PACKAGE, &DIMENSION;
+    }
+
+    proto method dim(array: $ --> array:D) {*}
+    multi method dim(array: Whatever) {
+        self.rub
+    }
+    multi method dim(array: List:D $shape is copy) {
+        my $reified := nqp::getattr(($shape := $shape.eager),List,'$!reified');
+        my int $dims = nqp::isconcrete($reified) && nqp::elems($reified);
+
+        # Just a list with Whatever, so no shape.
+        if nqp::iseq_i($dims,1) && nqp::istype(nqp::atpos($reified,0),Whatever) {
+            self.rub
+        }
+        # We haz dimensions.
+        elsif nqp::isgt_i($dims,0) {
+            # Allocate array storage for this shape based on the calculated HOW.
+            nqp::ifnull(nqp::typeparameterized(self),(X::MustBeParametric.new(:type(self)).throw));
+            my $meta := nqp::parameterizetype(
+              UniversalArray,
+              nqp::setelems(nqp::list(nqp::what_nd(self)),nqp::add_i($dims,1)));
+            Rakudo::Internals.SHAPED-ARRAY-STORAGE: $shape, $meta, self.of
+        }
+        # We haz lotsa dimensions!
+        elsif $dims {
+            X::TooManyDimensions.new(
+                operation         => 'create',
+                got-dimensions    => (my uint $ = $dims),
+                needed-dimensions => 'positively signable',
+            ).throw;
+        }
+        # Flatland.
         else {
             X::NotEnoughDimensions.new(
-              operation         => 'create',
-              got-dimensions    => $dims,
-              needed-dimensions => '',
-            ).throw
+                operation         => 'create',
+                got-dimensions    => 0,
+                needed-dimensions => 'positively signable',
+            ).throw;
         }
+    }
+    multi method dim(array: Mu:D $shape) {
+        # TODO: Should be combined with List:D as List:D(Mu) once performant.
+        self.dim: $shape.List
+    }
+    multi method dim(array: Mu:U $shape) {
+        # Unlike Array, don't warn. In order to wind up attempting to type the
+        # shape of a native array, you need the native type on @ to begin with.
+        nqp::if(
+          nqp::istype_nd($shape.HOW,Metamodel::EnumHOW),
+          (self.dim: $shape.^elems.List),
+          (self.rub))
+    }
+
+    proto method set-shape(|) is implementation-detail {*}
+    multi method set-shape(array: |args) is raw {
+        self.dim: |args
     }
 
     method BIND-POS(|) {

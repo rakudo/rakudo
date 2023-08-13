@@ -55,7 +55,8 @@ class RakuAST::Name
     }
 
     method is-empty() {
-        (!nqp::elems($!parts) || self.is-identifier && $!parts[0].name eq '') ?? True !! False
+        nqp::elems($!parts) == 0
+          || (nqp::elems($!parts) == 1 && $!parts[0].name eq '')
     }
 
     method is-simple() {
@@ -408,4 +409,6 @@ class RakuAST::Name::Part::Empty
     method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil, Bool :$global-fallback) {
         $stash-qast
     }
+
+    method name() { "" }
 }

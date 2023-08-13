@@ -1823,8 +1823,9 @@ class RakuAST::Methodish
     }
 
     method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if nqp::getattr(self, RakuAST::Routine, '$!package') {
-            nqp::getattr(self, RakuAST::Routine, '$!package').ATTACH-METHOD(self);
+        if nqp::getattr(self,RakuAST::Routine,'$!package') {
+            nqp::getattr(self,RakuAST::Routine,'$!package').ATTACH-METHOD(self)
+              unless self.scope eq 'our';
         }
         elsif self.scope eq 'has' {
             nqp::die('Did not find an attach target for method.');

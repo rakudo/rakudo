@@ -286,7 +286,7 @@ do {
                 say 'You may want to consider using rlwrap for simple line editor functionality';
             }
             elsif !Rakudo::Internals.IS-WIN and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
-                say 'You may want to `zef install Readline`, `zef install Linenoise`, or `zef install Terminal::LineEditor` or use rlwrap for a line editor';
+                say 'You may want to `zef install Terminal::LineEditor`, `zef install Linenoise`, or `zef install Readline`, or use rlwrap for a line editor';
             }
             say '';
 

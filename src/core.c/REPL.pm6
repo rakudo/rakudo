@@ -1,6 +1,32 @@
 class REPL { ... }
 
 do {
+    my $options := q:to/OPTIONS/;
+-------------------------------------------------------------
+edit     information on how to edit current or previous lines
+values   how to use previously calculated values
+issues   known issues with the REPL
+OPTIONS
+
+    my proto sub help(|) {*}
+    my multi sub help() {
+        say qq:to/HELP/;
+Enter the expression that you would like to have evaluated and press ENTER.
+
+The result will then be shown.  You can then enter another expression to
+have that evaluated by pressing ENTER.
+
+If the expression itself created output on screen, then the result will
+not be shown (as you have already seen it anyway).
+
+General overview of other help available in the REPL
+$options
+HELP
+    }
+    my multi sub help($fallback) {
+        say "help '$fallback' is not known.  Valid options are:\n$options";
+    }
+
     my sub sorted-set-insert(@values, $value) {
         my $low        = 0;
         my $high       = @values.end;
@@ -203,6 +229,9 @@ do {
         has $!need-more-input = {};
         has $!control-not-allowed = {};
 
+        # making sure that &help in the REPL is late bound
+        method help() is implementation-detail { &*HELP // &help }
+
         sub do-mixin($self, Str $module-name, $behavior, :@extra-modules,
                      Str :$fallback, Bool :$classlike) {
             my Bool $problem = False;
@@ -376,6 +405,19 @@ do {
 
                 when X::ControlFlow::Return {
                     return $!control-not-allowed;
+                }
+
+                when X::Undeclared::Symbols {
+                    if .unk_routines -> %unk_routines {
+                        if %unk_routines<help> && $code.words -> @words {
+                            if @words.shift eq 'help' {
+                                (REPL.help)(|@words);
+                                return;
+                            }
+                        }
+                    }
+                    exception = $_;
+                    return;
                 }
 
                 default {

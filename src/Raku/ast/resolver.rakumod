@@ -1,3 +1,4 @@
+# Base class for common resolver functionality
 class RakuAST::Resolver {
     # The setting.
     has Mu $.setting;
@@ -8,8 +9,8 @@ class RakuAST::Resolver {
     # Our current idea of the global symbol table.
     has Mu $!global;
 
-    # Current attachment target stacks (a hash keyed on the target name, where each value
-    # is a stack, where the top is the active target).
+    # Current attachment target stacks (a hash keyed on the target name,
+    # where each value is a stack, where the top is the active target).
     has Mu $!attach-targets;
 
     # Packages we're currently in.
@@ -24,10 +25,13 @@ class RakuAST::Resolver {
     # The current comp unit's EXPORT package.
     has Mu $!export-package;
 
+    # Create a shallow clone, but deep clone attach targets and packages
     method clone() {
         my $clone := nqp::clone(self);
-        nqp::bindattr($clone, RakuAST::Resolver, '$!attach-targets', nqp::clone($!attach-targets));
-        nqp::bindattr($clone, RakuAST::Resolver, '$!packages', nqp::clone($!packages));
+        nqp::bindattr($clone,RakuAST::Resolver,'$!attach-targets',
+          nqp::clone($!attach-targets));
+        nqp::bindattr($clone,RakuAST::Resolver,'$!packages',
+          nqp::clone($!packages));
         $clone
     }
 
@@ -49,43 +53,43 @@ class RakuAST::Resolver {
     method pop-attach-target(RakuAST::AttachTarget $target) {
         for $target.IMPL-UNWRAP-LIST($target.attach-target-names()) -> str $name {
             my @stack := $!attach-targets{$name};
-            unless nqp::pop(@stack) =:= $target {
-                nqp::die('Inconsistent attachment target stack for ' ~ $target.HOW.name($target));
+            unless nqp::eqaddr(nqp::pop(@stack),$target) {
+                nqp::die('Inconsistent attachment target stack for '
+                  ~ $target.HOW.name($target));
             }
         }
         Nil
     }
 
-    # Find an attachment target with the specified name.
+    # Find the current (most recently pushed) attachment target with the
+    # specified name, or return Nil if there is no target by the given name,
+    # or no targets left for the given name.
     method find-attach-target(str $name) {
         my @stack := $!attach-targets{$name};
-        if nqp::isconcrete(@stack) {
-            my int $n := nqp::elems(@stack);
-            $n > 0 ?? @stack[$n - 1] !! Nil
-        }
-        else {
-            Nil
-        }
+        nqp::isconcrete(@stack) && nqp::elems(@stack)
+          ?? @stack[nqp::elems(@stack) - 1]
+          !! Nil
     }
 
     # Set the global package when we're starting a fresh compilation unit.
     method set-global(Mu $global) {
-        nqp::die("This resolver's GLOBAL is already set") unless nqp::eqaddr($!global, Mu);
+        nqp::die("This resolver's GLOBAL is already set")
+          unless nqp::eqaddr($!global,Mu);
         nqp::bindattr(self, RakuAST::Resolver, '$!global', $global);
         Nil
     }
 
-    method get-global() {
-        $!global
-    }
+    method get-global() { $!global }
 
-    method set-export-package(Mu $export-package) {
-        nqp::die("This resolver's EXPORT is already set") unless nqp::eqaddr($!export-package, Mu);
-        nqp::bindattr(self, RakuAST::Resolver, '$!export-package', $export-package);
+    # Set the EXPORT package when we're starting a fresh compilation unit.
+    method set-export-package(Mu $package) {
+        nqp::die("This resolver's EXPORT is already set")
+          unless nqp::eqaddr($!export-package,Mu);
+        nqp::bindattr(self,RakuAST::Resolver,'$!export-package',$package);
         Nil
     }
 
-    # Push a package, at the point we enter it.
+    # Push a package, intended to be used at a point a new package is "entered"
     method push-package(RakuAST::Package $package) {
         nqp::push($!packages, $package);
         self.push-attach-target($package);
@@ -95,21 +99,21 @@ class RakuAST::Resolver {
     # Obtains the current package. This is not a RakuAST::Package node, but
     # rather the type object of the package we are currently in.
     method current-package() {
-        my int $n := nqp::elems($!packages);
-        if $n == 0 {
+        if nqp::elems($!packages) {
+            $!packages[nqp::elems($!packages) - 1].compile-time-value
+        }
+        else {
             my $current := $!outer;
-            while !nqp::eqaddr($current, $!setting) {
-                return nqp::atkey($current, '$?PACKAGE') if nqp::existskey($current, '$?PACKAGE');
+            until nqp::eqaddr($current, $!setting) {
+                return nqp::atkey($current, '$?PACKAGE')
+                  if nqp::existskey($current, '$?PACKAGE');
                 $current := nqp::ctxouterskipthunks($current);
             }
             $!global
         }
-        else {
-            $!packages[$n - 1].compile-time-value
-        }
     }
 
-    # Pops a package, at the point we leave it.
+    # Pops a package, intended to be use at the point a package is "left"
     method pop-package() {
         my $package := nqp::pop($!packages);
         self.pop-attach-target($package);
@@ -124,84 +128,90 @@ class RakuAST::Resolver {
     }
 
     # Name-mangle an infix operator and resolve it.
-    method resolve-infix(Str $operator-name) {
-        self.resolve-lexical('&infix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
+    method resolve-infix(Str $name) {
+        self.resolve-lexical('&infix' ~ self.IMPL-CANONICALIZE-PAIR($name))
     }
 
     # Name-mangle a prefix operator and resolve it.
-    method resolve-prefix(Str $operator-name) {
-        self.resolve-lexical('&prefix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
+    method resolve-prefix(Str $name) {
+        self.resolve-lexical('&prefix' ~ self.IMPL-CANONICALIZE-PAIR($name))
     }
 
     # Name-mangle a postfix operator and resolve it.
-    method resolve-postfix(Str $operator-name) {
-        self.resolve-lexical('&postfix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
+    method resolve-postfix(Str $name) {
+        self.resolve-lexical('&postfix' ~ self.IMPL-CANONICALIZE-PAIR($name))
     }
 
     # Name-mangle a term and resolve it.
-    method resolve-term(Str $term-name) {
-        self.resolve-lexical('&term' ~ self.IMPL-CANONICALIZE-PAIR('', $term-name))
+    method resolve-term(Str $name) {
+        self.resolve-lexical('&term' ~ self.IMPL-CANONICALIZE-PAIR($name))
     }
 
+    # Return the global package wrapped in a node
     method global-package() {
         RakuAST::VarDeclaration::Implicit::Constant.new(
-            :name<GLOBAL>, :value(nqp::getattr(self, RakuAST::Resolver, '$!global')))
+          :name<GLOBAL>, :value($!global)
+        )
     }
 
     # Resolve a RakuAST::Name, optionally adding the specified sigil to the
     # final component.
-    method resolve-name(RakuAST::Name $name, Str :$sigil) {
+    method resolve-name(RakuAST::Name $Rname, str :$sigil) {
         my $found;
-        if $name.is-identifier {
-            return self.global-package() if $name.canonicalize eq 'GLOBAL';
+        if $Rname.is-identifier {
+            my str $name := $Rname.canonicalize;
+            return self.global-package() if $name eq 'GLOBAL';
+
             # Single-part name, so look lexically.
-            my str $bare-name := $name.canonicalize;
-            my str $lexical-name := $sigil ?? $sigil ~ $bare-name !! $bare-name;
-            $found := self.resolve-lexical($lexical-name)
+            $name  := $sigil ~ $name if $sigil;
+            $found := self.resolve-lexical($name)
         }
         else {
             # All package name installations happen via the symbol table as
             # BEGIN-time effects, so chase it down as if it were a constant.
-            $found := self.resolve-name-constant($name, :$sigil)
+            $found := self.resolve-name-constant($Rname, :$sigil)
         }
-        unless $found {
-            $found := self.IMPL-RESOLVE-NAME-IN-PACKAGES($name, :$sigil);
-        }
-        $found;
+
+        $found || self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil)
     }
 
     # Resolve a RakuAST::Name to a constant.
-    method resolve-name-constant(RakuAST::Name $name, str :$sigil) {
-        self.IMPL-RESOLVE-NAME-CONSTANT($name, :$sigil)
-        // self.IMPL-RESOLVE-NAME-IN-PACKAGES($name, :$sigil)
+    method resolve-name-constant(RakuAST::Name $Rname, str :$sigil) {
+        self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil)
+          // self.IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil)
     }
 
     # Resolve a RakuAST::Name to a constant looking only in the setting.
-    method resolve-name-constant-in-setting(RakuAST::Name $name) {
-        self.IMPL-RESOLVE-NAME-CONSTANT($name, :setting)
+    method resolve-name-constant-in-setting(RakuAST::Name $Rname) {
+        self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :setting)
     }
 
-    method IMPL-RESOLVE-NAME-IN-PACKAGES($name, :$sigil) {
+    # Helper method to create node for name in given stash
+    method external-constant(Mu $stash, str $lexical-name) {
+        RakuAST::Declaration::External::Constant.new(
+          :$lexical-name, :compile-time-value(nqp::atkey($stash,$lexical-name))
+        )
+    }
+
+    # Resolve a constant in the currently known packages, or GLOBAL
+    method IMPL-RESOLVE-NAME-IN-PACKAGES($Rname, :$sigil) {
+
         # Try looking in the packages
-        my $lexical := $name.canonicalize;
+        my str $name := $Rname.canonicalize;
+# This breaks "our &foo" lookup.  But if the sigil isn't needed, why is
+# it being passed as an argument then???   XXX
+#        $name := $sigil ~ $name if $sigil;
+
         for $!packages {
             my $stash := self.IMPL-STASH-HASH($_.compile-time-value);
-            return RakuAST::Declaration::External::Constant.new(
-                :lexical-name($lexical),
-                :compile-time-value(nqp::atkey($stash, $lexical))
-            ) if nqp::existskey($stash, $lexical);
+            return self.external-constant($stash, $name)
+              if nqp::existskey($stash,$name);
         }
 
         my $stash := self.IMPL-STASH-HASH($!global);
-        if nqp::existskey($stash, $lexical) {
-            RakuAST::Declaration::External::Constant.new(
-                :lexical-name($lexical),
-                :compile-time-value(nqp::atkey($stash, $lexical))
-            );
-        }
-        else {
-            Nil
-        }
+        nqp::existskey($stash,$name)
+          ?? self.external-constant($stash, $name)
+          !! Nil
     }
 
     method IMPL-RESOLVE-NAME-CONSTANT(
@@ -276,8 +286,8 @@ class RakuAST::Resolver {
     }
 
     # Resolve a RakuAST::Name to a constant.
-    method partially-resolve-name-constant(RakuAST::Name $name, str :$sigil) {
-        self.IMPL-RESOLVE-NAME-CONSTANT($name, :$sigil, :partial)
+    method partially-resolve-name-constant(RakuAST::Name $Rname, str :$sigil) {
+        self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :$sigil, :partial)
     }
 
     method IMPL-STASH-HASH(Mu $pkg) {
@@ -288,88 +298,94 @@ class RakuAST::Resolver {
 
     # Resolves a lexical in the chain of outer contexts.
     method resolve-lexical-in-outer(Str $name, Bool :$current-scope-only) {
+
+        # Mapping primspec to apprpriate native type
+        my constant PRIMSPEC-TO-TYPE := nqp::list(Mu, int, num, str);
+
         # Look through the contexts for the name.
-        my $ctx := $!outer;
+        my $context := $!outer;
         my int $seen-setting;
-        while !nqp::isnull($ctx) {
-            if nqp::existskey($ctx, 'CORE-SETTING-REV') {
-                $seen-setting := 1;
-            }
-            if nqp::existskey($ctx, $name) {
-                my $prim-spec := nqp::lexprimspec($ctx, $name);
-                if $prim-spec == 0 {
-                    # Things in the setting are assumed constant.
-                    if $seen-setting {
-                        my $compile-time-value := nqp::atkey($ctx, $name);
-                        return RakuAST::Declaration::External::Setting.new(
-                            :lexical-name($name), :$compile-time-value);
-                    }
-                    else {
-                        return RakuAST::Declaration::External.new(:lexical-name($name));
-                    }
+        until nqp::isnull($context) {
+            $seen-setting := 1 if nqp::existskey($context,'CORE-SETTING-REV');
+
+            # found it!
+            if nqp::existskey($context,$name) {
+                my $prim-spec := nqp::lexprimspec($context,$name);
+                if $prim-spec {
+                    return RakuAST::Declaration::External.new(
+                      :lexical-name($name),
+                      :native-type(PRIMSPEC-TO-TYPE[$prim-spec])
+                    );
                 }
-                elsif $prim-spec == 1 {
-                    return RakuAST::Declaration::External.new(:lexical-name($name), :native-type(int));
+
+                # Non-native things in the setting are assumed constant
+                elsif $seen-setting {
+                    return RakuAST::Declaration::External::Setting.new(
+                      :lexical-name($name),
+                      :compile-time-value(nqp::atkey($context, $name))
+                    );
                 }
-                elsif $prim-spec == 2 {
-                    return RakuAST::Declaration::External.new(:lexical-name($name), :native-type(num));
-                }
+
+                # 
                 else {
-                    return RakuAST::Declaration::External.new(:lexical-name($name), :native-type(str));
+                    return RakuAST::Declaration::External.new(
+                      :lexical-name($name)
+                    );
                 }
             }
-            $ctx := nqp::ctxouter($ctx);
+
+            # not found, and requested to only look in this scope
+            elsif $current-scope-only {
+                return Nil;
+            }
+
+            $context := nqp::ctxouter($context);
         }
 
         # Nothing found.
-        return Nil;
+        Nil
+    }
+
+    # Helper method to resolve a lexical in given context. The declaration
+    # must have a compile-time value.
+    method resolve-lexical-constant-in-context(Mu $context, Str $name) {
+        until nqp::isnull($context) {
+            nqp::existskey($context, $name)
+              ?? (return self.external-constant($context, $name))
+              !! ($context := nqp::ctxouter($context));
+        }
+        Nil
     }
 
     # Resolves a lexical using the outer contexts. The declaration must have a
     # compile-time value.
     method resolve-lexical-constant-in-outer(Str $name) {
-        my $ctx := $!outer;
-        while !nqp::isnull($ctx) {
-            if nqp::existskey($ctx, $name) {
-                my $compile-time-value := nqp::atkey($ctx, $name);
-                return RakuAST::Declaration::External::Constant.new(:lexical-name($name),
-                    :$compile-time-value);
-            }
-            $ctx := nqp::ctxouter($ctx);
-        }
-        return Nil;
+        self.resolve-lexical-constant-in-context($!outer, $name)
     }
 
     # Resolves a lexical using the outer contexts. The declaration must have a
     # compile-time value.
     method resolve-lexical-constant-in-setting(Str $name) {
-        my $ctx := $!setting;
-        while !nqp::isnull($ctx) {
-            if nqp::existskey($ctx, $name) {
-                my $compile-time-value := nqp::atkey($ctx, $name);
-                return RakuAST::Declaration::External::Constant.new(:lexical-name($name),
-                    :$compile-time-value);
-            }
-            $ctx := nqp::ctxouter($ctx);
-        }
-        return Nil;
+        self.resolve-lexical-constant-in-context($!setting, $name)
     }
 
+    # 
     method IMPL-SETTING-FROM-CONTEXT(Mu $context) {
         # TODO locate the setting frame
         until nqp::isnull($context) {
-            my $pad := nqp::ctxlexpad($context);
-            if nqp::existskey($pad, 'CORE-SETTING-REV') {
-                return $context;
-            }
-            $context := nqp::ctxouterskipthunks($context);
+            nqp::existskey(nqp::ctxlexpad($context),'CORE-SETTING-REV')
+              ?? (return $context)
+              !! ($context := nqp::ctxouterskipthunks($context));
         }
         Nil
     }
 
-    method IMPL-CANONICALIZE-PAIR(Str $k, Str $v) {
+    # Helper method to handle proper embedding of a name in the
+    # appropriat pointy brackets, with a colon prefixed, to be used
+    # in naming prefix / infix / postfix / terms.
+    method IMPL-CANONICALIZE-PAIR(Str $v) {
         if $v ~~ /<[ < > ]>/ && !($v ~~ /<[ « » $ \\ " ' ]>/) {
-            ':' ~ $k ~ '«' ~ $v ~ '»'
+            ':«' ~ $v ~ '»'
         }
         else {
             my $new := '';
@@ -381,7 +397,7 @@ class RakuAST::Resolver {
                 $new := $new ~ $ch;
                 ++$i;
             }
-            ':' ~ $k ~ '<' ~ $new ~ '>';
+            ':<' ~ $new ~ '>';
         }
     }
 
@@ -392,16 +408,15 @@ class RakuAST::Resolver {
     }
 
     # Check if a name is a known type.
-    method is-name-type(RakuAST::Name $name) {
-        my $constant := self.resolve-name($name);
-        if nqp::istype($constant, RakuAST::CompileTimeValue) {
-            # Name resolves, but is it an instance or a type object?
-            nqp::isconcrete($constant.compile-time-value) ?? False !! True
-        }
-        else {
-            # Name doesn't resolve to a constant at all, so can't be a type.
-            False
-        }
+    method is-name-type(RakuAST::Name $Rname) {
+        my $constant := self.resolve-name($Rname);
+        nqp::istype($constant, RakuAST::CompileTimeValue)
+             # Name resolves, but is it an instance or a type object?
+          ?? nqp::isconcrete($constant.compile-time-value)
+            ?? False
+            !! True
+             # Name doesn't resolve to a constant at all, so can't be a type.
+          !! False
     }
 
     # Check if an identifier is known (declared) at all.
@@ -410,8 +425,10 @@ class RakuAST::Resolver {
     }
 
     # Check if a name is known (declared) at all.
-    method is-name-known(RakuAST::Name $name) {
-        $name.is-pseudo-package || nqp::isconcrete(self.resolve-name($name)) ?? True !! False
+    method is-name-known(RakuAST::Name $Rname) {
+        $Rname.is-pseudo-package || nqp::isconcrete(self.resolve-name($Rname))
+          ?? True
+          !! False
     }
 
     # Build an exception object for a check-time exception.
@@ -527,7 +544,7 @@ class RakuAST::Resolver {
                 }
             }
         }
-        for RakuAST::Node.IMPL-UNWRAP-LIST(self.unresolved-symbol-exceptions()) {
+        for RakuAST::Node.IMPL-UNWRAP-LIST(self.unresolved-symbol-exceptions) {
             @sorries.push($_);
         }
         RakuAST::Node.IMPL-WRAP-LIST(@sorries)
@@ -593,6 +610,7 @@ class RakuAST::Resolver::EVAL
         $obj
     }
 
+    # Return a clone, with a clone of all scopes
     method clone() {
         my $clone := nqp::findmethod(RakuAST::Resolver, 'clone')(self);
         nqp::bindattr($clone, RakuAST::Resolver::EVAL, '$!scopes', nqp::clone($!scopes));
@@ -619,60 +637,68 @@ class RakuAST::Resolver::EVAL
     # Pops the top active lexical scope.
     method pop-scope() {
         my $scope := $!scopes.pop;
-        if nqp::istype($scope, RakuAST::AttachTarget) {
-            self.pop-attach-target($scope);
-        }
+        self.pop-attach-target($scope)
+          if nqp::istype($scope, RakuAST::AttachTarget);
         Nil
     }
 
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
     method resolve-lexical(Str $name, Bool :$current-scope-only) {
-        # If it's in the current scope only, we just look at the top one.
+        my @scopes := $!scopes;
+
+        # If it's in the current scope only, just look at the top one, if any
         if $current-scope-only {
-            my @scopes := $!scopes;
-            my int $i := nqp::elems(@scopes);
-            return $i > 0 ?? @scopes[$i - 1].find-lexical($name) !! Nil;
+            return nqp::elems(@scopes)
+              ?? @scopes[nqp::elems(@scopes) - 1].find-lexical($name)
+              !! Nil;
         }
 
+        # No need to look further
         if $name eq 'GLOBAL' {
-            return self.global-package;
+            self.global-package;
         }
 
         # Walk active scopes, most nested first.
-        my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $found := $scope.find-lexical($name);
-            return $found if nqp::isconcrete($found);
-        }
+        else {
+            my int $i := nqp::elems(@scopes);
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                return $found if nqp::isconcrete($found);
+            }
 
-        self.resolve-lexical-in-outer($name);
+            # Fallback handling
+            self.resolve-lexical-in-outer($name)
+        }
     }
 
     # Resolves a lexical to its declaration. The declaration must have a
     # compile-time value.
     method resolve-lexical-constant(Str $name) {
+
+        # No need to look further
         if $name eq 'GLOBAL' {
-            return self.global-package;
+            self.global-package;
         }
 
-        my @scopes := $!scopes;
-        my int $i := nqp::elems(@scopes);
-        while $i-- {
-            my $scope := @scopes[$i];
-            my $found := $scope.find-lexical($name);
-            if nqp::isconcrete($found) {
-                if nqp::istype($found, RakuAST::CompileTimeValue) {
-                    return $found;
-                }
-                else {
-                    nqp::die("Symbol '$name' does not have a compile-time value");
+        # Walk active scopes, most nested first.
+        else {
+            my @scopes := $!scopes;
+            my int $i  := nqp::elems(@scopes);
+            while $i-- {
+                my $found := @scopes[$i].find-lexical($name);
+                if nqp::isconcrete($found) {
+                    nqp::istype($found,RakuAST::CompileTimeValue)
+                      ?? (return $found)
+                      !! nqp::die(
+                           "Symbol '$name' does not have a compile-time value"
+                         );
                 }
             }
+
+            # Fallback handling
+            self.resolve-lexical-constant-in-outer($name)
         }
-        self.resolve-lexical-constant-in-outer($name)
     }
 }
 
@@ -691,6 +717,7 @@ class RakuAST::Resolver::Compile
     has Mu $!sorries;
     has Mu $!worries;
 
+    # Create a resolver from given arguments
     method new(Mu :$setting!, Mu :$outer!, Mu :$global!, Mu :$scopes) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $setting);
@@ -698,7 +725,11 @@ class RakuAST::Resolver::Compile
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
-        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes', $scopes // []);
+
+        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes',
+          $scopes // []);
+        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!sorries', []);
+        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!worries', []);
         $obj
     }
 
@@ -868,25 +899,17 @@ class RakuAST::Resolver::Compile
 
     # Add a sorry check-time problem produced by the compiler.
     method add-sorry(Any $exception) {
-        unless $!sorries {
-            nqp::bindattr(self, RakuAST::Resolver::Compile, '$!sorries', []);
-        }
         nqp::push($!sorries, $exception);
         Nil
     }
-
-    method has-sorries() {
-        $!sorries ?? nqp::elems($!sorries) ?? True !! False !! False
-    }
+    method has-sorries() { nqp::elems($!sorries) > 0 }
 
     # Add a worry check-time problem produced by the compiler.
     method add-worry(Any $exception) {
-        unless $!worries {
-            nqp::bindattr(self, RakuAST::Resolver::Compile, '$!worries', []);
-        }
         nqp::push($!worries, $exception);
         Nil
     }
+    method has-worries() { nqp::elems($!worries) > 0 }
 
     # Panic with the specified exception. This immediately throws it,
     # incorporating any sorries and worries.
@@ -897,11 +920,9 @@ class RakuAST::Resolver::Compile
     # Gathers all sorries (from check time, if performed, and syntactic).
     method all-sorries() {
         my @sorries := RakuAST::Node.IMPL-UNWRAP-LIST:
-            nqp::findmethod(RakuAST::Resolver, 'all-sorries')(self);
-        if $!sorries {
-            for $!sorries {
-                @sorries.push($_);
-            }
+            nqp::findmethod(RakuAST::Resolver,'all-sorries')(self);
+        for $!sorries {
+            @sorries.push($_);
         }
         RakuAST::Node.IMPL-WRAP-LIST(@sorries)
     }
@@ -909,11 +930,9 @@ class RakuAST::Resolver::Compile
     # Gathers all worries (from check time, if performed, and syntactic).
     method all-worries() {
         my @worries := RakuAST::Node.IMPL-UNWRAP-LIST:
-            nqp::findmethod(RakuAST::Resolver, 'all-worries')(self);
-        if $!worries {
-            for $!worries {
-                @worries.push($_);
-            }
+            nqp::findmethod(RakuAST::Resolver,'all-worries')(self);
+        for $!worries {
+            @worries.push($_);
         }
         RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }

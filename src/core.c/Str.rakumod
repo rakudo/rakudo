@@ -3712,7 +3712,7 @@ multi sub infix:<~>(Str:D $a, Any:D \b --> Str:D) {
       Str
     )
 }
-# Any/Any candidate in src/core.c/Stringy.pm6
+# Any/Any candidate in src/core.c/Stringy.rakumod
 
 multi sub infix:<~>(str @args --> str) { nqp::join('',@args) }
 multi sub infix:<~>(@args)  { @args.join }

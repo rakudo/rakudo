@@ -1,4 +1,4 @@
-# continued from src/core.c/Supply-factories.pm6
+# continued from src/core.c/Supply-factories.rakumod
 
     ##
     ## Coercions

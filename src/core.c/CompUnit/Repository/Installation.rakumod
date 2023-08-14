@@ -259,7 +259,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         # lib/ source files
         for $dist.meta<provides>.kv -> $name, $file is copy {
-            # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.pm6"
+            # $name is "Inline::Perl5" while $file is "lib/Inline/Perl5.rakumod"
             my $id          = self!file-id(~$name, $dist-id);
             my $destination = $sources-dir.add($id);
             my $handle      = $dist.content($file);

@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-# This script reads the Rakudo/Sorting.pm6 file, generates the
+# This script reads the Rakudo/Sorting.rakumod file, generates the
 # logic to sort a native str, int, uint num array in place, and
 # writes it back to the file.
 
@@ -15,7 +15,7 @@ my $idchars   = 3;
 my $end       = '#- end of generated part of sorting ';
 
 # slurp the whole file and set up writing to it
-my $filename = "src/core.c/Rakudo/Sorting.pm6";
+my $filename = "src/core.c/Rakudo/Sorting.rakumod";
 my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 

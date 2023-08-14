@@ -4,7 +4,7 @@ my class X::Comp::Trait::Unknown { ... };
 my class X::Comp::Trait::NotOnNative { ... };
 my class X::Comp::Trait::Scope { ... };
 
-# Variable traits come here, not in traits.pm6, since we declare Variable
+# Variable traits come here, not in traits.rakumod, since we declare Variable
 # in the setting rather than BOOTSTRAP.
 
 my class Variable {

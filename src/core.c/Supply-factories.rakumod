@@ -1,4 +1,4 @@
-# continued from src/core.c/Supply.pm6
+# continued from src/core.c/Supply.rakumod
 
     ## Supply factories
     ##
@@ -719,6 +719,6 @@
         }
     }
 
-# continued in src/core.c/Supply-coercers.pm6
+# continued in src/core.c/Supply-coercers.rakumod
 
 # vim: expandtab shiftwidth=4

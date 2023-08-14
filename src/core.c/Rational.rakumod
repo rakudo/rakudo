@@ -1,4 +1,4 @@
-# stub of this role is also present in Numeric.pm6; be sure to update
+# stub of this role is also present in Numeric.rakumod; be sure to update
 # definition there as well, if changing this one
 my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     has NuT $.numerator;

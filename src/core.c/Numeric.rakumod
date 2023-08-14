@@ -230,7 +230,7 @@ multi sub infix:</>(\a, \b)    { a.Numeric / b.Numeric }
 my constant &infix:<÷> = &infix:</>;
 
 proto sub infix:<div>($, $, *%) is pure  {*}
-# rest of infix:<div> is in Int.pm6
+# rest of infix:<div> is in Int.rakumod
 
 proto sub infix:<%>($?, $?, *%) is pure   {*}
 multi sub infix:<%>() { "infix:<%>".no-zero-arg }

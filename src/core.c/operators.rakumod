@@ -1,7 +1,7 @@
 ## miscellaneous operators can go here.
-##   generic numeric operators are in Numeric.pm6
-##   generic string operators are in Stringy.pm6
-##   Int/Rat/Num operators are in {Int|Rat|Num}.pm6
+##   generic numeric operators are in Numeric.rakumod
+##   generic string operators are in Stringy.rakumod
+##   Int/Rat/Num operators are in {Int|Rat|Num}.rakumod
 
 # infix:<=> only exists to allow it to be referenced as an operator in
 # meta-operator usage.  You cannot add other candidates for it.  Therefore

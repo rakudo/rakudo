@@ -98,6 +98,6 @@ my class Supply does Awaitable {
         self.sanitize.tap(&actor, |%others)
     }
 
-# continued in src/core.c/Supply-factories.pm6
+# continued in src/core.c/Supply-factories.rakumod
 
 # vim: expandtab shiftwidth=4

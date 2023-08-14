@@ -210,7 +210,7 @@ multi sub trait_mod:<is>(Routine:D $r, :%prec!) {     # --> Nil
     )));
     Nil
 }
-# three other trait_mod sub for equiv/tighter/looser in operators.pm6
+# three other trait_mod sub for equiv/tighter/looser in operators.rakumod
 multi sub trait_mod:<is>(Routine:D $r, :&equiv!) {    # --> Nil
     $r.equiv(&equiv);
     Nil

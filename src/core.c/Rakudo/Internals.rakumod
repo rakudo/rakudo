@@ -283,7 +283,7 @@ my class Rakudo::Internals {
         Nil
     }
     # Fast mapping for identicals
-    ### If updating encodings here, also update src/core.c/Encoding/Registry.pm6
+    ### If updating encodings, also update src/core.c/Encoding/Registry.rakumod
 #?if !js
     my constant $encodings = nqp::hash(
 #?endif

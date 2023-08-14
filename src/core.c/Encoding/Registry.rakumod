@@ -8,7 +8,7 @@ my class Encoding::Registry {
 
     BEGIN {
         my $lookup := nqp::bindattr(%lookup,Map,'$!storage',nqp::hash);
-        ### If updating encodings here, also update src/core.c/Rakudo/Internals.pm6
+        ### If updating encodings, also update src/core.c/Rakudo/Internals.rakumod
         my $encodings := nqp::list(
           nqp::list('utf8',    'utf-8'),
           nqp::list('utf8-c8', 'utf8c8',   'utf-8-c8'),

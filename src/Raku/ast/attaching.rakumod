@@ -13,16 +13,18 @@ class RakuAST::Attaching
     }
 }
 
-# Done by any AST node that is the target for an attaching node.
+# To be done by any AST node that is the target for an attaching node.
 class RakuAST::AttachTarget
   is RakuAST::Node
 {
-    # Returns a List (possibly empty) of attach target names for this node.
+    # Expected to return a (possibly empty) List of attach target names
+    # for this node.  Must be supplied by the consuming class.
     method attach-target-names() {
         nqp::die('attach-target-names not implemented for ' ~ self.HOW.name(self));
     }
 
-    # Clears any existing attachments, so we don't duplicately attach things.
+    # Expected to clear any existing attachments, so we don't attach
+    # things more than once.  Must be supplied by the consuming class.
     method clear-attachments() {
         nqp::die('clear-attachments not implemented for ' ~ self.HOW.name(self));
     }

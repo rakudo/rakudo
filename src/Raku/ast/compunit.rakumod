@@ -210,20 +210,16 @@ class RakuAST::CompUnit
         Nil
     }
 
-    # Indicate that this compilation unit is sunk as a whole (that, is, the result of
-    # its last statement is unused).
+    # Indicate that this compilation unit is sunk as a whole (that, is, the
+    # result of its last statement is unused).
     method mark-sunk() {
         nqp::bindattr_i(self, RakuAST::CompUnit, '$!is-sunk', 1);
         Nil
     }
 
-    method is-boundary-sunk() {
-        $!is-sunk ?? True !! False
-    }
+    method is-boundary-sunk() { $!is-sunk ?? True !! False }
 
-    method get-boundary-sink-propagator() {
-        $!statement-list
-    }
+    method get-boundary-sink-propagator() { $!statement-list }
 
     # Checks if the compilation unit was created in EVAL mode, meaning that it
     # does not declare its own GLOBAL and so forth.
@@ -243,18 +239,14 @@ class RakuAST::CompUnit
     # Set the pod content at the indicated position
     method set-pod-content(int $i, $pod) {
 
-        # don't know where to set, so just push
-        if $i == -1 {
-            $!pod-content.push($pod);
-        }
-
-        # set in assigned position
-        else {
-            $!pod-content.ASSIGN-POS($i,$pod);
-        }
+        $i == -1
+             # don't know where to set, so just push
+          ?? $!pod-content.push($pod)
+             # set in assigned position
+          !! $!pod-content.ASSIGN-POS($i,$pod);
     }
 
-    # fetch =data content object, or create if doesn't exist yet
+    # Fetch =data content object, or create if doesn't exist yet
     method data-content() {
         nqp::ifnull(
           $!data-content,
@@ -264,13 +256,13 @@ class RakuAST::CompUnit
         )
     }
 
-    # helper method for a given phasers list
+    # Helper method for a given phasers list
     method add-phaser($phasers, $phaser) {
         # Cannot rely on clear-attachments here as a node's attach can be
         # called multiple times while going up and down the tree and
         # clear-attachments will only be called once.
         for $phasers {
-            return Nil if $_ =:= $phaser;
+            return Nil if nqp::eqaddr($_,$phaser);  # already added
         }
         nqp::push($phasers, $phaser);
         Nil
@@ -329,35 +321,45 @@ class RakuAST::CompUnit
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
+        my @decls;
+        my sub add(Mu $add) { nqp::push(@decls,$add) }
+
         # If we're not in an EVAL, we should produce a GLOBAL package and set
         # it as the current package.
-        my @decls;
         unless $!is-eval {
-            my $global := RakuAST::Package.new:
-                    declarator => 'package',
-                    how => $!global-package-how,
-                    name => RakuAST::Name.from-identifier('GLOBAL');
-            nqp::push(@decls, $global);
-            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => 'GLOBALish', value => $global.compile-time-value));
-            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => 'EXPORT', value => $!export-package)) unless $!export-package =:= Mu;
-            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => '$?PACKAGE', value => $global.compile-time-value
+            my $global := RakuAST::Package.new(
+              declarator => 'package',
+              how        => $!global-package-how,
+              name       => RakuAST::Name.from-identifier('GLOBAL')
+            );
+
+            add($global);
+            add(RakuAST::VarDeclaration::Implicit::Constant.new(
+              name => 'GLOBALish', value => $global.compile-time-value
             ));
-            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
-            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
-            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
+            add(RakuAST::VarDeclaration::Implicit::Constant.new(
+              name => 'EXPORT', value => $!export-package
+            )) unless nqp::eqaddr($!export-package,Mu);
+            add(RakuAST::VarDeclaration::Implicit::Constant.new(
+              name => '$?PACKAGE', value => $global.compile-time-value
+            ));
+            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
+            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
+            add(RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         }
-        nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
-            name => '!UNIT_MARKER', value => 1
+
+        # Various markers
+        add(RakuAST::VarDeclaration::Implicit::Constant.new(
+          name => '!UNIT_MARKER', value => 1
         ));
-        nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
-            name => '!RAKUAST_MARKER', value => 1 #TODO remove this when old frontend is gone
+        #TODO remove this when old frontend is gone
+        add(RakuAST::VarDeclaration::Implicit::Constant.new(
+            name => '!RAKUAST_MARKER', value => 1
         ));
-        nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
+        add(RakuAST::VarDeclaration::Implicit::Constant.new(
             name => '!EVAL_MARKER', value => 1
         )) if $!is-eval;
+
         self.IMPL-WRAP-LIST(@decls)
     }
 

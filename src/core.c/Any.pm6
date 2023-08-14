@@ -611,10 +611,16 @@ sub dd(|c) {  # is implementation-detail
                 note $var.DEPARSE.chomp;
             }
             else {
-                my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
+                my $name :=
+                  !nqp::istype($var.VAR,Failure) && try $var.VAR.name;
                 $name := '' if $name && ($name eq 'element' | '%');
-                my $type := $var.WHAT.^name.split("::").tail;
-                $type := $type.chop if $type.contains(/ \W $ /);
+
+                my @parts = $var.WHAT.^name.split("::");
+                my $type := @parts.pop;
+                if @parts {
+                    $type := $type.chop if $type.contains(/ \W $ /);
+                }
+
                 my $what := nqp::can($var,'raku')
                   ?? $var.raku
                   !! nqp::can($var,'perl')

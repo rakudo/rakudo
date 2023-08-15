@@ -145,7 +145,12 @@ class RakuAST::CompUnit
         }
     }
 
-    # Add the AST for handling legacy doc generation
+    # Add the AST for handling legacy doc generation, essentially:
+    # INIT {
+    #     use Pod::To::$type;
+    #     say Pod::To::$type.render($base eq 'Pod' ?? $=pod !! $=rakudoc);
+    #     exit
+    # }
     method add-INIT-phaser-for-doc-handling($base, $type) {
 
         # Determine which module to load.  If single element type, then it

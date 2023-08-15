@@ -1,8 +1,8 @@
 #!/usr/bin/env raku
 
 # This script generates the logic for doing adverbed slices, usually part of
-# the core settings as "src/core/SLICE.pm6".  When run, it will generate the
-# source code on STDOUT.
+# the core settings as "src/core/SLICE.rakumod".  When run, it will generate
+# the source code on STDOUT.
 
 use v6;
 

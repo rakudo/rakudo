@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-# This script reads the Rakudo/Internals.pm6 file from STDIN, and generates
+# This script reads the Rakudo/Internals.rakumod file from STDIN, and generates
 # the necessary lookup hashes for making magic Str .succ / .pred work, and
 # writes it to STDOUT.
 

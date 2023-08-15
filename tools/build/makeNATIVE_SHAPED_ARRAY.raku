@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-# This script reads the native_array.pm6 file, and generates the
+# This script reads the native_array.rakumod file, and generates the
 # shapedintarray, shapednumarray and shapedstrarray roles in it, and writes
 # it back to the file.
 
@@ -16,7 +16,7 @@ my $end       = '#- end of generated part of shaped';
 my %null = str => '""', int => "0", num => "0e0", uint => "0";
 
 # slurp the whole file and set up writing to it
-my $filename = "src/core.c/native_array.pm6";
+my $filename = "src/core.c/native_array.rakumod";
 my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 

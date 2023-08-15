@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-# This script reads the native_array.pm6 file, and generates the
+# This script reads the native_array.rakumod file, and generates the
 # intarray, numarray and strarray postcircumfix candidates and
 # writes it back to the file.
 
@@ -54,7 +54,7 @@ my %type_mapper = (
 );
 
 # slurp the whole file and set up writing to it
-my $filename = "src/core.c/native_array.pm6";
+my $filename = "src/core.c/native_array.rakumod";
 my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 

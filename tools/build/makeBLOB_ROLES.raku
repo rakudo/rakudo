@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-# This script reads the native_array.pm6 file, and generates the intarray,
+# This script reads the native_array.rakumod file, and generates the intarray,
 # numarray and strarray roles in it, and writes it back to the file.
 
 # always use highest version of Raku
@@ -14,7 +14,7 @@ my $idchars   = 3;
 my $end       = '#- end of generated part of Blob ';
 
 # slurp the whole file and set up writing to it
-my $filename = "src/core.c/Buf.pm6";
+my $filename = "src/core.c/Buf.rakumod";
 my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-# This script reads the Array/Slice.pm6 file, and generates the
+# This script reads the Array/Slice.rakumod file, and generates the
 # necessary classes for inclusion in the postcircumfix:<[ ]> table
 # for accessing array slices, and writes it back to the file.
 #
@@ -21,7 +21,7 @@ my $start     = '#- start of generated part of array slice access';
 my $end       = '#- end of generated part of array slice access';
 
 # slurp the whole file and set up writing to it
-my $filename = "src/core.c/Array/Slice.pm6";
+my $filename = "src/core.c/Array/Slice.rakumod";
 my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 

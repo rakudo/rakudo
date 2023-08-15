@@ -157,9 +157,6 @@ class RakuAST::CompUnit
             nqp::unshift(@parts,$base);
         }
 
-# use Pod::To::$type;
-# say Pod::To::$type.render($=pod);
-# exit
         my $name := RakuAST::Name.from-identifier-parts(|@parts);
         $!statement-list.add-statement: RakuAST::Statement::Expression.new(
           expression => RakuAST::StatementPrefix::Phaser::Init.new(

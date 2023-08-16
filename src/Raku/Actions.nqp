@@ -35,8 +35,9 @@ role Raku::CommonActions {
     }
 
     method SET-NODE-ORIGIN($/, $node, :$as-key-origin) {
-        # XXX This is a temporary stub to avoid unimplemented nodes. Must be replaced with exception throwing when
-        # RakuAST is considered ready for this.
+        # XXX This is a temporary stub to avoid unimplemented nodes. Must be
+        # replaced with exception throwing when RakuAST is considered ready
+        # for this.
         unless nqp::isconcrete($node) {
             return
         }
@@ -97,7 +98,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method comp_unit_stage0($/) {
+    method comp-unit-stage0($/) {
         ensure_raku_ast();
         # Before anything else starts we must be ready to report locations in the source.
         $*ORIGIN-SOURCE := self.r('Origin', 'Source').new(:orig($/.target()));
@@ -299,43 +300,47 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $hash
     }
 
-    method comp_unit($/) {
+    method comp-unit($/) {
+        # Do dynamic lookups once
+        my $COMPUNIT := $*CU;
+        my %OPTIONS  := %*OPTIONS;
+        my $RESOLVER := $*R;
+
         # Put the body in place.
-        my $cu := $*CU;
-        $cu.replace-statement-list($<statementlist>.ast);
+        $COMPUNIT.replace-statement-list($<statementlist>.ast);
 
         # Sort out sinking; the compilation unit is sunk as a whole if we are
         # not in a REPL or EVAL context.
-        $cu.mark-sunk() unless nqp::existskey(%*OPTIONS, 'outer_ctx');
-        $cu.calculate-sink();
+        $COMPUNIT.mark-sunk() unless nqp::existskey(%OPTIONS,'outer_ctx');
+        $COMPUNIT.calculate-sink();
 
-        # if --doc specified, add INIT phaser that handles that
-        if nqp::existskey(%*OPTIONS,'doc') {
-            $cu.add-INIT-phaser-for-doc-handling(
-              'Pod', %*OPTIONS<doc> || 'Text'
+        # if --(raku)doc specified, add INIT phaser that handles that
+        if nqp::existskey(%OPTIONS,'doc') {
+            $COMPUNIT.add-INIT-phaser-for-doc-handling(
+              'Pod', %OPTIONS<doc> || 'Text'
             );
         }
-        elsif nqp::existskey(%*OPTIONS,'rakudoc') {
-            $cu.add-INIT-phaser-for-doc-handling(
-              'RakuDoc', %*OPTIONS<rakudoc> || 'Text'
+        elsif nqp::existskey(%OPTIONS,'rakudoc') {
+            $COMPUNIT.add-INIT-phaser-for-doc-handling(
+              'RakuDoc', %OPTIONS<rakudoc> || 'Text'
             );
         }
 
         # Have check time.
-        $cu.check($*R);
-        my $compilation-exception := $*R.produce-compilation-exception;
-        if nqp::isconcrete($compilation-exception) {
-            if $*R.has-compilation-errors {
+        $COMPUNIT.check($RESOLVER);
+        my $exception := $RESOLVER.produce-compilation-exception;
+        if nqp::isconcrete($exception) {
+            if $RESOLVER.has-compilation-errors {
                 # Really has errors, so report them.
-                $compilation-exception.throw;
+                $exception.throw;
             }
             else {
                 # Only potential difficulties, just just print them.
-                stderr().print($compilation-exception.gist);
+                stderr().print($exception.gist);
             }
         }
 
-        self.attach: $/, $cu, :as-key-origin;
+        self.attach: $/, $COMPUNIT, :as-key-origin;
     }
 
     ##

@@ -635,12 +635,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*OUTER-RESOLVER := $*R;
 
         # Parse a compilation unit.
-        self.comp_unit($*CU)
+        self.comp-unit($*CU)
     }
 
-    token comp_unit_stage0 { <?> }
+    token comp-unit-stage0 { <?> }
 
-    token comp_unit($outer-cu) {
+    token comp-unit($outer-cu) {
         <.bom>?
 
         # Set up compilation unit and symbol resolver according to the language
@@ -658,7 +658,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*NEXT_STATEMENT_ID := 1;    # to give each statement an ID
         :my $*FAKE-INFIX-FOUND := 0;
         :my $*begin_compunit := 1;       # at start of a compilation unit?
-        <.comp_unit_stage0>
+        <.comp-unit-stage0>
         <.lang_setup($outer-cu)>
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }

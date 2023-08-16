@@ -1,4 +1,4 @@
-# Base class for common resolver functionality
+# Role for common resolver functionality
 class RakuAST::Resolver {
     # The setting.
     has Mu $.setting;
@@ -496,15 +496,16 @@ class RakuAST::Resolver {
     method produce-compilation-exception(Any :$panic) {
         my $sorries := self.all-sorries;
         my $worries := self.all-worries;
-        my int $num-sorries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($sorries));
-        my int $num-worries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($worries));
+        my int $num-sorries := $sorries.elems;
+        my int $num-worries := $worries.elems;
+
         if $panic && $num-sorries == 0 && $num-worries == 0 {
             # There's just the panic, so return it without an enclosing group.
-            return $panic;
+            $panic
         }
         elsif !$panic && $num-sorries == 1 && $num-worries == 0 {
             # Only one sorry and no worries, so no need to wrap that either.
-            return RakuAST::Node.IMPL-UNWRAP-LIST($sorries)[0];
+            $sorries.AT-POS(0)
         }
         elsif $num-sorries || $num-worries {
             # Resolve the group exception type.
@@ -512,26 +513,22 @@ class RakuAST::Resolver {
                 RakuAST::Name.from-identifier-parts('X', 'Comp', 'Group');
             if $XCompGroup-res {
                 my $XCompGroup := $XCompGroup-res.compile-time-value;
-                return $panic
-                    ?? $XCompGroup.new(:$panic, :sorrows($sorries), :$worries)
-                    !! $XCompGroup.new(:sorrows($sorries), :$worries)
+                $panic
+                  ?? $XCompGroup.new(:$panic, :$sorries, :$worries)
+                  !! $XCompGroup.new(         :$sorries, :$worries)
             }
             # Fallback if missing group.
-            elsif $panic {
-                return $panic;
-            }
             else {
-                my @sorries := RakuAST::Node.IMPL-UNWRAP-LIST($sorries);
-                return @sorries[0] if @sorries;
+                $panic || $sorries.AT-POS(0)
             }
         }
-        Nil
+        else {
+            Nil
+        }
     }
 
     # Returns True if there are any compilation errors (worries don't count).
-    method has-compilation-errors() {
-        RakuAST::Node.IMPL-UNWRAP-LIST(self.all-sorries) ?? True !! False
-    }
+    method has-compilation-errors() { self.all-sorries.Bool }
 
     # Gathers all sorries (from check time, if performed, and any specific to
     # a given resolver).
@@ -587,6 +584,7 @@ class RakuAST::Resolver {
     }
 }
 
+#-------------------------------------------------------------------------------
 # The EVAL resolver is used when we are given an AST as a whole, and visit it
 # to perform resolutions. We expect a context and GLOBAL to be provided in this
 # mode.
@@ -702,6 +700,7 @@ class RakuAST::Resolver::EVAL
     }
 }
 
+#-------------------------------------------------------------------------------
 # The compiler resolver is used in the situation we are parsing code and
 # building up a RakuAST as we go. We thus need to provide symbol resolutions
 # for the sake of parse disambiguation, as well as to handle BEGIN-time code.
@@ -834,14 +833,14 @@ class RakuAST::Resolver::Compile
     # declaration, so that we can resolve it without requiring it to be
     # linked into the tree.
     method declare-lexical(RakuAST::Declaration $decl) {
-        $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl);
+        $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl)
     }
 
     # Add a lexical declaration in the outer scope relative to the current one.
     # Used when the compiler produces the declaration, but already entered into
     # that declaration's inner scope.
     method declare-lexical-in-outer(RakuAST::Declaration $decl) {
-        $!scopes[nqp::elems($!scopes) - 2].declare-lexical($decl);
+        $!scopes[nqp::elems($!scopes) - 2].declare-lexical($decl)
     }
 
     # Resolves a lexical to its declaration. The declaration need not have a
@@ -867,7 +866,7 @@ class RakuAST::Resolver::Compile
             return $found if nqp::isconcrete($found);
         }
 
-        self.resolve-lexical-in-outer($name);
+        self.resolve-lexical-in-outer($name)
     }
 
     # Resolves a lexical to its declaration. The declaration must have a
@@ -1095,6 +1094,7 @@ class RakuAST::Resolver::Compile
     }
 }
 
+#-------------------------------------------------------------------------------
 # Information about a lexical scope that we are currently compiling.
 class RakuAST::Resolver::Compile::Scope
   is RakuAST::Resolver
@@ -1154,7 +1154,8 @@ class RakuAST::Resolver::Compile::Scope
     }
 
     method create-implicits() {
-        nqp::die('Should not be calling create-implicits in batch mode') if $!batch-mode;
+        nqp::die('Should not be calling create-implicits in batch mode')
+          if $!batch-mode;
         if nqp::istype($!scope, RakuAST::ImplicitDeclarations) {
             for $!scope.IMPL-UNWRAP-LIST($!scope.get-implicit-declarations) -> $decl {
                 if $decl.is-lexical {

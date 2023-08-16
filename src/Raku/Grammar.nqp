@@ -638,7 +638,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.comp-unit($*CU)
     }
 
-    token comp-unit-stage0 { <?> }
+    token comp-unit-prologue { <?> }
 
     token comp-unit($outer-cu) {
         <.bom>?
@@ -658,7 +658,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*NEXT_STATEMENT_ID := 1;    # to give each statement an ID
         :my $*FAKE-INFIX-FOUND := 0;
         :my $*begin_compunit := 1;       # at start of a compilation unit?
-        <.comp-unit-stage0>
+        <.comp-unit-prologue>
         <.lang_setup($outer-cu)>
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }

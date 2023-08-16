@@ -28,7 +28,7 @@ sub setup-RakuAST-WHO() {
 # *will* compile, but may cause compile time issues of Raku
 # code, typically resulting in error messages stating a method
 # having been called on VMNull.
-sub Nodify(*@todo) is export {
+sub Nodify(*@todo) {
     my $parts := nqp::join('::',@todo);
 
     my $res := nqp::atkey($RakuAST-WHO,nqp::shift(@todo));
@@ -91,6 +91,9 @@ role Raku::CommonActions {
         self.attach: $/, $<nibble>.ast;
     }
 
+    # Grammars also need to be able to lookup RakuAST nodes.  Historically
+    # this was done with the "r" method.  Since it is apparently impossible
+    # to reliably export Nodify, this interface is kept alive.
     method r(*@parts) { Nodify(|@parts) }
 }
 
@@ -99,43 +102,39 @@ role Raku::CommonActions {
 
 class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
-    ##
-    ## Compilation unit, language version and other entry point bits
-    ##
+#-------------------------------------------------------------------------------
+# Compilation unit, language version and other entry point bits
 
-    # Used to ensure uniqueness of serialization context IDs.
-    my class SerializationContextId {
-        my $count := -1;
-        my $lock  := NQPLock.new;
-        method next-id() {
-            $lock.protect({ ++$count })
-        }
-    }
+    # Thread-safely produce a unique serialization context ID
+    my $count := -1;
+    my $lock  := NQPLock.new;
+    sub next-id() { $lock.protect({ ++$count }) }
 
-    method comp-unit-stage0($/) {
+    # Perform all actions that are needed before any actual parsing can
+    # be done by a grammar.
+    method comp-unit-prologue($/) {
+
+        # Be ready to do Nodify lookups
         setup-RakuAST-WHO();
-        # Before anything else starts we must be ready to report locations in the source.
+
+        # Be ready to report locations in the source.
         $*ORIGIN-SOURCE := Nodify('Origin', 'Source').new(:orig($/.target()));
 
         # Set up the literals builder, so we can produce and intern literal
         # values.
         $*LITERALS := Nodify('LiteralBuilder').new;
 
-        my %options := %*OPTIONS;
-        my $outer_ctx := %options<outer_ctx>;
-        my $setting-name := %options<setting>;
-        my $has-outer := nqp::isconcrete($outer_ctx);
-        my $resolver_type := Nodify('Resolver', 'Compile');
-
-        if $has-outer {
-            my $global := %options<global>;
-            $*R := $resolver_type.from-context(:context($outer_ctx), :$global, :resolver($*OUTER-RESOLVER));
-        }
-        else {
-            # Use CORE.c setting for a while to enable parsing of POD.
-            # $*R will be re-initialized later with a proper one. For now we need this to be able to throw exceptions.
-            $*R := $resolver_type.from-setting(:setting-name<CORE.c>);
-        }
+        # Set up the base resolver
+        my %OPTIONS       := %*OPTIONS;
+        my $context       := %OPTIONS<outer_ctx>;
+        my $resolver-type := Nodify('Resolver', 'Compile');
+        $*R := nqp::isconcrete($context)
+          ?? $resolver-type.from-context(
+               :$context, :global(%OPTIONS<global>), :resolver($*OUTER-RESOLVER)
+             )
+          !! $resolver-type.from-setting(
+               :setting-name(%OPTIONS<setting> // 'CORE.d')
+             );
     }
 
     method lang_setup($/) {
@@ -289,7 +288,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $file := $*ORIGIN-SOURCE.original-file();
         if nqp::isconcrete($outer_ctx) {
             # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
-            my $comp-unit-name := nqp::sha1($file ~ $/.target() ~ SerializationContextId.next-id());
+            my $comp-unit-name := nqp::sha1($file ~ $/.target() ~ next-id());
             $*CU := Nodify('CompUnit').new( :$comp-unit-name, :$setting-name, :eval, :$*outer-cu, :$language-revision);
         }
         else {

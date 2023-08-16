@@ -898,6 +898,10 @@ class X::Comp::Group is Exception {
     has @.sorrows;
     has @.worries;
 
+    method TWEAK(Mu :$sorries --> Nil) {
+        @!sorrows := $sorries<> if $sorries;
+    }
+
     method is-compile-time(--> True) { }
 
     multi method gist(::?CLASS:D:) {

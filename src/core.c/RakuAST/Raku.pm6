@@ -34,11 +34,11 @@ augment class RakuAST::Node {
     my $spaces = '  ';
 
     our sub indent(--> Str:D) {
-        $_ = $_ ~ $spaces with $*INDENT;
+        $_ = $_ ~ $spaces given $*INDENT
     }
 
     our sub dedent(--> Str:D) {
-        $_ = $_.chomp($spaces) with $*INDENT;
+        $_ = .chomp($spaces) given $*INDENT
     }
 
     our sub rakufy($value) {

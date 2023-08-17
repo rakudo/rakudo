@@ -935,7 +935,8 @@ augment class RakuAST::Node {
         self!nameds: <labels source body>
     }
 
-    multi method raku(RakuAST::Statement::If:D: --> Str:D) {
+    # Handling both ::If and ::With
+    multi method raku(RakuAST::Statement::IfWith:D: --> Str:D) {
         self!nameds: <labels condition then elsifs else>
     }
 

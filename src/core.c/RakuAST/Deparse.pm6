@@ -1900,7 +1900,8 @@ class RakuAST::Deparse {
           ~ self.deparse($ast.body)
     }
 
-    multi method deparse(RakuAST::Statement::If:D $ast --> Str:D) {
+    # handling both ::If and ::With
+    multi method deparse(RakuAST::Statement::IfWith:D $ast --> Str:D) {
         my str @parts = self.conditional($ast, $ast.IMPL-QAST-TYPE);
 
         if $ast.elsifs -> @elsifs {

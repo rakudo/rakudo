@@ -606,8 +606,8 @@ class RakuAST::IMPL::ImmediateBlockUser
     method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) { True }
 }
 
-# An if conditional, with optional elsif/orwith/else parts.
-class RakuAST::Statement::If
+# Base class for if / with conditional, with optional elsif/orwith/else parts
+class RakuAST::Statement::IfWith
   is RakuAST::Statement
   is RakuAST::ImplicitLookups
   is RakuAST::SinkPropagator
@@ -616,23 +616,36 @@ class RakuAST::Statement::If
 {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
-    has Mu $!elsifs;
-    has RakuAST::Block $.else;
+    has List                $!elsifs;
+    has RakuAST::Block      $.else;
 
-    method new(RakuAST::Expression :$condition!, RakuAST::Expression :$then!,
-               List :$elsifs, RakuAST::Block :$else, List :$labels) {
+    method new(
+      RakuAST::Expression :$condition!,
+      RakuAST::Expression :$then!,
+                     List :$elsifs,
+           RakuAST::Block :$else,
+                     List :$labels
+    ) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Statement::If, '$!condition', $condition);
-        nqp::bindattr($obj, RakuAST::Statement::If, '$!then', $then);
-        nqp::bindattr($obj, RakuAST::Statement::If, '$!elsifs',
-            self.IMPL-UNWRAP-LIST($elsifs // []));
-        nqp::bindattr($obj, RakuAST::Statement::If, '$!else', $else // RakuAST::Block);
+        nqp::bindattr($obj,RakuAST::Statement::IfWith,'$!condition',$condition);
+        nqp::bindattr($obj,RakuAST::Statement::IfWith,'$!then',$then);
+        $obj.set-elsifs($elsifs);
+        $obj.set-else($else);
         $obj.set-labels($labels);
         $obj
     }
 
-    method elsifs() {
-        self.IMPL-WRAP-LIST($!elsifs)
+    method set-elsifs($elsifs) {
+        nqp::bindattr(self,RakuAST::Statement::IfWith,'$!elsifs',
+          $elsifs ?? self.IMPL-UNWRAP-LIST($elsifs) !! []
+        );
+        Nil
+    }
+    method elsifs() { self.IMPL-WRAP-LIST($!elsifs) }
+
+    method set-else($else) {
+        nqp::bindattr(self,RakuAST::Statement::IfWith,'$!else',
+          $else // RakuAST::Block);
     }
 
     method apply-implicit-block-semantics() {
@@ -696,8 +709,6 @@ class RakuAST::Statement::If
         )
     }
 
-    method IMPL-QAST-TYPE() { 'if' }
-
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
         $!then.body.apply-sink($is-sunk);
@@ -732,15 +743,22 @@ class RakuAST::Statement::If
     }
 }
 
+# An if conditional, with optional elsif/orwith/else parts.
+class RakuAST::Statement::If
+  is RakuAST::Statement::IfWith
+{
+    method IMPL-QAST-TYPE() { 'if' }
+}
+
 # A with conditional, with optional elsif/orwith/else parts.
 class RakuAST::Statement::With
-  is RakuAST::Statement::If
+  is RakuAST::Statement::IfWith
 {
     method IMPL-QAST-TYPE() { 'with' }
 }
 
-# An elsif part. Not a standalone RakuAST node; can only be used inside of an If
-# or With node.
+# An elsif part. Not a standalone RakuAST node; can only be used inside
+# of an Statement::If or Statement::With node.
 class RakuAST::Statement::Elsif {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;

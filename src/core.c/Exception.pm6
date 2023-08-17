@@ -1909,8 +1909,8 @@ my class X::Syntax::Pod::BeginWithDirective does X::Syntax does X::Pod {
 }
 
 my class X::Syntax::Confused does X::Syntax {
-    has $.reason = 'unknown';
-    method message() { $.reason eq 'unknown' ?? 'Confused' !! $.reason }
+    has $.reason = 'Confused';
+    method message() { $.reason }
 }
 
 my class X::Syntax::Malformed does X::Syntax {

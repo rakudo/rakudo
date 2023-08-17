@@ -992,7 +992,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         || $
         || <?stopper>
         || <?before [if|while|for|loop|repeat|given|when] » > { $/.'!clear_highwater'(); self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
-        || { $/.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
+        || { $/.typed_panic('X::Syntax::Confused') }
     }
 
     # Options for xblock/block implicit topic.

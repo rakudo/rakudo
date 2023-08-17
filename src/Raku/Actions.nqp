@@ -145,12 +145,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
              );
     }
 
+    # Perform all actions related to "use vxxx" and loading appropriate
+    # (default) settings and configuring the compilation unit and resolver
     method lang-setup($/) {
         # Look up these dynamic vars only once
         my $HLL-COMPILER := $*HLL-COMPILER;
         my %OPTIONS      := %*OPTIONS;
         my $LANG         := $*LANG;
-        my $R            := $*R;
+        my $RESOLVER     := $*R;
 
         # Some shortcuts;
         my $language-revision := $HLL-COMPILER.language_revision;
@@ -160,7 +162,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Helper sub to configure the resolver with selected language revision
         my sub resolver-from-revision() {
             $setting-name := 'CORE.' ~ $HLL-COMPILER.lvs.p6rev($language-revision);
-            $R.set-setting(:$setting-name);
+            $RESOLVER.set-setting(:$setting-name);
         }
 
         # Not EVALling and explicit setting requested
@@ -181,9 +183,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Setting name is explicitly set. Use it to determine the
             # default language revision.
             else {
-                $R.set-setting(:setting-name($setting-name));
+                $RESOLVER.set-setting(:setting-name($setting-name));
                 $language-revision :=
-                  nqp::unbox_i($R.setting-constant('CORE-SETTING-REV'));
+                  nqp::unbox_i($RESOLVER.setting-constant('CORE-SETTING-REV'));
                 $HLL-COMPILER.set_language_revision($language-revision);
             }
         }
@@ -198,7 +200,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
             # Globbed version needs a bit of research needs to be done first.
             if nqp::index($version,'*') >= 0 || nqp::index($version,'+') >= 0 {
-                my $Version := $R.setting-constant('Version');
+                my $Version := $RESOLVER.setting-constant('Version');
                 my $ver-requested := $Version.new(
                   $HLL-COMPILER.lvs.from-public-repr($version, :as-str)
                 );
@@ -226,8 +228,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
 
                 # Are there any easier way to unbox boxable types?
-                my $Int := $R.setting-constant('Int');
-                my $Str := $R.setting-constant('Str');
+                my $Int := $RESOLVER.setting-constant('Int');
+                my $Str := $RESOLVER.setting-constant('Str');
                 my @can-parts := nqp::getattr($can-version, $Version, '$!parts');
                 for @can-parts -> $part {
                     @final-version.push:
@@ -290,7 +292,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Locate an EXPORTHOW and set those mappings on our current language.
         my $EXPORTHOW :=
-          $R.resolve-lexical-constant('EXPORTHOW').compile-time-value;
+          $RESOLVER.resolve-lexical-constant('EXPORTHOW').compile-time-value;
         for stash-hash($EXPORTHOW) {
             $LANG.set_how($_.key, $_.value);
         }
@@ -298,7 +300,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $package-how    := $LANG.how('package');
         my $export-package := $package-how.new_type(name => 'EXPORT');
         $export-package.HOW.compose($export-package);
-        $R.set-export-package($export-package);
+        $RESOLVER.set-export-package($export-package);
         $*EXPORT := $export-package;
 
         # Create a compilation unit.
@@ -328,11 +330,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
             # Create a GLOBAL using the correct package meta-object.
             my $global := $*CU.generated-global;
-            $R.set-global($global);
+            $RESOLVER.set-global($global);
             nqp::bindhllsym('Raku','GLOBAL',$global);
         }
 
-        $*LITERALS.set-resolver($R);
+        $*LITERALS.set-resolver($RESOLVER);
     }
 
     method comp-unit($/) {
@@ -378,10 +380,33 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $COMPUNIT, :as-key-origin;
     }
 
-    ##
-    ## Statements
-    ##
+    # Action method to load any modules specified with -M
+    method load-M-modules($/) {
+        my $M := %*OPTIONS<M>;
+        unless nqp::defined($M) {
+            return;  # nothing to do here
+        }
 
+        # Create a RakuAST statement list with -use- statements
+        # of the specified module names and attach that
+        my $ast := Nodify('StatementList').new;
+        for nqp::islist($M) ?? $M !! [$M] -> $longname {
+            my $use := Nodify('Statement', 'Use').new(
+              module-name => Nodify('Name').from-identifier-parts(
+                |nqp::split('::', $longname)
+              )
+            );
+            $use.ensure-begin-performed($*R, $*CU.context);
+            $ast.add-statement: $use;
+        }
+        self.attach: $/, $ast;
+    }
+
+#-------------------------------------------------------------------------------
+# Statement level handling
+
+    # Helper method to collect statements and potentially and declarator
+    # docs for an actual StatementList, StatementSequence or SemiList.
     method collect-statements($/, $typename) {
         my $statements := Nodify($typename).new;
         for $<statement> {
@@ -391,6 +416,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $statements
     }
 
+    # Action methods for the various collectors of statements
     method statementlist($/) {
         my $statements := self.collect-statements($/, 'StatementList');
 
@@ -405,12 +431,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method semilist($/) { self.collect-statements($/, 'SemiList')          }
     method sequence($/) { self.collect-statements($/, 'StatementSequence') }
 
+    # Action method for handling an actual statement
     method statement($/) {
-        my $trace := $/.pragma('trace') ?? 1 !! 0;
-        # statement ID needs to be captured before creation of statement object
+
+        # Setting label on already created statement
+        if $<label> {
+            my $statement := $<statement>.ast;
+            $statement.add-label($<label>.ast);
+            make $statement;
+            return;       # nothing left to do here
+        }
+
+        # Statement ID must be captured before creation of statement object
         my $statement-id := $*STATEMENT-ID;
         my $statement;
 
+        # Handle expression with optional condition/loop modifiers
         if $<EXPR> {
             my $expression := $<EXPR>.ast;
             if nqp::istype($expression, Nodify('ColonPairs')) {
@@ -418,35 +454,32 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                   :infix(Nodify('Infix').new(',')),
                   :operands($expression.colonpairs);
             }
-            $statement := Nodify('Statement', 'Expression').new(:$expression);
-            if $<statement-mod-cond> {
-                $statement.replace-condition-modifier($<statement-mod-cond>.ast);
-            }
-            if $<statement-mod-loop> {
-                $statement.replace-loop-modifier($<statement-mod-loop>.ast);
-            }
+            $statement := Nodify('Statement','Expression').new(:$expression);
+            $statement.replace-condition-modifier($<statement-mod-cond>.ast)
+              if $<statement-mod-cond>;
+            $statement.replace-loop-modifier($<statement-mod-loop>.ast)
+              if $<statement-mod-loop>;
         }
+
+        # Handle statement control (if / for / given / when / etc.)
         elsif $<statement-control> {
             $statement := $<statement-control>.ast;
         }
-        elsif $<label> {  # setting label on already created statement
-            my $statement := $<statement>.ast;
-            $statement.add-label($<label>.ast);
-            make $statement;
-            return;       # nothing left to do here
-        }
+
+        # Handle an empty statement
         else {
-            $statement := Nodify('Statement', 'Empty').new;
+            $statement := Nodify('Statement','Empty').new;
         }
 
-        $statement.set-trace($trace);
+        # Final statement tweaks
+        $statement.set-trace($/.pragma('trace') ?? 1 !! 0);
         $statement.set-statement-id($statement-id);
-        unless $*PARSING-DOC-BLOCK {
-            $statement.attach-doc-blocks;
-        }
+        $statement.attach-doc-blocks unless $*PARSING-DOC-BLOCK;
+
         self.attach: $/, $statement;
     }
 
+    # Action method for handling labels attached to a statement
     method label($/) {
         my $name := ~$<identifier>;
         my $decl := Nodify('Label').new($name);
@@ -455,43 +488,50 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $decl;
     }
 
-    method pblock($/) {
+    # Helper method for attaching (pointy) blocks
+    method attach-block($/, $signature?) {
         my $block := $*BLOCK;
-        if $<signature> {
-            $block.replace-signature($<signature>.ast);
-        }
+        $block.replace-signature($signature.ast) if $signature;
         $block.replace-body($<blockoid>.ast);
         $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }
 
-    method block($/) {
-        my $block := $*BLOCK;
-        $block.replace-body($<blockoid>.ast);
-        $block.ensure-begin-performed($*R, $*CU.context);
-        self.attach: $/, $block;
-    }
+    # Action methods for handling (pointy) blocks
+    method pointy-block($/) { self.attach-block($/, $<signature>) }
+    method        block($/) { self.attach-block($/)               }
 
+    # Action method for handling the inside of (pointy) blocks
     method blockoid($/) {
-        self.attach: $/, Nodify('Blockoid').new($<statementlist>.ast), :as-key-origin;
+        self.attach: $/,
+          Nodify('Blockoid').new($<statementlist>.ast),
+          :as-key-origin;
     }
 
+    # Action method for handling "unit" scoped packages
     method unit-block($/) {
         my $block := $*BLOCK;
+        # Wrap the statements into a (non-existing) blockoid
         $block.replace-body(Nodify('Blockoid').new($<statementlist>.ast));
         $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }
 
+    # Action method handling {*}
     method onlystar($/) {
         self.attach: $/, Nodify('OnlyStar').new;
     }
 
-    # also connect any leading declarator doc that we collected already
+    # Helper method to connect any leading declarator doc that was
+    # collected already to the given declarand
     method set-declarand($/, $it) {
+
+        # Ignoring this one
         if $*IGNORE-NEXT-DECLARAND {
             $*IGNORE-NEXT-DECLARAND := 0;
         }
+
+        # Should handle
         else {
             my $from    := $/.from;
             my $worries := $*DECLARAND-WORRIES;
@@ -514,21 +554,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $it
     }
 
-    # Steal the information of the current declarand into the given
-    # declarand, and make that the declarand.  Needed for cases like
-    # subsets with a where, where the where block is seen *before*
-    # the subset, causing leading declarator doc to be attached to
-    # the block, rather than to the subset.
+    # Helper methof to steal the information of the current declarand
+    # into the given declarand, and make *that* the declarand.  Needed
+    # for cases like subsets with a where, where the where block is
+    # seen *before* the subset, causing leading declarator doc to be
+    # attached to the where block, rather than to the subset.
     method steal-declarand($/, $it) {
         $it.set-WHY($*DECLARAND.cut-WHY);
         $*DECLARAND          := $it;
         $*LAST-TRAILING-LINE := +$*ORIGIN-SOURCE.original-line($/.from);
     }
 
+    # Action method when entering a scope (package, sub, phaser etc.)
+    # Assume the $*BLOCK dynamic var is appropriately localized as it
+    # will set that with the RakuAST:: object being created.
     method enter-block-scope($/) {
         my $block := $*MULTINESS
-            ?? Nodify($*SCOPE-KIND).new(:multiness($*MULTINESS))
-            !! Nodify($*SCOPE-KIND).new;
+          ?? Nodify($*SCOPE-KIND).new(:multiness($*MULTINESS))
+          !! Nodify($*SCOPE-KIND).new;
         $*R.enter-scope($block);
         $*BLOCK := $block;
 
@@ -536,25 +579,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           if nqp::istype($block,Nodify('Doc','DeclaratorTarget'));
     }
 
+    # Action method when leaving a scope.
     method leave-block-scope($/) {
         $*R.leave-scope();
-    }
-
-    method load_command_line_modules($/) {
-        my $M := %*OPTIONS<M>;
-        my $ast := Nodify('StatementList').new();
-        if nqp::defined($M) {
-            for nqp::islist($M) ?? $M !! [$M] -> $longname {
-                my $use := Nodify('Statement', 'Use').new(
-                    module-name => Nodify('Name').from-identifier-parts(
-                        |nqp::split('::', $longname)
-                    )
-                );
-                $use.ensure-begin-performed($*R, $*CU.context);
-                $ast.add-statement: $use;
-            }
-        }
-        self.attach: $/, $ast;
     }
 
 #-------------------------------------------------------------------------------
@@ -580,49 +607,49 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-control:sym<for>($/) {
         self.attach: $/,
           Nodify('Statement', 'For').new:
-            source => $<EXPR>.ast, body => $<pblock>.ast;
+            source => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     method statement-control:sym<given>($/) {
         self.attach: $/,
           Nodify('Statement', 'Given').new:
-            source => $<EXPR>.ast, body => $<pblock>.ast;
+            source => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     method statement-control:sym<repeat>($/) {
         self.attach: $/,
           Nodify('Statement', 'Loop', 'Repeat' ~ nqp::tclc(~$<wu>)).new:
-            condition => $<EXPR>.ast, body => $<pblock>.ast;
+            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     method statement-control:sym<unless>($/) {
         self.attach: $/,
           Nodify('Statement', 'Unless').new:
-            condition => $<EXPR>.ast, body => $<pblock>.ast;
+            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     method statement-control:sym<when>($/) {
         self.attach: $/,
           Nodify('Statement', 'When').new:
-            condition => $<EXPR>.ast, body => $<pblock>.ast;
+            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     method statement-control:sym<whenever>($/) {
         self.attach: $/,
           Nodify('Statement', 'Whenever').new:
-            trigger => $<EXPR>.ast, body => $<pblock>.ast;
+            trigger => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     method statement-control:sym<while>($/) {
         self.attach: $/,
           Nodify('Statement', 'Loop', nqp::tclc(~$<sym>)).new:
-            condition => $<EXPR>.ast, body => $<pblock>.ast;
+            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     method statement-control:sym<without>($/) {
         self.attach: $/,
           Nodify('Statement', 'Without').new:
-            condition => $<EXPR>.ast, body => $<pblock>.ast;
+            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     # Dummy control statement to set a trait on a target
@@ -1095,7 +1122,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                             Nodify('Name').from-identifier(
                                 'prefix:' ~ Nodify('ColonPairish').IMPL-QUOTE-VALUE(
                                     Nodify('BeginTime').IMPL-BEGIN-TIME-EVALUATE(
-                                      ($op_name<nibble> // $op_name<semilist> // $op_name<pblock>).ast, $*R, $*CU.context
+                                      ($op_name<nibble> // $op_name<semilist> // $op_name<pointy-block>).ast, $*R, $*CU.context
                                     )
                                 )
                             )
@@ -1292,7 +1319,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method circumfix:sym<{ }>($/) {
-        self.attach: $/, $<pblock>.ast.block-or-hash;
+        self.attach: $/, $<pointy-block>.ast.block-or-hash;
     }
 
     method circumfix:sym<ang>($/) { self.attach: $/, $<nibble>.ast; }
@@ -1410,7 +1437,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<lambda>($/) {
-        self.attach: $/, $<pblock>.ast;
+        self.attach: $/, $<pointy-block>.ast;
     }
 
     method term:sym<value>($/) {

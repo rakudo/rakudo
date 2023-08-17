@@ -665,12 +665,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.lang-setup($outer-cu)>  # set the above variables
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
-        <load_command_line_modules>
-        <statementlist=.key-origin('FOREIGN_LANG', $*MAIN, 'statementlist')>
+        <.load-M-modules>
+        <statementlist=.key-origin('FOREIGN-LANG', $*MAIN, 'statementlist')>
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         { $*R.leave-scope() }
     }
 
+    # The ByteOrderMarker
     token bom { \xFEFF }
 
     rule lang-setup($*OUTER-CU) {
@@ -678,174 +679,214 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <.ws>? 'use' <version> ';'? ]?
     }
 
-    rule load_command_line_modules {
-        <?>
-    }
+    # Helper rule to run the associated action to load any modules
+    # specified with -M
+    rule load-M-modules { <?> }
 
-    # This is like HLL::Grammar.LANG but it allows to call a token of a Raku level grammar.
-    method FOREIGN_LANG($langname, $regex) {
+    # This is like HLL::Grammar.LANG but it allows to call a token of a
+    # Raku level grammar.
+    method FOREIGN-LANG($langname, $regex) {
         my $grammar := self.slang_grammar($langname);
         if nqp::istype($grammar, NQPMatch) {
             self.LANG($langname, $regex);
         }
         else {
-            nqp::die('FOREIGN_LANG non-NQP branch NYI')
+            nqp::die('FOREIGN-LANG non-NQP branch NYI')
         }
     }
 
-    ##
-    ## Statements
-    ##
+#-------------------------------------------------------------------------------
+# Statement level parsing
 
+    # Parsing zero or more statements, e.g. inside a (pointy) block
     rule statementlist {
         :dba('statement list')
         <.ws>
-        # Define this scope to be a new language.
-        :my $*LANG;
+        :my $*LANG;              # Define this scope to be a new language
         <!!{ $*LANG := $/.clone_braid_from(self); 1 }>
         [
-        | $
-        | <?before <.[\)\]\}]>>
-        | [ <statement=.key-origin('statement')> <.eat-terminator> ]*
+          | $                                       # the end of code
+          | <?before <.[\)\]\}]>>                   # or bumping into ) ] }
+          | [
+              <statement=.key-origin('statement')>  # or statement with tracking
+              <.eat-terminator>                     # until any terminator
+            ]*
         ]
-        <.set_braid_from(self)>   # any language tweaks must not escape
+        <.set_braid_from(self)>  # Language tweaks must not escape
         <!!{ nqp::rebless($/, self.WHAT); 1 }>
     }
 
+    # Parsing zero or more statements in an expression, e.g @a[10;20]
     rule semilist {
         :dba('list composer')
         ''
         [
-        | <?before <.[)\]}]> >
-        | [<statement><.eat-terminator> ]*
+          | <?before <.[)\]}]> >  # bumping into  ) ] }
+          | [
+              <statement>         # or the statement (without origin tracking)
+              <.eat-terminator>   # until any terminator
+            ]*
         ]
     }
 
+    # Parsing zero or more statements in a contextualizer, e.g $(10;20)
     rule sequence {
         :dba('sequence of statements')
         ''
         [
-        | <?before <.[)\]}]> >
-        | [<statement><.eat-terminator> ]*
+          | <?before <.[)\]}]> >  # bumping into  ) ] }
+          | [
+              <statement>         # or the statement (without origin tracking)
+              <.eat-terminator>   # until any terminator
+            ]*
         ]
     }
 
+    # Parsing an actual Raku statement
     token statement {
-        :my $*QSIGIL := '';
-        :my $*SCOPE := '';
-        :my $*STATEMENT-ID := ++$*NEXT-STATEMENT-ID;
+        :my $*QSIGIL       := '';                          # init quote lang
+        :my $*SCOPE        := '';                          # init scope type
+        :my $*STATEMENT-ID := ++$*NEXT-STATEMENT-ID;       # set statement ID
+        :my $actions       := self.slang_actions('MAIN');  # shortcut to actions
 
-        :my $actions := self.slang_actions('MAIN');
         <!!{ $/.set_actions($actions); 1 }>
         <!before <.[\])}]> | $ >
         #<!stopper>
         <!!{ nqp::rebless($/, self.slang_grammar('MAIN')); 1 }>
 
         [
-        | <label> <statement>
-        | <statement-control>
-        | <EXPR> :dba('statement end')
+          | <label> <statement>
+          | <statement-control>
+          | <EXPR> :dba('statement end')
             [
-            || <?MARKED('endstmt')>
-            || :dba('statement modifier') <.ws> <statement-mod-cond> <statement-mod-loop>?
-            || :dba('statement modifier loop') <.ws> <statement-mod-loop>
-                {
-                    my $sp := $<EXPR><statement-prefix>;
-                    if $sp && $sp<sym> eq 'do' {
-                        my $s := $<statement-mod-loop><sym>;
-                        $/.obs("do..." ~ $s, "repeat...while or repeat...until")
-                          unless $*LANG.pragma('p5isms');
-                    }
-                }
+              || <?MARKED('endstmt')>
+              || :dba('statement modifier')
+                 <.ws>
+                 <statement-mod-cond>
+                 <statement-mod-loop>?
+              || :dba('statement modifier loop')
+                 <.ws>
+                 <statement-mod-loop>
+                 {
+                     unless $*LANG.pragma('p5isms') {
+                         my $sp := $<EXPR><statement-prefix>;
+                         $/.obs(
+                           "do..." ~ $<statement-mod-loop><sym>,
+                           "repeat...while or repeat...until"
+                         ) if $sp && $sp<sym> eq 'do';
+                     }
+                 }
             ]?
-        | <?[;]>
-        #| <?stopper>
-        | {} <.panic: "Bogus statement">
+          | <?[;]>
+          #| <?stopper>
+          | {} <.panic: "Bogus statement">
         ]
     }
 
+    # Parsing a statement label
     token label {
         <identifier> ':' <?[\s]> <.ws>
     }
 
+    # Helper token to parse until the end of a statement
     token eat-terminator {
-        || ';'
-        || <?MARKED('endstmt')> <.ws>
-        || <?before ')' | ']' | '}' >
-        || $
-        || <?stopper>
-        || <?before [if|while|for|loop|repeat|given|when] » > { $/.'!clear_highwater'(); self.typed_panic( 'X::Syntax::Confused', reason => "Missing semicolon" ) }
-        || { $/.typed_panic('X::Syntax::Confused') }
+        || ';'                         # a real end of statement
+        || <?MARKED('endstmt')> <.ws>  # OR XXX
+        || <?before <.[)\]}]> >        # OR bumping into  ) ] }
+        || $                           # OR end of text
+        || <?stopper>                  # OR XXX
+        || <?before [                  # OR looks like leaking into next
+             for | if | for | given | loop | repeat | when | while
+           ] » >
+           {
+               $/.'!clear_highwater'();
+               $/.typed_panic( 'X::Syntax::Confused',
+                 reason => "Missing semicolon" );
+           }
+        || {                           # OR give up
+               $/.typed_panic('X::Syntax::Confused')
+           }
     }
 
-    token pblock {
+    # Helper token to match the start of a pointy block
+    token pointy-block-starter { '->' | '→' | '<->' | '↔' }
+
+    # Parsing a (pointy) block
+    token pointy-block {
         :dba('block or pointy block')
-        :my $borg := $*BORG;
+        :my $borg := $*BORG;                        # keep current context
         :my $has_mystery := 0; # TODO
-        { $*BORG := {} }
-        :my $*BLOCK;
+        { $*BORG := {} }                            # initialize new context
+        :my $*BLOCK;                                # localize block to here
         [
-        | <lambda>
-          :my $*GOAL := '{';
-          <.enter-block-scope('PointyBlock')>
-          <signature>
-          <blockoid>
-          <.leave-block-scope>
-        | <?[{]>
-          <.enter-block-scope('Block')>
-          <blockoid>
-          <.leave-block-scope>
-        || <.missing-block($borg, $has_mystery)>
+          | <.pointy-block-starter>                 # block with signature
+            :my $*GOAL := '{';
+            <.enter-block-scope('PointyBlock')>
+            <signature>
+            <blockoid>
+            <.leave-block-scope>
+          | <?[{]>                                  # block without signature
+            <.enter-block-scope('Block')>
+            <blockoid>
+            <.leave-block-scope>
+          || <.missing-block($borg, $has_mystery)>  # OR give up
         ]
     }
 
+    # Parsing a block *without* a signature (e.g. phasers)
     token block {
         :dba('scoped block')
-        :my $borg := $*BORG;
+        :my $borg := $*BORG;                        # keep current context
         :my $has_mystery := 0; # TODO
-        { $*BORG := {} }
-        :my $*BLOCK;
+        { $*BORG := {} }                            # initialize new context
+        :my $*BLOCK;                                # localize block to here
         [
-        || <?[{]>
-           <.enter-block-scope('Block')>
-           <blockoid>
-           <.leave-block-scope>
-        || <.missing-block($borg, $has_mystery)>
+          || <?[{]>                                 # block without signature
+             <.enter-block-scope('Block')>
+             <blockoid>
+             <.leave-block-scope>
+          || <.missing-block($borg, $has_mystery)>  # OR give up
         ]
     }
 
+    # Parsing the statements between { }
     token blockoid {
-        :my $borg := $*BORG;
+        :my $borg := $*BORG;                        # keep current context
         :my $has_mystery := 0; # TODO
         :my $*MULTINESS := '';
         :my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
         :my @*ORIGIN-NESTINGS := [];
-        { $*BORG := {} }
+        { $*BORG := {} }                            # initialize new context
         [
-        | '{YOU_ARE_HERE}' <you_are_here>
-        | :dba('block')
-          '{'
-          <statementlist=.key-origin('statementlist')>
-          [<.cheat-heredoc> || '}']
-          <?ENDSTMT>
-        || <.missing-block($borg, $has_mystery)>
+          | '{YOU_ARE_H§ERE}' <you_are_here>        # TODO core setting
+          | :dba('block')
+            '{'                                     # actual block start
+            <statementlist=.key-origin('statementlist')>
+            [<.cheat-heredoc> || '}']               # actual block end
+            <?ENDSTMT>                              # XXX
+          || <.missing-block($borg, $has_mystery)>  # OR give up
         ]
     }
 
+    # Parsing any unit scoped block (either package or sub)
     token unit-block($decl) {
         :my $*BLOCK;
-        {
+        {                                           # entry check
             unless $*SCOPE eq 'unit' {
                 $/.panic("Semicolon form of '$decl' without 'unit' is illegal. You probably want to use 'unit $decl'");
             }
         }
-        { $*IN-DECL := ''; }
+        { $*IN-DECL := ''; }                        # not inside declaration
         <.enter-block-scope('Block')>
         <statementlist=.key-origin('statementlist')>
         <.leave-block-scope>
     }
 
+    # Helper token to set the kind of scope a block is in, *and* have
+    # any appropriate actions executed on them
     token enter-block-scope($*SCOPE-KIND) { <?> }
+
+    # Helper token to make the actions handle the end of a scope
     token leave-block-scope() { <?> }
 
 #-------------------------------------------------------------------------------
@@ -864,21 +905,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
-        <pblock>
+        <pointy-block>
     }
     rule statement-control:sym<when> {
         <sym><.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
-        <pblock>
+        <pointy-block>
     }
     rule statement-control:sym<while> {
         $<sym>=[while|until]<.kok> {}
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
-        <pblock>
+        <pointy-block>
     }
 
     # Control statements that take a pointy block without else/elsif/orwith
@@ -887,7 +928,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
-        <pblock>
+        <pointy-block>
         [ <!before [els[e|if]|orwith]» >
             || $<wrong-keyword>=[els[e|if]|orwith]» {}
                 <.typed_panic: 'X::Syntax::UnlessElse',
@@ -900,7 +941,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
-        <pblock>
+        <pointy-block>
         [ <!before [els[e|if]|orwith]» >
             || $<wrong-keyword>=[els[e|if]|orwith]» {}
                 <.typed_panic: 'X::Syntax::WithoutElse',
@@ -915,19 +956,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*GOAL := '{';
         :my $*BORG := {};
         <condition=.EXPR>
-        <then=.pblock>
+        <then=.pointy-block>
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
             | 'elif' { $/.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
-            | $<sym>='elsif' <condition=.EXPR> <then=.pblock>
-            | $<sym>='orwith' <condition=.EXPR> <then=.pblock>
+            | $<sym>='elsif' <condition=.EXPR> <then=.pointy-block>
+            | $<sym>='orwith' <condition=.EXPR> <then=.pointy-block>
             ]
         ]*
         {}
         [
             'else'
-            <else=.pblock>
+            <else=.pointy-block>
         ]?
     }
 
@@ -941,7 +982,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
-        <pblock>
+        <pointy-block>
     }
 
     # Handle repeat ... while | until
@@ -952,8 +993,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           :my $*GOAL := '{';
           :my $*BORG := {};
           <EXPR>
-          <pblock>
-        | <pblock>
+          <pointy-block>
+        | <pointy-block>
           [$<wu>=['while'|'until']<.kok> || <.missing('"while" or "until"')>]
           <EXPR>
         ]
@@ -970,7 +1011,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*WHENEVER-COUNT++ }
         :my $*GOAL := '{';
         :my $*BORG := {};
-        <EXPR> <pblock>
+        <EXPR> <pointy-block>
     }
 
     # Handle basic loop / C-style loop
@@ -1238,7 +1279,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('infix stopper')
         [
         | <?before '!!'> <?{ $*GOAL eq '!!' }>
-        | <?before '{' | <.lambda> > <?MARKED('ws')> <?{ $*GOAL eq '{' || $*GOAL eq 'endargs' }>
+        | <?before '{' | <.pointy-block-starter> > <?MARKED('ws')> <?{ $*GOAL eq '{' || $*GOAL eq 'endargs' }>
         ]
     }
 
@@ -1808,8 +1849,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token circumfix:sym<{ }> {
         :my $*FAKE-INFIX-FOUND := 0;
-        <?[{]> <pblock>
-        { $*BORG<block> := $<pblock> }
+        <?[{]> <pointy-block>
+        { $*BORG<block> := $<pointy-block> }
     }
 
     token circumfix:sym<ang> {
@@ -1951,7 +1992,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<statement-prefix>   { <statement-prefix> }
     token term:sym<*>                  { <sym> }
     token term:sym<**>                 { <sym> }
-    token term:sym<lambda>             { <?lambda> <pblock> {$*BORG<block> := $<pblock> } }
+    token term:sym<lambda>             { <?pointy-block-starter> <pointy-block> {$*BORG<block> := $<pointy-block> } }
     token term:sym<type-declarator>    { <type-declarator> }
     token term:sym<value>              { <value> }
 
@@ -3330,8 +3371,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token twigil:sym<?> { <sym> <?before \w> }
     token twigil:sym<=> { <sym> <?before \w> }
     token twigil:sym<~> { <sym> <?before \w> }
-
-    token lambda { '->' | '→' | '<->' | '↔' }
 
     token end-keyword {
         » <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]>

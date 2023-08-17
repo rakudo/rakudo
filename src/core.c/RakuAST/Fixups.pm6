@@ -220,9 +220,22 @@ my class RakuAST::Doc::Row is RakuAST::Node {
     }
 
     multi method raku(RakuAST::Doc::Row:D:) {
-        RakuAST::Node.^find_private_method('nameds')(
-          self, <column-dividers column-offsets cells>
-        )
+        my sub nameds() {
+            RakuAST::Node.^find_private_method('nameds')(
+              self, <column-dividers column-offsets cells>
+            )
+        }
+
+        # No $*INDENT yet
+        if nqp::istype($*INDENT,Failure) {
+            my $*INDENT = "";
+            nameds;
+        }
+
+        # has an $*INDENT already
+        else {
+            nameds;
+        }
     }
 
     multi method Str(RakuAST::Doc::Row:D:) {

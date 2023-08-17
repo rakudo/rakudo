@@ -1430,7 +1430,7 @@ class RakuAST::ModuleLoading {
             my @to-import := ['MANDATORY'];
             my @positional-imports;
             if nqp::isconcrete($arglist) {
-                my $Pair := $resolver.resolve-lexical-constant-in-setting('Pair').compile-time-value;
+                my $Pair := $resolver.setting-constant('Pair');
                 for $arglist -> $tag {
                     if nqp::istype($tag, $Pair) {
                         my str $tag-name := nqp::unbox_s($tag.key);

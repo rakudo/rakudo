@@ -182,9 +182,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # default language revision.
             else {
                 $R.set-setting(:setting-name($setting-name));
-                $language-revision := nqp::unbox_i(
-                  $R.resolve-lexical-constant-in-setting('CORE-SETTING-REV').compile-time-value
-                );
+                $language-revision :=
+                  nqp::unbox_i($R.setting-constant('CORE-SETTING-REV'));
                 $HLL-COMPILER.set_language_revision($language-revision);
             }
         }
@@ -199,7 +198,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
             # Globbed version needs a bit of research needs to be done first.
             if nqp::index($version,'*') >= 0 || nqp::index($version,'+') >= 0 {
-                my $Version := $R.resolve-lexical-constant-in-setting('Version').compile-time-value;
+                my $Version := $R.setting-constant('Version');
                 my $ver-requested := $Version.new(
                   $HLL-COMPILER.lvs.from-public-repr($version, :as-str)
                 );
@@ -227,8 +226,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
 
                 # Are there any easier way to unbox boxable types?
-                my $Int := $R.resolve-lexical-constant-in-setting('Int').compile-time-value;
-                my $Str := $R.resolve-lexical-constant-in-setting('Str').compile-time-value;
+                my $Int := $R.setting-constant('Int');
+                my $Str := $R.setting-constant('Str');
                 my @can-parts := nqp::getattr($can-version, $Version, '$!parts');
                 for @can-parts -> $part {
                     @final-version.push:

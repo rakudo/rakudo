@@ -346,6 +346,15 @@ class RakuAST::Resolver {
         Nil
     }
 
+    # Helper method for grammar / actions to quickly access any type from
+    # the setting.
+    method setting-constant(Str $name) {
+        nqp::isconcrete(
+          my $resolved := self.resolve-lexical-constant-in-setting($name)
+        ) ?? $resolved.compile-time-value
+          !! $resolved
+    }
+
     # Helper method to resolve a lexical in given context. The declaration
     # must have a compile-time value.
     method resolve-lexical-constant-in-context(Mu $context, Str $name) {

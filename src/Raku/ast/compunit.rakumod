@@ -284,9 +284,9 @@ class RakuAST::CompUnit
 
     method ensure-singleton-whatever(RakuAST::Resolver $resolver) {
         unless nqp::isconcrete($!singleton-whatever) {
-            my $Whatever := $resolver.resolve-lexical-constant-in-setting('Whatever');
-            nqp::bindattr(self, RakuAST::CompUnit, '$!singleton-whatever',
-                nqp::create($Whatever.compile-time-value));
+            nqp::bindattr(self,RakuAST::CompUnit,'$!singleton-whatever',
+              nqp::create($resolver.setting-constant('Whatever'))
+            );
         }
         Nil
     }
@@ -295,9 +295,9 @@ class RakuAST::CompUnit
 
     method ensure-singleton-hyper-whatever(RakuAST::Resolver $resolver) {
         unless nqp::isconcrete($!singleton-hyper-whatever) {
-            my $HyperWhatever := $resolver.resolve-lexical-constant-in-setting('HyperWhatever');
-            nqp::bindattr(self, RakuAST::CompUnit, '$!singleton-hyper-whatever',
-                nqp::create($HyperWhatever.compile-time-value));
+            nqp::bindattr(self,RakuAST::CompUnit,'$!singleton-hyper-whatever',
+              nqp::create($resolver.setting-constant('HyperWhatever'))
+            );
         }
         Nil
     }
@@ -670,9 +670,9 @@ class RakuAST::LiteralBuilder {
     # Build a Rat constant from integer numerator / denominator
     method build-rat(Mu $numerator, Mu $denominator) {
         unless $!has-cached-rat {
-            nqp::bindattr(self, RakuAST::LiteralBuilder, '$!cached-rat',
-              $!resolver.resolve-lexical-constant-in-setting('Rat').compile-time-value);
-            nqp::bindattr_i(self, RakuAST::LiteralBuilder, '$!has-cached-rat', 1);
+            nqp::bindattr(self,RakuAST::LiteralBuilder,'$!cached-rat',
+              $!resolver.setting-constant('Rat'));
+            nqp::bindattr_i(self,RakuAST::LiteralBuilder,'$!has-cached-rat',1);
         }
         $!cached-rat.new($numerator, $denominator)
     }
@@ -695,8 +695,8 @@ class RakuAST::LiteralBuilder {
         # Produce the Complex object.
         unless $!has-cached-complex {
             nqp::bindattr(self, RakuAST::LiteralBuilder, '$!cached-complex',
-              $!resolver.resolve-lexical-constant-in-setting('Complex').compile-time-value);
-            nqp::bindattr_i(self, RakuAST::LiteralBuilder, '$!has-cached-complex', 1);
+              $!resolver.setting-constant('Complex'));
+            nqp::bindattr_i(self,RakuAST::LiteralBuilder,'$!has-cached-complex',1);
         }
         $!cached-complex.new($real, $imaginary)
     }

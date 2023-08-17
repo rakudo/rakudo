@@ -662,7 +662,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*COMPILING_CORE_SETTING := 0;
         :my $*NEXT-STATEMENT-ID := 0;  # to give each statement an ID
         :my $*START-OF-COMPUNIT := 1;  # flag: start of a compilation unit?
-        <.lang_setup($outer-cu)>  # set the above variables
+        <.lang-setup($outer-cu)>  # set the above variables
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
         <load_command_line_modules>
@@ -673,7 +673,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token bom { \xFEFF }
 
-    rule lang_setup($*outer-cu) {
+    rule lang-setup($*OUTER-CU) {
         # TODO validate this and pay attention to it in actions
         [ <.ws>? 'use' <version> ';'? ]?
     }

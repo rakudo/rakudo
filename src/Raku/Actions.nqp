@@ -145,25 +145,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
              );
     }
 
-    method lang_setup($/) {
-        # Calculate the setting name to use.
-        # TODO don't hardcode this
-        my $name := 'CORE';
-        my $comp := $*HLL-COMPILER;
-        my $language-revision := $comp.language_revision;
+    method lang-setup($/) {
+        # Look up these dynamic vars only once
+        my $HLL-COMPILER := $*HLL-COMPILER;
+        my %OPTIONS      := %*OPTIONS;
+        my $LANG         := $*LANG;
+        my $R            := $*R;
 
-        # Set up the resolver.
+        # Some shortcuts;
+        my $language-revision := $HLL-COMPILER.language_revision;
+        my $is-EVAL           := nqp::isconcrete(%OPTIONS<outer_ctx>);
+        my $setting-name      := %OPTIONS<setting>;
 
-        my %options := %*OPTIONS;
-        my $outer_ctx := %options<outer_ctx>;
-        my $setting-name := %options<setting>;
-        my $has-outer := nqp::isconcrete($outer_ctx);
-        my $precompilation-mode := %options<precomp>;
-        if $has-outer {
+        # Helper sub to configure the resolver with selected language revision
+        my sub resolver-from-revision() {
+            $setting-name := 'CORE.' ~ $HLL-COMPILER.lvs.p6rev($language-revision);
+            $R.set-setting(:$setting-name);
         }
-        elsif $setting-name {
+
+        # Not EVALling and explicit setting requested
+        if $setting-name && !$is-EVAL {
+            # TODO This branch is for when we start compiling the CORE.
             if nqp::eqat($setting-name, 'NULL.', 0) {
-                # TODO This branch is for when we start compiling the CORE.
                 $*COMPILING_CORE_SETTING := 1;
                 if $setting-name ne 'NULL.c' {
                     my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
@@ -174,37 +177,41 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     nqp::die("Can't compiler CORE.c yet");
                 }
             }
+
+            # Setting name is explicitly set. Use it to determine the
+            # default language revision.
             else {
-                # Setting name is explicitly set. Use it to determine the default language revision.
-                $*R.set-setting(:setting-name($setting-name));
+                $R.set-setting(:setting-name($setting-name));
                 $language-revision := nqp::unbox_i(
-                    $*R.resolve-lexical-constant-in-setting('CORE-SETTING-REV').compile-time-value );
-                $comp.set_language_revision($language-revision);
+                  $R.resolve-lexical-constant-in-setting('CORE-SETTING-REV').compile-time-value
+                );
+                $HLL-COMPILER.set_language_revision($language-revision);
             }
         }
 
-        my sub resolver-from-revision() {
-            $setting-name := 'CORE.' ~ $comp.lvs.p6rev($language-revision);
-            $*R.set-setting(:$setting-name);
-        }
-
+        # Seen a -use vxxx- statement
         if $<version> {
-            my $version := ~$<version>;
-            my @vparts := $comp.lvs.from-public-repr($version);
+            my $version        := ~$<version>;
+            my @vparts         := $HLL-COMPILER.lvs.from-public-repr($version);
+            my %lang-revisions := $HLL-COMPILER.language_revisions;
             my @final-version;
-            my %lang-revisions := $comp.language_revisions;
             my $modifier-deprecated;
 
-            if nqp::index($version, '*') >= 0 || nqp::index($version, '+') >= 0 {
-                # For a globbed version a bit of research needs to be done first.
-                my $Version := $*R.resolve-lexical-constant-in-setting('Version').compile-time-value;
-                my $ver-requested := $Version.new($comp.lvs.from-public-repr($version, :as-str));
-                my @can-versions := $comp.can_language_versions;
+            # Globbed version needs a bit of research needs to be done first.
+            if nqp::index($version,'*') >= 0 || nqp::index($version,'+') >= 0 {
+                my $Version := $R.resolve-lexical-constant-in-setting('Version').compile-time-value;
+                my $ver-requested := $Version.new(
+                  $HLL-COMPILER.lvs.from-public-repr($version, :as-str)
+                );
+                my @can-versions := $HLL-COMPILER.can_language_versions;
                 my $can-version;
                 my $i := nqp::elems(@can-versions);
-                # Iterate over the version candidates from higher to lower ones, skip these that don't match the
-                # requested version glob, and these without a modifier but one is required. Like 6.e would be a valid
-                # version in the future, but for now it has to be 6.e.PREVIEW.
+
+                # Iterate over the version candidates from higher to lower
+                # ones, skip these that don't match the requested version
+                # glob, and these without a modifier but one is required.
+                # Like 6.e would be a valid version in the future, but for
+                # now it has to be 6.e.PREVIEW.
                 while --$i >= 0 {
                     $can-version := $Version.new(@can-versions[$i]);
                     next unless $ver-requested.ACCEPTS($can-version);
@@ -220,8 +227,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
 
                 # Are there any easier way to unbox boxable types?
-                my $Int := $*R.resolve-lexical-constant-in-setting('Int').compile-time-value;
-                my $Str := $*R.resolve-lexical-constant-in-setting('Str').compile-time-value;
+                my $Int := $R.resolve-lexical-constant-in-setting('Int').compile-time-value;
+                my $Str := $R.resolve-lexical-constant-in-setting('Str').compile-time-value;
                 my @can-parts := nqp::getattr($can-version, $Version, '$!parts');
                 for @can-parts -> $part {
                     @final-version.push:
@@ -235,10 +242,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                                                 ~ $part.HOW.name($part) ~ "' type");
                 }
             }
+            # A non-globbed version can be used as-is, make sure it is valid
             else {
-                # A non-globbed version can be used as-is, just make sure it is a valid one.
                 my $revision := @vparts[0];
-                # Consider version to have a language modifier if the last part of is a string of non-zero length.
+                # Consider version to have a language modifier if the last
+                # part of is a string of non-zero length.
                 my $modifier := @vparts > 1 && nqp::objprimspec(@vparts[-1]) == 3
                     ?? @vparts[-1]
                     !! nqp::null();
@@ -257,61 +265,75 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $<version>.typed_panic('X::Language::ModRequired', :$version, :modifier(%lang-revisions{$revision}<require>))
                 }
 
+                # We can't issue a worry immediately because the current resolver is temporary.
                 if $modifier && %lang-revisions{$revision}<mods>{$modifier}<deprecate> {
-                    # We can't issue a worry immediately because the current resolver is temporary.
                     $modifier-deprecated := $modifier;
                 }
 
                 @final-version := @vparts;
             }
 
-            $comp.set_language_version(@final-version);
+            $HLL-COMPILER.set_language_version(@final-version);
             $language-revision := @final-version[0];
             resolver-from-revision();
 
             # Now the resolver is final, express our modifier concern!
             if $modifier-deprecated {
                 # At this point our compiler version is final.
-                $<version>.worry: "$modifier-deprecated modifier is deprecated for Raku v" ~ $comp.language_version();
+                $<version>.worry: "$modifier-deprecated modifier is deprecated for Raku v" ~ $HLL-COMPILER.language_version();
             }
         }
-        elsif !$has-outer {
+
+        # No version seen and not in an EVAL
+        elsif !$is-EVAL {
             resolver-from-revision();
         }
 
         # Locate an EXPORTHOW and set those mappings on our current language.
         my $EXPORTHOW :=
-          $*R.resolve-lexical-constant('EXPORTHOW').compile-time-value;
+          $R.resolve-lexical-constant('EXPORTHOW').compile-time-value;
         for stash-hash($EXPORTHOW) {
-            $*LANG.set_how($_.key, $_.value);
+            $LANG.set_how($_.key, $_.value);
         }
 
-        my $package-how := $*LANG.how('package');
+        my $package-how    := $LANG.how('package');
         my $export-package := $package-how.new_type(name => 'EXPORT');
         $export-package.HOW.compose($export-package);
-
-        $*R.set-export-package($export-package);
+        $R.set-export-package($export-package);
         $*EXPORT := $export-package;
 
         # Create a compilation unit.
-        my $file := $*ORIGIN-SOURCE.original-file();
-        if nqp::isconcrete($outer_ctx) {
-            # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
-            my $comp-unit-name := nqp::sha1($file ~ $/.target() ~ next-id());
-            $*CU := Nodify('CompUnit').new( :$comp-unit-name, :$setting-name, :eval, :$*outer-cu, :$language-revision);
-        }
-        else {
-            # Top-level compilation. Create a GLOBAL using the correct package meta-object.
-            my $comp-unit-name := nqp::sha1($file ~ $/.target());
-            $*CU := Nodify('CompUnit').new(:$comp-unit-name, :$setting-name,
-                :global-package-how($package-how), :$precompilation-mode,
-                :$export-package, :$language-revision);
-            my $global := $*CU.generated-global;
-            $*R.set-global($global);
-            nqp::bindhllsym('Raku', 'GLOBAL', $global);
+        my $comp-unit-name := $*ORIGIN-SOURCE.original-file ~ $/.target;
+
+        # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
+        if $is-EVAL {
+            $*CU := Nodify('CompUnit').new(
+              :comp-unit-name($comp-unit-name ~ next-id),  # uniqify
+              :$setting-name,
+              :eval,
+              :outer-cu($*OUTER-CU),
+              :$language-revision
+            );
         }
 
-        $*LITERALS.set-resolver($*R);
+        # Top-level compilation.
+        else {
+            $*CU := Nodify('CompUnit').new(
+              :$comp-unit-name,
+              :$setting-name,
+              :global-package-how($package-how),
+              :precompilation-mode(%OPTIONS<precomp>),
+              :$export-package,
+              :$language-revision
+            );
+
+            # Create a GLOBAL using the correct package meta-object.
+            my $global := $*CU.generated-global;
+            $R.set-global($global);
+            nqp::bindhllsym('Raku','GLOBAL',$global);
+        }
+
+        $*LITERALS.set-resolver($R);
     }
 
     method comp-unit($/) {

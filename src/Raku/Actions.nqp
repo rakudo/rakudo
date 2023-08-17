@@ -587,69 +587,61 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 #-------------------------------------------------------------------------------
 # Statement control
 
+    # Helper method for control statements taking a block without any
+    # intervening expression
+    method takes-none($/, $name) {
+        self.attach: $/, Nodify('Statement',$name).new(body => $<block>.ast);
+    }
+
+    # Helper method for control statements taking a source and a pointy
+    # block
+    method takes-source($/, $name) {
+        self.attach: $/, Nodify('Statement',$name).new(
+          source => $<EXPR>.ast, body => $<pointy-block>.ast
+        );
+    }
+
+    # Helper method for conditional statements taking a condition and
+    # a pointy block
+    method takes-cond($/, $name) {
+        self.attach: $/, Nodify('Statement',$name).new(
+          condition => $<EXPR>.ast, body => $<pointy-block>.ast
+        );
+    }
+
+    # Helper method for looping statements taking a condition and
+    # a pointy block
+    method takes-loop($/, $name) {
+        self.attach: $/, Nodify('Statement','Loop',$name).new(
+          condition => $<EXPR>.ast, body => $<pointy-block>.ast
+        );
+    }
+
     # Handling of simple control statements that take a block
-    method statement-control:sym<default>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'Default').new(body => $<block>.ast);
-    }
-
-    method statement-control:sym<CATCH>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'Catch').new(body => $<block>.ast);
-    }
-
-    method statement-control:sym<CONTROL>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'Control').new(body => $<block>.ast);
-    }
+    method statement-control:sym<default>($/) { self.takes-none($/,'Default') }
+    method statement-control:sym<CATCH>($/)   { self.takes-none($/,'Catch')   }
+    method statement-control:sym<CONTROL>($/) { self.takes-none($/,'Control') }
 
     # Handling of simple control statements that take a pointy block
-    method statement-control:sym<for>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'For').new:
-            source => $<EXPR>.ast, body => $<pointy-block>.ast;
-    }
+    method statement-control:sym<for>($/)   { self.takes-source($/,'For')   }
+    method statement-control:sym<given>($/) { self.takes-source($/,'Given') }
+    method statement-control:sym<unless>($/)  { self.takes-cond($/,'Unless')  }
+    method statement-control:sym<when>($/)    { self.takes-cond($/,'When')    }
+    method statement-control:sym<without>($/) { self.takes-cond($/,'Without') }
 
-    method statement-control:sym<given>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'Given').new:
-            source => $<EXPR>.ast, body => $<pointy-block>.ast;
-    }
-
+    # Handling of all forms of loops
     method statement-control:sym<repeat>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'Loop', 'Repeat' ~ nqp::tclc(~$<wu>)).new:
-            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
+        self.takes-loop($/, 'Repeat' ~ nqp::tclc(~$<wu>))
+    }
+    method statement-control:sym<while>($/) {
+        self.takes-loop($/, nqp::tclc(~$<sym>))
     }
 
-    method statement-control:sym<unless>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'Unless').new:
-            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
-    }
-
-    method statement-control:sym<when>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'When').new:
-            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
-    }
-
+    # Handling of whenever
     method statement-control:sym<whenever>($/) {
         self.attach: $/,
           Nodify('Statement', 'Whenever').new:
             trigger => $<EXPR>.ast, body => $<pointy-block>.ast;
-    }
-
-    method statement-control:sym<while>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'Loop', nqp::tclc(~$<sym>)).new:
-            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
-    }
-
-    method statement-control:sym<without>($/) {
-        self.attach: $/,
-          Nodify('Statement', 'Without').new:
-            condition => $<EXPR>.ast, body => $<pointy-block>.ast;
     }
 
     # Dummy control statement to set a trait on a target
@@ -666,24 +658,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    # Basic if / with handling
+    # Basic if / with handling with all of the elsifs / orelses
     method statement-control:sym<if>($/) {
-        my $condition := $<condition>[0].ast;
-        my $then := $<then>[0].ast;
+
+        # collect the if and all of the elsifs / orelses
         my @elsifs;
         my $index := 0;
         for $<sym> {
-            if $index > 0 {
-                @elsifs.push:
-                  Nodify('Statement', nqp::tclc(~$_)).new:
-                    condition => $<condition>[$index].ast,
-                    then      => $<then>[$index].ast;
-            }
+            @elsifs.push:
+              Nodify('Statement', nqp::tclc(~$_)).new:
+                condition => $<condition>[$index].ast,
+                then      => $<then>[$index].ast;
             ++$index;
         }
-        my $else := $<else> ?? $<else>.ast !! Nodify('Block');
-        self.attach: $/, Nodify('Statement', nqp::tclc(~$<sym>[0])).new:
-            :$condition, :$then, :@elsifs, :$else;
+
+        # the first is the main part, add others if appropriate
+        my $ast := @elsifs.shift;
+        $ast.set-elsifs(@elsifs)   if @elsifs;
+        $ast.set-else($<else>.ast) if $<else>;
+        self.attach: $/, $ast;
     }
 
     # Basic loop handling
@@ -2959,7 +2952,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     $config{$key} := $var.ast;
                 }
                 else {                             # :!bar | :bar
-                    $config{$key} := 
+                    $config{$key} :=
                       Nodify('Term', $<neg> ?? 'False' !! 'True').new;
                 }
             }

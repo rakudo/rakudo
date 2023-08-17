@@ -110,6 +110,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     my $lock  := NQPLock.new;
     sub next-id() { $lock.protect({ ++$count }) }
 
+    # Given a package, returns a low-level hash for its stash
+    sub stash-hash($package) {
+        my $hash := $package.WHO;
+        nqp::ishash($hash)
+          ?? $hash
+          !! $hash.FLATTENABLE_HASH
+    }
+
     # Perform all actions that are needed before any actual parsing can
     # be done by a grammar.
     method comp-unit-prologue($/) {
@@ -177,7 +185,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my sub resolver-from-revision() {
             $setting-name := 'CORE.' ~ $comp.lvs.p6rev($language-revision);
-            $*R.set-setting(:setting-name($setting-name));
+            $*R.set-setting(:$setting-name);
         }
 
         if $<version> {
@@ -272,8 +280,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         # Locate an EXPORTHOW and set those mappings on our current language.
-        my $EXPORTHOW := $*R.resolve-lexical-constant('EXPORTHOW').compile-time-value;
-        for stash_hash($EXPORTHOW) {
+        my $EXPORTHOW :=
+          $*R.resolve-lexical-constant('EXPORTHOW').compile-time-value;
+        for stash-hash($EXPORTHOW) {
             $*LANG.set_how($_.key, $_.value);
         }
 
@@ -303,14 +312,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         $*LITERALS.set-resolver($*R);
-    }
-
-    sub stash_hash($pkg) {
-        my $hash := $pkg.WHO;
-        unless nqp::ishash($hash) {
-            $hash := $hash.FLATTENABLE_HASH();
-        }
-        $hash
     }
 
     method comp-unit($/) {
@@ -386,7 +387,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement($/) {
         my $trace := $/.pragma('trace') ?? 1 !! 0;
         # statement ID needs to be captured before creation of statement object
-        my $statement-id := $*STATEMENT_ID;
+        my $statement-id := $*STATEMENT-ID;
         my $statement;
 
         if $<EXPR> {

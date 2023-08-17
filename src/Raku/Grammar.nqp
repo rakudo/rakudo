@@ -591,9 +591,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LASTQUOTE := [0,0];     # for runaway quote detection
         my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
         my $*BORG := {};             # who gets blamed for a missing block
-        my $*ORIGIN-SOURCE;          # where we get source code information from
-        my @*ORIGIN-NESTINGS := [];  # this will be used for the CompUnit object
-        my $*COMPILING_CORE_SETTING := 0;
 
         # -1 indicates we're outside of any "supply" or "react" block
         my $*WHENEVER-COUNT := -1;
@@ -641,25 +638,31 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token comp-unit-prologue { <?> }
 
     token comp-unit($outer-cu) {
-        <.bom>?
+        <.bom>?  # ignore any ByteOrderMark
 
         # Set up compilation unit and symbol resolver according to the language
         # version that is declared, if any.
-        :my $*CU;
-        :my $*R;
-        :my $*LITERALS;
-        :my $*EXPORT;
-        :my $*IN-TYPENAME;
+        :my $*CU;              # current RakuAST::CompUnit object
+        :my $*ORIGIN-SOURCE;   # current RakuAST::Origin::Source object
+        :my @*ORIGIN-NESTINGS := [];  # handling nested origins
+        :my $*R;               # current RakuAST::Resolver::xxx object
+        :my $*LITERALS;        # current RakuAST::LiteralBuilder object
+        <.comp-unit-prologue>  # set the above variables
+
+        :my $*IN-TYPENAME;       # fallback for inside typename flag
+        :my $*FAKE-INFIX-FOUND;  # fallback for fake infix handling
+
         :my @*LEADING-DOC := [];         # temp storage leading declarator doc
         :my $*DECLARAND;                 # target for trailing declarator doc
         :my $*LAST-TRAILING-LINE := -1;  # number of last line with trailing doc
         :my $*IGNORE-NEXT-DECLARAND;     # True if next declarand to be ignored
         :my $*DECLARAND-WORRIES := {};   # $/ of worries when clearing DECLARAND
-        :my $*NEXT_STATEMENT_ID := 1;    # to give each statement an ID
-        :my $*FAKE-INFIX-FOUND := 0;
-        :my $*begin_compunit := 1;       # at start of a compilation unit?
-        <.comp-unit-prologue>
-        <.lang_setup($outer-cu)>
+
+        :my $*EXPORT;
+        :my $*COMPILING_CORE_SETTING := 0;
+        :my $*NEXT-STATEMENT-ID := 0;  # to give each statement an ID
+        :my $*START-OF-COMPUNIT := 1;  # flag: start of a compilation unit?
+        <.lang_setup($outer-cu)>  # set the above variables
 
         { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
         <load_command_line_modules>
@@ -730,7 +733,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
-        :my $*STATEMENT_ID := $*NEXT_STATEMENT_ID++;
+        :my $*STATEMENT-ID := ++$*NEXT-STATEMENT-ID;
 
         :my $actions := self.slang_actions('MAIN');
         <!!{ $/.set_actions($actions); 1 }>
@@ -2379,11 +2382,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait($*PACKAGE)>*
         <.enter-package-scope($<signature>)>
         [
-        || <?[{]> { $*begin_compunit := 0; } <block>
+        || <?[{]> { $*START-OF-COMPUNIT := 0; } <block>
         || ';'
             [
-            || <?{ $*begin_compunit }>
-                { $*begin_compunit := 0; }
+            || <?{ $*START-OF-COMPUNIT }>
+                { $*START-OF-COMPUNIT := 0; }
                 <unit-block($*PKGDECL)>
             || { $/.typed_panic("X::UnitScope::TooLate", what => $*PKGDECL); }
             ]
@@ -2615,7 +2618,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                         ~ "placed a semicolon after routine's definition?"
                     );
                 }
-                unless $*begin_compunit {
+                unless $*START-OF-COMPUNIT {
                     $/.typed_panic("X::UnitScope::TooLate", what => "sub");
                 }
                 unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
@@ -2624,7 +2627,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 unless $*R.outer-scope =:= $*UNIT {
                     $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "in a subscope");
                 }
-                $*begin_compunit := 0;
+                $*START-OF-COMPUNIT := 0;
             }
         || <onlystar>
         || <blockoid>

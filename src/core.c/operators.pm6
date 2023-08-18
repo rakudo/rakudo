@@ -102,6 +102,12 @@ sub GENERATE-ROLE-FROM-VALUE($val) is implementation-detail {
 multi sub infix:<but>(Mu \obj, Mu:D $val) is raw {
     obj.clone.^mixin(GENERATE-ROLE-FROM-VALUE($val));
 }
+multi sub infix:<but>(Mu \obj, Bool:D $value) is raw {
+    my role ButBool[Bool $value] {
+        method Bool { $value }
+    }
+    obj.clone.^mixin(ButBool[$value]);
+}
 multi sub infix:<but>(Mu:D \obj, **@roles) {
     my \real-roles := eager @roles.map: -> \rolish {
         rolish.DEFINITE ?? GENERATE-ROLE-FROM-VALUE(rolish) !!

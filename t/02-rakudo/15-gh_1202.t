@@ -1,4 +1,3 @@
-use v6;
 use Test;
 
 # GH#1202

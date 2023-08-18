@@ -1,4 +1,3 @@
-use v6.d;
 use Test;
 use nqp;
 

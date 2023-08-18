@@ -1,4 +1,3 @@
-use v6;
 use Test;
 use nqp;
 plan 4;

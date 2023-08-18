@@ -1,4 +1,3 @@
-use v6;
 use lib <t/packages/>;
 use Test;
 use Test::Helpers;

@@ -1,5 +1,3 @@
-use v6;
-
 # check inplace math ops
 say '1..11';
 

@@ -1,5 +1,3 @@
-use v6;
-
 use MONKEY-SEE-NO-EVAL;
 
 use lib <lib>;

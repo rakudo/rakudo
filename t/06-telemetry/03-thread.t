@@ -1,5 +1,3 @@
-use v6;
-
 # extensive tests for Telemetry::Instrument::Thread
 
 # make sure we don't have any overrides

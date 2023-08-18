@@ -1,4 +1,3 @@
-use v6;
 use lib <lib  t/packages t/02-rakudo/test-packages>;
 use Test;
 use Test::Helpers;

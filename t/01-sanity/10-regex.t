@@ -1,5 +1,3 @@
-use v6;
-
 # check basic regex capabilities
 say '1..11';
 

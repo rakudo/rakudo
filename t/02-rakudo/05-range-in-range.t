@@ -1,4 +1,3 @@
-use v6;
 use Test;
 
 my @true-tests  = [^10,  5], [^Inf,  42], [-Inf .. Inf, Inf], [-Inf..Inf, -Inf];

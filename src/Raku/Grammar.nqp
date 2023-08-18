@@ -635,19 +635,41 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.comp-unit($*CU)
     }
 
-    token comp-unit-prologue { <?> }
+    # The ByteOrderMarker
+    token bom { \xFEFF }
 
+    # Set up the language to be used, possibly specified by "use vxxx"
+    rule lang-setup($*OUTER-CU) {
+        # TODO validate this and pay attention to it in actions
+        [ <.ws>? use <version> ';'? ]?
+    }
+
+    # This is like HLL::Grammar.LANG but it allows to call a token of a
+    # Raku level grammar.  Takes the language (usually 'MAIN') and the
+    # name of the regex to be executed.
+    method FOREIGN-LANG($langname, $regex) {
+        my $grammar := self.slang_grammar($langname);
+        if nqp::istype($grammar, NQPMatch) {
+            self.LANG($langname, $regex);
+        }
+        else {
+            nqp::die('FOREIGN-LANG non-NQP branch NYI')
+        }
+    }
+
+    # Set up compilation unit and symbol resolver according to the language
+    # version that is declared, if any. Then parse the outer statement list.
     token comp-unit($outer-cu) {
         <.bom>?  # ignore any ByteOrderMark
 
-        # Set up compilation unit and symbol resolver according to the language
-        # version that is declared, if any.
         :my $*CU;              # current RakuAST::CompUnit object
         :my $*ORIGIN-SOURCE;   # current RakuAST::Origin::Source object
         :my @*ORIGIN-NESTINGS := [];  # handling nested origins
         :my $*R;               # current RakuAST::Resolver::xxx object
         :my $*LITERALS;        # current RakuAST::LiteralBuilder object
-        <.comp-unit-prologue>  # set the above variables
+        {
+            self.actions.comp-unit-prologue($/);  # set the above variables
+        }
 
         :my $*IN-TYPENAME;       # fallback for inside typename flag
         :my $*FAKE-INFIX-FOUND;  # fallback for fake infix handling
@@ -664,35 +686,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*START-OF-COMPUNIT := 1;  # flag: start of a compilation unit?
         <.lang-setup($outer-cu)>  # set the above variables
 
-        { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
-        <.load-M-modules>
-        <statementlist=.key-origin('FOREIGN-LANG', $*MAIN, 'statementlist')>
-        [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
-        { $*R.leave-scope() }
-    }
-
-    # The ByteOrderMarker
-    token bom { \xFEFF }
-
-    rule lang-setup($*OUTER-CU) {
-        # TODO validate this and pay attention to it in actions
-        [ <.ws>? 'use' <version> ';'? ]?
-    }
-
-    # Helper rule to run the associated action to load any modules
-    # specified with -M
-    rule load-M-modules { <?> }
-
-    # This is like HLL::Grammar.LANG but it allows to call a token of a
-    # Raku level grammar.
-    method FOREIGN-LANG($langname, $regex) {
-        my $grammar := self.slang_grammar($langname);
-        if nqp::istype($grammar, NQPMatch) {
-            self.LANG($langname, $regex);
+        # Further needed initializations
+        {
+             $*R.enter-scope($*CU);
+             $*R.create-scope-implicits();
+             self.actions.load-M-modules($/);
         }
-        else {
-            nqp::die('FOREIGN-LANG non-NQP branch NYI')
-        }
+
+        # Perform the actual parsing of the code, using origin tracking
+        <statementlist=.key-origin('FOREIGN-LANG',$*MAIN,'statementlist')>
+
+        # All parsed so far
+        [
+          $                                         # all ok, reach the end
+          || <.typed_panic: 'X::Syntax::Confused'>  # huh??
+        ]
+        { $*R.leave-scope }
     }
 
 #-------------------------------------------------------------------------------
@@ -914,6 +923,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <EXPR>
         <pointy-block>
     }
+
+    # Handle "while" / "until"
     rule statement-control:sym<while> {
         $<sym>=[while|until]<.kok> {}
         :my $*GOAL := '{';

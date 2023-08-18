@@ -766,7 +766,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           | <label> <statement>
           | <statement-control>
-          | <EXPR> :dba('statement end')
+          | <EXPR>
+            :dba('statement end')
             [
               || <?MARKED('endstmt')>
               || :dba('statement modifier')
@@ -807,14 +808,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || <?before [                  # OR looks like leaking into next
              for | if | for | given | loop | repeat | when | while
            ] » >
-           {
-               $/.'!clear_highwater'();
-               $/.typed_panic( 'X::Syntax::Confused',
-                 reason => "Missing semicolon" );
-           }
-        || {                           # OR give up
-               $/.typed_panic('X::Syntax::Confused')
-           }
+           { $/.'!clear_highwater'() }
+           <.typed_panic: 'X::Syntax::Confused', reason => "Missing semicolon">
+        || <.typed_panic: 'X::Syntax::Confused'> # OR give up
     }
 
     # Helper token to match the start of a pointy block
@@ -963,22 +959,26 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Handle "if" / "with"
     rule statement-control:sym<if> {
-        $<sym>=[if|with]<.kok> {}
+        $<sym>=[if|with]<.kok>
+        {}
         :my $*GOAL := '{';
         :my $*BORG := {};
-        <condition=.EXPR>
-        <then=.pointy-block>
-        [
-            [
-            | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
-            | 'elif' { $/.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
-            | $<sym>='elsif' <condition=.EXPR> <then=.pointy-block>
-            | $<sym>='orwith' <condition=.EXPR> <then=.pointy-block>
-            ]
+        <condition=.EXPR>            # initial condition
+        <then=.pointy-block>         # initial body
+        [                            # any elsifs/orwiths
+          [
+            | else\h*if
+              <.typed_panic: 'X::Syntax::Malformed::Elsif'>
+            | elif
+              <.typed_panic: 'X::Syntax::Malformed::Elsif', :what<elif> >
+            | $<sym>=[elsif|orwith]
+              <condition=.EXPR>
+              <then=.pointy-block>
+          ]
         ]*
         {}
         [
-            'else'
+            else
             <else=.pointy-block>
         ]?
     }
@@ -986,10 +986,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Handle "for"
     rule statement-control:sym<for> {
         <sym><.kok> {}
-        [ <?before 'my'? '$'\w+\s+'(' >
-            <.typed_panic: 'X::Syntax::P5'> ]?
-        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
-            <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
+        [
+          <?before 'my'? '$'\w+\s+'('>
+          <.typed_panic: 'X::Syntax::P5'>
+        ]?
+        [
+          <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')'>
+          <.obs('C-style "for (;;)" loop', '"loop (;;)"')>
+        ]?
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
@@ -998,16 +1002,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Handle repeat ... while | until
     rule statement-control:sym<repeat> {
-        <sym><.kok> {}
+        <sym><.kok>
+        {}
         [
-        | $<wu>=[while|until]<.kok>
-          :my $*GOAL := '{';
-          :my $*BORG := {};
-          <EXPR>
-          <pointy-block>
-        | <pointy-block>
-          [$<wu>=['while'|'until']<.kok> || <.missing('"while" or "until"')>]
-          <EXPR>
+          | $<wu>=[while|until]<.kok>
+            :my $*GOAL := '{';
+            :my $*BORG := {};
+            <EXPR>
+            <pointy-block>
+          | <pointy-block>
+            [
+                 $<wu>=['while'|'until']<.kok>
+              || <.missing('"while" or "until"')>
+            ]
+            <EXPR>
         ]
     }
 
@@ -1015,14 +1023,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement-control:sym<whenever> {
         <sym><.kok>
         [
-        || <?{ nqp::getcomp('Raku').language_revision == 1
-                 || $*WHENEVER-COUNT >= 0 }>
-        || <.typed_panic('X::Comp::WheneverOutOfScope')>
+          || <?{
+                   nqp::getcomp('Raku').language_revision == 1
+                     || $*WHENEVER-COUNT >= 0
+             }>
+          || <.typed_panic: 'X::Comp::WheneverOutOfScope'>
         ]
         { $*WHENEVER-COUNT++ }
         :my $*GOAL := '{';
         :my $*BORG := {};
-        <EXPR> <pointy-block>
+        <EXPR>
+        <pointy-block>
     }
 
     # Handle basic loop / C-style loop
@@ -1032,21 +1043,32 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           :my $exprs := 0;
           '('
-          [     <e1=.EXPR>? {$exprs := 1 if $<e1>}
-          [ ';' <e2=.EXPR>? {$exprs := 2}
-          [ ';' <e3=.EXPR>? {$exprs := 3}
-          ]? ]? ]? # succeed anyway, this will leave us with a nice cursor
           [
-          || <?{ $exprs == 3 }> ')'
-          || <?before ')'>
-             [
-             || <?{ $exprs == 0 }>
-                <.malformed("loop spec (expected 3 semicolon-separated expressions)")>
-             || <.malformed("loop spec (expected 3 semicolon-separated expressions but got {$exprs})")>
-             ]
-          || <?before ‘;’>
-             <.malformed('loop spec (expected 3 semicolon-separated expressions but got more)')>
-          || <.malformed('loop spec')>
+            <e1=.EXPR>? { $exprs := 1 if $<e1> }
+            [
+              ';' <e2=.EXPR>? { $exprs := 2 }
+              [
+                ';' <e3=.EXPR>? { $exprs := 3 }
+              ]?
+            ]?
+          ]? # succeed anyway, this will leave us with a nice cursor
+          [
+            || <?{ $exprs == 3 }> ')'
+            || <?before ')'>
+               [
+                 || <?{ $exprs == 0 }>
+                    <.malformed:
+                      "loop spec (expected 3 semicolon-separated expressions)"
+                    >
+                 || <.malformed:
+                      "loop spec (expected 3 semicolon-separated expressions but got {$exprs})"
+                    >
+               ]
+            || <?before ‘;’>
+               <.malformed:
+                 "loop spec (expected 3 semicolon-separated expressions but got more)"
+               >
+            || <.malformed: "loop spec">
           ]
         ]?
         <block>
@@ -1054,13 +1076,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # handle people coming from Perl
     rule statement-control:sym<foreach> {
-        <sym><.end-keyword> <.obs("'foreach'", "'for'")>
+        <sym><.end-keyword>
+        <.obs: "'foreach'", "'for'">
     }
 
     # Not really control statements, more grammar tweaks
     rule statement-control:sym<also> {
         <sym><.kok>
-        [ <trait>+ || <.panic: "No valid trait found after 'also'"> ]
+        [
+          <trait>+
+          || <.panic: "No valid trait found after 'also'">
+        ]
     }
 
 #-------------------------------------------------------------------------------

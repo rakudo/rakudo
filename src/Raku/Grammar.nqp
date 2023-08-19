@@ -375,6 +375,8 @@ role Raku::Common {
                 !! "block";
         }
     }
+
+    # Shadow error handling from HLL::Grammar
     method EXPR_nonassoc($cur, $left, $right) {
         self.typed-panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
     }
@@ -382,7 +384,7 @@ role Raku::Common {
         self.typed-panic('X::Syntax::NonListAssociative', :left(~$left), :right(~$right));
     }
     method dupprefix($prefixes) {
-        self.typed-panic('X::Syntax::DuplicatedPrefix', :$prefixes);
+        self.typed-panic: 'X::Syntax::DuplicatedPrefix', :$prefixes;
     }
 
     # All sorts of ad-hoc exception handling
@@ -1266,10 +1268,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
 #-------------------------------------------------------------------------------
-
-    ##
-    ## Expression parsing and operators
-    ##
+# Expression parsing and operators
 
     # Precedence levels and their defaults
     my %methodcall      := nqp::hash('prec', 'y=', 'assoc', 'unary', 'dba', 'methodcall', 'fiddly', 1);
@@ -1606,16 +1605,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <.panic("Cannot use $special on a non-identifier method call")>
     }
 
-    token postfix:sym<i>  { <sym> >> <O(|%methodcall)> }
-
-    token prefix:sym<++>  { <sym>  <O(|%autoincrement)> }
-    token prefix:sym<-->  { <sym>  <O(|%autoincrement)> }
-    token prefix:sym<++⚛> { <sym>  <O(|%autoincrement)> }
-    token prefix:sym<--⚛> { <sym>  <O(|%autoincrement)> }
-    token postfix:sym<++> { <sym>  <O(|%autoincrement)> }
-    token postfix:sym<--> { <sym>  <O(|%autoincrement)> }
-    token postfix:sym<⚛++> { <sym>  <O(|%autoincrement)> }
-    token postfix:sym<⚛--> { <sym>  <O(|%autoincrement)> }
 
     token super-sign    { <[⁻⁺¯]> }
     token sub-sign      { <[₊₋]>  }
@@ -1630,8 +1619,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | [ <super-integer> '/' <sub-integer> ]
     }
 
+    token dottyopish { <term=.dottyop> }
+
+    token postfix:sym<i>  { <sym> >> <O(|%methodcall)> }
     token postfix:sym<ⁿ> { <power>  <O(|%autoincrement)> }
     token postfix:sym<+> { <vulgar> <O(|%autoincrement)> }
+
+    token postfix:sym<++>  { <sym> <O(|%autoincrement)> }
+    token postfix:sym<-->  { <sym> <O(|%autoincrement)> }
+    token postfix:sym<⚛++> { <sym> <O(|%autoincrement)> }
+    token postfix:sym<⚛--> { <sym> <O(|%autoincrement)> }
 
     # TODO: report the correct bracket in error message
     token postfix:sym«->» {
@@ -1642,107 +1639,193 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token infix:sym<**>   { <sym>  <O(|%exponentiation)> }
+#-------------------------------------------------------------------------------# Prefixes
 
-    token prefix:sym<+>   { <sym>  <O(|%symbolic_unary)> }
-    token prefix:sym<~~>  { <sym> <.dupprefix('~~')> <O(|%symbolic_unary)> }
-    token prefix:sym<~>   { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<++>   { <sym> <O(|%autoincrement)> }
+    token prefix:sym<-->   { <sym> <O(|%autoincrement)> }
+    token prefix:sym<++⚛>  { <sym> <O(|%autoincrement)> }
+    token prefix:sym<--⚛>  { <sym> <O(|%autoincrement)> }
+
+    token prefix:sym<~~> { <sym> <.dupprefix: '~~'> <O(|%symbolic_unary)> }
+    token prefix:sym<??> { <sym> <.dupprefix: '??'> <O(|%symbolic_unary)> }
+    token prefix:sym<^^> { <sym> <.dupprefix: '^^'> <O(|%symbolic_unary)> }
+
+    token prefix:sym<?> { <sym> <!before '??'> <O(|%symbolic_unary)> }
+    token prefix:sym<!> { <sym> <!before '!!'> <O(|%symbolic_unary)> }
+
+    token prefix:sym<+>   { <sym> <O(|%symbolic_unary)> }
+    token prefix:sym<~>   { <sym> <O(|%symbolic_unary)> }
     token prefix:sym<->   { <sym> <O(|%symbolic_unary)> }
     token prefix:sym<−>   { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<??>  { <sym> <.dupprefix('??')> <O(|%symbolic_unary)> }
-    token prefix:sym<?>   { <sym> <!before '??'> <O(|%symbolic_unary)> }
-    token prefix:sym<!>   { <sym> <!before '!!'> <O(|%symbolic_unary)> }
-    token prefix:sym<|>   { <sym>  <O(|%symbolic_unary)> }
-    token prefix:sym<+^>  { <sym>  <O(|%symbolic_unary)> }
-    token prefix:sym<~^>  { <sym>  <O(|%symbolic_unary)> }
-    token prefix:sym<?^>  { <sym>  <O(|%symbolic_unary)> }
-    token prefix:sym<^^>  { <sym> <.dupprefix('^^')> <O(|%symbolic_unary)> }
+    token prefix:sym<|>   { <sym> <O(|%symbolic_unary)> }
+    token prefix:sym<+^>  { <sym> <O(|%symbolic_unary)> }
+    token prefix:sym<~^>  { <sym> <O(|%symbolic_unary)> }
+    token prefix:sym<?^>  { <sym> <O(|%symbolic_unary)> }
+    token prefix:sym<⚛>   { <sym> <O(|%symbolic_unary)> }
     token prefix:sym<^>   {
-        <sym>  <O(|%symbolic_unary)>
-        <?before \d+ <?before \. <.?alpha> > <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
+        <sym>
+        <O(|%symbolic_unary)>
+        <?before \d+ <?before \. <.?alpha> >
+        <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
     }
-    token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
 
-    token infix:sym<.>    { <sym> <ws>
+    # Prefixes requiring scope interaction
+    token prefix:sym<let>  {
+        <sym><.kok>
+        <O(|%named_unary)>
+        { ($*BLOCK // $*CU.mainline).set-has-let }
+    }
+    token prefix:sym<temp> {
+        <sym><.kok>
+        <O(|%named_unary)>
+        { ($*BLOCK // $*CU.mainline).set-has-temp }
+    }
+
+    token prefix:sym<so>  { <sym><.end-prefix> <O(|%loose_unary)> }
+    token prefix:sym<not> { <sym><.end-prefix> <O(|%loose_unary)> }
+
+#-------------------------------------------------------------------------------
+# Infixes
+
+    token infix:sym<**> { <sym>  <O(|%exponentiation)> }
+
+    # Dotty infixes
+    token infix:sym<.> {
+        <sym>
+        <ws>
         <!{ $*IN_REDUCE }>
-        [<!alpha>
-            {
-                my $pre := nqp::substr(self.orig, self.from - 1, 1);
-                $<ws> ne ''
+        [
+          <!alpha>
+          {
+              my $pre := nqp::substr(self.orig, self.from - 1, 1);
+              $<ws> ne ''
                 ?? $¢.obs('. to concatenate strings', '~')
                 !! $pre ~~ /^\s$/
-                    ?? $¢.malformed('postfix call (only basic method calls that exclusively use a dot can be detached)')
-                    !! $¢.malformed('postfix call')
-            }
+                  ?? $¢.malformed('postfix call (only basic method calls that exclusively use a dot can be detached)')
+                  !! $¢.malformed('postfix call')
+          }
         ]?
         <O(|%dottyinfix)>
     }
+    token infix:sym<.=>  { <sym> <O(|%dottyinfix)> }
 
-    token infix:sym<.=> { <sym> <O(|%dottyinfix)> }
+    # Assignment infixes
+    token infix:sym<:=>  { <sym> <O(|%list_assignment)> }
+    token infix:sym<::=> { <sym> <O(|%item_assignment)> <.NYI: '"::="'> }
 
-    token infix:sym<:=> {
-        <sym> <O(|%list_assignment)>
+    # Iffy multiplicative infixes
+    token infix:sym<%%>  { <sym> <O(|%multiplicative, :iffy(1))> }
+    token infix:sym<?&>  { <sym> <O(|%multiplicative, :iffy(1))> }
+
+    # Multiplicative infixes requiring a word bound on the right side
+    token infix:sym<div> { <sym> >> <O(|%multiplicative)> }
+    token infix:sym<gcd> { <sym> >> <O(|%multiplicative)> }
+    token infix:sym<lcm> { <sym> >> <O(|%multiplicative)> }
+    token infix:sym<mod> { <sym> >> <O(|%multiplicative)> }
+
+    # Multiplicatve infixes with meta interaction
+    token infix:sym«+<» {
+        <sym>
+        [
+             <!{ $*IN-META }>
+          || <?before '<<'>
+          || <![<]>
+        ]
+        <O(|%multiplicative)>
+    }
+    token infix:sym«+>» {
+        <sym>
+        [ 
+             <!{ $*IN-META }>
+          || <?before '>>'>
+          || <![>]>
+        ]
+        <O(|%multiplicative)>
+    }
+    token infix:sym«~<» {
+        <sym>
+        [ 
+             <!{ $*IN-META }>
+          || <?before '<<'>
+          || <![<]>
+        ]
+        <O(|%multiplicative)>
+    }
+    token infix:sym«~>» {
+        <sym>
+        [ 
+             <!{ $*IN-META }>
+          || <?before '>>'>
+          || <![>]>
+        ] 
+        <O(|%multiplicative)>
     }
 
-    token infix:sym<::=> {
-        <sym> <O(|%item_assignment)> <.NYI: '"::="'>
+    token infix:sym«<<» {
+        <sym>
+        <!{ $*IN-META }>
+        <?[\s]>
+        <.sorryobs('<< to do left shift', '+< or ~<')>
+        <O(|%multiplicative)>
+    }
+    token infix:sym«>>» {
+        <sym>
+        <!{ $*IN-META }>
+        <?[\s]>
+        <.sorryobs('>> to do right shift', '+> or ~>')>
+        <O(|%multiplicative)>
     }
 
-    token dottyopish {
-        <term=.dottyop>
-    }
+    # Other multiplicative infixes
+    token infix:sym<*>   { <sym> <O(|%multiplicative)> }
+    token infix:sym<×>   { <sym> <O(|%multiplicative)> }
+    token infix:sym</>   { <sym> <O(|%multiplicative)> }
+    token infix:sym<÷>   { <sym> <O(|%multiplicative)> }
+    token infix:sym<%>   { <sym> <O(|%multiplicative)> }
+    token infix:sym<+&>  { <sym> <O(|%multiplicative)> }
+    token infix:sym<~&>  { <sym> <O(|%multiplicative)> }
 
-    token infix:sym<*>    { <sym>  <O(|%multiplicative)> }
-    token infix:sym<×>    { <sym>  <O(|%multiplicative)> }
-    token infix:sym</>    { <sym>  <O(|%multiplicative)> }
-    token infix:sym<÷>    { <sym>  <O(|%multiplicative)> }
-    token infix:sym<div>  { <sym> >> <O(|%multiplicative)> }
-    token infix:sym<gcd>  { <sym> >> <O(|%multiplicative)> }
-    token infix:sym<lcm>  { <sym> >> <O(|%multiplicative)> }
-    token infix:sym<%>    { <sym>  <O(|%multiplicative)> }
-    token infix:sym<mod>  { <sym> >> <O(|%multiplicative)> }
-    token infix:sym<%%>   { <sym>  <O(|%multiplicative, :iffy(1))> }
-    token infix:sym<+&>   { <sym>  <O(|%multiplicative)> }
-    token infix:sym<~&>   { <sym>  <O(|%multiplicative)> }
-    token infix:sym<?&>   { <sym>  <O(|%multiplicative, :iffy(1))> }
-    token infix:sym«+<»   { <sym> [ <!{ $*IN-META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
-    token infix:sym«+>»   { <sym> [ <!{ $*IN-META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }
-    token infix:sym«~<»   { <sym> [ <!{ $*IN-META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
-    token infix:sym«~>»   { <sym> [ <!{ $*IN-META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }
-
-    token infix:sym«<<» { <sym> <!{ $*IN-META }> <?[\s]> <.sorryobs('<< to do left shift', '+< or ~<')> <O(|%multiplicative)> }
-
-    token infix:sym«>>» { <sym> <!{ $*IN-META }> <?[\s]> <.sorryobs('>> to do right shift', '+> or ~>')> <O(|%multiplicative)> }
-
-    token infix:sym<+>    { <sym>  <O(|%additive)> }
-    token infix:sym<->    {
+    token infix:sym<-> {  # 2D HYPHEN-MINUS -
        # We want to match in '$a >>->> $b' but not 'if $a -> { ... }'.
         <sym> [<?before '>>'> || <![>]>]
         <O(|%additive)>
     }
-    token infix:sym<−>    { <sym>  <O(|%additive)> }
-    token infix:sym<+|>   { <sym>  <O(|%additive)> }
-    token infix:sym<+^>   { <sym>  <O(|%additive)> }
-    token infix:sym<~|>   { <sym>  <O(|%additive)> }
-    token infix:sym<~^>   { <sym>  <O(|%additive)> }
-    token infix:sym<?|>   { <sym>  <O(|%additive, :iffy(1))> }
-    token infix:sym<?^>   { <sym>  <O(|%additive, :iffy(1))> }
 
-    token infix:sym<x>    { <sym> >> <O(|%replication)> }
-    token infix:sym<xx>    { <sym> >> <O(|%replication_xx)> }
+    # Iffy additive infixes
+    token infix:sym<?|> { <sym> <O(|%additive, :iffy(1))> }
+    token infix:sym<?^> { <sym> <O(|%additive, :iffy(1))> }
 
-    token infix:sym<~>    { <sym>  <O(|%concatenation)> }
-    token infix:sym<∘>   { <sym>  <O(|%concatenation)> }
-    token infix:sym<o>   { <sym>  <O(|%concatenation)> }
+    # Other additive infixes
+    token infix:sym<−>  { <sym> <O(|%additive)> }  # 2212 MINUS SIGN −
+    token infix:sym<+>  { <sym> <O(|%additive)> }
+    token infix:sym<+|> { <sym> <O(|%additive)> }
+    token infix:sym<+^> { <sym> <O(|%additive)> }
+    token infix:sym<~|> { <sym> <O(|%additive)> }
+    token infix:sym<~^> { <sym> <O(|%additive)> }
 
+    # Replacating infixes
+    token infix:sym<x>  { <sym> >> <O(|%replication)>    }
+    token infix:sym<xx> { <sym> >> <O(|%replication_xx)> }
+
+    # Concatenating infixes
+    token infix:sym<~> { <sym> <O(|%concatenation)> }
+    token infix:sym<∘> { <sym> <O(|%concatenation)> }
+    token infix:sym<o> { <sym> <O(|%concatenation)> }
+
+    # Iffy junctive and infixes
     token infix:sym<&>   { <sym> <O(|%junctive_and, :iffy(1))> }
+
+    # Other junctive and infixes
     token infix:sym<(&)> { <sym> <O(|%junctive_and)> }
     token infix:sym«∩»   { <sym> <O(|%junctive_and)> }
     token infix:sym<(.)> { <sym> <O(|%junctive_and)> }
     token infix:sym«⊍»   { <sym> <O(|%junctive_and)> }
 
+    # Iffy junctive or infixes
     token infix:sym<|>    { <sym> <O(|%junctive_or, :iffy(1))> }
     token infix:sym<^>    { <sym> <O(|%junctive_or, :iffy(1))> }
+
+    # Other junctive or infixes
     token infix:sym<(|)>  { <sym> <O(|%junctive_or)> }
     token infix:sym«∪»    { <sym> <O(|%junctive_or)> }
     token infix:sym<(^)>  { <sym> <O(|%junctive_or)> }
@@ -1752,33 +1835,34 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<(-)>  { <sym> <O(|%junctive_or)> }
     token infix:sym«∖»    { <sym> <O(|%junctive_or)> }
 
-    token prefix:sym<let>  { <sym><.kok> <O(|%named_unary)> { ($*BLOCK // $*CU.mainline).set-has-let } }
-    token prefix:sym<temp> { <sym><.kok> <O(|%named_unary)> { ($*BLOCK // $*CU.mainline).set-has-temp } }
+    token infix:sym«!=» { <sym> <?before \s|']'> <O(|%chaining)> }
 
-    token infix:sym«=~=»  { <sym>  <O(|%chaining)> }
-    token infix:sym«≅»    { <sym>  <O(|%chaining)> }
-    token infix:sym«==»   { <sym>  <O(|%chaining)> }
-    token infix:sym«!=»   { <sym> <?before \s|']'> <O(|%chaining)> }
-    token infix:sym«≠»    { <sym>  <O(|%chaining)> }
-    token infix:sym«<=»   { <sym>  <O(|%chaining)> }
-    token infix:sym«≤»    { <sym>  <O(|%chaining)> }
-    token infix:sym«>=»   { <sym>  <O(|%chaining)> }
-    token infix:sym«≥»    { <sym>  <O(|%chaining)> }
-    token infix:sym«<»    { <sym>  <O(|%chaining)> }
-    token infix:sym«>»    { <sym>  <O(|%chaining)> }
-    token infix:sym«eq»   { <sym> >> <O(|%chaining)> }
-    token infix:sym«ne»   { <sym> >> <O(|%chaining)> }
-    token infix:sym«le»   { <sym> >> <O(|%chaining)> }
-    token infix:sym«ge»   { <sym> >> <O(|%chaining)> }
-    token infix:sym«lt»   { <sym> >> <O(|%chaining)> }
-    token infix:sym«gt»   { <sym> >> <O(|%chaining)> }
-    token infix:sym«=:=»  { <sym>  <O(|%chaining)> }
-    token infix:sym<===>  { <sym>  <O(|%chaining)> }
+    # Chaining infixes requiring word-boundary on right side
+    token infix:sym«eq»     { <sym> >> <O(|%chaining)> }
+    token infix:sym«ne»     { <sym> >> <O(|%chaining)> }
+    token infix:sym«le»     { <sym> >> <O(|%chaining)> }
+    token infix:sym«ge»     { <sym> >> <O(|%chaining)> }
+    token infix:sym«lt»     { <sym> >> <O(|%chaining)> }
+    token infix:sym«gt»     { <sym> >> <O(|%chaining)> }
     token infix:sym<eqv>    { <sym> >> <O(|%chaining)> }
     token infix:sym<before> { <sym> >> <O(|%chaining)> }
     token infix:sym<after>  { <sym> >> <O(|%chaining)> }
-    token infix:sym<~~>   { <sym> <O(|%chaining)> }
-    token infix:sym<!~~>  { <sym> <O(|%chaining)> }
+
+    # Other chaining infixes
+    token infix:sym«=~=»    { <sym> <O(|%chaining)> }
+    token infix:sym«≅»      { <sym> <O(|%chaining)> }
+    token infix:sym«==»     { <sym> <O(|%chaining)> }
+    token infix:sym«≠»      { <sym> <O(|%chaining)> }
+    token infix:sym«<=»     { <sym> <O(|%chaining)> }
+    token infix:sym«≤»      { <sym> <O(|%chaining)> }
+    token infix:sym«>=»     { <sym> <O(|%chaining)> }
+    token infix:sym«≥»      { <sym> <O(|%chaining)> }
+    token infix:sym«<»      { <sym> <O(|%chaining)> }
+    token infix:sym«>»      { <sym> <O(|%chaining)> }
+    token infix:sym«=:=»    { <sym> <O(|%chaining)> }
+    token infix:sym<===>    { <sym> <O(|%chaining)> }
+    token infix:sym<~~>     { <sym> <O(|%chaining)> }
+    token infix:sym<!~~>    { <sym> <O(|%chaining)> }
     token infix:sym<(elem)> { <sym> <O(|%chaining)> }
     token infix:sym«∈»      { <sym> <O(|%chaining)> }
     token infix:sym«∉»      { <sym> <O(|%chaining)> }
@@ -1802,39 +1886,41 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«(>+)»   { <sym> <O(|%chaining)> }
     token infix:sym«≽»      { <sym> <O(|%chaining)> }
 
-    token infix:sym<&&>   { <sym>  <O(|%tight_and, :iffy(1))> }
+    token infix:sym<&&> { <sym> <O(|%tight_and, :iffy(1))> }
 
-    token infix:sym<||>   { <sym>  <O(|%tight_or, :iffy(1), :assoc<left>)> }
-    token infix:sym<^^>   { <sym>  <O(|%tight_or, :iffy(1), :thunky<..t>)> }
-    token infix:sym<//>   { <sym>  <O(|%tight_or, :assoc<left>)> }
-    token infix:sym<min>  { <sym> >> <O(|%tight_or_minmax)> }
-    token infix:sym<max>  { <sym> >> <O(|%tight_or_minmax)> }
+    token infix:sym<||> { <sym> <O(|%tight_or, :iffy(1), :assoc<left>)> }
+    token infix:sym<//> { <sym> <O(|%tight_or,           :assoc<left>)> }
+    token infix:sym<^^> { <sym> <O(|%tight_or, :iffy(1), :thunky<..t>)> }
 
+    token infix:sym<min> { <sym> >> <O(|%tight_or_minmax)> }
+    token infix:sym<max> { <sym> >> <O(|%tight_or_minmax)> }
+
+    # Parsing ?? !!
     token infix:sym<?? !!> {
         :my $*GOAL := '!!';
         $<sym>='??'
         <.ws>
         <EXPR('i=')>
-        [ '!!'
-        || <?before '::' <.-[=]>> { self.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
-        || <?before ':' <.-[=\w]>> { self.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
-        || <infixish> { self.typed-panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
-        || <?{ ~$<EXPR> ~~ / '!!' / }> { self.typed-panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
-        || <?before \N*? [\n\N*?]? '!!'> { self.typed-panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
-        || { self.typed-panic: "X::Syntax::Confused", reason => "Confused: Found ?? but no !!" }
+        [ 
+             '!!'
+          || <?before '::' <.-[=]>>
+             <.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid",               second-part => "::">
+          || <?before ':' <.-[=\w]>>
+             <.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid",
+               second-part => ":">
+          || <infixish>
+             <.typed-panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose",
+               operator => ~$<infixish>>
+          || <?{ ~$<EXPR> ~~ / '!!' / }>
+             <.typed-panic: "X::Syntax::ConditionalOperator::SecondPartGobbled">
+          || <?before \N*? [\n\N*?]? '!!'>
+             <.typed-panic: "X::Syntax::Confused",
+               reason => "Confused: Bogus code found before the !! of conditional operator">
+          || <.typed-panic: "X::Syntax::Confused",
+               reason => "Confused: Found ?? but no !!">
         ]
         <O(|%conditional, :reducecheck<ternary>)>
     }
-
-    token infix:sym«=>» {
-        $<sym>=[ '=>' | '⇒' ]
-        <O(|%item_assignment)>
-    }
-
-    token prefix:sym<so> { <sym><.end-prefix> <O(|%loose_unary)> }
-    token prefix:sym<not>  { <sym><.end-prefix> <O(|%loose_unary)> }
-
-    token infix:sym<minmax> { <sym> >> <O(|%list_infix)> }
 
     token infix:sym<,>    {
         <.unsp>? <sym> <O(|%comma, :fiddly(0))>
@@ -1847,68 +1933,92 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*INVOCANT_OK := 0; }
     }
 
-    token infix:sym<Z>    { <!before <.sym> <.infixish> > <sym>  <O(|%list_infix)> }
-    token infix:sym<X>    { <!before <.sym> <.infixish> > <sym>  <O(|%list_infix)> }
+    token infix:sym<X> { <!before <.sym> <.infixish> > <sym> <O(|%list_infix)> }
+    token infix:sym<Z> { <!before <.sym> <.infixish> > <sym> <O(|%list_infix)> }
 
-    token infix:sym<...>  { <sym> <O(|%list_infix)> }
-    token infix:sym<…>    { <sym> <O(|%list_infix)> }
-    token infix:sym<...^> { <sym>  <O(|%list_infix)> }
-    token infix:sym<…^>   { <sym>  <O(|%list_infix)> }
-    token infix:sym<^...> { <sym>  <O(|%list_infix)> }
-    token infix:sym<^…>   { <sym>  <O(|%list_infix)> }
-    token infix:sym<^...^> { <sym>  <O(|%list_infix)> }
-    token infix:sym<^…^>   { <sym>  <O(|%list_infix)> }
+    token infix:sym<minmax> { <sym> >> <O(|%list_infix)> }
 
-    token infix:sym<?>    { <sym> {} <![?]> <?before <.-[;]>*?':'> <.obs('? and : for the ternary conditional operator', '?? and !!')> <O(|%conditional)> }
+    token infix:sym<...>   { <sym> <O(|%list_infix)> }
+    token infix:sym<…>     { <sym> <O(|%list_infix)> }
+    token infix:sym<...^>  { <sym> <O(|%list_infix)> }
+    token infix:sym<…^>    { <sym> <O(|%list_infix)> }
+    token infix:sym<^...>  { <sym> <O(|%list_infix)> }
+    token infix:sym<^…>    { <sym> <O(|%list_infix)> }
+    token infix:sym<^...^> { <sym> <O(|%list_infix)> }
+    token infix:sym<^…^>   { <sym> <O(|%list_infix)> }
 
-    token infix:sym<ff> { <sym> <O(|%conditional_ff)> }
-    token infix:sym<^ff> { <sym> <O(|%conditional_ff)> }
-    token infix:sym<ff^> { <sym> <O(|%conditional_ff)> }
-    token infix:sym<^ff^> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<?> {
+        <sym>
+        {}
+        <![?]>
+        <?before <.-[;]>*?':'>
+        <.obs: '? and : for the ternary conditional operator', '?? and !!'>
+        <O(|%conditional)>
+    }
 
-    token infix:sym<fff> { <sym> <O(|%conditional_ff)> }
-    token infix:sym<^fff> { <sym> <O(|%conditional_ff)> }
-    token infix:sym<fff^> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<ff>    { <sym> <O(|%conditional_ff)> }
+    token infix:sym<^ff>   { <sym> <O(|%conditional_ff)> }
+    token infix:sym<ff^>   { <sym> <O(|%conditional_ff)> }
+    token infix:sym<^ff^>  { <sym> <O(|%conditional_ff)> }
+    token infix:sym<fff>   { <sym> <O(|%conditional_ff)> }
+    token infix:sym<^fff>  { <sym> <O(|%conditional_ff)> }
+    token infix:sym<fff^>  { <sym> <O(|%conditional_ff)> }
     token infix:sym<^fff^> { <sym> <O(|%conditional_ff)> }
 
     token infix:sym<=> {
         <sym>
         [
-        || <?{ $*LEFTSIGIL eq '$' || $*IN-META }> <O(|%item_assignment)>
-        || <O(|%list_assignment)>
+          || <?{ $*LEFTSIGIL eq '$' || $*IN-META }>
+             <O(|%item_assignment)>
+          || <O(|%list_assignment)>
         ]
         { $*LEFTSIGIL := '' }
     }
 
-    token infix:sym<⚛=> { <sym> <O(|%item_assignment)> }
+    token infix:sym«=>» { $<sym>=[ '=>' | '⇒' ] <O(|%item_assignment)> }
+
+    token infix:sym<⚛=>  { <sym> <O(|%item_assignment)> }
     token infix:sym<⚛+=> { <sym> <O(|%item_assignment)> }
     token infix:sym<⚛-=> { <sym> <O(|%item_assignment)> }
     token infix:sym<⚛−=> { <sym> <O(|%item_assignment)> }
 
     token infix:sym<and>  { <sym> >> <O(|%loose_and, :iffy(1))> }
-    token infix:sym<andthen> { <sym> >> <O(|%loose_andthen, :assoc<list>)> }
+
+    token infix:sym<andthen>    { <sym> >> <O(|%loose_andthen, :assoc<list>)> }
     token infix:sym<notandthen> { <sym> >> <O(|%loose_andthen, :assoc<list>)> }
 
     token infix:sym<or>   { <sym> >> <O(|%loose_or, :iffy(1), :assoc<left>)> }
     token infix:sym<xor>  { <sym> >> <O(|%loose_or, :iffy(1))> }
+
     token infix:sym<orelse> { <sym> >> <O(|%loose_orelse, :assoc<list>, :pasttype<defor>)> }
 
     token infix:sym<..>   { <sym> [<!{ $*IN-META }> <?[)\]]> <.panic: "Please use ..* for indefinite range">]? <O(|%structural)> }
+
+    token infix:sym<but>    { <sym> >> <O(|%structural)> }
+    token infix:sym<cmp>    { <sym> >> <O(|%structural)> }
+    token infix:sym<coll>   { <sym> >> <O(|%structural)> }
+    token infix:sym<does>   { <sym> >> <O(|%structural)> }
+    token infix:sym<leg>    { <sym> >> <O(|%structural)> }
+    token infix:sym<unicmp> { <sym> >> <O(|%structural)> }
+
     token infix:sym<^..>  { <sym> <O(|%structural)> }
     token infix:sym<..^>  { <sym> <O(|%structural)> }
     token infix:sym<^..^> { <sym> <O(|%structural)> }
+    token infix:sym«<=>»  { <sym> <O(|%structural)> }
 
-    token infix:sym<leg>    { <sym> >> <O(|%structural)> }
-    token infix:sym<cmp>    { <sym> >> <O(|%structural)> }
-    token infix:sym<unicmp> { <sym> >> <O(|%structural)> }
-    token infix:sym<coll>   { <sym> >> <O(|%structural)> }
-    token infix:sym«<=>»    { <sym> <O(|%structural)> }
+    token infix:sym<!~> {
+        <sym>
+        \s
+        <.obs: '!~ to do negated pattern matching', '!~~'>
+        <O(|%chaining)>
+    }
+    token infix:sym<=~> {
+        <sym>
+        <.obs: '=~ to do pattern matching', '~~'>
+        <O(|%chaining)>
+    }
 
-    token infix:sym<but>  { <sym> >> <O(|%structural)> }
-    token infix:sym<does> { <sym> >> <O(|%structural)> }
-
-    token infix:sym<!~> { <sym> \s <.obs('!~ to do negated pattern matching', '!~~')> <O(|%chaining)> }
-    token infix:sym<=~> { <sym> <.obs('=~ to do pattern matching', '~~')> <O(|%chaining)> }
+#-------------------------------------------------------------------------------# Circumfixes
 
     token circumfix:sym<( )> {
         :my $*FAKE-INFIX-FOUND := 0;
@@ -1947,9 +2057,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         '«' ~ '»' <nibble(self.quote-lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))>
     }
 
-    ##
-    ## Terms
-    ##
+#-------------------------------------------------------------------------------# Terms
 
     token termish {
         :my $*SCOPE := "";

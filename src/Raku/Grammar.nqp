@@ -44,12 +44,12 @@ role Raku::Common {
     }
 
     method balanced($start, $stop) {
-        if nqp::istype($stop, VMArray) {
-            self.HOW.mixin(self, startstops.HOW.curry(startstops, $start, $stop[0], $stop[1]));
-        }
-        else {
-            self.HOW.mixin(self, startstop.HOW.curry(startstop, $start, $stop));
-        }
+        my $HOW := self.HOW;
+        nqp::istype($stop,VMArray)
+          ?? $HOW.mixin(self,
+               startstops.HOW.curry(startstops, $start, $stop[0], $stop[1])
+             )
+          !! $HOW.mixin(self, startstop.HOW.curry(startstop, $start, $stop));
     }
 
     method unbalanced($stop) {
@@ -178,10 +178,7 @@ role Raku::Common {
                 $message := "$message (corresponding $start was at line $line)";
             }
         }
-        $/.typed-panic('X::Comp::AdHoc',
-            payload => $message,
-            expected => [$stop]
-        );
+        $/.panic($message, expected => [$stop]);
     }
 
     my class Herestub {
@@ -200,8 +197,10 @@ role Raku::Common {
     }
 
     method heredoc () {
+        my $CU      := $*CU;
         my $actions := self.actions;
-        if $*CU && my @herestub_queue := $*CU.herestub-queue {
+
+        if $CU && my @herestub_queue := $CU.herestub-queue {
             my $here := self.'!cursor_start_cur'();
             $here.'!cursor_pos'(self.pos);
             while @herestub_queue {
@@ -336,6 +335,7 @@ role Raku::Common {
 #-------------------------------------------------------------------------------
 # Error handling
 
+    # Specific error handling
     method NYI($feature) {
         self.typed-panic: 'X::Comp::NYI', :$feature;
     }
@@ -347,24 +347,32 @@ role Raku::Common {
         self.typed-panic: $name, :$what;
     }
     method missing($what) {
-        self.typed-panic('X::Syntax::Missing', :$what);
+        self.typed-panic: 'X::Syntax::Missing', :$what;
     }
-    method missing-block($borg, $has_mystery) {
+    method missing-block($borg, $has-mystery) {
         my $marked := self.MARKED('ws');
-        my $pos := $marked ?? $marked.from !! self.pos;
+        my $pos    := $marked ?? $marked.from !! self.pos;
+        my $block  := $borg<block>;
 
-        if $borg<block> {
+        if $block {
+            my $name := $borg<name> // '';
+
             self.'!clear_highwater'();
-            self.'!cursor_pos'($borg<block>.pos);
-            self.typed-sorry('X::Syntax::BlockGobbled', what => ($borg<name> // ''));
+            self.'!cursor_pos'($block.pos);
+            self.typed-sorry: 'X::Syntax::BlockGobbled', :what($name);
+
             self.'!cursor_pos'($pos);
-            self.missing("block (apparently claimed by " ~ ($borg<name> ?? "'" ~ $borg<name> ~ "'" !! "expression") ~ ")");
-        } elsif $pos > 0 && nqp::eqat(self.orig(), '}', $pos - 1) {
-            self.missing("block (whitespace needed before curlies taken as a hash subscript?)");
-        } elsif $has_mystery {
-            self.missing("block (taken by some undeclared routine?)");
-        } else {
-            self.missing("block");
+            self.missing:
+              "block (apparently claimed by "
+                ~ ($name ?? "'$name'" !! "expression")
+                ~ ")";
+        }
+        else {
+            self.missing: $pos > 0 && nqp::eqat(self.orig(),'}',$pos - 1)
+              ?? "block (whitespace needed before curlies taken as a hash subscript?)"
+              !! $has-mystery
+                ?? "block (taken by some undeclared routine?)"
+                !! "block";
         }
     }
     method EXPR_nonassoc($cur, $left, $right) {
@@ -376,11 +384,11 @@ role Raku::Common {
     method dupprefix($prefixes) {
         self.typed-panic('X::Syntax::DuplicatedPrefix', :$prefixes);
     }
-    token obsbrace { <.obs('curlies around escape argument','square brackets')> }
 
     # All sorts of ad-hoc exception handling
-    method panic(*@args) {
-        self.typed-panic: 'X::Comp::AdHoc', payload => nqp::join('', @args)
+    method panic(*@args, *%nameds) {
+        self.typed-panic:
+          'X::Comp::AdHoc', payload => nqp::join('', @args), |%nameds
     }
     method sorry(*@args) {
         self.typed-sorry: 'X::Comp::AdHoc', payload => nqp::join('', @args)
@@ -506,6 +514,9 @@ role Raku::Common {
         self.typed-sorry('X::Obsolete', :$old, :$replacement, :$when)
           unless $*LANG.pragma('p5isms');
         self
+    }
+    method obsbrace() {
+        self.obs: 'curlies around escape argument', 'square brackets';
     }
 
     # Check the validity of a variable, handle meta-ops for Callables
@@ -848,7 +859,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token pointy-block {
         :dba('block or pointy block')
         :my $borg := $*BORG;                        # keep current context
-        :my $has_mystery := 0; # TODO
+        :my $has-mystery := 0; # TODO
         { $*BORG := {} }                            # initialize new context
         :my $*BLOCK;                                # localize block to here
         [
@@ -862,7 +873,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <.enter-block-scope('Block')>
             <blockoid>
             <.leave-block-scope>
-          || <.missing-block($borg, $has_mystery)>  # OR give up
+          || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
     }
 
@@ -870,7 +881,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token block {
         :dba('scoped block')
         :my $borg := $*BORG;                        # keep current context
-        :my $has_mystery := 0; # TODO
+        :my $has-mystery := 0; # TODO
         { $*BORG := {} }                            # initialize new context
         :my $*BLOCK;                                # localize block to here
         [
@@ -878,14 +889,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              <.enter-block-scope('Block')>
              <blockoid>
              <.leave-block-scope>
-          || <.missing-block($borg, $has_mystery)>  # OR give up
+          || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
     }
 
     # Parsing the statements between { }
     token blockoid {
         :my $borg := $*BORG;                        # keep current context
-        :my $has_mystery := 0; # TODO
+        :my $has-mystery := 0; # TODO
         :my $*MULTINESS := '';
         :my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
         :my @*ORIGIN-NESTINGS := [];
@@ -897,7 +908,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <statementlist=.key-origin('statementlist')>
             [<.cheat-heredoc> || '}']               # actual block end
             <?ENDSTMT>                              # XXX
-          || <.missing-block($borg, $has_mystery)>  # OR give up
+          || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
     }
 
@@ -1038,7 +1049,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | <pointy-block>
             [
                  $<wu>=['while'|'until']<.kok>
-              || <.missing('"while" or "until"')>
+              || <.missing: '"while" or "until"'>
             ]
             <EXPR>
         ]
@@ -1324,7 +1335,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             | <infix-circumfix-meta-operator> { $*OPER := $<infix-circumfix-meta-operator> }
             | <infix-prefix-meta-operator> { $*OPER := $<infix-prefix-meta-operator> }
             | <infix> { $*OPER := $<infix> }
-            | <?{ $*IN-META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN-META)>
+            | <?{ $*IN-META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing: "infix inside " ~ $*IN-META>
             ]
             [ <?before '='> <infix-postfix-meta-operator> { $*OPER := $<infix-postfix-meta-operator> } ]?
         ]
@@ -1406,7 +1417,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-circumfix-meta-operator:sym<« »> {
         $<opening>=[ '«' | '»' ]
         {} <infixish('hyper')>
-        $<closing>=[ '«' | '»' || <.missing("« or »")> ]
+        $<closing>=[ '«' | '»' || <.missing: "« or »"> ]
         <.can-meta($<infixish>, "hyper with")>
         {} <O=.AS_MATCH($<infixish><OPER><O>)>
     }
@@ -1414,7 +1425,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-circumfix-meta-operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish('HYPER')>
-        $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
+        $<closing>=[ '<<' | '>>' || <.missing: "<< or >>"> ]
         {} <O=.AS_MATCH($<infixish><OPER><O>)>
     }
 

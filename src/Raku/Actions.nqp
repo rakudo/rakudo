@@ -194,8 +194,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         # Seen a -use vxxx- statement
-        if $<version> {
-            my $version        := ~$<version>;
+        my $version := $<version>
+          ?? ~$<version>
+          !! nqp::getenvhash()<RAKU_LANGUAGE_VERSION> || "";
+        if $version {
             my @vparts         := $HLL-COMPILER.lvs.from-public-repr($version);
             my %lang-revisions := $HLL-COMPILER.language_revisions;
             my @final-version;
@@ -223,11 +225,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     # If version candidate
                     my $can-parts := $can-version.parts;
                     my $can-revision := nqp::unbox_i($can-parts.head);
-                    last unless $can-parts.elems == 1 && nqp::existskey(%lang-revisions{$can-revision}, 'require');
+                    last
+                      unless $can-parts.elems == 1
+                          && nqp::existskey(%lang-revisions{$can-revision},'require');
                 }
 
                 if $i < 0 {
-                    $<version>.typed_panic: 'X::Language::Unsupported', :$version;
+                    $/.typed_panic: 'X::Language::Unsupported', :$version;
                 }
 
                 # Are there any easier way to unbox boxable types?
@@ -235,42 +239,47 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 my $Str := $RESOLVER.setting-constant('Str');
                 my @can-parts := nqp::getattr($can-version, $Version, '$!parts');
                 for @can-parts -> $part {
-                    @final-version.push:
-                        nqp::isint($part) || nqp::isstr($part)
-                            ?? $part
-                            !! nqp::istype($part, $Int)
-                                ?? nqp::unbox_i($part)
-                                !! nqp::istype($part, $Str)
-                                    ?? nqp::unbox_s($part)
-                                    !! nqp::die("Don't know how to handle version part of '"
-                                                ~ $part.HOW.name($part) ~ "' type");
+                    @final-version.push: nqp::isint($part) || nqp::isstr($part)
+                      ?? $part
+                      !! nqp::istype($part, $Int)
+                        ?? nqp::unbox_i($part)
+                        !! nqp::istype($part, $Str)
+                          ?? nqp::unbox_s($part)
+                          !! nqp::die(
+                               "Don't know how to handle version part of '"
+                                 ~ $part.HOW.name($part)
+                                 ~ "' type"
+                             );
                 }
             }
+
             # A non-globbed version can be used as-is, make sure it is valid
             else {
                 my $revision := @vparts[0];
                 # Consider version to have a language modifier if the last
                 # part of is a string of non-zero length.
                 my $modifier := @vparts > 1 && nqp::objprimspec(@vparts[-1]) == 3
-                    ?? @vparts[-1]
-                    !! nqp::null();
+                  ?? @vparts[-1]
+                  !! nqp::null();
 
                 # Do we know this language version?
                 unless nqp::existskey(%lang-revisions, $revision)
-                     && (!$modifier || nqp::existskey(%lang-revisions{$revision}<mods>, $modifier))
+                  && (!$modifier || nqp::existskey(%lang-revisions{$revision}<mods>, $modifier))
                 {
-                    $<version>.typed_panic('X::Language::Unsupported', :$version)
+                    $/.typed_panic: 'X::Language::Unsupported', :$version;
                 }
 
-                # If the version is known, is it used with a required modifier?
-                if nqp::existskey(%lang-revisions{$revision}, 'require')
-                    && (!$modifier || %lang-revisions{$revision}<require> ne $modifier)
-                {
-                    $<version>.typed_panic('X::Language::ModRequired', :$version, :modifier(%lang-revisions{$revision}<require>))
+                my %config := %lang-revisions{$revision};
+                # If version is known, is it used with a required modifier?
+                if nqp::existskey(%config,'require')
+                  && (!$modifier || %config<require> ne $modifier) {
+                    $/.typed_panic: 'X::Language::ModRequired',
+                      :$version, :modifier(%config<require>);
                 }
 
-                # We can't issue a worry immediately because the current resolver is temporary.
-                if $modifier && %lang-revisions{$revision}<mods>{$modifier}<deprecate> {
+                # We can't issue a worry immediately because the current
+                # resolver is temporary, so just set a flag
+                if $modifier && %config<mods>{$modifier}<deprecate> {
                     $modifier-deprecated := $modifier;
                 }
 
@@ -284,7 +293,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Now the resolver is final, express our modifier concern!
             if $modifier-deprecated {
                 # At this point our compiler version is final.
-                $<version>.worry: "$modifier-deprecated modifier is deprecated for Raku v" ~ $HLL-COMPILER.language_version();
+                $/.worry:
+                  "$modifier-deprecated modifier is deprecated for Raku v"
+                    ~ $HLL-COMPILER.language_version;
             }
         }
 

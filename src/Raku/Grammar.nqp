@@ -344,7 +344,7 @@ role Raku::Common {
         if $borg<block> {
             self.'!clear_highwater'();
             self.'!cursor_pos'($borg<block>.pos);
-            self.typed_sorry('X::Syntax::BlockGobbled', what => ($borg<name> // ''));
+            self.typed-sorry('X::Syntax::BlockGobbled', what => ($borg<name> // ''));
             self.'!cursor_pos'($pos);
             self.missing("block (apparently claimed by " ~ ($borg<name> ?? "'" ~ $borg<name> ~ "'" !! "expression") ~ ")");
         } elsif $pos > 0 && nqp::eqat(self.orig(), '}', $pos - 1) {
@@ -373,21 +373,25 @@ role Raku::Common {
         self.typed-panic('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
     method sorry(*@args) {
-        self.typed_sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed-sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
     method worry(*@args) {
         self.typed_worry('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
 
-    # All sorts of type exception handling
+    # All sorts of typed exception handling
     method typed-panic($type_str, *%opts) {
         $*R.panic: self.build_exception($type_str, |%opts);
     }
-    method typed_sorry($type_str, *%opts) {
+    method typed-sorry($type_str, *%opts) {
+
+        # Still allowing sorries
         if $*SORRY_REMAINING-- {
             $*R.add-sorry(self.build_exception($type_str, |%opts));
             self
         }
+
+        # Too many sorries, call it a day
         else {
             self.typed-panic($type_str, |%opts)
         }
@@ -477,7 +481,7 @@ role Raku::Common {
           !! self.typed-panic: 'X::Syntax::Perl5Var', :$name, :$identifier-name
     }
     method sorryobs($old, $replacement, $when = 'in Raku') {
-        self.typed_sorry('X::Obsolete', :$old, :$replacement, :$when)
+        self.typed-sorry('X::Obsolete', :$old, :$replacement, :$when)
           unless $*LANG.pragma('p5isms');
         self
     }
@@ -2584,29 +2588,29 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             | '(' ~ ')' <signature>
                 {
                     if $sigil eq '&' {
-                        self.typed_sorry('X::Syntax::Reserved',
+                        self.typed-sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in routine declarations',
                             instead => ' (maybe use :() to declare a longname?)'
                         );
                     }
                     elsif $sigil eq '@' {
-                        self.typed_sorry('X::Syntax::Reserved',
+                        self.typed-sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in array declarations');
                     }
                     elsif $sigil eq '%' {
-                        self.typed_sorry('X::Syntax::Reserved',
+                        self.typed-sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in hash declarations');
                     }
                     else {
-                        self.typed_sorry('X::Syntax::Reserved',
+                        self.typed-sorry('X::Syntax::Reserved',
                             reserved => '() shape syntax in variable declarations');
                     }
                 }
             | :dba('shape definition') '[' ~ ']' <semilist>
-                { $sigil ne '@' && self.typed_sorry('X::Syntax::Reserved',
+                { $sigil ne '@' && self.typed-sorry('X::Syntax::Reserved',
                     reserved => '[] shape syntax with the ' ~ $sigil ~ ' sigil') }
             | :dba('shape definition') '{' ~ '}' <semilist>
-                { $sigil ne '%' && self.typed_sorry('X::Syntax::Reserved',
+                { $sigil ne '%' && self.typed-sorry('X::Syntax::Reserved',
                     reserved => '{} shape syntax with the ' ~ $sigil ~ ' sigil') }
             | <?[<]> <postcircumfix> <.NYI: "Shaped variable declarations">
             ]+
@@ -2904,7 +2908,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             ]
         | <VALUE=decint>
         ]
-        <!!before ['.' <?before \s | ',' | '=' | ':' <!before  <coloncircumfix <OPER=prefix> > > | <.terminator> | $ > <.typed_sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
+        <!!before ['.' <?before \s | ',' | '=' | ':' <!before  <coloncircumfix <OPER=prefix> > > | <.terminator> | $ > <.typed-sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
         [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
 
@@ -3158,7 +3162,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <longname>
         {
           #TODO bring back suggestions for which types may have been meant
-          my $method := $panic ?? 'typed-panic' !! 'typed_sorry';
+          my $method := $panic ?? 'typed-panic' !! 'typed-sorry';
           $/."$method"('X::Undeclared',
                     what => "Type",
                     symbol => $<longname>.ast.canonicalize);
@@ -4365,38 +4369,38 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
 
 grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
     method throw_unrecognized_metachar ($metachar) {
-        self.typed_sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
+        self.typed-sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
     }
     method throw_null_pattern() {
-        self.typed_sorry('X::Syntax::Regex::NullRegex');
+        self.typed-sorry('X::Syntax::Regex::NullRegex');
     }
     method throw_unrecognized_regex_modifier($modifier) {
         self.typed-panic('X::Syntax::Regex::UnrecognizedModifier', :$modifier);
     }
 
     method throw_malformed_range() {
-        self.typed_sorry('X::Syntax::Regex::MalformedRange');
+        self.typed-sorry('X::Syntax::Regex::MalformedRange');
     }
     method throw_confused() {
-        self.typed_sorry('X::Syntax::Confused');
+        self.typed-sorry('X::Syntax::Confused');
     }
     method throw_unspace($char) {
-        self.typed_sorry('X::Syntax::Regex::Unspace', :$char);
+        self.typed-sorry('X::Syntax::Regex::Unspace', :$char);
     }
     method throw_regex_not_terminated() {
-        self.typed_sorry('X::Syntax::Regex::Unterminated');
+        self.typed-sorry('X::Syntax::Regex::Unterminated');
     }
     method throw_spaces_in_bare_range() {
-        self.typed_sorry('X::Syntax::Regex::SpacesInBareRange');
+        self.typed-sorry('X::Syntax::Regex::SpacesInBareRange');
     }
     method throw_non_quantifiable() {
-        self.typed_sorry('X::Syntax::Regex::NonQuantifiable');
+        self.typed-sorry('X::Syntax::Regex::NonQuantifiable');
     }
     method throw_solitary_quantifier() {
         self.typed-panic('X::Syntax::Regex::SolitaryQuantifier');
     }
     method throw_solitary_backtrack_control() {
-        self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl');
+        self.typed-sorry('X::Syntax::Regex::SolitaryBacktrackControl');
     }
 
     token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }

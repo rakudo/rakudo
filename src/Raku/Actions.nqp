@@ -996,7 +996,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         }
                         else {
                             # Only report the sorry if there is no more specific sorry already
-                            $/.typed_sorry('X::Syntax::Confused') unless $*R.has-sorries;
+                            $/.typed-sorry('X::Syntax::Confused') unless $*R.has-sorries;
                         }
                     }
                     else {
@@ -1866,7 +1866,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $initializer := $<term_init>.ast;
             my $decl := Nodify('VarDeclaration', 'Term').new:
                 :$scope, :$type, :$name, :$initializer;
-            $/.typed_sorry('X::Redeclaration', :symbol($name))
+            $/.typed-sorry('X::Redeclaration', :symbol($name))
                 if $*R.declare-lexical($decl);
             self.attach: $/, $decl;
         }
@@ -2582,10 +2582,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $sep := @*seps[$param_idx];
             if ~$sep eq ':' {
                 if $param_idx != 0 {
-                    $/.typed_sorry('X::Syntax::Signature::InvocantMarker');
+                    $/.typed-sorry('X::Syntax::Signature::InvocantMarker');
                 }
                 unless $*ALLOW_INVOCANT {
-                    $/.typed_sorry('X::Syntax::Signature::InvocantNotAllowed');
+                    $/.typed-sorry('X::Syntax::Signature::InvocantNotAllowed');
                 }
                 $param.set-invocant(1);
             }
@@ -2845,11 +2845,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $*BLOCK.replace-scope($scope);
         if $*MULTINESS ne 'multi' {
             if $scope eq 'my' || $scope eq 'our' || $scope eq 'unit' {
-                $/.typed_sorry('X::Redeclaration', :symbol($name.canonicalize))
+                $/.typed-sorry('X::Redeclaration', :symbol($name.canonicalize))
                     if $*R.declare-lexical-in-outer($*BLOCK);
             }
             elsif $*DEFAULT-SCOPE ne 'has' {
-                $/.typed_sorry('X::Redeclaration', :symbol($name.canonicalize))
+                $/.typed-sorry('X::Redeclaration', :symbol($name.canonicalize))
                     if $*R.declare-lexical($*BLOCK);
             }
         }

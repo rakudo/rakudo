@@ -500,53 +500,75 @@ role Raku::Common {
         self;
     }
 
+    # Check the validity of a variable, handle meta-ops for Callables
     method check-variable($var) {
         my $ast := $var.ast;
-        if nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT) {
-            $ast.resolve-with($*R);
-            unless $ast.is-resolved {
-                if $ast.sigil eq '&' {
-                   if $ast.IMPL-IS-META-OP {
-                        my $cat := $ast.desigilname.canonicalize(:colonpairs(0));
-                        my $op := $ast.desigilname.colonpairs[0].literal-value;
 
-                        return self if $op eq '!=' || $op eq '≠';
+        # Not capable of checking
+        return Nil
+          unless nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT);
 
-                        my $lang := self.'!cursor_init'($op, :p(0), :actions(self.actions));
-                        $lang.clone_braid_from(self);
+        # Nothing to do?
+        $ast.resolve-with($*R);
+        return Nil if $ast.is-resolved;
 
-                        my $meth := $cat eq 'infix' || $cat eq 'prefix' || $cat eq 'postfix' ?? $cat ~ 'ish' !! $cat;
-                        $meth := 'term:sym<reduce>' if $cat eq 'prefix' && $op ~~ /^ \[ .* \] $ /;
-                        my $cursor := $lang."$meth"();
-                        my $match := $cursor.MATCH;
-                        if $cursor.pos == nqp::chars($op) && (
-                            $match<infix-prefix-meta-operator> ||
-                            $match<infix-circumfix-meta-operator> ||
-                            $match<infix-postfix-meta-operator> ||
-                            $match<prefix-postfix-meta-operator> ||
-                            $match<postfix-prefix-meta-operator> ||
-                            $match<op>)
-                        {
-                            my $META := $match.ast;
-                            $META.IMPL-CHECK($*R, $*CU.context, 1);
-                            my $meta-op := $META.IMPL-HOP-INFIX;
-                            $ast.set-resolution(self.actions.r('Declaration', 'External', 'Constant').new(
-                                :lexical-name($ast.name),
-                                :compile-time-value($meta-op),
-                            ));
-                        }
-                    }
-                }
-                else {
-                    self.typed_panic('X::Undeclared',
-                      symbol => $ast.name, is-compile-time => 1, suggestions => $*R.suggest-lexicals($ast.name)
-                    )
-                }
+        my $name := $ast.name;
+        if $ast.sigil eq '&' {
+
+            # Nothing to do?
+            return Nil unless $ast.IMPL-IS-META-OP;
+            my $op := $ast.desigilname.colonpairs[0].literal-value;
+            return Nil if $op eq '!=' || $op eq '≠';
+
+            my $actions := self.actions;
+            my $lang    := self.'!cursor_init'($op, :p(0), :$actions);
+            $lang.clone_braid_from(self);
+
+            my $cat  := $ast.desigilname.canonicalize(:colonpairs(0));
+            my $meth := $cat eq 'infix'
+              || $cat eq 'prefix'
+              || $cat eq 'postfix'
+              ?? $cat ~ 'ish'
+              !! $cat;
+            $meth := 'term:sym<reduce>'
+              if $cat eq 'prefix'
+              && $op ~~ /^ \[ .* \] $/;
+
+            my $cursor := $lang."$meth"();
+            my $match  := $cursor.MATCH;
+            if $cursor.pos == nqp::chars($op) && (
+                 $match<infix-prefix-meta-operator>
+              || $match<infix-circumfix-meta-operator>
+              || $match<infix-postfix-meta-operator>
+              || $match<prefix-postfix-meta-operator>
+              || $match<postfix-prefix-meta-operator>
+              || $match<op>
+            ) {
+
+                my $META := $match.ast;
+                $META.IMPL-CHECK($*R, $*CU.context, 1);
+
+                my $meta-op := $META.IMPL-HOP-INFIX;
+                $ast.set-resolution(
+                  $actions.r('Declaration','External','Constant').new(
+                    lexical-name       => $name,
+                    compile-time-value => $meta-op
+                  )
+                );
             }
+        }
+
+        # Not resolved and not a Callable
+        else {
+            self.typed_panic: 'X::Undeclared',
+              symbol          => $name,
+              is-compile-time => 1,
+              suggestions     => $*R.suggest-lexicals($name);
         }
     }
 
-    # Provide parent's rule/token @*ORIGIN-NESTINGS to ease and unify creating a stack of key AST nodes.
+    # Provide parent's rule/token @*ORIGIN-NESTINGS to ease and unify
+    # creating a stack of key AST nodes.
     method PARENT-NESTINGS() {
         # Expect to be called immediately from the nesting token.
         my $parent-ctx := nqp::ctxcallerskipthunks(nqp::ctxcaller(nqp::ctx()));
@@ -557,18 +579,15 @@ role Raku::Common {
         my @*PARENT-NESTINGS := self.PARENT-NESTINGS();
         my @*ORIGIN-NESTINGS := [];
         my $rc := self."$subrule"(|@pos, |%named);
-        if $rc {
-            self.actions().key-origin($rc);
-        }
+        self.actions.key-origin($rc) if $rc;
         $rc
     }
 }
 
-grammar Raku::Grammar is HLL::Grammar does Raku::Common {
-    ##
-    ## Compilation unit, language version and other entry point bits
-    ##
+#-------------------------------------------------------------------------------
+# Compilation unit, language version and other entry point bits
 
+grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     method TOP() {
         # Set up the language braid.
         my $*LANG := self;

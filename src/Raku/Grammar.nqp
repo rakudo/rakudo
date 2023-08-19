@@ -464,40 +464,21 @@ role Raku::Common {
                                                          :cache(1))));
     }
 
-    # "when" arg assumes more things will become obsolete after Raku comes out...
-    method obs($old, $new, $when = 'in Raku', :$ism = 'p5isms') {
-        unless $*LANG.pragma($ism) {
-            self.typed_panic: 'X::Obsolete',
-                old         => $old,
-                replacement => $new,
-                when        => $when;
-        }
-        self;
+    # "when" arg assumes more things will become obsolete after Raku comes out
+    method obs($old, $replacement, $when = 'in Raku', :$ism = 'p5isms') {
+        $*LANG.pragma($ism)
+          ?? self
+          !! self.typed_panic: 'X::Obsolete', :$old, :$replacement, :$when
     }
     method obsvar($name, $identifier-name?) {
-        unless $*LANG.pragma('p5isms') {
-            self.typed_panic: 'X::Syntax::Perl5Var',
-              :$name, :$identifier-name;
-        }
-        self;
+        $*LANG.pragma('p5isms')
+          ?? self
+          !! self.typed_panic: 'X::Syntax::Perl5Var', :$name, :$identifier-name
     }
-    method sorryobs($old, $new, $when = 'in Raku') {
-        unless $*LANG.pragma('p5isms') {
-            self.typed_sorry: 'X::Obsolete',
-                old         => $old,
-                replacement => $new,
-                when        => $when;
-        }
-        self;
-    }
-    method worryobs($old, $new, $when = 'in Raku') {
-        unless $*LANG.pragma('p5isms') {
-            self.typed_worry: 'X::Obsolete',
-                old         => $old,
-                replacement => $new,
-                when        => $when;
-        }
-        self;
+    method sorryobs($old, $replacement, $when = 'in Raku') {
+        self.typed_sorry('X::Obsolete', :$old, :$replacement, :$when)
+          unless $*LANG.pragma('p5isms');
+        self
     }
 
     # Check the validity of a variable, handle meta-ops for Callables

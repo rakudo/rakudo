@@ -369,6 +369,7 @@ role Raku::Common {
     }
     token obsbrace { <.obs('curlies around escape argument','square brackets')> }
 
+    # All sorts of ad-hoc exception handling
     method panic(*@args) {
         self.typed-panic('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
@@ -376,28 +377,28 @@ role Raku::Common {
         self.typed-sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
     method worry(*@args) {
-        self.typed_worry('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed-worry('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
 
     # All sorts of typed exception handling
-    method typed-panic($type_str, *%opts) {
-        $*R.panic: self.build_exception($type_str, |%opts);
+    method typed-panic($name, *%opts) {
+        $*R.panic: self.build_exception($name, |%opts);
     }
-    method typed-sorry($type_str, *%opts) {
+    method typed-sorry($name, *%opts) {
 
         # Still allowing sorries
         if $*SORRY_REMAINING-- {
-            $*R.add-sorry(self.build_exception($type_str, |%opts));
+            $*R.add-sorry(self.build_exception($name, |%opts));
             self
         }
 
         # Too many sorries, call it a day
         else {
-            self.typed-panic($type_str, |%opts)
+            self.typed-panic($name, |%opts)
         }
     }
-    method typed_worry($type_str, *%opts) {
-        $*R.add-worry(self.build_exception($type_str, |%opts));
+    method typed-worry($name, *%opts) {
+        $*R.add-worry(self.build_exception($name, |%opts));
         self
     }
 
@@ -2139,8 +2140,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         '\\'
         [
         | '(' <args=.semiarglist> ')'
-        | <?before '$' | '@' | '%' | '&'> <.typed_worry('X::Worry::P5::Reference')> <args=.termish>
-        | <?before \d> <.typed_worry('X::Worry::P5::BackReference')> <args=.termish>
+        | <?before '$' | '@' | '%' | '&'> <.typed-worry('X::Worry::P5::Reference')> <args=.termish>
+        | <?before \d> <.typed-worry('X::Worry::P5::BackReference')> <args=.termish>
         | <?before \S> <args=.termish>
         | {} <.panic: "You can't backslash that">
         ]
@@ -2904,7 +2905,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             | x '_'? <VALUE=hexint>
             | d '_'? <VALUE=decint>
             | <VALUE=decint>
-                <!!{ $/.typed_worry('X::Worry::P5::LeadingZero', value => ~$<VALUE>) }>
+                <!!{ $/.typed-worry('X::Worry::P5::LeadingZero', value => ~$<VALUE>) }>
             ]
         | <VALUE=decint>
         ]
@@ -4488,7 +4489,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         # :dba('regex atom')
         [
         | \w
-          [ <?before ' ' \w <!before <.quantifier>>  > <!{ $*WHITESPACE_OK }> <.typed_worry('X::Syntax::Regex::InsignificantWhitespace')> ]?
+          [ <?before ' ' \w <!before <.quantifier>>  > <!{ $*WHITESPACE_OK }> <.typed-worry('X::Syntax::Regex::InsignificantWhitespace')> ]?
           <.SIGOK>
         | <metachar>
         ]

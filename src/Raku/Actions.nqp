@@ -550,7 +550,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $from    := $/.from;
             my $worries := $*DECLARAND-WORRIES;
             for $worries {
-                $_.value.typed_worry:
+                $_.value.typed-worry:
                   'X::Syntax::Doc::Declarator::MissingDeclarand'
                   if $_.key < $from;
                 nqp::deletekey($worries, $_.key);
@@ -1911,7 +1911,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 :$shape, :$forced-dynamic;
             if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
                 my str $name := $<sigil> ~ ($<twigil> || '') ~ $desigilname;
-                $/.typed_worry('X::Redeclaration', :symbol($name))
+                $/.typed-worry('X::Redeclaration', :symbol($name))
                   if $*R.declare-lexical($decl);
             }
             self.set-declarand($/, $decl);

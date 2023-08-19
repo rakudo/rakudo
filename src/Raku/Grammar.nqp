@@ -336,8 +336,15 @@ role Raku::Common {
 #-------------------------------------------------------------------------------
 # Error handling
 
-    method malformed($what) {
-        self.typed-panic('X::Syntax::Malformed', :$what);
+    method NYI($feature) {
+        self.typed-panic: 'X::Comp::NYI', :$feature;
+    }
+    method malformed($what, $additional?) {
+        my $name := 'X::Syntax::Malformed';
+        if $additional {
+            $name := $name ~ '::' ~ $additional;
+        }
+        self.typed-panic: $name, :$what;
     }
     method missing($what) {
         self.typed-panic('X::Syntax::Missing', :$what);
@@ -359,9 +366,6 @@ role Raku::Common {
         } else {
             self.missing("block");
         }
-    }
-    method NYI($feature) {
-        self.typed-panic('X::Comp::NYI', :$feature)
     }
     method EXPR_nonassoc($cur, $left, $right) {
         self.typed-panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
@@ -991,10 +995,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <then=.pointy-block>         # initial body
         [                            # any elsifs/orwiths
           [
-            | else\h*if
-              <.typed-panic: 'X::Syntax::Malformed::Elsif'>
-            | elif
-              <.typed-panic: 'X::Syntax::Malformed::Elsif', :what<elif> >
+            | $<what>=[ else\h*if | elif ] <.malformed: ~$<what>, 'Elsif'>
             | $<sym>=[elsif|orwith]
               <condition=.EXPR>
               <then=.pointy-block>
@@ -1568,7 +1569,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token methodop($*special) {
         [
         | <longname> {
-                if $<longname> eq '::' { self.malformed("class-qualified postfix call") }
+              self.malformed("class-qualified postfix call")
+                if $<longname> eq '::';
           }
 #        | <?[$@&]> <variable> { self.check-variable($<variable>) }
         | <?['"]>
@@ -1672,7 +1674,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token infix:sym<::=> {
-        <sym> <O(|%item_assignment)> <.NYI('"::="')>
+        <sym> <O(|%item_assignment)> <.NYI: '"::="'>
     }
 
     token dottyopish {
@@ -2112,7 +2114,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <.unsp>?
             [
                 <?[{]> <?{ $*is-type }>
-                <whence=.postcircumfix> <.NYI('Autovivifying object closures')>
+                <whence=.postcircumfix> <.NYI: 'Autovivifying object closures'>
             ]?
             <.unsp>?
             [
@@ -2174,7 +2176,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ':'
         :dba('colon pair')
         [
-        | $<neg>='!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
+        | $<neg>='!' [ <identifier> || <.malformed: "False pair; expected identifier"> ]
             [ <[ \[ \( \< \{ ]> {
             $/.typed-panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str }
@@ -2513,7 +2515,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token scope-declarator:sym<augment>   { <sym> <scoped('augment')> }
     token scope-declarator:sym<supersede> {
-        <sym> <scoped('supersede')> <.NYI('"supersede"')>
+        <sym> <scoped('supersede')> <.NYI: '"supersede"'>
     }
 
     token scoped($*SCOPE) {
@@ -2527,10 +2529,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
            | <DECL=package-declarator>
            | [<typename><.ws>]+
              {
-                if nqp::elems($<typename>) > 1 {
-                    $/.NYI('Multiple prefix constraints');
-                }
-                $*OFTYPE := $<typename>[0];
+                nqp::elems($<typename>) > 1
+                  ?? $/.NYI('Multiple prefix constraints')
+                  !! ($*OFTYPE := $<typename>[0]);
              }
              <DECL=multi-declarator>
            | <DECL=multi-declarator>
@@ -2546,7 +2547,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
            ]
            > {} <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
         || <.ws><!typename> <typo-typename> <!>
-        || <.malformed($*SCOPE)>
+        || <.malformed: $*SCOPE>
         ]
     }
 
@@ -2555,19 +2556,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym><.kok>
         :my $*MULTINESS := 'multi';
         [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine-def('sub')> || <.malformed('multi')> ]
+        [ <declarator> || <routine-def('sub')> || <.malformed: 'multi'> ]
     }
     token multi-declarator:sym<proto> {
         <sym><.kok>
         :my $*MULTINESS := 'proto';
         [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine-def('sub')> || <.malformed('proto')> ]
+        [ <declarator> || <routine-def('sub')> || <.malformed: 'proto'> ]
     }
     token multi-declarator:sym<only> {
         <sym><.kok>
         :my $*MULTINESS := 'only';
         [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine-def('sub')> || <.malformed('only')> ]
+        [ <declarator> || <routine-def('sub')> || <.malformed: 'only'> ]
     }
     token multi-declarator:sym<null> {
         :my $*MULTINESS := '';
@@ -2666,7 +2667,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
     }
     token initializer:sym<::=> {
-        <sym> [ <.ws> <EXPR('e=')> <.NYI('"::="')> || <.malformed: 'binding'> ]
+        <sym> [ <.ws> <EXPR('e=')> <.NYI: '"::="'> || <.malformed: 'binding'> ]
     }
     token initializer:sym<.=> {
         <sym> [ <.ws> <dottyop> || <.malformed: 'mutator method call'> ]
@@ -2803,7 +2804,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           ]
           '}'<!RESTRICTED><?ENDSTMT>
           <.leave-block-scope>
-        ] || <.malformed($type)>
+        ] || <.malformed: $type>
     }
 
     proto token type-declarator {*}
@@ -2854,7 +2855,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 <trait>*
                 [ where <EXPR('e=')> ]?
             ]
-            || <.malformed('subset')>
+            || <.malformed: 'subset'>
         ]
     }
 
@@ -3103,7 +3104,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
         ||
             { $lang := self.quote-lang($lang2, $stop, $stop, @lang2tweaks); }
-            <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
+            <right=.nibble($lang)> $stop || <.malformed: "Replacement part; couldn't find final $stop">
         ]
     }
 
@@ -3135,7 +3136,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ':'
         :dba('colon pair (restricted)')
         [
-        | $<neg>='!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
+        | $<neg>='!' [ <identifier> || <.malformed: "False pair; expected identifier"> ]
             [ <[ \[ \( \< \{ ]> {
             $/.typed-panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str }
@@ -3169,9 +3170,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <?[[]>
             '[' ~ ']' <arglist>
         ]?
-        <.unsp>? [ <?before '{'> {
-            $/.typed-panic('X::NYI', feature => 'Autovivifying object closures');
-        } <whence=.postcircumfix> ]?
+        <.unsp>? [ <?before '{'> <.NYI: 'Autovivifying object closures'>
+        <whence=.postcircumfix> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
@@ -3210,14 +3210,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <parameter>
         ]+ % <param_sep>
         <.ws>
-        [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' > || <.malformed('parameter')> ]
+        [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' > || <.malformed: 'parameter'> ]
         { $*IN-DECL := ''; }
         [ '-->' <.ws> [ || [<typename>|<value>||<typo-typename(1)>] <.ws>
                            [ || <?[ { ) ]>
                              || <?before <.param_sep>? <.parameter>>
-                                <.malformed('return value (return constraints only allowed at the end of the signature)')>
+                                <.malformed: 'return value (return constraints only allowed at the end of the signature)'>
                            ]
-                        || <.malformed('return value')>
+                        || <.malformed: 'return value'>
                       ] ]?
         { $*LEFTSIGIL := '@'; }
     }

@@ -136,13 +136,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my %OPTIONS       := %*OPTIONS;
         my $context       := %OPTIONS<outer_ctx>;
         my $resolver-type := Nodify('Resolver', 'Compile');
-        $*R := nqp::isconcrete($context)
+        my $RESOLVER := $*R := nqp::isconcrete($context)
           ?? $resolver-type.from-context(
                :$context, :global(%OPTIONS<global>), :resolver($*OUTER-RESOLVER)
              )
           !! $resolver-type.from-setting(
                :setting-name(%OPTIONS<setting> // 'CORE.d')
              );
+
+        # Make debugging a *lot* easier
+        &*DD := $RESOLVER.setting-constant('&dd');
     }
 
     # Perform all actions related to "use vxxx" and loading appropriate

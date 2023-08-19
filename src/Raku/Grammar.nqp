@@ -667,6 +667,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my @*ORIGIN-NESTINGS := [];  # handling nested origins
         :my $*R;               # current RakuAST::Resolver::xxx object
         :my $*LITERALS;        # current RakuAST::LiteralBuilder object
+        :my &*DD;              # debug helper to dd()
         {
             self.actions.comp-unit-prologue($/);  # set the above variables
         }

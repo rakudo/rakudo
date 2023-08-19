@@ -231,7 +231,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
 
                 if $i < 0 {
-                    $/.typed_panic: 'X::Language::Unsupported', :$version;
+                    $/.typed-panic: 'X::Language::Unsupported', :$version;
                 }
 
                 # Are there any easier way to unbox boxable types?
@@ -266,14 +266,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 unless nqp::existskey(%lang-revisions, $revision)
                   && (!$modifier || nqp::existskey(%lang-revisions{$revision}<mods>, $modifier))
                 {
-                    $/.typed_panic: 'X::Language::Unsupported', :$version;
+                    $/.typed-panic: 'X::Language::Unsupported', :$version;
                 }
 
                 my %config := %lang-revisions{$revision};
                 # If version is known, is it used with a required modifier?
                 if nqp::existskey(%config,'require')
                   && (!$modifier || %config<require> ne $modifier) {
-                    $/.typed_panic: 'X::Language::ModRequired',
+                    $/.typed-panic: 'X::Language::ModRequired',
                       :$version, :modifier(%config<require>);
                 }
 
@@ -497,7 +497,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method label($/) {
         my $name := ~$<identifier>;
         my $decl := Nodify('Label').new($name);
-        $/.typed_panic('X::Redeclaration', :symbol($name))
+        $/.typed-panic('X::Redeclaration', :symbol($name))
           if $*R.declare-lexical($decl);
         self.attach: $/, $decl;
     }
@@ -2028,13 +2028,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
                 if $twigil eq '?' {
                     unless $*COMPILING_CORE_SETTING {
-                        $/.typed_panic('X::Comp::NYI',
+                        $/.typed-panic('X::Comp::NYI',
                           feature => "Constants with a '$twigil' twigil"
                         );
                     }
                 }
                 elsif $twigil eq '*' {
-                    $/.typed_panic('X::Syntax::Variable::Twigil',
+                    $/.typed-panic('X::Syntax::Variable::Twigil',
                       name       => ~$<variable>,
                       what       => 'constant',
                       twigil     => $twigil,
@@ -2044,7 +2044,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
                 # Don't handle other twigil'd case yet.
                 else {
-                    $/.typed_panic('X::Comp::NYI',
+                    $/.typed-panic('X::Comp::NYI',
                       feature => "Constants with a '$twigil' twigil");
                 }
             }
@@ -2060,7 +2060,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
 
         my $decl := Nodify('VarDeclaration', 'Constant').new(|%args);
-        $/.typed_panic('X::Redeclaration', :symbol(%args<name>))
+        $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
         $decl.IMPL-CHECK($*R, $*CU.context, 1);
         self.attach: $/, $decl;
@@ -2130,7 +2130,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         ?? $circumfix
                         !! nqp::die("NYI trait_mod circumfix " ~ $circumfix.HOW.name($circumfix));
                 unless $repr.IMPL-CAN-INTERPRET {
-                    $/.typed_panic('X::Value::Dynamic', :what('is repr(...) trait'));
+                    $/.typed-panic('X::Value::Dynamic', :what('is repr(...) trait'));
                 }
                 $repr := $repr.IMPL-INTERPRET(Nodify('IMPL', 'InterpContext').new);
                 $*PACKAGE.set-repr($repr);
@@ -2326,7 +2326,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             # Check and override $radix if necessary.
             my int $radix := nqp::radix(10, $<radix>, 0, 0)[0];
-            $/.typed_panic('X::Syntax::Number::RadixOutOfRange', :$radix)
+            $/.typed-panic('X::Syntax::Number::RadixOutOfRange', :$radix)
                 unless (2 <= $radix) && ($radix <= 36);
             if nqp::chars($<ohradix>) {
                 my $ohradstr := $<ohradix>.Str;
@@ -2352,13 +2352,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $epart := $<exp> ?? nqp::tonum_I($<exp>[0].ast) !! 0;
 
             if $ipart[2] < nqp::chars($<intpart>.Str) {
-                $/.typed_panic: 'X::Str::Numeric',
+                $/.typed-panic: 'X::Str::Numeric',
                     :source($<intpart> ~ ($<fracpart> // '')),
                     :pos($ipart[2] < 0 ?? 0 !! $ipart[2]),
                     :reason("malformed base-$radix number");
             }
             if $fpart[2] < nqp::chars($<fracpart>.Str) {
-                $/.typed_panic: 'X::Str::Numeric',
+                $/.typed-panic: 'X::Str::Numeric',
                     :source($<intpart> ~ ($<fracpart> // '')),
                     :reason("malformed base-$radix number"),
                     :pos( # the -1 dance is due to nqp::radix returning -1 for
@@ -2486,7 +2486,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     %*RX{$canon} := $value ?? 1 !! 0;
                 }
                 else {
-                    $_.typed_panic('X::Value::Dynamic', what => "Adverb $key");
+                    $_.typed-panic('X::Value::Dynamic', what => "Adverb $key");
                 }
             }
         }
@@ -2680,7 +2680,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 ?? $dynprag(~$<declname>)
                 !! 0;
             my $decl := Nodify('ParameterTarget', 'Var').new(~$<declname>, :$forced-dynamic);
-            $/.typed_panic('X::Redeclaration', :symbol(~$<declname>))
+            $/.typed-panic('X::Redeclaration', :symbol(~$<declname>))
               if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
             %args<target> := $decl;
         }
@@ -2697,7 +2697,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Create sigilless target to bind into
             my $name := $<defterm>.ast;
             my $decl := Nodify('ParameterTarget', 'Term').new($name);
-            $/.typed_panic('X::Redeclaration', :symbol($name.canonicalize))
+            $/.typed-panic('X::Redeclaration', :symbol($name.canonicalize))
               if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
             self.attach: $/, Nodify('Parameter').new(target => $decl);
         }
@@ -3526,7 +3526,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method metachar:sym<rakvar>($/) {
         if $<var><sigil> eq '%' {
-            $<var>.typed_panic('X::Syntax::Reserved', :reserved('use of hash variables in regexes'))
+            $<var>.typed-panic('X::Syntax::Reserved', :reserved('use of hash variables in regexes'))
         }
         my $sequential := $*SEQ ?? 1 !! 0;
         self.attach: $/, Nodify('Regex', 'Interpolation').new(:var($<var>.ast), :$sequential);

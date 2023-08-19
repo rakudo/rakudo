@@ -178,7 +178,7 @@ role Raku::Common {
                 $message := "$message (corresponding $start was at line $line)";
             }
         }
-        $/.typed_panic('X::Comp::AdHoc',
+        $/.typed-panic('X::Comp::AdHoc',
             payload => $message,
             expected => [$stop]
         );
@@ -329,13 +329,13 @@ role Raku::Common {
     ## Error handling
 
     method security($payload) {
-        self.typed_panic('X::SecurityPolicy::Eval', :$payload);
+        self.typed-panic('X::SecurityPolicy::Eval', :$payload);
     }
     method malformed($what) {
-        self.typed_panic('X::Syntax::Malformed', :$what);
+        self.typed-panic('X::Syntax::Malformed', :$what);
     }
     method missing($what) {
-        self.typed_panic('X::Syntax::Missing', :$what);
+        self.typed-panic('X::Syntax::Missing', :$what);
     }
     method missing-block($borg, $has_mystery) {
         my $marked := self.MARKED('ws');
@@ -356,21 +356,21 @@ role Raku::Common {
         }
     }
     method NYI($feature) {
-        self.typed_panic('X::Comp::NYI', :$feature)
+        self.typed-panic('X::Comp::NYI', :$feature)
     }
     method EXPR_nonassoc($cur, $left, $right) {
-        self.typed_panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
+        self.typed-panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
     }
     method EXPR_nonlistassoc($cur, $left, $right) {
-        self.typed_panic('X::Syntax::NonListAssociative', :left(~$left), :right(~$right));
+        self.typed-panic('X::Syntax::NonListAssociative', :left(~$left), :right(~$right));
     }
     method dupprefix($prefixes) {
-        self.typed_panic('X::Syntax::DuplicatedPrefix', :$prefixes);
+        self.typed-panic('X::Syntax::DuplicatedPrefix', :$prefixes);
     }
     token obsbrace { <.obs('curlies around escape argument','square brackets')> }
 
     method panic(*@args) {
-        self.typed_panic('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed-panic('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
     method sorry(*@args) {
         self.typed_sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
@@ -379,8 +379,9 @@ role Raku::Common {
         self.typed_worry('X::Comp::AdHoc', payload => nqp::join('', @args))
     }
 
-    method typed_panic($type_str, *%opts) {
-        $*R.panic(self.build_exception($type_str, |%opts));
+    # All sorts of type exception handling
+    method typed-panic($type_str, *%opts) {
+        $*R.panic: self.build_exception($type_str, |%opts);
     }
     method typed_sorry($type_str, *%opts) {
         if $*SORRY_REMAINING-- {
@@ -388,7 +389,7 @@ role Raku::Common {
             self
         }
         else {
-            self.typed_panic($type_str, |%opts)
+            self.typed-panic($type_str, |%opts)
         }
     }
     method typed_worry($type_str, *%opts) {
@@ -459,7 +460,7 @@ role Raku::Common {
         $stopper := $stopper // $goal;
         $stopper := $stopper ~~ /(.*\S)\s*/;
         $stopper := ~$stopper[0];
-        self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper),
+        self.typed-panic('X::Comp::FailGoal', :$dba, :goal($stopper),
                          :line-real(HLL::Compiler.lineof(self.orig(), self.from(),
                                                          :cache(1))));
     }
@@ -468,12 +469,12 @@ role Raku::Common {
     method obs($old, $replacement, $when = 'in Raku', :$ism = 'p5isms') {
         $*LANG.pragma($ism)
           ?? self
-          !! self.typed_panic: 'X::Obsolete', :$old, :$replacement, :$when
+          !! self.typed-panic: 'X::Obsolete', :$old, :$replacement, :$when
     }
     method obsvar($name, $identifier-name?) {
         $*LANG.pragma('p5isms')
           ?? self
-          !! self.typed_panic: 'X::Syntax::Perl5Var', :$name, :$identifier-name
+          !! self.typed-panic: 'X::Syntax::Perl5Var', :$name, :$identifier-name
     }
     method sorryobs($old, $replacement, $when = 'in Raku') {
         self.typed_sorry('X::Obsolete', :$old, :$replacement, :$when)
@@ -541,7 +542,7 @@ role Raku::Common {
 
         # Not resolved and not a Callable
         else {
-            self.typed_panic: 'X::Undeclared',
+            self.typed-panic: 'X::Undeclared',
               symbol          => $name,
               is-compile-time => 1,
               suggestions     => $*R.suggest-lexicals($name);
@@ -700,7 +701,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # All parsed so far
         [
           $                                         # all ok, reach the end
-          || <.typed_panic: 'X::Syntax::Confused'>  # huh??
+          || <.typed-panic: 'X::Syntax::Confused'>  # huh??
         ]
         { $*R.leave-scope }
     }
@@ -810,8 +811,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
              for | if | for | given | loop | repeat | when | while
            ] » >
            { $/.'!clear_highwater'() }
-           <.typed_panic: 'X::Syntax::Confused', reason => "Missing semicolon">
-        || <.typed_panic: 'X::Syntax::Confused'> # OR give up
+           <.typed-panic: 'X::Syntax::Confused', reason => "Missing semicolon">
+        || <.typed-panic: 'X::Syntax::Confused'> # OR give up
     }
 
     # Helper token to match the start of a pointy block
@@ -939,7 +940,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pointy-block>
         [ <!before [els[e|if]|orwith]» >
             || $<wrong-keyword>=[els[e|if]|orwith]» {}
-                <.typed_panic: 'X::Syntax::UnlessElse',
+                <.typed-panic: 'X::Syntax::UnlessElse',
                     keyword => ~$<wrong-keyword>,
                 >
         ]
@@ -952,7 +953,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pointy-block>
         [ <!before [els[e|if]|orwith]» >
             || $<wrong-keyword>=[els[e|if]|orwith]» {}
-                <.typed_panic: 'X::Syntax::WithoutElse',
+                <.typed-panic: 'X::Syntax::WithoutElse',
                     keyword => ~$<wrong-keyword>,
                 >
         ]
@@ -969,9 +970,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [                            # any elsifs/orwiths
           [
             | else\h*if
-              <.typed_panic: 'X::Syntax::Malformed::Elsif'>
+              <.typed-panic: 'X::Syntax::Malformed::Elsif'>
             | elif
-              <.typed_panic: 'X::Syntax::Malformed::Elsif', :what<elif> >
+              <.typed-panic: 'X::Syntax::Malformed::Elsif', :what<elif> >
             | $<sym>=[elsif|orwith]
               <condition=.EXPR>
               <then=.pointy-block>
@@ -989,7 +990,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym><.kok> {}
         [
           <?before 'my'? '$'\w+\s+'('>
-          <.typed_panic: 'X::Syntax::P5'>
+          <.typed-panic: 'X::Syntax::P5'>
         ]?
         [
           <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')'>
@@ -1028,7 +1029,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                    nqp::getcomp('Raku').language_revision == 1
                      || $*WHENEVER-COUNT >= 0
              }>
-          || <.typed_panic: 'X::Comp::WheneverOutOfScope'>
+          || <.typed-panic: 'X::Comp::WheneverOutOfScope'>
         ]
         { $*WHENEVER-COUNT++ }
         :my $*GOAL := '{';
@@ -1104,7 +1105,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> <.ws>
         [
         | <version>
-            { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
+            { $/.typed-panic: 'X::Language::TooLate', version => ~$<version> }
         | <module_name=.longname> [ <.spacey> <arglist> <.cheat-heredoc>? ]?
         ]
         <.ws>
@@ -1144,7 +1145,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Helper method for error handling
     method nomodexpr($k) {
         self.'!clear_highwater'();
-        self.typed_panic: 'X::Syntax::Confused',
+        self.typed-panic: 'X::Syntax::Confused',
           reason => "Missing expression for '$k' statement modifier";
         self
     }
@@ -1271,7 +1272,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     method can-meta($op, $meta, $reason = "fiddly") {
         if $op<OPER> && $op<OPER><O>.made{$reason} == 1 {
-            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
+            self.typed-panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
         }
         self;
     }
@@ -1329,7 +1330,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         || <.can-meta($<infixish>, "negate")> <?{ $<infixish><OPER><O>.made<iffy> }>
            <O=.AS_MATCH($<infixish><OPER><O>)>
-        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O>.made<dba>, reason => "not iffy enough" }
+        || { self.typed-panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O>.made<dba>, reason => "not iffy enough" }
         ]
     }
 
@@ -1780,12 +1781,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
         <EXPR('i=')>
         [ '!!'
-        || <?before '::' <.-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
-        || <?before ':' <.-[=\w]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
-        || <infixish> { self.typed_panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
-        || <?{ ~$<EXPR> ~~ / '!!' / }> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
-        || <?before \N*? [\n\N*?]? '!!'> { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
-        || { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Found ?? but no !!" }
+        || <?before '::' <.-[=]>> { self.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
+        || <?before ':' <.-[=\w]>> { self.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
+        || <infixish> { self.typed-panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
+        || <?{ ~$<EXPR> ~~ / '!!' / }> { self.typed-panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
+        || <?before \N*? [\n\N*?]? '!!'> { self.typed-panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
+        || { self.typed-panic: "X::Syntax::Confused", reason => "Confused: Found ?? but no !!" }
         ]
         <O(|%conditional, :reducecheck<ternary>)>
     }
@@ -1944,7 +1945,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             | <term>
             ]
         || <!{ $*QSIGIL }> <?before <infixish> {
-            $/.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
+            $/.typed-panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
         || <!>
         ]
         :dba('postfix')
@@ -2153,7 +2154,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | $<neg>='!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
             [ <[ \[ \( \< \{ ]> {
-            $/.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
+            $/.typed-panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str }
         | $<num> = [\d+] <identifier> [ <?before <.[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
             <?{ self.no-synthetics(~$<num>) }>
@@ -2410,7 +2411,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         || <!{ $op<OPER><O>.made<diffy> }>
         || <?{ $op<OPER><O>.made<assoc> eq 'chain' }>
-        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
+        || { self.typed-panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
         ]
 
         { $*IN_REDUCE := 0 }
@@ -2467,7 +2468,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             || <?{ $*START-OF-COMPUNIT }>
                 { $*START-OF-COMPUNIT := 0; }
                 <unit-block($*PKGDECL)>
-            || { $/.typed_panic("X::UnitScope::TooLate", what => $*PKGDECL); }
+            || { $/.typed-panic("X::UnitScope::TooLate", what => $*PKGDECL); }
             ]
         || <.panic("Unable to parse $*PKGDECL definition")>
         ]
@@ -2531,19 +2532,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token multi-declarator:sym<multi> {
         <sym><.kok>
         :my $*MULTINESS := 'multi';
-        [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
+        [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
         [ <declarator> || <routine-def('sub')> || <.malformed('multi')> ]
     }
     token multi-declarator:sym<proto> {
         <sym><.kok>
         :my $*MULTINESS := 'proto';
-        [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
+        [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
         [ <declarator> || <routine-def('sub')> || <.malformed('proto')> ]
     }
     token multi-declarator:sym<only> {
         <sym><.kok>
         :my $*MULTINESS := 'only';
-        [ <?before '('> <.typed_panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
+        [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
         [ <declarator> || <routine-def('sub')> || <.malformed('only')> ]
     }
     token multi-declarator:sym<null> {
@@ -2555,7 +2556,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*LEFTSIGIL := '';
         [
         | '\\' <defterm>
-            [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
+            [ <.ws> <term_init=initializer> || <.typed-panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable-declarator>
         | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
         | <routine-declarator>
@@ -2621,7 +2622,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <?before <.sigil> <.sigil> > <variable>
         | <?sigil>
-          [ <?{ $*IN-DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
+          [ <?{ $*IN-DECL }> <.typed-panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
           <variable> { $*VAR := $<variable> }
         | <longname>
         ]
@@ -2690,7 +2691,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || ';'
             {
                 if $<deflongname> ne 'MAIN' {
-                    $/.typed_panic("X::UnitScope::Invalid", what => "sub",
+                    $/.typed-panic("X::UnitScope::Invalid", what => "sub",
                         where => "except on a MAIN sub", suggestion =>
                         'Please use the block form. If you did not mean to '
                         ~ "declare a unit-scoped sub,\nperhaps you accidentally "
@@ -2698,13 +2699,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     );
                 }
                 unless $*START-OF-COMPUNIT {
-                    $/.typed_panic("X::UnitScope::TooLate", what => "sub");
+                    $/.typed-panic("X::UnitScope::TooLate", what => "sub");
                 }
                 unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
-                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "on a $*MULTINESS sub");
+                    $/.typed-panic("X::UnitScope::Invalid", what => "sub", where => "on a $*MULTINESS sub");
                 }
                 unless $*R.outer-scope =:= $*UNIT {
-                    $/.typed_panic("X::UnitScope::Invalid", what => "sub", where => "in a subscope");
+                    $/.typed-panic("X::UnitScope::Invalid", what => "sub", where => "in a subscope");
                 }
                 $*START-OF-COMPUNIT := 0;
             }
@@ -2798,7 +2799,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         <trait>*
 
-        [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
+        [ <.ws> <term_init=initializer> || <.typed-panic: "X::Syntax::Term::MissingInitializer"> ]
 
         <.cheat-heredoc>?
     }
@@ -2859,7 +2860,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token bad-trait-typename {
         || <longname> {
                 my $name := $<longname>.ast;
-                $/.typed_panic('X::InvalidType',
+                $/.typed-panic('X::InvalidType',
                     :typename($name.canonicalize(:colonpairs(0))),
                     :suggestions([])); #TODO suggestions
             }
@@ -3020,7 +3021,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
-    token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
+    token quote:sym</null/> { '/' \s* '/' <.typed-panic: "X::Syntax::Regex::NullRegex"> }
     token quote:sym</ /> {
         :my %*RX;
         :my $*INTERPOLATE := 1;
@@ -3114,7 +3115,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | $<neg>='!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
             [ <[ \[ \( \< \{ ]> {
-            $/.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
+            $/.typed-panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str }
         | $<num> = [\d+] <identifier> [ <?before <.[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
             <?{ self.no-synthetics(~$<num>) }>
@@ -3147,7 +3148,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             '[' ~ ']' <arglist>
         ]?
         <.unsp>? [ <?before '{'> {
-            $/.typed_panic('X::NYI', feature => 'Autovivifying object closures');
+            $/.typed-panic('X::NYI', feature => 'Autovivifying object closures');
         } <whence=.postcircumfix> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
@@ -3157,7 +3158,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <longname>
         {
           #TODO bring back suggestions for which types may have been meant
-          my $method := $panic ?? 'typed_panic' !! 'typed_sorry';
+          my $method := $panic ?? 'typed-panic' !! 'typed_sorry';
           $/."$method"('X::Undeclared',
                     what => "Type",
                     symbol => $<longname>.ast.canonicalize);
@@ -3235,10 +3236,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
             <default-value>
             [ <modifier=.trait> {
-                self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default-value>
+                self.typed-panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default-value>
             }]?
             [ <modifier=.post-constraint> {
-                self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default-value>
+                self.typed-panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default-value>
             }]?
         ]?
     }
@@ -3376,7 +3377,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             | <identifier>
             | :dba('indirect name') '(' ~ ')' [ <.ws> <EXPR> ]
             ]
-        || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
+        || <?before '::'> <.typed-panic: "X::Syntax::Name::Null">
         || $<bad>=[<.sigil><.identifier>] { my str $b := $<bad>; self.malformed("lookup of ::$b; please use ::('$b'), ::\{'$b'\}, or ::<$b>") }
         ]?
     }
@@ -3489,14 +3490,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         # Ensure it's not a null name or a compiler-handled op.
         if $opname eq '' {
-            self.typed_panic('X::Syntax::Extension::Null');
+            self.typed-panic('X::Syntax::Extension::Null');
         }
         if nqp::existskey(%categorically-won't-work, $canname) && !$*COMPILING_CORE_SETTING {
             if %categorically-won't-work{$canname} -> $hint {
-                self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname, :$hint);
+                self.typed-panic('X::Syntax::Extension::SpecialForm', :$category, :$opname, :$hint);
             }
             else {
-                self.typed_panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
+                self.typed-panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
             }
         }
 
@@ -3542,12 +3543,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             # (see https://colabti.org/irclogger/irclogger_log/perl6?date=2017-01-25#l1011)
             # If it's neither of those cases, then it's just a sub with an
             # extended name like sub foo:bar<baz> {}; let the user use it.
-            self.typed_panic(
+            self.typed-panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
               || nqp::iseq_s($subname, "$category:sym<$opname>") && $*HLL-COMPILER.language_revision < 2;
 
-            self.typed_panic(
+            self.typed-panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')
             ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
             return 0;
@@ -3577,7 +3578,7 @@ if $*COMPILING_CORE_SETTING {
                 token ::($meth_name) { $<sym>=[$op] }
             }
             if +@parts > 1 {
-                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
+                self.typed-panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
             }
             self.HOW.mixin(self, Term.HOW.curry(Term, $canname, $opname));
         }
@@ -3587,7 +3588,7 @@ if $*COMPILING_CORE_SETTING {
                 token ::($meth_name) { $<sym>=[$op] <O=.genO($precedence, $declarand)> }
             }
             if +@parts > 1 {
-                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
+                self.typed-panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
             }
             self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, %prec, $declarand));
         }
@@ -3596,10 +3597,10 @@ if $*COMPILING_CORE_SETTING {
             # XXX One day semilist would be nice, but right now that
             # runs us into fun with terminators.
             if +@parts < 2 {
-                self.typed_panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
+                self.typed-panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
             }
             elsif +@parts > 2 {
-                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
+                self.typed-panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
             }
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
@@ -3615,10 +3616,10 @@ if $*COMPILING_CORE_SETTING {
         else {
             # Find opener and closer and parse an EXPR between them.
             if +@parts < 2 {
-                self.typed_panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
+                self.typed-panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
             }
             elsif +@parts > 2 {
-                self.typed_panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
+                self.typed-panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
             }
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
@@ -3784,7 +3785,7 @@ if $*COMPILING_CORE_SETTING {
     }
     token comment:sym<#`> {
         '#`' <!after \s> <!opener>
-        <.typed_panic: 'X::Syntax::Comment::Embedded'>
+        <.typed-panic: 'X::Syntax::Comment::Embedded'>
     }
 
     # single / multi-line leading declarator block
@@ -3896,7 +3897,7 @@ if $*COMPILING_CORE_SETTING {
         # start of 'begin' doc block should have type on same line
         '=begin'
         [ <?doc-newline>
-          <.typed_panic('X::Syntax::Pod::BeginWithoutIdentifier')>
+          <.typed-panic('X::Syntax::Pod::BeginWithoutIdentifier')>
         ]?
 
         # must have some whitespace between header and type
@@ -3904,7 +3905,7 @@ if $*COMPILING_CORE_SETTING {
 
         # may not be a directive name
         [ $<directive>=<.rakudoc-directives> {
-              self.typed_panic(
+              self.typed-panic(
                 'X::Syntax::Pod::BeginWithDirective',
                 :directive(~$<directive>)
               )
@@ -3931,7 +3932,7 @@ if $*COMPILING_CORE_SETTING {
           $<type> [ <.doc-newline> | $ ]
 
           # alas, a mismatch
-          || $<instead>=<.doc-identifier>? <.typed_panic(
+          || $<instead>=<.doc-identifier>? <.typed-panic(
                'X::Syntax::Pod::BeginWithoutEnd.new',
                type    => ~$<type>,
                spaces  => ~$<margin>,
@@ -3948,7 +3949,7 @@ if $*COMPILING_CORE_SETTING {
         # start of a 'for' doc block should have type on same line
         '=for'
         [ <?doc-newline>
-          <.typed_panic('X::Syntax::Pod::BeginWithoutIdentifier')>
+          <.typed-panic('X::Syntax::Pod::BeginWithoutIdentifier')>
         ]?
 
         # must have some whitespace between header and type
@@ -3956,7 +3957,7 @@ if $*COMPILING_CORE_SETTING {
 
         # may not be a directive name
         [ $<directive>=<.rakudoc-directives> {
-              self.typed_panic(
+              self.typed-panic(
                 'X::Syntax::Pod::BeginWithDirective',
                 :directive(~$<directive>),
                 :for<for>
@@ -4073,13 +4074,13 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
 
         token backslash:sym<1> {
             <[1..9]>\d* {
-              self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+              self.typed-panic: 'X::Backslash::UnrecognizedSequence',
                 :sequence(~$/), :suggestion('$' ~ ($/ - 1))
             }
         }
         token backslash:sym<unrec> {
           {} (\w) {
-            self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+            self.typed-panic: 'X::Backslash::UnrecognizedSequence',
               :sequence($/[0].Str)
           }
         }
@@ -4370,7 +4371,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         self.typed_sorry('X::Syntax::Regex::NullRegex');
     }
     method throw_unrecognized_regex_modifier($modifier) {
-        self.typed_panic('X::Syntax::Regex::UnrecognizedModifier', :$modifier);
+        self.typed-panic('X::Syntax::Regex::UnrecognizedModifier', :$modifier);
     }
 
     method throw_malformed_range() {
@@ -4392,7 +4393,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         self.typed_sorry('X::Syntax::Regex::NonQuantifiable');
     }
     method throw_solitary_quantifier() {
-        self.typed_panic('X::Syntax::Regex::SolitaryQuantifier');
+        self.typed-panic('X::Syntax::Regex::SolitaryQuantifier');
     }
     method throw_solitary_backtrack_control() {
         self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl');
@@ -4442,7 +4443,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         <.[\d] - [0]>\d*
         {}
         :my int $br := nqp::radix(10, $/, 0, 0)[0];
-        <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$/), :suggestion('$' ~ ($/ - 1))>
+        <.typed-panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$/), :suggestion('$' ~ ($/ - 1))>
     }
 
     token assertion:sym<name> {

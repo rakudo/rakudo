@@ -326,7 +326,8 @@ role Raku::Common {
         <!>
     }
 
-    ## Error handling
+#-------------------------------------------------------------------------------
+# Error handling
 
     method security($payload) {
         self.typed-panic('X::SecurityPolicy::Eval', :$payload);
@@ -371,24 +372,24 @@ role Raku::Common {
 
     # All sorts of ad-hoc exception handling
     method panic(*@args) {
-        self.typed-panic('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed-panic: 'X::Comp::AdHoc', payload => nqp::join('', @args)
     }
     method sorry(*@args) {
-        self.typed-sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed-sorry: 'X::Comp::AdHoc', payload => nqp::join('', @args)
     }
     method worry(*@args) {
-        self.typed-worry('X::Comp::AdHoc', payload => nqp::join('', @args))
+        self.typed-worry: 'X::Comp::AdHoc', payload => nqp::join('', @args)
     }
 
     # All sorts of typed exception handling
     method typed-panic($name, *%opts) {
-        $*R.panic: self.build_exception($name, |%opts);
+        $*R.panic: self.build-exception($name, |%opts);
     }
     method typed-sorry($name, *%opts) {
 
         # Still allowing sorries
         if $*SORRY_REMAINING-- {
-            $*R.add-sorry(self.build_exception($name, |%opts));
+            $*R.add-sorry: self.build-exception($name, |%opts);
             self
         }
 
@@ -398,49 +399,58 @@ role Raku::Common {
         }
     }
     method typed-worry($name, *%opts) {
-        $*R.add-worry(self.build_exception($name, |%opts));
+        $*R.add-worry: self.build-exception($name, |%opts);
         self
     }
 
-    method build_exception($type_str, *%opts) {
-        my $c := self;
-        if %opts<precursor> {
-            $c := self.PRECURSOR;
-        }
+    # Build an exception by name through the current resolver
+    method build-exception($name, *%opts) {
 
+        # Set up absolute path if possible
         my $file := nqp::getlexdyn('$?FILES');
         if nqp::isnull($file) {
-            $file := '<unknown file>';
+            $file := '<unknown-file>';
         }
-        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
+        elsif !nqp::eqat($file,'/', 0)    # does not start with /
+          &&  !nqp::eqat($file,'-e',0)    # and it's not -e
+          &&  !nqp::eqat($file,':', 1) {  # and no drive letter at start
             $file := nqp::cwd ~ '/' ~ $file;
         }
 
+        my $c := %opts<precursor> ?? self.PRECURSOR !! self;
         my @locprepost := self.'!locprepost'($c);
-        $*R.build-exception: $type_str,
-            line => HLL::Compiler.lineof($c.orig, $c.pos, :cache(1)),
-            pos => $c.pos,
-            pre => @locprepost[0],
-            post => @locprepost[1],
-            file => $file,
-            |%opts
+        $*R.build-exception: $name,
+          line => HLL::Compiler.lineof($c.orig, $c.pos, :cache(1)),
+          pos  => $c.pos,
+          pre  => @locprepost[0],
+          post => @locprepost[1],
+          file => $file,
+          |%opts
     }
 
     method !locprepost($c) {
-        my $orig := $c.orig;
+        my $orig   := $c.orig;
         my $marked := $c.MARKED('ws');
-        my $pos  := $marked && nqp::index(" }])>»", nqp::substr($orig, $c.pos, 1)) < 0
-            ?? $marked.from
-            !! $c.pos;
+        my $pos    := $marked
+          && nqp::index(" }])>»", nqp::substr($orig, $c.pos, 1)) < 0
+          ?? $marked.from
+          !! $c.pos;
 
-        my $prestart := $pos - 40;
-        $prestart := 0 if $prestart < 0;
-        $pos := 0 if $pos < 0; #FIXME workaround for when $pos is -3. Need to figure out how to get the real pos
-        my $pre := nqp::substr($orig, $prestart, $pos - $prestart);
+        my $distance := 40;
+        my $prestart := $pos - $distance;
+        $prestart    := 0 if $prestart < 0;
+
+        # FIXME workaround for when $pos is -3. Need to figure out how to
+        # get the real pos
+        $pos := 0 if $pos < 0;
+
+        my $pre := nqp::substr($orig,$prestart,$pos - $prestart);
         $pre    := subst($pre, /.*\n/, "", :global);
         $pre    := '<BOL>' if $pre eq '';
 
-        my $postchars := $pos + 40 > nqp::chars($orig) ?? nqp::chars($orig) - $pos !! 40;
+        my $postchars := $pos + $distance > nqp::chars($orig)
+          ?? nqp::chars($orig) - $pos
+          !! $distance;
         my $post := nqp::substr($orig, $pos, $postchars);
         $post    := subst($post, /\n.*/, "", :global);
         $post    := '<EOL>' if $post eq '';
@@ -452,22 +462,25 @@ role Raku::Common {
         my $stopper;
         unless $dba {
             $dba := nqp::getcodename(nqp::callercode());
-            # Handle special case to conceal variable name leaked by core grammar
+            # Handle special case to hide variable name leaked by core grammar
             if ~$goal eq '$stopper ' {
-                my $ch := $dba ~~ /[post]?circumfix\:sym[\<|\«]\S+\s+(\S+)[\>|\»]/;
-                $ch := ~$ch[0];
-                if nqp::chars($ch) {
-                    $stopper := "'" ~ $ch ~ "'";
-                }
+                my $ch := $dba ~~ /
+                  [post]?
+                  circumfix\:sym[ \< | \« ] \S+ \s+ (\S+) [ \> | \» ]
+                /;
+                $ch      := ~$ch[0];
+                $stopper := "'$ch'" if nqp::chars($ch);
             }
         }
         # core grammar also has a penchant for sending us trailing .ws contents
         $stopper := $stopper // $goal;
-        $stopper := $stopper ~~ /(.*\S)\s*/;
+        $stopper := $stopper ~~ / (.*\S) \s* /;
         $stopper := ~$stopper[0];
-        self.typed-panic('X::Comp::FailGoal', :$dba, :goal($stopper),
-                         :line-real(HLL::Compiler.lineof(self.orig(), self.from(),
-                                                         :cache(1))));
+        self.typed-panic: 'X::Comp::FailGoal',
+          :$dba,
+          :goal($stopper),
+          :line-real(HLL::Compiler.lineof(self.orig(), self.from(), :cache(1)))
+        ;
     }
 
     # "when" arg assumes more things will become obsolete after Raku comes out

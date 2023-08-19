@@ -321,17 +321,21 @@ role Raku::Common {
         }
     }
 
+    # Handle restricted code tests
     token RESTRICTED {
-        [ <?{ $*RESTRICTED }> [ $ || <.security($*RESTRICTED)> ] ]?
+        [ <?{ $*RESTRICTED }>
+          [                    # checking for restricted code
+               $               # end of source reached, ok
+            || <.typed-panic:  # OR we've run into restricted code
+                 'X::SecurityPolicy::Eval', :payload($*RESTRICTED)>
+          ]
+        ]?
         <!>
     }
 
 #-------------------------------------------------------------------------------
 # Error handling
 
-    method security($payload) {
-        self.typed-panic('X::SecurityPolicy::Eval', :$payload);
-    }
     method malformed($what) {
         self.typed-panic('X::Syntax::Malformed', :$what);
     }

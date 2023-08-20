@@ -202,12 +202,9 @@ multi sub trait_mod:<is>(Routine:D $r, :onlystar($)!) {
 
 # old interface, should probably be marked DEPRECATED
 multi sub trait_mod:<is>(Routine:D $r, :%prec!) {     # --> Nil
-    nqp::bindattr($r,Routine,'$!op_props',OperatorProperties.new(|%(
-      (precedence  => $_ with %prec<prec>),
-      (associative => $_ with %prec<assoc>),
-      (thunky      => $_ with %prec<thunky>),
-      (iffy        => $_ with %prec<iffy>),
-    )));
+    nqp::bindattr($r,Routine,'$!op_props',
+      OperatorProperties.new-compat(|%prec)
+    );
     Nil
 }
 # three other trait_mod sub for equiv/tighter/looser in operators.pm6

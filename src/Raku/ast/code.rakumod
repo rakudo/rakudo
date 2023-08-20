@@ -1423,7 +1423,26 @@ class RakuAST::Routine
             $routine.set_onlystar;
         }
 
-        nqp::bindattr($routine, Routine, '$!package', $!package.compile-time-value) if $!package;
+        nqp::bindattr($routine,Routine,'$!package',$!package.compile-time-value)
+          if $!package;
+
+        # Make sure that any OperatorProperties are set on the meta-object
+        # if it is some kind of operator.  This feels pretty hackish way
+        # to do this, perhaps better done with dedicated subclasses of
+        # RakuAST::Sub.  But it will do for now.
+        if $!name {
+            my str $name := $!name.canonicalize;
+            my $op_props := nqp::eqat($name,'infix:',0)
+              ?? OperatorProperties.default-infix-operator
+              !! nqp::eqat($name,'prefix:',0)
+                ?? OperatorProperties.default-prefix-operator
+                !! nqp::eqat($name,'postfix:',0)
+                  ?? OperatorProperties.default-postfix-operator
+                  !! nqp::eqat($name,'postcircumfix:',0)
+                    ?? OperatorProperties.default-postcircumfix-operator
+                    !! Mu;
+            nqp::bindattr($routine,Routine,'$!op_props',$op_props) if $op_props;
+        }
 
         self.add-phasers-to-code-object($routine);
 

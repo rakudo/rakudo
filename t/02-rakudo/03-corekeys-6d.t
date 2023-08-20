@@ -313,6 +313,7 @@ my @expected = (
     Q{&infix:«<=»},
     Q{&infix:«<»},
     Q{&infix:«=>»},
+    Q{&infix:<⇒>},
     Q{&infix:«>=»},
     Q{&infix:«>»},
     Q{&infix:«~<»},

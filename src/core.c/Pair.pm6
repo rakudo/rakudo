@@ -207,6 +207,9 @@ multi sub infix:<cmp>(Pair:D $a, Pair:D $b) {
 proto sub infix:«=>»(Mu, Mu, *%) is pure {*}
 multi sub infix:«=>»(Mu $key, Mu \value) { Pair.new($key, value) }
 
+# 21D2 RIGHTWARDS DOUBLE ARROW ⇒
+my constant &infix:<⇒> := &infix:«=>»;
+
 proto sub pair(Mu, Mu, *%) is pure {*}
 multi sub pair(Mu \key, Mu \value) { Pair.new(key, value) }
 

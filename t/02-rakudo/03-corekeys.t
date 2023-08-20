@@ -316,6 +316,7 @@ my @allowed =
       Q{&infix:«<=»},
       Q{&infix:«<»},
       Q{&infix:«=>»},
+      Q{&infix:<⇒>},
       Q{&infix:«>=»},
       Q{&infix:«>»},
       Q{&infix:«~<»},

@@ -4334,6 +4334,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token infix:sym«=>» { <sym> <O(|%item_assignment)> }
+    token infix:sym<⇒>  { <sym> <O(|%item_assignment)> }
 
     token prefix:sym<so> { <sym><.end_prefix> <O(|%loose_unary)> }
     token prefix:sym<not>  { <sym><.end_prefix> <O(|%loose_unary)> }

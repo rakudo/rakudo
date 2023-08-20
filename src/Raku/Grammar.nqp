@@ -1975,8 +1975,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*LEFTSIGIL := '' }
     }
 
-    token infix:sym«=>» { $<sym>=[ '=>' | '⇒' ] <O(|%item_assignment)> }
-
+    token infix:sym«=>»  { <sym> <O(|%item_assignment)> }
+    token infix:sym«⇒»   { <sym> <O(|%item_assignment)> }
     token infix:sym<⚛=>  { <sym> <O(|%item_assignment)> }
     token infix:sym<⚛+=> { <sym> <O(|%item_assignment)> }
     token infix:sym<⚛-=> { <sym> <O(|%item_assignment)> }

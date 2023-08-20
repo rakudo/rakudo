@@ -148,18 +148,20 @@ class RakuAST::Infix
   is RakuAST::Infixish
   is RakuAST::Lookup
 {
-    has str $.operator;
+    has str                $.operator;
     has OperatorProperties $.properties;
 
-    method new(str $operator, OperatorProperties :$properties) {
-        $properties := OperatorProperties.properties-for-infix($operator)
-            unless $properties;
-        unless nqp::isconcrete($properties) {
-            nqp::die("Failed to resolve operator properties for infix '$operator'");
-        }
+    method new(
+                     str  $operator,
+      OperatorProperties :$properties  # implementation-detail
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
-        nqp::bindattr($obj, RakuAST::Infix, '$!properties', $properties);
+        nqp::bindattr($obj, RakuAST::Infix, '$!properties',
+          $properties
+            // OperatorProperties.properties-for-infix($operator)
+            // OperatorProperties.default-infix-operator($operator)
+        );
         $obj
     }
 
@@ -214,6 +216,12 @@ class RakuAST::Infix
     }
 
     method IMPL-CURRIES() {
+        # Lookup of infix operators and whether either left / right side
+        # will curry:
+        #  0 = do not curry
+        #  1 = curry Whatever only
+        #  2 = curry WhateverCode only
+        #  3 = curry both Whatever and WhateverCode (default)
         my constant CURRIED := nqp::hash(
             '...'   , 0,
             '…'     , 0,
@@ -265,29 +273,33 @@ class RakuAST::Infix
         }
     }
 
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        my str $op := $!operator;
-
-        # Some ops map directly into a QAST primitive.
-        my constant OP-TO-QAST-OP := nqp::hash(
-            '||', 'unless',
-            'or', 'unless',
-            '&&', 'if',
-            'and', 'if',
-            '^^', 'xor',
-            'xor', 'xor',
-            '//', 'defor'
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $left-qast,
+                              Mu $right-qast
+    ) {
+        # Operators that map directly into a QAST op
+        my constant QAST-OP := nqp::hash(
+          '||',  'unless',
+          'or',  'unless',
+          '&&',  'if',
+          'and', 'if',
+          '^^',  'xor',
+          'xor', 'xor',
+          '//',  'defor'
         );
-        my $qast-op := OP-TO-QAST-OP{$op};
-        if $qast-op {
-            return QAST::Op.new( :op($qast-op), $left-qast, $right-qast );
-        }
 
-        # Otherwise, it's called by finding the lexical sub to call, and
-        # compiling it as chaining if required.
-        my $name := self.resolution.lexical-name;
-        my str $call-op := $!properties.chaining ?? 'chain' !! 'call';
-        QAST::Op.new( :op($call-op), :$name, $left-qast, $right-qast )
+        (my str $op := QAST-OP{$!operator})
+          # Directly mapping
+          ?? QAST::Op.new(:$op, $left-qast, $right-qast)
+          # Otherwise, it's called by finding the lexical sub to call, and
+          # compiling it as chaining if required.
+          !! QAST::Op.new(
+               :op($!properties.chaining ?? 'chain' !! 'call'),
+               :name(self.resolution.lexical-name),
+               $left-qast,
+               $right-qast
+             )
     }
 
     method IMPL-SMARTMATCH-QAST( RakuAST::IMPL::QASTContext $context,

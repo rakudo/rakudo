@@ -84,6 +84,12 @@ class OperatorProperties {
         )
     }
 
+    # OperatorProperties for an unknown operator
+    method default-infix-operator()         { self.new(:precedence<t=>) }
+    method default-prefix-operator()        { self.new(:precedence<v=>) }
+    method default-postfix-operator()       { self.new(:precedence<x=>) }
+    method default-postcircumfix-operator() { self.new(:precedence<y=>) }
+
     # Accessors
     method precedence()     { nqp::isconcrete(self) ?? $!precedence     !! "" }
     method associative()    { nqp::isconcrete(self) ?? $!associative    !! "" }
@@ -455,7 +461,7 @@ class BuiltinOperatorTypes {
 class BuiltinOperatorProperties {
 
     # Lookup properties of an infix operator
-    method infix(str $op) {
+    method infix(str $operator) {
         my constant PROPERTIES := nqp::hash(
 
           '*',   'multiplicative',
@@ -604,12 +610,16 @@ class BuiltinOperatorProperties {
 
           ',', 'comma',
 
-          'Z',      'list-infix',
           'X',      'list-infix',
+          'Z',      'list-infix',
           '...',    'list-infix',
+          '…',      'list-infix',
           '...^',   'list-infix',
+          '…^',     'list-infix',
           '^...',   'list-infix',
+          '^…',     'list-infix',
           '^...^',  'list-infix',
+          '^…^',    'list-infix',
           'minmax', 'list-infix',
 
           '=',   'list-prefix',
@@ -628,14 +638,14 @@ class BuiltinOperatorProperties {
 
         # Return instance for the given infix operator, or create and
         # bind one if this is the first time this operator is being used.
-        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
-          ?? nqp::bindkey(PROPERTIES,$op,
+        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$operator))
+          ?? nqp::bindkey(PROPERTIES,$operator,
                BuiltinOperatorTypes.lookup($properties))
           !! nqp::ifnull($properties, Nil)
     }
 
     # Lookup properties of a prefix operator
-    method prefix(str $op) {
+    method prefix(str $operator) {
         my constant PROPERTIES := nqp::hash(
 
           '++',  'autoincrement',
@@ -661,14 +671,14 @@ class BuiltinOperatorProperties {
 
         # Return instance for the given prefix operator, or create and
         # bind one if this is the first time this operator is being used.
-        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
-          ?? nqp::bindkey(PROPERTIES,$op,
+        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$operator))
+          ?? nqp::bindkey(PROPERTIES,$operator,
                nqp::clone(BuiltinOperatorTypes.lookup($properties)))
           !! nqp::ifnull($properties, Nil)
     }
 
     # Lookup properties of a postfix operator
-    method postfix(str $op) {
+    method postfix(str $operator) {
         my constant PROPERTIES := nqp::hash(
 
           'i', 'methodcall',
@@ -681,14 +691,14 @@ class BuiltinOperatorProperties {
 
         # Return instance for the given postfix operator, or create and
         # bind one if this is the first time this operator is being used.
-        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
-          ?? nqp::bindkey(PROPERTIES,$op,
+        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$operator))
+          ?? nqp::bindkey(PROPERTIES,$operator,
                nqp::clone(BuiltinOperatorTypes.lookup($properties)))
           !! nqp::ifnull($properties, Nil)
     }
 
     # Lookup properties of a postcircumfix operator
-    method postcircumfix(str $op) {
+    method postcircumfix(str $operator) {
         my constant PROPERTIES := nqp::hash(
 
           '[ ]', 'methodcall',
@@ -697,8 +707,8 @@ class BuiltinOperatorProperties {
 
         # Return instance for the given circumpostfix operator, or create and
         # bind one if this is the first time this operator is being used.
-        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
-          ?? nqp::bindkey(PROPERTIES,$op,
+        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$operator))
+          ?? nqp::bindkey(PROPERTIES,$operator,
                nqp::clone(BuiltinOperatorTypes.lookup($properties)))
           !! nqp::ifnull($properties, Nil)
     }

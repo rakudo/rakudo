@@ -103,7 +103,8 @@ class OperatorProperties {
 
     # Convenience methods
     method chaining() {
-        nqp::isconcrete(self) && $!associative eq 'chain'
+        nqp::isconcrete(self)
+          && ($!associative eq 'chaining' || $!associative eq 'chain')
     }
     method short-circuit() {
         nqp::isconcrete(self) && $!thunky ne ""

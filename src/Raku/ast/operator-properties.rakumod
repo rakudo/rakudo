@@ -280,7 +280,7 @@ class BuiltinOperatorTypes {
     }
     method concatenation() {
         OperatorProperties.new:
-          :precedence<r=>, :associative<list>, :dba<replication>
+          :precedence<r=>, :associative<left>, :dba<replication>
     }
     method junctive-and() {
         OperatorProperties.new:

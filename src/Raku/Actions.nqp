@@ -1251,8 +1251,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<infix> {
             $ast := $<infix>.ast;
             unless $ast || $<infix><sym> eq '??' {
-                my %prec := $<infix><O>.ast;
-                $ast := Nodify('Infix').new(~$<infix>, :properties($OperatorProperties.new-compat(|%prec)));
+                $ast := Nodify('Infix').new(~$<infix>);
             }
         }
         elsif $<infix-prefix-meta-operator> {

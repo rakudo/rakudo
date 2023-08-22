@@ -151,17 +151,10 @@ class RakuAST::Infix
     has str                $.operator;
     has OperatorProperties $.properties;
 
-    method new(
-                     str  $operator,
-      OperatorProperties :$properties  # implementation-detail
-    ) {
+    method new(str $operator) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
-        nqp::bindattr($obj, RakuAST::Infix, '$!properties',
-          $properties
-            // OperatorProperties.properties-for-infix($operator)
-            // OperatorProperties.default-infix-operator($operator)
-        );
+        nqp::bindattr($obj,RakuAST::Infix,'$!properties',OperatorProperties);
         $obj
     }
 
@@ -174,6 +167,9 @@ class RakuAST::Infix
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-infix($!operator);
         if $resolved {
+            nqp::bindattr(self,RakuAST::Infix,'$!properties',
+              $resolved.compile-time-value.op_props)
+              if nqp::istype($resolved,RakuAST::CompileTimeValue);
             self.set-resolution($resolved);
         }
         Nil

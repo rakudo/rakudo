@@ -143,19 +143,27 @@ class OperatorProperties {
 
     # Return name of handler for reducing with these operator properties
     method reducer-name() {
-        nqp::isconcrete(self)
-          ?? nqp::iseq_s($!precedence,'f=')
-            ?? '&METAOP_REDUCE_LISTINFIX'
-            !! nqp::chars($!associative)
-              ?? nqp::iseq_s($!associative,'chain')
-                ?? '&METAOP_REDUCE_CHAIN'
-                !! nqp::iseq_s($!associative,'list')
-                  ?? '&METAOP_REDUCE_LIST'
-                  !! nqp::iseq_s($!associative,'right')
-                    ?? '&METAOP_REDUCE_RIGHT'
-                    !! '&METAOP_REDUCE_LEFT'    # assume 'left' or 'non'
-              !! '&METAOP_REDUCE_LEFT'
-          !! '&METAOP_REDUCE_LEFT'
+        if nqp::isconcrete(self) {
+            if nqp::iseq_s($!precedence,'f=') {
+                '&METAOP_REDUCE_LISTINFIX'
+            }
+            else {
+                my $associative := $!associative;
+                nqp::chars($associative)
+                  ?? nqp::iseq_s($associative,'chain')
+                       || nqp::iseq_s($associative,'chaining')
+                    ?? '&METAOP_REDUCE_CHAIN'
+                    !! nqp::iseq_s($associative,'list')
+                      ?? '&METAOP_REDUCE_LIST'
+                      !! nqp::iseq_s($associative,'right')
+                        ?? '&METAOP_REDUCE_RIGHT'
+                        !! '&METAOP_REDUCE_LEFT'    # assume 'left' or 'non'
+                  !! '&METAOP_REDUCE_LEFT'
+            }
+        }
+        else {
+            '&METAOP_REDUCE_LEFT'
+        }
     }
 
     # Old interface method

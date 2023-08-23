@@ -1299,7 +1299,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %list_prefix     := nqp::hash('prec', 'e=', 'assoc', 'right', 'dba', 'list prefix');
     my %loose_and       := nqp::hash('prec', 'd=', 'assoc', 'left', 'dba', 'loose and', 'thunky', '.t');
     my %loose_andthen   := nqp::hash('prec', 'd=', 'assoc', 'list', 'dba', 'loose and', 'thunky', '.b');
-    my %loose_or        := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.t', 'iffy', 1);
+    my %loose_or        := nqp::hash('prec', 'c=', 'assoc', 'left', 'dba', 'loose or', 'thunky', '.t', 'iffy', 1);
     my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
@@ -1987,8 +1987,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<andthen>    { <sym> >> <O(|%loose_andthen)> }
     token infix:sym<notandthen> { <sym> >> <O(|%loose_andthen)> }
 
-    token infix:sym<or>  { <sym> >> <O(|%loose_or, :assoc<left>)> }
-    token infix:sym<xor> { <sym> >> <O(|%loose_or)> }
+    token infix:sym<or>  { <sym> >> <O(|%loose_or)> }
+    token infix:sym<xor> { <sym> >> <O(|%loose_or, :assoc<list>)> }
 
     token infix:sym<orelse> { <sym> >> <O(|%loose_orelse, :assoc<list>, :pasttype<defor>)> }
 

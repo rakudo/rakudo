@@ -189,14 +189,22 @@ class OperatorProperties {
                       ?? $!thunky
                       !! $key eq 'iffy'
                         ?? $!iffy
-                        !! nqp::null
+                        !! $key eq 'nextterm'
+                          ?? $!dottyopish
+                            ?? 'dottyopish'
+                            !! $!nulltermish
+                              ?? 'nulltermish'
+                              !! nqp::null
+                          !! nqp::null
             }
             else {
                 my $hash := nqp::hash;
-                nqp::bindkey($hash,'prec',  $!precedence)  if $!precedence;
-                nqp::bindkey($hash,'assoc', $!associative) if $!associative;
-                nqp::bindkey($hash,'thunky',$!thunky)      if $!thunky;
-                nqp::bindkey($hash,'iffy',  $!iffy)        if $!iffy;
+                nqp::bindkey($hash,'prec',   $!precedence)   if $!precedence;
+                nqp::bindkey($hash,'assoc',  $!associative)  if $!associative;
+                nqp::bindkey($hash,'thunky', $!thunky)       if $!thunky;
+                nqp::bindkey($hash,'iffy',   $!iffy)         if $!iffy;
+                nqp::bindkey($hash,'nextterm','dottyopish')  if $!dottyopish;
+                nqp::bindkey($hash,'nextterm','nulltermish') if $!nulltermish;
                 $hash
             }
         }

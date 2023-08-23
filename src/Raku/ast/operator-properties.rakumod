@@ -398,7 +398,7 @@ class BuiltinOperatorTypes {
           :precedence<c=>, :associative<left>, :dba('loose or'), :thunky<.t>,
           :iffy
     }
-    method loose-or-xor() {
+    method loose-xor() {
         OperatorProperties.new:
           :precedence<c=>, :associative<list>, :dba('loose or'), :thunky<.t>,
           :iffy
@@ -447,7 +447,7 @@ class BuiltinOperatorTypes {
           'loose-and',           '',
           'loose-andthen',       '',
           'loose-or',            '',
-          'loose-or-xor',        '',
+          'loose-xor',        '',
           'loose-orelse',        '',
           'sequencer',           '',
         );
@@ -648,7 +648,7 @@ class BuiltinOperatorProperties {
 
           'or',     'loose-or',
 
-          'xor',    'loose-or-xor',
+          'xor',    'loose-xor',
 
           'orelse', 'loose-orelse',
         );

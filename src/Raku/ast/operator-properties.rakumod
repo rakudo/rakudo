@@ -12,8 +12,11 @@
 
 class OperatorProperties {
     has str $.precedence;
+    has str $.sub-precedence;
     has str $.associative;
     has str $.thunky;
+    has str $.dba;
+
     has int $.iffy;
     has int $.diffy;
     has int $.fiddly;
@@ -21,29 +24,32 @@ class OperatorProperties {
     has int $.nulltermish;
 
     # grammar specific attributes
-    has str $.dba;
-    has str $.sub-precedence;
 
     # Basic interface
     method new(
       str :$precedence,
+      str :$sub-precedence,
       str :$associative,
       str :$thunky,
+      str :$dba,
       int :$iffy,
       int :$diffy,
       int :$fiddly,
-      str :$dba,
-      str :$sub-precedence,
       int :$dottyopish,
       int :$nulltermish
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,OperatorProperties,'$!precedence',
           $precedence // (nqp::isconcrete(self) ?? $!precedence !! ""));
+        nqp::bindattr_s($obj,OperatorProperties,'$!sub-precedence',
+          $sub-precedence // (nqp::isconcrete(self) ?? $!sub-precedence !! ""));
         nqp::bindattr_s($obj,OperatorProperties,'$!associative',
           $associative // (nqp::isconcrete(self) ?? $!associative !! ""));
         nqp::bindattr_s($obj,OperatorProperties,'$!thunky',
           $thunky // (nqp::isconcrete(self) ?? $!thunky !! ""));
+        nqp::bindattr_s($obj,OperatorProperties,'$!dba',
+          $dba // (nqp::isconcrete(self) ?? $!dba !! ""));
+
         nqp::bindattr_i($obj,OperatorProperties,'$!iffy',
           $iffy // (nqp::isconcrete(self) ?? $!iffy !! 0));
         nqp::bindattr_i($obj,OperatorProperties,'$!diffy',
@@ -55,24 +61,20 @@ class OperatorProperties {
         nqp::bindattr_i($obj,OperatorProperties,'$!nulltermish',
           $nulltermish // (nqp::isconcrete(self) ?? $!nulltermish !! 0));
 
-        nqp::bindattr_s($obj,OperatorProperties,'$!dba',
-          $dba // (nqp::isconcrete(self) ?? $!dba !! ""));
-        nqp::bindattr_s($obj,OperatorProperties,'$!sub-precedence',
-          $sub-precedence // (nqp::isconcrete(self) ?? $!sub-precedence !! ""));
         $obj
     }
 
     # Instantiate using an old-style %prec hash
     method new-compat(
       str :$prec,
+      str :$sub,
       str :$assoc,
       str :$thunky,
+      str :$dba,
       int :$iffy,
       int :$diffy,
       int :$fiddly,
-      str :$dba,
       str :$nextterm,
-      str :$sub,
       *%_
     ) {
         my int $dottyopish  := $nextterm eq 'dottyopish';
@@ -99,13 +101,14 @@ class OperatorProperties {
 
     # Accessors
     method precedence()     { nqp::isconcrete(self) ?? $!precedence     !! "" }
+    method sub-precedence() { nqp::isconcrete(self) ?? $!sub-precedence !! "" }
     method associative()    { nqp::isconcrete(self) ?? $!associative    !! "" }
     method thunky()         { nqp::isconcrete(self) ?? $!thunky         !! "" }
+    method dba()            { nqp::isconcrete(self) ?? $!dba            !! "" }
+
     method iffy()           { nqp::isconcrete(self) ?? $!iffy           !! 0  }
     method diffy()          { nqp::isconcrete(self) ?? $!diffy          !! 0  }
     method fiddly()         { nqp::isconcrete(self) ?? $!fiddly         !! 0  }
-    method dba()            { nqp::isconcrete(self) ?? $!dba            !! "" }
-    method sub-precedence() { nqp::isconcrete(self) ?? $!sub-precedence !! "" }
     method dottyopish()     { nqp::isconcrete(self) ?? $!dottyopish     !! 0  }
     method nulltermish()    { nqp::isconcrete(self) ?? $!nulltermish    !! 0  }
 

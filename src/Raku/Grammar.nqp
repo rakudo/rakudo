@@ -1294,7 +1294,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
     my %list_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'list assignment', 'sub', 'e=', 'fiddly', 1);
     my %loose_unary     := nqp::hash('prec', 'h=', 'assoc', 'unary', 'dba', 'loose unary');
-    my %comma           := nqp::hash('prec', 'g=', 'assoc', 'list', 'dba', 'comma', 'nextterm', 'nulltermish', 'fiddly', 1);
+    my %comma           := nqp::hash('prec', 'g=', 'assoc', 'list', 'dba', 'comma', 'nextterm', 'nulltermish');
     my %list_infix      := nqp::hash('prec', 'f=', 'assoc', 'list', 'dba', 'list infix');
     my %list_prefix     := nqp::hash('prec', 'e=', 'assoc', 'right', 'dba', 'list prefix');
     my %loose_and       := nqp::hash('prec', 'd=', 'assoc', 'left', 'dba', 'loose and', 'thunky', '.t');
@@ -1923,12 +1923,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token infix:sym<,>    {
-        <.unsp>? <sym> <O(|%comma, :fiddly(0))>
+        <.unsp>? <sym> <O(|%comma)>
     }
     token infix:sym<:>    {
         <?{ $*INVOCANT_OK && $*GOAL ne '!!' }>
         <.unsp>? <sym> <?before \s | <.terminator> | $ >
-        <O(|%comma, :fiddly(0))>
+        <O(|%comma)>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
         { $*INVOCANT_OK := 0; }
     }

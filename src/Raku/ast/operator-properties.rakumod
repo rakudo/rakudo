@@ -374,8 +374,7 @@ class BuiltinOperatorTypes {
     }
     method comma() {
         OperatorProperties.new:
-          :precedence<g=>, :associative<list>, :dba<comma>, :fiddly,
-          :nulltermish
+          :precedence<g=>, :associative<list>, :dba<comma>, :nulltermish
     }
     method list-infix() {
         OperatorProperties.new:

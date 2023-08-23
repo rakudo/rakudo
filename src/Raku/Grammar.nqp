@@ -1277,17 +1277,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %symbolic_unary  := nqp::hash('prec', 'v=', 'assoc', 'unary', 'dba', 'symbolic unary');
     my %dottyinfix      := nqp::hash('prec', 'v=', 'assoc', 'left', 'dba', 'dotty infix', 'nextterm', 'dottyopish', 'sub', 'z=', 'fiddly', 1);
     my %multiplicative  := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative');
+    my %multiplicative_iffy := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative iffy', 'iffy', 1);
     my %additive        := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive');
+    my %additive_iffy   := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive iffy', 'iffy', 1);
     my %replication     := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication');
     my %replication_xx  := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication', 'thunky', 't.');
     my %concatenation   := nqp::hash('prec', 'r=', 'assoc', 'left', 'dba', 'concatenation');
     my %junctive_and    := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and');
+    my %junctive_and_iffy := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and iffy', 'iffy', 1);
     my %junctive_or     := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or');
+    my %junctive_or_iffy := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or iffy', 'iffy', 1);
     my %named_unary     := nqp::hash('prec', 'o=', 'assoc', 'unary', 'dba', 'named unary');
     my %structural      := nqp::hash('prec', 'n=', 'assoc', 'non', 'dba', 'structural infix', 'diffy', 1);
     my %chaining        := nqp::hash('prec', 'm=', 'assoc', 'chain', 'dba', 'chaining', 'iffy', 1, 'diffy', 1);
     my %tight_and       := nqp::hash('prec', 'l=', 'assoc', 'left', 'dba', 'tight and', 'thunky', '.t', 'iffy', 1);
-    my %tight_or        := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight or', 'thunky', '.t');
+    my %tight_or        := nqp::hash('prec', 'k=', 'assoc', 'left', 'dba', 'tight or', 'thunky', '.t', 'iffy', 1);
+    my %tight_defor     := nqp::hash('prec', 'k=', 'assoc', 'left', 'dba', 'tight defor', 'thunky', '.t');
+    my %tight_xor       := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight xor', 'thunky', '..t', 'iffy', 1);
     my %tight_or_minmax := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight or');
     my %conditional     := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', '.tt');
     my %conditional_ff  := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', 'tt');
@@ -1714,8 +1720,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<::=> { <sym> <O(|%item_assignment)> <.NYI: '"::="'> }
 
     # Iffy multiplicative infixes
-    token infix:sym<%%>  { <sym> <O(|%multiplicative, :iffy(1))> }
-    token infix:sym<?&>  { <sym> <O(|%multiplicative, :iffy(1))> }
+    token infix:sym<%%>  { <sym> <O(|%multiplicative_iffy)> }
+    token infix:sym<?&>  { <sym> <O(|%multiplicative_iffy)> }
 
     # Multiplicative infixes requiring a word bound on the right side
     token infix:sym<div> { <sym> >> <O(|%multiplicative)> }
@@ -1792,8 +1798,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Iffy additive infixes
-    token infix:sym<?|> { <sym> <O(|%additive, :iffy(1))> }
-    token infix:sym<?^> { <sym> <O(|%additive, :iffy(1))> }
+    token infix:sym<?|> { <sym> <O(|%additive_iffy)> }
+    token infix:sym<?^> { <sym> <O(|%additive_iffy)> }
 
     # Other additive infixes
     token infix:sym<−>  { <sym> <O(|%additive)> }  # 2212 MINUS SIGN −
@@ -1813,7 +1819,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<o> { <sym> <O(|%concatenation)> }
 
     # Iffy junctive and infixes
-    token infix:sym<&>   { <sym> <O(|%junctive_and, :iffy(1))> }
+    token infix:sym<&>   { <sym> <O(|%junctive_and_iffy)> }
 
     # Other junctive and infixes
     token infix:sym<(&)> { <sym> <O(|%junctive_and)> }
@@ -1822,8 +1828,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«⊍»   { <sym> <O(|%junctive_and)> }
 
     # Iffy junctive or infixes
-    token infix:sym<|>    { <sym> <O(|%junctive_or, :iffy(1))> }
-    token infix:sym<^>    { <sym> <O(|%junctive_or, :iffy(1))> }
+    token infix:sym<|>    { <sym> <O(|%junctive_or_iffy)> }
+    token infix:sym<^>    { <sym> <O(|%junctive_or_iffy)> }
 
     # Other junctive or infixes
     token infix:sym<(|)>  { <sym> <O(|%junctive_or)> }
@@ -1888,9 +1894,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token infix:sym<&&> { <sym> <O(|%tight_and)> }
 
-    token infix:sym<||> { <sym> <O(|%tight_or, :iffy(1), :assoc<left>)> }
-    token infix:sym<//> { <sym> <O(|%tight_or,           :assoc<left>)> }
-    token infix:sym<^^> { <sym> <O(|%tight_or, :iffy(1), :thunky<..t>)> }
+    token infix:sym<||> { <sym> <O(|%tight_or)> }
+    token infix:sym<//> { <sym> <O(|%tight_defor)> }
+    token infix:sym<^^> { <sym> <O(|%tight_xor)> }
 
     token infix:sym<min> { <sym> >> <O(|%tight_or_minmax)> }
     token infix:sym<max> { <sym> >> <O(|%tight_or_minmax)> }

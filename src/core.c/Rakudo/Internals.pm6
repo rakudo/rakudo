@@ -1385,26 +1385,35 @@ my class Rakudo::Internals {
               nqp::chars(my str $entry = self!next),
               nqp::stmts(
                 (my str $path = nqp::concat($!abspath,$entry)),
-                (try
+#?if moar
+                (my $stat := nqp::dispatch('boot-syscall', 'file-stat', nqp::decont_s($path), 0)),
+                nqp::if(
+                  nqp::dispatch('boot-syscall', 'stat-flags', $stat, nqp::const::STAT_ISREG) && $!file.ACCEPTS($entry),
+#?endif
+#?if !moar
+                nqp::if(
+                  nqp::stat($path, nqp::const::STAT_ISREG) && $!file.ACCEPTS($entry),
+#?endif
+                  (return $path),
                   nqp::if(
-                    $!file.ACCEPTS($entry) &&
-                      nqp::stat($path,nqp::const::STAT_ISREG),
-                    (return $path),
-                    nqp::if(
-                      $!dir.ACCEPTS($entry) &&
-                        nqp::stat($path,nqp::const::STAT_ISDIR),
-                      nqp::stmts(
-                        nqp::if(
-                          nqp::fileislink($path),
-                          $path = IO::Path.new(
-                            $path,:CWD($!abspath)).resolve.absolute
-                        ),
-                        nqp::unless(
-                          nqp::existskey($!seen,$path),
-                          nqp::stmts(
-                            nqp::bindkey($!seen,$path,1),
-                            nqp::push_s($!todo,$path)
-                          )
+                    $!dir.ACCEPTS($entry) &&
+#?if moar
+                      nqp::dispatch('boot-syscall', 'stat-flags', $stat, nqp::const::STAT_ISDIR),
+#?endif
+#?if !moar
+                      nqp::stat($path, nqp::const::STAT_ISDIR),
+#?endif
+                    nqp::stmts(
+                      nqp::if(
+                        nqp::fileislink($path),
+                        $path = IO::Path.new(
+                          $path,:CWD($!abspath)).resolve.absolute
+                      ),
+                      nqp::unless(
+                        nqp::existskey($!seen,$path),
+                        nqp::stmts(
+                          nqp::bindkey($!seen,$path,1),
+                          nqp::push_s($!todo,$path)
                         )
                       )
                     )

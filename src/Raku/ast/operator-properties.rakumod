@@ -387,7 +387,8 @@ class BuiltinOperatorTypes {
     }
     method loose-and() {
         OperatorProperties.new:
-          :precedence<d=>, :associative<left>, :dba('loose and'), :thunky<.t>
+          :precedence<d=>, :associative<left>, :dba('loose and'), :thunky<.t>,
+          :iffy
     }
     method loose-andthen() {
         OperatorProperties.new:

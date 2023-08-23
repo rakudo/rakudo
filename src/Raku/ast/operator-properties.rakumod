@@ -334,15 +334,16 @@ class BuiltinOperatorTypes {
     }
     method tight-or() {
         OperatorProperties.new:
-          :precedence<k=>, :associative<list>, :dba('tight or'), :thunky<.t>
+          :precedence<k=>, :associative<left>, :dba('tight or'), :thunky<.t>,
+          :iffy
     }
-    method tight-or-defor() {
+    method tight-defor() {
         OperatorProperties.new:
-          :precedence<k=>, :associative<left>, :dba('tight or'), :thunky<.t>
+          :precedence<k=>, :associative<left>, :dba('tight defor'), :thunky<.t>
     }
-    method tight-or-xor() {
+    method tight-xor() {
         OperatorProperties.new:
-          :precedence<k=>, :associative<list>, :dba('tight or'),
+          :precedence<k=>, :associative<list>, :dba('tight xor'),
           :thunky<..t>, :iffy
     }
     method tight-or-minmax() {
@@ -433,8 +434,8 @@ class BuiltinOperatorTypes {
           'chaining',            '',
           'tight-and',           '',
           'tight-or',            '',
-          'tight-or-defor',      '',
-          'tight-or-xor',        '',
+          'tight-defor',      '',
+          'tight-xor',        '',
           'tight-or-minmax',     '',
           'conditional',         '',
           'conditional-ff',      '',
@@ -599,9 +600,9 @@ class BuiltinOperatorProperties {
 
           '||', 'tight-or',
 
-          '//', 'tight-or-defor',
+          '//', 'tight-defor',
 
-          '^^', 'tight-or-xor',
+          '^^', 'tight-xor',
 
           'min', 'tight-or-minmax',
           'max', 'tight-or-minmax',

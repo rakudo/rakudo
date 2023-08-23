@@ -1990,7 +1990,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<or>  { <sym> >> <O(|%loose_or)> }
     token infix:sym<xor> { <sym> >> <O(|%loose_or, :assoc<list>)> }
 
-    token infix:sym<orelse> { <sym> >> <O(|%loose_orelse, :pasttype<defor>)> }
+    token infix:sym<orelse> { <sym> >> <O(|%loose_orelse)> }
 
     token infix:sym<..>   { <sym> [<!{ $*IN-META }> <?[)\]]> <.panic: "Please use ..* for indefinite range">]? <O(|%structural)> }
 

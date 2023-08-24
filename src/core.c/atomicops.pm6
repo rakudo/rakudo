@@ -7,7 +7,7 @@ multi sub atomic-fetch($source is rw) {
 }
 
 proto sub prefix:<⚛>($, *%) {*}
-multi sub prefix:<⚛>($source is rw) is equiv(&prefix:<~>) {
+multi sub prefix:<⚛>($source is rw) {
     nqp::atomicload($source)
 }
 

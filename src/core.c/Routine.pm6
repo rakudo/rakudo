@@ -354,4 +354,48 @@ my class Routine { # declared in BOOTSTRAP
     }
 }
 
+multi sub trait_mod:<is>(Routine:D $r, :&equiv! --> Nil) {
+    $r.equiv(&equiv)
+}
+multi sub trait_mod:<is>(Routine:D $r, Str:D :$equiv! --> Nil) {
+    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
+      ?? $r.equiv(::(
+           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($equiv) ~ '>'
+         ))
+      !! (die "Routine given to 'is equiv' does not appear to be an operator")
+}
+
+multi sub trait_mod:<is>(Routine:D $r, :&tighter! --> Nil) {
+    $r.tighter(&tighter)
+}
+multi sub trait_mod:<is>(Routine:D $r, Str:D :$tighter!) {
+    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
+      ?? $r.tighter(::(
+           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($tighter) ~ '>'
+         ))
+      !! (die "Routine given to 'is tighter' does not appear to be an operator")
+}
+
+multi sub trait_mod:<is>(Routine:D $r, :&looser! --> Nil) {
+    $r.looser(&looser)
+}
+multi sub trait_mod:<is>(Routine:D $r, Str:D :$looser!) {
+    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
+      ?? $r.looser(::(
+           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($looser) ~ '>'
+         ))
+      !! (die "Routine given to 'is looser' does not appear to be an operator")
+}
+
+multi sub trait_mod:<is>(Routine:D $r, :$assoc! --> Nil) {    # --> Nil
+    $r.assoc($assoc)
+}
+
+# old interface, should probably be marked DEPRECATED
+multi sub trait_mod:<is>(Routine:D $r, :%prec! --> Nil) {
+    nqp::bindattr($r,Routine,'$!op_props',
+      OperatorProperties.new-compat(|%prec)
+    )
+}
+
 # vim: expandtab shiftwidth=4

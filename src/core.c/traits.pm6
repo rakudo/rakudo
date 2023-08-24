@@ -200,31 +200,6 @@ multi sub trait_mod:<is>(Routine:D $r, :onlystar($)!) {
     $r.set_onlystar();
 }
 
-# old interface, should probably be marked DEPRECATED
-multi sub trait_mod:<is>(Routine:D $r, :%prec!) {     # --> Nil
-    nqp::bindattr($r,Routine,'$!op_props',
-      OperatorProperties.new-compat(|%prec)
-    );
-    Nil
-}
-# three other trait_mod sub for equiv/tighter/looser in operators.pm6
-multi sub trait_mod:<is>(Routine:D $r, :&equiv!) {    # --> Nil
-    $r.equiv(&equiv);
-    Nil
-}
-multi sub trait_mod:<is>(Routine:D $r, :&tighter!) {  # --> Nil
-    $r.tighter(&tighter);
-    Nil
-}
-multi sub trait_mod:<is>(Routine:D $r, :&looser!) {   # --> Nil
-    $r.looser(&looser);
-    Nil
-}
-multi sub trait_mod:<is>(Routine:D $r, :$assoc!) {    # --> Nil
-    $r.assoc($assoc);
-    Nil
-}
-
 # Since trait_mod:<is> to set onlystar isn't there at the
 # point we wrote its proto, we do it manually here.
 BEGIN &trait_mod:<is>.set_onlystar();

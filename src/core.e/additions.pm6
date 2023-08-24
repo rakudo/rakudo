@@ -13,7 +13,7 @@ multi sub next(\x --> Nil) { THROW(nqp::const::CONTROL_NEXT, x) }
 multi sub last(\x --> Nil) { THROW(nqp::const::CONTROL_LAST, x) }
 
 # introducing //foo as syntax for foo.defined
-proto sub prefix:<//>($) is pure is equiv(&prefix:<+>) {*}
+proto sub prefix:<//>($) is pure {*}
 multi sub prefix:<//>(\a) { a.defined }
 
 # introducing rotor as a sub

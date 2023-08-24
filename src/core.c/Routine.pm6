@@ -352,39 +352,48 @@ my class Routine { # declared in BOOTSTRAP
         }
         True
     }
+
+    # Helper method to apply a trait by name and given operator target string
+    # using information of target operator of the same category
+    method apply-operator-trait(Routine:D:
+      Str:D $trait, Str:D $target --> Nil
+    ) is implementation-detail {
+        my str $name  = self.name;
+        my int $index = nqp::index($name,':');
+        die "Operator given to 'is $trait' does not appear to be an operator"
+          if $index < 0;
+
+        my $fqn := '&'
+          ~ nqp::substr($name,0,$index)
+          ~ ($target.contains('<') || $target.contains('>')
+              ?? ":«$target»"
+              !! ":<$target>"
+            );
+        nqp::istype((my $op := ::($fqn)),Failure)
+          ?? $op.throw
+          !! self."$trait"($op)
+    }
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :&equiv! --> Nil) {
     $r.equiv(&equiv)
 }
 multi sub trait_mod:<is>(Routine:D $r, Str:D :$equiv! --> Nil) {
-    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
-      ?? $r.equiv(::(
-           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($equiv) ~ '>'
-         ))
-      !! (die "Routine given to 'is equiv' does not appear to be an operator")
+    $r.apply-operator-trait('equiv', $equiv)
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :&tighter! --> Nil) {
     $r.tighter(&tighter)
 }
 multi sub trait_mod:<is>(Routine:D $r, Str:D :$tighter!) {
-    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
-      ?? $r.tighter(::(
-           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($tighter) ~ '>'
-         ))
-      !! (die "Routine given to 'is tighter' does not appear to be an operator")
+    $r.apply-operator-trait('tighter', $tighter)
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :&looser! --> Nil) {
     $r.looser(&looser)
 }
 multi sub trait_mod:<is>(Routine:D $r, Str:D :$looser!) {
-    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
-      ?? $r.looser(::(
-           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($looser) ~ '>'
-         ))
-      !! (die "Routine given to 'is looser' does not appear to be an operator")
+    $r.apply-operator-trait('looser', $looser)
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$assoc! --> Nil) {    # --> Nil

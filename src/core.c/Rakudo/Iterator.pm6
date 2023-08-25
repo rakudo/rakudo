@@ -826,23 +826,24 @@ class Rakudo::Iterator {
         method new(\n,\k,\b) { nqp::create(self)!SET-SELF(n,k,b) }
 
         method pull-one() {
-            my int $n = $!n;          # lexicals faster
-            my int $k = $!k;
-            my int $running = 1;
+            my int $n        = $!n;          # lexicals faster
+            my int $k        = $!k;
+            my int $running  = 1;
+            my $combination := $!combination;
+            my $stack       := $!stack;
 
             nqp::while(
-              ($running && (my int $elems = nqp::elems($!stack))),
+              ($running && (my int $elems = nqp::elems($stack))),
               nqp::stmts(
-                (my int $index = nqp::sub_i($elems,1)),
-                (my int $value = nqp::pop_i($!stack)),
+                (my int $index = $elems - 1),
+                (my int $value = nqp::pop_i($stack)),
                 nqp::while(
-                  (nqp::islt_i($value,$n)
-                    && nqp::islt_i($index,$k)),
+                  nqp::islt_i($value,$n) && nqp::islt_i($index,$k),
                   nqp::stmts(
-                    nqp::bindpos($!combination,$index,nqp::clone($value)),
+                    nqp::bindpos($combination,$index,nqp::clone($value)),
                     ++$index,
                     ++$value,
-                    nqp::push_i($!stack,$value)
+                    nqp::push_i($stack,$value)
                   )
                 ),
                 ($running = nqp::isne_i($index,$k)),
@@ -855,8 +856,8 @@ class Rakudo::Iterator {
                 ++$!pulled-count,
                 nqp::if(
                   $!b,
-                  nqp::clone($!combination),
-                  nqp::clone($!combination).List
+                  nqp::clone($combination),
+                  nqp::clone($combination).List
                 )
               ),
               IterationEnd

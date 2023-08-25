@@ -2469,10 +2469,11 @@ class Rakudo::Iterator {
               nqp::stmts(
                 (my int $elems = nqp::elems(buffer)),
                 (my int $i = -1),
+                (my $list := $!list),
                 nqp::while(           # repurpose buffer for result
                   nqp::islt_i(++$i,$elems),
                   nqp::bindpos(buffer,$i,
-                    nqp::atpos($!list,nqp::atpos(buffer,$i))
+                    nqp::atpos($list,nqp::atpos(buffer,$i))
                   )
                 ),
                 nqp::p6bindattrinvres(

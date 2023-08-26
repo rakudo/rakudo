@@ -3406,7 +3406,6 @@ class Rakudo::Iterator {
         has int $!n;
         has int $!b;
         has int $!todo;
-        has int $!elems;
         has $!next;
         method !SET-SELF(int $n, int $b) {
             $!n = $n;
@@ -3419,10 +3418,9 @@ class Rakudo::Iterator {
               ($!todo = nqp::mul_i($!todo,$i))
             );
 
-            $!elems = $!todo;
             $!next := nqp::setelems(nqp::create(IterationBuffer),$n);
-            $i = -1;
 
+            $i = -1;
             nqp::while(
               nqp::islt_i(++$i,$n),
               nqp::bindpos($!next,$i,nqp::clone($i))
@@ -3431,8 +3429,8 @@ class Rakudo::Iterator {
         }
         method new(\n,\b) { nqp::create(self)!SET-SELF(n,b) }
         method pull-one {
-            my int $n        = $!n;          # lexicals faster
-            my $next        := $!next;
+            my int $n = $!n;          # lexicals faster
+            my $next := $!next;
 
             nqp::if(
               nqp::isge_i(--$!todo,0),

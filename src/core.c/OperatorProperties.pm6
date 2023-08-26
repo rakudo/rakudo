@@ -1,14 +1,15 @@
 class OperatorProperties {
 # defined in src/Raku/ast/operator-properties
-#    has str $!precedence;
-#    has str $!associative;
-#    has str $!thunky;
-#    has int $!iffy;
-#    has int $!diffy;
-#    has int $!fiddly;
-#    has str $.dba;
-#    has str $.next-term;
+#    has str $.precedence;
 #    has str $.sub-precedence;
+#    has str $.associative;
+#    has str $.thunky;
+#    has str $.dba;
+#    has int $.iffy;
+#    has int $.diffy;
+#    has int $.fiddly;
+#    has int $.dottyopish
+#    has int $.nulltermish
 
     multi method WHICH(OperatorProperties:D: --> ValueObjAt:D) {
         my $parts := nqp::list_s('OperatorProperties');
@@ -22,9 +23,11 @@ class OperatorProperties {
         if $.thunky -> str $thunky {
             nqp::push_s($parts,nqp::concat('thunky=',$thunky))
         }
-        nqp::push_s($parts,'iffy=1')   if $.iffy;
-        nqp::push_s($parts,'diffy=1')  if $.diffy;
-        nqp::push_s($parts,'fiddly=1') if $.fiddly;
+        nqp::push_s($parts,'iffy=1')        if $.iffy;
+        nqp::push_s($parts,'diffy=1')       if $.diffy;
+        nqp::push_s($parts,'fiddly=1')      if $.fiddly;
+        nqp::push_s($parts,'dottyopish=1')  if $.dottyopish;
+        nqp::push_s($parts,'nulltermish=1') if $.nulltermish;
 
         nqp::box_s(nqp::join('|',$parts),ValueObjAt)
     }
@@ -44,12 +47,14 @@ class OperatorProperties {
         if $.thunky -> str $thunky {
             nqp::push_s($parts,nqp::concat('thunky => ',$thunky.raku))
         }
-        nqp::push_s($parts,':iffy')   if $.iffy;
-        nqp::push_s($parts,':diffy')  if $.diffy;
-        nqp::push_s($parts,':fiddly') if $.fiddly;
+        nqp::push_s($parts,':iffy')        if $.iffy;
+        nqp::push_s($parts,':diffy')       if $.diffy;
+        nqp::push_s($parts,':fiddly')      if $.fiddly;
+        nqp::push_s($parts,':dottyopish')  if $.dottyopish;
+        nqp::push_s($parts,':nulltermish') if $.nulltermish;
 
         nqp::concat('OperatorProperties.new(',
-          nqp::concat(nqp::join(',',$parts),')')
+          nqp::concat(nqp::join(', ',$parts),')')
         )
     }
 }

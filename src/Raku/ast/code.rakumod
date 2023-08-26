@@ -1431,17 +1431,28 @@ class RakuAST::Routine
         # to do this, perhaps better done with dedicated subclasses of
         # RakuAST::Sub.  But it will do for now.
         if $!name {
-            my str $name := $!name.canonicalize;
-            my $op_props := nqp::eqat($name,'infix:',0)
-              ?? OperatorProperties.default-infix-operator
-              !! nqp::eqat($name,'prefix:',0)
-                ?? OperatorProperties.default-prefix-operator
-                !! nqp::eqat($name,'postfix:',0)
-                  ?? OperatorProperties.default-postfix-operator
-                  !! nqp::eqat($name,'postcircumfix:',0)
-                    ?? OperatorProperties.default-postcircumfix-operator
-                    !! Mu;
-            nqp::bindattr($routine,Routine,'$!op_props',$op_props) if $op_props;
+            my @parts;
+            for $!name.colonpairs {
+                @parts.push($_.canonicalize);
+            }
+            my str $op := nqp::join(' ',@parts);
+            if $op {
+                $op := nqp::substr($op,1,nqp::chars($op) - 2);
+                my str $name := $!name.canonicalize;
+                my $op_props := nqp::eqat($name,'infix:',0)
+                  ?? OperatorProperties.infix($op)
+                  !! nqp::eqat($name,'prefix:',0)
+                    ?? OperatorProperties.prefix($op)
+                    !! nqp::eqat($name,'postfix:',0)
+                      ?? OperatorProperties.postfix($op)
+                      !! nqp::eqat($name,'postcircumfix:',0)
+                        ?? OperatorProperties.postcircumfix($op)
+                        !! nqp::eqat($name,'circumfix:',0)
+                          ?? OperatorProperties.circumfix($op)
+                          !! Mu;
+                nqp::bindattr($routine,Routine,'$!op_props',$op_props)
+                  if $op_props;
+            }
         }
 
         self.add-phasers-to-code-object($routine);

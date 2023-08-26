@@ -70,7 +70,7 @@ my class Routine { # declared in BOOTSTRAP
           ?? nqp::substr($name,2,nqp::chars($name) - 4)
           !! nqp::substr($name,1,nqp::chars($name) - 2);
         nqp::bindattr(self,Routine,'$!op_props',
-          OperatorProperties."properties-for-$type"($name))
+          OperatorProperties."$type"($name))
     }
 
     method candidates(Bool :$local = True, Bool() :$with-proto) {

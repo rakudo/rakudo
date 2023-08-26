@@ -10,6 +10,9 @@
 # one *is* possible by calling .new on an OperatorProperties instance, and
 # only specifying the arguments that you want to have changed.
 
+# The external interface allows looking up the operator properties of infix,
+# prefix, postfix and postcircumfix operators.
+
 class OperatorProperties {
     has str $.precedence;
     has str $.sub-precedence;
@@ -22,8 +25,6 @@ class OperatorProperties {
     has int $.fiddly;
     has int $.dottyopish;
     has int $.nulltermish;
-
-    # grammar specific attributes
 
     # Basic interface
     method new(
@@ -93,11 +94,10 @@ class OperatorProperties {
         )
     }
 
-    # OperatorProperties for an unknown operator
-    method default-infix-operator()         { self.new(:precedence<t=>) }
-    method default-prefix-operator()        { self.new(:precedence<v=>) }
-    method default-postfix-operator()       { self.new(:precedence<x=>) }
-    method default-postcircumfix-operator() { self.new(:precedence<y=>) }
+#-------------------------------------------------------------------------------
+# Methods that can be run on both an instance and a type object.  Note that
+# when calle on a type object, an "empty" representation of that function
+# will be returned.
 
     # Accessors
     method precedence()     { nqp::isconcrete(self) ?? $!precedence     !! "" }
@@ -106,11 +106,11 @@ class OperatorProperties {
     method thunky()         { nqp::isconcrete(self) ?? $!thunky         !! "" }
     method dba()            { nqp::isconcrete(self) ?? $!dba            !! "" }
 
-    method iffy()           { nqp::isconcrete(self) ?? $!iffy           !! 0  }
-    method diffy()          { nqp::isconcrete(self) ?? $!diffy          !! 0  }
-    method fiddly()         { nqp::isconcrete(self) ?? $!fiddly         !! 0  }
-    method dottyopish()     { nqp::isconcrete(self) ?? $!dottyopish     !! 0  }
-    method nulltermish()    { nqp::isconcrete(self) ?? $!nulltermish    !! 0  }
+    method iffy()        { nqp::isconcrete(self) ?? $!iffy        !! 0  }
+    method diffy()       { nqp::isconcrete(self) ?? $!diffy       !! 0  }
+    method fiddly()      { nqp::isconcrete(self) ?? $!fiddly      !! 0  }
+    method dottyopish()  { nqp::isconcrete(self) ?? $!dottyopish  !! 0  }
+    method nulltermish() { nqp::isconcrete(self) ?? $!nulltermish !! 0  }
 
     # Convenience methods
     method chaining() {
@@ -119,37 +119,6 @@ class OperatorProperties {
     }
     method short-circuit() {
         nqp::isconcrete(self) && $!thunky ne ""
-    }
-
-    # Return OperatorProperties depending on other properties
-    method equiv(str $associative) {
-        nqp::isconcrete(self)
-          ?? self.new(
-               associative => nqp::isnull_s($associative)
-                                ?? $!associative
-                                !! $associative
-             )
-          !! self.new
-    }
-    method tighter(str $associative) {
-        nqp::isconcrete(self)
-          ?? self.new(
-               precedence  => nqp::join('@=',nqp::split('=',$!precedence)),
-               associative => nqp::isnull_s($associative)
-                                ?? $!associative
-                                !! $associative
-             )
-          !! nqp::die("No precedence found to be tighter for")
-    }
-    method looser(str $associative) {
-        nqp::isconcrete(self)
-          ?? self.new(
-               precedence  => nqp::join(':=',nqp::split('=',$!precedence)),
-               associative => nqp::isnull_s($associative)
-                                ?? $!associative
-                                !! $associative
-             )
-          !! nqp::die("No precedence found to be looser for")
     }
 
     # Return name of handler for reducing with these operator properties
@@ -232,274 +201,226 @@ class OperatorProperties {
         nqp::existskey(CATEGORIES,$category)
     }
 
-    # Lookup methods for operator types
-    method properties-for-infix(str $op) {
-        BuiltinOperatorProperties.infix($op)
+#-------------------------------------------------------------------------------
+# Methods that return a new OperatorProperties object relative to the instance
+
+    method equiv(str $associative) {
+        nqp::isconcrete(self)
+          ?? self.new(
+               associative => nqp::isnull_s($associative)
+                                ?? $!associative
+                                !! $associative
+             )
+          !! self.new
     }
-    method properties-for-prefix(str $op) {
-        BuiltinOperatorProperties.prefix($op)
+    method tighter(str $associative) {
+        nqp::isconcrete(self)
+          ?? self.new(
+               precedence  => nqp::join('@=',nqp::split('=',$!precedence)),
+               associative => nqp::isnull_s($associative)
+                                ?? $!associative
+                                !! $associative
+             )
+          !! nqp::die("No precedence found to be tighter for")
     }
-    method properties-for-postfix(str $op) {
-        BuiltinOperatorProperties.postfix($op)
+    method looser(str $associative) {
+        nqp::isconcrete(self)
+          ?? self.new(
+               precedence  => nqp::join(':=',nqp::split('=',$!precedence)),
+               associative => nqp::isnull_s($associative)
+                                ?? $!associative
+                                !! $associative
+             )
+          !! nqp::die("No precedence found to be looser for")
     }
-    method properties-for-postcircumfix(str $op) {
-        BuiltinOperatorProperties.postcircumfix($op)
-    }
-}
 
 #-------------------------------------------------------------------------------
-# The BuiltinOperatorTypes class is basically a hash of hashes, represented
-# by its methods (apart from the lookup method).  The reason for this approach
-# is that the information in here will be needed very early during compilation
-# of Raku code, specifically during the setting compilation.
+# The "properties-for-group" method is basically a hash of hashes, in which
+# the values of the inner hash are named arguments of a call to .new.  The
+# hash is initialized at compile time, but its values will change at runtime.
+# So despite the "constant", the outer hash is *not* a constant as such.
 
-# So it is impossible to create a constant hash with instantiated
-# OperatorProperties instances at compile time.  But it is possible to create
-# methods with the appropriate arguments to create the intended
-# OperatorProperties instance.
+# The first time the value for a group is requested, it will create an
+# OperatorProperties object with the named arguments of the associated inner
+# hash and replace the inner hash with that object.  This effectively caches
+# the OperatorProperties object for that group.
 
-# The keys of the hash represent a combination of operator properties that
-# are shared by one or more operators.  The names of the keys are arbitrary
-# and historical, but should represent the types of operators in some way.
+# If there was no inner hash for the requested group, an empty hash will be
+# assumed, and a "bare" instance of an OperatorProperties object will be
+# cached for that.
 
-# The "lookup" method contains a constant hash with the method names as
-# keys, and an empty string as value (at compile time).  At runtime, when
-# needed, these empty strings will be replaced by instantiated
-# OperatorProperties objects that can be returned and inspected.
-
-class BuiltinOperatorTypes {
-    method methodcall() {
-        OperatorProperties.new:
-          :precedence<y=>, :associative<unary>, :dba<methodcall>, :fiddly
-    }
-    method autoincrement() {
-        OperatorProperties.new:
-          :precedence<x=>, :associative<unary>, :dba<autoincrement>
-    }
-    method exponentiation() {
-        OperatorProperties.new:
-          :precedence<w=>, :associative<right>, :dba<exponentiation>
-    }
-    method symbolic-unary() {
-        OperatorProperties.new:
-          :precedence<v=>, :associative<unary>, :dba('symbolic unary')
-    }
-    method dotty-infix() {
-        OperatorProperties.new:
-          :precedence<v=>, :associative<left>, :dba('dotty infix'),
-          :fiddly, :dottyopish, :sub-precedence<z=>
-    }
-    method multiplicative() {
-        OperatorProperties.new:
-          :precedence<u=>, :associative<left>, :dba<multiplicative>
-    }
-    method multiplicative-iffy() {
-        OperatorProperties.new:
-          :precedence<u=>, :associative<left>, :dba<multiplicative>, :iffy
-    }
-    method additive() {
-        OperatorProperties.new:
-          :precedence<t=>, :associative<left>, :dba<additive>
-    }
-    method additive-iffy() {
-        OperatorProperties.new:
-          :precedence<t=>, :associative<left>, :dba<additive>, :iffy
-    }
-    method replication() {
-        OperatorProperties.new:
-          :precedence<s=>, :associative<left>, :dba<replication>
-    }
-    method replication-xx() {
-        OperatorProperties.new:
-          :precedence<s=>, :associative<left>, :dba<replication>, :thunky<t.>
-    }
-    method concatenation() {
-        OperatorProperties.new:
-          :precedence<r=>, :associative<left>, :dba<replication>
-    }
-    method junctive-and() {
-        OperatorProperties.new:
-          :precedence<q=>, :associative<list>, :dba('junctive and')
-    }
-    method junctive-and-iffy() {
-        OperatorProperties.new:
-          :precedence<q=>, :associative<list>, :dba('junctive and'), :iffy
-    }
-    method junctive-or() {
-        OperatorProperties.new:
-          :precedence<p=>, :associative<list>, :dba('junctive or')
-    }
-    method junctive-or-iffy() {
-        OperatorProperties.new:
-          :precedence<p=>, :associative<list>, :dba('junctive or'), :iffy
-    }
-    method named-unary() {
-        OperatorProperties.new:
-          :precedence<o=>, :associative<unary>, :dba('named unary')
-    }
-    method structural() {
-        OperatorProperties.new:
-          :precedence<n=>, :associative<non>, :dba<structural>, :diffy
-    }
-    method chaining() {
-        OperatorProperties.new:
-          :precedence<m=>, :associative<chain>, :dba<chaining>,
-          :iffy, :diffy
-    }
-    method tight-and() {
-        OperatorProperties.new:
-          :precedence<l=>, :associative<list>, :dba('tight and'),
-          :thunky<.t>, :iffy
-    }
-    method tight-or() {
-        OperatorProperties.new:
-          :precedence<k=>, :associative<left>, :dba('tight or'), :thunky<.t>,
-          :iffy
-    }
-    method tight-defor() {
-        OperatorProperties.new:
-          :precedence<k=>, :associative<left>, :dba('tight defor'), :thunky<.t>
-    }
-    method tight-xor() {
-        OperatorProperties.new:
-          :precedence<k=>, :associative<list>, :dba('tight xor'),
-          :thunky<..t>, :iffy
-    }
-    method tight-or-minmax() {
-        OperatorProperties.new:
-          :precedence<k=>, :associative<list>, :dba('tight or')
-    }
-    method conditional() {
-        OperatorProperties.new:
-          :precedence<j=>, :associative<right>, :dba<conditional>,
-          :thunky<.tt>, :iffy
-    }
-    method conditional-ff() {
-        OperatorProperties.new:
-          :precedence<j=>, :associative<right>, :dba<conditional>,
-          :thunky<tt>, :iffy
-    }
-    method item-assignment() {
-        OperatorProperties.new:
-          :precedence<i=>, :associative<right>, :dba('item assignment')
-    }
-    method list-assignment() {
-        OperatorProperties.new:
-          :precedence<i=>, :associative<right>, :dba('list assignment'),
-          :fiddly, :sub-precedence<e=>
-    }
-    method loose-unary() {
-        OperatorProperties.new:
-          :precedence<h=>, :associative<unary>, :dba('loose unary')
-    }
-    method comma() {
-        OperatorProperties.new:
-          :precedence<g=>, :associative<list>, :dba<comma>, :nulltermish
-    }
-    method list-infix() {
-        OperatorProperties.new:
-          :precedence<f=>, :associative<list>, :dba('list infix')
-    }
-    method list-prefix() {
-        OperatorProperties.new:
-          :precedence<e=>, :associative<right>, :dba('list prefix')
-    }
-    method loose-and() {
-        OperatorProperties.new:
-          :precedence<d=>, :associative<left>, :dba('loose and'), :thunky<.t>,
-          :iffy
-    }
-    method loose-andthen() {
-        OperatorProperties.new:
-          :precedence<d=>, :associative<list>, :dba('loose and'), :thunky<.b>
-    }
-    method loose-or() {
-        OperatorProperties.new:
-          :precedence<c=>, :associative<left>, :dba('loose or'), :thunky<.t>,
-          :iffy
-    }
-    method loose-xor() {
-        OperatorProperties.new:
-          :precedence<c=>, :associative<list>, :dba('loose or'), :thunky<.t>,
-          :iffy
-    }
-    method loose-orelse() {
-        OperatorProperties.new:
-          :precedence<c=>, :associative<list>, :dba('loose or'), :thunky<.b>
-    }
-    method sequencer() {
-        OperatorProperties.new:
-          :precedence<b=>, :associative<list>, :dba<sequencer>
-    }
-
-    method lookup(str $type) {
+    method properties-for-group(str $group) {
         my constant PROPERTIES := nqp::hash(
-          'methodcall',          '',
-          'autoincrement',       '',
-          'exponentiation',      '',
-          'symbolic-unary',      '',
-          'multiplicative',      '',
-          'multiplicative-iffy', '',
-          'additive',            '',
-          'additive-iffy',       '',
-          'replication',         '',
-          'replication-xx',      '',
-          'concatenation',       '',
-          'junctive-and',        '',
-          'junctive-and-iffy',   '',
-          'junctive-or',         '',
-          'junctive-or-iffy',    '',
-          'structural',          '',
-          'named-unary',         '',
-          'chaining',            '',
-          'tight-and',           '',
-          'tight-or',            '',
-          'tight-defor',      '',
-          'tight-xor',        '',
-          'tight-or-minmax',     '',
-          'conditional',         '',
-          'conditional-ff',      '',
-          'item-assignment',     '',
-          'loose-unary',         '',
-          'comma',               '',
-          'list-infix',          '',
-          'list-prefix',         '',
-          'loose-and',           '',
-          'loose-andthen',       '',
-          'loose-or',            '',
-          'loose-xor',        '',
-          'loose-orelse',        '',
-          'sequencer',           '',
+
+          'default-infix',         nqp::hash('precedence','t='),
+          'default-prefix',        nqp::hash('precedence','v='),
+          'default-postfix',       nqp::hash('precedence','x='),
+          'default-postcircumfix', nqp::hash('precedence','y='),
+          'default-circumfix',     nqp::hash(),
+
+          'methodcall', nqp::hash(
+            'precedence','y=', 'associative','unary', 'fiddly', 1
+          ),
+          'autoincrement', nqp::hash(
+            'precedence','x=', 'associative','unary'
+          ),
+          'exponentiation', nqp::hash(
+            'precedence','w=', 'associative','right'
+          ),
+          'symbolic-unary', nqp::hash(
+            'precedence','v=', 'associative','unary'
+          ),
+          'dotty-infix', nqp::hash(
+            'precedence','v=', 'associative','left', 'fiddly',1, 'dottyopish',1,
+            'sub-precedence','z='
+          ),
+          'multiplicative', nqp::hash(
+            'precedence','u=', 'associative','left'
+          ),
+          'multiplicative-iffy', nqp::hash(
+            'precedence','u=', 'associative','left', 'iffy',1
+          ),
+          'additive', nqp::hash(
+            'precedence','t=', 'associative','left'
+          ),
+          'additive-iffy', nqp::hash(
+            'precedence','t=', 'associative','left', 'iffy',1
+          ),
+          'replication-x', nqp::hash(
+            'precedence','s=', 'associative','left'
+          ),
+          'replication-xx', nqp::hash(
+            'precedence','s=', 'associative','left', 'thunky','t.'
+          ),
+          'concatenation', nqp::hash(
+            'precedence','r=', 'associative','left'
+          ),
+          'junctive-and', nqp::hash(
+            'precedence','q=', 'associative','list'
+          ),
+          'junctive-and-iffy', nqp::hash(
+            'precedence','q=', 'associative','list', 'iffy',1
+          ),
+          'junctive-or', nqp::hash(
+            'precedence','p=', 'associative','list'
+          ),
+          'junctive-or-iffy', nqp::hash(
+            'precedence','p=', 'associative','list', 'iffy',1
+          ),
+          'named-unary', nqp::hash(
+            'precedence','o=', 'associative','unary'
+          ),
+          'structural', nqp::hash(
+            'precedence','n=', 'associative','non', 'diffy',1
+          ),
+          'chaining', nqp::hash(
+            'precedence','m=', 'associative','chain', 'iffy',1, 'diffy',1
+          ),
+          'tight-and', nqp::hash(
+            'precedence','l=', 'associative','list', 'thunky','.t', 'iffy',1
+          ),
+          'tight-or', nqp::hash(
+            'precedence','k=', 'associative','left', 'thunky','.t', 'iffy',1
+          ),
+          'tight-defor', nqp::hash(
+            'precedence','k=', 'associative','left', 'thunky','.t'
+          ),
+          'tight-xor', nqp::hash(
+            'precedence','k=', 'associative','list', 'thunky','..t', 'iffy',1
+          ),
+          'tight-minmax', nqp::hash(
+            'precedence','k=', 'associative','list'
+          ),
+          'conditional', nqp::hash(
+            'precedence','j=', 'associative','right', 'thunky','.tt', 'iffy',1
+          ),
+          'conditional-ff', nqp::hash(
+            'precedence','j=', 'associative','right', 'thunky','tt', 'iffy',1
+          ),
+          'item-assignment', nqp::hash(
+            'precedence','i=', 'associative','right'
+          ),
+          'list-assignment', nqp::hash(
+            'precedence','i=', 'associative','right', 'fiddly',1,
+            'sub-precedence','e='
+          ),
+          'loose-unary', nqp::hash(
+            'precedence','h=', 'associative','unary'
+          ),
+          'comma', nqp::hash(
+            'precedence','g=', 'associative','list', 'nulltermish',1
+          ),
+          'list-infix', nqp::hash(
+            'precedence','f=', 'associative','list'
+          ),
+          'list-prefix', nqp::hash(
+            'precedence','e=', 'associative','right'
+          ),
+          'loose-and', nqp::hash(
+            'precedence','d=', 'associative','left', 'thunky','.t', 'iffy',1
+          ),
+          'loose-andthen', nqp::hash(
+            'precedence','d=', 'associative','list', 'thunky','.b'
+          ),
+          'loose-or', nqp::hash(
+            'precedence','c=', 'associative','left', 'thunky','.t', 'iffy',1
+          ),
+          'loose-xor', nqp::hash(
+            'precedence','c=', 'associative','list', 'thunky','.t', 'iffy',1
+          ),
+          'loose-orelse', nqp::hash(
+            'precedence','c=', 'associative','list', 'thunky','.b'
+          ),
+          'sequencer', nqp::hash(
+            'precedence','b=', 'associative','list'
+          )
         );
 
-        # Return instance for given operator type, or create and bind
-        # one if this is the first time this operator type is being
-        # used.
-        (my $properties := nqp::atkey(PROPERTIES,$type))
-          ?? $properties
-          !! nqp::bindkey(PROPERTIES,$type,self."$type"())
+        # Convert raw properties into an object
+        my %value := nqp::ifnull(
+          nqp::atkey(PROPERTIES,$group),
+          nqp::hash()
+        );
+        nqp::ishash(%value)
+          ?? nqp::bindkey(  # first time
+               PROPERTIES,
+               $group,
+               OperatorProperties.new(|%value, :dba($group))
+             )
+          !! %value         # already instantiated
     }
-}
 
 #-------------------------------------------------------------------------------
-# The BuiltinOperatorProperties class contains methods for operator lookups,
-# one lookup method for each operator type (infix, prefix, postfix, and
-# postcircumfix), each of which contains a lookup hash with the operator
-# string as the key, and the BuiltinOperatorType name as its value.  The
-# reason for this approach is that the information in here will be needed
-# very early during compilation of of Raku code, specifically during the
-# setting compilation.
-
 # Each lookup method contains a constant hash with the BuiltinOperatorTypes
 # names as keys, and an empty string as value (at compile time).  At runtime,
 # when needed, these empty strings will be replaced by instantiated
 # OperatorProperties objects that can be returned and inspected.
 
-class BuiltinOperatorProperties {
+    # Helper method for producing a OperatorProperties object
+    # given a hash with group names keyed to an operator name.
+    method produce($hash, str $key) {
+
+        # Get current setting or default
+        my $properties := nqp::ifnull(
+          nqp::atkey($hash,$key),
+          nqp::atkey($hash,$key := '')
+        );
+
+        # If not yet an instance, create an instance and update in the
+        # hash if the operator is a built-in.
+        if nqp::isstr($properties) {
+            $properties := self.properties-for-group($properties);
+            nqp::bindkey($hash,$key,$properties)
+              if nqp::existskey($hash,$key);
+        }
+
+        $properties
+    }
 
     # Lookup properties of an infix operator
     method infix(str $operator) {
         my constant PROPERTIES := nqp::hash(
+           '', 'default-infix',
 
           '*',   'multiplicative',
           '×',   'multiplicative',
@@ -532,7 +453,7 @@ class BuiltinOperatorProperties {
 
           '**', 'exponentiation',
 
-          'x', 'replication',
+          'x', 'replication-x',
 
           'xx', 'replication-xx',
 
@@ -624,8 +545,8 @@ class BuiltinOperatorProperties {
 
           '^^', 'tight-xor',
 
-          'min', 'tight-or-minmax',
-          'max', 'tight-or-minmax',
+          'min', 'tight-minmax',
+          'max', 'tight-minmax',
 
           'ff',    'conditional-ff',
           '^ff',   'conditional-ff',
@@ -673,17 +594,13 @@ class BuiltinOperatorProperties {
           'orelse', 'loose-orelse',
         );
 
-        # Return instance for the given infix operator, or create and
-        # bind one if this is the first time this operator is being used.
-        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$operator))
-          ?? nqp::bindkey(PROPERTIES,$operator,
-               BuiltinOperatorTypes.lookup($properties))
-          !! nqp::ifnull($properties, Nil)
+        self.produce(PROPERTIES, $operator)
     }
 
     # Lookup properties of a prefix operator
     method prefix(str $operator) {
         my constant PROPERTIES := nqp::hash(
+           '', 'default-prefix',
 
           '++',  'autoincrement',
           '--',  'autoincrement',
@@ -701,22 +618,19 @@ class BuiltinOperatorProperties {
           '?^', 'symbolic-unary',
           '^',  'symbolic-unary',
           '⚛',  'symbolic-unary',
+          '//', 'symbolic-unary',
 
           'so',  'loose-unary',
           'not', 'loose-unary',
         );
 
-        # Return instance for the given prefix operator, or create and
-        # bind one if this is the first time this operator is being used.
-        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$operator))
-          ?? nqp::bindkey(PROPERTIES,$operator,
-               nqp::clone(BuiltinOperatorTypes.lookup($properties)))
-          !! nqp::ifnull($properties, Nil)
+        self.produce(PROPERTIES, $operator)
     }
 
     # Lookup properties of a postfix operator
     method postfix(str $operator) {
         my constant PROPERTIES := nqp::hash(
+           '', 'default-postfix',
 
           'i', 'methodcall',
 
@@ -726,28 +640,30 @@ class BuiltinOperatorProperties {
           '⚛--', 'autoincrement',
         );
 
-        # Return instance for the given postfix operator, or create and
-        # bind one if this is the first time this operator is being used.
-        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$operator))
-          ?? nqp::bindkey(PROPERTIES,$operator,
-               nqp::clone(BuiltinOperatorTypes.lookup($properties)))
-          !! nqp::ifnull($properties, Nil)
+        self.produce(PROPERTIES, $operator)
     }
 
     # Lookup properties of a postcircumfix operator
     method postcircumfix(str $operator) {
         my constant PROPERTIES := nqp::hash(
+           '', 'default-postcircumfix',
 
-          '[ ]', 'methodcall',
-          '{ }', 'methodcall',
+          '[ ]',  'methodcall',
+          '[; ]', 'methodcall',
+          '{ }',  'methodcall',
+          '{; }', 'methodcall',
         );
 
-        # Return instance for the given circumpostfix operator, or create and
-        # bind one if this is the first time this operator is being used.
-        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$operator))
-          ?? nqp::bindkey(PROPERTIES,$operator,
-               nqp::clone(BuiltinOperatorTypes.lookup($properties)))
-          !! nqp::ifnull($properties, Nil)
+        self.produce(PROPERTIES, $operator)
+    }
+
+    # Lookup properties of a circumfix operator
+    method circumfix(str $operator) {
+        my constant PROPERTIES := nqp::hash(
+           '', 'default-circumfix',
+        );
+
+        self.produce(PROPERTIES, $operator)
     }
 }
 

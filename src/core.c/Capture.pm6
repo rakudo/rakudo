@@ -15,33 +15,6 @@ my class Capture { # declared in BOOTSTRAP
         nqp::bindattr(self,Capture,'%!hash', $source-hash) if nqp::ishash($source-hash);
     }
 
-    multi method WHICH (Capture:D: --> ValueObjAt:D) {
-        my Mu $WHICH := nqp::list_s(nqp::eqaddr(self.WHAT,Capture) ?? 'Capture' !! nqp::unbox_s(self.^name));
-        if nqp::isconcrete(@!list) && nqp::elems(@!list) {
-            nqp::push_s($WHICH, '|');
-            my Mu $list := nqp::clone(@!list);
-            nqp::while(
-              nqp::elems($list),
-              nqp::stmts(
-                (my Mu \value = nqp::shift($list)),
-                nqp::push_s($WHICH, '('),
-                nqp::push_s($WHICH, nqp::unbox_s(value.VAR.WHICH)),
-                nqp::push_s($WHICH, ')')
-              )
-            );
-        }
-        if nqp::isconcrete(%!hash) && nqp::elems(%!hash) {
-            nqp::push_s($WHICH, '|');
-            for nqp::hllize(%!hash).keys.sort -> str \key {
-                nqp::push_s($WHICH, key);
-                nqp::push_s($WHICH, '(');
-                nqp::push_s($WHICH, nqp::unbox_s(nqp::atkey(%!hash,key).WHICH));
-                nqp::push_s($WHICH, ')');
-            }
-        }
-        nqp::box_s(nqp::join('',$WHICH),ValueObjAt)
-    }
-
     multi method AT-KEY(Capture:D: Str() $key) is raw {
         nqp::isconcrete(%!hash)
           ?? nqp::ifnull(nqp::atkey(%!hash,$key), Nil)

@@ -3431,41 +3431,44 @@ class Rakudo::Iterator {
         }
         method new(\n,\b) { nqp::create(self)!SET-SELF(n,b) }
         method pull-one {
+            my int $n        = $!n;          # lexicals faster
+            my $next        := $!next;
+
             nqp::if(
               nqp::isge_i(--$!todo,0),
               nqp::stmts(
-                (my $permuted := nqp::clone($!next)),
+                (my $permuted := nqp::clone($next)),
                 nqp::if(
                   $!todo,     # need to calculate next one
                   nqp::stmts( # largest index k such that a[k] < a[k+1]
-                    (my int $k = nqp::sub_i($!n,2)),
+                    (my int $k = nqp::sub_i($n,2)),
                     nqp::until(
                       nqp::islt_i(
-                        nqp::atpos($!next,$k),
-                        nqp::atpos($!next,nqp::add_i($k,1))
+                        nqp::atpos($next,$k),
+                        nqp::atpos($next,nqp::add_i($k,1))
                       ),
                       --$k
                     ),
-                    (my int $l = nqp::sub_i($!n,1)),
+                    (my int $l = nqp::sub_i($n,1)),
                     nqp::until(
                       nqp::islt_i( # largest index l>k where a[k] < a[l]
-                        nqp::atpos($!next,$k),
-                        nqp::atpos($!next,$l)
+                        nqp::atpos($next,$k),
+                        nqp::atpos($next,$l)
                       ),
                       --$l,
                     ),
-                    (my $tmp := nqp::atpos($!next,$k)),
-                    nqp::bindpos($!next,$k,nqp::atpos($!next,$l)),
-                    nqp::bindpos($!next,$l,$tmp)
+                    (my $tmp := nqp::atpos($next,$k)),
+                    nqp::bindpos($next,$k,nqp::atpos($next,$l)),
+                    nqp::bindpos($next,$l,$tmp)
                   )
                 ),
-                ($l = $!n),
+                ($l = $n),
                 nqp::until(
                   nqp::isge_i(++$k,--$l),
                   nqp::stmts(
-                    ($tmp := nqp::atpos($!next,$k)),
-                    nqp::bindpos($!next,$k,nqp::atpos($!next,$l)),
-                    nqp::bindpos($!next,$l,$tmp)
+                    ($tmp := nqp::atpos($next,$k)),
+                    nqp::bindpos($next,$k,nqp::atpos($next,$l)),
+                    nqp::bindpos($next,$l,$tmp)
                   )
                 ),
                 nqp::if(

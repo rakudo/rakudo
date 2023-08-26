@@ -652,11 +652,17 @@ class RakuAST::VarDeclaration::Simple
                     )),
                     :body(RakuAST::Blockoid.new(
                         RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                :expression($initializer.expression)
+                            !nqp::istype($initializer,RakuAST::Initializer::CallAssign)
+                                ?? RakuAST::Statement::Expression.new(:expression($initializer.expression))
+                                !! RakuAST::Statement::Expression.new(:expression(
+                                    RakuAST::ApplyPostfix.new(
+                                        operand => $!type,
+                                        postfix => $initializer.postfixish
+                                    )
+                                ))
                             )
                         )
-                    )),
+                    ),
                 );
                 $!attribute-package.add-generated-lexical-declaration($method);
                 self.add-trait(RakuAST::Trait::Will.new('build', $method));

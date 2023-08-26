@@ -337,12 +337,16 @@ class RakuAST::Package
         if $!declarator eq 'role' {
             $type.HOW.set_body_block($type, $!body.meta-object);
 
+            # The role needs to be composed before we add the possibility to the group
+            $type.HOW.compose($type);
+
             my $group := $!role-group;
             $group.HOW.add_possibility($group, $type) unless $group =:= Mu;
+        } else {
+            # Compose the meta-object
+            $type.HOW.compose($type);
         }
-
-        # Compose the meta-object and return it.
-        $type.HOW.compose($type);
+        # Return the meta-object
         $type
     }
 

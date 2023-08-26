@@ -1,4 +1,4 @@
-# all 6.e specific sub postcircumfix [;] candidates here please
+# all 6.e specific sub postcircumfix [; ] candidates here please
 
 proto sub postcircumfix:<[; ]>($, $, $?, *%) is nodal {*}
 
@@ -584,5 +584,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
       ?? target.List
       !! nqp::elems(target) ?? nqp::atpos(target,0) !! Nil
 }
+
+BEGIN &postcircumfix:<[; ]>.set_op_props;
 
 # vim: expandtab shiftwidth=4

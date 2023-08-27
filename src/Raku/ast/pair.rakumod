@@ -256,7 +256,7 @@ class RakuAST::ColonPair::Value
 {
     has RakuAST::Expression $.value;
 
-    method new(Str :$key!, RakuAST::Expression :$value) {
+    method new(Str :$key!, RakuAST::Expression :$value!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
         nqp::bindattr($obj, RakuAST::ColonPair::Value, '$!value', $value);

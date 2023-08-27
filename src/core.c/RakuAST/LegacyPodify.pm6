@@ -268,28 +268,45 @@ class RakuAST::LegacyPodify {
             }
         }).List;
 
-        $type
-          ?? $type eq 'item' | 'head'
-            ?? ($type eq 'item' ?? Pod::Item !! Pod::Heading).new(
-                 :level($level ?? $level.Int !! 1), :$config, :$contents
-               )
-            !! $level
-              ?? Pod::Block::Named.new(
-                   :name($type ~ $level), :$config, :$contents
-                 )
-              # from here on without level
-              !! $type eq 'comment'
-                ?? Pod::Block::Comment.new(
-                     :$config, :contents([
-                       $ast.paragraphs.head.trim-trailing ~ "\n"
-                     ])
-                   )
-                !! $type eq 'config' && $ast.abbreviated
-                  ?? Pod::Config.new(
-                       :type($ast.paragraphs.head), :$config
+        if $type {
+            if $type eq 'item' | 'head' {
+                ($type eq 'item' ?? Pod::Item !! Pod::Heading).new(
+                  :level($level ?? $level.Int !! 1), :$config, :$contents
+                )
+            }
+            elsif $type eq 'numitem' | 'numhead' {
+                my %config = $config;
+                %config<numbered> := True;
+                ($type eq 'numitem' ?? Pod::Item !! Pod::Heading).new(
+                  :level($level ?? $level.Int !! 1), :%config, :$contents
+                )
+            }
+            elsif $level {
+                Pod::Block::Named.new(
+                  :name($type ~ $level), :$config, :$contents
+                )
+            }
+
+            # from here on without level
+            else {
+                $type eq 'comment'
+                  ?? Pod::Block::Comment.new(
+                       :$config, :contents([
+                         $ast.paragraphs.head.trim-trailing ~ "\n"
+                       ])
                      )
-                  !! Pod::Block::Named.new(:name($type), :$config, :$contents)
-          !! $contents  # no type means just a string
+                  !! $type eq 'config' && $ast.abbreviated
+                    ?? Pod::Config.new(
+                         :type($ast.paragraphs.head), :$config
+                       )
+                    !! Pod::Block::Named.new(:name($type), :$config, :$contents)
+            }
+        }
+
+        # no type means just a string
+        else {
+            $contents
+        }
     }
 
     method podify-table(RakuAST::Doc::Block:D $ast) {

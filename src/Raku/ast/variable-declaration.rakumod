@@ -1464,6 +1464,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
   is RakuAST::BeginTime
   is RakuAST::Meta
   is RakuAST::CompileTimeValue
+  is RakuAST::Declaration::Mergeable
 {
     has Mu $.value;
 

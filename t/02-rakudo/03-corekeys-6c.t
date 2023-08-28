@@ -607,6 +607,7 @@ my @expected = (
   Q{NumericEnumeration},
   Q{NumericStringyEnumeration},
   Q{ObjAt},
+  Q{Operator},
   Q{OperatorProperties},
   Q{Order},
   Q{PF_INET},

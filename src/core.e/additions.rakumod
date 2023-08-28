@@ -15,6 +15,8 @@ multi sub last(\x --> Nil) { THROW(nqp::const::CONTROL_LAST, x) }
 # introducing //foo as syntax for foo.defined
 proto sub prefix:<//>($) is pure {*}
 multi sub prefix:<//>(\a) { a.defined }
+
+# Can be REMOVED **AFTER** the Raku grammar has become the default grammar
 BEGIN &prefix:<//>.set_op_props;
 
 # introducing rotor as a sub

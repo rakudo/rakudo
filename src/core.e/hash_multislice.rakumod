@@ -397,6 +397,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
       !! nqp::elems(target) ?? nqp::atpos(target,0) !! Nil
 }
 
+# Can be REMOVED **AFTER** the Raku grammar has become the default grammar
 BEGIN &postcircumfix:<{; }>.set_op_props;
 
 # vim: expandtab shiftwidth=4

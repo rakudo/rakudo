@@ -59,6 +59,10 @@ class OperatorProperties {
     }
 }
 
+#-------------------------------------------------------------------------------
+# The REST of this file can be REMOVED **AFTER** the Raku grammar has
+# become the grammar to build the setting with.  XXX
+
 # Attach operator properties to all of the built-in operators.  This is
 # done here instead as traits on the op bodies, since some of the things
 # that the traits are implement in, are using features that aren't defined

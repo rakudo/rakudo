@@ -62,6 +62,7 @@ my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub Operator metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Method metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Submethod metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Regex metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -3471,6 +3472,15 @@ BEGIN {
     Sub.HOW.compose_invocation(Sub);
 #?endif
 
+    # class Operator is Sub {
+    #     has Mu $!properties;
+    Operator.HOW.add_parent(Operator, Sub);
+    Operator.HOW.add_attribute(Operator, Attribute.new(:name<$!properties>, :type(Mu), :package(Operator)));
+    Operator.HOW.compose_repr(Operator);
+#?if !moar
+    Operator.HOW.compose_invocation(Operator);
+#?endif
+
     # class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
     Method.HOW.compose_repr(Method);
@@ -3842,6 +3852,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Block);
     Perl6::Metamodel::ClassHOW.add_stash(Routine);
     Perl6::Metamodel::ClassHOW.add_stash(Sub);
+    Perl6::Metamodel::ClassHOW.add_stash(Operator);
     Perl6::Metamodel::ClassHOW.add_stash(Method);
     Perl6::Metamodel::ClassHOW.add_stash(Submethod);
     Perl6::Metamodel::ClassHOW.add_stash(Regex);
@@ -3978,6 +3989,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Block>      := Block;
     EXPORT::DEFAULT.WHO<Routine>    := Routine;
     EXPORT::DEFAULT.WHO<Sub>        := Sub;
+    EXPORT::DEFAULT.WHO<Operator>   := Operator;
     EXPORT::DEFAULT.WHO<Method>     := Method;
     EXPORT::DEFAULT.WHO<Submethod>  := Submethod;
     EXPORT::DEFAULT.WHO<Regex>      := Regex;

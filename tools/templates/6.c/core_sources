@@ -30,6 +30,7 @@ src/core.c/Block.rakumod
 src/core.c/Variable.rakumod
 src/core.c/Routine.rakumod
 src/core.c/Sub.rakumod
+src/core.c/Operator.rakumod
 src/core.c/Macro.rakumod
 src/core.c/Method.rakumod
 src/core.c/Submethod.rakumod

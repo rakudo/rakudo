@@ -18,61 +18,6 @@ my class Routine { # declared in BOOTSTRAP
     #     has Mu $!dispatch_cache;
     #     has Mu $!op_props;
 
-# Accessing operator properties, can be simplified once we can make
-# $!op_props have a OperatorProperties constraint in bootstrap
-
-    method prec(|c --> Hash:D) {
-        ($!op_props // OperatorProperties).prec(|c)
-    }
-
-    method !proto() { $!dispatcher // self }
-
-    # Return the OperatorProperties of the proto of the invocant
-    method op_props(Routine:D:
-      --> OperatorProperties) is implementation-detail {
-        nqp::getattr(self!proto,Routine,'$!op_props')
-          // OperatorProperties
-    }
-
-    method precedence(Routine:D:   --> Str:D) { self.op_props.precedence  }
-    method associative(Routine:D:  --> Str:D) { self.op_props.associative }
-    method thunky(Routine:D:       --> Str:D) { self.op_props.thunky      }
-    method iffy(Routine:D:        --> Bool:D) { self.op_props.iffy.Bool   }
-    method reducer(Routine:D: --> Callable:D) { self.op_props.reducer     }
-
-    # Set operator properties, usually called through trait_mods
-    method equiv(Routine:D: &op --> Nil) {
-        nqp::bindattr(self!proto,Routine,'$!op_props',
-          &op.op_props.equiv(self.associative)
-        )
-    }
-    method tighter(Routine:D: &op --> Nil) {
-        nqp::bindattr(self!proto,Routine,'$!op_props',
-          &op.op_props.tighter(self.associative)
-        )
-    }
-    method looser(Routine:D: &op --> Nil) {
-        nqp::bindattr(self!proto,Routine,'$!op_props',
-          &op.op_props.looser(self.associative)
-        )
-    }
-    method assoc(Routine:D: Str:D $associative --> Nil) {
-        nqp::bindattr(self!proto,Routine,'$!op_props',
-          self.op_props.new(:$associative))
-    }
-
-    # Internal helper method to set operator properties
-    method set_op_props(Routine:D:) is implementation-detail {
-        my $parts   := nqp::split(':',self.name);
-        my $type    := nqp::atpos($parts,0);
-        my str $name = nqp::atpos($parts,1);
-        $name = nqp::eqat($name,'<<',0)
-          ?? nqp::substr($name,2,nqp::chars($name) - 4)
-          !! nqp::substr($name,1,nqp::chars($name) - 2);
-        nqp::bindattr(self,Routine,'$!op_props',
-          OperatorProperties."$type"($name))
-    }
-
     method candidates(Bool :$local = True, Bool() :$with-proto) {
         $local
             ?? (self.is_dispatcher ?? nqp::hllize(@!dispatchees) !! (self,))
@@ -351,6 +296,62 @@ my class Routine { # declared in BOOTSTRAP
             return False unless &cand.file.starts-with: 'SETTING::';
         }
         True
+    }
+
+#-------------------------------------------------------------------------------
+# The REST of this file can be REMOVED **AFTER** the Raku grammar has
+# become the grammar to build the setting with.  XXX
+
+    method prec(|c --> Hash:D) {
+        ($!op_props // OperatorProperties).prec(|c)
+    }
+
+    method !proto() { $!dispatcher // self }
+
+    # Return the OperatorProperties of the proto of the invocant
+    method op_props(Routine:D:
+      --> OperatorProperties) is implementation-detail {
+        nqp::getattr(self!proto,Routine,'$!op_props')
+          // OperatorProperties
+    }
+
+    method precedence(Routine:D:   --> Str:D) { self.op_props.precedence  }
+    method associative(Routine:D:  --> Str:D) { self.op_props.associative }
+    method thunky(Routine:D:       --> Str:D) { self.op_props.thunky      }
+    method iffy(Routine:D:        --> Bool:D) { self.op_props.iffy.Bool   }
+    method reducer(Routine:D: --> Callable:D) { self.op_props.reducer     }
+
+    # Set operator properties, usually called through trait_mods
+    method equiv(Routine:D: &op --> Nil) {
+        nqp::bindattr(self!proto,Routine,'$!op_props',
+          &op.op_props.equiv(self.associative)
+        )
+    }
+    method tighter(Routine:D: &op --> Nil) {
+        nqp::bindattr(self!proto,Routine,'$!op_props',
+          &op.op_props.tighter(self.associative)
+        )
+    }
+    method looser(Routine:D: &op --> Nil) {
+        nqp::bindattr(self!proto,Routine,'$!op_props',
+          &op.op_props.looser(self.associative)
+        )
+    }
+    method assoc(Routine:D: Str:D $associative --> Nil) {
+        nqp::bindattr(self!proto,Routine,'$!op_props',
+          self.op_props.new(:$associative))
+    }
+
+    # Internal helper method to set operator properties
+    method set_op_props(Routine:D:) is implementation-detail {
+        my $parts   := nqp::split(':',self.name);
+        my $type    := nqp::atpos($parts,0);
+        my str $name = nqp::atpos($parts,1);
+        $name = nqp::eqat($name,'<<',0)
+          ?? nqp::substr($name,2,nqp::chars($name) - 4)
+          !! nqp::substr($name,1,nqp::chars($name) - 2);
+        nqp::bindattr(self,Routine,'$!op_props',
+          OperatorProperties."$type"($name))
     }
 
     # Helper method to apply a trait by name and given operator target string

@@ -831,37 +831,25 @@ class Rakudo::Iterator {
             my int $running  = 1;
             my $combination := $!combination;
             my $stack       := $!stack;
+            my int $index;
 
-            nqp::while(
-              ($running && (my int $elems = nqp::elems($stack))),
-              nqp::stmts(
-                (my int $index = $elems - 1),
-                (my int $value = nqp::pop_i($stack)),
-                nqp::while(
-                  nqp::islt_i($value,$n) && nqp::islt_i($index,$k),
-                  nqp::stmts(
-                    nqp::bindpos($combination,$index,nqp::clone($value)),
-                    ++$index,
-                    ++$value,
-                    nqp::push_i($stack,$value)
-                  )
-                ),
-                ($running = nqp::isne_i($index,$k)),
-              )
-            );
+            while $running && (my int $elems = nqp::elems($stack)) {
+                $index = $elems - 1;
+                my int $value = nqp::pop_i($stack);
+                while $value < $n && $index < $k {
+                    nqp::bindpos($combination, $index++, nqp::clone($value));
+                    nqp::push_i($stack, ++$value);
+                }
+                $running = $index != $k;
+            }
 
-            nqp::if(
-              nqp::iseq_i($index,$k),
-              nqp::stmts(
-                ++$!pulled-count,
-                nqp::if(
-                  $!b,
-                  nqp::clone($combination),
-                  nqp::clone($combination).List
-                )
-              ),
-              IterationEnd
-            )
+            if $index == $k {
+                ++$!pulled-count;
+                nqp::clone($!b ?? $combination !! $combination.List)
+            }
+            else {
+                IterationEnd
+            }
         }
 
         method count-only(--> Int:D) {

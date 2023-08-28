@@ -252,7 +252,7 @@ class RakuAST::LegacyPodify {
             return self.podify-implicit-code($ast)
               if $type eq 'implicit-code';
             return self.podify-defn($ast)
-              if $type eq 'defn';
+              if $type eq 'defn' | 'numdefn';
         }
 
         # no more special casing
@@ -394,9 +394,10 @@ class RakuAST::LegacyPodify {
         my @contents = $ast.paragraphs.skip.map: {
             Pod::Block::Para.new(:contents(sanitize(.Str)))
         }
+        my $config := $ast.resolved-config;
+        $config := %(|$config, :numbered) if $ast.type.starts-with('num');
 
-        Pod::Defn.new:
-          :$term, :@contents, :config($ast.resolved-config)
+        Pod::Defn.new: :$term, :@contents, :$config
     }
 
     multi method podify(RakuAST::Doc::Declarator:D $ast, $WHEREFORE) {

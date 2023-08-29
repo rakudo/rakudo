@@ -1107,12 +1107,12 @@ role STDActions {
                         if !$in-fresh-line {
                             if $strval ~~ /\n/ {
                                 my $strbox := nqp::box_s(nqp::x(" ", -$indent) ~ nqp::unbox_s($strval), $world.find_single_symbol_in_setting("Str"));
-                                $strval := nqp::unbox_s($strbox.indent($indent));
+                                $strval := nqp::unbox_s($strbox.indent(nqp::box_i($indent, $world.find_single_symbol_in_setting("Int"))));
                                 $in-fresh-line := 1;
                                 return $world.add_string_constant($strval);
                             }
                         } else {
-                            $strval := nqp::unbox_s($strval.indent($indent));
+                            $strval := nqp::unbox_s($strval.indent(nqp::box_i($indent, $world.find_single_symbol_in_setting("Int"))));
                             return $world.add_string_constant($strval);
                         }
                     }

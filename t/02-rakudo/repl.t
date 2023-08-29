@@ -180,13 +180,16 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
 
 # https://github.com/Raku/old-issue-tracker/issues/3211
 {
-    is-run-repl ['say 069'], :out("69\n"), :err(/'Potential difficulties:'
-        .* 'Leading 0' .+ "use '0o' prefix,"
-        .* '69 is not a valid octal number'
+    is-run-repl ['say 069'], :out("69\n"), :err(/
+      'Potential difficulties:'
+      \s+ 'Leading 0 has no meaning'
+      .*? '69 is not a valid octal number'
     /), 'prefix 0 on invalid octal warns in REPL';
 
-    is-run-repl ['say 067'], :out("67\n"), :err(/'Potential difficulties:'
-        .* 'Leading 0' .+ "use '0o' prefix" .* "like, '0o67'"
+    is-run-repl ['say 067'], :out("67\n"), :err(/
+      'Potential difficulties:'
+      \s+ 'Leading 0 has no meaning'
+      .*? "like, '0o67'"
     /), 'prefix 0 on valid octal warns in REPL';
 }
 

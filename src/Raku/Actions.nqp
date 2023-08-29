@@ -101,6 +101,7 @@ role Raku::CommonActions {
 # The actions associated with the base Raku grammar
 
 class Raku::Actions is HLL::Actions does Raku::CommonActions {
+    method  OperatorProperties() { $OperatorProperties }
 
 #-------------------------------------------------------------------------------
 # Compilation unit, language version and other entry point bits

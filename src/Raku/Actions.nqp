@@ -2291,6 +2291,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method integer($/) { make $<VALUE>.made; }
+
     method signed-integer($/) {
         my $integer := $<integer>.ast;
         self.attach: $/, $<sign> eq '-' || $<sign> eq '−'

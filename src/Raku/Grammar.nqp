@@ -3063,24 +3063,43 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token binint  { [\d+]+ % '_' }
-    token octint  { [\d+]+ % '_' }
-    token decint  { [\d+]+ % '_' }
-    token hexint  { [[\d|<[ a..f A..F ａ..ｆ Ａ..Ｆ ]>]+]+ % '_' }
+    token binint { [\d+]+ % '_' }  # action method panics if invalid
+    token octint { [\d+]+ % '_' }  # action method panics if invalid
+    token decint { [\d+]+ % '_' }
+    token hexint {
+        [
+          [ \d | <[ a..f A..F ａ..ｆ Ａ..Ｆ ]> ]+
+        ]+ % '_'
+    }
 
     token integer {
         [
-        | 0 [ b '_'? <VALUE=binint>
-            | o '_'? <VALUE=octint>
-            | x '_'? <VALUE=hexint>
-            | d '_'? <VALUE=decint>
-            | <VALUE=decint>
-                <!!{ $/.typed-worry('X::Worry::P5::LeadingZero', value => ~$<VALUE>) }>
+          | 0
+            [   b '_'? <VALUE=.binint>
+              | o '_'? <VALUE=.octint>
+              | x '_'? <VALUE=.hexint>
+              | d '_'? <VALUE=.decint>
+              | <VALUE=.decint>
+                { $/.typed-worry: 'X::Worry::P5::LeadingZero', :value(~$<VALUE>) }
             ]
-        | <VALUE=decint>
+          | <VALUE=.decint>
         ]
-        <!!before ['.' <?before \s | ',' | '=' | ':' <!before  <coloncircumfix <OPER=prefix> > > | <.terminator> | $ > <.typed-sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
-        [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
+        <!!before [
+          '.'
+          <?before
+              \s
+            | ','
+            | '='
+            | ':' <!before <coloncircumfix <OPER=prefix> > >
+            | <.terminator>
+            | $
+          >
+          <.typed-sorry: 'X::Syntax::Number::IllegalDecimal'>
+        ]?>
+        [
+          <?before '_' '_'+\d>
+          <.sorry: "Only isolated underscores are allowed inside numbers">
+        ]?
     }
 
     token signed-integer { <sign> <integer> }

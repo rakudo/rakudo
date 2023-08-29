@@ -166,6 +166,30 @@ class OperatorProperties {
     }
 
 #-------------------------------------------------------------------------------
+# Reserved operators
+
+    # Return hash with reserved operator names and optional hints for errors
+    method reserved-operators-lookup() {
+        my constant RESERVED := nqp::hash(
+          'infix:sym<=>',   "",
+          'infix:sym<:=>',  "",
+          'infix:sym<::=>', "",
+          'infix:sym<~~>',  "(consider implementing an ACCEPTS method)",
+          'prefix:sym<|>',  ""
+        )
+    }
+
+    # Return whether given operator name is reserved
+    method is-reserved-operator(str $operator) {
+        nqp::existskey(self.reserved-operators-lookup,$operator)
+    }
+
+    # Return hint to be added to error message if reserved
+    method reserved-operator-hint(str $operator) {
+        nqp::atkey(self.reserved-operators-lookup,$operator)
+    }
+
+#-------------------------------------------------------------------------------
 # Methods that can be run on both an instance and a type object.  Note that
 # when calle on a type object, an "empty" representation of that function
 # will be returned.

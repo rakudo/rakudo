@@ -652,11 +652,17 @@ class RakuAST::VarDeclaration::Simple
                     )),
                     :body(RakuAST::Blockoid.new(
                         RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                :expression($initializer.expression)
+                            !nqp::istype($initializer,RakuAST::Initializer::CallAssign)
+                                ?? RakuAST::Statement::Expression.new(:expression($initializer.expression))
+                                !! RakuAST::Statement::Expression.new(:expression(
+                                    RakuAST::ApplyPostfix.new(
+                                        operand => $!type,
+                                        postfix => $initializer.postfixish
+                                    )
+                                ))
                             )
                         )
-                    )),
+                    ),
                 );
                 $!attribute-package.add-generated-lexical-declaration($method);
                 self.add-trait(RakuAST::Trait::Will.new('build', $method));
@@ -726,10 +732,11 @@ class RakuAST::VarDeclaration::Simple
                     }
 
                     my $value := $expression.compile-time-value;
-                    unless nqp::istype($value,$vartype) {
+                    if !nqp::istype($value,$vartype)
+                        && nqp::istype($vartype,$resolver.resolve-name-constant-in-setting(RakuAST::Name.from-identifier('Numeric')).compile-time-value)
+                    {
                         $resolver.add-sorry: $resolver.build-exception:
-                          'X::Syntax::Number::LiteralType',
-                          :varname(self.name), :$vartype, :$value
+                            'X::Syntax::Number::LiteralType', :varname(self.name), :$vartype, :$value
                     }
                 }
             }
@@ -1457,6 +1464,7 @@ class RakuAST::VarDeclaration::Implicit::Constant
   is RakuAST::BeginTime
   is RakuAST::Meta
   is RakuAST::CompileTimeValue
+  is RakuAST::Declaration::Mergeable
 {
     has Mu $.value;
 

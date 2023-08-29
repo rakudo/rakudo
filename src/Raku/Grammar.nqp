@@ -3423,9 +3423,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           }
         | $<quant>=['\\'|'|'|'+'] <param-term>
         | [ <param-var> | <named-param> ] $<quant>=['?'|'!'|<?>]
-        | <longname> { # TODO: Re-add suggestions
-            self.typed-panic: 'X::Parameter::InvalidType', :typename($<longname>)
-        }]
+        ]
         <.ws>
         <trait>*
         <post-constraint>*

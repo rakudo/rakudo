@@ -379,7 +379,6 @@ class RakuAST::Call::Methodish
 class RakuAST::Call::Method
   is RakuAST::Call::Methodish
   is RakuAST::CheckTime
-  is RakuAST::ImplicitLookups
 {
     has RakuAST::Name $.name;
 
@@ -401,20 +400,6 @@ class RakuAST::Call::Method
           && nqp::istrue(self.IMPL-SPECIAL-OP($name))
     }
 
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        my $name := $!name.canonicalize;
-        my @lookups := [];
-        if $name {
-            my @parts := nqp::split('::', $name);
-            if nqp::elems(@parts) > 1 {
-                @parts.pop;
-                @lookups.push: # joining @parts with '::' gives use the qualifying type of the name
-                    RakuAST::Type::Simple.new: RakuAST::Name.from-identifier: nqp::join('::', @parts);
-            }
-        }
-        self.IMPL-WRAP-LIST(@lookups)
-    }
-
     method IMPL-SPECIAL-OP(str $name) {
         my constant SPECIAL-OPS := nqp::hash(
             'WHAT',     'what',
@@ -430,27 +415,14 @@ class RakuAST::Call::Method
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name := $!name.canonicalize;
         if $name {
-            my @parts := nqp::split('::', $name);
-            if nqp::elems(@parts) == 1 {
-                my $op := self.IMPL-SPECIAL-OP($name);
-                if $op {
-                    # Not really a method call, just using that syntax.
-                    QAST::Op.new(:$op, $invocant-qast)
-                }
-                else {
-                    # A standard method call.
-                    my $call := QAST::Op.new(:op('callmethod'), :$name, $invocant-qast);
-                    self.args.IMPL-ADD-QAST-ARGS($context, $call);
-                    $call
-                }
-            } else {
-                # TODO: In base behavior, the attempt to dispatch is performed before determining whether the type
-                #       actually exists in this scope (throwing a X::Method::InvalidQualifier).
-                #       The resolution below will die if the type object cannot be found, deviating from base.
-                my $Qualified := self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
-                $context.ensure-sc($Qualified);
-                $name := @parts[ nqp::elems(@parts)-1 ];
-                my $call := QAST::Op.new(:op('callmethod'), :name('dispatch:<::>'), $invocant-qast,  QAST::SVal.new(:value($name)), QAST::WVal.new(:value($Qualified)));
+            my $op := self.IMPL-SPECIAL-OP($name);
+            if $op {
+                # Not really a method call, just using that syntax.
+                QAST::Op.new( :$op, $invocant-qast )
+            }
+            else {
+                # A standard method call.
+                my $call := QAST::Op.new( :op('callmethod'), :$name, $invocant-qast );
                 self.args.IMPL-ADD-QAST-ARGS($context, $call);
                 $call
             }

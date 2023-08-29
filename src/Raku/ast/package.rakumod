@@ -304,11 +304,6 @@ class RakuAST::Package
             my %options;
             %options<name> := $!name.canonicalize if $!name;
             %options<repr> := $!repr if $!repr;
-            if $!name {
-                for $!name.colonpairs {
-                    %options{$_.key} := $_.simple-compile-time-quote-value;
-                }
-            }
             $!how.new_type(|%options)
         }
     }

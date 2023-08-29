@@ -2,6 +2,9 @@ use NQPP6QRegex;
 use NQPP5QRegex;
 use Raku::Actions;
 
+#-------------------------------------------------------------------------------
+# Roles used by multiple slangs
+
 my role startstops[$start, $stop1, $stop2] {
     token starter { $start }
     token stopper { $stop1 | $stop2 }
@@ -18,8 +21,8 @@ my role stop[$stop] {
 }
 
 role Raku::Common {
-    ## Quote parsing
 
+    # Quote parsing
     token opener {
         <[
         \x0028 \x003C \x005B \x007B \x00AB \x0F3A \x0F3C \x169B \x2018 \x201A \x201B
@@ -180,6 +183,9 @@ role Raku::Common {
         }
         $/.panic($message, expected => [$stop]);
     }
+
+#-------------------------------------------------------------------------------
+# Heredoc handling
 
     my class Herestub {
         has $!delim;
@@ -609,6 +615,10 @@ role Raku::Common {
 # Compilation unit, language version and other entry point bits
 
 grammar Raku::Grammar is HLL::Grammar does Raku::Common {
+
+#-------------------------------------------------------------------------------
+# Grammar entry point
+
     method TOP() {
         # Set up the language braid.
         my $*LANG := self;
@@ -1495,6 +1505,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.'!clone_match_at'($v,self.pos());
     }
 
+    proto token postcircumfix {*}
     token postcircumfix:sym<[ ]> {
         :my $*QSIGIL := '';
         :dba('subscript')
@@ -1628,6 +1639,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token dottyopish { <term=.dottyop> }
 
+    proto token postfix {*}
     token postfix:sym<i>  { <sym> >> <O(|%methodcall)> }
     token postfix:sym<ⁿ> { <power>  <O(|%autoincrement)> }
     token postfix:sym<+> { <vulgar> <O(|%autoincrement)> }
@@ -1648,6 +1660,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
 #-------------------------------------------------------------------------------# Prefixes
 
+    proto token prefix {*}
     token prefix:sym<++>   { <sym> <O(|%autoincrement)> }
     token prefix:sym<-->   { <sym> <O(|%autoincrement)> }
     token prefix:sym<++⚛>  { <sym> <O(|%autoincrement)> }
@@ -1694,6 +1707,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Infixes
 
+    proto token infix {*}
     token infix:sym<**> { <sym>  <O(|%exponentiation)> }
 
     # Dotty infixes
@@ -2027,6 +2041,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
 #-------------------------------------------------------------------------------# Circumfixes
 
+    proto token circumfix {*}
     token circumfix:sym<( )> {
         :my $*FAKE-INFIX-FOUND := 0;
         :dba('parenthesized expression')
@@ -2122,6 +2137,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>' || $last eq '»'
     }
 
+    proto token term {*}
+    token term:sym<circumfix> { <circumfix> }
     token term:sym<self> {
         <sym> <.end-keyword>
     }
@@ -2297,6 +2314,36 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # [ <?{ $*IN_PROTO }> || <.panic: '{*} may only appear in proto'> ]
     }
 
+    regex term:sym<reduce> {
+        :my $*IN_REDUCE := 1;
+        :my $op;
+        <?before '['\S+']'>
+        <!before '['+ <.[ - + ? ~ ^ ]> <.[ \w $ @ ]> >  # disallow accidental prefix before termish thing
+
+        '['
+        [
+        || <op=.infixish('red')> <?[\]]>
+        || $<triangle>=[\\]<op=.infixish('tri')> <?[\]]>
+        || <!>
+        ]
+        ']'
+        { $op := $<op>; }
+
+        <.can-meta($op, "reduce with")>
+
+        [
+        || <!{ $op<OPER><O>.made<diffy> }>
+        || <?{ $op<OPER><O>.made<assoc> eq 'chain' }>
+        || { self.typed-panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
+        ]
+
+        { $*IN_REDUCE := 0 }
+        <args>
+    }
+
+#-------------------------------------------------------------------------------
+# Colonpairs
+
     token colonpair {
         :my $*key;
         ':'
@@ -2355,6 +2402,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | $<capvar>='<' <desigilname> '>'
         ]
     }
+
+#-------------------------------------------------------------------------------
+# Special variables, mostly for catching Perlisms
 
     proto token special-variable {*}
 
@@ -2541,36 +2591,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    regex term:sym<reduce> {
-        :my $*IN_REDUCE := 1;
-        :my $op;
-        <?before '['\S+']'>
-        <!before '['+ <.[ - + ? ~ ^ ]> <.[ \w $ @ ]> >  # disallow accidental prefix before termish thing
-
-        '['
-        [
-        || <op=.infixish('red')> <?[\]]>
-        || $<triangle>=[\\]<op=.infixish('tri')> <?[\]]>
-        || <!>
-        ]
-        ']'
-        { $op := $<op>; }
-
-        <.can-meta($op, "reduce with")>
-
-        [
-        || <!{ $op<OPER><O>.made<diffy> }>
-        || <?{ $op<OPER><O>.made<assoc> eq 'chain' }>
-        || { self.typed-panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
-        ]
-
-        { $*IN_REDUCE := 0 }
-        <args>
-    }
-
-    ##
-    ## Declarations
-    ##
+#-------------------------------------------------------------------------------
+# Declarations
 
     proto token package-declarator {*}
     token package-declarator:sym<package> {
@@ -3016,9 +3038,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || <.malformed: 'trait'>
     }
 
-    ##
-    ## Values
-    ##
+#-------------------------------------------------------------------------------
+# Values
 
     proto token value {*}
     token value:sym<quote>  { <quote> }
@@ -3041,6 +3062,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <unum=:No+:Nl>
         ]
     }
+
+    token binint  { [\d+]+ % '_' }
+    token octint  { [\d+]+ % '_' }
+    token decint  { [\d+]+ % '_' }
+    token hexint  { [[\d|<[ a..f A..F ａ..ｆ Ａ..Ｆ ]>]+]+ % '_' }
 
     token integer {
         [
@@ -3114,6 +3140,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token vnum {
         \w+ | '*'
     }
+
+#-------------------------------------------------------------------------------
+# Quoting
 
     proto token quote {*}
     token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote-lang(self.slang_grammar('Quote'), "'", "'", ['q']))> }
@@ -3275,9 +3304,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    ##
-    ## Types
-    ##
+#-------------------------------------------------------------------------------
+# Types
 
     token typename {
         [
@@ -3318,9 +3346,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         CATCH { return self.'!cursor_start_cur'() }
     }
 
-    ##
-    ## Signatures
-    ##
+#-------------------------------------------------------------------------------
+# Signatures
 
     token fakesignature {
         <signature(1, :DECLARE-TARGETS(0))>
@@ -3463,9 +3490,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
-    ##
-    ## Argument lists and captures
-    ##
+#-------------------------------------------------------------------------------
+# Argument lists and captures
 
     token args($*INVOCANT_OK = 0) {
         :my $*INVOCANT;
@@ -3497,9 +3523,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    ##
-    ## Lexer stuff
-    ##
+#-------------------------------------------------------------------------------
+# Lexer stuff
 
     token apostrophe {
         <[ ' \- ]>
@@ -3623,6 +3648,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
            ]
        ]
     }
+
+#-------------------------------------------------------------------------------
+# Categoricals
 
     # Called when we add a new choice to an existing syntactic category, for
     # example new infix operators add to the infix category. Augments the
@@ -3872,6 +3900,9 @@ if $*COMPILING_CORE_SETTING {
         self.O(|%prec)
     }
 
+#-------------------------------------------------------------------------------
+# Whitespace handling
+
     # ws is highly performance sensitive. So, we check if we already marked it
     # at this point with a simple method, and only if that is not the case do
     # we bother doing any pattern matching.
@@ -3948,9 +3979,8 @@ if $*COMPILING_CORE_SETTING {
         '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))> \n?
     }
 
-    ##
-    ## RakuDoc
-    ##
+#-------------------------------------------------------------------------------
+# RakuDoc
 
     token doc-TOP {
         { $*PARSING-DOC-BLOCK := 1 }

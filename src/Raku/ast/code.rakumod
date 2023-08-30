@@ -1828,11 +1828,14 @@ class RakuAST::Methodish
     method is-begin-performed-after-children() { True }
 
     method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $package := nqp::getattr(self, RakuAST::Routine, '$!package');
+        my $package-is-role := $package && $package.declarator eq 'role';
         my $placeholder-signature := self.placeholder-signature;
         if $placeholder-signature {
             $placeholder-signature.set-is-on-method(True);
             $placeholder-signature.set-is-on-named-method(True) if self.name;
             $placeholder-signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
+            $placeholder-signature.set-is-on-role-method(True) if $package-is-role;
             $placeholder-signature.attach($resolver);
             $placeholder-signature.IMPL-ENSURE-IMPLICITS;
         }
@@ -1847,6 +1850,7 @@ class RakuAST::Methodish
             $signature.set-is-on-method(True);
             $signature.set-is-on-named-method(True) if self.name;
             $signature.set-is-on-meta-method(True) if nqp::can(self, 'meta') && self.meta;
+            $signature.set-is-on-role-method(True) if $package-is-role;
             $signature.attach($resolver);
             $signature.IMPL-ENSURE-IMPLICITS;
         }
@@ -1951,6 +1955,15 @@ class RakuAST::Method
     }
 
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        # If our first expression is a stub object (!!!, ..., ???),
+        # set the yada bit on the Method itself
+        if (my $first-statement := $!body.statement-list.statements.AT-POS(0))
+            && nqp::istype($first-statement, RakuAST::Statement::Expression)
+            && nqp::istype($first-statement.expression, RakuAST::Stub)
+        {
+            self.meta-object.set_yada;
+        }
+
         self.IMPL-WRAP-RETURN-HANDLER($context,
             self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
                 self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context))))

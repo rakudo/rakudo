@@ -3676,80 +3676,100 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Called when we add a new choice to an existing syntactic category, for
     # example new infix operators add to the infix category. Augments the
     # grammar as needed.
-    my %categorically-won't-work := nqp::hash(
-        'infix:sym<=>', NQPMu,
-        'infix:sym<:=>', NQPMu,
-        'infix:sym<::=>', NQPMu,
-        'infix:sym<~~>', '(consider implementing an ACCEPTS method)',
-        'prefix:sym<|>', NQPMu);
-    method add-categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
-        my $actions := self.actions;
+    method add-categorical(
+      $category, $opname, $canname, $subname, $declarand?, :$defterm
+    ) {
+        my $actions            := self.actions;
+        my $OperatorProperties := $actions.OperatorProperties;
 
         # Ensure it's not a null name or a compiler-handled op.
         if $opname eq '' {
-            self.typed-panic('X::Syntax::Extension::Null');
-        }
-        if nqp::existskey(%categorically-won't-work, $canname) && !$*COMPILING_CORE_SETTING {
-            if %categorically-won't-work{$canname} -> $hint {
-                self.typed-panic('X::Syntax::Extension::SpecialForm', :$category, :$opname, :$hint);
-            }
-            else {
-                self.typed-panic('X::Syntax::Extension::SpecialForm', :$category, :$opname);
-            }
+            self.typed-panic: 'X::Syntax::Extension::Null';
         }
 
-        # If we already have the required operator in the grammar, just return.
-        if nqp::can(self, $canname) {
+        # Make sure it's not reserved
+        elsif $OperatorProperties.is-reserved-operator($canname)
+          && !$*COMPILING_CORE_SETTING {
+            self.typed-panic: 'X::Syntax::Extension::SpecialForm',
+              :$category, :$opname,
+              :hint($OperatorProperties.reserved-operator-hint($canname));
+        }
+
+        # Nothing to do if already have the required operator in the grammar
+        elsif nqp::can(self, $canname) {
             return 1;
         }
 
-        # Work out what default precedence we want, or if it's more special than
-        # just an operator.
-        my %prec;
-        my $is_oper;
-        my $is_term := 0;
-        if $category eq 'infix' {
-            %prec := nqp::clone(%additive);
-            $is_oper := 1;
-        }
-        elsif $category eq 'prefix' {
-            %prec := nqp::clone(%symbolic_unary);
-            $is_oper := 1;
-        }
-        elsif $category eq 'postfix' {
-            %prec := nqp::clone(%autoincrement);
-            $is_oper := 1;
-        }
-        elsif $category eq 'postcircumfix'
-           || $category eq 'circumfix' {
-            $is_oper := 0;
-        }
+        # Trait_mods don't require grammar changes
         elsif $category eq 'trait_mod' {
             return 0;
         }
-        elsif $category eq 'term' {
-            $is_term := 1;
-        }
+
+        # Should be treated as a normal sub
         elsif $category eq 'METAOP_TEST_ASSIGN' {
             return 0;
         }
+
+        # Work out what default precedence we want, or if it's more special
+        # than just an operator.
+        my %prec;
+        my $is-operator := 0;
+        my @parts := nqp::split(' ', $opname);
+
+        # Sanity checks
+        if $category eq 'infix'
+          || $category eq 'prefix'
+          || $category eq 'postfix' {
+            self.typed-panic('X::Syntax::AddCategorical::TooManyParts',
+              :$category, :needs(1)
+            ) unless @parts == 1;
+
+            %prec := $OperatorProperties."$category"('').prec;
+            $is-operator := 1;
+        }
+
+        elsif $category eq 'postcircumfix' || $category eq 'circumfix' {
+            unless @parts == 2 {
+                my str $number := @parts > 2 ?? 'Many' !! 'Few';
+                self.typed-panic:
+                  'X::Syntax::AddCategorical::Too' ~ $number ~ 'Parts',
+                  :$category, :needs(2);
+            }
+        }
+
+        elsif $category eq 'term' {
+            self.typed-panic('X::Syntax::AddCategorical::TooManyParts',
+              :$category, :needs(1)
+            ) unless @parts == 1;
+        }
+
+        # If the sub is in the form of something:<blah>, then we assume
+        # the user is trying to define a custom op for an unknown category
+        # We also reserve something:sym<blah> form for future use
+        # (see https://irclogs.raku.org/perl6/2017-01-25.html#17:27-0002)
+        # If it's neither of those cases, then it's just a sub with an
+        # extended name like sub foo:bar<baz> {}; let the user use it.
         else {
-            # If the sub is in the form of something:<blah>, then we assume
-            # the user is trying to define a custom op for an unknown category
-            # We also reserve something:sym<blah> form for future use
-            # (see https://colabti.org/irclogger/irclogger_log/perl6?date=2017-01-25#l1011)
-            # If it's neither of those cases, then it's just a sub with an
-            # extended name like sub foo:bar<baz> {}; let the user use it.
             self.typed-panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*HLL-COMPILER.language_revision < 2;
+              || nqp::iseq_s($subname, "$category:sym<$opname>")
+                   && $*HLL-COMPILER.language_revision < 2;
 
             self.typed-panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')
             ) if nqp::isne_i(nqp::index($subname, ':sym<'), -1);
             return 0;
         }
+
+        # This is a canary that will let itself be known should someone make
+        # changes to the setting that would cause a grammar change, and thus
+        # a slowdown.
+        self.panic(
+"Don't change grammar in the setting, please!  The settings should
+only have 1 MAIN grammar, otherwise it will slow down loading of
+Rakudo significantly on *every* run."
+        ) if $*COMPILING_CORE_SETTING;
 
         $declarand := $declarand.compile-time-value;
 
@@ -3760,45 +3780,31 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
 
-        my @parts := nqp::split(' ', $opname);
-
-# The settings should only have 1 grammar, otherwise it will slow down
-# loading of rakudo significantly on *every* run.  This is a canary that
-# will let itself be known should someone make changes to the setting that
-# would cause a grammar change, and thus a slowdown.
-if $*COMPILING_CORE_SETTING {
-    self.panic("don't change grammar in the setting, please!");
-}
-
-        if $is_term {
-            my role Term[$meth_name, $op] {
-                token ::($meth_name) { $<sym>=[$op] }
+        # Mix an appropriate role into the grammar for parsing the new term
+        my $grammar-mixin;
+        if $category eq 'term' {
+            my role Term[$meth-name, $op] {
+                token ::($meth-name) { $<sym>=[$op] }
             }
-            if +@parts > 1 {
-                self.typed-panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
-            }
-            self.HOW.mixin(self, Term.HOW.curry(Term, $canname, $opname));
+            $grammar-mixin := Term.HOW.curry(Term, $canname, $opname);
         }
-        # Mix an appropriate role into the grammar for parsing the new op.
-        elsif $is_oper {
-            my role Oper[$meth_name, $op, $precedence, $declarand] {
-                token ::($meth_name) { $<sym>=[$op] <O=.genO($precedence, $declarand)> }
+
+        # Mix an appropriate role into the grammar for parsing the new op
+        elsif $is-operator {
+            my role Oper[$meth-name, $op, $precedence, $declarand] {
+                token ::($meth-name) {
+                    $<sym>=[$op] <O=.genO($precedence, $declarand)>
+                }
             }
-            if +@parts > 1 {
-                self.typed-panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(1));
-            }
-            self.HOW.mixin(self, Oper.HOW.curry(Oper, $canname, $opname, %prec, $declarand));
+            $grammar-mixin := Oper.HOW.curry(
+              Oper, $canname, $opname, %prec, $declarand
+            );
         }
+
+        # Find opener and closer and parse an EXPR between them.
+        # XXX One day semilist would be nice, but right now that
+        # runs us into fun with terminators.
         elsif $category eq 'postcircumfix' {
-            # Find opener and closer and parse an EXPR between them.
-            # XXX One day semilist would be nice, but right now that
-            # runs us into fun with terminators.
-            if +@parts < 2 {
-                self.typed-panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
-            }
-            elsif +@parts > 2 {
-                self.typed-panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
-            }
             my role Postcircumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
@@ -3808,32 +3814,36 @@ if $*COMPILING_CORE_SETTING {
                     <O(|%methodcall)>
                 }
             }
-            self.HOW.mixin(self, Postcircumfix.HOW.curry(Postcircumfix, $canname, @parts[0], @parts[1]));
+            $grammar-mixin := Postcircumfix.HOW.curry(
+              Postcircumfix, $canname, @parts[0], @parts[1]
+            );
         }
-        else {
-            # Find opener and closer and parse an EXPR between them.
-            if +@parts < 2 {
-                self.typed-panic('X::Syntax::AddCategorical::TooFewParts', :$category, :needs(2));
-            }
-            elsif +@parts > 2 {
-                self.typed-panic('X::Syntax::AddCategorical::TooManyParts', :$category, :needs(2));
-            }
+
+        # Find opener and closer and parse an EXPR between them.
+        else {  # $category eq 'circumfix'
             my role Circumfix[$meth_name, $starter, $stopper] {
                 token ::($meth_name) {
                     :my $*GOAL := $stopper;
                     :my $cursor := nqp::getlex('$¢');
-                    :my $stub := $cursor.define_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
+                    :my $stub := $cursor.define_slang(
+                      'MAIN',
+                      %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT,
+                      $cursor.actions
+                    );
                     $starter ~ $stopper <semilist>
                 }
             }
-            self.HOW.mixin(self, Circumfix.HOW.curry(Circumfix, $canname, @parts[0], @parts[1]));
+            $grammar-mixin := Circumfix.HOW.curry(
+              Circumfix, $canname, @parts[0], @parts[1]
+            );
         }
 
         # This also becomes the current MAIN. Also place it in %?LANG.
+        self.HOW.mixin(self, $grammar-mixin);
         %*LANG<MAIN> := self.WHAT;
 
         # Declarand should get precedence traits.
-        if $is_oper && nqp::isconcrete($declarand) {
+        if $is-operator && nqp::isconcrete($declarand) {
             my $base_prec := %prec<prec>;
             #$declarand.add-trait(self.actions.r('Trait', 'Is').new(
             #    :name(self.actions.r('Name').from-lexical('prec')),
@@ -3848,6 +3858,7 @@ if $*COMPILING_CORE_SETTING {
         }
 
         # May also need to add to the actions.
+        my $actions-mixin;
         if $category eq 'postcircumfix' {
             my role PostcircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
@@ -3857,8 +3868,9 @@ if $*COMPILING_CORE_SETTING {
                     );
                 }
             };
-            $actions := $actions.HOW.mixin($actions,
-                PostcircumfixAction.HOW.curry(PostcircumfixAction, $canname, $subname));
+            $actions-mixin := PostcircumfixAction.HOW.curry(
+              PostcircumfixAction, $canname, $subname
+            );
         }
         elsif $category eq 'circumfix' {
             my role CircumfixAction[$meth, $subname] {
@@ -3869,10 +3881,11 @@ if $*COMPILING_CORE_SETTING {
                     );
                 }
             };
-            $actions := $actions.HOW.mixin($actions,
-                CircumfixAction.HOW.curry(CircumfixAction, $canname, $subname));
+            $actions-mixin := CircumfixAction.HOW.curry(
+              CircumfixAction, $canname, $subname
+            );
         }
-        elsif $is_term {
+        elsif $category eq 'term' {
             my role TermAction[$meth, $subname] {
                 method ::($meth)($/) {
                     make QAST::Op.new(
@@ -3885,13 +3898,14 @@ if $*COMPILING_CORE_SETTING {
                     make QAST::Var.new( :$name, :scope('lexical') );
                 }
             };
-            $actions := $actions.HOW.mixin($actions,
-                $defterm
-                    ?? TermAction.HOW.curry(TermActionConstant, $canname, $subname)
-                    !! TermAction.HOW.curry(TermAction, $canname, $subname));
+            $actions-mixin := $defterm
+              ?? TermAction.HOW.curry(TermActionConstant, $canname, $subname)
+              !! TermAction.HOW.curry(TermAction, $canname, $subname);
         }
 
         # Set up next statement to have new actions.
+        $actions := $actions.HOW.mixin($actions, $actions-mixin)
+          if $actions-mixin;
         %*LANG<MAIN-actions> := $actions;
         self.define_slang('MAIN', self.WHAT, $actions);
 

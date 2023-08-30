@@ -235,3 +235,30 @@ class RakuAST::Trait::Will
         $visitor($!expr);
     }
 }
+
+class RakuAST::Trait::Handles
+  is RakuAST::Trait
+{
+    has RakuAST::Term $.term;
+
+    method new(RakuAST::Term $term) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Trait::Handles, '$!term', $term);
+        $obj
+    }
+
+    method IMPL-TRAIT-NAME() { 'handles' }
+
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
+        my $block := RakuAST::Block.new:
+                        body => RakuAST::Blockoid.new:
+                            RakuAST::StatementList.new:
+                                RakuAST::Statement::Expression.new:
+                                    expression => $!term;
+        RakuAST::ArgList.new($target, $block);
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!term);
+    }
+}

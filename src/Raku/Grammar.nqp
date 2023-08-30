@@ -3027,6 +3027,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad-trait-typename>] }
     rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad-trait-typename>]
                                   || 'return' <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'> }
+    rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
 
     token bad-trait-typename {
         || <longname> {

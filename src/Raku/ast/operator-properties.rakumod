@@ -347,11 +347,19 @@ class OperatorProperties {
     method properties-for-group(str $group) {
         my constant PROPERTIES := nqp::hash(
 
-          'default-infix',         nqp::hash('precedence','t='),
-          'default-prefix',        nqp::hash('precedence','v='),
-          'default-postfix',       nqp::hash('precedence','x='),
-          'default-postcircumfix', nqp::hash('precedence','y='),
-          'default-circumfix',     nqp::hash(),
+          'default-infix', nqp::hash(
+            'precedence','t=', 'associative', 'left'
+          ),
+          'default-prefix', nqp::hash(
+            'precedence','v=', 'associative', 'unary'
+          ),
+          'default-postfix', nqp::hash(
+            'precedence','x=', 'associative', 'unary'
+          ),
+          'default-postcircumfix', nqp::hash(
+            'precedence','y='
+           ),
+          'default-circumfix', nqp::hash(),
 
           'methodcall', nqp::hash(
             'precedence','y=', 'associative','unary', 'fiddly', 1

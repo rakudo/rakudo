@@ -2167,6 +2167,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Trait', 'Returns').new($<typename>.ast);
     }
 
+    method trait_mod:sym<handles>($/) {
+        self.attach: $/, Nodify('Trait', 'Handles').new($<term>.ast);
+    }
+
     ##
     ## Values
     ##

@@ -3724,7 +3724,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               :$category, :needs(1)
             ) unless @parts == 1;
 
-            %prec := $OperatorProperties."$category"('').prec;
+            %prec := $OperatorProperties."$category"().prec;  # XXX for now
             $is-operator := 1;
         }
 

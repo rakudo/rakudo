@@ -521,7 +521,7 @@ class OperatorProperties {
     }
 
     # Lookup properties of an infix operator
-    method infix(str $operator) {
+    method infix(str $operator?) {
         my constant PROPERTIES := nqp::hash(
            '', 'default-infix',
 
@@ -697,11 +697,11 @@ class OperatorProperties {
           'orelse', 'loose-orelse',
         );
 
-        self.produce(PROPERTIES, $operator)
+        self.produce(PROPERTIES, $operator // '')
     }
 
     # Lookup properties of a prefix operator
-    method prefix(str $operator) {
+    method prefix(str $operator?) {
         my constant PROPERTIES := nqp::hash(
            '', 'default-prefix',
 
@@ -727,11 +727,11 @@ class OperatorProperties {
           'not', 'loose-unary',
         );
 
-        self.produce(PROPERTIES, $operator)
+        self.produce(PROPERTIES, $operator // '')
     }
 
     # Lookup properties of a postfix operator
-    method postfix(str $operator) {
+    method postfix(str $operator?) {
         my constant PROPERTIES := nqp::hash(
            '', 'default-postfix',
 
@@ -743,11 +743,11 @@ class OperatorProperties {
           '⚛--', 'autoincrement',
         );
 
-        self.produce(PROPERTIES, $operator)
+        self.produce(PROPERTIES, $operator // '')
     }
 
     # Lookup properties of a postcircumfix operator
-    method postcircumfix(str $operator) {
+    method postcircumfix(str $operator?) {
         my constant PROPERTIES := nqp::hash(
            '', 'default-postcircumfix',
 
@@ -757,16 +757,16 @@ class OperatorProperties {
           '{; }', 'methodcall',
         );
 
-        self.produce(PROPERTIES, $operator)
+        self.produce(PROPERTIES, $operator // '')
     }
 
     # Lookup properties of a circumfix operator
-    method circumfix(str $operator) {
+    method circumfix(str $operator?) {
         my constant PROPERTIES := nqp::hash(
            '', 'default-circumfix',
         );
 
-        self.produce(PROPERTIES, $operator)
+        self.produce(PROPERTIES, $operator // '')
     }
 }
 

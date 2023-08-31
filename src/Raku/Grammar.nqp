@@ -66,6 +66,11 @@ role Raku::Common {
         self.'!clone_match_at'($match, self.pos)
     }
 
+    # Reset expectations
+    method reset-expectations() {
+        self.'!set_highexpect'(nqp::list_s)
+    }
+
 #-------------------------------------------------------------------------------
 # Quote parsing
 
@@ -4219,7 +4224,7 @@ Rakudo significantly on *every* run."
         self.MARKED('ws') ?? self !! self._ws()
     }
     token _ws {
-        :my $old_highexpect := self.'!fresh_highexpect'();
+        { self.reset-expectations }
         :dba('whitespace')
         <!ww>
         [
@@ -4228,7 +4233,7 @@ Rakudo significantly on *every* run."
         | <.unsp>
         ]*
         <?MARKER('ws')>
-        :my $stub := self.'!fresh_highexpect'();
+        { self.reset-expectations }
     }
 
     token unsp {

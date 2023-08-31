@@ -207,7 +207,7 @@ role Raku::Common {
         my $actions := self.actions;
 
         if $CU && my @herestub_queue := $CU.herestub-queue {
-            my $here := self.'!cursor_start_cur'();
+            my $here := self.new-cursor;
             $here.'!cursor_pos'(self.pos);
             while @herestub_queue {
                 my $herestub := nqp::shift(@herestub_queue);
@@ -1272,6 +1272,28 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
 #-------------------------------------------------------------------------------
+# Cursor methods
+#
+# These mostly exist for debugging, commenting and for possible future
+# replacement by actual Raku grammar versions.  They interface to private
+# cursor methods in NQP's regex engine for now.
+
+    # Produce fresh new cursor
+    method new-cursor() {
+        self.'!cursor_start_cur'()
+    }
+
+    # Produce match with item at given position
+    method match-with-at($match, int $pos) {
+        self.'!clone_match_at'($match, $pos)
+    }
+
+    # Produce match with item at current position
+    method match-with($match) {
+        self.'!clone_match_at'($match, self.pos)
+    }
+
+#-------------------------------------------------------------------------------
 # Expression parsing
 
     # Helper methods for throwing exceptions
@@ -1288,7 +1310,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LEFTSIGIL := '';
         my int $noinfix := $preclim eq 'y=';
 
-        my $here          := self.'!cursor_start_cur'();
+        my $here          := self.new-cursor;
         my int $pos       := nqp::getattr_i($here, NQPMatch, '$!from');
         my str $termishrx := 'termish';
         my @opstack;
@@ -1463,9 +1485,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.EXPR-reduce(@termstack, @opstack)
           while nqp::elems(@opstack);
 
-        self.'!clone_match_at'(
-            nqp::pop(@termstack),
-            nqp::getattr_i($here, NQPMatch, '$!pos')
+        self.match-with-at(
+          nqp::pop(@termstack),
+          nqp::getattr_i($here, NQPMatch, '$!pos')
         ).'!reduce'('EXPR')
     }
 
@@ -1588,7 +1610,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             ]
             [ <?before '='> <infix-postfix-meta-operator> { $*OPER := $<infix-postfix-meta-operator> } ]?
         ]
-        <OPER=.AS_MATCH($*OPER)>
+        <OPER=.match-with($*OPER)>
         { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
     }
 
@@ -1612,7 +1634,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!{ $<infixish>.Str eq '=' }>
         [
         || <.can-meta($<infixish>, "negate")> <?{ $<infixish><OPER><O>.made<iffy> }>
-           <O=.AS_MATCH($<infixish><OPER><O>)>
+           <O=.match-with($<infixish><OPER><O>)>
         || { self.typed-panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O>.made<dba>, reason => "not iffy enough" }
         ]
     }
@@ -1668,14 +1690,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {} <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing: "« or »"> ]
         <.can-meta($<infixish>, "hyper with")>
-        {} <O=.AS_MATCH($<infixish><OPER><O>)>
+        {} <O=.match-with($<infixish><OPER><O>)>
     }
 
     token infix-circumfix-meta-operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish('HYPER')>
         $<closing>=[ '<<' | '>>' || <.missing: "<< or >>"> ]
-        {} <O=.AS_MATCH($<infixish><OPER><O>)>
+        {} <O=.match-with($<infixish><OPER><O>)>
     }
 
     token prefixish {
@@ -1732,10 +1754,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postop {
         | <postfix>         $<O> = {$<postfix><O>} $<sym> = {$<postfix><sym>}
         | <postcircumfix>   $<O> = {$<postcircumfix><O>} $<sym> = {$<postcircumfix><sym>}
-    }
-
-    method AS_MATCH($v) {
-        self.'!clone_match_at'($v,self.pos());
     }
 
     proto token postcircumfix {*}
@@ -3596,7 +3614,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     method maybe-typename() {
         return self.typename();
-        CATCH { return self.'!cursor_start_cur'() }
+        CATCH { return self.new-cursor }
     }
 
 #-------------------------------------------------------------------------------

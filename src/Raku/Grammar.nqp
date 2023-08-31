@@ -49,6 +49,11 @@ role Raku::Common {
         self.'!cursor_pos'($pos)
     }
 
+    # Pass at current position of cursor
+    method pass-at-current() {
+        self.'!cursor_pass_quick'(self.pos)
+    }
+
     # Produce a new cursor for given lang at current position
     method lang-cursor($lang) {
         $lang.'!cursor_init'(self.orig, :p(self.pos), :shared(self.'!shared'()))
@@ -300,7 +305,7 @@ role Raku::Common {
                     self.panic("Ending delimiter $*DELIM not found");
                 }
             }
-            $here.'!cursor_pass'($here.pos);
+            $here.pass-at-current;
             $here.set_actions($actions);
             $here
         }

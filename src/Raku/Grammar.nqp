@@ -602,37 +602,39 @@ role Raku::Common {
             my $lang := self.'!cursor_init'($op, :p(0));
             $lang.clone_braid_from(self);
 
-            my $cat  := $ast.desigilname.canonicalize(:colonpairs(0));
-            my $meth := $cat eq 'infix'
-              || $cat eq 'prefix'
-              || $cat eq 'postfix'
-              ?? $cat ~ 'ish'
-              !! $cat;
-            $meth := 'term:sym<reduce>'
-              if $cat eq 'prefix'
-              && $op ~~ /^ \[ .* \] $/;
+            my $category := $ast.desigilname.canonicalize(:colonpairs(0));
+            my $method   := $category eq 'infix'
+              ?? 'infixish'
+              !! $category eq 'prefix'
+                ?? $op ~~ /^ \[ .* \] $/
+                  ?? 'term:sym<reduce>'
+                  !! 'prefixish'
+                !! $category eq 'postfix'
+                  ?? 'postfixish'
+                  !! $category;
 
-            my $cursor := $lang."$meth"();
-            my $match  := $cursor.MATCH;
-            if $cursor.pos == nqp::chars($op) && (
-                 $match<infix-prefix-meta-operator>
-              || $match<infix-circumfix-meta-operator>
-              || $match<infix-postfix-meta-operator>
-              || $match<prefix-postfix-meta-operator>
-              || $match<postfix-prefix-meta-operator>
-              || $match<op>
-            ) {
+            my $cursor := $lang."$method"();
+            if $cursor.pos == nqp::chars($op) {
+                my $match := $cursor.MATCH;
+                if   $match<infix-prefix-meta-operator>
+                  || $match<infix-circumfix-meta-operator>
+                  || $match<infix-postfix-meta-operator>
+                  || $match<prefix-postfix-meta-operator>
+                  || $match<postfix-prefix-meta-operator>
+                  || $match<op>
+                {
 
-                my $META := $match.ast;
-                $META.IMPL-CHECK($*R, $*CU.context, 1);
+                    my $META := $match.ast;
+                    $META.IMPL-CHECK($*R, $*CU.context, 1);
 
-                my $meta-op := $META.IMPL-HOP-INFIX;
-                $ast.set-resolution(
-                  self.actions.r('Declaration','External','Constant').new(
-                    lexical-name       => $name,
-                    compile-time-value => $meta-op
-                  )
-                );
+                    my $meta-op := $META.IMPL-HOP-INFIX;
+                    $ast.set-resolution(
+                      self.actions.r('Declaration','External','Constant').new(
+                        lexical-name       => $name,
+                        compile-time-value => $meta-op
+                      )
+                    );
+                }
             }
         }
 

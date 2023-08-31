@@ -492,28 +492,29 @@ role Raku::Common {
             $file := nqp::cwd ~ '/' ~ $file;
         }
 
-        my $c := %opts<precursor> ?? self.PRECURSOR !! self;
-        my @locprepost := self.'!locprepost'($c);
+        my $cursor := %opts<precursor> ?? self.PRECURSOR !! self;
+        my @prepost := self.prepost($cursor);
         $*R.build-exception: $name,
-          line => HLL::Compiler.lineof($c.orig, $c.pos, :cache(1)),
-          pos  => $c.pos,
-          pre  => @locprepost[0],
-          post => @locprepost[1],
+          line => HLL::Compiler.lineof($cursor.orig, $cursor.pos, :cache(1)),
+          pos  => $cursor.pos,
+          pre  => @prepost[0],
+          post => @prepost[1],
           file => $file,
           |%opts
     }
 
-    method !locprepost($c) {
-        my $orig   := $c.orig;
-        my $marked := $c.MARKED('ws');
-        my $pos    := $marked
-          && nqp::index(" }])>»", nqp::substr($orig, $c.pos, 1)) < 0
+    # Separate text before/after given cursor for error messages
+    method prepost($cursor) {
+        my $orig    := $cursor.orig;
+        my $marked  := $cursor.MARKED('ws');
+        my int $pos := $marked
+          && nqp::index(" }])>»", nqp::substr($orig, $cursor.pos, 1)) < 0
           ?? $marked.from
-          !! $c.pos;
+          !! $cursor.pos;
 
-        my $distance := 40;
-        my $prestart := $pos - $distance;
-        $prestart    := 0 if $prestart < 0;
+        my int $distance := 40;
+        my int $prestart := $pos - $distance;
+        $prestart := 0 if $prestart < 0;
 
         # FIXME workaround for when $pos is -3. Need to figure out how to
         # get the real pos
@@ -523,7 +524,7 @@ role Raku::Common {
         $pre    := subst($pre, /.*\n/, "", :global);
         $pre    := '<BOL>' if $pre eq '';
 
-        my $postchars := $pos + $distance > nqp::chars($orig)
+        my int $postchars := $pos + $distance > nqp::chars($orig)
           ?? nqp::chars($orig) - $pos
           !! $distance;
         my $post := nqp::substr($orig, $pos, $postchars);

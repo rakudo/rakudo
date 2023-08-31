@@ -34,6 +34,18 @@ role Raku::Common {
         self.'!cursor_start_cur'()
     }
 
+    # Produce fresh new cursor at given position
+    method new-cursor-at(int $pos) {
+        my $cursor := self.'!cursor_start_cur'();
+        $cursor.'!cursor_pos'($pos);
+        $cursor
+    }
+
+    # Set position of cursor
+    method set-pos(int $pos) {
+        self.'!cursor_pos'($pos)
+    }
+
     # Produce a new cursor for given lang at current position
     method lang-cursor($lang) {
         $lang.'!cursor_init'(self.orig, :p(self.pos), :shared(self.'!shared'()))
@@ -237,8 +249,7 @@ role Raku::Common {
         my $actions := self.actions;
 
         if $CU && my @herestub_queue := $CU.herestub-queue {
-            my $here := self.new-cursor;
-            $here.'!cursor_pos'(self.pos);
+            my $here := self.new-cursor-at(self.pos);
             while @herestub_queue {
                 my $herestub := nqp::shift(@herestub_queue);
                 my $*DELIM := $herestub.delim;
@@ -257,7 +268,7 @@ role Raku::Common {
                     unless $stop {
                         self.panic("Ending delimiter $*DELIM not found");
                     }
-                    $here.'!cursor_pos'($stop.pos);
+                    $here.set-pos($stop.pos);
 
                     # Get it trimmed and AST updated.
                     my $heredoc := $herestub.orignode.MATCH.ast;
@@ -392,12 +403,8 @@ role Raku::Common {
 
         if $block {
             my $name := $borg<name> // '';
-
-            self.'!clear_highwater'();
-            self.'!cursor_pos'($block.pos);
-            self.typed-sorry: 'X::Syntax::BlockGobbled', :what($name);
-
-            self.'!cursor_pos'($pos);
+            self.typed-sorry-at: $block.pos, 'X::Syntax::BlockGobbled',
+              :what($name);
             self.missing:
               "block (apparently claimed by "
                 ~ ($name ?? "'$name'" !! "expression")
@@ -445,6 +452,13 @@ role Raku::Common {
         else {
             self.typed-panic($name, |%opts)
         }
+    }
+    method typed-sorry-at(int $pos, $name, *%opts) {
+        self.'!clear_highwater'();
+        my $original-pos := self.pos;
+        self.set-pos($pos);
+        self.typed-sorry($name, |%opts);
+        self.set-pos($original-pos);
     }
     method typed-worry($name, *%opts) {
         $*R.add-worry: self.build-exception($name, |%opts);

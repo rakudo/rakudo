@@ -1485,10 +1485,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self.EXPR-reduce(@termstack, @opstack)
           while nqp::elems(@opstack);
 
-        self.match-with-at(
-          nqp::pop(@termstack),
-          nqp::getattr_i($here, NQPMatch, '$!pos')
-        ).'!reduce'('EXPR')
+        self.match-with-at(nqp::pop(@termstack), $here.pos).'!reduce'('EXPR')
+#        self.actions.EXPR(  # XXX this doesn't work, why???
+#          self.match-with-at(nqp::pop(@termstack), $here.pos).MATCH
+#        );
+#        self
     }
 
     method EXPR-reduce(@termstack, @opstack) {

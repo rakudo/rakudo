@@ -1274,6 +1274,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Expression parsing
 
+    # Helper methods for throwing exceptions
     method EXPR-nonassoc($cur, $left, $right) {
         self.typed-panic: 'X::Syntax::NonAssociative',
           :left(~$left), :right(~$right);
@@ -1479,7 +1480,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my str $opassoc := ~nqp::atkey(%opO, 'assoc');
         my str $key;
         my str $sym;
-        my $reducecheck;
         my $arg;
 
         if $opassoc eq 'unary' {
@@ -1503,8 +1503,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         else { # infix op assoc: left|right|ternary|...
             $op[1] := nqp::pop(@termstack); # right
             $op[0] := nqp::pop(@termstack); # left
-            $reducecheck := nqp::atkey(%opO, 'reducecheck');
-            self."$reducecheck"($op) unless nqp::isnull($reducecheck);
+
+            # we haz a ternary, adjust for that
+            if nqp::atkey(%opO,'ternary') {
+                $op[2] := $op[1];
+                $op[1] := $op<infix><EXPR>;
+            }
             $key := 'INFIX';
         }
         self.'!reduce_with_match'('EXPR', $key, $op);
@@ -2169,7 +2173,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <.typed-panic: "X::Syntax::Confused",
                reason => "Confused: Found ?? but no !!">
         ]
-        <O(|%conditional, :reducecheck<ternary>)>
+        <O(|%conditional, :ternary)>
     }
 
     token infix:sym<,>    {

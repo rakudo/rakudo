@@ -383,12 +383,6 @@ role Raku::Common {
     }
 
     # Shadow error handling from HLL::Grammar
-    method EXPR_nonassoc($cur, $left, $right) {
-        self.typed-panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
-    }
-    method EXPR_nonlistassoc($cur, $left, $right) {
-        self.typed-panic('X::Syntax::NonListAssociative', :left(~$left), :right(~$right));
-    }
     method dupprefix($prefixes) {
         self.typed-panic: 'X::Syntax::DuplicatedPrefix', :$prefixes;
     }
@@ -1278,7 +1272,247 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
 #-------------------------------------------------------------------------------
-# Expression parsing and operators
+# Expression parsing
+
+    method EXPR-nonassoc($cur, $left, $right) {
+        self.typed-panic: 'X::Syntax::NonAssociative',
+          :left(~$left), :right(~$right);
+    }
+    method EXPR-nonlistassoc($cur, $left, $right) {
+        self.typed-panic: 'X::Syntax::NonListAssociative',
+          :left(~$left), :right(~$right);
+    }
+
+    method EXPR(str $preclim = '') {
+        my $*LEFTSIGIL := '';
+        my int $noinfix := $preclim eq 'y=';
+
+        my $here          := self.'!cursor_start_cur'();
+        my int $pos       := nqp::getattr_i($here, NQPMatch, '$!from');
+        my str $termishrx := 'termish';
+        my @opstack;
+        my @termstack;
+        my $termcur;
+        my $termish;
+        my %termOPER;
+        my @prefixish;
+        my @postfixish;
+        my $wscur;
+        my $infixcur;
+        my $infix;
+        my %inO;
+        my str $inprec;
+        my str $opprec;
+        my str $inassoc;
+        my int $more_infix;
+        my int $term_done;
+
+        while 1 {
+            nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+            $termcur := $here."$termishrx"();
+            $pos := nqp::getattr_i($termcur, NQPMatch, '$!pos');
+            nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+            if $pos < 0 {
+                $here.panic('Missing required term after infix')
+                  if nqp::elems(@opstack);
+                return $here;
+            }
+
+            $termish := $termcur.MATCH();
+
+            # Interleave any prefix/postfix we might have found.
+            %termOPER := $termish;
+            %termOPER := nqp::atkey(%termOPER, 'OPER')
+                while nqp::existskey(%termOPER, 'OPER');
+            @prefixish  := nqp::atkey(%termOPER, 'prefixish');
+            @postfixish := nqp::atkey(%termOPER, 'postfixish');
+
+            unless nqp::isnull(@prefixish) || nqp::isnull(@postfixish) {
+                while nqp::elems(@prefixish) && nqp::elems(@postfixish) {
+                    my %preO  := @prefixish[0]<OPER><O>.made;
+                    my %postO :=
+                      @postfixish[nqp::elems(@postfixish)-1]<OPER><O>.made;
+                    my $preprec := nqp::ifnull(
+                      nqp::atkey(%preO,'sub'),
+                      nqp::ifnull(nqp::atkey(%preO,'prec'),'')
+                    );
+                    my $postprec := nqp::ifnull(
+                      nqp::atkey(%postO,'sub'),
+                      nqp::ifnull(nqp::atkey(%postO,'prec'),'')
+                    );
+
+                    if $postprec gt $preprec {
+                        nqp::push(@opstack, nqp::shift(@prefixish));
+                    }
+                    elsif $postprec lt $preprec {
+                        nqp::push(@opstack, nqp::pop(@postfixish));
+                    }
+                    elsif %postO<uassoc> eq 'right' {
+                        nqp::push(@opstack, nqp::shift(@prefixish));
+                    }
+                    elsif %postO<uassoc> eq 'left' {
+                        nqp::push(@opstack, nqp::pop(@postfixish));
+                    }
+                    else {
+                        self.EXPR-nonassoc(
+                          $here, ~@prefixish[0], ~@postfixish[0]
+                        );
+                    }
+                }
+                nqp::push(@opstack, nqp::shift(@prefixish))
+                  while nqp::elems(@prefixish);
+                nqp::push(@opstack, nqp::pop(@postfixish))
+                  while nqp::elems(@postfixish);
+            }
+            nqp::deletekey($termish, 'prefixish');
+            nqp::deletekey($termish, 'postfixish');
+            nqp::push(@termstack, nqp::atkey($termish, 'term'));
+
+            last if $noinfix;
+
+            $more_infix := 1;
+            $term_done  := 0;
+            while $more_infix {
+
+                # Now see if we can fetch an infix operator
+                # First, we need ws to match.
+                nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+                $wscur := $here.ws();
+                $pos   := nqp::getattr_i($wscur, NQPMatch, '$!pos');
+                if $pos < 0 {
+                    $term_done := 1;
+                    last;
+                }
+
+                # Next, try the infix itself.
+                nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+                $infixcur := $here.infixish();
+                $pos := nqp::getattr_i($infixcur, NQPMatch, '$!pos');
+                if $pos < 0 {
+                    $term_done := 1;
+                    last;
+                }
+                $infix := $infixcur.MATCH();
+
+                # We got an infix.
+                %inO := $infix<OPER><O>.made;
+                $termishrx := nqp::ifnull(
+                  nqp::atkey(%inO, 'nextterm'),
+                  'termish'
+                );
+                $inprec := ~%inO<prec>;
+                $infixcur.panic('Missing infixish operator precedence')
+                    unless $inprec;
+                if $inprec le $preclim {
+                    $term_done := 1;
+                    last;
+                }
+
+                while nqp::elems(@opstack) {
+                    my %opO := @opstack[nqp::elems(@opstack)-1]<OPER><O>.made;
+
+                    $opprec := nqp::ifnull(
+                      nqp::atkey(%opO, 'sub'),
+                      nqp::atkey(%opO, 'prec')
+                    );
+                    last unless $opprec gt $inprec;
+                    self.EXPR-reduce(@termstack, @opstack);
+                }
+
+                if nqp::isnull(nqp::atkey(%inO, 'fake')) {
+                    $more_infix := 0;
+                }
+                else {
+                    nqp::push(@opstack, $infix);
+                    self.EXPR-reduce(@termstack, @opstack);
+                }
+            }
+            last if $term_done;
+
+            # if equal precedence, use associativity to decide
+            if $opprec eq $inprec {
+                $inassoc := nqp::atkey(%inO, 'assoc');
+                if $inassoc eq 'non' {
+                    self.EXPR-nonassoc(
+                      $infixcur,
+                      @opstack[nqp::elems(@opstack)-1]<OPER>.Str,
+                      $infix.Str
+                    );
+                }
+                elsif $inassoc eq 'left' || $inassoc eq 'chain' {
+                    # left associative, reduce immediately
+                    self.EXPR-reduce(@termstack, @opstack);
+                }
+                elsif $inassoc eq 'list' {
+                    my $op1 := @opstack[nqp::elems(@opstack)-1]<OPER>.Str;
+                    my $op2 := $infix.Str();
+                    self.EXPR-nonlistassoc($infixcur, $op1, $op2)
+                      if $op1 ne $op2 && $op1 ne ':';
+                }
+            }
+
+            nqp::push(@opstack, $infix); # The Shift
+            nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+            $wscur := $here.ws();
+            $pos := nqp::getattr_i($wscur, NQPMatch, '$!pos');
+            nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+            return $here if $pos < 0;
+        }
+
+        self.EXPR-reduce(@termstack, @opstack)
+          while nqp::elems(@opstack);
+
+        self.'!clone_match_at'(
+            nqp::pop(@termstack),
+            nqp::getattr_i($here, NQPMatch, '$!pos')
+        ).'!reduce'('EXPR')
+    }
+
+    method EXPR-reduce(@termstack, @opstack) {
+        my $op := nqp::pop(@opstack);
+
+        # Give it a fresh capture list, since we'll have assumed it has
+        # no positional captures and not taken them.
+        nqp::bindattr($op, NQPCapture, '@!array', nqp::list());
+        my %opOPER      := nqp::atkey($op, 'OPER');
+        my %opO         := nqp::atkey(%opOPER, 'O').made;
+        my str $opassoc := ~nqp::atkey(%opO, 'assoc');
+        my str $key;
+        my str $sym;
+        my $reducecheck;
+        my $arg;
+
+        if $opassoc eq 'unary' {
+            $arg   := nqp::pop(@termstack);
+            $op[0] := $arg;
+            $key   := $arg.from() < $op.from() ?? 'POSTFIX' !! 'PREFIX';
+        }
+        elsif $opassoc eq 'list' {
+            $sym := nqp::ifnull(nqp::atkey(%opOPER, 'sym'), '');
+            nqp::unshift($op, nqp::pop(@termstack));
+            while @opstack {
+                last if $sym ne nqp::ifnull(
+                    nqp::atkey(nqp::atkey(nqp::atpos(@opstack,
+                        nqp::elems(@opstack) - 1), 'OPER'), 'sym'), '');
+                nqp::unshift($op, nqp::pop(@termstack));
+                nqp::pop(@opstack);
+            }
+            nqp::unshift($op, nqp::pop(@termstack));
+            $key := 'LIST';
+        }
+        else { # infix op assoc: left|right|ternary|...
+            $op[1] := nqp::pop(@termstack); # right
+            $op[0] := nqp::pop(@termstack); # left
+            $reducecheck := nqp::atkey(%opO, 'reducecheck');
+            self."$reducecheck"($op) unless nqp::isnull($reducecheck);
+            $key := 'INFIX';
+        }
+        self.'!reduce_with_match'('EXPR', $key, $op);
+        nqp::push(@termstack, $op);
+    }
+
+#-------------------------------------------------------------------------------
+# Operators
 
     # Precedence levels and their defaults
     my %methodcall      := nqp::hash('prec', 'y=', 'assoc', 'unary', 'dba', 'methodcall', 'fiddly', 1);
@@ -1325,11 +1559,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             self.typed-panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
         }
         self;
-    }
-
-    method EXPR(str $preclim = '') {
-        my $*LEFTSIGIL := '';
-        nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim, :noinfix($preclim eq 'y='));
     }
 
     token infixish($in_meta = nqp::getlexdyn('$*IN-META')) {

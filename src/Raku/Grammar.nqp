@@ -22,7 +22,41 @@ my role stop[$stop] {
 
 role Raku::Common {
 
-    # Quote parsing
+#-------------------------------------------------------------------------------
+# Cursor methods
+#
+# These mostly exist for debugging, commenting and for possible future
+# replacement by actual Raku grammar versions.  They interface to private
+# cursor methods in NQP's regex engine for now.
+
+    # Produce fresh new cursor
+    method new-cursor() {
+        self.'!cursor_start_cur'()
+    }
+
+    # Produce a new cursor for given lang at current position
+    method lang-cursor($lang) {
+        $lang.'!cursor_init'(self.orig, :p(self.pos), :shared(self.'!shared'()))
+    }
+
+    # Produce a new cursor for given lang at given position
+    method lang-cursor-at($lang, int $p) {
+        $lang.'!cursor_init'(self.orig, :$p, :shared(self.'!shared'()))
+    }
+
+    # Produce match with item at given position
+    method match-with-at($match, int $pos) {
+        self.'!clone_match_at'($match, $pos)
+    }
+
+    # Produce match with item at current position
+    method match-with($match) {
+        self.'!clone_match_at'($match, self.pos)
+    }
+
+#-------------------------------------------------------------------------------
+# Quote parsing
+
     token opener {
         <[
         \x0028 \x003C \x005B \x007B \x00AB \x0F3A \x0F3C \x169B \x2018 \x201A \x201B
@@ -111,9 +145,7 @@ role Raku::Common {
 
         # Create a new type for the given quote language arguments
         sub create-quote-lang-type() {
-            my $lang := $l.'!cursor_init'(
-              self.orig(), :p(self.pos()), :shared(self.'!shared'())
-            );
+            my $lang := self.lang-cursor($l);
             $lang.clone_braid_from(self);
 
             # mixin all if the base tweaks
@@ -162,9 +194,7 @@ role Raku::Common {
 
     # Note, $lang must carry its own actions by the time we call this.
     method nibble($lang) {
-        $lang.'!cursor_init'(
-          self.orig(), :p(self.pos()), :shared(self.'!shared'())
-        ).nibbler.set_braid_from(self)
+        self.lang-cursor($lang).nibbler.set_braid_from(self)
     }
 
     method fail-terminator ($/, $start, $stop, $line?) {
@@ -222,7 +252,7 @@ role Raku::Common {
                 my $doc := $here.nibble($lang);
                 if $doc {
                     # Match stopper.
-                    my $stop := $lang.'!cursor_init'(self.orig(), :p($doc.pos), :shared(self.'!shared'())).stopper();
+                    my $stop := self.lang-cursor-at($lang, $doc.pos).stopper;
                     $stop.clone_braid_from(self);
                     unless $stop {
                         self.panic("Ending delimiter $*DELIM not found");
@@ -1268,28 +1298,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-prefix:sym<supply> {
         :my $*WHENEVER-COUNT := 0;
         <sym><.kok> <blorst>
-    }
-
-#-------------------------------------------------------------------------------
-# Cursor methods
-#
-# These mostly exist for debugging, commenting and for possible future
-# replacement by actual Raku grammar versions.  They interface to private
-# cursor methods in NQP's regex engine for now.
-
-    # Produce fresh new cursor
-    method new-cursor() {
-        self.'!cursor_start_cur'()
-    }
-
-    # Produce match with item at given position
-    method match-with-at($match, int $pos) {
-        self.'!clone_match_at'($match, $pos)
-    }
-
-    # Produce match with item at current position
-    method match-with($match) {
-        self.'!clone_match_at'($match, self.pos)
     }
 
 #-------------------------------------------------------------------------------
@@ -4733,9 +4741,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         # the cursor_init is to ensure it's been initialized the same way
         # 'self' was back in quote-lang
         my $q := self.slang_grammar('Quote');
-        $q.HOW.mixin(
-          $q, to.HOW.curry(to, self)
-        ).'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()))
+        self.lang-cursor($q.HOW.mixin($q, to.HOW.curry(to, self)))
     }
 
     # tweaks that disable when negated

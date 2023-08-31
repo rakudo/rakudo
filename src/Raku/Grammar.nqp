@@ -541,8 +541,7 @@ role Raku::Common {
             my $op := $ast.desigilname.colonpairs[0].literal-value;
             return Nil if $op eq '!=' || $op eq '≠';
 
-            my $actions := self.actions;
-            my $lang    := self.'!cursor_init'($op, :p(0), :$actions);
+            my $lang := self.'!cursor_init'($op, :p(0));
             $lang.clone_braid_from(self);
 
             my $cat  := $ast.desigilname.canonicalize(:colonpairs(0));
@@ -571,7 +570,7 @@ role Raku::Common {
 
                 my $meta-op := $META.IMPL-HOP-INFIX;
                 $ast.set-resolution(
-                  $actions.r('Declaration','External','Constant').new(
+                  self.actions.r('Declaration','External','Constant').new(
                     lexical-name       => $name,
                     compile-time-value => $meta-op
                   )

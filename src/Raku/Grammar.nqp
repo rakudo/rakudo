@@ -20,6 +20,9 @@ my role stop[$stop] {
     token stopper { $stop }
 }
 
+#-------------------------------------------------------------------------------
+# Functionality common to all Raku grammars
+
 role Raku::Common {
 
 #-------------------------------------------------------------------------------
@@ -68,7 +71,7 @@ role Raku::Common {
 
     # Reset expectations
     method reset-expectations() {
-        self.'!set_highexpect'(nqp::list_s)
+        nqp::setelems(self.'!highexpect'(),0)
     }
 
 #-------------------------------------------------------------------------------

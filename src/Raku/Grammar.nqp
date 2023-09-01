@@ -1341,6 +1341,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           :left(~$left), :right(~$right);
     }
 
+    # The EXPR method implements an operator precedence parsing algorithm.
+    # One needs a stack for that and there's not a neat way to express it
+    # within the rule language.
     method EXPR(str $preclim = '') {
         my $*LEFTSIGIL := '';
         my int $noinfix := $preclim eq 'y=';
@@ -1624,24 +1627,47 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!infixstopper>
         :dba('infix')
         [
-        | <!{ $*IN_REDUCE }> <colonpair> <fake-infix> { $*OPER := $<fake-infix> }
-        |   [
-            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
-            | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
+          | <!{ $*IN_REDUCE }>
+            <colonpair>
+            <fake-infix>
+            { $*OPER := $<fake-infix> }
+
+          | [
+              | :dba('bracketed infix')
+                '[' ~ ']' <infixish('[]')>
+                { $*OPER := $<infixish><OPER> }
+
+              | :dba('infixed function')
+                <?before '[&' <twigil>? [ <alpha> | '(' ] >
+                '[' ~ ']' <variable>
                 {
-                    $<variable><O> := self.O(:prec<t=>, :assoc<left>, :dba<additive>).MATCH unless $<variable><O>;
+                    $<variable><O> := self.O(|%additive).MATCH
+                      unless $<variable><O>;
                     $*OPER := $<variable>;
                     self.check-variable($<variable>);
                 }
-            | <infix-circumfix-meta-operator> { $*OPER := $<infix-circumfix-meta-operator> }
-            | <infix-prefix-meta-operator> { $*OPER := $<infix-prefix-meta-operator> }
-            | <infix> { $*OPER := $<infix> }
-            | <?{ $*IN-META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing: "infix inside " ~ $*IN-META>
+
+              | <infix-circumfix-meta-operator>
+                { $*OPER := $<infix-circumfix-meta-operator> }
+
+              | <infix-prefix-meta-operator>
+                { $*OPER := $<infix-prefix-meta-operator> }
+
+              | <infix>
+                { $*OPER := $<infix> }
+
+              | <?{ $*IN-META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/
+                      && !$*IN_REDUCE
+                }>
+                <.missing: "infix inside " ~ $*IN-META>
             ]
-            [ <?before '='> <infix-postfix-meta-operator> { $*OPER := $<infix-postfix-meta-operator> } ]?
+            [ <?before '='>
+              <infix-postfix-meta-operator>
+              { $*OPER := $<infix-postfix-meta-operator> }
+            ]?
         ]
         <OPER=.match-with($*OPER)>
-        { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
+        { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos) }
     }
 
     token fake-infix {

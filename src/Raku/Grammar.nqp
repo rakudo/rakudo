@@ -76,7 +76,8 @@ role Raku::Common {
 
     # Reset expectations
     method reset-expectations() {
-        nqp::setelems(self.'!highexpect'(),0)
+        nqp::setelems(self.'!highexpect'(),0);
+        self
     }
 
 #-------------------------------------------------------------------------------
@@ -4231,20 +4232,21 @@ Rakudo significantly on *every* run."
     # ws is highly performance sensitive. So, we check if we already marked it
     # at this point with a simple method, and only if that is not the case do
     # we bother doing any pattern matching.
-    method ws() {
-        self.MARKED('ws') ?? self !! self._ws()
-    }
-    token _ws {
-        { self.reset-expectations }
+    method ws() { self.MARKED('ws') ?? self !! self.mark-whitespace }
+
+    # Helper method for "ws" to mark whitespace as parsed, so it doesn't
+    # need to be parsed again after having backtracked
+    token mark-whitespace {
+        <.reset-expectations>
         :dba('whitespace')
         <!ww>
         [
-        | [\r\n || \v] <.heredoc>
-        | <.unv>
-        | <.unsp>
+          | [ \r\n || \v ] <.heredoc>
+          | <.unv>
+          | <.unsp>
         ]*
         <?MARKER('ws')>
-        { self.reset-expectations }
+        <.reset-expectations>
     }
 
     token unsp {

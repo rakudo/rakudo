@@ -1236,9 +1236,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <EXPR>?
     }
 
-    ##
-    ##
-
 #-------------------------------------------------------------------------------
 # Statement modifiers
 
@@ -1406,12 +1403,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                         nqp::push(@opstack, nqp::shift(@prefixish));
                     }
                     elsif $postprec lt $preprec {
-                        nqp::push(@opstack, nqp::pop(@postfixish));
-                    }
-                    elsif %postO<uassoc> eq 'right' {
-                        nqp::push(@opstack, nqp::shift(@prefixish));
-                    }
-                    elsif %postO<uassoc> eq 'left' {
                         nqp::push(@opstack, nqp::pop(@postfixish));
                     }
                     else {

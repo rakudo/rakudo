@@ -137,6 +137,7 @@ class RakuAST::OperatorProperties
     method iffy()              { self.properties.iffy              }
     method diffy()             { self.properties.diffy             }
     method fiddly()            { self.properties.fiddly            }
+    method adverb()            { self.properties.adverb            }
     method prec()              { self.properties.prec              }
 }
 

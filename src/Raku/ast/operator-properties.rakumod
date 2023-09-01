@@ -24,6 +24,7 @@ class OperatorProperties {
     has int $.iffy;
     has int $.diffy;
     has int $.fiddly;
+    has int $.adverb;
 
     # Basic interface
     method new(
@@ -35,7 +36,8 @@ class OperatorProperties {
       str :$next-term,
       int :$iffy,
       int :$diffy,
-      int :$fiddly
+      int :$fiddly,
+      int :$adverb
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,OperatorProperties,'$!precedence',
@@ -57,6 +59,8 @@ class OperatorProperties {
           $diffy // (nqp::isconcrete(self) ?? $!diffy !! 0));
         nqp::bindattr_i($obj,OperatorProperties,'$!fiddly',
           $fiddly // (nqp::isconcrete(self) ?? $!fiddly !! 0));
+        nqp::bindattr_i($obj,OperatorProperties,'$!adverb',
+          $adverb // (nqp::isconcrete(self) ?? $!adverb !! 0));
 
         $obj
     }
@@ -72,6 +76,7 @@ class OperatorProperties {
       int :$iffy,
       int :$diffy,
       int :$fiddly,
+      int :$adverb,
       *%_
     ) {
         self.new(
@@ -83,7 +88,8 @@ class OperatorProperties {
           :next-term($nextterm),
           :$iffy,
           :$diffy,
-          :$fiddly
+          :$fiddly,
+          :$adverb
         )
     }
 
@@ -200,6 +206,7 @@ class OperatorProperties {
     method iffy()   { nqp::isconcrete(self) ?? $!iffy   !! 0  }
     method diffy()  { nqp::isconcrete(self) ?? $!diffy  !! 0  }
     method fiddly() { nqp::isconcrete(self) ?? $!fiddly !! 0  }
+    method adverb() { nqp::isconcrete(self) ?? $!adverb !! 0  }
 
     # Convenience methods
     method chaining() {
@@ -435,6 +442,9 @@ class OperatorProperties {
           ),
           'item-assignment', nqp::hash(
             'precedence','i=', 'associative','right'
+          ),
+          'adverb', nqp::hash(
+            'precedence','i=', 'associative','unary', 'adverb',1
           ),
           'list-assignment', nqp::hash(
             'precedence','i=', 'associative','right', 'fiddly',1,

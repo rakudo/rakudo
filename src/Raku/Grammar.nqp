@@ -606,7 +606,7 @@ role Raku::Common {
             my $method   := $category eq 'infix'
               ?? 'infixish'
               !! $category eq 'prefix'
-                ?? $op ~~ /^ \[ .* \] $/
+                ?? nqp::eqat($op,"[",0) && nqp::eqat($op,"]",nqp::chars($op)-1)
                   ?? 'term:sym<reduce>'
                   !! 'prefixish'
                 !! $category eq 'postfix'

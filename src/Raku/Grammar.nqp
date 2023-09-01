@@ -1762,10 +1762,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             !$marked || $marked.from == $c.pos;
         }>
 
-        [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
+        [ <!{ $*QSIGIL }> [ <.unspace> | '\\' ] ]?
 
         :dba('postfix')
-        [ ['.' <.unsp>?]? <postfix-prefix-meta-operator> <.unsp>?]?
+        [ ['.' <.unspace>?]? <postfix-prefix-meta-operator> <.unspace>?]?
         [
         | <OPER=postfix>
         | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
@@ -1870,7 +1870,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token dottyop($special?) {
         :dba('dotty method or postfix')
-        <.unsp>?
+        <.unspace>?
         [
         | <methodop($special)>
         | <colonpair>
@@ -1896,7 +1896,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <quote>
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
           <.dotty-non-ident($*special)>
-        ] <.unsp>?
+        ] <.unspace>?
         :dba('method arguments')
         [
             [
@@ -1905,7 +1905,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             ]
             || <!{ $*QSIGIL }> <?>
             || <?{ $*QSIGIL }> <?[.]> <?>
-        ] <.unsp>?
+        ] <.unspace>?
     }
 
     token dotty-non-ident($special) {
@@ -2234,11 +2234,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token infix:sym<,>    {
-        <.unsp>? <sym> <O(|%comma)>
+        <.unspace>? <sym> <O(|%comma)>
     }
     token infix:sym<:>    {
         <?{ $*INVOCANT_OK && $*GOAL ne '!!' }>
-        <.unsp>? <sym> <?before \s | <.terminator> | $ >
+        <.unspace>? <sym> <?before \s | <.terminator> | $ >
         <O(|%comma)>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
         { $*INVOCANT_OK := 0; }
@@ -2509,7 +2509,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<identifier> {
         <identifier>
         <!{ $*R.is-identifier-type(~$<identifier>) }>
-        [ <?before <.unsp>? '('> | \\ <?before '('> ]
+        [ <?before <.unspace>? '('> | \\ <?before '('> ]
         <args(1)>
         {
             if !$<args><invocant> {
@@ -2544,12 +2544,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 <?[[]> <?{ $*is-type }>
                 :dba('type parameter') '[' ~ ']' <arglist>
             ]?
-            <.unsp>?
+            <.unspace>?
             [
                 <?[{]> <?{ $*is-type }>
                 <whence=.postcircumfix> <.NYI: 'Autovivifying object closures'>
             ]?
-            <.unsp>?
+            <.unspace>?
             [
                 <?[(]> <?{ $*is-type }>
                 '(' <.ws> [
@@ -2648,7 +2648,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $*key := $<identifier>.Str }
         | <identifier>
             { $*key := $<identifier>.Str }
-            [ <.unsp>? <?{ !$*IN-TYPENAME || ($*key ne 'D' && $*key ne 'U' && $*key ne '_') }> :dba('pair value') <coloncircumfix($*key)> ]?
+            [ <.unspace>? <?{ !$*IN-TYPENAME || ($*key ne 'D' && $*key ne 'U' && $*key ne '_') }> :dba('pair value') <coloncircumfix($*key)> ]?
         | :dba('signature') '(' ~ ')' <fakesignature>
         | <coloncircumfix('')>
             { $*key := ""; }
@@ -3040,7 +3040,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $sigil := $<sigil>.Str;
         }
         [
-            <.unsp>?
+            <.unspace>?
             $<shape>=[
             | '(' ~ ')' <signature>
                 {
@@ -3411,7 +3411,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token sign { '+' | '-' | '−' | '' }
 
     token radix-number {
-        ':' $<radix> = [\d+] <.unsp>?
+        ':' $<radix> = [\d+] <.unspace>?
         :my $r := nqp::radix(10, $<radix>, 0, 0)[0];
         {}           # don't recurse in lexer
         :dba('number in radix notation')
@@ -3630,13 +3630,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           }>
         ]
         # parametric/coercion type?
-        <.unsp>? [
+        <.unspace>? [
             <?[[]>
             '[' ~ ']' <arglist>
         ]?
-        <.unsp>? [ <?before '{'> <.NYI: 'Autovivifying object closures'>
+        <.unspace>? [ <?before '{'> <.NYI: 'Autovivifying object closures'>
         <whence=.postcircumfix> ]?
-        <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
+        <.unspace>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
     }
 
@@ -3812,7 +3812,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>
-        | <.unsp> '(' ~ ')' <semiarglist>
+        | <.unspace> '(' ~ ')' <semiarglist>
         | [ \s <arglist> ]
         | <?>
         ]
@@ -4243,19 +4243,19 @@ Rakudo significantly on *every* run."
         [
           | [ \r\n || \v ] <.heredoc>
           | <.horizontal-whitespace>
-          | <.unsp>
+          | <.unspace>
         ]*
         <?MARKER('ws')>
         <.reset-expectations>
     }
 
-    token unsp {
+    token unspace {
         \\ <?before \s | '#'>
         :dba('unspace')
         [
-        | <.vws>
-        | <.horizontal-whitespace>
-        | <.unsp>
+          | <.vws>
+          | <.horizontal-whitespace>
+          | <.unspace>
         ]*
     }
 

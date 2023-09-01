@@ -3929,8 +3929,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token ENDSTMT {
         [
-        | \h* $$ <.ws> <?MARKER('endstmt')>
-        | <.unv>? $$ <.ws> <?MARKER('endstmt')>
+          | \h*                       $$ <.ws> <?MARKER('endstmt')>
+          | <.horizontal-whitespace>? $$ <.ws> <?MARKER('endstmt')>
         ]?
     }
 
@@ -4242,7 +4242,7 @@ Rakudo significantly on *every* run."
         <!ww>
         [
           | [ \r\n || \v ] <.heredoc>
-          | <.unv>
+          | <.horizontal-whitespace>
           | <.unsp>
         ]*
         <?MARKER('ws')>
@@ -4254,7 +4254,7 @@ Rakudo significantly on *every* run."
         :dba('unspace')
         [
         | <.vws>
-        | <.unv>
+        | <.horizontal-whitespace>
         | <.unsp>
         ]*
     }
@@ -4270,7 +4270,7 @@ Rakudo significantly on *every* run."
         ]+
     }
 
-    token unv {
+    token horizontal-whitespace {
         :dba('horizontal whitespace')
         [
         | \h+

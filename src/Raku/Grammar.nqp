@@ -4249,35 +4249,47 @@ Rakudo significantly on *every* run."
         <.reset-expectations>
     }
 
+    # Handle unspace (aka, the capability to continue a line by putting
+    # a lone backspace at the end of a line)
     token unspace {
         \\ <?before \s | '#'>
         :dba('unspace')
         [
-          | <.vws>
+          | <.vertical-whitespace>
           | <.horizontal-whitespace>
           | <.unspace>
         ]*
     }
 
-    token vws {
+    # Handle vertical whitespace including version control markers
+    token vertical-whitespace {
         :dba('vertical whitespace')
         [
-            [
+          [
             | \v
-            | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.sorry: 'Found a version control conflict marker'> \V* \v
-            | '=======' {} .*? \v '>>>>>>>' \V* \v   # ignore second half
-            ]
+            | '<<<<<<<'
+              {}                       # disable LTM
+              <?before [.*? \v '=======']: .*? \v '>>>>>>>' >
+              <.sorry: 'Found a version control conflict marker'> \V* \v
+            | '======='
+              {}                       # disable LTM
+              .*? \v '>>>>>>>' \V* \v  # ignore second part of a conflict marker
+          ]
         ]+
     }
 
+    # Handle horizontal whitespace including any RakuDoc
     token horizontal-whitespace {
         :dba('horizontal whitespace')
         [
-        | \h+
-        | \h* <.comment>
-        | <?before \h* '=' [ \w | '\\'] > ^^ <.doc-TOP>
+          | \h+
+          | \h* <.comment>
+          | <?before \h* '=' [ \w | '\\'] > ^^ <.doc-TOP>
         ]
     }
+
+#-------------------------------------------------------------------------------
+# Comment handling
 
     proto token comment {*}
 

@@ -18,8 +18,8 @@ class OperatorProperties {
     has str $.sub-precedence;
     has str $.associative;
     has str $.thunky;
-    has str $.next-term;
     has str $.dba;
+    has str $.next-term;
 
     has int $.iffy;
     has int $.diffy;
@@ -31,8 +31,8 @@ class OperatorProperties {
       str :$sub-precedence,
       str :$associative,
       str :$thunky,
-      str :$next-term,
       str :$dba,
+      str :$next-term,
       int :$iffy,
       int :$diffy,
       int :$fiddly
@@ -46,10 +46,10 @@ class OperatorProperties {
           $associative // (nqp::isconcrete(self) ?? $!associative !! ""));
         nqp::bindattr_s($obj,OperatorProperties,'$!thunky',
           $thunky // (nqp::isconcrete(self) ?? $!thunky !! ""));
-        nqp::bindattr_s($obj,OperatorProperties,'$!next-term',
-          $next-term // (nqp::isconcrete(self) ?? $!next-term !! ""));
         nqp::bindattr_s($obj,OperatorProperties,'$!dba',
           $dba // (nqp::isconcrete(self) ?? $!dba !! ""));
+        nqp::bindattr_s($obj,OperatorProperties,'$!next-term',
+          $next-term // (nqp::isconcrete(self) ?? $!next-term !! ""));
 
         nqp::bindattr_i($obj,OperatorProperties,'$!iffy',
           $iffy // (nqp::isconcrete(self) ?? $!iffy !! 0));
@@ -67,8 +67,8 @@ class OperatorProperties {
       str :$sub,
       str :$assoc,
       str :$thunky,
-      str :$nextterm,
       str :$dba,
+      str :$nextterm,
       int :$iffy,
       int :$diffy,
       int :$fiddly,
@@ -79,19 +79,12 @@ class OperatorProperties {
           :sub-precedence($sub),
           :associative($assoc),
           :$thunky,
-          :next-term($nextterm),
           :$dba,
+          :next-term($nextterm),
           :$iffy,
           :$diffy,
           :$fiddly
         )
-    }
-
-    # Return the sub-precedence or precedence on instances
-    method sub-or-precedence() {
-        nqp::isconcrete(self)
-          ?? ""
-          !! $!sub-precedence || $!precedence
     }
 
 #-------------------------------------------------------------------------------
@@ -191,7 +184,7 @@ class OperatorProperties {
 
 #-------------------------------------------------------------------------------
 # Methods that can be run on both an instance and a type object.  Note that
-# when calle on a type object, an "empty" representation of that function
+# when called on a type object, an "empty" representation of that function
 # will be returned.
 
     # Accessors
@@ -199,12 +192,14 @@ class OperatorProperties {
     method sub-precedence() { nqp::isconcrete(self) ?? $!sub-precedence !! "" }
     method associative()    { nqp::isconcrete(self) ?? $!associative    !! "" }
     method thunky()         { nqp::isconcrete(self) ?? $!thunky         !! "" }
-    method next-term()      { nqp::isconcrete(self) ?? $!next-term      !! "" }
     method dba()            { nqp::isconcrete(self) ?? $!dba            !! "" }
+    method next-term() {
+        (nqp::isconcrete(self) ?? $!next-term !! "") || 'termish'
+    }
 
-    method iffy()        { nqp::isconcrete(self) ?? $!iffy        !! 0  }
-    method diffy()       { nqp::isconcrete(self) ?? $!diffy       !! 0  }
-    method fiddly()      { nqp::isconcrete(self) ?? $!fiddly      !! 0  }
+    method iffy()   { nqp::isconcrete(self) ?? $!iffy   !! 0  }
+    method diffy()  { nqp::isconcrete(self) ?? $!diffy  !! 0  }
+    method fiddly() { nqp::isconcrete(self) ?? $!fiddly !! 0  }
 
     # Convenience methods
     method chaining() {
@@ -213,6 +208,9 @@ class OperatorProperties {
     }
     method short-circuit() {
         nqp::isconcrete(self) && $!thunky ne ""
+    }
+    method sub-or-precedence() {
+        nqp::isconcrete(self) ?? ($!sub-precedence || $!precedence) !! ""
     }
 
     # Return name of handler for reducing with these operator properties

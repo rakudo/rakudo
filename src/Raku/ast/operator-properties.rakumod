@@ -18,13 +18,12 @@ class OperatorProperties {
     has str $.sub-precedence;
     has str $.associative;
     has str $.thunky;
+    has str $.next-term;
     has str $.dba;
 
     has int $.iffy;
     has int $.diffy;
     has int $.fiddly;
-    has int $.dottyopish;
-    has int $.nulltermish;
 
     # Basic interface
     method new(
@@ -32,12 +31,11 @@ class OperatorProperties {
       str :$sub-precedence,
       str :$associative,
       str :$thunky,
+      str :$next-term,
       str :$dba,
       int :$iffy,
       int :$diffy,
-      int :$fiddly,
-      int :$dottyopish,
-      int :$nulltermish
+      int :$fiddly
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,OperatorProperties,'$!precedence',
@@ -48,6 +46,8 @@ class OperatorProperties {
           $associative // (nqp::isconcrete(self) ?? $!associative !! ""));
         nqp::bindattr_s($obj,OperatorProperties,'$!thunky',
           $thunky // (nqp::isconcrete(self) ?? $!thunky !! ""));
+        nqp::bindattr_s($obj,OperatorProperties,'$!next-term',
+          $next-term // (nqp::isconcrete(self) ?? $!next-term !! ""));
         nqp::bindattr_s($obj,OperatorProperties,'$!dba',
           $dba // (nqp::isconcrete(self) ?? $!dba !! ""));
 
@@ -57,10 +57,6 @@ class OperatorProperties {
           $diffy // (nqp::isconcrete(self) ?? $!diffy !! 0));
         nqp::bindattr_i($obj,OperatorProperties,'$!fiddly',
           $fiddly // (nqp::isconcrete(self) ?? $!fiddly !! 0));
-        nqp::bindattr_i($obj,OperatorProperties,'$!dottyopish',
-          $dottyopish // (nqp::isconcrete(self) ?? $!dottyopish !! 0));
-        nqp::bindattr_i($obj,OperatorProperties,'$!nulltermish',
-          $nulltermish // (nqp::isconcrete(self) ?? $!nulltermish !! 0));
 
         $obj
     }
@@ -71,26 +67,23 @@ class OperatorProperties {
       str :$sub,
       str :$assoc,
       str :$thunky,
+      str :$nextterm,
       str :$dba,
       int :$iffy,
       int :$diffy,
       int :$fiddly,
-      str :$nextterm,
       *%_
     ) {
-        my int $dottyopish  := $nextterm eq 'dottyopish';
-        my int $nulltermish := $nextterm eq 'nulltermish';
         self.new(
           :precedence($prec),
+          :sub-precedence($sub),
           :associative($assoc),
           :$thunky,
+          :next-term($nextterm),
+          :$dba,
           :$iffy,
           :$diffy,
-          :$fiddly,
-          :$dba,
-          :$dottyopish,
-          :$nulltermish,
-          :sub-precedence($sub)
+          :$fiddly
         )
     }
 
@@ -199,13 +192,12 @@ class OperatorProperties {
     method sub-precedence() { nqp::isconcrete(self) ?? $!sub-precedence !! "" }
     method associative()    { nqp::isconcrete(self) ?? $!associative    !! "" }
     method thunky()         { nqp::isconcrete(self) ?? $!thunky         !! "" }
+    method next-term()      { nqp::isconcrete(self) ?? $!next-term      !! "" }
     method dba()            { nqp::isconcrete(self) ?? $!dba            !! "" }
 
     method iffy()        { nqp::isconcrete(self) ?? $!iffy        !! 0  }
     method diffy()       { nqp::isconcrete(self) ?? $!diffy       !! 0  }
     method fiddly()      { nqp::isconcrete(self) ?? $!fiddly      !! 0  }
-    method dottyopish()  { nqp::isconcrete(self) ?? $!dottyopish  !! 0  }
-    method nulltermish() { nqp::isconcrete(self) ?? $!nulltermish !! 0  }
 
     # Convenience methods
     method chaining() {
@@ -254,11 +246,7 @@ class OperatorProperties {
                       !! $key eq 'iffy'
                         ?? $!iffy
                         !! $key eq 'nextterm'
-                          ?? $!dottyopish
-                            ?? 'dottyopish'
-                            !! $!nulltermish
-                              ?? 'nulltermish'
-                              !! nqp::null
+                          ?? $!next-term
                           !! nqp::null
             }
             else {
@@ -267,9 +255,8 @@ class OperatorProperties {
                 nqp::bindkey($hash,'sub', $!sub-precedence) if $!sub-precedence;
                 nqp::bindkey($hash,'assoc',  $!associative) if $!associative;
                 nqp::bindkey($hash,'thunky', $!thunky)      if $!thunky;
+                nqp::bindkey($hash,'nextterm', $!next-term) if $!next-term;
                 nqp::bindkey($hash,'iffy',   $!iffy)        if $!iffy;
-                nqp::bindkey($hash,'nextterm','dottyopish') if $!dottyopish;
-                nqp::bindkey($hash,'nextterm','nulltermish') if $!nulltermish;
                 $hash
             }
         }
@@ -375,8 +362,8 @@ class OperatorProperties {
             'precedence','v=', 'associative','unary'
           ),
           'dotty-infix', nqp::hash(
-            'precedence','v=', 'associative','left', 'fiddly',1, 'dottyopish',1,
-            'sub-precedence','z='
+            'precedence','v=', 'associative','left', 'next-term','dottyopish',
+            'sub-precedence','z=', 'fiddly',1
           ),
           'multiplicative', nqp::hash(
             'precedence','u=', 'associative','left'
@@ -452,7 +439,7 @@ class OperatorProperties {
             'precedence','h=', 'associative','unary'
           ),
           'comma', nqp::hash(
-            'precedence','g=', 'associative','list', 'nulltermish',1
+            'precedence','g=', 'associative','list', 'next-term','nulltermish'
           ),
           'list-infix', nqp::hash(
             'precedence','f=', 'associative','list'

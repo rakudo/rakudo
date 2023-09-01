@@ -72,6 +72,11 @@ role Raku::Common {
         self.'!clone_match_at'($match, self.pos)
     }
 
+    # Produce match with item at current position of match
+    method match-with-match($match) {
+        self.'!clone_match_at'($match, $match.pos)
+    }
+
     # Reset expectations
     method reset-expectations() {
         nqp::setelems(self.'!highexpect'(),0);
@@ -1615,13 +1620,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
+    # Helper method to check whether the op can meta, panics if not
     method can-meta($op, $meta, $reason = "fiddly") {
-        if $op<OPER> && $op<OPER><O>.made{$reason} == 1 {
-            self.typed-panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
+        my $OPER := $op<OPER>;
+        if $OPER {
+            self.typed-panic("X::Syntax::CannotMeta",
+              meta     => meta,
+              operator => ~$OPER,
+              dba      => ~$OPER<O>.made<dba>,
+              reason   => "too $reason"
+            ) if $OPER<O>.made{$reason};
         }
+
         self;
     }
 
+    # Look for infix operator or adverb looking like one
     token infixish($IN-META = nqp::getlexdyn('$*IN-META')) {
         :my $*IN-META := $IN-META;
         :my $*OPER;

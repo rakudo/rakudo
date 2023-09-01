@@ -114,6 +114,32 @@ class RakuAST::Termish
 class RakuAST::Term
   is RakuAST::Termish { }
 
+# Role for handling operator properties
+class RakuAST::OperatorProperties
+{
+
+    # Obtain operator properties from config or from actual object
+    method properties() {
+        my $resolution := self.resolution;
+        nqp::istype($resolution,RakuAST::CompileTimeValue)
+          ?? $resolution.compile-time-value.op_props  # actual properties
+          !! self.default-operator-properties         # assume default
+    }
+
+    # Allow direct access to attributes
+    method precedence()        { self.properties.precedence        }
+    method sub-precedence()    { self.properties.sub-precedence    }
+    method sub-or-precedence() { self.properties.sub-or-precedence }
+    method associative()       { self.properties.associative       }
+    method thunky()            { self.properties.thunky            }
+    method next-term()         { self.properties.next-term         }
+    method dba()               { self.properties.dba               }
+    method iffy()              { self.properties.iffy              }
+    method diffy()             { self.properties.diffy             }
+    method fiddly()            { self.properties.fiddly            }
+    method prec()              { self.properties.prec              }
+}
+
 # Marker for all kinds of infixish operators.
 class RakuAST::Infixish
   is RakuAST::ImplicitLookups
@@ -146,16 +172,19 @@ class RakuAST::Infixish
 # others need more special attention.
 class RakuAST::Infix
   is RakuAST::Infixish
+  is RakuAST::OperatorProperties
   is RakuAST::Lookup
 {
-    has str                $.operator;
-    has OperatorProperties $.properties;
+    has str $.operator;
 
     method new(str $operator) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
-        nqp::bindattr($obj,RakuAST::Infix,'$!properties',OperatorProperties);
         $obj
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.infix($!operator)
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -167,15 +196,12 @@ class RakuAST::Infix
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-infix($!operator);
         if $resolved {
-            nqp::bindattr(self,RakuAST::Infix,'$!properties',
-              $resolved.compile-time-value.op_props)
-              if nqp::istype($resolved,RakuAST::CompileTimeValue);
             self.set-resolution($resolved);
         }
         Nil
     }
 
-    method reducer-name() { $!properties.reducer-name }
+    method reducer-name() { self.properties.reducer-name }
 
     method IMPL-THUNK-ARGUMENT(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context,
                                RakuAST::Expression $expression, str $type) {
@@ -199,7 +225,7 @@ class RakuAST::Infix
             || $!operator eq 'orelse' || $!operator eq 'notandthen'
             || $!operator eq 'with'   || $!operator eq 'without'
         ) {
-            my $thunky := $!properties.thunky;
+            my $thunky := self.properties.thunky;
             my $i := 0;
             for @operands {
                 my $type := nqp::substr($thunky, $i, $i + 1);
@@ -291,7 +317,7 @@ class RakuAST::Infix
           # Otherwise, it's called by finding the lexical sub to call, and
           # compiling it as chaining if required.
           !! QAST::Op.new(
-               :op($!properties.chaining ?? 'chain' !! 'call'),
+               :op(self.properties.chaining ?? 'chain' !! 'call'),
                :name(self.resolution.lexical-name),
                $left-qast,
                $right-qast
@@ -367,8 +393,9 @@ class RakuAST::Infix
     }
 
     method IMPL-CAN-INTERPRET() {
-        !$!properties.short-circuit && !$!properties.chaining &&
-            nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+        nqp::istype(self.resolution,RakuAST::CompileTimeValue)
+          && !self.properties.short-circuit
+          && !self.properties.chaining
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands) {
@@ -1026,6 +1053,7 @@ class RakuAST::Prefixish
 # A lookup of a simple (non-meta) prefix operator.
 class RakuAST::Prefix
   is RakuAST::Prefixish
+  is RakuAST::OperatorProperties
   is RakuAST::Lookup
 {
     has str $.operator;
@@ -1035,6 +1063,10 @@ class RakuAST::Prefix
         nqp::bindattr_s($obj, RakuAST::Prefix, '$!operator', $operator);
         nqp::bindattr($obj, RakuAST::Prefixish, '$!colonpairs', []);
         $obj
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.prefix($!operator)
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -1169,6 +1201,7 @@ class RakuAST::Postfixish
 # A lookup of a simple (non-meta) postfix operator.
 class RakuAST::Postfix
   is RakuAST::Postfixish
+  is RakuAST::OperatorProperties
   is RakuAST::Lookup
 {
     has str $.operator;
@@ -1178,6 +1211,10 @@ class RakuAST::Postfix
         nqp::bindattr_s($obj, RakuAST::Postfix, '$!operator', $operator);
         nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.postfix($!operator)
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {

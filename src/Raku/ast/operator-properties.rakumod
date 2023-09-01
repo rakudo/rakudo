@@ -738,7 +738,9 @@ class OperatorProperties {
         my constant PROPERTIES := nqp::hash(
            '', 'default-postfix',
 
-          'i', 'methodcall',
+          'i',   'methodcall',
+          'ⁿ',   'autoincrement',  # power
+          '+',   'autoincrement',  # vulgar
 
           '++',  'autoincrement',
           '--',  'autoincrement',

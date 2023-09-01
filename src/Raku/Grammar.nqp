@@ -776,8 +776,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             self.actions.comp-unit-prologue($/);  # set the above variables
         }
 
-        :my $*IN-TYPENAME;       # fallback for inside typename flag
-        :my $*FAKE-INFIX-FOUND;  # fallback for fake infix handling
+        :my $*IN-TYPENAME;      # fallback for inside typename flag
+        :my $*ADVERB-AS-INFIX;  # fallback for fake infix handling
 
         :my @*LEADING-DOC := [];         # temp storage leading declarator doc
         :my $*DECLARAND;                 # target for trailing declarator doc
@@ -1474,7 +1474,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     self.EXPR-reduce(@termstack, @opstack);
                 }
 
-                if nqp::isnull(nqp::atkey(%inO, 'fake')) {
+                if nqp::isnull(nqp::atkey(%inO, 'adverb')) {
                     $more_infix := 0;
                 }
                 else {
@@ -1601,6 +1601,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %conditional     := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', '.tt');
     my %conditional_ff  := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', 'tt');
     my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
+    my %adverb          := nqp::hash('prec', 'i=', 'assoc', 'unary', 'adverb', 1, 'dba', 'adverb');
     my %list_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'list assignment', 'sub', 'e=', 'fiddly', 1);
     my %loose_unary     := nqp::hash('prec', 'h=', 'assoc', 'unary', 'dba', 'loose unary');
     my %comma           := nqp::hash('prec', 'g=', 'assoc', 'list', 'dba', 'comma', 'nextterm', 'nulltermish');
@@ -1620,8 +1621,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         self;
     }
 
-    token infixish($in_meta = nqp::getlexdyn('$*IN-META')) {
-        :my $*IN-META := $in_meta;
+    token infixish($IN-META = nqp::getlexdyn('$*IN-META')) {
+        :my $*IN-META := $IN-META;
         :my $*OPER;
         <!stdstopper>
         <!infixstopper>
@@ -1629,8 +1630,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           | <!{ $*IN_REDUCE }>
             <colonpair>
-            <fake-infix>
-            { $*OPER := $<fake-infix> }
+            <adverb-as-infix>
+            { $*OPER := $<adverb-as-infix> }
 
           | [
               | :dba('bracketed infix')
@@ -1670,9 +1671,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos) }
     }
 
-    token fake-infix {
-        <O(|%item_assignment, :assoc<unary>, :fake<1>, :dba<adverb>)>
-        { $*FAKE-INFIX-FOUND := 1 }
+    token adverb-as-infix {
+        <O(|%adverb)>
+        { $*ADVERB-AS-INFIX := 1 }
     }
 
     regex infixstopper {
@@ -2350,7 +2351,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token circumfix {*}
     token circumfix:sym<( )> {
-        :my $*FAKE-INFIX-FOUND := 0;
+        :my $*ADVERB-AS-INFIX := 0;
         :dba('parenthesized expression')
         '(' ~ ')' <semilist>
     }
@@ -2361,7 +2362,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token circumfix:sym<{ }> {
-        :my $*FAKE-INFIX-FOUND := 0;
+        :my $*ADVERB-AS-INFIX := 0;
         <?[{]> <pointy-block>
         { $*BORG<block> := $<pointy-block> }
     }
@@ -3825,7 +3826,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token args($*INVOCANT_OK = 0) {
         :my $*INVOCANT;
         :my $*GOAL := '';
-        :my $*FAKE-INFIX-FOUND := 0;
+        :my $*ADVERB-AS-INFIX := 0;
         :dba('argument list')
         [
         | '(' ~ ')' <semiarglist>

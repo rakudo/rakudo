@@ -317,7 +317,7 @@ role Raku::Common {
 
     token cheat-heredoc {
         :my $scope;
-        <?{ nqp::elems($*CU.herestub-queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> { $scope := $*R.current-scope; $*R.leave-scope; } <.ws> { $*R.enter-scope($scope) } <?MARKER('endstmt')>
+        <?{ nqp::elems($*CU.herestub-queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> { $scope := $*R.current-scope; $*R.leave-scope; } <.ws> { $*R.enter-scope($scope) } <?MARKER('end-statement')>
     }
 
     token quibble($l, *@base_tweaks) {
@@ -874,7 +874,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | <EXPR>
             :dba('statement end')
             [
-              || <?MARKED('endstmt')>
+              || <?MARKED('end-statement')>
               || :dba('statement modifier')
                  <.ws>
                  <statement-mod-cond>
@@ -906,7 +906,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Helper token to parse until the end of a statement
     token eat-terminator {
         || ';'                         # a real end of statement
-        || <?MARKED('endstmt')> <.ws>  # OR XXX
+        || <?MARKED('end-statement')> <.ws>  # OR XXX
         || <?before <.[)\]}]> >        # OR bumping into  ) ] }
         || $                           # OR end of text
         || <?stopper>                  # OR XXX
@@ -973,7 +973,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             '{'                                     # actual block start
             <statementlist=.key-origin('statementlist')>
             [<.cheat-heredoc> || '}']               # actual block end
-            <?ENDSTMT>                              # XXX
+            <?end-statement>                        # XXX
           || <.missing-block($borg, $has-mystery)>  # OR give up
         ]
     }
@@ -2600,7 +2600,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<onlystar> {
-        '{*}' <?ENDSTMT>
+        '{*}' <?end-statement>
         # [ <?{ $*IN_PROTO }> || <.panic: '{*} may only appear in proto'> ]
     }
 
@@ -3195,7 +3195,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token onlystar {
         <?{ $*MULTINESS eq 'proto' }>
         '{' <.ws> '*' <.ws> '}'
-        <?ENDSTMT>
+        <?end-statement>
     }
 
     proto token regex-declarator {*}
@@ -3240,7 +3240,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #          | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
           | <nibble(self.quote-lang(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), '{', '}'))>
           ]
-          '}'<!RESTRICTED><?ENDSTMT>
+          '}'<!RESTRICTED><?end-statement>
           <.leave-block-scope>
         ] || <.malformed: $type>
     }
@@ -3927,10 +3927,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }>
     }
 
-    token ENDSTMT {
-        [
-          | \h*                       $$ <.ws> <?MARKER('endstmt')>
-          | <.horizontal-whitespace>? $$ <.ws> <?MARKER('endstmt')>
+    token end-statement {
+        [    # keep these alternations separate for performance
+          | \h*                       $$ <.ws> <?MARKER('end-statement')>
+          | <.horizontal-whitespace>? $$ <.ws> <?MARKER('end-statement')>
         ]?
     }
 
@@ -3953,7 +3953,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token stdstopper {
         [
-        || <?MARKED('endstmt')> <?>
+        || <?MARKED('end-statement')> <?>
         || [
            | <?terminator>
            | $

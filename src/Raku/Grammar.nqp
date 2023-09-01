@@ -1474,12 +1474,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     self.EXPR-reduce(@termstack, @opstack);
                 }
 
-                if nqp::isnull(nqp::atkey(%inO, 'adverb')) {
-                    $more_infix := 0;
-                }
-                else {
+                if nqp::atkey(%inO,'adverb') {
                     nqp::push(@opstack, $infix);
                     self.EXPR-reduce(@termstack, @opstack);
+                }
+                else {
+                    $more_infix := 0;
                 }
             }
             last if $term_done;

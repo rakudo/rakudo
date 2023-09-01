@@ -40,14 +40,12 @@ role Raku::Common {
     # Produce fresh new cursor at given position
     method new-cursor-at(int $pos) {
         my $cursor := self.'!cursor_start_cur'();
-        $cursor.'!cursor_pos'($pos);
+        $cursor.set-pos($pos);
         $cursor
     }
 
     # Set position of cursor
-    method set-pos(int $pos) {
-        self.'!cursor_pos'($pos)
-    }
+    method set-pos(int $pos) { nqp::bindattr_i(self,NQPMatch,'$!pos',$pos) }
 
     # Pass at current position of cursor
     method pass-at-current() {
@@ -1369,10 +1367,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my int $term_done;
 
         while 1 {
-            nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+            $here.set-pos($pos);
             $termcur := $here."$termishrx"();
-            $pos := nqp::getattr_i($termcur, NQPMatch, '$!pos');
-            nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+            $pos := $termcur.pos;
+            $here.set-pos($pos);
             if $pos < 0 {
                 $here.panic('Missing required term after infix')
                   if nqp::elems(@opstack);
@@ -1431,23 +1429,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
                 # Now see if we can fetch an infix operator
                 # First, we need ws to match.
-                nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
-                $wscur := $here.ws();
-                $pos   := nqp::getattr_i($wscur, NQPMatch, '$!pos');
+                $here.set-pos($pos);
+                $wscur := $here.ws;
+                $pos   := $wscur.pos;
                 if $pos < 0 {
                     $term_done := 1;
                     last;
                 }
 
                 # Next, try the infix itself.
-                nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
-                $infixcur := $here.infixish();
-                $pos := nqp::getattr_i($infixcur, NQPMatch, '$!pos');
+                $here.set-pos($pos);
+                $infixcur := $here.infixish;
+                $pos := $infixcur.pos;
                 if $pos < 0 {
                     $term_done := 1;
                     last;
                 }
-                $infix := $infixcur.MATCH();
+                $infix := $infixcur.MATCH;
 
                 # We got an infix.
                 %inO := $infix<OPER><O>.made;
@@ -1456,11 +1454,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                   'termish'
                 );
                 $inprec := ~%inO<prec>;
-                $infixcur.panic('Missing infixish operator precedence')
-                    unless $inprec;
-                if $inprec le $preclim {
-                    $term_done := 1;
-                    last;
+                if $inprec le $preclim {  # lower or no precedence
+                    if $inprec {
+                        $term_done := 1;
+                        last;
+                    }
+                    else {
+                        $infixcur.panic('Missing infixish operator precedence');
+                    }
                 }
 
                 while nqp::elems(@opstack) {
@@ -1507,10 +1508,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
 
             nqp::push(@opstack, $infix); # The Shift
-            nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+            $here.set-pos($pos);
             $wscur := $here.ws();
-            $pos := nqp::getattr_i($wscur, NQPMatch, '$!pos');
-            nqp::bindattr_i($here, NQPMatch, '$!pos', $pos);
+            $pos   := $wscur.pos;
+            $here.set-pos($pos);
             return $here if $pos < 0;
         }
 

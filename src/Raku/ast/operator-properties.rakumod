@@ -87,6 +87,13 @@ class OperatorProperties {
         )
     }
 
+    # Return the sub-precedence or precedence on instances
+    method sub-or-precedence() {
+        nqp::isconcrete(self)
+          ?? ""
+          !! $!sub-precedence || $!precedence
+    }
+
 #-------------------------------------------------------------------------------
 # Allowable brackets in (post)circumfix operators
 

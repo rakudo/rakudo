@@ -5,11 +5,12 @@ class OperatorProperties {
 #    has str $.associative;
 #    has str $.thunky;
 #    has str $.dba;
+#    has str $.next-term;
 #    has int $.iffy;
 #    has int $.diffy;
 #    has int $.fiddly;
-#    has int $.dottyopish
-#    has int $.nulltermish
+#    has int $.adverb
+#    has int $.ternary
 
     multi method WHICH(OperatorProperties:D: --> ValueObjAt:D) {
         my $parts := nqp::list_s('OperatorProperties');
@@ -17,46 +18,26 @@ class OperatorProperties {
         if $.precedence -> str $precedence {
             nqp::push_s($parts,nqp::concat('precedence=',$precedence));
         }
+        if $.sub-precedence -> str $sub-precedence {
+            nqp::push_s($parts,nqp::concat('sub-precedence=',$sub-precedence));
+        }
         if $.associative -> str $associative {
             nqp::push_s($parts,nqp::concat('associative=',$associative));
         }
         if $.thunky -> str $thunky {
             nqp::push_s($parts,nqp::concat('thunky=',$thunky))
         }
-        nqp::push_s($parts,'iffy=1')        if $.iffy;
-        nqp::push_s($parts,'diffy=1')       if $.diffy;
-        nqp::push_s($parts,'fiddly=1')      if $.fiddly;
-        nqp::push_s($parts,'dottyopish=1')  if $.dottyopish;
-        nqp::push_s($parts,'nulltermish=1') if $.nulltermish;
+        nqp::push_s($parts,'iffy')    if $.iffy;
+        nqp::push_s($parts,'diffy')   if $.diffy;
+        nqp::push_s($parts,'fiddly')  if $.fiddly;
+        nqp::push_s($parts,'adverb')  if $.adverb;
+        nqp::push_s($parts,'ternary') if $.ternary;
 
         nqp::box_s(nqp::join('|',$parts),ValueObjAt)
     }
 
     # Return handler for reducing with these operator properties
     method reducer() { ::(self.reducer-name) }
-
-    multi method raku(OperatorProperties:D: --> Str:D) {
-        my $parts := nqp::list_s;
-
-        if $.precedence -> str $precedence {
-            nqp::push_s($parts,nqp::concat('precedence => ',$precedence.raku));
-        }
-        if $.associative -> str $associative {
-            nqp::push_s($parts,nqp::concat('associative => ',$associative.raku));
-        }
-        if $.thunky -> str $thunky {
-            nqp::push_s($parts,nqp::concat('thunky => ',$thunky.raku))
-        }
-        nqp::push_s($parts,':iffy')        if $.iffy;
-        nqp::push_s($parts,':diffy')       if $.diffy;
-        nqp::push_s($parts,':fiddly')      if $.fiddly;
-        nqp::push_s($parts,':dottyopish')  if $.dottyopish;
-        nqp::push_s($parts,':nulltermish') if $.nulltermish;
-
-        nqp::concat('OperatorProperties.new(',
-          nqp::concat(nqp::join(', ',$parts),')')
-        )
-    }
 }
 
 #-------------------------------------------------------------------------------

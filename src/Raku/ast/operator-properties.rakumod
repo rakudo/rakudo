@@ -25,6 +25,7 @@ class OperatorProperties {
     has int $.diffy;
     has int $.fiddly;
     has int $.adverb;
+    has int $.ternary;
 
     # Basic interface
     method new(
@@ -37,7 +38,8 @@ class OperatorProperties {
       int :$iffy,
       int :$diffy,
       int :$fiddly,
-      int :$adverb
+      int :$adverb,
+      int :$ternary
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,OperatorProperties,'$!precedence',
@@ -61,6 +63,8 @@ class OperatorProperties {
           $fiddly // (nqp::isconcrete(self) ?? $!fiddly !! 0));
         nqp::bindattr_i($obj,OperatorProperties,'$!adverb',
           $adverb // (nqp::isconcrete(self) ?? $!adverb !! 0));
+        nqp::bindattr_i($obj,OperatorProperties,'$!ternary',
+          $ternary // (nqp::isconcrete(self) ?? $!ternary !! 0));
 
         $obj
     }
@@ -77,6 +81,7 @@ class OperatorProperties {
       int :$diffy,
       int :$fiddly,
       int :$adverb,
+      int :$ternary,
       *%_
     ) {
         self.new(
@@ -89,8 +94,38 @@ class OperatorProperties {
           :$iffy,
           :$diffy,
           :$fiddly,
-          :$adverb
+          :$adverb,
+          :$ternary
         )
+    }
+
+    # A readable .raku representation for debugging
+    method raku() {
+        my str $name := self.HOW.name(self);
+        return $name unless nqp::isconcrete(self);
+
+        my $parts := nqp::list_s;
+
+        nqp::push_s($parts,':precedence("' ~ $!precedence ~ '")')
+          if $!precedence;
+        nqp::push_s($parts,':sub-precedence("' ~ $!sub-precedence ~ '")')
+          if $!sub-precedence;
+        nqp::push_s($parts,':associative("' ~ $!associative ~ '")')
+          if $!associative;
+        nqp::push_s($parts,':thunky("' ~ $!thunky ~ '")')
+          if $!thunky;
+        nqp::push_s($parts,':dba("' ~ $!dba ~ '")')
+          if $!dba;
+        nqp::push_s($parts,':next-term("' ~ $!next-term ~ '")')
+          if $!next-term;
+
+        nqp::push_s($parts,':iffy')    if $!iffy;
+        nqp::push_s($parts,':diffy')   if $!diffy;
+        nqp::push_s($parts,':fiddly')  if $!fiddly;
+        nqp::push_s($parts,':adverb')  if $!adverb;
+        nqp::push_s($parts,':ternary') if $!ternary;
+
+        $name ~ '.new: ' ~ nqp::join(', ',$parts)
     }
 
 #-------------------------------------------------------------------------------
@@ -203,10 +238,11 @@ class OperatorProperties {
         (nqp::isconcrete(self) ?? $!next-term !! "") || 'termish'
     }
 
-    method iffy()   { nqp::isconcrete(self) ?? $!iffy   !! 0  }
-    method diffy()  { nqp::isconcrete(self) ?? $!diffy  !! 0  }
-    method fiddly() { nqp::isconcrete(self) ?? $!fiddly !! 0  }
-    method adverb() { nqp::isconcrete(self) ?? $!adverb !! 0  }
+    method iffy()    { nqp::isconcrete(self) ?? $!iffy    !! 0 }
+    method diffy()   { nqp::isconcrete(self) ?? $!diffy   !! 0 }
+    method fiddly()  { nqp::isconcrete(self) ?? $!fiddly  !! 0 }
+    method adverb()  { nqp::isconcrete(self) ?? $!adverb  !! 0 }
+    method ternary() { nqp::isconcrete(self) ?? $!ternary !! 0 }
 
     # Convenience methods
     method chaining() {
@@ -249,26 +285,20 @@ class OperatorProperties {
     method prec(str $key?) {
         if nqp::isconcrete(self) {
             if $key {
-                $key eq 'prec'
-                  ?? $!precedence
-                  !! $key eq 'assoc'
-                    ?? $!associative
-                    !! $key eq 'thunky'
-                      ?? $!thunky
-                      !! $key eq 'iffy'
-                        ?? $!iffy
-                        !! $key eq 'nextterm'
-                          ?? $!next-term
-                          !! nqp::null
+                nqp::atkey(self.prec,$key)
             }
             else {
                 my $hash := nqp::hash;
-                nqp::bindkey($hash,'prec',   $!precedence)  if $!precedence;
-                nqp::bindkey($hash,'sub', $!sub-precedence) if $!sub-precedence;
-                nqp::bindkey($hash,'assoc',  $!associative) if $!associative;
-                nqp::bindkey($hash,'thunky', $!thunky)      if $!thunky;
-                nqp::bindkey($hash,'nextterm', $!next-term) if $!next-term;
-                nqp::bindkey($hash,'iffy',   $!iffy)        if $!iffy;
+                nqp::bindkey($hash,'prec',$!precedence)    if $!precedence;
+                nqp::bindkey($hash,'sub',$!sub-precedence) if $!sub-precedence;
+                nqp::bindkey($hash,'assoc',$!associative)  if $!associative;
+                nqp::bindkey($hash,'thunky',$!thunky)      if $!thunky;
+                nqp::bindkey($hash,'nextterm',$!next-term) if $!next-term;
+                nqp::bindkey($hash,'iffy',$!iffy)          if $!iffy;
+                nqp::bindkey($hash,'diffy',$!diffy)        if $!diffy;
+                nqp::bindkey($hash,'fiddly',$!fiddly)      if $!fiddly;
+                nqp::bindkey($hash,'adverb',$!adverb)      if $!adverb;
+                nqp::bindkey($hash,'ternary',$!ternary)    if $!ternary;
                 $hash
             }
         }
@@ -360,7 +390,9 @@ class OperatorProperties {
             'precedence','y='
            ),
           'default-circumfix', nqp::hash(),
-
+          'default-dotty', nqp::hash(
+            'precedence','y='
+           ),
           'methodcall', nqp::hash(
             'precedence','y=', 'associative','unary', 'fiddly', 1
           ),
@@ -435,10 +467,16 @@ class OperatorProperties {
             'precedence','k=', 'associative','list'
           ),
           'conditional', nqp::hash(
-            'precedence','j=', 'associative','right', 'thunky','.tt', 'iffy',1
+            'precedence','j=', 'associative','right', 'thunky','.tt',
+            'iffy',1
+          ),
+          'ternary', nqp::hash(
+            'precedence','j=', 'associative','right', 'thunky','.tt',
+            'ternary',1
           ),
           'conditional-ff', nqp::hash(
-            'precedence','j=', 'associative','right', 'thunky','tt', 'iffy',1
+            'precedence','j=', 'associative','right', 'thunky','tt',
+            'iffy',1
           ),
           'item-assignment', nqp::hash(
             'precedence','i=', 'associative','right'
@@ -654,6 +692,8 @@ class OperatorProperties {
           'min', 'tight-minmax',
           'max', 'tight-minmax',
 
+          '?? ::', 'ternary',
+
           'ff',    'conditional-ff',
           '^ff',   'conditional-ff',
           'ff^',   'conditional-ff',
@@ -756,10 +796,13 @@ class OperatorProperties {
         my constant PROPERTIES := nqp::hash(
            '', 'default-postcircumfix',
 
-          '[ ]',  'methodcall',
-          '[; ]', 'methodcall',
-          '{ }',  'methodcall',
-          '{; }', 'methodcall',
+          '< >',   'methodcall',
+          '<< >>', 'methodcall',
+          '« »',   'methodcall',
+          '[ ]',   'methodcall',
+          '[; ]',  'methodcall',
+          '{ }',   'methodcall',
+          '{; }',  'methodcall',
         );
 
         self.produce(PROPERTIES, $operator // '')
@@ -769,6 +812,27 @@ class OperatorProperties {
     method circumfix(str $operator?) {
         my constant PROPERTIES := nqp::hash(
            '', 'default-circumfix',
+
+          '< >',   'methodcall',
+          '<< >>', 'methodcall',
+          '« »',   'methodcall',
+          '[ ]',   'methodcall',
+          '{ }',   'methodcall',
+        );
+
+        self.produce(PROPERTIES, $operator // '')
+    }
+
+    # Lookup properties of a dotty operator
+    method dotty(str $operator?) {
+        my constant PROPERTIES := nqp::hash(
+           '', 'default-dotty',
+
+          '.',  'methodcall',
+          '.^', 'methodcall',
+          '.?', 'methodcall',
+          '.&', 'methodcall',
+          '.=', 'methodcall',
         );
 
         self.produce(PROPERTIES, $operator // '')

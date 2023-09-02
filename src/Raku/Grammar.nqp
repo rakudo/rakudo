@@ -1605,6 +1605,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %tight_xor       := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight xor', 'thunky', '..t', 'iffy', 1);
     my %tight_or_minmax := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight or');
     my %conditional     := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', '.tt');
+    my %ternary         := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'ternary', 'fiddly', 1, 'thunky', '.tt', 'ternary', 1);
     my %conditional_ff  := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', 'tt');
     my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
     my %adverb          := nqp::hash('prec', 'i=', 'assoc', 'unary', 'adverb', 1, 'dba', 'adverb');
@@ -2263,7 +2264,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <.typed-panic: "X::Syntax::Confused",
                reason => "Confused: Found ?? but no !!">
         ]
-        <O(|%conditional, :ternary)>
+        <O(|%ternary)>
     }
 
     token infix:sym<,>    {

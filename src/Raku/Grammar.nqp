@@ -1604,7 +1604,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %tight_defor     := nqp::hash('prec', 'k=', 'assoc', 'left', 'dba', 'tight defor', 'thunky', '.t');
     my %tight_xor       := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight xor', 'thunky', '..t', 'iffy', 1);
     my %tight_or_minmax := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight or');
-    my %conditional     := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', '.tt');
     my %ternary         := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'ternary', 'fiddly', 1, 'thunky', '.tt', 'ternary', 1);
     my %conditional_ff  := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', 'tt');
     my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
@@ -2298,7 +2297,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <![?]>
         <?before <.-[;]>*?':'>
         <.obs: '? and : for the ternary conditional operator', '?? and !!'>
-        <O(|%conditional)>
     }
 
     token infix:sym<ff>    { <sym> <O(|%conditional_ff)> }

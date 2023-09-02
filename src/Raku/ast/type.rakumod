@@ -311,7 +311,33 @@ class RakuAST::Type::Parameterized
             $ptype.HOW.parameterize($ptype, |@pos, |%named)
         }
         else {
-            nqp::die('Cannot do compile time parameterization with these args');
+            my $args := $!args.args;
+            if nqp::istype($args.AT-POS(0), RakuAST::QuotedString) {
+                my $is-only-quoted-string := 0;
+                my $arg-count := 0;
+                for self.IMPL-UNWRAP-LIST($args) {
+                    $is-only-quoted-string := nqp::istype($_, RakuAST::QuotedString) ?? 1 !! 0;
+                    $arg-count++;
+                    last unless $is-only-quoted-string;
+                }
+                if $is-only-quoted-string {
+                    my @literals;
+                    for self.IMPL-UNWRAP-LIST($args) {
+                        my $literal := $_.literal-value;
+                        if nqp::isconcrete($literal) {
+                            @literals.push: $literal;
+                        }
+                    }
+                    unless nqp::elems(@literals) == $arg-count {
+                        nqp::die('Not all RakuAST::QuotedString objects have literal values');
+                    }
+                    my $ptype := self.IMPL-BASE-TYPE.compile-time-value;
+                    $ptype.HOW.parameterize($ptype, |@literals);
+                }
+            }
+            else {
+                nqp::die('Cannot do compile time parameterization with these args');
+            }
         }
     }
 

@@ -1535,21 +1535,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         # Give it a fresh capture list, since we'll have assumed it has
         # no positional captures and not taken them.
-        nqp::bindattr($op, NQPCapture, '@!array', nqp::list());
-        my %opOPER      := nqp::atkey($op, 'OPER');
-        my %opO         := nqp::atkey(%opOPER, 'O').made;
+        nqp::bindattr($op,NQPCapture,'@!array',nqp::list);
+
+        # Some shortcuts
+        my %opOPER := nqp::atkey($op, 'OPER');
+        my %opO    := nqp::atkey(%opOPER, 'O').made;
         my str $opassoc := ~nqp::atkey(%opO, 'assoc');
-        my str $key;
-        my str $sym;
-        my $arg;
+        my $actions     := self.actions;
 
         if $opassoc eq 'unary' {
-            $arg   := nqp::pop(@termstack);
-            $op[0] := $arg;
-            $key   := $arg.from() < $op.from() ?? 'POSTFIX' !! 'PREFIX';
+            my $arg := nqp::pop(@termstack);
+            $op[0]  := $arg;
+            $actions.EXPR($op, $arg.from < $op.from ?? 'POSTFIX' !! 'PREFIX');
         }
+
         elsif $opassoc eq 'list' {
-            $sym := nqp::ifnull(nqp::atkey(%opOPER, 'sym'), '');
+            my str $sym := nqp::ifnull(nqp::atkey(%opOPER, 'sym'), '');
             nqp::unshift($op, nqp::pop(@termstack));
             while @opstack {
                 last if $sym ne nqp::ifnull(
@@ -1559,8 +1560,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 nqp::pop(@opstack);
             }
             nqp::unshift($op, nqp::pop(@termstack));
-            $key := 'LIST';
+            $actions.EXPR($op, 'LIST');
         }
+
         else { # infix op assoc: left|right|ternary|...
             $op[1] := nqp::pop(@termstack); # right
             $op[0] := nqp::pop(@termstack); # left
@@ -1570,9 +1572,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 $op[2] := $op[1];
                 $op[1] := $op<infix><EXPR>;
             }
-            $key := 'INFIX';
+            $actions.EXPR($op, 'INFIX');
         }
-        self.'!reduce_with_match'('EXPR', $key, $op);
         nqp::push(@termstack, $op);
     }
 

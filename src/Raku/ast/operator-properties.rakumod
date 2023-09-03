@@ -293,6 +293,7 @@ class OperatorProperties {
                 nqp::bindkey($hash,'sub',$!sub-precedence) if $!sub-precedence;
                 nqp::bindkey($hash,'assoc',$!associative)  if $!associative;
                 nqp::bindkey($hash,'thunky',$!thunky)      if $!thunky;
+                nqp::bindkey($hash,'dba',$!dba)            if $!dba;
                 nqp::bindkey($hash,'nextterm',$!next-term) if $!next-term;
                 nqp::bindkey($hash,'iffy',$!iffy)          if $!iffy;
                 nqp::bindkey($hash,'diffy',$!diffy)        if $!diffy;
@@ -449,7 +450,7 @@ class OperatorProperties {
             'precedence','m=', 'associative','chain', 'iffy',1, 'diffy',1
           ),
           'tight-and', nqp::hash(
-            'precedence','l=', 'associative','list', 'thunky','.t', 'iffy',1
+            'precedence','l=', 'associative','left', 'thunky','.t', 'iffy',1
           ),
           'tight-or', nqp::hash(
             'precedence','k=', 'associative','left', 'thunky','.t', 'iffy',1
@@ -701,6 +702,7 @@ class OperatorProperties {
           'fff^',  'conditional-ff',
           '^fff^', 'conditional-ff',
 
+          '=',   'item-assignment',
           '=>',  'item-assignment',
           '⇒',   'item-assignment',
           '⚛=',  'item-assignment',
@@ -723,8 +725,6 @@ class OperatorProperties {
           '^...^',  'list-infix',
           '^…^',    'list-infix',
           'minmax', 'list-infix',
-
-          '=',   'list-prefix',
 
           'and', 'loose-and',
 

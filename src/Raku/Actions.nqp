@@ -923,6 +923,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # Just a term
     method EXPR($/) {
         self.attach: $/, $/.ast // $<OPER>.ast;
+        $/  # simplies end of EXPR "token"
     }
 
     # A ternary expression

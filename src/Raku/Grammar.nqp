@@ -1506,7 +1506,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 }
                 elsif $inassoc eq 'list' {
                     my $op1 := @opstack[nqp::elems(@opstack)-1]<OPER>.Str;
-                    my $op2 := $infix.Str();
+                    my $op2 := $infix.Str;
                     self.EXPR-nonlistassoc($infixcur, $op1, $op2)
                       if $op1 ne $op2 && $op1 ne ':';
                 }
@@ -1514,20 +1514,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
             nqp::push(@opstack, $infix); # The Shift
             $here.set-pos($pos);
-            $wscur := $here.ws();
+            $wscur := $here.ws;
             $pos   := $wscur.pos;
             $here.set-pos($pos);
             return $here if $pos < 0;
         }
 
-        self.EXPR-reduce(@termstack, @opstack)
-          while nqp::elems(@opstack);
+        self.EXPR-reduce(@termstack, @opstack) while nqp::elems(@opstack);
 
-        self.match-with-at(nqp::pop(@termstack), $here.pos).'!reduce'('EXPR')
-#        self.actions.EXPR(  # XXX this doesn't work, why???
-#          self.match-with-at(nqp::pop(@termstack), $here.pos).MATCH
-#        );
-#        self
+        self.actions.EXPR(self.match-with-at(nqp::pop(@termstack), $here.pos))
     }
 
     method EXPR-reduce(@termstack, @opstack) {

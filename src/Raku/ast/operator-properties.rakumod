@@ -390,9 +390,6 @@ class OperatorProperties {
             'precedence','y='
            ),
           'default-circumfix', nqp::hash(),
-          'default-dotty', nqp::hash(
-            'precedence','y='
-           ),
           'methodcall', nqp::hash(
             'precedence','y=', 'associative','unary', 'fiddly', 1
           ),
@@ -779,7 +776,15 @@ class OperatorProperties {
         my constant PROPERTIES := nqp::hash(
            '', 'default-postfix',
 
-          'i',   'methodcall',
+          '()', 'methodcall',     # term()
+          '.',  'methodcall',
+          '!',  'methodcall',
+          '.^', 'methodcall',
+          '.?', 'methodcall',
+          '.&', 'methodcall',
+          '.=', 'methodcall',
+          'i',  'methodcall',
+
           'ⁿ',   'autoincrement',  # power
           '+',   'autoincrement',  # vulgar
 
@@ -819,21 +824,6 @@ class OperatorProperties {
           '« »',   'methodcall',
           '[ ]',   'methodcall',
           '{ }',   'methodcall',
-        );
-
-        self.produce(PROPERTIES, $operator // '')
-    }
-
-    # Lookup properties of a dotty operator
-    method dotty(str $operator?) {
-        my constant PROPERTIES := nqp::hash(
-           '', 'default-dotty',
-
-          '.',  'methodcall',
-          '.^', 'methodcall',
-          '.?', 'methodcall',
-          '.&', 'methodcall',
-          '.=', 'methodcall',
         );
 
         self.produce(PROPERTIES, $operator // '')

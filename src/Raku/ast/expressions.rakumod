@@ -120,25 +120,16 @@ class RakuAST::OperatorProperties
 
     # Obtain operator properties from config or from actual object
     method properties() {
-        my $resolution := self.resolution;
-        nqp::istype($resolution,RakuAST::CompileTimeValue)
-          ?? $resolution.compile-time-value.op_props  # actual properties
-          !! self.default-operator-properties         # assume default
+        if nqp::can(self,'is-resolved') && self.is-resolved {
+            my $resolution := self.resolution;
+            nqp::istype($resolution,RakuAST::CompileTimeValue)
+              ?? $resolution.compile-time-value.op_props  # actual properties
+              !! self.default-operator-properties         # assume default
+        }
+        else {
+            self.default-operator-properties  # assume default
+        }
     }
-
-    # Allow direct access to attributes
-    method precedence()        { self.properties.precedence        }
-    method sub-precedence()    { self.properties.sub-precedence    }
-    method sub-or-precedence() { self.properties.sub-or-precedence }
-    method associative()       { self.properties.associative       }
-    method thunky()            { self.properties.thunky            }
-    method next-term()         { self.properties.next-term         }
-    method dba()               { self.properties.dba               }
-    method iffy()              { self.properties.iffy              }
-    method diffy()             { self.properties.diffy             }
-    method fiddly()            { self.properties.fiddly            }
-    method adverb()            { self.properties.adverb            }
-    method prec()              { self.properties.prec              }
 }
 
 # Marker for all kinds of infixish operators.
@@ -435,6 +426,8 @@ class RakuAST::MetaInfix::Assign
         $visitor($!infix);
     }
 
+    method properties() { $!infix.properties }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_ASSIGN')),
@@ -492,6 +485,8 @@ class RakuAST::BracketedInfix
         nqp::bindattr($obj, RakuAST::BracketedInfix, '$!infix', $infix);
         $obj
     }
+
+    method properties() { $!infix.properties }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
@@ -559,6 +554,8 @@ class RakuAST::MetaInfix::Negate
         $visitor($!infix);
     }
 
+    method properties() { $!infix.properties }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_NEGATE')),
@@ -596,6 +593,8 @@ class RakuAST::MetaInfix::Reverse
         $visitor($!infix);
     }
 
+    method properties() { $!infix.properties }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('&METAOP_REVERSE')),
@@ -628,6 +627,8 @@ class RakuAST::MetaInfix::Cross
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
+
+    method properties() { $!infix.properties }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -666,6 +667,8 @@ class RakuAST::MetaInfix::Zip
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
+
+    method properties() { $!infix.properties }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -710,6 +713,8 @@ class RakuAST::MetaInfix::Hyper
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
+
+    method properties() { $!infix.properties }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -946,6 +951,7 @@ class RakuAST::ApplyListInfix
 # The base of all dotty infixes (`$foo .bar` or `$foo .= bar()`).
 class RakuAST::DottyInfixish
   is RakuAST::Node
+  is RakuAST::OperatorProperties
 {
     method new() { nqp::create(self) }
 }
@@ -959,12 +965,20 @@ class RakuAST::DottyInfix::Call
             RakuAST::Postfixish $rhs-ast) {
         $rhs-ast.IMPL-POSTFIX-QAST($context, $lhs-qast)
     }
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('.')
+    }
 }
 
 # The `.=` dotty infix.
 class RakuAST::DottyInfix::CallAssign
   is RakuAST::DottyInfixish
 {
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('.=')
+    }
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
             RakuAST::Postfixish $rhs-ast) {
@@ -1010,6 +1024,8 @@ class RakuAST::ApplyDottyInfix
         nqp::bindattr($obj, RakuAST::ApplyDottyInfix, '$!right', $right);
         $obj
     }
+
+    method properties() { $!infix.properties }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-DOTTY-INFIX-QAST: $context,
@@ -1119,6 +1135,8 @@ class RakuAST::MetaPrefix::Hyper
     method visit-children(Code $visitor) {
         $visitor($!prefix);
     }
+
+    method properties() { $!prefix.properties }
 }
 
 # Application of a prefix operator.
@@ -1169,6 +1187,7 @@ class RakuAST::ApplyPrefix
 # Marker for all kinds of postfixish operators.
 class RakuAST::Postfixish
   is RakuAST::Node
+  is RakuAST::OperatorProperties
 {
     has List $.colonpairs;
 
@@ -1202,7 +1221,6 @@ class RakuAST::Postfixish
 # A lookup of a simple (non-meta) postfix operator.
 class RakuAST::Postfix
   is RakuAST::Postfixish
-  is RakuAST::OperatorProperties
   is RakuAST::Lookup
 {
     has str $.operator;
@@ -1275,6 +1293,11 @@ class RakuAST::Postfix::Literal
 class RakuAST::Postfix::Power
   is RakuAST::Postfix::Literal
 {
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('ⁿ')
+    }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-postfix('ⁿ');
         if $resolved {
@@ -1290,6 +1313,11 @@ class RakuAST::Postfix::Power
 class RakuAST::Postfix::Vulgar
   is RakuAST::Postfix::Literal
 {
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('+')
+    }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-infix('+');
         if $resolved {
@@ -1339,6 +1367,10 @@ class RakuAST::Postcircumfix::ArrayIndex
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.postcircumfix('[ ]')
     }
 
     method visit-children(Code $visitor) {
@@ -1413,6 +1445,10 @@ class RakuAST::Postcircumfix::HashIndex
         self.visit-colonpairs($visitor);
     }
 
+    method default-operator-properties() {
+        OperatorProperties.postcircumfix('{ }')
+    }
+
     method IMPL-CURRIES() { 3 }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
@@ -1474,6 +1510,10 @@ class RakuAST::Postcircumfix::LiteralHashIndex
         self.visit-colonpairs($visitor);
     }
 
+    method default-operator-properties() {
+        OperatorProperties.postcircumfix('< >')
+    }
+
     method IMPL-CURRIES() { 3 }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
@@ -1526,6 +1566,10 @@ class RakuAST::MetaPostfix::Hyper
     method visit-children(Code $visitor) {
         $visitor($!postfix);
         self.visit-colonpairs($visitor);
+    }
+
+    method default-operator-properties() {
+        $!postfix.properties
     }
 }
 
@@ -1636,4 +1680,6 @@ class RakuAST::Ternary
         $visitor($!then);
         $visitor($!else);
     }
+
+    method properties() { OperatorProperties.infix('?? !!') }
 }

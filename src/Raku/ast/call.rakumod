@@ -347,6 +347,10 @@ class RakuAST::Call::Term
         $visitor(self.args);
     }
 
+    method default-operator-properties() {
+        OperatorProperties.postfix('()')
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $callee-qast) {
         my $call := QAST::Op.new( :op('call'), $callee-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
@@ -393,6 +397,10 @@ class RakuAST::Call::Method
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor(self.args);
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('.')
     }
 
     method macroish() {
@@ -540,6 +548,10 @@ class RakuAST::Call::QuotedMethod
         $visitor(self.args);
     }
 
+    method default-operator-properties() {
+        OperatorProperties.postfix('.')
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $name-qast := QAST::Op.new( :op<unbox_s>, $!name.IMPL-TO-QAST($context) );
         my $call := QAST::Op.new( :op('callmethod'), $invocant-qast, $name-qast );
@@ -567,6 +579,10 @@ class RakuAST::Call::PrivateMethod
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor(self.args);
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('!')
     }
 
     method needs-resolution() { False }
@@ -620,6 +636,10 @@ class RakuAST::Call::MetaMethod
         $visitor(self.args);
     }
 
+    method default-operator-properties() {
+        OperatorProperties.postfix('.^')
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $call := QAST::Op.new( :op('p6callmethodhow'), :name($!name), $invocant-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
@@ -642,6 +662,10 @@ class RakuAST::Call::MaybeMethod
 
     method visit-children(Code $visitor) {
         $visitor(self.args);
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('.?')
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
@@ -674,6 +698,10 @@ class RakuAST::Call::VarMethod
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor(self.args);
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('.&')
     }
 
     method needs-resolution() { $!name.is-identifier }

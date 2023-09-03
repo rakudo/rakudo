@@ -1240,14 +1240,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my $ast;
         if $<infix> {
+            my str $op := ~$<infix>;
             $ast := $<infix>.ast;
-            unless $ast || $<infix><sym> eq '??' {
-                $ast := Nodify('Infix').new(~$<infix>);
+            unless $ast || $op eq '??' {
+                $ast := Nodify('Infix').new($op);
             }
         }
+
         elsif $<infix-prefix-meta-operator> {
             $ast := $<infix-prefix-meta-operator>.ast;
         }
+
         elsif $<infix-circumfix-meta-operator> {
             $ast := $<infix-circumfix-meta-operator>.ast;
         }
@@ -1260,6 +1263,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             nqp::die('unknown kind of infix');
         }
+
         if $<infix-postfix-meta-operator> {
             $ast := $<infix-postfix-meta-operator>.ast.new($ast);
         }

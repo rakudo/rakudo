@@ -702,7 +702,7 @@ class OperatorProperties {
           'fff^',  'conditional-ff',
           '^fff^', 'conditional-ff',
 
-          '=',   'item-assignment',
+          '$=',  'item-assignment',  # dummy for $a = 42
           '=>',  'item-assignment',
           '⇒',   'item-assignment',
           '⚛=',  'item-assignment',
@@ -710,6 +710,7 @@ class OperatorProperties {
           '⚛-=', 'item-assignment',
           '⚛−=', 'item-assignment',
 
+          '=',  'list-assignment',
           ':=', 'list-assignment',
 
           ',', 'comma',

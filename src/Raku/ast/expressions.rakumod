@@ -400,6 +400,17 @@ class RakuAST::Infix
     }
 }
 
+# Assignment is a special case of infix, as it behaves differently in the
+# grammar depending on context.  This subclass covers the case of needing
+# item assignment precedence.
+class RakuAST::Assign::Item
+  is RakuAST::Infix
+{
+    method default-operator-properties() {
+        OperatorProperties.infix('$=')
+    }
+}
+
 # Meta infixes base class, mostly for type checking
 class RakuAST::MetaInfix
   is RakuAST::Infixish {

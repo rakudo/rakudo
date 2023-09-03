@@ -1235,6 +1235,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
     }
 
+    method infix:sym<=>($/) {
+        make Nodify('Assign','Item').new('=') if $*ITEM;
+    }
+
     method infixish($/) {
         return 0 if $<adverb-as-infix>;
 

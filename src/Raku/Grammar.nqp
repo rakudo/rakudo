@@ -2311,8 +2311,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token infix:sym<=> {
         <sym>
+        :my $*ITEM := $*LEFTSIGIL eq '$' || $*IN-META;
         [
-          || <?{ $*LEFTSIGIL eq '$' || $*IN-META }>
+          || <?{ $*ITEM }>
              <O(|%item_assignment)>
           || <O(|%list_assignment)>
         ]

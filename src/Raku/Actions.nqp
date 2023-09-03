@@ -918,106 +918,107 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-prefix:sym<race>($/)  { self.SP-looper($/, 'Race')  }
 
 #-------------------------------------------------------------------------------
-# Expression parsing and operators
+# Expression generation
 
-    method EXPR($/, $KEY?) {
-        my $ast := $/.ast // $<OPER>.ast;
+    # Just a term
+    method EXPR($/) {
+        self.attach: $/, $/.ast // $<OPER>.ast;
+    }
 
-        # Just a term
-        return self.attach($/, $ast) unless $KEY;
+    # A ternary expression
+    method TERNARY-EXPR($/) {
+        self.attach: $/, Nodify('Ternary').new:
+          condition => $/[0].ast, then => $/[1].ast, else => $/[2].ast;
+    }
 
-        # Not just a term
-        if $KEY eq 'INFIX' {
-            my $sym := $<infix><sym>;
-            if $sym eq '=' {
-                my $lhs := $/[0];
-                if nqp::istype($lhs,Nodify('ApplyPostfix')) {
-                    my $postfix := $lhs.postfix;
-                    if (nqp::istype(        # [foo]
-                        $postfix,
-                        Nodify('Postcircumfix','ArrayIndex')
-                      ) && $postfix.index.statements.elems == 1
-                    ) || nqp::istype(       # <bar>
-                           $postfix,
-                           Nodify('Postcircumfix','LiteralHashIndex')
-                         ) {
-                        $postfix.set-assignee($/[1]);
-                        self.attach: $/, $lhs;
-                        return;
-                    }
-                }
-            }
-
-            if $sym eq '??' {
-                self.attach: $/, Nodify('Ternary').new:
-                  condition => $/[0].ast, then => $/[1].ast, else => $/[2].ast;
-            }
-            elsif nqp::istype($ast, Nodify('DottyInfixish')) {
-                self.attach: $/, Nodify('ApplyDottyInfix').new:
-                  infix => $ast, left => $/[0].ast, right => $/[1].ast;
-            }
-            else {
-                self.attach: $/, Nodify('ApplyInfix').new:
-                  infix => $ast, left => $/[0].ast, right => $/[1].ast;
-            }
-        }
-
-        elsif $KEY eq 'LIST' {
-            my @operands;
-            for $/.list {
-                my $ast := $_.ast;
-                @operands.push($ast) if nqp::isconcrete($ast);
-            }
-            self.attach: $/, Nodify('ApplyListInfix').new:
-              infix => $ast, operands => @operands;
-        }
-
-        elsif $KEY eq 'PREFIX' {
-            self.attach: $/, Nodify('ApplyPrefix').new:
-              prefix  => $ast // Nodify('Prefix').new($<prefix><sym>),
-              operand => $/[0].ast;
-        }
-
-        elsif $KEY eq 'POSTFIX' {
-            my $operand := $/[0].ast;
-            my $cp      := $<colonpair>;
-
-            if $cp {
-                if $*ADVERB-AS-INFIX
-                  && (nqp::istype($operand, Nodify('ColonPair'))
-                        || nqp::istype($operand, Nodify('ColonPairs'))
+    # An assignment, or infix expression
+    method INFIX-EXPR($/) {
+        if $<infix><sym> eq '=' {
+            my $lhs := $/[0];
+            if nqp::istype($lhs,Nodify('ApplyPostfix')) {
+                my $postfix := $lhs.postfix;
+                if (nqp::istype(        # [foo]
+                    $postfix,
+                    Nodify('Postcircumfix','ArrayIndex')
+                  ) && $postfix.index.statements.elems == 1
+                ) || nqp::istype(       # <bar>
+                       $postfix,
+                       Nodify('Postcircumfix','LiteralHashIndex')
                      ) {
-                    self.attach: $/, Nodify('ColonPairs').new($operand,$cp.ast);
+                    $postfix.set-assignee($/[1]);
+                    self.attach: $/, $lhs;
+                    return;
                 }
-                else {
-                    $operand.add-colonpair($<colonpair>.ast);
-                    make $operand;
-                }
-            }
-            elsif nqp::istype($ast, Nodify('Call', 'Name')) {
-                $ast.args.push: $operand;
-                self.attach: $/, $ast;
-            }
-            elsif $ast {
-                if nqp::istype($ast, Nodify('Postfixish')) {
-                    self.attach: $/, Nodify('ApplyPostfix').new:
-                      postfix => $ast, operand => $operand;
-                }
-                # Report the sorry if there is no more specific sorry already
-                elsif !$*R.has-sorries {
-                    $/.typed-sorry: 'X::Syntax::Confused';
-                }
-            }
-            else {
-                self.attach: $/, Nodify('ApplyPostfix').new:
-                  postfix => Nodify('Postfix').new($<postfix><sym>),
-                  operand => $operand;
             }
         }
 
-        # huh?
+        my $infix := $/.ast;
+        if nqp::istype($infix, Nodify('DottyInfixish')) {
+            self.attach: $/, Nodify('ApplyDottyInfix').new:
+              infix => $infix, left => $/[0].ast, right => $/[1].ast;
+        }
         else {
-            nqp::die("EXPR $KEY handling NYI");
+            self.attach: $/, Nodify('ApplyInfix').new:
+              infix => $infix, left => $/[0].ast, right => $/[1].ast;
+        }
+    }
+
+    # A listy expression
+    method LIST-EXPR($/) {
+        my @operands;
+        for $/.list {
+            my $ast := $_.ast;
+            @operands.push($ast) if nqp::isconcrete($ast);
+        }
+        self.attach: $/, Nodify('ApplyListInfix').new:
+          infix => $/.ast, operands => @operands;
+    }
+
+    # A prefix expression
+    method PREFIX-EXPR($/) {
+        self.attach: $/, Nodify('ApplyPrefix').new:
+          prefix  => $/.ast // Nodify('Prefix').new($<prefix><sym>),
+          operand => $/[0].ast;
+    }
+
+    # A postfix expression
+    method POSTFIX-EXPR($/) {
+        my $ast     := $/.ast;
+        my $operand := $/[0].ast;
+        my $cp      := $<colonpair>;
+
+        if $cp {
+            if $*ADVERB-AS-INFIX
+              && (nqp::istype($operand, Nodify('ColonPair'))
+                    || nqp::istype($operand, Nodify('ColonPairs'))
+                 ) {
+                self.attach: $/, Nodify('ColonPairs').new($operand,$cp.ast);
+            }
+            else {
+                $operand.add-colonpair($<colonpair>.ast);
+                make $operand;
+            }
+        }
+
+        elsif nqp::istype($ast, Nodify('Call', 'Name')) {
+            $ast.args.push: $operand;
+            self.attach: $/, $ast;
+        }
+
+        elsif $ast {
+            if nqp::istype($ast, Nodify('Postfixish')) {
+                self.attach: $/, Nodify('ApplyPostfix').new:
+                  postfix => $ast, operand => $operand;
+            }
+            # Report the sorry if there is no more specific sorry already
+            elsif !$*R.has-sorries {
+                $/.typed-sorry: 'X::Syntax::Confused';
+            }
+        }
+        else {
+            self.attach: $/, Nodify('ApplyPostfix').new:
+              postfix => Nodify('Postfix').new($<postfix><sym>),
+              operand => $operand;
         }
     }
 

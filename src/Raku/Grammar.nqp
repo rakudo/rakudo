@@ -1546,7 +1546,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         if $opassoc eq 'unary' {
             my $arg := nqp::pop(@termstack);
             $op[0]  := $arg;
-            $actions.EXPR($op, $arg.from < $op.from ?? 'POSTFIX' !! 'PREFIX');
+            $arg.from < $op.from
+              ?? $actions.POSTFIX-EXPR($op)
+              !! $actions.PREFIX-EXPR($op);
         }
 
         elsif $opassoc eq 'list' {
@@ -1560,7 +1562,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 nqp::pop(@opstack);
             }
             nqp::unshift($op, nqp::pop(@termstack));
-            $actions.EXPR($op, 'LIST');
+            $actions.LIST-EXPR($op);
         }
 
         else { # infix op assoc: left|right|ternary|...
@@ -1571,8 +1573,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             if nqp::atkey(%opO,'ternary') {
                 $op[2] := $op[1];
                 $op[1] := $op<infix><EXPR>;
+                $actions.TERNARY-EXPR($op);
             }
-            $actions.EXPR($op, 'INFIX');
+            else {
+                $actions.INFIX-EXPR($op);
+            }
         }
         nqp::push(@termstack, $op);
     }

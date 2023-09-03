@@ -294,21 +294,6 @@ sub bail-out ($desc?) is export {
     exit 255;
 }
 
-multi sub is_approx(Mu $got, Mu $expected, $desc = '') is export {
-    Rakudo::Deprecations.DEPRECATED('is-approx'); # Remove for 6.d release
-
-    $time_after = nqp::time;
-    my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
-    my $test = ($got - $expected).abs <= $tol;
-    my $ok = proclaim($test, $desc);
-    unless $test {
-        _diag "expected: $expected\n"
-            ~ "got:      $got";
-    }
-    $time_before = nqp::time;
-    $ok or ($die_on_fail and die-on-fail) or $ok;
-}
-
 # We're picking and choosing which tolerance to use here, to make it easier
 # to test numbers close to zero, yet maintain relative tolerance elsewhere.
 # For example, relative tolerance works equally well with regular and huge,

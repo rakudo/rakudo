@@ -692,7 +692,8 @@ class OperatorProperties {
           'min', 'tight-minmax',
           'max', 'tight-minmax',
 
-          '?? ::', 'ternary',
+          '??', 'ternary',
+          '!!', 'ternary',
 
           'ff',    'conditional-ff',
           '^ff',   'conditional-ff',

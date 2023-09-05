@@ -464,13 +464,9 @@ class OperatorProperties {
           'tight-minmax', nqp::hash(
             'precedence','k=', 'associative','list'
           ),
-          'conditional', nqp::hash(
-            'precedence','j=', 'associative','right', 'thunky','.tt',
-            'iffy',1
-          ),
           'ternary', nqp::hash(
             'precedence','j=', 'associative','right', 'thunky','.tt',
-            'ternary',1
+            'fiddly',1, 'ternary',1
           ),
           'conditional-ff', nqp::hash(
             'precedence','j=', 'associative','right', 'thunky','tt',
@@ -563,6 +559,9 @@ class OperatorProperties {
     method infix(str $operator?) {
         my constant PROPERTIES := nqp::hash(
            '', 'default-infix',
+
+           '.',  'dotty-infix',
+           '.=', 'dotty-infix',
 
           '*',   'multiplicative',
           '×',   'multiplicative',
@@ -690,8 +689,7 @@ class OperatorProperties {
           'min', 'tight-minmax',
           'max', 'tight-minmax',
 
-          '??', 'ternary',
-          '!!', 'ternary',
+          '?? !!', 'ternary',        # dummy for $a ?? 42 !! 666
 
           'ff',    'conditional-ff',
           '^ff',   'conditional-ff',
@@ -711,6 +709,7 @@ class OperatorProperties {
           '⚛−=', 'item-assignment',
 
           '=',  'list-assignment',
+          '@=', 'list-assignment',   # dummy for @a = 1,2,3
           ':=', 'list-assignment',
 
           ',', 'comma',
@@ -776,6 +775,8 @@ class OperatorProperties {
     method postfix(str $operator?) {
         my constant PROPERTIES := nqp::hash(
            '', 'default-postfix',
+
+          ':', 'adverb',          # dummy for %h<a>:exists
 
           '()', 'methodcall',     # term()
           '.',  'methodcall',

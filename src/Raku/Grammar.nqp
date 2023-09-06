@@ -3720,8 +3720,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token quote-modifier:sym<o>  { <sym> }
 
     token qok($x) {
-        » <![(]>
-        [ <?[:]> || <!{ my str $n := ~$x; $*R.is-identifier-known($n) || $*R.is-identifier-known('&' ~ $n) }> ]
+        »
+        <![(]>
+        [
+             <?[:]>
+          || <!{ $*R.is-identifier-known(~$x) }>
+        ]
         [ \s* '#' <.panic: "# not allowed as delimiter"> ]?
         <.ws>
     }
@@ -4052,20 +4056,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
 #-------------------------------------------------------------------------------
-# Lexer stuff
-
-    token apostrophe {
-        <[ ' \- ]>
-    }
+# Identifiers
 
     token identifier {
-        <.ident> [ <.apostrophe> <.ident> ]*
+        <.ident> [ <[ ' \- ]> <.ident> ]*
     }
 
     token name {
         [
-        | <identifier> <morename>*
-        | <morename>+
+          | <identifier> <morename>*
+          | <morename>+
         ]
     }
 
@@ -4073,18 +4073,32 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*QSIGIL := '';
         '::'
         [
-        ||  <?before '(' | <.alpha> >
+          || <?before '(' | <.alpha>>
             [
-            | <identifier>
-            | :dba('indirect name') '(' ~ ')' [ <.ws> <EXPR> ]
+              | <identifier>
+              | :dba('indirect name')
+                '(' ~ ')' [ <.ws> <EXPR> ]
             ]
-        || <?before '::'> <.typed-panic: "X::Syntax::Name::Null">
-        || $<bad>=[<.sigil><.identifier>] { my str $b := $<bad>; self.malformed("lookup of ::$b; please use ::('$b'), ::\{'$b'\}, or ::<$b>") }
+
+          || <?before '::'>
+             <.typed-panic: "X::Syntax::Name::Null">
+
+          || $<bad>=[<.sigil><.identifier>]
+             {
+                 my str $b := $<bad>;
+                 self.malformed("lookup of ::$b; please use ::('$b'), ::\{'$b'\}, or ::<$b>")
+            }
         ]?
     }
 
     token longname {
-        <name> {} [ <?before ':' <.+alpha+[\< \[ \« ]>> <!RESTRICTED> <colonpair> ]*
+        <name>
+        {}
+        [
+          <?before ':' <.+alpha+[\< \[ \« ]>>
+          <!RESTRICTED>
+          <colonpair>
+        ]*
     }
 
     token deflongname($*DEFAULT-SCOPE) {
@@ -4113,7 +4127,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token twigil:sym<~> { <sym> <?before \w> }
 
     token end-keyword {
-        » <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]>
+        »
+        <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]>
     }
 
     token end-prefix {
@@ -4125,13 +4140,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token kok {
         <.end-keyword>
         [
-        || <?before <.[ \s \# ]> > <.ws>
-        || <?{
-                my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
-                $*R.is-identifier-known($n) || $*R.is-identifier-known('&' ~ $n)
-                    ?? False
-                    !! self.panic("Whitespace required after keyword '$n'")
-           }>
+          || <?before <.[ \s \# ]> > <.ws>
+
+          || <?{
+                 my $n := nqp::substr(self.orig,self.from,self.pos - self.from);
+                 $*R.is-identifier-known($n)
+                   ?? False
+                   !! self.panic: "Whitespace required after keyword '$n'";
+             }>
         ]
     }
 
@@ -4139,7 +4155,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.end-keyword>
         <!{
             my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
-            $*R.is-identifier-known($n) || $*R.is-identifier-known('&' ~ $n)
+            $*R.is-identifier-known($n)
         }>
     }
 
@@ -4169,12 +4185,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token stdstopper {
         [
-        || <?MARKED('end-statement')> <?>
-        || [
-           | <?terminator>
-           | $
-           ]
-       ]
+          || <?MARKED('end-statement')>
+             <?>
+
+          || [
+                | <?terminator>
+                | $
+             ]
+        ]
     }
 
 #-------------------------------------------------------------------------------

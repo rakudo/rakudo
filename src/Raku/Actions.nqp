@@ -1053,7 +1053,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if ($/.pragma("STOPPER") // '') eq $sym {
             $/.worry:
                 "Ambiguous use of $sym; use "
-                ~ ($<sym> eq '>>' ?? '»' !! '>>')
+                ~ ($sym eq '>>' ?? '»' !! '>>')
                 ~ " instead to mean hyper, or insert whitespace before"
                 ~ " $sym to mean a quote terminator (or use different delimiters?)";
         }
@@ -1146,30 +1146,32 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method methodop($/) {
         my $args := $<args> ?? $<args>.ast !! Nodify('ArgList').new();
         if $<longname> {
-            if $*special {
-                my $longname := $<longname>.ast;
+            my $longname := $<longname>.ast;
+            my $name     := $longname.canonicalize;
+
+            if $*DOTTY {
+                my $DOTTY    := $*DOTTY;
                 unless $longname.is-identifier {
-                    $/.dotty-non-ident($*special);
+                    $/.dotty-non-ident($DOTTY);
                 }
-                my $name := $longname.canonicalize;
-                if $*special eq '!' {
-                    self.attach: $/, Nodify('Call', 'PrivateMethod').new(:name($<longname>.ast), :$args);
+                if $DOTTY eq '!' {
+                    self.attach: $/,Nodify('Call','PrivateMethod').new(:name($longname),:$args);
                 }
-                elsif $*special eq '.^' {
+                elsif $DOTTY eq '.^' {
                     self.attach: $/, Nodify('Call', 'MetaMethod').new(:$name, :$args);
                 }
-                elsif $*special eq '.?' {
+                elsif $DOTTY eq '.?' {
                     self.attach: $/, Nodify('Call', 'MaybeMethod').new(:$name, :$args);
                 }
-                elsif $*special eq '.&' {
-                    self.attach: $/, Nodify('Call', 'VarMethod').new(:name($<longname>.ast), :$args);
+                elsif $DOTTY eq '.&' {
+                    self.attach: $/, Nodify('Call', 'VarMethod').new(:name($longname), :$args);
                 }
                 else {
-                    nqp::die("Missing compilation of $*special");
+                    nqp::die("Missing compilation of $DOTTY");
                 }
             }
             else {
-                self.attach: $/, Nodify('Call', 'Method').new(:name($<longname>.ast), :$args);
+                self.attach: $/, Nodify('Call', 'Method').new(:name($longname), :$args);
             }
         }
         elsif $<quote> {

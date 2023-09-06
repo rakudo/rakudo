@@ -1626,7 +1626,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $OPER := $op<OPER>;
         if $OPER {
             self.typed-panic("X::Syntax::CannotMeta",
-              meta     => meta,
+              meta     => $meta,
               operator => ~$OPER,
               dba      => ~$OPER<O>.made<dba>,
               reason   => "too $reason"
@@ -1695,83 +1695,121 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     regex infixstopper {
         :dba('infix stopper')
         [
-        | <?before '!!'> <?{ $*GOAL eq '!!' }>
-        | <?before '{' | <.pointy-block-starter> > <?MARKED('ws')> <?{ $*GOAL eq '{' || $*GOAL eq 'endargs' }>
+          | <?before '!!'>
+            <?{ $*GOAL eq '!!' }>
+          | <?before '{' | <.pointy-block-starter> >
+            <?MARKED('ws')>
+            <?{ $*GOAL eq '{' || $*GOAL eq 'endargs' }>
         ]
     }
+#-------------------------------------------------------------------------------
 
     proto token infix-prefix-meta-operator {*}
 
+    # !foo
     token infix-prefix-meta-operator:sym<!> {
-        <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
+        <sym>
+        <![!]>
+        {}
+        [    <infixish('neg')>
+          || <.panic: "Negation metaoperator not followed by valid infix">
+        ]
         <!{ $<infixish>.Str eq '=' }>
         [
-        || <.can-meta($<infixish>, "negate")> <?{ $<infixish><OPER><O>.made<iffy> }>
-           <O=.match-with($<infixish><OPER><O>)>
-        || { self.typed-panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O>.made<dba>, reason => "not iffy enough" }
+          || <.can-meta: $<infixish>, "negate">
+             <?{ $<infixish><OPER><O>.made<iffy> }>
+             <O=.match-with($<infixish><OPER><O>)>
+
+          || { self.typed-panic: "X::Syntax::CannotMeta",
+                meta     => "negate",
+                operator => ~$<infixish>,
+                dba      => ~$<infixish><OPER><O>.made<dba>,
+                reason   => "not iffy enough"
+             }
         ]
     }
 
+    # Rfoo
     token infix-prefix-meta-operator:sym<R> {
-        <sym> <infixish('R')> {}
-        <.can-meta($<infixish>, "reverse the args of")>
-        <O=.revO($<infixish>)>
+        <sym>
+        <infixish('R')>
+        {}
+        <.can-meta: $<infixish>, "reverse the args of">
+        <O=.revO($<infixish><OPER><O>)>
     }
 
+    # Helper token / method to reverse left/right associativity
     token revO($from) {
-        :my $*FROM := $from<OPER><O>.made;
+        :my $*FROM := $from.made;
         <?>
     }
 
+    # Xfoo
     token infix-prefix-meta-operator:sym<X> {
-        <sym> <infixish('X')> {}
-        <.can-meta($<infixish>, "cross with")>
+        <sym>
+        <infixish('X')>
+        {}
+        <.can-meta: $<infixish>, "cross with">
         <O(|%list_infix)>
     }
 
+    # Zfoo
     token infix-prefix-meta-operator:sym<Z> {
-        <sym> <infixish('Z')> {}
-        <.can-meta($<infixish>, "zip with")>
+        <sym>
+        <infixish('Z')>
+        {}
+        <.can-meta: $<infixish>, "zip with">
         <O(|%list_infix)>
     }
+
+#-------------------------------------------------------------------------------
 
     proto token infix-postfix-meta-operator {*}
 
+    # foo=
     token infix-postfix-meta-operator:sym<=> {
+        :my $OPER := $*OPER;
         :my %prec;
         :my %fudge_oper;
         '='
-        { %fudge_oper<OPER> := $*OPER }
-        <.can-meta(%fudge_oper, "make assignment out of")>
-        [ <!{ $*OPER<O>.made<diffy> }> || <.can-meta(%fudge_oper, "make assignment out of", "diffy")> ]
+        { %fudge_oper<OPER> := $OPER }
+        <.can-meta: %fudge_oper, "make assignment out of">
+        [    <!{ $OPER<O>.made<diffy> }>
+          || <.can-meta: %fudge_oper, "make assignment out of", "diffy">
+        ]
         {
-            $<sym> := $*OPER<sym> ~ '=';
-            if $*OPER<O>.made<prec> gt 'g=' {
-                %prec := %item_assignment;
-            }
-            else {
-                %prec := %list_assignment;
-            }
+            $<sym> := $OPER<sym> ~ '=';
+            %prec := $OPER<O>.made<prec> gt 'g='
+              ?? %item_assignment
+              !! %list_assignment;
         }
-        <O(|%prec)> {}
+        <O(|%prec)>
     }
+
+#-------------------------------------------------------------------------------
 
     proto token infix-circumfix-meta-operator {*}
 
+    # «foo»
     token infix-circumfix-meta-operator:sym<« »> {
         $<opening>=[ '«' | '»' ]
-        {} <infixish('hyper')>
+        {}
+        <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing: "« or »"> ]
         <.can-meta($<infixish>, "hyper with")>
-        {} <O=.match-with($<infixish><OPER><O>)>
+        {}
+        <O=.match-with($<infixish><OPER><O>)>
     }
 
+    # <<foo>>
     token infix-circumfix-meta-operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
         {} <infixish('HYPER')>
         $<closing>=[ '<<' | '>>' || <.missing: "<< or >>"> ]
         {} <O=.match-with($<infixish><OPER><O>)>
     }
+
+#-------------------------------------------------------------------------------
 
     token prefixish {
         :dba('prefix')
@@ -1786,32 +1824,44 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> | '<<'
     }
 
+#-------------------------------------------------------------------------------
+
     token postfixish {
         <!stdstopper>
 
         # last whitespace didn't end here
         <?{
-            my $c := $/;
+            my $c      := $/;
             my $marked := $c.MARKED('ws');
             !$marked || $marked.from == $c.pos;
         }>
 
-        [ <!{ $*QSIGIL }> [ <.unspace> | '\\' ] ]?
+        [
+          <!{ $*QSIGIL }> [ <.unspace> | '\\' ]
+        ]?
 
         :dba('postfix')
-        [ ['.' <.unspace>?]? <postfix-prefix-meta-operator> <.unspace>?]?
         [
-        | <OPER=postfix>
-        | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
-        | <OPER=postcircumfix>
-        | '.' <?[ [ { < ]> <OPER=postcircumfix>
-        | <OPER=dotty>
-        | <OPER=privop>
-        | <?{ $<postfix-prefix-meta-operator> && !$*QSIGIL }>
+          ['.' <.unspace>?]? <postfix-prefix-meta-operator> <.unspace>?]?
+        [
+          | <OPER=postfix>
+
+          # dotted form of postfix operator (non-wordy only)
+          | '.' <?before \W> <OPER=postfix>
+
+          | <OPER=postcircumfix>
+
+          | '.' <?[ [ { < ]> <OPER=postcircumfix>
+
+          | <OPER=dotty>
+
+          | <OPER=privop>
+
+          | <?{ $<postfix-prefix-meta-operator> && !$*QSIGIL }>
             [
-            || <?space> <.missing: "postfix">
-            || <?alpha> <.missing: "dot on method call">
-            || <.malformed: "postfix">
+              || <?space> <.missing: "postfix">
+              || <?alpha> <.missing: "dot on method call">
+              || <.malformed: "postfix">
             ]
         ]
         { $*LEFTSIGIL := '@'; }
@@ -1825,11 +1875,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token postop {
-        | <postfix>         $<O> = {$<postfix><O>} $<sym> = {$<postfix><sym>}
-        | <postcircumfix>   $<O> = {$<postcircumfix><O>} $<sym> = {$<postcircumfix><sym>}
+        | <postfix>
+          $<O>   = {$<postfix><O>}
+          $<sym> = {$<postfix><sym>}
+
+        | <postcircumfix>
+          $<O>   = {$<postcircumfix><O>}
+          $<sym> = {$<postcircumfix><sym>}
     }
 
+#-------------------------------------------------------------------------------
+
     proto token postcircumfix {*}
+
+    token postcircumfix:sym<( )> {
+        :dba('argument list')
+        '(' ~ ')' [ <.ws> <arglist> ]
+        <O(|%methodcall)>
+    }
+
     token postcircumfix:sym<[ ]> {
         :my $*QSIGIL := '';
         :dba('subscript')
@@ -1847,10 +1911,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postcircumfix:sym<ang> {
         '<'
         [
-        || <nibble(self.quote-lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))> '>'
-        || '='* <?before \h* [ \d | <.sigil> | ':' ] >
-           { $/.panic("Whitespace required before $/ operator") }
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>' (corresponding '<' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
+          || <nibble(self.quote-lang(
+               self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']
+             ))>
+             '>'
+
+          || '='* <?before \h* [ \d | <.sigil> | ':' ] >
+             { $/.panic: "Whitespace required before $/ operator" }
+
+          || { $/.typed-panic: 'X::QuoteWords::Missing::Closer',
+                 opener => '<',
+                 closer => '>',
+                 line   => HLL::Compiler.lineof($/.orig, $/.from, :cache(1))
+             }
         ]
         <O(|%methodcall)>
     }
@@ -1859,8 +1932,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('shell-quote words')
         '<<'
         [
-        || <nibble(self.quote-lang(self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']))> '>>'
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>>' (corresponding '<<' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
+          || <nibble(self.quote-lang(
+               self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']
+             ))>
+             '>>'
+
+          || { $/.typed-panic: 'X::QuoteWords::Missing::Closer',
+                 opener => '<<',
+                 closer => '>>',
+                 line   => HLL::Compiler.lineof($/.orig, $/.from, :cache(1))
+             }
         ]
         <O(|%methodcall)>
     }
@@ -1869,36 +1950,44 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('shell-quote words')
         '«'
         [
-        || <nibble(self.quote-lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))> '»'
-        || { $/.panic("Unable to parse quote-words subscript; couldn't find '»' (corresponding '«' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
+          || <nibble(self.quote-lang(
+               self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']
+             ))>
+             '»'
+
+          || { $/.typed-panic: 'X::QuoteWords::Missing::Closer',
+                 opener => '«',
+                 closer => '»',
+                 line   => HLL::Compiler.lineof($/.orig, $/.from, :cache(1))
+             }
         ]
         <O(|%methodcall)>
     }
 
-    token postcircumfix:sym<( )> {
-        :dba('argument list')
-        '(' ~ ')' [ <.ws> <arglist> ]
-        <O(|%methodcall)>
-    }
+#-------------------------------------------------------------------------------
 
     proto token dotty {*}
     token dotty:sym<.> {
-        <sym> <dottyop>
+        <sym>
+        <dottyop>
         <O(|%methodcall)>
     }
 
     token dotty:sym<.^> {
-        <sym> <dottyop('.^')>
+        <sym>
+        <dottyop('.^')>
         <O(|%methodcall)>
     }
 
     token dotty:sym<.?> {
-        <sym> <dottyop('.?')>
+        <sym>
+        <dottyop('.?')>
         <O(|%methodcall)>
     }
 
     token dotty:sym<.&> {
-        <sym> <dottyop('.&')>
+        <sym>
+        <dottyop('.&')>
         <O(|%methodcall)>
     }
 
@@ -1906,19 +1995,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('dotty method or postfix')
         <.unspace>?
         [
-        | <methodop($special)>
-        | <colonpair>
-        | <!alpha> <postop> $<O> = {$<postop><O>} $<sym> = {$<postop><sym>}
-          <.dotty-non-ident($special)>
+          | <methodop($special)>
+
+          | <colonpair>
+
+          | <!alpha>
+            <postop>
+            $<O> = {$<postop><O>} $<sym> = {$<postop><sym>}
+            <.dotty-non-ident($special)>
         ]
     }
 
     token privop {
-        '!' <methodop('!')>
+        '!'
+        <methodop('!')>
         <O(|%methodcall)>
     }
 
-    token methodop($*special) {
+    token methodop($*DOTTY) {
         [
         | <longname> {
               self.malformed("class-qualified postfix call")
@@ -1929,24 +2023,27 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
-          <.dotty-non-ident($*special)>
-        ] <.unspace>?
+          <.dotty-non-ident($*DOTTY)>
+        ]
+        <.unspace>?
         :dba('method arguments')
         [
-            [
+          [
             | <?[(]> <args>
             | ':' <?before \s | '{'> <!{ $*QSIGIL }> <args=.arglist>
-            ]
-            || <!{ $*QSIGIL }> <?>
-            || <?{ $*QSIGIL }> <?[.]> <?>
-        ] <.unspace>?
+          ]
+          || <!{ $*QSIGIL }> <?>
+          || <?{ $*QSIGIL }> <?[.]> <?>
+        ]
+        <.unspace>?
     }
 
-    token dotty-non-ident($special) {
-        | <!{ $special }>
-        | <.panic("Cannot use $special on a non-identifier method call")>
+    token dotty-non-ident($dotty) {
+        | <!{ $dotty }>
+        | <.panic: "Cannot use $dotty on a non-identifier method call">
     }
 
+#-------------------------------------------------------------------------------
 
     token super-sign    { <[⁻⁺¯]> }
     token sub-sign      { <[₊₋]>  }
@@ -1977,8 +2074,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postfix:sym«->» {
         $<sym>=[ '->' | '→' ]
         [
-        |  ['[' | '{' | '(' ] <.obs('->(), ->{} or ->[] as postfix dereferencer', '.(), .[] or .{} to deref, or whitespace to delimit a pointy block')>
-        | <.obs('-> as postfix', 'either . to call a method, or whitespace to delimit a pointy block')>
+          | ['[' | '{' | '(' ]
+            <.obs('->(), ->{} or ->[] as postfix dereferencer', '.(), .[] or .{} to deref, or whitespace to delimit a pointy block')>
+
+          | <.obs('-> as postfix', 'either . to call a method, or whitespace to delimit a pointy block')>
         ]
     }
 
@@ -2080,7 +2179,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
     token infix:sym«+>» {
         <sym>
-        [ 
+        [
              <!{ $*IN-META }>
           || <?before '>>'>
           || <![>]>
@@ -2089,7 +2188,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
     token infix:sym«~<» {
         <sym>
-        [ 
+        [
              <!{ $*IN-META }>
           || <?before '<<'>
           || <![<]>
@@ -2098,11 +2197,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
     token infix:sym«~>» {
         <sym>
-        [ 
+        [
              <!{ $*IN-META }>
           || <?before '>>'>
           || <![>]>
-        ] 
+        ]
         <O(|%multiplicative)>
     }
 
@@ -2246,7 +2345,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $<sym>='??'
         <.ws>
         <EXPR('i=')>
-        [ 
+        [
              '!!'
           || <?before '::' <.-[=]>>
              <.typed-panic: "X::Syntax::ConditionalOperator::SecondPartInvalid",               second-part => "::">

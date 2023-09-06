@@ -4032,7 +4032,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*ADVERB-AS-INFIX := 0;
         :dba('argument list')
         [
-          | <.unspace>? '(' ~ ')' <semiarglist>
+          | '(' ~ ')' <semiarglist>             # keep these two lines
+          | <.unspace> '(' ~ ')' <semiarglist>  # separate for performance
           | [ \s <arglist> ]
           | <?>
         ]

@@ -1340,6 +1340,14 @@ my class X::Dynamic::Postdeclaration does X::Comp {
     }
 }
 
+my class X::QuoteWords::Missing::Closer does X::Comp {
+    has $.opener;
+    has $.closer;
+    method message() {
+        "Unable to parse quote-words subscript; couldn't find '$.closer' (corresponding '$.opener' was at line $.line".naive-word-wrapper;
+    }
+}
+
 my class X::Dynamic::Package does X::Comp {
     has $.symbol;
     method message() {

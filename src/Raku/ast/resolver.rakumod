@@ -429,8 +429,14 @@ class RakuAST::Resolver {
     }
 
     # Check if an identifier is known (declared) at all.
-    method is-identifier-known(Str $identifier) {
-        nqp::isconcrete(self.resolve-lexical($identifier)) ?? True !! False
+    method is-identifier-known(Str $identifier, :$exact) {
+        nqp::isconcrete(self.resolve-lexical($identifier))
+          ?? True
+          !! $exact
+            ?? False
+            !! nqp::isconcrete(self.resolve-lexical('&' ~ $identifier))
+              ?? True
+              !! False
     }
 
     # Check if a name is known (declared) at all.

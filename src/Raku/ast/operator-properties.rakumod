@@ -99,6 +99,17 @@ class OperatorProperties {
         )
     }
 
+    # An OperatorProperties object with associative reversed
+    method associative-reversed() {
+        nqp::isconcrete(self)
+          ?? $!associative eq 'left'
+            ?? self.new(:associative<right>, :dba("reversed " ~ $!dba))
+            !! $!associative eq 'right'
+              ?? self.new(:associative<left>, :dba("reversed " ~ $!dba))
+              !! self
+          !! self
+    }
+
     # A readable .raku representation for debugging
     method raku() {
         my str $name := self.HOW.name(self);

@@ -1753,7 +1753,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 %prec := %list_assignment;
             }
         }
-        <O(|%prec, :dba('assignment operator'), :iffy(0))> {}
+        <O(|%prec)> {}
     }
 
     proto token infix-circumfix-meta-operator {*}

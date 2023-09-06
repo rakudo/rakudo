@@ -4028,10 +4028,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*ADVERB-AS-INFIX := 0;
         :dba('argument list')
         [
-        | '(' ~ ')' <semiarglist>
-        | <.unspace> '(' ~ ')' <semiarglist>
-        | [ \s <arglist> ]
-        | <?>
+          | <.unspace>? '(' ~ ')' <semiarglist>
+          | [ \s <arglist> ]
+          | <?>
         ]
     }
 
@@ -4046,9 +4045,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
         :dba('argument list')
         [
-        | <?stdstopper>
-        | <EXPR('e=')>
-        | <?>
+          | <?stdstopper>
+          | <EXPR('e=')>
+          | <?>
         ]
     }
 
@@ -4753,7 +4752,7 @@ Rakudo significantly on *every* run."
 # The base grammar for supported quote languages in Raku.  It provides a
 # large number of roles to tweak the base grammer into a grammar that can be
 # used for a specific set of quote language adverbs.  Generally, each adverb
-# has an "on" version (with postfix "1") and an "off" version (with postfixi
+# has an "on" version (with postfix "1") and an "off" version (with postfix
 # "0").
 grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
 

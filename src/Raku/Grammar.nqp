@@ -4143,20 +4143,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <?before <.[ \s \# ]> > <.ws>
 
           || <?{
-                 my $n := nqp::substr(self.orig,self.from,self.pos - self.from);
-                 $*R.is-identifier-known($n)
+                 $*R.is-identifier-known(~self)
                    ?? False
-                   !! self.panic: "Whitespace required after keyword '$n'";
+                   !! self.panic:
+                        "Whitespace required after keyword '" ~ self ~ "'";
              }>
         ]
     }
 
     token tok {
         <.end-keyword>
-        <!{
-            my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
-            $*R.is-identifier-known($n)
-        }>
+        <!{ $*R.is-identifier-known(~self) }>
     }
 
     token end-statement {

@@ -86,6 +86,8 @@ role Raku::Common {
 #-------------------------------------------------------------------------------
 # Quote parsing
 
+    method Regex($P5?) { self.slang_grammar($P5 ?? 'P5Regex' !! 'Regex') }
+
     method Quote() { self.slang_grammar('Quote') }
 
     method quote-Q($opener = "｢", $closer = "｣") {
@@ -3395,7 +3397,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           '{'
           [
 #          | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-          | <nibble(self.quote-lang(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), '{', '}'))>
+          | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
           ]
           '}'<!RESTRICTED><?end-statement>
           <.leave-block-scope>
@@ -3729,7 +3731,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         '/'
-        <nibble(self.quote-lang(self.slang_grammar('Regex'), '/', '/'))>
+        <nibble(self.quote-lang(self.Regex, '/', '/'))>
         [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
         <.old-rx-modifiers>?
     }
@@ -3739,7 +3741,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*INTERPOLATE := 1;
         {} <.qok($/)>
         <rx-adverbs>
-        <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
+        <quibble(self.Regex(%*RX<P5>))>
         <!old-rx-modifiers>
     }
     token quote:sym<m> {
@@ -3750,7 +3752,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx-adverbs>
-        <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
+        <quibble(self.Regex(%*RX<P5>))>
         <!old-rx-modifiers>
     }
 
@@ -3762,9 +3764,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(%*RX<P5>
-          ?? self.slang_grammar('P5Regex')
-          !! self.slang_grammar('Regex'), self.Quote, ['qq'])>
+        <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4995,7 +4995,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     }
     method tweak_regex($v) {
         self.truly($v, ':regex');
-        self.slang_grammar('Regex')
+        self.Regex
     }
     method tweak_to($v) {
         self.truly($v, ':to');

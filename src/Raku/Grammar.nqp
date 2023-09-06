@@ -86,6 +86,28 @@ role Raku::Common {
 #-------------------------------------------------------------------------------
 # Quote parsing
 
+    method Quote() { self.slang_grammar('Quote') }
+
+    method quote-Q($opener = "｢", $closer = "｣") {
+        self.quote-lang(self.Quote, $opener, $closer)
+    }
+
+    method quote-q($opener = "'", $closer = "'") {
+        self.quote-lang(self.Quote, $opener, $closer, ['q'])
+    }
+
+    method quote-qq($opener = '"', $closer = '"') {
+        self.quote-lang(self.Quote, $opener, $closer, ['qq'])
+    }
+
+    method quote-qw() {
+        self.quote-lang(self.Quote, "<", ">", ['q', 'w', 'v'])
+    }
+
+    method quote-qqw($opener = "<<", $closer = ">>") {
+        self.quote-lang(self.Quote, $opener, $closer, ['qq', 'ww', 'v'])
+    }
+
     token opener {
         <[
         \x0028 \x003C \x005B \x007B \x00AB \x0F3A \x0F3C \x169B \x2018 \x201A \x201B
@@ -1911,9 +1933,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postcircumfix:sym<ang> {
         '<'
         [
-          || <nibble(self.quote-lang(
-               self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']
-             ))>
+          || <nibble(self.quote-qw)>
              '>'
 
           || '='* <?before \h* [ \d | <.sigil> | ':' ] >
@@ -1932,9 +1952,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('shell-quote words')
         '<<'
         [
-          || <nibble(self.quote-lang(
-               self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']
-             ))>
+          || <nibble(self.quote-qqw)>
              '>>'
 
           || { $/.typed-panic: 'X::QuoteWords::Missing::Closer',
@@ -1950,9 +1968,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('shell-quote words')
         '«'
         [
-          || <nibble(self.quote-lang(
-               self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']
-             ))>
+          || <nibble(self.quote-qqw("«", "»"))>
              '»'
 
           || { $/.typed-panic: 'X::QuoteWords::Missing::Closer',
@@ -2486,20 +2502,28 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('quote words')
         '<' ~ '>'
         [
-            [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
-            [ <?[>]> <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
-            <nibble(self.quote-lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))>
+          [ <?before 'STDIN>'>
+            <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')>
+          ]?
+
+          [ <?[>]>
+            <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')>
+          ]?
+
+          <nibble(self.quote-qw)>
         ]
     }
 
     token circumfix:sym«<< >>» {
         :dba('shell-quote words')
-        '<<' ~ '>>' <nibble(self.quote-lang(self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']))>
+        '<<' ~ '>>'
+        <nibble(self.quote-qqw)>
     }
 
     token circumfix:sym<« »> {
         :dba('shell-quote words')
-        '«' ~ '»' <nibble(self.quote-lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))>
+        '«' ~ '»'
+        <nibble(self.quote-qqw("«", "»"))>
     }
 
 #-------------------------------------------------------------------------------# Terms
@@ -3588,37 +3612,95 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Quoting
 
     proto token quote {*}
-    token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote-lang(self.slang_grammar('Quote'), "'", "'", ['q']))> }
-    token quote:sym<sapos> { :dba('curly single quotes') "‘" ~ "’" <nibble(self.quote-lang(self.slang_grammar('Quote'), "‘", "’", ['q']))> }
-    token quote:sym<lapos> { :dba('low curly single quotes') "‚" ~ <[’‘]> <nibble(self.quote-lang(self.slang_grammar('Quote'), "‚", ["’","‘"], ['q']))> }
-    token quote:sym<hapos> { :dba('high curly single quotes') "’" ~ <[’‘]> <nibble(self.quote-lang(self.slang_grammar('Quote'), "’", ["’","‘"], ['q']))> }
-    token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote-lang(self.slang_grammar('Quote'), '"', '"', ['qq']))> }
-    token quote:sym<sdblq> { :dba('curly double quotes') '“' ~ '”' <nibble(self.quote-lang(self.slang_grammar('Quote'), '“', '”', ['qq']))> }
-    token quote:sym<ldblq> { :dba('low curly double quotes') '„' ~ <[”“]> <nibble(self.quote-lang(self.slang_grammar('Quote'), '„', ['”','“'], ['qq']))> }
-    token quote:sym<hdblq> { :dba('high curly double quotes') '”' ~ <[”“]> <nibble(self.quote-lang(self.slang_grammar('Quote'), '”', ['”','“'], ['qq']))> }
-    token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote-lang(self.slang_grammar('Quote'), '｢', '｣'))> }
+    token quote:sym<apos> {
+        :dba('single quotes')
+        "'" ~ "'" <nibble(self.quote-q)>
+    }
+
+    token quote:sym<sapos> {
+        :dba('curly single quotes')
+        "‘" ~ "’" <nibble(self.quote-q("‘", "’"))>
+    }
+
+    token quote:sym<lapos> {
+        :dba('low curly single quotes')
+        "‚" ~ <[’‘]> <nibble(self.quote-q("‚", ["’","‘"]))>
+    }
+
+    token quote:sym<hapos> {
+        :dba('high curly single quotes')
+        "’" ~ <[’‘]> <nibble(self.quote-q("’", ["’","‘"]))>
+    }
+
+    token quote:sym<dblq> {
+        :dba('double quotes')
+        '"' ~ '"' <nibble(self.quote-qq)>
+    }
+
+    token quote:sym<sdblq> {
+        :dba('curly double quotes')
+        '“' ~ '”' <nibble(self.quote-qq('“', '”'))>
+    }
+
+    token quote:sym<ldblq> {
+        :dba('low curly double quotes')
+        '„' ~ <[”“]> <nibble(self.quote-qq('„', ['”','“']))>
+    }
+
+    token quote:sym<hdblq> {
+        :dba('high curly double quotes')
+        '”' ~ <[”“]>
+        <nibble(self.quote-qq('”', ['”','“']))>
+    }
+
+    token quote:sym<crnr> {
+        :dba('corner quotes')
+        '｢' ~ '｣' <nibble(self.quote-Q)>
+    }
+
     token quote:sym<q> {
         :my $qm;
         'q'
         [
-        | <quote-modifier> {} <.qok($/)> { $qm := $<quote-modifier>.Str } <quibble(self.slang_grammar('Quote'), 'q', $qm)>
-        | {} <.qok($/)> <quibble(self.slang_grammar('Quote'), 'q')>
+          | <quote-modifier>
+            {}
+            <.qok($/)>
+            { $qm := $<quote-modifier>.Str }
+            <quibble(self.Quote, 'q', $qm)>
+
+          | {}
+            <.qok($/)>
+            <quibble(self.Quote, 'q')>
         ]
     }
+
     token quote:sym<qq> {
         :my $qm;
         'qq'
         [
-        | <quote-modifier> { $qm := $<quote-modifier>.Str } <.qok($/)> <quibble(self.slang_grammar('Quote'), 'qq', $qm)>
-        | {} <.qok($/)> <quibble(self.slang_grammar('Quote'), 'qq')>
+          | <quote-modifier>
+            { $qm := $<quote-modifier>.Str }
+            <.qok($/)>
+            <quibble(self.Quote, 'qq', $qm)>
+
+          | {}
+            <.qok($/)>
+            <quibble(self.Quote, 'qq')>
         ]
     }
+
     token quote:sym<Q> {
         :my $qm;
         'Q'
         [
-        | <quote-modifier> { $qm := $<quote-modifier>.Str } <.qok($/)> <quibble(self.slang_grammar('Quote'), $qm)>
-        | {} <.qok($/)> <quibble(self.slang_grammar('Quote'))>
+          | <quote-modifier>
+            { $qm := $<quote-modifier>.Str }
+            <.qok($/)>
+            <quibble(self.Quote, $qm)>
+
+          | {}
+            <.qok($/)>
+            <quibble(self.Quote)>
         ]
     }
 
@@ -3680,7 +3762,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>
+        <sibble(%*RX<P5>
+          ?? self.slang_grammar('P5Regex')
+          !! self.slang_grammar('Regex'), self.Quote, ['qq'])>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4432,7 +4516,7 @@ Rakudo significantly on *every* run."
 
     token comment:sym<#`(...)> {
         '#`' <?opener>
-        <.quibble(self.slang_grammar('Quote'))>
+        <.quibble(self.Quote)>
     }
     token comment:sym<#`> {
         '#`' <!after \s> <!opener>
@@ -4442,13 +4526,13 @@ Rakudo significantly on *every* run."
     # single / multi-line leading declarator block
     token comment:sym<#|> { '#|' \h $<attachment>=[\N* \n?] }
     token comment:sym<#|(...)> {
-       '#|' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))>
+       '#|' <?opener> <attachment=.quibble(self.Quote)>
     }
 
     # single / multi-line trailing declarator block
     token comment:sym<#=> { '#=' \h+ $<attachment>=[\N* \n?] }
     token comment:sym<#=(...)> {
-        '#=' <?opener> <attachment=.quibble(self.slang_grammar('Quote'))> \n?
+        '#=' <?opener> <attachment=.quibble(self.Quote)> \n?
     }
 
 #-------------------------------------------------------------------------------
@@ -4917,7 +5001,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         self.truly($v, ':to');
         # the cursor_init is to ensure it's been initialized the same way
         # 'self' was back in quote-lang
-        my $q := self.slang_grammar('Quote');
+        my $q := self.Quote;
         self.lang-cursor($q.HOW.mixin($q, to.HOW.curry(to, self)))
     }
 
@@ -5079,7 +5163,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
 
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
-        '<' <nibble(self.quote-lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w']))> '>'
+        '<' <nibble(self.quote-lang(self.Quote, "<", ">", ['q', 'w']))> '>'
         <.SIGOK>
     }
 

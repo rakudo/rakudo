@@ -1344,7 +1344,7 @@ my class X::QuoteWords::Missing::Closer does X::Comp {
     has $.opener;
     has $.closer;
     method message() {
-        "Unable to parse quote-words subscript; couldn't find '$.closer' (corresponding '$.opener' was at line $.line".naive-word-wrapper;
+        "Unable to parse quote-words subscript; couldn't find '$.closer' (corresponding '$.opener' was at line $.line)".naive-word-wrapper;
     }
 }
 

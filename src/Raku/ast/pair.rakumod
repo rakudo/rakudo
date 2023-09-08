@@ -85,6 +85,8 @@ class RakuAST::ColonPair
 
     method named-arg-value() { self.value }
 
+    method properties() { OperatorProperties.postfix(':') }
+
     method canonicalize() {
         my $value := self.simple-compile-time-quote-value;
         $value := self.value.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)

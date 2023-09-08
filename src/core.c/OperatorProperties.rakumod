@@ -73,6 +73,7 @@ BEGIN {
 
     # infixes
       &infix:«!=»,
+      &infix:«!~~»,
       &infix:«%»,
       &infix:«%%»,
       &infix:«&»,
@@ -95,6 +96,8 @@ BEGIN {
       &infix:«*»,
       &infix:«**»,
       &infix:«+»,
+      &infix:«+>»,
+      &infix:«+<»,
       &infix:«+&»,
       &infix:«+^»,
       &infix:«+|»,
@@ -163,7 +166,10 @@ BEGIN {
       &infix:«~&»,
       &infix:«~^»,
       &infix:«~|»,
+      &infix:«~>»,
+      &infix:«~<»,
       &infix:«~~»,
+      &infix:«=~»,
       &infix:«∉»,  # U+2209 NOT AN ELEMENT OF
       &infix:«∌»,  # U+220C DOES NOT CONTAIN AS MEMBER
       &infix:«≢»,  # U+2262 NOT IDENTICAL TO
@@ -171,6 +177,8 @@ BEGIN {
       &infix:«⊅»,  # U+2285 NOT A SUPERSET OF
       &infix:«⊈»,  # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
       &infix:«⊉»,  # U+2289 NEITHER A SUPERSET OF NOR EQUAL TO
+      &infix:«≼»,  # U+227C PRECEDES OR EQUAL TO
+      &infix:«≽»,  # U+227D SUCCEEDS OR EQUAL TO 
 #?if !jvm
       &infix:<⚛+=>,
       &infix:<⚛-=>,

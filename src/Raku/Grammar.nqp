@@ -1375,6 +1375,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           :left(~$left), :right(~$right);
     }
 
+    # Helper method to obtain OperatorProprties for the given node
+    # with error checking
+    method properties-for-node($node) {
+        (my $ast := $node.ast)
+          ?? $ast.properties
+          !! $node<colonpair>
+            ?? self.actions.OperatorProperties.postfix(':')
+            !! nqp::die("Internal error: no properties for: " ~ $node.dump)
+    }
+
     # The EXPR method implements an operator precedence parsing algorithm.
     # One needs a stack for that and there's not a neat way to express it
     # within the rule language.
@@ -1425,14 +1435,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             # Both prefixes as well as postfixes found
             unless nqp::isnull(@prefixish) || nqp::isnull(@postfixish) {
                 while nqp::elems(@prefixish) && nqp::elems(@postfixish) {
-                    my %preO  := @prefixish[0].ast.properties.prec;
-                    my %postO :=
-                      @postfixish[nqp::elems(@postfixish)-1].ast.properties.prec;
-#nqp::say("-+-+-+-+-+-+-");
-#&*DD(@prefixish[0]<OPER><O>.made);
-#&*DD(%preO);
-#&*DD(@postfixish[nqp::elems(@postfixish)-1]<OPER><O>.made);
-#&*DD(%postO);
+                    my %preO  := self.properties-for-node(
+                      @prefixish[0]
+                    ).prec;
+                    my %postO := self.properties-for-node(
+                      @postfixish[nqp::elems(@postfixish) - 1]
+                    ).prec;
+
                     my $preprec := nqp::ifnull(
                       nqp::atkey(%preO,'sub'),
                       nqp::ifnull(nqp::atkey(%preO,'prec'),'')
@@ -1490,17 +1499,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 $infix := $infixcur.MATCH;
 
                 # We got an infix.
-                %inO := (my $ast := $infix.ast)
-                  ?? $ast.properties.prec
-                  !! $infix<colonpair>
-                    ?? self.actions.OperatorProperties.postfix(':').prec
-                    !! nqp::hash;
-#nqp::say("-------------");
-#nqp::say($ast.HOW.name($ast));
-#nqp::say($infix.dump);
-#nqp::say($infix.made) if $infix.made;
-#&*DD($infix<OPER><O>.made);
-#&*DD(%inO);
+                %inO := self.properties-for-node($infix).prec;
+
                 $termishrx := nqp::ifnull(
                   nqp::atkey(%inO, 'nextterm'),
                   'termish'
@@ -1516,7 +1516,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     }
                 }
 
-#for @opstack { nqp::say($_.dump) }
                 while nqp::elems(@opstack) {
                     my $ast := @opstack[nqp::elems(@opstack)-1].ast;
                     my %opO := $ast ?? $ast.properties.prec !! nqp::hash;
@@ -1583,7 +1582,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         # Some shortcuts
         my %opOPER := nqp::atkey($op, 'OPER');
-        my %opO    := nqp::atkey(%opOPER, 'O').made;
+        my %opO    := self.properties-for-node($op).prec;
         my str $opassoc := ~nqp::atkey(%opO, 'assoc');
         my $actions     := self.actions;
 

@@ -750,6 +750,12 @@ class OperatorProperties {
           'xor',    'loose-xor',
 
           'orelse', 'loose-orelse',
+
+          # dummy, for parsing Raku code only
+          '==>',  'sequencer',
+          '==>>', 'sequencer',
+          '<==',  'sequencer',
+          '<<==', 'sequencer',
         );
 
         self.produce(PROPERTIES, $operator // '')

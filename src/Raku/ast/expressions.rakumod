@@ -120,15 +120,24 @@ class RakuAST::OperatorProperties
 
     # Obtain operator properties from config or from actual object
     method properties() {
-        if nqp::can(self,'is-resolved') && self.is-resolved {
-            my $resolution := self.resolution;
-            nqp::istype($resolution,RakuAST::CompileTimeValue)
-              ?? $resolution.compile-time-value.op_props  # actual properties
-              !! self.default-operator-properties         # assume default
+        my $properties;
+        if nqp::can(self,'is-resolved') {
+
+            # This feels very much like a hack, and should probably be
+            # changed at some time.  Perhaps when we get a "parse time"
+            # stage?
+            self.resolve-with($*R) if !self.is-resolved && $*R;
+
+            if self.is-resolved {
+                my $resolution := self.resolution;
+                $properties := $resolution.compile-time-value.op_props
+                  if nqp::istype($resolution,RakuAST::CompileTimeValue);
+            }
         }
-        else {
-            self.default-operator-properties  # assume default
-        }
+
+        nqp::isconcrete($properties)
+          ?? $properties
+          !! self.default-operator-properties
     }
 }
 
@@ -402,13 +411,24 @@ class RakuAST::Infix
 
 # Assignment is a special case of infix, as it behaves differently in the
 # grammar depending on context.  This subclass covers the case of needing
-# item assignment precedence.
-class RakuAST::Assign::Item
+# to be able to provide different operator properties depending on item
+# or list assignment.  Deparses as a normal infix otherwise, this is purely
+# to make the grammar do the right thing depending on context.
+class RakuAST::Assignment
   is RakuAST::Infix
 {
-    method default-operator-properties() {
-        OperatorProperties.infix('$=')
+    has int                $.item;
+    has OperatorProperties $.properties;
+
+    method new(Bool :$item) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj,RakuAST::Infix,'$!operator','=');
+        nqp::bindattr_i($obj,RakuAST::Assignment,'$!item',$item ?? 1 !! 0);
+        nqp::bindattr($obj,RakuAST::Assignment,'$!properties',
+          OperatorProperties.infix($item ?? '$=' !! '@='));
+        $obj
     }
+    method item { $!item ?? True !! False }
 }
 
 # Meta infixes base class, mostly for type checking
@@ -437,7 +457,7 @@ class RakuAST::MetaInfix::Assign
         $visitor($!infix);
     }
 
-    method properties() { $!infix.properties }
+    method properties() { OperatorProperties.infix('$=') }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -533,6 +553,12 @@ class RakuAST::FunctionInfix
 
     method visit-children(Code $visitor) {
         $visitor($!function);
+    }
+
+    method properties() {
+        # Should check if operator properties can be derived from $!function,
+        # and should default to:
+        OperatorProperties.infix('+')
     }
 
     method reducer-name() { '&METAOP_REDUCE_LEFT' }
@@ -639,7 +665,7 @@ class RakuAST::MetaInfix::Cross
         $visitor($!infix);
     }
 
-    method properties() { $!infix.properties }
+    method properties() { OperatorProperties.infix('X') }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -679,7 +705,7 @@ class RakuAST::MetaInfix::Zip
         $visitor($!infix);
     }
 
-    method properties() { $!infix.properties }
+    method properties() { OperatorProperties.infix('Z') }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -978,7 +1004,7 @@ class RakuAST::DottyInfix::Call
     }
 
     method default-operator-properties() {
-        OperatorProperties.postfix('.')
+        OperatorProperties.infix('.')
     }
 }
 
@@ -988,7 +1014,7 @@ class RakuAST::DottyInfix::CallAssign
 {
 
     method default-operator-properties() {
-        OperatorProperties.postfix('.=')
+        OperatorProperties.infix('.=')
     }
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,

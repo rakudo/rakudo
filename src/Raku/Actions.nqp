@@ -1237,8 +1237,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
     }
 
+    # Assignment in Raku can take two forms: item and list assignment:
+    # my @b = my $a = 1,2,3;  # $a = 1, @b = 1,2,3 .  In the item
+    # assignment case, the '=' gets a higher precedence than the ','.
+    # In the list assignment case, a lowed precedence.  So the expression
+    # is really: my @b = (my $a = 1),2,3 .  The grammar is supposed to
+    # set the $*ITEM dynamic variable to a truthy value if item assignment
+    # is to be assumed.
     method infix:sym<=>($/) {
-        make Nodify('Assign','Item').new('=') if $*ITEM;
+        make Nodify('Assignment').new(:item($*ITEM));
     }
 
     method infixish($/) {
@@ -1248,8 +1255,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<infix> {
             my str $op := ~$<infix>;
             $ast := $<infix>.ast;
-            unless $ast || $op eq '??' {
-                $ast := Nodify('Infix').new($op);
+            unless $ast {
+                $ast := Nodify('Infix').new(
+                  # A ternary op arrives here as '?? expression !!', so
+                  # check for that and create a dummy infix AST for further
+                  # parsing / EXPR handling if so.
+                  nqp::eqat($op,'??',0)
+                    && nqp::eqat($op,'!!',nqp::chars($op) - 2)
+                    ?? '?? !!'
+                    !! $op
+                );
             }
         }
 

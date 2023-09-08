@@ -25,6 +25,13 @@ my role stop[$stop] {
 
 role Raku::Common {
 
+    # Copy of HLL::Grammar's <O>, for debugging
+    token O(*%spec) {
+# { &*DD(%spec) }
+        :my %*SPEC := %spec;
+        <?>
+    }
+
 #-------------------------------------------------------------------------------
 # Cursor methods
 #
@@ -1415,11 +1422,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             @prefixish  := nqp::atkey(%termOPER, 'prefixish');
             @postfixish := nqp::atkey(%termOPER, 'postfixish');
 
+            # Both prefixes as well as postfixes found
             unless nqp::isnull(@prefixish) || nqp::isnull(@postfixish) {
                 while nqp::elems(@prefixish) && nqp::elems(@postfixish) {
-                    my %preO  := @prefixish[0]<OPER><O>.made;
+                    my %preO  := @prefixish[0].ast.properties.prec;
                     my %postO :=
-                      @postfixish[nqp::elems(@postfixish)-1]<OPER><O>.made;
+                      @postfixish[nqp::elems(@postfixish)-1].ast.properties.prec;
+#nqp::say("-+-+-+-+-+-+-");
+#&*DD(@prefixish[0]<OPER><O>.made);
+#&*DD(%preO);
+#&*DD(@postfixish[nqp::elems(@postfixish)-1]<OPER><O>.made);
+#&*DD(%postO);
                     my $preprec := nqp::ifnull(
                       nqp::atkey(%preO,'sub'),
                       nqp::ifnull(nqp::atkey(%preO,'prec'),'')
@@ -1477,7 +1490,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 $infix := $infixcur.MATCH;
 
                 # We got an infix.
-                %inO := $infix<OPER><O>.made;
+                %inO := (my $ast := $infix.ast)
+                  ?? $ast.properties.prec
+                  !! $infix<colonpair>
+                    ?? self.actions.OperatorProperties.postfix(':').prec
+                    !! nqp::hash;
+#nqp::say("-------------");
+#nqp::say($ast.HOW.name($ast));
+#nqp::say($infix.dump);
+#nqp::say($infix.made) if $infix.made;
+#&*DD($infix<OPER><O>.made);
+#&*DD(%inO);
                 $termishrx := nqp::ifnull(
                   nqp::atkey(%inO, 'nextterm'),
                   'termish'
@@ -1493,8 +1516,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     }
                 }
 
+#for @opstack { nqp::say($_.dump) }
                 while nqp::elems(@opstack) {
-                    my %opO := @opstack[nqp::elems(@opstack)-1]<OPER><O>.made;
+                    my $ast := @opstack[nqp::elems(@opstack)-1].ast;
+                    my %opO := $ast ?? $ast.properties.prec !! nqp::hash;
 
                     $opprec := nqp::ifnull(
                       nqp::atkey(%opO, 'sub'),
@@ -1657,7 +1682,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             ) if $OPER<O>.made{$reason};
         }
 
-        self;
+        self
     }
 
     # Look for infix operator or adverb looking like one
@@ -1708,7 +1733,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             ]?
         ]
         <OPER=.match-with($*OPER)>
-        { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos) }
+        { $<OPER>.set-pos($*OPER.pos) }
     }
 
     token adverb-as-infix {
@@ -2079,7 +2104,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token dottyopish { <term=.dottyop> }
 
     proto token postfix {*}
-    token postfix:sym<i>  { <sym> >> <O(|%methodcall)> }
+    token postfix:sym<i> { <sym> >> <O(|%methodcall)>    }
     token postfix:sym<ⁿ> { <power>  <O(|%autoincrement)> }
     token postfix:sym<+> { <vulgar> <O(|%autoincrement)> }
 
@@ -2357,11 +2382,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<min> { <sym> >> <O(|%tight_or_minmax)> }
     token infix:sym<max> { <sym> >> <O(|%tight_or_minmax)> }
 
-    # Parsing ?? !!
+    # Parsing of the ?? !! ternary is really treated as an infix, where the
+    # left side is the condition, the right side is the "else" expression,
+    # and the '?? expression !!' is initially parsed as the operator.
     token infix:sym<?? !!> {
-        :my $*GOAL := '!!';
         $<sym>='??'
         <.ws>
+        :my $*GOAL := '!!';
         <EXPR('i=')>
         [
              '!!'

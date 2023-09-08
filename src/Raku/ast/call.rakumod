@@ -223,6 +223,12 @@ class RakuAST::Call::Name
         $visitor(self.args);
     }
 
+    # In some weird cases, this node can occur as an operator.  Give it
+    # some operator properties that are most likely to be correct. This
+    # need is possibly indicative of a deeper lying parsing issue.  But
+    # until that is fixed, this appears to be the best stopgap measure.
+    method properties { OperatorProperties.prefix }
+
     method needs-resolution() { $!name.is-identifier }
 
     method resolve-with(RakuAST::Resolver $resolver) {

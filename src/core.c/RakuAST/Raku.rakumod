@@ -312,6 +312,10 @@ augment class RakuAST::Node {
         self!positionals(self.args)
     }
 
+    multi method raku(RakuAST::Assignment:D: --> Str:D) {
+        self.item ?? self!literal(Pair.new("item",True)) !! self!none
+    }
+
 #- B ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::Block:D: --> Str:D) {

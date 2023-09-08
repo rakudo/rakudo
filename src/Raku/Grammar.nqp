@@ -622,6 +622,8 @@ role Raku::Common {
         return Nil
           unless nqp::eqaddr($ast.WHAT,self.actions.r('Var', 'Lexical').WHAT);
 
+        return Nil if nqp::isconcrete($*DECLARE-TARGETS) && $*DECLARE-TARGETS == 0;
+
         # Nothing to do?
         $ast.resolve-with($*R);
         return Nil if $ast.is-resolved;

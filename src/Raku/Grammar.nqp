@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %autoincrement   := nqp::hash('prec', 'x=', 'assoc', 'unary', 'dba', 'autoincrement');
     my %exponentiation  := nqp::hash('prec', 'w=', 'assoc', 'right', 'dba', 'exponentiation');
     my %symbolic_unary  := nqp::hash('prec', 'v=', 'assoc', 'unary', 'dba', 'symbolic unary');
     my %dottyinfix      := nqp::hash('prec', 'v=', 'assoc', 'left', 'dba', 'dotty infix', 'nextterm', 'dottyopish', 'sub', 'z=', 'fiddly', 1);
@@ -2091,14 +2090,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token dottyopish { <term=.dottyop> }
 
     proto token postfix {*}
-    token postfix:sym<i> { <sym> >> }
-    token postfix:sym<ⁿ> { <power>  <O(|%autoincrement)> }
-    token postfix:sym<+> { <vulgar> <O(|%autoincrement)> }
+    token postfix:sym<i> { <sym> »  }
+    token postfix:sym<ⁿ> { <power>  }
+    token postfix:sym<+> { <vulgar> }
 
-    token postfix:sym<++>  { <sym> <O(|%autoincrement)> }
-    token postfix:sym<-->  { <sym> <O(|%autoincrement)> }
-    token postfix:sym<⚛++> { <sym> <O(|%autoincrement)> }
-    token postfix:sym<⚛--> { <sym> <O(|%autoincrement)> }
+    token postfix:sym<++>  { <sym> }
+    token postfix:sym<-->  { <sym> }
+    token postfix:sym<⚛++> { <sym> }
+    token postfix:sym<⚛--> { <sym> }
 
     # TODO: report the correct bracket in error message
     token postfix:sym«->» {
@@ -2114,10 +2113,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------# Prefixes
 
     proto token prefix {*}
-    token prefix:sym<++>   { <sym> <O(|%autoincrement)> }
-    token prefix:sym<-->   { <sym> <O(|%autoincrement)> }
-    token prefix:sym<++⚛>  { <sym> <O(|%autoincrement)> }
-    token prefix:sym<--⚛>  { <sym> <O(|%autoincrement)> }
+    token prefix:sym<++>  { <sym> }
+    token prefix:sym<-->  { <sym> }
+    token prefix:sym<++⚛> { <sym> }
+    token prefix:sym<--⚛> { <sym> }
 
     token prefix:sym<~~> { <sym> <.dupprefix: '~~'> <O(|%symbolic_unary)> }
     token prefix:sym<??> { <sym> <.dupprefix: '??'> <O(|%symbolic_unary)> }

@@ -409,6 +409,107 @@ class RakuAST::Infix
     }
 }
 
+class RakuAST::Feed
+  is RakuAST::Infix
+  is RakuAST::BeginTime
+{
+    method new(str $operator) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
+        $obj
+    }
+
+    method PERFORM-BEGIN(Resolver $resolver, Context $context) {
+        my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
+        if $operator eq "==>>" || $operator eq "<<==" {
+            self.add-sorry:
+                $resolver.build-exception: 'X::Comp::NYI', :feature($operator ~ " feed operator");
+        }
+    }
+
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        my @stages;
+        my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
+        if $operator eq "==>" {
+            for $operands {
+                @stages.push: $_;
+            }
+        } else {  # "<<==" and "==>>" are NYI, caught already in the grammar actions
+            for $operands {
+                @stages.unshift: $_;
+            }
+        }
+
+        # Check what's in each stage and make a chain of blocks
+        # that call each other. They'll return lazy things, which
+        # will be passed in as var-arg parts to other things. The
+        # first thing is just considered the result.
+        my $result := @stages.shift;
+        for @stages {
+            my $stage := $_;
+            # Wrap current result in a block, so it's thunked and can be
+            # called at the right point.
+            $result := QAST::Block.new( $result );
+
+            # Check what we have. XXX Real first step should be looking
+            # for @(*) since if we find that it overrides all other things.
+            # But that's todo...soon. :-)
+            if nqp::istype($stage, QAST::Op) && $stage.op eq 'call' {
+                # It's a call. Stick a call to the current supplier in
+                # as its last argument.
+                $stage.push(QAST::Op.new( :op('call'), $result ));
+            }
+            elsif nqp::istype($stage, QAST::Var) {
+                # It's a variable. We need code that gets the results, pushes
+                # them onto the variable and then returns them (since this
+                # could well be a tap.
+                my $tmp := QAST::Node.unique('feed_tmp');
+                $stage := QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :scope('local'), :name($tmp), :decl('var') ),
+                        QAST::Op.new(
+                            :op('callmethod'), :name('list'),
+                            QAST::Op.new( :op('call'), $result )
+                            ),
+                        ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('append'),
+                        $stage,
+                        QAST::Var.new( :scope('local'), :name($tmp) )
+                        ),
+                    QAST::Var.new( :scope('local'), :name($tmp) )
+                    );
+                $stage := QAST::Op.new( :op('locallifetime'), $stage, $tmp );
+            }
+            else {
+                my str $error := "Only routine calls or variables that can '.append' may appear on either side
+of feed operators.";
+                if nqp::istype($stage, QAST::Children) && nqp::istype($stage[0], QAST::Var) {
+                    if nqp::istype($stage, QAST::Op) && $stage.op eq 'ifnull'
+                        && nqp::eqat($stage[0].name, '&', 0) {
+                        $error := "A feed may not sink values into a code object.
+Did you mean a call like '"
+                            ~ nqp::substr($stage[0].name, 1)
+                            ~ "()' instead?";
+                    }
+
+                    # Looks like an array, yet we wound up here (which we
+                    # wouldn't if it was an ordinary array.  Assume it's
+                    # a shaped array definition throwing a spanner into the
+                    # works.
+                    elsif nqp::eqat($stage[0].name, '@', 0) {
+                        $error := "Cannot feed into shaped arrays, as one cannot '.append' to them.";
+                    }
+                }
+                $_.PRECURSOR.panic($error);
+            }
+            $result := $stage;
+        }
+        $result
+    }
+}
+
 # Assignment is a special case of infix, as it behaves differently in the
 # grammar depending on context.  This subclass covers the case of needing
 # to be able to provide different operator properties depending on item

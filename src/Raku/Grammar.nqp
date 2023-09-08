@@ -1764,7 +1764,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           || <.can-meta: $<infixish>, "negate">
              <?{ $<infixish><OPER><O>.made<iffy> }>
-             <O=.match-with($<infixish><OPER><O>)>
 
           || { self.typed-panic: "X::Syntax::CannotMeta",
                 meta     => "negate",
@@ -1781,7 +1780,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <infixish('R')>
         {}
         <.can-meta: $<infixish>, "reverse the args of">
-        <O=.revO($<infixish><OPER><O>)>
     }
 
     # Helper token / method to reverse left/right associativity
@@ -1796,7 +1794,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <infixish('X')>
         {}
         <.can-meta: $<infixish>, "cross with">
-        <O(|%list_infix)>
     }
 
     # Zfoo
@@ -1805,7 +1802,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <infixish('Z')>
         {}
         <.can-meta: $<infixish>, "zip with">
-        <O(|%list_infix)>
     }
 
 #-------------------------------------------------------------------------------
@@ -1815,7 +1811,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # foo=
     token infix-postfix-meta-operator:sym<=> {
         :my $OPER := $*OPER;
-        :my %prec;
         :my %fudge_oper;
         '='
         { %fudge_oper<OPER> := $OPER }
@@ -1823,13 +1818,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [    <!{ $OPER<O>.made<diffy> }>
           || <.can-meta: %fudge_oper, "make assignment out of", "diffy">
         ]
-        {
-            $<sym> := $OPER<sym> ~ '=';
-            %prec := $OPER<O>.made<prec> gt 'g='
-              ?? %item_assignment
-              !! %list_assignment;
-        }
-        <O(|%prec)>
+        { $<sym> := $OPER<sym> ~ '=' }
     }
 
 #-------------------------------------------------------------------------------
@@ -1844,15 +1833,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $<closing>=[ '«' | '»' || <.missing: "« or »"> ]
         <.can-meta($<infixish>, "hyper with")>
         {}
-        <O=.match-with($<infixish><OPER><O>)>
     }
 
     # <<foo>>
     token infix-circumfix-meta-operator:sym«<< >>» {
         $<opening>=[ '<<' | '>>' ]
-        {} <infixish('HYPER')>
+        {}
+        <infixish('HYPER')>
         $<closing>=[ '<<' | '>>' || <.missing: "<< or >>"> ]
-        {} <O=.match-with($<infixish><OPER><O>)>
+        {}
     }
 
 #-------------------------------------------------------------------------------

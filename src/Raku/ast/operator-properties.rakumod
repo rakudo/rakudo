@@ -674,6 +674,7 @@ class OperatorProperties {
           'before', 'chaining',
           'after',  'chaining',
           '~~',     'chaining',
+          '!~',     'chaining',    # dummy for p5ism
           '!~~',    'chaining',
           '(elem)', 'chaining',
           '∈',      'chaining',
@@ -711,6 +712,7 @@ class OperatorProperties {
           'fff^',  'conditional-ff',
           '^fff^', 'conditional-ff',
 
+          '=~',  'item-assignment',  # alt for = ~foo
           '$=',  'item-assignment',  # dummy for $a = 42
           '=>',  'item-assignment',
           '⇒',   'item-assignment',
@@ -723,6 +725,7 @@ class OperatorProperties {
           '@=', 'list-assignment',   # dummy for @a = 1,2,3
           ':=', 'list-assignment',
 
+          ':', 'comma',              # dummy for chop 42:
           ',', 'comma',
 
           'X',      'list-infix',

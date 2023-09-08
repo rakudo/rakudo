@@ -105,16 +105,9 @@ class RakuAST::Expression
     }
 }
 
-# Everything that is termish (a term with prefixes or postfixes applied).
-class RakuAST::Termish
-  is RakuAST::Expression
-  is RakuAST::CaptureSource { }
-
-# Everything that is a kind of term does RakuAST::Term.
-class RakuAST::Term
-  is RakuAST::Termish { }
-
+#-------------------------------------------------------------------------------
 # Role for handling operator properties
+
 class RakuAST::OperatorProperties
 {
 
@@ -140,6 +133,9 @@ class RakuAST::OperatorProperties
           !! self.default-operator-properties
     }
 }
+
+#-------------------------------------------------------------------------------
+# Infix operators
 
 # Marker for all kinds of infixish operators.
 class RakuAST::Infixish
@@ -431,7 +427,80 @@ class RakuAST::Assignment
     method item { $!item ?? True !! False }
 }
 
-# Meta infixes base class, mostly for type checking
+# A bracketed infix.
+class RakuAST::BracketedInfix
+  is RakuAST::Infixish
+{
+    has RakuAST::Infixish $.infix;
+
+    method new(RakuAST::Infixish $infix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::BracketedInfix, '$!infix', $infix);
+        $obj
+    }
+
+    method properties() { $!infix.properties }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+    }
+
+    method reducer-name() { $!infix.reducer-name }
+
+    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $left, RakuAST::Expression $right) {
+        $!infix.IMPL-INFIX-COMPILE($context, $left, $right)
+    }
+
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!infix.IMPL-HOP-INFIX-QAST($context)
+    }
+}
+
+# A function infix (`$x [&func] $y`).
+class RakuAST::FunctionInfix
+  is RakuAST::Infixish
+{
+    has RakuAST::Expression $.function;
+
+    method new(RakuAST::Expression $function) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::FunctionInfix, '$!function', $function);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!function);
+    }
+
+    method properties() {
+        # Should check if operator properties can be derived from $!function,
+        # and should default to:
+        OperatorProperties.infix('+')
+    }
+
+    method reducer-name() { '&METAOP_REDUCE_LEFT' }
+
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        QAST::Op.new:
+            :op('call'),
+            $!function.IMPL-TO-QAST($context),
+            $left-qast, $right-qast
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!function.IMPL-TO-QAST($context)
+    }
+}
+
+#-------------------------------------------------------------------------------
+# Meta infixes
+
+# Base class, mostly for type checking
 class RakuAST::MetaInfix
   is RakuAST::Infixish {
     method IMPL-HOP-INFIX() {
@@ -502,76 +571,6 @@ class RakuAST::MetaInfix::Assign
         QAST::Op.new:
             :op('callstatic'), :name('&METAOP_ASSIGN'),
             $!infix.IMPL-HOP-INFIX-QAST($context)
-    }
-}
-
-# A bracketed infix.
-class RakuAST::BracketedInfix
-  is RakuAST::Infixish
-{
-    has RakuAST::Infixish $.infix;
-
-    method new(RakuAST::Infixish $infix) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::BracketedInfix, '$!infix', $infix);
-        $obj
-    }
-
-    method properties() { $!infix.properties }
-
-    method visit-children(Code $visitor) {
-        $visitor($!infix);
-    }
-
-    method reducer-name() { $!infix.reducer-name }
-
-    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
-            RakuAST::Expression $left, RakuAST::Expression $right) {
-        $!infix.IMPL-INFIX-COMPILE($context, $left, $right)
-    }
-
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
-    }
-
-    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!infix.IMPL-HOP-INFIX-QAST($context)
-    }
-}
-
-# A function infix (`$x [&func] $y`).
-class RakuAST::FunctionInfix
-  is RakuAST::Infixish
-{
-    has RakuAST::Expression $.function;
-
-    method new(RakuAST::Expression $function) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::FunctionInfix, '$!function', $function);
-        $obj
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor($!function);
-    }
-
-    method properties() {
-        # Should check if operator properties can be derived from $!function,
-        # and should default to:
-        OperatorProperties.infix('+')
-    }
-
-    method reducer-name() { '&METAOP_REDUCE_LEFT' }
-
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        QAST::Op.new:
-            :op('call'),
-            $!function.IMPL-TO-QAST($context),
-            $left-qast, $right-qast
-    }
-
-    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!function.IMPL-TO-QAST($context)
     }
 }
 
@@ -789,6 +788,9 @@ class RakuAST::MetaInfix::Hyper
     }
 }
 
+#-------------------------------------------------------------------------------
+# Application of operators
+
 # Application of an infix operator.
 class RakuAST::ApplyInfix
   is RakuAST::Expression
@@ -985,6 +987,9 @@ class RakuAST::ApplyListInfix
     }
 }
 
+#-------------------------------------------------------------------------------
+# Dotty stuff
+
 # The base of all dotty infixes (`$foo .bar` or `$foo .= bar()`).
 class RakuAST::DottyInfixish
   is RakuAST::Node
@@ -1076,6 +1081,9 @@ class RakuAST::ApplyDottyInfix
         $visitor($!right);
     }
 }
+
+#-------------------------------------------------------------------------------
+# Prefixes
 
 # Marker for all kinds of prefixish operators.
 class RakuAST::Prefixish
@@ -1176,6 +1184,17 @@ class RakuAST::MetaPrefix::Hyper
     method properties() { $!prefix.properties }
 }
 
+#-------------------------------------------------------------------------------
+# Everything that is termish (a term with prefixes or postfixes applied).
+
+class RakuAST::Termish
+  is RakuAST::Expression
+  is RakuAST::CaptureSource { }
+
+# Everything that is a kind of term does RakuAST::Term.
+class RakuAST::Term
+  is RakuAST::Termish { }
+
 # Application of a prefix operator.
 class RakuAST::ApplyPrefix
   is RakuAST::Termish
@@ -1220,6 +1239,9 @@ class RakuAST::ApplyPrefix
         $visitor($!operand);
     }
 }
+
+#-------------------------------------------------------------------------------
+# Postfixes
 
 # Marker for all kinds of postfixish operators.
 class RakuAST::Postfixish
@@ -1365,6 +1387,9 @@ class RakuAST::Postfix::Vulgar
 
     method vulgar() { nqp::getattr(self,RakuAST::Postfix::Literal,'$!value') }
 }
+
+#-------------------------------------------------------------------------------
+# Postcircumfixes
 
 # A marker for all postcircumfixes. These each have relatively special
 # compilation, so they get distinct nodes.
@@ -1685,6 +1710,9 @@ class RakuAST::ApplyPostfix
         $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) })
     }
 }
+
+#-------------------------------------------------------------------------------
+# Ternaries
 
 # The ternary conditional operator (?? !!).
 class RakuAST::Ternary

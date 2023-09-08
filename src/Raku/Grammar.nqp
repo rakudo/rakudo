@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %methodcall      := nqp::hash('prec', 'y=', 'assoc', 'unary', 'dba', 'methodcall', 'fiddly', 1);
     my %autoincrement   := nqp::hash('prec', 'x=', 'assoc', 'unary', 'dba', 'autoincrement');
     my %exponentiation  := nqp::hash('prec', 'w=', 'assoc', 'right', 'dba', 'exponentiation');
     my %symbolic_unary  := nqp::hash('prec', 'v=', 'assoc', 'unary', 'dba', 'symbolic unary');
@@ -1939,21 +1938,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token postcircumfix:sym<( )> {
         :dba('argument list')
         '(' ~ ')' [ <.ws> <arglist> ]
-        <O(|%methodcall)>
     }
 
     token postcircumfix:sym<[ ]> {
         :my $*QSIGIL := '';
         :dba('subscript')
         '[' ~ ']' [ <.ws> <semilist> ]
-        <O(|%methodcall)>
     }
 
     token postcircumfix:sym<{ }> {
         :my $*QSIGIL := '';
         :dba('subscript')
         '{' ~ '}' [ <.ws> <semilist> ]
-        <O(|%methodcall)>
     }
 
     token postcircumfix:sym<ang> {
@@ -1971,7 +1967,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                  line   => HLL::Compiler.lineof($/.orig, $/.from, :cache(1))
              }
         ]
-        <O(|%methodcall)>
     }
 
     token postcircumfix:sym«<< >>» {
@@ -1987,7 +1982,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                  line   => HLL::Compiler.lineof($/.orig, $/.from, :cache(1))
              }
         ]
-        <O(|%methodcall)>
     }
 
     token postcircumfix:sym<« »> {
@@ -2003,7 +1997,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                  line   => HLL::Compiler.lineof($/.orig, $/.from, :cache(1))
              }
         ]
-        <O(|%methodcall)>
     }
 
 #-------------------------------------------------------------------------------
@@ -2012,25 +2005,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token dotty:sym<.> {
         <sym>
         <dottyop>
-        <O(|%methodcall)>
     }
 
     token dotty:sym<.^> {
         <sym>
         <dottyop('.^')>
-        <O(|%methodcall)>
     }
 
     token dotty:sym<.?> {
         <sym>
         <dottyop('.?')>
-        <O(|%methodcall)>
     }
 
     token dotty:sym<.&> {
         <sym>
         <dottyop('.&')>
-        <O(|%methodcall)>
     }
 
     token dottyop($special?) {
@@ -2051,7 +2040,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token privop {
         '!'
         <methodop('!')>
-        <O(|%methodcall)>
     }
 
     token methodop($*DOTTY) {
@@ -2103,7 +2091,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token dottyopish { <term=.dottyop> }
 
     proto token postfix {*}
-    token postfix:sym<i> { <sym> >> <O(|%methodcall)>    }
+    token postfix:sym<i> { <sym> >> }
     token postfix:sym<ⁿ> { <power>  <O(|%autoincrement)> }
     token postfix:sym<+> { <vulgar> <O(|%autoincrement)> }
 
@@ -4360,7 +4348,6 @@ Rakudo significantly on *every* run."
                     :my $cursor := nqp::getlex('$¢');
                     :my $stub := $cursor.define_slang('MAIN', %*LANG<MAIN> := $cursor.unbalanced($stopper).WHAT, $cursor.actions);
                     $starter ~ $stopper [ <.ws> <statement> ]
-                    <O(|%methodcall)>
                 }
             }
             $grammar-mixin := Postcircumfix.HOW.curry(

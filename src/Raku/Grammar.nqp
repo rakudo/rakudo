@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %named_unary     := nqp::hash('prec', 'o=', 'assoc', 'unary', 'dba', 'named unary');
     my %structural      := nqp::hash('prec', 'n=', 'assoc', 'non', 'dba', 'structural infix', 'diffy', 1);
     my %chaining        := nqp::hash('prec', 'm=', 'assoc', 'chain', 'dba', 'chaining', 'iffy', 1, 'diffy', 1);
     my %tight_and       := nqp::hash('prec', 'l=', 'assoc', 'left', 'dba', 'tight and', 'thunky', '.t', 'iffy', 1);
@@ -2067,12 +2066,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Prefixes requiring scope interaction
     token prefix:sym<let>  {
         <sym><.kok>
-        <O(|%named_unary)>
         { ($*BLOCK // $*CU.mainline).set-has-let }
     }
     token prefix:sym<temp> {
         <sym><.kok>
-        <O(|%named_unary)>
         { ($*BLOCK // $*CU.mainline).set-has-temp }
     }
 

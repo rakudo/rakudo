@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %symbolic_unary  := nqp::hash('prec', 'v=', 'assoc', 'unary', 'dba', 'symbolic unary');
     my %dottyinfix      := nqp::hash('prec', 'v=', 'assoc', 'left', 'dba', 'dotty infix', 'nextterm', 'dottyopish', 'sub', 'z=', 'fiddly', 1);
     my %multiplicative  := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative');
     my %multiplicative_iffy := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative iffy', 'iffy', 1);
@@ -2053,25 +2052,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token prefix:sym<++⚛> { <sym> }
     token prefix:sym<--⚛> { <sym> }
 
-    token prefix:sym<~~> { <sym> <.dupprefix: '~~'> <O(|%symbolic_unary)> }
-    token prefix:sym<??> { <sym> <.dupprefix: '??'> <O(|%symbolic_unary)> }
-    token prefix:sym<^^> { <sym> <.dupprefix: '^^'> <O(|%symbolic_unary)> }
+    token prefix:sym<~~> { <sym> <.dupprefix: '~~'> }
+    token prefix:sym<??> { <sym> <.dupprefix: '??'> }
+    token prefix:sym<^^> { <sym> <.dupprefix: '^^'> }
 
-    token prefix:sym<?> { <sym> <!before '??'> <O(|%symbolic_unary)> }
-    token prefix:sym<!> { <sym> <!before '!!'> <O(|%symbolic_unary)> }
+    token prefix:sym<?> { <sym> <!before '??'> }
+    token prefix:sym<!> { <sym> <!before '!!'> }
 
-    token prefix:sym<+>   { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<~>   { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<->   { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<−>   { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<|>   { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<+^>  { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<~^>  { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<?^>  { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<⚛>   { <sym> <O(|%symbolic_unary)> }
-    token prefix:sym<^>   {
+    token prefix:sym<+>  { <sym> }
+    token prefix:sym<~>  { <sym> }
+    token prefix:sym<->  { <sym> }
+    token prefix:sym<−>  { <sym> }
+    token prefix:sym<|>  { <sym> }
+    token prefix:sym<+^> { <sym> }
+    token prefix:sym<~^> { <sym> }
+    token prefix:sym<?^> { <sym> }
+    token prefix:sym<⚛>  { <sym> }
+    token prefix:sym<^> {
         <sym>
-        <O(|%symbolic_unary)>
         <?before \d+ <?before \. <.?alpha> >
         <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
     }

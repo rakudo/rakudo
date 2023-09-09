@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %list_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'list assignment', 'sub', 'e=', 'fiddly', 1);
     my %loose_unary     := nqp::hash('prec', 'h=', 'assoc', 'unary', 'dba', 'loose unary');
     my %comma           := nqp::hash('prec', 'g=', 'assoc', 'list', 'dba', 'comma', 'nextterm', 'nulltermish');
     my %list_infix      := nqp::hash('prec', 'f=', 'assoc', 'list', 'dba', 'list infix');
@@ -2090,7 +2089,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<.=> { <sym> }
 
     # Assignment infixes
-    token infix:sym<:=>  { <sym> <O(|%list_assignment)> }
+    token infix:sym<:=>  { <sym> }
     token infix:sym<::=> { <sym> <.NYI: '"::="'> }
 
     # Iffy multiplicative infixes

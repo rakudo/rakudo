@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %ternary         := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'ternary', 'fiddly', 1, 'thunky', '.tt', 'ternary', 1);
     my %conditional_ff  := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', 'tt');
     my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
     my %adverb          := nqp::hash('prec', 'i=', 'assoc', 'unary', 'adverb', 1, 'dba', 'adverb');
@@ -2299,7 +2298,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <.typed-panic: "X::Syntax::Confused",
                reason => "Confused: Found ?? but no !!">
         ]
-        <O(|%ternary)>
     }
 
     token infix:sym<,>    {

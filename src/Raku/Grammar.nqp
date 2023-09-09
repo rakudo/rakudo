@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %structural      := nqp::hash('prec', 'n=', 'assoc', 'non', 'dba', 'structural infix', 'diffy', 1);
     my %chaining        := nqp::hash('prec', 'm=', 'assoc', 'chain', 'dba', 'chaining', 'iffy', 1, 'diffy', 1);
     my %tight_and       := nqp::hash('prec', 'l=', 'assoc', 'left', 'dba', 'tight and', 'thunky', '.t', 'iffy', 1);
     my %tight_or        := nqp::hash('prec', 'k=', 'assoc', 'left', 'dba', 'tight or', 'thunky', '.t', 'iffy', 1);
@@ -2379,19 +2378,26 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token infix:sym<orelse> { <sym> >> <O(|%loose_orelse)> }
 
-    token infix:sym<..>   { <sym> [<!{ $*IN-META }> <?[)\]]> <.panic: "Please use ..* for indefinite range">]? <O(|%structural)> }
+    token infix:sym<..> {
+        <sym>
+        [
+          <!{ $*IN-META }>
+          <?[)\]]>
+          <.panic: "Please use ..* for indefinite range">
+        ]?
+    }
 
-    token infix:sym<but>    { <sym> >> <O(|%structural)> }
-    token infix:sym<cmp>    { <sym> >> <O(|%structural)> }
-    token infix:sym<coll>   { <sym> >> <O(|%structural)> }
-    token infix:sym<does>   { <sym> >> <O(|%structural)> }
-    token infix:sym<leg>    { <sym> >> <O(|%structural)> }
-    token infix:sym<unicmp> { <sym> >> <O(|%structural)> }
+    token infix:sym<but>    { <sym> >> }
+    token infix:sym<cmp>    { <sym> >> }
+    token infix:sym<coll>   { <sym> >> }
+    token infix:sym<does>   { <sym> >> }
+    token infix:sym<leg>    { <sym> >> }
+    token infix:sym<unicmp> { <sym> >> }
 
-    token infix:sym<^..>  { <sym> <O(|%structural)> }
-    token infix:sym<..^>  { <sym> <O(|%structural)> }
-    token infix:sym<^..^> { <sym> <O(|%structural)> }
-    token infix:sym«<=>»  { <sym> <O(|%structural)> }
+    token infix:sym<^..>  { <sym> }
+    token infix:sym<..^>  { <sym> }
+    token infix:sym<^..^> { <sym> }
+    token infix:sym«<=>»  { <sym> }
 
     token infix:sym«<==»  { <sym> <O(|%sequencer)> }
     token infix:sym«==>»  { <sym> <O(|%sequencer)> }

@@ -1634,7 +1634,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %dottyinfix      := nqp::hash('prec', 'v=', 'assoc', 'left', 'dba', 'dotty infix', 'nextterm', 'dottyopish', 'sub', 'z=', 'fiddly', 1);
     my %multiplicative  := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative');
     my %multiplicative_iffy := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative iffy', 'iffy', 1);
-    my %additive        := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive');
     my %additive_iffy   := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive iffy', 'iffy', 1);
     my %replication     := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication');
     my %replication_xx  := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication', 'thunky', 't.');
@@ -1689,8 +1688,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 <?before '[&' <twigil>? [ <alpha> | '(' ] >
                 '[' ~ ']' <variable>
                 {
-                    $<variable><O> := self.O(|%additive).MATCH
-                      unless $<variable><O>;
                     $*OPER := $<variable>;
                     self.check-variable($<variable>);
                 }
@@ -2201,7 +2198,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<-> {  # 2D HYPHEN-MINUS -
        # We want to match in '$a >>->> $b' but not 'if $a -> { ... }'.
         <sym> [<?before '>>'> || <![>]>]
-        <O(|%additive)>
     }
 
     # Iffy additive infixes
@@ -2209,14 +2205,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<?^> { <sym> <O(|%additive_iffy)> }
 
     # Other additive infixes
-    token infix:sym<−>  { <sym> <O(|%additive)> }  # 2212 MINUS SIGN −
-    token infix:sym<+>  { <sym> <O(|%additive)> }
-    token infix:sym<+|> { <sym> <O(|%additive)> }
-    token infix:sym<+^> { <sym> <O(|%additive)> }
-    token infix:sym<~|> { <sym> <O(|%additive)> }
-    token infix:sym<~^> { <sym> <O(|%additive)> }
+    token infix:sym<−>  { <sym> }  # 2212 MINUS SIGN −
+    token infix:sym<+>  { <sym> }
+    token infix:sym<+|> { <sym> }
+    token infix:sym<+^> { <sym> }
+    token infix:sym<~|> { <sym> }
+    token infix:sym<~^> { <sym> }
 
-    # Replacating infixes
+    # Replicating infixes
     token infix:sym<x>  { <sym> >> <O(|%replication)>    }
     token infix:sym<xx> { <sym> >> <O(|%replication_xx)> }
 

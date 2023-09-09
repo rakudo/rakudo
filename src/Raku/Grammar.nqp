@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %concatenation   := nqp::hash('prec', 'r=', 'assoc', 'left', 'dba', 'concatenation');
     my %junctive_and    := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and');
     my %junctive_and_iffy := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and iffy', 'iffy', 1);
     my %junctive_or     := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or');
@@ -2201,9 +2200,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<xx> { <sym> >> }
 
     # Concatenating infixes
-    token infix:sym<~> { <sym> <O(|%concatenation)> }
-    token infix:sym<∘> { <sym> <O(|%concatenation)> }
-    token infix:sym<o> { <sym> <O(|%concatenation)> }
+    token infix:sym<~> { <sym> }
+    token infix:sym<∘> { <sym> }
+    token infix:sym<o> { <sym> }
 
     # Iffy junctive and infixes
     token infix:sym<&>   { <sym> <O(|%junctive_and_iffy)> }

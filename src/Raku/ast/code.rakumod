@@ -160,7 +160,7 @@ class RakuAST::Code
         # fixed up as needed.
         $block.code_object($code-obj);
 
-        my @compstuff := nqp::getattr($code-obj, Code, '@!compstuff');
+        my @compstuff := nqp::getattr($code-obj, Code, '@!compstuff') || [];
         my $cuid := $!cuid;
         $block.set-cuid($!cuid);
 

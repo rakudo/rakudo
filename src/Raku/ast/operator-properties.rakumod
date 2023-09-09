@@ -256,9 +256,8 @@ class OperatorProperties {
     method ternary() { nqp::isconcrete(self) ?? $!ternary !! 0 }
 
     # Convenience methods
-    method chaining() {
-        nqp::isconcrete(self)
-          && ($!associative eq 'chaining' || $!associative eq 'chain')
+    method chain() {
+        nqp::isconcrete(self) && $!associative eq 'chain'
     }
     method short-circuit() {
         nqp::isconcrete(self) && $!thunky ne ""
@@ -274,7 +273,7 @@ class OperatorProperties {
           ?? ""
           !! $!fiddly
             ?? "fiddly"
-            !! $!diffy && !self.chaining
+            !! $!diffy && $!associative eq 'chain'
               ?? "diffy and not chaining"
               !! ""
     }
@@ -289,7 +288,6 @@ class OperatorProperties {
                 my $associative := $!associative;
                 nqp::chars($associative)
                   ?? nqp::iseq_s($associative,'chain')
-                       || nqp::iseq_s($associative,'chaining')
                     ?? '&METAOP_REDUCE_CHAIN'
                     !! nqp::iseq_s($associative,'list')
                       ?? '&METAOP_REDUCE_LIST'

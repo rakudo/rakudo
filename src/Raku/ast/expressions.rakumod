@@ -314,7 +314,7 @@ class RakuAST::Infix
           # Otherwise, it's called by finding the lexical sub to call, and
           # compiling it as chaining if required.
           !! QAST::Op.new(
-               :op(self.properties.chaining ?? 'chain' !! 'call'),
+               :op(self.properties.chain ?? 'chain' !! 'call'),
                :name(self.resolution.lexical-name),
                $left-qast,
                $right-qast
@@ -392,7 +392,7 @@ class RakuAST::Infix
     method IMPL-CAN-INTERPRET() {
         nqp::istype(self.resolution,RakuAST::CompileTimeValue)
           && !self.properties.short-circuit
-          && !self.properties.chaining
+          && !self.properties.chain
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands) {

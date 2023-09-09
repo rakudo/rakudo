@@ -1634,7 +1634,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %dottyinfix      := nqp::hash('prec', 'v=', 'assoc', 'left', 'dba', 'dotty infix', 'nextterm', 'dottyopish', 'sub', 'z=', 'fiddly', 1);
     my %multiplicative  := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative');
     my %multiplicative_iffy := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative iffy', 'iffy', 1);
-    my %additive_iffy   := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive iffy', 'iffy', 1);
     my %replication     := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication');
     my %replication_xx  := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication', 'thunky', 't.');
     my %concatenation   := nqp::hash('prec', 'r=', 'assoc', 'left', 'dba', 'concatenation');
@@ -2201,8 +2200,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Iffy additive infixes
-    token infix:sym<?|> { <sym> <O(|%additive_iffy)> }
-    token infix:sym<?^> { <sym> <O(|%additive_iffy)> }
+    token infix:sym<?|> { <sym> }
+    token infix:sym<?^> { <sym> }
 
     # Other additive infixes
     token infix:sym<−>  { <sym> }  # 2212 MINUS SIGN −

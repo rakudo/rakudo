@@ -1629,11 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %tight_and       := nqp::hash('prec', 'l=', 'assoc', 'left', 'dba', 'tight and', 'thunky', '.t', 'iffy', 1);
-    my %tight_or        := nqp::hash('prec', 'k=', 'assoc', 'left', 'dba', 'tight or', 'thunky', '.t', 'iffy', 1);
-    my %tight_defor     := nqp::hash('prec', 'k=', 'assoc', 'left', 'dba', 'tight defor', 'thunky', '.t');
-    my %tight_xor       := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight xor', 'thunky', '..t', 'iffy', 1);
-    my %tight_or_minmax := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight or');
     my %ternary         := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'ternary', 'fiddly', 1, 'thunky', '.tt', 'ternary', 1);
     my %conditional_ff  := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', 'tt');
     my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
@@ -2269,14 +2264,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«(>+)»   { <sym> }
     token infix:sym«≽»      { <sym> }
 
-    token infix:sym<&&> { <sym> <O(|%tight_and)> }
+    token infix:sym<&&> { <sym> }
 
-    token infix:sym<||> { <sym> <O(|%tight_or)> }
-    token infix:sym<//> { <sym> <O(|%tight_defor)> }
-    token infix:sym<^^> { <sym> <O(|%tight_xor)> }
+    token infix:sym<||> { <sym> }
+    token infix:sym<//> { <sym> }
+    token infix:sym<^^> { <sym> }
 
-    token infix:sym<min> { <sym> >> <O(|%tight_or_minmax)> }
-    token infix:sym<max> { <sym> >> <O(|%tight_or_minmax)> }
+    token infix:sym<min> { <sym> >> }
+    token infix:sym<max> { <sym> >> }
 
     # Parsing of the ?? !! ternary is really treated as an infix, where the
     # left side is the condition, the right side is the "else" expression,

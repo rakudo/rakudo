@@ -1629,8 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %junctive_and    := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and');
-    my %junctive_and_iffy := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and iffy', 'iffy', 1);
     my %junctive_or     := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or');
     my %junctive_or_iffy := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or iffy', 'iffy', 1);
     my %named_unary     := nqp::hash('prec', 'o=', 'assoc', 'unary', 'dba', 'named unary');
@@ -2205,13 +2203,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<o> { <sym> }
 
     # Iffy junctive and infixes
-    token infix:sym<&>   { <sym> <O(|%junctive_and_iffy)> }
+    token infix:sym<&> { <sym> }
 
     # Other junctive and infixes
-    token infix:sym<(&)> { <sym> <O(|%junctive_and)> }
-    token infix:sym«∩»   { <sym> <O(|%junctive_and)> }
-    token infix:sym<(.)> { <sym> <O(|%junctive_and)> }
-    token infix:sym«⊍»   { <sym> <O(|%junctive_and)> }
+    token infix:sym<(&)> { <sym> }
+    token infix:sym«∩»   { <sym> }
+    token infix:sym<(.)> { <sym> }
+    token infix:sym«⊍»   { <sym> }
 
     # Iffy junctive or infixes
     token infix:sym<|>    { <sym> <O(|%junctive_or_iffy)> }

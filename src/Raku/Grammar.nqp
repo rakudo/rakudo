@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %multiplicative_iffy := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative iffy', 'iffy', 1);
     my %replication     := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication');
     my %replication_xx  := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication', 'thunky', 't.');
     my %concatenation   := nqp::hash('prec', 'r=', 'assoc', 'left', 'dba', 'concatenation');
@@ -2117,8 +2116,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<::=> { <sym> <O(|%item_assignment)> <.NYI: '"::="'> }
 
     # Iffy multiplicative infixes
-    token infix:sym<%%>  { <sym> <O(|%multiplicative_iffy)> }
-    token infix:sym<?&>  { <sym> <O(|%multiplicative_iffy)> }
+    token infix:sym<%%> { <sym> }
+    token infix:sym<?&> { <sym> }
 
     # Multiplicative infixes requiring a word bound on the right side
     token infix:sym<div> { <sym> >> }
@@ -2174,13 +2173,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Other multiplicative infixes
-    token infix:sym<*>   { <sym> }
-    token infix:sym<×>   { <sym> }
-    token infix:sym</>   { <sym> }
-    token infix:sym<÷>   { <sym> }
-    token infix:sym<%>   { <sym> }
-    token infix:sym<+&>  { <sym> }
-    token infix:sym<~&>  { <sym> }
+    token infix:sym<*>  { <sym> }
+    token infix:sym<×>  { <sym> }
+    token infix:sym</>  { <sym> }
+    token infix:sym<÷>  { <sym> }
+    token infix:sym<%>  { <sym> }
+    token infix:sym<+&> { <sym> }
+    token infix:sym<~&> { <sym> }
 
     token infix:sym<-> {  # 2D HYPHEN-MINUS -
        # We want to match in '$a >>->> $b' but not 'if $a -> { ... }'.

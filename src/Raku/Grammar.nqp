@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %conditional_ff  := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', 'tt');
     my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
     my %adverb          := nqp::hash('prec', 'i=', 'assoc', 'unary', 'adverb', 1, 'dba', 'adverb');
     my %list_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'list assignment', 'sub', 'e=', 'fiddly', 1);
@@ -2333,14 +2332,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.obs: '? and : for the ternary conditional operator', '?? and !!'>
     }
 
-    token infix:sym<ff>    { <sym> <O(|%conditional_ff)> }
-    token infix:sym<^ff>   { <sym> <O(|%conditional_ff)> }
-    token infix:sym<ff^>   { <sym> <O(|%conditional_ff)> }
-    token infix:sym<^ff^>  { <sym> <O(|%conditional_ff)> }
-    token infix:sym<fff>   { <sym> <O(|%conditional_ff)> }
-    token infix:sym<^fff>  { <sym> <O(|%conditional_ff)> }
-    token infix:sym<fff^>  { <sym> <O(|%conditional_ff)> }
-    token infix:sym<^fff^> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<ff>    { <sym> }
+    token infix:sym<^ff>   { <sym> }
+    token infix:sym<ff^>   { <sym> }
+    token infix:sym<^ff^>  { <sym> }
+    token infix:sym<fff>   { <sym> }
+    token infix:sym<^fff>  { <sym> }
+    token infix:sym<fff^>  { <sym> }
+    token infix:sym<^fff^> { <sym> }
 
     token infix:sym<=> {
         <sym>

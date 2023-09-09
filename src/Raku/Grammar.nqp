@@ -2470,6 +2470,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<^..^> { <sym> <O(|%structural)> }
     token infix:sym«<=>»  { <sym> <O(|%structural)> }
 
+    token infix:sym«<==»  { <sym> <O(|%sequencer)> }
+    token infix:sym«==>»  { <sym> <O(|%sequencer)> }
+    token infix:sym«<<==» { <sym> <O(|%sequencer)> }
+    token infix:sym«==>>» { <sym> <O(|%sequencer)> }
+
     token infix:sym<!~> {
         <sym>
         \s

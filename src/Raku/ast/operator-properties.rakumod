@@ -267,6 +267,18 @@ class OperatorProperties {
         nqp::isconcrete(self) ?? ($!sub-precedence || $!precedence) !! ""
     }
 
+    # Return a string with the reason why it is not reducable, or empty
+    # string
+    method not-reducable() {
+        nqp::isconcrete(self)
+          ?? ""
+          !! $!fiddly
+            ?? "fiddly"
+            !! $!diffy && !self.chaining
+              ?? "diffy and not chaining"
+              !! ""
+    }
+
     # Return name of handler for reducing with these operator properties
     method reducer-name() {
         if nqp::isconcrete(self) {

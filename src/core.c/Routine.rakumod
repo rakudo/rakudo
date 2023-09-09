@@ -344,9 +344,7 @@ my class Routine { # declared in BOOTSTRAP
 
     # Internal helper method to set operator properties
     method set_op_props(Routine:D:) is implementation-detail {
-        my $parts   := nqp::split(':',self.name);
-        my $type    := nqp::atpos($parts,0);
-        my str $name = nqp::atpos($parts,1);
+        (my str $type, my str $name) = self.name.split(":",2);
         $name = nqp::eqat($name,'<<',0)
           ?? nqp::substr($name,2,nqp::chars($name) - 4)
           !! nqp::substr($name,1,nqp::chars($name) - 2);

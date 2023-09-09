@@ -1667,21 +1667,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
-    # Helper method to check whether the op can meta, panics if not
-    method can-meta($op, $meta, $reason = "fiddly") {
-        my $OPER := $op<OPER>;
-        if $OPER {
-            self.typed-panic("X::Syntax::CannotMeta",
-              meta     => $meta,
-              operator => ~$OPER,
-              dba      => ~$OPER<O>.made<dba>,
-              reason   => "too $reason"
-            ) if $OPER<O>.made{$reason};
-        }
-
-        self
-    }
-
     # Look for infix operator or adverb looking like one
     token infixish($IN-META = nqp::getlexdyn('$*IN-META')) {
         :my $*IN-META := $IN-META;
@@ -1761,47 +1746,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <.panic: "Negation metaoperator not followed by valid infix">
         ]
         <!{ $<infixish>.Str eq '=' }>
-        [
-          || <.can-meta: $<infixish>, "negate">
-             <?{ $<infixish><OPER><O>.made<iffy> }>
-
-          || { self.typed-panic: "X::Syntax::CannotMeta",
-                meta     => "negate",
-                operator => ~$<infixish>,
-                dba      => ~$<infixish><OPER><O>.made<dba>,
-                reason   => "not iffy enough"
-             }
-        ]
     }
 
     # Rfoo
     token infix-prefix-meta-operator:sym<R> {
-        <sym>
-        <infixish('R')>
-        {}
-        <.can-meta: $<infixish>, "reverse the args of">
-    }
-
-    # Helper token / method to reverse left/right associativity
-    token revO($from) {
-        :my $*FROM := $from.made;
-        <?>
+        <sym> <infixish('R')> {}
     }
 
     # Xfoo
     token infix-prefix-meta-operator:sym<X> {
-        <sym>
-        <infixish('X')>
-        {}
-        <.can-meta: $<infixish>, "cross with">
+        <sym> <infixish('X')> {}
     }
 
     # Zfoo
     token infix-prefix-meta-operator:sym<Z> {
-        <sym>
-        <infixish('Z')>
-        {}
-        <.can-meta: $<infixish>, "zip with">
+        <sym> <infixish('Z')> {}
     }
 
 #-------------------------------------------------------------------------------
@@ -1810,15 +1769,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # foo=
     token infix-postfix-meta-operator:sym<=> {
-        :my $OPER := $*OPER;
-        :my %fudge_oper;
         '='
-        { %fudge_oper<OPER> := $OPER }
-        <.can-meta: %fudge_oper, "make assignment out of">
-        [    <!{ $OPER<O>.made<diffy> }>
-          || <.can-meta: %fudge_oper, "make assignment out of", "diffy">
-        ]
-        { $<sym> := $OPER<sym> ~ '=' }
+        { $<sym> := $*OPER<sym> ~ '=' }
     }
 
 #-------------------------------------------------------------------------------
@@ -1831,7 +1783,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}
         <infixish('hyper')>
         $<closing>=[ '«' | '»' || <.missing: "« or »"> ]
-        <.can-meta($<infixish>, "hyper with")>
         {}
     }
 
@@ -2772,26 +2723,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     regex term:sym<reduce> {
         :my $*IN_REDUCE := 1;
-        :my $op;
         <?before '['\S+']'>
-        <!before '['+ <.[ - + ? ~ ^ ]> <.[ \w $ @ ]> >  # disallow accidental prefix before termish thing
+
+        # disallow accidental prefix before termish thing
+        <!before '['+ <.[ - + ? ~ ^ ]> <.[ \w $ @ ]> >
 
         '['
         [
-        || <op=.infixish('red')> <?[\]]>
-        || $<triangle>=[\\]<op=.infixish('tri')> <?[\]]>
-        || <!>
+          || <op=.infixish('red')> <?[\]]>
+          || $<triangle>=[\\]<op=.infixish('tri')> <?[\]]>
+          || <!>
         ]
         ']'
-        { $op := $<op>; }
-
-        <.can-meta($op, "reduce with")>
-
-        [
-        || <!{ $op<OPER><O>.made<diffy> }>
-        || <?{ $op<OPER><O>.made<assoc> eq 'chain' }>
-        || { self.typed-panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
-        ]
 
         { $*IN_REDUCE := 0 }
         <args>

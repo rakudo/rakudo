@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %multiplicative  := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative');
     my %multiplicative_iffy := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative iffy', 'iffy', 1);
     my %replication     := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication');
     my %replication_xx  := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication', 'thunky', 't.');
@@ -2122,10 +2121,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<?&>  { <sym> <O(|%multiplicative_iffy)> }
 
     # Multiplicative infixes requiring a word bound on the right side
-    token infix:sym<div> { <sym> >> <O(|%multiplicative)> }
-    token infix:sym<gcd> { <sym> >> <O(|%multiplicative)> }
-    token infix:sym<lcm> { <sym> >> <O(|%multiplicative)> }
-    token infix:sym<mod> { <sym> >> <O(|%multiplicative)> }
+    token infix:sym<div> { <sym> >> }
+    token infix:sym<gcd> { <sym> >> }
+    token infix:sym<lcm> { <sym> >> }
+    token infix:sym<mod> { <sym> >> }
 
     # Multiplicatve infixes with meta interaction
     token infix:sym«+<» {
@@ -2135,7 +2134,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <?before '<<'>
           || <![<]>
         ]
-        <O(|%multiplicative)>
     }
     token infix:sym«+>» {
         <sym>
@@ -2144,7 +2142,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <?before '>>'>
           || <![>]>
         ]
-        <O(|%multiplicative)>
     }
     token infix:sym«~<» {
         <sym>
@@ -2153,7 +2150,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <?before '<<'>
           || <![<]>
         ]
-        <O(|%multiplicative)>
     }
     token infix:sym«~>» {
         <sym>
@@ -2162,7 +2158,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           || <?before '>>'>
           || <![>]>
         ]
-        <O(|%multiplicative)>
     }
 
     token infix:sym«<<» {
@@ -2170,24 +2165,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!{ $*IN-META }>
         <?[\s]>
         <.sorryobs('<< to do left shift', '+< or ~<')>
-        <O(|%multiplicative)>
     }
     token infix:sym«>>» {
         <sym>
         <!{ $*IN-META }>
         <?[\s]>
         <.sorryobs('>> to do right shift', '+> or ~>')>
-        <O(|%multiplicative)>
     }
 
     # Other multiplicative infixes
-    token infix:sym<*>   { <sym> <O(|%multiplicative)> }
-    token infix:sym<×>   { <sym> <O(|%multiplicative)> }
-    token infix:sym</>   { <sym> <O(|%multiplicative)> }
-    token infix:sym<÷>   { <sym> <O(|%multiplicative)> }
-    token infix:sym<%>   { <sym> <O(|%multiplicative)> }
-    token infix:sym<+&>  { <sym> <O(|%multiplicative)> }
-    token infix:sym<~&>  { <sym> <O(|%multiplicative)> }
+    token infix:sym<*>   { <sym> }
+    token infix:sym<×>   { <sym> }
+    token infix:sym</>   { <sym> }
+    token infix:sym<÷>   { <sym> }
+    token infix:sym<%>   { <sym> }
+    token infix:sym<+&>  { <sym> }
+    token infix:sym<~&>  { <sym> }
 
     token infix:sym<-> {  # 2D HYPHEN-MINUS -
        # We want to match in '$a >>->> $b' but not 'if $a -> { ... }'.

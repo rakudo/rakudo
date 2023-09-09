@@ -1629,15 +1629,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %loose_unary     := nqp::hash('prec', 'h=', 'assoc', 'unary', 'dba', 'loose unary');
     my %comma           := nqp::hash('prec', 'g=', 'assoc', 'list', 'dba', 'comma', 'nextterm', 'nulltermish');
     my %list_infix      := nqp::hash('prec', 'f=', 'assoc', 'list', 'dba', 'list infix');
     my %list_prefix     := nqp::hash('prec', 'e=', 'assoc', 'right', 'dba', 'list prefix');
-    my %loose_and       := nqp::hash('prec', 'd=', 'assoc', 'left', 'dba', 'loose and', 'thunky', '.t', 'iffy', 1);
-    my %loose_andthen   := nqp::hash('prec', 'd=', 'assoc', 'list', 'dba', 'loose and', 'thunky', '.b');
-    my %loose_or        := nqp::hash('prec', 'c=', 'assoc', 'left', 'dba', 'loose or', 'thunky', '.t', 'iffy', 1);
-    my %loose_xor       := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose xor', 'thunky', '.t', 'iffy', 1);
-    my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
     # Look for infix operator or adverb looking like one
@@ -2060,8 +2054,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { ($*BLOCK // $*CU.mainline).set-has-temp }
     }
 
-    token prefix:sym<so>  { <sym><.end-prefix> <O(|%loose_unary)> }
-    token prefix:sym<not> { <sym><.end-prefix> <O(|%loose_unary)> }
+    token prefix:sym<so>  { <sym><.end-prefix> }
+    token prefix:sym<not> { <sym><.end-prefix> }
 
 #-------------------------------------------------------------------------------
 # Infixes
@@ -2350,15 +2344,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<⚛-=> { <sym> }
     token infix:sym<⚛−=> { <sym> }
 
-    token infix:sym<and>  { <sym> >> <O(|%loose_and)> }
+    token infix:sym<and>  { <sym> >> }
 
-    token infix:sym<andthen>    { <sym> >> <O(|%loose_andthen)> }
-    token infix:sym<notandthen> { <sym> >> <O(|%loose_andthen)> }
+    token infix:sym<andthen>    { <sym> >> }
+    token infix:sym<notandthen> { <sym> >> }
 
-    token infix:sym<or>  { <sym> >> <O(|%loose_or)> }
-    token infix:sym<xor> { <sym> >> <O(|%loose_xor)> }
+    token infix:sym<or>  { <sym> >> }
+    token infix:sym<xor> { <sym> >> }
 
-    token infix:sym<orelse> { <sym> >> <O(|%loose_orelse)> }
+    token infix:sym<orelse> { <sym> >> }
 
     token infix:sym<..> {
         <sym>

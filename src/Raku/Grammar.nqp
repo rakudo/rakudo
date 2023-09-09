@@ -1629,8 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %junctive_or     := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or');
-    my %junctive_or_iffy := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or iffy', 'iffy', 1);
     my %named_unary     := nqp::hash('prec', 'o=', 'assoc', 'unary', 'dba', 'named unary');
     my %structural      := nqp::hash('prec', 'n=', 'assoc', 'non', 'dba', 'structural infix', 'diffy', 1);
     my %chaining        := nqp::hash('prec', 'm=', 'assoc', 'chain', 'dba', 'chaining', 'iffy', 1, 'diffy', 1);
@@ -2212,18 +2210,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«⊍»   { <sym> }
 
     # Iffy junctive or infixes
-    token infix:sym<|>    { <sym> <O(|%junctive_or_iffy)> }
-    token infix:sym<^>    { <sym> <O(|%junctive_or_iffy)> }
+    token infix:sym<|> { <sym> }
+    token infix:sym<^> { <sym> }
 
     # Other junctive or infixes
-    token infix:sym<(|)>  { <sym> <O(|%junctive_or)> }
-    token infix:sym«∪»    { <sym> <O(|%junctive_or)> }
-    token infix:sym<(^)>  { <sym> <O(|%junctive_or)> }
-    token infix:sym«⊖»    { <sym> <O(|%junctive_or)> }
-    token infix:sym<(+)>  { <sym> <O(|%junctive_or)> }
-    token infix:sym«⊎»    { <sym> <O(|%junctive_or)> }
-    token infix:sym<(-)>  { <sym> <O(|%junctive_or)> }
-    token infix:sym«∖»    { <sym> <O(|%junctive_or)> }
+    token infix:sym<(|)> { <sym> }
+    token infix:sym«∪»   { <sym> }
+    token infix:sym<(^)> { <sym> }
+    token infix:sym«⊖»   { <sym> }
+    token infix:sym<(+)> { <sym> }
+    token infix:sym«⊎»   { <sym> }
+    token infix:sym<(-)> { <sym> }
+    token infix:sym«∖»   { <sym> }
 
     token infix:sym«!=» { <sym> <?before \s|']'> <O(|%chaining)> }
 

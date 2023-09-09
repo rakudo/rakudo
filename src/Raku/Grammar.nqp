@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %list_infix      := nqp::hash('prec', 'f=', 'assoc', 'list', 'dba', 'list infix');
     my %list_prefix     := nqp::hash('prec', 'e=', 'assoc', 'right', 'dba', 'list prefix');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
@@ -2296,19 +2295,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*INVOCANT_OK := 0; }
     }
 
-    token infix:sym<X> { <!before <.sym> <.infixish> > <sym> <O(|%list_infix)> }
-    token infix:sym<Z> { <!before <.sym> <.infixish> > <sym> <O(|%list_infix)> }
+    token infix:sym<X> { <!before <.sym> <.infixish>> <sym> }
+    token infix:sym<Z> { <!before <.sym> <.infixish>> <sym> }
 
-    token infix:sym<minmax> { <sym> >> <O(|%list_infix)> }
+    token infix:sym<minmax> { <sym> >> }
 
-    token infix:sym<...>   { <sym> <O(|%list_infix)> }
-    token infix:sym<…>     { <sym> <O(|%list_infix)> }
-    token infix:sym<...^>  { <sym> <O(|%list_infix)> }
-    token infix:sym<…^>    { <sym> <O(|%list_infix)> }
-    token infix:sym<^...>  { <sym> <O(|%list_infix)> }
-    token infix:sym<^…>    { <sym> <O(|%list_infix)> }
-    token infix:sym<^...^> { <sym> <O(|%list_infix)> }
-    token infix:sym<^…^>   { <sym> <O(|%list_infix)> }
+    token infix:sym<...>   { <sym> }
+    token infix:sym<…>     { <sym> }
+    token infix:sym<...^>  { <sym> }
+    token infix:sym<…^>    { <sym> }
+    token infix:sym<^...>  { <sym> }
+    token infix:sym<^…>    { <sym> }
+    token infix:sym<^...^> { <sym> }
+    token infix:sym<^…^>   { <sym> }
 
     token infix:sym<?> {
         <sym>

@@ -1629,8 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %replication     := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication');
-    my %replication_xx  := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication', 'thunky', 't.');
     my %concatenation   := nqp::hash('prec', 'r=', 'assoc', 'left', 'dba', 'concatenation');
     my %junctive_and    := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and');
     my %junctive_and_iffy := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and iffy', 'iffy', 1);
@@ -2199,8 +2197,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<~^> { <sym> }
 
     # Replicating infixes
-    token infix:sym<x>  { <sym> >> <O(|%replication)>    }
-    token infix:sym<xx> { <sym> >> <O(|%replication_xx)> }
+    token infix:sym<x>  { <sym> >> }
+    token infix:sym<xx> { <sym> >> }
 
     # Concatenating infixes
     token infix:sym<~> { <sym> <O(|%concatenation)> }

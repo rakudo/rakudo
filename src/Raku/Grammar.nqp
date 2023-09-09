@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %comma           := nqp::hash('prec', 'g=', 'assoc', 'list', 'dba', 'comma', 'nextterm', 'nulltermish');
     my %list_infix      := nqp::hash('prec', 'f=', 'assoc', 'list', 'dba', 'list infix');
     my %list_prefix     := nqp::hash('prec', 'e=', 'assoc', 'right', 'dba', 'list prefix');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
@@ -2289,13 +2288,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token infix:sym<,>    {
-        <.unspace>? <sym> <O(|%comma)>
-    }
-    token infix:sym<:>    {
+    token infix:sym<,> { <.unspace>? <sym> }
+    token infix:sym<:> {
         <?{ $*INVOCANT_OK && $*GOAL ne '!!' }>
         <.unspace>? <sym> <?before \s | <.terminator> | $ >
-        <O(|%comma)>
         [ <?{ $*INVOCANT_OK }> || <.panic: "Invocant colon not allowed here"> ]
         { $*INVOCANT_OK := 0; }
     }

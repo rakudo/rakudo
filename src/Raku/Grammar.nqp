@@ -1628,10 +1628,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Operators
 
-    # Precedence levels and their defaults
-    my %list_prefix     := nqp::hash('prec', 'e=', 'assoc', 'right', 'dba', 'list prefix');
-    my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
-
     # Look for infix operator or adverb looking like one
     token infixish($IN-META = nqp::getlexdyn('$*IN-META')) {
         :my $*IN-META := $IN-META;
@@ -2370,10 +2366,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<^..^> { <sym> }
     token infix:sym«<=>»  { <sym> }
 
-    token infix:sym«<==»  { <sym> <O(|%sequencer)> }
-    token infix:sym«==>»  { <sym> <O(|%sequencer)> }
-    token infix:sym«<<==» { <sym> <O(|%sequencer)> }
-    token infix:sym«==>>» { <sym> <O(|%sequencer)> }
+    token infix:sym«<==»  { <sym> }
+    token infix:sym«==>»  { <sym> }
+    token infix:sym«<<==» { <sym> }
+    token infix:sym«==>>» { <sym> }
 
     token infix:sym<!~> {
         <sym>

@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %exponentiation  := nqp::hash('prec', 'w=', 'assoc', 'right', 'dba', 'exponentiation');
     my %symbolic_unary  := nqp::hash('prec', 'v=', 'assoc', 'unary', 'dba', 'symbolic unary');
     my %dottyinfix      := nqp::hash('prec', 'v=', 'assoc', 'left', 'dba', 'dotty infix', 'nextterm', 'dottyopish', 'sub', 'z=', 'fiddly', 1);
     my %multiplicative  := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative');
@@ -2096,7 +2095,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Infixes
 
     proto token infix {*}
-    token infix:sym<**> { <sym>  <O(|%exponentiation)> }
+    token infix:sym<**> { <sym> }
 
     # Dotty infixes
     token infix:sym<.> {

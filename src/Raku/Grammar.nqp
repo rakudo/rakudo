@@ -1423,7 +1423,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 return $here;
             }
 
-            $termish := $termcur.MATCH();
+            $termish := $termcur.MATCH;
 
             # Interleave any prefix/postfix we might have found.
             %termOPER := $termish;
@@ -1435,33 +1435,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             # Both prefixes as well as postfixes found
             unless nqp::isnull(@prefixish) || nqp::isnull(@postfixish) {
                 while nqp::elems(@prefixish) && nqp::elems(@postfixish) {
-                    my %preO  := self.properties-for-node(
+                    my $preprec := self.properties-for-node(
                       @prefixish[0]
-                    ).prec;
-                    my %postO := self.properties-for-node(
+                    ).sub-or-precedence;
+                    my $postprec := self.properties-for-node(
                       @postfixish[nqp::elems(@postfixish) - 1]
-                    ).prec;
+                    ).sub-or-precedence;
 
-                    my $preprec := nqp::ifnull(
-                      nqp::atkey(%preO,'sub'),
-                      nqp::ifnull(nqp::atkey(%preO,'prec'),'')
-                    );
-                    my $postprec := nqp::ifnull(
-                      nqp::atkey(%postO,'sub'),
-                      nqp::ifnull(nqp::atkey(%postO,'prec'),'')
-                    );
-
-                    if $postprec gt $preprec {
-                        nqp::push(@opstack, nqp::shift(@prefixish));
-                    }
-                    elsif $postprec lt $preprec {
-                        nqp::push(@opstack, nqp::pop(@postfixish));
-                    }
-                    else {
-                        self.EXPR-nonassoc(
-                          $here, ~@prefixish[0], ~@postfixish[0]
-                        );
-                    }
+                    $postprec gt $preprec
+                      ?? nqp::push(@opstack, nqp::shift(@prefixish))
+                      !! $postprec lt $preprec
+                        ?? nqp::push(@opstack, nqp::pop(@postfixish))
+                        !! self.EXPR-nonassoc(
+                             $here, ~@prefixish[0], ~@postfixish[0]
+                           );
                 }
                 nqp::push(@opstack, nqp::shift(@prefixish))
                   while nqp::elems(@prefixish);

@@ -603,11 +603,29 @@ class RakuAST::FunctionInfix
 
 # Base class, mostly for type checking
 class RakuAST::MetaInfix
-  is RakuAST::Infixish {
+  is RakuAST::Infixish
+  is RakuAST::CheckTime
+{
     method IMPL-HOP-INFIX() {
         self.get-implicit-lookups().AT-POS(0).resolution.compile-time-value()(
             self.infix.resolution.compile-time-value
         )
+    }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        self.properties.fiddly
+          ?? $resolver.add-sorry(
+               $resolver.build-exception("X::Syntax::CannotMeta",
+                 meta     => "negate",
+                 operator => self.infix.operator,
+                 dba      => self.properties.dba,
+                 reason   => "too fiddly"
+               )
+             )
+          !! True
     }
 }
 
@@ -625,6 +643,22 @@ class RakuAST::MetaInfix::Assign
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
+    }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        my $properties := self.properties;
+        $properties.fiddly || $properties.diffy
+          ?? $resolver.add-sorry(
+               $resolver.build-exception("X::Syntax::CannotMeta",
+                 meta     => "assign",
+                 operator => self.infixx.operator,
+                 reason   => "too fiddly or diffy"
+               )
+             )
+          !! True
     }
 
     method properties() { OperatorProperties.infix('$=') }
@@ -689,6 +723,19 @@ class RakuAST::MetaInfix::Negate
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
+    }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        self.properties.iffy
+          || $resolver.add-sorry:
+               $resolver.build-exception: "X::Syntax::CannotMeta",
+                 meta     => "negate",
+                 operator => self.infix.operator,
+                 dba      => self.properties.dba,
+                 reason   => "not iffy enough"
     }
 
     method properties() { $!infix.properties }

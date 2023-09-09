@@ -293,6 +293,7 @@ class RakuAST::Term::Capture
 # A reduction meta-operator.
 class RakuAST::Term::Reduce
   is RakuAST::Term
+  is RakuAST::CheckTime
   is RakuAST::ImplicitLookups
 {
     has RakuAST::Infixish $.infix;
@@ -306,6 +307,24 @@ class RakuAST::Term::Reduce
         nqp::bindattr($obj, RakuAST::Term::Reduce, '$!triangle', $triangle ?? True !! False);
         $obj
     }
+
+    method PERFORM-CHECK(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        (my $reason := self.properties.not-reducable)
+          ?? $resolver.add-sorry(
+               $resolver.build-exception("X::Syntax::CannotMeta",
+                 meta     => "reduce",
+                 operator => self.infix.operator,
+                 dba      => self.properties.dba,
+                 reason   => $reason
+               )
+             )
+          !! True
+    }
+
+    method properties() { $!infix.properties }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([

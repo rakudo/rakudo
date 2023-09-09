@@ -1629,7 +1629,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Operators
 
     # Precedence levels and their defaults
-    my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
     my %adverb          := nqp::hash('prec', 'i=', 'assoc', 'unary', 'adverb', 1, 'dba', 'adverb');
     my %list_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'list assignment', 'sub', 'e=', 'fiddly', 1);
     my %loose_unary     := nqp::hash('prec', 'h=', 'assoc', 'unary', 'dba', 'loose unary');
@@ -2094,7 +2093,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Assignment infixes
     token infix:sym<:=>  { <sym> <O(|%list_assignment)> }
-    token infix:sym<::=> { <sym> <O(|%item_assignment)> <.NYI: '"::="'> }
+    token infix:sym<::=> { <sym> <.NYI: '"::="'> }
 
     # Iffy multiplicative infixes
     token infix:sym<%%> { <sym> }
@@ -2344,20 +2343,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<=> {
         <sym>
         :my $*ITEM := $*LEFTSIGIL eq '$' || $*IN-META;
-        [
-          || <?{ $*ITEM }>
-             <O(|%item_assignment)>
-          || <O(|%list_assignment)>
-        ]
         { $*LEFTSIGIL := '' }
     }
 
-    token infix:sym«=>»  { <sym> <O(|%item_assignment)> }
-    token infix:sym«⇒»   { <sym> <O(|%item_assignment)> }
-    token infix:sym<⚛=>  { <sym> <O(|%item_assignment)> }
-    token infix:sym<⚛+=> { <sym> <O(|%item_assignment)> }
-    token infix:sym<⚛-=> { <sym> <O(|%item_assignment)> }
-    token infix:sym<⚛−=> { <sym> <O(|%item_assignment)> }
+    token infix:sym«=>»  { <sym> }
+    token infix:sym«⇒»   { <sym> }
+    token infix:sym<⚛=>  { <sym> }
+    token infix:sym<⚛+=> { <sym> }
+    token infix:sym<⚛-=> { <sym> }
+    token infix:sym<⚛−=> { <sym> }
 
     token infix:sym<and>  { <sym> >> <O(|%loose_and)> }
 

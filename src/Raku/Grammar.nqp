@@ -2040,9 +2040,52 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token prefix:sym<not> { <sym><.end-prefix> }
 
 #-------------------------------------------------------------------------------
-# Infixes
+# Alpha infixes that need a right word boundary, and which will need special
+# handling for non-English versions of the Raku Programming Language
 
     proto token infix {*}
+    token infix:sym<after>      { <sym> » }
+    token infix:sym<and>        { <sym> » }
+    token infix:sym<andthen>    { <sym> » }
+    token infix:sym<before>     { <sym> » }
+    token infix:sym<but>        { <sym> » }
+    token infix:sym<cmp>        { <sym> » }
+    token infix:sym<coll>       { <sym> » }
+    token infix:sym<div>        { <sym> » }
+    token infix:sym<does>       { <sym> » }
+    token infix:sym«eq»         { <sym> » }
+    token infix:sym<eqv>        { <sym> » }
+    token infix:sym<ff>         { <sym> » }
+    token infix:sym<^ff>        { <sym> » }
+    token infix:sym<ff^>        { <sym> » }
+    token infix:sym<^ff^>       { <sym> » }
+    token infix:sym<fff>        { <sym> » }
+    token infix:sym<^fff>       { <sym> » }
+    token infix:sym<fff^>       { <sym> » }
+    token infix:sym<^fff^>      { <sym> » }
+    token infix:sym<gcd>        { <sym> » }
+    token infix:sym«ge»         { <sym> » }
+    token infix:sym«gt»         { <sym> » }
+    token infix:sym<lcm>        { <sym> » }
+    token infix:sym«le»         { <sym> » }
+    token infix:sym<leg>        { <sym> » }
+    token infix:sym«lt»         { <sym> » }
+    token infix:sym<max>        { <sym> » }
+    token infix:sym<min>        { <sym> » }
+    token infix:sym<minmax>     { <sym> » }
+    token infix:sym<mod>        { <sym> » }
+    token infix:sym«ne»         { <sym> » }
+    token infix:sym<notandthen> { <sym> » }
+    token infix:sym<or>         { <sym> » }
+    token infix:sym<orelse>     { <sym> » }
+    token infix:sym<unicmp>     { <sym> » }
+    token infix:sym<x>          { <sym> » }
+    token infix:sym<xor>        { <sym> » }
+    token infix:sym<xx>         { <sym> » }
+
+#-------------------------------------------------------------------------------
+# Other infixes
+
     token infix:sym<**> { <sym> }
 
     # Dotty infixes
@@ -2071,12 +2114,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Iffy multiplicative infixes
     token infix:sym<%%> { <sym> }
     token infix:sym<?&> { <sym> }
-
-    # Multiplicative infixes requiring a word bound on the right side
-    token infix:sym<div> { <sym> » }
-    token infix:sym<gcd> { <sym> » }
-    token infix:sym<lcm> { <sym> » }
-    token infix:sym<mod> { <sym> » }
 
     # Multiplicatve infixes with meta interaction
     token infix:sym«+<» {
@@ -2151,10 +2188,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<~|> { <sym> }
     token infix:sym<~^> { <sym> }
 
-    # Replicating infixes
-    token infix:sym<x>  { <sym> » }
-    token infix:sym<xx> { <sym> » }
-
     # Concatenating infixes
     token infix:sym<~> { <sym> }
     token infix:sym<∘> { <sym> }
@@ -2184,17 +2217,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«∖»   { <sym> }
 
     token infix:sym«!=» { <sym> <?before \s|']'>}
-
-    # Chaining infixes requiring word-boundary on right side
-    token infix:sym«eq»     { <sym> » }
-    token infix:sym«ne»     { <sym> » }
-    token infix:sym«le»     { <sym> » }
-    token infix:sym«ge»     { <sym> » }
-    token infix:sym«lt»     { <sym> » }
-    token infix:sym«gt»     { <sym> » }
-    token infix:sym<eqv>    { <sym> » }
-    token infix:sym<before> { <sym> » }
-    token infix:sym<after>  { <sym> » }
 
     # Other chaining infixes
     token infix:sym«=~=»    { <sym> }
@@ -2240,9 +2262,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<//> { <sym> }
     token infix:sym<^^> { <sym> }
 
-    token infix:sym<min> { <sym> » }
-    token infix:sym<max> { <sym> » }
-
     # Parsing of the ?? !! ternary is really treated as an infix, where the
     # left side is the condition, the right side is the "else" expression,
     # and the '?? expression !!' is initially parsed as the operator.
@@ -2282,7 +2301,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<X> { <!before <.sym> <.infixish>> <sym> }
     token infix:sym<Z> { <!before <.sym> <.infixish>> <sym> }
 
-    token infix:sym<minmax> { <sym> » }
 
     token infix:sym<...>   { <sym> }
     token infix:sym<…>     { <sym> }
@@ -2301,15 +2319,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.obs: '? and : for the ternary conditional operator', '?? and !!'>
     }
 
-    token infix:sym<ff>    { <sym> }
-    token infix:sym<^ff>   { <sym> }
-    token infix:sym<ff^>   { <sym> }
-    token infix:sym<^ff^>  { <sym> }
-    token infix:sym<fff>   { <sym> }
-    token infix:sym<^fff>  { <sym> }
-    token infix:sym<fff^>  { <sym> }
-    token infix:sym<^fff^> { <sym> }
-
     token infix:sym<=> {
         <sym>
         :my $*ITEM := $*LEFTSIGIL eq '$' || $*IN-META;
@@ -2323,16 +2332,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<⚛-=> { <sym> }
     token infix:sym<⚛−=> { <sym> }
 
-    token infix:sym<and> { <sym> » }
-
-    token infix:sym<andthen> { <sym> » }
-    token infix:sym<notandthen> { <sym> » }
-
-    token infix:sym<or>  { <sym> » }
-    token infix:sym<xor> { <sym> » }
-
-    token infix:sym<orelse> { <sym> » }
-
     token infix:sym<..> {
         <sym>
         [
@@ -2341,13 +2340,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <.panic: "Please use ..* for indefinite range">
         ]?
     }
-
-    token infix:sym<but>    { <sym> » }
-    token infix:sym<cmp>    { <sym> » }
-    token infix:sym<coll>   { <sym> » }
-    token infix:sym<does>   { <sym> » }
-    token infix:sym<leg>    { <sym> » }
-    token infix:sym<unicmp> { <sym> » }
 
     token infix:sym<^..>  { <sym> }
     token infix:sym<..^>  { <sym> }

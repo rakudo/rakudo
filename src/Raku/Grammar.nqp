@@ -2900,15 +2900,37 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token variable {
         :my $*IN-META := '';
         [
-        | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
-        | <sigil> <twigil>? <desigilname>
-        | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
-        | <special-variable>
-        | <sigil> $<index>=[\d+]
-        | <sigil> <?[<]> <postcircumfix>
-        | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN-DECL }> <contextualizer>
-        | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
+          # &[foo]
+          | :dba('infix noun') '&[' ~ ']' <infixish('[]')>
+
+          # $foo and $!foo
+          | <sigil> <twigil>? <desigilname>
+
+          # $/ $_ $! $¢
+          | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
+
+          # $0
+          | <sigil> $<index>=[\d+]
+
+          # $<foo>
+          | <sigil> <?[<]> <postcircumfix>
+
+          # obsolete Perl vars
+          | <special-variable>
+
+          # $() @() %() &() $[] …
+          | <?before <.sigil> <.?[ ( [ { ]>>
+            <!RESTRICTED>
+            <?{ !$*IN-DECL }>
+            <contextualizer>
+
+          # try last, to allow sublanguages to redefine sigils (like & in regex)
+          | {}
+            <sigil>
+            <!{ $*QSIGIL }>
+            <?MARKER('baresigil')>
         ]
+
         { $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL }
     }
 

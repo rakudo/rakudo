@@ -1393,9 +1393,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*LEFTSIGIL := '';
         my int $noinfix := $preclim eq 'y=';
 
-        my $here          := self.new-cursor;
-        my int $pos       := nqp::getattr_i($here, NQPMatch, '$!from');
-        my str $termishrx := 'termish';
+        my $here    := self.new-cursor;
+        my int $pos := $here.from;
+        my str $rx  := 'termish';
+
         my @opstack;
         my @termstack;
         my $termcur;
@@ -1415,7 +1416,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         while 1 {
             $here.set-pos($pos);
-            $termcur := $here."$termishrx"();
+            $termcur := $here."$rx"();
             $pos := $termcur.pos;
             $here.set-pos($pos);
             if $pos < 0 {
@@ -1489,7 +1490,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 # We got an infix.
                 %inO := self.properties-for-node($infix).prec;
 
-                $termishrx := nqp::ifnull(
+                $rx := nqp::ifnull(
                   nqp::atkey(%inO, 'nextterm'),
                   'termish'
                 );

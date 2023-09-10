@@ -4196,7 +4196,7 @@ Rakudo significantly on *every* run."
         elsif $is-operator {
             my role Oper[$meth-name, $op, $precedence, $declarand] {
                 token ::($meth-name) {
-                    $<sym>=[$op] <O=.genO($precedence, $declarand)>
+                    $<sym>=[$op]
                 }
             }
             $grammar-mixin := Oper.HOW.curry(
@@ -4325,16 +4325,6 @@ Rakudo significantly on *every* run."
         $*LANG := self;
         #$*LEAF := self;
         return 1;
-    }
-
-    method genO(%prec, $declarand) {
-        if nqp::can($declarand, 'prec') {
-            my %extras := $declarand.prec.FLATTENABLE_HASH;
-            for %extras {
-                %prec{$_.key} := $_.value;
-            }
-        }
-        self.O(|%prec)
     }
 
 #-------------------------------------------------------------------------------

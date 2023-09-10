@@ -1407,7 +1407,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $wscur;
         my $infixcur;
         my $infix;
-        my %inO;
+        my $inprop;
         my str $inprec;
         my str $opprec;
         my str $inassoc;
@@ -1488,13 +1488,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 $infix := $infixcur.MATCH;
 
                 # We got an infix.
-                %inO := self.properties-for-node($infix).prec;
-
-                $rx := nqp::ifnull(
-                  nqp::atkey(%inO, 'nextterm'),
-                  'termish'
-                );
-                $inprec := ~%inO<prec>;
+                $inprop := self.properties-for-node($infix);
+                $rx     := $inprop.next-term;
+                $inprec := $inprop.precedence;
                 if $inprec le $preclim {  # lower or no precedence
                     if $inprec {
                         $term_done := 1;
@@ -1507,17 +1503,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
                 while nqp::elems(@opstack) {
                     my $ast := @opstack[nqp::elems(@opstack)-1].ast;
-                    my %opO := $ast ?? $ast.properties.prec !! nqp::hash;
-
-                    $opprec := nqp::ifnull(
-                      nqp::atkey(%opO, 'sub'),
-                      nqp::atkey(%opO, 'prec')
-                    );
+                    $opprec := $ast
+                      ?? $ast.properties.sub-or-precedence
+                      !! "";
                     last unless $opprec gt $inprec;
                     self.EXPR-reduce(@termstack, @opstack);
                 }
 
-                if nqp::atkey(%inO,'adverb') {
+                if $inprop.adverb {
                     nqp::push(@opstack, $infix);
                     self.EXPR-reduce(@termstack, @opstack);
                 }
@@ -1529,7 +1522,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
             # if equal precedence, use associativity to decide
             if $opprec eq $inprec {
-                $inassoc := nqp::atkey(%inO, 'assoc');
+                $inassoc := $inprop.associative;
                 if $inassoc eq 'non' {
                     self.EXPR-nonassoc(
                       $infixcur,

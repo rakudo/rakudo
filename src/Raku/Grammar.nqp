@@ -1399,25 +1399,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         my @opstack;
         my @termstack;
-        my $termcur;
-        my $termish;
-        my %termOPER;
-        my @prefixish;
-        my @postfixish;
-        my $wscur;
         my $infixcur;
         my $infix;
         my $inprop;
         my str $inprec;
         my str $opprec;
-        my str $inassoc;
         my int $more_infix;
         my int $term_done;
 
         while 1 {
             $here.set-pos($pos);
-            $termcur := $here."$rx"();
-            $pos := $termcur.pos;
+            my $termcur := $here."$rx"();
+            $pos        := $termcur.pos;
             $here.set-pos($pos);
             if $pos < 0 {
                 $here.panic('Missing required term after infix')
@@ -1425,14 +1418,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 return $here;
             }
 
-            $termish := $termcur.MATCH;
-
             # Interleave any prefix/postfix we might have found.
-            %termOPER := $termish;
-            %termOPER := nqp::atkey(%termOPER, 'OPER')
-                while nqp::existskey(%termOPER, 'OPER');
-            @prefixish  := nqp::atkey(%termOPER, 'prefixish');
-            @postfixish := nqp::atkey(%termOPER, 'postfixish');
+            my $termish  := $termcur.MATCH;
+            my %termOPER := $termish;
+            %termOPER := nqp::atkey(%termOPER,'OPER')
+                while nqp::existskey(%termOPER,'OPER');
+            my @prefixish  := nqp::atkey(%termOPER,'prefixish');
+            my @postfixish := nqp::atkey(%termOPER,'postfixish');
 
             # Both prefixes as well as postfixes found
             unless nqp::isnull(@prefixish) || nqp::isnull(@postfixish) {
@@ -1470,8 +1462,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 # Now see if we can fetch an infix operator
                 # First, we need ws to match.
                 $here.set-pos($pos);
-                $wscur := $here.ws;
-                $pos   := $wscur.pos;
+                $pos := $here.ws.pos;
                 if $pos < 0 {
                     $term_done := 1;
                     last;
@@ -1522,7 +1513,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
             # if equal precedence, use associativity to decide
             if $opprec eq $inprec {
-                $inassoc := $inprop.associative;
+                my str $inassoc := $inprop.associative;
                 if $inassoc eq 'non' {
                     self.EXPR-nonassoc(
                       $infixcur,
@@ -1544,8 +1535,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
             nqp::push(@opstack, $infix); # The Shift
             $here.set-pos($pos);
-            $wscur := $here.ws;
-            $pos   := $wscur.pos;
+            $pos := $here.ws.pos;
             $here.set-pos($pos);
             return $here if $pos < 0;
         }

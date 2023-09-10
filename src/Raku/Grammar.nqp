@@ -29,6 +29,10 @@ role Raku::Common {
         <.panic: "Internal error: O() should not be used anymore">
     }
 
+    # Helper method for chars of match
+    method leading-char()   { nqp::substr(self.orig, self.from,     1) }
+    method preceding-char() { nqp::substr(self.orig, self.from - 1, 1) }
+
 #-------------------------------------------------------------------------------
 # Cursor methods
 #
@@ -2049,7 +2053,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
           <!alpha>
           {
-              my $pre := nqp::substr(self.orig, self.from - 1, 1);
+              my $pre := self.preceding-char;
               $<ws> ne ''
                 ?? $¢.obs('. to concatenate strings', '~')
                 !! $pre ~~ /^\s$/
@@ -2905,7 +2909,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN-DECL }> <contextualizer>
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
-        { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
+        { $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL }
     }
 
     token contextualizer {
@@ -3072,7 +3076,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
         {
             $*IN-DECL := '';
-            $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL;
+            $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL;
             $sigil := $<sigil>.Str;
         }
         [

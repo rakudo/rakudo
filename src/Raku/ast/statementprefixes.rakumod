@@ -348,14 +348,14 @@ class RakuAST::StatementPrefix::Blorst
 # The `once` statement prefix.
 class RakuAST::StatementPrefix::Once
   is RakuAST::StatementPrefix::Blorst
-  is RakuAST::CheckTime
 {
     has str $!state-name;
 
     method type() { "once" }
 
-    # Lots of stuff happens in RakuAST::Code.PERFORM-BEGIN, so we'll use PERFORM-CHECK to install our hidden statevar
-    method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-STUB-CODE: $resolver, $context;
+
         my $state-name := QAST::Node.unique('once_');
         nqp::bindattr_s(self, RakuAST::StatementPrefix::Once, '$!state-name', $state-name);
         $resolver.current-scope.add-generated-lexical-declaration:

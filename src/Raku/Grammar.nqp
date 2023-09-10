@@ -33,6 +33,11 @@ role Raku::Common {
     method leading-char()   { nqp::substr(self.orig, self.from,     1) }
     method preceding-char() { nqp::substr(self.orig, self.from - 1, 1) }
 
+    # Helper method for determining type smileys
+    method type-smiley(str $key) {
+        $key eq 'D' || $key eq 'U' || $key eq '_'
+    }
+
 #-------------------------------------------------------------------------------
 # Cursor methods
 #
@@ -2660,25 +2665,52 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Colonpairs
 
     token colonpair {
-        :my $*key;
+        :my $*KEY;
         ':'
         :dba('colon pair')
         [
-        | $<neg>='!' [ <identifier> || <.malformed: "False pair; expected identifier"> ]
-            [ <[ \[ \( \< \{ ]> {
-            $/.typed-panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
-            { $*key := $<identifier>.Str }
-        | $<num> = [\d+] <identifier> [ <?before <.[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
+          | $<neg>='!'
+            [ <identifier> || <.malformed: "False pair; expected identifier"> ]
+            [
+              <[ \[ \( \< \{ ]>
+              {
+                  $/.typed-panic: 'X::Syntax::NegatedPair',
+                    key => ~$<identifier>
+              }
+            ]?
+            { $*KEY := $<identifier> }
+
+          | $<num>=[\d+]
+            <identifier>
+            [
+              <?before <.[ \[ \( \< \{ ]>>
+              {}
+              <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)>
+              <.circumfix>
+            ]?
             <?{ self.no-synthetics(~$<num>) }>
-            { $*key := $<identifier>.Str }
-        | <identifier>
-            { $*key := $<identifier>.Str }
-            [ <.unspace>? <?{ !$*IN-TYPENAME || ($*key ne 'D' && $*key ne 'U' && $*key ne '_') }> :dba('pair value') <coloncircumfix($*key)> ]?
-        | :dba('signature') '(' ~ ')' <fakesignature>
-        | <coloncircumfix('')>
-            { $*key := ""; }
-        | <var=.colonpair-variable>
-            { $*key := $<var><desigilname>.Str; self.check-variable($<var>); }
+            { $*KEY := $<identifier> }
+
+          | <identifier>
+            { $*KEY := $<identifier> }
+            [
+              <.unspace>?
+              <?{ !$*IN-TYPENAME && !self.type-smiley(~$*KEY) }>
+              :dba('pair value')
+              <coloncircumfix($*KEY)>
+            ]?
+
+          | :dba('signature')
+            '(' ~ ')' <fakesignature>
+
+          | <coloncircumfix('')>
+            { $*KEY := "" }
+
+          | <var=.colonpair-variable>
+            {
+                $*KEY := $<var><desigilname>;
+                self.check-variable($<var>);
+            }
         ]
     }
 
@@ -3706,19 +3738,30 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token quotepair {
-        :my $*key;
+        :my $*KEY;
         ':'
         :dba('colon pair (restricted)')
         [
-        | $<neg>='!' [ <identifier> || <.malformed: "False pair; expected identifier"> ]
-            [ <[ \[ \( \< \{ ]> {
-            $/.typed-panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
-            { $*key := $<identifier>.Str }
-        | $<num> = [\d+] <identifier> [ <?before <.[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
+          | $<neg>='!'
+            [ <identifier> || <.malformed: "False pair; expected identifier"> ]
+            [
+              <[ \[ \( \< \{ ]>
+              { $/.typed-panic('X::Syntax::NegatedPair',key => ~$<identifier>) }
+            ]?
+            { $*KEY := $<identifier> }
+
+          | $<num>=[\d+]
+            <identifier>
+            [ <?before <.[ \[ \( \< \{ ]>>
+              {}
+              <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)>
+              <.circumfix>
+            ]?
             <?{ self.no-synthetics(~$<num>) }>
-            { $*key := $<identifier>.Str }
-        | <identifier>
-            { $*key := ~$<identifier> }
+            { $*KEY := $<identifier> }
+
+          | <identifier>
+            { $*KEY := $<identifier> }
             [ <?[(]> <circumfix> ]?
         ]
     }

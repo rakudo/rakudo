@@ -1511,25 +1511,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method colonpair($/) {
-        my $key-str := $*key;
+        my $key-str := ~$*KEY;
         if $key-str {
             my $key := $*LITERALS.intern-str($key-str);
-            if $<num> {
-                my $value := Nodify('IntLiteral').new($*LITERALS.intern-int(~$<num>, 10));
-                self.attach: $/, Nodify('ColonPair', 'Number').new(:$key, :$value);
-            }
-            elsif $<coloncircumfix> {
-                my $value := $<coloncircumfix>.ast;
-                self.attach: $/, Nodify('ColonPair', 'Value').new(:$key, :$value);
-            }
-            elsif $<var> {
-                my $value := $<var>.ast;
-                self.attach: $/, Nodify('ColonPair', 'Variable').new(:$key, :$value);
-            }
-            else {
-                self.attach: $/,
-                  Nodify('ColonPair', $<neg> ?? 'False' !! 'True').new($key);
-            }
+            self.attach: $/, $<num>
+              ?? Nodify('ColonPair', 'Number').new(
+                   key   => $key,
+                   value => Nodify('IntLiteral').new(
+                     $*LITERALS.intern-int(~$<num>, 10)
+                   )
+                 )
+              !! $<coloncircumfix>
+                ?? Nodify('ColonPair', 'Value').new(
+                     key => $key, value => $<coloncircumfix>.ast
+                   )
+                !! $<var>
+                  ?? Nodify('ColonPair', 'Variable').new(
+                       key => $key, value => $<var>.ast
+                     )
+                  !! Nodify('ColonPair',$<neg> ?? 'False' !! 'True').new($key);
         }
         elsif $<fakesignature> {
             make $<fakesignature>.ast;
@@ -2507,7 +2507,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method quotepair($/) {
-        my $key := $*LITERALS.intern-str($*key);
+        my $key := $*LITERALS.intern-str(~$*KEY);
         if $<num> {
             my $value := Nodify('IntLiteral').new($*LITERALS.intern-int(~$<num>, 10));
             self.attach: $/, Nodify('ColonPair', 'Number').new(:$key, :$value);
@@ -2524,9 +2524,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    ##
-    ## Types
-    ##
+#-------------------------------------------------------------------------------
+# Types
 
     method type-for-name($/, $base-name) {
         my $type := Nodify('Type', 'Simple').new($base-name.without-colonpair('_'));

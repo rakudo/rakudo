@@ -1492,7 +1492,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
         }
         else {
-            self.attach: $/, $*is-type
+            self.attach: $/, $*IS-TYPE
               ?? self.type-for-name($/, $name)
               !! Nodify('Term', 'Name').new($name)
         }

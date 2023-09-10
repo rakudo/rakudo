@@ -2564,7 +2564,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<name> {
-        :my $*is-type;
+        :my $*IS-TYPE;
         <longname>
         :my $base-name;
         [
@@ -2572,19 +2572,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 $base-name := $<longname>.ast.without-colonpairs;
                 nqp::eqat($<longname>.Str, '::', 0) || $*R.is-name-known($base-name)
             }>
-            { $*is-type := $*R.is-name-type($base-name) }
+            { $*IS-TYPE := $*R.is-name-type($base-name) }
             [
-                <?[[]> <?{ $*is-type }>
+                <?[[]> <?{ $*IS-TYPE }>
                 :dba('type parameter') '[' ~ ']' <arglist>
             ]?
             <.unspace>?
             [
-                <?[{]> <?{ $*is-type }>
+                <?[{]> <?{ $*IS-TYPE }>
                 <whence=.postcircumfix> <.NYI: 'Autovivifying object closures'>
             ]?
             <.unspace>?
             [
-                <?[(]> <?{ $*is-type }>
+                <?[(]> <?{ $*IS-TYPE }>
                 '(' <.ws> [
                     || <accept=.maybe-typename> <?{
                            my $it := $<accept>.ast;

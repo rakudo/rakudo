@@ -25,11 +25,8 @@ my role stop[$stop] {
 
 role Raku::Common {
 
-    # Copy of HLL::Grammar's <O>, for debugging
     token O(*%spec) {
-# { &*DD(%spec) }
-        :my %*SPEC := %spec;
-        <?>
+        <.panic: "Internal error: O() should not be used anymore">
     }
 
 #-------------------------------------------------------------------------------

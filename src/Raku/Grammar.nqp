@@ -38,6 +38,25 @@ role Raku::Common {
         $key eq 'D' || $key eq 'U' || $key eq '_'
     }
 
+    # Helper method to see whether the string of the given node does not
+    # have any (hidden) synthetics.  Go over each character in the string
+    # and check $ch.chr eq $ch.ord.chr to fail any matches that have
+    # synthetics, such as 7\x[308]
+    method no-synthetics($node) {
+        my str $string := ~$node;
+        my int $chars  := nqp::chars($string);
+        if $chars == 1 {
+            $string eq nqp::chr(nqp::ord($string))
+        }
+        else {
+            my int $i := -1;
+            while ++$i < $chars
+              && nqp::eqat($string,nqp::chr(nqp::ord($string,$i)),$i) {
+            }
+            $i == $chars
+        }
+    }
+
 #-------------------------------------------------------------------------------
 # Cursor methods
 #
@@ -2688,7 +2707,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)>
               <.circumfix>
             ]?
-            <?{ self.no-synthetics(~$<num>) }>
+            <?{ self.no-synthetics($<num>) }>
             { $*KEY := $<identifier> }
 
           | <identifier>
@@ -2712,23 +2731,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 self.check-variable($<var>);
             }
         ]
-    }
-
-    method no-synthetics($num) {
-        # Here we go over each character in the numeral and check $ch.chr eq $ch.ord.chr
-        # to fail any matches that have synthetics, such as 7\x[308]
-        my $chars-num := nqp::chars($num);
-        my $pos       := -1;
-        nqp::while(
-            nqp::islt_i( ($pos := nqp::add_i($pos, 1)), $chars-num )
-            && nqp::eqat(
-                $num,
-                nqp::chr( nqp::ord($num, $pos) ),
-                $pos,
-            ),
-            nqp::null,
-        );
-        nqp::iseq_i($chars-num, $pos);
     }
 
     token coloncircumfix($front) {
@@ -3763,7 +3765,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)>
               <.circumfix>
             ]?
-            <?{ self.no-synthetics(~$<num>) }>
+            <?{ self.no-synthetics($<num>) }>
             { $*KEY := $<identifier> }
 
           | <identifier>

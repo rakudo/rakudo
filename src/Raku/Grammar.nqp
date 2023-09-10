@@ -1399,7 +1399,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         my @opstack;
         my @termstack;
-        my $infixcur;
         my $infix;
         my $inprop;
         my str $inprec;
@@ -1470,13 +1469,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
                 # Next, try the infix itself.
                 $here.set-pos($pos);
-                $infixcur := $here.infixish;
-                $pos := $infixcur.pos;
+                $infix := $here.infixish;
+                $pos := $infix.pos;
                 if $pos < 0 {
                     $term_done := 1;
                     last;
                 }
-                $infix := $infixcur.MATCH;
 
                 # We got an infix.
                 $inprop := self.properties-for-node($infix);
@@ -1488,7 +1486,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                         last;
                     }
                     else {
-                        $infixcur.panic('Missing infixish operator precedence');
+                        $infix.panic('Missing infixish operator precedence');
                     }
                 }
 
@@ -1516,7 +1514,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 my str $inassoc := $inprop.associative;
                 if $inassoc eq 'non' {
                     self.EXPR-nonassoc(
-                      $infixcur,
+                      $infix,
                       @opstack[nqp::elems(@opstack)-1]<OPER>.Str,
                       $infix.Str
                     );
@@ -1528,7 +1526,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 elsif $inassoc eq 'list' {
                     my $op1 := @opstack[nqp::elems(@opstack)-1]<OPER>.Str;
                     my $op2 := $infix.Str;
-                    self.EXPR-nonlistassoc($infixcur, $op1, $op2)
+                    self.EXPR-nonlistassoc($infix, $op1, $op2)
                       if $op1 ne $op2 && $op1 ne ':';
                 }
             }

@@ -3725,7 +3725,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             elsif $m eq 'x' { $/.obs('/x','normal default whitespace');            }
             elsif $m eq 'c' { $/.obs('/c',':c or :p');                             }
             elsif $m eq 'e' { $/.obs('/e','interpolated {...} or s{} = ... form'); }
-            else            { $/.obs('suffix regex modifiers','prefix adverbs');   }
         }
     }
 

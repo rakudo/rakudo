@@ -1551,11 +1551,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         nqp::bindattr($op,NQPCapture,'@!array',nqp::list);
 
         # Some shortcuts
-        my %opOPER := nqp::atkey($op, 'OPER');
-        my %opO    := self.properties-for-node($op).prec;
-        my str $opassoc := ~nqp::atkey(%opO, 'assoc');
-        my $actions     := self.actions;
+        my $properties := self.properties-for-node($op);
+        my $actions    := self.actions;
 
+        my str $opassoc := $properties.associative;
         if $opassoc eq 'unary' {
             my $arg := nqp::pop(@termstack);
             $op[0]  := $arg;
@@ -1565,12 +1564,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
 
         elsif $opassoc eq 'list' {
-            my str $sym := nqp::ifnull(nqp::atkey(%opOPER, 'sym'), '');
             nqp::unshift($op, nqp::pop(@termstack));
+            my str $sym := nqp::ifnull(
+              nqp::atkey(
+                nqp::atkey($op,'OPER'),
+                'sym'
+              ),
+              ''
+            );
             while @opstack {
                 last if $sym ne nqp::ifnull(
-                    nqp::atkey(nqp::atkey(nqp::atpos(@opstack,
-                        nqp::elems(@opstack) - 1), 'OPER'), 'sym'), '');
+                  nqp::atkey(
+                    nqp::atkey(
+                      nqp::atpos(@opstack,nqp::elems(@opstack) - 1),
+                      'OPER'
+                    ),
+                  'sym'),
+                  ''
+                );
                 nqp::unshift($op, nqp::pop(@termstack));
                 nqp::pop(@opstack);
             }
@@ -1583,7 +1594,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $op[0] := nqp::pop(@termstack); # left
 
             # we haz a ternary, adjust for that
-            if nqp::atkey(%opO,'ternary') {
+            if $properties.ternary {
                 $op[2] := $op[1];
                 $op[1] := $op<infix><EXPR>;
                 $actions.TERNARY-EXPR($op);

@@ -3718,13 +3718,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         (<[ i g s m x c e ]>)
         {
             my $m := $/[0].Str;
-            if    $m eq 'i' { $/.obs('/i',':i');                                   }
-            elsif $m eq 'g' { $/.obs('/g',':g');                                   }
-            elsif $m eq 'm' { $/.obs('/m','^^ and $$ anchors');                    }
-            elsif $m eq 's' { $/.obs('/s','. or \N');                              }
-            elsif $m eq 'x' { $/.obs('/x','normal default whitespace');            }
-            elsif $m eq 'c' { $/.obs('/c',':c or :p');                             }
-            elsif $m eq 'e' { $/.obs('/e','interpolated {...} or s{} = ... form'); }
+            $/.obs("/$m", $m eq 'i'
+              ?? ':i'
+              !! $m eq 'g'
+                ?? ':g'
+                !! $m eq 'm'
+                  ?? '^^ and $$ anchors'
+                  !! $m eq 's'
+                    ?? '. or \N'
+                    !! $m eq 'x'
+                      ?? 'normal default whitespace'
+                      !! $m eq 'c'
+                        ?? ':c or :p'
+                        !! 'interpolated {...} or s{} = ... form'  # $m eq 'e'
+            );
         }
     }
 

@@ -1248,6 +1248,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make Nodify('Assignment').new(:item($*ITEM));
     }
 
+    # These infix operators are purely a grammar construct at the moment
     method infix:sym«==>»($/)  { self.attach: $/, Nodify('Feed').new($<sym>) }
     method infix:sym«<==»($/)  { self.attach: $/, Nodify('Feed').new($<sym>) }
     method infix:sym«==>>»($/) { self.attach: $/, Nodify('Feed').new($<sym>) }
@@ -1304,13 +1305,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('MetaInfix', 'Reverse').new($<infixish>.ast);
     }
 
-    method revO($/) {
-        my $O := nqp::clone($*FROM);
-        if    $O<assoc> eq 'right' { $O<assoc> := 'left' }
-        elsif $O<assoc> eq 'left'  { $O<assoc> := 'right' }
-        make $O;
-    }
-
     method infix-prefix-meta-operator:sym<X>($/) {
         self.attach: $/, Nodify('MetaInfix', 'Cross').new($<infixish>.ast);
     }
@@ -1325,16 +1319,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method infix-circumfix-meta-operator:sym<« »>($/) {
         self.attach: $/, Nodify('MetaInfix', 'Hyper').new:
-            infix => $<infixish>.ast,
-            dwim-left => $<opening> eq '«',
-            dwim-right => $<closing> eq '»'
+          infix      => $<infixish>.ast,
+          dwim-left  => $<opening> eq '«',
+          dwim-right => $<closing> eq '»'
     }
-
     method infix-circumfix-meta-operator:sym«<< >>»($/) {
         self.attach: $/, Nodify('MetaInfix', 'Hyper').new:
-            infix => $<infixish>.ast,
-            dwim-left => $<opening> eq '<<',
-            dwim-right => $<closing> eq '>>'
+          infix      => $<infixish>.ast,
+          dwim-left  => $<opening> eq '<<',
+          dwim-right => $<closing> eq '>>'
     }
 
     method circumfix:sym<( )>($/) {
@@ -1349,11 +1342,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<pointy-block>.ast.block-or-hash;
     }
 
-    method circumfix:sym<ang>($/) { self.attach: $/, $<nibble>.ast; }
+    method circumfix:sym<ang>($/) { self.attach: $/, $<nibble>.ast }
 
-    method circumfix:sym«<< >>»($/) { self.attach: $/, $<nibble>.ast; }
-
-    method circumfix:sym<« »>($/) { self.attach: $/, $<nibble>.ast; }
+    method circumfix:sym«<< >>»($/) { self.attach: $/, $<nibble>.ast }
+    method circumfix:sym<« »>($/)   { self.attach: $/, $<nibble>.ast }
 
     method infix:sym<.>($/) {
         self.attach: $/, Nodify('DottyInfix', 'Call').new;
@@ -1363,9 +1355,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('DottyInfix', 'CallAssign').new;
     }
 
-    ##
-    ## Stubs
-    ##
+#-------------------------------------------------------------------------------
+# Stubs
 
     method term:sym<...>($/) {
         self.attach: $/, Nodify('Stub', 'Fail').new(
@@ -1385,54 +1376,53 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
     }
 
-    ##
-    ## Terms
-    ##
+#-------------------------------------------------------------------------------
+# Terms
 
     method term:sym<::?IDENT>($/) {
-        self.attach: $/, Nodify('Var', 'Lexical', 'Constant').new(~$/);
+        self.attach: $/, Nodify('Var', 'Lexical', 'Constant').new(~$/)
     }
 
     method term:sym<self>($/) {
-        self.attach: $/, Nodify('Term', 'Self').new();
+        self.attach: $/, Nodify('Term', 'Self').new
     }
 
     method term:sym<now>($/) {
-        self.attach: $/, Nodify('Term', 'Named').new('now');
+        self.attach: $/, Nodify('Term', 'Named').new('now')
     }
 
     method term:sym<time>($/) {
-        self.attach: $/, Nodify('Term', 'Named').new('time');
+        self.attach: $/, Nodify('Term', 'Named').new('time')
     }
 
     method term:sym<empty_set>($/) {
-        self.attach: $/, Nodify('Term', 'EmptySet').new();
+        self.attach: $/, Nodify('Term', 'EmptySet').new
     }
 
     method term:sym<rand>($/) {
-        self.attach: $/, Nodify('Term', 'Rand').new();
+        self.attach: $/, Nodify('Term', 'Rand').new
     }
 
     method term:sym<fatarrow>($/) {
         self.attach: $/, Nodify('FatArrow').new:
-            key => $*LITERALS.intern-str(~$<key>),
-            value => $<val>.ast;
+          key   => $*LITERALS.intern-str(~$<key>),
+          value => $<val>.ast
     }
 
     method term:sym<colonpair>($/) {
-        self.attach: $/, $<colonpair>.ast;
+        self.attach: $/, $<colonpair>.ast
     }
 
     method term:sym<variable>($/) {
-        self.attach: $/, $<variable>.ast;
+        self.attach: $/, $<variable>.ast
     }
 
     method term:sym<package-declarator>($/) {
-        self.attach: $/, $<package-declarator>.ast;
+        self.attach: $/, $<package-declarator>.ast
     }
 
     method term:sym<scope-declarator>($/) {
-        self.attach: $/, $<scope-declarator>.ast;
+        self.attach: $/, $<scope-declarator>.ast
     }
 
     method term:sym<routine-declarator>($/) {
@@ -1440,41 +1430,41 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<multi-declarator>($/) {
-        self.attach: $/, $<multi-declarator>.ast;
+        self.attach: $/, $<multi-declarator>.ast
     }
 
     method term:sym<regex-declarator>($/) {
-        self.attach: $/, $<regex-declarator>.ast;
+        self.attach: $/, $<regex-declarator>.ast
     }
 
     method term:sym<type-declarator>($/) {
-        self.attach: $/, $<type-declarator>.ast;
+        self.attach: $/, $<type-declarator>.ast
     }
 
     method term:sym<statement-prefix>($/) {
-        self.attach: $/, $<statement-prefix>.ast;
+        self.attach: $/, $<statement-prefix>.ast
     }
 
     method term:sym<*>($/) {
-        self.attach: $/, Nodify('Term', 'Whatever').new;
+        self.attach: $/, Nodify('Term', 'Whatever').new
     }
 
     method term:sym<**>($/) {
-        self.attach: $/, Nodify('Term', 'HyperWhatever').new;
+        self.attach: $/, Nodify('Term', 'HyperWhatever').new
     }
 
     method term:sym<lambda>($/) {
-        self.attach: $/, $<pointy-block>.ast;
+        self.attach: $/, $<pointy-block>.ast
     }
 
     method term:sym<value>($/) {
-        self.attach: $/, $<value>.ast;
+        self.attach: $/, $<value>.ast
     }
 
     method term:sym<identifier>($/) {
         self.attach: $/, Nodify('Call', 'Name').new:
-            name => Nodify('Name').from-identifier(~$<identifier>),
-            args => $<args>.ast;
+          name => Nodify('Name').from-identifier(~$<identifier>),
+          args => $<args>.ast
     }
 
     method term:sym<nqp::op>($/) {
@@ -1492,33 +1482,32 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $args.invocant {
                 # Indirect method call syntax, e.g. new Int: 1
                 self.attach: $/, Nodify('ApplyPostfix').new:
-                    :operand($args.invocant),
-                    :postfix(Nodify('Call', 'Method').new(:$name, :$args));
+                  operand => $args.invocant,
+                  postfix => Nodify('Call', 'Method').new(:$name, :$args)
             }
             else {
-                self.attach: $/, Nodify('Call', 'Name').new: name => $name, args => $args
+                self.attach: $/, Nodify('Call', 'Name').new:
+                  name => $name,
+                  args => $args
             }
         }
         else {
-            if $*is-type {
-                self.attach: $/, self.type-for-name($/, $name);
-            }
-            else {
-                self.attach: $/, Nodify('Term', 'Name').new($name);
-            }
+            self.attach: $/, $*is-type
+              ?? self.type-for-name($/, $name)
+              !! Nodify('Term', 'Name').new($name)
         }
     }
 
     method term:sym<dotty>($/) {
-        self.attach: $/, Nodify('Term', 'TopicCall').new($<dotty>.ast);
+        self.attach: $/, Nodify('Term', 'TopicCall').new($<dotty>.ast)
     }
 
     method term:sym<capture>($/) {
-        self.attach: $/, Nodify('Term', 'Capture').new($<args>.ast);
+        self.attach: $/, Nodify('Term', 'Capture').new($<args>.ast)
     }
 
     method term:sym<onlystar>($/) {
-        self.attach: $/, Nodify('OnlyStar').new;
+        self.attach: $/, Nodify('OnlyStar').new
     }
 
     method colonpair($/) {
@@ -1567,12 +1556,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     ]));
         }
         else {
-            my str $sigil := ~$<sigil>;
-            my str $twigil := $<twigil> ?? ~$<twigil> !! '';
+            my str $twigil  := $<twigil> ?? ~$<twigil> !! '';
             my $desigilname := $<desigilname><longname>
                 ?? $<desigilname><longname>.ast
                 !! Nodify('Name').from-identifier(~$<desigilname>);
-            self.compile_variable_access($/, $sigil, $twigil, $desigilname);
+            self.compile_variable_access($/, ~$<sigil>, $twigil, $desigilname);
         }
     }
 
@@ -1601,12 +1589,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.contextualizer-for-sigil($/, ~$<sigil>, $<desigilname><variable>.ast);
         }
         else {
-            my str $sigil := ~$<sigil>;
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
             my $desigilname := $<desigilname><longname>
-                ?? $<desigilname><longname>.ast
-                !! Nodify('Name').from-identifier(~$<desigilname>);
-            self.compile_variable_access($/, $sigil, $twigil, $desigilname);
+              ?? $<desigilname><longname>.ast
+              !! Nodify('Name').from-identifier(~$<desigilname>);
+            self.compile_variable_access($/, ~$<sigil>, $twigil, $desigilname);
         }
     }
 

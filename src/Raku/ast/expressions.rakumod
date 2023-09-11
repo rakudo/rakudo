@@ -765,19 +765,20 @@ class RakuAST::MetaInfix::Negate
 class RakuAST::MetaInfix::Reverse
   is RakuAST::MetaInfix
 {
-    has RakuAST::Infixish $.infix;
+    has RakuAST::Infixish  $.infix;
+    has OperatorProperties $.properties;
 
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaInfix::Reverse, '$!infix', $infix);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Reverse, '$!properties',
+          $infix.properties.associative-reversed);
         $obj
     }
 
     method visit-children(Code $visitor) {
         $visitor($!infix);
     }
-
-    method properties() { $!infix.properties }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([

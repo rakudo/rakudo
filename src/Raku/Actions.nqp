@@ -2515,7 +2515,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('ColonPair','Number').new(
               key   => $key,
               value => Nodify('IntLiteral').new(
-                        $*LITERALS.intern-int(~$<num>,10)
+                         $*LITERALS.intern-int(~$<num>,10)
                        )
              )
           !! $<circumfix>
@@ -2530,23 +2530,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Types
 
     method type-for-name($/, $base-name) {
-        my $type := Nodify('Type', 'Simple').new($base-name.without-colonpair('_'));
-        if $base-name.has-colonpair('D') {
-            $type := Nodify('Type', 'Definedness').new(:base-type($type), :definite);
-        }
-        elsif $base-name.has-colonpair('U') {
-            $type := Nodify('Type', 'Definedness').new(:base-type($type), :!definite);
-        }
-        if $<arglist> {
-            $type := Nodify('Type', 'Parameterized').new(:base-type($type), :args($<arglist>.ast));
-        }
-        if $<accept> {
-            $type := Nodify('Type', 'Coercion').new(:base-type($type), :constraint($<accept>.ast));
-        }
-        elsif $<accept_any> {
-            $type := Nodify('Type', 'Coercion').new(:base-type($type));
-        }
-        $type
+        my $type :=
+          Nodify('Type','Simple').new: $base-name.without-colonpair('_');
+
+        $type := $base-name.has-colonpair('D')
+          ?? Nodify('Type','Definedness').new(:base-type($type), :definite)
+          !! $base-name.has-colonpair('U')
+            ?? Nodify('Type','Definedness').new(:base-type($type), :!definite)
+            !! $type;
+
+        $type := Nodify('Type','Parameterized').new(
+          :base-type($type), :args($<arglist>.ast)
+        ) if $<arglist>;
+
+        $<accept>
+          ?? Nodify('Type','Coercion').new(
+               :base-type($type), :constraint($<accept>.ast))
+          !! $<accept_any>
+            ?? Nodify('Type','Coercion').new(:base-type($type))
+            !! $type
     }
 
     method typename($/) {
@@ -2578,9 +2580,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    ##
-    ## Signatures
-    ##
+#-------------------------------------------------------------------------------
+# Signatures
 
     method fakesignature($/) {
         self.attach: $/, Nodify('FakeSignature').new: $<signature>.ast

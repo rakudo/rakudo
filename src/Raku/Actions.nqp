@@ -2479,30 +2479,31 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # can construct character class ranges correctly), and P5 (Perl5,
     # so we know which regex language to parse). These get special
     # handling.
-    my %RX_ADVERB_COMPILE := nqp::hash('s', 1, 'm', 1, 'P5', 1);
-    my %RX_ADVERB_COMPILE_CANON := nqp::hash(
-        'sigspace', 's',
+    my constant SPECIAL-RX-ADVERBS := nqp::hash(
         'ignoremark', 'm',
-        'Perl5', 'P5',
-        'ss', 's',
-        'samespace', 's',
-        'mm', 'm',
-        'samemark', 'm');
+        'm',          'm',
+        'mm',         'm',
+        'samemark',   'm',
+        's',          's',
+        'samespace',  's',
+        'sigspace',   's',
+        'ss',         's',
+        'P5',         'P5',
+        'Perl5',      'P5'
+    );
     method rx-adverbs($/) {
         my @pairs;
         for $<quotepair> {
             my $ast := $_.ast;
             @pairs.push($ast);
-            my str $key := $ast.key;
-            my str $canon := %RX_ADVERB_COMPILE_CANON{$key} // $key;
-            if %RX_ADVERB_COMPILE{$canon} {
-                my $value := $ast.simple-compile-time-quote-value();
-                if nqp::isconcrete($value) {
-                    %*RX{$canon} := $value ?? 1 !! 0;
-                }
-                else {
-                    $_.typed-panic('X::Value::Dynamic', what => "Adverb $key");
-                }
+
+            my $key := SPECIAL-RX-ADVERBS{$ast.key};
+            if $key {
+                my $value := $ast.simple-compile-time-quote-value;
+                nqp::isconcrete($value)
+                  ?? (%*RX{$key} := nqp::istrue($value))
+                  !! $_.typed-panic: 'X::Value::Dynamic',
+                       what => 'Adverb ' ~ $ast.key;
             }
         }
         make @pairs;

@@ -929,7 +929,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # A ternary expression
     method TERNARY-EXPR($/) {
         self.attach: $/, Nodify('Ternary').new:
-          condition => $/[0].ast, then => $/[1].ast, else => $/[2].ast;
+          condition => $/[0].ast,
+          then      => $<infix><EXPR>.ast,  # the way the grammar parses
+          else      => $/[1].ast;
     }
 
     # An assignment, or infix expression

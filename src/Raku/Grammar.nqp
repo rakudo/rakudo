@@ -1617,15 +1617,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $op[1] := nqp::pop(@termstack); # right
             $op[0] := nqp::pop(@termstack); # left
 
-            # we haz a ternary, adjust for that
-            if $properties.ternary {
-                $op[2] := $op[1];
-                $op[1] := $op<infix><EXPR>;
-                $actions.TERNARY-EXPR($op);
-            }
-            else {
-                $actions.INFIX-EXPR($op);
-            }
+            $properties.ternary
+              ?? $actions.TERNARY-EXPR($op)
+              !! $actions.INFIX-EXPR($op);
         }
         nqp::push(@termstack, $op);
     }

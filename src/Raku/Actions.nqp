@@ -2511,20 +2511,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method quotepair($/) {
         my $key := $*LITERALS.intern-str(~$*KEY);
-        if $<num> {
-            my $value := Nodify('IntLiteral').new($*LITERALS.intern-int(~$<num>, 10));
-            self.attach: $/, Nodify('ColonPair', 'Number').new(:$key, :$value);
-        }
-        elsif $<circumfix> {
-            my $value := $<circumfix>.ast;
-            self.attach: $/, Nodify('ColonPair', 'Value').new(:$key, :$value);
-        }
-        elsif $<neg> {
-            self.attach: $/, Nodify('ColonPair', 'False').new($key);
-        }
-        else {
-            self.attach: $/, Nodify('ColonPair', 'True').new($key);
-        }
+        self.attach: $/, $<num>
+          ?? Nodify('ColonPair','Number').new(
+              key   => $key,
+              value => Nodify('IntLiteral').new(
+                        $*LITERALS.intern-int(~$<num>,10)
+                       )
+             )
+          !! $<circumfix>
+            ?? Nodify('ColonPair','Value').new(
+                 key   => $key,
+                 value => $<circumfix>.ast
+               )
+            !! Nodify('ColonPair', $<neg> ?? 'False' !! 'True').new($key);
     }
 
 #-------------------------------------------------------------------------------

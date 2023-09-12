@@ -1550,20 +1550,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method colonpair-variable($/) {
-        if $<capvar> {
-            self.attach: $/, Nodify('Var', 'NamedCapture').new:
-                Nodify('QuotedString').new:
-                    :segments(Nodify('QuotedString').IMPL-WRAP-LIST([
-                        Nodify('StrLiteral').new(~$<desigilname>)
-                    ]));
-        }
-        else {
-            my str $twigil  := $<twigil> ?? ~$<twigil> !! '';
-            my $desigilname := $<desigilname><longname>
-                ?? $<desigilname><longname>.ast
-                !! Nodify('Name').from-identifier(~$<desigilname>);
-            self.compile_variable_access($/, ~$<sigil>, $twigil, $desigilname);
-        }
+        $<capvar>
+          ?? self.attach($/, Nodify('Var', 'NamedCapture').new(
+               Nodify('QuotedString').new(
+                 :segments(Nodify('QuotedString').IMPL-WRAP-LIST([
+                   Nodify('StrLiteral').new(~$<desigilname>)
+                 ]))
+               )
+             ))
+          !! self.simple-variable($/);
     }
 
     method variable($/) {
@@ -1585,21 +1580,26 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     ]))
                 )
             );
-            self.compile_variable_access($/, '&', '', $name);
+            self.compile-variable-access($/, '&', '', $name);
         }
         elsif $<desigilname><variable> {
             self.contextualizer-for-sigil($/, ~$<sigil>, $<desigilname><variable>.ast);
         }
         else {
-            my str $twigil := $<twigil> ?? ~$<twigil> !! '';
-            my $desigilname := $<desigilname><longname>
-              ?? $<desigilname><longname>.ast
-              !! Nodify('Name').from-identifier(~$<desigilname>);
-            self.compile_variable_access($/, ~$<sigil>, $twigil, $desigilname);
+            self.simple-variable($/);
         }
     }
 
-    method compile_variable_access($/, $sigil, $twigil, $desigilname) {
+    # Compile variable access for a simple variable
+    method simple-variable($/) {
+        my str $twigil  := $<twigil> ?? ~$<twigil> !! '';
+        my $desigilname := $<desigilname><longname>
+          ?? $<desigilname><longname>.ast
+          !! Nodify('Name').from-identifier(~$<desigilname>);
+        self.compile-variable-access($/, ~$<sigil>, $twigil, $desigilname);
+    }
+
+    method compile-variable-access($/, $sigil, $twigil, $desigilname) {
         $desigilname.IMPL-CHECK($*R, $*CU.context, 1);
         my str $name := $sigil ~ $twigil ~ $desigilname.canonicalize;
         if $twigil eq '' && $desigilname.is-empty {

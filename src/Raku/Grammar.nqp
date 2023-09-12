@@ -1237,7 +1237,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # handle people coming from Perl
     rule statement-control:sym<foreach> {
-        <sym><.end-keyword>
+        <.sym><.end-keyword>
         <.obs: "'foreach'", "'for'">
     }
 
@@ -2161,13 +2161,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token infix:sym«<<» {
-        <sym>
+        <.sym>
         <!{ $*IN-META }>
         <?[\s]>
         <.sorryobs('<< to do left shift', '+< or ~<')>
     }
     token infix:sym«>>» {
-        <sym>
+        <.sym>
         <!{ $*IN-META }>
         <?[\s]>
         <.sorryobs('>> to do right shift', '+> or ~>')>
@@ -2323,7 +2323,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<^…^>   { <sym> }
 
     token infix:sym<?> {
-        <sym>
+        <.sym>
         {}
         <![?]>
         <?before <.-[;]>*?':'>
@@ -2363,12 +2363,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym«==>>» { <sym> }
 
     token infix:sym<!~> {
-        <sym>
+        <.sym>
         \s
         <.obs: '!~ to do negated pattern matching', '!~~'>
     }
     token infix:sym<=~> {
-        <sym>
+        <.sym>
         <.obs: '=~ to do pattern matching', '~~'>
     }
 
@@ -2937,7 +2937,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | <sigil> <?[<]> <postcircumfix>
 
           # obsolete Perl vars
-          | <special-variable>
+          | <.special-variable>
 
           # $() @() %() &() $[] …
           | <?before <.sigil> <.?[ ( [ { ]>>
@@ -3740,7 +3740,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token quote:sym<qr> {
-        <sym> {} <.qok($/)> <.obs('qr for regex quoting', 'rx//')>
+        <.sym>
+        {}
+        <.qok($/)>
+        <.obs('qr for regex quoting', 'rx//')>
     }
 
     token rx-adverbs() {

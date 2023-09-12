@@ -2728,21 +2728,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token coloncircumfix($front) {
-        # reset $*IN-DECL in case this colonpair is part of var we're
+        # Reset $*IN-DECL in case this colonpair is part of var we're
         # declaring, since colonpair might have other vars. Don't make those
         # think we're declaring them
         :my $*IN-DECL := '';
         [
-        | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
-        | {} <circumfix>
+          | '<>'
+            <.worry: "Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately">
+
+          | {}
+            <circumfix>
         ]
     }
 
     token colonpair-variable {
-        <sigil> {}
+        <sigil>
+        {}
         [
-        | <twigil>? <desigilname>
-        | $<capvar>='<' <desigilname> '>'
+          | <twigil>? <desigilname>
+          | $<capvar>='<' <desigilname> '>'
         ]
     }
 
@@ -2757,38 +2761,38 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token special-variable:sym<$`> {
-        <sym>  <?before \s | ',' | <.terminator> >
+        <.sym>  <?before \s | ',' | <.terminator> >
         <.obsvar('$`')>
     }
 
     token special-variable:sym<$@> {
-        <sym> <[ \s ; , ) ]> .
+        <.sym> <[ \s ; , ) ]> .
         <.obsvar('$@')>
     }
 
     token special-variable:sym<$#> {
-        <sym> <identifier>
+        <.sym> <identifier>
         {}
         <.obsvar('$#', ~$<identifier>)>
     }
 
     token special-variable:sym<$$> {
-        <sym> \W
+        <.sym> \W
         <.obsvar('$$')>
     }
 
     token special-variable:sym<$&> {
-        <sym> <?before \s | ',' | <.terminator> >
+        <.sym> <?before \s | ',' | <.terminator> >
         <.obsvar('$&')>
     }
 
     token special-variable:sym<@+> {
-        <sym> <?before \s | ',' | <.terminator> >
+        <.sym> <?before \s | ',' | <.terminator> >
         <.obsvar('@+')>
     }
 
     token special-variable:sym<%+> {
-        <sym> <?before \s | ',' | <.terminator> >
+        <.sym> <?before \s | ',' | <.terminator> >
         <.obsvar('%+')>
     }
 
@@ -2808,12 +2812,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token special-variable:sym<@-> {
-        <sym> <?before \s | ',' | <.terminator> >
+        <.sym> <?before \s | ',' | <.terminator> >
         <.obsvar('@-')>
     }
 
     token special-variable:sym<%-> {
-        <sym> <?before \s | ',' | <.terminator> >
+        <.sym> <?before \s | ',' | <.terminator> >
         <.obsvar('%-')>
     }
 
@@ -2833,7 +2837,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token special-variable:sym<$/> {
-        <sym> <?before \h* '=' \h* <.[ ' " ]> >
+        <.sym> <?before \h* '=' \h* <.[ ' " ]> >
         <.obsvar('$/')>
     }
 
@@ -2843,54 +2847,58 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token special-variable:sym<$|> {
-        <sym> <?before \h* '='>
+        <.sym> <?before \h* '='>
         <.obsvar('$|')>
     }
 
     token special-variable:sym<$;> {
-        <sym> <?before \h* '='>
+        <.sym> <?before \h* '='>
         <.obsvar('$;')>
     }
 
     token special-variable:sym<$'> { #'
-        <sym> <?before \s | ',' | <.terminator> >
+        <.sym> <?before \s | ',' | <.terminator> >
         <.obsvar('$' ~ "'")>
     }
 
     token special-variable:sym<$"> {
-        <sym> <?before \h* '='>
+        <.sym> <?before \h* '='>
         <.obsvar('$"')>
     }
 
     token special-variable:sym<$,> {
-        <sym> <?before \h* '='>
+        <.sym> <?before \h* '='>
         <.obsvar('$,')>
     }
 
     token special-variable:sym<$.> {
-        <sym> {} <!before \w | '(' | ':' | '^' >
+        <.sym> {} <!before \w | '(' | ':' | '^' >
         <.obsvar('$.')>
     }
 
     token special-variable:sym<$?> {
-        <sym> {} <!before \w | '('>
+        <.sym> {} <!before \w | '('>
         <.obsvar('$?')>
     }
 
     token special-variable:sym<$]> {
-        <sym> {} <!before \w | '('>
+        <.sym> {} <!before \w | '('>
         <.obsvar('$]')>
     }
 
     regex special-variable:sym<${ }> {
-        <sigil> '{' {} $<text>=[.*?] '}'
+        <sigil>
+        '{'
+        {}
+        $<text>=[.*?]
+        '}'
         <!{ $*IN-DECL }>
         <!{ $<text> ~~ / [ '=>' | '⇒' ] || ':'<:alpha> || '|%' / }>
         <!{ $<text> ~~ / ^ \s* $ / }>
         <?{
             my $sigil := $<sigil>.Str;
-            my $text := $<text>.Str;
-            my $bad := $sigil ~ '{' ~ $text ~ '}';
+            my $text  := $<text>.Str;
+            my $bad   := $sigil ~ '{' ~ $text ~ '}';
             if $text ~~ /^\d+$/ {
                 $text := nqp::radix(10, $text, 0, 0)[0];
                 $text := $text - 1 if $text > 0;

@@ -29,13 +29,14 @@ sub setup-RakuAST-WHO() {
 # code, typically resulting in error messages stating a method
 # having been called on VMNull.
 sub Nodify(*@todo) {
-    my $parts := nqp::join('::',@todo);
-
     my $res := nqp::atkey($RakuAST-WHO,nqp::shift(@todo));
     while @todo && !nqp::isnull($res) {
         $res := nqp::atkey($res.WHO,nqp::shift(@todo));
     }
-    nqp::ifnull($res,nqp::die("No such node RakuAST::$parts"))
+    nqp::ifnull(
+      $res,
+      nqp::die('No such node RakuAST::' ~ nqp::join('::',@todo))
+    )
 }
 
 #-------------------------------------------------------------------------------

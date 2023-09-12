@@ -58,13 +58,11 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method new(Whatever \min, \max, :$excludes-min, :$excludes-max) {
         use fatal;
-        my \max-real = max.Real;
-        nqp::create(self)!SET-SELF(-Inf,max-real,$excludes-min,$excludes-max,1);
+        nqp::create(self)!SET-SELF(-Inf,max.Real,$excludes-min,$excludes-max,1);
     }
     multi method new(\min, Whatever \max, :$excludes-min, :$excludes-max) {
         use fatal;
-        my \min-real = min.Real;
-        nqp::create(self)!SET-SELF(min-real,Inf,$excludes-min,$excludes-max,1);
+        nqp::create(self)!SET-SELF(min.Real,Inf,$excludes-min,$excludes-max,1);
     }
     multi method new(Real \min, Real(Cool) $max, :$excludes-min, :$excludes-max) {
         nqp::create(self)!SET-SELF(

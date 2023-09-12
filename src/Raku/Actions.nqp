@@ -1521,7 +1521,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               ?? Nodify('ColonPair', 'Number').new(
                    key   => $key,
                    value => Nodify('IntLiteral').new(
-                     $*LITERALS.intern-int(~$<num>, 10)
+                     $*LITERALS.intern-int(~$<num>)
                    )
                  )
               !! $<coloncircumfix>
@@ -1564,7 +1564,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method variable($/) {
         if $<index> {
-            self.attach: $/, Nodify('Var', 'PositionalCapture').new($*LITERALS.intern-int(~$<index>, 10));
+            self.attach: $/,
+              Nodify('Var', 'PositionalCapture').new($*LITERALS.intern-int(~$<index>));
         }
         elsif $<postcircumfix> {
             self.attach: $/, Nodify('Var', 'NamedCapture').new($<postcircumfix>.ast.index);
@@ -1650,7 +1651,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             elsif $name eq '$?LINE' {
                 my int $line := $origin-source.original-line($/.from());
-                self.attach: $/, Nodify('Var', 'Compiler', 'Line').new($*LITERALS.intern-int($line, 10));
+                self.attach: $/, Nodify('Var', 'Compiler', 'Line').new($*LITERALS.intern-int($line));
             }
             elsif $name eq '&?BLOCK' {
                 self.attach: $/, Nodify('Var', 'Compiler', 'Block').new;
@@ -2253,7 +2254,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # Ⅼ
             if !$de || $de == 1 {
                 $attachee := Nodify('IntLiteral').new(
-                  $*LITERALS.intern-int($nu, 10)
+                  $*LITERALS.intern-int($nu)
                 );
             }
 
@@ -2262,8 +2263,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 my $LITERALS := $*LITERALS;
                 $attachee := Nodify('RatLiteral').new(
                   $LITERALS.intern-rat(
-                    $LITERALS.intern-int($nu, 10),
-                    $LITERALS.intern-int($de, 10)
+                    $LITERALS.intern-int($nu),
+                    $LITERALS.intern-int($de)
                   )
                 );
             }
@@ -2330,13 +2331,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $literals := $*LITERALS;
         if $<bracket> {
             self.attach: $/, Nodify('Term', 'RadixNumber').new:
-                :radix($literals.intern-int(~$<radix>, 10)),
+                :radix($literals.intern-int(~$<radix>)),
                 :value($<bracket>.ast),
                 :multi-part;
         }
         elsif $<circumfix> {
             self.attach: $/, Nodify('Term', 'RadixNumber').new:
-                :radix($literals.intern-int(~$<radix>, 10)),
+                :radix($literals.intern-int(~$<radix>)),
                 :value($<circumfix>.ast);
         }
         else {
@@ -2516,7 +2517,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           ?? Nodify('ColonPair','Number').new(
               key   => $key,
               value => Nodify('IntLiteral').new(
-                         $*LITERALS.intern-int(~$<num>,10)
+                         $*LITERALS.intern-int(~$<num>)
                        )
              )
           !! $<circumfix>

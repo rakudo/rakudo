@@ -576,9 +576,9 @@ class RakuAST::LiteralBuilder {
     }
 
     # Build an Int constant and intern it.
-    method intern-int(str $chars, int $base, Mu $error-reporter?) {
+    method intern-int(str $chars, int $base?, Mu $error-reporter?) {
         # TODO interning
-        self.build-int($chars, $base, $error-reporter)
+        self.build-int($chars, $base // 10, $error-reporter)
     }
 
     # Build an Int constant, but do not intern it.
@@ -635,11 +635,11 @@ class RakuAST::LiteralBuilder {
                 $parti := $whole-part;
             }
             else {
-                $parti := self.intern-int($whole-part, 10);
+                $parti := self.intern-int($whole-part);
             }
         }
         else {
-            $parti := self.intern-int('0', 10);
+            $parti := self.intern-int('0');
         }
 
         # Now deal with the fractional part; this may also come as an Int
@@ -655,7 +655,7 @@ class RakuAST::LiteralBuilder {
             $parti := nqp::add_I($parti, $partf[0], Int);
             $partf := $base;
         } else {
-            $partf := self.intern-int(1, 10);
+            $partf := self.intern-int('1');
         }
 
         self.build-rat($parti, $partf)

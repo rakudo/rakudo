@@ -2560,15 +2560,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for $<colonpair> {
             $base-name.add-colonpair($_.ast);
         }
-        my str $str_longname := ~$<longname>;
-        if nqp::eqat($str_longname, '::', 0) {
+        my str $longname := ~$<longname>;
+        if nqp::eqat($longname, '::', 0) {
             if $<arglist> || $<typename> {
                 $/.panic("Cannot put type parameters on a type capture");
             }
             if $<accepts> || $<accepts_any> {
                 $/.panic("Cannot base a coercion type on a type capture");
             }
-            if $str_longname eq '::' {
+            if $longname eq '::' {
                 $/.panic("Cannot use :: as a type name");
             }
             my $type-capture := Nodify('Type', 'Capture').new($base-name.without-colonpairs);
@@ -2724,18 +2724,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method named-param($/) {
         my $parameter;
+
+        # Explicitly specified name to attach.
         if $<name> {
-            # Explicitly specified name to attach.
-            if $<named-param> {
-                $parameter := $<named-param>.ast;
-            }
-            else {
-                $parameter := $<param-var>.ast;
-            }
+            $parameter := ($<named-param> || $<param-var>).ast;
             $parameter.add-name(~$<name>);
         }
+
+        # Name comes from the parameter variable.
         else {
-            # Name comes from the parameter variable.
             $parameter := $<param-var>.ast;
             my $name-match := $<param-var><name>;
             $parameter.add-name($name-match ?? ~$name-match !! '');
@@ -2748,65 +2745,55 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method type-constraint($/) {
-        self.attach: $/, $<typename> ?? $<typename>.ast !! $<value>.ast;
+        self.attach: $/, ($<typename> || $<value>).ast;
     }
 
     method post-constraint($/) {
-        if $<EXPR> {
-            make $<EXPR>.ast;
-        }
-        elsif $<signature> {
-            make $<signature>.ast;
-        }
+        my $target := $<EXPR> || $<signature>;
+        make $target.ast if $target;
     }
 
-    ##
-    ## Argument lists and captures
-    ##
+#-------------------------------------------------------------------------------
+# Argument lists and captures
 
     method args($/) {
-        if    $<semiarglist> { self.attach: $/, $<semiarglist>.ast; }
-        elsif $<arglist>     { self.attach: $/, $<arglist>.ast; }
-        else                 { self.attach: $/, Nodify('ArgList').new(); }
+        self.attach: $/, (my $target := $<semiarglist> || $<arglist>)
+          ?? $target.ast
+          !! Nodify('ArgList').new
     }
 
     method semiarglist($/) {
-        if nqp::elems($<arglist>) == 1 {
-            self.attach: $/, $<arglist>[0].ast;
-        }
-        else {
-            nqp::die('Multiple arg lists NYI')
-        }
+        nqp::elems($<arglist>) == 1
+          ?? self.attach: $/, $<arglist>[0].ast
+          !! nqp::die('Multiple arg lists NYI')
     }
 
     method arglist($/) {
-        if $<EXPR> {
-            my $expr := $<EXPR>.ast;
-            if nqp::istype($expr, Nodify('ApplyListInfix')) &&
-                    nqp::istype($expr.infix, Nodify('Infix')) &&
-                    $expr.infix.operator eq ',' {
-                self.attach: $/, Nodify('ArgList').from-comma-list($expr);
-            }
-            elsif nqp::istype($expr, Nodify('ApplyListInfix')) &&
-                    nqp::istype($expr.infix, Nodify('Infix')) &&
-                    $expr.infix.operator eq ':' {
-                self.attach: $/, Nodify('ArgList').from-invocant-list($expr);
-            }
-            elsif nqp::istype($expr, Nodify('ColonPairs')) {
-                self.attach: $/, Nodify('ArgList').new(|$expr.colonpairs);
-            }
-            else {
-                self.attach: $/, Nodify('ArgList').new($expr);
-            }
+        my $ast;
+        my $ArgList := Nodify('ArgList');
+        my $expr    := $<EXPR>;
+
+        if $expr {
+            $ast := $expr.ast;
+            $ast := nqp::istype($ast,Nodify('ColonPairs'))
+              ?? $ArgList.new(|$ast.colonpairs)
+              !! nqp::istype($ast,Nodify('ApplyListInfix'))
+                   && nqp::istype($ast.infix,Nodify('Infix'))
+                ?? $ast.infix.operator eq ','
+                  ?? Nodify('ArgList').from-comma-list($ast)
+                  !! $ast.infix.operator eq ':'
+                    ?? $ArgList.from-invocant-list($ast)
+                    !! $ArgList.new($ast)
+                !! $ArgList.new($ast);
         }
         else {
-            self.attach: $/, Nodify('ArgList').new();
+            $ast := $ArgList.new;
         }
+        self.attach: $/, $ast;
     }
 
-    ##
-    ## Lexer stuff
-    ##
+#-------------------------------------------------------------------------------
+# Lexer stuff
 
     method name($/) {
         if $<morename> {

@@ -1783,43 +1783,43 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method stub-package($/) {
         # Resolve the meta-object.
         my $declarator := $*PKGDECL;
-        my $how;
-        if $/.know_how($declarator) {
-            $how := $/.how($declarator);
-        }
-        else {
-            $/.panic("Cannot resolve meta-object for $declarator")
-        }
+        my $how := $/.know_how($declarator)
+          ?? $/.how($declarator)
+          !! $/.panic("Cannot resolve meta-object for $declarator");
 
         # Stub the package AST node.
-        my str $scope := $*SCOPE // 'our';
+        my str $scope  := $*SCOPE // 'our';
         my $name-match := $*PACKAGE-NAME;
         my $name := $name-match ?? $name-match.ast !! Nodify('Name');
+        my $package;
         if $scope eq 'augment' {
-            $*PACKAGE := Nodify('Package', 'Augmented').new: :$declarator, :$how, :$name, :$scope;
-            $*PACKAGE.IMPL-CHECK($*R, $*CU.context, 1);
+            $package := Nodify('Package','Augmented').new(
+              :$declarator, :$how, :$name, :$scope
+            );
+            $package.IMPL-CHECK($*R, $*CU.context, 1);
         }
         else {
-            $*PACKAGE := my $package := Nodify('Package').new: :$declarator, :$how, :$name, :$scope;
+            $package := Nodify('Package').new(
+              :$declarator, :$how, :$name, :$scope
+            );
             $package.resolve-with($*R);
         }
-        self.set-declarand($/, $*PACKAGE);
+        self.set-declarand($/, $*PACKAGE := $package);
     }
 
     method enter-package-scope($/) {
         # Perform BEGIN-time effects (declaring the package, applying traits,
         # etc.)
-        $*PACKAGE.ensure-begin-performed($*R, $*CU.context);
+        my $R := $*R;
+        $*PACKAGE.ensure-begin-performed($R, $*CU.context);
 
         # Let the resolver know which package we're in.
-        $*R.push-package($*PACKAGE);
+        $R.push-package($*PACKAGE);
 
         if $*SIGNATURE {
-            my $parameterization := $*SIGNATURE.ast;
-            for $parameterization.IMPL-UNWRAP-LIST($parameterization.parameters) {
-                if $_.target {
-                    $*R.declare-lexical($_.target);
-                }
+            my $params := $*SIGNATURE.ast;
+            for $params.IMPL-UNWRAP-LIST($params.parameters) {
+                $R.declare-lexical($_.target) if $_.target;
             }
         }
     }
@@ -1843,15 +1843,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method multi-declarator:sym<multi>($/) {
-        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine-def>.ast;
+        self.attach: $/, ($<declarator> || $<routine-def>).ast;
     }
 
     method multi-declarator:sym<proto>($/) {
-        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine-def>.ast;
+        self.attach: $/, ($<declarator> || $<routine-def>).ast;
     }
 
     method multi-declarator:sym<only>($/) {
-        self.attach: $/, $<declarator> ?? $<declarator>.ast !! $<routine-def>.ast;
+        self.attach: $/, ($<declarator> || $<routine-def>).ast;
     }
 
     method multi-declarator:sym<null>($/) {
@@ -1859,55 +1859,58 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method declarator($/) {
+        my $ast;
+
         if $<variable-declarator> {
-            self.attach: $/, $<variable-declarator>.ast;
+            $ast := $<variable-declarator>.ast;
         }
         elsif $<type-declarator> {
-            self.attach: $/, $<type-declarator>.ast;
+            $ast := $<type-declarator>.ast;
         }
         elsif $<signature> {
-            my str $scope := $*SCOPE;
-            my $type := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
+            my str $scope   := $*SCOPE;
+            my     $type    := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
             my $initializer := $<initializer>
-                ?? $<initializer>.ast
-                !! Nodify('Initializer');
+              ?? $<initializer>.ast
+              !! Nodify('Initializer');
 
-            my $decl := Nodify('VarDeclaration', 'Signature').new:
-                :signature($<signature>.ast), :$scope, :$type, :$initializer;
+            $ast := Nodify('VarDeclaration','Signature').new:
+              :signature($<signature>.ast), :$scope, :$type, :$initializer;
             for $<trait> {
-                $decl.add-trait($_.ast);
+                $ast.add-trait($_.ast);
             }
-            self.attach: $/, $decl;
         }
         elsif $<routine-declarator> {
-            self.attach: $/, $<routine-declarator>.ast;
+            $ast := $<routine-declarator>.ast;
         }
         elsif $<defterm> {
-            my str $scope := $*SCOPE;
-            my $type := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
-            my $name := $<defterm>.ast;
+            my str $scope   := $*SCOPE;
+            my     $type    := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
+            my     $name    := $<defterm>.ast;
             my $initializer := $<term_init>.ast;
-            my $decl := Nodify('VarDeclaration', 'Term').new:
-                :$scope, :$type, :$name, :$initializer;
-            $*R.declare-lexical($decl)
-              ?? $/.typed-sorry('X::Redeclaration', :symbol($name))
-              !! self.attach: $/, $decl;
+
+            $ast := Nodify('VarDeclaration','Term').new:
+              :$scope, :$type, :$name, :$initializer;
+            $/.typed-sorry('X::Redeclaration', :symbol($name))
+              if $*R.declare-lexical($ast);
         }
         else {
             nqp::die('Unimplemented declarator');
         }
+
+        self.attach: $/, $ast;
     }
 
     method initializer:sym<=>($/) {
-        self.attach: $/, Nodify('Initializer', 'Assign').new($<EXPR>.ast);
+        self.attach: $/, Nodify('Initializer','Assign').new($<EXPR>.ast);
     }
 
     method initializer:sym<:=>($/) {
-        self.attach: $/, Nodify('Initializer', 'Bind').new($<EXPR>.ast);
+        self.attach: $/, Nodify('Initializer','Bind').new($<EXPR>.ast);
     }
 
     method initializer:sym<.=>($/) {
-        self.attach: $/, Nodify('Initializer', 'CallAssign').new($<dottyop>.ast);
+        self.attach: $/, Nodify('Initializer','CallAssign').new($<dottyop>.ast);
     }
 
     method stub-variable($stub) {
@@ -1930,9 +1933,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $shape := $<semilist> ?? $<semilist>[0].ast !! Nodify('SemiList');
             my $dynprag := $*LANG.pragma('dynamic-scope');
             my $forced-dynamic := $dynprag ?? $dynprag($name) !! 0;
-            $decl := Nodify('VarDeclaration', 'Simple').new:
-                :$scope, :$type, :$sigil, :$twigil, :desigilname($ast),
-                :$shape, :$forced-dynamic;
+            $decl := Nodify('VarDeclaration','Simple').new:
+              :$scope, :$type, :$sigil, :$twigil, :desigilname($ast),
+              :$shape, :$forced-dynamic;
 
             $/.typed-worry('X::Redeclaration', :symbol($name))
               if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')
@@ -1958,22 +1961,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method variable-declarator($/) {
-        my $decl      := $*VARIABLE;
         my str $scope := $*SCOPE;
-        my $type      := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
+        my     $var   := $*VARIABLE;
 
-        $/.panic("Cannot use := to initialize an attribute")
-          if $scope eq 'has' && $<initializer><sym> eq ':=';
+        my $initializer := $<initializer>;
+        if $initializer {
+            $/.panic("Cannot use := to initialize an attribute")
+              if $scope eq 'has' && $initializer<sym> eq ':=';
 
-        if $<initializer> {
-            $decl.set-initializer($<initializer>.ast);
+            $var.set-initializer($initializer.ast);
         }
 
         for $<trait> {
-            $decl.add-trait($_.ast);
+            $var.add-trait($_.ast);
         }
 
-        self.attach: $/, $decl;
+        self.attach: $/, $var;
     }
 
     method routine-declarator:sym<sub>($/) {

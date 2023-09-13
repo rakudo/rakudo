@@ -47,12 +47,9 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     multi method gist(Routine:D:) {
-        if self.name -> $name {
-            "&$name"
-        }
-        else {
-            ( self.^name ~~ m/^\w+/ ).lc ~ ' { }'
-        }
+        (my $name := self.name)
+          ?? "&$name"
+          !! (self.^name ~~ m/^\w+/).lc ~ ' { }'
     }
 
     multi method raku(Routine:D:) {

@@ -2451,10 +2451,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method version($/) {
         # We don't self.attach: $/, an object for the initial language version line,
         # which occurs before a setting is loaded.
-        if $*R {
-            my $Version := $*R.resolve-lexical-constant('Version').compile-time-value;
-            self.attach: $/, Nodify('VersionLiteral').new($Version.new(~$<vstr>));
-        }
+        self.attach($/, Nodify('VersionLiteral').new(
+          $*R.resolve-lexical-constant('Version').compile-time-value.new(
+            ~$<vstr>
+          )
+        )) if $*R;
     }
 
     method quote:sym<apos>($/)  { self.attach: $/, $<nibble>.ast; }
@@ -2651,14 +2652,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method parameter($/) {
-        my $parameter := $<param-var>   ?? $<param-var>.ast   !!
-                         $<named-param> ?? $<named-param>.ast !!
-                         $<param-term>  ?? $<param-term>.ast  !!
-                         Nodify('Parameter').new;
+        my $parameter := $<param-var> || $<named-param> || $<param-term>;
+        $parameter := $parameter ?? $parameter.ast !! Nodify('Parameter').new;
+
         my $capture := Nodify('Type', 'Capture');
         my $raku-type := Nodify('Type');
         my $raku-quotedstring := Nodify('QuotedString');
         my $raku-compiletimevalue := Nodify('CompileTimeValue');
+
         for $<type-constraint> {
             my $type-constraint := $_.ast;
             if nqp::istype($type-constraint, $capture) {

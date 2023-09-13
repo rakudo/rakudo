@@ -1896,7 +1896,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $/ := $*VARIABLE-MATCH;
 
         my str $scope := $*SCOPE;
-        my $type := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
+        my     $type  := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
+        my str $sigil := $<sigil>;
 
         my $decl;
         if $<desigilname> {
@@ -1904,35 +1905,34 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $ast := $desigilname<longname>
                 ?? $desigilname<longname>.ast
                 !! Nodify('Name').from-identifier(~$desigilname);
-            my str $sigil := $<sigil>;
-            my str $twigil := $<twigil> || '';
-            my $shape := $<semilist> ?? $<semilist>[0].ast !! Nodify('SemiList');
             $ast.IMPL-CHECK($*R, $*CU.context, 1);
+
+            my str $twigil := $<twigil> || '';
+            my str $name   := $sigil ~ $twigil ~ $ast.canonicalize;
+            my $shape := $<semilist> ?? $<semilist>[0].ast !! Nodify('SemiList');
             my $dynprag := $*LANG.pragma('dynamic-scope');
-            my $forced-dynamic := $dynprag
-                ?? $dynprag($sigil ~ $twigil ~ $ast.canonicalize)
-                !! 0;
+            my $forced-dynamic := $dynprag ?? $dynprag($name) !! 0;
             $decl := Nodify('VarDeclaration', 'Simple').new:
-                :$scope, :$type, :desigilname($ast), :$sigil, :$twigil,
+                :$scope, :$type, :$sigil, :$twigil, :desigilname($ast),
                 :$shape, :$forced-dynamic;
-            if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
-                my str $name := $<sigil> ~ ($<twigil> || '') ~ $ast;
-                $/.typed-worry('X::Redeclaration', :symbol($name))
-                  if $*R.declare-lexical($decl);
-            }
+
+            $/.typed-worry('X::Redeclaration', :symbol($name))
+              if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')
+              && $*R.declare-lexical($decl);
+
             self.set-declarand($/, $decl);
         }
         else {
             $scope ne 'my' && $scope ne 'state'
               ?? $/.panic(
-                   "Cannot declare an anonymous {$scope}-scoped variable"
+                   "Cannot declare an anonymous '$scope' scoped variable"
                  )
               !! $<twigil>
                 ?? $/.panic(
                      "Cannot declare an anonymous variable with a twigil"
                    )
                 !! ($decl := Nodify('VarDeclaration', 'Anonymous').new(
-                     :$scope, :$type, :sigil(~$<sigil>)
+                     :$scope, :$type, :$sigil
                    ));
         }
 

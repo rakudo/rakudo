@@ -2214,25 +2214,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Trait', 'Handles').new($<term>.ast);
     }
 
-    ##
-    ## Values
-    ##
+#-------------------------------------------------------------------------------
+# Values
 
-    method value:sym<quote>($/) {
-        self.attach: $/, $<quote>.ast;
-    }
+    method value:sym<quote>($/)   { self.attach: $/, $<quote>.ast   }
+    method value:sym<number>($/)  { self.attach: $/, $<number>.ast  }
+    method value:sym<version>($/) { self.attach: $/, $<version>.ast }
 
-    method value:sym<number>($/) {
-        self.attach: $/, $<number>.ast;
-    }
-
-    method value:sym<version>($/) {
-        self.attach: $/, $<version>.ast;
-    }
-
-    method number:sym<numish>($/) {
-        self.attach: $/, $<numish>.ast;
-    }
+    method number:sym<numish>($/) { self.attach: $/, $<numish>.ast }
 
     sub ord-to-numerator($ord) {
         nqp::coerce_si(
@@ -2339,7 +2328,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method integer($/) { make $<VALUE>.made; }
+    method integer($/) { make $<VALUE>.ast }
 
     method signed-integer($/) {
         my $integer := $<integer>.ast;
@@ -2361,77 +2350,82 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method radix-number($/) {
         my $literals := $*LITERALS;
+        my $ast;
+
         if $<bracket> {
-            self.attach: $/, Nodify('Term', 'RadixNumber').new:
-                :radix($literals.intern-int(~$<radix>)),
-                :value($<bracket>.ast),
-                :multi-part;
+            $ast := Nodify('Term','RadixNumber').new:
+              :radix($literals.intern-int(~$<radix>)),
+              :value($<bracket>.ast),
+              :multi-part;
         }
         elsif $<circumfix> {
-            self.attach: $/, Nodify('Term', 'RadixNumber').new:
-                :radix($literals.intern-int(~$<radix>)),
-                :value($<circumfix>.ast);
+            $ast := Nodify('Term','RadixNumber').new:
+              :radix($literals.intern-int(~$<radix>)),
+              :value($<circumfix>.ast);
         }
+
         else {
             # Check and override $radix if necessary.
             my int $radix := nqp::radix(10, $<radix>, 0, 0)[0];
             $/.typed-panic('X::Syntax::Number::RadixOutOfRange', :$radix)
                 unless (2 <= $radix) && ($radix <= 36);
-            if nqp::chars($<ohradix>) {
-                my $ohradstr := $<ohradix>.Str;
-                if $ohradstr eq "0x" {
-                    $radix := 16;
-                } elsif $ohradstr eq "0o" {
-                    $radix := 8;
-                } elsif $ohradstr eq "0d" {
-                    $radix := 10;
-                } elsif $ohradstr eq "0b" {
-                    $radix := 2;
-                } else {
-                    $/.panic("Unknown radix prefix '$ohradstr'.");
-                }
+
+            my $ohradix := ~$<ohradix>;
+            if $ohradix {
+                $radix := $ohradix eq "0x"
+                  ?? 16
+                  !! $ohradix eq "0o"
+                    ?? 8
+                    !! $ohradix eq "0d"
+                      ?? 10
+                      !! $ohradix eq "0b"
+                        ?? 2
+                        !! $/.panic("Unknown radix prefix '$ohradix'.");
             }
 
             # Parse and assemble number.
             my $Int := $literals.int-type;
             my $Num := $literals.num-type;
-            my $ipart := nqp::radix_I($radix, $<intpart>.Str, 0, 0, $Int);
-            my $fpart := nqp::radix_I($radix, nqp::chars($<fracpart>) ?? $<fracpart>.Str !! ".0", 1, 4, $Int);
-            my $bpart := $<base> ?? nqp::tonum_I($<base>[0].ast) !! $radix;
-            my $epart := $<exp> ?? nqp::tonum_I($<exp>[0].ast) !! 0;
+            my str $intpart  := ~$<intpart>;
+            my str $fracpart := ~$<fracpart>;
 
-            if $ipart[2] < nqp::chars($<intpart>.Str) {
-                $/.typed-panic: 'X::Str::Numeric',
-                    :source($<intpart> ~ ($<fracpart> // '')),
-                    :pos($ipart[2] < 0 ?? 0 !! $ipart[2]),
-                    :reason("malformed base-$radix number");
-            }
-            if $fpart[2] < nqp::chars($<fracpart>.Str) {
-                $/.typed-panic: 'X::Str::Numeric',
-                    :source($<intpart> ~ ($<fracpart> // '')),
-                    :reason("malformed base-$radix number"),
-                    :pos( # the -1 dance is due to nqp::radix returning -1 for
-                        # failure to parse the first char, instead of 0;
-                        # we return `1` to cover the decimal dot in that case
-                        $ipart[2] + ($fpart[2] == -1 ?? 1 !! $fpart[2])
-                    );
-            }
+            my $ipart := nqp::radix_I($radix, $intpart, 0, 0, $Int);
+            my $fpart := nqp::radix_I($radix, $fracpart || ".0", 1, 4, $Int);
+
+            my $pos := $ipart[2] < nqp::chars($intpart)
+              ?? ($ipart[2] < 0 ?? 0 !! $ipart[2])
+              !! $fpart[2] < nqp::chars($fracpart)
+                # the -1 dance is due to nqp::radix returning -1 for
+                # failure to parse the first char, instead of 0;
+                # we return `1` to cover the decimal dot in that case
+                ?? ($ipart[2] + ($fpart[2] == -1 ?? 1 !! $fpart[2]))
+                !! nqp::null;
+            $/.typed-panic('X::Str::Numeric',
+              source => $intpart ~ $fracpart,
+              reason => "malformed base-$radix number",
+              pos    => $pos
+            ) unless nqp::isnull($pos);
 
             my $base := nqp::pow_I(nqp::box_i($radix, $Int), $fpart[1], $Num, $Int);
             $ipart := nqp::mul_I($ipart[0], $base, $Int);
             $ipart := nqp::add_I($ipart, $fpart[0], $Int);
             $fpart := $base;
 
+            my $bpart := $<base> ?? nqp::tonum_I($<base>[0].ast) !! $radix;
+            my $epart := $<exp>  ?? nqp::tonum_I($<exp>[0].ast)  !! 0;
             my $scientific := nqp::pow_n($bpart, $epart);
             $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);
 
-            if $fpart != 1 { # non-unit fractional part, wants Rat
-                self.attach: $/, Nodify('RatLiteral').new($literals.intern-decimal($ipart, $fpart));
-            }
-            else { # wants Int
-                self.attach: $/, Nodify('IntLiteral').new($ipart);
-            }
+            $ast := $fpart != 1
+              # non-unit fractional part, wants Rat
+              ?? Nodify('RatLiteral').new(
+                   $literals.intern-decimal($ipart, $fpart)
+                 )
+              # wants Int
+              !! Nodify('IntLiteral').new($ipart);
         }
+
+        self.attach: $/, $ast
     }
 
     method rational-number($/) {

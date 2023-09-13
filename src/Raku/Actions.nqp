@@ -1595,120 +1595,141 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.compile-variable-access($/, ~$<sigil>, $twigil, $desigilname);
     }
 
+    # Declare @_ / %_
+    sub slurpy-placeholder($class) {
+        my $decl := Nodify('VarDeclaration','Placeholder',$class).new;
+        $*R.declare-lexical($decl);
+        $decl
+    }
+
+    sub sigil-to-context(str $sigil) {
+        $sigil eq '@' ?? 'List' !! $sigil eq '%' ?? 'Hash' !! 'Item'
+    }
+
     method compile-variable-access($/, $sigil, $twigil, $desigilname) {
         $desigilname.IMPL-CHECK($*R, $*CU.context, 1);
         my str $name := $sigil ~ $twigil ~ $desigilname.canonicalize;
-        if $twigil eq '' && $desigilname.is-empty {
-            # Generate an anonymous state variable.
-            self.attach: $/, Nodify('VarDeclaration', 'Anonymous').new(:$sigil, :scope('state'));
-        }
-        elsif $name eq '@_' {
-            my $decl := Nodify('VarDeclaration', 'Placeholder', 'SlurpyArray').new();
-            $*R.declare-lexical($decl);
-            self.attach: $/, $decl;
-        }
-        elsif $name eq '%_' {
-            my $decl := Nodify('VarDeclaration', 'Placeholder', 'SlurpyHash').new();
-            $*R.declare-lexical($decl);
-            self.attach: $/, $decl;
-        }
-        elsif $twigil eq '' {
-            if $desigilname.is-identifier {
+        my $ast;
+
+        if $twigil eq '' {
+            if $name eq '@_' {
+                $ast := slurpy-placeholder('SlurpyArray');
+            }
+            elsif $name eq '%_' {
+                $ast := slurpy-placeholder('SlurpyHash');
+            }
+
+            # an anonymous state variable.
+            elsif $desigilname.is-empty {
+                $ast := Nodify('VarDeclaration','Anonymous').new(
+                  :$sigil, :scope<state>
+                );
+            }
+
+            # simple variable
+            elsif $desigilname.is-identifier {
+
+                # strict is active or identifier already known
                 if $*LANG.pragma("strict") || $*R.resolve-lexical($name) {
-                    self.attach: $/, Nodify('Var', 'Lexical').new(:$sigil, :$desigilname);
+                    $ast := Nodify('Var', 'Lexical').new(
+                      :$sigil, :$desigilname
+                    );
                 }
+
+                # strict is *NOT* active and identifier not known
                 else {
-                    my $decl := Nodify('VarDeclaration', 'Auto').new:
-                        :scope<our>, :$desigilname, :$sigil, :$twigil;
-                    $*R.declare-lexical($decl);
-                    self.attach: $/, $decl;
+                    $ast := Nodify('VarDeclaration', 'Auto').new:
+                      :scope<our>, :$desigilname, :$sigil, :$twigil;
+                    $*R.declare-lexical($ast);
                 }
             }
-            else { # package variable
-                self.attach: $/, Nodify('Var', 'Package').new(
-                    :name($desigilname),
-                    :$sigil
+
+            # package variable
+            else {
+                $ast := Nodify('Var','Package').new(
+                  :$sigil, :name($desigilname)
                 );
             }
         }
         elsif $twigil eq '*' {
-            self.attach: $/, Nodify('Var', 'Dynamic').new($name);
+            $ast := Nodify('Var','Dynamic').new($name);
         }
         elsif $twigil eq '!' {
-            self.attach: $/, Nodify('Var', 'Attribute').new($name);
+            $ast := Nodify('Var','Attribute').new($name);
         }
         elsif $twigil eq '?' {
             my $origin-source := $*ORIGIN-SOURCE;
-            if $name eq '$?FILE' {
-                my str $file := $origin-source.original-file();
-                self.attach: $/, Nodify('Var', 'Compiler', 'File').new($*LITERALS.intern-str($file));
-            }
-            elsif $name eq '$?LINE' {
-                my int $line := $origin-source.original-line($/.from());
-                self.attach: $/, Nodify('Var', 'Compiler', 'Line').new($*LITERALS.intern-int($line));
-            }
-            elsif $name eq '&?BLOCK' {
-                self.attach: $/, Nodify('Var', 'Compiler', 'Block').new;
-            }
-            elsif $name eq '&?ROUTINE' {
-                self.attach: $/, Nodify('Var', 'Compiler', 'Routine').new;
-            }
-            else {
-                self.attach: $/, Nodify('Var', 'Compiler', 'Lookup').new($name);
-            }
+            $ast := $name eq '$?FILE'
+              ?? Nodify('Var','Compiler','File').new(
+                   $*LITERALS.intern-str($origin-source.original-file)
+                 )
+              !! $name eq '$?LINE'
+                ?? Nodify('Var','Compiler','Line').new(
+                     $*LITERALS.intern-int($origin-source.original-line($/.from))
+                   )
+                !! $name eq '&?BLOCK'
+                  ?? Nodify('Var','Compiler','Block').new
+                  !! $name eq '&?ROUTINE'
+                    ?? Nodify('Var','Compiler','Routine').new
+                    !! Nodify('Var','Compiler','Lookup').new($name);
         }
         elsif $twigil eq '^' {
-            my $decl := Nodify('VarDeclaration', 'Placeholder', 'Positional').new:
-                    $sigil ~ $desigilname.canonicalize;
-            $*R.declare-lexical($decl);
-            self.attach: $/, $decl;
+            $ast := Nodify('VarDeclaration','Placeholder','Positional').new(
+              $sigil ~ $desigilname.canonicalize
+            );
+            $*R.declare-lexical($ast);
         }
         elsif $twigil eq ':' {
-            my $decl := Nodify('VarDeclaration', 'Placeholder', 'Named').new:
-                    $sigil ~ $desigilname.canonicalize;
-            $*R.declare-lexical($decl);
-            self.attach: $/, $decl;
+            $ast := Nodify('VarDeclaration', 'Placeholder', 'Named').new(
+              $sigil ~ $desigilname.canonicalize
+            );
+            $*R.declare-lexical($ast);
         }
         elsif $twigil eq '=' {
             if $name eq '$=pod'
               || $name eq '$=data'
               || $name eq '$=finish'
               || $name eq '$=rakudoc' {
-                self.attach: $/, Nodify('Var', 'Doc').new(nqp::substr($name,2));
+                $ast := Nodify('Var','Doc').new(nqp::substr($name,2));
             }
             else {
                 nqp::die("Pod variable $name NYI");
             }
         }
         elsif $twigil eq '.' {
-            self.attach: $/, Nodify('ApplyPostfix').new:
-                :postfix(
-                    Nodify('Call', 'Method').new:
-                        # contextualize based on sigil
-                        :name(Nodify('Name').from-identifier(
-                              $sigil eq '@' ?? 'list' !!
-                              $sigil eq '%' ?? 'hash' !!
-                              'item')),
-                        :args(Nodify('ArgList').new)),
-                :operand(
-                    Nodify('ApplyPostfix').new:
-                        :postfix(
-                            Nodify('Call', 'Method').new(
-                                :name($desigilname),
-                                :args($<arglist> ?? $<arglist>.ast !! Nodify('ArgList').new),
-                            )),
-                        :operand(
-                            Nodify('Term', 'Self').new
-                        ));
+
+            # self.foo.item
+            $ast := Nodify('ApplyPostfix').new(
+              operand => Nodify('ApplyPostfix').new(
+                operand => Nodify('Term','Self').new,
+                postfix => Nodify('Call','Method').new(
+                  name => $desigilname,
+                  args => ($<arglist>
+                            ?? $<arglist>.ast
+                            !! Nodify('ArgList').new
+                          )
+                )
+              ),
+              postfix => Nodify('Call','Method').new(
+                name => Nodify('Name').from-identifier(
+                          nqp::lc(sigil-to-context($sigil))
+                        ),
+                args => Nodify('ArgList').new
+              )
+            );
         }
         elsif $twigil eq '~' {
-            my $grammar := $/.slang_grammar($desigilname.canonicalize);
-            my $actions := $/.slang_actions($desigilname.canonicalize);
-            self.attach: $/, Nodify('Var', 'Slang').new(:$grammar, :$actions);
+            my $name := $desigilname.canonicalize;
+            $ast := Nodify('Var','Slang').new(
+              grammar => $/.slang_grammar($name),
+              actions => $/.slang_actions($name)
+            );
         }
         else {
             nqp::die("Lookup with twigil '$twigil' NYI");
         }
+
+        self.attach: $/, $ast;
     }
 
     method contextualizer($/) {
@@ -1719,7 +1740,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my str $node-type := $sigil eq '@' ?? 'List' !!
                              $sigil eq '%' ?? 'Hash' !!
                                               'Item';
-        self.attach: $/, Nodify('Contextualizer', $node-type).new($target);
+        self.attach: $/,
+          Nodify('Contextualizer', sigil-to-context($sigil)).new($target);
     }
 
     method term:sym<reduce>($/) {
@@ -1728,9 +1750,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             :triangle(?$<triangle>));
     }
 
-    ##
-    ## Declarations
-    ##
+#-------------------------------------------------------------------------------
+# Declarations
 
     method package-declarator:sym<package>($/) { self.attach: $/, $<package-def>.ast; }
     method package-declarator:sym<module>($/)  { self.attach: $/, $<package-def>.ast; }

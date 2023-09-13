@@ -2527,7 +2527,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             if $key {
                 my $value := $ast.simple-compile-time-quote-value;
                 nqp::isconcrete($value)
-                  ?? (%*RX{$key} := nqp::istrue($value))
+                  ?? (%*RX{$key} := ?$value)
                   !! $_.typed-panic: 'X::Value::Dynamic',
                        what => 'Adverb ' ~ $ast.key;
             }
@@ -3531,7 +3531,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<quantified_atom>
           ?? Nodify('Regex','NamedCapture').new(
                name  => ~($<name> || $<pos>),
-               array => $<wantarray> ?? 1 !! 0,
+               array => ?$<wantarray>,
                regex => $<quantified_atom>[0].ast
              )
           !! $<pos>
@@ -3543,8 +3543,9 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         if $<var><sigil> eq '%' {
             $<var>.typed-panic('X::Syntax::Reserved', :reserved('use of hash variables in regexes'))
         }
-        my $sequential := $*SEQ ?? 1 !! 0;
-        self.attach: $/, Nodify('Regex', 'Interpolation').new(:var($<var>.ast), :$sequential);
+        self.attach: $/, Nodify('Regex','Interpolation').new(
+          :var($<var>.ast), :sequential(?$*SEQ)
+        );
     }
 
     method metachar:sym<qw>($/) {
@@ -3655,9 +3656,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method assertion:sym<{ }>($/) {
-        my $sequential := $*SEQ ?? 1 !! 0;
         self.attach: $/, Nodify('Regex','Assertion','InterpolatedBlock').new:
-          :block($<codeblock>.ast), :$sequential;
+          :block($<codeblock>.ast), :sequential(?$*SEQ);
     }
 
     method assertion:sym<?{ }>($/) {
@@ -3678,9 +3678,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
               !! $node.new(:callee($<call>.ast));
         }
         else {
-            my $sequential := $*SEQ ?? 1 !! 0;
-            self.attach: $/, Nodify('Regex', 'Assertion', 'InterpolatedVar').new:
-                :var($<var>.ast), :$sequential;
+            self.attach: $/, Nodify('Regex','Assertion','InterpolatedVar').new:
+              :var($<var>.ast), :sequential(?$*SEQ);
         }
     }
 
@@ -3860,14 +3859,13 @@ class Raku::P5RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method p5metachar:sym<(??{ })>($/) {
-        my $sequential := $*SEQ ?? 1 !! 0;
-        self.attach: $/, Nodify('Regex', 'Assertion', 'InterpolatedBlock').new:
-            :block($<codeblock>.ast), :$sequential;
+        self.attach: $/, Nodify('Regex','Assertion','InterpolatedBlock').new:
+          :block($<codeblock>.ast), :sequential(?$*SEQ);
     }
 
     method p5metachar:sym<var>($/) {
-        my $sequential := $*SEQ ?? 1 !! 0;
-        self.attach: $/, Nodify('Regex', 'Interpolation').new(:var($<var>.ast), :$sequential);
+        self.attach: $/, Nodify('Regex','Interpolation').new:
+          :var($<var>.ast), :sequential(?$*SEQ);
     }
 
     method store_regex_nfa($code_obj, $block, $nfa) {

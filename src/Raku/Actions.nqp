@@ -1737,9 +1737,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method contextualizer-for-sigil($/, $sigil, $target) {
-        my str $node-type := $sigil eq '@' ?? 'List' !!
-                             $sigil eq '%' ?? 'Hash' !!
-                                              'Item';
         self.attach: $/,
           Nodify('Contextualizer', sigil-to-context($sigil)).new($target);
     }

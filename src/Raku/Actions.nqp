@@ -2069,7 +2069,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
                 elsif $twigil eq '*' {
                     $/.typed-panic('X::Syntax::Variable::Twigil',
-                      name       => ~$<variable>,
+                      name       => ~$variable,
                       what       => 'constant',
                       twigil     => $twigil,
                       scope      => $*SCOPE,
@@ -2093,7 +2093,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             @traits.push($_.ast) for $<trait>;
         }
 
-        my $decl := Nodify('VarDeclaration', 'Constant').new(|%args);
+        my $decl := Nodify('VarDeclaration','Constant').new(|%args);
         $/.typed-panic('X::Redeclaration', :symbol(%args<name>))
           if $*R.declare-lexical($decl);
         $decl.IMPL-CHECK($*R, $*CU.context, 1);
@@ -2154,39 +2154,44 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
-    method trait_mod:sym<is>($/) {
-        if ~$<longname> eq 'repr' {
-            if $<circumfix> {
-                my $ast  := $<circumfix>.ast;
-                my $repr := nqp::istype($ast,Nodify('Circumfix'))
-                    ?? $ast.IMPL-UNWRAP-LIST($ast.semilist.statements)[0]
-                    !! nqp::istype($ast,Nodify('QuotedString'))
-                        ?? $ast
-                        !! nqp::die(
-                             "NYI trait_mod circumfix " ~ $ast.HOW.name($ast)
-                           );
+    # Special handling for "is repr"
+    method handle-is-repr($/) {
+        my $circumfix := $<circumfix>;
+        if $circumfix {
+            my $ast  := $circumfix.ast;
+            my $repr := nqp::istype($ast,Nodify('Circumfix'))
+                ?? $ast.IMPL-UNWRAP-LIST($ast.semilist.statements)[0]
+                !! nqp::istype($ast,Nodify('QuotedString'))
+                    ?? $ast
+                    !! nqp::die(
+                         "NYI trait_mod circumfix " ~ $ast.HOW.name($ast)
+                       );
 
-                unless $repr.IMPL-CAN-INTERPRET {
-                    $/.typed-panic: 'X::Value::Dynamic',
-                      :what('is repr(...) trait');
-                }
-                $repr := $repr.IMPL-INTERPRET(Nodify('IMPL', 'InterpContext').new);
-                $*PACKAGE.set-repr($repr);
-                return;
+            unless $repr.IMPL-CAN-INTERPRET {
+                $/.typed-panic: 'X::Value::Dynamic',
+                  :what('is repr(...) trait');
             }
-            else {
-                $/.panic("is repr(...) trait needs a parameter");
-            }
+            $repr := $repr.IMPL-INTERPRET(Nodify('IMPL','InterpContext').new);
+            $*PACKAGE.set-repr($repr);
         }
-        else
-        {
-            my $ast-type := Nodify('Trait', 'Is');
-            my $trait := $<circumfix>
-                ?? $ast-type.new(:name($<longname>.ast), :argument($<circumfix>.ast))
-                !! $ast-type.new(:name($<longname>.ast));
-            $trait.ensure-begin-performed($*R, $*CU.context);
-            self.attach: $/, $trait;
+        else {
+            $/.panic("is repr(...) trait needs a parameter");
         }
+    }
+
+    method trait_mod:sym<is>($/) {
+        my $longname  := $<longname>;
+        return self.handle-is-repr($/) if ~$longname eq 'repr';
+
+        my $circumfix := $<circumfix>;
+        my $ast-type  := Nodify('Trait', 'Is');
+
+        my $trait := $circumfix
+          ?? $ast-type.new(:name($longname.ast), :argument($circumfix.ast))
+          !! $ast-type.new(:name($longname.ast));
+
+        $trait.ensure-begin-performed($*R, $*CU.context);
+        self.attach: $/, $trait;
     }
 
     method trait_mod:sym<hides>($/) {

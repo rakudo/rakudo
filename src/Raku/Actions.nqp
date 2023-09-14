@@ -3192,35 +3192,50 @@ Please use $worry.";
 
     method nibbler($/) {
         my @segments;
-        my $lastlit := '';
+        my str $sofar  := '';
+        my $LITERALS   := $*LITERALS;
         my $StrLiteral := Nodify('StrLiteral');
 
-        for @*nibbles {
+        for @*NIBBLES {
             if nqp::istype($_, NQPMatch) {
                 my $ast := $_.ast;
+
+                # a string was "made" ?
                 if nqp::isstr($ast) {
-                    $lastlit := $lastlit ~ $ast;
+                    $sofar := $sofar ~ $ast;
                 }
+
+                # a real AST, but collected string so far
+                elsif $sofar {
+                    @segments.push:
+                      $StrLiteral.new($LITERALS.intern-str($sofar));
+                    $sofar := '';
+                    @segments.push($ast);
+                }
+
+                # a real AST without string
                 else {
-                    if $lastlit ne '' {
-                        @segments.push: $StrLiteral.new($*LITERALS.intern-str($lastlit));
-                        $lastlit := '';
-                    }
                     @segments.push($ast);
                 }
             }
+
+            # assume string or something stringifiable
             else {
-                $lastlit := $lastlit ~ $_;
+                $sofar := $sofar ~ $_;
             }
         }
 
-        if $lastlit ne '' || !@segments {
-            @segments.push: $StrLiteral.new($*LITERALS.intern-str($lastlit));
-        }
+        # make sure we have at least an empty string in segments
+        @segments.push(
+          $StrLiteral.new($LITERALS.intern-str($sofar))
+        ) if $sofar || !@segments;
 
-        my @processors := nqp::can($/, 'postprocessors') ?? $/.postprocessors !! [];
-        my $node-class := nqp::can($/, 'herelang') ?? 'Heredoc' !! 'QuotedString';
-        self.attach: $/, Nodify($node-class).new(:@segments, :@processors);
+        self.attach: $/, Nodify(
+          nqp::can($/,'herelang') ?? 'Heredoc' !! 'QuotedString'
+        ).new(
+          segments   => @segments,
+          processors => nqp::can($/,'postprocessors') ?? $/.postprocessors !! []
+        );
     }
 
     method escape:sym<\\>($/) { self.attach: $/, $<item>.ast; }

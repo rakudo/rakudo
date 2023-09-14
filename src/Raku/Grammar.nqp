@@ -4989,52 +4989,53 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
 # Actual slang nibbling logic
 
     token nibbler {
-        :my @*nibbles;
-        <.do_nibbling>
+        :my @*NIBBLES;
+        <.do-nibbling>
     }
 
-    token do_nibbling {
-        :my $from := self.pos;
-        :my $to   := $from;
+    token do-nibbling {
+        :my int $from := self.pos;
+        :my int $to   := $from;
+        :my @NIBBLES;
         [
-            <!stopper>
-            [
-            || <starter> <nibbler> <stopper>
-                {
-                    my $c := $/;
-                    $to   := $<starter>[-1].from;
-                    if $from != $to {
-                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
-                    }
+          <!stopper>
+          [
+            || <starter>
+               <nibbler>
+               <stopper>
+               {
+                   my $c := $/;
+                   $to   := $<starter>[-1].from;
+                   nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+                     if $from != $to;
 
-                    nqp::push(@*nibbles, $<starter>[-1].Str);
-                    nqp::push(@*nibbles, $<nibbler>[-1]);
-                    nqp::push(@*nibbles, $<stopper>[-1].Str);
+                   nqp::push(@NIBBLES,$<starter>[-1].Str);
+                   nqp::push(@NIBBLES,$<nibbler>[-1]);
+                   nqp::push(@NIBBLES,$<stopper>[-1].Str);
 
-                    $from := $to := $c.pos;
-                }
+                   $from := $to := $c.pos;
+               }
             || <escape>
-                {
-                    my $c := $/;
-                    $to   := $<escape>[-1].from;
-                    if $from != $to {
-                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
-                    }
+               {
+                   my $c := $/;
+                   $to   := $<escape>[-1].from;
+                   nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+                     if $from != $to;
 
-                    nqp::push(@*nibbles, $<escape>[-1]);
+                   nqp::push(@NIBBLES,$<escape>[-1]);
 
-                    $from := $to := $c.pos;
-                }
+                   $from := $to := $c.pos;
+               }
             || .
-            ]
+          ]
         ]*
         {
             my $c := $/;
             $to   := $c.pos;
             $*LASTQUOTE := [self.pos, $to];
-            if $from != $to || !@*nibbles {
-                nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
-            }
+            nqp::push(@NIBBLES,nqp::substr($c.orig,$from,$to - $from))
+              if $from != $to || !@NIBBLES;
+            @*NIBBLES := @NIBBLES;
         }
     }
 }

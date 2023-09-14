@@ -3150,41 +3150,44 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 }
 
 class Raku::QActions is HLL::Actions does Raku::CommonActions {
-    # This overrides NQP during the deprecation period for Unicode 1 names not covered by Alias Names
+    # This overrides NQP during the deprecation period for Unicode 1 names
+    # not covered by Alias Names
     method charname-panic($/) { $/.panic("Unrecognized character name [$/]") }
 
     method charname($/) {
         my $codepoint := $<integer>
-                         ?? nqp::chr($<integer>.made)
-                         !! nqp::strfromname(~$/);
-        $codepoint := self.charname-notfound($/) if $codepoint eq '';
+          ?? nqp::chr($<integer>.made)
+          !! nqp::strfromname(~$/);
+        $codepoint := self.deprecated-charnames($/) if $codepoint eq '';
         self.attach: $/, $codepoint;
     }
 
-    method charname-notfound($/) {
-        my @worry-text := ( "LINE FEED, NEW LINE, END OF LINE, LF, NL or EOL",
-                            "FORM FEED or FF",
-                            "CARRIAGE RETURN or CR",
-                            "NEXT LINE or NEL" );
-        my $text := "Deprecated character name [%s] in lookup of Unicode character by name.\n" ~
-                    "Unicode 1 names are deprecated.\nPlease use %s";
-        if ~$/ eq "LINE FEED (LF)" {
-            $/.worry(nqp::sprintf($text, (~$/, @worry-text[0]) ) );
-            return nqp::strfromname("LINE FEED");
+    # Check for deprecated charnames: worry if a deprecated one is found
+    # and return the appropriate one.  Otherwise panic
+    method deprecated-charnames($/) {
+        my str $name  := ~$/;
+        my str $worry := $name eq "LINE FEED (LF)"
+          ?? "LINE FEED, NEW LINE, END OF LINE, LF, NL or EOL"
+          !! $name eq "FORM FEED (FF)"
+            ?? "FORM FEED or FF"
+            !! $name eq "CARRIAGE RETURN (CR)"
+              ?? "CARRIAGE RETURN or CR"
+              !! $name eq "NEXT LINE (NEL)"
+                ?? "NEXT LINE or NEL"
+                !! "";
+
+        if $worry {
+            $/.worry:
+"Deprecated character name [$name] in lookup of Unicode
+character by name.  Unicode 1 names are deprecated.
+Please use $worry.";
+            nqp::strfromname(
+              nqp::join(" ",nqp::slice(nqp::split(" ",$name),0,1))
+            )
         }
-        if ~$/ eq "FORM FEED (FF)" {
-            $/.worry(nqp::sprintf($text, (~$/, @worry-text[1]) ) );
-            return nqp::strfromname("FORM FEED");
+        else {
+            self.charname-panic($/);
         }
-        if ~$/ eq "CARRIAGE RETURN (CR)" {
-            $/.worry(nqp::sprintf($text, (~$/, @worry-text[2]) ) );
-            return nqp::strfromname("CARRIAGE RETURN");
-        }
-        if ~$/ eq "NEXT LINE (NEL)" {
-            $/.worry(nqp::sprintf($text, (~$/, @worry-text[3]) ) );
-            return nqp::strfromname("NEXT LINE");
-        }
-        self.charname-panic($/);
     }
 
     method nibbler($/) {

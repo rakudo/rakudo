@@ -1107,37 +1107,43 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method dottyop($/) {
+        my $ast;
+
         if $<methodop> {
-            self.attach: $/, $<methodop>.ast;
+            $ast := $<methodop>.ast;
         }
         elsif $<postop> {
-            self.attach: $/, $<postop>.ast;
+            $ast := $<postop>.ast;
         }
         elsif $<colonpair> {
-            if $<colonpair><identifier> eq "" && $<colonpair><coloncircumfix> -> $cf {
-                if $cf<circumfix> -> $op_name {
-                    self.attach: $/, Nodify('Call', 'Name').new(
-                        :name(
-                            Nodify('Name').from-identifier(
-                                'prefix:' ~ Nodify('ColonPairish').IMPL-QUOTE-VALUE(
-                                    Nodify('BeginTime').IMPL-BEGIN-TIME-EVALUATE(
-                                      ($op_name<nibble> // $op_name<semilist> // $op_name<pointy-block>).ast, $*R, $*CU.context
-                                    )
-                                )
-                            )
+            my $cp := $<colonpair>;
+            if $cp<identifier> eq "" && $cp<coloncircumfix> -> $cf {
+                if $cf<circumfix> -> $op {
+                    $ast := Nodify('Call','Name').new(
+                      name => Nodify('Name').from-identifier(
+                        'prefix:' ~ Nodify('ColonPairish').IMPL-QUOTE-VALUE(
+                          Nodify('BeginTime').IMPL-BEGIN-TIME-EVALUATE(
+                            (
+                              $op<nibble> // $op<semilist> // $op<pointy-block>
+                            ).ast, $*R, $*CU.context
+                          )
                         )
+                      )
                     );
                 }
                 else {
                     nqp::die('NYI kind of dottyop with coloncircumfix');
                 }
-            } else {
-                self.attach: $/, $<colonpair>.ast;
+            }
+            else {
+                $ast := $cp.ast;
             }
         }
         else {
             nqp::die('NYI kind of dottyop');
         }
+
+        self.attach: $/, $ast;
     }
 
     method privop($/) {
@@ -1146,16 +1152,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method methodop($/) {
         my $args := $<args> ?? $<args>.ast !! Nodify('ArgList').new();
+        my $ast;
+
         if $<longname> {
-            my $ast  := $<longname>.ast;
+            $ast     := $<longname>.ast;
             my $name := $ast.canonicalize;
 
             if $*DOTTY {
-                my $DOTTY    := $*DOTTY;
-                unless $ast.is-identifier {
-                    $/.dotty-non-ident($DOTTY);
-                }
-                self.attach: $/, $DOTTY eq '!'
+                my $DOTTY := $*DOTTY;
+                $/.dotty-non-ident($DOTTY) unless $ast.is-identifier;
+
+                $ast := $DOTTY eq '!'
                   ?? Nodify('Call','PrivateMethod').new(:name($ast),:$args)
                   !! $DOTTY eq '.^'
                     ?? Nodify('Call','MetaMethod').new(:$name, :$args)
@@ -1166,17 +1173,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         !! nqp::die("Missing compilation of $DOTTY");
             }
             else {
-                self.attach: $/,
-                  Nodify('Call','Method').new(:name($ast), :$args);
+                $ast := Nodify('Call','Method').new(:name($ast), :$args);
             }
         }
         elsif $<quote> {
-            self.attach: $/,
-              Nodify('Call','QuotedMethod').new(:name($<quote>.ast), :$args);
+            $ast := Nodify('Call','QuotedMethod').new(
+              :name($<quote>.ast), :$args
+            );
         }
         else {
             nqp::die('NYI kind of methodop');
         }
+
+        self.attach: $/, $ast
     }
 
     sub super-int-to-Int($digits, $sign = "") {

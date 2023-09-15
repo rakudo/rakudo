@@ -3478,39 +3478,32 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method quantified_atom($/) {
-        my $atom := self.wrap-whitespace($<sigmaybe>, $<atom>.ast);
+        my $atom       := self.wrap-whitespace($<sigmaybe>, $<atom>.ast);
+        my $quantifier := $<quantifier>;
 
-        if $<quantifier> {
-            my $quant-ast := $<quantifier>.ast;
-            if $<separator> {
-                my $sep-ast := $<separator>.ast;
-                my $trailing-separator := $<separator><septype> eq '%%';
-                self.attach: $/, self.wrap-whitespace: $<sigfinal>,
-                    Nodify('Regex', 'QuantifiedAtom').new(
-                      :$atom, :quantifier($quant-ast),
-                      :separator($sep-ast), :$trailing-separator
-                    );
-            }
-            else {
-                self.attach: $/, self.wrap-whitespace: $<sigfinal>,
-                    Nodify('Regex', 'QuantifiedAtom').new(
-                      :$atom, :quantifier($quant-ast)
-                    );
-            }
+        # Set up separator info
+        my %separator;
+        my $separator := $<separator>;
+        if $separator {
+            my str $type := ~$separator<septype>;
+            $/.panic(
+              "'$type' may only be used immediately following a quantifier"
+            ) unless $quantifier;
+
+            %separator<separator>          := $separator.ast;
+            %separator<trailing-separator> := 1 if $type eq '%%';
         }
-        # no quantifier
-        elsif $<separator> {
-            $/.panic("'" ~ $<separator><septype> ~
-                "' may only be used immediately following a quantifier");
-        }
-        elsif $<backmod> {
-            self.attach: $/, self.wrap-whitespace: $<sigfinal>,
-                Nodify('Regex', 'BacktrackModifiedAtom').new:
-                  :$atom, :backtrack($<backmod>.ast);
-        }
-        else {
-            self.attach: $/, self.wrap-whitespace($<sigfinal>, $atom);
-        }
+
+        self.attach: $/, self.wrap-whitespace($<sigfinal>, $quantifier
+          ?? Nodify('Regex','QuantifiedAtom').new(
+               :$atom, :quantifier($quantifier.ast), |%separator
+             )
+          !! $<backmod>
+            ?? Nodify('Regex','BacktrackModifiedAtom').new(
+                 :$atom, :backtrack($<backmod>.ast)
+               )
+            !! $atom
+        );
     }
 
     method wrap-whitespace($cond, $ast) {

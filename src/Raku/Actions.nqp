@@ -1029,6 +1029,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 #-------------------------------------------------------------------------------
 # Prefix operators
 
+    # Alpha prefix actions are statically coupled to their appropriate
+    # prefix object to allow a slang to change the wording of these prefix
+    # operators *without* needing to supply additional actions mapping
+    # them to the correct english prefix name.
+    method prefix:sym<let>($/) {
+        self.attach: $/, Nodify('Prefix').new('let')
+    }
+    method prefix:sym<not>($/) {
+        self.attach: $/, Nodify('Prefix').new('not')
+    }
+    method prefix:sym<so>($/) {
+        self.attach: $/, Nodify('Prefix').new('so')
+    }
+    method prefix:sym<temp>($/) {
+        self.attach: $/, Nodify('Prefix').new('temp')
+    }
+
     method prefixish($/) {
         my $ast := $<OPER>.ast // Nodify('Prefix').new(~$<prefix><sym>);
         $ast := $<prefix-postfix-meta-operator>.ast.new($ast)

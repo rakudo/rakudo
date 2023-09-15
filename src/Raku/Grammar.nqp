@@ -2037,22 +2037,28 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
     }
 
+#-------------------------------------------------------------------------------
+# Alpha prefixes that can be easily sub-classed for non-English versions of
+# the Raku Programming Language
+
     # Prefixes requiring scope interaction
     token prefix:sym<let>  {
-        <sym><.kok>
+        <.sym>
+        <.kok>
         { ($*BLOCK // $*CU.mainline).set-has-let }
     }
     token prefix:sym<temp> {
-        <sym><.kok>
+        <.sym>
+        <.kok>
         { ($*BLOCK // $*CU.mainline).set-has-temp }
     }
 
-    token prefix:sym<so>  { <sym><.end-prefix> }
-    token prefix:sym<not> { <sym><.end-prefix> }
+    token prefix:sym<so>  { <.sym> <.end-prefix> }
+    token prefix:sym<not> { <.sym> <.end-prefix> }
 
 #-------------------------------------------------------------------------------
-# Alpha infixes that may need a right word boundary, and which will need
-# special handling for non-English versions of the Raku Programming Language
+# Alpha infixes that may need a right word boundary, and which can be easily
+# sub-classed for non-English versions of the Raku Programming Language
 
     proto token infix {*}
     token infix:sym<after>      { <.sym> » }

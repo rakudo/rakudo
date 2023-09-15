@@ -430,7 +430,7 @@ class RakuAST::Feed
             for $operands {
                 @stages.push: $_;
             }
-        } else {  # "<<==" and "==>>" are NYI, caught already in the grammar actions
+        } else {  # "<<==" and "==>>" are NYI
             for $operands {
                 @stages.unshift: $_;
             }
@@ -503,6 +503,186 @@ Did you mean a call like '"
             $result := $stage;
         }
         $result
+    }
+}
+
+class RakuAST::FlipFlop
+  is RakuAST::Infix
+  is RakuAST::ImplicitLookups
+{
+    has int $.min-excl;
+    has int $.max-excl;
+    has int $.one-only;
+
+    has str $.state-id;
+    has RakuAST::VarDeclaration::Implicit::State $!state-var;
+
+    method new(str $operator, int :$min-excl, int :$max-excl, int :$one-only) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
+        nqp::bindattr_i($obj, RakuAST::FlipFlop, '$!min-excl', $min-excl // 0);
+        nqp::bindattr_i($obj, RakuAST::FlipFlop, '$!max-excl', $max-excl // 0);
+        nqp::bindattr_i($obj, RakuAST::FlipFlop, '$!one-only', $one-only // 0);
+        my $state-id := QAST::Node.unique('FLIPFLOP_STATE__');
+        nqp::bindattr_s($obj, RakuAST::FlipFlop, '$!state-id', $state-id);
+        my $state-var := RakuAST::VarDeclaration::Implicit::State.new('!' ~ $state-id, :init-to-zero(1));
+        nqp::bindattr($obj, RakuAST::FlipFlop, '$!state-var', $state-var);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('True')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('False')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Int')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Whatever'))
+        ])
+    }
+
+    method IMPL-CURRIES() { 0 }
+
+    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
+                              RakuAST::Expression $left, RakuAST::Expression $right) {
+        self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
+            $right.IMPL-TO-QAST($context)
+    }
+
+    method IMPL-INFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $lhs,
+                              Mu $rhs
+    ) {
+        # Need various constants.
+        my $Int   := self.get-implicit-lookups.AT-POS(3).compile-time-value;
+        my $Int-zero := $Int.new(0);
+        my $Int-one  := $Int.new(1);
+        $context.ensure-sc($Int-zero);
+        $context.ensure-sc($Int-one);
+
+        my $zero  := QAST::Want.new( QAST::WVal.new(:value($Int-zero), :returns($Int-zero.WHAT)), 'Ii', QAST::IVal.new(:value(0)) );
+        my $one   := QAST::Want.new( QAST::WVal.new(:value($Int-one), :returns($Int-one.WHAT)), 'Ii', QAST::IVal.new(:value(1)) );
+        my $nil   := QAST::WVal.new( :value(self.get-implicit-lookups.AT-POS(0).compile-time-value) );
+        my $true  := QAST::WVal.new( :value(self.get-implicit-lookups.AT-POS(1).compile-time-value) );
+        my $false := QAST::WVal.new( :value(self.get-implicit-lookups.AT-POS(2).compile-time-value) );
+        my $topic := QAST::Var.new( :name<$_>, :scope<lexical> );
+
+        # Twiddle to make special-case RHS * work.
+        my $Whatever := self.get-implicit-lookups.AT-POS(4).compile-time-value;
+        if nqp::istype($rhs.returns, $Whatever) {
+            $rhs := $false;
+        }
+
+        my $id := $!state-id;
+        my $state := '!' ~ $id;
+        # Evaluate LHS and RHS. Note that in one-only mode, we use
+        # the state bit to decide which side to evaluate.
+        my $ff-code := QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($id ~ '_lhs'), :scope('local'), :decl('var') ),
+                ($!one-only ??
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Var.new( :name($state), :scope('lexical') ),
+                        $false,
+                        QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $lhs )
+                    ) !!
+                    QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $lhs )
+                ),
+            ),
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($id ~ '_rhs'), :scope('local'), :decl('var') ),
+                ($!one-only ??
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Var.new( :name($state), :scope('lexical') ),
+                        QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $rhs ),
+                        $false
+                    ) !!
+                    QAST::Op.new( :op('call'), :name('&infix:<~~>'), $topic, $rhs )
+                )
+            )
+        );
+
+        # Now decide what to do based on current state and current
+        # results.
+        $ff-code.push(QAST::Op.new(
+            :op('if'),
+            QAST::Var.new( :name($state), :scope('lexical') ),
+
+            # State is currently true. Check RHS. If it's false, then we
+            # increment the sequence count. If it's true, then we reset,
+            # the state to zero and and what we return depends on $max-excl.
+            QAST::Op.new(
+                :op('if'),
+                QAST::Var.new( :name($id ~ '_rhs'), :scope('local') ),
+                ($!max-excl ??
+                QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('p6store'),
+                        QAST::Var.new( :name($state), :scope('lexical') ),
+                        $zero
+                        ),
+                    $nil
+                    ) !!
+                    QAST::Stmts.new(
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($id ~ '_orig'), :scope('local'), :decl('var') ),
+                            QAST::Op.new(
+                                :op('call'), :name('&prefix:<++>'),
+                                QAST::Var.new( :name($state), :scope('lexical') )
+                                )
+                            ),
+                        QAST::Op.new(
+                            :op('p6store'),
+                            QAST::Var.new( :name($state), :scope('lexical') ),
+                            $zero
+                            ),
+                        QAST::Op.new(
+                            :op('decont'),
+                            QAST::Var.new( :name($id ~ '_orig'), :scope('local') )
+                            )
+                        )),
+                QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('call'), :name('&prefix:<++>'),
+                        QAST::Var.new( :name($state), :scope('lexical') )
+                        )
+                    )
+                ),
+
+            # State is currently false. Check LHS. If it's false, then we
+            # stay in a false state. If it's true, then we flip the bit,
+            # but only if the RHS is not also true. We return a result
+            # based on $min-excl.
+            QAST::Op.new(
+                :op('if'),
+                QAST::Var.new( :name($id ~ '_lhs'), :scope('local') ),
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Var.new( :name($id ~ '_rhs'), :scope('local') ),
+                    $!min-excl || $!max-excl ?? $nil !! $one,
+                    QAST::Stmts.new(
+                        QAST::Op.new(
+                            :op('p6store'),
+                            QAST::Var.new( :name($state), :scope('lexical') ),
+                            $one
+                            ),
+                        $!min-excl ?? $nil !! $one
+                        )
+                    ),
+                $nil
+                )
+            ));
+
+        QAST::Op.new( :op('locallifetime'), $ff-code, $id ~ '_lhs', $id ~ '_rhs' );
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!state-var)
     }
 }
 

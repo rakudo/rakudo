@@ -3544,42 +3544,53 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method quantifier:sym<**>($/) {
+        my $ast;
+
+        my $backtrack:= $<backmod>.ast;
         if $<codeblock> {
-            self.attach: $/, Nodify('Regex', 'Quantifier', 'BlockRange').new:
-                :block($<codeblock>.ast), :backtrack($<backmod>.ast);
+            $ast := Nodify('Regex','Quantifier','BlockRange').new(
+              block     => $<codeblock>.ast,
+              backtrack => $backtrack
+            );
         }
         else {
             my $LITERALS := $*LITERALS;
             my $min := $<min>
-                ?? $LITERALS.build-int(~$<min>, 10)
-                !! $LITERALS.int-type;
-            my $max;
-            if !$<max> {
-                $max := $min;
-            }
-            elsif $<max> eq '*' {
-                $max := $LITERALS.int-type;
-            }
-            else {
-                $max := $LITERALS.build-int(~$<max>, 10);
-            }
-            my int $excludes-min := $<from> eq '^';
-            my int $excludes-max := $<upto> eq '^';
-            self.attach: $/, Nodify('Regex', 'Quantifier', 'Range').new:
-                :$min, :$max, :$excludes-min, :$excludes-max,
-                :backtrack($<backmod>.ast);
+              ?? $LITERALS.build-int(~$<min>, 10)
+              !! $LITERALS.int-type;
+
+            my $max := $<max>;
+            $max := !$max
+              ?? $min
+              !! $max eq '*'
+                ?? $LITERALS.int-type
+                !! $LITERALS.build-int(~$max, 10);
+
+            $ast := Nodify('Regex','Quantifier','Range').new(
+              excludes-min => $<from> eq '^',
+              min          => $min,
+              max          => $max,
+              excludes-max => $<upto> eq '^',
+              backtrack    => $backtrack
+            );
         }
+
+        self.attach: $/, $ast
     }
 
     method backmod($/) {
         my str $backmod := ~$/;
-        self.attach: $/,$backmod eq ':'
-          ?? Nodify('Regex', 'Backtrack', 'Ratchet')
+        my str $class   := $backmod eq ':'
+          ?? 'Ratchet'
           !! $backmod eq ':?' || $backmod eq '?'
-            ?? Nodify('Regex', 'Backtrack', 'Frugal')
+            ?? 'Frugal'
             !! $backmod eq ':!' || $backmod eq '!'
-              ?? Nodify('Regex', 'Backtrack', 'Greedy')
-              !! Nodify('Regex', 'Backtrack')
+              ?? 'Greedy'
+              !! '';
+
+        self.attach: $/, $class
+          ?? Nodify('Regex','Backtrack',$class)
+          !! Nodify('Regex','Backtrack')
     }
 
     method separator($/) {

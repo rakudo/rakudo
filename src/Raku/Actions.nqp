@@ -1027,7 +1027,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
 #-------------------------------------------------------------------------------
-# Operators
+# Prefix operators
 
     method prefixish($/) {
         my $ast := $<OPER>.ast // Nodify('Prefix').new(~$<prefix><sym>);
@@ -1039,6 +1039,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method prefix-postfix-meta-operator:sym<«>($/) {
         make Nodify('MetaPrefix', 'Hyper');
     }
+
+#-------------------------------------------------------------------------------
+# Postfix operators
 
     method postfixish($/) {
         my $ast := $<OPER>.ast // Nodify('Postfix').new(~$<postfix><sym>);
@@ -1243,6 +1246,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
     }
 
+#-------------------------------------------------------------------------------
+# Infix operators
+
     # Assignment in Raku can take two forms: item and list assignment:
     # my @b = my $a = 1,2,3;  # $a = 1, @b = 1,2,3 .  In the item
     # assignment case, the '=' gets a higher precedence than the ','.
@@ -1270,6 +1276,125 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # create a dummy infix AST for further parsing / EXPR handling if so
     method infix:sym<?? !!>($/) {
         self.attach: $/, Nodify('Infix').new('?? !!')
+    }
+
+    # Alpha infix actions are statically coupled to their appropriate
+    # infix object to allow a slang to change the wording of these infix
+    # operators *without* needing to supply additional actions mapping
+    # them to the correct english infix name.
+    method infix:sym<after>($/) {
+        self.attach: $/, Nodify('Infix').new('after')
+    }
+    method infix:sym<and>($/) {
+        self.attach: $/, Nodify('Infix').new('and')
+    }
+    method infix:sym<andthen>($/) {
+        self.attach: $/, Nodify('Infix').new('andthen')
+    }
+    method infix:sym<before>($/) {
+        self.attach: $/, Nodify('Infix').new('before')
+    }
+    method infix:sym<but>($/) {
+        self.attach: $/, Nodify('Infix').new('but')
+    }
+    method infix:sym<cmp>($/) {
+        self.attach: $/, Nodify('Infix').new('cmp')
+    }
+    method infix:sym<coll>($/) {
+        self.attach: $/, Nodify('Infix').new('coll')
+    }
+    method infix:sym<div>($/) {
+        self.attach: $/, Nodify('Infix').new('div')
+    }
+    method infix:sym<does>($/) {
+        self.attach: $/, Nodify('Infix').new('does')
+    }
+    method infix:sym<eq>($/) {
+        self.attach: $/, Nodify('Infix').new('eq')
+    }
+    method infix:sym<eqv>($/) {
+        self.attach: $/, Nodify('Infix').new('eqv')
+    }
+    method infix:sym<ff>($/) {
+        self.attach: $/, Nodify('Infix').new('ff')
+    }
+    method infix:sym<^ff>($/) {
+        self.attach: $/, Nodify('Infix').new('^ff')
+    }
+    method infix:sym<ff^>($/) {
+        self.attach: $/, Nodify('Infix').new('ff^')
+    }
+    method infix:sym<^ff^>($/) {
+        self.attach: $/, Nodify('Infix').new('^ff^')
+    }
+    method infix:sym<fff>($/) {
+        self.attach: $/, Nodify('Infix').new('fff')
+    }
+    method infix:sym<^fff>($/) {
+        self.attach: $/, Nodify('Infix').new('^fff')
+    }
+    method infix:sym<fff^>($/) {
+        self.attach: $/, Nodify('Infix').new('fff^')
+    }
+    method infix:sym<^fff^>($/) {
+        self.attach: $/, Nodify('Infix').new('^fff^')
+    }
+    method infix:sym<gcd>($/) {
+        self.attach: $/, Nodify('Infix').new('gcd')
+    }
+    method infix:sym<ge>($/) {
+        self.attach: $/, Nodify('Infix').new('ge')
+    }
+    method infix:sym<gt>($/) {
+        self.attach: $/, Nodify('Infix').new('gt')
+    }
+    method infix:sym<lcm>($/) {
+        self.attach: $/, Nodify('Infix').new('lcm')
+    }
+    method infix:sym<le>($/) {
+        self.attach: $/, Nodify('Infix').new('le')
+    }
+    method infix:sym<leg>($/) {
+        self.attach: $/, Nodify('Infix').new('leg')
+    }
+    method infix:sym<lt>($/) {
+        self.attach: $/, Nodify('Infix').new('lt')
+    }
+    method infix:sym<max>($/) {
+        self.attach: $/, Nodify('Infix').new('max')
+    }
+    method infix:sym<min>($/) {
+        self.attach: $/, Nodify('Infix').new('min')
+    }
+    method infix:sym<minmax>($/) {
+        self.attach: $/, Nodify('Infix').new('minmax')
+    }
+    method infix:sym<mod>($/) {
+        self.attach: $/, Nodify('Infix').new('mod')
+    }
+    method infix:sym<ne>($/) {
+        self.attach: $/, Nodify('Infix').new('ne')
+    }
+    method infix:sym<notandthen>($/) {
+        self.attach: $/, Nodify('Infix').new('notandthen')
+    }
+    method infix:sym<or>($/) {
+        self.attach: $/, Nodify('Infix').new('or')
+    }
+    method infix:sym<orelse>($/) {
+        self.attach: $/, Nodify('Infix').new('orelse')
+    }
+    method infix:sym<unicmp>($/) {
+        self.attach: $/, Nodify('Infix').new('unicmp')
+    }
+    method infix:sym<x>($/) {
+        self.attach: $/, Nodify('Infix').new('x')
+    }
+    method infix:sym<xor>($/) {
+        self.attach: $/, Nodify('Infix').new('xor')
+    }
+    method infix:sym<xx>($/) {
+        self.attach: $/, Nodify('Infix').new('xx')
     }
 
     # Handle all of the infix:<sym> that don't have their own action method
@@ -1327,7 +1452,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
 #-------------------------------------------------------------------------------
-# Circumfixes
+# Circumfix operators
 
     method circumfix:sym<( )>($/) {
         self.attach: $/,

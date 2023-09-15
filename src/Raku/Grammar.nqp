@@ -2055,44 +2055,44 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # special handling for non-English versions of the Raku Programming Language
 
     proto token infix {*}
-    token infix:sym<after>      { <sym> » }
-    token infix:sym<and>        { <sym> » }
-    token infix:sym<andthen>    { <sym> » }
-    token infix:sym<before>     { <sym> » }
-    token infix:sym<but>        { <sym> » }
-    token infix:sym<cmp>        { <sym> » }
-    token infix:sym<coll>       { <sym> » }
-    token infix:sym<div>        { <sym> » }
-    token infix:sym<does>       { <sym> » }
-    token infix:sym«eq»         { <sym> » }
-    token infix:sym<eqv>        { <sym> » }
-    token infix:sym<ff>         { <sym> » }
-    token infix:sym<^ff>        { <sym> » }
-    token infix:sym<ff^>        { <sym>   }
-    token infix:sym<^ff^>       { <sym>   }
-    token infix:sym<fff>        { <sym> » }
-    token infix:sym<^fff>       { <sym> » }
-    token infix:sym<fff^>       { <sym>   }
-    token infix:sym<^fff^>      { <sym>   }
-    token infix:sym<gcd>        { <sym> » }
-    token infix:sym«ge»         { <sym> » }
-    token infix:sym«gt»         { <sym> » }
-    token infix:sym<lcm>        { <sym> » }
-    token infix:sym«le»         { <sym> » }
-    token infix:sym<leg>        { <sym> » }
-    token infix:sym«lt»         { <sym> » }
-    token infix:sym<max>        { <sym> » }
-    token infix:sym<min>        { <sym> » }
-    token infix:sym<minmax>     { <sym> » }
-    token infix:sym<mod>        { <sym> » }
-    token infix:sym«ne»         { <sym> » }
-    token infix:sym<notandthen> { <sym> » }
-    token infix:sym<or>         { <sym> » }
-    token infix:sym<orelse>     { <sym> » }
-    token infix:sym<unicmp>     { <sym> » }
-    token infix:sym<x>          { <sym> » }
-    token infix:sym<xor>        { <sym> » }
-    token infix:sym<xx>         { <sym> » }
+    token infix:sym<after>      { <.sym> » }
+    token infix:sym<and>        { <.sym> » }
+    token infix:sym<andthen>    { <.sym> » }
+    token infix:sym<before>     { <.sym> » }
+    token infix:sym<but>        { <.sym> » }
+    token infix:sym<cmp>        { <.sym> » }
+    token infix:sym<coll>       { <.sym> » }
+    token infix:sym<div>        { <.sym> » }
+    token infix:sym<does>       { <.sym> » }
+    token infix:sym<eq>         { <.sym> » }
+    token infix:sym<eqv>        { <.sym> » }
+    token infix:sym<ff>         { <.sym> » }
+    token infix:sym<^ff>        { <.sym> » }
+    token infix:sym<ff^>        { <.sym>   }
+    token infix:sym<^ff^>       { <.sym>   }
+    token infix:sym<fff>        { <.sym> » }
+    token infix:sym<^fff>       { <.sym> » }
+    token infix:sym<fff^>       { <.sym>   }
+    token infix:sym<^fff^>      { <.sym>   }
+    token infix:sym<gcd>        { <.sym> » }
+    token infix:sym<ge>         { <.sym> » }
+    token infix:sym<gt>         { <.sym> » }
+    token infix:sym<lcm>        { <.sym> » }
+    token infix:sym<le>         { <.sym> » }
+    token infix:sym<leg>        { <.sym> » }
+    token infix:sym<lt>         { <.sym> » }
+    token infix:sym<max>        { <.sym> » }
+    token infix:sym<min>        { <.sym> » }
+    token infix:sym<minmax>     { <.sym> » }
+    token infix:sym<mod>        { <.sym> » }
+    token infix:sym<ne>         { <.sym> » }
+    token infix:sym<notandthen> { <.sym> » }
+    token infix:sym<or>         { <.sym> » }
+    token infix:sym<orelse>     { <.sym> » }
+    token infix:sym<unicmp>     { <.sym> » }
+    token infix:sym<x>          { <.sym> » }
+    token infix:sym<xor>        { <.sym> » }
+    token infix:sym<xx>         { <.sym> » }
 
 #-------------------------------------------------------------------------------
 # Other infixes

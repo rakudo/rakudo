@@ -3730,67 +3730,64 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method cclass_elem($/) {
+        my $ast;
+
         my int $negated := $<sign> eq '-';
         if $<name> {
-            self.attach: $/, Nodify('Regex', 'CharClassElement', 'Rule').new:
-                :name(~$<name>), :$negated;
+            $ast := Nodify('Regex','CharClassElement','Rule').new(
+              :name(~$<name>), :$negated
+            );
         }
         elsif $<identifier> {
-            my str $property := ~$<identifier>;
-            my int $inverted := $<invert> eq '!';
-            my $predicate := $<coloncircumfix>
-                ?? $<coloncircumfix>.ast
-                !! Nodify('Expression');
-            self.attach: $/, Nodify('Regex', 'CharClassElement', 'Property').new:
-                :$property, :$inverted, :$predicate, :$negated;
+            $ast := Nodify('Regex','CharClassElement','Property').new(
+              property  => ~$<identifier>,
+              inverted  => $<invert> eq '!',
+              predicate => $<coloncircumfix>
+                            ?? $<coloncircumfix>.ast
+                            !! Nodify('Expression'),
+              negated   => $negated
+            );
         }
         else {
             my @elements;
             for $<charspec> {
-                if $_[1] {
-                    my int $from := extract_endpoint($_[0]);
-                    my int $to := extract_endpoint($_[1][0]);
-                    my $node := Nodify('Regex', 'CharClassEnumerationElement', 'Range');
-                    @elements.push($node.new(:$from, :$to));
-                }
-                elsif $_[0]<cclass_backslash> {
-                    @elements.push($_[0]<cclass_backslash>.ast);
-                }
-                else {
-                    my $node := Nodify('Regex', 'CharClassEnumerationElement', 'Character');
-                    @elements.push($node.new(~$_[0]));
-                }
+                my $node := $_[0];
+                @elements.push: $_[1]
+                  ?? Nodify('Regex','CharClassEnumerationElement','Range').new(
+                       from => extract-endpoint($node),
+                       to   => extract-endpoint($_[1][0])
+                     )
+                  !! $node<cclass_backslash>
+                    ?? $node<cclass_backslash>.ast
+                    !! Nodify('Regex','CharClassEnumerationElement','Character').new(
+                         ~$node
+                       )
             }
-            self.attach: $/, Nodify('Regex', 'CharClassElement', 'Enumeration').new:
-                :@elements, :$negated;
+            $ast := Nodify('Regex','CharClassElement','Enumeration').new(
+              :@elements, :$negated
+            );
         }
+
+        self.attach: $/, $ast
     }
 
-    sub extract_endpoint($/) {
-        my str $chr;
-        if $<cclass_backslash> {
-            my $ast := $<cclass_backslash>.ast;
-            if $ast.range-endpoint -> $ok {
-                $chr := $ok;
-            }
-            else {
-                $/.panic("Illegal range endpoint: " ~ ~$/)
-            }
-        }
-        else {
-            $chr := ~$/;
-        }
+    sub extract-endpoint($/) {
+        my str $chr := $<cclass_backslash>
+          ?? (my $end := $<cclass_backslash>.ast.range-endpoint)
+            ?? $end
+            !! $/.panic("Illegal range endpoint: " ~ $/)
+          !! ~$/;
         %*RX<m>
-            ?? nqp::ordbaseat($chr, 0)
-            !! non_synthetic_ord($/, $chr)
+          ?? nqp::ordbaseat($chr, 0)
+          !! non-synthetic-ord($/, $chr)
     }
 
-    sub non_synthetic_ord($/, $chr) {
-        my int $ord := nqp::ord($chr);
-        if nqp::chr($ord) ne $chr {
-            $/.panic("Cannot use $chr as a range endpoint, as it is not a single codepoint");
-        }
-        $ord
+    sub non-synthetic-ord($/, $chr) {
+        nqp::chr(my int $ord := nqp::ord($chr)) eq $chr
+          ?? $ord
+          !! $/.panic(
+               "Cannot use $chr as a range endpoint, as it is not a single codepoint"
+             )
     }
 
     method cclass_backslash:sym<s>($/) {
@@ -3798,7 +3795,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method cclass_backslash:sym<b>($/) {
-        self.attach: $/, Nodify('Regex', 'CharClass', 'BackSpace').new(negated => $<sym> le 'Z');
+        self.attach: $/,
+          Nodify('Regex','CharClass','BackSpace').new(negated => $<sym> le 'Z')
     }
 
     method cclass_backslash:sym<e>($/) {
@@ -3843,18 +3841,21 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method cclass_backslash:sym<any>($/) {
         self.attach: $/,
-            Nodify('Regex', 'CharClassEnumerationElement', 'Character').new(~$/);
+          Nodify('Regex','CharClassEnumerationElement','Character').new(~$/)
     }
 
     method mod_internal($/) {
-        my constant NODE := nqp::hash('i', 'IgnoreCase', 'm', 'IgnoreMark',
-            'r', 'Ratchet', 's', 'Sigspace');
-        if NODE{$<mod_ident><sym>} -> $node-name {
+        my constant CLASS := nqp::hash(
+          'i', 'IgnoreCase',
+          'm', 'IgnoreMark',
+          'r', 'Ratchet',
+          's', 'Sigspace'
+        );
+        if CLASS{$<mod_ident><sym>} -> $class {
             my str $n := $<n> ?? ~$<n>[0] !! '';
-            my $negated := $n eq ''  ?? 0 !!
-                           $n eq '!' ?? 1 !!
-                           +$n == 0  ?? 1 !! 0;
-            self.attach: $/, Nodify('Regex', 'InternalModifier', $node-name).new(:$negated);
+            self.attach: $/, Nodify('Regex','InternalModifier',$class).new(
+              negated => $n eq '!' || ($n && +$n == 0)
+            );
         }
         else {
             nqp::die('Unimplemented internal modifier ' ~ $<sym>);

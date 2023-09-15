@@ -3276,6 +3276,9 @@ Please use $worry.";
     }
     method backslash:sym<0>($/) { make "\c[0]" }
 
+
+    method escape:sym<#>($/) { make ''; }
+
     method escape:sym<\\>($/)  { self.attach: $/, $<item>.ast  }
     method escape:sym<$>($/)   { self.attach: $/, $<EXPR>.ast  }
     method escape:sym<@>($/)   { self.attach: $/, $<EXPR>.ast  }
@@ -3283,11 +3286,9 @@ Please use $worry.";
     method escape:sym<&>($/)   { self.attach: $/, $<EXPR>.ast  }
     method escape:sym<{ }>($/) { self.attach: $/, $<block>.ast }
 
-    method escape:sym<'>($/) { self.attach: $/, self.qwatom($<quote>.ast); }
-    method escape:sym<colonpair>($/) { self.attach: $/, self.qwatom($<colonpair>.ast); }
-    method escape:sym<#>($/) { make ''; }
-
-    method qwatom($ast) { Nodify('QuoteWordsAtom').new($ast) }
+    sub qwatom($node) { Nodify('QuoteWordsAtom').new($node.ast) }
+    method escape:sym<'>($/)         { self.attach: $/, qwatom($<quote>)     }
+    method escape:sym<colonpair>($/) { self.attach: $/, qwatom($<colonpair>) }
 }
 
 class Raku::RegexActions is HLL::Actions does Raku::CommonActions {

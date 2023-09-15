@@ -3238,7 +3238,6 @@ Please use $worry.";
         );
     }
 
-    method escape:sym<\\>($/) { self.attach: $/, $<item>.ast; }
     method backslash:sym<qq>($/) { self.attach: $/, $<quote>.ast; }
     method backslash:sym<\\>($/) { self.attach: $/, $<text>.Str; }
     method backslash:delim ($/) { self.attach: $/, $<text>.Str; }
@@ -3250,57 +3249,44 @@ Please use $worry.";
     method backslash:sym<c>($/) { make $<charspec>.ast }
     method backslash:sym<e>($/) { make "\c[27]" }
     method backslash:sym<f>($/) { make "\c[12]" }
+
+    sub heredoc-whitespace($/, str $string) {
+        nqp::can($/,'parsing-heredoc')
+          # In heredocs, we spit out a QAST::SVal here to prevent newlines
+          # being taken literally and affecting the dedent.
+          ?? Nodify('Heredoc','InterpolatedWhiteSpace').new(
+               $*LITERALS.intern-str($string)
+             )
+          !! $string
+    }
     method backslash:sym<n>($/) {
-        my str $nl := $*R.resolve-lexical-constant('$?NL').compile-time-value;
-        if nqp::can($/, 'parsing-heredoc') {
-            # In heredocs, we spit out a QAST::SVal here to prevent newlines
-            # being taken literally and affecting the dedent.
-            make Nodify('Heredoc', 'InterpolatedWhiteSpace').new($*LITERALS.intern-str($nl));
-        }
-        else {
-            make $nl;
-        }
+        make heredoc-whitespace(
+          $/, $*R.resolve-lexical-constant('$?NL').compile-time-value
+        );
     }
-    method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
-    method backslash:sym<r>($/) {
-        if nqp::can($/, 'parsing-heredoc') {
-            make Nodify('Heredoc', 'InterpolatedWhiteSpace').new($*LITERALS.intern-str("\r"));
-        }
-        else {
-            make "\r";
-        }
+    method backslash:sym<r>($/)  { make heredoc-whitespace($/, "\r");   }
+    method backslash:sym<rn>($/) { make heredoc-whitespace($/, "\r\n"); }
+    method backslash:sym<t>($/)  { make heredoc-whitespace($/, "\t");   }
+
+    method backslash:sym<o>($/) {
+        make self.ints_to_string($<octint> || $<octints><octint>);
     }
-    method backslash:sym<rn>($/) {
-        if nqp::can($/, 'parsing-heredoc') {
-            make Nodify('Heredoc', 'InterpolatedWhiteSpace').new($*LITERALS.intern-str("\r\n"));
-        }
-        else {
-            make "\r\n";
-        }
+    method backslash:sym<x>($/) {
+        make self.ints_to_string($<hexint> || $<hexints><hexint>);
     }
-    method backslash:sym<t>($/) {
-        if nqp::can($/, 'parsing-heredoc') {
-            make Nodify('Heredoc', 'InterpolatedWhiteSpace').new($*LITERALS.intern-str("\t"));
-        }
-        else {
-            make "\t";
-        }
-    }
-    method backslash:sym<x>($/) { make self.ints_to_string( $<hexint> ?? $<hexint> !! $<hexints><hexint> ) }
     method backslash:sym<0>($/) { make "\c[0]" }
 
-    method escape:sym<$>($/) { self.attach: $/, $<EXPR>.ast; }
-    method escape:sym<@>($/) { self.attach: $/, $<EXPR>.ast; }
-    method escape:sym<%>($/) { self.attach: $/, $<EXPR>.ast; }
-    method escape:sym<&>($/) { self.attach: $/, $<EXPR>.ast; }
-
-    method escape:sym<{ }>($/) {
-        self.attach: $/, $<block>.ast;
-    }
+    method escape:sym<\\>($/)  { self.attach: $/, $<item>.ast  }
+    method escape:sym<$>($/)   { self.attach: $/, $<EXPR>.ast  }
+    method escape:sym<@>($/)   { self.attach: $/, $<EXPR>.ast  }
+    method escape:sym<%>($/)   { self.attach: $/, $<EXPR>.ast  }
+    method escape:sym<&>($/)   { self.attach: $/, $<EXPR>.ast  }
+    method escape:sym<{ }>($/) { self.attach: $/, $<block>.ast }
 
     method escape:sym<'>($/) { self.attach: $/, self.qwatom($<quote>.ast); }
     method escape:sym<colonpair>($/) { self.attach: $/, self.qwatom($<colonpair>.ast); }
     method escape:sym<#>($/) { make ''; }
+
     method qwatom($ast) { Nodify('QuoteWordsAtom').new($ast) }
 }
 

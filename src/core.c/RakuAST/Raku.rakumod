@@ -209,6 +209,10 @@ augment class RakuAST::Node {
               my @paragraphs := self.paragraphs;
               :@paragraphs if @paragraphs.elems
           },
+          'processors', -> {
+              my @processors := self.processors;
+              :@processors if @processors.elems
+          },
           'scope', -> {
               my $scope := self.scope;
               :$scope if $scope ne self.default-scope

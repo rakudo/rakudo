@@ -2051,8 +2051,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token prefix:sym<not> { <sym><.end-prefix> }
 
 #-------------------------------------------------------------------------------
-# Alpha infixes that need a right word boundary, and which will need special
-# handling for non-English versions of the Raku Programming Language
+# Alpha infixes that may need a right word boundary, and which will need
+# special handling for non-English versions of the Raku Programming Language
 
     proto token infix {*}
     token infix:sym<after>      { <sym> » }
@@ -2068,12 +2068,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<eqv>        { <sym> » }
     token infix:sym<ff>         { <sym> » }
     token infix:sym<^ff>        { <sym> » }
-    token infix:sym<ff^>        { <sym> » }
-    token infix:sym<^ff^>       { <sym> » }
+    token infix:sym<ff^>        { <sym>   }
+    token infix:sym<^ff^>       { <sym>   }
     token infix:sym<fff>        { <sym> » }
     token infix:sym<^fff>       { <sym> » }
-    token infix:sym<fff^>       { <sym> » }
-    token infix:sym<^fff^>      { <sym> » }
+    token infix:sym<fff^>       { <sym>   }
+    token infix:sym<^fff^>      { <sym>   }
     token infix:sym<gcd>        { <sym> » }
     token infix:sym«ge»         { <sym> » }
     token infix:sym«gt»         { <sym> » }

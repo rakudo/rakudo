@@ -230,7 +230,7 @@ class RakuAST::Term::Whatever
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $whatever := $!enclosing-comp-unit.singleton-whatever();
         $context.ensure-sc($whatever);
-        QAST::WVal.new( :value($whatever) )
+        QAST::WVal.new( :value($whatever), :returns($whatever) )
     }
 }
 

@@ -1278,10 +1278,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     # These infix operators are purely a grammar construct at the moment
-    method infix:sym«==>»($/)  { self.attach: $/, Nodify('Feed').new($<sym>) }
-    method infix:sym«<==»($/)  { self.attach: $/, Nodify('Feed').new($<sym>) }
-    method infix:sym«==>>»($/) { self.attach: $/, Nodify('Feed').new($<sym>) }
-    method infix:sym«<<==»($/) { self.attach: $/, Nodify('Feed').new($<sym>) }
+    method infix:sym«==>»($/)   { self.attach: $/, Nodify('Feed').new($<sym>) }
+    method infix:sym«<==»($/)   { self.attach: $/, Nodify('Feed').new($<sym>) }
+    method infix:sym«==>>»($/)  { self.attach: $/, Nodify('Feed').new($<sym>) }
+    method infix:sym«<<==»($/)  { self.attach: $/, Nodify('Feed').new($<sym>) }
+
+    method infix:sym<ff>($/)    { self.attach: $/, Nodify('FlipFlop').new($<sym>) }
+    method infix:sym<^ff>($/)   { self.attach: $/, Nodify('FlipFlop').new($<sym>, :min-excl(1)) }
+    method infix:sym<ff^>($/)   { self.attach: $/, Nodify('FlipFlop').new($<sym>, :max-excl(1)) }
+    method infix:sym<^ff^>($/)  { self.attach: $/, Nodify('FlipFlop').new($<sym>, :min-excl(1), :max-excl(1)) }
+    method infix:sym<fff>($/)   { self.attach: $/, Nodify('FlipFlop').new($<sym>, :one-only(1)) }
+    method infix:sym<^fff>($/)  { self.attach: $/, Nodify('FlipFlop').new($<sym>, :one-only(1), :min-excl(1)) }
+    method infix:sym<fff^>($/)  { self.attach: $/, Nodify('FlipFlop').new($<sym>, :one-only(1), :max-excl(1)) }
+    method infix:sym<^fff^>($/) { self.attach: $/, Nodify('FlipFlop').new($<sym>, :one-only(1), :min-excl(1), :max-excl(1)) }
 
     method infix:sym<.>($/) {
         self.attach: $/, Nodify('DottyInfix', 'Call').new;

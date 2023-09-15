@@ -1565,6 +1565,58 @@ class RakuAST::VarDeclaration::Implicit::Routine
     }
 }
 
+# Used for constructs that generate state variables
+class RakuAST::VarDeclaration::Implicit::State
+  is RakuAST::VarDeclaration::Implicit
+  is RakuAST::ImplicitLookups
+  is RakuAST::BeginTime
+{
+    has Mu  $.container;
+    has int $!init-to-zero;
+
+    method new(str $name, int :$init-to-zero) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'state');
+        nqp::bindattr_i($obj, RakuAST::VarDeclaration::Implicit::State, '$!init-to-zero', $init-to-zero // 0);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        my @lookups := $!init-to-zero ?? [
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Mu')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Scalar')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Int'))
+        ] !! [];
+        self.IMPL-WRAP-LIST(@lookups)
+    }
+
+    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        if $!init-to-zero {
+            my $Mu      := self.get-implicit-lookups.AT-POS(0).compile-time-value;
+            my $Scalar  := self.get-implicit-lookups.AT-POS(1).compile-time-value;
+            my $Int     := self.get-implicit-lookups.AT-POS(2).compile-time-value;
+
+            my str $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Implicit, '$!name');
+
+            # Create a container descriptor and attach it to a Scalar container, then set it to Int.new(0)
+            my $descriptor := ContainerDescriptor::Untyped.new(:of($Mu), :default($Mu), :!dynamic, :$name);
+            $context.ensure-sc($descriptor);
+            my $container := nqp::create($Scalar);
+            nqp::bindattr($container, $Scalar, '$!descriptor', $descriptor);
+            nqp::bindattr($container, $Scalar, '$!value', nqp::box_i(0, $Int));
+            $context.ensure-sc($container);
+            nqp::bindattr(self, RakuAST::VarDeclaration::Implicit::State, '$!container', $container);
+        }
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $var := QAST::Var.new: :decl<statevar>, :scope<lexical>, :name(self.name);
+        $var.value($!container) if nqp::isconcrete($!container);
+        $var
+    }
+}
+
 # commonalities for doc variables
 class RakuAST::VarDeclaration::Implicit::Doc
   is RakuAST::VarDeclaration::Implicit

@@ -3430,6 +3430,8 @@ Please use $worry.";
     method escape:sym<colonpair>($/) { self.attach: $/, qwatom($<colonpair>) }
 }
 
+#-------------------------------------------------------------------------------
+
 class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method nibbler($/) {
@@ -3440,69 +3442,39 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<termaltseq>.ast;
     }
 
+    # helper method to handle regex sequences
+    method handle-regex-seq($/, str $key, str $class) {
+        my $ast;
+        my @parts := nqp::atkey($/,$key);
+
+        if nqp::elems(@parts) == 1 {
+            $ast := @parts[0].ast;
+        }
+        else {
+            my @branches;
+            for @parts {
+                @branches.push($_.ast);
+            }
+            $ast := Nodify('Regex',$class).new(|@branches);
+        }
+
+        self.attach: $/, $ast
+    }
+
     method termaltseq($/) {
-        if nqp::elems($<termconjseq>) == 1 {
-            self.attach: $/, $<termconjseq>[0].ast;
-        }
-        else {
-            my @branches;
-            for $<termconjseq> {
-                @branches.push($_.ast);
-            }
-            self.attach: $/, Nodify('Regex', 'SequentialAlternation').new(|@branches);
-        }
+        self.handle-regex-seq($/, 'termconjseq', 'SequentialAlternation')
     }
-
     method termconjseq($/) {
-        if nqp::elems($<termalt>) == 1 {
-            self.attach: $/, $<termalt>[0].ast;
-        }
-        else {
-            my @branches;
-            for $<termalt> {
-                @branches.push($_.ast);
-            }
-            self.attach: $/, Nodify('Regex', 'SequentialConjunction').new(|@branches);
-        }
+        self.handle-regex-seq($/, 'termalt', 'SequentialConjunction')
     }
-
     method termalt($/) {
-        if nqp::elems($<termconj>) == 1 {
-            self.attach: $/, $<termconj>[0].ast;
-        }
-        else {
-            my @branches;
-            for $<termconj> {
-                @branches.push($_.ast);
-            }
-            self.attach: $/, Nodify('Regex', 'Alternation').new(|@branches);
-        }
+        self.handle-regex-seq($/, 'termconj', 'Alternation')
     }
-
     method termconj($/) {
-        if nqp::elems($<termish>) == 1 {
-            self.attach: $/, $<termish>[0].ast;
-        }
-        else {
-            my @branches;
-            for $<termish> {
-                @branches.push($_.ast);
-            }
-            self.attach: $/, Nodify('Regex', 'Conjunction').new(|@branches);
-        }
+        self.handle-regex-seq($/, 'termish', 'Conjunction')
     }
-
     method termish($/) {
-        if nqp::elems($<noun>) == 1 {
-            self.attach: $/, $<noun>[0].ast;
-        }
-        else {
-            my @terms;
-            for $<noun> {
-                @terms.push($_.ast);
-            }
-            self.attach: $/, Nodify('Regex', 'Sequence').new(|@terms);
-        }
+        self.handle-regex-seq($/, 'noun', 'Sequence')
     }
 
     method quantified_atom($/) {

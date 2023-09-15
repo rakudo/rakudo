@@ -1260,42 +1260,33 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method infix:sym«==>>»($/) { self.attach: $/, Nodify('Feed').new($<sym>) }
     method infix:sym«<<==»($/) { self.attach: $/, Nodify('Feed').new($<sym>) }
 
+    method infix:sym<.>($/) {
+        self.attach: $/, Nodify('DottyInfix', 'Call').new;
+    }
+    method infix:sym<.=>($/) {
+        self.attach: $/, Nodify('DottyInfix', 'CallAssign').new;
+    }
+    # A ternary op arrives here as '?? expression !!', so check for that and
+    # create a dummy infix AST for further parsing / EXPR handling if so
+    method infix:sym<?? !!>($/) {
+        self.attach: $/, Nodify('Infix').new('?? !!')
+    }
+
+    # Handle all of the infix:<sym> that don't have their own action method
     method infixish($/) {
         return 0 if $<adverb-as-infix>;
 
-        my $ast;
-        if $<infix> {
-            my str $op := ~$<infix>;
-            $ast := $<infix>.ast;
-            unless $ast {
-                $ast := Nodify('Infix').new(
-                  # A ternary op arrives here as '?? expression !!', so
-                  # check for that and create a dummy infix AST for further
-                  # parsing / EXPR handling if so.
-                  nqp::eqat($op,'??',0)
-                    && nqp::eqat($op,'!!',nqp::chars($op) - 2)
-                    ?? '?? !!'
-                    !! $op
-                );
-            }
-        }
-
-        elsif $<infix-prefix-meta-operator> {
-            $ast := $<infix-prefix-meta-operator>.ast;
-        }
-
-        elsif $<infix-circumfix-meta-operator> {
-            $ast := $<infix-circumfix-meta-operator>.ast;
-        }
-        elsif $<infixish> {
-            $ast := Nodify('BracketedInfix').new($<infixish>.ast);
-        }
-        elsif $<variable> {
-            $ast := Nodify('FunctionInfix').new($<variable>.ast);
-        }
-        else {
-            nqp::die('unknown kind of infix');
-        }
+        my $ast := $<infix>
+          ?? ($<infix>.ast || Nodify('Infix').new(~$<infix>))
+          !! $<infix-prefix-meta-operator>
+            ?? $<infix-prefix-meta-operator>.ast
+            !! $<infix-circumfix-meta-operator>
+              ?? $<infix-circumfix-meta-operator>.ast
+              !! $<infixish>
+                ?? Nodify('BracketedInfix').new($<infixish>.ast)
+                !! $<variable>
+                  ?? Nodify('FunctionInfix').new($<variable>.ast)
+                  !! nqp::die('Unknown kind of infix: ' ~ $/);
 
         self.attach: $/, $<infix-postfix-meta-operator>
           ?? $<infix-postfix-meta-operator>.ast.new($ast)
@@ -1335,12 +1326,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           dwim-right => $<closing> eq '>>'
     }
 
+#-------------------------------------------------------------------------------
+# Circumfixes
+
     method circumfix:sym<( )>($/) {
-        self.attach: $/, Nodify('Circumfix', 'Parentheses').new($<semilist>.ast);
+        self.attach: $/,
+          Nodify('Circumfix','Parentheses').new($<semilist>.ast)
     }
 
     method circumfix:sym<[ ]>($/) {
-        self.attach: $/, Nodify('Circumfix', 'ArrayComposer').new($<semilist>.ast);
+        self.attach: $/,
+          Nodify('Circumfix','ArrayComposer').new($<semilist>.ast)
     }
 
     method circumfix:sym<{ }>($/) {
@@ -1351,14 +1347,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method circumfix:sym«<< >>»($/) { self.attach: $/, $<nibble>.ast }
     method circumfix:sym<« »>($/)   { self.attach: $/, $<nibble>.ast }
-
-    method infix:sym<.>($/) {
-        self.attach: $/, Nodify('DottyInfix', 'Call').new;
-    }
-
-    method infix:sym<.=>($/) {
-        self.attach: $/, Nodify('DottyInfix', 'CallAssign').new;
-    }
 
 #-------------------------------------------------------------------------------
 # Stubs

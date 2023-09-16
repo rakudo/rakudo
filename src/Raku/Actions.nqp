@@ -1906,18 +1906,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method package-def($/) {
-        my $package := $*PACKAGE;
-        my $body := $<block> ?? $<block>.ast !! $<unit-block>.ast;
+        my $ast  := $*PACKAGE;
+        my $body := $<block> || $<unit-block>;
 
-        if is-yada($<block> || $<unit-block>) {
-            $package.set-is-stub(1);
-            return self.attach: $/, $package;
+        if is-yada($body) {
+            $ast.set-is-stub(1);
+        }
+        else {
+            $ast.replace-body($body.ast, $<signature> ?? $<signature>.ast !! Mu);
+            $ast.IMPL-CHECK($*R, $*CU.context, 1);
+            $ast.IMPL-COMPOSE;
         }
 
-        $package.replace-body($body, $<signature> ?? $<signature>.ast !! Mu);
-        $package.IMPL-CHECK($*R, $*CU.context, 1);
-        $package.IMPL-COMPOSE();
-        self.attach: $/, $package;
+        self.attach: $/, $ast;
     }
 
     method stub-package($/) {

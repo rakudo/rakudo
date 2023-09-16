@@ -2975,25 +2975,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token package-declarator {*}
     token package-declarator:sym<package> {
-        <sym><.kok> <package-def('package')>
+        <.sym> <.kok> <package-def('package')>
     }
     token package-declarator:sym<module> {
-        <sym><.kok> <package-def('module')>
+        <.sym> <.kok> <package-def('module')>
     }
     token package-declarator:sym<class> {
-        <sym><.kok> <package-def('class')>
+        <.sym> <.kok> <package-def('class')>
     }
     token package-declarator:sym<grammar> {
-        <sym><.kok> <package-def('grammar')>
+        <.sym> <.kok> <package-def('grammar')>
     }
     token package-declarator:sym<role> {
-        <sym><.kok> <package-def('role')>
+        <.sym> <.kok> <package-def('role')>
     }
     token package-declarator:sym<knowhow> {
-        <sym><.kok> <package-def('knowhow')>
+        <.sym> <.kok> <package-def('knowhow')>
     }
     token package-declarator:sym<native> {
-        <sym><.kok> <package-def('native')>
+        <.sym> <.kok> <package-def('native')>
     }
 
     rule package-def($*PKGDECL) {

@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 32;
+plan 40;
 
 my $ast;
 my $deparsed;
@@ -548,6 +548,84 @@ subtest 'Application of a function infix on two literals' => {
     is-deeply $deparsed, '44 [&sum] 22', 'deparse';
     is-deeply $_, 66, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+for
+  'ff', <A C D B>, '^ff', <C D B>, 'ff^', <A C D>, '^ff^', <C D>
+-> $operator, @result {
+    my @source := <A C D B E F>;
+    subtest "Application of $operator" => {
+        # @source.grep({ "A" $operator "B" }
+        ast RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new("\@source"),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier("grep"),
+            args => RakuAST::ArgList.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::StrLiteral.new("A"),
+                        infix => RakuAST::FlipFlop.new($operator),
+                        right => RakuAST::StrLiteral.new("B")
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+        is-deeply $deparsed, q:s:to/CODE/.chomp, 'deparse';
+@source.grep({
+    "A" $operator "B"
+})
+CODE
+        is-deeply $_, @result, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+for
+  'fff', <AB C D B>, '^fff', <C D B>, 'fff^', <AB C D>, '^fff^', <C D>
+-> $operator, @result {
+    my @source := <AB C D B E F>;
+    subtest "Application of $operator" => {
+        # @source.grep({ /A/ $operator /B/ }
+        ast RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new("\@source"),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier("grep"),
+            args => RakuAST::ArgList.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::QuotedRegex.new(
+                          body => RakuAST::Regex::Literal.new("A")
+                        ),
+                        infix => RakuAST::FlipFlop.new($operator),
+                        right => RakuAST::QuotedRegex.new(
+                          body => RakuAST::Regex::Literal.new("B")
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+        is-deeply $deparsed, q:s:to/CODE/.chomp, 'deparse';
+@source.grep({
+    / A/ $operator / B/
+})
+CODE
+        is-deeply $_, @result, @type[$++]
+          for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
 }
 
 # vim: expandtab shiftwidth=4

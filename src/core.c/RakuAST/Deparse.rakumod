@@ -514,6 +514,7 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::ApplyListInfix:D $ast --> Str:D) {
         my $infix       := $ast.infix;
         my str $operator = nqp::istype($infix,RakuAST::MetaInfix)
+          || nqp::istype($infix,RakuAST::Feed)
           ?? (' ' ~ self.deparse($infix))
           !! self.deparse($infix);
 

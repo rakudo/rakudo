@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 40;
+plan 42;
 
 my $ast;
 my $deparsed;
@@ -625,6 +625,38 @@ for
 CODE
         is-deeply $_, @result, @type[$++]
           for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    }
+}
+
+for
+  '@a', '==>', '@b',
+  '@b', '<==', '@a'
+-> $left, $op, $right {
+    my @a = <ab cd ef>;
+    my @b;
+    my @result = @a.map(*.flip);
+    subtest "Feed operation $op" => {
+        # $left $operator mqp(&flip) $operator $right
+        ast RakuAST::ApplyListInfix.new(
+          infix    => RakuAST::Feed.new($op),
+          operands => (
+            RakuAST::Var::Lexical.new($left),
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier("map"),
+              args => RakuAST::ArgList.new(
+                RakuAST::Var::Lexical.new("\&flip")
+              )
+            ),
+            RakuAST::Var::Lexical.new($right),
+          )
+        );
+
+        is-deeply $deparsed, "$left $op map(&flip) $op $right", 'deparse';
+        for $ast, 'AST', $deparsed, 'Str', EVAL($raku), 'Raku' -> $it, $type {
+            is-deeply EVAL($it), <ba dc fe>, "$type: EVAL $op";
+            is-deeply @b, [<ba dc fe>], "$type: stored $op";
+            @b.splice;
+        }
     }
 }
 

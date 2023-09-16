@@ -13,6 +13,7 @@
 #
 #   block        syntax involving a block
 #   core         sub/method names that are part of the Raku core
+#   constraint   related to (ad-hoc) constraints
 #   infix        infix operators consisting of alphanumeric characters
 #   modifier     statement modifier syntax
 #   multi        types of multi syntax
@@ -23,7 +24,7 @@
 #   scope        types of scope ("my","our","state", etc.)
 #   stmt-prefix  statement prefixes ("do","eager","lazy", etc.)
 #   trait        types of traits ("is","does","returns", etc.)
-#   typer         type constructors ("enum","subset")
+#   typer        type constructors ("enum","subset")
 #   use          use related ("use","no","require", etc.)
 #
 # If you call the .DEPARSE method with a role compatible with this role,
@@ -34,21 +35,23 @@ use v6.e.PREVIEW;
 unit role RakuAST::Deparse::L10N::CORE;
 
 my constant %translation =
-  block-default  => 'default',
-  block-else     => 'else',
-  block-elsif    => 'elsif',
-  block-for      => 'for',
-  block-given    => 'given',
-  block-if       => 'if',
-  block-loop     => 'loop',
-  block-orwith   => 'orwith',
-  block-repeat   => 'repeat',
-  block-unless   => 'unless',
-  block-until    => 'until',
-  block-when     => 'when',
-  block-while    => 'while',
-  block-with     => 'with',
-  block-without  => 'without',
+  block-default => 'default',
+  block-else    => 'else',
+  block-elsif   => 'elsif',
+  block-for     => 'for',
+  block-given   => 'given',
+  block-if      => 'if',
+  block-loop    => 'loop',
+  block-orwith  => 'orwith',
+  block-repeat  => 'repeat',
+  block-unless  => 'unless',
+  block-until   => 'until',
+  block-when    => 'when',
+  block-while   => 'while',
+  block-with    => 'with',
+  block-without => 'without',
+
+  constraint-where => 'where',
 
   core-abs              => 'abs',
   core-all              => 'all',

@@ -25,6 +25,8 @@ my constant %translation =
   block-with     => 'met',
   block-without  => 'zonder',
 
+  constraint-where => 'waar',
+
 #  core-abs              => 'abs',
   core-all              => 'alle',
   core-any              => 'elke',

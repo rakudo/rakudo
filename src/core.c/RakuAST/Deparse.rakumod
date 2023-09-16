@@ -886,6 +886,7 @@ class RakuAST::Deparse {
 
 #- I ---------------------------------------------------------------------------
 
+    # Also for ::FlipFlop
     multi method deparse(RakuAST::Infix:D $ast --> Str:D) {
         self.syn-infix($ast.operator)
     }

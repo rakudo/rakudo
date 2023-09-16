@@ -510,22 +510,29 @@ class RakuAST::FlipFlop
   is RakuAST::Infix
   is RakuAST::ImplicitLookups
 {
-    has int $.min-excl;
-    has int $.max-excl;
-    has int $.one-only;
+    has Bool $.excludes-min;
+    has Bool $.excludes-max;
+    has Bool $.one-only;
 
     has str $.state-id;
     has RakuAST::VarDeclaration::Implicit::State $!state-var;
 
-    method new(str $operator, int :$min-excl, int :$max-excl, int :$one-only) {
+    method new(str $operator) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
-        nqp::bindattr_i($obj, RakuAST::FlipFlop, '$!min-excl', $min-excl // 0);
-        nqp::bindattr_i($obj, RakuAST::FlipFlop, '$!max-excl', $max-excl // 0);
-        nqp::bindattr_i($obj, RakuAST::FlipFlop, '$!one-only', $one-only // 0);
+
+        nqp::bindattr($obj, RakuAST::FlipFlop, '$!excludes-min',
+          nqp::eqat($operator,'^',0)  ?? True !! False);
+        nqp::bindattr($obj, RakuAST::FlipFlop, '$!excludes-max',
+          nqp::eqat($operator,'^',-1) ?? True !! False);
+        nqp::bindattr($obj, RakuAST::FlipFlop, '$!one-only',
+          nqp::index($operator,'fff') == -1 ?? False !! True);
+
         my $state-id := QAST::Node.unique('FLIPFLOP_STATE__');
         nqp::bindattr_s($obj, RakuAST::FlipFlop, '$!state-id', $state-id);
-        my $state-var := RakuAST::VarDeclaration::Implicit::State.new('!' ~ $state-id, :init-to-zero(1));
+        my $state-var := RakuAST::VarDeclaration::Implicit::State.new(
+          '!' ~ $state-id, :init-to-zero(1)
+        );
         nqp::bindattr($obj, RakuAST::FlipFlop, '$!state-var', $state-var);
         $obj
     }
@@ -614,11 +621,11 @@ class RakuAST::FlipFlop
 
             # State is currently true. Check RHS. If it's false, then we
             # increment the sequence count. If it's true, then we reset,
-            # the state to zero and and what we return depends on $max-excl.
+            # the state to zero and and what we return depends on $excludes-max.
             QAST::Op.new(
                 :op('if'),
                 QAST::Var.new( :name($id ~ '_rhs'), :scope('local') ),
-                ($!max-excl ??
+                ($!excludes-max ??
                 QAST::Stmts.new(
                     QAST::Op.new(
                         :op('p6store'),
@@ -657,21 +664,21 @@ class RakuAST::FlipFlop
             # State is currently false. Check LHS. If it's false, then we
             # stay in a false state. If it's true, then we flip the bit,
             # but only if the RHS is not also true. We return a result
-            # based on $min-excl.
+            # based on $excludes-min.
             QAST::Op.new(
                 :op('if'),
                 QAST::Var.new( :name($id ~ '_lhs'), :scope('local') ),
                 QAST::Op.new(
                     :op('if'),
                     QAST::Var.new( :name($id ~ '_rhs'), :scope('local') ),
-                    $!min-excl || $!max-excl ?? $nil !! $one,
+                    $!excludes-min || $!excludes-max ?? $nil !! $one,
                     QAST::Stmts.new(
                         QAST::Op.new(
                             :op('p6store'),
                             QAST::Var.new( :name($state), :scope('lexical') ),
                             $one
                             ),
-                        $!min-excl ?? $nil !! $one
+                        $!excludes-min ?? $nil !! $one
                         )
                     ),
                 $nil

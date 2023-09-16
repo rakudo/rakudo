@@ -1284,45 +1284,35 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method infix:sym«<<==»($/)  { self.attach: $/, Nodify('Feed').new($<sym>) }
 
     method infix:sym<ff>($/) {
-        self.attach: $/,
-          Nodify('FlipFlop').new('ff')
+        self.attach: $/, Nodify('FlipFlop').new('ff')
     }
     method infix:sym<^ff>($/) {
-        self.attach: $/,
-          Nodify('FlipFlop').new('^ff', :min-excl(1))
+        self.attach: $/, Nodify('FlipFlop').new('^ff')
     }
     method infix:sym<ff^>($/) {
-        self.attach: $/,
-          Nodify('FlipFlop').new('ff^', :max-excl(1))
+        self.attach: $/, Nodify('FlipFlop').new('ff^')
     }
     method infix:sym<^ff^>($/) {
-        self.attach: $/,
-          Nodify('FlipFlop').new('^ff^', :min-excl(1), :max-excl(1))
+        self.attach: $/, Nodify('FlipFlop').new('^ff^')
     }
     method infix:sym<fff>($/) {
-        self.attach: $/,
-          Nodify('FlipFlop').new('fff', :one-only(1))
+        self.attach: $/, Nodify('FlipFlop').new('fff')
     }
     method infix:sym<^fff>($/) {
-        self.attach: $/,
-          Nodify('FlipFlop').new('^fff', :one-only(1), :min-excl(1))
+        self.attach: $/, Nodify('FlipFlop').new('^fff')
     }
     method infix:sym<fff^>($/) {
-        self.attach: $/,
-          Nodify('FlipFlop').new('fff^', :one-only(1), :max-excl(1))
+        self.attach: $/, Nodify('FlipFlop').new('fff^')
     }
     method infix:sym<^fff^>($/) {
-        self.attach: $/,
-          Nodify('FlipFlop').new(
-            '^fff^', :one-only(1), :min-excl(1), :max-excl(1)
-         )
+        self.attach: $/, Nodify('FlipFlop').new('^fff^')
     }
 
     method infix:sym<.>($/) {
-        self.attach: $/, Nodify('DottyInfix', 'Call').new;
+        self.attach: $/, Nodify('DottyInfix','Call').new;
     }
     method infix:sym<.=>($/) {
-        self.attach: $/, Nodify('DottyInfix', 'CallAssign').new;
+        self.attach: $/, Nodify('DottyInfix','CallAssign').new;
     }
     # A ternary op arrives here as '?? expression !!', so check for that and
     # create a dummy infix AST for further parsing / EXPR handling if so

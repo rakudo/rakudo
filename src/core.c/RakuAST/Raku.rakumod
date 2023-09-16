@@ -457,6 +457,7 @@ augment class RakuAST::Node {
 
 #- I ---------------------------------------------------------------------------
 
+    # Also for ::FlipFlop
     multi method raku(RakuAST::Infix:D: --> Str:D) {
         self!literal(self.operator)
     }

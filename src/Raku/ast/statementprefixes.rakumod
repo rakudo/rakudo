@@ -348,20 +348,19 @@ class RakuAST::StatementPrefix::Blorst
 # The `once` statement prefix.
 class RakuAST::StatementPrefix::Once
   is RakuAST::StatementPrefix::Blorst
+  is RakuAST::ImplicitDeclarations
 {
     has str $!state-name;
 
     method type() { "once" }
 
-    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.IMPL-STUB-CODE: $resolver, $context;
-
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
         my $state-name := QAST::Node.unique('once_');
         nqp::bindattr_s(self, RakuAST::StatementPrefix::Once, '$!state-name', $state-name);
-        $resolver.current-scope.add-generated-lexical-declaration:
-            RakuAST::VarDeclaration::Simple.new:    :desigilname(RakuAST::Name.from-identifier: $state-name),
-                                                    :scope('state'),
-                                                    :sigil('');
+
+        self.IMPL-WRAP-LIST([
+            RakuAST::VarDeclaration::Implicit::State.new($state-name)
+        ])
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

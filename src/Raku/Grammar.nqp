@@ -3202,13 +3202,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token routine-declarator {*}
     token routine-declarator:sym<sub> {
-        <sym> <.end-keyword> <routine-def=.key-origin('routine-def', 'sub')>
+        <.sym>
+        <.end-keyword>
+        <routine-def=.key-origin('routine-def', 'sub')>
     }
     token routine-declarator:sym<method> {
-        <sym> <.end-keyword> <method-def=.key-origin('method-def', 'method')>
+        <.sym>
+        <.end-keyword>
+        <method-def=.key-origin('method-def', 'method')>
     }
     token routine-declarator:sym<submethod> {
-        <sym> <.end-keyword> <method-def=.key-origin('method-def', 'submethod')>
+        <.sym>
+        <.end-keyword>
+        <method-def=.key-origin('method-def', 'submethod')>
     }
 
     rule routine-def($declarator) {
@@ -3290,7 +3296,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token regex-declarator {*}
 
     token regex-declarator:sym<rule> {
-        <sym><.kok>
+        <.sym>
+        <.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'rule';
@@ -3299,7 +3306,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token regex-declarator:sym<token> {
-        <sym><.kok>
+        <.sym>
+        <.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'token';
@@ -3307,7 +3315,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token regex-declarator:sym<regex> {
-        <sym><.kok>
+        <.sym>
+        <.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'regex';
@@ -3338,51 +3347,59 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token type-declarator:sym<constant> {
         :my $*IN-DECL := 'constant';
-        <sym><.kok>
+        <.sym>
+        <.kok>
         [
-        | '\\'? <defterm>
-        | <variable>  # for new &infix:<foo> synonyms
-        | <?>
+          | '\\'?
+            <defterm>
+          | <variable>  # for new &infix:<foo> synonyms
+          | <?>
         ]
         { $*IN-DECL := ''; }
         <.ws>
 
         <trait>*
 
-        [ <.ws> <term_init=initializer> || <.typed-panic: "X::Syntax::Term::MissingInitializer"> ]
+        [ <.ws>
+          <term_init=initializer>
+            || <.typed-panic: "X::Syntax::Term::MissingInitializer">
+        ]
 
         <.cheat-heredoc>?
     }
 
     token type-declarator:sym<enum> {
-        <sym><.kok>
+        <.sym>
+        <.kok>
         :my $*IN-DECL := 'enum';
         [
-        | <longname>
-        | <variable>
-        | <?>
+          | <longname>
+          | <variable>
+          | <?>
         ]
         { $*IN-DECL := '' }
         <.ws>
 
         <trait>*
 
-        [ <?[<(«]> <term> <.ws> || <.panic: 'An enum must supply an expression using <>, «», or ()'> ]
+        [ <?[<(«]>
+          <term>
+          <.ws>
+            || <.panic: 'An enum must supply an expression using <>, «», or ()'>
+        ]
     }
 
     rule type-declarator:sym<subset> {
+        <.sym><.kok>
         :my $*IN-DECL := 'subset';
-        <sym><.kok>
         [
-            [
-                [
-                    <longname>
-                ]
-                { $*IN-DECL := '' }
-                <trait>*
-                [ where <EXPR('e=')> ]?
-            ]
-            || <.malformed: 'subset'>
+          [
+            [ <longname> ]
+            { $*IN-DECL := '' }
+            <trait>*
+            [ where <EXPR('e=')> ]?
+          ]
+          || <.malformed: 'subset'>
         ]
     }
 

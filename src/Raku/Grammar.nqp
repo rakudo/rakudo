@@ -868,6 +868,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token stmt-prefix-supply  { supply  }
     token stmt-prefix-try     { try     }
 
+    token term-self { self }
+    token term-nano { nano }
+    token term-now  { now  }
+    token term-rand { rand }
+    token term-time { time }
+
     token trait-does    { does    }
     token trait-handles { handles }
     token trait-hides   { hides   }
@@ -2711,24 +2717,31 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token term {*}
     token term:sym<circumfix> { <circumfix> }
-    token term:sym<self> { <sym> <.end-keyword> }
-    token term:sym<now>  { <sym> <.end-keyword> }
-    token term:sym<time> { <sym> <.end-keyword> }
+    token term:sym<self> { <.term-self> <.end-keyword> }
+    token term:sym<now>  { <.term-now>  <.end-keyword> }
+    token term:sym<time> { <.term-time> <.end-keyword> }
 
     token term:sym<nano> {
         <?{ (nqp::getcomp('Raku').language_revision >= 3)
               || $*R.is-identifier-known('&term:<nano>')
         }>
-        <sym> <.end-keyword>
+        <.term-nano> <.end-keyword>
     }
 
-    token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]> }
+    token term:sym<empty_set> {
+        "∅"
+        <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]>
+    }
 
     token term:sym<rand> {
         <!{ $*LANG.pragma('p5isms') }>
-        <sym> »
-        [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
-        [ <?before '()'> <.obs('rand()', 'rand')> ]?
+        <.term-rand> »
+        [ <?before '('?  \h* [\d|'$']>
+          <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')>
+        ]?
+        [ <?before '()'>
+          <.obs('rand()', 'rand')>
+        ]?
         <.end-keyword>
     }
 

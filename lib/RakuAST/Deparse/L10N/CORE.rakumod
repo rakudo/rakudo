@@ -316,7 +316,9 @@ my constant %translation =
 
   package-class   => 'class',
   package-grammar => 'grammar',
+  package-knowhow => 'knowhow',
   package-module  => 'module',
+  package-native  => 'native',
   package-package => 'package',
   package-role    => 'role',
 

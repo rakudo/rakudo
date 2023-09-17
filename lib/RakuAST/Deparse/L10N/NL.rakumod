@@ -290,7 +290,9 @@ my constant %translation =
 
   package-class   => 'klasse',
   package-grammar => 'grammatica',
+#  package-knowhow => 'knowhow',
   package-module  => 'module',
+#  package-native  => 'native',
   package-package => 'pakket',
   package-role    => 'rol',
 

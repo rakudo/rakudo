@@ -369,10 +369,11 @@ my constant %translation =
   stmt-prefix-lazy     => 'lazy',
   stmt-prefix-quietly  => 'quietly',
   stmt-prefix-race     => 'race',
+  stmt-prefix-react    => 'react',
   stmt-prefix-sink     => 'sink',
   stmt-prefix-start    => 'start',
+  stmt-prefix-supply   => 'supply',
   stmt-prefix-try      => 'try',
-  stmt-prefix-react    => 'react',
 
   trait-does    => 'does',
   trait-hides   => 'hides',

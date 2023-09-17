@@ -343,10 +343,11 @@ my constant %translation =
   stmt-prefix-lazy     => 'lui',
   stmt-prefix-quietly  => 'stilletjes',
   stmt-prefix-race     => 'race',
+  stmt-prefix-react    => 'reageer',
   stmt-prefix-sink     => 'zink',
   stmt-prefix-start    => 'start',
+  stmt-prefix-supply   => 'lever',
   stmt-prefix-try      => 'probeer',
-  stmt-prefix-react    => 'reageer',
 
   trait-does    => 'doet',
   trait-hides   => 'verbergt',

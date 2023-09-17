@@ -30,12 +30,16 @@ sub setup-RakuAST-WHO() {
 # having been called on VMNull.
 sub Nodify(*@todo) {
     my $res := nqp::atkey($RakuAST-WHO,nqp::shift(@todo));
+    my $last;
     while @todo && !nqp::isnull($res) {
-        $res := nqp::atkey($res.WHO,nqp::shift(@todo));
+        $res := nqp::atkey($res.WHO,$last := nqp::shift(@todo));
     }
     nqp::ifnull(
       $res,
-      nqp::die('No such node RakuAST::' ~ nqp::join('::',@todo))
+      nqp::stmts(
+        nqp::push(@todo,$last),
+        nqp::die('No such node RakuAST::' ~ nqp::join('::',@todo))
+      )
     )
 }
 
@@ -103,6 +107,17 @@ role Raku::CommonActions {
 
 class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method  OperatorProperties() { $OperatorProperties }
+
+#-------------------------------------------------------------------------------
+# Translatable tokens
+
+    method block-elsif($/)  { @*IF-PARTS.push('Elsif')  }
+    method block-if($/)     { @*IF-PARTS.push('If')     }
+    method block-orwith($/) { @*IF-PARTS.push('Orwith') }
+    method block-with($/)   { @*IF-PARTS.push('With')   }
+
+    method block-until($/) { $*WHILE := 'Until' }
+    method block-while($/) { $*WHILE := 'While' }
 
 #-------------------------------------------------------------------------------
 # Compilation unit, language version and other entry point bits
@@ -647,10 +662,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # Handling of all forms of loops
     method statement-control:sym<repeat>($/) {
-        self.takes-loop($/, 'Repeat' ~ nqp::tclc(~$<wu>))
+        self.takes-loop($/, 'Repeat' ~ $*WHILE)
     }
     method statement-control:sym<while>($/) {
-        self.takes-loop($/, nqp::tclc(~$<sym>))
+        self.takes-loop($/, $*WHILE)
     }
 
     # Handling of whenever
@@ -677,12 +692,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # Basic if / with handling with all of the elsifs / orelses
     method statement-control:sym<if>($/) {
 
-        # collect the if and all of the elsifs / orelses
+        # collect the if and all of the elsifs / orwiths
         my @elsifs;
         my $index := 0;
+        my @IF-PARTS := @*IF-PARTS;
         for $<sym> {
             @elsifs.push:
-              Nodify('Statement', nqp::tclc(~$_)).new:
+              Nodify('Statement',@IF-PARTS.shift).new:
                 condition => $<condition>[$index].ast,
                 then      => $<then>[$index].ast;
             ++$index;
@@ -702,7 +718,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         %parts<condition> := $<e2>.ast if $<e2>;
         %parts<increment> := $<e3>.ast if $<e3>;
         %parts<body>      := $<block>.ast;
-        self.attach: $/, Nodify('Statement', 'Loop').new(|%parts);
+        self.attach: $/, Nodify('Statement','Loop').new(|%parts);
     }
 
 #-------------------------------------------------------------------------------

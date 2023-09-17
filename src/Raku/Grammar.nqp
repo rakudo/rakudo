@@ -730,6 +730,28 @@ role Raku::Common {
 grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
 #-------------------------------------------------------------------------------
+# Translatable tokens
+
+    token block-default  { default }
+    token block-else     { else    }
+    token block-elsif    { elsif   }
+    token block-for      { for     }
+    token block-given    { given   }
+    token block-if       { if      }
+    token block-loop     { loop    }
+    token block-orwith   { orwith  }
+    token block-repeat   { repeat  }
+    token block-unless   { unless  }
+    token block-until    { until   }
+    token block-when     { when    }
+    token block-whenever { whenever }
+    token block-while    { while   }
+    token block-with     { with    }
+    token block-without  { without }
+
+    token constraint-where { where }
+
+#-------------------------------------------------------------------------------
 # Grammar entry point
 
     method TOP() {
@@ -755,6 +777,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
         my $*BORG := {};             # who gets blamed for a missing block
 
+        # fallback for while/until translation
+        my $*WHILE;
         # -1 indicates we're outside of any "supply" or "react" block
         my $*WHENEVER-COUNT := -1;
 
@@ -970,7 +994,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || $                           # OR end of text
         || <?stopper>                  # OR XXX
         || <?before [                  # OR looks like leaking into next
-             for | if | for | given | loop | repeat | when | while
+               <.block-for>
+             | <.block-if>
+             | <.block-given>
+             | <.block-loop>
+             | <.block-repeat>
+             | <.block-when>
+             | <.block-while>
            ] » >
            { $/.'!clear_highwater'() }
            <.typed-panic: 'X::Syntax::Confused', reason => "Missing semicolon">
@@ -1064,20 +1094,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto rule statement-control {*}
 
     # Simple control statements that take a block
-    rule statement-control:sym<default> { <sym><.kok> <block> }
+    rule statement-control:sym<default> { <.block-default><.kok> <block> }
     rule statement-control:sym<CATCH>   { <sym><.kok> <block> }
     rule statement-control:sym<CONTROL> { <sym><.kok> <block> }
 
     # Simple control statements that take a pointy block
     rule statement-control:sym<given> {
-        <sym><.kok>
+        <.block-given><.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
         <pointy-block>
     }
     rule statement-control:sym<when> {
-        <sym><.kok>
+        <.block-when><.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
@@ -1086,7 +1116,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Handle "while" / "until"
     rule statement-control:sym<while> {
-        $<sym>=[while|until]<.kok> {}
+        :my $*WHILE;
+        $<sym>=[<.block-while>|<.block-until>]<.kok>
+        {}
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
@@ -1095,35 +1127,36 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Control statements that take a pointy block without else/elsif/orwith
     rule statement-control:sym<unless> {
-        <sym><.kok>
+        <.block-unless><.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
         <pointy-block>
-        [ <!before [els[e|if]|orwith]» >
-            || $<wrong-keyword>=[els[e|if]|orwith]» {}
-                <.typed-panic: 'X::Syntax::UnlessElse',
-                    keyword => ~$<wrong-keyword>,
-                >
+        [ <!before [<.block-else>|<.block-elsif>|<.block-orwith>]» >
+            || $<keyword>=[<.block-else>|<.block-elsif>|<.block-orwith>]» {}
+               <.typed-panic: 'X::Syntax::UnlessElse',
+                   keyword => ~$<keyword>,
+               >
         ]
     }
     rule statement-control:sym<without> {
-        <sym><.kok>
+        <.block-without><.kok>
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>
         <pointy-block>
-        [ <!before [els[e|if]|orwith]» >
-            || $<wrong-keyword>=[els[e|if]|orwith]» {}
-                <.typed-panic: 'X::Syntax::WithoutElse',
-                    keyword => ~$<wrong-keyword>,
-                >
+        [ <!before [<.block-else>|<.block-elsif>|<.block-orwith>]» >
+            || $<keyword>=[<.block-else>|<.block-elsif>|<block-orwith>]» {}
+               <.typed-panic: 'X::Syntax::WithoutElse',
+                   keyword => ~$<keyword>,
+               >
         ]
     }
 
     # Handle "if" / "with"
     rule statement-control:sym<if> {
-        $<sym>=[if|with]<.kok>
+        :my @*IF-PARTS;
+        $<sym>=[<.block-if>|<.block-with>]<.kok>
         {}
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -1131,22 +1164,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <then=.pointy-block>         # initial body
         [                            # any elsifs/orwiths
           [
-            | $<what>=[ else\h*if | elif ] <.malformed: ~$<what>, 'Elsif'>
-            | $<sym>=[elsif|orwith]
+            | $<sym>=[<.block-elsif>|<.block-orwith>]
               <condition=.EXPR>
               <then=.pointy-block>
+
+            | $<what>=[<.block-else>\h*<.block-if>|elif]
+              <.malformed: ~$<what>, 'Elsif'>
           ]
         ]*
         {}
         [
-            else
+            <.block-else>
             <else=.pointy-block>
         ]?
     }
 
     # Handle "for"
     rule statement-control:sym<for> {
-        <sym><.kok> {}
+        <.block-for><.kok> {}
         [
           <?before 'my'? '$'\w+\s+'('>
           <.typed-panic: 'X::Syntax::P5'>
@@ -1163,17 +1198,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Handle repeat ... while | until
     rule statement-control:sym<repeat> {
-        <sym><.kok>
+        :my $*WHILE;
+        <.block-repeat><.kok>
         {}
         [
-          | $<wu>=[while|until]<.kok>
+          | [<.block-while>|<.block-until>]<.kok>
             :my $*GOAL := '{';
             :my $*BORG := {};
             <EXPR>
             <pointy-block>
           | <pointy-block>
             [
-                 $<wu>=['while'|'until']<.kok>
+                 [<.block-while>|<.block-until>]<.kok>
               || <.missing: '"while" or "until"'>
             ]
             <EXPR>
@@ -1182,7 +1218,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Handle whenever inside supply / react
     rule statement-control:sym<whenever> {
-        <sym><.kok>
+        <.block-whenever><.kok>
         [
           || <?{
                    nqp::getcomp('Raku').language_revision == 1
@@ -1199,7 +1235,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Handle basic loop / C-style loop
     token statement-control:sym<loop> {
-        <sym><.kok>
+        <.block-loop><.kok>
         :s''
         [
           :my $exprs := 0;
@@ -3069,7 +3105,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
            | ':'?':'?'='
            | <.terminator>
            | <trait>
-           | "where" <.ws> <EXPR>
+           | <.constraint-where> <.ws> <EXPR>
            | $
            ]
            > {} <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
@@ -3397,7 +3433,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [ <longname> ]
             { $*IN-DECL := '' }
             <trait>*
-            [ where <EXPR('e=')> ]?
+            [ <.constraint-where> <EXPR('e=')> ]?
           ]
           || <.malformed: 'subset'>
         ]
@@ -3925,7 +3961,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | '[' ~ ']' <signature>
         | '(' ~ ')' <signature>
-        | where <EXPR('i=')>
+        | <.constraint-where> <EXPR('i=')>
         ]
     }
 
@@ -3985,7 +4021,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <value>
         | [ <[-−]> :my $*NEGATE_VALUE := 1; | '+' ] $<value>=<numish>
         | <typename>
-#        | where <.ws> <EXPR('i=')>
+#        | <.constraint-where> <.ws> <EXPR('i=')>
         ]
         <.ws>
     }

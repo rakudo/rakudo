@@ -1542,6 +1542,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, Nodify('Term', 'Self').new
     }
 
+    method term:sym<nano>($/) {
+        self.attach: $/, Nodify('Term', 'Named').new('nano')
+    }
+
     method term:sym<now>($/) {
         self.attach: $/, Nodify('Term', 'Named').new('now')
     }

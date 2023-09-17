@@ -854,6 +854,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token scope-supersede { supersede }
     token scope-unit      { unit      }
 
+    token stmt-prefix-do      { do      }
+    token stmt-prefix-eager   { eager   }
+    token stmt-prefix-gather  { gather  }
+    token stmt-prefix-hyper   { hyper   }
+    token stmt-prefix-lazy    { lazy    }
+    token stmt-prefix-once    { once    }
+    token stmt-prefix-quietly { quietly }
+    token stmt-prefix-race    { race    }
+    token stmt-prefix-react   { react   }
+    token stmt-prefix-sink    { sink    }
+    token stmt-prefix-start   { start   }
+    token stmt-prefix-supply  { supply  }
+    token stmt-prefix-try     { try     }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -1531,27 +1545,48 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # Simple prefixes that just take a blorst
-    token statement-prefix:sym<do>      { <sym><.kok> <blorst> }
-    token statement-prefix:sym<eager>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<gather>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<once>    { <sym><.kok> <blorst> }
-    token statement-prefix:sym<quietly> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<start>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<try>     { <sym><.kok> <blorst> }
+    token statement-prefix:sym<do> {
+        <.sym> <.kok> <blorst>
+#        <.stmt-prefix-do> <.kok> <blorst>  # XXX needs fixing
+    }
+    token statement-prefix:sym<eager> {
+        <.stmt-prefix-eager> <.kok> <blorst>
+    }
+    token statement-prefix:sym<gather> {
+        <.stmt-prefix-gather> <.kok> <blorst>
+    }
+    token statement-prefix:sym<once> {
+        <.stmt-prefix-once> <.kok> <blorst>
+    }
+    token statement-prefix:sym<quietly> {
+        <.stmt-prefix-quietly> <.kok> <blorst>
+    }
+    token statement-prefix:sym<start> {
+        <.stmt-prefix-start> <.kok> <blorst>
+    }
+    token statement-prefix:sym<try> {
+        <.stmt-prefix-try> <.kok> <blorst>
+    }
 
     # Prefixes that work differently on for loops
-    token statement-prefix:sym<hyper>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<lazy>    { <sym><.kok> <blorst> }
-    token statement-prefix:sym<race>    { <sym><.kok> <blorst> }
+    token statement-prefix:sym<hyper> {
+        <.stmt-prefix-hyper> <.kok> <blorst>
+    }
+    token statement-prefix:sym<lazy> {
+        <.stmt-prefix-lazy> <.kok> <blorst>
+    }
+    token statement-prefix:sym<race> {
+        <.stmt-prefix-race> <.kok> <blorst>
+    }
 
     # Prefixes that allow "whenever" inside them
     token statement-prefix:sym<react> {
         :my $*WHENEVER-COUNT := 0;
-        <sym><.kok> <blorst>
+        <.stmt-prefix-react> <.kok> <blorst>
     }
     token statement-prefix:sym<supply> {
         :my $*WHENEVER-COUNT := 0;
-        <sym><.kok> <blorst>
+        <.stmt-prefix-supply> <.kok> <blorst>
     }
 
 #-------------------------------------------------------------------------------

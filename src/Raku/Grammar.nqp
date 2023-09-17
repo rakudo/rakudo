@@ -800,6 +800,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token modifier-with    { with    }
     token modifier-without { without }
 
+    token multi-multi { multi }
+    token multi-only  { only  }
+    token multi-proto { proto }
+
     token phaser-BEGIN   { BEGIN   }
     token phaser-CATCH   { CATCH   }
     token phaser-CHECK   { CHECK   }
@@ -2677,7 +2681,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<package-declarator> { <package-declarator> }
     token term:sym<scope-declarator>   { <scope-declarator> }
     token term:sym<routine-declarator> { <routine-declarator> }
-    token term:sym<multi-declarator>   { <?before 'multi'|'proto'|'only'> <multi-declarator> }
+    token term:sym<multi-declarator>   {
+        <?before <.multi-multi> | <.multi-proto> | <.multi-only>>
+        <multi-declarator>
+    }
     token term:sym<regex-declarator>   { <regex-declarator> }
     token term:sym<statement-prefix>   { <statement-prefix> }
     token term:sym<*>                  { <sym> }
@@ -3217,22 +3224,40 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token multi-declarator {*}
     token multi-declarator:sym<multi> {
-        <sym><.kok>
+        <.multi-multi>
+        <.kok>
         :my $*MULTINESS := 'multi';
-        [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine-def('sub')> || <.malformed: 'multi'> ]
+        [ <?before '('>
+          <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS>
+        ]?
+        [    <declarator>
+          || <routine-def('sub')>
+          || <.malformed: $*MULTINESS>
+        ]
     }
     token multi-declarator:sym<proto> {
-        <sym><.kok>
+        <.multi-proto>
+        <.kok>
         :my $*MULTINESS := 'proto';
-        [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine-def('sub')> || <.malformed: 'proto'> ]
+        [ <?before '('>
+          <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS>
+        ]?
+        [    <declarator>
+          || <routine-def('sub')>
+          || <.malformed: $*MULTINESS>
+        ]
     }
     token multi-declarator:sym<only> {
-        <sym><.kok>
+        <.multi-only>
+        <.kok>
         :my $*MULTINESS := 'only';
-        [ <?before '('> <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS> ]?
-        [ <declarator> || <routine-def('sub')> || <.malformed: 'only'> ]
+        [ <?before '('>
+          <.typed-panic: "X::Anon::Multi", multiness => $*MULTINESS>
+        ]?
+        [    <declarator>
+          || <routine-def('sub')>
+          || <.malformed: $*MULTINESS>
+        ]
     }
     token multi-declarator:sym<null> {
         :my $*MULTINESS := '';

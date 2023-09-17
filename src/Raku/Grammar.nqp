@@ -878,6 +878,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token typer-enum   { enum   }
     token typer-subset { subset }
 
+    token use-import  { import  }
+    token use-need    { need    }
+    token use-no      { no      }
+    token use-require { require }
+    token use-use     { use     }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -1419,43 +1425,50 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 # Pragma and module loading related statements
 
     token statement-control:sym<no> {
-        <sym> <.ws>
+        <.use-no>
+        <.ws>
         <module_name=.longname> [ <.spacey> <arglist> ]?
         <.ws>
     }
 
     token statement-control:sym<use> {
         # TODO this is massively simplified
-        <sym> <.ws>
+        <.use-use>
+        <.ws>
         [
-        | <version>
+          | <version>
             { $/.typed-panic: 'X::Language::TooLate', version => ~$<version> }
-        | <module_name=.longname> [ <.spacey> <arglist> <.cheat-heredoc>? ]?
+
+          | <module_name=.longname>
+            [ <.spacey> <arglist> <.cheat-heredoc>? ]?
         ]
         <.ws>
     }
 
     rule statement-control:sym<need> {
-        <sym>
+        <.use-need>
         [
-        | <version> <.sorry('In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").')>
-        | <module_name=.longname>
+          | <version>
+            <.sorry('In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").')>
+
+          | <module_name=.longname>
         ]+ % ','
     }
 
     token statement-control:sym<import> {
         :my $*IN-DECL := 'import';
-        <sym> <.ws>
-        <module_name=.longname> [ <.spacey> <arglist> ]?
+        <.use-import> <.ws>
+        <module_name=.longname>
+        [ <.spacey> <arglist> ]?
         <.ws>
     }
 
     rule statement-control:sym<require> {
-        <sym>
+        <.use-require>
         [
-        | <module_name=.longname>
-        | <file=.variable>
-        | <!sigil> <file=.term>
+          | <module_name=.longname>
+          | <file=.variable>
+          | <!sigil> <file=.term>
         ]
         <EXPR>?
     }

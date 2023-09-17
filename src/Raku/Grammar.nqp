@@ -1252,7 +1252,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Handle "while" / "until"
     rule statement-control:sym<while> {
         :my $*WHILE;
-        $<sym>=[<.block-while>|<.block-until>]<.kok>
+        [<.block-while>|<.block-until>]<.kok>
         {}
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -1291,7 +1291,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Handle "if" / "with"
     rule statement-control:sym<if> {
         :my @*IF-PARTS;
-        $<sym>=[<.block-if>|<.block-with>]<.kok>
+        [<.block-if>|<.block-with>]<.kok>
         {}
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -1299,7 +1299,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <then=.pointy-block>         # initial body
         [                            # any elsifs/orwiths
           [
-            | $<sym>=[<.block-elsif>|<.block-orwith>]
+            | [<.block-elsif>|<.block-orwith>]
               <condition=.EXPR>
               <then=.pointy-block>
 

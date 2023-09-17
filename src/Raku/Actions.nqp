@@ -699,10 +699,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # collect the if and all of the elsifs / orwiths
         my @elsifs;
         my $index := 0;
-        my @IF-PARTS := @*IF-PARTS;
-        for $<sym> {
+        for @*IF-PARTS {
             @elsifs.push:
-              Nodify('Statement',@IF-PARTS.shift).new:
+              Nodify('Statement',$_).new:
                 condition => $<condition>[$index].ast,
                 then      => $<then>[$index].ast;
             ++$index;

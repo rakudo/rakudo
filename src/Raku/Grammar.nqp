@@ -843,6 +843,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token routine-submethod { submethod }
     token routine-token     { token     }
 
+    token scope-anon      { anon      }
+    token scope-augment   { augment   }
+    token scope-constant  { constant  }
+    token scope-has       { has       }
+    token scope-HAS       { HAS       }
+    token scope-my        { my        }
+    token scope-our       { our       }
+    token scope-state     { state     }
+    token scope-supersede { supersede }
+    token scope-unit      { unit      }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -3191,17 +3202,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token leave-package-scope { <?> }
 
     proto token scope-declarator {*}
-    token scope-declarator:sym<my>    { <sym> <scoped('my')> }
-    token scope-declarator:sym<our>   { <sym> <scoped('our')> }
-    token scope-declarator:sym<has>   { <sym> <scoped('has')> }
-    token scope-declarator:sym<HAS>   { <sym> <scoped('HAS')> }
-    token scope-declarator:sym<anon>  { <sym> <scoped('anon')> }
-    token scope-declarator:sym<state> { <sym> <scoped('state')> }
-    token scope-declarator:sym<unit>  { <sym> <scoped('unit')> }
-
-    token scope-declarator:sym<augment>   { <sym> <scoped('augment')> }
+    token scope-declarator:sym<my>      { <.scope-my>      <scoped('my')>      }
+    token scope-declarator:sym<our>     { <.scope-our>     <scoped('our')>     }
+    token scope-declarator:sym<has>     { <.scope-has>     <scoped('has')>     }
+    token scope-declarator:sym<HAS>     { <.scope-HAS>     <scoped('HAS')>     }
+    token scope-declarator:sym<anon>    { <.scope-anon>    <scoped('anon')>    }
+    token scope-declarator:sym<state>   { <.scope-state>   <scoped('state')>   }
+    token scope-declarator:sym<unit>    { <.scope-unit>    <scoped('unit')>    }
+    token scope-declarator:sym<augment> { <.scope-augment> <scoped('augment')> }
     token scope-declarator:sym<supersede> {
-        <sym> <scoped('supersede')> <.NYI: '"supersede"'>
+        <.scope-supersede> <scoped('supersede')> <.NYI: '"supersede"'>
     }
 
     token scoped($*SCOPE) {

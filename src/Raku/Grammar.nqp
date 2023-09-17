@@ -868,6 +868,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token stmt-prefix-supply  { supply  }
     token stmt-prefix-try     { try     }
 
+    token trait-does    { does    }
+    token trait-handles { handles }
+    token trait-hides   { hides   }
+    token trait-is      { is      }
+    token trait-of      { of      }
+    token trait-returns { returns }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -3632,7 +3639,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto rule trait_mod {*}
     rule trait_mod:sym<is> {
-        <sym> [ <longname><circumfix>? || <.panic: 'Invalid name'> ]
+        <.trait-is> [ <longname><circumfix>? || <.panic: 'Invalid name'> ]
         {
             if $<circumfix> && nqp::eqat(self.orig, '{', $<longname>.to) {
                 $*BORG<block> := $<circumfix>;
@@ -3640,20 +3647,33 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
     }
-    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad-trait-typename>] }
-    rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad-trait-typename>] }
-    rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad-trait-typename>] }
-    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad-trait-typename>]
-                                  || 'return' <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'> }
-    rule trait_mod:sym<handles> { <sym> [ <term> || <.panic: 'Invalid term'>] }
+    rule trait_mod:sym<hides> {
+        <.trait-hides> [ <typename> || <.bad-trait-typename>]
+    }
+    rule trait_mod:sym<does> {
+        <.trait-does> [ <typename> || <.bad-trait-typename>]
+    }
+    rule trait_mod:sym<of> {
+        <.trait-of> [ <typename> || <.bad-trait-typename>]
+    }
+    rule trait_mod:sym<returns> {
+        <.trait-returns>
+        [ <typename> || <.bad-trait-typename>]
+          || 'return'
+             <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'>
+    }
+    rule trait_mod:sym<handles> {
+        <.trait-handles> [ <term> || <.panic: 'Invalid term'>]
+    }
 
     token bad-trait-typename {
-        || <longname> {
+        || <longname>
+           {
                 my $name := $<longname>.ast;
                 $/.typed-panic('X::InvalidType',
-                    :typename($name.canonicalize(:colonpairs(0))),
-                    :suggestions([])); #TODO suggestions
-            }
+                  :typename($name.canonicalize(:colonpairs(0))),
+                  :suggestions([])); #TODO suggestions
+           }
         || <.malformed: 'trait'>
     }
 

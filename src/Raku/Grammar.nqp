@@ -790,6 +790,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-xor        { xor        }
     token infix-xx         { xx         }
 
+    token prefix-let  { let  }
+    token prefix-not  { not  }
+    token prefix-so   { so   }
+    token prefix-temp { temp }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -2118,18 +2123,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Prefixes requiring scope interaction
     token prefix:sym<let>  {
-        <.sym>
+        <.prefix-let>
         <.kok>
         { ($*BLOCK // $*CU.mainline).set-has-let }
     }
     token prefix:sym<temp> {
-        <.sym>
+        <.prefix-temp>
         <.kok>
         { ($*BLOCK // $*CU.mainline).set-has-temp }
     }
 
-    token prefix:sym<so>  { <.sym> <.end-prefix> }
-    token prefix:sym<not> { <.sym> <.end-prefix> }
+    token prefix:sym<so>  { <.prefix-so>  <.end-prefix> }
+    token prefix:sym<not> { <.prefix-not> <.end-prefix> }
 
 #-------------------------------------------------------------------------------
 # Alpha infixes that may need a right word boundary, and which can be easily

@@ -836,6 +836,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token prefix-so   { so   }
     token prefix-temp { temp }
 
+    token routine-method    { method    }
+    token routine-sub       { sub       }
+    token routine-regex     { regex     }
+    token routine-rule      { rule      }
+    token routine-submethod { submethod }
+    token routine-token     { token     }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -3372,17 +3379,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token routine-declarator {*}
     token routine-declarator:sym<sub> {
-        <.sym>
+        <.routine-sub>
         <.end-keyword>
         <routine-def=.key-origin('routine-def', 'sub')>
     }
     token routine-declarator:sym<method> {
-        <.sym>
+        <.routine-method>
         <.end-keyword>
         <method-def=.key-origin('method-def', 'method')>
     }
     token routine-declarator:sym<submethod> {
-        <.sym>
+        <.routine-submethod>
         <.end-keyword>
         <method-def=.key-origin('method-def', 'submethod')>
     }
@@ -3466,7 +3473,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token regex-declarator {*}
 
     token regex-declarator:sym<rule> {
-        <.sym>
+        <.routine-rule>
         <.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
@@ -3476,7 +3483,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token regex-declarator:sym<token> {
-        <.sym>
+        <.routine-token>
         <.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;
@@ -3485,7 +3492,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token regex-declarator:sym<regex> {
-        <.sym>
+        <.routine-regex>
         <.kok>
         :my %*RX;
         :my $*INTERPOLATE := 1;

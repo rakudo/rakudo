@@ -790,6 +790,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-xor        { xor        }
     token infix-xx         { xx         }
 
+    token meta-R { R }
+    token meta-X { X }
+    token meta-Z { Z }
+
     token modifier-for     { for     }
     token modifier-given   { given   }
     token modifier-if      { if      }
@@ -1939,17 +1943,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Rfoo
     token infix-prefix-meta-operator:sym<R> {
-        <sym> <infixish('R')> {}
+        <.meta-R> <infixish('R')> {}
     }
 
     # Xfoo
     token infix-prefix-meta-operator:sym<X> {
-        <sym> <infixish('X')> {}
+        <.meta-X> <infixish('X')> {}
     }
 
     # Zfoo
     token infix-prefix-meta-operator:sym<Z> {
-        <sym> <infixish('Z')> {}
+        <.meta-Z> <infixish('Z')> {}
     }
 
 #-------------------------------------------------------------------------------

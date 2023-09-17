@@ -1295,13 +1295,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}
         :my $*GOAL := '{';
         :my $*BORG := {};
-        <condition=.EXPR>            # initial condition
-        <then=.pointy-block>         # initial body
-        [                            # any elsifs/orwiths
+        <EXPR>            # initial condition
+        <pointy-block>    # initial body
+        [                 # any elsifs/orwiths
           [
             | [<.block-elsif>|<.block-orwith>]
-              <condition=.EXPR>
-              <then=.pointy-block>
+              <EXPR>
+              <pointy-block>
 
             | $<what>=[<.block-else>\h*<.block-if>|elif]
               <.malformed: ~$<what>, 'Elsif'>

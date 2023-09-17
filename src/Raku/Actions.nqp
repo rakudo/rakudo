@@ -702,8 +702,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         for @*IF-PARTS {
             @elsifs.push:
               Nodify('Statement',$_).new:
-                condition => $<condition>[$index].ast,
-                then      => $<then>[$index].ast;
+                condition => $<EXPR>[$index].ast,
+                then      => $<pointy-block>[$index].ast;
             ++$index;
         }
 

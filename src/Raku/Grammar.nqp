@@ -2712,14 +2712,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token term {*}
     token term:sym<circumfix> { <circumfix> }
     token term:sym<self> { <sym> <.end-keyword> }
-    token term:sym<now>  { <sym> <.tok> }
-    token term:sym<time> { <sym> <.tok> }
+    token term:sym<now>  { <sym> <.end-keyword> }
+    token term:sym<time> { <sym> <.end-keyword> }
 
     token term:sym<nano> {
         <?{ (nqp::getcomp('Raku').language_revision >= 3)
               || $*R.is-identifier-known('&term:<nano>')
         }>
-        <sym> <.tok>
+        <sym> <.end-keyword>
     }
 
     token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]> }
@@ -4378,11 +4378,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                         "Whitespace required after keyword '" ~ self ~ "'";
              }>
         ]
-    }
-
-    token tok {
-        <.end-keyword>
-        <!{ $*R.is-identifier-known(~self) }>
     }
 
     token end-statement {

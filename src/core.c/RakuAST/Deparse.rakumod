@@ -2208,11 +2208,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Named:D $ast --> Str:D) {
-        $ast.name
+        self.xsyn('term', $ast.name)
     }
 
     multi method deparse(RakuAST::Term::Rand:D $ --> Str:D) {
-        $.term-rand
+        self.xsyn('term', $.term-rand)
     }
 
     multi method deparse(RakuAST::Term::RadixNumber:D $ast --> Str:D) {
@@ -2235,7 +2235,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Self:D $ --> Str:D) {
-        self.hsyn('invocant', $.term-self)
+        self.hsyn('invocant', self.xsyn('term', $.term-self))
     }
 
     multi method deparse(RakuAST::Term::TopicCall:D $ast --> Str:D) {

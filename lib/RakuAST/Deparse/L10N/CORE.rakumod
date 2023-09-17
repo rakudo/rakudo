@@ -375,6 +375,12 @@ my constant %translation =
   stmt-prefix-supply   => 'supply',
   stmt-prefix-try      => 'try',
 
+  term-self => 'self',
+  term-nano => 'nano',
+  term-now  => 'now',
+  term-rand => 'rand',
+  term-time => 'time',
+
   trait-does    => 'does',
   trait-handles => 'handles',
   trait-hides   => 'hides',

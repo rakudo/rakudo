@@ -349,6 +349,12 @@ my constant %translation =
   stmt-prefix-supply   => 'lever',
   stmt-prefix-try      => 'probeer',
 
+  term-self => 'zelf',
+  term-nano => 'nano',
+  term-now  => 'nu',
+  term-rand => 'willekeurig',
+  term-time => 'tijd',
+
   trait-does    => 'doet',
   trait-handles => 'begrijpt',
   trait-hides   => 'verbergt',

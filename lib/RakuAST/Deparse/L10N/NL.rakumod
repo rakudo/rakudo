@@ -336,6 +336,7 @@ my constant %translation =
   scope-supersede => 'vervang',
   scope-unit      => 'eenheid',
 
+  stmt-prefix-also     => 'eveneens',
   stmt-prefix-do       => 'doe',
   stmt-prefix-eager    => 'vlijtig',
   stmt-prefix-gather   => 'verzamel',

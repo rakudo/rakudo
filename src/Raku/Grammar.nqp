@@ -854,6 +854,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token scope-supersede { supersede }
     token scope-unit      { unit      }
 
+    token stmt-prefix-also    { also    }
     token stmt-prefix-do      { do      }
     token stmt-prefix-eager   { eager   }
     token stmt-prefix-gather  { gather  }
@@ -1420,7 +1421,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Not really control statements, more grammar tweaks
     rule statement-control:sym<also> {
-        <sym><.kok>
+        <.stmt-prefix-also><.kok>
         [
           <trait>+
           || <.panic: "No valid trait found after 'also'">

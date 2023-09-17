@@ -362,6 +362,7 @@ my constant %translation =
   scope-supersede => 'supersede',
   scope-unit      => 'unit',
 
+  stmt-prefix-also     => 'also',
   stmt-prefix-do       => 'do',
   stmt-prefix-eager    => 'eager',
   stmt-prefix-gather   => 'gather',

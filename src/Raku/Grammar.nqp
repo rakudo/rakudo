@@ -790,6 +790,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-xor        { xor        }
     token infix-xx         { xx         }
 
+    token modifier-for     { for     }
+    token modifier-given   { given   }
+    token modifier-if      { if      }
+    token modifier-unless  { unless  }
+    token modifier-until   { until   }
+    token modifier-when    { when    }
+    token modifier-while   { while   }
+    token modifier-with    { with    }
+    token modifier-without { without }
+
     token phaser-BEGIN   { BEGIN   }
     token phaser-CATCH   { CATCH   }
     token phaser-CHECK   { CHECK   }
@@ -1412,17 +1422,35 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Simple statement modifiers
     proto rule statement-mod-cond {*}
-    rule statement-mod-cond:sym<if>      { <sym><.kok> <modifier-expr('if')>      }
-    rule statement-mod-cond:sym<unless>  { <sym><.kok> <modifier-expr('unless')>  }
-    rule statement-mod-cond:sym<when>    { <sym><.kok> <modifier-expr('when')>    }
-    rule statement-mod-cond:sym<with>    { <sym><.kok> <modifier-expr('with')>    }
-    rule statement-mod-cond:sym<without> { <sym><.kok> <modifier-expr('without')> }
+    rule statement-mod-cond:sym<if> {
+        <.modifier-if><.kok> <modifier-expr('if')>
+    }
+    rule statement-mod-cond:sym<unless> {
+        <.modifier-unless><.kok> <modifier-expr('unless')>
+    }
+    rule statement-mod-cond:sym<when> {
+        <.modifier-when><.kok> <modifier-expr('when')>
+    }
+    rule statement-mod-cond:sym<with> {
+        <.modifier-with><.kok> <modifier-expr('with')>
+    }
+    rule statement-mod-cond:sym<without> {
+        <.modifier-without><.kok> <modifier-expr('without')>
+    }
 
     proto rule statement-mod-loop {*}
-    rule statement-mod-loop:sym<for>   { <sym><.kok> <modifier-expr('for')>   }
-    rule statement-mod-loop:sym<given> { <sym><.kok> <modifier-expr('given')> }
-    rule statement-mod-loop:sym<until> { <sym><.kok> <modifier-expr('until')> }
-    rule statement-mod-loop:sym<while> { <sym><.kok> <modifier-expr('while')> }
+    rule statement-mod-loop:sym<for> {
+        <.modifier-for><.kok> <modifier-expr('for')>
+    }
+    rule statement-mod-loop:sym<given> {
+        <.modifier-given><.kok> <modifier-expr('given')>
+    }
+    rule statement-mod-loop:sym<until> {
+        <.modifier-until><.kok> <modifier-expr('until')>
+    }
+    rule statement-mod-loop:sym<while> {
+        <.modifier-while><.kok> <modifier-expr('while')>
+    }
 
 #-------------------------------------------------------------------------------
 # Phasers

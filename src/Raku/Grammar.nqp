@@ -875,6 +875,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token trait-of      { of      }
     token trait-returns { returns }
 
+    token typer-enum   { enum   }
+    token typer-subset { subset }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -3598,7 +3601,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token type-declarator:sym<enum> {
-        <.sym>
+        <.typer-enum>
         <.kok>
         :my $*IN-DECL := 'enum';
         [
@@ -3619,7 +3622,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     rule type-declarator:sym<subset> {
-        <.sym><.kok>
+        <.typer-subset><.kok>
         :my $*IN-DECL := 'subset';
         [
           [

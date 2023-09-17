@@ -804,6 +804,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token multi-only  { only  }
     token multi-proto { proto }
 
+    token package-class   { class   }
+    token package-grammar { grammar }
+    token package-knowhow { knowhow }
+    token package-module  { module  }
+    token package-native  { native  }
+    token package-package { package }
+    token package-role    { role    }
+
     token phaser-BEGIN   { BEGIN   }
     token phaser-CATCH   { CATCH   }
     token phaser-CHECK   { CHECK   }
@@ -3119,25 +3127,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token package-declarator {*}
     token package-declarator:sym<package> {
-        <.sym> <.kok> <package-def('package')>
+        <.package-package> <.kok> <package-def('package')>
     }
     token package-declarator:sym<module> {
-        <.sym> <.kok> <package-def('module')>
+        <.package-module> <.kok> <package-def('module')>
     }
     token package-declarator:sym<class> {
-        <.sym> <.kok> <package-def('class')>
+        <.package-class> <.kok> <package-def('class')>
     }
     token package-declarator:sym<grammar> {
-        <.sym> <.kok> <package-def('grammar')>
+        <.package-grammar> <.kok> <package-def('grammar')>
     }
     token package-declarator:sym<role> {
-        <.sym> <.kok> <package-def('role')>
+        <.package-role> <.kok> <package-def('role')>
     }
     token package-declarator:sym<knowhow> {
-        <.sym> <.kok> <package-def('knowhow')>
+        <.package-knowhow> <.kok> <package-def('knowhow')>
     }
     token package-declarator:sym<native> {
-        <.sym> <.kok> <package-def('native')>
+        <.package-native> <.kok> <package-def('native')>
     }
 
     rule package-def($*PKGDECL) {

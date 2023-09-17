@@ -119,6 +119,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method block-until($/) { $*WHILE := 'Until' }
     method block-while($/) { $*WHILE := 'While' }
 
+    method phaser-BEGIN($/) { $*DOC-PHASER := 'Begin' }
+    method phaser-CHECK($/) { $*DOC-PHASER := 'Check' }
+    method phaser-INIT($/)  { $*DOC-PHASER := 'Init'  }
+
 #-------------------------------------------------------------------------------
 # Compilation unit, language version and other entry point bits
 
@@ -882,10 +886,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # DOC phaser only works if so activated on command line
     method statement-prefix:sym<DOC>($/) {
         if %*OPTIONS<doc> || %*OPTIONS<rakudoc> {
-            my $phase := ~$<phase>;
-            $phase eq 'BEGIN'
+            my $phase := $*DOC-PHASER;
+            $phase eq 'Begin'
               ?? self.statement-prefix:sym<BEGIN>($/)
-              !! self.SP-phaser($/, nqp::tclc($phase));
+              !! self.SP-phaser($/, $phase);
         }
 
         # not activated

@@ -790,6 +790,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-xor        { xor        }
     token infix-xx         { xx         }
 
+    token phaser-BEGIN   { BEGIN   }
+    token phaser-CATCH   { CATCH   }
+    token phaser-CHECK   { CHECK   }
+    token phaser-CLOSE   { CLOSE   }
+    token phaser-CONTROL { CONTROL }
+    token phaser-DOC     { DOC     }
+    token phaser-END     { END     }
+    token phaser-ENTER   { ENTER   }
+    token phaser-FIRST   { FIRST   }
+    token phaser-INIT    { INIT    }
+    token phaser-KEEP    { KEEP    }
+    token phaser-LAST    { LAST    }
+    token phaser-LEAVE   { LEAVE   }
+    token phaser-NEXT    { NEXT    }
+    token phaser-POST    { POST    }
+    token phaser-PRE     { PRE     }
+    token phaser-QUIT    { QUIT    }
+    token phaser-UNDO    { UNDO    }
+
     token prefix-let  { let  }
     token prefix-not  { not  }
     token prefix-so   { so   }
@@ -821,8 +840,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
         my $*BORG := {};             # who gets blamed for a missing block
 
-        # fallback for while/until translation
-        my $*WHILE;
+        # Fallback dynvars for translated token -> RakuAST class mapping
+        my $*WHILE;       # while/until
+        my $*DOC-PHASER;  # DOC BEGIN | CHECK | INIT
+
         # -1 indicates we're outside of any "supply" or "react" block
         my $*WHENEVER-COUNT := -1;
 
@@ -1138,9 +1159,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto rule statement-control {*}
 
     # Simple control statements that take a block
-    rule statement-control:sym<default> { <.block-default><.kok> <block> }
-    rule statement-control:sym<CATCH>   { <sym><.kok> <block> }
-    rule statement-control:sym<CONTROL> { <sym><.kok> <block> }
+    rule statement-control:sym<default> { <.block-default><.kok>  <block> }
+    rule statement-control:sym<CATCH>   { <.phaser-CATCH><.kok>   <block> }
+    rule statement-control:sym<CONTROL> { <.phaser-CONTROL><.kok> <block> }
 
     # Simple control statements that take a pointy block
     rule statement-control:sym<given> {
@@ -1408,26 +1429,30 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Simple phasers that just take a blorst
     proto token statement-prefix {*}
-    token statement-prefix:sym<BEGIN> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<CHECK> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<CLOSE> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<END>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<ENTER> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<FIRST> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<INIT>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<KEEP>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<LAST>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<LEAVE> { <sym><.kok> <blorst> }
-    token statement-prefix:sym<NEXT>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<POST>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<PRE>   { <sym><.kok> <blorst> }
-    token statement-prefix:sym<QUIT>  { <sym><.kok> <blorst> }
-    token statement-prefix:sym<UNDO>  { <sym><.kok> <blorst> }
+    token statement-prefix:sym<BEGIN> { <.phaser-BEGIN> <.kok> <blorst> }
+    token statement-prefix:sym<CHECK> { <.phaser-CHECK> <.kok> <blorst> }
+    token statement-prefix:sym<CLOSE> { <.phaser-CLOSE> <.kok> <blorst> }
+    token statement-prefix:sym<END>   { <.phaser-END>   <.kok> <blorst> }
+    token statement-prefix:sym<ENTER> { <.phaser-ENTER> <.kok> <blorst> }
+    token statement-prefix:sym<FIRST> { <.phaser-FIRST> <.kok> <blorst> }
+    token statement-prefix:sym<INIT>  { <.phaser-INIT>  <.kok> <blorst> }
+    token statement-prefix:sym<KEEP>  { <.phaser-KEEP>  <.kok> <blorst> }
+    token statement-prefix:sym<LAST>  { <.phaser-LAST>  <.kok> <blorst> }
+    token statement-prefix:sym<LEAVE> { <.phaser-LEAVE> <.kok> <blorst> }
+    token statement-prefix:sym<NEXT>  { <.phaser-NEXT>  <.kok> <blorst> }
+    token statement-prefix:sym<POST>  { <.phaser-POST>  <.kok> <blorst> }
+    token statement-prefix:sym<PRE>   { <.phaser-PRE>   <.kok> <blorst> }
+    token statement-prefix:sym<QUIT>  { <.phaser-QUIT>  <.kok> <blorst> }
+    token statement-prefix:sym<UNDO>  { <.phaser-UNDO>  <.kok> <blorst> }
 
     # DOC phaser also takes a "sub" phaser identifier
     token statement-prefix:sym<DOC> {
-        <sym><.kok>
-        $<phase>=[BEGIN || CHECK || INIT]<.end-keyword><.ws>
+        :my $*DOC-PHASER;
+        <.phaser-DOC>
+        <.kok>
+        [<.phaser-BEGIN> || <.phaser-CHECK> || <.phaser-INIT>]
+        <.end-keyword>
+        <.ws>
         <blorst>
     }
 
@@ -1437,9 +1462,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Generic "BLock OR STatement" token
     token blorst {
         [
-        | <?[{]> <block>
-        | <![;]> <block=.statement> <.cheat-heredoc>?
-        || <.missing: 'block or statement'>
+          | <?[{]>
+            <block>
+
+          | <![;]>
+            <block=.statement>
+            <.cheat-heredoc>?
+              || <.missing: 'block or statement'>
         ]
     }
 

@@ -1932,7 +1932,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # !foo
     token infix-prefix-meta-operator:sym<!> {
-        <sym>
+        <.sym>
         <![!]>
         {}
         [    <infixish('neg')>
@@ -1963,7 +1963,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # foo=
     token infix-postfix-meta-operator:sym<=> {
         '='
-        { $<sym> := $*OPER<sym> ~ '=' }
     }
 
 #-------------------------------------------------------------------------------
@@ -2000,7 +1999,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token prefix-postfix-meta-operator {*}
 
     token prefix-postfix-meta-operator:sym<«> {
-        <sym> | '<<'
+        <.sym> | '<<'
     }
 
 #-------------------------------------------------------------------------------
@@ -2135,22 +2134,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token dotty {*}
     token dotty:sym<.> {
-        <sym>
+        <.sym>
         <dottyop>
     }
 
     token dotty:sym<.^> {
-        <sym>
+        <.sym>
         <dottyop('.^')>
     }
 
     token dotty:sym<.?> {
-        <sym>
+        <.sym>
         <dottyop('.?')>
     }
 
     token dotty:sym<.&> {
-        <sym>
+        <.sym>
         <dottyop('.&')>
     }
 
@@ -2164,7 +2163,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
           | <!alpha>
             <postop>
-            $<O> = {$<postop><O>} $<sym> = {$<postop><sym>}
+            $<sym> = {$<postop><sym>}
             <.dotty-non-ident($special)>
         ]
     }
@@ -2343,7 +2342,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Dotty infixes
     token infix:sym<.> {
-        <sym>
+        <.sym>
         <ws>
         <!{ $*IN_REDUCE }>
         [
@@ -2358,7 +2357,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           }
         ]?
     }
-    token infix:sym<.=> { <sym> }
+    token infix:sym<.=> { <.sym> }
 
     # Assignment infixes
     token infix:sym<:=>  { <sym> }
@@ -2751,17 +2750,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<...> {
-        [<sym>|'…']
-        [ <?after ','\h*<.[ . … ]>+> <.worry("Comma found before apparent sequence operator; please remove comma (or put parens around the ... call, or use 'fail' instead of ...)")> ]?
-        [ <?{ $*GOAL eq 'endargs' && !$*COMPILING_CORE_SETTING }> <?after <.:L + [\]]>\h*<[ . … ]>+> <.worry("Apparent sequence operator parsed as stubbed function argument; please supply any missing argument to the function or the sequence (or parenthesize the ... call, or use 'fail' instead of ...)")> ]?
+        [ <.sym> | '…' ]
+        [ <?after ',' \h* <.[ . … ]>+>
+          <.worry("Comma found before apparent sequence operator; please remove comma (or put parens around the ... call, or use 'fail' instead of ...)")>
+        ]?
+        [ <?{ $*GOAL eq 'endargs' && !$*COMPILING_CORE_SETTING }>
+          <?after <.:L + [\]]>\h*<[ . … ]>+>
+          <.worry("Apparent sequence operator parsed as stubbed function argument; please supply any missing argument to the function or the sequence (or parenthesize the ... call, or use 'fail' instead of ...)")>
+        ]?
         <args>
     }
-    token term:sym<???> { <sym> <args> }
-    token term:sym<!!!> { <sym> <args> }
+    token term:sym<???> { <.sym> <args> }
+    token term:sym<!!!> { <.sym> <args> }
 
     token term:sym<undef> {
         <!{ $*LANG.pragma('p5isms') }>
-        <sym> » {}
+        <.sym> »
+        {}
         [ <?before \h*'$/' >
             <.obs('$/ variable as input record separator',
                  "the filehandle's .slurp method")>
@@ -2778,7 +2783,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<fatarrow> {
-        <key=.identifier> \h* [ '=>' | '⇒' ] <.ws> <val=.EXPR('i<=')>
+        <key=.identifier>
+        \h*
+        [ '=>' | '⇒' ]
+        <.ws>
+        <val=.EXPR('i<=')>
     }
 
     token term:sym<colonpair>          { <colonpair> }

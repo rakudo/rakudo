@@ -274,6 +274,10 @@ my constant %translation =
 #  'infix-^ff^'     => '^ff^',
 #  'infix-^fff^'    => '^fff^',
 
+#  meta-R => 'R',
+#  meta-X => 'X',
+#  meta-Z => 'Z',
+
   modifier-for     => 'voor-alle',
   modifier-given   => 'gegeven',
   modifier-if      => 'als',

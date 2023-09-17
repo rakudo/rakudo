@@ -923,7 +923,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::MetaInfix::Cross:D $ast --> Str:D) {
-        self.syn-infix('X' ~ self.deparse($ast.infix))
+        self.syn-infix(self.xsyn('meta','X') ~ self.deparse($ast.infix))
     }
 
     multi method deparse(RakuAST::MetaInfix::Hyper:D $ast --> Str:D) {
@@ -939,11 +939,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {
-        self.syn-infix('R' ~ self.deparse($ast.infix))
+        self.syn-infix(self.xsyn('meta','R') ~ self.deparse($ast.infix))
     }
 
     multi method deparse(RakuAST::MetaInfix::Zip:D $ast --> Str:D) {
-        self.syn-infix('Z' ~ self.deparse($ast.infix))
+        self.syn-infix(self.xsyn('meta','Z') ~ self.deparse($ast.infix))
     }
 
     multi method deparse(RakuAST::Method:D $ast --> Str:D) {

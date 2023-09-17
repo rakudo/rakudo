@@ -15,6 +15,7 @@
 #   core         sub/method names that are part of the Raku core
 #   constraint   related to (ad-hoc) constraints
 #   infix        infix operators consisting of alphanumeric characters
+#   meta         meta-operator prefixes ('R','X','Z')
 #   modifier     statement modifier syntax
 #   multi        types of multi syntax
 #   package      package declarators
@@ -23,6 +24,7 @@
 #   routine      types of named code blocks
 #   scope        types of scope ("my","our","state", etc.)
 #   stmt-prefix  statement prefixes ("do","eager","lazy", etc.)
+#   term         terms ("time","now","self",etc.)
 #   trait        types of traits ("is","does","returns", etc.)
 #   typer        type constructors ("enum","subset")
 #   use          use related ("use","no","require", etc.)
@@ -299,6 +301,10 @@ my constant %translation =
   'infix-^fff'     => '^fff',
   'infix-^ff^'     => '^ff^',
   'infix-^fff^'    => '^fff^',
+
+  meta-R => 'R',
+  meta-X => 'X',
+  meta-Z => 'Z',
 
   modifier-for     => 'for',
   modifier-given   => 'given',

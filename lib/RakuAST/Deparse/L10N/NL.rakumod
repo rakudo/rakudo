@@ -350,6 +350,7 @@ my constant %translation =
   stmt-prefix-try      => 'probeer',
 
   trait-does    => 'doet',
+  trait-handles => 'begrijpt',
   trait-hides   => 'verbergt',
   trait-is      => 'is',
   trait-of      => 'net-als',

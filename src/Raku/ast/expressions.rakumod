@@ -1560,8 +1560,12 @@ class RakuAST::ApplyPrefix
         }
         if nqp::bitand_i($!prefix.IMPL-CURRIES, 2) {
             if $!operand.IMPL-CURRIED {
-                $!operand.IMPL-UNCURRY;
-                self.IMPL-CURRY($resolver, $context, '$_');
+                my @params := $!operand.IMPL-UNCURRY;
+                my $curried := self.IMPL-CURRY($resolver, $context, @params.shift.target.lexical-name);
+                for @params {
+                    $curried.IMPL-ADD-PARAM($_.target.lexical-name);
+                    $curried.IMPL-CHECK($resolver, $context, True);
+                }
             }
         }
     }
@@ -2007,17 +2011,19 @@ class RakuAST::ApplyPostfix
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $whatever-name := '$whatevercode_arg_1';
         if nqp::bitand_i($!postfix.IMPL-CURRIES, 1) {
-            if nqp::istype($!operand, RakuAST::Term::Whatever) {
-                nqp::bindattr(self, RakuAST::ApplyPostfix, '$!operand', RakuAST::Var::Lexical.new('$_'));
-                self.IMPL-CURRY($resolver, $context, '$_');
-                $!operand.resolve-with($resolver);
+            if nqp::istype($!operand, RakuAST::Term::Whatever)
+                || (nqp::istype($!postfix, RakuAST::ApplyPostfix) && nqp::istype($!postfix.operand, RakuAST::Term::Whatever))
+            {
+                my $param := self.IMPL-CURRY($resolver, $context, $whatever-name).IMPL-LAST-PARAM;
+                nqp::bindattr(self, RakuAST::ApplyPostfix, '$!operand', $param.target.generate-lookup);
             }
         }
         if nqp::bitand_i($!postfix.IMPL-CURRIES, 2) {
             if $!operand.IMPL-CURRIED {
                 $!operand.IMPL-UNCURRY;
-                self.IMPL-CURRY($resolver, $context, '$_');
+                self.IMPL-CURRY($resolver, $context, $whatever-name);
             }
         }
     }

@@ -3403,16 +3403,17 @@ Please use $worry.";
     }
 
     method backslash:sym<qq>($/) { self.attach: $/, $<quote>.ast; }
-    method backslash:sym<\\>($/) { self.attach: $/, $<text>.Str; }
+    method backslash:sym<\\>($/) { self.attach: $/, '\\' }
     method backslash:delim ($/) { self.attach: $/, $<text>.Str; }
     method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
     method backslash:sym<misc>($/) { make ~$/; }
-
-    method backslash:sym<a>($/) { make nqp::chr(7) }
-    method backslash:sym<b>($/) { make "\b" }
     method backslash:sym<c>($/) { make $<charspec>.ast }
-    method backslash:sym<e>($/) { make "\c[27]" }
-    method backslash:sym<f>($/) { make "\c[12]" }
+
+    method backslash:sym<0>($/) { make nqp::chr( 0) }
+    method backslash:sym<a>($/) { make nqp::chr( 7) }
+    method backslash:sym<b>($/) { make nqp::chr( 8) }
+    method backslash:sym<e>($/) { make nqp::chr(27) }
+    method backslash:sym<f>($/) { make nqp::chr(12) }
 
     sub heredoc-whitespace($/, str $string) {
         nqp::can($/,'parsing-heredoc')
@@ -3438,8 +3439,6 @@ Please use $worry.";
     method backslash:sym<x>($/) {
         make self.ints_to_string($<hexint> || $<hexints><hexint>);
     }
-    method backslash:sym<0>($/) { make "\c[0]" }
-
 
     method escape:sym<#>($/) { make ''; }
 

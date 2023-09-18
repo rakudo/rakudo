@@ -5012,7 +5012,7 @@ Rakudo significantly on *every* run."
 grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
 
 #-------------------------------------------------------------------------------
-# Escape sequences
+# Escape / backslash sequences
 
     proto token escape    {*}
     proto token backslash {*}
@@ -5021,43 +5021,38 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     role b1 {
 
         # simple backslash sequences
-        token backslash:sym<a> { <sym> }
-        token backslash:sym<b> { <sym> }
-        token backslash:sym<e> { <sym> }
-        token backslash:sym<f> { <sym> }
-        token backslash:sym<n> { <sym> }
-        token backslash:sym<r> { <sym> }
-        token backslash:sym<t> { <sym> }
-        token backslash:sym<0> { <sym> }
+        token backslash:sym<a>  { <.sym> }
+        token backslash:sym<b>  { <.sym> }
+        token backslash:sym<e>  { <.sym> }
+        token backslash:sym<f>  { <.sym> }
+        token backslash:sym<n>  { <.sym> }
+        token backslash:sym<r>  { <.sym> }
+        token backslash:sym<t>  { <.sym> }
+        token backslash:sym<0>  { <.sym> }
+        token backslash:sym<\\> { <.sym> }
+        token backslash:sym<rn> { 'r\n' }
+        token backslash:sym<misc> { \W }
 
-        token escape:sym<\\> {
-            <sym> {} <item=.backslash>
-        }
         token backslash:sym<qq> {
             <?[q]> <quote=.LANG('MAIN','quote')>
-        }
-        token backslash:sym<\\> {
-            <text=.sym>
         }
         token backslash:delim {
             <text=.starter> | <text=.stopper>
         }
         token backslash:sym<c> {
-            <sym> <charspec>
+            <.sym> <charspec>
         }
         token backslash:sym<N> {
             <?before 'N{'<.[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>
         }
         token backslash:sym<o> {
             :dba('octal character')
-            <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ]
+            <.sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ]
         }
-        token backslash:sym<rn> { 'r\n' }
-        token backslash:sym<misc> { \W }
 
         token backslash:sym<x> {
             :dba('hex character')
-            <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ]
+            <.sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ]
         }
 
         token backslash:sym<1> {
@@ -5067,10 +5062,16 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
             }
         }
         token backslash:sym<unrec> {
-          {} (\w) {
-            self.typed-panic: 'X::Backslash::UnrecognizedSequence',
-              :sequence($/[0].Str)
+          {} 
+          (\w)
+          {
+              self.typed-panic: 'X::Backslash::UnrecognizedSequence',
+                :sequence($/[0].Str)
           }
+        }
+
+        token escape:sym<\\> {
+            <sym> {} <item=.backslash>
         }
     }
 

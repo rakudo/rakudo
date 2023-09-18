@@ -3455,24 +3455,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token initializer {*}
     token initializer:sym<=> {
-        <sym>
+        <.sym>
         [
-            <.ws>
-            [
+          <.ws>
+          [
             || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i<=')>
             || <EXPR('e=')>
-            ]
-            || <.malformed: 'initializer'>
+          ]
+          || <.malformed: 'initializer'>
         ]
     }
     token initializer:sym<:=> {
-        <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
+        <.sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
     }
     token initializer:sym<::=> {
-        <sym> [ <.ws> <EXPR('e=')> <.NYI: '"::="'> || <.malformed: 'binding'> ]
+        <.sym> [ <.ws> <EXPR('e=')> <.NYI: '"::="'> || <.malformed: 'binding'> ]
     }
     token initializer:sym<.=> {
-        <sym> [ <.ws> <dottyop> || <.malformed: 'mutator method call'> ]
+        <.sym> [ <.ws> <dottyop> || <.malformed: 'mutator method call'> ]
     }
 
     proto token routine-declarator {*}

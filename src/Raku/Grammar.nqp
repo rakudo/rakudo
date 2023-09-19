@@ -4402,13 +4402,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.end-keyword>
         [
           || <?before <.[ \s \# ]> > <.ws>
-
-          || <?{
-                 $*R.is-identifier-known(~self)
-                   ?? False
-                   !! self.panic:
-                        "Whitespace required after keyword '" ~ self ~ "'";
-             }>
+          || <!>
+#
+#          || <?{
+#                 $*R.is-identifier-known(~self)
+#                   ?? False
+#                   !! self.panic:
+#                        "Whitespace required after keyword '" ~ self ~ "'";
+#             }>
         ]
     }
 

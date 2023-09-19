@@ -923,10 +923,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*SORRY_REMAINING := 10;  # decremented on each sorry; panic when 0
         my $*BORG := {};             # who gets blamed for a missing block
 
-        # Fallback dynvars for translated token -> RakuAST class mapping
-        my $*WHILE;       # while/until
-        my $*DOC-PHASER;  # DOC BEGIN | CHECK | INIT
-
         # -1 indicates we're outside of any "supply" or "react" block
         my $*WHENEVER-COUNT := -1;
 
@@ -1265,7 +1261,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Handle "while" / "until"
     rule statement-control:sym<while> {
         :my $*WHILE;
-        [<.block-while>|<.block-until>]<.kok>
+        [<.block-while>|<.block-until>{$*WHILE := 'Until'}]<.kok>
         {}
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -1304,7 +1300,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Handle "if" / "with"
     rule statement-control:sym<if> {
         :my @*IF-PARTS;
-        [<.block-if>|<.block-with>]<.kok>
+        [<.block-if>{@*IF-PARTS.push('If')}|<.block-with>{@*IF-PARTS.push('With')}]<.kok>
         {}
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -1312,7 +1308,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pointy-block>    # initial body
         [                 # any elsifs/orwiths
           [
-            | [<.block-elsif>|<.block-orwith>]
+            | [<.block-elsif>{@*IF-PARTS.push('Elsif')}|<.block-orwith>{@*IF-PARTS.push('Orwith')}]
               <EXPR>
               <pointy-block>
 
@@ -1350,14 +1346,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.block-repeat><.kok>
         {}
         [
-          | [<.block-while>|<.block-until>]<.kok>
+          | [<.block-while>|<.block-until>{$*WHILE := 'Until'}]<.kok>
             :my $*GOAL := '{';
             :my $*BORG := {};
             <EXPR>
             <pointy-block>
           | <pointy-block>
             [
-                 [<.block-while>|<.block-until>]<.kok>
+                 [<.block-while>|<.block-until>{$*WHILE := 'Until'}]<.kok>
               || <.missing: '"while" or "until"'>
             ]
             <EXPR>
@@ -1558,7 +1554,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*DOC-PHASER;
         <.phaser-DOC>
         <.kok>
-        [<.phaser-BEGIN> || <.phaser-CHECK> || <.phaser-INIT>]
+        [
+             <.phaser-BEGIN> { $*DOC-PHASER := 'Begin' }
+          || <.phaser-CHECK> { $*DOC-PHASER := 'Check' }
+          || <.phaser-INIT>  { $*DOC-PHASER := 'Init'  }
+        ]
         <.end-keyword>
         <.ws>
         <blorst>

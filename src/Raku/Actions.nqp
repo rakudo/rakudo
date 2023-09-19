@@ -109,21 +109,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method  OperatorProperties() { $OperatorProperties }
 
 #-------------------------------------------------------------------------------
-# Translatable tokens
-
-    method block-elsif($/)  { @*IF-PARTS.push('Elsif')  }
-    method block-if($/)     { @*IF-PARTS.push('If')     }
-    method block-orwith($/) { @*IF-PARTS.push('Orwith') }
-    method block-with($/)   { @*IF-PARTS.push('With')   }
-
-    method block-until($/) { $*WHILE := 'Until' }
-    method block-while($/) { $*WHILE := 'While' }
-
-    method phaser-BEGIN($/) { $*DOC-PHASER := 'Begin' }
-    method phaser-CHECK($/) { $*DOC-PHASER := 'Check' }
-    method phaser-INIT($/)  { $*DOC-PHASER := 'Init'  }
-
-#-------------------------------------------------------------------------------
 # Compilation unit, language version and other entry point bits
 
     # Thread-safely produce a unique serialization context ID
@@ -666,10 +651,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # Handling of all forms of loops
     method statement-control:sym<repeat>($/) {
-        self.takes-loop($/, 'Repeat' ~ $*WHILE)
+        self.takes-loop($/, 'Repeat' ~ ($*WHILE // 'While'))
     }
     method statement-control:sym<while>($/) {
-        self.takes-loop($/, $*WHILE)
+        self.takes-loop($/, $*WHILE // 'While')
     }
 
     # Handling of whenever

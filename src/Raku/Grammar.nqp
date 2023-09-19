@@ -758,8 +758,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix-but        { but        }
     token infix-cmp        { cmp        }
     token infix-coll       { coll       }
+    token infix-pcontp     { '(cont)'   }
     token infix-div        { div        }
     token infix-does       { does       }
+    token infix-pelemp     { '(elem)'   }
     token infix-eq         { eq         }
     token infix-eqv        { eqv        }
     token infix-ff         { ff         }
@@ -2302,9 +2304,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<before>     { <.infix-before> »     }
     token infix:sym<but>        { <.infix-but> »        }
     token infix:sym<cmp>        { <.infix-cmp> »        }
+    token infix:sym<(cont)>     { <.infix-pcontp>       }
     token infix:sym<coll>       { <.infix-coll> »       }
     token infix:sym<div>        { <.infix-div> »        }
     token infix:sym<does>       { <.infix-does> »       }
+    token infix:sym<(elem)>     { <.infix-pelemp>       }
     token infix:sym<eq>         { <.infix-eq> »         }
     token infix:sym<eqv>        { <.infix-eqv> »        }
     token infix:sym<ff>         { <.infix-ff> »         }
@@ -2485,10 +2489,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<===>    { <sym> }
     token infix:sym<~~>     { <sym> }
     token infix:sym<!~~>    { <sym> }
-    token infix:sym<(elem)> { <sym> }
     token infix:sym«∈»      { <sym> }
     token infix:sym«∉»      { <sym> }
-    token infix:sym<(cont)> { <sym> }
     token infix:sym«∋»      { <sym> }
     token infix:sym«∌»      { <sym> }
     token infix:sym«(<)»    { <sym> }

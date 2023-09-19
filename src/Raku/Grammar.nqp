@@ -2856,17 +2856,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }>
             { $*IS-TYPE := $*R.is-name-type($base-name) }
             [
-                <?[[]> <?{ $*IS-TYPE }>
-                :dba('type parameter') '[' ~ ']' <arglist>
+                <?[[]>
+                <?{ $*IS-TYPE }>
+                :dba('type parameter')
+                '[' ~ ']' <arglist>
             ]?
             <.unspace>?
             [
-                <?[{]> <?{ $*IS-TYPE }>
-                <whence=.postcircumfix> <.NYI: 'Autovivifying object closures'>
+                <?[{]>
+                <?{ $*IS-TYPE }>
+                <whence=.postcircumfix>
+                <.NYI: 'Autovivifying object closures'>
             ]?
             <.unspace>?
             [
-                <?[(]> <?{ $*IS-TYPE }>
+                <?[(]>
+                <?{ $*IS-TYPE }>
                 '(' <.ws> [
                     || <accept=.maybe-typename> <?{
                            my $it := $<accept>.ast;
@@ -5071,7 +5076,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         }
 
         token escape:sym<\\> {
-            <sym> {} <item=.backslash>
+            <.sym> {} <item=.backslash>
         }
     }
 
@@ -5180,10 +5185,10 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         token starter { \' }
         token stopper { \' }
 
-        token escape:sym<\\> { <sym> <item=.backslash> }
+        token escape:sym<\\> { <.sym> <item=.backslash> }
 
         token backslash:sym<qq> { <?[q]> <quote=.LANG('MAIN','quote')> }
-        token backslash:sym<\\> { <text=.sym> }
+        token backslash:sym<\\> { <.sym> }
         token backslash:delim { <text=.starter> | <text=.stopper> }
 
         token backslash:sym<miscq> { {} . }
@@ -5479,7 +5484,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
     }
 
     token assertion:sym<~~> {
-        <sym>
+        <.sym>
         <!RESTRICTED>
         [ <?[>]> | $<num>=[\d+] | <desigilname=.LANG('MAIN','desigilname')> ]
     }

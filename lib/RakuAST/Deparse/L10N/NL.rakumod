@@ -8,7 +8,7 @@ use v6.e.PREVIEW;
 
 unit role RakuAST::Deparse::L10N::NL;
 
-my constant %translation =
+my constant %translation  is export =
   block-default => 'indien-niets',
   block-else    => 'anders',
   block-elsif   => 'anders-als',

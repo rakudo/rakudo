@@ -4321,8 +4321,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Identifiers
 
+    token apostrophe {
+        <[ ' \- ]>
+    }
+
     token identifier {
-        <.ident> [ <[ ' \- ]> <.ident> ]*
+        <.ident> [ <.apostrophe> <.ident> ]*
     }
 
     token name {

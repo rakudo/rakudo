@@ -1159,47 +1159,101 @@ class RakuAST::ApplyInfix
         Nil
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method has-whatevercode-apply-infix-arguments() {
+        for $!args.IMPL-UNWRAP-LIST($!args.args) {
+            # Luckily there's only one syntactically sensible way to pass a curryable ApplyInfix,
+            # and that is wrapped in parentheses: (* f *) f (* f ( * f *))
+            return True if nqp::istype($_, RakuAST::Circumfix::Parentheses)
+                        && (my $statement-expression := $_.semilist.statements.AT-POS(0))
+                        && nqp::istype($statement-expression, RakuAST::Statement::Expression)
+                        && (my $expression := $statement-expression.expression)
+                        && nqp::istype($expression, RakuAST::ApplyInfix)
+                        && (nqp::istype($expression.left, RakuAST::Term::Whatever) || nqp::istype($expression.right, RakuAST::Term::Whatever))
+        }
+        False
+    }
+
+    method is-begin-performed-before-children() { True }
+    method is-begin-performed-after-children()  { True }
+
+    method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $infix   := $!infix;
         my $CURRIES := $infix.IMPL-CURRIES;
         my $left    := self.left;
         my $right   := self.right;
 
-        if nqp::bitand_i($CURRIES,2) && (my $curried := $left.IMPL-CURRIED) {
+        if nqp::bitand_i($CURRIES, 1) {
+            # Only do this if we ourselves are a currying infix
+            return Nil unless (my $direct-whatever:= nqp::istype($left, RakuAST::Term::Whatever)
+                                || nqp::istype($right, RakuAST::Term::Whatever))
+                                || self.has-whatevercode-apply-infix-arguments;
+
+            my @whatever-infixes;
+            for "left", "right" {
+                my $operand := self."$_"();
+                # First we gather all of the ApplyInfix nodes that would turn into WhateverCodes.
+                # After the top-most node runs, it's children will no longer have RakuAST::Term::Whatever
+                # but instead will have RakuAST::Var::Lexical lookups, meaning that we can guarantee that
+                # we will have only one WhateverCode and it will be at our top-level.
+                my $condition := -> $n {
+                    nqp::istype($n.left, RakuAST::Term::Whatever) || nqp::istype($n.right, RakuAST::Term::Whatever)
+                };
+                my $search := $operand.IMPL-UNWRAP-LIST($operand.find-nodes(RakuAST::ApplyInfix, :$condition));
+                for $search {
+                    @whatever-infixes.push($_);
+                }
+            }
+
+            my $name-giver := QAST::Op.new(:op<no-op>);
+            self.IMPL-CURRY($resolver, $context, '');
+            my $curried := self.IMPL-CURRIED;
+            # make self the first-most child processed, if we have things to directly curry
+            @whatever-infixes.unshift(self) if $direct-whatever;
+            while @whatever-infixes {
+                my $child := @whatever-infixes.shift;
+                for "left", "right" {
+                    my $operand := $child."$_"();
+                    next unless nqp::istype($operand, RakuAST::Term::Whatever);
+                    my $param-name := $name-giver.unique('$whatevercode_arg');
+                    my $param := $curried.IMPL-ADD-PARAM($param-name);
+                    $curried.IMPL-CHECK($resolver, $context, True);
+                    $child."set-$_"($param.target.generate-lookup);
+                }
+            }
+        }
+    }
+
+    method PERFORM-BEGIN-AFTER-CHILDREN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $infix := $!infix;
+        my $CURRIES := $infix.IMPL-CURRIES;
+        my $left := self.left;
+        my $right := self.right;
+
+        if nqp::bitand_i($CURRIES, 2) && (my $curried := $left.IMPL-CURRIED) {
             my $params := $left.IMPL-UNCURRY;
             self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
             $curried := self.IMPL-CURRIED;
             for $params {
                 $curried.IMPL-ADD-PARAM($_.target.lexical-name);
-            }
-        }
-        if nqp::bitand_i($CURRIES, 1) {
-            for "left", "right" {
-                my $operand := self."$_"();
-                if nqp::istype($operand, RakuAST::Term::Whatever) {
-                    my $curried := self.IMPL-CURRIED;
-                    my $param_name := '$whatevercode_arg_' ~ ($curried ?? $curried.IMPL-NUM-PARAMS + 1 !! 1);
-                    my $param;
-                    if $curried {
-                        $param := $curried.IMPL-ADD-PARAM($param_name);
-                        $curried.IMPL-CHECK($resolver, $context, True);
-                    }
-                    else {
-                        $param := self.IMPL-CURRY($resolver, $context, $param_name).IMPL-LAST-PARAM;
-                    }
-                    self."set-$_"($param.target.generate-lookup);
-                }
+                $curried.IMPL-CHECK($resolver, $context, True);
             }
         }
         if nqp::bitand_i($CURRIES, 2) && ($curried := $right.IMPL-CURRIED) {
             my $params := $right.IMPL-UNCURRY;
-            self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
+            my $self-never-curried := !self.IMPL-CURRIED;
+            self.IMPL-CURRY($resolver, $context, '') if $self-never-curried;
             $curried := self.IMPL-CURRIED;
             my $param-num := $curried.IMPL-NUM-PARAMS;
             for $params {
                 $param-num++;
-                $_.target.set-name('$whatevercode_arg_' ~ $param-num);
+                # when the self has already been curried, we need to be careful not to clash with
+                # existing $whatevercode_arg_*. If it has never been curried, we can safely just
+                # use the existing target name.
+                unless $self-never-curried {
+                    $_.target.set-name('$whatevercode_arg_' ~ $param-num);
+                }
                 $curried.IMPL-ADD-PARAM($_.target.lexical-name);
+                $curried.IMPL-CHECK($resolver, $context, True);
             }
         }
 

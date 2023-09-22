@@ -672,6 +672,10 @@ class RakuAST::Deparse {
         ':' ~ self.deparse($ast.value)
     }
 
+    multi method deparse(RakuAST::Constant:D $ast --> Str:D) {
+        $ast.deparse
+    }
+
 #- Co --------------------------------------------------------------------------
 
     multi method deparse(RakuAST::CompUnit:D $ast --> Str:D) {

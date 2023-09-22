@@ -54,6 +54,13 @@ class RakuAST::Literal
     }
 }
 
+# Base class for slangs wanting to codegen a constant value
+class RakuAST::Constant
+  is RakuAST::Literal
+{
+    method deparse() { self.value.raku }
+}
+
 class RakuAST::IntLiteral
   is RakuAST::Literal
 {

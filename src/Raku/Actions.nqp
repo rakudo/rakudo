@@ -637,13 +637,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         );
     }
 
+    # Handling of for / otherwise
+    method statement-control:sym<for>($/) {
+        self.attach: $/, Nodify('Statement','For').new(
+          source    => $<EXPR>.ast,
+          body      => $<pointy-block>.ast,
+          otherwise => $<otherwise> ?? $<otherwise>.ast !! Mu
+        );
+    }
+
     # Handling of simple control statements that take a block
     method statement-control:sym<default>($/) { self.takes-none($/,'Default') }
     method statement-control:sym<CATCH>($/)   { self.takes-none($/,'Catch')   }
     method statement-control:sym<CONTROL>($/) { self.takes-none($/,'Control') }
 
     # Handling of simple control statements that take a pointy block
-    method statement-control:sym<for>($/)   { self.takes-source($/,'For')   }
     method statement-control:sym<given>($/) { self.takes-source($/,'Given') }
     method statement-control:sym<unless>($/)  { self.takes-cond($/,'Unless')  }
     method statement-control:sym<when>($/)    { self.takes-cond($/,'When')    }

@@ -1340,6 +1340,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BORG := {};
         <EXPR>
         <pointy-block>
+        [ otherwise $<otherwise>=<.pointy-block> ]?
     }
 
     # Handle repeat ... while | until

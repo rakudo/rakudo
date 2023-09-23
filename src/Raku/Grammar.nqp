@@ -1325,17 +1325,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]?
     }
 
-    # Handle "for"
-    rule statement-control:sym<for> {
-        <.block-for><.kok> {}
-        [
-          <?before 'my'? '$'\w+\s+'('>
+    # Helper rule for possible exclusion in the future, and to allow
+    # slangs adapting the "for" syntax to be made easier
+    rule vetPerlForSyntax {
+        [ <?before 'my'? '$'\w+\s+'(' >
           <.typed-panic: 'X::Syntax::P5'>
         ]?
-        [
-          <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')'>
+        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
           <.obs('C-style "for (;;)" loop', '"loop (;;)"')>
         ]?
+    }
+
+    # Handle "for"
+    rule statement-control:sym<for> {
+        <.block-for><.kok>
+        {}
+        <.vetPerlForSyntax>
         :my $*GOAL := '{';
         :my $*BORG := {};
         <EXPR>

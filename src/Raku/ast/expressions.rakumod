@@ -1159,10 +1159,13 @@ class RakuAST::ApplyInfix
         Nil
     }
 
-    method has-whatevercode-apply-infix-arguments() {
+    method IMPL-SHOULD-CURRY-ACROSS-ALL-APPLY-INFIXES() {
         for $!args.IMPL-UNWRAP-LIST($!args.args) {
-            # Luckily there's only one syntactically sensible way to pass a curryable ApplyInfix,
-            # and that is wrapped in parentheses: (* f *) f (* f ( * f *))
+            # Luckily there's only two syntactically sensible way to pass a curryable ApplyInfix:
+            #       - (* f *) f (* f ( * f *))
+            #       - * f * f *
+            # This check accounts for the former case. The latter case is already covered because the toplevel
+            # ApplyInfix is directly whateverable.
             return True if nqp::istype($_, RakuAST::Circumfix::Parentheses)
                         && (my $statement-expression := $_.semilist.statements.AT-POS(0))
                         && nqp::istype($statement-expression, RakuAST::Statement::Expression)
@@ -1186,7 +1189,7 @@ class RakuAST::ApplyInfix
             # Only do this if we ourselves are a currying infix
             return Nil unless (my $direct-whatever:= nqp::istype($left, RakuAST::Term::Whatever)
                                 || nqp::istype($right, RakuAST::Term::Whatever))
-                                || self.has-whatevercode-apply-infix-arguments;
+                                || self.IMPL-SHOULD-CURRY-ACROSS-ALL-APPLY-INFIXES;
 
             my @whatever-infixes;
             for "left", "right" {
@@ -1204,7 +1207,6 @@ class RakuAST::ApplyInfix
                 }
             }
 
-            my $name-giver := QAST::Op.new(:op<no-op>);
             self.IMPL-CURRY($resolver, $context, '');
             my $curried := self.IMPL-CURRIED;
             # make self the first-most child processed, if we have things to directly curry
@@ -1214,7 +1216,7 @@ class RakuAST::ApplyInfix
                 for "left", "right" {
                     my $operand := $child."$_"();
                     next unless nqp::istype($operand, RakuAST::Term::Whatever);
-                    my $param-name := $name-giver.unique('$whatevercode_arg');
+                    my $param-name := QAST::Node.unique('$whatevercode_arg');
                     my $param := $curried.IMPL-ADD-PARAM($param-name);
                     $curried.IMPL-CHECK($resolver, $context, True);
                     $child."set-$_"($param.target.generate-lookup);
@@ -1231,6 +1233,14 @@ class RakuAST::ApplyInfix
 
         if nqp::bitand_i($CURRIES, 2) && (my $curried := $left.IMPL-CURRIED) {
             my $params := $left.IMPL-UNCURRY;
+            if self.IMPL-CURRIED {
+                # TODO: Does this need to think about precedence?
+                if nqp::istype(left, RakuAST::ApplyInfix) {
+                    for self.IMPL-UNCURRY { $params.unshift($_) }
+                } else {
+                    for self.IMPL-UNCURRY { $params.push($_) }
+                }
+            }
             self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
             $curried := self.IMPL-CURRIED;
             for $params {
@@ -1240,18 +1250,19 @@ class RakuAST::ApplyInfix
         }
         if nqp::bitand_i($CURRIES, 2) && ($curried := $right.IMPL-CURRIED) {
             my $params := $right.IMPL-UNCURRY;
-            my $self-never-curried := !self.IMPL-CURRIED;
-            self.IMPL-CURRY($resolver, $context, '') if $self-never-curried;
-            $curried := self.IMPL-CURRIED;
-            my $param-num := $curried.IMPL-NUM-PARAMS;
-            for $params {
-                $param-num++;
-                # when the self has already been curried, we need to be careful not to clash with
-                # existing $whatevercode_arg_*. If it has never been curried, we can safely just
-                # use the existing target name.
-                unless $self-never-curried {
-                    $_.target.set-name('$whatevercode_arg_' ~ $param-num);
+            # We may have already curried before the children were visited, in which case we
+            # preserve our existing parameters.
+            if self.IMPL-CURRIED {
+                # TODO: Does this need to think about precedence?
+                if nqp::istype($right, RakuAST::ApplyInfix) {
+                    for self.IMPL-CURRY { $params.push($_) }
+                } else {
+                    for self.IMPL-CURRY { $params.unshift($_) }
                 }
+            }
+            self.IMPL-CURRY($resolver, $context, '');
+            $curried := self.IMPL-CURRIED;
+            for $params {
                 $curried.IMPL-ADD-PARAM($_.target.lexical-name);
                 $curried.IMPL-CHECK($resolver, $context, True);
             }

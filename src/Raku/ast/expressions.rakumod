@@ -1230,12 +1230,12 @@ class RakuAST::ApplyInfix
         my $CURRIES := $infix.IMPL-CURRIES;
         my $left := self.left;
         my $right := self.right;
+        my $infix-precedence := $infix.properties.precedence;
 
         if nqp::bitand_i($CURRIES, 2) && (my $curried := $left.IMPL-CURRIED) {
             my $params := $left.IMPL-UNCURRY;
             if self.IMPL-CURRIED {
-                # TODO: Does this need to think about precedence?
-                if nqp::istype(left, RakuAST::ApplyInfix) {
+                if nqp::istype($left, RakuAST::ApplyInfix) && $left.infix.properties.precedence gt $infix-precedence {
                     for self.IMPL-UNCURRY { $params.unshift($_) }
                 } else {
                     for self.IMPL-UNCURRY { $params.push($_) }
@@ -1253,11 +1253,10 @@ class RakuAST::ApplyInfix
             # We may have already curried before the children were visited, in which case we
             # preserve our existing parameters.
             if self.IMPL-CURRIED {
-                # TODO: Does this need to think about precedence?
-                if nqp::istype($right, RakuAST::ApplyInfix) {
-                    for self.IMPL-CURRY { $params.push($_) }
+                if nqp::istype($right, RakuAST::ApplyInfix) && $right.infix.properties.precedence lt $infix-precedence {
+                    for self.IMPL-UNCURRY { $params.push($_) }
                 } else {
-                    for self.IMPL-CURRY { $params.unshift($_) }
+                    for self.IMPL-UNCURRY { $params.unshift($_) }
                 }
             }
             self.IMPL-CURRY($resolver, $context, '');

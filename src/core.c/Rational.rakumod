@@ -63,6 +63,10 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         )
     }
 
+    multi method raku(Rational:D: --> Str:D) {
+        "Rational.new($!numerator, $!denominator)"
+    }
+
     method nude() { $!numerator, $!denominator }
 
     method Num(Rational:D: --> Num:D) {

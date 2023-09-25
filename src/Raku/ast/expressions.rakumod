@@ -1234,11 +1234,7 @@ class RakuAST::ApplyInfix
         if nqp::bitand_i($CURRIES, 2) && (my $curried := $left.IMPL-CURRIED) {
             my $params := $left.IMPL-UNCURRY;
             if self.IMPL-CURRIED {
-                if nqp::istype($left, RakuAST::ApplyInfix) && $left.infix.properties.precedence gt $infix-precedence {
-                    for self.IMPL-UNCURRY { $params.unshift($_) }
-                } else {
-                    for self.IMPL-UNCURRY { $params.push($_) }
-                }
+                for self.IMPL-UNCURRY { $params.push($_) }
             }
             self.IMPL-CURRY($resolver, $context, '') unless self.IMPL-CURRIED;
             $curried := self.IMPL-CURRIED;

@@ -1612,15 +1612,16 @@ class RakuAST::ApplyPrefix
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::bitand_i($!prefix.IMPL-CURRIES, 1) {
             if nqp::istype($!operand, RakuAST::Term::Whatever) {
-                nqp::bindattr(self, RakuAST::ApplyPrefix, '$!operand', RakuAST::Var::Lexical.new('$_'));
-                self.IMPL-CURRY($resolver, $context, '$_');
-                $!operand.resolve-with($resolver);
+                my $param := self.IMPL-CURRY(
+                    $resolver, $context, QAST::Node.unique('$whatevercode_arg')
+                ).IMPL-LAST-PARAM;
+                nqp::bindattr(self, RakuAST::ApplyPrefix, '$!operand', $param.target.generate-lookup);
             }
         }
         if nqp::bitand_i($!prefix.IMPL-CURRIES, 2) {
             if $!operand.IMPL-CURRIED {
                 my @params := $!operand.IMPL-UNCURRY;
-                my $curried := self.IMPL-CURRY($resolver, $context, @params.shift.target.lexical-name);
+                my $curried := self.IMPL-CURRY($resolver, $context, '');
                 for @params {
                     $curried.IMPL-ADD-PARAM($_.target.lexical-name);
                     $curried.IMPL-CHECK($resolver, $context, True);

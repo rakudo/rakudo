@@ -1610,17 +1610,33 @@ class RakuAST::ApplyPrefix
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if nqp::bitand_i($!prefix.IMPL-CURRIES, 1) {
-            if nqp::istype($!operand, RakuAST::Term::Whatever) {
+        my $prefix  := $!prefix;
+        my $operand := $!operand;
+        if nqp::bitand_i($prefix.IMPL-CURRIES, 1) {
+            if nqp::istype($operand, RakuAST::Term::Whatever) {
                 my $param := self.IMPL-CURRY(
                     $resolver, $context, QAST::Node.unique('$whatevercode_arg')
                 ).IMPL-LAST-PARAM;
                 nqp::bindattr(self, RakuAST::ApplyPrefix, '$!operand', $param.target.generate-lookup);
             }
         }
-        if nqp::bitand_i($!prefix.IMPL-CURRIES, 2) {
-            if $!operand.IMPL-CURRIED {
-                my @params := $!operand.IMPL-UNCURRY;
+        if nqp::bitand_i($prefix.IMPL-CURRIES, 2) {
+            if $operand.IMPL-CURRIED {
+                my @params := $operand.IMPL-UNCURRY;
+                my $curried := self.IMPL-CURRY($resolver, $context, '');
+                for @params {
+                    $curried.IMPL-ADD-PARAM($_.target.lexical-name);
+                    $curried.IMPL-CHECK($resolver, $context, True);
+                }
+            }
+            elsif nqp::istype($operand, RakuAST::Circumfix::Parentheses)
+                    && (my $statement-expression := $operand.semilist.statements.AT-POS(0))
+                    && nqp::istype($statement-expression, RakuAST::Statement::Expression)
+                    && (my $expression := $statement-expression.expression)
+                    && nqp::istype($expression, RakuAST::ApplyInfix)
+                    && $expression.IMPL-CURRIED
+            {
+                my @params := $expression.IMPL-UNCURRY;
                 my $curried := self.IMPL-CURRY($resolver, $context, '');
                 for @params {
                     $curried.IMPL-ADD-PARAM($_.target.lexical-name);

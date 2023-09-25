@@ -221,6 +221,10 @@ augment class RakuAST::Node {
               my $separator := self.separator;
               :$separator if $separator
           },
+          'sigil', -> {
+              my $sigil := self.sigil;
+              :$sigil if $sigil
+          },
           'signature', -> {
               my $signature := self.signature;
               :$signature

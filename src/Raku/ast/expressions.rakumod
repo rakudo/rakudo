@@ -1216,8 +1216,7 @@ class RakuAST::ApplyInfix
                 for "left", "right" {
                     my $operand := $child."$_"();
                     next unless nqp::istype($operand, RakuAST::Term::Whatever);
-                    my $param-name := QAST::Node.unique('$whatevercode_arg');
-                    my $param := $curried.IMPL-ADD-PARAM($param-name);
+                    my $param := $curried.IMPL-ADD-PARAM(QAST::Node.unique('$whatevercode_arg'));
                     $curried.IMPL-CHECK($resolver, $context, True);
                     $child."set-$_"($param.target.generate-lookup);
                 }
@@ -2082,8 +2081,9 @@ class RakuAST::ApplyPostfix
             if nqp::istype($!operand, RakuAST::Term::Whatever)
                 || (nqp::istype($!postfix, RakuAST::ApplyPostfix) && nqp::istype($!postfix.operand, RakuAST::Term::Whatever))
             {
-                my $whatever-name := QAST::Node.unique('$whatevercode_arg');
-                my $param := self.IMPL-CURRY($resolver, $context, $whatever-name).IMPL-LAST-PARAM;
+                my $param := self.IMPL-CURRY(
+                    $resolver, $context, QAST::Node.unique('$whatevercode_arg')
+                ).IMPL-LAST-PARAM;
                 nqp::bindattr(self, RakuAST::ApplyPostfix, '$!operand', $param.target.generate-lookup);
             }
         }

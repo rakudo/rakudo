@@ -3214,6 +3214,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           # $<foo>
           | <sigil> <?[<]> <postcircumfix>
 
+          # 👍
+          | $<desigilname>=<.sigilless-variable>
+
           # obsolete Perl vars
           | <.special-variable>
 
@@ -3403,6 +3406,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    token sigilless-variable { <!> }
+
     token variable-declarator {
         :my $*IN-DECL := 'variable';
         :my $*VARIABLE;
@@ -3410,6 +3415,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <sigil> <twigil>? <desigilname>?
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
+        | $<desigilname>=<.sigilless-variable>
         # TODO error cases for when you declare something you're not allowed to
         ]
         {

@@ -1821,6 +1821,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         $<longname>=( $<name>=( <identifier>  ) )
     }
 
+    token sigilless-variable { <!> }
+
     token variable {
         :my $*IN_META := '';
         [
@@ -1833,6 +1835,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <sigil> <?[<]> <postcircumfix>                      [<?{ $*IN_DECL }> <.typed_panic('X::Syntax::Variable::Match')>]?
         | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <?{ !$*IN_DECL }> <contextualizer>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
+        | $<desigilname>=<.sigilless-variable>
         | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         [ <?{ $<twigil> && ( $<twigil> eq '.' || $<twigil> eq '.^' ) }>
@@ -2354,7 +2357,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         {
             $*VARIABLE := $<variable>.ast.name;
             $/.add_variable($*VARIABLE);
-            $sigil := $<variable><sigil>.Str;
+            $sigil := $<variable><sigil> ?? $<variable><sigil>.Str !! "";
             $*IN_DECL := '';
         }
         [

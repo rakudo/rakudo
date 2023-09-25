@@ -3415,7 +3415,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {
             $*IN-DECL := '';
             $*LEFTSIGIL := self.leading-char unless $*LEFTSIGIL;
-            $sigil := $<sigil>.Str;
+            $sigil := $<sigil> ?? $<sigil>.Str !! "";
         }
         [
             <.unspace>?

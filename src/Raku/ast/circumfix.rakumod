@@ -15,6 +15,32 @@ class RakuAST::Circumfix::Parentheses
         $obj
     }
 
+    # Generally needs to be called before children are visited, which is when the Apply*
+    # expressions implement their currying. After that happens, any RakuAST::Term::Whatever
+    # operands will have been converted to RakuAST::Var::Lexical. At that stage, the below
+    # IMPL-CURRIED-APPLY-INFIX is the appropriate check.
+    method IMPL-CONTAINS-CURRYABLE-APPLY-INFIX() {
+        nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
+            && (my $statement-expression := $!semilist.statements.AT-POS(0))
+            && nqp::istype($statement-expression, RakuAST::Statement::Expression)
+            && (my $expression := $statement-expression.expression)
+            && nqp::istype($expression, RakuAST::ApplyInfix)
+            && (nqp::istype($expression.left, RakuAST::Term::Whatever) || nqp::istype($expression.right, RakuAST::Term::Whatever))
+                ?? $expression
+                !! Nil
+    }
+
+    method IMPL-CURRIED-APPLY-INFIX() {
+        nqp::elems($!semilist.IMPL-UNWRAP-LIST($!semilist.statements)) == 1
+            && (my $statement-expression := $!semilist.statements.AT-POS(0))
+            && nqp::istype($statement-expression, RakuAST::Statement::Expression)
+            && (my $expression := $statement-expression.expression)
+            && nqp::istype($expression, RakuAST::ApplyInfix)
+            && $expression.IMPL-CURRIED
+                ?? $expression
+                !! Nil
+    }
+
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!semilist.IMPL-TO-QAST($context)
     }

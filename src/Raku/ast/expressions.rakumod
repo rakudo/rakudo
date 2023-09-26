@@ -1166,12 +1166,7 @@ class RakuAST::ApplyInfix
             #       - * f * f *
             # This check accounts for the former case. The latter case is already covered because the toplevel
             # ApplyInfix is directly whateverable.
-            return True if nqp::istype($_, RakuAST::Circumfix::Parentheses)
-                        && (my $statement-expression := $_.semilist.statements.AT-POS(0))
-                        && nqp::istype($statement-expression, RakuAST::Statement::Expression)
-                        && (my $expression := $statement-expression.expression)
-                        && nqp::istype($expression, RakuAST::ApplyInfix)
-                        && (nqp::istype($expression.left, RakuAST::Term::Whatever) || nqp::istype($expression.right, RakuAST::Term::Whatever))
+            return True if nqp::istype($_, RakuAST::Circumfix::Parentheses) && $_.IMPL-CONTAINS-CURRYABLE-APPLY-INFIX()
         }
         False
     }
@@ -1630,11 +1625,7 @@ class RakuAST::ApplyPrefix
                 }
             }
             elsif nqp::istype($operand, RakuAST::Circumfix::Parentheses)
-                    && (my $statement-expression := $operand.semilist.statements.AT-POS(0))
-                    && nqp::istype($statement-expression, RakuAST::Statement::Expression)
-                    && (my $expression := $statement-expression.expression)
-                    && nqp::istype($expression, RakuAST::ApplyInfix)
-                    && $expression.IMPL-CURRIED
+                && (my $expression := $operand.IMPL-CURRIED-APPLY-INFIX)
             {
                 my @params := $expression.IMPL-UNCURRY;
                 my $curried := self.IMPL-CURRY($resolver, $context, '');

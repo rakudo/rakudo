@@ -1778,13 +1778,13 @@ class RakuAST::Deparse {
         if $ast.WHY -> $WHY {
             @parts.push('{');
             @parts = self.add-any-docs(@parts.join(' '), $WHY);
+            @parts.push($*INDENT);
         }
         else {
             @parts.push('{ ');
             @parts = @parts.join(' ');
         }
 
-        @parts.push($*INDENT);
         @parts.push(self.deparse($ast.body));
         @parts.push('}');
         @parts.join

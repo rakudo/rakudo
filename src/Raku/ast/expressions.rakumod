@@ -814,6 +814,8 @@ class RakuAST::MetaInfix
              )
           !! True
     }
+
+    method IMPL-CURRIES { self.infix.IMPL-CURRIES }
 }
 
 # An assign meta-operator, operator on another infix.

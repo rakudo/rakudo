@@ -65,7 +65,10 @@ my class Backtrace::Frame {
           || $!file ~~ / "CORE." \w+ ".setting" $ /
 #?endif
 #?if !jvm
-          || $!file ~~ / "CORE." \w+ ".setting.{ Rakudo::Internals.PRECOMP-EXT }" $ /
+          || $!file ~~ / [ "CORE." \w+ ".setting"
+                           | "NQPCORE.setting"
+                           | "BOOTSTRAP/v6" \w ]
+                         ".{ Rakudo::Internals.PRECOMP-EXT }" $ /
 #?endif
           || $!file.ends-with(".nqp")
     }
@@ -171,9 +174,11 @@ my class Backtrace {
             next if $file.ends-with('BOOTSTRAP.nqp')
                  || $file.ends-with('QRegex.nqp')
                  || $file.ends-with('Perl6/Ops.nqp');
-            if $file.ends-with('NQPHLL.nqp')
+
+            my $name := nqp::p6box_s(nqp::getcodename($do));
+
+            if ($file.starts-with('NQP::') && $file.ends-with('Compiler.nqp') && $name eq 'eval')
                 || $file.ends-with('NQPHLL.moarvm')
-                || $file.starts-with('NQP::')
             {
                 # This could mean we're at the end of the interesting backtrace,
                 # or it could mean that we're in something like sprintf (which
@@ -195,7 +200,6 @@ my class Backtrace {
             my $line := $annotations<line>;
             next unless $line;
 
-            my $name := nqp::p6box_s(nqp::getcodename($do));
             if $name eq 'handle-begin-time-exceptions' {
                 $!bt-next = $elems;
                 last;

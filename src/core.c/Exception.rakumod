@@ -1822,8 +1822,16 @@ my class X::Syntax::Argument::MOPMacro does X::Syntax {
     method message() { "Cannot give arguments to $.macro" };
 }
 
-my class X::Role::Initialization is Exception {
+my class X::Role::Instantiation is Exception does X::Wrapper {
     has $.role;
+    method message() {
+        "Could not instantiate role '" ~ $!role.^name ~ "'"
+            ~ (self!is-raku-exception ?? " because it is died" ~ self!exception-name-message !! "")
+            ~ self!wrappee-message(:details)
+    }
+}
+
+my class X::Role::Initialization is Exception {
     method message() { "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '{$.role.^name}'" }
 }
 

@@ -1018,6 +1018,16 @@ my class X::Coerce::Impossible is X::Coerce {
     }
 }
 
+my class X::Coerce::Role is X::Coerce does X::Wrapper {
+    method message() {
+        "Coercion " ~ callsame()
+            ~ " died"
+            ~ self!exception-name-message
+            ~ " while trying to pun the target role"
+            ~ self!wrappee-message(:details)
+    }
+}
+
 # XXX a hack for getting line numbers from exceptions from the metamodel
 my class X::Comp::AdHoc is X::AdHoc does X::Comp {
     method is-compile-time(--> True) { }

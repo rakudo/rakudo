@@ -29,6 +29,12 @@ role Raku::Common {
         <.panic: "Internal error: O() should not be used anymore">
     }
 
+    # The alternatives for fat arrows
+    token fatty { \h* [ '=>' | '⇒' ] }
+
+    # The current language revision (1 = 6.c, 2 = 6.d, 3 = 6.e)
+    method language-revision() { nqp::getcomp('Raku').language_revision }
+
     # Helper method for chars of match
     method leading-char()   { nqp::substr(self.orig, self.from,     1) }
     method preceding-char() { nqp::substr(self.orig, self.from - 1, 1) }
@@ -199,7 +205,7 @@ role Raku::Common {
         for @extra_tweaks {
             my $t := $_[0];
             if $t eq 'o' || $t eq 'format' {
-                unless nqp::getcomp('Raku').language_revision >= 3 {
+                unless self.language-revision >= 3 {
                     self.panic("Unrecognized adverb: :$t");
                 }
             }
@@ -1332,7 +1338,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <.typed-panic: 'X::Syntax::P5'>
         ]?
         [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
-          <.obs('C-style "for (;;)" loop', '"loop (;;)"')>
+          <.obs: 'C-style "for (;;)" loop', '"loop (;;)"'>
         ]?
     }
 
@@ -1371,10 +1377,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement-control:sym<whenever> {
         <.block-whenever><.kok>
         [
-          || <?{
-                   nqp::getcomp('Raku').language_revision == 1
-                     || $*WHENEVER-COUNT >= 0
-             }>
+          || <?{ self.language-revision == 1 || $*WHENEVER-COUNT >= 0 }>
           || <.typed-panic: 'X::Comp::WheneverOutOfScope'>
         ]
         { $*WHENEVER-COUNT++ }
@@ -2245,9 +2248,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $<sym>=[ '->' | '→' ]
         [
           | ['[' | '{' | '(' ]
-            <.obs('->(), ->{} or ->[] as postfix dereferencer', '.(), .[] or .{} to deref, or whitespace to delimit a pointy block')>
+            <.obs: '->(), ->{} or ->[] as postfix dereferencer',
+              '.(), .[] or .{} to deref, or whitespace to delimit a pointy block'>
 
-          | <.obs('-> as postfix', 'either . to call a method, or whitespace to delimit a pointy block')>
+          | <.obs: '-> as postfix',
+              'either . to call a method, or whitespace to delimit a pointy block'>
         ]
     }
 
@@ -2647,11 +2652,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         '<' ~ '>'
         [
           [ <?before 'STDIN>'>
-            <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')>
+            <.obs: '<STDIN>',
+              '$*IN.lines (or add whitespace to suppress warning)'>
           ]?
 
           [ <?[>]>
-            <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')>
+            <.obs: '<>',
+              'lines() to read input, (\'\') to represent a null string or () to represent an empty list'>
           ]?
 
           <nibble(self.quote-qw)>
@@ -2677,6 +2684,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*MULTINESS := "";
         :my $*OFTYPE;
         :my $*VAR;
+
         :dba('term')
         # TODO try to use $/ for lookback to check for erroneous
         #      use of pod6 trailing declarator block, e.g.:
@@ -2688,30 +2696,48 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         #        #=(
         #
         [
-        ||  [
-            | <prefixish>+
-              [ || <term>
-                || {} <.panic("Prefix " ~ $<prefixish>[-1].Str
-                                        ~ " requires an argument, but no valid term found"
-                                        ~ ".\nDid you mean "
-                                        ~ $<prefixish>[-1].Str
-                                        ~ " to be an opening bracket for a declarator block?"
+          || [
+               | <prefixish>+
+                 [
+                   || <term>
+
+                   || {}
+                      <.panic("Prefix "
+                        ~ $<prefixish>[-1].Str
+                        ~ " requires an argument, but no valid term found"
+                        ~ ".\nDid you mean "
+                        ~ $<prefixish>[-1].Str
+                        ~ " to be an opening bracket for a declarator block?"
                       )>
-              ]
-            | <term>
-            ]
-        || <!{ $*QSIGIL }> <?before <infixish> {
-            $/.typed-panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
-        || <!>
+                 ]
+
+               | <term>
+             ]
+
+          || <!{ $*QSIGIL }>
+             <?before <infixish> {
+                 $/.typed-panic('X::Syntax::InfixInTermPosition',
+                   infix => ~$<infixish>
+                 );
+             }>
+
+          || <!>
         ]
+
         :dba('postfix')
         [
-        || <?{ $*QSIGIL }>
-            [
-            || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]**0..1
-            ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
-            ]
-        || <!{ $*QSIGIL }> <postfixish>*
+          || <?{ $*QSIGIL }>
+             [
+               || <?{ $*QSIGIL eq '$' }>
+                  [ <postfixish>+!
+                    <?{ bracket-ending($<postfixish>) }>
+                  ]**0..1
+
+               || <postfixish>+!
+                  <?{ bracket-ending($<postfixish>) }>
+             ]
+
+          || <!{ $*QSIGIL }> <postfixish>*
         ]
         {
             if $*VAR {
@@ -2721,21 +2747,27 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
     }
 
-    sub bracket_ending($matches) {
-        my $check     := $matches[+$matches - 1];
-        my str $str   := $check.Str;
-        my $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
-        $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>' || $last eq '»'
+    sub bracket-ending($matches) {
+        my $check    := $matches[+$matches - 1];
+        my str $str  := $check.Str;
+        my str $last := nqp::substr($str, nqp::chars($str) - 1, 1);
+        $last eq ')'
+          || $last eq '}'
+          || $last eq ']'
+          || $last eq '>'
+          || $last eq '»'
     }
 
     proto token term {*}
+
     token term:sym<circumfix> { <circumfix> }
+
     token term:sym<self> { <.term-self> <.end-keyword> }
     token term:sym<now>  { <.term-now>  <.end-keyword> }
     token term:sym<time> { <.term-time> <.end-keyword> }
 
     token term:sym<nano> {
-        <?{ (nqp::getcomp('Raku').language_revision >= 3)
+        <?{ self.language-revision >= 3
               || $*R.is-identifier-known('&term:<nano>')
         }>
         <.term-nano> <.end-keyword>
@@ -2743,17 +2775,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<empty_set> {
         "∅"
-        <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]>
+        <!before <.[ \( \\ ' \- ]> || <.fatty>>
     }
 
     token term:sym<rand> {
         <!{ $*LANG.pragma('p5isms') }>
-        <.term-rand> »
+        <.term-rand>
+        »
         [ <?before '('?  \h* [\d|'$']>
-          <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')>
+          <.obs: 'rand(N)', 'N.rand for Num or (^N).pick for Int result'>
         ]?
         [ <?before '()'>
-          <.obs('rand()', 'rand')>
+          <.obs: 'rand()', 'rand'>
         ]?
         <.end-keyword>
     }
@@ -2764,70 +2797,87 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <.worry("Comma found before apparent sequence operator; please remove comma (or put parens around the ... call, or use 'fail' instead of ...)")>
         ]?
         [ <?{ $*GOAL eq 'endargs' && !$*COMPILING_CORE_SETTING }>
-          <?after <.:L + [\]]>\h*<[ . … ]>+>
+          <?after <.:L + [\]]> \h* <[ . … ]>+>
           <.worry("Apparent sequence operator parsed as stubbed function argument; please supply any missing argument to the function or the sequence (or parenthesize the ... call, or use 'fail' instead of ...)")>
         ]?
         <args>
     }
+
     token term:sym<???> { <.sym> <args> }
     token term:sym<!!!> { <.sym> <args> }
 
     token term:sym<undef> {
         <!{ $*LANG.pragma('p5isms') }>
-        <.sym> »
+        <.sym>
+        »
         {}
         [ <?before \h*'$/' >
-            <.obs('$/ variable as input record separator',
-                 "the filehandle's .slurp method")>
+          <.obs: '$/ variable as input record separator', "the filehandle's .slurp method">
         ]?
         [ <?before [ '(' || \h*<.sigil><.twigil>?\w ] >
-            <.obs('undef as a verb', 'undefine() or assignment of Nil')>
+            <.obs: 'undef as a verb', 'undefine() or assignment of Nil'>
         ]?
-        <.obs('undef as a value', "something more specific:\n\tan undefined type object such as Any or Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absence of an expected value\n\tor fail() as a failure return\n\t   ")>
+        <.obs: 'undef as a value',
+          "something more specific:\n\tan undefined type object such as Any or Int,\n\t:!defined as a matcher,\n\tAny:U as a type constraint,\n\tNil as the absence of an expected value\n\tor fail() as a failure return\n\t   ">
     }
 
     token term:sym<new> {
         <!{ $*LANG.pragma('c++isms') }>
-        'new' \h+ <longname> \h* <![:]> <.obs("C++ constructor syntax", "method call syntax", :ism<c++isms>)>
+        'new'
+        \h+
+        <.longname>
+        \h*
+        <![:]>
+        <.obs: "C++ constructor syntax", "method call syntax", :ism<c++isms>>
     }
 
     token term:sym<fatarrow> {
-        <key=.identifier>
-        \h*
-        [ '=>' | '⇒' ]
-        <.ws>
-        <val=.EXPR('i<=')>
+        <key=.identifier> <.fatty> <.ws> <val=.EXPR('i<=')>
     }
 
-    token term:sym<colonpair>          { <colonpair> }
-    token term:sym<variable>           { <variable> { $*VAR := $<variable> unless $*VAR; } }
+    token term:sym<colonpair> { <colonpair> }
+
+    token term:sym<variable> {
+        <variable>
+        { $*VAR := $<variable> unless $*VAR }
+    }
+
     token term:sym<package-declarator> { <package-declarator> }
     token term:sym<scope-declarator>   { <scope-declarator> }
     token term:sym<routine-declarator> { <routine-declarator> }
+    token term:sym<regex-declarator>   { <regex-declarator> }
+    token term:sym<statement-prefix>   { <statement-prefix> }
+    token term:sym<type-declarator>    { <type-declarator> }
+
     token term:sym<multi-declarator>   {
         <?before <.multi-multi> | <.multi-proto> | <.multi-only>>
         <multi-declarator>
     }
-    token term:sym<regex-declarator>   { <regex-declarator> }
-    token term:sym<statement-prefix>   { <statement-prefix> }
-    token term:sym<*>                  { <sym> }
-    token term:sym<**>                 { <sym> }
-    token term:sym<lambda>             { <?pointy-block-starter> <pointy-block> {$*BORG<block> := $<pointy-block> } }
-    token term:sym<type-declarator>    { <type-declarator> }
-    token term:sym<value>              { <value> }
+
+    token term:sym<*>  { <.sym> }
+    token term:sym<**> { <.sym> }
+
+    token term:sym<lambda> {
+        <?pointy-block-starter>
+        <pointy-block>
+        {$*BORG<block> := $<pointy-block> }
+    }
+
+    token term:sym<value> { <value> }
 
     token term:sym<::?IDENT> {
         $<sym> = [ '::?' <identifier> ] »
     }
+
     token term:sym<p5end> {
         « __END__ »
-        <.obs('__END__ as end of code',
-          'the =finish pod marker and $=finish to read')>
+        <.obs: '__END__ as end of code',
+          'the =finish pod marker and $=finish to read'>
     }
     token term:sym<p5data> {
         « __DATA__ »
-        <.obs('__DATA__ as start of data',
-          'the =finish pod marker and $=finish to read')>
+        <.obs: '__DATA__ as start of data',
+          'the =finish pod marker and $=finish to read'>
     }
 
     token term:sym<identifier> {
@@ -2836,7 +2886,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?before <.unspace>? '('> | \\ <?before '('> ]
         <args(1)>
         {
-            if !$<args><invocant> {
+            unless $<args><invocant> {
                 if $*BORG<block> {
                     unless $*BORG<name> {
                         $*BORG<name> := ~$<identifier>;
@@ -2859,59 +2909,67 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <longname>
         :my $base-name;
         [
-        || <?{
-                $base-name := $<longname>.ast.without-colonpairs;
-                nqp::eqat($<longname>.Str, '::', 0) || $*R.is-name-known($base-name)
-            }>
-            { $*IS-TYPE := $*R.is-name-type($base-name) }
-            [
-                <?[[]>
-                <?{ $*IS-TYPE }>
-                :dba('type parameter')
-                '[' ~ ']' <arglist>
-            ]?
-            <.unspace>?
-            [
-                <?[{]>
-                <?{ $*IS-TYPE }>
-                <whence=.postcircumfix>
-                <.NYI: 'Autovivifying object closures'>
-            ]?
-            <.unspace>?
-            [
-                <?[(]>
-                <?{ $*IS-TYPE }>
-                '(' <.ws> [
-                    || <accept=.maybe-typename> <?{
-                           my $it := $<accept>.ast;
-                           nqp::istype($it,self.actions.r('Type','Coercion'))
-                             || $*R.is-name-type($it.name)
-                       }>
-                    || $<accept_any>=<?>
-                ] <.ws> ')'
-            ]?
-        || [ \\ <?before '('> ]? <args(1)>
-           {
-                my $name := ~$<longname>;
-                if !$<args><invocant> {
-                    if $*BORG<block> {
-                        unless $*BORG<name> {
-                            $*BORG<name> := $*BORG<name> // $name;
-                        }
-                    }
-                }
-                unless $*LANG.pragma('p5isms') {
-                    if $name eq 'say' || $name eq 'put' || $name eq 'print' {
-                        my $al := $<args><arglist>;
-                        my int $ok := 0;
-                        $ok := 1 unless $al<EXPR> eq '';
-                        $ok := 1 if $<args><semiarglist>;
-                        unless $ok {
-                            $<longname>.sorryobs("bare \"$name\"", ".$name if to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun");
-                        }
-                    }
-                }
-            }
+          || <?{
+                 $base-name := $<longname>.ast.without-colonpairs;
+                 nqp::eqat($<longname>.Str, '::', 0)
+                   || $*R.is-name-known($base-name)
+             }>
+             { $*IS-TYPE := $*R.is-name-type($base-name) }
+             [
+               <?[[]>
+               <?{ $*IS-TYPE }>
+               :dba('type parameter')
+               '[' ~ ']' <arglist>
+             ]?
+             <.unspace>?
+             [
+               <?[{]>
+               <?{ $*IS-TYPE }>
+               <whence=.postcircumfix>
+               <.NYI: 'Autovivifying object closures'>
+             ]?
+             <.unspace>?
+             [
+               <?[(]>
+               <?{ $*IS-TYPE }>
+               '('
+               <.ws>
+               [
+                 || <accept=.maybe-typename>
+                    <?{
+                        my $it := $<accept>.ast;
+                        nqp::istype($it,self.actions.r('Type','Coercion'))
+                          || $*R.is-name-type($it.name)
+                    }>
+                 || $<accept_any>=<?>
+               ]
+               <.ws>
+               ')'
+             ]?
+
+          || [ \\ <?before '('> ]?
+             <args(1)>
+             {
+                 my $name := ~$<longname>;
+                 unless $<args><invocant> {
+                     if $*BORG<block> {
+                         unless $*BORG<name> {
+                             $*BORG<name> := $*BORG<name> // $name;
+                         }
+                     }
+                 }
+                 unless $*LANG.pragma('p5isms') {
+                     if $name eq 'say' || $name eq 'put' || $name eq 'print' {
+                         my $al := $<args><arglist>;
+                         my int $ok := 0;
+                         $ok := 1 unless $al<EXPR> eq '';
+                         $ok := 1 if $<args><semiarglist>;
+                         unless $ok {
+                             $<longname>.sorryobs: "bare \"$name\"", ".$name if to call it as a method on \$_, or use an explicit invocant or argument, or use &$name to refer to the function as a noun";
+                         }
+                     }
+                 }
+             }
         ]
     }
 
@@ -2920,16 +2978,29 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<capture> {
         '\\'
         [
-        | '(' <args=.semiarglist> ')'
-        | <?before '$' | '@' | '%' | '&'> <.typed-worry('X::Worry::P5::Reference')> <args=.termish>
-        | <?before \d> <.typed-worry('X::Worry::P5::BackReference')> <args=.termish>
-        | <?before \S> <args=.termish>
-        | {} <.panic: "You can't backslash that">
+          | '('
+            <args=.semiarglist>
+            ')'
+
+          | <?before <.sigil>>
+            <.typed-worry: 'X::Worry::P5::Reference'>
+            <args=.termish>
+
+          | <?before \d>
+            <.typed-worry: 'X::Worry::P5::BackReference'>
+            <args=.termish>
+
+          | <?before \S>
+            <args=.termish>
+
+          | {}
+            <.panic: "You can't backslash that">
         ]
     }
 
     token term:sym<onlystar> {
-        '{*}' <?end-statement>
+        '{*}'
+        <?end-statement>
         # [ <?{ $*IN_PROTO }> || <.panic: '{*} may only appear in proto'> ]
     }
 
@@ -2943,7 +3014,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         '['
         [
           || <op=.infixish('red')> <?[\]]>
+
           || $<triangle>=[\\]<op=.infixish('tri')> <?[\]]>
+
           || <!>
         ]
         ']'
@@ -3035,133 +3108,135 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token special-variable:sym<$!{ }> {
         [ '$!{' .*? '}' | '%!' ]
-        <.obsvar('%!')>
+        <.obsvar: '%!'>
     }
 
     token special-variable:sym<$`> {
         <.sym>  <?before \s | ',' | <.terminator> >
-        <.obsvar('$`')>
+        <.obsvar: '$`'>
     }
 
     token special-variable:sym<$@> {
         <.sym> <[ \s ; , ) ]> .
-        <.obsvar('$@')>
+        <.obsvar: '$@'>
     }
 
     token special-variable:sym<$#> {
         <.sym> <identifier>
         {}
-        <.obsvar('$#', ~$<identifier>)>
+        <.obsvar: '$#', ~$<identifier>>
     }
 
     token special-variable:sym<$$> {
         <.sym> \W
-        <.obsvar('$$')>
+        <.obsvar: '$$'>
     }
 
     token special-variable:sym<$&> {
         <.sym> <?before \s | ',' | <.terminator> >
-        <.obsvar('$&')>
+        <.obsvar: '$&'>
     }
 
     token special-variable:sym<@+> {
         <.sym> <?before \s | ',' | <.terminator> >
-        <.obsvar('@+')>
+        <.obsvar: '@+'>
     }
 
     token special-variable:sym<%+> {
         <.sym> <?before \s | ',' | <.terminator> >
-        <.obsvar('%+')>
+        <.obsvar: '%+'>
     }
 
     token special-variable:sym<$+[ ]> {
         '$+['
-        <.obsvar('@+')>
+        <.obsvar: '@+'>
     }
 
     token special-variable:sym<@+[ ]> {
         '@+['
-        <.obsvar('@+')>
+        <.obsvar: '@+'>
     }
 
     token special-variable:sym<@+{ }> {
         '@+{'
-        <.obsvar('%+')>
+        <.obsvar: '%+'>
     }
 
     token special-variable:sym<@-> {
         <.sym> <?before \s | ',' | <.terminator> >
-        <.obsvar('@-')>
+        <.obsvar: '@-'>
     }
 
     token special-variable:sym<%-> {
         <.sym> <?before \s | ',' | <.terminator> >
-        <.obsvar('%-')>
+        <.obsvar: '%-'>
     }
 
     token special-variable:sym<$-[ ]> {
         '$-['
-        <.obsvar('@-')>
+        <.obsvar: '@-'>
     }
 
     token special-variable:sym<@-[ ]> {
         '@-['
-        <.obsvar('@-')>
+        <.obsvar: '@-'>
     }
 
     token special-variable:sym<%-{ }> {
         '@-{'
-        <.obsvar('%-')>
+        <.obsvar: '%-'>
     }
 
     token special-variable:sym<$/> {
-        <.sym> <?before \h* '=' \h* <.[ ' " ]> >
-        <.obsvar('$/')>
+        <.sym>
+        <?before \h* '=' \h* <.[ ' " ]> >
+        <.obsvar: '$/'>
     }
 
     token special-variable:sym<$\\> {
-        '$\\' <?before \s | ',' | '=' | <.terminator> >
-        <.obsvar('$\\')>
+        '$\\'
+        <?before \s | ',' | '=' | <.terminator> >
+        <.obsvar: '$\\'>
     }
 
     token special-variable:sym<$|> {
         <.sym> <?before \h* '='>
-        <.obsvar('$|')>
+        <.obsvar: '$|'>
     }
 
     token special-variable:sym<$;> {
         <.sym> <?before \h* '='>
-        <.obsvar('$;')>
+        <.obsvar: '$;'>
     }
 
     token special-variable:sym<$'> { #'
         <.sym> <?before \s | ',' | <.terminator> >
-        <.obsvar('$' ~ "'")>
+        <.obsvar: '$' ~ "'">
     }
 
     token special-variable:sym<$"> {
         <.sym> <?before \h* '='>
-        <.obsvar('$"')>
+        <.obsvar: '$"'>
     }
 
     token special-variable:sym<$,> {
         <.sym> <?before \h* '='>
-        <.obsvar('$,')>
+        <.obsvar: '$,'>
     }
 
     token special-variable:sym<$.> {
         <.sym> {} <!before \w | '(' | ':' | '^' >
-        <.obsvar('$.')>
+        <.obsvar: '$.'>
     }
 
     token special-variable:sym<$?> {
         <.sym> {} <!before \w | '('>
-        <.obsvar('$?')>
+        <.obsvar: '$?'>
     }
 
     token special-variable:sym<$]> {
         <.sym> {} <!before \w | '('>
-        <.obsvar('$]')>
+        <.obsvar: '$]'>
     }
 
     regex special-variable:sym<${ }> {
@@ -3185,13 +3260,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 False;  # not likely a P5ism
             }
             elsif !($text ~~ /^(\w|\:)+$/) {
-                $/.obs($bad, "$sigil\($text) for hard ref or $sigil\::($text) for symbolic ref");
+                $/.obs: $bad,
+                  "$sigil\($text) for hard ref or $sigil\::($text) for symbolic ref";
             }
             elsif $*QSIGIL {
-                $/.obs($bad, '{' ~ $sigil ~ $text ~ '}');
+                $/.obs: $bad, '{' ~ $sigil ~ $text ~ '}';
             }
             else {
-                $/.obs($bad, $sigil ~ $text);
+                $/.obs: $bad, $sigil ~ $text;
             }
         }>
     }
@@ -4038,7 +4114,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $start <left=.nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop) } ]
         [ <?{ $start ne $stop }>
             <.ws>
-            [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
+            [ <?[ \[ \{ \( \< ]> <.obs: 'brackets around replacement', 'assignment syntax'> ]?
             [ <infixish> || <.missing: "assignment operator"> ]
             [ <?{ $<infixish>.Str eq '=' || $<infixish><infix-postfix-meta-operator> }> || <.malformed: "assignment operator"> ]
             <.ws>
@@ -4053,7 +4129,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         (<[ i g s m x c e ]>)
         {
             my $m := $/[0].Str;
-            $/.obs("/$m", $m eq 'i'
+            $/.obs: "/$m", $m eq 'i'
               ?? ':i'
               !! $m eq 'g'
                 ?? ':g'
@@ -4066,7 +4142,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                       !! $m eq 'c'
                         ?? ':c or :p'
                         !! 'interpolated {...} or s{} = ... form'  # $m eq 'e'
-            );
+            ;
         }
     }
 
@@ -4074,7 +4150,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.sym>
         {}
         <.qok($/)>
-        <.obs('qr for regex quoting', 'rx//')>
+        <.obs: 'qr for regex quoting', 'rx//'>
     }
 
     token rx-adverbs() {
@@ -4408,7 +4484,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token end-keyword {
         »
-        <!before <.[ \( \\ ' \- ]> || \h* [ '=>' | '⇒' ]>
+        <!before <.[ \( \\ ' \- ]> || <.fatty>>
     }
 
     token end-prefix {
@@ -4552,7 +4628,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
               || nqp::iseq_s($subname, "$category:sym<$opname>")
-                   && $*HLL-COMPILER.language_revision < 2;
+                   && self.language-revision < 2;
 
             self.typed-panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')
@@ -5068,7 +5144,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
             <.sym> <charspec>
         }
         token backslash:sym<N> {
-            <?before 'N{'<.[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>
+            <?before 'N{'<.[A..Z]>> <.obs: '\N{CHARNAME}','\c[CHARNAME]'>
         }
         token backslash:sym<o> {
             :dba('octal character')

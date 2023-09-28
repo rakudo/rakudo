@@ -5595,38 +5595,38 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
 
 grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
     method throw_unrecognized_metachar ($metachar) {
-        self.typed-sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
+        self.typed-sorry: 'X::Syntax::Regex::UnrecognizedMetachar', :$metachar;
     }
     method throw_null_pattern() {
-        self.typed-sorry('X::Syntax::Regex::NullRegex');
+        self.typed-sorry: 'X::Syntax::Regex::NullRegex';
     }
     method throw_unrecognized_regex_modifier($modifier) {
-        self.typed-panic('X::Syntax::Regex::UnrecognizedModifier', :$modifier);
+        self.typed-panic: 'X::Syntax::Regex::UnrecognizedModifier', :$modifier;
     }
 
     method throw_malformed_range() {
-        self.typed-sorry('X::Syntax::Regex::MalformedRange');
+        self.typed-sorry: 'X::Syntax::Regex::MalformedRange';
     }
     method throw_confused() {
-        self.typed-sorry('X::Syntax::Confused');
+        self.typed-sorry: 'X::Syntax::Confused';
     }
     method throw_unspace($char) {
-        self.typed-sorry('X::Syntax::Regex::Unspace', :$char);
+        self.typed-sorry: 'X::Syntax::Regex::Unspace', :$char;
     }
     method throw_regex_not_terminated() {
-        self.typed-sorry('X::Syntax::Regex::Unterminated');
+        self.typed-sorry: 'X::Syntax::Regex::Unterminated';
     }
     method throw_spaces_in_bare_range() {
-        self.typed-sorry('X::Syntax::Regex::SpacesInBareRange');
+        self.typed-sorry: 'X::Syntax::Regex::SpacesInBareRange';
     }
     method throw_non_quantifiable() {
-        self.typed-sorry('X::Syntax::Regex::NonQuantifiable');
+        self.typed-sorry: 'X::Syntax::Regex::NonQuantifiable';
     }
     method throw_solitary_quantifier() {
-        self.typed-panic('X::Syntax::Regex::SolitaryQuantifier');
+        self.typed-panic: 'X::Syntax::Regex::SolitaryQuantifier';
     }
     method throw_solitary_backtrack_control() {
-        self.typed-sorry('X::Syntax::Regex::SolitaryBacktrackControl');
+        self.typed-sorry: 'X::Syntax::Regex::SolitaryBacktrackControl';
     }
 
     token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
@@ -5661,69 +5661,93 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
 
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
-        '<' <nibble(self.quote-lang(self.Quote, "<", ">", ['q', 'w']))> '>'
+        '<'
+        <nibble(self.quote-lang(self.Quote, "<", ">", ['q', 'w']))>
+        '>'
         <.SIGOK>
     }
 
-    token metachar:sym<'> { <?[ ' " ‘ ‚ ’ “ „ ” ｢ ]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
+    token metachar:sym<'> {
+        <?[ ' " ‘ ‚ ’ “ „ ” ｢ ]>
+        <quote=.LANG('MAIN','quote')>
+        <.SIGOK>
+    }
 
-    token metachar:sym<{}> { \\<[xo]>'{' <.obsbrace> }
+    token metachar:sym<{}> {
+        \\<[xo]>'{'
+        <.obsbrace>
+    }
 
     token backslash:sym<1> {
         <.[\d] - [0]>\d*
         {}
         :my int $br := nqp::radix(10, $/, 0, 0)[0];
-        <.typed-panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$/), :suggestion('$' ~ ($/ - 1))>
+        <.typed-panic: 'X::Backslash::UnrecognizedSequence',
+          :sequence(~$/),
+          :suggestion('$' ~ ($/ - 1))
+        >
     }
 
     token assertion:sym<name> {
         <longname=.LANG('MAIN','longname')>
-            [
-            | <?[>]>
-            | '=' <assertion>
-            | ':' <arglist>
-            | '(' <arglist> ')'
-            | <.normspace> <nibbler>
-            ]?
+        [
+          | <?[>]>
+
+          | '=' <assertion>
+
+          | ':' <arglist>
+
+          | '(' <arglist> ')'
+
+          | <.normspace>
+              <nibbler>
+        ]?
     }
 
-    token assertion:sym<{ }> {
-        <?[{]> <codeblock>
-    }
-
-    token assertion:sym<?{ }> {
-        '?' <?before '{'> <codeblock>
-    }
-
-    token assertion:sym<!{ }> {
-        '!' <?before '{'> <codeblock>
-    }
+    token assertion:sym<{ }>  {     <?before '{'> <codeblock> }
+    token assertion:sym<?{ }> { '?' <?before '{'> <codeblock> }
+    token assertion:sym<!{ }> { '!' <?before '{'> <codeblock> }
 
     token assertion:sym<var> {
         [
-        | <?[&]> <!RESTRICTED> <call=.LANG('MAIN', 'term:sym<variable>')>
+          | <?[&]>
+            <!RESTRICTED>
+            <call=.LANG('MAIN', 'term:sym<variable>')>
             [
-            | ':' <arglist>
-            | '(' <arglist> ')'
+              | ':' <arglist>
+
+              | '(' <arglist> ')'
             ]?
-        | <?sigil> <!RESTRICTED> <var=.LANG('MAIN', 'term:sym<variable>')>
+
+          | <?sigil>
+            <!RESTRICTED>
+            <var=.LANG('MAIN', 'term:sym<variable>')>
         ]
     }
 
     token atom {
         # :dba('regex atom')
         [
-        | \w
-          [ <?before ' ' \w <!before <.quantifier>>  > <!{ $*WHITESPACE_OK }> <.typed-worry('X::Syntax::Regex::InsignificantWhitespace')> ]?
+          | \w
+          [ <?before ' ' \w <!before <.quantifier> > >
+            <!{ $*WHITESPACE_OK }>
+            <.typed-worry: 'X::Syntax::Regex::InsignificantWhitespace'>
+          ]?
           <.SIGOK>
-        | <metachar>
+
+          | <metachar>
         ]
     }
 
     token assertion:sym<~~> {
         <.sym>
         <!RESTRICTED>
-        [ <?[>]> | $<num>=[\d+] | <desigilname=.LANG('MAIN','desigilname')> ]
+        [    <?[>]>
+
+          | $<num>=[\d+]
+
+          | <desigilname=.LANG('MAIN','desigilname')>
+        ]
     }
 
     token codeblock {

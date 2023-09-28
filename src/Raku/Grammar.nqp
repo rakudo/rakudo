@@ -3316,8 +3316,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('contextualizer')
         [ <?{ $*IN-DECL }> <.panic: "Cannot declare a contextualizer"> ]?
         [
-        | <sigil> '(' ~ ')'    <coercee=sequence>
-        | <sigil> <?[ \[ \{ ]> <coercee=circumfix>
+          | <sigil> '(' ~ ')'    <coercee=sequence>
+
+          | <sigil> <?[ \[ \{ ]> <coercee=circumfix>
         ]
     }
 
@@ -3354,25 +3355,27 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!!{ $/.clone_braid_from(self) }>
         <longname>? {}
         [ :dba('generic role')
-            <?{ ($*PKGDECL // '') eq 'role' }>
-            '[' ~ ']' <signature(:DECLARE-TARGETS(0))>
-            { $*IN-DECL := ''; }
+          <?{ ($*PKGDECL // '') eq 'role' }>
+          '[' ~ ']' <signature(:DECLARE-TARGETS(0))>
+          { $*IN-DECL := ''; }
         ]?
         <.stub-package($<longname>)>
-       { $/.set_package($*PACKAGE) }
+        { $/.set_package($*PACKAGE) }
         :my $*ALSO-TARGET := $*PACKAGE;
         <trait($*PACKAGE)>*
         <.enter-package-scope($<signature>)>
         [
-        || <?[{]> { $*START-OF-COMPUNIT := 0; } <block>
-        || ';'
-            [
-            || <?{ $*START-OF-COMPUNIT }>
-                { $*START-OF-COMPUNIT := 0; }
-                <unit-block($*PKGDECL)>
-            || { $/.typed-panic("X::UnitScope::TooLate", what => $*PKGDECL); }
-            ]
-        || <.panic("Unable to parse $*PKGDECL definition")>
+          || <?[{]> { $*START-OF-COMPUNIT := 0; } <block>
+          || ';'
+             [
+               || <?{ $*START-OF-COMPUNIT }>
+                  { $*START-OF-COMPUNIT := 0; }
+                  <unit-block($*PKGDECL)>
+
+               || { $/.typed-panic: "X::UnitScope::TooLate", what => $*PKGDECL }
+             ]
+
+          || <.panic("Unable to parse $*PKGDECL definition")>
         ]
         <.leave-block-scope>
         <.leave-package-scope>
@@ -3629,19 +3632,26 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('my')>?
         {
-            if $<deflongname> && $<deflongname><colonpair>[0]<coloncircumfix> -> $cf {
+            my $deflongname := $<deflongname>;
+            if $deflongname && $deflongname<colonpair>[0]<coloncircumfix> -> $cf {
                 # It's an (potentially new) operator, circumfix, etc. that we
                 # need to tweak into the grammar.
-                my $category := $<deflongname><name>.Str;
+                my $name     := $deflongname<name>;
+                my $category := $name.Str;
 
-                my $opname := $cf<circumfix>
-                    ?? $cf<circumfix><nibble>
-                        ?? $cf<circumfix><nibble>.ast.literal-value // ~$cf<circumfix><nibble>
-                        !! $cf<circumfix><semilist>
-                    !! '';
-                my $canname := $category ~ ':sym' ~ self.actions.r('ColonPairish').IMPL-QUOTE-VALUE($opname.Str);
+                my $opname := '';
+                if $cf<circumfix> -> $ccf {
+                    $opname := (my $nibble := $ccf<nibble>)
+                      ?? $nibble.ast.literal-value // ~$nibble
+                      !! $ccf<semilist>;
+                }
+                my $canname := $category
+                  ~ ':sym'
+                  ~ self.actions.r('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
 
-                $/.add-categorical($category, $opname, $canname, $<deflongname><name>.ast.canonicalize, $*BLOCK);
+                $/.add-categorical(
+                  $category, $opname, $canname, $name.ast.canonicalize, $*BLOCK
+                );
             }
         }
         [ '(' <signature> ')' ]?
@@ -3649,29 +3659,33 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait($*BLOCK)>* :!s
         { $*IN-DECL := ''; }
         [
-        || ';'
-            {
-                if $<deflongname> ne 'MAIN' {
-                    $/.typed-panic("X::UnitScope::Invalid", what => "sub",
-                        where => "except on a MAIN sub", suggestion =>
-                        'Please use the block form. If you did not mean to '
-                        ~ "declare a unit-scoped sub,\nperhaps you accidentally "
-                        ~ "placed a semicolon after routine's definition?"
-                    );
-                }
-                unless $*START-OF-COMPUNIT {
-                    $/.typed-panic("X::UnitScope::TooLate", what => "sub");
-                }
-                unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
-                    $/.typed-panic("X::UnitScope::Invalid", what => "sub", where => "on a $*MULTINESS sub");
-                }
-                unless $*R.outer-scope =:= $*UNIT {
-                    $/.typed-panic("X::UnitScope::Invalid", what => "sub", where => "in a subscope");
-                }
-                $*START-OF-COMPUNIT := 0;
-            }
-        || <onlystar>
-        || <blockoid>
+          || ';'
+             {
+                 if $<deflongname> ne 'MAIN' {
+                     $/.typed-panic: "X::UnitScope::Invalid",
+                        what       => "sub",
+                        where      => "except on a MAIN sub",
+                        suggestion => "Please use the block form. If you did not mean to declare a unit-scoped sub,\nperhaps you accidentally placed a semicolon after routine's definition?";
+                 }
+                 unless $*START-OF-COMPUNIT {
+                     $/.typed-panic: "X::UnitScope::TooLate", what => "sub";
+                 }
+                 unless $*MULTINESS eq '' || $*MULTINESS eq 'only' {
+                     $/.typed-panic: "X::UnitScope::Invalid",
+                       what  => "sub",
+                       where => "on a $*MULTINESS sub";
+                 }
+                 unless $*R.outer-scope =:= $*UNIT {
+                     $/.typed-panic: "X::UnitScope::Invalid",
+                       what  => "sub",
+                       where => "in a subscope";
+                 }
+                 $*START-OF-COMPUNIT := 0;
+             }
+
+          || <onlystar>
+
+          || <blockoid>
         ]
         <.leave-block-scope>
     }
@@ -3686,8 +3700,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <trait($*BLOCK)>* :!s
         { $*IN-DECL := ''; }
         [
-        || <onlystar>
-        || <blockoid>
+          || <onlystar>
+          || <blockoid>
         ]
         <.leave-block-scope>
     }
@@ -3740,8 +3754,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <trait($*BLOCK)>*
           '{'
           [
-#          | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
-          | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
+#            | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
+            | <nibble(self.quote-lang(self.Regex(%*RX<P5>), '{', '}'))>
           ]
           '}'<!RESTRICTED><?end-statement>
           <.leave-block-scope>
@@ -3803,8 +3817,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             { $*IN-DECL := '' }
             <trait>*
             [ <.constraint-where> <EXPR('e=')> ]?
-          ]
-          || <.malformed: 'subset'>
+          ] || <.malformed: 'subset'>
         ]
     }
 
@@ -3866,15 +3879,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token numish {
         [
-        | 'NaN' »
-        | <integer>
-        | <decimal-number>
-        | <radix-number>
-        | <rational-number>
-        | <complex-number>
-        | 'Inf' »
-        | $<uinf>='∞'
-        | <unum=:No+:Nl>
+          | 'NaN' »
+          | <integer>
+          | <decimal-number>
+          | <radix-number>
+          | <rational-number>
+          | <complex-number>
+          | 'Inf' »
+          | $<uinf>='∞'
+          | <unum=:No+:Nl>
         ]
     }
 
@@ -3924,9 +3937,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token decimal-number {
         :dba('decimal number')
         [
-        | $<coeff> = [               '.' <frac=.decint> ] <escale>?
-        | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
-        | $<coeff> = [ <int=.decint>                    ] <escale>
+          | $<coeff> = [               '.' <frac=.decint> ] <escale>?
+          | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
+          | $<coeff> = [ <int=.decint>                    ] <escale>
         ]
     }
 
@@ -3942,15 +3955,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $rad_digit  := token rad_digit  { \d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]> };
         :my $rad_digits := token rad_digits { <rad_digit>+ [ _ <rad_digit>+ ]* };
         [
-        || '<'
-                $<ohradix>  = [ '0x' <?{ $r < 34 }> | '0o' <?{ $r < 25 }> | '0d' <?{ $r < 14 }> | '0b' <?{ $r < 12 }> ]**0..1
-                $<intpart>  = <rad_digits>
-                $<fracpart> = [ '.' <rad_digits> ]**0..1
-                [ '*' <base=.integer> '**' <exp=.integer> ]**0..1
-           '>'
-        || <?[[]> <bracket=circumfix>
-        || <?[(]> <circumfix>
-        || <.malformed: 'radix number'>
+          || '<'
+             $<ohradix>=[
+                 '0x' <?{ $r < 34 }>
+               | '0o' <?{ $r < 25 }>
+               | '0d' <?{ $r < 14 }>
+               | '0b' <?{ $r < 12 }>
+             ]**0..1
+             $<intpart>  = <rad_digits>
+             $<fracpart> = [ '.' <rad_digits> ]**0..1
+             [ '*' <base=.integer> '**' <exp=.integer> ]**0..1
+             '>'
+
+          || <?[[]> <bracket=circumfix>
+
+          || <?[(]> <circumfix>
+
+          || <.malformed: 'radix number'>
         ]
     }
 
@@ -4143,19 +4164,35 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $stop;
 
         <babble($l)>
-        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+        { 
+            my $B  := $<babble><B>.ast;
+            $lang  := $B[0];
+            $start := $B[1];
+            $stop  := $B[2];
+        }
 
-        $start <left=.nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop) } ]
+        $start
+        <left=.nibble($lang)>
+        [ $stop || { self.fail-terminator: $/, $start, $stop } ]
         [ <?{ $start ne $stop }>
-            <.ws>
-            [ <?[ \[ \{ \( \< ]> <.obs: 'brackets around replacement', 'assignment syntax'> ]?
-            [ <infixish> || <.missing: "assignment operator"> ]
-            [ <?{ $<infixish>.Str eq '=' || $<infixish><infix-postfix-meta-operator> }> || <.malformed: "assignment operator"> ]
-            <.ws>
-            [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
-        ||
-            { $lang := self.quote-lang($lang2, $stop, $stop, @lang2tweaks); }
-            <right=.nibble($lang)> $stop || <.malformed: "Replacement part; couldn't find final $stop">
+          <.ws>
+          [ <?[ \[ \{ \( \< ]>
+            <.obs: 'brackets around replacement', 'assignment syntax'>
+          ]?
+          [ <infixish> || <.missing: "assignment operator"> ]
+          [ <?{
+                $<infixish>.Str eq '='
+                  || $<infixish><infix-postfix-meta-operator>
+            }> || <.malformed: "assignment operator">
+          ]
+          <.ws>
+          [ <right=.EXPR('i')>
+              || <.panic: "Assignment operator missing its expression">
+          ] || {
+                $lang := self.quote-lang($lang2, $stop, $stop, @lang2tweaks)
+            }
+            <right=.nibble($lang)>
+            $stop || <.malformed: "Replacement part; couldn't find final $stop">
         ]
     }
 
@@ -4225,41 +4262,47 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token typename {
         [
-        | # parse ::?CLASS as special case
-          '::?'<identifier> <colonpair>*
-        |
-          :my $*IN-TYPENAME := 1;
-          <longname>
-          <?{
-            # ::T introduces a type, so always is one
-            nqp::eqat(~$<longname>, '::', 0) || $*R.is-name-known($<longname>.ast.without-colonpairs)
-          }>
+          # parse ::?CLASS as special case
+          | '::?'<identifier> <colonpair>*
+
+          | :my $*IN-TYPENAME := 1;
+            <longname>
+            <?{
+                 # ::T introduces a type, so always is one
+                 nqp::eqat(~$<longname>, '::', 0)
+                   || $*R.is-name-known($<longname>.ast.without-colonpairs)
+            }>
         ]
         # parametric/coercion type?
-        <.unspace>? [
-            <?[[]>
-            '[' ~ ']' <arglist>
+        <.unspace>?
+        [ <?[[]> '[' ~ ']' <arglist> ]?
+        <.unspace>?
+        [ <?before '{'>
+          <.NYI: 'Autovivifying object closures'>
+          <whence=.postcircumfix>
         ]?
-        <.unspace>? [ <?before '{'> <.NYI: 'Autovivifying object closures'>
-        <whence=.postcircumfix> ]?
-        <.unspace>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
-        [<.ws> 'of' <.ws> <typename> ]?
+        <.unspace>?
+        [ <?[(]>
+          '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>]
+        ]?
+        [<.ws> <.trait-of> <.ws> <typename> ]?
     }
 
     token typo-typename($panic = 0) {
         <longname>
         {
-          #TODO bring back suggestions for which types may have been meant
-          my $method := $panic ?? 'typed-panic' !! 'typed-sorry';
-          $/."$method"('X::Undeclared',
-                    what => "Type",
-                    symbol => $<longname>.ast.canonicalize);
+            #TODO bring back suggestions for which types may have been meant
+            my $method := $panic ?? 'typed-panic' !! 'typed-sorry';
+            $/."$method"('X::Undeclared',
+              what   => "Type",
+              symbol => $<longname>.ast.canonicalize
+            );
         }
     }
 
     method maybe-typename() {
-        return self.typename();
         CATCH { return self.new-cursor }
+        self.typename;
     }
 
 #-------------------------------------------------------------------------------

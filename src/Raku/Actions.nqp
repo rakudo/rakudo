@@ -2770,7 +2770,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my int $param_idx := 0;
         for $<parameter> {
             my $param := $_.ast;
-            my $sep := @*seps[$param_idx];
+            my $sep := @*SEPS[$param_idx];
             if ~$sep eq ':' {
                 if $param_idx != 0 {
                     $/.typed-sorry('X::Syntax::Signature::InvocantMarker');

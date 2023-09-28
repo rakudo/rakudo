@@ -4164,7 +4164,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $stop;
 
         <babble($l)>
-        { 
+        {
             my $B  := $<babble><B>.ast;
             $lang  := $B[0];
             $start := $B[1];
@@ -4313,70 +4313,108 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token signature($*ALLOW_INVOCANT = 0, :$*DECLARE-TARGETS = 1) {
-        :my $*zone := 'posreq';
-        :my $*multi_invocant := 1;
-        :my @*seps := nqp::list();
+        :my $*MULTI-INVOCANT := 1;
+        :my @*SEPS := nqp::list();
         <.ws>
         [
-        | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
-        | <parameter>
-        ]+ % <param_sep>
+          | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
+          | <parameter>
+        ]+ % <param-sep>
         <.ws>
-        [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' > || <.malformed: 'parameter'> ]
+        [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;'>
+            || <.malformed: 'parameter'>
+        ]
         { $*IN-DECL := ''; }
-        [ '-->' <.ws> [ || [<typename>|<value>||<typo-typename(1)>] <.ws>
-                           [ || <?[ { ) ]>
-                             || <?before <.param_sep>? <.parameter>>
-                                <.malformed: 'return value (return constraints only allowed at the end of the signature)'>
-                           ]
-                        || <.malformed: 'return value'>
-                      ] ]?
+        [ '-->'
+          <.ws>
+          [
+            || [ <typename> | <value> || <typo-typename(1)> ]
+               <.ws>
+               [
+                 || <?[ { ) ]>
+
+                 || <?before <.param-sep>? <.parameter>>
+                    <.malformed: 'return value (return constraints only allowed at the end of the signature)'>
+               ] || <.malformed: 'return value'>
+          ]
+        ]?
         { $*LEFTSIGIL := '@'; }
     }
 
-    rule param_sep {
-        '' $<sep>=[','|':'|';;'|';'] {
+    rule param-sep {
+        ''
+        $<sep>=[','|':'|';;'|';']
+        {
             if $<sep> eq ';;' {
                 $/.panic("Can only specify ';;' once in a signature")
-                  if $*multi_invocant == 0;
-                $*multi_invocant := 0;
+                  if $*MULTI-INVOCANT == 0;
+                $*MULTI-INVOCANT := 0;
             }
-            @*seps.push($<sep>);
+            @*SEPS.push($<sep>);
         }
+    }
+
+    method obs-pipe($/) {
+        $/.panic: 'Obsolete use of | or \\ with sigil on param ' ~ $<param-var>;
+    }
+    method panic-after-default($/, str $type) {
+        $/.typed-panic: "X::Parameter::AfterDefault",
+          type     => $type,
+          modifier => ~$<modifier>,
+          default  => ~$<default-value>
     }
 
     token parameter {
         [
-        | <type-constraint>+
+          | <type-constraint>+
           [
-          | $<quant>=['**'|'*'|'+'] <param-var>
-          | $<quant>=['\\'|'|'] <param-var> {
-                $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param-var>);
-            }
-          | $<quant>=['\\'|'|'|'+'] <param-term>
-          | [ <param-var> | <named-param> ] $<quant>=['?'|'!'|<?>]
-          | <?>
+            | $<quant>=[ '**' | '*' | '+' ]
+              <param-var>
+
+            | $<quant>=[ '\\' | '|' ]
+              <param-var>
+              { self.obs-pipe($/) }
+
+            | $<quant>=[ '\\' | '|' |'+' ]
+              <param-term>
+
+            | [ <param-var> | <named-param> ]
+              $<quant>=[ '?' | '!' | <?> ]
+
+            | <?>
           ]
-        | $<quant>=['**'|'*'|'+'] <param-var>
-        | $<quant>=['\\'|'|'] <param-var> {
-              $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param-var>);
-          }
-        | $<quant>=['\\'|'|'|'+'] <param-term>
-        | [ <param-var> | <named-param> ] $<quant>=['?'|'!'|<?>]
-        | <longname> { # TODO: Re-add suggestions
-            self.typed-panic: 'X::Parameter::InvalidType', :typename($<longname>)
-        }]
+
+          | $<quant>=[ '**' | '*' | '+' ]
+            <param-var>
+
+          | $<quant>=[ '\\' | '|' ]
+            <param-var>
+            { self.obs-pipe($/) }
+
+          | $<quant>=[ '\\' | '|' | '+' ]
+            <param-term>
+
+          | [ <param-var> | <named-param> ]
+            $<quant>=[ '?' | '!' | <?> ]
+
+          | <longname>
+            # TODO: Re-add suggestions
+            {
+                self.typed-panic: 'X::Parameter::InvalidType',
+                  :typename($<longname>)
+            }
+        ]
         <.ws>
         <trait>*
         <post-constraint>*
         [
-            <default-value>
-            [ <modifier=.trait> {
-                self.typed-panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default-value>
-            }]?
-            [ <modifier=.post-constraint> {
-                self.typed-panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default-value>
-            }]?
+          <default-value>
+          [ <modifier=.trait>
+            { self.panic-after-default($/, "trait") }
+          ]?
+          [ <modifier=.post-constraint>
+            { self.panic-after-default($/, "post constraint") }
+          ]?
         ]?
     }
 
@@ -4384,38 +4422,53 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*IN-DECL := '';
         :dba('constraint')
         [
-        | '[' ~ ']' <signature>
-        | '(' ~ ')' <signature>
-        | <.constraint-where> <EXPR('i=')>
+          | '[' ~ ']' <signature>
+
+          | '(' ~ ')' <signature>
+
+          | <.constraint-where> <EXPR('i=')>
         ]
     }
 
     token param-var {
         :dba('formal parameter')
         [
-        | '[' ~ ']' <signature>
-        | '(' ~ ')' <signature>
-        | $<declname>=[
-            <sigil>
-            <twigil>?
-            [
-#            || <?{ $<sigil>.Str eq '&' }>
-#               [<?identifier> {} <name=.sublongname> | <sigterm>]
-            || <name=.identifier>
-            || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
-            || $<name>=[<[/!]>]
-            ]?
-          ]
+          | '[' ~ ']' <signature>
 
-          :dba('shape declaration')
-          :my $*IN-DECL := '';
-          [
-#          | <?before ':('>  ':'  # XXX allow fakesig parsed as subsig for the moment
-          | <?before '('>         <.sorry: "Shape declaration with () is reserved;\n  please use whitespace if you meant a subsignature for unpacking,\n  or use the :() form if you meant to add signature info to the function's type">
-#          | <?before '['> <arrayshape=.postcircumfix>
-          | <?before <.[ { < « ]>> <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant something else'>
-               <postcircumfix>
-          ]?
+          | '(' ~ ')' <signature>
+
+          | $<declname>=[
+              <sigil>
+              <twigil>?
+              [
+#               || <?{ $<sigil>.Str eq '&' }>
+#                  [<?identifier> {} <name=.sublongname> | <sigterm>]
+
+                || <name=.identifier>
+
+                || <name=.decint>
+                   <.typed-panic: 'X::Syntax::Variable::Numeric',
+                     what => 'parameter'>
+
+                || $<name>=[<[/!]>]
+              ]?
+            ]
+
+            :dba('shape declaration')
+            :my $*IN-DECL := '';
+            [
+               # XXX allow fakesig parsed as subsig for the moment
+#              | <?before ':('>  ':'
+
+               | <?before '('>
+                 <.sorry: "Shape declaration with () is reserved;\n  please use whitespace if you meant a subsignature for unpacking,\n  or use the :() form if you meant to add signature info to the function's type">
+
+#               | <?before '['> <arrayshape=.postcircumfix>
+
+               | <?before <.[ { < « ]>>
+                 <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant something else'>
+                 <postcircumfix>
+            ]?
         ]
     }
 
@@ -4428,25 +4481,36 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('named parameter')
         ':'
         [
-        | <name=.identifier> '('
-            <.ws> [ <named-param> | <param-var> ] <.ws>
-            [ ')' || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'> ]
-        | <param-var>
+          | <name=.identifier>
+            '('
+            <.ws>
+            [ <named-param> | <param-var> ]
+            <.ws>
+            [ ')'
+              || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'>
+            ]
+
+          | <param-var>
         ]
     }
 
     rule default-value {
         :my $*IN-DECL := '';
-        '=' <EXPR('i=')>
+        '='
+        <EXPR('i=')>
     }
 
     token type-constraint {
         :my $*IN-DECL := '';
         [
-        | <value>
-        | [ <[-−]> :my $*NEGATE_VALUE := 1; | '+' ] $<value>=<numish>
-        | <typename>
-#        | <.constraint-where> <.ws> <EXPR('i=')>
+          | <value>
+
+          | [ <[-−]> :my $*NEGATE_VALUE := 1; | '+' ]
+            $<value>=<numish>
+
+          | <typename>
+
+#          | <.constraint-where> <.ws> <EXPR('i=')>
         ]
         <.ws>
     }
@@ -5240,7 +5304,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
             }
         }
         token backslash:sym<unrec> {
-          {} 
+          {}
           (\w)
           {
               self.typed-panic: 'X::Backslash::UnrecognizedSequence',

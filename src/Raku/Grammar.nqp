@@ -3399,32 +3399,38 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.end-keyword>
         :dba('scoped declarator')
         [
-        || <.ws>
-           [
-           | <DECL=declarator>
-           | <DECL=regex-declarator>
-           | <DECL=package-declarator>
-           | [<typename><.ws>]+
-             {
-                nqp::elems($<typename>) > 1
-                  ?? $/.NYI('Multiple prefix constraints')
-                  !! ($*OFTYPE := $<typename>[0]);
-             }
-             <DECL=multi-declarator>
-           | <DECL=multi-declarator>
-           ]
-        || <.ws>[<typename><.ws>]* <ident>
-           <?before <.ws>
-           [
-           | ':'?':'?'='
-           | <.terminator>
-           | <trait>
-           | <.constraint-where> <.ws> <EXPR>
-           | $
-           ]
-           > {} <.malformed("$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)")>
-        || <.ws><!typename> <typo-typename> <!>
-        || <.malformed: $*SCOPE>
+          || <.ws>
+             [
+               | <DECL=declarator>
+
+               | <DECL=regex-declarator>
+
+               | <DECL=package-declarator>
+
+               | [<typename><.ws>]+
+                 {
+                    nqp::elems($<typename>) > 1
+                      ?? $/.NYI('Multiple prefix constraints')
+                      !! ($*OFTYPE := $<typename>[0]);
+                 }
+                 <DECL=multi-declarator>
+
+               | <DECL=multi-declarator>
+             ]
+          || <.ws>[<typename><.ws>]* <ident>
+             <?before <.ws> [
+               | ':'?':'?'='
+               | <.terminator>
+               | <trait>
+               | <.constraint-where> <.ws> <EXPR>
+               | $
+             ]>
+             {}
+             <.malformed: "$*SCOPE (did you mean to declare a sigilless \\{~$<ident>} or \${~$<ident>}?)">
+
+          || <.ws><!typename> <typo-typename> <!>
+
+          || <.malformed: $*SCOPE>
         ]
     }
 
@@ -3473,26 +3479,55 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token declarator {
         :my $*LEFTSIGIL := '';
         [
-        | '\\' <defterm>
-            [ <.ws> <term_init=initializer> || <.typed-panic: "X::Syntax::Term::MissingInitializer"> ]
-        | <variable-declarator>
-        | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
-        | <routine-declarator>
-        | <type-declarator>
+          | '\\'
+            <defterm>
+            [    <.ws> <term-init=initializer>
+              || <.typed-panic: "X::Syntax::Term::MissingInitializer">
+            ]
+
+          | <variable-declarator>
+
+          | '(' ~ ')' <signature> [ <.ws> <trait>+ ]? [ <.ws> <initializer> ]?
+
+          | <routine-declarator>
+
+          | <type-declarator>
         ]
     }
 
     token sigilless-variable { <!> }
+
+    method reserved-sorry(str $sigil) {
+        my %args;
+        my str $reserved;
+        if $sigil eq '&' {
+            $reserved := 'routine';
+            %args<instead> := ' (maybe use :() to declare a longname?)';
+        }
+        else  {
+            $reserved := $sigil eq '@'
+              ?? 'array'
+              !! $sigil eq '%'
+                ?? 'hash'
+                !! 'variable';
+        }
+        %args<reserved> := "() shape syntax in $reserved declarations";
+
+        self.typed-sorry('X::Syntax::Reserved', |%args);
+    }
 
     token variable-declarator {
         :my $*IN-DECL := 'variable';
         :my $*VARIABLE;
         :my $sigil;
         [
-        | <sigil> <twigil>? <desigilname>?
-        | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
-        | $<desigilname>=<.sigilless-variable>
-        # TODO error cases for when you declare something you're not allowed to
+          | <sigil> <twigil>? <desigilname>?
+
+          | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
+
+          | $<desigilname>=<.sigilless-variable>
+
+          # TODO cases for when you declare something you're not allowed to
         ]
         {
             $*IN-DECL := '';
@@ -3500,37 +3535,31 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $sigil := $<sigil> ?? $<sigil>.Str !! "";
         }
         [
-            <.unspace>?
-            $<shape>=[
-            | '(' ~ ')' <signature>
-                {
-                    if $sigil eq '&' {
-                        self.typed-sorry('X::Syntax::Reserved',
-                            reserved => '() shape syntax in routine declarations',
-                            instead => ' (maybe use :() to declare a longname?)'
-                        );
-                    }
-                    elsif $sigil eq '@' {
-                        self.typed-sorry('X::Syntax::Reserved',
-                            reserved => '() shape syntax in array declarations');
-                    }
-                    elsif $sigil eq '%' {
-                        self.typed-sorry('X::Syntax::Reserved',
-                            reserved => '() shape syntax in hash declarations');
-                    }
-                    else {
-                        self.typed-sorry('X::Syntax::Reserved',
-                            reserved => '() shape syntax in variable declarations');
-                    }
-                }
-            | :dba('shape definition') '[' ~ ']' <semilist>
-                { $sigil ne '@' && self.typed-sorry('X::Syntax::Reserved',
-                    reserved => '[] shape syntax with the ' ~ $sigil ~ ' sigil') }
-            | :dba('shape definition') '{' ~ '}' <semilist>
-                { $sigil ne '%' && self.typed-sorry('X::Syntax::Reserved',
-                    reserved => '{} shape syntax with the ' ~ $sigil ~ ' sigil') }
-            | <?[<]> <postcircumfix> <.NYI: "Shaped variable declarations">
-            ]+
+          <.unspace>?
+          $<shape>=[
+                     | '(' ~ ')' <signature>
+                       <.reserved-sorry: $sigil>
+
+                     | :dba('shape definition')
+                       '[' ~ ']' <semilist>
+                       {
+                           self.typed-sorry('X::Syntax::Reserved',
+                             reserved => "[] shape syntax with the $sigil sigil"
+                           ) if $sigil ne '@';
+                       }
+
+                     | :dba('shape definition')
+                       '{' ~ '}' <semilist>
+                       {
+                           self.typed-sorry('X::Syntax::Reserved',
+                             reserved => "{} shape syntax with the $sigil sigil"
+                           ) if $sigil ne '%';
+                       }
+
+                     | <?[<]>
+                       <postcircumfix>
+                       <.NYI: "Shaped variable declarations">
+                   ]+
         ]?
         [ <.ws> <trait>+ ]?
         <.stub-variable($/)>
@@ -3541,11 +3570,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token desigilname {
         [
-        | <?before <.sigil> <.sigil> > <variable>
-        | <?sigil>
-          [ <?{ $*IN-DECL }> <.typed-panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
-          <variable> { $*VAR := $<variable> }
-        | <longname>
+          | <?before <.sigil> <.sigil> > <variable>
+
+          | <?sigil>
+            [ <?{ $*IN-DECL }>
+              <.typed-panic: 'X::Syntax::Variable::IndirectDeclaration'>
+            ]?
+            <variable>
+            { $*VAR := $<variable> }
+
+          | <longname>
         ]
     }
 

@@ -2036,7 +2036,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my str $scope   := $*SCOPE;
             my     $type    := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
             my     $name    := $<defterm>.ast;
-            my $initializer := $<term_init>.ast;
+            my $initializer := $<term-init>.ast;
 
             $ast := Nodify('VarDeclaration','Term').new:
               :$scope, :$type, :$name, :$initializer;

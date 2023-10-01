@@ -174,6 +174,43 @@ class RakuAST::Node {
         self.IMPL-WRAP-LIST(@result)
     }
 
+    # Recursively walks the tree finding nodes of the specified type that are
+    # beneath this one. A node that matches the stopper type will *not* be returned
+    # even if it satisfies the specified type and its children shall not be
+    # visited. The search is strict - that is to say, it starts at the children
+    # of the current node, but doesn't consider the current one.
+    # Note: this is more expensive than find-nodes due to calling $stopper on
+    #       each node, instead of doing a simple type check.
+    method find-nodes-exclusive(Mu $type, Code :$condition, Code :$stopper) {
+        # Walk the tree searching for matching nodes.;
+        my @visit-queue := [self];
+        my @result;
+        my $collector := sub collector($node) {
+            if nqp::isconcrete($stopper) {
+                my $do-stop := $stopper($node);
+                if nqp::istype($node, $type) && !$do-stop {
+                    unless $condition && !$condition($node) {
+                        nqp::push(@result, $node);
+                    }
+                }
+                unless $do-stop {
+                    nqp::push(@visit-queue, $node)
+                }
+            } else {
+                if nqp::istype($node, $type) {
+                    unless $condition && !$condition($node) {
+                        nqp::push(@result, $node);
+                    }
+                }
+                nqp::push(@visit-queue, $node);
+            }
+        }
+        while @visit-queue {
+            nqp::shift(@visit-queue).visit-children($collector);
+        }
+        self.IMPL-WRAP-LIST(@result)
+    }
+
     # Visit the AST starting at the current node. Call the callback for each
     # AST node. If the callback returns a true value, then its children will
     # also be walked. The strict option, if set, will not visit the current

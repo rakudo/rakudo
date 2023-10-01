@@ -2664,9 +2664,9 @@ class RakuAST::CurryThunk
         ])
     }
 
-    method IMPL-ADD-PARAM(str $param_name) {
+    method IMPL-ADD-PARAM(str $param-name) {
         my $param := RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new($param_name)
+            target => RakuAST::ParameterTarget::Var.new($param-name)
         );
         nqp::push($!parameters, $param);
         self.IMPL-UPDATE-SIGNATURE;

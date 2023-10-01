@@ -173,8 +173,14 @@ class Perl6::Metamodel::ParametricRoleHOW
                     }
                 }
                 if $error {
-                    nqp::die("Could not instantiate role '" ~ self.name($obj)
-                             ~ "':\n" ~ (nqp::getpayload($error) || nqp::getmessage($error)))
+                    my $exception := nqp::getpayload($error);
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::Role::Instantiation',
+                        "Could not instantiate role '" ~ self.name($obj)
+                            ~ "':\n" ~ ($exception || nqp::getmessage($error)),
+                        :role($obj),
+                        :$exception
+                    )
                 }
 
                 # Use it to build a concrete role.

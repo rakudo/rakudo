@@ -100,6 +100,38 @@ my class Exception {
     }
 }
 
+my role X::Wrapper {
+    has Mu $!exception is required is built(:bind);
+    has Mu $!ex-payload;
+    has $!is-raku-exception;
+
+    method exception is raw {
+        my $ex := nqp::decont($!exception);
+        nqp::isconcrete(nqp::decont($!ex-payload))
+            ?? $!ex-payload
+            !! ($!ex-payload := nqp::istype($ex, Exception) ?? $ex !! (nqp::ifnull(nqp::getpayload($ex), $ex)))
+    }
+
+    method !is-raku-exception {
+        $!is-raku-exception //= nqp::istype(self.exception, Exception)
+    }
+
+    method !wrappee-message(:$concise, :$details) {
+        my $ex-msg := self!is-raku-exception ?? $!ex-payload.message !! nqp::getmessage($!ex-payload);
+        my $message :=
+            $concise
+                ?? $ex-msg
+                !! ($!is-raku-exception
+                    ?? $!ex-payload.gist
+                    !! $ex-msg ~ "\n" ~ Backtrace.new(nqp::backtrace($!exception)));
+        $details ?? "; exception details:\n\n" ~ $message.indent(4) !! $message
+    }
+
+    method !exception-name-message {
+        self!is-raku-exception ?? " with " ~ $!ex-payload.^name !! ""
+    }
+}
+
 my class X::SecurityPolicy is Exception {}
 
 my class X::SecurityPolicy::Eval is X::SecurityPolicy {
@@ -986,6 +1018,16 @@ my class X::Coerce::Impossible is X::Coerce {
     }
 }
 
+my class X::Coerce::Role is X::Coerce does X::Wrapper {
+    method message() {
+        "Coercion " ~ callsame()
+            ~ " died"
+            ~ self!exception-name-message
+            ~ " while trying to pun the target role"
+            ~ self!wrappee-message(:details)
+    }
+}
+
 # XXX a hack for getting line numbers from exceptions from the metamodel
 my class X::Comp::AdHoc is X::AdHoc does X::Comp {
     method is-compile-time(--> True) { }
@@ -1790,8 +1832,16 @@ my class X::Syntax::Argument::MOPMacro does X::Syntax {
     method message() { "Cannot give arguments to $.macro" };
 }
 
-my class X::Role::Initialization is Exception {
+my class X::Role::Instantiation is Exception does X::Wrapper {
     has $.role;
+    method message() {
+        "Could not instantiate role '" ~ $!role.^name ~ "'"
+            ~ (self!is-raku-exception ?? " because it is died" ~ self!exception-name-message !! "")
+            ~ self!wrappee-message(:details)
+    }
+}
+
+my class X::Role::Initialization is Exception {
     method message() { "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '{$.role.^name}'" }
 }
 

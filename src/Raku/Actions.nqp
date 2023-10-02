@@ -1622,15 +1622,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method term:sym<name>($/) {
         my $name := $<longname>.ast;
         if $<args> {
-            my $ast := $<args>.ast;
-            self.attach: $/, $ast.invocant
+            my $args := $<args>.ast;
+            self.attach: $/, (my $invocant := $args.invocant)
               # Indirect method call syntax, e.g. new Int: 1
               ?? Nodify('ApplyPostfix').new(
-                   operand => $ast.invocant,
-                   postfix => Nodify('Call','Method').new(:$name, :args($ast))
+                   operand => $invocant,
+                   postfix => Nodify('Call','Method').new(:$name, :$args)
                  )
               # Normal named method call
-              !! Nodify('Call','Name').new(:$name, :args($ast))
+              !! Nodify('Call','Name').new(:$name, :$args)
         }
         else {
             self.attach: $/, $*IS-TYPE

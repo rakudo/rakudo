@@ -1910,11 +1910,16 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Statement::IfWith:D $ast --> Str:D) {
         my str @parts = self.conditional($ast, $ast.IMPL-QAST-TYPE);
 
+        my $INDENT := $*INDENT;
         if $ast.elsifs -> @elsifs {
-            @parts.push(self.deparse($_)) for @elsifs;
+            for @elsifs {
+                @parts.push($INDENT);
+                @parts.push(self.deparse($_));
+            }
         }
 
         if $ast.else -> $else {
+            @parts.push($INDENT);
             @parts.push(self.syn-block('else'));
             @parts.push(' ');
             @parts.push(self.deparse($else));

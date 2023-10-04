@@ -1462,6 +1462,8 @@ class RakuAST::ParameterTarget::Term
     }
 }
 
+# These nodes generate their own unique names by default but can be passed existing
+# names in order to reference existing RakuAST::ParamaterTarget::Whatever nodes.
 class RakuAST::ParameterTarget::Whatever
   is RakuAST::ParameterTarget::Term
 {

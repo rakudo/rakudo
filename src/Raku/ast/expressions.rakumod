@@ -1289,11 +1289,6 @@ class RakuAST::ApplyInfix
     method is-begin-performed-after-children()  { True }
 
     method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $infix   := $!infix;
-        my $CURRIES := $infix.IMPL-CURRIES;
-        my $left    := self.left;
-        my $right   := self.right;
-
         my $curried;
         if self.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN {
             $curried := self.IMPL-CURRY;
@@ -1674,8 +1669,6 @@ class RakuAST::ApplyPrefix
     method is-begin-performed-after-children()  { True }
 
     method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        my $prefix  := $!prefix;
-        my $operand := $!operand;
         if self.IMPL-SHOULD-CURRY-DIRECTLY {
             nqp::bindattr(self, RakuAST::ApplyPrefix, '$!operand',
                 self.IMPL-CURRY.IMPL-ADD-PARAM($resolver, $context).target.generate-lookup);
@@ -2150,12 +2143,6 @@ class RakuAST::ApplyPostfix
 
     method is-begin-performed-before-children { True }
     method is-begin-performed-after-children  { True }
-
-    method IMPL-ALL-CHILDREN-THAT-SHOULD-CURRY() {
-        my $condition := -> $n { $n.IMPL-SHOULD-CURRY-DIRECTLY };
-        my $stopper   := -> $n { ! nqp::istype($n, RakuAST::ApplyPostfix) };
-        self.IMPL-UNWRAP-LIST(self.find-nodes-exclusive(RakuAST::WhateverApplicable, :$condition, :$stopper));
-    }
 
     method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if self.IMPL-SHOULD-CURRY-DIRECTLY {

@@ -346,6 +346,10 @@ class RakuAST::ExpressionThunk
         self.HOW.name(self)
     }
 
+    method thunk-details() {
+        ''
+    }
+
     method is-begin-performed-before-children() { False }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
@@ -2650,7 +2654,11 @@ class RakuAST::CurryThunk
     }
 
     method thunk-kind() {
-        'Curried Whatever'
+        'WhateverCode'
+    }
+
+    method thunk-details() {
+        '⋐' ~ nqp::x('🔆', self.IMPL-NUM-PARAMS)  ~ '⋑'
     }
 
     method IMPL-THUNK-OBJECT-TYPE() {
@@ -2705,6 +2713,10 @@ class RakuAST::BlockThunk
 
     method thunk-kind() {
         'Block thunk'
+    }
+
+    method thunk-details() {
+        ''
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {

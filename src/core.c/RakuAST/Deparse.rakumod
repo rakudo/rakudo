@@ -2255,6 +2255,9 @@ class RakuAST::Deparse {
         self.hsyn('var-term', $.term-whatever)
     }
 
+    multi method deparse(RakuAST::WhateverCode::Argument:D $ --> Str:D) {
+        self.hsyn('var-term', $.term-whatever)
+    }
 #- Ternary ---------------------------------------------------------------------
 
     multi method deparse(RakuAST::Ternary:D $ast --> Str:D) {
@@ -2420,7 +2423,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Var::Lexical:D $ast --> Str:D) {
         my $name := $ast.name;
-        self.hsyn('var-lexical',$name.starts-with('$whatevercode_arg_') ?? '*' !! $name)
+        self.hsyn('var-lexical', $name)
     }
 
     multi method deparse(RakuAST::Var::Lexical::Setting:D $ast --> Str:D) {

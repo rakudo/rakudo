@@ -1473,6 +1473,14 @@ class RakuAST::ParameterTarget::Whatever
             RakuAST::Name.from-identifier($name // QAST::Node.unique('$whatevercode_arg')));
         $obj
     }
+
+    # Generate a lookup of this parameter, already resolved to this declaration.
+    method generate-lookup() {
+        my $name := nqp::getattr(self, RakuAST::ParameterTarget::Term, '$!name');
+        my $lookup := RakuAST::WhateverCode::Argument.new($name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
 }
 
 # Marker for all kinds of slurpy behavior.
@@ -1646,6 +1654,10 @@ class RakuAST::ParameterDefaultThunk
 
     method thunk-kind() {
         'Parameter default'
+    }
+
+    method thunk-details() {
+        ''
     }
 
     method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {

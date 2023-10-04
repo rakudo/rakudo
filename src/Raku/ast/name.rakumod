@@ -66,8 +66,18 @@ class RakuAST::Name
         True
     }
 
+    # Return the identifier if there is a single element identifier, or return
+    # the empty string.  Can be used to either just check if the object is a
+    # simple identifier, or also when the actual identifier is needed.
+    method simple-identifier() {
+        nqp::elems($!parts) == 1
+          && nqp::istype((my $obj := $!parts[0]),RakuAST::Name::Part::Simple)
+          && $obj.name
+    }
+
     method is-package-lookup() {
-        nqp::elems($!parts) && nqp::istype($!parts[nqp::elems($!parts) - 1], RakuAST::Name::Part::Empty)
+        nqp::elems($!parts)
+          && nqp::istype($!parts[nqp::elems($!parts) - 1],RakuAST::Name::Part::Empty)
     }
 
     method base-name() {

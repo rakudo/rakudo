@@ -1144,6 +1144,7 @@ class RakuAST::WhateverApplicable
         my $should-so := False;
         for self.IMPL-UNWRAP-LIST(self.operands) {
             $should-so := $should-so || (nqp::istype($_, RakuAST::WhateverApplicable) && $_.IMPL-SHOULD-CURRY-DIRECTLY)
+                                     || (nqp::istype($_, RakuAST::Circumfix::Parentheses) && $_.IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION)
         }
         $should-so
     }
@@ -1160,7 +1161,7 @@ class RakuAST::WhateverApplicable
                 && nqp::istype($operator, RakuAST::Infix)
                 && $operator.operator eq 'xx';
 
-        my $condition := -> $n { $n.IMPL-SHOULD-CURRY-DIRECTLY };
+        my $condition := -> $n { $n.IMPL-SHOULD-CURRY-DIRECTLY || $n.IMPL-OPERANDS-SHOULD-CURRY-DIRECTLY };
         my $stopper   := -> $n {
             nqp::istype($n, RakuAST::Block)
                 || nqp::istype($n, RakuAST::Postcircumfix::ArrayIndex)
@@ -1199,11 +1200,18 @@ class RakuAST::WhateverApplicable
                 for @operands {
                     my $operand := $_;
                     $index++; # it needs to count every time so that we write into the appropriate slot in @operands
-                    if nqp::istype($operand, RakuAST::WhateverApplicable)
-                        && $child-curries-whatevercode
-                        && $operand.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN
+                    if  $child-curries-whatevercode
+                            &&
+                        ((nqp::istype($operand, RakuAST::WhateverApplicable)
+                            && $operand.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN)
+                                ||
+                        ($child-curries-whatever
+                            && nqp::istype($operand, RakuAST::Circumfix::Parentheses)
+                            && (my $curryable-expression := $operand.IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION)
+                            && $curryable-expression.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN))
                     {
-                        $operand.IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
+                        my $starting-node := $curryable-expression ?? $curryable-expression !! $operand;
+                        $starting-node.IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
                     }
                     next unless nqp::istype($operand, RakuAST::Term::Whatever);
                     my $param := $curried.IMPL-ADD-PARAM(QAST::Node.unique('$whatevercode_arg'));
@@ -1215,11 +1223,18 @@ class RakuAST::WhateverApplicable
             elsif nqp::istype($child, RakuAST::ApplyInfix) {
                 for "left", "right" {
                     my $operand := $child."$_"();
-                    if  nqp::istype($operand, RakuAST::WhateverApplicable)
-                        && $child-curries-whatevercode
-                        && $operand.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN
+                    if  $child-curries-whatevercode
+                            &&
+                        ((nqp::istype($operand, RakuAST::WhateverApplicable)
+                            && $operand.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN)
+                                ||
+                        ($child-curries-whatever
+                            && nqp::istype($operand, RakuAST::Circumfix::Parentheses)
+                            && (my $curryable-expression := $operand.IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION)
+                            && $curryable-expression.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN))
                     {
-                        $operand.IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
+                        my $starting-node := $curryable-expression ?? $curryable-expression !! $operand;
+                        $starting-node.IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
                     }
                     next unless $child-curries-whatever && nqp::istype($operand, RakuAST::Term::Whatever);
                     my $param := $curried.IMPL-ADD-PARAM(QAST::Node.unique('$whatevercode_arg'));

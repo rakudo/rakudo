@@ -24,7 +24,7 @@ class RakuAST::Expression
         my $prefix := nqp::x(' ', $indent);
         my @chunks;
         self.visit-thunks(-> $thunk {
-            @chunks.push("$prefix🧠 " ~ $thunk.thunk-kind ~ "\n");
+            @chunks.push("$prefix🧠 " ~ $thunk.thunk-kind ~ " " ~ $thunk.thunk-details ~ "\n");
             $thunk.visit-children(-> $child {
                 @chunks.push($child.dump($indent + 2));
             });

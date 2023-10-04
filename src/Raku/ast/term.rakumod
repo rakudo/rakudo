@@ -234,6 +234,37 @@ class RakuAST::Term::Whatever
     }
 }
 
+# A specialized class to act as the actual lookup for the relevant RakuAST::ParameterTarget::Whatever
+# This is what a Term::Whatever often -- but not always -- becomes.
+class RakuAST::WhateverCode::Argument
+  is RakuAST::Term
+  is RakuAST::Lookup
+{
+    has RakuAST::Name $!name;
+
+    method new(RakuAST::Name $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::WhateverCode::Argument, '$!name', $name);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-name($!name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.resolution.IMPL-LOOKUP-QAST($context)
+    }
+
+    method dump-markers() {
+        '🔆'
+    }
+}
+
 # The hyper whatever (**) term.
 class RakuAST::Term::HyperWhatever
   is RakuAST::Term

@@ -1129,6 +1129,13 @@ class RakuAST::MetaInfix::Hyper
 #-------------------------------------------------------------------------------
 # Application of operators
 
+# This role is used by the Apply* family of expressions. We group all of the logic here
+# as well as using the role as a generic marker during searches for "curryability".
+# The design uses find-nodes-exclusive to determine wheter a given WhateverApplicable
+# node has child nodes that it needs to curry across as it hands out parameters with
+# RakuAST::ParameterTarget::Whatever nodes as targets. These parameter target nodes
+# are added to the *origin* WhateverApplicable's signature and then bound to operands
+# that were previously storing RakuAST::Term::Whatever nodes.
 class RakuAST::WhateverApplicable
 {
     method IMPL-SHOULD-CURRY-DIRECTLY() {
@@ -1194,7 +1201,19 @@ class RakuAST::WhateverApplicable
             # We might have already visited this node and resolved the RakuAST::Term::Whatever nodes to the
             # respective $whatevercode_arg parameter target. If so, move on!
             next unless $child.IMPL-SHOULD-CURRY-DIRECTLY || $child.IMPL-OPERANDS-SHOULD-CURRY-DIRECTLY;
-            if nqp::istype($child, RakuAST::ApplyListInfix) {
+
+            # Each of these has their own small specificities, such as the name of the class/attribute to bind into
+            # but they follow the same patterns.
+            # For ApplyInfix and ApplyListInfix
+            #   - For all $child.operands, inspect each to determine whether we should should curry across all of their
+            #       (curryable) children.
+            #   - Otherwise, check to determine if this is operand is a curryable whatever *. If so, call IMPL-ADD-PARAM
+            #       to create a new '$whatevercode_arg_*' parameter and then bind the lookup to the target of that parameter
+            #       into the location that previously held the curryable *.
+            # For ApplyPrefix and ApplyPostfix
+            #   - Same procedure as above, except we only check for direct curryability rather than whether there are curryable children.
+            #       Instead we utilize their respective PERFORM-BEGIN-AFTER-CHILDREN routines to finalize relevant currables.
+             if nqp::istype($child, RakuAST::ApplyListInfix) {
                 my @operands := self.IMPL-UNWRAP-LIST(self.operands);
                 my $index := -1;
                 for @operands {

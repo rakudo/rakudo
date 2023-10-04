@@ -905,6 +905,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token use-require { require }
     token use-use     { use     }
 
+    # Convert the invocant, a match that is expected to have a RakuAST::Name
+    # object as its ".ast", to a RakuAST::Name object with the name of the
+    # the core functionality if there is an original name known.  Otherwise
+    # it should just return the ".ast" of the invocant.
+    method xlated2ast() { self.ast }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 

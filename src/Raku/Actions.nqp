@@ -1178,8 +1178,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $args := $<args> ?? $<args>.ast !! Nodify('ArgList').new();
         my $ast;
 
-        if $<longname> {
-            $ast     := $<longname>.ast;
+        if $<longname> -> $longname {
+            $ast     := $longname.ast;
             my $name := $ast.canonicalize;
 
             if $*DOTTY {
@@ -1197,7 +1197,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         !! nqp::die("Missing compilation of $DOTTY");
             }
             else {
-                $ast := Nodify('Call','Method').new(:name($ast), :$args);
+                $ast := Nodify('Call','Method').new(
+                  :name($longname.xlated2ast), :$args
+                );
             }
         }
         elsif $<quote> {
@@ -1620,7 +1622,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<name>($/) {
-        my $name := $<longname>.ast;
+        my $name := $<longname>.xlated2ast;
         if $<args> {
             my $args := $<args>.ast;
             self.attach: $/, (my $invocant := $args.invocant)

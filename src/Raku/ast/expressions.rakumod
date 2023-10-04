@@ -60,9 +60,9 @@ class RakuAST::Expression
         $!thunks
     }
 
-    method IMPL-CURRY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Str $arg) {
-        my $thunk := RakuAST::CurryThunk.new($arg);
-        $thunk.IMPL-CHECK($resolver, $context, True);
+    # This creates the curry. Parameters are always added via CurryThunk.IMPL-ADD-PARAM
+    method IMPL-CURRY() {
+        my $thunk := RakuAST::CurryThunk.new;
         self.wrap-with-thunk($thunk);
         $thunk
     }
@@ -1156,7 +1156,7 @@ class RakuAST::WhateverApplicable
     method IMPL-ALL-CHILDREN-THAT-SHOULD-CURRY() {
         return [] unless nqp::bitand_i(self.operator.IMPL-CURRIES, 2);
         # Calculate self-based gaurds for $stopper only once
-        my $is-xx := nqp::istype(self, RakuAST::ApplyInfix)
+        my $self-is-xx := nqp::istype(self, RakuAST::ApplyInfix)
                 && (my $operator := self.operator)
                 && nqp::istype($operator, RakuAST::Infix)
                 && $operator.operator eq 'xx';
@@ -1168,7 +1168,7 @@ class RakuAST::WhateverApplicable
                 || nqp::istype($n, RakuAST::Call)
                 || nqp::istype($n, RakuAST::VarDeclaration::Simple)
                 || (nqp::istype($n, RakuAST::WhateverApplicable) && !nqp::bitand_i($n.operator.IMPL-CURRIES, 2))
-                || ($is-xx && nqp::istype($n, RakuAST::ApplyInfix) && $n.IMPL-SHOULD-CURRY-DIRECTLY)
+                || ($self-is-xx && nqp::istype($n, RakuAST::ApplyInfix) && $n.IMPL-SHOULD-CURRY-DIRECTLY)
         }
         self.IMPL-UNWRAP-LIST(self.find-nodes-exclusive(RakuAST::WhateverApplicable, :$condition, :$stopper))
     }
@@ -1210,13 +1210,10 @@ class RakuAST::WhateverApplicable
                             && (my $curryable-expression := $operand.IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION)
                             && $curryable-expression.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN))
                     {
-                        my $starting-node := $curryable-expression ?? $curryable-expression !! $operand;
-                        $starting-node.IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
+                        ($curryable-expression // $operand).IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
                     }
-                    next unless nqp::istype($operand, RakuAST::Term::Whatever);
-                    my $param := $curried.IMPL-ADD-PARAM(QAST::Node.unique('$whatevercode_arg'));
-                    $curried.IMPL-CHECK($resolver, $context, True);
-                    @operands[$index] := $param.target.generate-lookup;
+                    next unless $child-curries-whatever && nqp::istype($operand, RakuAST::Term::Whatever);
+                    @operands[$index] := $curried.IMPL-ADD-PARAM($resolver, $context).target.generate-lookup;
                 }
                 nqp::bindattr($child, RakuAST::ApplyListInfix, '$!operands', @operands);
             }
@@ -1233,28 +1230,21 @@ class RakuAST::WhateverApplicable
                             && (my $curryable-expression := $operand.IMPL-CONTAINS-SINGULAR-CURRYABLE-EXPRESSION)
                             && $curryable-expression.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN))
                     {
-                        my $starting-node := $curryable-expression ?? $curryable-expression !! $operand;
-                        $starting-node.IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
+                        ($curryable-expression // $operand).IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
                     }
                     next unless $child-curries-whatever && nqp::istype($operand, RakuAST::Term::Whatever);
-                    my $param := $curried.IMPL-ADD-PARAM(QAST::Node.unique('$whatevercode_arg'));
-                    $curried.IMPL-CHECK($resolver, $context, True);
-                    $child."set-$_"($param.target.generate-lookup);
+                    $child."set-$_"($curried.IMPL-ADD-PARAM($resolver, $context).target.generate-lookup);
                 }
             }
             elsif nqp::istype($child, RakuAST::ApplyPostfix) {
-                my $operand := $child.operand;
-                next unless $child-curries-whatever && nqp::istype($operand, RakuAST::Term::Whatever);
-                my $param := $curried.IMPL-ADD-PARAM(QAST::Node.unique('$whatevercode_arg'));
-                $curried.IMPL-CHECK($resolver, $context, True);
-                nqp::bindattr($child, RakuAST::ApplyPostfix, '$!operand', $param.target.generate-lookup);
+                next unless $child-curries-whatever && nqp::istype($child.operand, RakuAST::Term::Whatever);
+                nqp::bindattr($child, RakuAST::ApplyPostfix, '$!operand',
+                    $curried.IMPL-ADD-PARAM($resolver, $context).target.generate-lookup);
             }
             elsif nqp::istype($child, RakuAST::ApplyPrefix) {
-                my $operand := $child.operand;
-                next unless $child-curries-whatever && nqp::istype($operand, RakuAST::Term::Whatever);
-                my $param := $curried.IMPL-ADD-PARAM(QAST::Node.unique('$whatevercode_arg'));
-                $curried.IMPL-CHECK($resolver, $context, True);
-                nqp::bindattr($child, RakuAST::ApplyPrefix, '$!operand', $param.target.generate-lookup);
+                next unless $child-curries-whatever && nqp::istype($child.operand, RakuAST::Term::Whatever);
+                nqp::bindattr($child, RakuAST::ApplyPrefix, '$!operand',
+                    $curried.IMPL-ADD-PARAM($resolver, $context).target.generate-lookup);
             }
         }
     }
@@ -1306,7 +1296,7 @@ class RakuAST::ApplyInfix
 
         my $curried;
         if self.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN {
-            $curried := self.IMPL-CURRY($resolver, $context, '');
+            $curried := self.IMPL-CURRY;
             self.IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
         }
         # There is a chance that we didn't actually meet the conditions to curry inside of IMPL-CURRY-ACROSS-ALL-CHILDREN.
@@ -1422,7 +1412,7 @@ class RakuAST::ApplyListInfix
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $curried;
         if self.IMPL-SHOULD-CURRY-ACROSS-ALL-CHILDREN {
-            $curried := self.IMPL-CURRY($resolver, $context, '');
+            $curried := self.IMPL-CURRY;
             self.IMPL-CURRY-ACROSS-ALL-CHILDREN($resolver, $context, $curried);
         }
         # There is a chance that we didn't actually meet the conditions to curry inside of IMPL-CURRY-ACROSS-ALL-CHILDREN.
@@ -1687,8 +1677,8 @@ class RakuAST::ApplyPrefix
         my $prefix  := $!prefix;
         my $operand := $!operand;
         if self.IMPL-SHOULD-CURRY-DIRECTLY {
-            my $param := self.IMPL-CURRY($resolver, $context, QAST::Node.unique('$whatevercode_arg')).IMPL-LAST-PARAM;
-            nqp::bindattr(self, RakuAST::ApplyPrefix, '$!operand', $param.target.generate-lookup);
+            nqp::bindattr(self, RakuAST::ApplyPrefix, '$!operand',
+                self.IMPL-CURRY.IMPL-ADD-PARAM($resolver, $context).target.generate-lookup);
         }
     }
 
@@ -1697,20 +1687,18 @@ class RakuAST::ApplyPrefix
         if nqp::bitand_i($!prefix.IMPL-CURRIES, 2) {
             if $operand.IMPL-CURRIED {
                 my @params := $operand.IMPL-UNCURRY;
-                my $curried := self.IMPL-CURRY($resolver, $context, '');
+                my $curried := self.IMPL-CURRY;
                 for @params {
-                    $curried.IMPL-ADD-PARAM($_.target.lexical-name);
-                    $curried.IMPL-CHECK($resolver, $context, True);
+                    $curried.IMPL-ADD-PARAM($resolver, $context, :name($_.target.lexical-name));
                 }
             }
             elsif nqp::istype($operand, RakuAST::Circumfix::Parentheses)
                 && (my $expression := $operand.IMPL-SINGULAR-CURRIED-EXPRESSION)
             {
                 my @params := $expression.IMPL-UNCURRY;
-                my $curried := self.IMPL-CURRY($resolver, $context, '');
+                my $curried := self.IMPL-CURRY;
                 for @params {
-                    $curried.IMPL-ADD-PARAM($_.target.lexical-name);
-                    $curried.IMPL-CHECK($resolver, $context, True);
+                    $curried.IMPL-ADD-PARAM($resolver, $context, :name($_.target.lexical-name));
                 }
             }
         }
@@ -2171,8 +2159,8 @@ class RakuAST::ApplyPostfix
 
     method PERFORM-BEGIN-BEFORE-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if self.IMPL-SHOULD-CURRY-DIRECTLY {
-            my $param := self.IMPL-CURRY($resolver, $context, QAST::Node.unique('$whatevercode_arg')).IMPL-LAST-PARAM;
-            nqp::bindattr(self, RakuAST::ApplyPostfix, '$!operand', $param.target.generate-lookup);
+            nqp::bindattr(self, RakuAST::ApplyPostfix, '$!operand',
+                self.IMPL-CURRY.IMPL-ADD-PARAM($resolver, $context).target.generate-lookup);
         }
     }
 
@@ -2183,11 +2171,9 @@ class RakuAST::ApplyPostfix
             if $operand.IMPL-CURRIED {
                 my $params := $operand.IMPL-UNCURRY;
                 if nqp::elems($params) > 0 {
-                    self.IMPL-CURRY($resolver, $context, '');
-                    my $curried := self.IMPL-CURRIED;
+                    my $curried := self.IMPL-CURRY;
                     for $params {
-                        $curried.IMPL-ADD-PARAM($_.target.lexical-name);
-                        $curried.IMPL-CHECK($resolver, $context, True);
+                        $curried.IMPL-ADD-PARAM($resolver, $context, :name($_.target.lexical-name));
                     }
                 }
             }

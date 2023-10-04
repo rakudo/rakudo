@@ -2643,10 +2643,9 @@ class RakuAST::CurryThunk
 {
     has Mu $!parameters;
 
-    method new(str $param) {
+    method new() {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CurryThunk,, '$!parameters', []);
-        $obj.IMPL-ADD-PARAM($param) if $param ne '';
         $obj
     }
 
@@ -2664,12 +2663,14 @@ class RakuAST::CurryThunk
         ])
     }
 
-    method IMPL-ADD-PARAM(str $param-name) {
+    method IMPL-ADD-PARAM(Resolver $resolver, RakuAST::IMPL::QASTContext $context, str :$name) {
         my $param := RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new($param-name)
+            # $name will usually be undefined, but sometimes we re-use references to existing * targets
+            target => RakuAST::ParameterTarget::Whatever.new($name)
         );
         nqp::push($!parameters, $param);
         self.IMPL-UPDATE-SIGNATURE;
+        self.IMPL-CHECK($resolver, $context, True);
         $param
     }
 

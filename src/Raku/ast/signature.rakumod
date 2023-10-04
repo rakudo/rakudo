@@ -1462,6 +1462,17 @@ class RakuAST::ParameterTarget::Term
     }
 }
 
+class RakuAST::ParameterTarget::Whatever
+  is RakuAST::ParameterTarget::Term
+{
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!name',
+            RakuAST::Name.from-identifier($name // QAST::Node.unique('$whatevercode_arg')));
+        $obj
+    }
+}
+
 # Marker for all kinds of slurpy behavior.
 class RakuAST::Parameter::Slurpy {
 

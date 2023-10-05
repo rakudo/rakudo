@@ -2,8 +2,14 @@
 class RakuAST::Regex
   is RakuAST::Node
 {
-    method IMPL-REGEX-TOP-LEVEL-QAST(RakuAST::IMPL::QASTContext $context, Mu $code-object,
-            %mods, int :$no-scan, Mu :$body-qast) {
+    method IMPL-REGEX-TOP-LEVEL-QAST(
+      RakuAST::IMPL::QASTContext  $context,
+                              Mu  $code-object,
+                                  %mods,
+                             int :$no-scan,
+                              Mu :$body-qast,
+                             str :$name
+    ) {
         # Compile the regex.
         my $regex-qast := $body-qast // self.IMPL-REGEX-QAST($context, %mods);
 
@@ -16,7 +22,10 @@ class RakuAST::Regex
         my $wrap-qast := QAST::Regex.new(
             :rxtype('concat'),
             $regex-qast,
-            QAST::Regex.new( :rxtype('pass') )
+            ($name
+              ?? QAST::Regex.new(:rxtype('pass'), :$name)
+              !! QAST::Regex.new(:rxtype('pass'))
+            )
         );
         unless $no-scan {
             $wrap-qast.unshift(QAST::Regex.new( :rxtype('scan') ));

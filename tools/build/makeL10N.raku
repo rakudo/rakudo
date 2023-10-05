@@ -49,20 +49,38 @@ my sub EXPORT() {
     BEGIN Map.new
 }
 CODE
-    write-file("lib/L10N/$language.rakumod", $source);
+    write-file "lib/L10N/$language.rakumod", $source, Q:to/DEFAULT/;
+# This file contains the ……… Slang of the Raku Programming Language
+
+#- start of generated part of localization
+#- end of generated part of localization
+
+# vim: expandtab shiftwidth=4
+DEFAULT
 
     # Create the role for mixing in deparsing
     my $deparser := deparsify($language, %translation);
-    write-file("lib/RakuAST/Deparse/L10N/$language.rakumod", $deparser.DEPARSE);
+    write-file
+      "lib/RakuAST/Deparse/L10N/$language.rakumod",
+      $deparser.DEPARSE, Q:to/DEFAULT/;
+# This file contains the ……… deparsing logic for the Raku
+# Programming Language.
+
+#- start of generated part of localization
+#- end of generated part of localization
+
+# vim: expandtab shiftwidth=4
+DEFAULT
 }
 
-sub write-file($filename, Str:D $src) {
+sub write-file($filename, Str:D $src, Str:D $default) {
+    my $io := $filename.IO;
 
     # slurp the whole file and set up writing to it
-    my @lines = $filename.IO.lines;
-    my $*OUT = $filename.IO.open(:w);
+    my @lines = ($io.e ?? $io !! $default).lines;
 
     # for all the lines in the source that don't need special handling
+    my $*OUT = $filename.IO.open(:w);
     while @lines {
         my $line := @lines.shift;
 

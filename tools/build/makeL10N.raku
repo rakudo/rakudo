@@ -17,15 +17,20 @@ my $generated := DateTime.now.gist.subst(/\.\d+/,'');
 my $start     := '#- start of generated part of localization';
 my $end       := '#- end of generated part of localization';
 
+# all of the words in core (.kv basically)
+my @core is List = "tools/templates/L10N/CORE".IO.lines.map: {
+    .words.Slip unless .starts-with("#")
+}
+
 # For all available localizations
 for dir "tools/templates/L10N" -> $io {
     my str $language = $io.basename;
     next if $language eq 'CORE';
 
     # Create translation hash
-    my %translation = $io.lines.map: {
+    my %translation = @core.Slip, $io.lines.map({
         .words.Slip unless .starts-with("#")
-    }
+    }).Slip;
 
     # Create the slang and slangification
     my $slang  := slangify($language, %translation);

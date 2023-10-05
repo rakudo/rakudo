@@ -18,8 +18,6 @@ my %provides =
     "RakuAST::Deparse::Highlight::HTML"
       => "lib/RakuAST/Deparse/Highlight/HTML.rakumod",
     "RakuAST::L10N"                 => "lib/RakuAST/L10N.rakumod",
-    "L10N::NL"                      => "lib/L10N/NL.rakumod",
-    "RakuAST::Deparse::L10N::NL"    => "lib/RakuAST/Deparse/L10N/NL.rakumod",
 ;
 
 %provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"
@@ -32,6 +30,15 @@ if Compiler.backend eq 'moar' {
     %provides<SL>               = "lib/SL.rakumod";
     %provides<MoarVM::SIL>      = "lib/MoarVM/SIL.rakumod";
     %provides<SIL>              = "lib/SIL.rakumod";
+}
+
+for dir $*PROGRAM.parent.sibling("templates").child("L10N") {
+    my str $language = .basename;
+    next if $language eq 'CORE';
+
+    %provides{"L10N::$language"} = "lib/L10N/$language.rakumod";
+    %provides{"RakuAST::Deparse::L10N::$language"}
+      = "lib/RakuAST/Deparse/L10N/$language.rakumod";
 }
 
 my $prefix := @*ARGS[0];

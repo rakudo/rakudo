@@ -183,48 +183,48 @@ core-return      restituisci
 #core-run         run
 
 # KEY             TRANSLATION
-#core-samecase     samecase
-#core-samemark     samemark
-#core-samewith     samewith
-#core-say          say
+core-samecase     stesso-caso
+core-samemark     stessa-marca
+core-samewith     stessa-con
+core-say          dillo
 #core-set          set
 #core-shell        shell
-#core-shift        shift
-#core-sign         sign
-#core-signal       signal
-#core-skip         skip
-#core-sleep        sleep
+core-shift        sposta
+core-sign         firma
+core-signal       segno
+core-skip         salta
+core-sleep        dormi
 #core-sleep-timer  sleep-timer
-#core-sleep-until  sleep-until
-#core-slip         slip
-#core-slurp        slurp
-#core-snip         snip
-#core-snitch       snitch
-#core-so           so
-#core-sort         sort
-#core-splice       splice
-#core-split        split
+core-sleep-until  dormi-fino-a
+core-slip         scivola
+core-slurp        bevi
+core-snip         taglia
+core-snitch       fail-la-spia
+core-so           così
+core-sort         ordina
+core-splice       unisci
+core-split        divitevi
 #core-sprintf      sprintf
-#core-spurt        spurt
+core-spurt        spruzza
 #core-sqrt         sqrt
-#core-squish       squish
+core-squish       schiaccia
 #core-srand        srand
 #core-subbuf       subbuf
 #core-subbuf-rw    subbuf-rw
-#core-succeed      succeed
-#core-sum          sum
+core-succeed      riuscirci
+core-sum          somma
 #core-symlink      symlink
 
 # KEY               TRANSLATION
-#core-tail           tail
-#core-take           take
-#core-take-rw        take-rw
+core-tail           coda
+core-take           prendi
+core-take-rw        prendi-rw
 #core-tc             tc
 #core-tclc           tclc
-#core-trim           trim
-#core-trim-leading   trim-leading
-#core-trim-trailing  trim-trailing
-#core-truncate       truncate
+core-trim           taglia
+core-trim-leading   taglia-in-testa
+core-trim-trailing  taglia-in-coda
+core-truncate       troncare
 
 # KEY          TRANSLATION
 #core-uc        uc
@@ -242,24 +242,24 @@ core-return      restituisci
 
 # KEY        TRANSLATION
 #core-val     val
-#core-value   value
-#core-values  values
+core-value   valore
+core-values  valori
 
 # KEY          TRANSLATION
-#core-warn      warn
-#core-wordcase  wordcase
-#core-words     words
+core-warn      avviso
+core-wordcase  caso-della-parola
+core-words     parole
 
 # KEY             TRANSLATION
-#infix-after       after
-#infix-and         and
-#infix-andthen     andthen
-#infix-before      before
-#infix-but         but
+infix-after       dopo
+infix-and         e
+infix-andthen     e-poi
+infix-before      prima-di
+infix-but         però
 #infix-cmp         cmp
 #infix-coll        coll
 #infix-div         div
-#infix-does        does
+infix-does        fa
 #infix-eq          eq
 #infix-ff          ff
 #infix-fff         fff
@@ -275,7 +275,7 @@ core-return      restituisci
 #infix-minmax      minmax
 #infix-mod         mod
 #infix-ne          ne
-#infix-notandthen  notandthen
+infix-notandthen  no-e-poi
 #infix-o           o
 #infix-or          or
 #infix-orelse      orelse

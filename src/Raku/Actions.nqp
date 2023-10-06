@@ -403,9 +403,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # Action method to load any modules specified with -M
     method load-M-modules($/) {
         my $M := %*OPTIONS<M>;
-        unless nqp::defined($M) {
-            return;  # nothing to do here
-        }
+        return Nil unless nqp::defined($M); # nothing to do here
+
+        # shortcuts
+        my $R       := $*R;
+        my $context := $*CU.context;
 
         # Create a RakuAST statement list with -use- statements
         # of the specified module names and attach that
@@ -416,7 +418,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 |nqp::split('::', $longname)
               )
             );
-            $use.ensure-begin-performed($*R, $*CU.context);
+            $use.ensure-begin-performed($R, $context);
             $ast.add-statement: $use;
         }
         self.attach: $/, $ast;

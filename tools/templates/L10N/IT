@@ -278,7 +278,7 @@ infix-does        fa
 infix-notandthen  no-e-poi
 #infix-o           o
 #infix-or          or
-#infix-orelse      orelse
+infix-orelse      oppure
 #infix-unicmp      unicmp
 #infix-x           x
 #infix-X           X
@@ -299,49 +299,49 @@ infix-notandthen  no-e-poi
 #meta-Z  Z
 
 # KEY             TRANSLATION
-#modifier-for      for
-#modifier-given    given
-#modifier-if       if
-#modifier-unless   unless
-#modifier-until    until
-#modifier-when     when
-#modifier-while    while
-#modifier-with     with
-#modifier-without  without
+modifier-for      per
+modifier-given    dato
+modifier-if       se
+modifier-unless   salvo-che
+modifier-until    fino-a
+modifier-when     quando
+modifier-while    mentre
+modifier-with     con
+modifier-without  senza
 
 # KEY        TRANSLATION
 #multi-multi  multi
-#multi-only   only
+multi-only   soltanto
 #multi-proto  proto
 
 # KEY            TRANSLATION
-#package-class    class
-#package-grammar  grammar
-#package-knowhow  knowhow
-#package-module   module
-#package-native   native
-#package-package  package
-#package-role     role
+package-class    classe
+package-grammar  grammatica
+package-knowhow  so-come
+package-module   modulo
+package-native   nativo
+package-package  pacchetto
+package-role     ruolo
 
 # KEY           TRANSLATION
-#phaser-BEGIN    BEGIN
-#phaser-CATCH    CATCH
-#phaser-CHECK    CHECK
-#phaser-CLOSE    CLOSE
-#phaser-CONTROL  CONTROL
+phaser-BEGIN    COMINCIA
+phaser-CATCH    PRENDI
+phaser-CHECK    CONTROLLA
+phaser-CLOSE    CHIUDE
+phaser-CONTROL  CONTROLLO
 #phaser-DOC      DOC
-#phaser-END      END
-#phaser-ENTER    ENTER
-#phaser-FIRST    FIRST
+phaser-END      FINE
+phaser-ENTER    ENTRA
+phaser-FIRST    PRIMA
 #phaser-INIT     INIT
-#phaser-KEEP     KEEP
-#phaser-LAST     LAST
-#phaser-LEAVE    LEAVE
-#phaser-NEXT     NEXT
+phaser-KEEP     TIENI
+phaser-LAST     ULTIMO
+phaser-LEAVE    VATTENE
+phaser-NEXT     PROSSIMO
 #phaser-PRE      PRE
 #phaser-POST     POST
-#phaser-QUIT     QUIT
-#phaser-UNDO     UNDO
+phaser-QUIT     LASCIA
+phaser-UNDO     ANNULLA
 
 # KEY       TRANSLATION
 prefix-not  non

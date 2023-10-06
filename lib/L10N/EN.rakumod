@@ -1,10 +1,10 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-05T19:19:57+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-06T14:53:35+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-my role EN is export {
+role L10N::EN {
     use experimental :rakuast;
     token block-default { default}
     token block-else { else}
@@ -170,7 +170,7 @@ my sub EXPORT() {
     my $LANG := $*LANG;
 
     $LANG.define_slang('MAIN',
-      $LANG.slang_grammar('MAIN').^mixin(EN),
+      $LANG.slang_grammar('MAIN').^mixin(L10N::EN),
       $LANG.slang_actions('MAIN')
     );
 

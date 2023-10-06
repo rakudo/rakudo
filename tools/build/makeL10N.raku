@@ -42,7 +42,7 @@ my sub EXPORT() {
     my $LANG := $*LANG;
 
     $LANG.define_slang('MAIN',
-      $LANG.slang_grammar('MAIN').^mixin(#LANGUAGE#),
+      $LANG.slang_grammar('MAIN').^mixin(L10N::#LANGUAGE#),
       $LANG.slang_actions('MAIN')
     );
 

@@ -1,10 +1,10 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-05T18:56:19+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-06T14:53:35+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-my role NL is export {
+role L10N::NL {
     use experimental :rakuast;
     token block-default { gebrek}
     token block-else { anders}
@@ -170,7 +170,7 @@ my sub EXPORT() {
     my $LANG := $*LANG;
 
     $LANG.define_slang('MAIN',
-      $LANG.slang_grammar('MAIN').^mixin(NL),
+      $LANG.slang_grammar('MAIN').^mixin(L10N::NL),
       $LANG.slang_actions('MAIN')
     );
 

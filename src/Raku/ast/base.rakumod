@@ -371,14 +371,25 @@ class RakuAST::Node {
         nqp::join('', @chunks)
     }
 
+    method mixin-role($base, $role) {
+        my $class := nqp::clone($base);
+        $class.HOW.mixin($class, $role).BUILD_LEAST_DERIVED({})
+    }
+
     # Hook into the Raku RakuAST::Deparse class (by default) or any other
     # class that has been put into the hllsym hash for 'Raku'
     method DEPARSE(*@roles) {
-        my $class := nqp::gethllsym('Raku','DEPARSE');
+        my $class := my $core := nqp::gethllsym('Raku','DEPARSE');
         for @roles {
-            if nqp::can($_.HOW,'pun') {  # it's a role
-                my $base := nqp::clone($class);
-                $class := $base.HOW.mixin($base,$_).BUILD_LEAST_DERIVED({});
+            if $_.HOW.name($_) eq 'Str' {  # XXX better way to detect HLL Str?
+                if nqp::existskey((my $stash := $core.WHO),'L10N') {
+                    if nqp::existskey(($stash := $stash<L10N>.WHO),$_) {
+                        $class := self.mixin-role($class, $stash{$_})
+                    }
+                }
+            }
+            elsif nqp::can($_.HOW,'pun') {  # it's a role
+                $class := self.mixin-role($class, $_);
             }
             else {
                 $class := $_;

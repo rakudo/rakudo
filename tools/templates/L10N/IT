@@ -66,29 +66,29 @@ core-comb          pettine
 core-combinations  combinazioni
 
 # KEY         TRANSLATION
-#core-deepmap  deepmap
-#core-defined  defined
-#core-die      die
+core-deepmap  mappa-profonda
+core-defined  definito
+core-die      muori
 #core-dir      dir
-#core-done     done
-#core-duckmap  duckmap
-#
+core-done     fatto
+core-duckmap  mappa-anatra
+
 # KEY        TRANSLATION
 #core-elems   elems
-#core-emit    emit
-#core-end     end
-#core-exit    exit
+core-emit    emettere
+core-end     fine
+core-exit    uscire
 #core-exp     exp
 #core-expmod  expmod
 
 # KEY              TRANSLATION
-#core-fail          fail
+core-fail          fallire
 #core-fc            fc
-#core-first         first
-#core-flat          flat
+core-first         primo
+core-flat          piatto
 #core-flip          flip
-#core-floor         floor
-#core-full-barrier  full-barrier
+core-floor         pavimento
+core-full-barrier  barriera-completa
 
 # KEY      TRANSLATION
 #core-get   get

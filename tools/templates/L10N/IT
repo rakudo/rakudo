@@ -91,88 +91,88 @@ core-floor         pavimento
 core-full-barrier  barriera-completa
 
 # KEY      TRANSLATION
-#core-get   get
+core-get   prendi
 #core-getc  getc
-#core-gist  gist
+core-gist  essenza
 #core-grep  grep
 
 # KEY      TRANSLATION
 #core-hash  hash
-#core-head  head
+core-head  testa
 
 # KEY         TRANSLATION
-#core-indent   indent
-#core-index    index
-#core-indices  indices
+core-indent   indenta
+core-index    indice
+core-indices  indici
 #core-indir    indir
-#core-item     item
+core-item     articolo
 
 # KEY      TRANSLATION
-#core-join  join
+core-join  unirsi
 
 # KEY      TRANSLATION
-#core-key   key
-#core-keys  keys
-#core-kv    kv
+core-key   chiave
+core-keys  chiavi
+core-kv    cv
 
 # KEY          TRANSLATION
-#core-last      last
-#core-lastcall  lastcall
+core-last      ultimo
+core-lastcall  ultima-chiamata
 #core-lc        lc
-#core-lines     lines
+core-lines     linee
 #core-link      link
-#core-list      list
+core-list      elenco
 #core-lsb       lsb
 
 # KEY        TRANSLATION
-#core-make    make
-#core-map     map
+core-make    fare
+core-map     mappa
 #core-max     max
 #core-min     min
 #core-minmax  minmax
 #core-mix     mix
 #core-mkdir   mkdir
-#core-move    move
+core-move    muove
 #core-msb     msb
 
 # KEY            TRANSLATION
-#core-next        next
-#core-nextcallee  nextcallee
-#core-nextsame    nextsame
-#core-nextwith    nextwith
-#core-none        none
-#core-not         not
-#core-note        note
+core-next        prossimo
+core-nextcallee  prossimo-chiamato
+core-nextsame    prossimo-esteso
+core-nextwith    prossimo-con
+core-none        nessuno
+core-not         non
+core-note        nota
 
 # KEY      TRANSLATION
-#core-one   one
-#core-open  open
+core-one   uno
+core-open  aperto
 #core-ord   ord
 #core-ords  ords
 
 # KEY              TRANSLATION
-#core-pair          pair
-#core-pairs         pairs
+core-pair          paio
+core-pairs         pai
 #core-parse-base    parse-base
-#core-permutations  permutations
-#core-pick          pick
+core-permutations  permutazioni
+core-pick          prendi
 #core-pop           pop
 #core-prepend       prepend
-#core-print         print
-#core-printf        printf
-#core-proceed       proceed
-#core-prompt        prompt
-#core-push          push
-#core-put           put
+core-print         stampa
+core-printf        f-stampa
+core-proceed       procedi
+core-prompt        richiesta
+core-push          spinge
+core-put           metti
 
 # KEY            TRANSLATION
 #core-rand        rand
-#core-redo        redo
-#core-reduce      reduce
-#core-repeated    repeated
+core-redo        rifai
+core-reduce      riduci
+core-repeated    ripetuto
 #core-repl        repl
-#core-return      return
-#core-return-rw   return-rw
+core-return      restituisci
+#core-return-rw   restituisci-rw
 #core-reverse     reverse
 #core-rindex      rindex
 #core-rmdir       rmdir
@@ -344,46 +344,46 @@ core-full-barrier  barriera-completa
 #phaser-UNDO     UNDO
 
 # KEY       TRANSLATION
-#prefix-not  not
-#prefix-so   so
+prefix-not  non
+prefix-so   così
 
 # KEY              TRANSLATION
-#routine-method     method
+routine-method     metodo
 #routine-sub        sub
 #routine-regex      regex
-#routine-rule       rule
+routine-rule       regola
 #routine-submethod  submethod
-#routine-token      token
+routine-token      gettone
 
 # KEY            TRANSLATION
 #scope-anon       anon
-#scope-augment    augment
-#scope-constant   constant
-#scope-has        has
-#scope-HAS        HAS
-#scope-my         my
-#scope-our        our
-#scope-state      state
-#scope-supersede  supersede
-#scope-unit       unit
+#scope-augment    aumenta
+scope-constant   constante
+scope-has        ha
+scope-HAS        HA
+scope-my         il-mio
+scope-our        il-nostro
+scope-state      stato
+scope-supersede  sostituire
+scope-unit       unità
 
 # KEY                 TRANSLATION
-#stmt-prefix-also      also
-#stmt-prefix-do        do
-#stmt-prefix-eager     eager
-#stmt-prefix-gather    gather
+stmt-prefix-also      anche
+stmt-prefix-do        fate
+stmt-prefix-eager     impaziente
+stmt-prefix-gather    raccogliere
 #stmt-prefix-hyper     hyper
-#stmt-prefix-lazy      lazy
-#stmt-prefix-quietly   quietly
-#stmt-prefix-race      race
-#stmt-prefix-react     react
-#stmt-prefix-sink      sink
-#stmt-prefix-start     start
-#stmt-prefix-supply    supply
-#stmt-prefix-try       try
+stmt-prefix-lazy      pigro
+stmt-prefix-quietly   tranquillamente
+stmt-prefix-race      gara
+stmt-prefix-react     reagisce
+stmt-prefix-sink      cala
+stmt-prefix-start     comincio
+stmt-prefix-supply    fornitura
+stmt-prefix-try       prova
 
 # KEY      TRANSLATION
-#term-self  self
+term-self  se-stesso
 #term-nano  nano
 term-now   gia
 #term-rand  rand

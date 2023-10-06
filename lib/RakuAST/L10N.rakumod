@@ -149,14 +149,8 @@ my sub slangify($language, %hash) is export {
 
     # Wrap the whole thing up in a role with the given name and return it
     RakuAST::Package.new(
-      scope      => "my",
       declarator => "role",
-      name       => RakuAST::Name.from-identifier($language),
-      traits     => (
-        RakuAST::Trait::Is.new(
-          name => RakuAST::Name.from-identifier("export")
-        ),
-      ),
+      name       => RakuAST::Name.from-identifier-parts('L10N',$language),
       body       => RakuAST::Block.new(
         body => RakuAST::Blockoid.new($statements)
       )
@@ -197,20 +191,15 @@ my sub deparsify($language, %hash) is export {
     #
     $statements.add-statement: RakuAST::Statement::Expression.new(
       expression => RakuAST::Package.new(
-        scope      => "my",
         declarator => "role",
-        name       => RakuAST::Name.from-identifier($language),
-        traits     => (
-          RakuAST::Trait::Is.new(
-            name => RakuAST::Name.from-identifier("export")
-          ),
-        ),
+        name       => RakuAST::Name.from-identifier-parts(
+                        'RakuAST','Deparse','L10N',$language
+                      ),
         body       => RakuAST::Block.new(
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::Method.new(
-                  scope     => "my",
                   name      => RakuAST::Name.from-identifier("xsyn"),
                   signature => RakuAST::Signature.new(
                     parameters => (

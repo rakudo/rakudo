@@ -1,10 +1,10 @@
-# This file contains that English "translation" of features of the
+# This file contains the Italian translation of features of the
 # Raku Programming Language.
 #
 # See tools/build/L10N/CORE for more explanation.
 
 # KEY           TRANSLATION
-#block-default   default
+block-default   predefinito
 #block-else      else
 #block-elsif     elsif
 #block-for       for

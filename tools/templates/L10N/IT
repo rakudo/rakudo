@@ -22,13 +22,13 @@ block-with      con
 block-without   senza
 
 # KEY             TRANSLATION
-#constraint-where  where
+constraint-where  dove
 
 # KEY                  TRANSLATION
 #core-abs               abs
-#core-all               all
-#core-any               any
-#core-append            append
+core-all               tutti
+core-any               ogni
+core-append            aggiungi
 #core-ast               ast
 #core-atomic-add-fetch  atomic-add-fetch
 #core-atomic-assign     atomic-assign
@@ -40,18 +40,18 @@ block-without   senza
 #core-atomic-fetch-sub  atomic-fetch-sub
 #core-atomic-inc-fetch  atomic-inc-fetch
 #core-atomic-sub-fetch  atomic-sub-fetch
-#core-await             await
+core-await             aspetta
 
 # KEY     TRANSLATION
-#core-bag  bag
+core-bag  borsa
 
 # KEY              TRANSLATION
 #core-callframe     callframe
 #core-callsame      callsame
 #core-callwith      callwith
 #core-cas           cas
-#core-categorize    categorize
-#core-ceiling       ceiling
+core-categorize    categorizzare
+core-ceiling       soffitto
 #core-chars         chars
 #core-chdir         chdir
 #core-chmod         chmod
@@ -60,10 +60,10 @@ block-without   senza
 #core-chown         chown
 #core-chr           chr
 #core-chrs          chrs
-#core-classify      classify
-#core-close         close
-#core-comb          comb
-#core-combinations  combinations
+core-classify      classificare
+core-close         chide
+core-comb          pettine
+core-combinations  combinazioni
 
 # KEY         TRANSLATION
 #core-deepmap  deepmap

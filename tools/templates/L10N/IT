@@ -5,21 +5,21 @@
 
 # KEY           TRANSLATION
 block-default   predefinito
-#block-else      else
-#block-elsif     elsif
-#block-for       for
-#block-given     given
-#block-if        if
-#block-loop      loop
-#block-orwith    orwith
-#block-repeat    repeat
-#block-unless    unless
-#block-until     until
-#block-when      when
-#block-whenever  whenever
-#block-while     while
-#block-with      with
-#block-without   without
+block-else      altro
+block-elsif     altro-se
+block-for       per
+block-given     dato
+block-if        se
+block-loop      ciclo
+block-orwith    o-con
+block-repeat    ripeti
+block-unless    salvo-che
+block-until     finché
+block-when      quando
+block-whenever  ogni-volta-che
+block-while     mentre
+block-with      con
+block-without   senza
 
 # KEY             TRANSLATION
 #constraint-where  where

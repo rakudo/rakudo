@@ -31,7 +31,7 @@
 #   stmt-prefix         statement prefixes ("do","eager","lazy", etc.)
 #   stub                any stub code (..., !!!, ???)
 #   ternary             ternary operator(??, !!)
-#   trait               types of traits ("is","does","returns", etc.)
+#   traitmod            types of trait_mods ("is","does","returns", etc.)
 #   type                any type object
 #   typer               syntax for creating types (enum, subset)
 #   var-attribute       any type of attribute variable ($.foo, $!foo)

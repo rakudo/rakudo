@@ -431,13 +431,13 @@ term-now   gia
 #term-rand  rand
 term-time  tempo
 
-# KEY          TRANSLATION
-trait-does     fa
-trait-handles  gestisce
-trait-hides    nasconde
-trait-is       è
-trait-of       da
-trait-returns  ritorna
+# KEY             TRANSLATION
+traitmod-does     fa
+traitmod-handles  gestisce
+traitmod-hides    nasconde
+traitmod-is       è
+traitmod-of       da
+traitmod-returns  ritorna
 
 # KEY         TRANSLATION
 #typer-enum    enum

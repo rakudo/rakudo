@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-07T19:28:02+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-07T19:56:04+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -140,12 +140,12 @@ role L10N::NL {
     token term-rand { willekeurig}
     token term-self { zelf}
     token term-time { tijd}
-    token trait-does { doet}
-    token trait-handles { begrijpt}
-    token trait-hides { verbergt}
-    token trait-is { is}
-    token trait-of { netals}
-    token trait-returns { geeftterug}
+    token traitmod-does { doet}
+    token traitmod-handles { begrijpt}
+    token traitmod-hides { verbergt}
+    token traitmod-is { is}
+    token traitmod-of { netals}
+    token traitmod-returns { geeftterug}
     token typer-enum { enum}
     token typer-subset { subset}
     token use-import { importeer}

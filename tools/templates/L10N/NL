@@ -429,13 +429,13 @@ term-now   nu
 term-rand  willekeurig
 term-time  tijd
 
-# KEY          TRANSLATION
-trait-does     doet
-trait-handles  begrijpt
-trait-hides    verbergt
-trait-is       is
-trait-of       netals
-trait-returns  geeftterug
+# KEY             TRANSLATION
+traitmod-does     doet
+traitmod-handles  begrijpt
+traitmod-hides    verbergt
+traitmod-is       is
+traitmod-of       netals
+traitmod-returns  geeftterug
 
 # KEY          TRANSLATION
 #typer-enum    enum

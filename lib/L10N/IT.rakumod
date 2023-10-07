@@ -1,7 +1,7 @@
 # This file contains the Italian Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-07T19:28:02+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-07T19:56:04+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::IT {
@@ -140,12 +140,12 @@ role L10N::IT {
     token term-rand { rand}
     token term-self { "se-stesso"}
     token term-time { tempo}
-    token trait-does { fa}
-    token trait-handles { gestisce}
-    token trait-hides { nasconde}
-    token trait-is { è}
-    token trait-of { da}
-    token trait-returns { ritorna}
+    token traitmod-does { fa}
+    token traitmod-handles { gestisce}
+    token traitmod-hides { nasconde}
+    token traitmod-is { è}
+    token traitmod-of { da}
+    token traitmod-returns { ritorna}
     token typer-enum { enum}
     token typer-subset { subset}
     token use-import { importare}

@@ -889,12 +889,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term-rand { rand }
     token term-time { time }
 
-    token trait-does    { does    }
-    token trait-handles { handles }
-    token trait-hides   { hides   }
-    token trait-is      { is      }
-    token trait-of      { of      }
-    token trait-returns { returns }
+    token traitmod-does    { does    }
+    token traitmod-handles { handles }
+    token traitmod-hides   { hides   }
+    token traitmod-is      { is      }
+    token traitmod-of      { of      }
+    token traitmod-returns { returns }
 
     token typer-enum   { enum   }
     token typer-subset { subset }

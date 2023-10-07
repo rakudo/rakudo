@@ -48,7 +48,7 @@ The following prefixes are currently defined:
   scope        types of scope ("my","our","state", etc.)
   stmt-prefix  statement prefixes ("do","eager","lazy","quietly", etc.)
   term         terms ("time","now","self",etc.)
-  trait        types of traits ("is","does","returns", etc.)
+  traitmod     types of trait_mods ("is","does","returns", etc.)
   typer        type constructors ("enum","subset")
   use          use related ("use","no","require", etc.)
 
@@ -63,9 +63,6 @@ core Raku Language.
 The "EN" file contains the English translation.  This is currently identical
 to the "CORE" translation, but *could* start to differ in the future from
 "CORE".
-
-# Untranslatable or the same word
-On
 
 # Adding a new localization
 From a translator point of view, the only thing that needs to be added is

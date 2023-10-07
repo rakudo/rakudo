@@ -421,13 +421,13 @@ term-now   now
 term-rand  rand
 term-time  time
 
-# KEY          TRANSLATION
-trait-does     does
-trait-handles  handles
-trait-hides    hides
-trait-is       is
-trait-of       of
-trait-returns  returns
+# KEY             TRANSLATION
+traitmod-does     does
+traitmod-handles  handles
+traitmod-hides    hides
+traitmod-is       is
+traitmod-of       of
+traitmod-returns  returns
 
 # KEY         TRANSLATION
 typer-enum    enum

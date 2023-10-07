@@ -483,7 +483,7 @@ class RakuAST::Deparse {
     }
 
     method syn-trait(str $trait) {
-        self.hsyn("trait-$trait", self.xsyn('trait', $trait))
+        self.hsyn("traitmod-$trait", self.xsyn('traitmod', $trait))
     }
 
     method syn-type($type) {

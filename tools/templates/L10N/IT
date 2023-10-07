@@ -44,13 +44,16 @@ core-append            aggiungi
 #core-atomic-sub-fetch  atomic-sub-fetch
 core-await             aspetta
 
-# KEY     TRANSLATION
-core-bag  borsa
+# KEY          TRANSLATION
+core-bag       borsa
+#core-bail-out  bail-out
+#core-bless     bless
 
 # KEY              TRANSLATION
 #core-callframe     callframe
 #core-callsame      callsame
 #core-callwith      callwith
+#core-can-ok        can-ok
 #core-cas           cas
 core-categorize    categorizzare
 core-ceiling       soffitto
@@ -64,31 +67,42 @@ core-ceiling       soffitto
 #core-chrs          chrs
 core-classify      classificare
 core-close         chide
+#core-cmp-ok        cmp-ok
 core-comb          pettine
 core-combinations  combinazioni
+#core-cross         cross
 
 # KEY         TRANSLATION
 core-deepmap  mappa-profonda
 core-defined  definito
+#core-diag     diag
 core-die      muori
+#core-dies-ok  dies-ok
 #core-dir      dir
+#core-does-ok  does-ok
 core-done     fatto
 core-duckmap  mappa-anatra
 
-# KEY        TRANSLATION
-#core-elems   elems
-core-emit    emettere
-core-end     fine
-core-exit    uscire
-#core-exp     exp
-#core-expmod  expmod
+# KEY               TRANSLATION
+#core-elems          elems
+core-emit           emettere
+core-end            fine
+#core-emit           emit
+#core-end            end
+#core-eval-dies-ok   eval-dies-ok
+#core-eval-lives-ok  eval-lives-ok
+core-exit           uscire
+#core-exp            exp
+#core-expmod         expmod
 
 # KEY              TRANSLATION
 core-fail          fallire
+#core-fails-like    fails-like
 #core-fc            fc
 core-first         primo
 core-flat          piatto
 #core-flip          flip
+#core-flunk         flunk
 core-floor         pavimento
 core-full-barrier  barriera-completa
 
@@ -108,6 +122,17 @@ core-index    indice
 core-indices  indici
 #core-indir    indir
 core-item     articolo
+# KEY           TRANSLATION
+core-indent     indenta
+core-index      indice
+core-indices    indici
+#core-indir      indir
+#core-isa-ok     isa-ok
+#core-is         is
+#core-isnt       isnt
+#core-is-approx  is-approx
+#core-is-deeply  is-deeply
+core-item       articolo
 
 # KEY      TRANSLATION
 core-join  unirsi
@@ -122,8 +147,10 @@ core-last      ultimo
 core-lastcall  ultima-chiamata
 #core-lc        lc
 core-lines     linee
+#core-like      like
 #core-link      link
 core-list      elenco
+#core-lives-ok  lives-ok
 #core-lsb       lsb
 
 # KEY        TRANSLATION
@@ -143,10 +170,12 @@ core-nextcallee  prossimo-chiamato
 core-nextsame    prossimo-esteso
 core-nextwith    prossimo-con
 core-none        nessuno
+#core-nok         nok
 core-not         non
 core-note        nota
 
 # KEY      TRANSLATION
+#core-ok    ok
 core-one   uno
 core-open  aperto
 #core-ord   ord
@@ -156,8 +185,10 @@ core-open  aperto
 core-pair          paio
 core-pairs         pai
 #core-parse-base    parse-base
+#core-pass          pass
 core-permutations  permutazioni
 core-pick          prendi
+#core-plan          plan
 #core-pop           pop
 #core-prepend       prepend
 core-print         stampa
@@ -195,6 +226,7 @@ core-shift        sposta
 core-sign         firma
 core-signal       segno
 core-skip         salta
+#core-skip-rest    skip-rest
 core-sleep        dormi
 #core-sleep-timer  sleep-timer
 core-sleep-until  dormi-fino-a
@@ -213,6 +245,7 @@ core-squish       schiaccia
 #core-srand        srand
 #core-subbuf       subbuf
 #core-subbuf-rw    subbuf-rw
+#core-subtest      subtest
 core-succeed      riuscirci
 core-sum          somma
 #core-symlink      symlink
@@ -223,6 +256,8 @@ core-take           prendi
 core-take-rw        prendi-rw
 #core-tc             tc
 #core-tclc           tclc
+#core-throws-like    throws-like
+#core-todo           todo
 core-trim           taglia
 core-trim-leading   taglia-in-testa
 core-trim-trailing  taglia-in-coda
@@ -239,8 +274,10 @@ core-truncate       troncare
 #core-unique    unique
 #core-unival    unival
 #core-univals   univals
+#core-unlike    unlike
 #core-unlink    unlink
 #core-unshift   unshift
+#core-use-ok    use-ok
 
 # KEY        TRANSLATION
 #core-val     val
@@ -251,6 +288,9 @@ core-values  valori
 core-warn      avviso
 core-wordcase  caso-della-parola
 core-words     parole
+
+# KEY     TRANSLATION
+#core-zip  zip
 
 # KEY             TRANSLATION
 infix-after       dopo

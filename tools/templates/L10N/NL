@@ -46,11 +46,16 @@ core-await             wacht-op
 
 # KEY       TRANSLATION
 core-bag    tas
+# KEY          TRANSLATION
+core-bag       tas
+core-bail-out  geef-op
+core-bless     zegen
 
 # KEY              TRANSLATION
 #core-callframe     callframe
 #core-callsame      callsame
 #core-callwith      callwith
+core-can-ok        kan-ok
 #core-cas           cas
 core-categorize    categoriseer
 core-ceiling       plafond
@@ -64,8 +69,10 @@ core-chr           als-letter
 core-chrs          als-letters
 core-classify      classificeer
 core-close         sluit
+core-cmp-ok        cmp-ok
 core-comb          kam
 core-combinations  combinaties
+core-cross         kruis
 
 # KEY         TRANSLATION
 core-deepmap  diep-arrangeer
@@ -83,8 +90,19 @@ core-exit    verlaat
 core-exp     exp
 #core-expmod  expmod
 
+# KEY               TRANSLATION
+core-elems          elementen
+core-emit           zend
+core-end            einde
+core-eval-dies-ok   eval-sterft-ok
+core-eval-lives-ok  eval-leeft-ok
+core-exit           verlaat
+core-exp            exp
+core-expmod         expmod
+
 # KEY              TRANSLATION
 core-fail          faal
+core-fails-like    faalt-als
 core-fc            vouw-kast
 core-first         eerste
 core-flat          plat
@@ -102,12 +120,17 @@ core-grep  filter
 core-hash  moes
 core-head  hoofd
 
-# KEY         TRANSLATION
-core-indent   indenteer
-core-index    index
-core-indices  indices
-#core-indir    indir
-core-item     item
+# KEY           TRANSLATION
+core-indent     indenteer
+core-index      index
+core-indices    indices
+core-indir      indir
+core-isa-ok     iseen-ok
+core-is         is
+core-isnt       isniet
+core-is-approx  is-ongeveer
+core-is-deeply  is-helemaal
+core-item       item
 
 # KEY      TRANSLATION
 core-join  plak
@@ -121,21 +144,23 @@ core-kv    sw
 core-last      laatste
 core-lastcall  laatste-aanroep
 core-lc        onder-kast
+core-like      lijkt-op
 core-lines     regels
 core-link      koppeling
 core-list      lijst
-#core-lsb       lsb
+core-lives-ok  leeft-ok
+core-lsb       minst-belangrijke-bit
 
 # KEY        TRANSLATION
 core-make    maak
 core-map     arrangeer
-#core-max     max
-#core-min     min
-#core-minmax  minmax
-#core-mix     mix
+core-max     max
+core-min     min
+core-minmax  minmax
+core-mix     mix
 #core-mkdir   mkdir
 core-move    verplaats
-#core-msb     msb
+core-msb     belangrijkste-bit
 
 # KEY            TRANSLATION
 core-next        volgende
@@ -143,10 +168,12 @@ core-next        volgende
 #core-nextsame    nextsame
 #core-nextwith    nextwith
 core-none        geen
+core-nok         niet-ok
 core-not         niet
 core-note        merk-op
 
 # KEY      TRANSLATION
+core-ok    ok
 core-one   een
 #core-open  open
 core-ord   als-getal
@@ -156,8 +183,10 @@ core-ords  als-getallen
 core-pair          paar
 core-pairs         paren
 #core-parse-base    parse-base
+core-pass          goed
 core-permutations  permutaties
 core-pick          kies
+core-plan          verwacht
 #core-pop           pop
 core-prepend       voeg-voor
 core-print         druk
@@ -195,6 +224,7 @@ core-shift        onderuit
 core-sign         teken
 core-signal       signaal
 core-skip         sla-over
+core-skip-rest    sla-rest-over
 core-sleep        slaap
 core-sleep-timer  wekker
 core-sleep-until  slaap-tot
@@ -213,6 +243,7 @@ core-squish       plet
 core-srand        zo-willekeurig
 #core-subbuf       subbuf
 #core-subbuf-rw    subbuf-rw
+core-subtest      subtest
 core-succeed      slaag
 core-sum          sommeer
 core-symlink      symbolische-koppeling
@@ -223,6 +254,8 @@ core-take           neem
 core-take-rw        neem-rw
 core-tc             titel-kast
 core-tclc           titel-onder-kast
+core-throws-like    knalt-als
+core-todo           tedoen
 core-trim           trim
 core-trim-leading   trim-vooraan
 core-trim-trailing  trim-achteraan
@@ -239,8 +272,10 @@ core-uc        boven-kast
 core-unique    uniek
 #core-unival    unival
 #core-univals   univals
+core-unlike    lijkt-niet-als
 core-unlink    ontkoppel
 core-unshift   onderin
+core-use-ok    gebruik-ok
 
 # KEY        TRANSLATION
 core-val     als-nummers
@@ -251,6 +286,9 @@ core-values  waardes
 core-warn      waarschuw
 core-wordcase  woord-kast
 core-words     woorden
+
+# KEY     TRANSLATION
+core-zip  rits
 
 # KEY             TRANSLATION
 infix-after       na
@@ -285,7 +323,7 @@ infix-orelse      ofanders
 infix-x           x
 infix-X           X
 infix-xx          xx
-infix-Z           Z
+infix-Z           R
 #infix-ff^         ff^
 #infix-fff^        fff^
 infix-(cont)      (bevat)

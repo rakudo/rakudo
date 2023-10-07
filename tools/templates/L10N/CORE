@@ -77,13 +77,16 @@ core-atomic-inc-fetch  atomic-inc-fetch
 core-atomic-sub-fetch  atomic-sub-fetch
 core-await             await
 
-# KEY     TRANSLATION
-core-bag  bag
+# KEY          TRANSLATION
+core-bag       bag
+core-bail-out  bail-out
+core-bless     bless
 
 # KEY              TRANSLATION
 core-callframe     callframe
 core-callsame      callsame
 core-callwith      callwith
+core-can-ok        can-ok
 core-cas           cas
 core-categorize    categorize
 core-ceiling       ceiling
@@ -97,32 +100,41 @@ core-chr           chr
 core-chrs          chrs
 core-classify      classify
 core-close         close
+core-cmp-ok        cmp-ok
 core-comb          comb
 core-combinations  combinations
+core-cross         cross
 
 # KEY         TRANSLATION
 core-deepmap  deepmap
 core-defined  defined
+core-diag     diag
 core-die      die
+core-dies-ok  dies-ok
 core-dir      dir
+core-does-ok  does-ok
 core-done     done
 core-duckmap  duckmap
 
-# KEY        TRANSLATION
-core-elems   elems
-core-emit    emit
-core-end     end
-core-exit    exit
-core-exp     exp
-core-expmod  expmod
+# KEY               TRANSLATION
+core-elems          elems
+core-emit           emit
+core-end            end
+core-eval-dies-ok   eval-dies-ok
+core-eval-lives-ok  eval-lives-ok
+core-exit           exit
+core-exp            exp
+core-expmod         expmod
 
 # KEY              TRANSLATION
 core-fail          fail
+core-fails-like    fails-like
 core-fc            fc
 core-first         first
 core-flat          flat
 core-flip          flip
 core-floor         floor
+core-flunk         flunk
 core-full-barrier  full-barrier
 
 # KEY      TRANSLATION
@@ -135,12 +147,17 @@ core-grep  grep
 core-hash  hash
 core-head  head
 
-# KEY         TRANSLATION
-core-indent   indent
-core-index    index
-core-indices  indices
-core-indir    indir
-core-item     item
+# KEY           TRANSLATION
+core-indent     indent
+core-index      index
+core-indices    indices
+core-indir      indir
+core-isa-ok     isa-ok
+core-is         is
+core-isnt       isnt
+core-is-approx  is-approx
+core-is-deeply  is-deeply
+core-item       item
 
 # KEY      TRANSLATION
 core-join  join
@@ -154,9 +171,11 @@ core-kv    kv
 core-last      last
 core-lastcall  lastcall
 core-lc        lc
+core-like      like
 core-lines     lines
 core-link      link
 core-list      list
+core-lives-ok  lives-ok
 core-lsb       lsb
 
 # KEY        TRANSLATION
@@ -176,10 +195,12 @@ core-nextcallee  nextcallee
 core-nextsame    nextsame
 core-nextwith    nextwith
 core-none        none
+core-nok         nok
 core-not         not
 core-note        note
 
 # KEY      TRANSLATION
+core-ok    ok
 core-one   one
 core-open  open
 core-ord   ord
@@ -189,8 +210,10 @@ core-ords  ords
 core-pair          pair
 core-pairs         pairs
 core-parse-base    parse-base
+core-pass          pass
 core-permutations  permutations
 core-pick          pick
+core-plan          plan
 core-pop           pop
 core-prepend       prepend
 core-print         print
@@ -228,6 +251,7 @@ core-shift        shift
 core-sign         sign
 core-signal       signal
 core-skip         skip
+core-skip-rest    skip-rest
 core-sleep        sleep
 core-sleep-timer  sleep-timer
 core-sleep-until  sleep-until
@@ -246,6 +270,7 @@ core-squish       squish
 core-srand        srand
 core-subbuf       subbuf
 core-subbuf-rw    subbuf-rw
+core-subtest      subtest
 core-succeed      succeed
 core-sum          sum
 core-symlink      symlink
@@ -256,6 +281,8 @@ core-take           take
 core-take-rw        take-rw
 core-tc             tc
 core-tclc           tclc
+core-throws-like    throws-like
+core-todo           todo
 core-trim           trim
 core-trim-leading   trim-leading
 core-trim-trailing  trim-trailing
@@ -272,8 +299,10 @@ core-uniprops  uniprops
 core-unique    unique
 core-unival    unival
 core-univals   univals
+core-unlike    unlike
 core-unlink    unlink
 core-unshift   unshift
+core-use-ok    use-ok
 
 # KEY        TRANSLATION
 core-val     val
@@ -284,6 +313,9 @@ core-values  values
 core-warn      warn
 core-wordcase  wordcase
 core-words     words
+
+# KEY     TRANSLATION
+core-zip  zip
 
 # KEY             TRANSLATION
 infix-after       after

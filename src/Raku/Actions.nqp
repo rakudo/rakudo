@@ -515,6 +515,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $block := $*BLOCK;
         $block.replace-signature($signature.ast) if $signature;
         $block.replace-body($<blockoid>.ast);
+        if $*IN-LOOP {
+            $block.set-is-loop-body;
+        }
         $block.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $block;
     }

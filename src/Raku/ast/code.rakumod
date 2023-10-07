@@ -615,6 +615,7 @@ class RakuAST::PlaceholderParameterOwner
 
 class RakuAST::ScopePhaser {
     has Bool $!has-exit-handler;
+    has Bool $!is-loop-body;
     has List $!ENTER;
     has List $!LEAVE;
     has List $!KEEP;
@@ -664,6 +665,15 @@ class RakuAST::ScopePhaser {
     method set-has-temp() {
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!has-exit-handler', True);
         nqp::bindattr(self, RakuAST::ScopePhaser, '$!temp', RakuAST::Block.new(:implicit-topic(False)));
+    }
+
+    # Primarily used to detect whether a phaser has been applied appropriately (some only work on loops)
+    method set-is-loop-body() {
+        nqp::bindattr(self, RakuAST::ScopePhaser, '$!is-loop-body', True);
+    }
+
+    method is-loop-body() {
+        nqp::getattr(self, RakuAST::ScopePhaser, '$!is-loop-body') // False
     }
 
     method add-list-to-code-object(Str $attr, $code-object) {
@@ -786,6 +796,13 @@ class RakuAST::ScopePhaser {
     }
 
     method IMPL-STUB-PHASERS(RakuAST::Resolver $resolver, RakuAST::IMPL::Context $context) {
+        if $!FIRST && ! $!is-loop-body {
+            $resolver.add-worry:
+                $resolver.build-exception: 'X::AdHoc',
+                    :payload("FIRST phasers only apply in loop bodies.\n"
+                     ~ "Please use 'once' in place of 'FIRST' for once-only semantics on regular blocks");
+        }
+
         if $!let {
             $!let.IMPL-CHECK($resolver, $context, False);
             $!let.IMPL-STUB-CODE($resolver, $context);

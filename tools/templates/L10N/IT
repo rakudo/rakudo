@@ -4,7 +4,7 @@
 # See tools/build/L10N/CORE for more explanation.
 
 # KEY           TRANSLATION
-block-default   predefinito
+block-default   predefinita
 block-else      altro
 block-elsif     altro-se
 block-for       per
@@ -276,8 +276,8 @@ infix-does        fa
 #infix-mod         mod
 #infix-ne          ne
 infix-notandthen  no-e-poi
-#infix-o           o
-#infix-or          or
+infix-o           c
+infix-or          o
 infix-orelse      oppure
 #infix-unicmp      unicmp
 #infix-x           x

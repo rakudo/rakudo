@@ -797,10 +797,14 @@ class RakuAST::ScopePhaser {
 
     method IMPL-STUB-PHASERS(RakuAST::Resolver $resolver, RakuAST::IMPL::Context $context) {
         if $!FIRST && ! $!is-loop-body {
-            $resolver.add-worry:
-                $resolver.build-exception: 'X::AdHoc',
-                    :payload("FIRST phasers only apply in loop bodies.\n"
-                     ~ "Please use 'once' in place of 'FIRST' for once-only semantics on regular blocks");
+            # For some reason, couldn't use self.add-worry here. Need to check if the resolver
+            # actually *can* worry before we just go ahead and worry it, though.
+            if nqp::can($resolver, 'add-worry') {
+                $resolver.add-worry:
+                    $resolver.build-exception: 'X::AdHoc',
+                        :payload("FIRST phasers only apply in loop bodies.\n"
+                        ~ "Please use 'once' in place of 'FIRST' for once-only semantics on regular blocks");
+            }
         }
 
         if $!let {
@@ -1133,7 +1137,7 @@ class RakuAST::Block
                                     :scope<local>,
                                     :decl<var>)))),
                     $block,
-                    QAST::Op.new(:op<call>, $var).annotate_self('loop-already-block-first-phaser', $block));
+                    QAST::Op.new(:op<call>, $var));
             }
             $block
         }

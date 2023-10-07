@@ -23,9 +23,11 @@ my @core is List = "tools/templates/L10N/CORE".IO.lines.map: {
 }
 
 # For all available localizations
-for dir "tools/templates/L10N" -> $io {
+for dir "tools/templates/L10N".sort(*.basename) -> $io {
     my str $language = $io.basename;
-    next if $language eq 'CORE';
+    next if $language eq 'CORE'
+         || $language.ends-with('.md')   # any translator documentation
+         || $language.starts-with(".");  # ignore editor temp files
 
     # Create translation hash
     my %translation = @core.Slip, $io.lines.map({

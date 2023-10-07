@@ -34,7 +34,9 @@ if Compiler.backend eq 'moar' {
 
 for dir $*PROGRAM.parent.sibling("templates").child("L10N") {
     my str $language = .basename;
-    next if $language eq 'CORE';
+    next if $language eq 'CORE'
+         || $language.ends-with('.md')   # any translator documentation
+         || $language.starts-with(".");  # ignore editor temp files
 
     %provides{"L10N::$language"} = "lib/L10N/$language.rakumod";
     %provides{"RakuAST::Deparse::L10N::$language"}

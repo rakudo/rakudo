@@ -106,14 +106,6 @@ role L10N::NL {
     token phaser-UNDO { NEGEER}
     token prefix-not { niet}
     token prefix-so { wel}
-    token rakudoc-alias { alias}
-    token rakudoc-begin { begin}
-    token rakudoc-column { column}
-    token rakudoc-config { config}
-    token rakudoc-end { end}
-    token rakudoc-finish { finish}
-    token rakudoc-for { for}
-    token rakudoc-row { row}
     token routine-method { methode}
     token routine-regex { regex}
     token routine-rule { regel}

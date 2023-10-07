@@ -1279,6 +1279,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}
         :my $*GOAL := '{';
         :my $*BORG := {};
+        :my $*IN-LOOP := 1;
         <EXPR>
         <pointy-block>
     }
@@ -1355,6 +1356,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.vetPerlForSyntax>
         :my $*GOAL := '{';
         :my $*BORG := {};
+        :my $*IN-LOOP := 1;
         <EXPR>
         <pointy-block>
     }
@@ -1368,6 +1370,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | [<.block-while>|<.block-until>{$*WHILE := 'Until'}]<.kok>
             :my $*GOAL := '{';
             :my $*BORG := {};
+            :my $*IN-LOOP := 1;
             <EXPR>
             <pointy-block>
           | <pointy-block>
@@ -1428,6 +1431,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             || <.malformed: "loop spec">
           ]
         ]?
+        :my $*IN-LOOP := 1;
         <block>
     }
 

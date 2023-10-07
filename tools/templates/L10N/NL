@@ -25,7 +25,7 @@ block-without   zonder
 constraint-where  waar
 
 # KEY                  TRANSLATION
-#core-abs               abs
+core-abs               abs
 core-all               alle
 core-any               elke
 core-append            voeg-achteraan
@@ -42,8 +42,8 @@ core-append            voeg-achteraan
 #core-atomic-sub-fetch  atomic-sub-fetch
 core-await             wacht-op
 
-# KEY     TRANSLATION
-core-bag  tas
+# KEY       TRANSLATION
+core-bag    tas
 
 # KEY              TRANSLATION
 #core-callframe     callframe
@@ -78,7 +78,7 @@ core-elems   elementen
 core-emit    zend
 core-end     einde
 core-exit    verlaat
-#core-exp     exp
+core-exp     exp
 #core-expmod  expmod
 
 # KEY              TRANSLATION
@@ -102,10 +102,10 @@ core-head  hoofd
 
 # KEY         TRANSLATION
 core-indent   indenteer
-#core-index    index
-#core-indices  indices
+core-index    index
+core-indices  indices
 #core-indir    indir
-#core-item     item
+core-item     item
 
 # KEY      TRANSLATION
 core-join  plak
@@ -185,7 +185,7 @@ core-run         voer-uit
 # KEY             TRANSLATION
 core-samecase     zelfde-kast
 core-samemark     zelfde-accent
-#core-samewith     samewith
+core-samewith     zelfde-met
 core-say          zeg
 core-set          verzameling
 #core-shell        shell
@@ -197,7 +197,7 @@ core-sleep        slaap
 core-sleep-timer  wekker
 core-sleep-until  slaap-tot
 core-slip         glip
-#core-slurp        slurp
+core-slurp        slurp
 core-snip         knip
 core-snitch       spiek
 core-so           dus
@@ -270,20 +270,20 @@ infix-le          kleinergelijk
 #infix-lcm         lcm
 infix-leg         lgg
 infix-lt          kleiner
-#infix-max         max
-#infix-min         min
-#infix-minmax      minmax
+infix-max         max
+infix-min         min
+infix-minmax      minmax
 infix-mod         modulo
 infix-ne          ongelijk
 infix-notandthen  nietendan
-#infix-o           o
+infix-o           o
 infix-or          of
 infix-orelse      ofanders
 #infix-unicmp      unicmp
-#infix-x           x
-#infix-X           X
-#infix-xx          xx
-#infix-Z           Z
+infix-x           x
+infix-X           X
+infix-xx          xx
+infix-Z           Z
 #infix-ff^         ff^
 #infix-fff^        fff^
 infix-(cont)      (bevat)
@@ -295,8 +295,8 @@ infix-(elem)      (element)
 
 # KEY   TRANSLATION
 meta-R  O
-#meta-X  X
-#meta-Z  Z
+meta-X  X
+meta-Z  R
 
 # KEY             TRANSLATION
 modifier-for      vooralle
@@ -349,11 +349,11 @@ prefix-so   wel
 
 # KEY              TRANSLATION
 routine-method     methode
-#routine-sub        sub
-#routine-regex      regex
+routine-sub        sub
+routine-regex      regex
 routine-rule       regel
 routine-submethod  submethode
-routine-token      merkteken
+routine-token      token
 
 # KEY            TRANSLATION
 scope-anon       anoniem

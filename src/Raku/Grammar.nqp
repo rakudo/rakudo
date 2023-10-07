@@ -3838,7 +3838,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto rule trait_mod {*}
     rule trait_mod:sym<is> {
-        <.trait-is> [ <longname><circumfix>? || <.panic: 'Invalid name'> ]
+        <.traitmod-is> [ <longname><circumfix>? || <.panic: 'Invalid name'> ]
         {
             if $<circumfix> && nqp::eqat(self.orig, '{', $<longname>.to) {
                 $*BORG<block> := $<circumfix>;
@@ -3847,25 +3847,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         }
     }
     rule trait_mod:sym<hides> {
-        <.trait-hides> [ <typename> || <.bad-trait-typename>]
+        <.traitmod-hides> [ <typename> || <.bad-traitmod-typename>]
     }
     rule trait_mod:sym<does> {
-        <.trait-does> [ <typename> || <.bad-trait-typename>]
+        <.traitmod-does> [ <typename> || <.bad-traitmod-typename>]
     }
     rule trait_mod:sym<of> {
-        <.trait-of> [ <typename> || <.bad-trait-typename>]
+        <.traitmod-of> [ <typename> || <.bad-traitmod-typename>]
     }
     rule trait_mod:sym<returns> {
-        <.trait-returns>
-        [ <typename> || <.bad-trait-typename>]
+        <.traitmod-returns>
+        [ <typename> || <.bad-traitmod-typename>]
           || 'return'
              <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'>
     }
     rule trait_mod:sym<handles> {
-        <.trait-handles> [ <term> || <.panic: 'Invalid term'>]
+        <.traitmod-handles> [ <term> || <.panic: 'Invalid term'>]
     }
 
-    token bad-trait-typename {
+    token bad-traitmod-typename {
         || <longname>
            {
                 my $name := $<longname>.ast;
@@ -4295,7 +4295,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?[(]>
           '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>]
         ]?
-        [<.ws> <.trait-of> <.ws> <typename> ]?
+        [<.ws> <.traitmod-of> <.ws> <typename> ]?
     }
 
     token typo-typename($panic = 0) {

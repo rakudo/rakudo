@@ -944,7 +944,7 @@ class RakuAST::Statement::Loop
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
         ])
     }
 

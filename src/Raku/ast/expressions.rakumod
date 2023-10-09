@@ -403,6 +403,10 @@ class RakuAST::Infix
         }
         $op(|@operands)
     }
+
+    method dump-markers() {
+        '【' ~ $!operator ~ '】'
+    }
 }
 
 class RakuAST::Feed

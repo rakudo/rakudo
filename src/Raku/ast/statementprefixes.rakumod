@@ -424,7 +424,9 @@ class RakuAST::StatementPrefix::Supply
 # Done by all phasers. Serves as little more than a marker for phasers, for
 # easing locating them all.
 class RakuAST::StatementPrefix::Phaser
-  is RakuAST::StatementPrefix { }
+  is RakuAST::StatementPrefix {
+    method dump-markers() { '🛸' }
+}
 
 # Done by all phasers that don't produce a result.
 class RakuAST::StatementPrefix::Phaser::Sinky

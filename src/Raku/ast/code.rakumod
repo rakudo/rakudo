@@ -790,13 +790,6 @@ class RakuAST::ScopePhaser {
     }
 
     method IMPL-STUB-PHASERS(RakuAST::Resolver $resolver, RakuAST::IMPL::Context $context) {
-        if $!FIRST && ! $!is-loop-body {
-            $resolver.add-worry:
-                $resolver.build-exception: 'X::AdHoc',
-                    :payload("FIRST phasers only apply in loop bodies.\n"
-                     ~ "Please use 'once' in place of 'FIRST' for once-only semantics on regular blocks");
-        }
-
         if $!let {
             $!let.IMPL-CHECK($resolver, $context, False);
             $!let.IMPL-STUB-CODE($resolver, $context);

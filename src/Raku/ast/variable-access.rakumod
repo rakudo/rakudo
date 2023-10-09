@@ -75,6 +75,10 @@ class RakuAST::Var::Lexical
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.resolution.compile-time-value
     }
+
+    method dump-markers() {
+        '【' ~ self.name ~ '】'
+    }
 }
 
 # A lexical variable lookup, but assumed to resolve to a compile time

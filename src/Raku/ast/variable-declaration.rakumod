@@ -1022,6 +1022,10 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method needs-sink-call() { False }
+
+    method dump-markers() {
+        '【' ~ self.name ~ '】'
+    }
 }
 
 # Subclass to mark that the declaration was automatically generated.

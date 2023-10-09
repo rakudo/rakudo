@@ -190,6 +190,10 @@ class RakuAST::Name
         Nil
     }
 
+    method dump-markers() {
+        '【' ~ self.canonicalize ~ '】'
+    }
+
     method IMPL-IS-NQP-OP() {
         nqp::elems($!parts) == 2 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'nqp'
             ?? $!parts[1].name

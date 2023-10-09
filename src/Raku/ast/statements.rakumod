@@ -1,7 +1,25 @@
 # Block or statement, used in statement prefixes which can take either a
-# block or a statement.
+# block or a statement (or an expression, which can always go in a
+# RakuAST::Statement::Expression)
 class RakuAST::Blorst
-  is RakuAST::Node { }
+  is RakuAST::Node {
+    method as-block() {
+        nqp::istype(self, RakuAST::Block)
+            ?? self
+            !! nqp::istype(self, RakuAST::Statement)
+                        ??
+                RakuAST::Block.new:
+                    :body(RakuAST::Blockoid.new:
+                        RakuAST::StatementList.new: self)
+                        !!
+                RakuAST::Block.new:
+                    :body(RakuAST::Blockoid.new:
+                        RakuAST::StatementList.new:
+                            RakuAST::Statement::Expression.new:
+                                :expression(self));
+    }
+}
+
 
 # Something that can be the target of a contextualizer.
 class RakuAST::Contextualizable

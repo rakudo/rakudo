@@ -637,21 +637,7 @@ class RakuAST::StatementPrefix::Phaser::First
         my $trigger-lookup := $trigger-var.generate-lookup;
         $attach-block.add-generated-lexical-declaration($trigger-var);
 
-        unless nqp::istype($blorst, RakuAST::Block) {
-            $blorst := nqp::istype($blorst, RakuAST::Statement)
-                        ??
-                RakuAST::Block.new:
-                    :body(RakuAST::Blockoid.new:
-                        RakuAST::StatementList.new:
-                            $blorst)
-                        !!
-                RakuAST::Block.new:
-                    :body(RakuAST::Blockoid.new:
-                        RakuAST::StatementList.new:
-                            RakuAST::Statement::Expression.new:
-                                :expression($blorst));
-        }
-
+        $blorst := $blorst.as-block;
         $blorst.body.statement-list.add-statement:
             RakuAST::Statement::Expression.new:
                 :expression(RakuAST::ApplyInfix.new:

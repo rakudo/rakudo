@@ -617,8 +617,56 @@ class RakuAST::StatementPrefix::Phaser::Block
 # The FIRST phaser.
 class RakuAST::StatementPrefix::Phaser::First
   is RakuAST::StatementPrefix::Phaser::Block
+  is RakuAST::BeginTime
 {
     method type() { "FIRST" }
+
+    method is-begin-performed-before-children { True }
+    method is-begin-performed-after-children  { False }
+
+    method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $blorst := nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst');
+
+        my $True := RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True'));
+
+        my $attach-block := $resolver.find-attach-target('block');
+        my $trigger-name := QAST::Node.unique('!first_block_triggered');
+        my $trigger-var := RakuAST::VarDeclaration::Implicit::State.new: $trigger-name;
+        my $trigger-lookup := $trigger-var.generate-lookup;
+        $attach-block.add-generated-lexical-declaration($trigger-var);
+
+        unless nqp::istype($blorst, RakuAST::Block) {
+            $blorst := nqp::istype($blorst, RakuAST::Statement)
+                        ??
+                RakuAST::Block.new:
+                    :body(RakuAST::Blockoid.new:
+                        RakuAST::StatementList.new:
+                            $blorst)
+                        !!
+                RakuAST::Block.new:
+                    :body(RakuAST::Blockoid.new:
+                        RakuAST::StatementList.new:
+                            RakuAST::Statement::Expression.new:
+                                :expression($blorst));
+        }
+
+        $blorst.body.statement-list.add-statement:
+            RakuAST::Statement::Expression.new:
+                :expression(RakuAST::ApplyInfix.new:
+                    :infix(RakuAST::Assignment.new(:item)),
+                    :left($trigger-lookup),
+                    :right($True));
+
+        my $wrapper-block :=
+            RakuAST::Block.new:
+                :body(RakuAST::Blockoid.new:
+                    RakuAST::StatementList.new:
+                        RakuAST::Statement::Unless.new:
+                            :condition($trigger-lookup),
+                            :body($blorst));
+
+        nqp::bindattr(self, RakuAST::StatementPrefix, '$!blorst', $wrapper-block);
+    }
 }
 
 # The NEXT phaser.

@@ -730,13 +730,7 @@ class RakuAST::ScopePhaser {
             for $!FIRST {
                 $first-setup.push($_.IMPL-CALLISH-QAST($context));
             }
-            $qast[0].push(
-              QAST::Op.new(
-                :op('if'),
-                QAST::Op.new( :op('p6takefirstflag') ),
-                $first-setup
-              )
-            );
+            $qast[0].push: $first-setup;
         }
 
         my $phasers := nqp::istype(self, RakuAST::Code)
@@ -1108,33 +1102,8 @@ class RakuAST::Block
         if $immediate {
             # For now, assume we never need a code object for such a block. The
             # closure clone is done for us by the QAST compiler.
-            # Aside from that, we need to change our plans if there is a FIRST phaser
-            # because it needs to be triggered manually. If you've passed :immediate and
-            # there are FIRST phasers, we are going to give you back this self-calling
-            # construct.
-            my $Code := self.get-implicit-lookups.AT-POS(0).compile-time-value;
-            my $has-first-phasers := self.has-phaser('FIRST');
-
-            my $blocktype := $has-first-phasers ?? 'declaration_static' !! 'immediate';
-            my $block := self.IMPL-QAST-FORM-BLOCK($context, :$blocktype);
+            my $block := self.IMPL-QAST-FORM-BLOCK($context, :blocktype<immediate>);
             self.IMPL-LINK-META-OBJECT($context, $block);
-
-            if $has-first-phasers {
-                my $tmp  := QAST::Node.unique('LOOP_BLOCK');
-                my $var  := QAST::Var.new: :name($tmp), :scope<local>;
-                $block := QAST::Stmts.new(
-                    QAST::Op.new(:op<bind>, $var.decl_as('var'),
-                        QAST::Stmts.new(
-                            QAST::Op.new(
-                                :op('p6setfirstflag'),
-                                QAST::Var.new(
-                                    :value(nqp::getattr(self.meta-object, $Code, '$!do')),
-                                    :name<loop-code-attribute-do>,
-                                    :scope<local>,
-                                    :decl<var>)))),
-                    $block,
-                    QAST::Op.new(:op<call>, $var).annotate_self('loop-already-block-first-phaser', $block));
-            }
             $block
         }
         else {

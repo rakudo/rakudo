@@ -617,7 +617,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Postcircumfix::HashIndex:D: --> Str:D) {
-        self!positional(self.index)
+        self!nameds: <index>
     }
 
     multi method raku(RakuAST::Postcircumfix::LiteralHashIndex:D: --> Str:D) {

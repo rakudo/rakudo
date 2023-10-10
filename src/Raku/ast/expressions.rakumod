@@ -1973,7 +1973,7 @@ class RakuAST::Postcircumfix::HashIndex
 {
     has RakuAST::SemiList $.index;
 
-    method new(RakuAST::SemiList $index) {
+    method new(RakuAST::SemiList :$index!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::HashIndex, '$!index', $index);
         nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);

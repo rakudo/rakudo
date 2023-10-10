@@ -295,7 +295,7 @@ subtest 'Multi-dimensional array indexing' => {
         ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::HashIndex.new(
-            RakuAST::SemiList.new(
+            index => RakuAST::SemiList.new(
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::StrLiteral.new('s')
               )
@@ -313,7 +313,7 @@ subtest 'Multi-dimensional array indexing' => {
         ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::HashIndex.new(
-            RakuAST::SemiList.new
+            index => RakuAST::SemiList.new
           )
         );
 
@@ -381,7 +381,7 @@ subtest 'Multi-dimensional hash indexing' => {
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('%h'),
       postfix => RakuAST::Postcircumfix::HashIndex.new(
-        RakuAST::SemiList.new(
+        index => RakuAST::SemiList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StrLiteral.new('y')
           ),

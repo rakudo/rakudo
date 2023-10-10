@@ -437,6 +437,24 @@ traitmod-is       is
 traitmod-of       netals
 traitmod-returns  geeftterug
 
+# KEY                           TRANSLATION
+#trait-is-built                  built
+trait-is-copy                   kopie
+trait-is-default                verstek
+trait-is-DEPRECATED             VEROUDERD
+trait-is-equiv                  equivalent
+trait-is-export                 export
+#trait-is-hidden-from-backtrace  hidden-from-backtrace
+#trait-is-hidden-from-USAGE      hidden-from-USAGE
+trait-is-implementation-detail  implementatie-detail
+trait-is-looser                 losser
+#trait-is-nodal                  nodal
+trait-is-pure                   puur
+trait-is-raw                    rauw
+trait-is-readonly               alleen-lezen
+trait-is-rw                     lezen-schrijven
+trait-is-tighter                strakker
+
 # KEY          TRANSLATION
 #typer-enum    enum
 #typer-subset  subset

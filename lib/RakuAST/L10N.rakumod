@@ -10,64 +10,29 @@
 # Needed for now
 use experimental :rakuast;
 
-# Return the RakuAST of a role with the given name from the given translation
-# hash to be used to create a slang.
-my sub slangify($language, %hash) is export {
-    my $statements := RakuAST::StatementList.new;
-
-    # Needs 'use experimental :rakuast' in case source is generated
-    $statements.add-statement: RakuAST::Statement::Use.new(
-      module-name => RakuAST::Name.from-identifier("experimental"),
-      argument    => RakuAST::ColonPair::True.new("rakuast")
-    );
-
-    # Run over the given hash, sorted by key
-    my @operands;
-    for %hash.sort(*.key) -> (:key($name), :value($string)) {
-
-        # It's a sub / method name, add to the list
-        if $name.starts-with('core-') {
-            @operands.push: RakuAST::StrLiteral.new($string);
-            @operands.push: RakuAST::StrLiteral.new($name.substr(5));
-        }
-
-        # Some other core feature, add a token for it
-        else {
-            $statements.add-statement: RakuAST::Statement::Expression.new(
-              expression => RakuAST::TokenDeclaration.new(
-                name => RakuAST::Name.from-identifier(
-                  $name.trans('^()' => 'cpp')  # handle bad chars
-                ),
-                body => RakuAST::Regex::Sequence.new(
-                  RakuAST::Regex::Literal.new($string)
-                )
-              )
-            );
-        }
-    }
-
-    # Add method doing the actual mapping, basically:
-    #
-    # method xlated2ast {
-    #     my constant %core = @operands;
-    #     my $ast := self.ast;
-    #     if %core{$ast.simple-identifier} -> $original {
-    #         RakuAST::Name.from-identifier($original)
-    #     }
-    #     else {
-    #         $ast
-    #     }
-    # }
-    #
-    $statements.add-statement: RakuAST::Statement::Expression.new(
+# Return the AST for translation lookup logic, basically:
+#
+# method $name {
+#     my constant %mapping = @operands;
+#     my $ast := self.ast;
+#     if %mapping{$ast.simple-identifier} -> $original {
+#         RakuAST::Name.from-identifier($original)
+#     }
+#     else {
+#         $ast
+#     }
+# }
+#
+sub make-mapper2ast(str $name, @operands) {
+    RakuAST::Statement::Expression.new(
       expression => RakuAST::Method.new(
-        name  => RakuAST::Name.from-identifier("xlated2ast"),
+        name  => RakuAST::Name.from-identifier($name),
         body  => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
               expression => RakuAST::VarDeclaration::Constant.new(
                 scope       => "my",
-                name        => "\%core",
+                name        => "\%mapping",
                 initializer => RakuAST::Initializer::Assign.new(
                   RakuAST::ApplyListInfix.new(
                     infix    => RakuAST::Infix.new(","),
@@ -92,7 +57,7 @@ my sub slangify($language, %hash) is export {
             ),
             RakuAST::Statement::If.new(
               condition => RakuAST::ApplyPostfix.new(
-                operand => RakuAST::Var::Lexical.new("\%core"),
+                operand => RakuAST::Var::Lexical.new("\%mapping"),
                 postfix => RakuAST::Postcircumfix::HashIndex.new(
                   RakuAST::SemiList.new(
                     RakuAST::Statement::Expression.new(
@@ -145,7 +110,55 @@ my sub slangify($language, %hash) is export {
           )
         )
       )
+    )
+}
+
+# Return the RakuAST of a role with the given name from the given translation
+# hash to be used to create a slang.
+my sub slangify($language, %hash) is export {
+    my $statements := RakuAST::StatementList.new;
+
+    # Needs 'use experimental :rakuast' in case source is generated
+    $statements.add-statement: RakuAST::Statement::Use.new(
+      module-name => RakuAST::Name.from-identifier("experimental"),
+      argument    => RakuAST::ColonPair::True.new("rakuast")
     );
+
+    # Run over the given hash, sorted by key
+    my @core;
+    my @trait-is;
+    for %hash.sort(*.key.fc) -> (:key($name), :value($string)) {
+
+        # It's a sub / method name
+        if $name.starts-with('core-') {
+            @core.push: RakuAST::StrLiteral.new($string);
+            @core.push: RakuAST::StrLiteral.new($name.substr(5));
+        }
+
+        # It's an "is" trait
+        elsif $name.starts-with('trait-is-') {
+            @trait-is.push: RakuAST::StrLiteral.new($string);
+            @trait-is.push: RakuAST::StrLiteral.new($name.substr(9));
+        }
+
+        # Some other core feature, add a token for it
+        else {
+            $statements.add-statement: RakuAST::Statement::Expression.new(
+              expression => RakuAST::TokenDeclaration.new(
+                name => RakuAST::Name.from-identifier(
+                  $name.trans('^()' => 'cpp')  # handle bad chars
+                ),
+                body => RakuAST::Regex::Sequence.new(
+                  RakuAST::Regex::Literal.new($string)
+                )
+              )
+            );
+        }
+    }
+
+    # Add methods for mappers
+    $statements.add-statement: make-mapper2ast('core2ast',     @core    );
+    $statements.add-statement: make-mapper2ast('trait-is2ast', @trait-is);
 
     # Wrap the whole thing up in a role with the given name and return it
     RakuAST::Package.new(

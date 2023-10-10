@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-07T19:56:04+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-10T10:39:22+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -25,8 +25,6 @@ role L10N::NL {
     token constraint-where { waar}
     token infix-pcontp { "(bevat)"}
     token infix-pelemp { "(element)"}
-    token infix-X { X}
-    token infix-Z { R}
     token infix-cff { "^ff"}
     token infix-cffc { "^ff^"}
     token infix-cfff { "^fff"}
@@ -63,7 +61,9 @@ role L10N::NL {
     token infix-orelse { ofanders}
     token infix-unicmp { unicmp}
     token infix-x { x}
+    token infix-X { X}
     token infix-xx { xx}
+    token infix-Z { R}
     token meta-R { O}
     token meta-X { X}
     token meta-Z { R}
@@ -112,10 +112,10 @@ role L10N::NL {
     token routine-sub { sub}
     token routine-submethod { submethode}
     token routine-token { token}
-    token scope-HAS { HEEFT}
     token scope-anon { anoniem}
     token scope-augment { verbeter}
     token scope-constant { constant}
+    token scope-HAS { HEEFT}
     token scope-has { heeft}
     token scope-my { mijn}
     token scope-our { onze}
@@ -153,10 +153,20 @@ role L10N::NL {
     token use-no { geen}
     token use-require { require}
     token use-use { gebruik}
-    method xlated2ast {
-        my constant %core = "abs", "abs", "alle", "all", "elke", "any", "voeg-achteraan", "append", "ast", "ast", "atomic-add-fetch", "atomic-add-fetch", "atomic-assign", "atomic-assign", "atomic-dec-fetch", "atomic-dec-fetch", "atomic-fetch", "atomic-fetch", "atomic-fetch-add", "atomic-fetch-add", "atomic-fetch-dec", "atomic-fetch-dec", "atomic-fetch-inc", "atomic-fetch-inc", "atomic-fetch-sub", "atomic-fetch-sub", "atomic-inc-fetch", "atomic-inc-fetch", "atomic-sub-fetch", "atomic-sub-fetch", "wacht-op", "await", "tas", "bag", "geef-op", "bail-out", "zegen", "bless", "callframe", "callframe", "callsame", "callsame", "callwith", "callwith", "kan-ok", "can-ok", "cas", "cas", "categoriseer", "categorize", "plafond", "ceiling", "letters", "chars", "chdir", "chdir", "chmod", "chmod", "kap-regeleinde", "chomp", "kap", "chop", "chown", "chown", "als-letter", "chr", "als-letters", "chrs", "classificeer", "classify", "sluit", "close", "cmp-ok", "cmp-ok", "kam", "comb", "combinaties", "combinations", "kruis", "cross", "diep-arrangeer", "deepmap", "gedefinieerd", "defined", "diag", "diag", "sterf", "die", "dies-ok", "dies-ok", "dir", "dir", "does-ok", "does-ok", "klaar", "done", "duik-arrangeer", "duckmap", "elementen", "elems", "zend", "emit", "einde", "end", "eval-sterft-ok", "eval-dies-ok", "eval-leeft-ok", "eval-lives-ok", "verlaat", "exit", "exp", "exp", "expmod", "expmod", "faal", "fail", "faalt-als", "fails-like", "vouw-kast", "fc", "eerste", "first", "plat", "flat", "draaiom", "flip", "vloer", "floor", "flunk", "flunk", "full-barrier", "full-barrier", "pak", "get", "pakc", "getc", "kern", "gist", "filter", "grep", "moes", "hash", "hoofd", "head", "indenteer", "indent", "index", "index", "indices", "indices", "indir", "indir", "is", "is", "is-ongeveer", "is-approx", "is-helemaal", "is-deeply", "iseen-ok", "isa-ok", "isniet", "isnt", "item", "item", "plak", "join", "sleutel", "key", "sleutels", "keys", "sw", "kv", "laatste", "last", "laatste-aanroep", "lastcall", "onder-kast", "lc", "lijkt-op", "like", "regels", "lines", "koppeling", "link", "lijst", "list", "leeft-ok", "lives-ok", "minst-belangrijke-bit", "lsb", "maak", "make", "arrangeer", "map", "max", "max", "min", "min", "minmax", "minmax", "mix", "mix", "mkdir", "mkdir", "verplaats", "move", "belangrijkste-bit", "msb", "volgende", "next", "nextcallee", "nextcallee", "nextsame", "nextsame", "nextwith", "nextwith", "niet-ok", "nok", "geen", "none", "niet", "not", "merk-op", "note", "ok", "ok", "een", "one", "open", "open", "als-getal", "ord", "als-getallen", "ords", "paar", "pair", "paren", "pairs", "parse-base", "parse-base", "goed", "pass", "permutaties", "permutations", "kies", "pick", "verwacht", "plan", "pop", "pop", "voeg-voor", "prepend", "druk", "print", "drukf", "printf", "ga-door", "proceed", "vraag", "prompt", "stapel-op", "push", "zeg-het", "put", "willkeurig", "rand", "nog-eens", "redo", "reduceer", "reduce", "herhaaldelijk", "repeated", "repl", "repl", "retour", "return", "retour-rw", "return-rw", "keer-om", "reverse", "om-index", "rindex", "rmdir", "rmdir", "gooi", "roll", "roteer", "rotate", "rond-af", "round", "ieder-een", "roundrobin", "voer-uit", "run", "zelfde-kast", "samecase", "zelfde-accent", "samemark", "zelfde-met", "samewith", "zeg", "say", "verzameling", "set", "shell", "shell", "onderuit", "shift", "teken", "sign", "signaal", "signal", "sla-over", "skip", "sla-rest-over", "skip-rest", "slaap", "sleep", "wekker", "sleep-timer", "slaap-tot", "sleep-until", "glip", "slip", "slurp", "slurp", "knip", "snip", "spiek", "snitch", "dus", "so", "sorteer", "sort", "splits-lijst", "splice", "splits-letters", "split", "sdrukf", "sprintf", "spuit", "spurt", "wortel", "sqrt", "plet", "squish", "zo-willekeurig", "srand", "subbuf", "subbuf", "subbuf-rw", "subbuf-rw", "subtest", "subtest", "slaag", "succeed", "sommeer", "sum", "symbolische-koppeling", "symlink", "staart", "tail", "neem", "take", "neem-rw", "take-rw", "titel-kast", "tc", "titel-onder-kast", "tclc", "knalt-als", "throws-like", "tedoen", "todo", "trim", "trim", "trim-vooraan", "trim-leading", "trim-achteraan", "trim-trailing", "kap-af", "truncate", "boven-kast", "uc", "unimatch", "unimatch", "uniname", "uniname", "uninames", "uninames", "uniparse", "uniparse", "uniprop", "uniprop", "uniprops", "uniprops", "uniek", "unique", "unival", "unival", "univals", "univals", "lijkt-niet-als", "unlike", "ontkoppel", "unlink", "onderin", "unshift", "gebruik-ok", "use-ok", "als-nummers", "val", "waarde", "value", "waardes", "values", "waarschuw", "warn", "woord-kast", "wordcase", "woorden", "words", "rits", "zip";
+    method core2ast {
+        my constant %mapping = "abs", "abs", "alle", "all", "elke", "any", "voeg-achteraan", "append", "ast", "ast", "atomic-add-fetch", "atomic-add-fetch", "atomic-assign", "atomic-assign", "atomic-dec-fetch", "atomic-dec-fetch", "atomic-fetch", "atomic-fetch", "atomic-fetch-add", "atomic-fetch-add", "atomic-fetch-dec", "atomic-fetch-dec", "atomic-fetch-inc", "atomic-fetch-inc", "atomic-fetch-sub", "atomic-fetch-sub", "atomic-inc-fetch", "atomic-inc-fetch", "atomic-sub-fetch", "atomic-sub-fetch", "wacht-op", "await", "tas", "bag", "geef-op", "bail-out", "zegen", "bless", "callframe", "callframe", "callsame", "callsame", "callwith", "callwith", "kan-ok", "can-ok", "cas", "cas", "categoriseer", "categorize", "plafond", "ceiling", "letters", "chars", "chdir", "chdir", "chmod", "chmod", "kap-regeleinde", "chomp", "kap", "chop", "chown", "chown", "als-letter", "chr", "als-letters", "chrs", "classificeer", "classify", "sluit", "close", "cmp-ok", "cmp-ok", "kam", "comb", "combinaties", "combinations", "kruis", "cross", "diep-arrangeer", "deepmap", "gedefinieerd", "defined", "diag", "diag", "sterf", "die", "dies-ok", "dies-ok", "dir", "dir", "does-ok", "does-ok", "klaar", "done", "duik-arrangeer", "duckmap", "elementen", "elems", "zend", "emit", "einde", "end", "eval-sterft-ok", "eval-dies-ok", "eval-leeft-ok", "eval-lives-ok", "verlaat", "exit", "exp", "exp", "expmod", "expmod", "faal", "fail", "faalt-als", "fails-like", "vouw-kast", "fc", "eerste", "first", "plat", "flat", "draaiom", "flip", "vloer", "floor", "flunk", "flunk", "full-barrier", "full-barrier", "pak", "get", "pakc", "getc", "kern", "gist", "filter", "grep", "moes", "hash", "hoofd", "head", "indenteer", "indent", "index", "index", "indices", "indices", "indir", "indir", "is", "is", "is-ongeveer", "is-approx", "is-helemaal", "is-deeply", "iseen-ok", "isa-ok", "isniet", "isnt", "item", "item", "plak", "join", "sleutel", "key", "sleutels", "keys", "sw", "kv", "laatste", "last", "laatste-aanroep", "lastcall", "onder-kast", "lc", "lijkt-op", "like", "regels", "lines", "koppeling", "link", "lijst", "list", "leeft-ok", "lives-ok", "minst-belangrijke-bit", "lsb", "maak", "make", "arrangeer", "map", "max", "max", "min", "min", "minmax", "minmax", "mix", "mix", "mkdir", "mkdir", "verplaats", "move", "belangrijkste-bit", "msb", "volgende", "next", "nextcallee", "nextcallee", "nextsame", "nextsame", "nextwith", "nextwith", "niet-ok", "nok", "geen", "none", "niet", "not", "merk-op", "note", "ok", "ok", "een", "one", "open", "open", "als-getal", "ord", "als-getallen", "ords", "paar", "pair", "paren", "pairs", "parse-base", "parse-base", "goed", "pass", "permutaties", "permutations", "kies", "pick", "verwacht", "plan", "pop", "pop", "voeg-voor", "prepend", "druk", "print", "drukf", "printf", "ga-door", "proceed", "vraag", "prompt", "stapel-op", "push", "zeg-het", "put", "willkeurig", "rand", "nog-eens", "redo", "reduceer", "reduce", "herhaaldelijk", "repeated", "repl", "repl", "retour", "return", "retour-rw", "return-rw", "keer-om", "reverse", "om-index", "rindex", "rmdir", "rmdir", "gooi", "roll", "roteer", "rotate", "rond-af", "round", "ieder-een", "roundrobin", "voer-uit", "run", "zelfde-kast", "samecase", "zelfde-accent", "samemark", "zelfde-met", "samewith", "zeg", "say", "verzameling", "set", "shell", "shell", "onderuit", "shift", "teken", "sign", "signaal", "signal", "sla-over", "skip", "sla-rest-over", "skip-rest", "slaap", "sleep", "wekker", "sleep-timer", "slaap-tot", "sleep-until", "glip", "slip", "slurp", "slurp", "knip", "snip", "spiek", "snitch", "dus", "so", "sorteer", "sort", "splits-lijst", "splice", "splits-letters", "split", "sdrukf", "sprintf", "spuit", "spurt", "wortel", "sqrt", "plet", "squish", "zo-willekeurig", "srand", "subbuf", "subbuf", "subbuf-rw", "subbuf-rw", "subtest", "subtest", "slaag", "succeed", "sommeer", "sum", "symbolische-koppeling", "symlink", "staart", "tail", "neem", "take", "neem-rw", "take-rw", "titel-kast", "tc", "titel-onder-kast", "tclc", "knalt-als", "throws-like", "tedoen", "todo", "trim", "trim", "trim-vooraan", "trim-leading", "trim-achteraan", "trim-trailing", "kap-af", "truncate", "boven-kast", "uc", "unimatch", "unimatch", "uniname", "uniname", "uninames", "uninames", "uniparse", "uniparse", "uniprop", "uniprop", "uniprops", "uniprops", "uniek", "unique", "unival", "unival", "univals", "univals", "lijkt-niet-als", "unlike", "ontkoppel", "unlink", "onderin", "unshift", "gebruik-ok", "use-ok", "als-nummers", "val", "waarde", "value", "waardes", "values", "waarschuw", "warn", "woord-kast", "wordcase", "woorden", "words", "rits", "zip";
         my $ast := self.ast();
-        if %core{$ast.simple-identifier()} -> $original {
+        if %mapping{$ast.simple-identifier()} -> $original {
+            RakuAST::Name.from-identifier($original)
+        }
+        else {
+            $ast
+        }
+    }
+    method trait-is2ast {
+        my constant %mapping = "built", "built", "kopie", "copy", "verstek", "default", "VEROUDERD", "DEPRECATED", "equivalent", "equiv", "export", "export", "hidden-from-backtrace", "hidden-from-backtrace", "hidden-from-USAGE", "hidden-from-USAGE", "implementatie-detail", "implementation-detail", "losser", "looser", "nodal", "nodal", "puur", "pure", "rauw", "raw", "alleen-lezen", "readonly", "lezen-schrijven", "rw", "strakker", "tighter";
+        my $ast := self.ast();
+        if %mapping{$ast.simple-identifier()} -> $original {
             RakuAST::Name.from-identifier($original)
         }
         else {

@@ -429,6 +429,24 @@ traitmod-is       is
 traitmod-of       of
 traitmod-returns  returns
 
+# KEY                           TRANSLATION
+trait-is-built                  built
+trait-is-copy                   copy
+trait-is-default                default
+trait-is-DEPRECATED             DEPRECATED
+trait-is-equiv                  equiv
+trait-is-export                 export
+trait-is-hidden-from-backtrace  hidden-from-backtrace
+trait-is-hidden-from-USAGE      hidden-from-USAGE
+trait-is-implementation-detail  implementation-detail
+trait-is-looser                 looser
+trait-is-nodal                  nodal
+trait-is-pure                   pure
+trait-is-raw                    raw
+trait-is-readonly               readonly
+trait-is-rw                     rw
+trait-is-tighter                tighter
+
 # KEY         TRANSLATION
 typer-enum    enum
 typer-subset  subset

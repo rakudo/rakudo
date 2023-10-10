@@ -1203,7 +1203,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             else {
                 $ast := Nodify('Call','Method').new(
-                  :name($longname.xlated2ast), :$args
+                  :name($longname.core2ast), :$args
                 );
             }
         }
@@ -1627,7 +1627,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<name>($/) {
-        my $name := $<longname>.xlated2ast;
+        my $name := $<longname>.core2ast;
         if $<args> {
             my $args := $<args>.ast;
             self.attach: $/, (my $invocant := $args.invocant)
@@ -2336,15 +2336,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method trait_mod:sym<is>($/) {
-        my $longname  := $<longname>;
+        my $longname := $<longname>;
         return self.handle-is-repr($/) if ~$longname eq 'repr';
 
         my $circumfix := $<circumfix>;
-        my $ast-type  := Nodify('Trait', 'Is');
-
-        my $trait := $circumfix
-          ?? $ast-type.new(:name($longname.ast), :argument($circumfix.ast))
-          !! $ast-type.new(:name($longname.ast));
+        my $trait := Nodify('Trait', 'Is').new(
+          :name($longname.trait-is2ast),
+          :argument($circumfix ?? $circumfix.ast !! Mu)
+        );
 
         $trait.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $trait;

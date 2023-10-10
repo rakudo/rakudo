@@ -49,6 +49,7 @@ The following prefixes are currently defined:
   stmt-prefix  statement prefixes ("do","eager","lazy","quietly", etc.)
   term         terms ("time","now","self",etc.)
   traitmod     types of trait_mods ("is","does","returns", etc.)
+  trait-is     names of "is" traits ("default","ro","raw","DEPRECATED", etc.)
   typer        type constructors ("enum","subset")
   use          use related ("use","no","require", etc.)
 

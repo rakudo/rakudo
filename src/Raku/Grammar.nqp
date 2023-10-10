@@ -740,6 +740,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Translatable tokens
 
+    # These tokens replace bare strings so that they can be localized by
+    # mixing in tokens with translated localizations.
     token block-default  { default }
     token block-else     { else    }
     token block-elsif    { elsif   }
@@ -909,7 +911,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # object as its ".ast", to a RakuAST::Name object with the name of the
     # the core functionality if there is an original name known.  Otherwise
     # it should just return the ".ast" of the invocant.
-    method xlated2ast() { self.ast }
+    method core2ast() { self.ast }
+
+    # Convert the invocant, a match that is expected to have a RakuAST::Name
+    # object as its ".ast", to a RakuAST::Name object with the name of the
+    # the trait_mod:<is> name if there is an original name known for it.
+    # Otherwise it should just return the ".ast" of the invocant.
+    method trait-is2ast() { self.ast }
 
 #-------------------------------------------------------------------------------
 # Grammar entry point

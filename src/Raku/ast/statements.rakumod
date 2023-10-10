@@ -1,23 +1,10 @@
 # Block or statement, used in statement prefixes which can take either a
-# block or a statement (or an expression, which can always go in a
-# RakuAST::Statement::Expression)
+# block or a statement
 class RakuAST::Blorst
   is RakuAST::Node
 {
     method as-block() {
-        nqp::istype(self, RakuAST::Block)
-            ?? self
-            !! nqp::istype(self, RakuAST::Statement)
-                        ??
-                RakuAST::Block.new:
-                    :body(RakuAST::Blockoid.new:
-                        RakuAST::StatementList.new: self)
-                        !!
-                RakuAST::Block.new:
-                    :body(RakuAST::Blockoid.new:
-                        RakuAST::StatementList.new:
-                            RakuAST::Statement::Expression.new:
-                                :expression(self));
+        nqp::die("RakuAST::Blorst classes must define 'as-block'. " ~ self.HOW.name(self) ~ " does not.")
     }
 }
 
@@ -148,6 +135,12 @@ class RakuAST::Statement
                 QAST::Op.new( :op('exception') )
             )
         )
+    }
+
+    method as-block() {
+        RakuAST::Block.new:
+            :body(RakuAST::Blockoid.new:
+                RakuAST::StatementList.new: self)
     }
 }
 

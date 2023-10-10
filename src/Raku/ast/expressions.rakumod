@@ -3,10 +3,7 @@ class RakuAST::CaptureSource
   is RakuAST::Node { }
 
 # Everything that can appear as an expression does RakuAST::Expression.
-# Furthermore, since every expression can exist as statement, consider
-# us a RakuAST::Blorst since we may easily find ourselves where blorsts go.
 class RakuAST::Expression
-  is RakuAST::Blorst
   is RakuAST::IMPL::ImmediateBlockUser
 {
     # All expressions can be thunked - that is, compiled such that they get

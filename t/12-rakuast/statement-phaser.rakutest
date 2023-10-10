@@ -882,21 +882,25 @@ subtest 'For loop with FIRST phaser thunk' => {
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
               expression => RakuAST::StatementPrefix::Phaser::First.new(
-                RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier("is-deeply"),
-                  args => RakuAST::ArgList.new(
-                    RakuAST::Var::Lexical.new('$run'),
-                    RakuAST::IntLiteral.new(0),
-                    RakuAST::StrLiteral.new('inside FIRST'),
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier("is-deeply"),
+                    args => RakuAST::ArgList.new(
+                      RakuAST::Var::Lexical.new('$run'),
+                      RakuAST::IntLiteral.new(0),
+                      RakuAST::StrLiteral.new('inside FIRST'),
+                    )
                   )
                 )
               )
             ),
             RakuAST::Statement::Expression.new(
               expression => RakuAST::StatementPrefix::Phaser::First.new(
-                RakuAST::ApplyPrefix.new(
-                  prefix => RakuAST::Prefix.new('++'),
-                  operand => RakuAST::Var::Lexical.new('$run')
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$run')
+                  )
                 )
               )
             )
@@ -996,17 +1000,21 @@ subtest 'For loop with NEXT / LAST phaser thunk' => {
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
               expression => RakuAST::StatementPrefix::Phaser::Next.new(
-                RakuAST::ApplyPrefix.new(
-                  prefix => RakuAST::Prefix.new('++'),
-                  operand => RakuAST::Var::Lexical.new('$next')
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$next')
+                  )
                 )
               )
             ),
             RakuAST::Statement::Expression.new(
               expression => RakuAST::StatementPrefix::Phaser::Last.new(
-                RakuAST::ApplyPrefix.new(
-                  prefix => RakuAST::Prefix.new('++'),
-                  operand => RakuAST::Var::Lexical.new('$last')
+                RakuAST::Statement::Expression.new(
+                  expression => RakuAST::ApplyPrefix.new(
+                    prefix => RakuAST::Prefix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$last')
+                  )
                 )
               )
             )
@@ -1117,9 +1125,11 @@ subtest 'Block with CLOSE phaser thunk' => {
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Close.new(
-              RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('++'),
-                operand => RakuAST::Var::Lexical.new('$close')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPrefix.new(
+                  prefix => RakuAST::Prefix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$close')
+                )
               )
             )
           )
@@ -1377,10 +1387,12 @@ subtest 'Block with POST phaser thunk' => {
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StatementPrefix::Phaser::Post.new(
-              RakuAST::ApplyInfix.new(
-                left  => RakuAST::Var::Lexical.new('$post'),
-                infix => RakuAST::Infix.new('='),
-                right => RakuAST::Var::Lexical.new('$_')
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new('$post'),
+                  infix => RakuAST::Infix.new('='),
+                  right => RakuAST::Var::Lexical.new('$_')
+                )
               )
             )
           ),
@@ -1393,7 +1405,7 @@ subtest 'Block with POST phaser thunk' => {
 
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 -> {
-    POST $post = $_;
+    POST $post = $_;;
     $result
 }
 CODE

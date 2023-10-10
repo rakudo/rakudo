@@ -2,7 +2,8 @@
 # block or a statement (or an expression, which can always go in a
 # RakuAST::Statement::Expression)
 class RakuAST::Blorst
-  is RakuAST::Node {
+  is RakuAST::Node
+{
     method as-block() {
         nqp::istype(self, RakuAST::Block)
             ?? self

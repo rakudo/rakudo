@@ -1229,6 +1229,10 @@ class RakuAST::Block
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.meta-object
     }
+
+    method as-block {
+        self
+    }
 }
 
 # A pointy block (-> $foo { ... }).

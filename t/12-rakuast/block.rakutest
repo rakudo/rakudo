@@ -112,7 +112,7 @@ subtest 'Bare block at statement level is executed' => {
             RakuAST::Statement::Expression.new(
               expression => RakuAST::ApplyPostfix.new(
                 operand => RakuAST::Var::Lexical.new('$x'),
-                postfix => RakuAST::Postfix.new('++')
+                postfix => RakuAST::Postfix.new(:operator<++>)
               )
             )
           )
@@ -148,7 +148,7 @@ subtest 'Bare block in parentheses evaluates to Block' => {
                   RakuAST::Statement::Expression.new(
                     expression => RakuAST::ApplyPostfix.new(
                       operand => RakuAST::Var::Lexical.new('$x'),
-                      postfix => RakuAST::Postfix.new('++')
+                      postfix => RakuAST::Postfix.new(:operator<++>)
                     )
                   )
                 )

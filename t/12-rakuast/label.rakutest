@@ -198,7 +198,7 @@ subtest 'simple without with an undefined condition and a label' => {
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
               expression => RakuAST::ApplyPostfix.new(
-                postfix => RakuAST::Postfix.new('++'),
+                postfix => RakuAST::Postfix.new(:operator<++>),
                 operand => RakuAST::Var::Lexical.new('$y')
               )
             )

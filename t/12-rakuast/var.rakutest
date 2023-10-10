@@ -1043,7 +1043,7 @@ subtest 'A pointy block node with a state variable' => {
               ),
               RakuAST::Statement::Expression.new(
                 expression => RakuAST::ApplyPostfix.new(
-                  postfix => RakuAST::Postfix.new('++'),
+                  postfix => RakuAST::Postfix.new(:operator<++>),
                   operand => RakuAST::Var::Lexical.new('$foo')
                 )
               )

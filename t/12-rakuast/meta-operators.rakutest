@@ -171,7 +171,7 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
       ),
       right => RakuAST::ApplyPostfix.new(
         operand => RakuAST::Var::Lexical.new('$update'),
-        postfix => RakuAST::Postfix.new('++')
+        postfix => RakuAST::Postfix.new(:operator<++>)
       )
     );
 

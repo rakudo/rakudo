@@ -53,7 +53,7 @@ subtest 'Block with CATCH/default handles exception and evaluates to Nil' => {
                           RakuAST::Statement::Expression.new(
                             expression => RakuAST::ApplyPostfix.new(
                               operand => RakuAST::Var::Lexical.new('$handled'),
-                              postfix => RakuAST::Postfix.new('++')
+                              postfix => RakuAST::Postfix.new(:operator<++>)
                             )
                           )
                         )

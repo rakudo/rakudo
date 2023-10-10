@@ -1030,7 +1030,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         else {
             self.attach: $/, Nodify('ApplyPostfix').new:
-              postfix => Nodify('Postfix').new($<postfix><sym>),
+              postfix => Nodify('Postfix').new(:operator(~$<postfix><sym>)),
               operand => $operand;
         }
     }
@@ -1070,7 +1070,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Postfix operators
 
     method postfixish($/) {
-        my $ast := $<OPER>.ast // Nodify('Postfix').new(~$<postfix><sym>);
+        my $ast := $<OPER>.ast
+          // Nodify('Postfix').new(:operator(~$<postfix><sym>));
         $ast := $<postfix-prefix-meta-operator>.ast.new($ast)
           if $<postfix-prefix-meta-operator>;
         self.attach: $/, $ast;

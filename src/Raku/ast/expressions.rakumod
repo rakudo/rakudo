@@ -1777,7 +1777,7 @@ class RakuAST::Postfix
 {
     has str $.operator;
 
-    method new(str $operator) {
+    method new(str :$operator!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Postfix, '$!operator', $operator);
         nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);

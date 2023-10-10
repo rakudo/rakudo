@@ -201,7 +201,7 @@ subtest 'Application of a (user-defined) postfix operator to a literal' => {
     # 4!
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(4),
-      postfix => RakuAST::Postfix.new('!'),
+      postfix => RakuAST::Postfix.new(:operator<!>)
     );
 
     is-deeply $deparsed, '4!', 'deparse';
@@ -441,7 +441,7 @@ subtest 'Chaining operator has correct outcome' => {
         left => RakuAST::IntLiteral.new(5),
         infix => RakuAST::Infix.new('>'),
         right => RakuAST::ApplyPostfix.new(
-          postfix => RakuAST::Postfix.new('++'),
+          postfix => RakuAST::Postfix.new(:operator<++>),
           operand => RakuAST::Var::Lexical.new('$x')
         )
       ),

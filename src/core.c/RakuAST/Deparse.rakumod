@@ -535,9 +535,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
-        my $postfix := $ast.postfix;
-        my str $deparsed-postfix =
-          self.deparse($postfix) ~ self.colonpairs($postfix);
+        my str $deparsed-postfix = self.deparse($ast.postfix);
 
         if $ast.on-topic {
             $deparsed-postfix

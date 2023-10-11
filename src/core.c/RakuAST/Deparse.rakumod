@@ -2108,7 +2108,11 @@ class RakuAST::Deparse {
         # becomes the condition modifier
         my $expression := $ast.blorst.body.statement-list.statements.head
           .condition-modifier.expression;
-        self.syn-phaser('POST') ~ ' ' ~ self.deparse($expression).chomp
+        self.syn-phaser('POST') ~ ' ' ~ self.deparse(
+          nqp::istype($expression,RakuAST::ApplyPostfix)
+            ?? $expression.operand
+            !! $expression
+        ).chomp
     }
 
     multi method deparse(

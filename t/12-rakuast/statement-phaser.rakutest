@@ -1405,7 +1405,7 @@ subtest 'Block with POST phaser thunk' => {
 
     is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
 -> {
-    POST $post = $_;;
+    POST $post = $_;
     $result
 }
 CODE

@@ -788,7 +788,9 @@ class RakuAST::StatementPrefix::Phaser::Post
                             value => RakuAST::StrLiteral.new(
                               $condition
                                 ?? nqp::hllizefor($condition, 'Raku')
-                                !! $blorst.origin ?? $blorst.origin.Str !! $blorst.DEPARSE
+                                !! $blorst.origin
+                                  ?? $blorst.origin.Str
+                                  !! $blorst.DEPARSE
                             )
                           )
                         )
@@ -804,7 +806,9 @@ class RakuAST::StatementPrefix::Phaser::Post
                            operand => $blorst,
                            postfix => RakuAST::Call::Term.new
                          )
-                      !! $blorst
+                      !! nqp::istype($blorst, RakuAST::Statement::Expression)
+                        ?? $blorst.expression
+                        !! $blorst
                   )
                 )
               )

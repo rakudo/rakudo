@@ -1806,9 +1806,15 @@ class RakuAST::Postfix
         Nil
     }
 
-    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
-        my $name := self.resolution.lexical-name;
-        QAST::Op.new( :op('call'), :$name, $operand-qast )
+    method IMPL-POSTFIX-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                              Mu $operand-qast
+    ) {
+        my $op := QAST::Op.new(
+          :op('call'), :name(self.resolution.lexical-name), $operand-qast
+        );
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
+        $op
     }
 
     method can-be-used-with-hyper() { True }
@@ -1956,6 +1962,7 @@ class RakuAST::Postcircumfix::ArrayIndex
         my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
         $op.push($!assignee.IMPL-TO-QAST($context)) if $!assignee;
+        self.IMPL-ADD-COLONPAIRS-TO-OP($context, $op);
         $op
     }
 

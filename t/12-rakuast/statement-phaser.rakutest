@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 35; # Do not change this file to done-testing because of END block tests
+plan 36; # Do not change this file to done-testing because of END block tests
 
 my $ast;
 my $deparsed;
@@ -1059,6 +1059,101 @@ CODE
         is-deeply EVAL($it), Nil, "$type: while loop evaluates to Nil";
         is-deeply $result, False, "$type: FIRST returns a value";
         is-deeply $run, 1, "$type: loop block ran";
+    }
+}
+
+subtest 'Subroutine with FIRST phaser block and return value' => {
+    my $run;
+    my $guard;
+    my $result;
+
+    # my $guard = True; while $guard { FIRST { is-deeply $run, 0, "inside FIRST"; $guard = False }; ++$run }
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Sub.new(
+          name => RakuAST::Name.from-identifier("s"),
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyInfix.new(
+                  left  => RakuAST::Var::Lexical.new("\$guard"),
+                  infix => RakuAST::Assignment.new(:item),
+                  right => RakuAST::StatementPrefix::Phaser::First.new(
+                    RakuAST::Block.new(
+                      body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                          RakuAST::Statement::Expression.new(
+                            expression => RakuAST::Call::Name.new(
+                              name => RakuAST::Name.from-identifier("is-deeply"),
+                              args => RakuAST::ArgList.new(
+                                RakuAST::Var::Lexical.new("\$run"),
+                                RakuAST::IntLiteral.new(0),
+                                RakuAST::QuotedString.new(
+                                  segments   => (
+                                    RakuAST::StrLiteral.new("in FIRST"),
+                                  )
+                                )
+                              )
+                            )
+                          ),
+                          RakuAST::Statement::Expression.new(
+                            expression => RakuAST::ApplyInfix.new(
+                              left  => RakuAST::Var::Lexical.new("\$guard"),
+                              infix => RakuAST::Infix.new("+"),
+                              right => RakuAST::IntLiteral.new(1)
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  operand => RakuAST::Var::Lexical.new("\$run"),
+                  postfix => RakuAST::Postfix.new(
+                    operator   => "++",
+                    colonpairs => $( )
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left  => RakuAST::Call::Name.new(
+            name => RakuAST::Name.from-identifier("s")
+          ),
+          infix => RakuAST::Infix.new("xx"),
+          right => RakuAST::IntLiteral.new(3)
+        )
+      )
+    );
+
+    plan 13;  # FIRST tests need to be run
+    is-deeply $deparsed, Q:to/CODE/.chomp, 'deparse';
+sub s {
+    $guard = FIRST {
+        is-deeply($run, 0, "in FIRST");
+        $guard + 1
+    }
+    $run++
+}
+s() xx 3
+
+CODE
+
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        $run = 0;
+        $guard = 41;
+        $result = Nil;
+
+        is-deeply EVAL($it), (0,1,2), "$type: expression returns as expected";
+        is-deeply $guard, 42, "$type: FIRST returns a static value";
+        is-deeply $run, 3, "$type: loop block ran";
     }
 }
 

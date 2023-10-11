@@ -1744,13 +1744,13 @@ class RakuAST::Postfixish
     has List $.colonpairs;
 
     method set-colonpairs(List $pairs) {
-        nqp::bindattr(self, RakuAST::Postfixish, '$!colonpairs',
-          $pairs
-            ?? nqp::islist($pairs)
-              ?? $pairs
-              !! [$pairs]
-            !! []
-        );
+        my @pairs;
+        if $pairs {
+            for self.IMPL-UNWRAP-LIST($pairs) {
+                nqp::push(@pairs,$_);
+            }
+        }
+        nqp::bindattr(self,RakuAST::Postfixish,'$!colonpairs',@pairs);
     }
 
     method add-colonpair(RakuAST::ColonPair $pair) {
@@ -2157,14 +2157,9 @@ class RakuAST::ApplyPostfix
     has RakuAST::Postfixish $.postfix;
     has RakuAST::Expression $.operand;
 
-    method new(
-      RakuAST::Postfixish :$postfix!,
-      RakuAST::Expression :$operand!,
-                     List :$colonpairs
-    ) {
+    method new(RakuAST::Postfixish :$postfix!, RakuAST::Expression :$operand!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!postfix', $postfix);
-        $postfix.set-colonpairs($colonpairs);
 
         if nqp::istype($operand, RakuAST::Circumfix::Parentheses)
             && $operand.semilist.IMPL-IS-SINGLE-EXPRESSION

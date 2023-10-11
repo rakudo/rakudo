@@ -125,6 +125,11 @@ augment class RakuAST::Node {
                   :@cells
               }
           },
+          'colonpairs', -> {
+              if self.colonpairs -> @colonpairs is copy {
+                  :@colonpairs
+              }
+          },
           'column-dividers', -> {
               if self.column-dividers -> $column-dividers {
                   :$column-dividers

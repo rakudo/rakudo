@@ -633,6 +633,14 @@ class RakuAST::StatementPrefix::Phaser::First
     # synthetic AST generation in PERFORM-BEGIN.
     has str $!value-var-name;
 
+    # Because we are going to preserve our initial blorst for presentation / round trip
+    # via AST/DEPARSE/.raku. In EVAL, $!original-blorst will not be defined, because
+    # our original blorst is in $!blorst
+    has RakuAST::Blorst $!original-blorst;
+    method original-blorst() {
+        $!original-blorst // nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst')
+    }
+
     method is-begin-performed-before-children { True }
     method is-begin-performed-after-children  { False }
 
@@ -644,6 +652,7 @@ class RakuAST::StatementPrefix::Phaser::First
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $blorst := nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst');
+        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::First, '$!original-blorst', $blorst);
 
         my $True := RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True'));
 

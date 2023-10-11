@@ -1743,6 +1743,16 @@ class RakuAST::Postfixish
 {
     has List $.colonpairs;
 
+    method set-colonpairs(List $pairs) {
+        nqp::bindattr(self, RakuAST::Postfixish, '$!colonpairs',
+          $pairs
+            ?? nqp::islist($pairs)
+              ?? $pairs
+              !! [$pairs]
+            !! []
+        );
+    }
+
     method add-colonpair(RakuAST::ColonPair $pair) {
         $!colonpairs.push: $pair;
     }
@@ -1777,10 +1787,10 @@ class RakuAST::Postfix
 {
     has str $.operator;
 
-    method new(str :$operator!) {
+    method new(str :$operator!, List :$colonpairs) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Postfix, '$!operator', $operator);
-        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
+        $obj.set-colonpairs($colonpairs);
         $obj
     }
 
@@ -1823,6 +1833,7 @@ class RakuAST::Postfix::Literal
     method new(Mu $value) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postfix::Literal, '$!value', $value);
+        # NOTE: these can never have colonpairs
         nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
@@ -1894,14 +1905,18 @@ class RakuAST::Postcircumfix::ArrayIndex
   is RakuAST::Postcircumfix
   is RakuAST::Lookup
 {
-    has RakuAST::SemiList $.index;
+    has RakuAST::SemiList   $.index;
     has RakuAST::Expression $.assignee;
 
-    method new(RakuAST::SemiList :$index!, RakuAST::Expression :$assignee) {
+    method new(
+        RakuAST::SemiList :$index!,
+      RakuAST::Expression :$assignee,
+                     List :$colonpairs
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!index', $index);
         nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!assignee', $assignee // RakuAST::Expression);
-        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
+        $obj.set-colonpairs($colonpairs);
         $obj
     }
 
@@ -1973,10 +1988,10 @@ class RakuAST::Postcircumfix::HashIndex
 {
     has RakuAST::SemiList $.index;
 
-    method new(RakuAST::SemiList :$index!) {
+    method new(RakuAST::SemiList :$index!, List :$colonpairs) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Postcircumfix::HashIndex, '$!index', $index);
-        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
+        nqp::bindattr($obj,RakuAST::Postcircumfix::HashIndex,'$!index',$index);
+        $obj.set-colonpairs($colonpairs);
         $obj
     }
 
@@ -2035,11 +2050,15 @@ class RakuAST::Postcircumfix::LiteralHashIndex
     has RakuAST::QuotedString $.index;
     has RakuAST::Expression $.assignee;
 
-    method new(RakuAST::QuotedString :$index!, RakuAST::Expression :$assignee) {
+    method new(
+      RakuAST::QuotedString :$index!,
+        RakuAST::Expression :$assignee,
+                       List :$colonpairs
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::LiteralHashIndex, '$!index', $index);
         nqp::bindattr($obj, RakuAST::Postcircumfix::LiteralHashIndex, '$!assignee', $assignee // RakuAST::Expression);
-        nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
+        $obj.set-colonpairs($colonpairs);
         $obj
     }
 
@@ -2103,6 +2122,7 @@ class RakuAST::MetaPostfix::Hyper
     method new(RakuAST::Postfixish $postfix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaPostfix::Hyper, '$!postfix', $postfix);
+        # NOTE: can not have colonpairs specified
         nqp::bindattr($obj, RakuAST::Postfixish, '$!colonpairs', []);
         $obj
     }
@@ -2137,9 +2157,15 @@ class RakuAST::ApplyPostfix
     has RakuAST::Postfixish $.postfix;
     has RakuAST::Expression $.operand;
 
-    method new(:$postfix!, :$operand!) {
+    method new(
+      RakuAST::Postfixish :$postfix!,
+      RakuAST::Expression :$operand!,
+                     List :$colonpairs
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyPostfix, '$!postfix', $postfix);
+        $postfix.set-colonpairs($colonpairs);
+
         if nqp::istype($operand, RakuAST::Circumfix::Parentheses)
             && $operand.semilist.IMPL-IS-SINGLE-EXPRESSION
         {

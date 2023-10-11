@@ -328,6 +328,10 @@ class RakuAST::Deparse {
         }
     }
 
+    method colonpairs($ast) {
+        $ast.colonpairs.map({ self.deparse($_) }).join
+    }
+
     method quantifier(
       RakuAST::Regex::Quantifier:D $ast, str $quantifier
     --> Str:D) {
@@ -531,7 +535,10 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
-        my str $deparsed-postfix = self.deparse($ast.postfix);
+        my $postfix := $ast.postfix;
+        my str $deparsed-postfix =
+          self.deparse($postfix) ~ self.colonpairs($postfix);
+
         if $ast.on-topic {
             $deparsed-postfix
         }
@@ -1194,21 +1201,21 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Postcircumfix::ArrayIndex:D $ast --> Str:D) {
-        self.squarize($ast.index)
+        self.squarize($ast.index) ~ self.colonpairs($ast)
     }
 
     multi method deparse(RakuAST::Postcircumfix::HashIndex:D $ast --> Str:D) {
-        self.bracketize($ast.index)
+        self.bracketize($ast.index) ~ self.colonpairs($ast)
     }
 
     multi method deparse(
       RakuAST::Postcircumfix::LiteralHashIndex:D $ast
     --> Str:D) {
-        self.deparse($ast.index)
+        self.deparse($ast.index) ~ self.colonpairs($ast)
     }
 
     multi method deparse(RakuAST::Postfix:D $ast --> Str:D) {
-        $ast.operator
+        $ast.operator ~ self.colonpairs($ast)
     }
 
     multi method deparse(RakuAST::Postfix::Power:D $ast --> Str:D) {

@@ -613,19 +613,19 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Postcircumfix::ArrayIndex:D: --> Str:D) {
-        self!nameds: <index assignee>
+        self!nameds: <index assignee colonpairs>
     }
 
     multi method raku(RakuAST::Postcircumfix::HashIndex:D: --> Str:D) {
-        self!nameds: <index>
+        self!nameds: <index colonpairs>
     }
 
     multi method raku(RakuAST::Postcircumfix::LiteralHashIndex:D: --> Str:D) {
-        self!nameds: <index assignee>
+        self!nameds: <index assignee colonpairs>
     }
 
     multi method raku(RakuAST::Postfix:D: --> Str:D) {
-        self!nameds: <operator>
+        self!nameds: <operator colonpairs>
     }
 
     multi method raku(RakuAST::Postfix::Power:D: --> Str:D) {

@@ -2105,6 +2105,11 @@ class RakuAST::Deparse {
         self.syn-phaser($ast.type) ~ ' ' ~ self.deparse($ast.blorst).chomp
     }
 
+    multi method deparse(RakuAST::StatementPrefix::Phaser::First:D $ast --> Str:D) {
+        my $*DELIMITER = '';
+        self.syn-phaser($ast.type) ~ ' ' ~ self.deparse($ast.original-blorst).chomp
+    }
+
     multi method deparse(
       RakuAST::StatementPrefix::Phaser::Post:D $ast
     --> Str:D) {

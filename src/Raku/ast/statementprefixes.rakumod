@@ -623,8 +623,24 @@ class RakuAST::StatementPrefix::Phaser::First
 {
     method type() { "FIRST" }
 
+    # To give it return value semantics (my $once = FIRST unique-id),
+    # we need to use two lexical state variables attached to the surrounding
+    # (attach) block. Two are required because the return value of the FIRST
+    # blorst could very well be undefined, meaning that the truthiness (or even
+    # defined-ness) of the blorst's value cannot be used to record the 'triggered'
+    # state.
+    # Though we use two, only one's name needs to be remembered outside of the
+    # synthetic AST generation in PERFORM-BEGIN.
+    has str $!value-var-name;
+
     method is-begin-performed-before-children { True }
     method is-begin-performed-after-children  { False }
+
+    # We do a lot of things like other RakuAST::StatementPrefix::Phaser::Block nodes,
+    # but being sinky isn't one of those things.
+    method propagate-sink(Bool $is-sunk) {
+        self.blorst.apply-sink(False)
+    }
 
     method PERFORM-BEGIN(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         my $blorst := nqp::getattr(self, RakuAST::StatementPrefix, '$!blorst');
@@ -637,23 +653,40 @@ class RakuAST::StatementPrefix::Phaser::First
         my $trigger-lookup := $trigger-var.generate-lookup;
         $attach-block.add-generated-lexical-declaration($trigger-var);
 
-        $blorst := $blorst.as-block;
-        $blorst.body.statement-list.add-statement:
-            RakuAST::Statement::Expression.new:
-                :expression(RakuAST::ApplyInfix.new:
-                    :infix(RakuAST::Assignment.new(:item)),
-                    :left($trigger-lookup),
-                    :right($True));
+        my $value-name := QAST::Node.unique('!first_block_value');
+        my $value-var := RakuAST::VarDeclaration::Implicit::State.new: $value-name;
+        my $value-lookup := $value-var.generate-lookup;
+        $attach-block.add-generated-lexical-declaration($value-var);
+        nqp::bindattr_s(self, RakuAST::StatementPrefix::Phaser::First, '$!value-var-name', $value-name);
 
-        my $wrapper-block :=
+        $blorst := $blorst.as-block;
+        $blorst :=
             RakuAST::Block.new:
                 :body(RakuAST::Blockoid.new:
                     RakuAST::StatementList.new:
                         RakuAST::Statement::Unless.new:
                             :condition($trigger-lookup),
-                            :body($blorst));
+                            :body(RakuAST::Block.new:
+                                :body(RakuAST::Blockoid.new:
+                                    RakuAST::StatementList.new:
+                                        RakuAST::Statement::Expression.new(
+                                            :expression(RakuAST::ApplyInfix.new:
+                                                :infix(RakuAST::Assignment.new(:item)),
+                                                :left($value-lookup),
+                                                :right(RakuAST::ApplyPostfix.new:
+                                                    :postfix(RakuAST::Call::Term.new),
+                                                    :operand($blorst)))), # 🛸 ... the actual FIRST code
+                                        RakuAST::Statement::Expression.new(
+                                            :expression(RakuAST::ApplyInfix.new:
+                                                :infix(RakuAST::Assignment.new(:item)),
+                                                :left($trigger-lookup),
+                                                :right($True))))));
 
-        nqp::bindattr(self, RakuAST::StatementPrefix, '$!blorst', $wrapper-block);
+        nqp::bindattr(self, RakuAST::StatementPrefix, '$!blorst', $blorst);
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new(:name($!value-var-name), :scope<lexical>);
     }
 }
 

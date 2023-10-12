@@ -13,6 +13,37 @@ adverb-pc-kv      sw
 adverb-pc-p       p
 adverb-pc-v       w
 
+# KEY                 TRANSLATION
+adverb-rx-c           c
+adverb-rx-continue    continueer
+adverb-rx-ex          ui
+adverb-rx-exhaustive  uitputtend
+adverb-rx-g           g
+adverb-rx-global      globaal
+adverb-rx-i           nk
+adverb-rx-ignorecase  negeerkast
+adverb-rx-ignoremark  negeeraccent
+adverb-rx-ii          zk
+adverb-rx-m           na
+adverb-rx-mm          za
+adverb-rx-nd          de
+adverb-rx-nth         de
+adverb-rx-ov          ov
+adverb-rx-overlap     overlap
+adverb-rx-p           p
+adverb-rx-pos         pos
+adverb-rx-r           r
+adverb-rx-ratchet     ratel
+adverb-rx-rd          de
+adverb-rx-s           s
+adverb-rx-ss          zs
+adverb-rx-samecase    zelfdekast
+adverb-rx-samemark    zelfdeaccent
+adverb-rx-samespace   zelfdespatie
+adverb-rx-sigspace    sigspatie
+adverb-rx-st          ste
+adverb-rx-x           keer
+
 # KEY           TRANSLATION
 block-default   gebrek
 block-else      anders

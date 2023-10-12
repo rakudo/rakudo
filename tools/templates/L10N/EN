@@ -11,6 +11,37 @@ adverb-pc-kv      kv
 adverb-pc-p       p
 adverb-pc-v       v
 
+# KEY                 TRANSLATION
+adverb-rx-c           c
+adverb-rx-continue    continue
+adverb-rx-ex          ex
+adverb-rx-exhaustive  exhaustive
+adverb-rx-g           g
+adverb-rx-global      global
+adverb-rx-i           i
+adverb-rx-ignorecase  ignorecase
+adverb-rx-ignoremark  ignoremark
+adverb-rx-ii          ii
+adverb-rx-m           m
+adverb-rx-mm          mm
+adverb-rx-nd          nd
+adverb-rx-nth         nth
+adverb-rx-ov          ov
+adverb-rx-overlap     overlap
+adverb-rx-p           p
+adverb-rx-pos         pos
+adverb-rx-r           r
+adverb-rx-ratchet     ratchet
+adverb-rx-rd          rd
+adverb-rx-s           s
+adverb-rx-ss          ss
+adverb-rx-samecase    samecase
+adverb-rx-samemark    samemark
+adverb-rx-samespace   samespace
+adverb-rx-sigspace    sigspace
+adverb-rx-st          st
+adverb-rx-x           x
+
 # KEY           TRANSLATION
 block-default   default
 block-else      else

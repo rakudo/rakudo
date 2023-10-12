@@ -34,6 +34,8 @@ as the Italian localization of:
 # Defined Prefixes
 The following prefixes are currently defined:
 
+  adverb-pc    core adverbs on postcircumfixes (:exists, :delete, etc.)
+  adverb-rx    core adverbs on regexes (:i, :m, :ignorecase, etc.)
   block        syntax involving a block ("if","elsif","else","start", etc.)
   core         sub/method names that are part of the Raku core ("say", etc.)
   constraint   related to (ad-hoc) constraints ("where", etc.))

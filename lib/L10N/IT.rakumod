@@ -1,7 +1,7 @@
 # This file contains the Italian Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-12T12:31:33+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-12T16:17:10+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::IT {
@@ -60,8 +60,8 @@ role L10N::IT {
     token infix-or { o}
     token infix-orelse { oppure}
     token infix-unicmp { unicmp}
-    token infix-X { X}
     token infix-x { x}
+    token infix-X { X}
     token infix-xx { xx}
     token infix-Z { Z}
     token meta-R { R}
@@ -154,7 +154,7 @@ role L10N::IT {
     token use-require { richiedere}
     token use-use { usare}
     method core2ast {
-        my %mapping = "tutti", "all", "ogni", "any", "aggiungi", "append", "aspetta", "await", "borsa", "bag", "categorizzare", "categorize", "soffitto", "ceiling", "classificare", "classify", "chide", "close", "pettine", "comb", "combinazioni", "combinations", "mappa-profonda", "deepmap", "definito", "defined", "muori", "die", "fatto", "done", "mappa-anatra", "duckmap", "emettere", "emit", "fine", "end", "uscire", "exit", "fallire", "fail", "primo", "first", "piatto", "flat", "pavimento", "floor", "barriera-completa", "full-barrier", "prendi", "get", "essenza", "gist", "testa", "head", "indenta", "indent", "indice", "index", "indici", "indices", "articolo", "item", "unirsi", "join", "chiave", "key", "chiavi", "keys", "cv", "kv", "ultimo", "last", "ultima-chiamata", "lastcall", "linee", "lines", "elenco", "list", "fare", "make", "mappa", "map", "muove", "move", "prossimo", "next", "prossimo-chiamato", "nextcallee", "prossimo-esteso", "nextsame", "prossimo-con", "nextwith", "nessuno", "none", "non", "not", "nota", "note", "uno", "one", "aperto", "open", "paio", "pair", "pai", "pairs", "permutazioni", "permutations", "prendi", "pick", "stampa", "print", "f-stampa", "printf", "procedi", "proceed", "richiesta", "prompt", "spinge", "push", "metti", "put", "rifai", "redo", "riduci", "reduce", "ripetuto", "repeated", "restituisci", "return", "stesso-caso", "samecase", "stessa-marca", "samemark", "stessa-con", "samewith", "dillo", "say", "sposta", "shift", "firma", "sign", "segno", "signal", "salta", "skip", "dormi", "sleep", "dormi-fino-a", "sleep-until", "scivola", "slip", "bevi", "slurp", "taglia", "snip", "fail-la-spia", "snitch", "così", "so", "ordina", "sort", "unisci", "splice", "divitevi", "split", "spruzza", "spurt", "schiaccia", "squish", "riuscirci", "succeed", "somma", "sum", "coda", "tail", "prendi", "take", "prendi-rw", "take-rw", "taglia", "trim", "taglia-in-testa", "trim-leading", "taglia-in-coda", "trim-trailing", "troncare", "truncate", "valore", "value", "valori", "values", "avviso", "warn", "caso-della-parola", "wordcase", "parole", "words";
+        my constant %mapping = "tutti", "all", "ogni", "any", "aggiungi", "append", "aspetta", "await", "borsa", "bag", "categorizzare", "categorize", "soffitto", "ceiling", "classificare", "classify", "chide", "close", "pettine", "comb", "combinazioni", "combinations", "mappa-profonda", "deepmap", "definito", "defined", "muori", "die", "fatto", "done", "mappa-anatra", "duckmap", "emettere", "emit", "fine", "end", "uscire", "exit", "fallire", "fail", "primo", "first", "piatto", "flat", "pavimento", "floor", "barriera-completa", "full-barrier", "prendi", "get", "essenza", "gist", "testa", "head", "indenta", "indent", "indice", "index", "indici", "indices", "articolo", "item", "unirsi", "join", "chiave", "key", "chiavi", "keys", "cv", "kv", "ultimo", "last", "ultima-chiamata", "lastcall", "linee", "lines", "elenco", "list", "fare", "make", "mappa", "map", "muove", "move", "prossimo", "next", "prossimo-chiamato", "nextcallee", "prossimo-esteso", "nextsame", "prossimo-con", "nextwith", "nessuno", "none", "non", "not", "nota", "note", "uno", "one", "aperto", "open", "paio", "pair", "pai", "pairs", "permutazioni", "permutations", "prendi", "pick", "stampa", "print", "f-stampa", "printf", "procedi", "proceed", "richiesta", "prompt", "spinge", "push", "metti", "put", "rifai", "redo", "riduci", "reduce", "ripetuto", "repeated", "restituisci", "return", "stesso-caso", "samecase", "stessa-marca", "samemark", "stessa-con", "samewith", "dillo", "say", "sposta", "shift", "firma", "sign", "segno", "signal", "salta", "skip", "dormi", "sleep", "dormi-fino-a", "sleep-until", "scivola", "slip", "bevi", "slurp", "taglia", "snip", "fail-la-spia", "snitch", "così", "so", "ordina", "sort", "unisci", "splice", "divitevi", "split", "spruzza", "spurt", "schiaccia", "squish", "riuscirci", "succeed", "somma", "sum", "coda", "tail", "prendi", "take", "prendi-rw", "take-rw", "taglia", "trim", "taglia-in-testa", "trim-leading", "taglia-in-coda", "trim-trailing", "troncare", "truncate", "valore", "value", "valori", "values", "avviso", "warn", "caso-della-parola", "wordcase", "parole", "words";
         my $ast := self.ast();
         if %mapping{$ast.simple-identifier()} -> $original {
             RakuAST::Name.from-identifier($original)
@@ -167,6 +167,9 @@ role L10N::IT {
         self.ast()
     }
     method adverb-pc2str (str $adverb) {
+        $adverb
+    }
+    method adverb-rx2str (str $adverb) {
         $adverb
     }
 }

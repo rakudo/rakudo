@@ -1,7 +1,7 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-12T12:31:33+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-12T16:17:10+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::EN {
@@ -60,8 +60,8 @@ role L10N::EN {
     token infix-or { or}
     token infix-orelse { orelse}
     token infix-unicmp { unicmp}
-    token infix-X { X}
     token infix-x { x}
+    token infix-X { X}
     token infix-xx { xx}
     token infix-Z { Z}
     token meta-R { R}
@@ -115,8 +115,8 @@ role L10N::EN {
     token scope-anon { anon}
     token scope-augment { augment}
     token scope-constant { constant}
-    token scope-HAS { HAS}
     token scope-has { has}
+    token scope-HAS { HAS}
     token scope-my { my}
     token scope-our { our}
     token scope-state { state}
@@ -160,6 +160,9 @@ role L10N::EN {
         self.ast()
     }
     method adverb-pc2str (str $adverb) {
+        $adverb
+    }
+    method adverb-rx2str (str $adverb) {
         $adverb
     }
 }

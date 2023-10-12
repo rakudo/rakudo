@@ -219,6 +219,7 @@ my sub slangify($language, %hash) is export {
     my @core;
     my @trait-is;
     my @adverb-pc;
+    my @adverb-rx;
     for %hash.sort(*.key.fc) -> (:key($name), :value($string)) {
 
         # It's a sub / method name
@@ -231,9 +232,14 @@ my sub slangify($language, %hash) is export {
             accept($string, $name.substr(9), @trait-is);
         }
 
-        # It's a postcircumfix adverb
+        # It's a postfix adverb
         elsif $name.starts-with('adverb-pc-') {
             accept($string, $name.substr(10), @adverb-pc);
+        }
+
+        # It's a regex adverb
+        elsif $name.starts-with('adverb-rx-') {
+            accept($string, $name.substr(10), @adverb-rx);
         }
 
         # Some other core feature, add a token for it
@@ -255,6 +261,7 @@ my sub slangify($language, %hash) is export {
     $statements.add-statement: make-mapper2ast('core2ast',      @core    );
     $statements.add-statement: make-mapper2ast('trait-is2ast',  @trait-is);
     $statements.add-statement: make-mapper2str('adverb-pc2str', @adverb-pc);
+    $statements.add-statement: make-mapper2str('adverb-rx2str', @adverb-rx);
 
     # Wrap the whole thing up in a role with the given name and return it
     RakuAST::Package.new(
@@ -272,29 +279,67 @@ my sub deparsify($language, %hash) is export {
     my $statements := RakuAST::StatementList.new;
 
     # Run over the given hash, sorted by key
-    my @operands = %hash.sort(*.key).map: {
+    my @operands = %hash.sort(*.key.fc).map: {
         (RakuAST::StrLiteral.new(.key), RakuAST::StrLiteral.new(.value)).Slip
+          unless .key.ends-with('-' ~ .value)
     }
 
-    # Set up the constant hash
-    $statements.add-statement: RakuAST::Statement::Expression.new(
-      expression => RakuAST::VarDeclaration::Constant.new(
-        scope       => "my",
-        name        => "\%xlation",
-        initializer => RakuAST::Initializer::Assign.new(
-          RakuAST::ApplyListInfix.new(
-            infix    => RakuAST::Infix.new(","),
-            operands => @operands,
+    # Found something to lookup in at runtime
+    my $body := do if @operands {
+
+        # Set up the constant hash
+        $statements.add-statement: RakuAST::Statement::Expression.new(
+          expression => RakuAST::VarDeclaration::Constant.new(
+            scope       => "my",
+            name        => "\%xlation",
+            initializer => RakuAST::Initializer::Assign.new(
+              RakuAST::ApplyListInfix.new(
+                infix    => RakuAST::Infix.new(","),
+                operands => @operands,
+              )
+            )
+          )
+        );
+
+        # %translation{"$prefix-$key"} // $key
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left  => RakuAST::ApplyPostfix.new(
+                operand => RakuAST::Var::Lexical.new("\%xlation"),
+                postfix => RakuAST::Postcircumfix::HashIndex.new(
+                  index => RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::QuotedString.new(
+                        segments   => (
+                          RakuAST::Var::Lexical.new("\$prefix"),
+                          RakuAST::StrLiteral.new("-"),
+                          RakuAST::Var::Lexical.new("\$key"),
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              infix => RakuAST::Infix.new("//"),
+              right => RakuAST::Var::Lexical.new("\$key")
+            )
           )
         )
-      )
-    );
+    }
+
+    # Nothing to look up in, so just return $key
+    else {
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::Var::Lexical.new("\$key")
+        )
+    }
 
     # Add method doing the actual mapping, basically:
     #
     # my role NL is export {
     #     my method xsyn(str $prefix, str $key) {
-    #         %translation{"$prefix-$key"} // $key
+    #         $body
     #     }
     # }
     #
@@ -327,30 +372,7 @@ my sub deparsify($language, %hash) is export {
                     )
                   ),
                   body      => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                      RakuAST::Statement::Expression.new(
-                        expression => RakuAST::ApplyInfix.new(
-                          left  => RakuAST::ApplyPostfix.new(
-                            operand => RakuAST::Var::Lexical.new("\%xlation"),
-                            postfix => RakuAST::Postcircumfix::HashIndex.new(
-                              index => RakuAST::SemiList.new(
-                                RakuAST::Statement::Expression.new(
-                                  expression => RakuAST::QuotedString.new(
-                                    segments   => (
-                                      RakuAST::Var::Lexical.new("\$prefix"),
-                                      RakuAST::StrLiteral.new("-"),
-                                      RakuAST::Var::Lexical.new("\$key"),
-                                    )
-                                  )
-                                )
-                              )
-                            )
-                          ),
-                          infix => RakuAST::Infix.new("//"),
-                          right => RakuAST::Var::Lexical.new("\$key")
-                        )
-                      )
-                    )
+                    RakuAST::StatementList.new($body)
                   )
                 )
               )
@@ -360,7 +382,6 @@ my sub deparsify($language, %hash) is export {
       )
     );
 
-    # Wrap the whole thing up in a role with the given name and return it
     $statements
 }
 

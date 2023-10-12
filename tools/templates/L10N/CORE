@@ -10,6 +10,7 @@
 # of the syntax, followed by the name of the feature in the syntax.  The
 # following type indications exist so far:
 #
+#   adverb-pc    core adverbs on postcircumfixes (:exists, :delete, etc.)
 #   block        syntax involving a block
 #   core         sub/method names that are part of the Raku core
 #   constraint   related to (ad-hoc) constraints
@@ -37,6 +38,14 @@
 # rules, so that they must start with a \w character (which includes the
 # underscore), and may have a hyphen as long as it is not the last character
 # if the word, and as long as there are no two consecutive hyphens.
+
+# KEY             TRANSLATION
+adverb-pc-delete  delete
+adverb-pc-exists  exists
+adverb-pc-k       k
+adverb-pc-kv      kv
+adverb-pc-p       p
+adverb-pc-v       v
 
 # KEY           TRANSLATION
 block-default   default

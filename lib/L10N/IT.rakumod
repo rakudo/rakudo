@@ -1,7 +1,7 @@
 # This file contains the Italian Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-10T10:39:22+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-12T12:31:33+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::IT {
@@ -60,8 +60,8 @@ role L10N::IT {
     token infix-or { o}
     token infix-orelse { oppure}
     token infix-unicmp { unicmp}
-    token infix-x { x}
     token infix-X { X}
+    token infix-x { x}
     token infix-xx { xx}
     token infix-Z { Z}
     token meta-R { R}
@@ -154,7 +154,7 @@ role L10N::IT {
     token use-require { richiedere}
     token use-use { usare}
     method core2ast {
-        my constant %mapping = "abs", "abs", "tutti", "all", "ogni", "any", "aggiungi", "append", "ast", "ast", "atomic-add-fetch", "atomic-add-fetch", "atomic-assign", "atomic-assign", "atomic-dec-fetch", "atomic-dec-fetch", "atomic-fetch", "atomic-fetch", "atomic-fetch-add", "atomic-fetch-add", "atomic-fetch-dec", "atomic-fetch-dec", "atomic-fetch-inc", "atomic-fetch-inc", "atomic-fetch-sub", "atomic-fetch-sub", "atomic-inc-fetch", "atomic-inc-fetch", "atomic-sub-fetch", "atomic-sub-fetch", "aspetta", "await", "borsa", "bag", "bail-out", "bail-out", "bless", "bless", "callframe", "callframe", "callsame", "callsame", "callwith", "callwith", "can-ok", "can-ok", "cas", "cas", "categorizzare", "categorize", "soffitto", "ceiling", "chars", "chars", "chdir", "chdir", "chmod", "chmod", "chomp", "chomp", "chop", "chop", "chown", "chown", "chr", "chr", "chrs", "chrs", "classificare", "classify", "chide", "close", "cmp-ok", "cmp-ok", "pettine", "comb", "combinazioni", "combinations", "cross", "cross", "mappa-profonda", "deepmap", "definito", "defined", "diag", "diag", "muori", "die", "dies-ok", "dies-ok", "dir", "dir", "does-ok", "does-ok", "fatto", "done", "mappa-anatra", "duckmap", "elems", "elems", "emettere", "emit", "fine", "end", "eval-dies-ok", "eval-dies-ok", "eval-lives-ok", "eval-lives-ok", "uscire", "exit", "exp", "exp", "expmod", "expmod", "fallire", "fail", "fails-like", "fails-like", "fc", "fc", "primo", "first", "piatto", "flat", "flip", "flip", "pavimento", "floor", "flunk", "flunk", "barriera-completa", "full-barrier", "prendi", "get", "getc", "getc", "essenza", "gist", "grep", "grep", "hash", "hash", "testa", "head", "indenta", "indent", "indice", "index", "indici", "indices", "indir", "indir", "is", "is", "is-approx", "is-approx", "is-deeply", "is-deeply", "isa-ok", "isa-ok", "isnt", "isnt", "articolo", "item", "unirsi", "join", "chiave", "key", "chiavi", "keys", "cv", "kv", "ultimo", "last", "ultima-chiamata", "lastcall", "lc", "lc", "like", "like", "linee", "lines", "link", "link", "elenco", "list", "lives-ok", "lives-ok", "lsb", "lsb", "fare", "make", "mappa", "map", "max", "max", "min", "min", "minmax", "minmax", "mix", "mix", "mkdir", "mkdir", "muove", "move", "msb", "msb", "prossimo", "next", "prossimo-chiamato", "nextcallee", "prossimo-esteso", "nextsame", "prossimo-con", "nextwith", "nok", "nok", "nessuno", "none", "non", "not", "nota", "note", "ok", "ok", "uno", "one", "aperto", "open", "ord", "ord", "ords", "ords", "paio", "pair", "pai", "pairs", "parse-base", "parse-base", "pass", "pass", "permutazioni", "permutations", "prendi", "pick", "plan", "plan", "pop", "pop", "prepend", "prepend", "stampa", "print", "f-stampa", "printf", "procedi", "proceed", "richiesta", "prompt", "spinge", "push", "metti", "put", "rand", "rand", "rifai", "redo", "riduci", "reduce", "ripetuto", "repeated", "repl", "repl", "restituisci", "return", "return-rw", "return-rw", "reverse", "reverse", "rindex", "rindex", "rmdir", "rmdir", "roll", "roll", "rotate", "rotate", "round", "round", "roundrobin", "roundrobin", "run", "run", "stesso-caso", "samecase", "stessa-marca", "samemark", "stessa-con", "samewith", "dillo", "say", "set", "set", "shell", "shell", "sposta", "shift", "firma", "sign", "segno", "signal", "salta", "skip", "skip-rest", "skip-rest", "dormi", "sleep", "sleep-timer", "sleep-timer", "dormi-fino-a", "sleep-until", "scivola", "slip", "bevi", "slurp", "taglia", "snip", "fail-la-spia", "snitch", "così", "so", "ordina", "sort", "unisci", "splice", "divitevi", "split", "sprintf", "sprintf", "spruzza", "spurt", "sqrt", "sqrt", "schiaccia", "squish", "srand", "srand", "subbuf", "subbuf", "subbuf-rw", "subbuf-rw", "subtest", "subtest", "riuscirci", "succeed", "somma", "sum", "symlink", "symlink", "coda", "tail", "prendi", "take", "prendi-rw", "take-rw", "tc", "tc", "tclc", "tclc", "throws-like", "throws-like", "todo", "todo", "taglia", "trim", "taglia-in-testa", "trim-leading", "taglia-in-coda", "trim-trailing", "troncare", "truncate", "uc", "uc", "unimatch", "unimatch", "uniname", "uniname", "uninames", "uninames", "uniparse", "uniparse", "uniprop", "uniprop", "uniprops", "uniprops", "unique", "unique", "unival", "unival", "univals", "univals", "unlike", "unlike", "unlink", "unlink", "unshift", "unshift", "use-ok", "use-ok", "val", "val", "valore", "value", "valori", "values", "avviso", "warn", "caso-della-parola", "wordcase", "parole", "words", "zip", "zip";
+        my constant %mapping = "tutti", "all", "ogni", "any", "aggiungi", "append", "aspetta", "await", "borsa", "bag", "categorizzare", "categorize", "soffitto", "ceiling", "classificare", "classify", "chide", "close", "pettine", "comb", "combinazioni", "combinations", "mappa-profonda", "deepmap", "definito", "defined", "muori", "die", "fatto", "done", "mappa-anatra", "duckmap", "emettere", "emit", "fine", "end", "uscire", "exit", "fallire", "fail", "primo", "first", "piatto", "flat", "pavimento", "floor", "barriera-completa", "full-barrier", "prendi", "get", "essenza", "gist", "testa", "head", "indenta", "indent", "indice", "index", "indici", "indices", "articolo", "item", "unirsi", "join", "chiave", "key", "chiavi", "keys", "cv", "kv", "ultimo", "last", "ultima-chiamata", "lastcall", "linee", "lines", "elenco", "list", "fare", "make", "mappa", "map", "muove", "move", "prossimo", "next", "prossimo-chiamato", "nextcallee", "prossimo-esteso", "nextsame", "prossimo-con", "nextwith", "nessuno", "none", "non", "not", "nota", "note", "uno", "one", "aperto", "open", "paio", "pair", "pai", "pairs", "permutazioni", "permutations", "prendi", "pick", "stampa", "print", "f-stampa", "printf", "procedi", "proceed", "richiesta", "prompt", "spinge", "push", "metti", "put", "rifai", "redo", "riduci", "reduce", "ripetuto", "repeated", "restituisci", "return", "stesso-caso", "samecase", "stessa-marca", "samemark", "stessa-con", "samewith", "dillo", "say", "sposta", "shift", "firma", "sign", "segno", "signal", "salta", "skip", "dormi", "sleep", "dormi-fino-a", "sleep-until", "scivola", "slip", "bevi", "slurp", "taglia", "snip", "fail-la-spia", "snitch", "così", "so", "ordina", "sort", "unisci", "splice", "divitevi", "split", "spruzza", "spurt", "schiaccia", "squish", "riuscirci", "succeed", "somma", "sum", "coda", "tail", "prendi", "take", "prendi-rw", "take-rw", "taglia", "trim", "taglia-in-testa", "trim-leading", "taglia-in-coda", "trim-trailing", "troncare", "truncate", "valore", "value", "valori", "values", "avviso", "warn", "caso-della-parola", "wordcase", "parole", "words";
         my $ast := self.ast();
         if %mapping{$ast.simple-identifier()} -> $original {
             RakuAST::Name.from-identifier($original)
@@ -164,14 +164,10 @@ role L10N::IT {
         }
     }
     method trait-is2ast {
-        my constant %mapping = "built", "built", "copy", "copy", "default", "default", "DEPRECATED", "DEPRECATED", "equiv", "equiv", "export", "export", "hidden-from-backtrace", "hidden-from-backtrace", "hidden-from-USAGE", "hidden-from-USAGE", "implementation-detail", "implementation-detail", "looser", "looser", "nodal", "nodal", "pure", "pure", "raw", "raw", "readonly", "readonly", "rw", "rw", "tighter", "tighter";
-        my $ast := self.ast();
-        if %mapping{$ast.simple-identifier()} -> $original {
-            RakuAST::Name.from-identifier($original)
-        }
-        else {
-            $ast
-        }
+        self.ast()
+    }
+    method adverb-pc2str (str $adverb) {
+        $adverb
     }
 }
 

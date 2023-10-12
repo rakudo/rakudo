@@ -5,6 +5,14 @@
 #
 # See tools/build/L10N/README.md for more explanation.
 
+# KEY             TRANSLATION
+#adverb-pc-delete  delete
+#adverb-pc-exists  exists
+#adverb-pc-k       k
+#adverb-pc-kv      kv
+#adverb-pc-p       p
+#adverb-pc-v       v
+
 # KEY           TRANSLATION
 block-default   predefinita
 block-else      altro

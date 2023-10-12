@@ -1,7 +1,7 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-10T10:39:22+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-12T12:31:33+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::EN {
@@ -60,8 +60,8 @@ role L10N::EN {
     token infix-or { or}
     token infix-orelse { orelse}
     token infix-unicmp { unicmp}
-    token infix-x { x}
     token infix-X { X}
+    token infix-x { x}
     token infix-xx { xx}
     token infix-Z { Z}
     token meta-R { R}
@@ -154,24 +154,13 @@ role L10N::EN {
     token use-require { require}
     token use-use { use}
     method core2ast {
-        my constant %mapping = "abs", "abs", "all", "all", "any", "any", "append", "append", "ast", "ast", "atomic-add-fetch", "atomic-add-fetch", "atomic-assign", "atomic-assign", "atomic-dec-fetch", "atomic-dec-fetch", "atomic-fetch", "atomic-fetch", "atomic-fetch-add", "atomic-fetch-add", "atomic-fetch-dec", "atomic-fetch-dec", "atomic-fetch-inc", "atomic-fetch-inc", "atomic-fetch-sub", "atomic-fetch-sub", "atomic-inc-fetch", "atomic-inc-fetch", "atomic-sub-fetch", "atomic-sub-fetch", "await", "await", "bag", "bag", "bail-out", "bail-out", "bless", "bless", "callframe", "callframe", "callsame", "callsame", "callwith", "callwith", "can-ok", "can-ok", "cas", "cas", "categorize", "categorize", "ceiling", "ceiling", "chars", "chars", "chdir", "chdir", "chmod", "chmod", "chomp", "chomp", "chop", "chop", "chown", "chown", "chr", "chr", "chrs", "chrs", "classify", "classify", "close", "close", "cmp-ok", "cmp-ok", "comb", "comb", "combinations", "combinations", "cross", "cross", "deepmap", "deepmap", "defined", "defined", "diag", "diag", "die", "die", "dies-ok", "dies-ok", "dir", "dir", "does-ok", "does-ok", "done", "done", "duckmap", "duckmap", "elems", "elems", "emit", "emit", "end", "end", "eval-dies-ok", "eval-dies-ok", "eval-lives-ok", "eval-lives-ok", "exit", "exit", "exp", "exp", "expmod", "expmod", "fail", "fail", "fails-like", "fails-like", "fc", "fc", "first", "first", "flat", "flat", "flip", "flip", "floor", "floor", "flunk", "flunk", "full-barrier", "full-barrier", "get", "get", "getc", "getc", "gist", "gist", "grep", "grep", "hash", "hash", "head", "head", "indent", "indent", "index", "index", "indices", "indices", "indir", "indir", "is", "is", "is-approx", "is-approx", "is-deeply", "is-deeply", "isa-ok", "isa-ok", "isnt", "isnt", "item", "item", "join", "join", "key", "key", "keys", "keys", "kv", "kv", "last", "last", "lastcall", "lastcall", "lc", "lc", "like", "like", "lines", "lines", "link", "link", "list", "list", "lives-ok", "lives-ok", "lsb", "lsb", "make", "make", "map", "map", "max", "max", "min", "min", "minmax", "minmax", "mix", "mix", "mkdir", "mkdir", "move", "move", "msb", "msb", "next", "next", "nextcallee", "nextcallee", "nextsame", "nextsame", "nextwith", "nextwith", "nok", "nok", "none", "none", "not", "not", "note", "note", "ok", "ok", "one", "one", "open", "open", "ord", "ord", "ords", "ords", "pair", "pair", "pairs", "pairs", "parse-base", "parse-base", "pass", "pass", "permutations", "permutations", "pick", "pick", "plan", "plan", "pop", "pop", "prepend", "prepend", "print", "print", "printf", "printf", "proceed", "proceed", "prompt", "prompt", "push", "push", "put", "put", "rand", "rand", "redo", "redo", "reduce", "reduce", "repeated", "repeated", "repl", "repl", "return", "return", "return-rw", "return-rw", "reverse", "reverse", "rindex", "rindex", "rmdir", "rmdir", "roll", "roll", "rotate", "rotate", "round", "round", "roundrobin", "roundrobin", "run", "run", "samecase", "samecase", "samemark", "samemark", "samewith", "samewith", "say", "say", "set", "set", "shell", "shell", "shift", "shift", "sign", "sign", "signal", "signal", "skip", "skip", "skip-rest", "skip-rest", "sleep", "sleep", "sleep-timer", "sleep-timer", "sleep-until", "sleep-until", "slip", "slip", "slurp", "slurp", "snip", "snip", "snitch", "snitch", "so", "so", "sort", "sort", "splice", "splice", "split", "split", "sprintf", "sprintf", "spurt", "spurt", "sqrt", "sqrt", "squish", "squish", "srand", "srand", "subbuf", "subbuf", "subbuf-rw", "subbuf-rw", "subtest", "subtest", "succeed", "succeed", "sum", "sum", "symlink", "symlink", "tail", "tail", "take", "take", "take-rw", "take-rw", "tc", "tc", "tclc", "tclc", "throws-like", "throws-like", "todo", "todo", "trim", "trim", "trim-leading", "trim-leading", "trim-trailing", "trim-trailing", "truncate", "truncate", "uc", "uc", "unimatch", "unimatch", "uniname", "uniname", "uninames", "uninames", "uniparse", "uniparse", "uniprop", "uniprop", "uniprops", "uniprops", "unique", "unique", "unival", "unival", "univals", "univals", "unlike", "unlike", "unlink", "unlink", "unshift", "unshift", "use-ok", "use-ok", "val", "val", "value", "value", "values", "values", "warn", "warn", "wordcase", "wordcase", "words", "words", "zip", "zip";
-        my $ast := self.ast();
-        if %mapping{$ast.simple-identifier()} -> $original {
-            RakuAST::Name.from-identifier($original)
-        }
-        else {
-            $ast
-        }
+        self.ast()
     }
     method trait-is2ast {
-        my constant %mapping = "built", "built", "copy", "copy", "default", "default", "DEPRECATED", "DEPRECATED", "equiv", "equiv", "export", "export", "hidden-from-backtrace", "hidden-from-backtrace", "hidden-from-USAGE", "hidden-from-USAGE", "implementation-detail", "implementation-detail", "looser", "looser", "nodal", "nodal", "pure", "pure", "raw", "raw", "readonly", "readonly", "rw", "rw", "tighter", "tighter";
-        my $ast := self.ast();
-        if %mapping{$ast.simple-identifier()} -> $original {
-            RakuAST::Name.from-identifier($original)
-        }
-        else {
-            $ast
-        }
+        self.ast()
+    }
+    method adverb-pc2str (str $adverb) {
+        $adverb
     }
 }
 

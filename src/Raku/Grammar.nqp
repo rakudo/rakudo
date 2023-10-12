@@ -919,6 +919,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Otherwise it should just return the ".ast" of the invocant.
     method trait-is2ast() { self.ast }
 
+    # Convert the given postcircumfix adverb if there is an original name
+    # for it.  Otherwise it should just return the adverb unchanged.
+    method adverb-pc2str(str $adverb) { $adverb }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -1848,9 +1852,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         if $opassoc eq 'unary' {
             my $arg := nqp::pop(@termstack);
             $op[0]  := $arg;
-            $arg.from < $op.from
-              ?? $actions.POSTFIX-EXPR($op)
-              !! $actions.PREFIX-EXPR($op);
+            if $arg.from < $op.from {
+                if $op<colonpair> -> $cp {
+                    my $ast := $cp.ast;
+                    $ast.set-key($op.adverb-pc2str($ast.key));
+                }
+                $actions.POSTFIX-EXPR($op)
+            }
+            else {
+                $actions.PREFIX-EXPR($op);
+            }
         }
 
         elsif $opassoc eq 'list' {

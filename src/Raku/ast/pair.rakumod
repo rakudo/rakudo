@@ -81,6 +81,10 @@ class RakuAST::ColonPair
 
     method value() { nqp::die(self.HOW.name(self) ~ ' does not implement value') }
 
+    method set-key(Str $key) {
+        nqp::bindattr(self, RakuAST::ColonPair, '$!key', $key);
+    }
+
     method named-arg-name() { $!key }
 
     method named-arg-value() { self.value }

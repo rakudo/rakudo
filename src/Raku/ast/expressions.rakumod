@@ -279,7 +279,9 @@ class RakuAST::Infix
                 nqp::die('Cannot compile bind to ' ~ $left.HOW.name($left));
             }
         }
-        elsif nqp::existskey(OP-SMARTMATCH, $op) && !nqp::istype($right, RakuAST::Var) {
+        elsif nqp::existskey(OP-SMARTMATCH, $op)
+            && (!nqp::istype($right, RakuAST::Var) || (nqp::istype($right, RakuAST::Var::Lexical) && $right.is-topic))
+        {
             self.IMPL-SMARTMATCH-QAST($context, $left, $right, nqp::atkey(OP-SMARTMATCH, $op));
         }
         else {

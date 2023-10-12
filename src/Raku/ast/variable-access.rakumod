@@ -54,6 +54,10 @@ class RakuAST::Var::Lexical
             !! Nil
     }
 
+    method is-topic() {
+        self.name eq '$_'
+    }
+
     method IMPL-IS-META-OP() {
         ($!sigil eq '&' || $!sigil eq '')
             && nqp::elems($!desigilname.colonpairs) == 1

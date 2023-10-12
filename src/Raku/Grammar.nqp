@@ -923,6 +923,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # for it.  Otherwise it should just return the adverb unchanged.
     method adverb-pc2str(str $adverb) { $adverb }
 
+    # Convert the given regex adverb if there is an original name
+    # for it.  Otherwise it should just return the adverb unchanged.
+    method adverb-rx2str(str $adverb) { $adverb }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 
@@ -4255,6 +4259,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token rx-adverbs() {
         [ <quotepair> <.ws> ]*
+        {
+            for $<quotepair> {
+                my $ast := $_.ast;
+                $ast.set-key(self.adverb-rx2str($ast.key));
+            }
+        }
     }
 
     token quotepair {

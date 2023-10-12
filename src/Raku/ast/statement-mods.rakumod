@@ -211,11 +211,28 @@ class RakuAST::StatementModifier::For
   is RakuAST::ForLoopImplementation
 {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
+        my $expression := self.expression;
+        my $expression-qast := $expression.IMPL-TO-QAST($context);
+
+        # We generally want to temporarize the topic, except if our expression
+        # is a call, which is used to *produce* $_ into the loop statement
+        # and thus $_ can't be temporarized
+        (nqp::istype($expression, RakuAST::Call) || nqp::istype($expression, RakuAST::ApplyPostfix))
+                ??
         self.IMPL-FOR-QAST(
             $context, 'serial',
             ($sink ?? 'sink' !! 'eager'),
-            self.expression.IMPL-TO-QAST($context),
+            $expression-qast,
             $statement-qast)
+                !!
+        self.IMPL-TEMPORARIZE-TOPIC(
+            $expression-qast,
+            self.IMPL-FOR-QAST(
+                $context, 'serial',
+                ($sink ?? 'sink' !! 'eager'),
+                $expression-qast,
+                $statement-qast)
+        )
     }
 
     method expression-thunk() {

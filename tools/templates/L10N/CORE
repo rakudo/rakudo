@@ -19,6 +19,7 @@
 #   meta         meta-operator prefixes ('R','X','Z')
 #   modifier     statement modifier syntax
 #   multi        types of multi syntax
+#   named        named arguments to methods/subs (:k,:p,:absolute, etc.)
 #   package      package declarators
 #   prefix       prefix operators consisting of alphanumeric characters
 #   phaser       types of phasers ("BEGIN","END","CHECK", etc.)
@@ -421,6 +422,199 @@ modifier-without  without
 multi-multi  multi
 multi-only   only
 multi-proto  proto
+
+# KEY           TRANSLATION
+named-absolute  absolute
+named-actions   actions
+named-api       api
+named-append    append
+named-arg0      arg0
+named-args      args
+named-as        as
+named-at        at
+named-auth      auth
+
+# KEY            TRANSLATION
+named-basename   basename
+named-batch      batch
+named-bin        bin
+named-bleed      bleed
+named-broadcast  broadcast
+
+# KEY             TRANSLATION
+named-catch       catch
+named-check       check
+named-chomp       chomp
+named-close       close
+named-command     command
+named-complement  complement
+named-completely  completely
+named-continue    continue
+named-control     control
+named-count       count
+named-create      create
+named-createonly  createonly
+named-cwd         cwd
+named-CWD         CWD
+
+# KEY           TRANSLATION
+named-datagram  datagram
+named-date      date
+named-day       day
+named-degree    degree
+named-delete    delete
+named-dirname   dirname
+
+# KEY               TRANSLATION
+named-elems         elems
+named-emit-timed    emit-timed
+named-enc           enc
+named-encoding      encoding
+named-end           end
+named-err           err
+named-every         every
+named-ex            ex
+named-excludes-max  excludes-max
+named-excludes-min  excludes-min
+named-exclusive     exclusive
+named-exhaustive    exhaustive
+named-exitcode      exitcode
+named-expires       expires
+
+# KEY            TRANSLATION
+named-family     family
+named-filename   filename
+named-filter     filter
+named-formatter  formatter
+
+# KEY         TRANSLATION
+named-g       g
+named-gid     gid
+named-global  global
+
+# KEY       TRANSLATION
+named-host  host
+named-hour  hour
+
+# KEY             TRANSLATION
+named-i           i
+named-ignorecase  ignorecase
+named-ignoremark  ignoremark
+named-ii          ii
+named-in          in
+named-into        into
+
+# KEY         TRANSLATION
+named-joiner  joiner
+
+# KEY      TRANSLATION
+named-k    k
+named-key  key
+named-kv   kv
+
+# KEY            TRANSLATION
+named-listen     listen
+named-localhost  localhost
+named-localport  localport
+
+# KEY         TRANSLATION
+named-match   match
+named-merge   merge
+named-minute  minute
+named-mm      mm
+named-mode    mode
+named-month   month
+
+# KEY               TRANSLATION
+named-name          name
+named-nd            nd
+named-nl            nl
+named-nl-in         nl-in
+named-nl-out        nl-out
+named-non-blocking  non-blocking
+named-nth           nth
+
+# KEY             TRANSLATION
+named-off         off
+named-out         out
+named-out-buffer  out-buffer
+named-ov          ov
+named-overlap     overlap
+
+# KEY          TRANSLATION
+named-p        p
+named-partial  partial
+named-parts    parts
+named-path     path
+named-port     port
+named-pos      pos
+named-primary  primary
+
+# KEY             TRANSLATION
+named-quaternary  quaternary
+
+# KEY              TRANSLATION
+named-r            r
+named-rd           rd
+named-real         real
+named-replacement  replacement
+named-returns      returns
+named-rule         rule
+named-rw           rw
+named-rx           rx
+
+# KEY              TRANSLATION
+named-samecase     samecase
+named-samespace    samespace
+named-scheduler    scheduler
+named-second       second
+named-secondary    secondary
+named-seconds      seconds
+named-shape        shape
+named-shared       shared
+named-signal       signal
+named-size         size
+named-slip         slip
+named-SPEC         SPEC
+named-squash       squash
+named-ss           ss
+named-st           st
+named-status       status
+named-strict       strict
+named-subscript    subscript
+named-superscript  superscript
+
+# KEY               TRANSLATION
+named-tertiary      tertiary
+named-test          test
+named-th            th
+named-times         times
+named-timezone      timezone
+named-translate-nl  translate-nl
+named-truncate      truncate
+
+# KEY         TRANSLATION
+named-uid     uid
+named-update  update
+
+# KEY          TRANSLATION
+named-v        v
+named-value    value
+named-vent-at  vent-at
+named-ver      ver
+named-volume   volume
+
+# KEY                    TRANSLATION
+named-w                  w
+named-where              where
+named-win-verbatim-args  win-verbatim-args
+named-with               with
+
+# KEY    TRANSLATION
+named-x  x
+
+# KEY       TRANSLATION
+named-year  year
 
 # KEY            TRANSLATION
 package-class    class

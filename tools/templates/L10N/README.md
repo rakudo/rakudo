@@ -43,6 +43,7 @@ The following prefixes are currently defined:
   meta         meta-operator prefixes ('R','X','Z')
   modifier     statement modifier syntax ("if","with", etc.)
   multi        types of multi syntax ("multi","only","proto")
+  named        named arguments to methods/subs (:k,:p,:absolute, etc.)
   package      package declarators ("class","module","grammar, etc.)
   prefix       prefix operators with alphanumeric chars ("so","not")
   phaser       types of phasers ("BEGIN","END","CHECK", etc.)

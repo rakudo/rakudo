@@ -1,7 +1,7 @@
 # This file contains the Italian Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-12T16:17:10+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-13T15:13:18+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::IT {
@@ -115,8 +115,8 @@ role L10N::IT {
     token scope-anon { anon}
     token scope-augment { augment}
     token scope-constant { constante}
-    token scope-has { ha}
     token scope-HAS { HA}
+    token scope-has { ha}
     token scope-my { "il-mio"}
     token scope-our { "il-nostro"}
     token scope-state { stato}
@@ -166,11 +166,14 @@ role L10N::IT {
     method trait-is2ast {
         self.ast()
     }
-    method adverb-pc2str (str $adverb) {
-        $adverb
+    method adverb-pc2str (str $key) {
+        $key
     }
-    method adverb-rx2str (str $adverb) {
-        $adverb
+    method adverb-rx2str (str $key) {
+        $key
+    }
+    method named2str (str $key) {
+        $key
     }
 }
 

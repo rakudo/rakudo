@@ -131,14 +131,14 @@ sub make-mapper2ast(str $name, @operands) {
 
 # Return the str translation lookup logic, basically:
 #
-# method $name(str $adverb) {
+# method $name(str $key) {
 #     my constant %mapping = @operands;
-#     %mapping{$adverb} // $adverb
+#     %mapping{$key} // $key
 # }
 #
 # if there are any operands, otherwise:
 #
-# method $name(str $adverb) { $adverb }
+# method $name(str $key) { $key }
 
 sub make-mapper2str(str $name, @operands) {
     my $stmts := @operands
@@ -162,19 +162,19 @@ sub make-mapper2str(str $name, @operands) {
                  postfix => RakuAST::Postcircumfix::HashIndex.new(
                    index => RakuAST::SemiList.new(
                      RakuAST::Statement::Expression.new(
-                       expression => RakuAST::Var::Lexical.new("\$adverb")
+                       expression => RakuAST::Var::Lexical.new("\$key")
                      )
                    )
                  )
                ),
                infix => RakuAST::Infix.new("//"),
-               right => RakuAST::Var::Lexical.new("\$adverb")
+               right => RakuAST::Var::Lexical.new("\$key")
              )
            )
          )
       !! RakuAST::StatementList.new(
            RakuAST::Statement::Expression.new(
-             expression => RakuAST::Var::Lexical.new("\$adverb")
+             expression => RakuAST::Var::Lexical.new("\$key")
            )
          );
 
@@ -187,7 +187,7 @@ sub make-mapper2str(str $name, @operands) {
             type   => RakuAST::Type::Simple.new(
               RakuAST::Name.from-identifier("str")
             ),
-            target => RakuAST::ParameterTarget::Var.new("\$adverb")
+            target => RakuAST::ParameterTarget::Var.new("\$key")
           ),
         )
       ),
@@ -220,11 +220,17 @@ my sub slangify($language, %hash) is export {
     my @trait-is;
     my @adverb-pc;
     my @adverb-rx;
+    my @named;
     for %hash.sort(*.key.fc) -> (:key($name), :value($string)) {
 
         # It's a sub / method name
         if $name.starts-with('core-') {
             accept($string, $name.substr(5), @core);
+        }
+
+        # It's a named argument
+        elsif $name.starts-with('named-') {
+            accept($string, $name.substr(6), @named);
         }
 
         # It's an "is" trait
@@ -262,6 +268,7 @@ my sub slangify($language, %hash) is export {
     $statements.add-statement: make-mapper2ast('trait-is2ast',  @trait-is);
     $statements.add-statement: make-mapper2str('adverb-pc2str', @adverb-pc);
     $statements.add-statement: make-mapper2str('adverb-rx2str', @adverb-rx);
+    $statements.add-statement: make-mapper2str('named2str',     @named);
 
     # Wrap the whole thing up in a role with the given name and return it
     RakuAST::Package.new(

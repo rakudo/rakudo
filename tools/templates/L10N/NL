@@ -393,6 +393,198 @@ modifier-without  zonder
 multi-only   alleen
 #multi-proto  proto
 
+# KEY           TRANSLATION
+named-absolute  absoluut
+named-actions   acties
+#named-api       api
+named-append    voegtoe
+#named-arg0      arg0
+#named-args      args
+#named-as        as
+#named-at        at
+#named-auth      auth
+
+# KEY            TRANSLATION
+#named-basename   basename
+#named-batch      batch
+#named-bin        bin
+#named-bleed      bleed
+#named-broadcast  broadcast
+
+# KEY             TRANSLATION
+#named-catch       catch
+#named-check       check
+#named-chomp       chomp
+#named-close       close
+#named-command     command
+#named-complement  complement
+named-completely  volledig
+named-continue    continueer
+#named-control     control
+named-count       aantal
+#named-create      create
+#named-createonly  createonly
+#named-cwd         cwd
+#named-CWD         CWD
+
+# KEY           TRANSLATION
+#named-datagram  datagram
+named-date      datum
+named-day       dag
+#named-degree    degree
+named-delete    verwijder
+#named-dirname   dirname
+
+# KEY               TRANSLATION
+named-elems         elementen
+#named-emit-timed    emit-timed
+#named-enc           enc
+#named-encoding      encoding
+named-end           vaneinde
+#named-err           err
+named-every         elke
+named-ex            ui
+named-excludes-max  zonder-max
+named-excludes-min  zonder-min
+named-exclusive     exclusief
+named-exhaustive    uitputtend
+#named-exitcode      exitcode
+named-expires       verloopt
+
+# KEY            TRANSLATION
+#named-family     family
+#named-filename   filename
+named-filter     filter
+named-formatter  formatter
+
+# KEY         TRANSLATION
+named-g       g
+#named-gid     gid
+named-global  globaal
+
+# KEY       TRANSLATION
+#named-host  host
+named-hour  uur
+
+# KEY             TRANSLATION
+named-i           nk
+named-ii          zk
+named-ignorecase  negeerkast
+named-ignoremark  negeeraccent
+named-in          in
+#named-into        into
+
+# KEY         TRANSLATION
+#named-joiner  joiner
+
+# KEY      TRANSLATION
+named-k    s
+named-key  sleutel
+named-kv   sw
+
+# KEY            TRANSLATION
+named-listen     luister
+#named-localhost  localhost
+#named-localport  localport
+#named-match      match
+#named-merge      merge
+named-minute     minuut
+named-mm         za
+#named-mode       mode
+named-month      maand
+
+# KEY               TRANSLATION
+named-name          naam
+named-nd            de
+#named-nl            nl
+#named-nl-in         nl-in
+#named-nl-out        nl-out
+#named-non-blocking  non-blocking
+named-nth           de
+
+# KEY             TRANSLATION
+named-off         uit
+#named-out         out
+#named-out-buffer  out-buffer
+named-ov          ov
+named-overlap     overlap
+
+# KEY          TRANSLATION
+named-p        p
+named-partial  gedeeltelijk
+named-parts    delen
+#named-path     path
+#named-port     port
+named-pos      pos
+#named-primary  primary
+
+# KEY             TRANSLATION
+#named-quaternary  quaternary
+
+# KEY              TRANSLATION
+named-r            r
+named-rd           de
+#named-real         real
+named-replacement  vervanging
+named-returns      geeftterug
+#named-rule         rule
+#named-rw           rw
+#named-rx           rx
+
+# KEY              TRANSLATION
+named-samecase     zelfdekast
+named-samemark     zelfdeaccent
+named-samespace    zelfdespatie
+#named-scheduler    scheduler
+named-second       seconde
+#named-secondary    secondary
+named-seconds      seconden
+named-shape        vorm
+#named-shared       shared
+#named-signal       signal
+named-size         grootte
+#named-slip         slip
+#named-SPEC         SPEC
+named-squash       drukplat
+named-ss           zs
+named-st           ste
+#named-status       status
+named-strict       strict
+named-subscript    subscript
+named-superscript  superscript
+
+# KEY               TRANSLATION
+#named-tertiary      tertiary
+named-test          test
+named-th            de
+named-times         herhalingen
+named-timezone      tijdzone
+#named-translate-nl  translate-nl
+#named-truncate      truncate
+
+# KEY         TRANSLATION
+#named-uid     uid
+#named-update  update
+
+# KEY          TRANSLATION
+named-v        w
+named-value    waarde
+#named-vent-at  vent-at
+#named-ver      ver
+#named-volume   volume
+
+# KEY                    TRANSLATION
+#named-w                  w
+named-where              waar
+#named-win-verbatim-args  win-verbatim-args
+named-with               met
+
+# KEY    TRANSLATION
+named-x  keer
+
+# KEY       TRANSLATION
+named-year  jaar
+
 # KEY            TRANSLATION
 package-class    klasse
 package-grammar  grammatica

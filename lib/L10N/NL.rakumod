@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-12T16:17:10+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-13T15:13:18+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -173,13 +173,17 @@ role L10N::NL {
             $ast
         }
     }
-    method adverb-pc2str (str $adverb) {
+    method adverb-pc2str (str $key) {
         my constant %mapping = "verwijder", "delete", "bestaat", "exists", "s", "k", "sw", "kv", "w", "v";
-        %mapping{$adverb} // $adverb
+        %mapping{$key} // $key
     }
-    method adverb-rx2str (str $adverb) {
+    method adverb-rx2str (str $key) {
         my constant %mapping = "continueer", "continue", "ui", "ex", "uitputtend", "exhaustive", "globaal", "global", "nk", "i", "negeerkast", "ignorecase", "negeeraccent", "ignoremark", "zk", "ii", "na", "m", "za", "mm", "de", "nd", "de", "nth", "ratel", "ratchet", "de", "rd", "zelfdekast", "samecase", "zelfdeaccent", "samemark", "zelfdespatie", "samespace", "sigspatie", "sigspace", "zs", "ss", "ste", "st", "keer", "x";
-        %mapping{$adverb} // $adverb
+        %mapping{$key} // $key
+    }
+    method named2str (str $key) {
+        my constant %mapping = "absoluut", "absolute", "acties", "actions", "voegtoe", "append", "volledig", "completely", "continueer", "continue", "aantal", "count", "datum", "date", "dag", "day", "verwijder", "delete", "elementen", "elems", "vaneinde", "end", "elke", "every", "ui", "ex", "zonder-max", "excludes-max", "zonder-min", "excludes-min", "exclusief", "exclusive", "uitputtend", "exhaustive", "verloopt", "expires", "globaal", "global", "uur", "hour", "nk", "i", "negeerkast", "ignorecase", "negeeraccent", "ignoremark", "zk", "ii", "s", "k", "sleutel", "key", "sw", "kv", "luister", "listen", "minuut", "minute", "za", "mm", "maand", "month", "naam", "name", "de", "nd", "de", "nth", "uit", "off", "gedeeltelijk", "partial", "delen", "parts", "de", "rd", "vervanging", "replacement", "geeftterug", "returns", "zelfdekast", "samecase", "zelfdeaccent", "samemark", "zelfdespatie", "samespace", "seconde", "second", "seconden", "seconds", "vorm", "shape", "grootte", "size", "drukplat", "squash", "zs", "ss", "ste", "st", "de", "th", "herhalingen", "times", "tijdzone", "timezone", "w", "v", "waarde", "value", "waar", "where", "met", "with", "keer", "x", "jaar", "year";
+        %mapping{$key} // $key
     }
 }
 

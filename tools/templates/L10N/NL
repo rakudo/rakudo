@@ -83,8 +83,6 @@ core-append            voeg-achteraan
 #core-atomic-sub-fetch  atomic-sub-fetch
 core-await             wacht-op
 
-# KEY       TRANSLATION
-core-bag    tas
 # KEY          TRANSLATION
 core-bag       tas
 core-bail-out  geef-op

@@ -6,7 +6,7 @@
 # See tools/build/L10N/README.md for more explanation.
 
 # KEY             TRANSLATION
-adverb-pc-delete  streich
+adverb-pc-delete  entferne
 adverb-pc-exists  existiert
 adverb-pc-k       s
 adverb-pc-kv      sw
@@ -46,8 +46,8 @@ adverb-rx-x           mal
 
 # KEY           TRANSLATION
 block-default   standard
-block-else      anders
-block-elsif     anderswenn
+block-else      sonst
+block-elsif     sonstwenn
 block-for       füralle
 block-given     gegeben
 block-if        wenn
@@ -119,17 +119,9 @@ core-die      sterb
 core-done     fertig
 core-duckmap  duck-kartiere
 
-# KEY        TRANSLATION
-core-elems   elemente
-core-emit    zend
-core-end     einde
-core-exit    verlaat
-core-exp     exp
-#core-expmod  expmod
-
 # KEY               TRANSLATION
-core-elems          elementen
-core-emit           emittiere
+core-elems          elemente
+core-emit           sende
 core-end            ende
 core-eval-dies-ok   eval-stirbt-ok
 core-eval-lives-ok  eval-lebt-ok
@@ -138,8 +130,8 @@ core-exp            exp
 core-expmod         expmod
 
 # KEY              TRANSLATION
-core-fail          scheiter
-core-fails-like    scheiter-wie
+core-fail          scheitere
+core-fails-like    scheitert-wie
 #core-fc            fc
 core-first         erste
 core-flat          flach

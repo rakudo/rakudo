@@ -921,11 +921,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Convert the given postcircumfix adverb if there is an original name
     # for it.  Otherwise it should just return the adverb unchanged.
-    method adverb-pc2str(str $adverb) { $adverb }
+    method adverb-pc2str(str $key) { $key }
 
     # Convert the given regex adverb if there is an original name
     # for it.  Otherwise it should just return the adverb unchanged.
-    method adverb-rx2str(str $adverb) { $adverb }
+    method adverb-rx2str(str $key) { $key }
+
+    # Convert the given named argument if there is an original name
+    # for it.  Otherwise it should just return the named argument unchanged.
+    method named2str(str $key) { $key }
 
 #-------------------------------------------------------------------------------
 # Grammar entry point
@@ -4582,7 +4586,28 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('argument list')
         [
           | <?stdstopper>
+
           | <EXPR('e=')>
+            {
+                my $actions := self.actions;
+
+                sub handle-any-named($ast) {
+                    $ast.set-key(self.named2str($ast.key))
+                      if nqp::istype($ast,$actions.r('ColonPair'))
+                      || nqp::istype($ast,$actions.r('FatArrow'));
+                }
+
+                my $ast := $<EXPR>.ast;
+                if nqp::istype($ast,$actions.r('ApplyListInfix')) {
+                    for $ast.operands.FLATTENABLE_LIST {
+                        handle-any-named($_);
+                    }
+                }
+                else {
+                    handle-any-named($ast);
+                }
+            }
+
           | <?>
         ]
     }

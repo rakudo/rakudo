@@ -22,6 +22,10 @@ class RakuAST::FatArrow
         $obj
     }
 
+    method set-key(Str $key) {
+        nqp::bindattr(self, RakuAST::FatArrow, '$!key', $key);
+    }
+
     method named-arg-name() { $!key }
 
     method named-arg-value() { $!value }

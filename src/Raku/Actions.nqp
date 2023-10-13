@@ -2954,7 +2954,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast;
         my $ArgList := Nodify('ArgList');
         my $expr    := $<EXPR>;
-
         if $expr {
             $ast := $expr.ast;
             $ast := nqp::istype($ast,Nodify('ColonPairs'))

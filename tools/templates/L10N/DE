@@ -1,0 +1,698 @@
+# This file contains that German translation of features of the
+# Raku Programming Language.
+#
+# CONTRIBUTORS: Elizabeth Mattijsen
+#
+# See tools/build/L10N/README.md for more explanation.
+
+# KEY             TRANSLATION
+adverb-pc-delete  streich
+adverb-pc-exists  existiert
+adverb-pc-k       s
+adverb-pc-kv      sw
+adverb-pc-p       p
+adverb-pc-v       w
+
+# KEY                 TRANSLATION
+adverb-rx-c           c
+adverb-rx-continue    fortsetzen
+adverb-rx-ex          er
+adverb-rx-exhaustive  erschöpfend
+adverb-rx-g           g
+adverb-rx-global      global
+#adverb-rx-i           i
+#adverb-rx-ignorecase  ignorecase
+#adverb-rx-ignoremark  ignoremark
+#adverb-rx-ii          ii
+#adverb-rx-m           m
+#adverb-rx-mm          mm
+adverb-rx-nd          te
+adverb-rx-nth         te
+adverb-rx-ov          üb
+adverb-rx-overlap     überlappung
+adverb-rx-p           p
+adverb-rx-pos         pos
+#adverb-rx-r           r
+adverb-rx-ratchet     ratsche
+adverb-rx-rd          te
+#adverb-rx-s           s
+#adverb-rx-ss          ss
+#adverb-rx-samecase    samecase
+#adverb-rx-samemark    samemark
+#adverb-rx-samespace   samespace
+#adverb-rx-sigspace    sigspace
+adverb-rx-st          te
+adverb-rx-x           mal
+
+# KEY           TRANSLATION
+block-default   standard
+block-else      anders
+block-elsif     anderswenn
+block-for       füralle
+block-given     gegeben
+block-if        wenn
+block-loop      schleife
+block-orwith    odermit
+block-repeat    wiederhole
+block-unless    wennnicht
+block-until     bis
+block-when      wann
+block-whenever  wannimmer
+block-while     solange
+block-with      mit
+block-without   ohne
+
+# KEY             TRANSLATION
+constraint-where  wo
+
+# KEY                  TRANSLATION
+core-abs               abs
+core-all               alle
+core-any               beliebig
+core-append            anhängen
+#core-ast               ast
+#core-atomic-add-fetch  atomic-add-fetch
+#core-atomic-assign     atomic-assign
+#core-atomic-dec-fetch  atomic-dec-fetch
+#core-atomic-fetch      atomic-fetch
+#core-atomic-fetch-add  atomic-fetch-add
+#core-atomic-fetch-dec  atomic-fetch-dec
+#core-atomic-fetch-inc  atomic-fetch-inc
+#core-atomic-fetch-sub  atomic-fetch-sub
+#core-atomic-inc-fetch  atomic-inc-fetch
+#core-atomic-sub-fetch  atomic-sub-fetch
+core-await             warte
+
+# KEY          TRANSLATION
+core-bag       tasche
+core-bail-out  steig-aus
+core-bless     segne
+
+# KEY              TRANSLATION
+#core-callframe     callframe
+#core-callsame      callsame
+#core-callwith      callwith
+#core-can-ok        can-ok
+#core-cas           cas
+core-categorize    kategorisier
+core-ceiling       decke
+core-chars         zeichen
+#core-chdir         chdir
+#core-chmod         chmod
+core-chomp         hack-linieende
+core-chop          hack
+#core-chown         chown
+core-chr           wie-zeiche
+core-chrs          wie-zeichen
+core-classify      klassifizier
+core-close         schließe
+#core-cmp-ok        cmp-ok
+core-comb          kamm
+core-combinations  kombinationen
+core-cross         kreuz
+
+# KEY         TRANSLATION
+core-deepmap  tief-kartiere
+core-defined  definiert
+core-die      sterb
+#core-dir      dir
+core-done     fertig
+core-duckmap  duck-kartiere
+
+# KEY        TRANSLATION
+core-elems   elemente
+core-emit    zend
+core-end     einde
+core-exit    verlaat
+core-exp     exp
+#core-expmod  expmod
+
+# KEY               TRANSLATION
+core-elems          elementen
+core-emit           emittiere
+core-end            ende
+core-eval-dies-ok   eval-stirbt-ok
+core-eval-lives-ok  eval-lebt-ok
+core-exit           verlasse
+core-exp            exp
+core-expmod         expmod
+
+# KEY              TRANSLATION
+core-fail          scheiter
+core-fails-like    scheiter-wie
+#core-fc            fc
+core-first         erste
+core-flat          flach
+core-flip          drehum
+core-floor         boden
+#core-full-barrier  full-barrier
+
+# KEY      TRANSLATION
+core-get   erhalte
+core-getc  erhaltez
+core-gist  kern
+core-grep  filter
+
+# KEY      TRANSLATION
+core-hash  hasch
+core-head  kopf
+
+# KEY           TRANSLATION
+core-indent     einzug
+core-index      index
+core-indices    indizes
+#core-indir      indir
+core-isa-ok     istein-ok
+core-is         ist
+core-isnt       istnicht
+core-is-approx  ist-ungefähr
+core-is-deeply  is-im-ganzen
+core-item       artikel
+
+# KEY      TRANSLATION
+core-join  verbinde
+
+# KEY      TRANSLATION
+core-key   schlüssel
+core-keys  schlüssels
+core-kv    sw
+
+# KEY          TRANSLATION
+core-last      letzte
+core-lastcall  letzte-anruf
+#core-lc        lc
+core-like      wie
+core-lines     linien
+core-link      verknüpfung
+core-list      liste
+core-lives-ok  lebt-ok
+core-lsb       niedrigstwertige-bit
+
+# KEY        TRANSLATION
+core-make    mache
+core-map     kartiere
+core-max     max
+core-min     min
+core-minmax  minmax
+core-mix     mix
+#core-mkdir   mkdir
+core-move    bewege
+core-msb     höchstwertiges-bit
+
+# KEY            TRANSLATION
+core-next        nächste
+#core-nextcallee  nextcallee
+#core-nextsame    nextsame
+#core-nextwith    nextwith
+core-none        kein
+core-nok         nicht-ok
+core-not         nicht
+core-note        notiere
+
+# KEY      TRANSLATION
+core-ok    ok
+core-one   ein
+#core-open  open
+core-ord   als-zahl
+core-ords  als-zahlen
+
+# KEY              TRANSLATION
+core-pair          paar
+core-pairs         paare
+#core-parse-base    parse-base
+core-pass          gut
+core-permutations  permutationen
+core-pick          pflücke
+core-plan          plane
+#core-pop           pop
+core-prepend       stelle-voran
+core-print         druck
+core-printf        druckf
+core-proceed       fortfahre
+core-prompt        prompt
+core-push          schiebe-oben
+core-put           sag-es
+
+# KEY            TRANSLATION
+core-rand        zufällig
+core-redo        nochmals
+core-reduce      reduziere
+core-repeated    wiederholt
+#core-repl        repl
+core-return      return
+core-return-rw   return-rw
+core-reverse     kehr-um
+core-rindex      um-index
+#core-rmdir       rmdir
+core-roll        werfe
+core-rotate      drehe
+core-round       runde-ab
+core-roundrobin  jeder-mal
+core-run         laufe
+
+# KEY             TRANSLATION
+#core-samecase     samecase
+#core-samemark     samemmark
+#core-samewith     samewith
+core-say          sag
+core-set          sammlung
+#core-shell        shell
+core-shift        schiebe-unter
+#core-sign         sign
+core-signal       signal
+core-skip         überspringe
+core-skip-rest    überspringe-alle
+core-sleep        schlaf
+core-sleep-timer  wecker
+core-sleep-until  schlafe-bis
+#core-slip         slip
+core-slurp        schlürfe
+#core-snip         snip
+core-snitch       verpfeife
+core-so           also
+core-sort         sortier
+core-splice       spleiße
+core-split        teilt
+core-sprintf      sdruckf
+core-spurt        spritz
+core-sqrt         quadratwurzel
+core-squish       quetschen
+core-srand        zufällig-so
+#core-subbuf       subbuf
+#core-subbuf-rw    subbuf-rw
+core-subtest      subtest
+core-succeed      gelinge
+core-sum          summiere
+core-symlink      symbolische-verknüpfung
+
+# KEY               TRANSLATION
+core-tail           schwanz
+core-take           nim
+core-take-rw        nmm-rw
+#core-tc             tc
+#core-tclc           tclc
+core-throws-like    werft-wie
+core-todo           zumachen
+core-trim           trim
+core-trim-leading   trim-führend
+core-trim-trailing  trim-hinterher
+core-truncate       kürzen
+
+# KEY          TRANSLATION
+#core-uc        uc
+#core-unimatch  unimatch
+#core-uniname   uniname
+#core-uninames  uninames
+#core-uniparse  uniparse
+#core-uniprop   uniprop
+#core-uniprops  uniprops
+core-unique    einzigartig
+#core-unival    unival
+#core-univals   univals
+core-unlike    nicht-wie
+core-unlink    hebe-auf
+core-unshift   onderin
+core-use-ok    verwende-ok
+
+# KEY        TRANSLATION
+core-val     wie-zahlen
+core-value   wert
+core-values  werte
+
+# KEY          TRANSLATION
+core-warn      warne
+#core-wordcase  word-case
+core-words     wörter
+
+# KEY     TRANSLATION
+core-zip  reißverschluss
+
+# KEY             TRANSLATION
+infix-after       nach
+infix-and         und
+infix-andthen     unddann
+infix-before      vorher
+infix-but         aber
+infix-cmp         vergleich
+#infix-coll        coll
+infix-div         teile
+infix-does        macht
+infix-eq          gleich
+#infix-ff          ff
+#infix-fff         fff
+#infix-gcd         gcd
+infix-ge          größergleich
+infix-gt          größer
+infix-le          kleinergleich
+#infix-lcm         lcm
+infix-leg         kgg
+infix-lt          kleiner
+infix-max         max
+infix-min         min
+infix-minmax      minmax
+infix-mod         modulo
+infix-ne          ungleich
+infix-notandthen  nichtunddann
+infix-o           o
+infix-or          oder
+infix-orelse      oderanders
+#infix-unicmp      unicmp
+infix-x           x
+infix-X           X
+infix-xx          xx
+infix-Z           R
+#infix-ff^         ff^
+#infix-fff^        fff^
+infix-(cont)      (enthält)
+infix-(elem)      (element)
+#infix-^ff         ^ff
+#infix-^fff        ^fff
+#infix-^ff^        ^ff^
+#infix-^fff^       ^fff^
+
+# KEY   TRANSLATION
+meta-R  U
+meta-X  X
+meta-Z  R
+
+# KEY             TRANSLATION
+modifier-for      füralle
+modifier-given    gegeben
+modifier-if       wenn
+modifier-unless   wennnicht
+modifier-until    bis
+modifier-when     wann
+modifier-while    solange
+modifier-with     mit
+modifier-without  ohne
+
+# KEY        TRANSLATION
+#multi-multi  multi
+multi-only   nur
+#multi-proto  proto
+
+# KEY           TRANSLATION
+named-absolute  absolut
+named-actions   actionen
+#named-api       api
+named-append    anhängen
+#named-arg0      arg0
+#named-args      args
+#named-as        as
+#named-at        at
+#named-auth      auth
+
+# KEY            TRANSLATION
+#named-basename   basename
+#named-batch      batch
+#named-bin        bin
+#named-bleed      bleed
+#named-broadcast  broadcast
+
+# KEY             TRANSLATION
+#named-catch       catch
+#named-check       check
+#named-chomp       chomp
+named-close       schließe
+#named-command     command
+#named-complement  complement
+named-completely  vollständig
+named-continue    fortsetzen
+#named-control     control
+named-count       anzahl
+#named-create      create
+#named-createonly  createonly
+#named-cwd         cwd
+#named-CWD         CWD
+
+# KEY           TRANSLATION
+#named-datagram  datagram
+named-date      datum
+named-day       tag
+#named-degree    degree
+named-delete    streiche
+#named-dirname   dirname
+
+# KEY               TRANSLATION
+named-elems         elementen
+#named-emit-timed    emit-timed
+#named-enc           enc
+#named-encoding      encoding
+named-end           vonende
+#named-err           err
+named-every         jeder
+named-ex            er
+named-excludes-max  ohne-max
+named-excludes-min  ohne-min
+named-exclusive     exclusiv
+named-exhaustive    erschöpfend
+#named-exitcode      exitcode
+named-expires       läuftab
+
+# KEY            TRANSLATION
+#named-family     family
+#named-filename   filename
+named-filter     filter
+named-formatter  formatter
+
+# KEY         TRANSLATION
+named-g       g
+#named-gid     gid
+named-global  global
+
+# KEY       TRANSLATION
+#named-host  host
+named-hour  stunde
+
+# KEY             TRANSLATION
+#named-i           i
+#named-ii          ii
+#named-ignorecase  ignorecase
+#named-ignoremark  ignoremark
+named-in          in
+#named-into        into
+
+# KEY         TRANSLATION
+#named-joiner  joiner
+
+# KEY      TRANSLATION
+named-k    s
+named-key  schlüssel
+named-kv   sw
+
+# KEY            TRANSLATION
+named-listen     hören
+#named-localhost  localhost
+#named-localport  localport
+#named-match      match
+#named-merge      merge
+named-minute     minute
+#named-mm         mm
+#named-mode       mode
+named-month      monat
+
+# KEY               TRANSLATION
+named-name          name
+named-nd            te
+#named-nl            nl
+#named-nl-in         nl-in
+#named-nl-out        nl-out
+#named-non-blocking  non-blocking
+named-nth           te
+
+# KEY             TRANSLATION
+named-off         aus
+#named-out         out
+#named-out-buffer  out-buffer
+named-ov          üb
+named-overlap     überlappung
+
+# KEY          TRANSLATION
+named-p        p
+named-partial  teilweise
+named-parts    teile
+#named-path     path
+#named-port     port
+named-pos      pos
+#named-primary  primary
+
+# KEY             TRANSLATION
+#named-quaternary  quaternary
+
+# KEY              TRANSLATION
+named-r            r
+named-rd           te
+#named-real         real
+named-replacement  ersatz
+named-returns      returns
+#named-rule         rule
+#named-rw           rw
+#named-rx           rx
+
+# KEY              TRANSLATION
+#named-samecase     samecase
+#named-samemark     samemark
+#named-samespace    samespace
+#named-scheduler    scheduler
+named-second       sekunde
+#named-secondary    secondary
+named-seconds      sekunden
+named-shape        form
+#named-shared       shared
+#named-signal       signal
+named-size         größe
+#named-slip         slip
+#named-SPEC         SPEC
+named-squash       quetschen
+#named-ss           ss
+named-st           ste
+#named-status       status
+named-strict       strict
+named-subscript    tiefsatz
+named-superscript  hochgestellt
+
+# KEY               TRANSLATION
+#named-tertiary      tertiary
+named-test          test
+named-th            te
+named-times         wie-oft
+named-timezone      zeitzone
+#named-translate-nl  translate-nl
+#named-truncate      truncate
+
+# KEY         TRANSLATION
+#named-uid     uid
+#named-update  update
+
+# KEY          TRANSLATION
+named-v        w
+named-value    wert
+#named-vent-at  vent-at
+#named-ver      ver
+#named-volume   volume
+
+# KEY                    TRANSLATION
+#named-w                  w
+named-where              wo
+#named-win-verbatim-args  win-verbatim-args
+named-with               met
+
+# KEY    TRANSLATION
+named-x  mal
+
+# KEY       TRANSLATION
+named-year  jahr
+
+# KEY            TRANSLATION
+package-class    klasse
+package-grammar  grammatik
+#package-knowhow  knowhow
+package-module   modul
+#package-native   native
+package-package  paket
+package-role     rolle
+
+# KEY            TRANSLATION
+#phaser-BEGIN    BEGIN
+phaser-CATCH    FANGFEHLER
+#phaser-CHECK    CHECK
+phaser-CLOSE    SCHLIEßE
+phaser-CONTROL  FANGNACHRICHT
+#phaser-DOC      DOC
+phaser-END      ENDE
+phaser-ENTER    EINTRITT
+phaser-FIRST    ERSTE
+#phaser-INIT     INIT
+phaser-KEEP     AKZEPTIERE
+phaser-LAST     LETZTE
+phaser-LEAVE    VERLASSE
+phaser-NEXT     NÄCHSTE
+phaser-PRE      VORHER
+phaser-POST     NACHHER
+phaser-QUIT     AUSGESTIEGEN
+phaser-UNDO     AKZEPTIERENICHT
+
+# KEY       TRANSLATION
+prefix-not  nicht
+prefix-so   also
+
+# KEY              TRANSLATION
+routine-method     methode
+routine-sub        sub
+routine-regex      regex
+routine-rule       regel
+routine-submethod  submethode
+routine-token      wertmarke
+
+# KEY            TRANSLATION
+scope-anon       anonym
+scope-augment    verbesser
+scope-constant   konstante
+scope-has        hat
+scope-HAS        HAT
+scope-my         mein
+scope-our        unsere
+scope-state      stand
+scope-supersede  ersetze
+scope-unit       einheit
+
+# KEY                 TRANSLATION
+stmt-prefix-also      auch
+stmt-prefix-do        mmache
+stmt-prefix-eager     eifrig
+stmt-prefix-gather    sammel
+stmt-prefix-hyper     hyper
+stmt-prefix-lazy      faul
+stmt-prefix-quietly   leise
+stmt-prefix-race      race
+stmt-prefix-react     reagier
+stmt-prefix-sink      sink
+stmt-prefix-start     start
+stmt-prefix-supply    liefer
+stmt-prefix-try       versuche
+
+# KEY      TRANSLATION
+term-self  selbst
+term-nano  nano
+term-now   jetzt
+term-rand  zufällig
+term-time  zeit
+
+# KEY             TRANSLATION
+traitmod-does     macht
+traitmod-handles  versteht
+traitmod-hides    versteckt
+traitmod-is       ist
+traitmod-of       wie
+traitmod-returns  returns
+
+# KEY                           TRANSLATION
+#trait-is-built                  built
+trait-is-copy                   kopie
+trait-is-default                standard
+trait-is-DEPRECATED             VERALTET
+trait-is-equiv                  äquivalent
+trait-is-export                 export
+#trait-is-hidden-from-backtrace  hidden-from-backtrace
+#trait-is-hidden-from-USAGE      hidden-from-USAGE
+trait-is-implementation-detail  implementierungsdetail
+trait-is-looser                 lockerer
+#trait-is-nodal                  nodal
+trait-is-pure                   rein
+trait-is-raw                    roh
+trait-is-readonly               nur-lesen
+trait-is-rw                     lesen-schreiben
+trait-is-tighter                enger
+
+# KEY          TRANSLATION
+#typer-enum    enum
+#typer-subset  subset
+
+# KEY        TRANSLATION
+use-import   importiere
+use-need     braucht
+use-no       kein
+#use-require  require
+use-use      verwende
+
+# vim: expandtab shiftwidth=4

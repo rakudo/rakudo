@@ -34,28 +34,70 @@ as the Italian localization of:
 # Defined Prefixes
 The following prefixes are currently defined:
 
-  adverb-pc    core adverbs on postcircumfixes (:exists, :delete, etc.)
-  adverb-rx    core adverbs on regexes (:i, :m, :ignorecase, etc.)
-  block        syntax involving a block ("if","elsif","else","start", etc.)
-  core         sub/method names that are part of the Raku core ("say", etc.)
-  constraint   related to (ad-hoc) constraints ("where", etc.))
-  infix        infix operators with alphanumeric chars ("eq","ne","cmp", etc.)
-  meta         meta-operator prefixes ('R','X','Z')
-  modifier     statement modifier syntax ("if","with", etc.)
-  multi        types of multi syntax ("multi","only","proto")
-  named        named arguments to methods/subs (:k,:p,:absolute, etc.)
-  package      package declarators ("class","module","grammar, etc.)
-  prefix       prefix operators with alphanumeric chars ("so","not")
-  phaser       types of phasers ("BEGIN","END","CHECK", etc.)
-  routine      types of named code blocks ("sub","method", etc.)
-  scope        types of scope ("my","our","state", etc.)
-  stmt-prefix  statement prefixes ("do","eager","lazy","quietly", etc.)
-  term         terms ("time","now","self",etc.)
-  traitmod     types of trait_mods ("is","does","returns", etc.)
-  trait-is     names of "is" traits ("default","ro","raw","DEPRECATED", etc.)
-  typer        type constructors ("enum","subset")
-  use          use related ("use","no","require", etc.)
+## adverb-pc
+Core adverbs on postcircumfixes (:exists, :delete, etc.)
 
+## adverb-rx
+Core adverbs on regexes (:i, :m, :ignorecase, etc.)
+
+## block
+Syntax involving a block ("if","elsif","else","start", etc.)
+
+## core
+Sub/Method names that are part of the Raku core ("say", etc.)
+
+## constraint
+Related to (ad-hoc) constraints ("where", etc.))
+
+## infix
+Infix operators with alphanumeric chars ("eq","ne","cmp", etc.)
+
+## meta
+Meta-operator prefixes ('R','X','Z')
+
+## modifier
+Statement modifier syntax ("if","with", etc.)
+
+## multi
+Types of multi syntax ("multi","only","proto")
+
+## named
+Named arguments to methods/subs (:k,:p,:absolute, etc.)
+
+## package
+Package declarators ("class","module","grammar, etc.)
+
+## prefix
+Prefix operators with alphanumeric chars ("so","not")
+
+## phaser
+Types of phasers ("BEGIN","END","CHECK", etc.)
+
+## routine
+Types of named code blocks ("sub","method", etc.)
+
+## scope
+Types of scope ("my","our","state", etc.)
+
+## stmt-prefix
+Statement prefixes ("do","eager","lazy","quietly", etc.)
+
+## term
+Terms ("time","now","self",etc.)
+
+## traitmod
+Types of trait_mods ("is","does","returns", etc.)
+
+## trait-is
+Names of "is" traits ("default","ro","raw","DEPRECATED", etc.)
+
+## typer
+Type constructors ("enum","subset")
+
+## use
+Use related ("use","no","require", etc.)
+
+# Additional notes
 Please note that the second word currently *must* adhere to Raku identifier
 rules, so that they must start with a \w character (which includes the
 underscore), and may have a hyphen as long as it is not the last character
@@ -95,7 +137,7 @@ access to the Rakudo repository will need to run the:
     tools/build/makeL10N.raku
 
 script: this will create the actual module files in `lib/L10N` and
-`lib/RakuAST/Deparse/L10N`.  
+`lib/RakuAST/Deparse/L10N`.
 
 # The Future
 Please note that as the Raku Programming Language evolves, further

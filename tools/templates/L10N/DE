@@ -107,11 +107,14 @@ core-chrs          wie-zeichen
 core-classify      klassifizier
 core-close         schließe
 #core-cmp-ok        cmp-ok
+core-codes         codes
 core-comb          kamm
 core-combinations  kombinationen
+core-contains      enthält
 core-cross         kreuz
 
 # KEY         TRANSLATION
+core-decode   dekodiere
 core-deepmap  tief-kartiere
 core-defined  definiert
 core-die      sterb
@@ -122,7 +125,9 @@ core-duckmap  duck-kartiere
 # KEY               TRANSLATION
 core-elems          elemente
 core-emit           sende
+core-encode         kodiere
 core-end            ende
+core-ends-with      endet-mit
 core-eval-dies-ok   eval-stirbt-ok
 core-eval-lives-ok  eval-lebt-ok
 core-exit           verlasse
@@ -158,7 +163,8 @@ core-isa-ok     istein-ok
 core-is         ist
 core-isnt       istnicht
 core-is-approx  ist-ungefähr
-core-is-deeply  is-im-ganzen
+core-is-deeply  ist-im-ganzen
+core-is-prime   ist-prim
 core-item       artikel
 
 # KEY      TRANSLATION
@@ -183,6 +189,7 @@ core-lsb       niedrigstwertige-bit
 # KEY        TRANSLATION
 core-make    mache
 core-map     kartiere
+core-match   paar
 core-max     max
 core-min     min
 core-minmax  minmax
@@ -192,6 +199,7 @@ core-move    bewege
 core-msb     höchstwertiges-bit
 
 # KEY            TRANSLATION
+core-new         neu
 core-next        nächste
 #core-nextcallee  nextcallee
 #core-nextsame    nextsame
@@ -212,6 +220,7 @@ core-ords  als-zahlen
 core-pair          paar
 core-pairs         paare
 #core-parse-base    parse-base
+#core-parse-names   parse-names
 core-pass          gut
 core-permutations  permutationen
 core-pick          pflücke
@@ -237,6 +246,7 @@ core-reverse     kehr-um
 core-rindex      um-index
 #core-rmdir       rmdir
 core-roll        werfe
+#core-roots       roots
 core-rotate      drehe
 core-round       runde-ab
 core-roundrobin  jeder-mal
@@ -270,8 +280,13 @@ core-spurt        spritz
 core-sqrt         quadratwurzel
 core-squish       quetschen
 core-srand        zufällig-so
+core-starts-with  beginnt-mit
 #core-subbuf       subbuf
 #core-subbuf-rw    subbuf-rw
+core-subst        ersetz
+#core-substr       substr
+#core-substr-eq    substr-eq
+#core-substr-rw    substr-rw
 core-subtest      subtest
 core-succeed      gelinge
 core-sum          summiere
@@ -285,6 +300,7 @@ core-take-rw        nmm-rw
 #core-tclc           tclc
 core-throws-like    werft-wie
 core-todo           zumachen
+core-trans          übersetz
 core-trim           trim
 core-trim-leading   trim-führend
 core-trim-trailing  trim-hinterher
@@ -303,6 +319,7 @@ core-unique    einzigartig
 #core-univals   univals
 core-unlike    nicht-wie
 core-unlink    hebe-auf
+#core-unpolar   unpolar
 core-unshift   onderin
 core-use-ok    verwende-ok
 

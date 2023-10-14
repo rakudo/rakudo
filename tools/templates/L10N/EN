@@ -105,11 +105,14 @@ core-chrs          chrs
 core-classify      classify
 core-close         close
 core-cmp-ok        cmp-ok
+core-codes         codes
 core-comb          comb
 core-combinations  combinations
+core-contains      contains
 core-cross         cross
 
 # KEY         TRANSLATION
+core-decode   decode
 core-deepmap  deepmap
 core-defined  defined
 core-diag     diag
@@ -123,7 +126,9 @@ core-duckmap  duckmap
 # KEY               TRANSLATION
 core-elems          elems
 core-emit           emit
+core-encode         encode
 core-end            end
+core-ends-with      ends-with
 core-eval-dies-ok   eval-dies-ok
 core-eval-lives-ok  eval-lives-ok
 core-exit           exit
@@ -161,6 +166,7 @@ core-isnt       isnt
 core-isa-ok     isa-ok
 core-is-approx  is-approx
 core-is-deeply  is-deeply
+core-is-prime   is-prime
 core-item       item
 
 # KEY      TRANSLATION
@@ -185,6 +191,7 @@ core-lsb       lsb
 # KEY        TRANSLATION
 core-make    make
 core-map     map
+core-match   match
 core-max     max
 core-min     min
 core-minmax  minmax
@@ -194,6 +201,7 @@ core-move    move
 core-msb     msb
 
 # KEY            TRANSLATION
+core-new         new
 core-next        next
 core-nextcallee  nextcallee
 core-nextsame    nextsame
@@ -214,6 +222,7 @@ core-ords  ords
 core-pair          pair
 core-pairs         pairs
 core-parse-base    parse-base
+core-parse-names   parse-names
 core-pass          pass
 core-permutations  permutations
 core-pick          pick
@@ -239,6 +248,7 @@ core-reverse     reverse
 core-rindex      rindex
 core-rmdir       rmdir
 core-roll        roll
+core-roots       roots
 core-rotate      rotate
 core-round       round
 core-roundrobin  roundrobin
@@ -272,8 +282,13 @@ core-spurt        spurt
 core-sqrt         sqrt
 core-squish       squish
 core-srand        srand
+core-starts-with  starts-with
 core-subbuf       subbuf
 core-subbuf-rw    subbuf-rw
+core-subst        subst
+core-substr       substr
+core-substr-eq    substr-eq
+core-substr-rw    substr-rw
 core-subtest      subtest
 core-succeed      succeed
 core-sum          sum
@@ -287,6 +302,7 @@ core-tc             tc
 core-tclc           tclc
 core-throws-like    throws-like
 core-todo           todo
+core-trans          trans
 core-trim           trim
 core-trim-leading   trim-leading
 core-trim-trailing  trim-trailing
@@ -305,6 +321,7 @@ core-unival    unival
 core-univals   univals
 core-unlike    unlike
 core-unlink    unlink
+core-unpolar   unpolar
 core-unshift   unshift
 core-use-ok    use-ok
 

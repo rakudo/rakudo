@@ -107,11 +107,14 @@ core-chrs          als-letters
 core-classify      classificeer
 core-close         sluit
 core-cmp-ok        cmp-ok
+core-codes         codes
 core-comb          kam
 core-combinations  combinaties
+core-contains      bevat
 core-cross         kruis
 
 # KEY         TRANSLATION
+core-decode   decodeer
 core-deepmap  diep-arrangeer
 core-defined  gedefinieerd
 core-die      sterf
@@ -119,18 +122,12 @@ core-die      sterf
 core-done     klaar
 core-duckmap  duik-arrangeer
 
-# KEY        TRANSLATION
-core-elems   elementen
-core-emit    zend
-core-end     einde
-core-exit    verlaat
-core-exp     exp
-#core-expmod  expmod
-
 # KEY               TRANSLATION
 core-elems          elementen
 core-emit           zend
+core-encode         codeer
 core-end            einde
+core-ends-with      eindigt-met
 core-eval-dies-ok   eval-sterft-ok
 core-eval-lives-ok  eval-leeft-ok
 core-exit           verlaat
@@ -167,6 +164,7 @@ core-is         is
 core-isnt       isniet
 core-is-approx  is-ongeveer
 core-is-deeply  is-helemaal
+core-is-prime   is-priem
 core-item       item
 
 # KEY      TRANSLATION
@@ -191,6 +189,7 @@ core-lsb       minst-belangrijke-bit
 # KEY        TRANSLATION
 core-make    maak
 core-map     arrangeer
+core-match   match
 core-max     max
 core-min     min
 core-minmax  minmax
@@ -200,6 +199,7 @@ core-move    verplaats
 core-msb     belangrijkste-bit
 
 # KEY            TRANSLATION
+core-new         nieuw
 core-next        volgende
 #core-nextcallee  nextcallee
 #core-nextsame    nextsame
@@ -219,12 +219,13 @@ core-ords  als-getallen
 # KEY              TRANSLATION
 core-pair          paar
 core-pairs         paren
-#core-parse-base    parse-base
+core-parse-base    ontleed-nummer
+core-parse-names   ontleed-namen
 core-pass          goed
 core-permutations  permutaties
 core-pick          kies
 core-plan          verwacht
-#core-pop           pop
+core-pop           floep
 core-prepend       voeg-voor
 core-print         druk
 core-printf        drukf
@@ -245,6 +246,7 @@ core-reverse     keer-om
 core-rindex      om-index
 #core-rmdir       rmdir
 core-roll        gooi
+core-roots       wortels
 core-rotate      roteer
 core-round       rond-af
 core-roundrobin  ieder-een
@@ -278,8 +280,13 @@ core-spurt        spuit
 core-sqrt         wortel
 core-squish       plet
 core-srand        zo-willekeurig
-#core-subbuf       subbuf
-#core-subbuf-rw    subbuf-rw
+core-starts-with  begint-met
+core-subbuf       subbuf
+core-subbuf-rw    subbuf-rw
+core-subst        subst
+core-substr       substr
+core-substr-eq    substr-gelijk
+core-substr-rw    substr-rw
 core-subtest      subtest
 core-succeed      slaag
 core-sum          sommeer
@@ -293,6 +300,7 @@ core-tc             titel-kast
 core-tclc           titel-onder-kast
 core-throws-like    knalt-als
 core-todo           tedoen
+core-trans          vertaal
 core-trim           trim
 core-trim-leading   trim-vooraan
 core-trim-trailing  trim-achteraan
@@ -311,6 +319,7 @@ core-unique    uniek
 #core-univals   univals
 core-unlike    lijkt-niet-als
 core-unlink    ontkoppel
+#core-unpolar   unpolar
 core-unshift   onderin
 core-use-ok    gebruik-ok
 

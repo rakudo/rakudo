@@ -107,11 +107,13 @@ core-ceiling       soffitto
 core-classify      classificare
 core-close         chide
 #core-cmp-ok        cmp-ok
+#core-codes         codes
 core-comb          pettine
 core-combinations  combinazioni
 #core-cross         cross
 
 # KEY         TRANSLATION
+#core-decode   decode
 core-deepmap  mappa-profonda
 core-defined  definito
 #core-diag     diag
@@ -125,7 +127,9 @@ core-duckmap  mappa-anatra
 # KEY               TRANSLATION
 #core-elems          elems
 core-emit           emettere
+#core-encode         encode
 core-end            fine
+#core-ends-with      ends-with
 #core-emit           emit
 #core-end            end
 #core-eval-dies-ok   eval-dies-ok
@@ -171,6 +175,7 @@ core-indices    indici
 #core-isnt       isnt
 #core-is-approx  is-approx
 #core-is-deeply  is-deeply
+#core-is-prime   is-prime
 core-item       articolo
 
 # KEY      TRANSLATION
@@ -195,6 +200,7 @@ core-list      elenco
 # KEY        TRANSLATION
 core-make    fare
 core-map     mappa
+#core-match   match
 #core-max     max
 #core-min     min
 #core-minmax  minmax
@@ -204,6 +210,7 @@ core-move    muove
 #core-msb     msb
 
 # KEY            TRANSLATION
+#core-new         new
 core-next        prossimo
 core-nextcallee  prossimo-chiamato
 core-nextsame    prossimo-esteso
@@ -224,6 +231,7 @@ core-open  aperto
 core-pair          paio
 core-pairs         pai
 #core-parse-base    parse-base
+#core-parse-names   parse-names
 #core-pass          pass
 core-permutations  permutazioni
 core-pick          prendi
@@ -244,11 +252,12 @@ core-reduce      riduci
 core-repeated    ripetuto
 #core-repl        repl
 core-return      restituisci
-#core-return-rw   restituisci-rw
+core-return-rw   restituisci-rw
 #core-reverse     reverse
 #core-rindex      rindex
 #core-rmdir       rmdir
 #core-roll        roll
+#core-roots       roots
 #core-rotate      rotate
 #core-round       round
 #core-roundrobin  roundrobin
@@ -282,8 +291,13 @@ core-spurt        spruzza
 #core-sqrt         sqrt
 core-squish       schiaccia
 #core-srand        srand
+#core-starts-with  starts-with
 #core-subbuf       subbuf
 #core-subbuf-rw    subbuf-rw
+#core-subst        subst
+#core-substr       substr
+#core-substr-eq    substr-eq
+#core-substr-rw    substr-rw
 #core-subtest      subtest
 core-succeed      riuscirci
 core-sum          somma
@@ -297,6 +311,7 @@ core-take-rw        prendi-rw
 #core-tclc           tclc
 #core-throws-like    throws-like
 #core-todo           todo
+#core-trans          trans
 core-trim           taglia
 core-trim-leading   taglia-in-testa
 core-trim-trailing  taglia-in-coda
@@ -315,6 +330,7 @@ core-truncate       troncare
 #core-univals   univals
 #core-unlike    unlike
 #core-unlink    unlink
+#core-unpolar   unpolar
 #core-unshift   unshift
 #core-use-ok    use-ok
 

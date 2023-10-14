@@ -31,9 +31,10 @@ sub make-mapper2ast(str $name, @operands) {
     my $stmts := @operands
       ?? RakuAST::StatementList.new(
            RakuAST::Statement::Expression.new(
-             expression => RakuAST::VarDeclaration::Constant.new(
+             expression => RakuAST::VarDeclaration::Simple.new(
                scope       => "my",
-               name        => "\%mapping",
+               sigil       => "\%",
+               desigilname => RakuAST::Name.from-identifier("mapping"),
                initializer => RakuAST::Initializer::Assign.new(
                  RakuAST::ApplyListInfix.new(
                    infix    => RakuAST::Infix.new(","),
@@ -144,9 +145,10 @@ sub make-mapper2str(str $name, @operands) {
     my $stmts := @operands
       ?? RakuAST::StatementList.new(
            RakuAST::Statement::Expression.new(
-             expression => RakuAST::VarDeclaration::Constant.new(
+             expression => RakuAST::VarDeclaration::Simple.new(
                scope       => "my",
-               name        => "\%mapping",
+               sigil       => "\%",
+               desigilname => RakuAST::Name.from-identifier("mapping"),
                initializer => RakuAST::Initializer::Assign.new(
                  RakuAST::ApplyListInfix.new(
                    infix    => RakuAST::Infix.new(","),
@@ -298,9 +300,10 @@ my sub deparsify($language, %hash) is export {
 
         # Set up the constant hash
         $statements.add-statement: RakuAST::Statement::Expression.new(
-          expression => RakuAST::VarDeclaration::Constant.new(
+          expression => RakuAST::VarDeclaration::Simple.new(
             scope       => "my",
-            name        => "\%xlation",
+            sigil       => "\%",
+            desigilname => RakuAST::Name.from-identifier("xlation"),
             initializer => RakuAST::Initializer::Assign.new(
               RakuAST::ApplyListInfix.new(
                 infix    => RakuAST::Infix.new(","),

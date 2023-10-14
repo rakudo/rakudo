@@ -3,7 +3,6 @@
 As it is hard for translators to have a mental image of what the translation of a given item should be, this file contains a list of all of the translatable items with one or more URLs where that feature is being documented.
 
 ## adverb-pc
-
 Adverbs on post(circummfix) operators, e.g. `%hash<foo>:delete>`.
 
 #### adverb-pc-delete
@@ -27,7 +26,6 @@ Adverbs on post(circummfix) operators, e.g. `%hash<foo>:delete>`.
 - https://docs.raku.org/language/subscripts#:v
 
 ## adverb-rx
-
 Adverbs on regular expressions, e.g. `m:i/ FOO /`.
 
 #### adverb-rx-c
@@ -118,7 +116,6 @@ Adverbs on regular expressions, e.g. `m:i/ FOO /`.
 - https://docs.raku.org/language/regexes#Counting
 
 ## block
-
 Syntax involving a block, e.g. `if 42 { }`
 
 #### block-default
@@ -171,7 +168,6 @@ Syntax involving a block, e.g. `if 42 { }`
 - https://docs.raku.org/language/control#with_orwith_without
 
 ## constraint
-
 Related to (ad-hoc) constraints, e.g. `multi sub foo (Int $a where * > 0) { }`.
 
 #### constraint-where
@@ -928,3 +924,183 @@ https://docs.raku.org/type/Test#sub_bail-out
 
 #### core-zip
 - https://docs.raku.org/type/List#routine_zip
+
+## infix
+Infix operators consisting of alphanumeric characters
+
+#### infix-after
+- https://docs.raku.org/language/operators#infix_after
+
+#### infix-and
+- https://docs.raku.org/language/operators#infix_and
+
+#### infix-andthen
+- https://docs.raku.org/language/operators#infix_andthen
+
+#### infix-before
+- https://docs.raku.org/language/operators#infix_before
+
+#### infix-but
+- https://docs.raku.org/language/operators#infix_but
+
+#### infix-cmp
+- https://docs.raku.org/language/operators#infix_cmp
+
+#### infix-coll
+- https://docs.raku.org/language/operators#infix_coll
+
+#### infix-div
+- https://docs.raku.org/language/operators#infix_div
+
+#### infix-does
+- https://docs.raku.org/language/operators#infix_does
+
+#### infix-eq
+- https://docs.raku.org/language/operators#infix_eq
+
+#### infix-ff
+- https://docs.raku.org/language/operators#infix_ff
+
+#### infix-fff
+- https://docs.raku.org/language/operators#infix_fff
+
+#### infix-gcd
+- https://docs.raku.org/language/operators#infix_gcd
+
+#### infix-ge
+- https://docs.raku.org/language/operators#infix_ge
+
+#### infix-gt
+- https://docs.raku.org/language/operators#infix_gt
+
+#### infix-le
+- https://docs.raku.org/language/operators#infix_le
+
+#### infix-lcm
+- https://docs.raku.org/language/operators#infix_lcm
+
+#### infix-leg
+- https://docs.raku.org/language/operators#infix_leg
+
+#### infix-lt
+- https://docs.raku.org/language/operators#infix_lt
+
+#### infix-max
+- https://docs.raku.org/language/operators#infix_max
+
+#### infix-min
+- https://docs.raku.org/language/operators#infix_min
+
+#### infix-minmax
+- https://docs.raku.org/language/operators#infix_minmax
+
+#### infix-mod
+- https://docs.raku.org/language/operators#infix_mod
+
+#### infix-ne
+- https://docs.raku.org/language/operators#infix_ne
+
+#### infix-notandthen
+- https://docs.raku.org/language/operators#infix_notandthen
+
+#### infix-o
+- https://docs.raku.org/language/operators#infix_o,_infix_∘
+
+#### infix-or
+- https://docs.raku.org/language/operators#infix_or
+
+#### infix-orelse
+- https://docs.raku.org/language/operators#infix_orelse
+
+#### infix-unicmp
+- https://docs.raku.org/language/operators#infix_unicmp
+
+#### infix-x
+- https://docs.raku.org/language/operators#infix_x
+
+#### infix-X
+- https://docs.raku.org/language/operators#infix_X
+
+#### infix-xx
+- https://docs.raku.org/language/operators#infix_xx
+
+#### infix-Z
+- https://docs.raku.org/language/operators#infix_Z
+
+#### infix-ff^
+- - https://docs.raku.org/language/operators#infix_ff^
+
+#### infix-fff^
+- https://docs.raku.org/language/operators#infix_fff^
+
+#### infix-(cont)
+- https://docs.raku.org/language/operators#infix_(cont),_infix_∋
+
+#### infix-(elem)
+- https://docs.raku.org/language/operators#infix_(elem),_infix_∈
+
+#### infix-^ff
+- https://docs.raku.org/language/operators#infix_^ff
+
+#### infix-^fff
+- https://docs.raku.org/language/operators#infix_^fff
+
+#### infix-^ff^
+- https://docs.raku.org/language/operators#infix_^ff^
+
+#### infix-^fff^
+- https://docs.raku.org/language/operators#infix_^fff^
+
+## meta
+Meta-operator prefixes ('R','X','Z')
+
+#### meta-R
+- https://docs.raku.org/language/operators#Reversed_operators
+
+#### meta-X
+- https://docs.raku.org/language/operators#Cross_metaoperators
+
+#### meta-Z
+- https://docs.raku.org/language/operators#Zip_metaoperator
+
+## modifier
+Statement modifier syntax
+
+#### modifier-for
+- https://docs.raku.org/language/control#for
+
+#### modifier-given
+- https://docs.raku.org/syntax/given#given_as_a_statement
+
+#### modifier-if
+- https://docs.raku.org/syntax/if
+
+#### modifier-unless
+- https://docs.raku.org/syntax/unless
+
+#### modifier-until
+- https://docs.raku.org/syntax/until
+
+#### modifier-when
+- https://docs.raku.org/syntax/when
+
+#### modifier-while
+- https://docs.raku.org/syntax/while
+
+#### modifier-with
+- https://docs.raku.org/syntax/with
+
+#### modifier-without
+- https://docs.raku.org/syntax/without
+
+## multi
+Types of multi syntax
+
+#### multi-multi
+- https://docs.raku.org/language/functions#Multi-dispatch
+
+#### multi-only
+- https://docs.raku.org/language/functions#only
+
+#### multi-proto
+- https://docs.raku.org/language/functions#proto

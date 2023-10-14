@@ -1,4 +1,5 @@
 my class WhateverCode is Code {
+    has Str $!original-expression;
 
     # helper method for array slicing
     multi method POSITIONS(WhateverCode:D: Failure:D \failure) { failure }
@@ -23,6 +24,10 @@ my class WhateverCode is Code {
 
     method has-phasers(--> False) { }
     method has-loop-phasers(--> False) { }
+
+    multi method raku(WhateverCode:D:) {
+        $!original-expression // "WhateverCode.new"
+    }
 }
 
 # vim: expandtab shiftwidth=4

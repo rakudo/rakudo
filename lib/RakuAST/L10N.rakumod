@@ -221,7 +221,9 @@ my sub slangify($language, %hash) is export {
     my @adverb-pc;
     my @adverb-rx;
     my @named;
-    for %hash.sort(*.key.fc) -> (:key($name), :value($string)) {
+    for %hash.sort(-> $a, $b {
+        $a.key.fc cmp $b.key.fc || $b.key cmp $a.key
+    }) -> (:key($name), :value($string)) {
 
         # It's a sub / method name
         if $name.starts-with('core-') {

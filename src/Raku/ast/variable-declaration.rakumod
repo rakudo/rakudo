@@ -747,13 +747,14 @@ class RakuAST::VarDeclaration::Simple
         my @lookups;
         my str $scope := self.scope;
         # If we have a type, we need to resolve that.
-        if $!type {
-            @lookups.push($!type);
-        }
+        @lookups.push($!type || nqp::null);
         # If we're has/HAS scope, we need Nil to evaluate to.
-        if $scope eq 'has' || $scope eq 'HAS' {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
-        }
+        @lookups.push(
+            $scope eq 'has' || $scope eq 'HAS'
+                ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
+                !! nqp::null
+        );
+        @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Any')));
         self.IMPL-WRAP-LIST(@lookups)
     }
 
@@ -829,9 +830,15 @@ class RakuAST::VarDeclaration::Simple
                     :value($container)
                 );
                 if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
-                    my $value := $!shape && self.sigil eq '%'
-                        ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-                        !! self.IMPL-CONTAINER-TYPE($of);
+                    nqp::say($!type.raku) if $!type;
+                    nqp::say($!shape.raku) if $!shape;
+                    my $value;
+                    if self.sigil eq '%' {
+                        $value := $!shape ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
+                                          !! self.IMPL-CONTAINER-TYPE($of, :key-type(self.get-implicit-lookups.AT-POS(2).resolution.compile-time-value))
+                    } else {
+                        $value := self.IMPL-CONTAINER-TYPE($of);
+                    }
                     $context.ensure-sc($value);
                     $qast := QAST::Op.new( :op('bind'), $qast, QAST::Op.new(
                         :op('callmethod'), :name('new'),
@@ -974,7 +981,7 @@ class RakuAST::VarDeclaration::Simple
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             # These just evaluate to Nil
-            $lookups.tail.IMPL-TO-QAST($context)
+            $lookups.AT-POS(1).IMPL-TO-QAST($context)
         }
         else {
             nqp::die("Don't know how to compile initialization for scope $scope");

@@ -752,7 +752,9 @@ class RakuAST::ImplicitLookups
     # Resolve the implicit lookups if needed.
     method resolve-implicit-lookups-with(RakuAST::Resolver $resolver) {
         for self.IMPL-UNWRAP-LIST(self.get-implicit-lookups()) {
-            unless $_.is-resolved {
+            # we use null to pad out lookup lists so that they always have the same number of elements
+            # regardless of whether some lookups can only be conditionally included in the list
+            if !nqp::isnull($_) &&  !$_.is-resolved {
                 $_.resolve-with($resolver);
             }
         }

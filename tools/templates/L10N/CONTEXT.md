@@ -439,3 +439,492 @@ https://docs.raku.org/type/Test#sub_bail-out
 
 #### core-head
 - https://docs.raku.org/type/List#method_head
+
+### core-I
+
+#### core-indent
+- https://docs.raku.org/type/Str#method_indent
+
+#### core-index
+- https://docs.raku.org/type/Str#method_index
+
+#### core-indices
+- https://docs.raku.org/type/Str#method_indices
+
+#### core-indir
+- https://docs.raku.org/type/independent-routines#sub_indir
+
+#### core-isa-ok
+- https://docs.raku.org/type/Test#sub_isa-ok
+
+#### core-is
+- https://docs.raku.org/type/Test#sub_is
+
+#### core-isnt
+- https://docs.raku.org/type/Test#sub_isnt
+
+#### core-is-approx
+- https://docs.raku.org/type/Test#sub_is-approx
+
+#### core-is-deeply
+- https://docs.raku.org/type/Test#sub_is-deeply
+
+#### core-is-prime
+- https://docs.raku.org/type/Int#routine_is-prime
+
+#### core-item
+- https://docs.raku.org/type/Any#sub_item
+
+### core-J
+
+#### core-join
+- https://docs.raku.org/type/List#routine_join
+
+### core-K
+
+#### core-key
+- https://docs.raku.org/type/Pair#method_key
+
+#### core-keys
+- https://docs.raku.org/type/Map#method_keys
+- https://docs.raku.org/type/Any#method_keys
+
+#### core-kv
+- https://docs.raku.org/type/Map#method_kv
+- https://docs.raku.org/type/Any#method_kv
+
+### core-L
+
+#### core-last
+- https://docs.raku.org/language/control#last
+
+#### core-lastcall
+- https://docs.raku.org/type/independent-routines#sub_lastcall
+
+#### core-lc
+- https://docs.raku.org/type/Str#routine_lc
+
+#### core-like
+- https://docs.raku.org/type/Test#sub_like
+
+#### core-lines
+- https://docs.raku.org/type/IO/Handle#routine_lines
+- https://docs.raku.org/type/Str#routine_lines
+
+#### core-link
+- https://docs.raku.org/type/IO/Path#routine_link
+
+#### core-list
+- https://docs.raku.org/type/Any#method_list
+
+#### core-lives-ok
+- https://docs.raku.org/type/Test#sub_lives-ok
+
+#### core-lsb
+- https://docs.raku.org/type/Int#routine_lsb
+
+### core-M
+
+#### core-make
+- https://docs.raku.org/type/Match#routine_make
+
+#### core-map
+- https://docs.raku.org/type/Any#routine_map
+
+#### core-match
+- https://docs.raku.org/type/Str#method_match
+
+#### core-max
+- https://docs.raku.org/type/Any#routine_max
+
+#### core-min
+- https://docs.raku.org/type/Any#routine_min
+
+#### core-minmax
+- https://docs.raku.org/type/Any#routine_minmax
+
+#### core-mix
+- https://docs.raku.org/type/Mix
+
+#### core-mkdir
+- https://docs.raku.org/type/independent-routines#sub_mkdir
+
+#### core-move
+- https://docs.raku.org/type/IO/Path#routine_move
+
+#### core-msb
+- https://docs.raku.org/type/Int#routine_msb
+
+### core-N
+
+#### core-new
+- https://docs.raku.org/language/classtut#Construction
+- https://docs.raku.org/routine/new
+
+#### core-next
+- https://docs.raku.org/language/control#next
+
+#### core-nextcallee
+- https://docs.raku.org/language/functions#sub_nextcallee
+
+#### core-nextsame
+- https://docs.raku.org/language/functions#sub_nextsame
+
+#### core-nextwith
+- https://docs.raku.org/language/functions#sub_nextwith
+
+#### core-none
+- https://docs.raku.org/type/Any#method_none
+
+#### core-nok
+- https://docs.raku.org/type/Test#sub_nok
+
+#### core-not
+- https://docs.raku.org/type/Mu#method_not
+
+#### core-note
+- https://docs.raku.org/type/independent-routines#routine_note
+
+### core-O
+
+#### core-ok
+- https://docs.raku.org/type/Test#sub_ok
+
+#### core-one
+- https://docs.raku.org/type/Any#method_one
+
+#### core-open
+- https://docs.raku.org/type/independent-routines#sub_open
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### core-ord
+- https://docs.raku.org/type/Str#routine_ord
+
+#### core-ords
+- https://docs.raku.org/type/Str#routine_ords
+
+### core-P
+
+#### core-pair
+- https://docs.raku.org/type/Pair
+- https://docs.raku.org/type/Enumeration#method_pair
+
+#### core-pairs
+- https://docs.raku.org/type/Map#method_pairs
+
+#### core-parse-base
+- https://docs.raku.org/type/Str#routine_parse-base
+
+#### core-pass
+- https://docs.raku.org/type/Test#sub_pass
+
+#### core-permutations
+- https://docs.raku.org/type/List#routine_permutations
+
+#### core-pick
+- https://docs.raku.org/type/List#routine_pick
+
+#### core-plan
+- https://docs.raku.org/type/Test#sub_plan
+
+#### core-pop
+- https://docs.raku.org/type/Array#method_pop
+
+#### core-prepend
+- https://docs.raku.org/type/Array#method_prepend
+
+#### core-print
+- https://docs.raku.org/type/independent-routines#sub_print
+
+#### core-printf
+- https://docs.raku.org/type/independent-routines#sub_printf
+
+#### core-proceed
+- https://docs.raku.org/language/control#proceed_and_succeed
+
+#### core-prompt
+- https://docs.raku.org/type/independent-routines#sub_prompt
+
+#### core-push
+- https://docs.raku.org/type/Array#method_push
+
+#### core-put
+- https://docs.raku.org/type/independent-routines#sub_put
+
+### core-R
+
+#### core-rand
+- https://docs.raku.org/type/Real#routine_rand
+
+#### core-redo
+- https://docs.raku.org/language/control#redo
+
+#### core-reduce
+- https://docs.raku.org/type/List#routine_reduce
+
+#### core-repeated
+- https://docs.raku.org/type/Any#method_repeated
+
+#### core-repl
+- https://docs.raku.org/type/independent-routines#sub_repl
+
+#### core-return
+- https://docs.raku.org/language/control#return
+
+#### core-return-rw
+- https://docs.raku.org/language/control#return-rw
+
+#### core-reverse
+- https://docs.raku.org/type/List#routine_reverse
+
+#### core-rindex
+- https://docs.raku.org/type/Str#routine_rindex
+
+#### core-rmdir
+- https://docs.raku.org/type/IO/Path#routine_rmdir
+
+#### core-roll
+- https://docs.raku.org/type/List#routine_roll
+
+#### core-roots
+- https://docs.raku.org/type/Cool#routine_roots
+
+#### core-rotate
+- https://docs.raku.org/type/List#routine_rotate
+
+#### core-round
+- https://docs.raku.org/type/Cool#routine_round
+
+#### core-roundrobin
+- https://docs.raku.org/type/List#routine_roundrobin
+
+#### core-run
+- https://docs.raku.org/type/independent-routines#sub_run
+
+### core-S
+
+#### core-samecase
+- https://docs.raku.org/type/Str#method_samecase
+
+#### core-samemark
+- https://docs.raku.org/type/Str#routine_samemark
+
+#### core-samewith
+- https://docs.raku.org/language/functions#sub_samewith
+
+#### core-say
+- https://docs.raku.org/type/Mu#method_say
+
+#### core-set
+- https://docs.raku.org/type/Set
+
+#### core-shell
+- https://docs.raku.org/type/independent-routines#sub_shell
+
+#### core-shift
+- https://docs.raku.org/type/Array#method_shift
+
+#### core-sign
+- https://docs.raku.org/type/Real#method_sign
+
+#### core-signal
+- https://docs.raku.org/routine/signal
+
+#### core-skip
+- https://docs.raku.org/type/Seq#method_skip
+
+#### core-skip-rest
+- https://docs.raku.org/type/Test#sub_skip-rest
+
+#### core-sleep
+- https://docs.raku.org/type/Date#sub_sleep
+
+#### core-sleep-timer
+- https://docs.raku.org/type/Date#sub_sleep-timer
+
+#### core-sleep-until
+- https://docs.raku.org/type/Date#sub_sleep-until
+
+#### core-slip
+- https://docs.raku.org/type/Slip
+
+#### core-slurp
+- https://docs.raku.org/type/independent-routines#sub_slurp
+
+#### core-snip
+- https://docs.raku.org/type/Any#routine_snip
+
+#### core-snitch
+- https://docs.raku.org/type/Any#routine_snitch
+
+#### core-so
+- https://docs.raku.org/type/Mu#method_so
+
+#### core-sort
+- https://docs.raku.org/type/List#routine_sort
+
+#### core-splice
+- https://docs.raku.org/type/Array#routine_splice
+
+#### core-split
+- https://docs.raku.org/type/Str#routine_split
+
+#### core-sprintf
+- https://docs.raku.org/type/independent-routines#routine_sprintf
+
+#### core-spurt
+- https://docs.raku.org/type/independent-routines#sub_spurt
+
+#### core-sqrt
+- https://docs.raku.org/type/Numeric#routine_sqrt
+
+#### core-squish
+- https://docs.raku.org/type/independent-routines#routine_squish
+
+#### core-srand
+- https://docs.raku.org/type/Num#sub_srand
+
+#### core-starts-with
+- https://docs.raku.org/type/Str#method_starts-with
+
+#### core-subbuf
+- https://docs.raku.org/type/Blob#method_subbuf
+
+#### core-subbuf-rw
+- https://docs.raku.org/type/Blob#method_subbuf-rw
+
+#### core-subst
+- https://docs.raku.org/type/Str#method_subst
+
+#### core-substr
+- https://docs.raku.org/type/Str#routine_substr
+
+#### core-substr-eq
+- https://docs.raku.org/type/Str#routine_substr-eq
+
+#### core-substr-rw
+- https://docs.raku.org/type/Str#routine_substr-rw
+
+#### core-subtest
+- https://docs.raku.org/type/Test#sub_subtest
+
+#### core-succeed
+- https://docs.raku.org/language/control#proceed_and_succeed
+
+#### core-sum
+- https://docs.raku.org/type/List#routine_sum
+
+#### core-symlink
+- https://docs.raku.org/type/IO/Path#routine_symlink
+
+### core-T
+
+#### core-tail
+- https://docs.raku.org/type/List#method_tail
+
+#### core-take
+- https://docs.raku.org/type/Mu#routine_take
+
+#### core-take-rw
+- https://docs.raku.org/type/Mu#routine_take-rw
+
+#### core-tc
+- https://docs.raku.org/type/Str#routine_tc
+
+#### core-tclc
+- https://docs.raku.org/type/Str#routine_tclc
+
+#### core-throws-like
+- https://docs.raku.org/type/Test#sub_throws-like
+
+#### core-todo
+- https://docs.raku.org/type/Test#sub_throws-like
+
+#### core-trans
+- https://docs.raku.org/type/Str#method_trans
+
+#### core-trim
+- https://docs.raku.org/type/Str#method_trim
+
+#### core-trim-leading
+- https://docs.raku.org/type/Str#method_trim-leading
+
+#### core-trim-trailing
+- https://docs.raku.org/type/Str#method_trim-trailing
+
+#### core-truncate
+- https://docs.raku.org/type/Real#method_truncate
+
+### core-U
+
+#### core-uc
+- https://docs.raku.org/type/Str#routine_uc
+
+#### core-unimatch
+- https://docs.raku.org/type/Cool#routine_unimatch
+
+#### core-uniname
+- https://docs.raku.org/type/Cool#routine_uniname
+
+#### core-uninames
+- https://docs.raku.org/type/Cool#routine_uninames
+
+#### core-uniparse
+- https://docs.raku.org/type/Str#routine_uniparse
+
+#### core-uniprop
+- https://docs.raku.org/type/Cool#routine_uniprop
+
+#### core-uniprops
+- https://docs.raku.org/type/Cool#routine_uniprops
+
+#### core-unique
+- https://docs.raku.org/type/independent-routines#routine_unique
+
+#### core-unival
+- https://docs.raku.org/type/Str#method_unival
+
+#### core-univals
+- https://docs.raku.org/type/Str#method_univals
+
+#### core-unlike
+- https://docs.raku.org/type/Test#sub_unlike
+
+#### core-unlink
+- https://docs.raku.org/type/Test#sub_unlike
+
+#### core-unpolar
+- https://docs.raku.org/type/independent-routines#routine_unpolar
+
+#### core-unshift
+- https://docs.raku.org/type/Array#routine_unshift
+
+#### core-use-ok
+- https://docs.raku.org/type/Test#sub_use-ok
+
+### core-V
+
+#### core-val
+- https://docs.raku.org/type/Str#routine_val
+
+#### core-value
+- https://docs.raku.org/type/Pair#method_value
+
+#### core-values
+- https://docs.raku.org/type/Map#method_values
+
+### core-W
+
+#### core-warn
+- https://docs.raku.org/type/Exception#sub_warn
+
+#### core-wordcase
+- https://docs.raku.org/type/Str#routine_wordcase
+
+#### core-words
+- https://docs.raku.org/type/Str#routine_words
+
+### core-Z
+
+#### core-zip
+- https://docs.raku.org/type/List#routine_zip

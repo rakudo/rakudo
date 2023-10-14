@@ -12,7 +12,7 @@ Adverbs on post(circummfix) operators, e.g. `%hash<foo>:delete>`.
 
 #### adverb-pc-exists
 - https://docs.raku.org/language/subscripts#:exists
-- https://docs.raku.org/type/Hash#:delete
+- https://docs.raku.org/type/Hash#:exists
 
 #### adverb-pc-k
 - https://docs.raku.org/language/subscripts#:k
@@ -116,3 +116,56 @@ Adverbs on regular expressions, e.g. `m:i/ FOO /`.
 
 #### adverb-rx-x
 - https://docs.raku.org/language/regexes#Counting
+
+## block
+
+Syntax involving a block, e.g. `if 42 { }`
+
+#### block-default
+- https://docs.raku.org/language/control#default_and_when
+
+#### block-else
+- https://docs.raku.org/language/control#else/elsif
+
+#### block-elsif
+- https://docs.raku.org/language/control#else/elsif
+
+#### block-for
+- https://docs.raku.org/language/control#for
+
+#### block-given
+- https://docs.raku.org/language/control#given
+
+#### block-if
+- https://docs.raku.org/language/control#if
+
+#### block-loop
+- https://docs.raku.org/language/control#loop
+
+#### block-orwith
+- https://docs.raku.org/language/control#with_orwith_without
+
+#### block-repeat
+- https://docs.raku.org/language/control#repeat/while,_repeat/until
+
+#### block-unless
+- https://docs.raku.org/language/control#unless
+
+#### block-until
+- https://docs.raku.org/language/control#while,_until
+
+#### block-when
+- https://docs.raku.org/language/control#when
+- https://docs.raku.org/language/control#default_and_when
+
+#### block-whenever
+- https://docs.raku.org/language/concurrency#whenever
+
+#### block-while
+- https://docs.raku.org/language/control#while,_until
+
+#### block-with
+- https://docs.raku.org/language/control#with_orwith_without
+
+#### block-without
+- https://docs.raku.org/language/control#with_orwith_without

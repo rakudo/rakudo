@@ -6,113 +6,113 @@ As it is hard for translators to have a mental image of what the translation of 
 
 Adverbs on post(circummfix) operators, e.g. `%hash<foo>:delete>`.
 
-### adverb-pc-delete
+#### adverb-pc-delete
 - https://docs.raku.org/language/subscripts#:delete
 - https://docs.raku.org/type/Hash#:delete
 
-### adverb-pc-exists
+#### adverb-pc-exists
 - https://docs.raku.org/language/subscripts#:exists
 - https://docs.raku.org/type/Hash#:delete
 
-### adverb-pc-k
+#### adverb-pc-k
 - https://docs.raku.org/language/subscripts#:k
 
-### adverb-pc-kv
+#### adverb-pc-kv
 - https://docs.raku.org/language/subscripts#:kv
 
-### adverb-pc-p
+#### adverb-pc-p
 - https://docs.raku.org/language/subscripts#:p
 
-### adverb-pc-v
+#### adverb-pc-v
 - https://docs.raku.org/language/subscripts#:v
 
 ## adverb-rx
 
 Adverbs on regular expressions, e.g. `m:i/ FOO /`.
 
-### adverb-rx-c
+#### adverb-rx-c
 - https://docs.raku.org/language/regexes#Continue
 
-### adverb-rx-continue
+#### adverb-rx-continue
 - https://docs.raku.org/language/regexes#Continue
 
-### adverb-rx-ex
+#### adverb-rx-ex
 - https://docs.raku.org/language/regexes#Exhaustive
 
-### adverb-rx-exhaustive
+#### adverb-rx-exhaustive
 - https://docs.raku.org/language/regexes#Exhaustive
 
-### adverb-rx-g
+#### adverb-rx-g
 - https://docs.raku.org/language/regexes#Global
 
-### adverb-rx-global
+#### adverb-rx-global
 - https://docs.raku.org/language/regexes#Global
 
-### adverb-rx-i
+#### adverb-rx-i
 - https://docs.raku.org/language/regexes#Ignorecase
 
-### adverb-rx-ignorecase
+#### adverb-rx-ignorecase
 - https://docs.raku.org/language/regexes#Ignorecase
 
-### adverb-rx-ignoremark
+#### adverb-rx-ignoremark
 - https://docs.raku.org/language/regexes#Ignoremark
 
-### adverb-rx-ii
+#### adverb-rx-ii
 - https://docs.raku.org/language/regexes#Samecase
 
-### adverb-rx-m
+#### adverb-rx-m
 - https://docs.raku.org/language/regexes#Ignoremark
 
-### adverb-rx-mm
+#### adverb-rx-mm
 - https://docs.raku.org/language/regexes#Samemark
 
-### adverb-rx-nd
+#### adverb-rx-nd
 - https://docs.raku.org/language/regexes#Positional_adverbs
 
-### adverb-rx-nth
+#### adverb-rx-nth
 - https://docs.raku.org/language/regexes#Positional_adverbs
 
-### adverb-rx-ov
+#### adverb-rx-ov
 - https://docs.raku.org/language/regexes#Overlap
 
-### adverb-rx-overlap
+#### adverb-rx-overlap
 - https://docs.raku.org/language/regexes#Overlap
 
-### adverb-rx-p
+#### adverb-rx-p
 - https://docs.raku.org/language/regexes#Pos
 
-### adverb-rx-pos
+#### adverb-rx-pos
 - https://docs.raku.org/language/regexes#Pos
 
-### adverb-rx-r
+#### adverb-rx-r
 - https://docs.raku.org/language/regexes#Ratchet
 
-### adverb-rx-ratchet
+#### adverb-rx-ratchet
 - https://docs.raku.org/language/regexes#Ratchet
 
-### adverb-rx-rd
+#### adverb-rx-rd
 - https://docs.raku.org/language/regexes#Positional_adverbs
 
-### adverb-rx-s
+#### adverb-rx-s
 - https://docs.raku.org/language/regexes#Sigspace
 
-### adverb-rx-ss
+#### adverb-rx-ss
 - https://docs.raku.org/language/regexes#Samespace
 
-### adverb-rx-samecase
+#### adverb-rx-samecase
 - https://docs.raku.org/language/regexes#Samecase
 
-### adverb-rx-samemark
+#### adverb-rx-samemark
 - https://docs.raku.org/language/regexes#Samemark
 
-### adverb-rx-samespace
+#### adverb-rx-samespace
 - https://docs.raku.org/language/regexes#Samespace
 
-### adverb-rx-sigspace
+#### adverb-rx-sigspace
 - https://docs.raku.org/language/regexes#Sigspace
 
-### adverb-rx-st
+#### adverb-rx-st
 - https://docs.raku.org/language/regexes#Positional_adverbs
 
-### adverb-rx-x
+#### adverb-rx-x
 - https://docs.raku.org/language/regexes#Counting

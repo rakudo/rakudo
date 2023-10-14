@@ -2669,10 +2669,12 @@ class RakuAST::CurryThunk
   is RakuAST::ImplicitLookups
 {
     has Mu $!parameters;
+    has Str $!original-expression;
 
-    method new() {
+    method new(Str $original-expression) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::CurryThunk,, '$!parameters', []);
+        nqp::bindattr($obj, RakuAST::CurryThunk, '$!parameters', []);
+        nqp::bindattr($obj, RakuAST::CurryThunk, '$!original-expression', $original-expression);
         $obj
     }
 
@@ -2719,6 +2721,10 @@ class RakuAST::CurryThunk
 
     method IMPL-THUNK-SIGNATURE() {
         RakuAST::Signature.new(parameters => self.IMPL-WRAP-LIST($!parameters))
+    }
+
+    method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {
+        nqp::bindattr($code, self.get-implicit-lookups.AT-POS(0).compile-time-value, '$!original-expression', $!original-expression)
     }
 }
 

@@ -446,28 +446,24 @@ multi-only   soltanto
 #named-CWD         CWD
 
 # KEY           TRANSLATION
-#named-datagram  datagram
 #named-date      date
 #named-day       day
 #named-degree    degree
 #named-delete    delete
 #named-dirname   dirname
 
-# KEY               TRANSLATION
-#named-elems         elems
-#named-emit-timed    emit-timed
-#named-enc           enc
-#named-encoding      encoding
-#named-end           end
-#named-err           err
-#named-every         every
-#named-ex            ex
-#named-excludes-max  excludes-max
-#named-excludes-min  excludes-min
-#named-exclusive     exclusive
-#named-exhaustive    exhaustive
-#named-exitcode      exitcode
-#named-expires       expires
+# KEY             TRANSLATION
+#named-elems       elems
+#named-emit-timed  emit-timed
+#named-enc         enc
+#named-encoding    encoding
+#named-end         end
+#named-err         err
+#named-every       every
+#named-ex          ex
+#named-exclusive   exclusive
+#named-exhaustive  exhaustive
+#named-expires     expires
 
 # KEY            TRANSLATION
 #named-family     family

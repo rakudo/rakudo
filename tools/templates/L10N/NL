@@ -435,7 +435,6 @@ named-count       aantal
 #named-CWD         CWD
 
 # KEY           TRANSLATION
-#named-datagram  datagram
 named-date      datum
 named-day       dag
 #named-degree    degree
@@ -443,20 +442,17 @@ named-delete    verwijder
 #named-dirname   dirname
 
 # KEY               TRANSLATION
-named-elems         elementen
-#named-emit-timed    emit-timed
-#named-enc           enc
-#named-encoding      encoding
-named-end           vaneinde
-#named-err           err
-named-every         elke
-named-ex            ui
-named-excludes-max  zonder-max
-named-excludes-min  zonder-min
-named-exclusive     exclusief
-named-exhaustive    uitputtend
-#named-exitcode      exitcode
-named-expires       verloopt
+named-elems       elementen
+#named-emit-timed  emit-timed
+#named-enc         enc
+#named-encoding    encoding
+named-end         vaneinde
+#named-err         err
+named-every       elke
+named-ex          ui
+named-exclusive   exclusief
+named-exhaustive  uitputtend
+named-expires     verloopt
 
 # KEY            TRANSLATION
 #named-family     family

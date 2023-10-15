@@ -1104,3 +1104,181 @@ Types of multi syntax
 
 #### multi-proto
 - https://docs.raku.org/language/functions#proto
+
+## named
+Named arguments to methods/subs (:k,:p,:absolute, etc.)
+
+### named-A
+
+#### named-absolute
+- https://docs.raku.org/type/IO/Path#routine_symlink
+
+#### named-actions
+- https://docs.raku.org/type/Grammar#method_parse
+
+#### named-api
+- https://docs.raku.org/type/CompUnit/Repository/Installation#method_candidates
+
+#### named-append
+- https://docs.raku.org/type/independent-routines#sub_spurt
+
+#### named-arg0
+- https://docs.raku.org/type/Proc#method_spawn
+
+#### named-args
+- https://docs.raku.org/type/Grammar#method_parse
+
+#### named-as
+- https://docs.raku.org/type/independent-routines#routine_unique
+
+#### named-at
+- https://docs.raku.org/type/Scheduler#method_cue
+
+#### named-auth
+- https://docs.raku.org/type/CompUnit/Repository/Installation#method_candidates
+
+### named-B
+
+#### named-basename
+- https://docs.raku.org/type/IO/Path#method_new
+
+#### named-batch
+- https://docs.raku.org/type/Iterable#method_hyper
+
+#### named-bin
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-bleed
+- https://docs.raku.org/type/Supply#method_throttle
+
+#### named-broadcast
+- https://docs.raku.org/type/IO/Socket/Async#method_udp
+
+### named-C
+
+#### named-catch
+- https://docs.raku.org/type/Scheduler#method_cue
+
+#### named-check
+- https://docs.raku.org/type/independent-routines#routine_EVAL
+
+#### named-chomp
+- https://docs.raku.org/type/Str#routine_lines
+
+#### named-close
+- https://docs.raku.org/type/IO/Handle#routine_lines
+
+#### named-command
+- https://docs.raku.org/type/Proc#method_command
+
+#### named-complement
+- https://docs.raku.org/type/Str#method_trans
+
+#### named-completely
+- https://docs.raku.org/type/IO/Path#method_resolve
+
+#### named-continue
+- https://docs.raku.org/type/Str#method_match
+
+#### named-control
+- https://docs.raku.org/type/Supply#method_throttle
+
+#### named-count
+- https://docs.raku.org/type/Signature#Runtime_creation_of_Signature_objects_(6.d,_2019.03_and_later)
+
+#### named-create
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-createonly
+- https://docs.raku.org/type/IO/Path#method_spurt
+
+#### named-cwd
+- https://docs.raku.org/routine/spawn
+
+#### named-CWD
+- https://docs.raku.org/type/IO/Path#method_new
+
+### named-D
+
+#### named-date
+- https://docs.raku.org/type/DateTime#method_new
+
+#### named-day
+- https://docs.raku.org/type/Date#method_new
+
+#### named-degree
+- https://docs.raku.org/type/Iterable#method_hyper
+
+#### named-delete
+- https://docs.raku.org/type/Str#method_trans
+
+#### named-dirname
+- https://docs.raku.org/type/IO/Path#method_new
+
+### named-E
+
+#### named-elems
+- https://docs.raku.org/type/Supply#method_batch
+
+#### named-emit-timed
+- https://docs.raku.org/type/Supply#method_batch
+
+#### named-enc
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-encoding
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-end
+- https://docs.raku.org/type/List#routine_first
+
+#### named-err
+- https://docs.raku.org/type/independent-routines#sub_run
+
+#### named-every
+- https://docs.raku.org/type/Scheduler#method_cue
+
+#### named-ex
+- https://docs.raku.org/type/Str#method_match
+
+#### named-exclusive
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-exhaustive
+- https://docs.raku.org/type/Str#method_match
+
+#### named-expires
+- https://docs.raku.org/type/Supply#method_unique
+
+### named-F
+
+#### named-family
+- https://docs.raku.org/type/IO/Socket/INET#method_new
+
+#### named-filename
+- https://docs.raku.org/type/independent-routines#routine_EVAL
+
+#### named-filter
+- https://docs.raku.org/type/Str#routine_wordcase
+
+#### named-formatter
+- https://docs.raku.org/type/Str#routine_wordcase
+
+### named-G
+
+#### named-g
+- https://docs.raku.org/type/Str#method_match
+
+#### named-gid
+- https://docs.raku.org/type/IO/Path#routine_chown
+
+#### named-global
+- https://docs.raku.org/type/Str#method_match
+
+### named-H
+
+#### named-host
+- https://docs.raku.org/type/IO/Socket/INET#method_new
+
+#### named-hour
+- https://docs.raku.org/type/DateTime#method_new

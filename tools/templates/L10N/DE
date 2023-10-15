@@ -435,28 +435,24 @@ named-count       anzahl
 #named-CWD         CWD
 
 # KEY           TRANSLATION
-#named-datagram  datagram
 named-date      datum
 named-day       tag
 #named-degree    degree
 named-delete    streiche
 #named-dirname   dirname
 
-# KEY               TRANSLATION
-named-elems         elementen
-#named-emit-timed    emit-timed
-#named-enc           enc
-#named-encoding      encoding
-named-end           vonende
-#named-err           err
-named-every         jeder
-named-ex            er
-named-excludes-max  ohne-max
-named-excludes-min  ohne-min
-named-exclusive     exclusiv
-named-exhaustive    erschöpfend
-#named-exitcode      exitcode
-named-expires       läuftab
+# KEY             TRANSLATION
+named-elems       elementen
+#named-emit-timed  emit-timed
+#named-enc         enc
+#named-encoding    encoding
+named-end         vonende
+#named-err         err
+named-every       jeder
+named-ex          er
+named-exclusive   exclusiv
+named-exhaustive  erschöpfend
+named-expires     läuftab
 
 # KEY            TRANSLATION
 #named-family     family

@@ -1492,7 +1492,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method circumfix:sym<{ }>($/) {
-        self.attach: $/, $<pointy-block>.ast.block-or-hash;
+        self.attach($/, $<pointy-block>.ast.block-or-hash(:object-hash($*OBJECT-HASH || 0)))
     }
 
     method circumfix:sym<ang>($/) { self.attach: $/, $<nibble>.ast }

@@ -130,10 +130,12 @@ class RakuAST::Circumfix::HashComposer
   is RakuAST::Lookup
 {
     has RakuAST::Expression $.expression;
+    has int $.object-hash;
 
-    method new(RakuAST::Expression $expression?) {
+    method new(RakuAST::Expression $expression?, int :$object-hash) {
         my $obj := nqp::create(self);
         $obj.set-expression($expression);
+        nqp::bindattr_i($obj, RakuAST::Circumfix::HashComposer, '$!object-hash', $object-hash ?? 1 !! 0);
         $obj
     }
 
@@ -144,7 +146,9 @@ class RakuAST::Circumfix::HashComposer
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-lexical('&circumfix:<{ }>');
+        my $resolved := $!object-hash
+                             ?? $resolver.resolve-lexical('&circumfix:<:{ }>')
+                             !! $resolver.resolve-lexical('&circumfix:<{ }>');
         if $resolved {
             self.set-resolution($resolved);
         }
@@ -153,9 +157,11 @@ class RakuAST::Circumfix::HashComposer
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := self.resolution.lexical-name;
-        my $op := QAST::Op.new( :op('call'), :$name );
-        if $!expression {
-            $op.push($!expression.IMPL-TO-QAST($context));
+        my $expression := $!expression;
+
+        my $op := QAST::Op.new(:op<call>, :$name);
+        if $expression {
+            $op.push($expression.IMPL-TO-QAST($context))
         }
         $op
     }

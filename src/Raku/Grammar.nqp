@@ -3125,6 +3125,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <.worry: "Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately">
 
           | {}
+            :my $*OBJECT-HASH := $front ?? 0 !! 1;
             <circumfix>
         ]
     }

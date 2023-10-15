@@ -1125,13 +1125,13 @@ class RakuAST::Block
     # parsed things tentatively as a block to obtain the actual node to use.
     # If constructing AST synthetically, just make the correct thing in the
     # first place.
-    method block-or-hash() {
+    method block-or-hash(int :$object-hash) {
         my @statements := self.body.statement-list.code-statements;
         my int $num-statements := nqp::elems(@statements);
 
         # Empty block is always an empty hash composer
         if $num-statements == 0 {
-            return RakuAST::Circumfix::HashComposer.new
+            return RakuAST::Circumfix::HashComposer.new(:$object-hash)
         }
 
         # Multiple statements is always a block
@@ -1214,7 +1214,7 @@ class RakuAST::Block
         }
         $seen-decl-or-topic
             ?? self
-            !! RakuAST::Circumfix::HashComposer.new($expression)
+            !! RakuAST::Circumfix::HashComposer.new($expression, :$object-hash)
     }
 
     method visit-children(Code $visitor) {

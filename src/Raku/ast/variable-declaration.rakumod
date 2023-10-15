@@ -171,16 +171,20 @@ class RakuAST::ContainerCreator {
                     !! Array;
             }
             elsif $sigil eq '%' {
-                $container-type := self.type
-                    ?? $key-type =:= NQPMu
-                        ?? Hash.HOW.parameterize(Hash, $of)
-                        !! Hash.HOW.parameterize(Hash, $of, $key-type)
-                    !! Hash;
+                $container-type := $key-type =:= NQPMu
+                  ?? self.type
+                    ?? Hash.HOW.parameterize(Hash, $of)
+                    !! Hash
+                  !! Hash.HOW.parameterize(
+                       Hash,
+                       self.type ?? $of !! $!container-base-type,
+                       $key-type
+                     )
             }
             else {
                 $container-type := $of
             }
-            $container-type;
+            $container-type
         }
         else {
             self.type
@@ -746,14 +750,15 @@ class RakuAST::VarDeclaration::Simple
     method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups;
         my str $scope := self.scope;
-        # If we have a type, we need to resolve that.
-        if $!type {
-            @lookups.push($!type);
-        }
+        # If we have a type, we need to resolve that.  Otherwise assume Mu
+        @lookups.push($!type || nqp::null);
+
         # If we're has/HAS scope, we need Nil to evaluate to.
-        if $scope eq 'has' || $scope eq 'HAS' {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')));
-        }
+        @lookups.push($scope eq 'has' || $scope eq 'HAS'
+          ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
+          !! nqp::null
+        );
+
         self.IMPL-WRAP-LIST(@lookups)
     }
 
@@ -763,47 +768,71 @@ class RakuAST::VarDeclaration::Simple
 
         # Calculate the type.
         my $of := $!type
-          ?? $!type.is-resolved
-            ?? $!type.resolution.compile-time-value
-            !! self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+          ?? ($!type.is-resolved
+               ?? $!type
+               !! self.get-implicit-lookups.AT-POS(0)
+             ).resolution.compile-time-value
           !! Mu;
+        my $descriptor := self.IMPL-CONTAINER-DESCRIPTOR($of);
+
+        # `my %h{Any}` creates this shape declaration:
+        #
+        # shape => RakuAST::SemiList.new(
+        #   RakuAST::Statement::Expression.new(
+        #     expression => RakuAST::Type::Simple.new(   <-- shape type
+        #       RakuAST::Name.from-identifier("Any")
+        #     )
+        #   )
+        # )
+        my $object-hash := $!shape && self.sigil eq '%';
+        my $type        := self.IMPL-CONTAINER-TYPE(
+          $of,
+          :key-type($object-hash
+            ?? $!shape.code-statements[0].expression.compile-time-value
+            !! NQPMu
+          )
+        );
 
         # If it's has scoped, we'll need to build an attribute.
         if $scope eq 'has' || $scope eq 'HAS' {
-            my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
-
             my $meta-object := $!attribute-package.attribute-type.new(
-                name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
-                type => $!shape && self.sigil eq '%'
-                    ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-                    !! self.IMPL-CONTAINER-TYPE($of),
-                has_accessor => self.twigil eq '.',
-                container_descriptor => $cont-desc,
-                auto_viv_container => self.IMPL-CONTAINER($of, $cont-desc),
-                package => $!attribute-package.compile-time-value,
-                container_initializer => $!container-initializer,
+              name => self.sigil ~ '!' ~ self.desigilname.canonicalize,
+              type => $type,
+              has_accessor          => self.twigil eq '.',
+              container_descriptor  => $descriptor,
+              auto_viv_container    => self.IMPL-CONTAINER($of, $descriptor),
+              package               => $!attribute-package.compile-time-value,
+              container_initializer => $!container-initializer,
             );
-            nqp::bindattr_i($meta-object, nqp::what($meta-object), '$!inlined', 1)
-                if $scope eq 'HAS';
+            nqp::bindattr_i($meta-object,$meta-object.WHAT,'$!inlined',1)
+              if $scope eq 'HAS';
             $meta-object
+        }
+
+        # An "our" that is already installed
+        elsif $scope eq 'our' && $!package.WHO.EXISTS-KEY(self.name) {
+            $!package.WHO.AT-KEY(self.name)
+        }
+
+        # An object hash, type is ok already
+        elsif $object-hash {
+            $!package.WHO.BIND-KEY(self.name, $type) if $scope eq 'our';
+            $type
         }
 
         # Otherwise, it's lexically scoped, so the meta-object is just the
         # container, if any.
         else {
-            return $!package.WHO.AT-KEY(self.name) if $scope eq 'our' && $!package.WHO.EXISTS-KEY(self.name);
-            my $cont-desc := self.IMPL-CONTAINER-DESCRIPTOR($of);
-            my $cont := self.IMPL-CONTAINER($of, $cont-desc);
-            $!package.WHO.BIND-KEY(self.name, $cont) if $scope eq 'our';
-            $cont
+            my $container := self.IMPL-CONTAINER($of, $descriptor);
+            $!package.WHO.BIND-KEY(self.name, $container) if $scope eq 'our';
+            $container
         }
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
-        my $of := $!type
-          ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
-          !! Mu;
+        my $of :=
+          self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
 
         if $scope eq 'my' && !$!desigilname.is-multi-part {
             # Lexically scoped
@@ -974,7 +1003,7 @@ class RakuAST::VarDeclaration::Simple
         }
         elsif $scope eq 'has' || $scope eq 'HAS' {
             # These just evaluate to Nil
-            $lookups.tail.IMPL-TO-QAST($context)
+            $lookups.AT-POS(1).IMPL-TO-QAST($context)
         }
         else {
             nqp::die("Don't know how to compile initialization for scope $scope");

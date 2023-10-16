@@ -337,7 +337,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $repo-prefix = self!repo-prefix;
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
-            my %done;
 
             my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
             for %provides.sort {
@@ -345,22 +344,19 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 $precomp.store.delete($compiler-id, $id);
             }
 
-            for %provides.sort {
-                my $id = $_.value.values[0]<file>;
+            my $to-precompile := %provides.map({ $_.key => $_.value.values[0]<file> }).sort(*.key).unique(:as(*.value));
+            $to-precompile.race(:batch(1)).map: {
+                my $short-name = $_.key;
+                my $id = $_.value;
                 my $source = $sources-dir.add($id);
                 my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
 
-                if %done{$id} {
-                    note "(Already did $id)" if $verbose;
-                    next;
-                }
-                note("Precompiling $id ($_.key())") if $verbose;
+                note("Precompiling $id ($short-name)") if $verbose;
                 $precomp.precompile(
                     $source,
                     CompUnit::PrecompilationId.new-without-check($id),
-                    :source-name("$source-file ($_.key())"),
+                    :source-name("$source-file ($short-name)"),
                 );
-                %done{$id} = 1;
             }
             PROCESS::<$REPO> := $head;
         }

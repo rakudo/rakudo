@@ -579,7 +579,6 @@ named-volume   volume
 named-w                  w
 named-where              where
 named-win-verbatim-args  win-verbatim-args
-named-with               with
 
 # KEY    TRANSLATION
 named-x  x
@@ -590,9 +589,7 @@ named-year  year
 # KEY            TRANSLATION
 package-class    class
 package-grammar  grammar
-package-knowhow  knowhow
 package-module   module
-package-native   native
 package-package  package
 package-role     role
 
@@ -628,32 +625,31 @@ routine-rule       rule
 routine-submethod  submethod
 routine-token      token
 
-# KEY            TRANSLATION
-scope-anon       anon
-scope-augment    augment
-scope-constant   constant
-scope-has        has
-scope-HAS        HAS
-scope-my         my
-scope-our        our
-scope-state      state
-scope-supersede  supersede
-scope-unit       unit
+# KEY           TRANSLATION
+scope-anon      anon
+scope-augment   augment
+scope-constant  constant
+scope-has       has
+scope-HAS       HAS
+scope-my        my
+scope-our       our
+scope-state     state
+scope-unit      unit
 
 # KEY                 TRANSLATION
-stmt-prefix-also      also
-stmt-prefix-do        do
-stmt-prefix-eager     eager
-stmt-prefix-gather    gather
-stmt-prefix-hyper     hyper
-stmt-prefix-lazy      lazy
-stmt-prefix-quietly   quietly
-stmt-prefix-race      race
-stmt-prefix-react     react
-stmt-prefix-sink      sink
-stmt-prefix-start     start
-stmt-prefix-supply    supply
-stmt-prefix-try       try
+stmt-prefix-also     also
+stmt-prefix-do       do
+stmt-prefix-eager    eager
+stmt-prefix-gather   gather
+stmt-prefix-hyper    hyper
+stmt-prefix-lazy     lazy
+stmt-prefix-quietly  quietly
+stmt-prefix-race     race
+stmt-prefix-react    react
+stmt-prefix-sink     sink
+stmt-prefix-start    start
+stmt-prefix-supply   supply
+stmt-prefix-try      try
 
 # KEY      TRANSLATION
 term-self  self
@@ -684,7 +680,6 @@ trait-is-looser                 looser
 trait-is-nodal                  nodal
 trait-is-pure                   pure
 trait-is-raw                    raw
-trait-is-readonly               readonly
 trait-is-rw                     rw
 trait-is-tighter                tighter
 

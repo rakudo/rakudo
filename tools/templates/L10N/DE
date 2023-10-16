@@ -576,7 +576,6 @@ named-value    wert
 #named-w                  w
 named-where              wo
 #named-win-verbatim-args  win-verbatim-args
-named-with               met
 
 # KEY    TRANSLATION
 named-x  mal
@@ -587,9 +586,7 @@ named-year  jahr
 # KEY            TRANSLATION
 package-class    klasse
 package-grammar  grammatik
-#package-knowhow  knowhow
 package-module   modul
-#package-native   native
 package-package  paket
 package-role     rolle
 
@@ -625,17 +622,16 @@ routine-rule       regel
 routine-submethod  submethode
 routine-token      wertmarke
 
-# KEY            TRANSLATION
-scope-anon       anonym
-scope-augment    verbesser
-scope-constant   konstante
-scope-has        hat
-scope-HAS        HAT
-scope-my         mein
-scope-our        unsere
-scope-state      stand
-scope-supersede  ersetze
-scope-unit       einheit
+# KEY           TRANSLATION
+scope-anon      anonym
+scope-augment   verbesser
+scope-constant  konstante
+scope-has       hat
+scope-HAS       HAT
+scope-my        mein
+scope-our       unsere
+scope-state     stand
+scope-unit      einheit
 
 # KEY                 TRANSLATION
 stmt-prefix-also      auch
@@ -681,7 +677,6 @@ trait-is-looser                 lockerer
 #trait-is-nodal                  nodal
 trait-is-pure                   rein
 trait-is-raw                    roh
-trait-is-readonly               nur-lesen
 trait-is-rw                     lesen-schreiben
 trait-is-tighter                enger
 

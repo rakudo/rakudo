@@ -618,7 +618,6 @@ named-volume   volume
 named-w                  w
 named-where              where
 named-win-verbatim-args  win-verbatim-args
-named-with               with
 
 # KEY    TRANSLATION
 named-x  x
@@ -629,9 +628,7 @@ named-year  year
 # KEY            TRANSLATION
 package-class    class
 package-grammar  grammar
-package-knowhow  knowhow
 package-module   module
-package-native   native
 package-package  package
 package-role     role
 
@@ -676,7 +673,6 @@ scope-HAS        HAS
 scope-my         my
 scope-our        our
 scope-state      state
-scope-supersede  supersede
 scope-unit       unit
 
 # KEY                 TRANSLATION
@@ -723,7 +719,6 @@ trait-is-looser                 looser
 trait-is-nodal                  nodal
 trait-is-pure                   pure
 trait-is-raw                    raw
-trait-is-readonly               readonly
 trait-is-rw                     rw
 trait-is-tighter                tighter
 

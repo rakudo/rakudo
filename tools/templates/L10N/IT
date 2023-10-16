@@ -588,7 +588,6 @@ multi-only   soltanto
 #named-w                  w
 #named-where              where
 #named-win-verbatim-args  win-verbatim-args
-#named-with               with
 
 # KEY    TRANSLATION
 #named-x  x
@@ -599,9 +598,7 @@ multi-only   soltanto
 # KEY            TRANSLATION
 package-class    classe
 package-grammar  grammatica
-package-knowhow  so-come
 package-module   modulo
-package-native   nativo
 package-package  pacchetto
 package-role     ruolo
 
@@ -637,32 +634,31 @@ routine-rule       regola
 #routine-submethod  submethod
 routine-token      gettone
 
-# KEY            TRANSLATION
-#scope-anon       anon
-#scope-augment    aumenta
-scope-constant   constante
-scope-has        ha
-scope-HAS        HA
-scope-my         il-mio
-scope-our        il-nostro
-scope-state      stato
-scope-supersede  sostituire
-scope-unit       unità
+# KEY           TRANSLATION
+#scope-anon      anon
+#scope-augment   aumenta
+scope-constant  constante
+scope-has       ha
+scope-HAS       HA
+scope-my        il-mio
+scope-our       il-nostro
+scope-state     stato
+scope-unit      unità
 
-# KEY                 TRANSLATION
-stmt-prefix-also      anche
-stmt-prefix-do        fate
-stmt-prefix-eager     impaziente
-stmt-prefix-gather    raccogliere
-#stmt-prefix-hyper     hyper
-stmt-prefix-lazy      pigro
-stmt-prefix-quietly   tranquillamente
-stmt-prefix-race      gara
-stmt-prefix-react     reagisce
-stmt-prefix-sink      cala
-stmt-prefix-start     comincio
-stmt-prefix-supply    fornitura
-stmt-prefix-try       prova
+# KEY                TRANSLATION
+stmt-prefix-also     anche
+stmt-prefix-do       fate
+stmt-prefix-eager    impaziente
+stmt-prefix-gather   raccogliere
+#stmt-prefix-hyper    hyper
+stmt-prefix-lazy     pigro
+stmt-prefix-quietly  tranquillamente
+stmt-prefix-race     gara
+stmt-prefix-react    reagisce
+stmt-prefix-sink     cala
+stmt-prefix-start    comincio
+stmt-prefix-supply   fornitura
+stmt-prefix-try      prova
 
 # KEY      TRANSLATION
 term-self  se-stesso
@@ -693,7 +689,6 @@ traitmod-returns  ritorna
 #trait-is-nodal                  nodal
 #trait-is-pure                   pure
 #trait-is-raw                    raw
-#trait-is-readonly               readonly
 #trait-is-rw                     rw
 #trait-is-tighter                tighter
 

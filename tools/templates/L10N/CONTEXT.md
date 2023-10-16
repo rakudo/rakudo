@@ -1523,6 +1523,8 @@ https://docs.raku.org/type/List#routine_grep
 #### named-update
 - https://docs.raku.org/type/IO/Handle#method_open
 
+### named-V
+
 #### named-v
 - https://docs.raku.org/type/List#routine_grep
 
@@ -1538,6 +1540,17 @@ https://docs.raku.org/type/List#routine_grep
 #### named-volume
 - https://docs.raku.org/type/IO/Path#routine_new
 
+### named-W
+
+#### named-w
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-where
+- https://docs.raku.org/type/Str#routine_wordcase
+
+#### named-win-verbatim-args
+- https://docs.raku.org/routine/spawn
+
 ### named-X
 
 #### named-x
@@ -1547,3 +1560,285 @@ https://docs.raku.org/type/List#routine_grep
 
 #### named-year
 - https://docs.raku.org/type/Date#method_new
+
+## package
+
+#### package-class
+- https://docs.raku.org/language/objects#Classes
+
+#### package-grammar
+- https://docs.raku.org/language/typesystem#grammar
+
+#### package-module
+- https://docs.raku.org/language/typesystem#module
+
+#### package-package
+- https://docs.raku.org/language/typesystem#package
+
+#### package-role
+- https://docs.raku.org/language/objects#Roles
+
+## phaser
+
+#### phaser-BEGIN
+- https://docs.raku.org/language/phasers#BEGIN
+
+#### phaser-CATCH
+- https://docs.raku.org/language/exceptions#Catching_exceptions
+
+#### phaser-CHECK
+- https://docs.raku.org/language/phasers#CHECK
+
+#### phaser-CLOSE
+- https://docs.raku.org/language/phasers#CLOSE
+
+#### phaser-CONTROL
+- https://docs.raku.org/language/phasers#CONTROL
+
+#### phaser-DOC
+- https://docs.raku.org/language/phasers#DOC
+
+#### phaser-END
+- https://docs.raku.org/language/phasers#END
+
+#### phaser-ENTER
+- https://docs.raku.org/language/phasers#ENTER
+
+#### phaser-FIRST
+- https://docs.raku.org/language/phasers#FIRST
+
+#### phaser-INIT
+- https://docs.raku.org/language/phasers#INIT
+
+#### phaser-KEEP
+- https://docs.raku.org/language/phasers#KEEP
+
+#### phaser-LAST
+- https://docs.raku.org/language/phasers#LAST
+
+#### phaser-LEAVE
+- https://docs.raku.org/language/phasers#LEAVE
+
+#### phaser-NEXT
+- https://docs.raku.org/language/phasers#NEXT
+
+#### phaser-PRE
+- https://docs.raku.org/language/phasers#PRE
+
+#### phaser-POST
+- https://docs.raku.org/language/phasers#POST
+
+#### phaser-QUIT
+- https://docs.raku.org/language/phasers#QUIT
+
+#### phaser-UNDO
+- https://docs.raku.org/language/phasers#UNDO
+
+## prefix
+
+#### not
+- https://docs.raku.org/language/operators#prefix_not
+
+#### so
+- https://docs.raku.org/language/operators#prefix_so
+
+## routine
+
+#### routine-method
+- https://docs.raku.org/language/syntax#Method_declaration
+
+#### routine-sub
+- https://docs.raku.org/language/functions#Subroutines
+
+#### routine-regex
+- https://docs.raku.org/language/grammars#Named_Regexes
+
+#### routine-rule
+- https://docs.raku.org/language/grammars#Rules
+
+#### routine-submethod
+- https://docs.raku.org/language/objects#Submethods
+
+#### routine-token
+- https://docs.raku.org/language/grammars#Named_Regexes
+
+## scope
+
+#### scope-anon
+- https://docs.raku.org/language/variables#The_anon_declarator
+
+#### scope-augment
+- https://docs.raku.org/language/variables#The_augment_declarator
+
+#### scope-constant
+- https://docs.raku.org/language/variables#The_constant_prefix
+
+#### scope-has
+- https://docs.raku.org/language/variables#The_has_declarator
+
+#### scope-HAS
+- https://docs.raku.org/language/nativecall#Embedding_CStructs_and_CUnions_with_HAS
+
+#### scope-my
+- https://docs.raku.org/language/variables#The_my_declarator
+
+#### scope-our
+- https://docs.raku.org/language/variables#The_our_declarator
+
+#### scope-state
+- https://docs.raku.org/language/variables#The_state_declarator
+
+#### scope-unit
+- https://docs.raku.org/language/syntax#Package,_Module,_Class,_Role,_and_Grammar_declaration
+
+## stmt-prefix
+
+#### stmt-prefix-also
+- https://docs.raku.org/language/classtut#The_also_declarator
+
+#### stmt-prefix-do
+- https://docs.raku.org/language/statement-prefixes#do
+
+#### stmt-prefix-eager
+- https://docs.raku.org/language/statement-prefixes#eager
+
+#### stmt-prefix-gather
+- https://docs.raku.org/language/control#gather/take
+
+#### stmt-prefix-hyper
+- https://docs.raku.org/language/statement-prefixes#hyper,_race
+
+#### stmt-prefix-lazy
+- https://docs.raku.org/language/statement-prefixes#lazy
+
+#### stmt-prefix-quietly
+- https://docs.raku.org/language/statement-prefixes#quietly
+
+#### stmt-prefix-race
+- https://docs.raku.org/language/statement-prefixes#hyper,_race
+
+#### stmt-prefix-react
+- https://docs.raku.org/language/statement-prefixes#react
+
+#### stmt-prefix-sink
+- https://docs.raku.org/language/statement-prefixes#sink
+
+#### stmt-prefix-start
+- https://docs.raku.org/language/control#start
+
+#### stmt-prefix-supply
+- https://docs.raku.org/language/control#supply/emit
+
+#### stmt-prefix-try
+- https://docs.raku.org/language/statement-prefixes#try
+
+## term
+
+#### term-self
+- https://docs.raku.org/language/terms#term_self
+
+#### term-nano
+- https://docs.raku.org/language/terms#term_nano
+
+#### term-now
+- https://docs.raku.org/language/terms#term_now
+
+#### term-rand
+- https://docs.raku.org/language/terms#term_rand
+
+#### term-time
+- https://docs.raku.org/language/terms#term_time
+
+## traitmod
+
+#### traitmod-does
+- https://docs.raku.org/language/typesystem#trait_does
+
+#### traitmod-handles
+- https://docs.raku.org/language/typesystem#trait_handles
+
+#### traitmod-hides
+- https://docs.raku.org/language/typesystem#trait_hides
+
+#### traitmod-is
+- https://docs.raku.org/language/typesystem#trait_is
+
+#### traitmod-of
+- https://docs.raku.org/language/signatures#of
+
+#### traitmod-returns
+- https://docs.raku.org/language/signatures#returns
+
+## trait-is
+
+#### trait-is-built
+- https://docs.raku.org/type/Attribute#trait_is_built
+
+#### trait-is-copy
+- https://docs.raku.org/language/signatures#Parameter_traits_and_modifiers
+
+#### trait-is-default
+- https://docs.raku.org/type/Variable#trait_is_default
+- https://docs.raku.org/type/Routine#trait_is_default
+
+#### trait-is-DEPRECATED
+- https://docs.raku.org/type/Routine#trait_is_DEPRECATED
+
+#### trait-is-equiv
+- https://docs.raku.org/language/optut
+
+#### trait-is-export
+- https://docs.raku.org/type/Routine#trait_is_export
+
+#### trait-is-hidden-from-backtrace
+- https://docs.raku.org/type/Routine#trait_is_hidden-from-backtrace
+
+#### trait-is-hidden-from-USAGE
+- https://docs.raku.org/language/create-cli#is_hidden-from-USAGE
+
+#### trait-is-implementation-detail
+- https://docs.raku.org/language/traits#is_implementation-detail_trait
+
+#### trait-is-looser
+- https://docs.raku.org/language/optut
+
+#### trait-is-nodal
+- https://docs.raku.org/language/typesystem#trait_is_nodal
+
+#### trait-is-pure
+- https://docs.raku.org/type/Routine#trait_is_pure
+
+#### trait-is-raw
+- https://docs.raku.org/type/Parameter#method_raw
+- https://docs.raku.org/type/Routine#trait_is_raw
+
+#### trait-is-rw
+- https://docs.raku.org/language/signatures#Parameter_traits_and_modifiers
+
+#### trait-is-tighter
+- https://docs.raku.org/language/optut
+
+## typer
+
+#### typer-enum
+- https://docs.raku.org/language/enumeration
+
+#### typer-subset
+- https://docs.raku.org/language/typesystem#subset
+
+## use
+
+#### use-import
+- https://docs.raku.org/language/modules#use
+
+#### use-need
+- https://docs.raku.org/language/modules#need
+
+#### use-no
+- https://docs.raku.org/language/pragmas
+
+#### use-require
+- https://docs.raku.org/language/modules#require
+
+#### use-use
+- https://docs.raku.org/language/modules#use

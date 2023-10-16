@@ -576,7 +576,6 @@ named-value    waarde
 #named-w                  w
 named-where              waar
 #named-win-verbatim-args  win-verbatim-args
-named-with               met
 
 # KEY    TRANSLATION
 named-x  keer
@@ -587,9 +586,7 @@ named-year  jaar
 # KEY            TRANSLATION
 package-class    klasse
 package-grammar  grammatica
-#package-knowhow  knowhow
 package-module   module
-#package-native   native
 package-package  pakket
 package-role     rol
 
@@ -625,32 +622,31 @@ routine-rule       regel
 routine-submethod  submethode
 routine-token      token
 
-# KEY            TRANSLATION
-scope-anon       anoniem
-scope-augment    verbeter
-scope-constant   constant
-scope-has        heeft
-scope-HAS        HEEFT
-scope-my         mijn
-scope-our        onze
-scope-state      steeds
-scope-supersede  vervang
-scope-unit       eenheid
+# KEY           TRANSLATION
+scope-anon      anoniem
+scope-augment   verbeter
+scope-constant  constant
+scope-has       heeft
+scope-HAS       HEEFT
+scope-my        mijn
+scope-our       onze
+scope-state     steeds
+scope-unit      eenheid
 
-# KEY                 TRANSLATION
-stmt-prefix-also      eveneens
-stmt-prefix-do        doe
-stmt-prefix-eager     vlijtig
-stmt-prefix-gather    verzamel
-stmt-prefix-hyper     hyper
-stmt-prefix-lazy      lui
-stmt-prefix-quietly   stilletjes
-stmt-prefix-race      race
-stmt-prefix-react     reageer
-stmt-prefix-sink      zink
-stmt-prefix-start     start
-stmt-prefix-supply    lever
-stmt-prefix-try       probeer
+# KEY                TRANSLATION
+stmt-prefix-also     eveneens
+stmt-prefix-do       doe
+stmt-prefix-eager    vlijtig
+stmt-prefix-gather   verzamel
+stmt-prefix-hyper    hyper
+stmt-prefix-lazy     lui
+stmt-prefix-quietly  stilletjes
+stmt-prefix-race     race
+stmt-prefix-react    reageer
+stmt-prefix-sink     zink
+stmt-prefix-start    start
+stmt-prefix-supply   lever
+stmt-prefix-try      probeer
 
 # KEY      TRANSLATION
 term-self  zelf
@@ -681,7 +677,6 @@ trait-is-looser                 losser
 #trait-is-nodal                  nodal
 trait-is-pure                   puur
 trait-is-raw                    rauw
-trait-is-readonly               alleen-lezen
 trait-is-rw                     lezen-schrijven
 trait-is-tighter                strakker
 

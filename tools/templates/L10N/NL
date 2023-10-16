@@ -42,6 +42,7 @@ adverb-rx-samemark    zelfdeaccent
 adverb-rx-samespace   zelfdespatie
 adverb-rx-sigspace    sigspatie
 adverb-rx-st          ste
+adverb-rx-to          tot
 adverb-rx-x           keer
 
 # KEY           TRANSLATION
@@ -68,6 +69,7 @@ constraint-where  waar
 # KEY                  TRANSLATION
 core-abs               abs
 core-all               alle
+core-antipairs         antiparen
 core-any               elke
 core-append            voeg-achteraan
 #core-ast               ast
@@ -110,6 +112,7 @@ core-cmp-ok        cmp-ok
 core-codes         codes
 core-comb          kam
 core-combinations  combinaties
+#core-conj          conj
 core-contains      bevat
 core-cross         kruis
 
@@ -142,6 +145,7 @@ core-first         eerste
 core-flat          plat
 core-flip          draaiom
 core-floor         vloer
+#core-fmt           fmt
 #core-full-barrier  full-barrier
 
 # KEY      TRANSLATION
@@ -220,7 +224,6 @@ core-ords  als-getallen
 core-pair          paar
 core-pairs         paren
 core-parse-base    ontleed-nummer
-core-parse-names   ontleed-namen
 core-pass          goed
 core-permutations  permutaties
 core-pick          kies
@@ -649,10 +652,12 @@ stmt-prefix-supply   lever
 stmt-prefix-try      probeer
 
 # KEY      TRANSLATION
-term-self  zelf
 term-nano  nano
 term-now   nu
+term-pi    pi
 term-rand  willekeurig
+term-self  zelf
+term-tau   tau
 term-time  tijd
 
 # KEY             TRANSLATION
@@ -662,6 +667,7 @@ traitmod-hides    verbergt
 traitmod-is       is
 traitmod-of       netals
 traitmod-returns  geeftterug
+traitmod-trusts   vertrouwd
 
 # KEY                           TRANSLATION
 #trait-is-built                  built
@@ -678,6 +684,7 @@ trait-is-looser                 losser
 trait-is-pure                   puur
 trait-is-raw                    rauw
 trait-is-rw                     lezen-schrijven
+trait-is-test-assertion         test-assertie
 trait-is-tighter                strakker
 
 # KEY          TRANSLATION

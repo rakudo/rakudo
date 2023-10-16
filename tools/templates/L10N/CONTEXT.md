@@ -112,6 +112,9 @@ Adverbs on regular expressions, e.g. `m:i/ FOO /`.
 #### adverb-rx-st
 - https://docs.raku.org/language/regexes#Positional_adverbs
 
+#### adverb-rx-to
+https://docs.raku.org/language/quoting#Heredocs:_:to
+
 #### adverb-rx-x
 - https://docs.raku.org/language/regexes#Counting
 
@@ -308,6 +311,9 @@ https://docs.raku.org/type/Test#sub_bail-out
 
 #### core-combinations
 - https://docs.raku.org/type/List#routine_combinations
+
+#### core-conj
+- https://docs.raku.org/type/Complex#method_conj
 
 #### core-contains
 - https://docs.raku.org/type/Str#routine_contains
@@ -1734,17 +1740,23 @@ https://docs.raku.org/type/List#routine_grep
 
 ## term
 
-#### term-self
-- https://docs.raku.org/language/terms#term_self
-
 #### term-nano
 - https://docs.raku.org/language/terms#term_nano
 
 #### term-now
 - https://docs.raku.org/language/terms#term_now
 
+#### term-pi
+- https://docs.raku.org/language/terms#term_pi
+
 #### term-rand
 - https://docs.raku.org/language/terms#term_rand
+
+#### term-self
+- https://docs.raku.org/language/terms#term_self
+
+#### term-tau
+- https://docs.raku.org/language/terms#term_tau
 
 #### term-time
 - https://docs.raku.org/language/terms#term_time
@@ -1768,6 +1780,9 @@ https://docs.raku.org/type/List#routine_grep
 
 #### traitmod-returns
 - https://docs.raku.org/language/signatures#returns
+
+#### traitmod-trusts
+- https://docs.raku.org/language/typesystem#trait_trusts
 
 ## trait-is
 
@@ -1814,6 +1829,9 @@ https://docs.raku.org/type/List#routine_grep
 
 #### trait-is-rw
 - https://docs.raku.org/language/signatures#Parameter_traits_and_modifiers
+
+#### trait-is-test-assertion
+- https://docs.raku.org/type/Routine#trait_is_test-assertion
 
 #### trait-is-tighter
 - https://docs.raku.org/language/optut

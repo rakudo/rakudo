@@ -42,6 +42,7 @@ adverb-rx-rd          te
 #adverb-rx-samespace   samespace
 #adverb-rx-sigspace    sigspace
 adverb-rx-st          te
+adverb-rx-to          bis
 adverb-rx-x           mal
 
 # KEY           TRANSLATION
@@ -68,6 +69,7 @@ constraint-where  wo
 # KEY                  TRANSLATION
 core-abs               abs
 core-all               alle
+core-antipairs         antipare
 core-any               beliebig
 core-append            anhängen
 #core-ast               ast
@@ -110,6 +112,7 @@ core-close         schließe
 core-codes         codes
 core-comb          kamm
 core-combinations  kombinationen
+#core-conj          conj
 core-contains      enthält
 core-cross         kreuz
 
@@ -142,6 +145,7 @@ core-first         erste
 core-flat          flach
 core-flip          drehum
 core-floor         boden
+#core-fmt           fmt
 #core-full-barrier  full-barrier
 
 # KEY      TRANSLATION
@@ -220,7 +224,6 @@ core-ords  als-zahlen
 core-pair          paar
 core-pairs         paare
 #core-parse-base    parse-base
-#core-parse-names   parse-names
 core-pass          gut
 core-permutations  permutationen
 core-pick          pflücke
@@ -649,10 +652,12 @@ stmt-prefix-supply    liefer
 stmt-prefix-try       versuche
 
 # KEY      TRANSLATION
-term-self  selbst
 term-nano  nano
 term-now   jetzt
+term-pi    pi
 term-rand  zufällig
+term-self  selbst
+term-tau   tau
 term-time  zeit
 
 # KEY             TRANSLATION
@@ -662,6 +667,7 @@ traitmod-hides    versteckt
 traitmod-is       ist
 traitmod-of       wie
 traitmod-returns  returns
+traitmod-trusts   vertraut
 
 # KEY                           TRANSLATION
 #trait-is-built                  built
@@ -678,6 +684,7 @@ trait-is-looser                 lockerer
 trait-is-pure                   rein
 trait-is-raw                    roh
 trait-is-rw                     lesen-schreiben
+#trait-is-test-assertion         test-assertion
 trait-is-tighter                enger
 
 # KEY          TRANSLATION

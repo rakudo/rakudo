@@ -78,6 +78,7 @@ adverb-rx-samemark    samemark
 adverb-rx-samespace   samespace
 adverb-rx-sigspace    sigspace
 adverb-rx-st          st
+adverb-rx-to          to
 adverb-rx-x           x
 
 # KEY           TRANSLATION
@@ -117,6 +118,7 @@ core-atomic-fetch-inc  atomic-fetch-inc
 core-atomic-fetch-sub  atomic-fetch-sub
 core-atomic-inc-fetch  atomic-inc-fetch
 core-atomic-sub-fetch  atomic-sub-fetch
+core-antipairs         antipairs
 core-await             await
 
 # KEY          TRANSLATION
@@ -146,6 +148,7 @@ core-cmp-ok        cmp-ok
 core-codes         codes
 core-comb          comb
 core-combinations  combinations
+core-conj          conj
 core-contains      contains
 core-cross         cross
 
@@ -182,6 +185,7 @@ core-flat          flat
 core-flip          flip
 core-floor         floor
 core-flunk         flunk
+core-fmt           fmt
 core-full-barrier  full-barrier
 
 # KEY      TRANSLATION
@@ -260,7 +264,6 @@ core-ords  ords
 core-pair          pair
 core-pairs         pairs
 core-parse-base    parse-base
-core-parse-names   parse-names
 core-pass          pass
 core-permutations  permutations
 core-pick          pick
@@ -691,10 +694,12 @@ stmt-prefix-supply    supply
 stmt-prefix-try       try
 
 # KEY      TRANSLATION
-term-self  self
 term-nano  nano
 term-now   now
+term-pi    pi
 term-rand  rand
+term-self  self
+term-tau   tau
 term-time  time
 
 # KEY             TRANSLATION
@@ -704,6 +709,7 @@ traitmod-hides    hides
 traitmod-is       is
 traitmod-of       of
 traitmod-returns  returns
+traitmod-trusts   trusts
 
 # KEY                           TRANSLATION
 trait-is-built                  built
@@ -720,6 +726,7 @@ trait-is-nodal                  nodal
 trait-is-pure                   pure
 trait-is-raw                    raw
 trait-is-rw                     rw
+trait-is-test-assertion         test-assertion
 trait-is-tighter                tighter
 
 # KEY         TRANSLATION

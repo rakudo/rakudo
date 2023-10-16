@@ -1,7 +1,7 @@
 # This file contains the German Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-14T11:57:00+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-16T12:52:15+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::DE {
@@ -81,9 +81,7 @@ role L10N::DE {
     token multi-proto { proto}
     token package-class { klasse}
     token package-grammar { grammatik}
-    token package-knowhow { knowhow}
     token package-module { modul}
-    token package-native { native}
     token package-package { paket}
     token package-role { rolle}
     token phaser-BEGIN { BEGIN}
@@ -120,7 +118,6 @@ role L10N::DE {
     token scope-my { mein}
     token scope-our { unsere}
     token scope-state { stand}
-    token scope-supersede { ersetze}
     token scope-unit { einheit}
     token stmt-prefix-also { auch}
     token stmt-prefix-do { mmache}
@@ -164,7 +161,7 @@ role L10N::DE {
         }
     }
     method trait-is2ast {
-        my %mapping = "kopie", "copy", "standard", "default", "VERALTET", "DEPRECATED", "äquivalent", "equiv", "implementierungsdetail", "implementation-detail", "lockerer", "looser", "rein", "pure", "roh", "raw", "nur-lesen", "readonly", "lesen-schreiben", "rw", "enger", "tighter";
+        my %mapping = "kopie", "copy", "standard", "default", "VERALTET", "DEPRECATED", "äquivalent", "equiv", "implementierungsdetail", "implementation-detail", "lockerer", "looser", "rein", "pure", "roh", "raw", "lesen-schreiben", "rw", "enger", "tighter";
         my $ast := self.ast();
         if %mapping{$ast.simple-identifier()} -> $original {
             RakuAST::Name.from-identifier($original)
@@ -182,7 +179,7 @@ role L10N::DE {
         %mapping{$key} // $key
     }
     method named2str (str $key) {
-        my %mapping = "absolut", "absolute", "actionen", "actions", "anhängen", "append", "schließe", "close", "vollständig", "completely", "fortsetzen", "continue", "anzahl", "count", "datum", "date", "tag", "day", "streiche", "delete", "elementen", "elems", "vonende", "end", "jeder", "every", "er", "ex", "ohne-max", "excludes-max", "ohne-min", "excludes-min", "exclusiv", "exclusive", "erschöpfend", "exhaustive", "läuftab", "expires", "stunde", "hour", "s", "k", "schlüssel", "key", "sw", "kv", "hören", "listen", "monat", "month", "te", "nd", "te", "nth", "aus", "off", "üb", "ov", "überlappung", "overlap", "teilweise", "partial", "teile", "parts", "te", "rd", "ersatz", "replacement", "sekunde", "second", "sekunden", "seconds", "form", "shape", "größe", "size", "quetschen", "squash", "ste", "st", "tiefsatz", "subscript", "hochgestellt", "superscript", "te", "th", "wie-oft", "times", "zeitzone", "timezone", "w", "v", "wert", "value", "wo", "where", "met", "with", "mal", "x", "jahr", "year";
+        my %mapping = "absolut", "absolute", "actionen", "actions", "anhängen", "append", "schließe", "close", "vollständig", "completely", "fortsetzen", "continue", "anzahl", "count", "datum", "date", "tag", "day", "streiche", "delete", "elementen", "elems", "vonende", "end", "jeder", "every", "er", "ex", "exclusiv", "exclusive", "erschöpfend", "exhaustive", "läuftab", "expires", "stunde", "hour", "s", "k", "schlüssel", "key", "sw", "kv", "hören", "listen", "monat", "month", "te", "nd", "te", "nth", "aus", "off", "üb", "ov", "überlappung", "overlap", "teilweise", "partial", "teile", "parts", "te", "rd", "ersatz", "replacement", "sekunde", "second", "sekunden", "seconds", "größe", "size", "quetschen", "squash", "ste", "st", "tiefsatz", "subscript", "hochgestellt", "superscript", "te", "th", "wie-oft", "times", "zeitzone", "timezone", "w", "v", "wert", "value", "wo", "where", "mal", "x", "jahr", "year";
         %mapping{$key} // $key
     }
 }

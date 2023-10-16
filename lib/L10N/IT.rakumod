@@ -1,7 +1,7 @@
 # This file contains the Italian Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-14T11:57:00+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-16T12:52:15+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::IT {
@@ -81,9 +81,7 @@ role L10N::IT {
     token multi-proto { proto}
     token package-class { classe}
     token package-grammar { grammatica}
-    token package-knowhow { "so-come"}
     token package-module { modulo}
-    token package-native { nativo}
     token package-package { pacchetto}
     token package-role { ruolo}
     token phaser-BEGIN { COMINCIA}
@@ -120,7 +118,6 @@ role L10N::IT {
     token scope-my { "il-mio"}
     token scope-our { "il-nostro"}
     token scope-state { stato}
-    token scope-supersede { sostituire}
     token scope-unit { unità}
     token stmt-prefix-also { anche}
     token stmt-prefix-do { fate}

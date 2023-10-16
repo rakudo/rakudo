@@ -1,7 +1,7 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-14T11:57:00+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-16T12:52:15+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::EN {
@@ -81,9 +81,7 @@ role L10N::EN {
     token multi-proto { proto}
     token package-class { class}
     token package-grammar { grammar}
-    token package-knowhow { knowhow}
     token package-module { module}
-    token package-native { native}
     token package-package { package}
     token package-role { role}
     token phaser-BEGIN { BEGIN}
@@ -120,7 +118,6 @@ role L10N::EN {
     token scope-my { my}
     token scope-our { our}
     token scope-state { state}
-    token scope-supersede { supersede}
     token scope-unit { unit}
     token stmt-prefix-also { also}
     token stmt-prefix-do { do}

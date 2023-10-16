@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-14T11:57:00+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-16T12:52:15+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -81,9 +81,7 @@ role L10N::NL {
     token multi-proto { proto}
     token package-class { klasse}
     token package-grammar { grammatica}
-    token package-knowhow { knowhow}
     token package-module { module}
-    token package-native { native}
     token package-package { pakket}
     token package-role { rol}
     token phaser-BEGIN { BEGIN}
@@ -120,7 +118,6 @@ role L10N::NL {
     token scope-my { mijn}
     token scope-our { onze}
     token scope-state { steeds}
-    token scope-supersede { vervang}
     token scope-unit { eenheid}
     token stmt-prefix-also { eveneens}
     token stmt-prefix-do { doe}
@@ -164,7 +161,7 @@ role L10N::NL {
         }
     }
     method trait-is2ast {
-        my %mapping = "kopie", "copy", "verstek", "default", "VEROUDERD", "DEPRECATED", "equivalent", "equiv", "implementatie-detail", "implementation-detail", "losser", "looser", "puur", "pure", "rauw", "raw", "alleen-lezen", "readonly", "lezen-schrijven", "rw", "strakker", "tighter";
+        my %mapping = "kopie", "copy", "verstek", "default", "VEROUDERD", "DEPRECATED", "equivalent", "equiv", "implementatie-detail", "implementation-detail", "losser", "looser", "puur", "pure", "rauw", "raw", "lezen-schrijven", "rw", "strakker", "tighter";
         my $ast := self.ast();
         if %mapping{$ast.simple-identifier()} -> $original {
             RakuAST::Name.from-identifier($original)
@@ -182,7 +179,7 @@ role L10N::NL {
         %mapping{$key} // $key
     }
     method named2str (str $key) {
-        my %mapping = "absoluut", "absolute", "acties", "actions", "voegtoe", "append", "volledig", "completely", "continueer", "continue", "aantal", "count", "datum", "date", "dag", "day", "verwijder", "delete", "elementen", "elems", "vaneinde", "end", "elke", "every", "ui", "ex", "zonder-max", "excludes-max", "zonder-min", "excludes-min", "exclusief", "exclusive", "uitputtend", "exhaustive", "verloopt", "expires", "globaal", "global", "uur", "hour", "nk", "i", "negeerkast", "ignorecase", "negeeraccent", "ignoremark", "zk", "ii", "s", "k", "sleutel", "key", "sw", "kv", "luister", "listen", "minuut", "minute", "za", "mm", "maand", "month", "naam", "name", "de", "nd", "de", "nth", "uit", "off", "gedeeltelijk", "partial", "delen", "parts", "de", "rd", "vervanging", "replacement", "geeftterug", "returns", "zelfdekast", "samecase", "zelfdeaccent", "samemark", "zelfdespatie", "samespace", "seconde", "second", "seconden", "seconds", "vorm", "shape", "grootte", "size", "drukplat", "squash", "zs", "ss", "ste", "st", "de", "th", "herhalingen", "times", "tijdzone", "timezone", "w", "v", "waarde", "value", "waar", "where", "met", "with", "keer", "x", "jaar", "year";
+        my %mapping = "absoluut", "absolute", "acties", "actions", "voegtoe", "append", "volledig", "completely", "continueer", "continue", "aantal", "count", "datum", "date", "dag", "day", "verwijder", "delete", "elementen", "elems", "vaneinde", "end", "elke", "every", "ui", "ex", "exclusief", "exclusive", "uitputtend", "exhaustive", "verloopt", "expires", "globaal", "global", "uur", "hour", "nk", "i", "negeerkast", "ignorecase", "negeeraccent", "ignoremark", "zk", "ii", "s", "k", "sleutel", "key", "sw", "kv", "luister", "listen", "minuut", "minute", "za", "mm", "maand", "month", "naam", "name", "de", "nd", "de", "nth", "uit", "off", "gedeeltelijk", "partial", "delen", "parts", "de", "rd", "vervanging", "replacement", "zelfdekast", "samecase", "zelfdeaccent", "samemark", "zelfdespatie", "samespace", "seconde", "second", "seconden", "seconds", "grootte", "size", "drukplat", "squash", "zs", "ss", "ste", "st", "de", "th", "herhalingen", "times", "tijdzone", "timezone", "w", "v", "waarde", "value", "waar", "where", "keer", "x", "jaar", "year";
         %mapping{$key} // $key
     }
 }

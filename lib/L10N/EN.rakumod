@@ -1,7 +1,7 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-16T12:52:15+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-16T16:28:05+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::EN {
@@ -134,8 +134,10 @@ role L10N::EN {
     token stmt-prefix-try { try}
     token term-nano { nano}
     token term-now { now}
+    token term-pi { pi}
     token term-rand { rand}
     token term-self { self}
+    token term-tau { tau}
     token term-time { time}
     token traitmod-does { does}
     token traitmod-handles { handles}
@@ -143,6 +145,7 @@ role L10N::EN {
     token traitmod-is { is}
     token traitmod-of { of}
     token traitmod-returns { returns}
+    token traitmod-trusts { trusts}
     token typer-enum { enum}
     token typer-subset { subset}
     token use-import { import}

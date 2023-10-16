@@ -1,7 +1,7 @@
 # This file contains the German Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-16T12:52:15+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-16T16:28:05+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::DE {
@@ -134,8 +134,10 @@ role L10N::DE {
     token stmt-prefix-try { versuche}
     token term-nano { nano}
     token term-now { jetzt}
+    token term-pi { pi}
     token term-rand { zufällig}
     token term-self { selbst}
+    token term-tau { tau}
     token term-time { zeit}
     token traitmod-does { macht}
     token traitmod-handles { versteht}
@@ -143,6 +145,7 @@ role L10N::DE {
     token traitmod-is { ist}
     token traitmod-of { wie}
     token traitmod-returns { returns}
+    token traitmod-trusts { vertraut}
     token typer-enum { enum}
     token typer-subset { subset}
     token use-import { importiere}
@@ -151,7 +154,7 @@ role L10N::DE {
     token use-require { require}
     token use-use { verwende}
     method core2ast {
-        my %mapping = "alle", "all", "beliebig", "any", "anhängen", "append", "warte", "await", "tasche", "bag", "steig-aus", "bail-out", "segne", "bless", "kategorisier", "categorize", "decke", "ceiling", "zeichen", "chars", "hack-linieende", "chomp", "hack", "chop", "wie-zeiche", "chr", "wie-zeichen", "chrs", "klassifizier", "classify", "schließe", "close", "kamm", "comb", "kombinationen", "combinations", "enthält", "contains", "kreuz", "cross", "dekodiere", "decode", "tief-kartiere", "deepmap", "definiert", "defined", "sterb", "die", "fertig", "done", "duck-kartiere", "duckmap", "elemente", "elems", "sende", "emit", "kodiere", "encode", "ende", "end", "endet-mit", "ends-with", "eval-stirbt-ok", "eval-dies-ok", "eval-lebt-ok", "eval-lives-ok", "verlasse", "exit", "scheitere", "fail", "scheitert-wie", "fails-like", "erste", "first", "flach", "flat", "drehum", "flip", "boden", "floor", "erhalte", "get", "erhaltez", "getc", "kern", "gist", "filter", "grep", "hasch", "hash", "kopf", "head", "einzug", "indent", "indizes", "indices", "ist", "is", "ist-ungefähr", "is-approx", "ist-im-ganzen", "is-deeply", "ist-prim", "is-prime", "istein-ok", "isa-ok", "istnicht", "isnt", "artikel", "item", "verbinde", "join", "schlüssel", "key", "schlüssels", "keys", "sw", "kv", "letzte", "last", "letzte-anruf", "lastcall", "wie", "like", "linien", "lines", "verknüpfung", "link", "liste", "list", "lebt-ok", "lives-ok", "niedrigstwertige-bit", "lsb", "mache", "make", "kartiere", "map", "paar", "match", "bewege", "move", "höchstwertiges-bit", "msb", "neu", "new", "nächste", "next", "nicht-ok", "nok", "kein", "none", "nicht", "not", "notiere", "note", "ein", "one", "als-zahl", "ord", "als-zahlen", "ords", "paar", "pair", "paare", "pairs", "gut", "pass", "permutationen", "permutations", "pflücke", "pick", "plane", "plan", "stelle-voran", "prepend", "druck", "print", "druckf", "printf", "fortfahre", "proceed", "schiebe-oben", "push", "sag-es", "put", "zufällig", "rand", "nochmals", "redo", "reduziere", "reduce", "wiederholt", "repeated", "kehr-um", "reverse", "um-index", "rindex", "werfe", "roll", "drehe", "rotate", "runde-ab", "round", "jeder-mal", "roundrobin", "laufe", "run", "sag", "say", "sammlung", "set", "schiebe-unter", "shift", "überspringe", "skip", "überspringe-alle", "skip-rest", "schlaf", "sleep", "wecker", "sleep-timer", "schlafe-bis", "sleep-until", "schlürfe", "slurp", "verpfeife", "snitch", "also", "so", "sortier", "sort", "spleiße", "splice", "teilt", "split", "sdruckf", "sprintf", "spritz", "spurt", "quadratwurzel", "sqrt", "quetschen", "squish", "zufällig-so", "srand", "beginnt-mit", "starts-with", "ersetz", "subst", "gelinge", "succeed", "summiere", "sum", "symbolische-verknüpfung", "symlink", "schwanz", "tail", "nim", "take", "nmm-rw", "take-rw", "werft-wie", "throws-like", "zumachen", "todo", "übersetz", "trans", "trim-führend", "trim-leading", "trim-hinterher", "trim-trailing", "kürzen", "truncate", "einzigartig", "unique", "nicht-wie", "unlike", "hebe-auf", "unlink", "onderin", "unshift", "verwende-ok", "use-ok", "wie-zahlen", "val", "wert", "value", "werte", "values", "warne", "warn", "wörter", "words", "reißverschluss", "zip";
+        my %mapping = "alle", "all", "antipare", "antipairs", "beliebig", "any", "anhängen", "append", "warte", "await", "tasche", "bag", "steig-aus", "bail-out", "segne", "bless", "kategorisier", "categorize", "decke", "ceiling", "zeichen", "chars", "hack-linieende", "chomp", "hack", "chop", "wie-zeiche", "chr", "wie-zeichen", "chrs", "klassifizier", "classify", "schließe", "close", "kamm", "comb", "kombinationen", "combinations", "enthält", "contains", "kreuz", "cross", "dekodiere", "decode", "tief-kartiere", "deepmap", "definiert", "defined", "sterb", "die", "fertig", "done", "duck-kartiere", "duckmap", "elemente", "elems", "sende", "emit", "kodiere", "encode", "ende", "end", "endet-mit", "ends-with", "eval-stirbt-ok", "eval-dies-ok", "eval-lebt-ok", "eval-lives-ok", "verlasse", "exit", "scheitere", "fail", "scheitert-wie", "fails-like", "erste", "first", "flach", "flat", "drehum", "flip", "boden", "floor", "erhalte", "get", "erhaltez", "getc", "kern", "gist", "filter", "grep", "hasch", "hash", "kopf", "head", "einzug", "indent", "indizes", "indices", "ist", "is", "ist-ungefähr", "is-approx", "ist-im-ganzen", "is-deeply", "ist-prim", "is-prime", "istein-ok", "isa-ok", "istnicht", "isnt", "artikel", "item", "verbinde", "join", "schlüssel", "key", "schlüssels", "keys", "sw", "kv", "letzte", "last", "letzte-anruf", "lastcall", "wie", "like", "linien", "lines", "verknüpfung", "link", "liste", "list", "lebt-ok", "lives-ok", "niedrigstwertige-bit", "lsb", "mache", "make", "kartiere", "map", "paar", "match", "bewege", "move", "höchstwertiges-bit", "msb", "neu", "new", "nächste", "next", "nicht-ok", "nok", "kein", "none", "nicht", "not", "notiere", "note", "ein", "one", "als-zahl", "ord", "als-zahlen", "ords", "paar", "pair", "paare", "pairs", "gut", "pass", "permutationen", "permutations", "pflücke", "pick", "plane", "plan", "stelle-voran", "prepend", "druck", "print", "druckf", "printf", "fortfahre", "proceed", "schiebe-oben", "push", "sag-es", "put", "zufällig", "rand", "nochmals", "redo", "reduziere", "reduce", "wiederholt", "repeated", "kehr-um", "reverse", "um-index", "rindex", "werfe", "roll", "drehe", "rotate", "runde-ab", "round", "jeder-mal", "roundrobin", "laufe", "run", "sag", "say", "sammlung", "set", "schiebe-unter", "shift", "überspringe", "skip", "überspringe-alle", "skip-rest", "schlaf", "sleep", "wecker", "sleep-timer", "schlafe-bis", "sleep-until", "schlürfe", "slurp", "verpfeife", "snitch", "also", "so", "sortier", "sort", "spleiße", "splice", "teilt", "split", "sdruckf", "sprintf", "spritz", "spurt", "quadratwurzel", "sqrt", "quetschen", "squish", "zufällig-so", "srand", "beginnt-mit", "starts-with", "ersetz", "subst", "gelinge", "succeed", "summiere", "sum", "symbolische-verknüpfung", "symlink", "schwanz", "tail", "nim", "take", "nmm-rw", "take-rw", "werft-wie", "throws-like", "zumachen", "todo", "übersetz", "trans", "trim-führend", "trim-leading", "trim-hinterher", "trim-trailing", "kürzen", "truncate", "einzigartig", "unique", "nicht-wie", "unlike", "hebe-auf", "unlink", "onderin", "unshift", "verwende-ok", "use-ok", "wie-zahlen", "val", "wert", "value", "werte", "values", "warne", "warn", "wörter", "words", "reißverschluss", "zip";
         my $ast := self.ast();
         if %mapping{$ast.simple-identifier()} -> $original {
             RakuAST::Name.from-identifier($original)
@@ -175,7 +178,7 @@ role L10N::DE {
         %mapping{$key} // $key
     }
     method adverb-rx2str (str $key) {
-        my %mapping = "fortsetzen", "continue", "er", "ex", "erschöpfend", "exhaustive", "te", "nd", "te", "nth", "üb", "ov", "überlappung", "overlap", "ratsche", "ratchet", "te", "rd", "te", "st", "mal", "x";
+        my %mapping = "fortsetzen", "continue", "er", "ex", "erschöpfend", "exhaustive", "te", "nd", "te", "nth", "üb", "ov", "überlappung", "overlap", "ratsche", "ratchet", "te", "rd", "te", "st", "bis", "to", "mal", "x";
         %mapping{$key} // $key
     }
     method named2str (str $key) {

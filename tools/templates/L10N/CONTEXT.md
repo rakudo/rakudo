@@ -1129,7 +1129,7 @@ Named arguments to methods/subs (:k,:p,:absolute, etc.)
 - https://docs.raku.org/type/Grammar#method_parse
 
 #### named-as
-- https://docs.raku.org/type/independent-routines#routine_unique
+- https://docs.raku.org/type/List#routine_classify
 
 #### named-at
 - https://docs.raku.org/type/Scheduler#method_cue
@@ -1282,3 +1282,268 @@ Named arguments to methods/subs (:k,:p,:absolute, etc.)
 
 #### named-hour
 - https://docs.raku.org/type/DateTime#method_new
+
+### named-I
+
+#### named-i
+- https://docs.raku.org/type/Str#method_match
+
+#### named-ignorecase
+- https://docs.raku.org/type/Str#method_match
+
+#### named-ignoremark
+- https://docs.raku.org/type/Str#method_match
+
+#### named-ii
+- https://docs.raku.org/type/Str#method_match
+
+#### named-in
+- https://docs.raku.org/type/Scheduler#method_cue
+
+#### named-into
+- https://docs.raku.org/type/List#routine_classify
+
+### named-J
+
+#### named-joiner
+- https://docs.raku.org/type/IO/Path#method_extension
+
+### named-K
+
+#### named-k
+- https://docs.raku.org/type/List#routine_grep
+
+#### named-key
+- https://docs.raku.org/type/Pair#method_key
+
+#### named-kv
+https://docs.raku.org/type/List#routine_grep
+
+### named-L
+
+#### named-listen
+- https://docs.raku.org/type/IO/Socket/INET#method_new
+
+#### named-localhost
+- https://docs.raku.org/type/IO/Socket/INET#method_new
+
+#### named-localport
+- https://docs.raku.org/type/IO/Socket/INET#method_new
+
+### named-M
+
+#### named-match
+- https://docs.raku.org/type/Str#routine_comb
+
+#### named-merge
+- https://docs.raku.org/type/independent-routines#sub_run
+
+#### named-minute
+- https://docs.raku.org/type/DateTime#method_new
+
+#### named-mm
+- https://docs.raku.org/type/Str#method_subst
+
+#### named-mode
+- https://docs.raku.org/type/IO/Path#method_chmod
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-month
+- https://docs.raku.org/type/Date#method_new
+
+### named-N
+
+#### named-name
+- https://docs.raku.org/type/CompUnit/Repository/Installation#method_files
+
+#### named-nd
+- https://docs.raku.org/type/Str#method_match
+
+#### named-nl
+- https://docs.raku.org/type/Proc#routine_new
+
+#### named-nl-in
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-nl-out
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-non-blocking
+- https://docs.raku.org/type/IO/Handle#method_lock
+
+#### named-nth
+- https://docs.raku.org/type/Str#method_match
+
+### named-O
+
+#### named-off
+- https://docs.raku.org/type/Any#method_toggle
+
+#### named-out
+- https://docs.raku.org/type/independent-routines#sub_run
+
+#### named-out-buffer
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-ov
+- https://docs.raku.org/type/Str#method_match
+
+#### named-overlap
+- https://docs.raku.org/type/Str#method_match
+
+### named-P
+
+#### named-p
+- https://docs.raku.org/type/List#routine_grep
+
+#### named-partial
+- https://docs.raku.org/type/Str#routine_comb
+
+#### named-parts
+- https://docs.raku.org/type/IO/Path#method_extension
+
+#### named-port
+- https://docs.raku.org/type/IO/Socket/INET#method_new
+
+#### named-pos
+- https://docs.raku.org/type/Str#method_match
+
+#### named-primary
+- https://docs.raku.org/type/Collation#method_set
+
+### named-Q
+
+#### named-quaternary
+- https://docs.raku.org/type/Collation#method_set
+
+### named-R
+
+#### named-r
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-rd
+- https://docs.raku.org/type/Str#method_match
+
+#### named-real
+- https://docs.raku.org/type/DateTime#method_posix
+
+#### named-replacement
+- https://docs.raku.org/type/Blob#method_decode
+
+#### named-rule
+- https://docs.raku.org/type/Grammar#method_parse
+
+#### named-rw
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-rx
+- https://docs.raku.org/type/IO/Handle#method_open
+
+### named-S
+
+#### named-samecase
+- https://docs.raku.org/type/Str#method_subst
+
+#### named-samespace
+- https://docs.raku.org/type/Str#method_subst
+
+#### named-scheduler
+- https://docs.raku.org/type/Supply#method_interval
+
+#### named-second
+- https://docs.raku.org/type/DateTime#method_new
+
+#### named-secondary
+- https://docs.raku.org/type/Collation#method_set
+
+#### named-seconds
+- https://docs.raku.org/type/Supply#method_batch
+
+#### named-shared
+- https://docs.raku.org/type/IO/Handle#method_lock
+
+#### named-size
+- https://docs.raku.org/type/IO/Handle#method_Supply
+
+#### named-slip
+- https://docs.raku.org/type/List#routine_roundrobin
+
+#### named-SPEC
+- https://docs.raku.org/type/IO/Path#method_new
+
+#### named-squash
+- https://docs.raku.org/type/Str#method_trans
+
+#### named-ss
+- https://docs.raku.org/type/Str#method_match
+
+#### named-st
+- https://docs.raku.org/type/Str#method_match
+
+#### named-status
+- https://docs.raku.org/type/Supply#method_throttle
+
+#### named-strict
+- https://docs.raku.org/type/Blob#method_decode
+
+#### named-subscript
+- https://docs.raku.org/type/Int#method_Str
+
+#### named-superscript
+- https://docs.raku.org/type/Int#method_Str
+
+### named-T
+
+#### named-tertiary
+- https://docs.raku.org/type/Collation#method_set
+
+#### named-test
+- https://docs.raku.org/type/IO/Path#routine_dir
+
+#### named-th
+- https://docs.raku.org/type/Str#method_match
+
+#### named-times
+- https://docs.raku.org/type/Scheduler#method_cue
+
+#### named-timezone
+- https://docs.raku.org/type/DateTime#method_new
+
+#### named-translate-nl
+- https://docs.raku.org/type/Str#method_encode
+
+#### named-truncate
+- https://docs.raku.org/type/IO/Handle#method_open
+
+### named-U
+
+#### named-uid
+- https://docs.raku.org/type/IO/Path#routine_chown
+
+#### named-update
+- https://docs.raku.org/type/IO/Handle#method_open
+
+#### named-v
+- https://docs.raku.org/type/List#routine_grep
+
+#### named-value
+- https://docs.raku.org/type/Pair#method_value
+
+#### named-vent-at
+- https://docs.raku.org/type/Supply#method_throttle
+
+#### named-ver
+- https://docs.raku.org/type/CompUnit/Repository/Installation#method_candidates
+
+#### named-volume
+- https://docs.raku.org/type/IO/Path#routine_new
+
+### named-X
+
+#### named-x
+- https://docs.raku.org/type/Str#method_match
+
+### named-Y
+
+#### named-year
+- https://docs.raku.org/type/Date#method_new

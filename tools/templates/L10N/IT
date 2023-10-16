@@ -529,7 +529,6 @@ multi-only   soltanto
 #named-p        p
 #named-partial  partial
 #named-parts    parts
-#named-path     path
 #named-port     port
 #named-pos      pos
 #named-primary  primary
@@ -542,7 +541,6 @@ multi-only   soltanto
 #named-rd           rd
 #named-real         real
 #named-replacement  replacement
-#named-returns      returns
 #named-rule         rule
 #named-rw           rw
 #named-rx           rx
@@ -554,9 +552,7 @@ multi-only   soltanto
 #named-second       second
 #named-secondary    secondary
 #named-seconds      seconds
-#named-shape        shape
 #named-shared       shared
-#named-signal       signal
 #named-size         size
 #named-slip         slip
 #named-SPEC         SPEC

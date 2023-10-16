@@ -516,7 +516,6 @@ named-overlap     überlappung
 named-p        p
 named-partial  teilweise
 named-parts    teile
-#named-path     path
 #named-port     port
 named-pos      pos
 #named-primary  primary
@@ -529,7 +528,6 @@ named-r            r
 named-rd           te
 #named-real         real
 named-replacement  ersatz
-named-returns      returns
 #named-rule         rule
 #named-rw           rw
 #named-rx           rx
@@ -542,9 +540,7 @@ named-returns      returns
 named-second       sekunde
 #named-secondary    secondary
 named-seconds      sekunden
-named-shape        form
 #named-shared       shared
-#named-signal       signal
 named-size         größe
 #named-slip         slip
 #named-SPEC         SPEC

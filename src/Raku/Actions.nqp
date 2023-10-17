@@ -722,9 +722,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my str $name := ~$<module-name>;
         my $Pragma   := Nodify('Pragma');
         if $Pragma.IS-PRAGMA($name) {
-            my $ast := $<arglist><EXPR>
-              ?? $Pragma.new(:$name, :argument($<arglist><EXPR>.ast), :off)
-              !! $Pragma.new(:$name, :off);
+            my $argument := $<arglist><EXPR>;
+            $argument := $argument.ast if $argument;
+
+            my $ast := $Pragma.new(:$name, :$argument, :off);
             $ast.ensure-begin-performed($*R, $*CU.context);
             self.attach: $/, $ast;
         }
@@ -736,25 +737,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-control:sym<use>($/) {
         my str $name := ~$<module-name>;
         my $Pragma   := Nodify('Pragma');
+        my $argument := $<arglist><EXPR>;
+        $argument    := $argument.ast if $argument;
         my $ast;
 
         if $Pragma.IS-PRAGMA($name) {
-            $ast := $<arglist><EXPR>
-              ?? $Pragma.new(:$name, :argument($<arglist><EXPR>.ast))
-              !! $Pragma.new(:$name);
+            $ast := $Pragma.new(:$name, :$argument);
             $ast.ensure-begin-performed($*R, $*CU.context);
         }
 
         # proper module loading
         else {
-            $ast := $<arglist><EXPR>
-              ?? Nodify('Statement', 'Use').new(
-                   :module-name($<module-name>.ast),
-                   :argument($<arglist><EXPR>.ast)
-                 )
-              !! Nodify('Statement', 'Use').new(
-                   :module-name($<module-name>.ast)
-                 );
+            $ast := Nodify('Statement','Use').new(
+              :module-name($<module-name>.ast), :$argument
+            );
             $ast.ensure-begin-performed($*R, $*CU.context);
             for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
                 $/.add-categorical(
@@ -778,14 +774,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement-control:sym<import>($/) {
-        my $ast := $<arglist><EXPR>
-          ?? Nodify('Statement', 'Import').new(
-               :module-name($<module-name>.ast),
-               :argument($<arglist><EXPR>.ast)
-             )
-          !! Nodify('Statement', 'Import').new(
-               :module-name($<module-name>.ast)
-             );
+        my $argument := $<arglist><EXPR>;
+        $argument    := $argument.ast if $argument;
+
+        my $ast := Nodify('Statement', 'Import').new(
+          :module-name($<module-name>.ast), :$argument
+        );
         $ast.IMPL-CHECK($*R, $*CU.context, 1);
         for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
             $/.add-categorical(

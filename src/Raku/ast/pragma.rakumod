@@ -10,7 +10,8 @@ class RakuAST::Pragma
     method new(Str :$name!, RakuAST::Expression :$argument, :$off) {
         my $obj := nqp::create(self);
         nqp::bindattr(  $obj, RakuAST::Pragma, '$!name', $name // "");
-        nqp::bindattr(  $obj, RakuAST::Pragma, '$!argument', $argument);
+        nqp::bindattr(  $obj, RakuAST::Pragma, '$!argument',
+          $argument // RakuAST::Expression);
         nqp::bindattr_i($obj, RakuAST::Pragma, '$!off', $off ?? 1 !! 0);
         $obj
     }

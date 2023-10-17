@@ -985,6 +985,7 @@ CODE
     }
 }
 
+todo("Depends on Raku grammar/actions") unless %*ENV<RAKUDO_RAKUAST>;
 subtest 'While loop with FIRST phaser block and return value' => {
     my $run;
     my $guard = True;
@@ -1062,6 +1063,7 @@ CODE
     }
 }
 
+todo("Depends on Raku grammar/actions") unless %*ENV<RAKUDO_RAKUAST>;
 subtest 'Subroutine with FIRST phaser block and return value' => {
     my $run;
     my $guard;

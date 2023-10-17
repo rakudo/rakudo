@@ -96,7 +96,11 @@ my class Mu { # declared in BOOTSTRAP
                     $where := "type/$what";
                 }
 
-                "No documentation available for $what. Perhaps it can be found at https://docs.raku.org/$where.html".naive-word-wrapper
+                (CORE::{$what}:exists
+                    ?? "Sorry, no documentation is attached to $what."
+                       ~ "  Perhaps it can be found at https://docs.raku.org/$where.html"
+                    !! "Sorry, no documentation is attached to $what."
+                ).naive-word-wrapper
             }
         }
 

@@ -803,7 +803,7 @@ sub _revs_iterate {
                 File::Spec->catdir( $base_dir, "src" )
             );
         }
-        return @all_sources;
+        return sort(@all_sources);
     }
 }
 

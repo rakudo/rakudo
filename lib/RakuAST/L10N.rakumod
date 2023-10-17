@@ -10,6 +10,19 @@
 # Needed for now
 use experimental :rakuast;
 
+# Produce all words on non-commented lines of given IO as a Slip
+sub io2words(IO::Path:D $io) {
+    $io.lines.map: { .words.Slip unless .starts-with("#") }
+}
+
+# Set up core settings
+BEGIN my @core = io2words("tools/templates/L10N/CORE".IO);
+
+# Read translation hash from given file (as IO object)
+sub read-hash(IO::Path:D $io) is export {
+    %(flat @core, io2words($io))
+}
+
 # Return the AST for translation lookup logic, basically:
 #
 # method $name {
@@ -297,7 +310,9 @@ my sub deparsify($language, %hash) is export {
     my $statements := RakuAST::StatementList.new;
 
     # Run over the given hash, sorted by key
-    my @operands = %hash.sort(*.key.fc).map: {
+    my @operands = %hash.sort(-> $a, $b {
+        $a.key.fc cmp $b.key.fc || $b.key cmp $a.key
+    }).map: {
         (RakuAST::StrLiteral.new(.key), RakuAST::StrLiteral.new(.value)).Slip
           unless .key.ends-with('-' ~ .value)
     }

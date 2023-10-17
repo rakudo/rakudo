@@ -1476,7 +1476,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token statement-control:sym<no> {
         <.use-no>
         <.ws>
-        <module_name=.longname> [ <.spacey> <arglist> ]?
+        <module-name=.longname> [ <.spacey> <arglist> ]?
         <.ws>
     }
 
@@ -1488,7 +1488,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | <version>
             { $/.typed-panic: 'X::Language::TooLate', version => ~$<version> }
 
-          | <module_name=.longname>
+          | <module-name=.longname>
             [ <.spacey> <arglist> <.cheat-heredoc>? ]?
         ]
         <.ws>
@@ -1500,14 +1500,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | <version>
             <.sorry('In case of using pragma, use "use" instead (e.g., "use v6;", "use v6.c;").')>
 
-          | <module_name=.longname>
+          | <module-name=.longname>
         ]+ % ','
     }
 
     token statement-control:sym<import> {
         :my $*IN-DECL := 'import';
         <.use-import> <.ws>
-        <module_name=.longname>
+        <module-name=.longname>
         [ <.spacey> <arglist> ]?
         <.ws>
     }
@@ -1515,7 +1515,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement-control:sym<require> {
         <.use-require>
         [
-          | <module_name=.longname>
+          | <module-name=.longname>
           | <file=.variable>
           | <!sigil> <file=.term>
         ]

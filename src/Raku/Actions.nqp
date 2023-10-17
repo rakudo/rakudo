@@ -719,7 +719,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # "no foo" can only mean a pragma at the moment
     method statement-control:sym<no>($/) {
-        my str $name := ~$<module_name>;
+        my str $name := ~$<module-name>;
         my $Pragma   := Nodify('Pragma');
         if $Pragma.IS-PRAGMA($name) {
             my $ast := $<arglist><EXPR>
@@ -734,7 +734,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement-control:sym<use>($/) {
-        my str $name := ~$<module_name>;
+        my str $name := ~$<module-name>;
         my $Pragma   := Nodify('Pragma');
         my $ast;
 
@@ -749,11 +749,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             $ast := $<arglist><EXPR>
               ?? Nodify('Statement', 'Use').new(
-                   :module-name($<module_name>.ast),
+                   :module-name($<module-name>.ast),
                    :argument($<arglist><EXPR>.ast)
                  )
               !! Nodify('Statement', 'Use').new(
-                   :module-name($<module_name>.ast)
+                   :module-name($<module-name>.ast)
                  );
             $ast.ensure-begin-performed($*R, $*CU.context);
             for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
@@ -767,7 +767,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method statement-control:sym<need>($/) {
         my @module-names;
-        for $<module_name> {
+        for $<module-name> {
             @module-names.push: $_.ast;
         }
 
@@ -780,11 +780,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-control:sym<import>($/) {
         my $ast := $<arglist><EXPR>
           ?? Nodify('Statement', 'Import').new(
-               :module-name($<module_name>.ast),
+               :module-name($<module-name>.ast),
                :argument($<arglist><EXPR>.ast)
              )
           !! Nodify('Statement', 'Import').new(
-               :module-name($<module_name>.ast)
+               :module-name($<module-name>.ast)
              );
         $ast.IMPL-CHECK($*R, $*CU.context, 1);
         for $ast.IMPL-UNWRAP-LIST($ast.categoricals) {
@@ -798,7 +798,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement-control:sym<require>($/) {
         #TODO non-trivial cases, args
         self.attach: $/, Nodify('Statement', 'Require').new(
-            module-name => $<module_name>.ast,
+            module-name => $<module-name>.ast,
         );
     }
 

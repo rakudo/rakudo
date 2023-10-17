@@ -625,7 +625,6 @@ phaser-UNDO     AKZEPTIERENICHT
 #pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
 #pragma-MONKEY-TYPING       MONKEY-TYPING
 #pragma-nqp                 nqp
-#pragma-newline             newline
 #pragma-precompilation      precompilation
 #pragma-soft                soft
 #pragma-strict              strict

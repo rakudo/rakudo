@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-17T13:57:58+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-17T14:10:57+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -186,7 +186,7 @@ role L10N::NL {
         %mapping{$key} // $key
     }
     method pragma2str (str $key) {
-        my %mapping = "dynamische-ruimte", "dynamic-scope", "fataal", "fatal", "interne-functies", "internals", "aanroeper", "invocant", "bibliotheek", "lib", "regeleinde", "newline", "compilatie-vooraf", "precompilation", "zacht", "soft", "verloop", "trace", "variablen", "variables", "zorgen", "worries";
+        my %mapping = "dynamische-ruimte", "dynamic-scope", "fataal", "fatal", "interne-functies", "internals", "aanroeper", "invocant", "bibliotheek", "lib", "compilatie-vooraf", "precompilation", "zacht", "soft", "verloop", "trace", "variablen", "variables", "zorgen", "worries";
         %mapping{$key} // $key
     }
 }

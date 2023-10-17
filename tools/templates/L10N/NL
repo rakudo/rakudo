@@ -625,7 +625,6 @@ pragma-lib                 bibliotheek
 #pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
 #pragma-MONKEY-TYPING       MONKEY-TYPING
 #pragma-nqp                 nqp
-pragma-newline             regeleinde
 pragma-precompilation      compilatie-vooraf
 pragma-soft                zacht
 pragma-strict              strict

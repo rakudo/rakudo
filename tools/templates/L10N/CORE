@@ -665,7 +665,6 @@ pragma-MONKEY              MONKEY
 pragma-MONKEY-GUTS         MONKEY-GUTS
 pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
 pragma-MONKEY-TYPING       MONKEY-TYPING
-pragma-newline             newline
 pragma-nqp                 nqp
 pragma-precompilation      precompilation
 pragma-soft                soft

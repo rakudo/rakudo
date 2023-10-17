@@ -1,7 +1,7 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-16T16:28:05+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-17T13:57:58+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::EN {
@@ -166,6 +166,9 @@ role L10N::EN {
         $key
     }
     method named2str (str $key) {
+        $key
+    }
+    method pragma2str (str $key) {
         $key
     }
 }

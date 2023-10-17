@@ -719,7 +719,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # "no foo" can only mean a pragma at the moment
     method statement-control:sym<no>($/) {
-        my str $name := ~$<module-name>;
+        my str $name := $/.pragma2str(~$<module-name>);
         my $Pragma   := Nodify('Pragma');
         if $Pragma.IS-PRAGMA($name) {
             my $argument := $<arglist><EXPR>;
@@ -735,7 +735,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement-control:sym<use>($/) {
-        my str $name := ~$<module-name>;
+        my str $name := $/.pragma2str(~$<module-name>);
         my $Pragma   := Nodify('Pragma');
         my $argument := $<arglist><EXPR>;
         $argument    := $argument.ast if $argument;

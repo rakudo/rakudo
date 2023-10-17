@@ -613,6 +613,26 @@ phaser-POST     NACHHER
 phaser-QUIT     AUSGESTIEGEN
 phaser-UNDO     AKZEPTIERENICHT
 
+# KEY                      TRANSLATION
+#pragma-dynamic-scope       dynamic-scope
+#pragma-fatal               fatal
+#pragma-internals           internals
+#pragma-invocant            invocant
+#pragma-isms                isms
+#pragma-lib                 lib
+#pragma-MONKEY              MONKEY
+#pragma-MONKEY-GUTS         MONKEY-GUTS
+#pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
+#pragma-MONKEY-TYPING       MONKEY-TYPING
+#pragma-nqp                 nqp
+#pragma-newline             newline
+#pragma-precompilation      precompilation
+#pragma-soft                soft
+#pragma-strict              strict
+#pragma-trace               trace
+#pragma-variables           variables
+#pragma-worries             worries
+
 # KEY       TRANSLATION
 prefix-not  nicht
 prefix-so   also

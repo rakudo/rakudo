@@ -67,6 +67,9 @@ Named arguments to methods/subs (:k,:p,:absolute, etc.)
 ## package
 Package declarators ("class","module","grammar, etc.)
 
+## pragma
+Compile-time pragmas ("lib","precompilation", etc.)
+
 ## prefix
 Prefix operators with alphanumeric chars ("so","not")
 

@@ -1640,6 +1640,56 @@ https://docs.raku.org/type/List#routine_grep
 #### phaser-UNDO
 - https://docs.raku.org/language/phasers#UNDO
 
+## pragma
+
+#### pragma-dynamic-scope
+- https://docs.raku.org/language/pragmas#dynamic-scope
+
+#### pragma-experimental
+- https://docs.raku.org/language/pragmas#experimental
+
+#### pragma-fatal
+- https://docs.raku.org/language/pragmas#fatal
+
+#### pragma-isms
+- https://docs.raku.org/language/pragmas#isms
+
+#### pragma-lib
+- https://docs.raku.org/language/pragmas#lib
+
+#### pragma-MONKEY
+- https://docs.raku.org/language/pragmas#MONKEY
+
+#### pragma-MONKEY-GUTS
+- https://docs.raku.org/language/pragmas#MONKEY-GUTS
+
+#### pragma-MONKEY-SEE-NO-EVAL
+- https://docs.raku.org/language/pragmas#MONKEY-SEE-NO-EVAL
+
+#### pragma-MONKEY-TYPING
+- https://docs.raku.org/language/pragmas#MONKEY-TYPING
+
+#### pragma-nqp
+- https://docs.raku.org/language/pragmas#nqp
+
+#### pragma-precompilation
+- https://docs.raku.org/language/pragmas#precompilation
+
+#### pragma-soft
+- https://docs.raku.org/language/pragmas#soft
+
+#### pragma-strict
+- https://docs.raku.org/language/pragmas#strict
+
+#### pragma-trace
+- https://docs.raku.org/language/pragmas#trace
+
+#### pragma-variables
+- https://docs.raku.org/language/pragmas#variables
+
+#### pragma-worries
+- https://docs.raku.org/language/pragmas#worries
+
 ## prefix
 
 #### not

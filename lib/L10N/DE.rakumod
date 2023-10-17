@@ -1,7 +1,7 @@
 # This file contains the German Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-16T16:28:05+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-17T13:57:58+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::DE {
@@ -184,6 +184,9 @@ role L10N::DE {
     method named2str (str $key) {
         my %mapping = "absolut", "absolute", "actionen", "actions", "anhängen", "append", "schließe", "close", "vollständig", "completely", "fortsetzen", "continue", "anzahl", "count", "datum", "date", "tag", "day", "streiche", "delete", "elementen", "elems", "vonende", "end", "jeder", "every", "er", "ex", "exclusiv", "exclusive", "erschöpfend", "exhaustive", "läuftab", "expires", "stunde", "hour", "s", "k", "schlüssel", "key", "sw", "kv", "hören", "listen", "monat", "month", "te", "nd", "te", "nth", "aus", "off", "üb", "ov", "überlappung", "overlap", "teilweise", "partial", "teile", "parts", "te", "rd", "ersatz", "replacement", "sekunde", "second", "sekunden", "seconds", "größe", "size", "quetschen", "squash", "ste", "st", "tiefsatz", "subscript", "hochgestellt", "superscript", "te", "th", "wie-oft", "times", "zeitzone", "timezone", "w", "v", "wert", "value", "wo", "where", "mal", "x", "jahr", "year";
         %mapping{$key} // $key
+    }
+    method pragma2str (str $key) {
+        $key
     }
 }
 

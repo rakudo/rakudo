@@ -223,6 +223,7 @@ my sub slangify($language, %hash) is export {
     my @adverb-pc;
     my @adverb-rx;
     my @named;
+    my @pragma;
     for %hash.sort(-> $a, $b {
         $a.key.fc cmp $b.key.fc || $b.key cmp $a.key
     }) -> (:key($name), :value($string)) {
@@ -252,6 +253,11 @@ my sub slangify($language, %hash) is export {
             accept($string, $name.substr(10), @adverb-rx);
         }
 
+        # It's a pragma
+        elsif $name.starts-with('pragma-') {
+            accept($string, $name.substr(7), @pragma);
+        }
+
         # Some other core feature, add a token for it
         else {
             $statements.add-statement: RakuAST::Statement::Expression.new(
@@ -273,6 +279,7 @@ my sub slangify($language, %hash) is export {
     $statements.add-statement: make-mapper2str('adverb-pc2str', @adverb-pc);
     $statements.add-statement: make-mapper2str('adverb-rx2str', @adverb-rx);
     $statements.add-statement: make-mapper2str('named2str',     @named);
+    $statements.add-statement: make-mapper2str('pragma2str',    @pragma);
 
     # Wrap the whole thing up in a role with the given name and return it
     RakuAST::Package.new(

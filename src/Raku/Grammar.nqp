@@ -931,6 +931,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # for it.  Otherwise it should just return the named argument unchanged.
     method named2str(str $key) { $key }
 
+    # Convert the given pragma if there is an original name # for it.
+    # Otherwise it should just return the named argument unchanged.
+    method pragma2str(str $key) { $key }
+
 #-------------------------------------------------------------------------------
 # Grammar entry point
 

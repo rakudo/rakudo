@@ -613,6 +613,26 @@ phaser-POST     ACHTERAF
 phaser-QUIT     STOP
 phaser-UNDO     NEGEER
 
+# KEY                      TRANSLATION
+pragma-dynamic-scope       dynamische-ruimte
+pragma-fatal               fataal
+pragma-internals           interne-functies
+pragma-invocant            aanroeper
+pragma-isms                isms
+pragma-lib                 bibliotheek
+#pragma-MONKEY              MONKEY
+#pragma-MONKEY-GUTS         MONKEY-GUTS
+#pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
+#pragma-MONKEY-TYPING       MONKEY-TYPING
+#pragma-nqp                 nqp
+pragma-newline             regeleinde
+pragma-precompilation      compilatie-vooraf
+pragma-soft                zacht
+pragma-strict              strict
+pragma-trace               verloop
+pragma-variables           variablen
+pragma-worries             zorgen
+
 # KEY       TRANSLATION
 prefix-not  niet
 prefix-so   wel

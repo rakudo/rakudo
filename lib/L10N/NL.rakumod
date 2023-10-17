@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-16T16:28:05+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-17T13:57:58+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -183,6 +183,10 @@ role L10N::NL {
     }
     method named2str (str $key) {
         my %mapping = "absoluut", "absolute", "acties", "actions", "voegtoe", "append", "volledig", "completely", "continueer", "continue", "aantal", "count", "datum", "date", "dag", "day", "verwijder", "delete", "elementen", "elems", "vaneinde", "end", "elke", "every", "ui", "ex", "exclusief", "exclusive", "uitputtend", "exhaustive", "verloopt", "expires", "globaal", "global", "uur", "hour", "nk", "i", "negeerkast", "ignorecase", "negeeraccent", "ignoremark", "zk", "ii", "s", "k", "sleutel", "key", "sw", "kv", "luister", "listen", "minuut", "minute", "za", "mm", "maand", "month", "naam", "name", "de", "nd", "de", "nth", "uit", "off", "gedeeltelijk", "partial", "delen", "parts", "de", "rd", "vervanging", "replacement", "zelfdekast", "samecase", "zelfdeaccent", "samemark", "zelfdespatie", "samespace", "seconde", "second", "seconden", "seconds", "grootte", "size", "drukplat", "squash", "zs", "ss", "ste", "st", "de", "th", "herhalingen", "times", "tijdzone", "timezone", "w", "v", "waarde", "value", "waar", "where", "keer", "x", "jaar", "year";
+        %mapping{$key} // $key
+    }
+    method pragma2str (str $key) {
+        my %mapping = "dynamische-ruimte", "dynamic-scope", "fataal", "fatal", "interne-functies", "internals", "aanroeper", "invocant", "bibliotheek", "lib", "regeleinde", "newline", "compilatie-vooraf", "precompilation", "zacht", "soft", "verloop", "trace", "variablen", "variables", "zorgen", "worries";
         %mapping{$key} // $key
     }
 }

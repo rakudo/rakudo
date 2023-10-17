@@ -21,6 +21,7 @@
 #   multi        types of multi syntax
 #   named        named arguments to methods/subs (:k,:p,:absolute, etc.)
 #   package      package declarators
+#   pragma       compile-time pragmas ("lib","precompilation", etc.)
 #   prefix       prefix operators consisting of alphanumeric characters
 #   phaser       types of phasers ("BEGIN","END","CHECK", etc.)
 #   routine      types of named code blocks
@@ -654,6 +655,24 @@ phaser-PRE      PRE
 phaser-POST     POST
 phaser-QUIT     QUIT
 phaser-UNDO     UNDO
+
+# KEY                      TRANSLATION
+pragma-dynamic-scope       dynamic-scope
+pragma-fatal               fatal
+pragma-isms                isms
+pragma-lib                 lib
+pragma-MONKEY              MONKEY
+pragma-MONKEY-GUTS         MONKEY-GUTS
+pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
+pragma-MONKEY-TYPING       MONKEY-TYPING
+pragma-newline             newline
+pragma-nqp                 nqp
+pragma-precompilation      precompilation
+pragma-soft                soft
+pragma-strict              strict
+pragma-trace               trace
+pragma-variables           variables
+pragma-worries             worries
 
 # KEY       TRANSLATION
 prefix-not  not

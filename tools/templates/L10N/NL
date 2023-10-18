@@ -629,7 +629,7 @@ pragma-lib                 bibliotheek
 #pragma-nqp                 nqp
 pragma-precompilation      compilatie-vooraf
 pragma-soft                zacht
-pragma-strict              strict
+pragma-strict              strikt
 pragma-trace               verloop
 pragma-variables           variablen
 pragma-worries             zorgen

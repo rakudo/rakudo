@@ -36,11 +36,11 @@ adverb-rx-pos         pos
 adverb-rx-ratchet     ratsche
 adverb-rx-rd          te
 #adverb-rx-s           s
-#adverb-rx-ss          ss
 #adverb-rx-samecase    samecase
 #adverb-rx-samemark    samemark
 #adverb-rx-samespace   samespace
 #adverb-rx-sigspace    sigspace
+#adverb-rx-ss          ss
 adverb-rx-st          te
 adverb-rx-to          bis
 adverb-rx-x           mal
@@ -163,12 +163,12 @@ core-indent     einzug
 core-index      index
 core-indices    indizes
 #core-indir      indir
-core-isa-ok     istein-ok
 core-is         ist
-core-isnt       istnicht
 core-is-approx  ist-ungefähr
 core-is-deeply  ist-im-ganzen
 core-is-prime   ist-prim
+core-isa-ok     istein-ok
+core-isnt       istnicht
 core-item       artikel
 
 # KEY      TRANSLATION
@@ -208,8 +208,8 @@ core-next        nächste
 #core-nextcallee  nextcallee
 #core-nextsame    nextsame
 #core-nextwith    nextwith
-core-none        kein
 core-nok         nicht-ok
+core-none        kein
 core-not         nicht
 core-note        notiere
 
@@ -340,6 +340,12 @@ core-words     wörter
 core-zip  reißverschluss
 
 # KEY             TRANSLATION
+infix-(cont)      (enthält)
+infix-(elem)      (element)
+#infix-^ff         ^ff
+#infix-^ff^        ^ff^
+#infix-^fff        ^fff
+#infix-^fff^       ^fff^
 infix-after       nach
 infix-and         und
 infix-andthen     unddann
@@ -351,12 +357,14 @@ infix-div         teile
 infix-does        macht
 infix-eq          gleich
 #infix-ff          ff
+#infix-ff^         ff^
 #infix-fff         fff
+#infix-fff^        fff^
 #infix-gcd         gcd
 infix-ge          größergleich
 infix-gt          größer
-infix-le          kleinergleich
 #infix-lcm         lcm
+infix-le          kleinergleich
 infix-leg         kgg
 infix-lt          kleiner
 infix-max         max
@@ -373,14 +381,6 @@ infix-x           x
 infix-X           X
 infix-xx          xx
 infix-Z           R
-#infix-ff^         ff^
-#infix-fff^        fff^
-infix-(cont)      (enthält)
-infix-(elem)      (element)
-#infix-^ff         ^ff
-#infix-^fff        ^fff
-#infix-^ff^        ^ff^
-#infix-^fff^       ^fff^
 
 # KEY   TRANSLATION
 meta-R  U
@@ -437,12 +437,12 @@ named-count       anzahl
 #named-cwd         cwd
 #named-CWD         CWD
 
-# KEY           TRANSLATION
-named-date      datum
-named-day       tag
-#named-degree    degree
-named-delete    streiche
-#named-dirname   dirname
+# KEY          TRANSLATION
+named-date     datum
+named-day      tag
+#named-degree   degree
+named-delete   streiche
+#named-dirname  dirname
 
 # KEY             TRANSLATION
 named-elems       elementen
@@ -474,9 +474,9 @@ named-hour  stunde
 
 # KEY             TRANSLATION
 #named-i           i
-#named-ii          ii
 #named-ignorecase  ignorecase
 #named-ignoremark  ignoremark
+#named-ii          ii
 named-in          in
 #named-into        into
 
@@ -492,12 +492,14 @@ named-kv   sw
 named-listen     hören
 #named-localhost  localhost
 #named-localport  localport
-#named-match      match
-#named-merge      merge
-named-minute     minute
-#named-mm         mm
-#named-mode       mode
-named-month      monat
+
+# KEY         TRANSLATION
+#named-match   match
+#named-merge   merge
+named-minute  minute
+#named-mm      mm
+#named-mode    mode
+named-month   monat
 
 # KEY               TRANSLATION
 named-name          name
@@ -593,7 +595,7 @@ package-module   modul
 package-package  paket
 package-role     rolle
 
-# KEY            TRANSLATION
+# KEY           TRANSLATION
 #phaser-BEGIN    BEGIN
 phaser-CATCH    FANGFEHLER
 #phaser-CHECK    CHECK
@@ -608,8 +610,8 @@ phaser-KEEP     AKZEPTIERE
 phaser-LAST     LETZTE
 phaser-LEAVE    VERLASSE
 phaser-NEXT     NÄCHSTE
-phaser-PRE      VORHER
 phaser-POST     NACHHER
+phaser-PRE      VORHER
 phaser-QUIT     AUSGESTIEGEN
 phaser-UNDO     AKZEPTIERENICHT
 
@@ -638,9 +640,9 @@ prefix-so   also
 
 # KEY              TRANSLATION
 routine-method     methode
-routine-sub        sub
 routine-regex      regex
 routine-rule       regel
+routine-sub        sub
 routine-submethod  submethode
 routine-token      wertmarke
 
@@ -655,20 +657,20 @@ scope-our       unsere
 scope-state     stand
 scope-unit      einheit
 
-# KEY                 TRANSLATION
-stmt-prefix-also      auch
-stmt-prefix-do        mmache
-stmt-prefix-eager     eifrig
-stmt-prefix-gather    sammel
-stmt-prefix-hyper     hyper
-stmt-prefix-lazy      faul
-stmt-prefix-quietly   leise
-stmt-prefix-race      race
-stmt-prefix-react     reagier
-stmt-prefix-sink      sink
-stmt-prefix-start     start
-stmt-prefix-supply    liefer
-stmt-prefix-try       versuche
+# KEY                TRANSLATION
+stmt-prefix-also     auch
+stmt-prefix-do       mmache
+stmt-prefix-eager    eifrig
+stmt-prefix-gather   sammel
+stmt-prefix-hyper    hyper
+stmt-prefix-lazy     faul
+stmt-prefix-quietly  leise
+stmt-prefix-race     race
+stmt-prefix-react    reagier
+stmt-prefix-sink     sink
+stmt-prefix-start    start
+stmt-prefix-supply   liefer
+stmt-prefix-try      versuche
 
 # KEY      TRANSLATION
 term-nano  nano
@@ -678,15 +680,6 @@ term-rand  zufällig
 term-self  selbst
 term-tau   tau
 term-time  zeit
-
-# KEY             TRANSLATION
-traitmod-does     macht
-traitmod-handles  versteht
-traitmod-hides    versteckt
-traitmod-is       ist
-traitmod-of       wie
-traitmod-returns  returns
-traitmod-trusts   vertraut
 
 # KEY                           TRANSLATION
 #trait-is-built                  built
@@ -706,7 +699,16 @@ trait-is-rw                     lesen-schreiben
 #trait-is-test-assertion         test-assertion
 trait-is-tighter                enger
 
-# KEY          TRANSLATION
+# KEY             TRANSLATION
+traitmod-does     macht
+traitmod-handles  versteht
+traitmod-hides    versteckt
+traitmod-is       ist
+traitmod-of       wie
+traitmod-returns  returns
+traitmod-trusts   vertraut
+
+# KEY         TRANSLATION
 #typer-enum    enum
 #typer-subset  subset
 

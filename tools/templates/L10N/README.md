@@ -88,11 +88,11 @@ Statement prefixes ("do","eager","lazy","quietly", etc.)
 ## term
 Terms ("time","now","self",etc.)
 
-## traitmod
-Types of trait_mods ("is","does","returns", etc.)
-
 ## trait-is
 Names of "is" traits ("default","ro","raw","DEPRECATED", etc.)
+
+## traitmod
+Types of trait_mods ("is","does","returns", etc.)
 
 ## typer
 Type constructors ("enum","subset")

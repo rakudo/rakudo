@@ -73,11 +73,11 @@ adverb-rx-r           r
 adverb-rx-ratchet     ratchet
 adverb-rx-rd          rd
 adverb-rx-s           s
-adverb-rx-ss          ss
 adverb-rx-samecase    samecase
 adverb-rx-samemark    samemark
 adverb-rx-samespace   samespace
 adverb-rx-sigspace    sigspace
+adverb-rx-ss          ss
 adverb-rx-st          st
 adverb-rx-to          to
 adverb-rx-x           x
@@ -106,6 +106,7 @@ constraint-where  where
 # KEY                  TRANSLATION
 core-abs               abs
 core-all               all
+core-antipairs         antipairs
 core-any               any
 core-append            append
 core-ast               ast
@@ -119,7 +120,6 @@ core-atomic-fetch-inc  atomic-fetch-inc
 core-atomic-fetch-sub  atomic-fetch-sub
 core-atomic-inc-fetch  atomic-inc-fetch
 core-atomic-sub-fetch  atomic-sub-fetch
-core-antipairs         antipairs
 core-await             await
 
 # KEY          TRANSLATION
@@ -204,12 +204,12 @@ core-indent     indent
 core-index      index
 core-indices    indices
 core-indir      indir
-core-isa-ok     isa-ok
 core-is         is
-core-isnt       isnt
 core-is-approx  is-approx
 core-is-deeply  is-deeply
 core-is-prime   is-prime
+core-isa-ok     isa-ok
+core-isnt       isnt
 core-item       item
 
 # KEY      TRANSLATION
@@ -249,8 +249,8 @@ core-next        next
 core-nextcallee  nextcallee
 core-nextsame    nextsame
 core-nextwith    nextwith
-core-none        none
 core-nok         nok
+core-none        none
 core-not         not
 core-note        note
 
@@ -381,6 +381,12 @@ core-words     words
 core-zip  zip
 
 # KEY             TRANSLATION
+infix-(cont)      (cont)
+infix-(elem)      (elem)
+infix-^ff         ^ff
+infix-^ff^        ^ff^
+infix-^fff        ^fff
+infix-^fff^       ^fff^
 infix-after       after
 infix-and         and
 infix-andthen     andthen
@@ -392,12 +398,14 @@ infix-div         div
 infix-does        does
 infix-eq          eq
 infix-ff          ff
+infix-ff^         ff^
 infix-fff         fff
+infix-fff^        fff^
 infix-gcd         gcd
 infix-ge          ge
 infix-gt          gt
-infix-le          le
 infix-lcm         lcm
+infix-le          le
 infix-leg         leg
 infix-lt          lt
 infix-max         max
@@ -414,16 +422,8 @@ infix-x           x
 infix-X           X
 infix-xx          xx
 infix-Z           Z
-infix-ff^         ff^
-infix-fff^        fff^
-infix-(cont)      (cont)
-infix-(elem)      (elem)
-infix-^ff         ^ff
-infix-^fff        ^fff
-infix-^ff^        ^ff^
-infix-^fff^       ^fff^
 
-# KEY             TRANSLATION
+# KEY   TRANSLATION
 meta-R  R
 meta-X  X
 meta-Z  Z
@@ -651,8 +651,8 @@ phaser-KEEP     KEEP
 phaser-LAST     LAST
 phaser-LEAVE    LEAVE
 phaser-NEXT     NEXT
-phaser-PRE      PRE
 phaser-POST     POST
+phaser-PRE      PRE
 phaser-QUIT     QUIT
 phaser-UNDO     UNDO
 
@@ -679,37 +679,37 @@ prefix-so   so
 
 # KEY              TRANSLATION
 routine-method     method
-routine-sub        sub
 routine-regex      regex
 routine-rule       rule
+routine-sub        sub
 routine-submethod  submethod
 routine-token      token
 
-# KEY            TRANSLATION
-scope-anon       anon
-scope-augment    augment
-scope-constant   constant
-scope-has        has
-scope-HAS        HAS
-scope-my         my
-scope-our        our
-scope-state      state
-scope-unit       unit
+# KEY           TRANSLATION
+scope-anon      anon
+scope-augment   augment
+scope-constant  constant
+scope-has       has
+scope-HAS       HAS
+scope-my        my
+scope-our       our
+scope-state     state
+scope-unit      unit
 
-# KEY                 TRANSLATION
-stmt-prefix-also      also
-stmt-prefix-do        do
-stmt-prefix-eager     eager
-stmt-prefix-gather    gather
-stmt-prefix-hyper     hyper
-stmt-prefix-lazy      lazy
-stmt-prefix-quietly   quietly
-stmt-prefix-race      race
-stmt-prefix-react     react
-stmt-prefix-sink      sink
-stmt-prefix-start     start
-stmt-prefix-supply    supply
-stmt-prefix-try       try
+# KEY                TRANSLATION
+stmt-prefix-also     also
+stmt-prefix-do       do
+stmt-prefix-eager    eager
+stmt-prefix-gather   gather
+stmt-prefix-hyper    hyper
+stmt-prefix-lazy     lazy
+stmt-prefix-quietly  quietly
+stmt-prefix-race     race
+stmt-prefix-react    react
+stmt-prefix-sink     sink
+stmt-prefix-start    start
+stmt-prefix-supply   supply
+stmt-prefix-try      try
 
 # KEY      TRANSLATION
 term-nano  nano
@@ -719,15 +719,6 @@ term-rand  rand
 term-self  self
 term-tau   tau
 term-time  time
-
-# KEY             TRANSLATION
-traitmod-does     does
-traitmod-handles  handles
-traitmod-hides    hides
-traitmod-is       is
-traitmod-of       of
-traitmod-returns  returns
-traitmod-trusts   trusts
 
 # KEY                           TRANSLATION
 trait-is-built                  built
@@ -746,6 +737,15 @@ trait-is-raw                    raw
 trait-is-rw                     rw
 trait-is-test-assertion         test-assertion
 trait-is-tighter                tighter
+
+# KEY             TRANSLATION
+traitmod-does     does
+traitmod-handles  handles
+traitmod-hides    hides
+traitmod-is       is
+traitmod-of       of
+traitmod-returns  returns
+traitmod-trusts   trusts
 
 # KEY         TRANSLATION
 typer-enum    enum

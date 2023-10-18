@@ -94,9 +94,6 @@ Adverbs on regular expressions, e.g. `m:i/ FOO /`.
 #### adverb-rx-s
 - https://docs.raku.org/language/regexes#Sigspace
 
-#### adverb-rx-ss
-- https://docs.raku.org/language/regexes#Samespace
-
 #### adverb-rx-samecase
 - https://docs.raku.org/language/regexes#Samecase
 
@@ -108,6 +105,9 @@ Adverbs on regular expressions, e.g. `m:i/ FOO /`.
 
 #### adverb-rx-sigspace
 - https://docs.raku.org/language/regexes#Sigspace
+
+#### adverb-rx-ss
+- https://docs.raku.org/language/regexes#Samespace
 
 #### adverb-rx-st
 - https://docs.raku.org/language/regexes#Positional_adverbs
@@ -186,6 +186,9 @@ Sub/Method names that are part of the Raku core.
 
 #### core-all
 - https://docs.raku.org/type/Any#method_all
+
+#### core-antipairs
+- https://docs.raku.org/type/Map#method_antipairs
 
 #### core-any
 - https://docs.raku.org/type/Any#method_any
@@ -456,14 +459,8 @@ https://docs.raku.org/type/Test#sub_bail-out
 #### core-indir
 - https://docs.raku.org/type/independent-routines#sub_indir
 
-#### core-isa-ok
-- https://docs.raku.org/type/Test#sub_isa-ok
-
 #### core-is
 - https://docs.raku.org/type/Test#sub_is
-
-#### core-isnt
-- https://docs.raku.org/type/Test#sub_isnt
 
 #### core-is-approx
 - https://docs.raku.org/type/Test#sub_is-approx
@@ -473,6 +470,12 @@ https://docs.raku.org/type/Test#sub_bail-out
 
 #### core-is-prime
 - https://docs.raku.org/type/Int#routine_is-prime
+
+#### core-isa-ok
+- https://docs.raku.org/type/Test#sub_isa-ok
+
+#### core-isnt
+- https://docs.raku.org/type/Test#sub_isnt
 
 #### core-item
 - https://docs.raku.org/type/Any#sub_item
@@ -575,11 +578,11 @@ https://docs.raku.org/type/Test#sub_bail-out
 #### core-nextwith
 - https://docs.raku.org/language/functions#sub_nextwith
 
-#### core-none
-- https://docs.raku.org/type/Any#method_none
-
 #### core-nok
 - https://docs.raku.org/type/Test#sub_nok
+
+#### core-none
+- https://docs.raku.org/type/Any#method_none
 
 #### core-not
 - https://docs.raku.org/type/Mu#method_not
@@ -934,6 +937,24 @@ https://docs.raku.org/type/Test#sub_bail-out
 ## infix
 Infix operators consisting of alphanumeric characters
 
+#### infix-(cont)
+- https://docs.raku.org/language/operators#infix_(cont),_infix_∋
+
+#### infix-(elem)
+- https://docs.raku.org/language/operators#infix_(elem),_infix_∈
+
+#### infix-^ff
+- https://docs.raku.org/language/operators#infix_^ff
+
+#### infix-^fff
+- https://docs.raku.org/language/operators#infix_^fff
+
+#### infix-^ff^
+- https://docs.raku.org/language/operators#infix_^ff^
+
+#### infix-^fff^
+- https://docs.raku.org/language/operators#infix_^fff^
+
 #### infix-after
 - https://docs.raku.org/language/operators#infix_after
 
@@ -967,8 +988,14 @@ Infix operators consisting of alphanumeric characters
 #### infix-ff
 - https://docs.raku.org/language/operators#infix_ff
 
+#### infix-ff^
+- https://docs.raku.org/language/operators#infix_ff^
+
 #### infix-fff
 - https://docs.raku.org/language/operators#infix_fff
+
+#### infix-fff^
+- https://docs.raku.org/language/operators#infix_fff^
 
 #### infix-gcd
 - https://docs.raku.org/language/operators#infix_gcd
@@ -1032,30 +1059,6 @@ Infix operators consisting of alphanumeric characters
 
 #### infix-Z
 - https://docs.raku.org/language/operators#infix_Z
-
-#### infix-ff^
-- - https://docs.raku.org/language/operators#infix_ff^
-
-#### infix-fff^
-- https://docs.raku.org/language/operators#infix_fff^
-
-#### infix-(cont)
-- https://docs.raku.org/language/operators#infix_(cont),_infix_∋
-
-#### infix-(elem)
-- https://docs.raku.org/language/operators#infix_(elem),_infix_∈
-
-#### infix-^ff
-- https://docs.raku.org/language/operators#infix_^ff
-
-#### infix-^fff
-- https://docs.raku.org/language/operators#infix_^fff
-
-#### infix-^ff^
-- https://docs.raku.org/language/operators#infix_^ff^
-
-#### infix-^fff^
-- https://docs.raku.org/language/operators#infix_^fff^
 
 ## meta
 Meta-operator prefixes ('R','X','Z')
@@ -1628,11 +1631,11 @@ https://docs.raku.org/type/List#routine_grep
 #### phaser-NEXT
 - https://docs.raku.org/language/phasers#NEXT
 
-#### phaser-PRE
-- https://docs.raku.org/language/phasers#PRE
-
 #### phaser-POST
 - https://docs.raku.org/language/phasers#POST
+
+#### phaser-PRE
+- https://docs.raku.org/language/phasers#PRE
 
 #### phaser-QUIT
 - https://docs.raku.org/language/phasers#QUIT
@@ -1703,14 +1706,14 @@ https://docs.raku.org/type/List#routine_grep
 #### routine-method
 - https://docs.raku.org/language/syntax#Method_declaration
 
-#### routine-sub
-- https://docs.raku.org/language/functions#Subroutines
-
 #### routine-regex
 - https://docs.raku.org/language/grammars#Named_Regexes
 
 #### routine-rule
 - https://docs.raku.org/language/grammars#Rules
+
+#### routine-sub
+- https://docs.raku.org/language/functions#Subroutines
 
 #### routine-submethod
 - https://docs.raku.org/language/objects#Submethods
@@ -1811,29 +1814,6 @@ https://docs.raku.org/type/List#routine_grep
 #### term-time
 - https://docs.raku.org/language/terms#term_time
 
-## traitmod
-
-#### traitmod-does
-- https://docs.raku.org/language/typesystem#trait_does
-
-#### traitmod-handles
-- https://docs.raku.org/language/typesystem#trait_handles
-
-#### traitmod-hides
-- https://docs.raku.org/language/typesystem#trait_hides
-
-#### traitmod-is
-- https://docs.raku.org/language/typesystem#trait_is
-
-#### traitmod-of
-- https://docs.raku.org/language/signatures#of
-
-#### traitmod-returns
-- https://docs.raku.org/language/signatures#returns
-
-#### traitmod-trusts
-- https://docs.raku.org/language/typesystem#trait_trusts
-
 ## trait-is
 
 #### trait-is-built
@@ -1885,6 +1865,29 @@ https://docs.raku.org/type/List#routine_grep
 
 #### trait-is-tighter
 - https://docs.raku.org/language/optut
+
+## traitmod
+
+#### traitmod-does
+- https://docs.raku.org/language/typesystem#trait_does
+
+#### traitmod-handles
+- https://docs.raku.org/language/typesystem#trait_handles
+
+#### traitmod-hides
+- https://docs.raku.org/language/typesystem#trait_hides
+
+#### traitmod-is
+- https://docs.raku.org/language/typesystem#trait_is
+
+#### traitmod-of
+- https://docs.raku.org/language/signatures#of
+
+#### traitmod-returns
+- https://docs.raku.org/language/signatures#returns
+
+#### traitmod-trusts
+- https://docs.raku.org/language/typesystem#trait_trusts
 
 ## typer
 

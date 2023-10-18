@@ -36,11 +36,11 @@
 #adverb-rx-ratchet     ratchet
 #adverb-rx-rd          rd
 #adverb-rx-s           s
-#adverb-rx-ss          ss
 #adverb-rx-samecase    samecase
 #adverb-rx-samemark    samemark
 #adverb-rx-samespace   samespace
 #adverb-rx-sigspace    sigspace
+#adverb-rx-ss          ss
 #adverb-rx-st          st
 #adverb-rx-to          to
 #adverb-rx-x           x
@@ -133,8 +133,6 @@ core-emit           emettere
 #core-encode         encode
 core-end            fine
 #core-ends-with      ends-with
-#core-emit           emit
-#core-end            end
 #core-eval-dies-ok   eval-dies-ok
 #core-eval-lives-ok  eval-lives-ok
 core-exit           uscire
@@ -148,8 +146,8 @@ core-fail          fallire
 core-first         primo
 core-flat          piatto
 #core-flip          flip
-#core-flunk         flunk
 core-floor         pavimento
+#core-flunk         flunk
 #core-fmt           fmt
 core-full-barrier  barriera-completa
 
@@ -163,23 +161,17 @@ core-gist  essenza
 #core-hash  hash
 core-head  testa
 
-# KEY         TRANSLATION
-core-indent   indenta
-core-index    indice
-core-indices  indici
-#core-indir    indir
-core-item     articolo
 # KEY           TRANSLATION
 core-indent     indenta
 core-index      indice
 core-indices    indici
 #core-indir      indir
-#core-isa-ok     isa-ok
 #core-is         is
-#core-isnt       isnt
 #core-is-approx  is-approx
 #core-is-deeply  is-deeply
 #core-is-prime   is-prime
+#core-isa-ok     isa-ok
+#core-isnt       isnt
 core-item       articolo
 
 # KEY      TRANSLATION
@@ -194,8 +186,8 @@ core-kv    cv
 core-last      ultimo
 core-lastcall  ultima-chiamata
 #core-lc        lc
-core-lines     linee
 #core-like      like
+core-lines     linee
 #core-link      link
 core-list      elenco
 #core-lives-ok  lives-ok
@@ -219,8 +211,8 @@ core-next        prossimo
 core-nextcallee  prossimo-chiamato
 core-nextsame    prossimo-esteso
 core-nextwith    prossimo-con
-core-none        nessuno
 #core-nok         nok
+core-none        nessuno
 core-not         non
 core-note        nota
 
@@ -351,6 +343,12 @@ core-words     parole
 #core-zip  zip
 
 # KEY             TRANSLATION
+#infix-(cont)      (cont)
+#infix-(elem)      (elem)
+#infix-^ff         ^ff
+#infix-^ff^        ^ff^
+#infix-^fff        ^fff
+#infix-^fff^       ^fff^
 infix-after       dopo
 infix-and         e
 infix-andthen     e-poi
@@ -362,12 +360,14 @@ infix-but         però
 infix-does        fa
 #infix-eq          eq
 #infix-ff          ff
+#infix-ff^         ff^
 #infix-fff         fff
+#infix-fff^        fff^
 #infix-gcd         gcd
 #infix-ge          ge
 #infix-gt          gt
-#infix-le          le
 #infix-lcm         lcm
+#infix-le          le
 #infix-leg         leg
 #infix-lt          lt
 #infix-max         max
@@ -384,16 +384,8 @@ infix-orelse      oppure
 #infix-X           X
 #infix-xx          xx
 #infix-Z           Z
-#infix-ff^         ff^
-#infix-fff^        fff^
-#infix-(cont)      (cont)
-#infix-(elem)      (elem)
-#infix-^ff         ^ff
-#infix-^fff        ^fff
-#infix-^ff^        ^ff^
-#infix-^fff^       ^fff^
 
-# KEY             TRANSLATION
+# KEY   TRANSLATION
 #meta-R  R
 #meta-X  X
 #meta-Z  Z
@@ -448,12 +440,12 @@ multi-only   soltanto
 #named-cwd         cwd
 #named-CWD         CWD
 
-# KEY           TRANSLATION
-#named-date      date
-#named-day       day
-#named-degree    degree
-#named-delete    delete
-#named-dirname   dirname
+# KEY          TRANSLATION
+#named-date     date
+#named-day      day
+#named-degree   degree
+#named-delete   delete
+#named-dirname  dirname
 
 # KEY             TRANSLATION
 #named-elems       elems
@@ -620,8 +612,8 @@ phaser-KEEP     TIENI
 phaser-LAST     ULTIMO
 phaser-LEAVE    VATTENE
 phaser-NEXT     PROSSIMO
-#phaser-PRE      PRE
 #phaser-POST     POST
+#phaser-PRE      PRE
 phaser-QUIT     LASCIA
 phaser-UNDO     ANNULLA
 
@@ -650,9 +642,9 @@ prefix-so   così
 
 # KEY              TRANSLATION
 routine-method     metodo
-#routine-sub        sub
 #routine-regex      regex
 routine-rule       regola
+#routine-sub        sub
 #routine-submethod  submethod
 routine-token      gettone
 
@@ -691,15 +683,6 @@ term-self  se-stesso
 #term-tau   tau
 term-time  tempo
 
-# KEY             TRANSLATION
-traitmod-does     fa
-traitmod-handles  gestisce
-traitmod-hides    nasconde
-traitmod-is       è
-traitmod-of       da
-traitmod-returns  ritorna
-#traitmod-trusts   trusts
-
 # KEY                           TRANSLATION
 #trait-is-built                  built
 #trait-is-copy                   copy
@@ -717,6 +700,15 @@ traitmod-returns  ritorna
 #trait-is-rw                     rw
 #trait-is-test-assertion         test-assertion
 #trait-is-tighter                tighter
+
+# KEY             TRANSLATION
+traitmod-does     fa
+traitmod-handles  gestisce
+traitmod-hides    nasconde
+traitmod-is       è
+traitmod-of       da
+traitmod-returns  ritorna
+#traitmod-trusts   trusts
 
 # KEY         TRANSLATION
 #typer-enum    enum

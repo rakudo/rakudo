@@ -36,11 +36,11 @@ adverb-rx-r           r
 adverb-rx-ratchet     ratel
 adverb-rx-rd          de
 adverb-rx-s           s
-adverb-rx-ss          zs
 adverb-rx-samecase    zelfdekast
 adverb-rx-samemark    zelfdeaccent
 adverb-rx-samespace   zelfdespatie
 adverb-rx-sigspace    sigspatie
+adverb-rx-ss          zs
 adverb-rx-st          ste
 adverb-rx-to          tot
 adverb-rx-x           keer
@@ -163,12 +163,12 @@ core-indent     indenteer
 core-index      index
 core-indices    indices
 core-indir      indir
-core-isa-ok     iseen-ok
 core-is         is
-core-isnt       isniet
 core-is-approx  is-ongeveer
 core-is-deeply  is-helemaal
 core-is-prime   is-priem
+core-isa-ok     iseen-ok
+core-isnt       isniet
 core-item       item
 
 # KEY      TRANSLATION
@@ -208,8 +208,8 @@ core-next        volgende
 #core-nextcallee  nextcallee
 #core-nextsame    nextsame
 #core-nextwith    nextwith
-core-none        geen
 core-nok         niet-ok
+core-none        geen
 core-not         niet
 core-note        merk-op
 
@@ -340,6 +340,12 @@ core-words     woorden
 core-zip  rits
 
 # KEY             TRANSLATION
+infix-(cont)      (bevat)
+infix-(elem)      (element)
+#infix-^ff         ^ff
+#infix-^ff^        ^ff^
+#infix-^fff        ^fff
+#infix-^fff^       ^fff^
 infix-after       na
 infix-and         en
 infix-andthen     endan
@@ -351,12 +357,14 @@ infix-div         deel
 infix-does        doet
 infix-eq          gelijk
 #infix-ff          ff
+#infix-ff^         ff^
 #infix-fff         fff
+#infix-fff^        fff^
 #infix-gcd         gcd
 infix-ge          grotergelijk
 infix-gt          groter
-infix-le          kleinergelijk
 #infix-lcm         lcm
+infix-le          kleinergelijk
 infix-leg         lgg
 infix-lt          kleiner
 infix-max         max
@@ -373,14 +381,6 @@ infix-x           x
 infix-X           X
 infix-xx          xx
 infix-Z           R
-#infix-ff^         ff^
-#infix-fff^        fff^
-infix-(cont)      (bevat)
-infix-(elem)      (element)
-#infix-^ff         ^ff
-#infix-^fff        ^fff
-#infix-^ff^        ^ff^
-#infix-^fff^       ^fff^
 
 # KEY   TRANSLATION
 meta-R  O
@@ -437,14 +437,14 @@ named-count       aantal
 #named-cwd         cwd
 #named-CWD         CWD
 
-# KEY           TRANSLATION
-named-date      datum
-named-day       dag
-#named-degree    degree
-named-delete    verwijder
-#named-dirname   dirname
+# KEY          TRANSLATION
+named-date     datum
+named-day      dag
+#named-degree   degree
+named-delete   verwijder
+#named-dirname  dirname
 
-# KEY               TRANSLATION
+# KEY             TRANSLATION
 named-elems       elementen
 #named-emit-timed  emit-timed
 #named-enc         enc
@@ -474,9 +474,9 @@ named-hour  uur
 
 # KEY             TRANSLATION
 named-i           nk
-named-ii          zk
 named-ignorecase  negeerkast
 named-ignoremark  negeeraccent
+named-ii          zk
 named-in          in
 #named-into        into
 
@@ -492,12 +492,14 @@ named-kv   sw
 named-listen     luister
 #named-localhost  localhost
 #named-localport  localport
-#named-match      match
-#named-merge      merge
-named-minute     minuut
-named-mm         za
-#named-mode       mode
-named-month      maand
+
+# KEY         TRANSLATION
+#named-match   match
+#named-merge   merge
+named-minute  minuut
+named-mm      za
+#named-mode    mode
+named-month   maand
 
 # KEY               TRANSLATION
 named-name          naam
@@ -593,7 +595,7 @@ package-module   module
 package-package  pakket
 package-role     rol
 
-# KEY            TRANSLATION
+# KEY           TRANSLATION
 #phaser-BEGIN    BEGIN
 phaser-CATCH    VANGFOUT
 #phaser-CHECK    CHECK
@@ -608,8 +610,8 @@ phaser-KEEP     ACCEPTEER
 phaser-LAST     LAATSTE
 phaser-LEAVE    AFSCHEID
 phaser-NEXT     VOLGENDE
-phaser-PRE      VOORAF
 phaser-POST     ACHTERAF
+phaser-PRE      VOORAF
 phaser-QUIT     STOP
 phaser-UNDO     NEGEER
 
@@ -638,9 +640,9 @@ prefix-so   wel
 
 # KEY              TRANSLATION
 routine-method     methode
-routine-sub        sub
 routine-regex      regex
 routine-rule       regel
+routine-sub        sub
 routine-submethod  submethode
 routine-token      token
 
@@ -679,15 +681,6 @@ term-self  zelf
 term-tau   tau
 term-time  tijd
 
-# KEY             TRANSLATION
-traitmod-does     doet
-traitmod-handles  begrijpt
-traitmod-hides    verbergt
-traitmod-is       is
-traitmod-of       netals
-traitmod-returns  geeftterug
-traitmod-trusts   vertrouwd
-
 # KEY                           TRANSLATION
 #trait-is-built                  built
 trait-is-copy                   kopie
@@ -706,7 +699,16 @@ trait-is-rw                     lezen-schrijven
 trait-is-test-assertion         test-assertie
 trait-is-tighter                strakker
 
-# KEY          TRANSLATION
+# KEY             TRANSLATION
+traitmod-does     doet
+traitmod-handles  begrijpt
+traitmod-hides    verbergt
+traitmod-is       is
+traitmod-of       netals
+traitmod-returns  geeftterug
+traitmod-trusts   vertrouwd
+
+# KEY         TRANSLATION
 #typer-enum    enum
 #typer-subset  subset
 

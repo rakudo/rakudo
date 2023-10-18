@@ -25,7 +25,7 @@ for dir "tools/templates/L10N".sort(*.basename) -> $io {
          || $language.starts-with(".");  # ignore editor temp files
 
     # Create translation hash
-    my %translation := read-hash($io);
+    my %translation := read-hash($io, :core);
 
     # Create the slang and slangification
     my $slang  := slangify($language, %translation);

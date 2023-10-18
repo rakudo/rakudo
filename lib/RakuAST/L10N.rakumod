@@ -10,6 +10,14 @@
 # Needed for now
 use experimental :rakuast;
 
+# Known groups of translation
+my constant %known-groups = <
+  adverb-pc adverb-rx block constraint core infix meta modifier multi
+  named package phaser pragma prefix routine scope stmt-prefix term
+  traitmod trait-is typer use
+>.map({ $_ => 1 });
+my constant %sub-groups = <core named>.map({ $_ => 1 });
+
 # Produce all words on non-commented lines of given IO as a Slip
 sub io2words(IO::Path:D $io) {
     $io.lines.map: { .words.Slip unless .starts-with("#") }
@@ -19,8 +27,87 @@ sub io2words(IO::Path:D $io) {
 BEGIN my @core = io2words("tools/templates/L10N/CORE".IO);
 
 # Read translation hash from given file (as IO object)
-sub read-hash(IO::Path:D $io) is export {
-    %(flat @core, io2words($io))
+sub read-hash(IO::Path:D $io, :$core) is export {
+    $core
+      ?? %(flat @core, io2words($io))
+      !! %(io2words($io))
+}
+
+sub write-hash(IO::Path:D $io, %mapping) is export {
+
+    # Return the group for the given key
+    my %groups;
+    sub group-hash(Str:D $key) {
+        my int $disabled = +$key.starts-with("#");
+        my str @parts = $key.split("-");
+        my str $group = @parts.shift;
+        $group = $group.substr(1) if $disabled;
+        until %known-groups{$group} || !@parts {
+            $group = $group ~ "-" ~ @parts.shift;
+        }
+        die "No group found for $key" unless @parts;
+
+        # Subgroups include the first letter
+        $group ~= $key.substr($group.chars + $disabled, 2).lc
+          if %sub-groups{$group};
+        %groups{$group} // (%groups{$group} := {})
+    }
+
+    # Set up base information
+    for $io.lines {
+        # need to do something
+        unless .starts-with("# ") || $_ eq "#" || .is-whitespace {
+            my ($key,$translation) = .words;
+            group-hash($key){$key} := $translation;
+        }
+    }
+
+    # Update the groups from the given hash
+    for %mapping {
+        my $key  := .key;
+        my %hash := group-hash($key);
+        %hash{"#$key"}:delete;  # remove any untranslated
+        %hash{$key} := .value;  # set as translated
+    }
+
+    # Start building the file
+    my str @lines;
+    my $handle := $io.open(:!chomp);
+    for $handle.lines {
+        .starts-with("#")
+          ?? @lines.push($_)
+          !! last
+    }
+    $handle.close;
+
+    for %groups.sort(*.key) {
+        my %hash := %groups{.key};
+        my int $max = %hash.keys.map({ .chars - .starts-with("#") }).max;
+        my $format := '%-' ~ $max ~ "s  %s\n";
+
+        @lines.push("\n");
+        @lines.push(sprintf($format, "# KEY", "TRANSLATION"));
+
+        for %hash.sort(-> $a is copy, $b is copy {
+            $a = $a.key;
+            $a = $a.substr(1) if $a.starts-with("#");
+            $b = $b.key;
+            $b = $b.substr(1) if $b.starts-with("#");
+
+            $a.fc cmp $b.fc || $b cmp $a
+        }) {
+            my $key := .key;
+            @lines.push($key.starts-with("#")
+              ?? "#" ~ sprintf($format, $key.substr(1), .value)
+              !! sprintf($format, $key, .value)
+            );
+        }
+    }
+
+    @lines.push("\n");
+    @lines.push("# vim: expandtab shiftwidth=4\n");
+
+    $io.spurt(@lines.join);
 }
 
 # Return the AST for translation lookup logic, basically:

@@ -23,8 +23,23 @@ sub io2words(IO::Path:D $io) {
     $io.lines.map: { .words.Slip unless .starts-with("#") }
 }
 
+# Root of localization files
+my constant $root = "tools/templates/L10N";
+
+# IOs of valid localization files, add :core to include CORE
+sub localization-files($path = $root, :$core) is export {
+    dir("tools/templates/L10N").grep({
+        my str $language = .basename;
+        !(
+          ($language eq 'CORE' and !$core)
+            || $language.ends-with('.md')  # any translator documentation
+            || $language.starts-with(".")  # ignore editor temp files
+        )
+    }).sort(*.basename)
+}
+
 # Set up core settings
-BEGIN my @core = io2words("tools/templates/L10N/CORE".IO);
+BEGIN my @core = io2words("$root/CORE".IO);
 
 # Read translation hash from given file (as IO object)
 sub read-hash(IO::Path:D $io, :$core) is export {
@@ -33,13 +48,19 @@ sub read-hash(IO::Path:D $io, :$core) is export {
       !! %(io2words($io))
 }
 
+# Write out the localization of the given hash to the given file (as IO object)
 sub write-hash(IO::Path:D $io, %mapping) is export {
 
     # Return the group for the given key
     my %groups;
     sub group-hash(Str:D $key) {
         my int $disabled = +$key.starts-with("#");
-        my str @parts = $key.split("-");
+        my str @parts    = $key.split("-");
+
+        # The group is determined from the given key, taking into account
+        # a potential "#" prefix on the key.  Since some keys contain hyphens
+        # and the rest of the key can also contain hyphens, we need to do
+        # this dance to find a legal key to be used.
         my str $group = @parts.shift;
         $group = $group.substr(1) if $disabled;
         until %known-groups{$group} || !@parts {
@@ -47,15 +68,18 @@ sub write-hash(IO::Path:D $io, %mapping) is export {
         }
         die "No group found for $key" unless @parts;
 
-        # Subgroups include the first letter
+        # Groups with many potential localization keys, are divided into
+        # sub-groups including the first letter.
         $group ~= $key.substr($group.chars + $disabled, 2).lc
           if %sub-groups{$group};
+
+        # Fetch or create the hash
         %groups{$group} // (%groups{$group} := {})
     }
 
-    # Set up base information
+    # Set up base information, including translations not yet done (which
+    # start with an "#" immediately followed by the key.
     for $io.lines {
-        # need to do something
         unless .starts-with("# ") || $_ eq "#" || .is-whitespace {
             my ($key,$translation) = .words;
             group-hash($key){$key} := $translation;
@@ -80,8 +104,10 @@ sub write-hash(IO::Path:D $io, %mapping) is export {
     }
     $handle.close;
 
+    # Add the lines with the translations in correct order to reduce the
+    # amount of changes on updates.
     for %groups.sort(*.key) {
-        my %hash := %groups{.key};
+        my %hash   := %groups{.key};
         my int $max = %hash.keys.map({ .chars - .starts-with("#") }).max;
         my $format := '%-' ~ $max ~ "s  %s\n";
 
@@ -104,6 +130,7 @@ sub write-hash(IO::Path:D $io, %mapping) is export {
         }
     }
 
+    # Put in the vim marker
     @lines.push("\n");
     @lines.push("# vim: expandtab shiftwidth=4\n");
 

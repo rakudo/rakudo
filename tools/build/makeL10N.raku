@@ -18,16 +18,13 @@ my $start     := '#- start of generated part of localization';
 my $end       := '#- end of generated part of localization';
 
 # For all available localizations
-for dir "tools/templates/L10N".sort(*.basename) -> $io {
-    my str $language = $io.basename;
-    next if $language eq 'CORE'
-         || $language.ends-with('.md')   # any translator documentation
-         || $language.starts-with(".");  # ignore editor temp files
+for localization-files() -> $io {
 
     # Create translation hash
     my %translation := read-hash($io, :core);
 
     # Create the slang and slangification
+    my str $language = $io.basename;
     my $slang  := slangify($language, %translation);
     my $source := $slang.DEPARSE ~ Q:to/CODE/.subst('#LANGUAGE#',$language);
 

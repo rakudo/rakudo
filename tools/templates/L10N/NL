@@ -286,7 +286,7 @@ core-srand        zo-willekeurig
 core-starts-with  begint-met
 core-subbuf       subbuf
 core-subbuf-rw    subbuf-rw
-core-subst        subst
+core-subst        substitueer
 core-substr       substr
 core-substr-eq    substr-gelijk
 core-substr-rw    substr-rw
@@ -355,18 +355,18 @@ infix-cmp         vergelijk
 #infix-coll        coll
 infix-div         deel
 infix-does        doet
-infix-eq          gelijk
+infix-eq          ge
 #infix-ff          ff
 #infix-ff^         ff^
 #infix-fff         fff
 #infix-fff^        fff^
 #infix-gcd         gcd
-infix-ge          grotergelijk
-infix-gt          groter
+infix-ge          gg
+infix-gt          gt
 #infix-lcm         lcm
-infix-le          kleinergelijk
-infix-leg         lgg
-infix-lt          kleiner
+infix-le          kg
+infix-leg         kgg
+infix-lt          kn
 infix-max         max
 infix-min         min
 infix-minmax      minmax
@@ -422,33 +422,33 @@ named-append    voegtoe
 #named-broadcast  broadcast
 
 # KEY             TRANSLATION
-#named-catch       catch
-#named-check       check
-#named-chomp       chomp
-#named-close       close
-#named-command     command
-#named-complement  complement
+named-catch       vangfout
+named-check       check
+named-chomp       kap-regeleinde
+named-close       sluit
+named-command     commando
+named-complement  complement
 named-completely  volledig
 named-continue    continueer
-#named-control     control
+named-control     controle
 named-count       aantal
-#named-create      create
-#named-createonly  createonly
+named-create      maak-aan
+named-createonly  maak-nieuw-aan
 #named-cwd         cwd
 #named-CWD         CWD
 
 # KEY          TRANSLATION
 named-date     datum
 named-day      dag
-#named-degree   degree
+named-degree   vrijheidsgraad
 named-delete   verwijder
 #named-dirname  dirname
 
 # KEY             TRANSLATION
 named-elems       elementen
 #named-emit-timed  emit-timed
-#named-enc         enc
-#named-encoding    encoding
+named-enc         cod
+named-encoding    codering
 named-end         vaneinde
 #named-err         err
 named-every       elke
@@ -458,8 +458,8 @@ named-exhaustive  uitputtend
 named-expires     verloopt
 
 # KEY            TRANSLATION
-#named-family     family
-#named-filename   filename
+named-family     familie
+named-filename   bestandsnaam
 named-filter     filter
 named-formatter  formatter
 
@@ -521,12 +521,12 @@ named-overlap     overlap
 named-p        p
 named-partial  gedeeltelijk
 named-parts    delen
-#named-port     port
+named-port     poort
 named-pos      pos
-#named-primary  primary
+named-primary  eerste
 
 # KEY             TRANSLATION
-#named-quaternary  quaternary
+named-quaternary  vierde
 
 # KEY              TRANSLATION
 named-r            r
@@ -543,7 +543,7 @@ named-samemark     zelfdeaccent
 named-samespace    zelfdespatie
 #named-scheduler    scheduler
 named-second       seconde
-#named-secondary    secondary
+named-secondary    tweede
 named-seconds      seconden
 #named-shared       shared
 named-size         grootte
@@ -558,13 +558,13 @@ named-subscript    subscript
 named-superscript  superscript
 
 # KEY               TRANSLATION
-#named-tertiary      tertiary
+named-tertiary      derde
 named-test          test
 named-th            de
 named-times         herhalingen
 named-timezone      tijdzone
 #named-translate-nl  translate-nl
-#named-truncate      truncate
+named-truncate      kap-af
 
 # KEY         TRANSLATION
 #named-uid     uid
@@ -596,16 +596,16 @@ package-package  pakket
 package-role     rol
 
 # KEY           TRANSLATION
-#phaser-BEGIN    BEGIN
+phaser-BEGIN    BEGIN
 phaser-CATCH    VANGFOUT
-#phaser-CHECK    CHECK
+phaser-CHECK    CHECK
 phaser-CLOSE    CLOSE
 phaser-CONTROL  VANGBERICHT
-#phaser-DOC      DOC
+phaser-DOC      DOC
 phaser-END      EINDE
 phaser-ENTER    BINNENKOMST
 phaser-FIRST    EERSTE
-#phaser-INIT     INIT
+phaser-INIT     INITIALISATIE
 phaser-KEEP     ACCEPTEER
 phaser-LAST     LAATSTE
 phaser-LEAVE    AFSCHEID
@@ -705,7 +705,7 @@ traitmod-handles  begrijpt
 traitmod-hides    verbergt
 traitmod-is       is
 traitmod-of       netals
-traitmod-returns  geeftterug
+traitmod-returns  geeft-terug
 traitmod-trusts   vertrouwd
 
 # KEY         TRANSLATION
@@ -716,7 +716,7 @@ traitmod-trusts   vertrouwd
 use-import   importeer
 use-need     behoeft
 use-no       geen
-#use-require  require
+use-require  vereist
 use-use      gebruik
 
 # vim: expandtab shiftwidth=4

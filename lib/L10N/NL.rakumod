@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-18T17:59:42+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-18T19:30:13+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -38,18 +38,18 @@ role L10N::NL {
     token infix-coll { coll}
     token infix-div { deel}
     token infix-does { doet}
-    token infix-eq { gelijk}
+    token infix-eq { ge}
     token infix-ff { ff}
     token infix-ffc { "ff^"}
     token infix-fff { fff}
     token infix-fffc { "fff^"}
     token infix-gcd { gcd}
-    token infix-ge { grotergelijk}
-    token infix-gt { groter}
+    token infix-ge { gg}
+    token infix-gt { gt}
     token infix-lcm { lcm}
-    token infix-le { kleinergelijk}
-    token infix-leg { lgg}
-    token infix-lt { kleiner}
+    token infix-le { kg}
+    token infix-leg { kgg}
+    token infix-lt { kn}
     token infix-max { max}
     token infix-min { min}
     token infix-minmax { minmax}
@@ -93,7 +93,7 @@ role L10N::NL {
     token phaser-END { EINDE}
     token phaser-ENTER { BINNENKOMST}
     token phaser-FIRST { EERSTE}
-    token phaser-INIT { INIT}
+    token phaser-INIT { INITIALISATIE}
     token phaser-KEEP { ACCEPTEER}
     token phaser-LAST { LAATSTE}
     token phaser-LEAVE { AFSCHEID}
@@ -144,17 +144,17 @@ role L10N::NL {
     token traitmod-hides { verbergt}
     token traitmod-is { is}
     token traitmod-of { netals}
-    token traitmod-returns { geeftterug}
+    token traitmod-returns { "geeft-terug"}
     token traitmod-trusts { vertrouwd}
     token typer-enum { enum}
     token typer-subset { subset}
     token use-import { importeer}
     token use-need { behoeft}
     token use-no { geen}
-    token use-require { require}
+    token use-require { vereist}
     token use-use { gebruik}
     method core2ast {
-        my %mapping = "alle", "all", "antiparen", "antipairs", "elke", "any", "voeg-achteraan", "append", "wacht-op", "await", "tas", "bag", "geef-op", "bail-out", "zegen", "bless", "kan-ok", "can-ok", "categoriseer", "categorize", "plafond", "ceiling", "letters", "chars", "kap-regeleinde", "chomp", "kap", "chop", "als-letter", "chr", "als-letters", "chrs", "classificeer", "classify", "sluit", "close", "kam", "comb", "combinaties", "combinations", "bevat", "contains", "kruis", "cross", "decodeer", "decode", "diep-arrangeer", "deepmap", "gedefinieerd", "defined", "sterf", "die", "klaar", "done", "duik-arrangeer", "duckmap", "elementen", "elems", "zend", "emit", "codeer", "encode", "einde", "end", "eindigt-met", "ends-with", "eval-sterft-ok", "eval-dies-ok", "eval-leeft-ok", "eval-lives-ok", "verlaat", "exit", "faal", "fail", "faalt-als", "fails-like", "vouw-kast", "fc", "eerste", "first", "plat", "flat", "draaiom", "flip", "vloer", "floor", "pak", "get", "pakc", "getc", "kern", "gist", "filter", "grep", "moes", "hash", "hoofd", "head", "indenteer", "indent", "is-ongeveer", "is-approx", "is-helemaal", "is-deeply", "is-priem", "is-prime", "iseen-ok", "isa-ok", "isniet", "isnt", "plak", "join", "sleutel", "key", "sleutels", "keys", "sw", "kv", "laatste", "last", "laatste-aanroep", "lastcall", "onder-kast", "lc", "lijkt-op", "like", "regels", "lines", "koppeling", "link", "lijst", "list", "leeft-ok", "lives-ok", "minst-belangrijke-bit", "lsb", "maak", "make", "arrangeer", "map", "verplaats", "move", "belangrijkste-bit", "msb", "nieuw", "new", "volgende", "next", "niet-ok", "nok", "geen", "none", "niet", "not", "merk-op", "note", "een", "one", "als-getal", "ord", "als-getallen", "ords", "paar", "pair", "paren", "pairs", "ontleed-nummer", "parse-base", "goed", "pass", "permutaties", "permutations", "kies", "pick", "verwacht", "plan", "floep", "pop", "voeg-voor", "prepend", "druk", "print", "drukf", "printf", "ga-door", "proceed", "vraag", "prompt", "stapel-op", "push", "zeg-het", "put", "willkeurig", "rand", "nog-eens", "redo", "reduceer", "reduce", "herhaaldelijk", "repeated", "retour", "return", "retour-rw", "return-rw", "keer-om", "reverse", "om-index", "rindex", "gooi", "roll", "wortels", "roots", "roteer", "rotate", "rond-af", "round", "ieder-een", "roundrobin", "voer-uit", "run", "zelfde-kast", "samecase", "zelfde-accent", "samemark", "zelfde-met", "samewith", "zeg", "say", "verzameling", "set", "onderuit", "shift", "teken", "sign", "signaal", "signal", "sla-over", "skip", "sla-rest-over", "skip-rest", "slaap", "sleep", "wekker", "sleep-timer", "slaap-tot", "sleep-until", "glip", "slip", "knip", "snip", "spiek", "snitch", "dus", "so", "sorteer", "sort", "splits-lijst", "splice", "splits-letters", "split", "sdrukf", "sprintf", "spuit", "spurt", "wortel", "sqrt", "plet", "squish", "zo-willekeurig", "srand", "begint-met", "starts-with", "substr-gelijk", "substr-eq", "slaag", "succeed", "sommeer", "sum", "symbolische-koppeling", "symlink", "staart", "tail", "neem", "take", "neem-rw", "take-rw", "titel-kast", "tc", "titel-onder-kast", "tclc", "knalt-als", "throws-like", "tedoen", "todo", "vertaal", "trans", "trim-vooraan", "trim-leading", "trim-achteraan", "trim-trailing", "kap-af", "truncate", "boven-kast", "uc", "uniek", "unique", "lijkt-niet-als", "unlike", "ontkoppel", "unlink", "onderin", "unshift", "gebruik-ok", "use-ok", "als-nummers", "val", "waarde", "value", "waardes", "values", "waarschuw", "warn", "woord-kast", "wordcase", "woorden", "words", "rits", "zip";
+        my %mapping = "alle", "all", "antiparen", "antipairs", "elke", "any", "voeg-achteraan", "append", "wacht-op", "await", "tas", "bag", "geef-op", "bail-out", "zegen", "bless", "kan-ok", "can-ok", "categoriseer", "categorize", "plafond", "ceiling", "letters", "chars", "kap-regeleinde", "chomp", "kap", "chop", "als-letter", "chr", "als-letters", "chrs", "classificeer", "classify", "sluit", "close", "kam", "comb", "combinaties", "combinations", "bevat", "contains", "kruis", "cross", "decodeer", "decode", "diep-arrangeer", "deepmap", "gedefinieerd", "defined", "sterf", "die", "klaar", "done", "duik-arrangeer", "duckmap", "elementen", "elems", "zend", "emit", "codeer", "encode", "einde", "end", "eindigt-met", "ends-with", "eval-sterft-ok", "eval-dies-ok", "eval-leeft-ok", "eval-lives-ok", "verlaat", "exit", "faal", "fail", "faalt-als", "fails-like", "vouw-kast", "fc", "eerste", "first", "plat", "flat", "draaiom", "flip", "vloer", "floor", "pak", "get", "pakc", "getc", "kern", "gist", "filter", "grep", "moes", "hash", "hoofd", "head", "indenteer", "indent", "is-ongeveer", "is-approx", "is-helemaal", "is-deeply", "is-priem", "is-prime", "iseen-ok", "isa-ok", "isniet", "isnt", "plak", "join", "sleutel", "key", "sleutels", "keys", "sw", "kv", "laatste", "last", "laatste-aanroep", "lastcall", "onder-kast", "lc", "lijkt-op", "like", "regels", "lines", "koppeling", "link", "lijst", "list", "leeft-ok", "lives-ok", "minst-belangrijke-bit", "lsb", "maak", "make", "arrangeer", "map", "verplaats", "move", "belangrijkste-bit", "msb", "nieuw", "new", "volgende", "next", "niet-ok", "nok", "geen", "none", "niet", "not", "merk-op", "note", "een", "one", "als-getal", "ord", "als-getallen", "ords", "paar", "pair", "paren", "pairs", "ontleed-nummer", "parse-base", "goed", "pass", "permutaties", "permutations", "kies", "pick", "verwacht", "plan", "floep", "pop", "voeg-voor", "prepend", "druk", "print", "drukf", "printf", "ga-door", "proceed", "vraag", "prompt", "stapel-op", "push", "zeg-het", "put", "willkeurig", "rand", "nog-eens", "redo", "reduceer", "reduce", "herhaaldelijk", "repeated", "retour", "return", "retour-rw", "return-rw", "keer-om", "reverse", "om-index", "rindex", "gooi", "roll", "wortels", "roots", "roteer", "rotate", "rond-af", "round", "ieder-een", "roundrobin", "voer-uit", "run", "zelfde-kast", "samecase", "zelfde-accent", "samemark", "zelfde-met", "samewith", "zeg", "say", "verzameling", "set", "onderuit", "shift", "teken", "sign", "signaal", "signal", "sla-over", "skip", "sla-rest-over", "skip-rest", "slaap", "sleep", "wekker", "sleep-timer", "slaap-tot", "sleep-until", "glip", "slip", "knip", "snip", "spiek", "snitch", "dus", "so", "sorteer", "sort", "splits-lijst", "splice", "splits-letters", "split", "sdrukf", "sprintf", "spuit", "spurt", "wortel", "sqrt", "plet", "squish", "zo-willekeurig", "srand", "begint-met", "starts-with", "substitueer", "subst", "substr-gelijk", "substr-eq", "slaag", "succeed", "sommeer", "sum", "symbolische-koppeling", "symlink", "staart", "tail", "neem", "take", "neem-rw", "take-rw", "titel-kast", "tc", "titel-onder-kast", "tclc", "knalt-als", "throws-like", "tedoen", "todo", "vertaal", "trans", "trim-vooraan", "trim-leading", "trim-achteraan", "trim-trailing", "kap-af", "truncate", "boven-kast", "uc", "uniek", "unique", "lijkt-niet-als", "unlike", "ontkoppel", "unlink", "onderin", "unshift", "gebruik-ok", "use-ok", "als-nummers", "val", "waarde", "value", "waardes", "values", "waarschuw", "warn", "woord-kast", "wordcase", "woorden", "words", "rits", "zip";
         my $ast := self.ast();
         if %mapping{$ast.simple-identifier()} -> $original {
             RakuAST::Name.from-identifier($original)
@@ -182,7 +182,7 @@ role L10N::NL {
         %mapping{$key} // $key
     }
     method named2str (str $key) {
-        my %mapping = "absoluut", "absolute", "acties", "actions", "voegtoe", "append", "volledig", "completely", "continueer", "continue", "aantal", "count", "datum", "date", "dag", "day", "verwijder", "delete", "elementen", "elems", "vaneinde", "end", "elke", "every", "ui", "ex", "exclusief", "exclusive", "uitputtend", "exhaustive", "verloopt", "expires", "globaal", "global", "uur", "hour", "nk", "i", "negeerkast", "ignorecase", "negeeraccent", "ignoremark", "zk", "ii", "s", "k", "sleutel", "key", "sw", "kv", "luister", "listen", "minuut", "minute", "za", "mm", "maand", "month", "naam", "name", "de", "nd", "de", "nth", "uit", "off", "gedeeltelijk", "partial", "delen", "parts", "de", "rd", "vervanging", "replacement", "zelfdekast", "samecase", "zelfdeaccent", "samemark", "zelfdespatie", "samespace", "seconde", "second", "seconden", "seconds", "grootte", "size", "drukplat", "squash", "zs", "ss", "ste", "st", "de", "th", "herhalingen", "times", "tijdzone", "timezone", "w", "v", "waarde", "value", "waar", "where", "keer", "x", "jaar", "year";
+        my %mapping = "absoluut", "absolute", "acties", "actions", "voegtoe", "append", "vangfout", "catch", "kap-regeleinde", "chomp", "sluit", "close", "commando", "command", "volledig", "completely", "continueer", "continue", "controle", "control", "aantal", "count", "maak-aan", "create", "maak-nieuw-aan", "createonly", "datum", "date", "dag", "day", "vrijheidsgraad", "degree", "verwijder", "delete", "elementen", "elems", "cod", "enc", "codering", "encoding", "vaneinde", "end", "elke", "every", "ui", "ex", "exclusief", "exclusive", "uitputtend", "exhaustive", "verloopt", "expires", "familie", "family", "bestandsnaam", "filename", "globaal", "global", "uur", "hour", "nk", "i", "negeerkast", "ignorecase", "negeeraccent", "ignoremark", "zk", "ii", "s", "k", "sleutel", "key", "sw", "kv", "luister", "listen", "minuut", "minute", "za", "mm", "maand", "month", "naam", "name", "de", "nd", "de", "nth", "uit", "off", "gedeeltelijk", "partial", "delen", "parts", "poort", "port", "eerste", "primary", "vierde", "quaternary", "de", "rd", "vervanging", "replacement", "zelfdekast", "samecase", "zelfdeaccent", "samemark", "zelfdespatie", "samespace", "seconde", "second", "tweede", "secondary", "seconden", "seconds", "grootte", "size", "drukplat", "squash", "zs", "ss", "ste", "st", "derde", "tertiary", "de", "th", "herhalingen", "times", "tijdzone", "timezone", "kap-af", "truncate", "w", "v", "waarde", "value", "waar", "where", "keer", "x", "jaar", "year";
         %mapping{$key} // $key
     }
     method pragma2str (str $key) {

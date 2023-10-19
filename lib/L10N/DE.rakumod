@@ -1,7 +1,7 @@
 # This file contains the German Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-17T14:10:57+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-19T11:32:57+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::DE {
@@ -176,6 +176,9 @@ role L10N::DE {
     method adverb-pc2str (str $key) {
         my %mapping = "entferne", "delete", "existiert", "exists", "s", "k", "sw", "kv", "w", "v";
         %mapping{$key} // $key
+    }
+    method adverb-q2str (str $key) {
+        $key
     }
     method adverb-rx2str (str $key) {
         my %mapping = "fortsetzen", "continue", "er", "ex", "erschöpfend", "exhaustive", "te", "nd", "te", "nth", "üb", "ov", "überlappung", "overlap", "ratsche", "ratchet", "te", "rd", "te", "st", "bis", "to", "mal", "x";

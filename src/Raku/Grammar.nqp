@@ -225,9 +225,10 @@ role Raku::Common {
                 @keybits.push($_);
             }
             for @extra_tweaks {
-                @keybits.push($_[0] eq 'to'
-                  ?? 'HEREDOC'            # all heredocs share the same lang
-                  !! $_[0] ~ '=' ~ $_[1]  # cannot use nqp::join as [1] is Bool
+                my str $t := self.adverb-q2str($_[0]);
+                @keybits.push($t eq 'to'
+                  ?? 'HEREDOC'         # all heredocs share the same lang
+                  !! $t ~ '=' ~ $_[1]  # cannot use nqp::join as [1] is Bool
                 );
             }
 
@@ -246,7 +247,7 @@ role Raku::Common {
 
             # mixin any extra tweaks
             for @extra_tweaks {
-                my $t := $_[0];
+                my str $t := self.adverb-q2str($_[0]);
                 nqp::can($lang, "tweak_$t")
                   ?? ($lang := $lang."tweak_$t"($_[1]))
                   !! self.panic("Unrecognized adverb: :$t");
@@ -922,6 +923,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     # Convert the given postcircumfix adverb if there is an original name
     # for it.  Otherwise it should just return the adverb unchanged.
     method adverb-pc2str(str $key) { $key }
+
+    # Convert the given quoting adverb if there is an original name
+    # for it.  Otherwise it should just return the adverb unchanged.
+    method adverb-q2str(str $key) { $key }
 
     # Convert the given regex adverb if there is an original name
     # for it.  Otherwise it should just return the adverb unchanged.

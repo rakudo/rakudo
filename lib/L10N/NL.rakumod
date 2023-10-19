@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-18T19:30:13+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-19T11:32:57+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -107,7 +107,7 @@ role L10N::NL {
     token routine-method { methode}
     token routine-regex { regex}
     token routine-rule { regel}
-    token routine-sub { sub}
+    token routine-sub { functie}
     token routine-submethod { submethode}
     token routine-token { token}
     token scope-anon { anoniem}
@@ -175,6 +175,10 @@ role L10N::NL {
     }
     method adverb-pc2str (str $key) {
         my %mapping = "verwijder", "delete", "bestaat", "exists", "s", "k", "sw", "kv", "w", "v";
+        %mapping{$key} // $key
+    }
+    method adverb-q2str (str $key) {
+        my %mapping = "dubbel", "double", "voer-uit", "exec", "functies", "function", "tot-teken", "heredoc", "enkel", "single", "tot", "to", "allomorph", "val", "woorden", "words";
         %mapping{$key} // $key
     }
     method adverb-rx2str (str $key) {

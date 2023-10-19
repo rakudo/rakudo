@@ -13,6 +13,36 @@ adverb-pc-kv      sw
 adverb-pc-p       p
 adverb-pc-v       w
 
+# KEY                TRANSLATION
+#adverb-q-a           a
+#adverb-q-array       array
+#adverb-q-b           b
+#adverb-q-backslash   backslash
+#adverb-q-c           c
+#adverb-q-closure     closure
+adverb-q-double      dubbel
+adverb-q-exec        voer-uit
+#adverb-q-f           f
+adverb-q-function    functies
+#adverb-q-format      format
+#adverb-q-h           h
+#adverb-q-hash        hash
+adverb-q-heredoc     tot-teken
+#adverb-q-o           o
+#adverb-q-q           q
+#adverb-q-qq          qq
+#adverb-q-quotewords  quotewords
+#adverb-q-s           s
+#adverb-q-scalar      scalar
+adverb-q-single      enkel
+adverb-q-to          tot
+#adverb-q-v           v
+adverb-q-val         allomorph
+adverb-q-w           w
+adverb-q-words       woorden
+#adverb-q-ww          ww
+#adverb-q-x           x
+
 # KEY                 TRANSLATION
 adverb-rx-c           c
 adverb-rx-continue    continueer
@@ -642,7 +672,7 @@ prefix-so   wel
 routine-method     methode
 routine-regex      regex
 routine-rule       regel
-routine-sub        sub
+routine-sub        functie
 routine-submethod  submethode
 routine-token      token
 

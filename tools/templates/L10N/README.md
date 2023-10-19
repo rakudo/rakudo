@@ -37,6 +37,9 @@ The following prefixes are currently defined:
 ## adverb-pc
 Core adverbs on postcircumfixes (:exists, :delete, etc.)
 
+## adverb-q
+Quote language adverbs ("to","ww","v", etc.)
+
 ## adverb-rx
 Core adverbs on regexes (:i, :m, :ignorecase, etc.)
 
@@ -75,6 +78,9 @@ Prefix operators with alphanumeric chars ("so","not")
 
 ## phaser
 Types of phasers ("BEGIN","END","CHECK", etc.)
+
+## quote-lang
+Quote language markers ("q","Q","qq", etc.)
 
 ## routine
 Types of named code blocks ("sub","method", etc.)

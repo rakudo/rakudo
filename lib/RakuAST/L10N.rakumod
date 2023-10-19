@@ -12,8 +12,8 @@ use experimental :rakuast;
 
 # Known groups of translation
 my constant %known-groups = <
-  adverb-pc adverb-rx block constraint core infix meta modifier multi
-  named package phaser pragma prefix routine scope stmt-prefix term
+  adverb-pc adverb-q adverb-rx block constraint core infix meta modifier
+  multi named package phaser pragma prefix routine scope stmt-prefix term
   traitmod trait-is typer use
 >.map({ $_ => 1 });
 my constant %sub-groups = <core named>.map({ $_ => 1 });
@@ -348,6 +348,7 @@ my sub slangify($language, %hash) is export {
     my @core;
     my @trait-is;
     my @adverb-pc;
+    my @adverb-q;
     my @adverb-rx;
     my @named;
     my @pragma;
@@ -373,6 +374,11 @@ my sub slangify($language, %hash) is export {
         # It's a postfix adverb
         elsif $name.starts-with('adverb-pc-') {
             accept($string, $name.substr(10), @adverb-pc);
+        }
+
+        # It's a quote adverb
+        elsif $name.starts-with('adverb-q-') {
+            accept($string, $name.substr(9), @adverb-q);
         }
 
         # It's a regex adverb
@@ -401,12 +407,13 @@ my sub slangify($language, %hash) is export {
     }
 
     # Add methods for mappers
-    $statements.add-statement: make-mapper2ast('core2ast',      @core    );
-    $statements.add-statement: make-mapper2ast('trait-is2ast',  @trait-is);
+    $statements.add-statement: make-mapper2ast('core2ast',      @core     );
+    $statements.add-statement: make-mapper2ast('trait-is2ast',  @trait-is );
     $statements.add-statement: make-mapper2str('adverb-pc2str', @adverb-pc);
+    $statements.add-statement: make-mapper2str('adverb-q2str',  @adverb-q );
     $statements.add-statement: make-mapper2str('adverb-rx2str', @adverb-rx);
-    $statements.add-statement: make-mapper2str('named2str',     @named);
-    $statements.add-statement: make-mapper2str('pragma2str',    @pragma);
+    $statements.add-statement: make-mapper2str('named2str',     @named    );
+    $statements.add-statement: make-mapper2str('pragma2str',    @pragma   );
 
     # Wrap the whole thing up in a role with the given name and return it
     RakuAST::Package.new(

@@ -25,6 +25,92 @@ Adverbs on post(circummfix) operators, e.g. `%hash<foo>:delete>`.
 #### adverb-pc-v
 - https://docs.raku.org/language/subscripts#:v
 
+## adverb-q
+
+#### adverb-q-a
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-array
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-b
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-backslash
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-c
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-closure
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-double
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-exec
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-f
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-format
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-function
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-h
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-hash
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-heredoc
+- https://docs.raku.org/language/quoting#Heredocs:_:to
+
+#### adverb-q-o
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-q
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-qq
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-quotewords
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-s
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-scalar
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-single
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-to
+- https://docs.raku.org/language/quoting#Heredocs:_:to
+
+#### adverb-q-v
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-val
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-w
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-words
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-ww
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### adverb-q-x
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
 ## adverb-rx
 Adverbs on regular expressions, e.g. `m:i/ FOO /`.
 

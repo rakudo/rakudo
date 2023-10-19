@@ -11,6 +11,7 @@
 # following type indications exist so far:
 #
 #   adverb-pc    core adverbs on postcircumfixes (:exists, :delete, etc.)
+#   adverb-q     quote language adverbs ("to","ww","v", etc.)
 #   adverb-rx    core adverbs on regexes (:i, :m, :ignorecase, etc.)
 #   block        syntax involving a block
 #   core         sub/method names that are part of the Raku core
@@ -25,6 +26,7 @@
 #   prefix       prefix operators consisting of alphanumeric characters
 #   phaser       types of phasers ("BEGIN","END","CHECK", etc.)
 #   routine      types of named code blocks
+#   quote-lang   quote language markers ("q","Q","qq", etc.)
 #   scope        types of scope ("my","our","state", etc.)
 #   stmt-prefix  statement prefixes ("do","eager","lazy", etc.)
 #   term         terms ("time","now","self",etc.)
@@ -49,6 +51,36 @@ adverb-pc-k       k
 adverb-pc-kv      kv
 adverb-pc-p       p
 adverb-pc-v       v
+
+# KEY                TRANSLATION
+adverb-q-a           a
+adverb-q-array       array
+adverb-q-b           b
+adverb-q-backslash   backslash
+adverb-q-c           c
+adverb-q-closure     closure
+adverb-q-double      double
+adverb-q-exec        exec
+adverb-q-f           f
+adverb-q-format      format
+adverb-q-function    function
+adverb-q-h           h
+adverb-q-hash        hash
+adverb-q-heredoc     heredoc
+adverb-q-o           o
+adverb-q-q           q
+adverb-q-qq          qq
+adverb-q-quotewords  quotewords
+adverb-q-s           s
+adverb-q-scalar      scalar
+adverb-q-single      single
+adverb-q-to          to
+adverb-q-v           v
+adverb-q-val         val
+adverb-q-w           w
+adverb-q-words       words
+adverb-q-ww          ww
+adverb-q-x           x
 
 # KEY                 TRANSLATION
 adverb-rx-c           c

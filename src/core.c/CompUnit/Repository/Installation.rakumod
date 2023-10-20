@@ -51,7 +51,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 ?? $.prefix.add('sources').add($entry{$address}<file>)
                 !! $.prefix.add('resources').add($.meta<files>{$address});
 
-            $file.open(:r)
+            IO::Handle.new(:path($file))
         }
     }
 

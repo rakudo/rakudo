@@ -855,6 +855,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token quote-lang-m  { m  }
     token quote-lang-ms { ms }
+    token quote-lang-q  { q  }
+    token quote-lang-Q  { Q  }
+    token quote-lang-qq { qq }
     token quote-lang-rx { rx }
     token quote-lang-s  { s  }
     token quote-lang-S  { S  }
@@ -4102,8 +4105,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token quote:sym<q> {
+        <.quote-lang-q>
         :my $qm;
-        'q'
         [
           | <quote-modifier>
             {}
@@ -4118,8 +4121,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token quote:sym<qq> {
+        <.quote-lang-qq>
         :my $qm;
-        'qq'
         [
           | <quote-modifier>
             { $qm := $<quote-modifier>.Str }
@@ -4133,8 +4136,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token quote:sym<Q> {
+        <.quote-lang-Q>
         :my $qm;
-        'Q'
         [
           | <quote-modifier>
             { $qm := $<quote-modifier>.Str }

@@ -8,10 +8,8 @@ my class CallFrame {
     ) is implementation-detail {
         nqp::stmts(
           (my int $i = nqp::add_i(level,1)),
-          ($!annotations := nqp::atkey(
-            nqp::atpos(nqp::getattr(bt,List,'$!reified'),$i),
-            'annotations'
-          )),
+          (my $bt := nqp::atpos(nqp::getattr(bt,List,'$!reified'),$i)),
+          ($!annotations := nqp::isnull($bt) ?? $bt !! nqp::atkey($bt,'annotations')),
           (my $ctx := ctx),
           nqp::while(
             nqp::isgt_i(--$i,0),

@@ -2624,27 +2624,50 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method quote:sym<rx>($/) {
         self.attach: $/, Nodify('QuotedRegex').new:
-            body => $<quibble>.ast,
-            adverbs => $<rx-adverbs>.ast;
+          body => $<quibble>.ast,
+          adverbs => $<rx-adverbs>.ast;
     }
 
-    method quote:sym<m>($/) {
+    # Helper sub to codegen matches
+    sub setup-match($/, :$samespace) {
         my @adverbs := $<rx-adverbs>.ast // nqp::list;
-        @adverbs.push(Nodify('ColonPair','True').new("s"))
-          if nqp::elems($/[0]);  # handling ms//
+        @adverbs.push(Nodify('ColonPair','True').new("s")) if $samespace;
 
-        self.attach: $/, Nodify('QuotedRegex').new:
-          :match-immediately, body => $<quibble>.ast, :@adverbs;
+        Nodify('QuotedRegex').new:
+          :match-immediately,
+          body => $<quibble>.ast,
+          :@adverbs
     }
 
+    # Handle all m/// cases
+    method quote:sym<m>($/)  { self.attach: $/, setup-match($/)             }
+    method quote:sym<ms>($/) { self.attach: $/, setup-match($/, :samespace) }
+
+    # Helper sub to codegen substitutions
+    sub setup-substitution($/, *%_) {
+        my $sibble := $<sibble>;
+        Nodify('Substitution').new:
+          adverbs     => $<rx-adverbs>.ast,
+          pattern     => $sibble<left>.ast,
+          infix       => $sibble<infixish>
+            ?? $sibble<infixish>.ast
+            !! Nodify('Infixish'),
+          replacement => $sibble<right>.ast,
+          |%_
+    }
+
+    # Handle all s/// cases
     method quote:sym<s>($/) {
-        self.attach: $/, Nodify('Substitution').new:
-            immutable => $<sym> eq 'S',
-            samespace => ?$/[0],
-            adverbs => $<rx-adverbs>.ast,
-            pattern => $<sibble><left>.ast,
-            infix => $<sibble><infixish> ?? $<sibble><infixish>.ast !! Nodify('Infixish'),
-            replacement => $<sibble><right>.ast;
+        self.attach: $/, setup-substitution($/)
+    }
+    method quote:sym<ss>($/) {
+        self.attach: $/, setup-substitution($/, :samespace)
+    }
+    method quote:sym<S>($/) {
+        self.attach: $/, setup-substitution($/, :immutable)
+    }
+    method quote:sym<Ss>($/) {
+        self.attach: $/, setup-substitution($/, :immutable, :samespace)
     }
 
     # We make a list of the quotepairs to attach them to the regex

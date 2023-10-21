@@ -853,6 +853,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token prefix-so   { so   }
     token prefix-temp { temp }
 
+    token quote-lang-m  { m  }
+    token quote-lang-ms { ms }
+    token quote-lang-rx { rx }
+    token quote-lang-s  { s  }
+    token quote-lang-S  { S  }
+    token quote-lang-ss { ss }
+    token quote-lang-Ss { Ss }
+
     token routine-method    { method    }
     token routine-sub       { sub       }
     token routine-regex     { regex     }
@@ -4163,7 +4171,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
-    token quote:sym</null/> { '/' \s* '/' <.typed-panic: "X::Syntax::Regex::NullRegex"> }
+    token quote:sym</null/> {
+        '/' \s* '/'
+        <.typed-panic: "X::Syntax::Regex::NullRegex">
+    }
+
     token quote:sym</ /> {
         :my %*RX;
         :my $*INTERPOLATE := 1;
@@ -4173,20 +4185,34 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.old-rx-modifiers>?
     }
     token quote:sym<rx>   {
-        <sym>
+        <.quote-lang-rx>
         :my %*RX;
         :my $*INTERPOLATE := 1;
-        {} <.qok($/)>
+        {}  # make sure $/ gets set
+        <.qok($/)>
         <rx-adverbs>
         <quibble(self.Regex(%*RX<P5>))>
         <!old-rx-modifiers>
     }
+
     token quote:sym<m> {
-        <sym> (s)**0..1
+        <.quote-lang-m>
         :my %*RX;
-        :my $*INTERPOLATE := 1;
-        :my $*WHITESPACE_OK := ?$/[0];
-        { %*RX<s> := 1 if $/[0] }
+        :my $*INTERPOLATE   := 1;
+        :my $*WHITESPACE_OK := 0;
+        {}  # make sure $/ gets set
+        <.qok($/)>
+        <rx-adverbs>
+        <quibble(self.Regex(%*RX<P5>))>
+        <!old-rx-modifiers>
+    }
+
+    token quote:sym<ms> {
+        <.quote-lang-ms>
+        :my %*RX;
+        :my $*INTERPOLATE   := 1;
+        :my $*WHITESPACE_OK := 1;
+        { %*RX<s> := 1 }
         <.qok($/)>
         <rx-adverbs>
         <quibble(self.Regex(%*RX<P5>))>
@@ -4194,11 +4220,47 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token quote:sym<s> {
-        <sym=[Ss]> (s)**0..1
+        <.quote-lang-s>
         :my %*RX;
-        :my $*INTERPOLATE := 1;
-        :my $*WHITESPACE_OK := ?$/[0];
-        { %*RX<s> := 1 if $/[0] }
+        :my $*INTERPOLATE   := 1;
+        :my $*WHITESPACE_OK := 0;
+        {}  # make sure $/ gets set
+        <.qok($/)>
+        <rx-adverbs>
+        <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>
+        [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
+    }
+
+    token quote:sym<ss> {
+        <.quote-lang-ss>
+        :my %*RX;
+        :my $*INTERPOLATE   := 1;
+        :my $*WHITESPACE_OK := 1;
+        { %*RX<s> := 1 }
+        <.qok($/)>
+        <rx-adverbs>
+        <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>
+        [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
+    }
+
+    token quote:sym<S> {
+        <.quote-lang-S>
+        :my %*RX;
+        :my $*INTERPOLATE   := 1;
+        :my $*WHITESPACE_OK := 0;
+        {}  # make sure $/ gets set
+        <.qok($/)>
+        <rx-adverbs>
+        <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>
+        [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
+    }
+
+    token quote:sym<Ss> {
+        <.quote-lang-Ss>
+        :my %*RX;
+        :my $*INTERPOLATE   := 1;
+        :my $*WHITESPACE_OK := 1;
+        { %*RX<s> := 1 }
         <.qok($/)>
         <rx-adverbs>
         <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>

@@ -704,49 +704,49 @@ stmt-prefix-try      versuche
 
 # KEY      TRANSLATION
 term-nano  nano
-term-now   jetzt
+term-now   most
 term-pi    pi
-term-rand  zufällig
-term-self  selbst
+term-rand  véletlen
+term-self  maga
 term-tau   tau
-term-time  zeit
+term-time  idő
 
 # KEY                           TRANSLATION
 #trait-is-built                  built
-trait-is-copy                   kopie
-trait-is-default                standard
-trait-is-DEPRECATED             VERALTET
-trait-is-equiv                  äquivalent
+trait-is-copy                   másolat
+trait-is-default                alapvető
+trait-is-DEPRECATED             ELAVULT
+trait-is-equiv                  ekvivalens
 trait-is-export                 export
 #trait-is-hidden-from-backtrace  hidden-from-backtrace
 #trait-is-hidden-from-USAGE      hidden-from-USAGE
-trait-is-implementation-detail  implementierungsdetail
-trait-is-looser                 lockerer
-#trait-is-nodal                  nodal
-trait-is-pure                   rein
-trait-is-raw                    roh
-trait-is-rw                     lesen-schreiben
+trait-is-implementation-detail  implementációs-részlet
+trait-is-looser                 lazább
+#trait-is-nodal                  nodális
+trait-is-pure                   tiszta
+trait-is-raw                    nyers
+trait-is-rw                     írható-olvasható
 #trait-is-test-assertion         test-assertion
-trait-is-tighter                enger
+trait-is-tighter                szűkebb
 
 # KEY             TRANSLATION
-traitmod-does     macht
-traitmod-handles  versteht
-traitmod-hides    versteckt
-traitmod-is       ist
-traitmod-of       wie
-traitmod-returns  returns
-traitmod-trusts   vertraut
+traitmod-does     csinál
+traitmod-handles  kezel
+traitmod-hides    elrejt
+traitmod-is       ez
+traitmod-of       ebből
+traitmod-returns  visszatér
+traitmod-trusts   megbízik
 
 # KEY         TRANSLATION
 #typer-enum    enum
-#typer-subset  subset
+#typer-subset  részhalmaz
 
 # KEY        TRANSLATION
-use-import   importiere
-use-need     braucht
-use-no       kein
+use-import   importál
+use-need     szükséges
+use-no       nincs
 #use-require  require
-use-use      verwende
+use-use      használ
 
 # vim: expandtab shiftwidth=4

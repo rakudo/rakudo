@@ -1,7 +1,7 @@
-# This file contains that German translation of features of the
+# This file contains that Hungarian translation of features of the
 # Raku Programming Language.
 #
-# CONTRIBUTORS: Elizabeth Mattijsen
+# CONTRIBUTORS: Polgár Márton (Martin Burger)
 #
 # See tools/build/L10N/README.md for more explanation.
 
@@ -44,26 +44,26 @@ adverb-pc-v       é
 #adverb-q-x           x
 
 # KEY                 TRANSLATION
-adverb-rx-c           c
-adverb-rx-continue    fortsetzen
-adverb-rx-ex          er
-adverb-rx-exhaustive  erschöpfend
+adverb-rx-c           f
+adverb-rx-continue    folytat
+adverb-rx-ex          kim
+adverb-rx-exhaustive  kimerítő
 adverb-rx-g           g
-adverb-rx-global      global
+adverb-rx-global      globális
 #adverb-rx-i           i
 #adverb-rx-ignorecase  ignorecase
 #adverb-rx-ignoremark  ignoremark
 #adverb-rx-ii          ii
 #adverb-rx-m           m
 #adverb-rx-mm          mm
-adverb-rx-nd          te
-adverb-rx-nth         te
-adverb-rx-ov          üb
-adverb-rx-overlap     überlappung
+adverb-rx-nd          odik
+adverb-rx-nth         edik
+adverb-rx-ov          átf
+adverb-rx-overlap     átfedés
 adverb-rx-p           p
-adverb-rx-pos         pos
+adverb-rx-pos         poz
 #adverb-rx-r           r
-adverb-rx-ratchet     ratsche
+adverb-rx-ratchet     racsni
 adverb-rx-rd          te
 #adverb-rx-s           s
 #adverb-rx-samecase    samecase
@@ -71,37 +71,37 @@ adverb-rx-rd          te
 #adverb-rx-samespace   samespace
 #adverb-rx-sigspace    sigspace
 #adverb-rx-ss          ss
-adverb-rx-st          te
-adverb-rx-to          bis
-adverb-rx-x           mal
+adverb-rx-st          ödik
+adverb-rx-to          ig
+adverb-rx-x           szer
 
 # KEY           TRANSLATION
-block-default   standard
-block-else      sonst
-block-elsif     sonstwenn
-block-for       füralle
-block-given     gegeben
-block-if        wenn
-block-loop      schleife
-block-orwith    odermit
-block-repeat    wiederhole
-block-unless    wennnicht
+block-default   alapból
+block-else      különben
+block-elsif     különbenha
+block-for       ezekre
+block-given     adva
+block-if        ha
+block-loop      ciklus
+block-orwith    vagyezzel
+block-repeat    ismétel
+block-unless    kivéveha
 block-until     bis
-block-when      wann
-block-whenever  wannimmer
-block-while     solange
-block-with      mit
-block-without   ohne
+block-when      amikor
+block-whenever  valahányszor
+block-while     amíg
+block-with      ezzel
+block-without   enélkül
 
 # KEY             TRANSLATION
-constraint-where  wo
+constraint-where  ahol
 
 # KEY                  TRANSLATION
 core-abs               abs
-core-all               alle
+core-all               mind
 core-antipairs         antipare
-core-any               beliebig
-core-append            anhängen
+core-any               bármelyik
+core-append            hozzáfűz
 #core-ast               ast
 #core-atomic-add-fetch  atomic-add-fetch
 #core-atomic-assign     atomic-assign
@@ -113,7 +113,7 @@ core-append            anhängen
 #core-atomic-fetch-sub  atomic-fetch-sub
 #core-atomic-inc-fetch  atomic-inc-fetch
 #core-atomic-sub-fetch  atomic-sub-fetch
-core-await             warte
+core-await             kivár
 
 # KEY          TRANSLATION
 core-bag       tasche

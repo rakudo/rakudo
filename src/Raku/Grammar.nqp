@@ -133,19 +133,21 @@ role Raku::Common {
     }
 
     method quote-q($opener = "'", $closer = "'") {
-        self.quote-lang(self.Quote, $opener, $closer, ['q'])
+        self.quote-lang(self.Quote, $opener, $closer, 'q')
     }
 
     method quote-qq($opener = '"', $closer = '"') {
-        self.quote-lang(self.Quote, $opener, $closer, ['qq'])
+        self.quote-lang(self.Quote, $opener, $closer, 'qq')
     }
 
     method quote-qw() {
-        self.quote-lang(self.Quote, "<", ">", ['q', 'w', 'v'])
+        self.quote-lang(self.Quote, "<", ">", 'q', [['w',1], ['v',1]])
     }
 
     method quote-qqw($opener = "<<", $closer = ">>") {
-        self.quote-lang(self.Quote, $opener, $closer, ['qq', 'ww', 'v'])
+        self.quote-lang(
+          self.Quote, $opener, $closer, 'qq', [['ww',1], ['v',1]]
+        )
     }
 
     token opener {
@@ -194,15 +196,21 @@ role Raku::Common {
     # set of base tweaks, and a set of additional tweaks.  For a quote
     # string such as qq:!s/foo bar/.
     method quote-lang(
-      $l,             # grammar class to be used
-      $start,         # the starter string
-      $stop,          # the string marking the end of the quote language
-      @base_tweaks?,  # base tweak, e.g. 'q' for q/foobar/
-      @extra_tweaks?  # :adverbs, 's' in q:s/foobar/, as [key,Bool] lists
+      $l,       # grammar class to be used
+      $start,   # the starter string
+      $stop,    # the string marking the end of the quote language
+      $base?,   # base quote-language, e.g. 'q' for q/foobar/
+      @tweaks?  # :adverbs, 's' in q:s/foobar/, as [key,Bool] lists
     ) {
 
+        # The quote-adverb to string mapper is also used by the RegexGrammar
+        # so we need to take extra actions to transparently work for both
+        # the main language as well as the RegexGrammar.
+        my $adverb-q2str := $*LANG.HOW.find_method($*LANG,"adverb-q2str")
+          if @tweaks;
+
         # Check validity of extra tweaks
-        for @extra_tweaks {
+        for @tweaks {
             my $t := $_[0];
             if $t eq 'o' || $t eq 'format' {
                 unless self.language-revision >= 3 {
@@ -221,11 +229,10 @@ role Raku::Common {
               ?? nqp::join(' ',$stop)
               !! $stop
             );
-            for @base_tweaks {
-                @keybits.push($_);
-            }
-            for @extra_tweaks {
-                my str $t := self.adverb-q2str($_[0]);
+
+            @keybits.push($base) if $base;
+            for @tweaks {
+                my str $t := $adverb-q2str(self, $_[0]);
                 @keybits.push($t eq 'to'
                   ?? 'HEREDOC'         # all heredocs share the same lang
                   !! $t ~ '=' ~ $_[1]  # cannot use nqp::join as [1] is Bool
@@ -240,15 +247,13 @@ role Raku::Common {
             my $lang := self.lang-cursor($l);
             $lang.clone_braid_from(self);
 
-            # mixin all if the base tweaks
-            for @base_tweaks {
-                $lang := $lang."tweak_$_"(1);
-            }
+            # mixin any base tweak other than Q
+            $lang := $lang."tweak_$base"(1) if $base;
 
             # mixin any extra tweaks
-            for @extra_tweaks {
-                my str $t := self.adverb-q2str($_[0]);
-                nqp::can($lang, "tweak_$t")
+            for @tweaks {
+                my str $t := $adverb-q2str(self, $_[0]);
+                nqp::can($lang,"tweak_$t")
                   ?? ($lang := $lang."tweak_$t"($_[1]))
                   !! self.panic("Unrecognized adverb: :$t");
             }
@@ -400,11 +405,11 @@ role Raku::Common {
         <?MARKER('end-statement')>
     }
 
-    token quibble($l, *@base_tweaks) {
+    token quibble($l, $base?, *@tweaks) {
         :my $lang;
         :my $start;
         :my $stop;
-        <babble($l, @base_tweaks)>
+        <babble($l, $base, @tweaks)>
         {
             my $B  := $<babble><B>.ast;
             $lang  := $B[0];
@@ -436,9 +441,7 @@ role Raku::Common {
         }
     }
 
-    token babble($l, @base_tweaks?) {
-        :my @extra_tweaks;
-
+    token babble($l, $base?, @tweaks?) {
         [ <quotepair>
           <.ws>
           {
@@ -446,7 +449,7 @@ role Raku::Common {
               my $k    := $pair.key;
               my $v    := $pair.value;
               nqp::can($v,'compile-time-value')
-                ?? nqp::push(@extra_tweaks, [$k, $v.compile-time-value])
+                ?? nqp::push(@tweaks, [$k, $v.compile-time-value])
                 !! self.panic("Invalid adverb value for "
                      ~ $<quotepair>[-1].Str
                      ~ ': '
@@ -464,7 +467,7 @@ role Raku::Common {
             my $stop   := @delims[1];
 
             # Get the language.
-            my $lang := self.quote-lang($l, $start, $stop, @base_tweaks, @extra_tweaks);
+            my $lang := self.quote-lang($l, $start, $stop, $base, @tweaks);
             $<B>.make([$lang, $start, $stop]);
         }
     }
@@ -4131,12 +4134,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $qm;
         [
           | <quote-modifier>
-            {}
+            {}  # make sure $/ is set
             <.qok($/)>
-            { $qm := $<quote-modifier>.Str }
-            <quibble(self.Quote, 'q', $qm)>
+            { $qm := self.adverb-q2str(~$<quote-modifier>) }
+            <quibble(self.Quote, 'q', [$qm, 1])>
 
-          | {}
+          | {}  # make sure $/ is set
             <.qok($/)>
             <quibble(self.Quote, 'q')>
         ]
@@ -4147,9 +4150,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $qm;
         [
           | <quote-modifier>
-            { $qm := $<quote-modifier>.Str }
+            { $qm := self.adverb-q2str(~$<quote-modifier>) }
             <.qok($/)>
-            <quibble(self.Quote, 'qq', $qm)>
+            <quibble(self.Quote, 'qq', [$qm, 1])>
 
           | {}
             <.qok($/)>
@@ -4162,9 +4165,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $qm;
         [
           | <quote-modifier>
-            { $qm := $<quote-modifier>.Str }
+            { $qm := self.adverb-q2str(~$<quote-modifier>) }
             <.qok($/)>
-            <quibble(self.Quote, $qm)>
+            <quibble(self.Quote, '', [$qm, 1])>
 
           | {}
             <.qok($/)>
@@ -4252,7 +4255,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>
+        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4264,7 +4267,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1 }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>
+        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4276,7 +4279,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>
+        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
@@ -4288,16 +4291,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { %*RX<s> := 1 }
         <.qok($/)>
         <rx-adverbs>
-        <sibble(self.Regex(%*RX<P5>), self.Quote, ['qq'])>
+        <sibble(self.Regex(%*RX<P5>), self.Quote, 'qq')>
         [ <?{ $<sibble><infixish> }> || <.old-rx-modifiers>? ]
     }
 
-    token sibble($l, $lang2, @lang2tweaks?) {
+    token sibble($l, $lang2, $base?) {
+        <babble($l)>
+
         :my $lang;
         :my $start;
         :my $stop;
-
-        <babble($l)>
         {
             my $B  := $<babble><B>.ast;
             $lang  := $B[0];
@@ -4307,7 +4310,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         $start
         <left=.nibble($lang)>
-        [ $stop || { self.fail-terminator: $/, $start, $stop } ]
+
+        [    $stop
+          || { self.fail-terminator: $/, $start, $stop }
+        ]
+
         [ <?{ $start ne $stop }>
           <.ws>
           [ <?[ \[ \{ \( \< ]>
@@ -4322,8 +4329,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           <.ws>
           [ <right=.EXPR('i')>
               || <.panic: "Assignment operator missing its expression">
-          ] || {
-                $lang := self.quote-lang($lang2, $stop, $stop, @lang2tweaks)
+          ]
+            || {
+                $lang := self.quote-lang($lang2, $stop, $stop, $base)
             }
             <right=.nibble($lang)>
             $stop || <.malformed: "Replacement part; couldn't find final $stop">
@@ -5823,7 +5831,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
         '<'
-        <nibble(self.quote-lang(self.Quote, "<", ">", ['q', 'w']))>
+        <nibble(self.quote-lang(self.Quote, "<", ">", 'q', [['w', 1],]))>
         '>'
         <.SIGOK>
     }

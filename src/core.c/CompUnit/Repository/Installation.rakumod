@@ -31,8 +31,8 @@ __END__
 /;
 
     my constant $raku-wrapper = '#!/usr/bin/env #raku#
-sub MAIN(:$name, :$auth, :$ver, *@, *%) {
-    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
+sub MAIN(*@, *%) {
+    CompUnit::RepositoryRegistry.run-script("#name#");
 }';
 
 

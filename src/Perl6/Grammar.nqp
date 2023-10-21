@@ -3472,13 +3472,13 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token quote_mod:sym<w>  { <sym> }
     token quote_mod:sym<ww> { <sym> }
     token quote_mod:sym<x>  { <sym> }
-    token quote_mod:sym<to> { <sym> }
-    token quote_mod:sym<s>  { <sym> }
-    token quote_mod:sym<a>  { <sym> }
-    token quote_mod:sym<h>  { <sym> }
-    token quote_mod:sym<f>  { <sym> }
-    token quote_mod:sym<c>  { <sym> }
-    token quote_mod:sym<b>  { <sym> }
+#    token quote_mod:sym<to> { <sym> }
+#    token quote_mod:sym<s>  { <sym> }
+#    token quote_mod:sym<a>  { <sym> }
+#    token quote_mod:sym<h>  { <sym> }
+#    token quote_mod:sym<f>  { <sym> }
+#    token quote_mod:sym<c>  { <sym> }
+#    token quote_mod:sym<b>  { <sym> }
 
     proto token quote { <...> }
     token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(self.slang_grammar('Quote'), "'", "'", ['q']))> }

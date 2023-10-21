@@ -1,0 +1,445 @@
+# This file contains that French "translation" of features of the
+# Raku Programming Language.
+#
+# CONTRIBUTORS: Lucien Grondin
+#
+# See tools/build/L10N/README.md for more explanation.
+
+# KEY           TRANSLATION
+block-default   défaut
+block-else      sinon
+block-elsif     ousi
+block-for       pour
+block-given     étantdonné
+block-if        si
+block-loop      boucle
+block-orwith    ouavec
+block-repeat    répète
+block-unless    saufsi
+block-until     jusqua
+block-when      quand
+block-whenever  lorsque
+block-while     tantque
+block-with      avec
+block-without   sans
+
+# KEY             TRANSLATION
+constraint-where  où
+
+# KEY                  TRANSLATION
+core-abs               abs
+core-all               tout
+core-any               nimporte
+core-append            ajoute
+core-ast               asa
+#core-atomic-add-fetch  atomic-add-fetch
+#core-atomic-assign     atomic-assign
+#core-atomic-dec-fetch  atomic-dec-fetch
+#core-atomic-fetch      atomic-fetch
+#core-atomic-fetch-add  atomic-fetch-add
+#core-atomic-fetch-dec  atomic-fetch-dec
+#core-atomic-fetch-inc  atomic-fetch-inc
+#core-atomic-fetch-sub  atomic-fetch-sub
+#core-atomic-inc-fetch  atomic-inc-fetch
+#core-atomic-sub-fetch  atomic-sub-fetch
+core-await             attends
+
+# KEY          TRANSLATION
+core-bag       sac
+core-bail-out  escampe
+core-bless     bénit
+
+# KEY              TRANSLATION
+#core-callframe     callframe
+core-callsame      appelmeme
+core-callwith      appelavec
+core-can-ok        peut-passable
+#core-cas           cas
+core-categorize    categorize
+core-ceiling       plafond
+core-chars         cars
+core-chdir         chrep
+#core-chmod         chmod
+#core-chomp         chomp
+#core-chop          chop
+#core-chown         chown
+#core-chr           chr
+#core-chrs          chrs
+core-classify      classifie
+core-close         ferm
+#core-cmp-ok        cmp-ok
+#core-comb          comb
+core-combinations  combinaisons
+#core-cross         cross
+
+# KEY         TRANSLATION
+core-deepmap  deepmap
+core-defined  défini
+core-diag     diag
+core-die      meurs
+core-dies-ok  meurt-passable
+core-dir      rep
+core-does-ok  fait-passable
+core-done     fait
+#core-duckmap  duckmap
+
+# KEY               TRANSLATION
+core-elems          élems
+core-emit           émit
+core-end            fin
+#core-eval-dies-ok   eval-dies-ok
+#core-eval-lives-ok  eval-lives-ok
+core-exit           sortie
+core-exp            exp
+core-expmod         expmod
+
+# KEY              TRANSLATION
+core-fail          échoue
+#core-fails-like    fails-like
+#core-fc            fc
+core-first         premier
+core-flat          applati
+core-flip          retourne
+core-floor         plancher
+core-flunk         rate
+core-full-barrier  barrière-totale
+
+# KEY      TRANSLATION
+#core-get   get
+#core-getc  getc
+#core-gist  gist
+#core-grep  grep
+
+# KEY      TRANSLATION
+core-hash  dict
+core-head  tête
+
+# KEY           TRANSLATION
+core-indent     indent
+core-index      index
+core-indices    indices
+core-indir      indir
+core-is         est
+core-isnt       nestpas
+core-isa-ok     estun-passable
+core-is-approx  est-environ
+core-is-deeply  est-profondément
+core-item       article
+
+# KEY      TRANSLATION
+core-join  joins
+
+# KEY      TRANSLATION
+core-key   clef
+core-keys  clefs
+core-kv    cv
+
+# KEY          TRANSLATION
+core-last      dernier
+core-lastcall  dernierappel
+core-lc        mi
+core-like      comme
+core-lines     lignes
+core-link      lien
+core-list      liste
+core-lives-ok  vit-passable
+core-lsb       bms
+
+# KEY        TRANSLATION
+core-make    fais
+#core-map     map
+core-max     max
+core-min     min
+core-minmax  minmax
+core-mix     mix
+core-mkdir   mkrep
+core-move    bouge
+core-msb     bps
+
+# KEY            TRANSLATION
+core-next        suivant
+core-nextcallee  suivantappelé
+core-nextsame    suivantmeme
+core-nextwith    suivantavec
+core-none        aucun
+core-nok         nonpassable
+core-not         pas
+core-note        note
+
+# KEY      TRANSLATION
+core-ok    passable
+core-one   un
+core-open  ouvre
+core-ord   ord
+core-ords  ords
+
+# KEY              TRANSLATION
+core-pair          paire
+core-pairs         paires
+core-parse-base    parse-base
+core-pass          passe
+core-permutations  permutations
+core-pick          choisis
+core-plan          plan
+core-pop           éclos
+core-prepend       préfixe
+core-print         imprime
+core-printf        imprimef
+core-proceed       poursuis
+core-prompt        demande
+core-push          pousse
+core-put           mets
+
+# KEY            TRANSLATION
+core-rand        rand
+core-redo        refais
+core-reduce      réduis
+core-repeated    répété
+core-repl        repl
+core-return      renvoie
+core-return-rw   renvoie-le
+core-reverse     renverse
+core-rindex      rindex
+core-rmdir       sprep
+core-roll        tire
+core-rotate      tourne
+core-round       rond
+core-roundrobin  tourniquet
+core-run         lance
+
+# KEY             TRANSLATION
+core-samecase     memecasse
+core-samemark     samediac
+core-samewith     memeavec
+core-say          dis
+core-set          ens
+core-shell        coque
+core-shift        décale
+core-sign         signe
+core-signal       signale
+core-skip         omets
+core-skip-rest    omets-reste
+core-sleep        dors
+core-sleep-timer  dors-minuteur
+core-sleep-until  dors-jusquà
+core-slip         enfile
+core-slurp        engloutis
+core-snip         découpe
+core-snitch       dénonce
+core-so           donc
+core-sort         trie
+core-splice       noue
+core-split        coupe
+core-sprintf      cimprmf
+core-spurt        gicle
+core-sqrt         racc
+core-squish       squish
+core-srand        srand
+core-subbuf       soustampon
+core-subbuf-rw    soustampon-le
+core-subtest      soustest
+core-succeed      réussis
+core-sum          somme
+core-symlink      liensymb
+
+# KEY               TRANSLATION
+core-tail           queue
+core-take           prends
+core-take-rw        prends-le
+core-tc             tc
+core-tclc           tclc
+core-throws-like    jete-comme
+core-todo           àfaire
+core-trim           rogne
+core-trim-leading   rogne-gauche
+core-trim-trailing  rogne-droite
+core-truncate       tronque
+
+# KEY          TRANSLATION
+core-uc        ma
+#core-unimatch  unimatch
+#core-uniname   uniname
+#core-uninames  uninames
+#core-uniparse  uniparse
+#core-uniprop   uniprop
+#core-uniprops  uniprops
+#core-unique    unique
+#core-unival    unival
+#core-univals   univals
+#core-unlike    unlike
+#core-unlink    unlink
+#core-unshift   unshift
+#core-use-ok    use-ok
+
+# KEY        TRANSLATION
+core-val     val
+core-value   value
+core-values  values
+
+# KEY          TRANSLATION
+core-warn      préviens
+core-wordcase  motcasse
+core-words     mots
+
+# KEY     TRANSLATION
+#core-zip  zip
+
+# KEY             TRANSLATION
+infix-after       après
+infix-and         et
+infix-andthen     etalors
+infix-before      avant
+infix-but         mais
+#infix-cmp         cmp
+#infix-coll        coll
+infix-div         div
+infix-does        fait
+infix-eq          eq
+infix-ff          ff
+infix-fff         fff
+infix-gcd         pgcd
+infix-ge          pge
+infix-gt          pg
+infix-le          ppe
+infix-lcm         ppcm
+infix-leg         ppepg
+infix-lt          pp
+infix-max         max
+infix-min         min
+infix-minmax      minmax
+infix-mod         mod
+infix-ne          pe
+infix-notandthen  pasetalors
+infix-o           o
+infix-or          ou
+infix-orelse      oualors
+#infix-unicmp      unicmp
+#infix-x           x
+#infix-X           X
+#infix-xx          xx
+#infix-Z           Z
+#infix-ff^         ff^
+#infix-fff^        fff^
+#infix-(cont)      (cont)
+#infix-(elem)      (elem)
+#infix-^ff         ^ff
+#infix-^fff        ^fff
+#infix-^ff^        ^ff^
+#infix-^fff^       ^fff^
+
+# KEY             TRANSLATION
+meta-R  R
+meta-X  X
+meta-Z  Z
+
+# KEY             TRANSLATION
+modifier-for      pour
+modifier-given    étantdonné
+modifier-if       si
+modifier-unless   saufsi
+modifier-until    jusquà
+modifier-when     quand
+modifier-while    tansque
+modifier-with     avec
+modifier-without  sans
+
+# KEY        TRANSLATION
+multi-multi  multi
+multi-only   seulement
+multi-proto  proto
+
+# KEY            TRANSLATION
+package-class    class
+package-grammar  grammaire
+#package-knowhow  knowhow
+package-module   module
+package-native   natif
+package-package  paquet
+package-role     rôle
+
+# KEY           TRANSLATION
+phaser-BEGIN    DÉBUT
+phaser-CATCH    CATCH
+phaser-CHECK    VERIF
+phaser-CLOSE    FERM
+phaser-CONTROL  CONTROLE
+phaser-DOC      DOC
+phaser-END      FIN
+phaser-ENTER    ENTRÉE
+phaser-FIRST    DABORD
+phaser-INIT     INIT
+phaser-KEEP     GARDE
+phaser-LAST     FINAL
+phaser-LEAVE    SORS
+phaser-NEXT     SUIVANT
+phaser-PRE      PRE
+phaser-POST     POST
+phaser-QUIT     QUITTE
+phaser-UNDO     DÉFAIRE
+
+# KEY       TRANSLATION
+prefix-not  pas
+prefix-so   donc
+
+# KEY              TRANSLATION
+routine-method     méthode
+routine-sub        sub
+routine-regex      regex
+routine-rule       règle
+routine-submethod  sousméthode
+routine-token      jeton
+
+# KEY            TRANSLATION
+scope-anon       anon
+scope-augment    augmente
+scope-constant   constante
+scope-has        a
+scope-HAS        A
+scope-my         ma
+scope-our        notre
+scope-state      state
+scope-supersede  supplante
+scope-unit       unité
+
+# KEY                 TRANSLATION
+stmt-prefix-also      aussi
+stmt-prefix-do        fait
+stmt-prefix-eager     impatient
+stmt-prefix-gather    collecte
+stmt-prefix-hyper     hyper
+stmt-prefix-lazy      nonchalamment
+stmt-prefix-quietly   silencieusement
+stmt-prefix-race      course
+stmt-prefix-react     réagis
+stmt-prefix-sink      plonge
+stmt-prefix-start     commence
+stmt-prefix-supply    fournis
+stmt-prefix-try       essaie
+
+# KEY      TRANSLATION
+term-self  sois
+term-nano  nano
+term-now   maintenant
+term-rand  rand
+term-time  temps
+
+# KEY             TRANSLATION
+traitmod-does     fait
+traitmod-handles  gère
+traitmod-hides    dissimule
+traitmod-is       est
+traitmod-of       de
+traitmod-returns  renvoie
+
+# KEY         TRANSLATION
+typer-enum    énum
+typer-subset  sousens
+
+# KEY        TRANSLATION
+use-import   importe
+use-need     abesoin
+use-no       non
+use-require  requiert
+use-use      utilise
+
+# vim: expandtab shiftwidth=4

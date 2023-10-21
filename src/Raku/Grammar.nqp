@@ -3775,7 +3775,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         :my $*IN-DECL := 'rule';
-        :my $*WHITESPACE_OK := 1;
+        :my $*WHITESPACE-OK := 1;
         <regex-def>
     }
 
@@ -4199,7 +4199,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-m>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE_OK := 0;
+        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
@@ -4211,7 +4211,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-ms>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE_OK := 1;
+        :my $*WHITESPACE-OK := 1;
         { %*RX<s> := 1 }
         <.qok($/)>
         <rx-adverbs>
@@ -4223,7 +4223,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-s>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE_OK := 0;
+        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
@@ -4235,7 +4235,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-ss>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE_OK := 1;
+        :my $*WHITESPACE-OK := 1;
         { %*RX<s> := 1 }
         <.qok($/)>
         <rx-adverbs>
@@ -4247,7 +4247,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-S>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE_OK := 0;
+        :my $*WHITESPACE-OK := 0;
         {}  # make sure $/ gets set
         <.qok($/)>
         <rx-adverbs>
@@ -4259,7 +4259,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.quote-lang-Ss>
         :my %*RX;
         :my $*INTERPOLATE   := 1;
-        :my $*WHITESPACE_OK := 1;
+        :my $*WHITESPACE-OK := 1;
         { %*RX<s> := 1 }
         <.qok($/)>
         <rx-adverbs>
@@ -5866,7 +5866,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         [
           | \w
           [ <?before ' ' \w <!before <.quantifier> > >
-            <!{ $*WHITESPACE_OK }>
+            <!{ $*WHITESPACE-OK }>
             <.typed-worry: 'X::Syntax::Regex::InsignificantWhitespace'>
           ]?
           <.SIGOK>

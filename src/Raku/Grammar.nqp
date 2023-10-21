@@ -382,8 +382,22 @@ role Raku::Common {
     }
 
     token cheat-heredoc {
+        <?{ nqp::elems($*CU.herestub-queue) }>
+        \h*
+        <[ ; } ]>
+        \h*
+        <?before \n | '#'>
+
+        :my $R;
         :my $scope;
-        <?{ nqp::elems($*CU.herestub-queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> { $scope := $*R.current-scope; $*R.leave-scope; } <.ws> { $*R.enter-scope($scope) } <?MARKER('end-statement')>
+        {
+            $R     := $*R;
+            $scope := $R.current-scope;
+            $R.leave-scope;
+        }
+        <.ws>
+        { $R.enter-scope($scope) }
+        <?MARKER('end-statement')>
     }
 
     token quibble($l, *@base_tweaks) {
@@ -391,55 +405,63 @@ role Raku::Common {
         :my $start;
         :my $stop;
         <babble($l, @base_tweaks)>
-        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
-
+        {
+            my $B  := $<babble><B>.ast;
+            $lang  := $B[0];
+            $start := $B[1];
+            $stop  := $B[2];
+        }
         $start
         <nibble($lang)>
         [
-        || $stop
-        || {
-            self.fail-terminator($/, $start, $stop,
-                HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from(), :cache(1)))
-           }
+          || $stop
+
+          || {
+                 my $B := $<babble><B>;
+                 self.fail-terminator($/, $start, $stop,
+                   HLL::Compiler.lineof($B.orig(), $B.from(), :cache(1))
+                 );
+             }
         ]
 
         {
-            nqp::can($lang, 'herelang') && $*CU.queue-heredoc(
-                Herestub.new(
-                    :delim(
-                        $<nibble>.ast.literal-value
-                        // $/.panic("Stopper '" ~ $<nibble> ~ "' too complex for heredoc")
-                    ),
-                    :grammar($lang.herelang),
-                    :orignode(self),
-                )
-            );
+            if nqp::can($lang,'herelang') {
+                my $delim := $<nibble>.ast.literal-value // $/.panic(
+                  "Stopper '" ~ $<nibble> ~ "' too complex for heredoc"
+                );
+                $*CU.queue-heredoc(Herestub.new(
+                  :$delim, :grammar($lang.herelang), :orignode(self)
+                ));
+            }
         }
     }
 
     token babble($l, @base_tweaks?) {
         :my @extra_tweaks;
 
-        [ <quotepair> <.ws>
-            {
-                my $pair := $<quotepair>[-1].ast;
-                my $k  := $pair.key;
-                my $v := $pair.value;
-                unless nqp::can($v, 'compile-time-value') {
-                    self.panic("Invalid adverb value for " ~ $<quotepair>[-1].Str ~ ': ' ~ $v.HOW.name($v));
-                }
-                $v := $v.compile-time-value;
-                nqp::push(@extra_tweaks, [$k, $v]);
-            }
+        [ <quotepair>
+          <.ws>
+          {
+              my $pair := $<quotepair>[-1].ast;
+              my $k    := $pair.key;
+              my $v    := $pair.value;
+              nqp::can($v,'compile-time-value')
+                ?? nqp::push(@extra_tweaks, [$k, $v.compile-time-value])
+                !! self.panic("Invalid adverb value for "
+                     ~ $<quotepair>[-1].Str
+                     ~ ': '
+                     ~ $v.HOW.name($v)
+                   );
+          }
         ]*
 
         $<B>=[<?before .>]
         {
             # Work out the delimiters.
-            my $c := $/;
+            my $c      := $/;
             my @delims := $c.peek_delimiters($c.target, $c.pos);
-            my $start := @delims[0];
-            my $stop  := @delims[1];
+            my $start  := @delims[0];
+            my $stop   := @delims[1];
 
             # Get the language.
             my $lang := self.quote-lang($l, $start, $stop, @base_tweaks, @extra_tweaks);

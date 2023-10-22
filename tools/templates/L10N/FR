@@ -5,6 +5,76 @@
 #
 # See tools/build/L10N/README.md for more explanation.
 
+# KEY             TRANSLATION
+#adverb-pc-delete  delete
+#adverb-pc-exists  exists
+#adverb-pc-k       k
+#adverb-pc-kv      kv
+#adverb-pc-p       p
+#adverb-pc-v       v
+
+# KEY                TRANSLATION
+#adverb-q-a           a
+#adverb-q-array       array
+#adverb-q-b           b
+#adverb-q-backslash   backslash
+#adverb-q-c           c
+#adverb-q-closure     closure
+#adverb-q-double      double
+#adverb-q-exec        exec
+#adverb-q-f           f
+#adverb-q-format      format
+#adverb-q-function    function
+#adverb-q-h           h
+#adverb-q-hash        hash
+#adverb-q-heredoc     heredoc
+#adverb-q-o           o
+#adverb-q-q           q
+#adverb-q-qq          qq
+#adverb-q-quotewords  quotewords
+#adverb-q-s           s
+#adverb-q-scalar      scalar
+#adverb-q-single      single
+#adverb-q-to          to
+#adverb-q-v           v
+#adverb-q-val         val
+#adverb-q-w           w
+#adverb-q-words       words
+#adverb-q-ww          ww
+#adverb-q-x           x
+
+# KEY                 TRANSLATION
+#adverb-rx-c           c
+#adverb-rx-continue    continue
+#adverb-rx-ex          ex
+#adverb-rx-exhaustive  exhaustive
+#adverb-rx-g           g
+#adverb-rx-global      global
+#adverb-rx-i           i
+#adverb-rx-ignorecase  ignorecase
+#adverb-rx-ignoremark  ignoremark
+#adverb-rx-ii          ii
+#adverb-rx-m           m
+#adverb-rx-mm          mm
+#adverb-rx-nd          nd
+#adverb-rx-nth         nth
+#adverb-rx-ov          ov
+#adverb-rx-overlap     overlap
+#adverb-rx-p           p
+#adverb-rx-pos         pos
+#adverb-rx-r           r
+#adverb-rx-ratchet     ratchet
+#adverb-rx-rd          rd
+#adverb-rx-s           s
+#adverb-rx-samecase    samecase
+#adverb-rx-samemark    samemark
+#adverb-rx-samespace   samespace
+#adverb-rx-sigspace    sigspace
+#adverb-rx-ss          ss
+#adverb-rx-st          st
+#adverb-rx-to          to
+#adverb-rx-x           x
+
 # KEY           TRANSLATION
 block-default   défaut
 block-else      sinon
@@ -29,6 +99,7 @@ constraint-where  où
 # KEY                  TRANSLATION
 core-abs               abs
 core-all               tout
+#core-antipairs         antipairs
 core-any               nimporte
 core-append            ajoute
 core-ast               asa
@@ -68,11 +139,15 @@ core-chdir         chrep
 core-classify      classifie
 core-close         ferm
 #core-cmp-ok        cmp-ok
+#core-codes         codes
 #core-comb          comb
 core-combinations  combinaisons
+#core-conj          conj
+#core-contains      contains
 #core-cross         cross
 
 # KEY         TRANSLATION
+#core-decode   decode
 core-deepmap  deepmap
 core-defined  défini
 core-diag     diag
@@ -81,12 +156,14 @@ core-dies-ok  meurt-passable
 core-dir      rep
 core-does-ok  fait-passable
 core-done     fait
-#core-duckmap  duckmap
+core-duckmap  duckmap
 
 # KEY               TRANSLATION
 core-elems          élems
 core-emit           émit
+#core-encode         encode
 core-end            fin
+#core-ends-with      ends-with
 #core-eval-dies-ok   eval-dies-ok
 #core-eval-lives-ok  eval-lives-ok
 core-exit           sortie
@@ -102,6 +179,7 @@ core-flat          applati
 core-flip          retourne
 core-floor         plancher
 core-flunk         rate
+core-fmt           fmt
 core-full-barrier  barrière-totale
 
 # KEY      TRANSLATION
@@ -120,10 +198,11 @@ core-index      index
 core-indices    indices
 core-indir      indir
 core-is         est
-core-isnt       nestpas
-core-isa-ok     estun-passable
 core-is-approx  est-environ
 core-is-deeply  est-profondément
+#core-is-prime   is-prime
+core-isa-ok     estun-passable
+core-isnt       nestpas
 core-item       article
 
 # KEY      TRANSLATION
@@ -148,6 +227,7 @@ core-lsb       bms
 # KEY        TRANSLATION
 core-make    fais
 #core-map     map
+#core-match   match
 core-max     max
 core-min     min
 core-minmax  minmax
@@ -157,12 +237,13 @@ core-move    bouge
 core-msb     bps
 
 # KEY            TRANSLATION
+core-new         nouveau
 core-next        suivant
 core-nextcallee  suivantappelé
 core-nextsame    suivantmeme
 core-nextwith    suivantavec
-core-none        aucun
 core-nok         nonpassable
+core-none        aucun
 core-not         pas
 core-note        note
 
@@ -202,6 +283,7 @@ core-reverse     renverse
 core-rindex      rindex
 core-rmdir       sprep
 core-roll        tire
+#core-roots       roots
 core-rotate      tourne
 core-round       rond
 core-roundrobin  tourniquet
@@ -235,8 +317,13 @@ core-spurt        gicle
 core-sqrt         racc
 core-squish       squish
 core-srand        srand
+#core-starts-with  starts-with
 core-subbuf       soustampon
 core-subbuf-rw    soustampon-le
+#core-subst        subst
+#core-substr       substr
+#core-substr-eq    substr-eq
+#core-substr-rw    substr-rw
 core-subtest      soustest
 core-succeed      réussis
 core-sum          somme
@@ -250,13 +337,14 @@ core-tc             tc
 core-tclc           tclc
 core-throws-like    jete-comme
 core-todo           àfaire
+#core-trans          trans
 core-trim           rogne
 core-trim-leading   rogne-gauche
 core-trim-trailing  rogne-droite
 core-truncate       tronque
 
 # KEY          TRANSLATION
-core-uc        ma
+#core-uc        ma
 #core-unimatch  unimatch
 #core-uniname   uniname
 #core-uninames  uninames
@@ -268,6 +356,7 @@ core-uc        ma
 #core-univals   univals
 #core-unlike    unlike
 #core-unlink    unlink
+#core-unpolar   unpolar
 #core-unshift   unshift
 #core-use-ok    use-ok
 
@@ -285,6 +374,12 @@ core-words     mots
 #core-zip  zip
 
 # KEY             TRANSLATION
+infix-(cont)      (cont)
+infix-(elem)      (elem)
+infix-^ff         ^ff
+infix-^ff^        ^ff^
+infix-^fff        ^fff
+infix-^fff^       ^fff^
 infix-after       après
 infix-and         et
 infix-andthen     etalors
@@ -296,12 +391,14 @@ infix-div         div
 infix-does        fait
 infix-eq          eq
 infix-ff          ff
+infix-ff^         ff^
 infix-fff         fff
+infix-fff^        fff^
 infix-gcd         pgcd
 infix-ge          pge
 infix-gt          pg
-infix-le          ppe
 infix-lcm         ppcm
+infix-le          ppe
 infix-leg         ppepg
 infix-lt          pp
 infix-max         max
@@ -318,16 +415,8 @@ infix-orelse      oualors
 #infix-X           X
 #infix-xx          xx
 #infix-Z           Z
-#infix-ff^         ff^
-#infix-fff^        fff^
-#infix-(cont)      (cont)
-#infix-(elem)      (elem)
-#infix-^ff         ^ff
-#infix-^fff        ^fff
-#infix-^ff^        ^ff^
-#infix-^fff^       ^fff^
 
-# KEY             TRANSLATION
+# KEY   TRANSLATION
 meta-R  R
 meta-X  X
 meta-Z  Z
@@ -347,6 +436,191 @@ modifier-without  sans
 multi-multi  multi
 multi-only   seulement
 multi-proto  proto
+
+# KEY           TRANSLATION
+#named-absolute  absolute
+#named-actions   actions
+#named-api       api
+#named-append    append
+#named-arg0      arg0
+#named-args      args
+#named-as        as
+#named-at        at
+#named-auth      auth
+
+# KEY            TRANSLATION
+#named-basename   basename
+#named-batch      batch
+#named-bin        bin
+#named-bleed      bleed
+#named-broadcast  broadcast
+
+# KEY             TRANSLATION
+#named-catch       catch
+#named-check       check
+#named-chomp       chomp
+#named-close       close
+#named-command     command
+#named-complement  complement
+#named-completely  completely
+#named-continue    continue
+#named-control     control
+#named-count       count
+#named-create      create
+#named-createonly  createonly
+#named-cwd         cwd
+#named-CWD         CWD
+
+# KEY           TRANSLATION
+#named-datagram  datagram
+#named-date      date
+#named-day       day
+#named-degree    degree
+#named-delete    delete
+#named-dirname   dirname
+
+# KEY             TRANSLATION
+#named-elems       elems
+#named-emit-timed  emit-timed
+#named-enc         enc
+#named-encoding    encoding
+#named-end         end
+#named-err         err
+#named-every       every
+#named-ex          ex
+#named-exclusive   exclusive
+#named-exhaustive  exhaustive
+#named-expires     expires
+
+# KEY            TRANSLATION
+#named-family     family
+#named-filename   filename
+#named-filter     filter
+#named-formatter  formatter
+
+# KEY         TRANSLATION
+#named-g       g
+#named-gid     gid
+#named-global  global
+
+# KEY       TRANSLATION
+#named-host  host
+#named-hour  hour
+
+# KEY             TRANSLATION
+#named-i           i
+#named-ignorecase  ignorecase
+#named-ignoremark  ignoremark
+#named-ii          ii
+#named-in          in
+#named-into        into
+
+# KEY         TRANSLATION
+#named-joiner  joiner
+
+# KEY      TRANSLATION
+#named-k    k
+#named-key  key
+#named-kv   kv
+
+# KEY            TRANSLATION
+#named-listen     listen
+#named-localhost  localhost
+#named-localport  localport
+
+# KEY         TRANSLATION
+#named-match   match
+#named-merge   merge
+#named-minute  minute
+#named-mm      mm
+#named-mode    mode
+#named-month   month
+
+# KEY               TRANSLATION
+#named-name          name
+#named-nd            nd
+#named-nl            nl
+#named-nl-in         nl-in
+#named-nl-out        nl-out
+#named-non-blocking  non-blocking
+#named-nth           nth
+
+# KEY             TRANSLATION
+#named-off         off
+#named-out         out
+#named-out-buffer  out-buffer
+#named-ov          ov
+#named-overlap     overlap
+
+# KEY          TRANSLATION
+#named-p        p
+#named-partial  partial
+#named-parts    parts
+#named-port     port
+#named-pos      pos
+#named-primary  primary
+
+# KEY             TRANSLATION
+#named-quaternary  quaternary
+
+# KEY              TRANSLATION
+#named-r            r
+#named-rd           rd
+#named-real         real
+#named-replacement  replacement
+#named-rule         rule
+#named-rw           rw
+#named-rx           rx
+
+# KEY              TRANSLATION
+#named-samecase     samecase
+#named-samespace    samespace
+#named-scheduler    scheduler
+#named-second       second
+#named-secondary    secondary
+#named-seconds      seconds
+#named-shared       shared
+#named-size         size
+#named-slip         slip
+#named-SPEC         SPEC
+#named-squash       squash
+#named-ss           ss
+#named-st           st
+#named-status       status
+#named-strict       strict
+#named-subscript    subscript
+#named-superscript  superscript
+
+# KEY               TRANSLATION
+#named-tertiary      tertiary
+#named-test          test
+#named-th            th
+#named-times         times
+#named-timezone      timezone
+#named-translate-nl  translate-nl
+#named-truncate      truncate
+
+# KEY         TRANSLATION
+#named-uid     uid
+#named-update  update
+
+# KEY          TRANSLATION
+#named-v        v
+#named-value    value
+#named-vent-at  vent-at
+#named-ver      ver
+#named-volume   volume
+
+# KEY                    TRANSLATION
+#named-w                  w
+#named-where              where
+#named-win-verbatim-args  win-verbatim-args
+
+# KEY    TRANSLATION
+#named-x  x
+
+# KEY       TRANSLATION
+#named-year  year
 
 # KEY            TRANSLATION
 package-class    class
@@ -372,10 +646,27 @@ phaser-KEEP     GARDE
 phaser-LAST     FINAL
 phaser-LEAVE    SORS
 phaser-NEXT     SUIVANT
-phaser-PRE      PRE
 phaser-POST     POST
+phaser-PRE      PRE
 phaser-QUIT     QUITTE
 phaser-UNDO     DÉFAIRE
+
+# KEY                      TRANSLATION
+#pragma-dynamic-scope       dynamic-scope
+#pragma-fatal               fatal
+#pragma-isms                isms
+#pragma-lib                 lib
+#pragma-MONKEY              MONKEY
+#pragma-MONKEY-GUTS         MONKEY-GUTS
+#pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
+#pragma-MONKEY-TYPING       MONKEY-TYPING
+#pragma-nqp                 nqp
+#pragma-precompilation      precompilation
+#pragma-soft                soft
+#pragma-strict              strict
+#pragma-trace               trace
+#pragma-variables           variables
+#pragma-worries             worries
 
 # KEY       TRANSLATION
 prefix-not  pas
@@ -395,9 +686,9 @@ prefix-so   donc
 
 # KEY              TRANSLATION
 routine-method     méthode
-routine-sub        sub
 routine-regex      regex
 routine-rule       règle
+routine-sub        sub
 routine-submethod  sousméthode
 routine-token      jeton
 
@@ -413,27 +704,47 @@ scope-state      state
 scope-supersede  supplante
 scope-unit       unité
 
-# KEY                 TRANSLATION
-stmt-prefix-also      aussi
-stmt-prefix-do        fait
-stmt-prefix-eager     impatient
-stmt-prefix-gather    collecte
-stmt-prefix-hyper     hyper
-stmt-prefix-lazy      nonchalamment
-stmt-prefix-quietly   silencieusement
-stmt-prefix-race      course
-stmt-prefix-react     réagis
-stmt-prefix-sink      plonge
-stmt-prefix-start     commence
-stmt-prefix-supply    fournis
-stmt-prefix-try       essaie
+# KEY                TRANSLATION
+stmt-prefix-also     aussi
+stmt-prefix-do       fait
+stmt-prefix-eager    impatient
+stmt-prefix-gather   collecte
+stmt-prefix-hyper    hyper
+stmt-prefix-lazy     nonchalamment
+stmt-prefix-quietly  silencieusement
+stmt-prefix-race     course
+stmt-prefix-react    réagis
+stmt-prefix-sink     plonge
+stmt-prefix-start    commence
+stmt-prefix-supply   fournis
+stmt-prefix-try      essaie
 
 # KEY      TRANSLATION
-term-self  sois
 term-nano  nano
 term-now   maintenant
+term-pi    pi
 term-rand  rand
+term-self  sois
+term-tau   tau
 term-time  temps
+
+# KEY                           TRANSLATION
+#trait-is-built                  built
+#trait-is-copy                   copy
+#trait-is-default                default
+#trait-is-DEPRECATED             DEPRECATED
+#trait-is-equiv                  equiv
+#trait-is-export                 export
+#trait-is-hidden-from-backtrace  hidden-from-backtrace
+#trait-is-hidden-from-USAGE      hidden-from-USAGE
+#trait-is-implementation-detail  implementation-detail
+#trait-is-looser                 looser
+#trait-is-nodal                  nodal
+#trait-is-pure                   pure
+#trait-is-raw                    raw
+#trait-is-rw                     rw
+#trait-is-test-assertion         test-assertion
+#trait-is-tighter                tighter
 
 # KEY             TRANSLATION
 traitmod-does     fait
@@ -442,6 +753,7 @@ traitmod-hides    dissimule
 traitmod-is       est
 traitmod-of       de
 traitmod-returns  renvoie
+#traitmod-trusts   trusts
 
 # KEY         TRANSLATION
 typer-enum    énum

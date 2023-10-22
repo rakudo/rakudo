@@ -1404,7 +1404,11 @@ class RakuAST::ParameterTarget::Var
     method is-begin-performed-before-children() { True }
 
     method visit-children(Code $visitor) {
-        $visitor($!declaration);
+        # We don't want to visit the declaration if it is a topic variable,
+        # as that will result in multiple declarations because blocks already
+        # automatically declare a `$_`. And if the signature is not on a block
+        # it will still find a lexical `$_` somewhere in scope.
+        $visitor($!declaration) unless $!name eq '$_';
     }
 }
 

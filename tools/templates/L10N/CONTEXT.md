@@ -1787,6 +1787,38 @@ https://docs.raku.org/type/List#routine_grep
 #### so
 - https://docs.raku.org/language/operators#prefix_so
 
+## quote-lang
+
+#### quote-lang-m
+- https://docs.raku.org/language/regexes#Match_syntax
+
+#### quote-lang-ms
+- https://docs.raku.org/language/regexes#Match_syntax
+
+#### quote-lang-q
+- https://docs.raku.org/language/quoting#Escaping:_q
+
+#### quote-lang-Q
+- https://docs.raku.org/language/quoting#Literal_strings:_Q
+
+#### quote-lang-qq
+- https://docs.raku.org/language/quoting#Interpolation:_qq
+
+#### quote-lang-qr
+- https://docs.raku.org/language/regexes#Anonymous_regex_definition_syntax
+
+#### quote-lang-s
+- https://docs.raku.org/language/regexes#Substitution
+
+#### quote-lang-S
+- https://docs.raku.org/language/regexes#S///_non-destructive_substitution
+
+#### quote-lang-ss
+- https://docs.raku.org/language/regexes#Substitution
+
+#### quote-lang-Ss
+- https://docs.raku.org/language/regexes#S///_non-destructive_substitution
+
 ## routine
 
 #### routine-method

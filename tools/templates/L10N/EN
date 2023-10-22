@@ -33,6 +33,7 @@ adverb-q-quotewords  quotewords
 adverb-q-s           s
 adverb-q-scalar      scalar
 adverb-q-single      single
+adverb-q-ss          ss
 adverb-q-to          to
 adverb-q-v           v
 adverb-q-val         val
@@ -668,6 +669,18 @@ pragma-worries             worries
 # KEY       TRANSLATION
 prefix-not  not
 prefix-so   so
+
+# KEY          TRANSLATION
+quote-lang-m   m
+quote-lang-ms  ms
+quote-lang-q   q
+quote-lang-Q   Q
+quote-lang-qq  qq
+quote-lang-rx  rx
+quote-lang-s   s
+quote-lang-S   S
+quote-lang-ss  ss
+quote-lang-Ss  Ss
 
 # KEY              TRANSLATION
 routine-method     method

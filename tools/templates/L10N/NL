@@ -35,6 +35,7 @@ adverb-q-heredoc     tot-teken
 #adverb-q-s           s
 #adverb-q-scalar      scalar
 adverb-q-single      enkel
+#adverb-q-ss          ss
 adverb-q-to          tot
 #adverb-q-v           v
 adverb-q-val         allomorph
@@ -667,6 +668,18 @@ pragma-worries             zorgen
 # KEY       TRANSLATION
 prefix-not  niet
 prefix-so   wel
+
+# KEY          TRANSLATION
+#quote-lang-m   m
+#quote-lang-ms  ms
+#quote-lang-q   q
+#quote-lang-Q   Q
+#quote-lang-qq  qq
+#quote-lang-rx  rx
+#quote-lang-s   s
+#quote-lang-S   S
+#quote-lang-ss  ss
+#quote-lang-Ss  Ss
 
 # KEY              TRANSLATION
 routine-method     methode

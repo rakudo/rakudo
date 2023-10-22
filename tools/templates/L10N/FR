@@ -381,6 +381,18 @@ phaser-UNDO     DÉFAIRE
 prefix-not  pas
 prefix-so   donc
 
+# KEY          TRANSLATION
+#quote-lang-m   m
+#quote-lang-ms  ms
+#quote-lang-q   q
+#quote-lang-Q   Q
+#quote-lang-qq  qq
+#quote-lang-rx  rx
+#quote-lang-s   s
+#quote-lang-S   S
+#quote-lang-ss  ss
+#quote-lang-Ss  Ss
+
 # KEY              TRANSLATION
 routine-method     méthode
 routine-sub        sub

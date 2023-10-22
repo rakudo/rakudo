@@ -13,8 +13,8 @@ use experimental :rakuast;
 # Known groups of translation
 my constant %known-groups = <
   adverb-pc adverb-q adverb-rx block constraint core infix meta modifier
-  multi named package phaser pragma prefix routine scope stmt-prefix term
-  traitmod trait-is typer use
+  multi named package phaser pragma prefix quote-lang routine scope
+  stmt-prefix term traitmod trait-is typer use
 >.map({ $_ => 1 });
 my constant %sub-groups = <core named>.map({ $_ => 1 });
 
@@ -345,13 +345,14 @@ my sub slangify($language, %hash) is export {
     );
 
     # Run over the given hash, sorted by key
-    my @core;
-    my @trait-is;
     my @adverb-pc;
     my @adverb-q;
     my @adverb-rx;
+    my @core;
     my @named;
     my @pragma;
+    my @quote-lang;
+    my @trait-is;
     for %hash.sort(-> $a, $b {
         $a.key.fc cmp $b.key.fc || $b.key cmp $a.key
     }) -> (:key($name), :value($string)) {

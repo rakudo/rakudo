@@ -35,6 +35,7 @@ adverb-pc-v       w
 #adverb-q-s           s
 #adverb-q-scalar      scalar
 #adverb-q-single      single
+#adverb-q-ss          ss
 #adverb-q-to          to
 #adverb-q-v           v
 #adverb-q-val         val
@@ -667,6 +668,18 @@ phaser-UNDO     AKZEPTIERENICHT
 # KEY       TRANSLATION
 prefix-not  nicht
 prefix-so   also
+
+# KEY          TRANSLATION
+#quote-lang-m   m
+#quote-lang-ms  ms
+#quote-lang-q   q
+#quote-lang-Q   Q
+#quote-lang-qq  qq
+#quote-lang-rx  rx
+#quote-lang-s   s
+#quote-lang-S   S
+#quote-lang-ss  ss
+#quote-lang-Ss  Ss
 
 # KEY              TRANSLATION
 routine-method     methode

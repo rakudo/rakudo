@@ -1,7 +1,7 @@
 # This file contains the French Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-21T10:58:57+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-22T11:33:38+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::FR {
@@ -105,6 +105,16 @@ role L10N::FR {
     token phaser-UNDO { DÉFAIRE}
     token prefix-not { pas}
     token prefix-so { donc}
+    token quote-lang-m { m}
+    token quote-lang-ms { ms}
+    token quote-lang-q { q}
+    token quote-lang-Q { Q}
+    token quote-lang-qq { qq}
+    token quote-lang-rx { rx}
+    token quote-lang-s { s}
+    token quote-lang-S { S}
+    token quote-lang-ss { ss}
+    token quote-lang-Ss { Ss}
     token routine-method { méthode}
     token routine-regex { regex}
     token routine-rule { règle}

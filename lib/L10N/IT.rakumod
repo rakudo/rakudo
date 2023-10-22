@@ -1,7 +1,7 @@
 # This file contains the Italian Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-19T11:32:57+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-22T11:33:38+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::IT {
@@ -104,6 +104,16 @@ role L10N::IT {
     token phaser-UNDO { ANNULLA}
     token prefix-not { non}
     token prefix-so { così}
+    token quote-lang-m { m}
+    token quote-lang-ms { ms}
+    token quote-lang-q { q}
+    token quote-lang-Q { Q}
+    token quote-lang-qq { qq}
+    token quote-lang-rx { rx}
+    token quote-lang-s { s}
+    token quote-lang-S { S}
+    token quote-lang-ss { ss}
+    token quote-lang-Ss { Ss}
     token routine-method { metodo}
     token routine-regex { regex}
     token routine-rule { regola}

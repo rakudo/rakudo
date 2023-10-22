@@ -5841,6 +5841,23 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         <.obsbrace>
     }
 
+    token metachar:sym<mod> {
+        ':'
+        $<negated>  = '!'?
+        $<modifier> = \w+
+
+        :my $*NEGATED;
+        :my $*MODIFIER;
+        {
+            $*NEGATED  := ?~$<negated>;
+            $*MODIFIER := self.slangs<MAIN>.adverb-rx2str(~$<modifier>);
+        }
+    }
+
+    token metachar:sym<dba> {
+        ':dba(' <-[)]>* ')'
+    }
+
     token backslash:sym<1> {
         <.[\d] - [0]>\d*
         {}

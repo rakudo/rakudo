@@ -3664,8 +3664,28 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method metachar:sym<mod>($/) {
-        self.attach: $/, $<mod_internal>.ast;
+        my constant CLASS := nqp::hash(
+          'i',          'IgnoreCase',
+          'ignorecase', 'IgnoreCase',
+          'm',          'IgnoreMark',
+          'ignoremark', 'IgnoreMark',
+          'r',          'Ratchet',
+          'ratchet',    'Ratchet',
+          's',          'Sigspace',
+          'sigspace',   'Sigspace'
+        );
+        if CLASS{$*MODIFIER} -> $class {
+            self.attach: $/, Nodify('Regex','InternalModifier',$class).new(
+              negated => $*NEGATED
+            );
+        }
+        else {
+            $/.typed-panic: 'X::Syntax::Regex::UnrecognizedModifier',
+              modifier => $*MODIFIER;
+        }
     }
+
+    method metachar:sym<dba>($/) { Nil }
 
     method metachar:sym<assert>($/) {
         self.attach: $/, $<assertion>.ast;
@@ -3977,24 +3997,6 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     method cclass_backslash:sym<any>($/) {
         self.attach: $/,
           Nodify('Regex','CharClassEnumerationElement','Character').new(~$/)
-    }
-
-    method mod_internal($/) {
-        my constant CLASS := nqp::hash(
-          'i', 'IgnoreCase',
-          'm', 'IgnoreMark',
-          'r', 'Ratchet',
-          's', 'Sigspace'
-        );
-        if CLASS{$<mod_ident><sym>} -> $class {
-            my str $n := $<n> ?? ~$<n>[0] !! '';
-            self.attach: $/, Nodify('Regex','InternalModifier',$class).new(
-              negated => $n eq '!' || ($n && +$n == 0)
-            );
-        }
-        else {
-            nqp::die('Unimplemented internal modifier ' ~ $<sym>);
-        }
     }
 
     method codeblock($/) {

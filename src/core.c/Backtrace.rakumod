@@ -61,12 +61,14 @@ my class Backtrace::Frame {
     method is-setting(Backtrace::Frame:D:) {
         $!file.starts-with("SETTING::")
           || $!file.starts-with("NQP::")
-#?if jvm
-          || $!file ~~ / "CORE." \w+ ".setting" $ /
-#?endif
-#?if !jvm
           || $!file ~~ / [ "CORE." \w+ ".setting"
                            | "NQPCORE.setting"
+#?if jvm
+                           ## Redundant with next alternative, but keeps symmetry.
+                           | "BOOTSTRAP/v6" \w ".nqp" ]
+                         $ /
+#?endif
+#?if !jvm
                            | "BOOTSTRAP/v6" \w ]
                          ".{ Rakudo::Internals.PRECOMP-EXT }" $ /
 #?endif
@@ -178,7 +180,12 @@ my class Backtrace {
             my $name := nqp::p6box_s(nqp::getcodename($do));
 
             if ($file.starts-with('NQP::') && $file.ends-with('Compiler.nqp') && $name eq 'eval')
+#?if jvm
+                || $file.ends-with('NQPHLL.nqp')
+#?endif
+#?if !jvm
                 || $file.ends-with('NQPHLL.moarvm')
+#?endif
             {
                 # This could mean we're at the end of the interesting backtrace,
                 # or it could mean that we're in something like sprintf (which

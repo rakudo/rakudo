@@ -1,7 +1,7 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-22T11:33:38+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-22T12:25:24+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
@@ -108,7 +108,7 @@ role L10N::NL {
     token quote-lang-ms { ms}
     token quote-lang-q { q}
     token quote-lang-Q { Q}
-    token quote-lang-qq { qq}
+    token quote-lang-qq { dq}
     token quote-lang-rx { rx}
     token quote-lang-s { s}
     token quote-lang-S { S}

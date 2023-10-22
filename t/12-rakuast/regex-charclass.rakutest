@@ -36,8 +36,9 @@ subtest 'All of the simple character classes' => {
       'deparse';
 
     my $target := ".\b\r7\e\f \n\0 \t\nx";
-    is $target ~~ $_, $target, "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $target ~~ $result, $target, "@type[$++]: pass case";
+    }
 }
 
 subtest 'All of the simple character classes than can be negated' => {
@@ -59,8 +60,9 @@ subtest 'All of the simple character classes than can be negated' => {
       'deparse';
 
     my $target := "abcdefghi.";
-    is $target ~~ $_, $target, "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $target ~~ $result, $target, "@type[$++]: pass case";
+    }
 }
 
 subtest 'A single unicode character specified by name' => {
@@ -71,9 +73,10 @@ subtest 'A single unicode character specified by name' => {
       RakuAST::Regex::CharClass::Specified.new(:$characters)
     );
     is-deeply $deparsed, '/ \c[COMMA]/', 'deparse';
-    
-    is $characters ~~ $_, $characters, "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $characters ~~ $result, $characters, "@type[$++]: pass case";
+    }
 }
 
 subtest 'Multiple unicode characters specified by name' => {
@@ -86,9 +89,10 @@ subtest 'Multiple unicode characters specified by name' => {
     is-deeply $deparsed,
       '/ \c[REGIONAL INDICATOR SYMBOL LETTER U, REGIONAL INDICATOR SYMBOL LETTER A]/',
       'deparse';
-    
-    is $characters ~~ $_, $characters, "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is $characters ~~ $result, $characters, "@type[$++]: pass case";
+    }
 }
 
 subtest 'Multiple unicode characters specified by name negated' => {
@@ -101,9 +105,10 @@ subtest 'Multiple unicode characters specified by name negated' => {
     is-deeply $deparsed,
       '/ \C[REGIONAL INDICATOR SYMBOL LETTER U, REGIONAL INDICATOR SYMBOL LETTER A]/',
       'deparse';
-    
-    is "ab" ~~ $_, "a", "@type[$++]: pass case"
-      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+
+    for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku) -> $result {
+        is "ab" ~~ $result, "a", "@type[$++]: pass case";
+    }
 }
 
 # vim: expandtab shiftwidth=4

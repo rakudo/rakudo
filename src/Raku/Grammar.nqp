@@ -5854,10 +5854,6 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         }
     }
 
-    token metachar:sym<dba> {
-        ':dba(' <-[)]>* ')'
-    }
-
     token backslash:sym<1> {
         <.[\d] - [0]>\d*
         {}

@@ -203,12 +203,6 @@ role Raku::Common {
       @tweaks?  # :adverbs, 's' in q:s/foobar/, as [key,Bool] lists
     ) {
 
-        # The quote-adverb to string mapper is also used by the RegexGrammar
-        # so we need to take extra actions to transparently work for both
-        # the main language as well as the RegexGrammar.
-        my $adverb-q2str := $*LANG.HOW.find_method($*LANG,"adverb-q2str")
-          if @tweaks;
-
         # Check validity of extra tweaks
         for @tweaks {
             my $t := $_[0];
@@ -232,7 +226,7 @@ role Raku::Common {
 
             @keybits.push($base) if $base;
             for @tweaks {
-                my str $t := $adverb-q2str(self, $_[0]);
+                my str $t := self.adverb-q2str($_[0]);
                 @keybits.push($t eq 'to'
                   ?? 'HEREDOC'         # all heredocs share the same lang
                   !! $t ~ '=' ~ $_[1]  # cannot use nqp::join as [1] is Bool
@@ -252,7 +246,7 @@ role Raku::Common {
 
             # mixin any extra tweaks
             for @tweaks {
-                my str $t := $adverb-q2str(self, $_[0]);
+                my str $t := self.adverb-q2str($_[0]);
                 nqp::can($lang,"tweak_$t")
                   ?? ($lang := $lang."tweak_$t"($_[1]))
                   !! self.panic("Unrecognized adverb: :$t");
@@ -5831,7 +5825,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
         '<'
-        <nibble(self.quote-lang(self.Quote, "<", ">", 'q', [['w', 1],]))>
+        <nibble($*LANG.quote-lang(self.Quote, "<", ">", 'q', [['w', 1],]))>
         '>'
         <.SIGOK>
     }

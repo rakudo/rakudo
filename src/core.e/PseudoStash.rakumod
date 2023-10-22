@@ -354,7 +354,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                                         (nqp::bitand_i($mode, REQUIRE_DYNAMIC)
                                          || nqp::iseq_i($ctx-info.mode, DYNAMIC_CHAIN)),
                                         nqp::if(
-                                            ($is-dynamic || nqp::if(nqp::can($val.VAR, "dynamic"), $val.VAR.dynamic)),
+                                            ($is-dynamic || nqp::if(nqp::iscont($val), $val.VAR.dynamic)),
                                             nqp::getattr($ctx-info, CtxWalker::Return, '$!sym-info'),
                                             X::Symbol::NotDynamic),
                                         nqp::if(

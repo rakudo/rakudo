@@ -226,7 +226,7 @@ role Raku::Common {
 
             @keybits.push($base) if $base;
             for @tweaks {
-                my str $t := self.adverb-q2str($_[0]);
+                my str $t := $_[0];
                 @keybits.push($t eq 'to'
                   ?? 'HEREDOC'         # all heredocs share the same lang
                   !! $t ~ '=' ~ $_[1]  # cannot use nqp::join as [1] is Bool
@@ -246,7 +246,7 @@ role Raku::Common {
 
             # mixin any extra tweaks
             for @tweaks {
-                my str $t := self.adverb-q2str($_[0]);
+                my str $t := $_[0];
                 nqp::can($lang,"tweak_$t")
                   ?? ($lang := $lang."tweak_$t"($_[1]))
                   !! self.panic("Unrecognized adverb: :$t");
@@ -440,7 +440,7 @@ role Raku::Common {
           <.ws>
           {
               my $pair := $<quotepair>[-1].ast;
-              my $k    := $pair.key;
+              my $k    := self.adverb-q2str($pair.key);
               my $v    := $pair.value;
               nqp::can($v,'compile-time-value')
                 ?? nqp::push(@tweaks, [$k, $v.compile-time-value])
@@ -5825,7 +5825,7 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
         '<'
-        <nibble($*LANG.quote-lang(self.Quote, "<", ">", 'q', [['w', 1],]))>
+        <nibble(self.quote-lang(self.Quote, "<", ">", 'q', [['w', 1],]))>
         '>'
         <.SIGOK>
     }

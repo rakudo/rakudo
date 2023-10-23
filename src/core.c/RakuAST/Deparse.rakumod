@@ -1587,26 +1587,11 @@ class RakuAST::Deparse {
 #- Regex::I --------------------------------------------------------------------
 
     multi method deparse(
-      RakuAST::Regex::InternalModifier::IgnoreCase:D $ast --> Str:D) {
-        $ast.negated ?? ':!i ' !! ':i '
-    }
-
-    multi method deparse(
-      RakuAST::Regex::InternalModifier::IgnoreMark:D $ast
-    --> Str:D) {
-        $ast.negated ?? ':!m ' !! ':m '
-    }
-
-    multi method deparse(
-      RakuAST::Regex::InternalModifier::Ratchet:D $ast
-    --> Str:D) {
-        $ast.negated ?? ':!r ' !! ':r '
-    }
-
-    multi method deparse(
-      RakuAST::Regex::InternalModifier::Sigspace:D $ast
-    --> Str:D) {
-        $ast.negated ?? ':!s ' !! ':s '
+      RakuAST::Regex::InternalModifier:D $ast --> Str:D) {
+        ':'
+          ~ ($ast.negated ?? '!' !! '')
+          ~ self.xsyn('adverb-rx', $ast.modifier)
+          ~ ' '
     }
 
     multi method deparse(RakuAST::Regex::Interpolation:D $ast --> Str:D) {

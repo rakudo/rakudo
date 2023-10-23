@@ -3674,14 +3674,15 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
           's',          'Sigspace',
           'sigspace',   'Sigspace'
         );
-        if CLASS{$*MODIFIER} -> $class {
+        my str $modifier := $*MODIFIER;
+        if CLASS{$modifier} -> $class {
             self.attach: $/, Nodify('Regex','InternalModifier',$class).new(
-              negated => $*NEGATED
+              modifier => $modifier, negated => $*NEGATED
             );
         }
         else {
             $/.typed-panic: 'X::Syntax::Regex::UnrecognizedModifier',
-              modifier => $*MODIFIER;
+              modifier => $modifier;
         }
     }
 

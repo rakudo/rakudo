@@ -1723,57 +1723,53 @@ class RakuAST::Regex::CharClassEnumerationElement::Range
 class RakuAST::Regex::InternalModifier
   is RakuAST::Regex::Atom
 {
+    has  str $.modifier;  # for proper deparsing
     has Bool $.negated;
 
-    method new(Bool :$negated) {
+    method new(str :$modifier, Bool :$negated) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Regex::InternalModifier, '$!negated',
-            $negated ?? True !! False);
+        nqp::bindattr_s($obj,RakuAST::Regex::InternalModifier,'$!modifier',
+          $modifier // self.key);
+        nqp::bindattr(  $obj,RakuAST::Regex::InternalModifier,'$!negated',
+          $negated ?? True !! False);
         $obj
     }
 
-    method quantifiable() { False }
+    method quantifiable()         { False }
     method whitespace-wrappable() { False }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        %mods{self.key} := !self.negated;
+        Nil
+    }
 }
 
 # The ignorecase internal modifier.
 class RakuAST::Regex::InternalModifier::IgnoreCase
   is RakuAST::Regex::InternalModifier
 {
-    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        %mods<i> := !self.negated;
-        Nil
-    }
+    method key() { 'i' }
 }
 
 # The ignoremark internal modifier.
 class RakuAST::Regex::InternalModifier::IgnoreMark
   is RakuAST::Regex::InternalModifier
 {
-    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        %mods<m> := !self.negated;
-        Nil
-    }
+    method key() { 'm' }
 }
 
 # The ratchet internal modifier.
 class RakuAST::Regex::InternalModifier::Ratchet
   is RakuAST::Regex::InternalModifier
 {
-    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        %mods<r> := !self.negated;
-        Nil
-    }
+    method key() { 'r' }
 }
 
 # The sigspace internal modifier.
 class RakuAST::Regex::InternalModifier::Sigspace
   is RakuAST::Regex::InternalModifier
 {
-    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        %mods<s> := !self.negated;
-        Nil
-    }
+    method key() { 's' }
 }
 
 # A quantified atom in a regex - that is, an atom with a quantifier and

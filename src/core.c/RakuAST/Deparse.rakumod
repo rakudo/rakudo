@@ -328,8 +328,8 @@ class RakuAST::Deparse {
         }
     }
 
-    method colonpairs($ast) {
-        $ast.colonpairs.map({ self.deparse($_) }).join
+    method colonpairs($ast, Str:D $xsyn = "") {
+        $ast.colonpairs.map({ self.deparse($_, $xsyn) }).join
     }
 
     method quantifier(
@@ -1219,21 +1219,21 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Postcircumfix::ArrayIndex:D $ast --> Str:D) {
-        self.squarize($ast.index) ~ self.colonpairs($ast)
+        self.squarize($ast.index) ~ self.colonpairs($ast, 'adverb-pc')
     }
 
     multi method deparse(RakuAST::Postcircumfix::HashIndex:D $ast --> Str:D) {
-        self.bracketize($ast.index) ~ self.colonpairs($ast)
+        self.bracketize($ast.index) ~ self.colonpairs($ast, 'adverb-pc')
     }
 
     multi method deparse(
       RakuAST::Postcircumfix::LiteralHashIndex:D $ast
     --> Str:D) {
-        self.deparse($ast.index) ~ self.colonpairs($ast)
+        self.deparse($ast.index) ~ self.colonpairs($ast, 'adverb-pc')
     }
 
     multi method deparse(RakuAST::Postfix:D $ast --> Str:D) {
-        $ast.operator ~ self.colonpairs($ast)
+        $ast.operator ~ self.colonpairs($ast, 'adverb-pc')
     }
 
     multi method deparse(RakuAST::Postfix::Power:D $ast --> Str:D) {

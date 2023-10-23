@@ -948,7 +948,7 @@ my class IO::Path is Cool does IO {
 #?if moar
         my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
-          ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-time", $stat, nqp::const::STAT_CREATETIME))
+          ?? Instant.from-posix-nanos(nqp::dispatch("boot-syscall", "stat-time-nanos", $stat, nqp::const::STAT_CREATETIME))
 #?endif
 #?if !moar
         Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
@@ -961,7 +961,7 @@ my class IO::Path is Cool does IO {
 #?if moar
         my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
-          ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-time", $stat, nqp::const::STAT_MODIFYTIME))
+          ?? Instant.from-posix-nanos(nqp::dispatch("boot-syscall", "stat-time-nanos", $stat, nqp::const::STAT_MODIFYTIME))
 #?endif
 #?if !moar
         Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
@@ -974,7 +974,7 @@ my class IO::Path is Cool does IO {
 #?if moar
         my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
-          ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-time", $stat, nqp::const::STAT_ACCESSTIME))
+          ?? Instant.from-posix-nanos(nqp::dispatch("boot-syscall", "stat-time-nanos", $stat, nqp::const::STAT_ACCESSTIME))
 #?endif
 #?if !moar
         Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
@@ -987,7 +987,7 @@ my class IO::Path is Cool does IO {
 #?if moar
         my $stat := nqp::dispatch("boot-syscall", "file-stat", nqp::decont_s(self.absolute), 0);
         nqp::dispatch("boot-syscall", "stat-flags", $stat, nqp::const::STAT_EXISTS)
-          ?? Instant.from-posix(nqp::dispatch("boot-syscall", "stat-time", $stat, nqp::const::STAT_CHANGETIME))
+          ?? Instant.from-posix-nanos(nqp::dispatch("boot-syscall", "stat-time-nanos", $stat, nqp::const::STAT_CHANGETIME))
 #?endif
 #?if !moar
         Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path

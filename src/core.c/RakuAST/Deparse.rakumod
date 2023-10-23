@@ -643,34 +643,54 @@ class RakuAST::Deparse {
 
 #- ColonPair -------------------------------------------------------------------
 
-    multi method deparse(RakuAST::ColonPair:D $ast --> Str:D) {
+    multi method deparse(RakuAST::ColonPair:D $ast, Str $xsyn = "" --> Str:D) {
+        my str $key = $ast.named-arg-name;
+
         ':'
-          ~ $ast.named-arg-name
+          ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
           ~ $.parens-open
           ~ self.deparse($ast.named-arg-value)
           ~ $.parens-close
     }
 
-    multi method deparse(RakuAST::ColonPair::False:D $ast --> Str:D) {
-        ':!' ~ $ast.key
+    multi method deparse(
+      RakuAST::ColonPair::False:D $ast, Str:D $xsyn = ""
+    --> Str:D) {
+        my str $key = $ast.key;
+
+        ':!' ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
     }
 
-    multi method deparse(RakuAST::ColonPair::Number:D $ast --> Str:D) {
-        ':' ~ self.deparse($ast.value) ~ $ast.key
+    multi method deparse(
+      RakuAST::ColonPair::Number:D $ast, Str:D $xsyn = ""
+    --> Str:D) {
+        my str $key = $ast.key;
+
+        ':'
+          ~ self.deparse($ast.value)
+          ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
     }
 
-    multi method deparse(RakuAST::ColonPair::True:D $ast --> Str:D) {
-        ':' ~ $ast.key
+    multi method deparse(
+      RakuAST::ColonPair::True:D $ast, Str:D $xsyn = ""
+    --> Str:D) {
+        my str $key = $ast.key;
+
+        ':' ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
     }
 
-    multi method deparse(RakuAST::ColonPair::Value:D $ast --> Str:D) {
-        my $value := $ast.value;
+    multi method deparse(
+      RakuAST::ColonPair::Value:D $ast, Str:D $xsyn = ""
+    --> Str:D) {
+        my str $key = $ast.key;
+        my $value  := $ast.value;
 
-        ':' ~ $ast.key ~ (
-          nqp::istype($value,RakuAST::QuotedString)
-            ?? self.deparse($value)
-            !! $.parens-open ~ self.deparse($value) ~ $.parens-close
-        )
+        ':'
+          ~ ($xsyn ?? self.xsyn($xsyn,$key) !! $key)
+          ~ (nqp::istype($value,RakuAST::QuotedString)
+              ?? self.deparse($value)
+              !! $.parens-open ~ self.deparse($value) ~ $.parens-close
+            )
     }
 
     multi method deparse(RakuAST::ColonPair::Variable:D $ast --> Str:D) {
@@ -1232,7 +1252,9 @@ class RakuAST::Deparse {
 #- Q ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::QuotedRegex:D $ast --> Str:D) {
-        my str $adverbs = $ast.adverbs.map({ self.deparse($_) }).join;
+        my str $adverbs = $ast.adverbs.map({
+            self.deparse($_, 'adverb-rx')
+        }).join;
         ($ast.match-immediately ?? 'm' !! $adverbs ?? 'rx' !! '')
           ~ $adverbs
           ~ $.regex-open

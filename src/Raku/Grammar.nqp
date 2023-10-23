@@ -5200,7 +5200,6 @@ Rakudo significantly on *every* run."
     token doc-TOP {
         { $*PARSING-DOC-BLOCK := 1 }
         :my $*SEEN := {};
-        <.doc-newline>*
         <doc-block>
         { $*PARSING-DOC-BLOCK := 0 }
     }
@@ -5312,7 +5311,7 @@ Rakudo significantly on *every* run."
         [ [\n $<margin> '=']? \h+ <colonpair> ]*
 
         # should now be at end of line
-        <.doc-newline>+
+        <.doc-newline>
 
         # get any doc blocks
         <doc-content>*
@@ -5391,7 +5390,7 @@ Rakudo significantly on *every* run."
     }
 
     token doc-block:sym<lines> {
-        [^^ \h* [ <![=]> \N+ | '=' \W \N* ] \n?]+
+        [^^ \h* [ [ <![=]> \N* | '=' \W \N* ] \n? ] || \n || $ ]+
     }
 
     token doc-identifier {
@@ -5400,7 +5399,6 @@ Rakudo significantly on *every* run."
 
     token doc-content {
         <doc-block>
-        <.doc-newline>*
     }
 
     token doc-numbered { <.after [^|\s]> '#' <.before \s> }

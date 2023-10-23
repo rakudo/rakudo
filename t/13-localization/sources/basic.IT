@@ -1,0 +1,12 @@
+il-mio $a = 41;
+il-mio $b = 666;
+se $a {
+    $a++
+}
+altro-se $b {
+    muori("That is not the right number!")
+}
+altro {
+    nota("Shouldn't see this")
+}
+dillo("incremented") se $a == 42

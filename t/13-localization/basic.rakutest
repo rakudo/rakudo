@@ -1,0 +1,16 @@
+use v6.e.PREVIEW;
+use RakuAST::Deparse::L10N;
+use Test;
+
+plan +localizations;
+
+my $sources := $*PROGRAM.sibling("sources");
+my $basic   := $sources.add("basic").slurp;
+my $ast     := $basic.AST;
+
+for localizations() {
+    my $source := $sources.add("basic.$_").slurp;
+    is $ast.DEPARSE($_), $source, "did the deparsing of $_ match";
+}
+
+# vim: expandtab shiftwidth=4

@@ -1,0 +1,21 @@
+# This file contains some very basic Raku code that serves as
+# a base for localizations.  It is Raku code such as a programmer
+# would write, rather than how Raku would deparse this code in
+# English.
+
+my $a = 41;
+my $b = 666;
+
+if $a {
+    $a++;
+}
+elsif $b {
+    die "That is not the right number!";
+}
+else {
+    note "Shouldn't see this";
+}
+
+say "incremented" if $a == 42;
+
+# vim: expandtab shiftwidth=4

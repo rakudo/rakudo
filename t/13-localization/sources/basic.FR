@@ -1,0 +1,12 @@
+ma $a = 41;
+ma $b = 666;
+si $a {
+    $a++
+}
+ousi $b {
+    meurs("That is not the right number!")
+}
+sinon {
+    note("Shouldn't see this")
+}
+dis("incremented") si $a == 42

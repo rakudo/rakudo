@@ -1,0 +1,12 @@
+mein $a = 41;
+mein $b = 666;
+wenn $a {
+    $a++
+}
+sonstwenn $b {
+    sterb("That is not the right number!")
+}
+sonst {
+    notiere("Shouldn't see this")
+}
+sag("incremented") wenn $a == 42

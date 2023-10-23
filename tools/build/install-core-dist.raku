@@ -15,9 +15,10 @@ my %provides =
     "safe-snapper"                  => "lib/safe-snapper.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
     "RakuDoc::To::Text"             => "lib/RakuDoc/To/Text.rakumod",
+    "RakuAST::L10N"                 => "lib/RakuAST/L10N.rakumod",
+    "RakuAST::Deparse::L10N"        => "lib/RakuAST/Deparse/L10N.rakumod",
     "RakuAST::Deparse::Highlight::HTML"
       => "lib/RakuAST/Deparse/Highlight/HTML.rakumod",
-    "RakuAST::L10N"                 => "lib/RakuAST/L10N.rakumod",
 ;
 
 %provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"

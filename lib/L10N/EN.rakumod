@@ -1,7 +1,7 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-24T11:06:24+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-24T18:26:39+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::EN {
@@ -187,7 +187,7 @@ role L10N::EN {
 }
 
 # The EXPORT sub that actually does the slanging
-my sub EXPORT($dontslang) {
+my sub EXPORT($dontslang?) {
     unless $dontslang {
         my $LANG := $*LANG;
         $LANG.define_slang('MAIN',

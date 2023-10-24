@@ -26,11 +26,11 @@ for localization-files() -> $io {
     # Create the slang and slangification
     my str $language = $io.basename;
     my $slang  := slangify($language, %translation);
-    my $source := $slang.DEPARSE ~ Q:to/CODE/.subst('#LANGUAGE#',$language);
+    my $source := $slang.DEPARSE ~ Q:to/CODE/.subst('#LANGUAGE#',$language,:g);
 
 
 # The EXPORT sub that actually does the slanging
-my sub EXPORT($dontslang) {
+my sub EXPORT($dontslang?) {
     unless $dontslang {
         my $LANG := $*LANG;
         $LANG.define_slang('MAIN',

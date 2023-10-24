@@ -1,7 +1,7 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-24T18:26:39+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-24T19:26:38+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::EN {
@@ -164,10 +164,10 @@ role L10N::EN {
     token use-require { require}
     token use-use { use}
     method core2ast {
-        self.ast()
+        self.ast() // RakuAST::Name.from-identifier(self.Str())
     }
     method trait-is2ast {
-        self.ast()
+        self.ast() // RakuAST::Name.from-identifier(self.Str())
     }
     method adverb-pc2str (str $key) {
         $key

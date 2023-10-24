@@ -78,7 +78,7 @@ sub write-hash(IO::Path:D $io, %mapping) is export {
     }
 
     # Set up base information, including translations not yet done (which
-    # start with an "#" immediately followed by the key.
+    # start with an "#" immediately followed by the key.)
     for $io.lines {
         unless .starts-with("# ") || $_ eq "#" || .is-whitespace {
             my ($key,$translation) = .words;
@@ -141,18 +141,19 @@ sub write-hash(IO::Path:D $io, %mapping) is export {
 #
 # method $name {
 #     my constant %mapping = @operands;
-#     my $ast := self.ast;
-#     if %mapping{$ast.simple-identifier} -> $original {
+#     my $ast  := self.ast;
+#     my $name := $ast ?? $ast.simple-identifier !! self.Str;
+#     if %mapping{$name} -> $original {
 #         RakuAST::Name.from-identifier($original)
 #     }
 #     else {
-#         $ast
+#         $ast // RakuAST::Name.from-identifier($name)
 #     }
 # }
 #
 # if there are any operands, otherwise:
 #
-# method $name { self.ast }
+# method $name { self.ast // RakuAST::Name.from-identifier(self.Str) }
 #
 sub make-mapper2ast(str $name, @operands) {
     my $stmts := @operands
@@ -170,83 +171,134 @@ sub make-mapper2ast(str $name, @operands) {
                )
              )
             ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                sigil       => "\$",
+                desigilname => RakuAST::Name.from-identifier("ast"),
+                initializer => RakuAST::Initializer::Bind.new(
+                  RakuAST::ApplyPostfix.new(
+                    operand => RakuAST::Term::Self.new,
+                    postfix => RakuAST::Call::Method.new(
+                      name => RakuAST::Name.from-identifier("ast")
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
+                sigil       => "\$",
+                desigilname => RakuAST::Name.from-identifier("name"),
+                initializer => RakuAST::Initializer::Bind.new(
+                  RakuAST::Ternary.new(
+                    condition => RakuAST::Var::Lexical.new("\$ast"),
+                    then      => RakuAST::ApplyPostfix.new(
+                      operand => RakuAST::Var::Lexical.new("\$ast"),
+                      postfix => RakuAST::Call::Method.new(
+                        name => RakuAST::Name.from-identifier("simple-identifier")
+                      )
+                    ),
+                    else      => RakuAST::ApplyPostfix.new(
+                      operand => RakuAST::Term::Self.new,
+                      postfix => RakuAST::Call::Method.new(
+                        name => RakuAST::Name.from-identifier("Str")
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::If.new(
+              condition => RakuAST::ApplyPostfix.new(
+                operand => RakuAST::Var::Lexical.new("\%mapping"),
+                postfix => RakuAST::Postcircumfix::HashIndex.new(
+                  index => RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::Var::Lexical.new("\$name")
+                    )
+                  )
+                )
+              ),
+              then      => RakuAST::PointyBlock.new(
+                signature => RakuAST::Signature.new(
+                  parameters => (
+                    RakuAST::Parameter.new(
+                      target => RakuAST::ParameterTarget::Var.new("\$original")
+                    ),
+                  )
+                ),
+                body      => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyPostfix.new(
+                        operand => RakuAST::Type::Simple.new(
+                          RakuAST::Name.from-identifier-parts("RakuAST","Name")
+                        ),
+                        postfix => RakuAST::Call::Method.new(
+                          name => RakuAST::Name.from-identifier("from-identifier"),
+                          args => RakuAST::ArgList.new(
+                            RakuAST::Var::Lexical.new("\$original")
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              ),
+              else      => RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::ApplyInfix.new(
+                        left  => RakuAST::Var::Lexical.new("\$ast"),
+                        infix => RakuAST::Infix.new("//"),
+                        right => RakuAST::ApplyPostfix.new(
+                          operand => RakuAST::Type::Simple.new(
+                            RakuAST::Name.from-identifier-parts("RakuAST","Name")
+                          ),
+                          postfix => RakuAST::Call::Method.new(
+                            name => RakuAST::Name.from-identifier("from-identifier"),
+                            args => RakuAST::ArgList.new(
+                              RakuAST::Var::Lexical.new("\$name")
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+      !! RakuAST::StatementList.new(
            RakuAST::Statement::Expression.new(
-             expression => RakuAST::VarDeclaration::Simple.new(
-               sigil       => "\$",
-               desigilname => RakuAST::Name.from-identifier("ast"),
-               initializer => RakuAST::Initializer::Bind.new(
-                 RakuAST::ApplyPostfix.new(
-                   operand => RakuAST::Term::Self.new,
-                   postfix => RakuAST::Call::Method.new(
-                     name => RakuAST::Name.from-identifier("ast")
-                   )
-                 )
-               )
-             )
-           ),
-           RakuAST::Statement::If.new(
-             condition => RakuAST::ApplyPostfix.new(
-               operand => RakuAST::Var::Lexical.new("\%mapping"),
-               postfix => RakuAST::Postcircumfix::HashIndex.new(
-                 index => RakuAST::SemiList.new(
-                   RakuAST::Statement::Expression.new(
-                     expression => RakuAST::ApplyPostfix.new(
-                       operand => RakuAST::Var::Lexical.new("\$ast"),
-                       postfix => RakuAST::Call::Method.new(
-                         name => RakuAST::Name.from-identifier("simple-identifier")
-                       )
-                     )
-                   )
-                 )
-               )
-             ),
-             then      => RakuAST::PointyBlock.new(
-               signature => RakuAST::Signature.new(
-                 parameters => (
-                   RakuAST::Parameter.new(
-                     target => RakuAST::ParameterTarget::Var.new("\$original")
-                   ),
+             expression => RakuAST::ApplyInfix.new(
+               left  => RakuAST::ApplyPostfix.new(
+                 operand => RakuAST::Term::Self.new,
+                 postfix => RakuAST::Call::Method.new(
+                   name => RakuAST::Name.from-identifier("ast")
                  )
                ),
-               body      => RakuAST::Blockoid.new(
-                 RakuAST::StatementList.new(
-                   RakuAST::Statement::Expression.new(
-                     expression => RakuAST::ApplyPostfix.new(
-                       operand => RakuAST::Type::Simple.new(
-                         RakuAST::Name.from-identifier-parts("RakuAST","Name")
-                       ),
+               infix => RakuAST::Infix.new("//"),
+               right => RakuAST::ApplyPostfix.new(
+                 operand => RakuAST::Type::Simple.new(
+                   RakuAST::Name.from-identifier-parts("RakuAST","Name")
+                 ),
+                 postfix => RakuAST::Call::Method.new(
+                   name => RakuAST::Name.from-identifier("from-identifier"),
+                   args => RakuAST::ArgList.new(
+                     RakuAST::ApplyPostfix.new(
+                       operand => RakuAST::Term::Self.new,
                        postfix => RakuAST::Call::Method.new(
-                         name => RakuAST::Name.from-identifier("from-identifier"),
-                         args => RakuAST::ArgList.new(
-                           RakuAST::Var::Lexical.new("\$original")
-                         )
+                         name => RakuAST::Name.from-identifier("Str")
                        )
                      )
-                   )
-                 )
-               )
-             ),
-             else      => RakuAST::Block.new(
-               body => RakuAST::Blockoid.new(
-                 RakuAST::StatementList.new(
-                   RakuAST::Statement::Expression.new(
-                     expression => RakuAST::Var::Lexical.new("\$ast")
                    )
                  )
                )
              )
            )
-         )
-      !! RakuAST::StatementList.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::ApplyPostfix.new(
-              operand => RakuAST::Term::Self.new,
-              postfix => RakuAST::Call::Method.new(
-                name => RakuAST::Name.from-identifier("ast")
-              )
-            )
-          )
-        );
+         );
 
     # wrap the statements into a method
     RakuAST::Statement::Expression.new(

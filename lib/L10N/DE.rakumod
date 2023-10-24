@@ -1,7 +1,7 @@
 # This file contains the German Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-24T18:26:39+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-24T19:26:38+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::DE {
@@ -166,21 +166,23 @@ role L10N::DE {
     method core2ast {
         my %mapping = "alle", "all", "antipare", "antipairs", "beliebig", "any", "anhängen", "append", "warte", "await", "tasche", "bag", "steig-aus", "bail-out", "segne", "bless", "kategorisier", "categorize", "decke", "ceiling", "zeichen", "chars", "hack-linieende", "chomp", "hack", "chop", "wie-zeiche", "chr", "wie-zeichen", "chrs", "klassifizier", "classify", "schließe", "close", "kamm", "comb", "kombinationen", "combinations", "enthält", "contains", "kreuz", "cross", "dekodiere", "decode", "tief-kartiere", "deepmap", "definiert", "defined", "sterb", "die", "fertig", "done", "duck-kartiere", "duckmap", "elemente", "elems", "sende", "emit", "kodiere", "encode", "ende", "end", "endet-mit", "ends-with", "eval-stirbt-ok", "eval-dies-ok", "eval-lebt-ok", "eval-lives-ok", "verlasse", "exit", "scheitere", "fail", "scheitert-wie", "fails-like", "erste", "first", "flach", "flat", "drehum", "flip", "boden", "floor", "fehlgeschlagen", "flunk", "erhalte", "get", "erhaltez", "getc", "kern", "gist", "filter", "grep", "hasch", "hash", "kopf", "head", "einzug", "indent", "indizes", "indices", "ist", "is", "ist-ungefähr", "is-approx", "ist-im-ganzen", "is-deeply", "ist-prim", "is-prime", "istein-ok", "isa-ok", "istnicht", "isnt", "artikel", "item", "verbinde", "join", "schlüssel", "key", "schlüssels", "keys", "sw", "kv", "letzte", "last", "letzte-anruf", "lastcall", "wie", "like", "linien", "lines", "verknüpfung", "link", "liste", "list", "lebt-ok", "lives-ok", "niedrigstwertige-bit", "lsb", "mache", "make", "kartiere", "map", "paar", "match", "bewege", "move", "höchstwertiges-bit", "msb", "neu", "new", "nächste", "next", "nicht-ok", "nok", "kein", "none", "nicht", "not", "notiere", "note", "ein", "one", "als-zahl", "ord", "als-zahlen", "ords", "paar", "pair", "paare", "pairs", "bestanden", "pass", "permutationen", "permutations", "pflücke", "pick", "plane", "plan", "stelle-voran", "prepend", "druck", "print", "druckf", "printf", "fortfahre", "proceed", "schiebe-oben", "push", "sag-es", "put", "zufällig", "rand", "nochmals", "redo", "reduziere", "reduce", "wiederholt", "repeated", "kehr-um", "reverse", "um-index", "rindex", "werfe", "roll", "drehe", "rotate", "runde-ab", "round", "jeder-mal", "roundrobin", "laufe", "run", "sag", "say", "sammlung", "set", "schiebe-unter", "shift", "überspringe", "skip", "überspringe-alle", "skip-rest", "schlaf", "sleep", "wecker", "sleep-timer", "schlafe-bis", "sleep-until", "schlürfe", "slurp", "verpfeife", "snitch", "also", "so", "sortier", "sort", "spleiße", "splice", "teilt", "split", "sdruckf", "sprintf", "spritz", "spurt", "quadratwurzel", "sqrt", "quetschen", "squish", "zufällig-so", "srand", "beginnt-mit", "starts-with", "ersetz", "subst", "gelinge", "succeed", "summiere", "sum", "symbolische-verknüpfung", "symlink", "schwanz", "tail", "nim", "take", "nmm-rw", "take-rw", "werft-wie", "throws-like", "zumachen", "todo", "übersetz", "trans", "trim-führend", "trim-leading", "trim-hinterher", "trim-trailing", "kürzen", "truncate", "einzigartig", "unique", "nicht-wie", "unlike", "hebe-auf", "unlink", "onderin", "unshift", "verwende-ok", "use-ok", "wie-zahlen", "val", "wert", "value", "werte", "values", "warne", "warn", "wörter", "words", "reißverschluss", "zip";
         my $ast := self.ast();
-        if %mapping{$ast.simple-identifier()} -> $original {
+        my $name := $ast ?? $ast.simple-identifier() !! self.Str();
+        if %mapping{$name} -> $original {
             RakuAST::Name.from-identifier($original)
         }
         else {
-            $ast
+            $ast // RakuAST::Name.from-identifier($name)
         }
     }
     method trait-is2ast {
         my %mapping = "kopie", "copy", "standard", "default", "VERALTET", "DEPRECATED", "äquivalent", "equiv", "implementierungsdetail", "implementation-detail", "lockerer", "looser", "rein", "pure", "roh", "raw", "lesen-schreiben", "rw", "enger", "tighter";
         my $ast := self.ast();
-        if %mapping{$ast.simple-identifier()} -> $original {
+        my $name := $ast ?? $ast.simple-identifier() !! self.Str();
+        if %mapping{$name} -> $original {
             RakuAST::Name.from-identifier($original)
         }
         else {
-            $ast
+            $ast // RakuAST::Name.from-identifier($name)
         }
     }
     method adverb-pc2str (str $key) {

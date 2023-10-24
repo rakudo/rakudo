@@ -175,6 +175,7 @@ core-first         erste
 core-flat          flach
 core-flip          drehum
 core-floor         boden
+core-flunk         fehlgeschlagen
 #core-fmt           fmt
 #core-full-barrier  full-barrier
 
@@ -254,7 +255,7 @@ core-ords  als-zahlen
 core-pair          paar
 core-pairs         paare
 #core-parse-base    parse-base
-core-pass          gut
+core-pass          bestanden
 core-permutations  permutationen
 core-pick          pflücke
 core-plan          plane

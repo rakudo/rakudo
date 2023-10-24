@@ -269,7 +269,7 @@ core-push          stapel-op
 core-put           zeg-het
 
 # KEY            TRANSLATION
-core-rand        willkeurig
+core-rand        willekeurig
 core-redo        nog-eens
 core-reduce      reduceer
 core-repeated    herhaaldelijk

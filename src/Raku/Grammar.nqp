@@ -939,16 +939,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token use-use     { use     }
 
     # Convert the invocant, a match that is expected to have a RakuAST::Name
-    # object as its ".ast", to a RakuAST::Name object with the name of the
-    # the core functionality if there is an original name known.  Otherwise
-    # it should just return the ".ast" of the invocant.
-    method core2ast() { self.ast }
+    # object as its ".ast" (or to have no ".ast" at all), to a RakuAST::Name
+    # object with the name of the core functionality if there is an original
+    # name known.  Otherwise it should just return the ".ast" of the invocant.
+    method core2ast() {
+        self.ast // self.actions.r('Name').from-identifier(~self)
+    }
 
     # Convert the invocant, a match that is expected to have a RakuAST::Name
-    # object as its ".ast", to a RakuAST::Name object with the name of the
-    # the trait_mod:<is> name if there is an original name known for it.
-    # Otherwise it should just return the ".ast" of the invocant.
-    method trait-is2ast() { self.ast }
+    # object as its ".ast" (or to have no ".ast" at all), to a RakuAST::Name
+    # object with the name of the trait_mod:<is> name if there is an
+    # original name known.  Otherwise it should just return the ".ast" ofi
+    # the invocant.
+    method trait-is2ast() {
+        self.ast // self.actions.r('Name').from-identifier(~self)
+    }
 
     # Convert the given postcircumfix adverb if there is an original name
     # for it.  Otherwise it should just return the adverb unchanged.

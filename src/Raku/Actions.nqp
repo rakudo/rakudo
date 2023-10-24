@@ -1606,7 +1606,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method term:sym<identifier>($/) {
         self.attach: $/, Nodify('Call', 'Name').new:
-          name => Nodify('Name').from-identifier(~$<identifier>),
+          name => $<identifier>.core2ast,
           args => $<args>.ast
     }
 
@@ -2252,8 +2252,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # TODO: <variable> being defined means we should throw an NYI
         # Need to support anonymous enums
         my $name := $<longname>
-                        ?? $<longname>.ast
-                        !! Nodify('Name').from-identifier('');
+          ?? $<longname>.ast
+          !! Nodify('Name').from-identifier('');
         my $base-type := $*OFTYPE ?? $*OFTYPE.ast !! Nodify("Type");
         my $decl := Nodify('Type', 'Enum').new(
             :name($name),
@@ -2752,8 +2752,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method typename($/) {
         my $base-name := $<longname>
-            ?? $<longname>.ast
-            !! Nodify('Name').from-identifier('::?' ~ $<identifier>);
+          ?? $<longname>.ast
+          !! Nodify('Name').from-identifier('::?' ~ $<identifier>);
         for $<colonpair> {
             $base-name.add-colonpair($_.ast);
         }

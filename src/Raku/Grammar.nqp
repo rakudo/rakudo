@@ -2142,11 +2142,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token postop {
         | <postfix>
-          $<O>   = {$<postfix><O>}
           $<sym> = {$<postfix><sym>}
 
         | <postcircumfix>
-          $<O>   = {$<postcircumfix><O>}
           $<sym> = {$<postcircumfix><sym>}
     }
 

@@ -1,16 +1,26 @@
 use v6.e.PREVIEW;
+use L10N;
 use RakuAST::Deparse::L10N;
 use Test;
 
-plan +localizations;
+my @localizations = L10N::.keys.sort;
+plan 2 * @localizations;
 
+# Where we keep the source code to be tested
 my $sources := $*PROGRAM.sibling("sources");
-my $basic   := $sources.add("basic").slurp;
-my $ast     := $basic.AST;
 
-for localizations() {
-    my $source := $sources.add("basic.$_").slurp;
-    is $ast.DEPARSE($_), $source, "did the deparsing of $_ match";
+# The basic source file, human written
+my $basic := $sources.add("basic").slurp;
+
+# The RakuAST of the basic source file
+my $basic-ast := $basic.AST;
+
+for @localizations {
+    my $expected := $sources.add("basic.$_").slurp;
+    is $basic-ast.DEPARSE($_), $expected, "$_: did the deparsing match";
+
+    my $ast := $expected.AST(:slang(L10N::{$_}));
+    is-deeply $ast, $basic-ast, "$_: did the source create the same AST";
 }
 
 # vim: expandtab shiftwidth=4

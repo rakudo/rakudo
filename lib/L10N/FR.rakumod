@@ -1,7 +1,7 @@
 # This file contains the French Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-22T12:04:39+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-24T11:06:24+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::FR {
@@ -196,13 +196,14 @@ role L10N::FR {
 }
 
 # The EXPORT sub that actually does the slanging
-my sub EXPORT() {
-    my $LANG := $*LANG;
-
-    $LANG.define_slang('MAIN',
-      $LANG.slang_grammar('MAIN').^mixin(L10N::FR),
-      $LANG.slang_actions('MAIN')
-    );
+my sub EXPORT($dontslang) {
+    unless $dontslang {
+        my $LANG := $*LANG;
+        $LANG.define_slang('MAIN',
+          $LANG.slang_grammar('MAIN').^mixin(L10N::FR),
+          $LANG.slang_actions('MAIN')
+        );
+    }
 
     BEGIN Map.new
 }

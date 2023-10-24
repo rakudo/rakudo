@@ -30,13 +30,14 @@ for localization-files() -> $io {
 
 
 # The EXPORT sub that actually does the slanging
-my sub EXPORT() {
-    my $LANG := $*LANG;
-
-    $LANG.define_slang('MAIN',
-      $LANG.slang_grammar('MAIN').^mixin(L10N::#LANGUAGE#),
-      $LANG.slang_actions('MAIN')
-    );
+my sub EXPORT($dontslang) {
+    unless $dontslang {
+        my $LANG := $*LANG;
+        $LANG.define_slang('MAIN',
+          $LANG.slang_grammar('MAIN').^mixin(L10N::#LANGUAGE#),
+          $LANG.slang_actions('MAIN')
+        );
+    }
 
     BEGIN Map.new
 }

@@ -152,11 +152,11 @@ augment class Cool {
 
     # Allow for creating an AST out of a string, for core debugging mainly
     method AST(Cool:D:
-      Bool :$run,
-      Bool :$compunit,
-      Bool :$expression,
-      Mu   :$grammar = nqp::gethllsym('Raku','Grammar'),
-      Mu   :$actions = nqp::gethllsym('Raku','Actions'),
+      Bool :$expression,  # return the first expression
+      Bool :$compunit,    # return the whole compunit, not statement-list
+      Mu   :$slang,
+      Mu   :$grammar is copy = nqp::gethllsym('Raku','Grammar'),
+      Mu   :$actions         = nqp::gethllsym('Raku','Actions'),
     ) {
 
         # Make sure we don't use the EVAL's MAIN context for the
@@ -168,6 +168,9 @@ augment class Cool {
         my $?FILES :='EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
         my $*INSIDE-EVAL := 1;
 
+        $grammar = $grammar.^mixin($slang)
+          unless nqp::eqaddr(nqp::decont($slang),Mu);
+
         # Convert to RakuAST
         my $compiler := nqp::getcomp('Raku');
         my $ast := $compiler.compile:
@@ -178,11 +181,11 @@ augment class Cool {
           |(:optimize($_) with $compiler.cli-options<optimize>),
           :target<ast>, :compunit_ok(1), :$grammar, :$actions;
 
-        $run
-          ?? EVAL($ast)
-          !! $expression
-            ?? $ast.statement-list.statements.head.expression
-            !! $compunit ?? $ast !! $ast.statement-list
+        $expression
+          ?? $ast.statement-list.statements.head.expression
+          !! $compunit
+            ?? $ast
+            !! $ast.statement-list
     }
 }
 

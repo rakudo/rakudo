@@ -9,9 +9,12 @@ use RakuAST::Deparse::L10N;
 # This script assumes that deparsing is correct at time of execution.
 
 my $io  := $*PROGRAM.sibling("sources");
+say "Parsing basic code";
 my $ast := $io.add("basic").slurp.AST;
+say "  Done parsing basic code";
 
 for RakuAST::Deparse::L10N::.keys.sort {
+    say "  Deparsing $_";
     $io.add("basic.$_").spurt($ast.DEPARSE($_));
 }
 

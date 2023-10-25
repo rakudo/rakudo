@@ -1,3 +1,13 @@
+sub answer returns Int is raw {
+    42
+}
+my class Frobnicate {
+    has $.a = 42;
+    method foo {
+        say(self.a())
+    }
+}
+say(Frobnicate.new().foo());
 my $a = 41;
 my $b = 666;
 if $a {
@@ -9,4 +19,37 @@ elsif $b {
 else {
     note("Shouldn't see this")
 }
-say("incremented") if $a == 42
+say("incremented") if $a == answer();
+with $a {
+    say($a)
+}
+orwith $b {
+    warn("still not the right number")
+}
+given 666 {
+    when 42 {
+        say("the answer")
+    }
+    default {
+        quietly warn("No answer")
+    }
+}
+no strict;
+$c = 137;
+dd($c.indent(4));
+use strict;
+my @a = ^10;
+say(@a.first(* %% 2, :end));
+my %h = a => 666;
+say(%h<a>:delete);
+put(qq:to/HERE/);
+heredoc
+HERE
+for ^3 {
+    .say()
+}
+.say() for <a b c>;
+loop {
+    say("loop");
+    last()
+}

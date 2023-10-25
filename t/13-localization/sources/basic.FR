@@ -1,3 +1,13 @@
+sub answer renvoie Int est raw {
+    42
+}
+ma class Frobnicate {
+    a $.a = 42;
+    méthode foo {
+        dis(sois.a())
+    }
+}
+dis(Frobnicate.nouveau().foo());
 ma $a = 41;
 ma $b = 666;
 si $a {
@@ -9,4 +19,37 @@ ousi $b {
 sinon {
     note("Shouldn't see this")
 }
-dis("incremented") si $a == 42
+dis("incremented") si $a == answer();
+avec $a {
+    dis($a)
+}
+ouavec $b {
+    préviens("still not the right number")
+}
+étantdonné 666 {
+    quand 42 {
+        dis("the answer")
+    }
+    défaut {
+        silencieusement préviens("No answer")
+    }
+}
+non strict;
+$c = 137;
+dd($c.indent(4));
+utilise strict;
+ma @a = ^10;
+dis(@a.premier(* %% 2, :end));
+ma %h = a => 666;
+dis(%h<a>:delete);
+mets(qq:to/HERE/);
+heredoc
+HERE
+pour ^3 {
+    .dis()
+}
+.dis() pour <a b c>;
+boucle {
+    dis("loop");
+    dernier()
+}

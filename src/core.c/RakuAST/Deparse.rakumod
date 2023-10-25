@@ -2582,7 +2582,11 @@ class RakuAST::Deparse {
           self.hsyn(%twigil2type{$twigil} // 'var-lexical', $ast.name)
         );
 
-        if $ast.traits -> @traits {
+        if $ast.traits.grep({
+            nqp::not_i(
+              nqp::istype($_,RakuAST::Trait::Will) && .type eq 'build'
+            )
+        }) -> @traits {
             for @traits {
                 @parts.push(' ');
                 @parts.push(self.deparse($_));

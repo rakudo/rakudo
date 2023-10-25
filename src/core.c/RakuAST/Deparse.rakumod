@@ -16,11 +16,11 @@ class RakuAST::Deparse {
 # General lookup hashes
 
     my constant %processor-attribute =
-      'exec',       ':x',
-      'quotewords', ':ww',
-      'val',        ':v',
-      'words',      ':w',
-      'heredoc',    ':to',
+      'exec',       'x',
+      'quotewords', 'ww',
+      'val',        'v',
+      'words',      'w',
+      'heredoc',    'to',
     ;
 
     my constant %single-processor-prefix =
@@ -314,9 +314,13 @@ class RakuAST::Deparse {
     }
 
     method multiple-processors(str $string, @processors --> Str:D) {
-        "qq@processors.map({
-            %processor-attribute{$_} // NYI("String processors '$_'")
-        }).join()/$string/"
+        self.xsyn('quote-lang',"qq")
+          ~ "@processors.map({
+              ':' ~ self.xsyn(
+                'adverb-q',
+                %processor-attribute{$_} // NYI("String processors '$_'")
+              )
+            }).join()/$string/"
     }
 
     method branches(RakuAST::Regex::Branching:D $ast, str $joiner --> Str:D) {
@@ -1272,7 +1276,7 @@ class RakuAST::Deparse {
         if $ast.processors -> @processors {
             if @processors == 1 && @processors.head -> $processor {
                 if %single-processor-prefix{$processor} -> str $p {
-                    ($p eq 'exec' && $ast.has-variables ?? 'qqx' !! $p)
+                    ($p eq 'exec' && $ast.has-variables ?? 'qqx/' !! $p)
                       ~ $string
                       ~ '/'
                 }

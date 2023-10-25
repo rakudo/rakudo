@@ -672,10 +672,10 @@ prefix-so   wel
 # KEY          TRANSLATION
 #quote-lang-m   m
 #quote-lang-ms  ms
-#quote-lang-q   q
-#quote-lang-Q   Q
+quote-lang-q   q
+quote-lang-Q   Q
 quote-lang-qq  dq
-#quote-lang-rx  rx
+quote-lang-rx  rx
 #quote-lang-s   s
 #quote-lang-S   S
 #quote-lang-ss  ss

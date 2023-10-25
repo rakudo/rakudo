@@ -3,8 +3,43 @@ use L10N;
 use RakuAST::Deparse::L10N;
 use Test;
 
+#-------------------------------------------------------------------------------
+# Stolen from the Trap ecosystem module
+class Trap {
+    has str @!text;
+
+    method print(*@_ --> True) {
+        @!text.push: @_.join
+    }
+    method say(*@_ --> True) {              # older versions of Raku
+        @!text.push: @_.join ~ "\n"
+    }
+    method printf($format, *@_ --> True) {  # older versions of Raku
+        @!text.push: sprintf($format, @_)
+    }
+
+    method text(--> str) { @!text.join }
+
+    multi method CALL-ME(Trap:U: $one is raw) {
+        $one = self.new
+    }
+    multi method CALL-ME(Trap:U: $one is raw, $two is raw) {
+        $one = $two = self.new
+    }
+}
+#-------------------------------------------------------------------------------
+# Capture all output from running a given AST
+
+sub output($ast) {
+    my $merged = Trap(my $*OUT, my $*ERR);
+    $ast.EVAL;
+    $merged.text
+}
+
+#-------------------------------------------------------------------------------
+
 my @localizations = L10N::.keys.sort;
-plan 2 * @localizations;
+plan 4 * @localizations;
 
 # Where we keep the source code to be tested
 my $sources := $*PROGRAM.sibling("sources");
@@ -15,12 +50,23 @@ my $basic := $sources.add("basic").slurp;
 # The RakuAST of the basic source file
 my $basic-ast := $basic.AST;
 
+# Expected output when running the basic source file
+my $basic-out := output($basic-ast);
+
 for @localizations {
     my $expected := $sources.add("basic.$_").slurp;
     is $basic-ast.DEPARSE($_), $expected, "$_: did the deparsing match";
 
     my $ast := $expected.AST(:slang(L10N::{$_}));
-    is-deeply $ast, $basic-ast, "$_: did the source create the same AST";
+    is-deeply $ast, $basic-ast,
+      "$_: did the source create the same AST with (:slang)";
+
+    $ast := "use L10N::$_;\n$expected".AST;
+    # need to ignore the "use" statement itself
+    is-deeply $ast.statements[1..*], $basic-ast.statements,
+      "$_: did the source create the same AST with 'use'";
+
+    is output($ast), $basic-out, "$_: did it generate the same output";
 }
 
 # vim: expandtab shiftwidth=4

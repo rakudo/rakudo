@@ -561,9 +561,16 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::ArgList:D $ast --> Str:D) {
         $ast.args.map({
-            nqp::istype($_,RakuAST::ColonPair)
-              ?? self.deparse($_, "named")
-              !! self.deparse($_)
+            if nqp::istype($_,RakuAST::Heredoc) {
+                my ($top, $bottom) = self.deparse($_, :split);
+                @*HEREDOCS.push($bottom);
+                $top
+            }
+            else {
+                nqp::istype($_,RakuAST::ColonPair)
+                  ?? self.deparse($_, "named")
+                  !! self.deparse($_)
+            }
         }).join($.list-infix-comma)
     }
 
@@ -904,7 +911,7 @@ class RakuAST::Deparse {
 
 #- H ---------------------------------------------------------------------------
 
-    multi method deparse(RakuAST::Heredoc:D $ast --> Str:D) {
+    multi method deparse(RakuAST::Heredoc:D $ast, :$split) {
         my $string := self.assemble-quoted-string($ast);
         my @processors = $ast.processors;
         @processors.push('heredoc');
@@ -914,12 +921,12 @@ class RakuAST::Deparse {
           ?? ''
           !! " " x ($stop.chars - $stop.trim-leading.chars);
 
-        self.multiple-processors($stop.trim, @processors)
-          ~ "\n"
-          ~ $string.chomp('\n').split(Q/\n/).map({
-              $_ ?? "$indent$_\n" !! "\n"
-            }).join
-          ~ $stop
+        my $top := self.multiple-processors($stop.trim, @processors);
+        my $bottom := $string.chomp('\n').split(Q/\n/).map({
+            $_ ?? "$indent$_\n" !! "\n"
+        }).join ~ $stop;
+
+        $split ?? ($top, $bottom) !! "$top\n$bottom"
     }
 
 #- I ---------------------------------------------------------------------------
@@ -1884,6 +1891,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Statement::Expression:D $ast --> Str:D) {
+        my @*HEREDOCS;
         my $expression := $ast.expression;
         my str @parts   = self.deparse($expression);
 
@@ -1895,12 +1903,16 @@ class RakuAST::Deparse {
             @parts.push(self.deparse($loop));
         }
 
-        self.labels($ast)
+        my $text := self.labels($ast)
           ~ @parts.join(' ')
           ~ (nqp::istype($expression,RakuAST::Doc::DeclaratorTarget)
               ?? ""
               !! $*DELIMITER
-            )
+            );
+
+        @*HEREDOCS
+          ?? $text ~ @*HEREDOCS.join
+          !! $text
     }
 
     multi method deparse(RakuAST::Statement::For:D $ast --> Str:D) {

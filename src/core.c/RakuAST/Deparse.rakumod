@@ -556,7 +556,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ArgList:D $ast --> Str:D) {
-        $ast.args.map({ self.deparse($_) }).join($.list-infix-comma)
+        $ast.args.map({
+            nqp::istype($_,RakuAST::ColonPair)
+              ?? self.deparse($_, "named")
+              !! self.deparse($_)
+        }).join($.list-infix-comma)
     }
 
 #- B ---------------------------------------------------------------------------

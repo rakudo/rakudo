@@ -1969,15 +1969,20 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Statement::Loop:D $ast --> Str:D) {
+        my $condition := $ast.setup
+          ?? (' ('
+               ~ self.deparse($ast.setup)
+               ~ $.loop-separator
+               ~ self.deparse($ast.condition)
+               ~ $.loop-separator
+               ~ self.deparse($ast.increment)
+               ~ ') '
+             )
+          !! " ";
+
         self.labels($ast)
           ~ self.syn-block('loop')
-          ~ ' ('
-          ~ self.deparse($ast.setup)
-          ~ $.loop-separator
-          ~ self.deparse($ast.condition)
-          ~ $.loop-separator
-          ~ self.deparse($ast.increment)
-          ~ ') '
+          ~ $condition
           ~ self.deparse($ast.body)
     }
 

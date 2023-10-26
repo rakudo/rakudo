@@ -166,6 +166,14 @@ class RakuAST::Deparse {
     }
 
 #-------------------------------------------------------------------------------
+# Load any deparsing slang by given string
+
+    method slang(Str:D $slang) {
+        my $L10N := "use RakuAST::Deparse::L10N; RakuAST::Deparse::L10N".EVAL;
+        $L10N.WHO{$slang}
+    }
+
+#-------------------------------------------------------------------------------
 # Provide translation for given syntax feature of Raku
 
     # The default implementation of the "xsyn" method is basically a no-op,

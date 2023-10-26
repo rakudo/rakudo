@@ -152,9 +152,9 @@ augment class Cool {
 
     # Allow for creating an AST out of a string, for core debugging mainly
     method AST(Cool:D:
+      Mu    $slang? is copy,
       Bool :$expression,  # return the first expression
       Bool :$compunit,    # return the whole compunit, not statement-list
-      Mu   :$slang,
       Mu   :$grammar is copy = nqp::gethllsym('Raku','Grammar'),
       Mu   :$actions         = nqp::gethllsym('Raku','Actions'),
     ) {
@@ -168,6 +168,13 @@ augment class Cool {
         my $?FILES :='EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
         my $*INSIDE-EVAL := 1;
 
+        # Slang specified by string, go fetch it
+        if nqp::istype($slang,Str) {
+            my $L10N := "use L10N; L10N".EVAL;
+            $slang = $L10N.WHO{$slang};
+        }
+
+        # Got a slang to mix in
         $grammar = $grammar.^mixin($slang)
           unless nqp::eqaddr(nqp::decont($slang),Mu);
 

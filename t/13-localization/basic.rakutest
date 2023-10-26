@@ -57,7 +57,7 @@ for @localizations {
     my $expected := $sources.add("basic.$_").slurp;
     is $basic-ast.DEPARSE($_), $expected, "$_: did the deparsing match";
 
-    my $ast := $expected.AST(:slang(L10N::{$_}));
+    my $ast := $expected.AST(L10N::{$_});
     is-deeply $ast, $basic-ast,
       "$_: did the source create the same AST with (:slang)";
 

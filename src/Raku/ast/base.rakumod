@@ -382,11 +382,7 @@ class RakuAST::Node {
         my $class := my $core := nqp::gethllsym('Raku','DEPARSE');
         for @roles {
             if $_.HOW.name($_) eq 'Str' {  # XXX better way to detect HLL Str?
-                if nqp::existskey((my $stash := $core.WHO),'L10N') {
-                    if nqp::existskey(($stash := $stash<L10N>.WHO),$_) {
-                        $class := self.mixin-role($class, $stash{$_})
-                    }
-                }
+                $class := self.mixin-role($class, $core.slang($_));
             }
             elsif nqp::can($_.HOW,'pun') {  # it's a role
                 $class := self.mixin-role($class, $_);

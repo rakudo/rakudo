@@ -1,7 +1,7 @@
 # This file contains the German Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-24T19:26:38+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-27T11:10:01+02:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::DE {
@@ -130,7 +130,7 @@ role L10N::DE {
     token scope-state { stand}
     token scope-unit { einheit}
     token stmt-prefix-also { auch}
-    token stmt-prefix-do { mmache}
+    token stmt-prefix-do { mache}
     token stmt-prefix-eager { eifrig}
     token stmt-prefix-gather { sammel}
     token stmt-prefix-hyper { hyper}

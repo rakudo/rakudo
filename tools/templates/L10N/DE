@@ -702,7 +702,7 @@ scope-unit      einheit
 
 # KEY                TRANSLATION
 stmt-prefix-also     auch
-stmt-prefix-do       mmache
+stmt-prefix-do       mache
 stmt-prefix-eager    eifrig
 stmt-prefix-gather   sammel
 stmt-prefix-hyper    hyper

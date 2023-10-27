@@ -677,30 +677,30 @@ routine-submethod  submethode
 routine-token      wertmarke
 
 # KEY           TRANSLATION
-scope-anon      anonym
-scope-augment   verbesser
-scope-constant  konstante
-scope-has       hat
-scope-HAS       HAT
-scope-my        mein
-scope-our       unsere
-scope-state     stand
-scope-unit      einheit
+scope-anon      anonim
+scope-augment   bővít
+scope-constant  konstans
+scope-has       bír
+scope-HAS       BÍR
+scope-my        enyém
+scope-our       miénk
+scope-state     állapot
+scope-unit      egység
 
 # KEY                TRANSLATION
-stmt-prefix-also     auch
-stmt-prefix-do       mmache
-stmt-prefix-eager    eifrig
-stmt-prefix-gather   sammel
+stmt-prefix-also     szintén
+stmt-prefix-do       csinál
+stmt-prefix-eager    buzgó
+stmt-prefix-gather   gyűjt
 stmt-prefix-hyper    hyper
-stmt-prefix-lazy     faul
-stmt-prefix-quietly  leise
-stmt-prefix-race     race
-stmt-prefix-react    reagier
-stmt-prefix-sink     sink
-stmt-prefix-start    start
-stmt-prefix-supply   liefer
-stmt-prefix-try      versuche
+stmt-prefix-lazy     lusta
+stmt-prefix-quietly  halkan
+stmt-prefix-race     verseny
+stmt-prefix-react    reagál
+stmt-prefix-sink     süllyeszt
+stmt-prefix-start    indít
+stmt-prefix-supply   ellát
+stmt-prefix-try      próbál
 
 # KEY      TRANSLATION
 term-nano  nano

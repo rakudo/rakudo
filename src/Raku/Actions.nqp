@@ -656,10 +656,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     # Handling of all forms of loops
     method statement-control:sym<repeat>($/) {
-        self.takes-loop($/, 'Repeat' ~ ($*WHILE // 'While'))
+        self.takes-loop($/, $*WHILE ?? 'RepeatWhile' !! 'RepeatUntil')
     }
     method statement-control:sym<while>($/) {
-        self.takes-loop($/, $*WHILE // 'While')
+        self.takes-loop($/, $*WHILE ?? 'While' !! 'Until')
     }
 
     # Handling of whenever

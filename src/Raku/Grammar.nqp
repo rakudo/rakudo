@@ -1338,8 +1338,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Handle "while" / "until"
     rule statement-control:sym<while> {
-        :my $*WHILE;
-        [<.block-while>|<.block-until>{$*WHILE := 'Until'}]<.kok>
+        :my $*WHILE := 1;
+        [<.block-while>|<.block-until>{$*WHILE := 0}]<.kok>
         {}
         :my $*GOAL := '{';
         :my $*BORG := {};
@@ -1427,11 +1427,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     # Handle repeat ... while | until
     rule statement-control:sym<repeat> {
-        :my $*WHILE;
+        :my $*WHILE := 1;
         <.block-repeat><.kok>
         {}
         [
-          | [<.block-while>|<.block-until>{$*WHILE := 'Until'}]<.kok>
+          | [<.block-while>|<.block-until>{$*WHILE := 0}]<.kok>
             :my $*GOAL := '{';
             :my $*BORG := {};
             :my $*IN-LOOP := 1;
@@ -1439,7 +1439,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <pointy-block>
           | <pointy-block>
             [
-                 [<.block-while>|<.block-until>{$*WHILE := 'Until'}]<.kok>
+                 [<.block-while>|<.block-until>{$*WHILE := 0}]<.kok>
               || <.missing: '"while" or "until"'>
             ]
             <EXPR>

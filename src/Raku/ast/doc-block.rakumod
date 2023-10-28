@@ -199,11 +199,9 @@ class RakuAST::Doc::Markup
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!letter',
           $letter // nqp::die("Must specify a letter"));
-        nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!opener',
-          $opener // '<');
-        nqp::bindattr_s($obj, RakuAST::Doc::Markup, '$!closer',
-          $closer // '>');
 
+        $obj.set-opener($opener // '<');
+        $obj.set-closer($closer // '>');
         $obj.set-atoms($atoms);
         $obj.set-meta($meta);
         $obj
@@ -220,6 +218,16 @@ class RakuAST::Doc::Markup
                 $visitor($_);
             }
         }
+    }
+
+    method set-opener(str $opener) {
+        nqp::bindattr_s(self,RakuAST::Doc::Markup,'$!opener',$opener);
+        Nil
+    }
+
+    method set-closer(str $closer) {
+        nqp::bindattr_s(self,RakuAST::Doc::Markup,'$!closer',$closer);
+        Nil
     }
 
     method set-atoms($atoms?) {

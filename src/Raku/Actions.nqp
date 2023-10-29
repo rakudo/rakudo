@@ -1941,6 +1941,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $name := $name-match ?? $name-match.ast !! Nodify('Name');
         my $package;
         if $scope eq 'augment' {
+            $/.typed-panic('X::Syntax::Augment::WithoutMonkeyTyping')
+              unless $*LANG.pragma('MONKEY-TYPING');
+
             $package := Nodify('Package','Augmented').new(
               :$declarator, :$how, :$name, :$scope
             );

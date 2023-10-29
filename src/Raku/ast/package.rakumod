@@ -18,6 +18,7 @@ class RakuAST::Package
     has Mu            $.attribute-type;
     has Mu            $.how;
     has Str           $.repr;
+    has Bool          $.augmented;
 
     has Mu   $!role-group;
     has Mu   $!block-semantics-applied;
@@ -39,6 +40,7 @@ class RakuAST::Package
                           Mu :$attribute-type,
                           Mu :$how,
                          Str :$repr,
+                        Bool :$augmented, 
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
@@ -50,6 +52,7 @@ class RakuAST::Package
         nqp::bindattr($obj, RakuAST::Package, '$!how',
           nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how);
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
+        nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
 
         $obj.set-traits($traits) if $traits;
         $obj.replace-body($body, $parameterization);
@@ -103,7 +106,13 @@ class RakuAST::Package
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
-        if $!name {
+        if $!augmented {
+            my $resolved := $resolver.resolve-name(self.name);
+            if $resolved {
+                self.set-resolution($resolved);
+            }
+        }
+        elsif $!name {
             my $resolved := $resolver.resolve-name-constant($!name);
             if $resolved {
                 my $meta-object := $resolved.compile-time-value;
@@ -296,7 +305,7 @@ class RakuAST::Package
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
-        if self.is-resolved {
+        if $!augmented || self.is-resolved {
             self.resolution.compile-time-value;
         }
         else {
@@ -439,20 +448,4 @@ class RakuAST::Package
     }
 
     method needs-sink-call() { False }
-}
-
-class RakuAST::Package::Augmented
-    is RakuAST::Package
-{
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-name(self.name);
-        if $resolved {
-            self.set-resolution($resolved);
-        }
-        Nil
-    }
-
-    method PRODUCE-STUBBED-META-OBJECT() {
-        self.resolution.compile-time-value
-    }
 }

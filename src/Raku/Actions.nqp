@@ -1936,25 +1936,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           !! $/.panic("Cannot resolve meta-object for $declarator");
 
         # Stub the package AST node.
-        my str $scope  := $*SCOPE // 'our';
-        my $name-match := $*PACKAGE-NAME;
-        my $name := $name-match ?? $name-match.ast !! Nodify('Name');
-        my $package;
-        if $scope eq 'augment' {
-            $/.typed-panic('X::Syntax::Augment::WithoutMonkeyTyping')
-              unless $*LANG.pragma('MONKEY-TYPING');
+        my str $scope := $*SCOPE // 'our';
+        my $augmented := $scope eq 'augment';
+        $/.typed-panic('X::Syntax::Augment::WithoutMonkeyTyping')
+          if $augmented && !$*LANG.pragma('MONKEY-TYPING');
 
-            $package := Nodify('Package','Augmented').new(
-              :$declarator, :$how, :$name, :$scope
-            );
-            $package.IMPL-CHECK($*R, $*CU.context, 1);
-        }
-        else {
-            $package := Nodify('Package').new(
-              :$declarator, :$how, :$name, :$scope
-            );
-            $package.resolve-with($*R);
-        }
+        my $name-match := $*PACKAGE-NAME;
+        my $name       := $name-match ?? $name-match.ast !! Nodify('Name');
+        my $package    := Nodify('Package').new(
+          :$declarator, :$how, :$name, :$scope, :$augmented
+        );
+
+        $augmented
+          ?? $package.IMPL-CHECK($*R, $*CU.context, 1)
+          !! $package.resolve-with($*R);
+
         self.set-declarand($/, $*PACKAGE := $package);
     }
 

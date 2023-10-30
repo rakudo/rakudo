@@ -1390,11 +1390,13 @@ class RakuAST::Routine
 
     method replace-name(RakuAST::Name $new-name) {
         nqp::bindattr(self, RakuAST::Routine, '$!name', $new-name);
+        self.IMPL-RESET-CACHED-META-OBJECT;
         Nil
     }
 
     method replace-signature(RakuAST::Signature $new-signature) {
         nqp::bindattr(self, RakuAST::Routine, '$!signature', $new-signature);
+        self.IMPL-RESET-CACHED-META-OBJECT;
         Nil
     }
 

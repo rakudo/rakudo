@@ -1023,7 +1023,7 @@ class RakuAST::Deparse {
 #- P ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Package:D $ast --> Str:D) {
-        my str $scope = $ast.scope;
+        my str $scope = $ast.augmented ?? 'augment' !! $ast.scope;
         my str @parts;
 
         if $scope {

@@ -180,11 +180,10 @@ CODE
 
 subtest 'Simple class with declarator pod' => {
     # #| leading comment␤my class A {␤#= trailing comment␤}␤$=pod
-    ast RakuAST::Package.new(
-      scope      => "my",
-      declarator => "class",
-      name       => RakuAST::Name.from-identifier("A"),
-      body       => RakuAST::Block.new(
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new()
         )
@@ -211,11 +210,10 @@ CODE
 
 subtest 'Simple class with declarator pod, one attribute' => {
     # my class A {␤    #| leading comment␤    has $.foo␤    #= trailing comment␤}␤$=pod
-    ast RakuAST::Package.new(
-      scope      => "my",
-      declarator => "class",
-      name       => RakuAST::Name.from-identifier("A"),
-      body       => RakuAST::Block.new(
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -256,11 +254,10 @@ CODE
 
 subtest 'Simple class with declarator pod, two attributes' => {
     # my class A {␤    #| leading comment␤    has $.foo␤    #= trailing comment␤    has $.bar␤}␤$=pod
-    ast RakuAST::Package.new(
-      scope      => "my",
-      declarator => "class",
-      name       => RakuAST::Name.from-identifier("A"),
-      body       => RakuAST::Block.new(
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -308,11 +305,10 @@ CODE
 
 subtest 'Simple class with declarator pod, one method' => {
     # my class A {␤    #| leading comment␤    method foo() { }␤    #= trailing comment␤}␤$=pod
-    ast RakuAST::Package.new(
-      scope      => "my",
-      declarator => "class",
-      name       => RakuAST::Name.from-identifier("A"),
-      body       => RakuAST::Block.new(
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -352,11 +348,10 @@ CODE
 
 subtest 'Simple class with declarator pod, one submethod' => {
     # my class A {␤    #| leading comment␤    submethod foo() { }␤    #= trailing comment␤}␤$=pod
-    ast RakuAST::Package.new(
-      scope      => "my",
-      declarator => "class",
-      name       => RakuAST::Name.from-identifier("A"),
-      body       => RakuAST::Block.new(
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -396,11 +391,10 @@ CODE
 
 subtest 'Simple class with declarator pod, one private method' => {
     # my class A {␤    #| leading comment␤    method !foo() { }␤    #= trailing comment␤}␤$=pod
-    ast RakuAST::Package.new(
-      scope      => "my",
-      declarator => "class",
-      name       => RakuAST::Name.from-identifier("A"),
-      body       => RakuAST::Block.new(
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -441,11 +435,10 @@ CODE
 
 subtest 'Simple class with declarator pod, one meta method' => {
     # my class A {␤    #| leading comment␤    method ^foo() { }␤    #= trailing comment␤}␤$=pod
-    ast RakuAST::Package.new(
-      scope      => "my",
-      declarator => "class",
-      name       => RakuAST::Name.from-identifier("A"),
-      body       => RakuAST::Block.new(
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -486,11 +479,10 @@ CODE
 
 subtest 'Simple class with declarator pod, two methods' => {
     # my class A {␤    #| leading comment␤    method foo() {␤    #= trailing comment␤    }␤    method bar { }␤}␤$=pod
-    ast RakuAST::Package.new(
-      scope      => "my",
-      declarator => "class",
-      name       => RakuAST::Name.from-identifier("A"),
-      body       => RakuAST::Block.new(
+    ast RakuAST::Class.new(
+      scope => "my",
+      name  => RakuAST::Name.from-identifier("A"),
+      body  => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(

@@ -571,7 +571,7 @@ augment class RakuAST::Node {
         }
 
         self!add-WHY: $self!nameds:
-          <scope declarator name how repr traits body>,
+          <scope name how repr traits body>,
           (parameterization => $signature
             if $signature && $signature.parameters.elems)
     }

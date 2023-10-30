@@ -12,7 +12,6 @@ class RakuAST::Package
   is RakuAST::Lookup
   is RakuAST::Doc::DeclaratorTarget
 {
-    has Str           $.declarator;
     has RakuAST::Name $.name;
     has RakuAST::Code $.body;
     has Mu            $.attribute-type;
@@ -32,7 +31,6 @@ class RakuAST::Package
     has Mu $!attached-attribute-usages;
 
     method new(          str :$scope,
-                         Str :$declarator!,
                RakuAST::Name :$name,
           RakuAST::Signature :$parameterization,
                         List :$traits,
@@ -45,7 +43,6 @@ class RakuAST::Package
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
-        nqp::bindattr($obj, RakuAST::Package, '$!declarator', $declarator);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
           nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
@@ -68,6 +65,9 @@ class RakuAST::Package
         $obj
     }
 
+    method declarator() { "package" }
+    method default-how() { Metamodel::PackageHOW }
+
     method replace-body(RakuAST::Code $body, RakuAST::Signature $signature?) {
         $body := RakuAST::Block.new unless $body;
 
@@ -75,7 +75,7 @@ class RakuAST::Package
         # of the role as the signature.  This allows a role to be selected
         # using ordinary dispatch semantics.  The statement list gets a return
         # value added, so that the role's meta-object and lexpad are returned.
-        if $!declarator eq 'role' {
+        if self.declarator eq 'role' {
             $signature := RakuAST::Signature.new unless $signature;
             $signature.set-is-on-role-body(1);
 
@@ -129,23 +129,10 @@ class RakuAST::Package
 
     method default-scope() { 'our' }
 
-    method default-how() {
-        my constant HOWS := nqp::hash(
-          'class',   Metamodel::ClassHOW,
-          'grammar', Metamodel::GrammarHOW,
-          'knowhow', Metamodel::KnowHOW,
-          'module',  Metamodel::ModuleHOW,
-          'native',  Metamodel::NativeHOW,
-          'package', Metamodel::PackageHOW,
-          'role',    Metamodel::ParametricRoleHOW
-        );
-        nqp::ifnull(nqp::atkey(HOWS,$!declarator),Metamodel::PackageHOW)
-    }
-
     method dba() { 'package' }
 
     method parameterization() {
-        $!declarator eq 'role' ?? $!body.signature !! Mu
+        self.declarator eq 'role' ?? $!body.signature !! Mu
     }
 
     # While a package may be declared `my`, its installation semantics are
@@ -216,12 +203,12 @@ class RakuAST::Package
             # Update the Stash's name, too.
             nqp::bindattr_s($type-object.WHO, Stash, '$!longname', $type-object.HOW.name($type-object));
 
-            if ($scope eq 'my' || $scope eq 'our') && $!declarator ne 'role' {
+            if ($scope eq 'my' || $scope eq 'our') && self.declarator ne 'role' {
                 # Need to install the package somewhere.
                 self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $type-object, $resolver.current-package);
             }
 
-            elsif $!declarator eq 'role' {
+            elsif self.declarator eq 'role' {
                 # Find an appropriate existing role group
                 my $group-name := $full-name.canonicalize(:colonpairs(0));
                 my $group := $resolver.resolve-lexical-constant($group-name);
@@ -256,7 +243,7 @@ class RakuAST::Package
         if nqp::istype($resolver, RakuAST::Resolver::Compile) {
             $resolver.enter-scope(self);
 
-            if $!declarator eq 'role' {
+            if self.declarator eq 'role' {
                 $resolver.declare-lexical(
                     RakuAST::VarDeclaration::Implicit::Constant.new(
                         name => '$?ROLE', value => self.stubbed-meta-object
@@ -274,7 +261,7 @@ class RakuAST::Package
                     RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('::?CLASS'))
                 );
             }
-            elsif $!declarator eq 'module' {
+            elsif self.declarator eq 'module' {
                 $resolver.declare-lexical(
                     RakuAST::VarDeclaration::Implicit::Constant.new(
                         name => '$?MODULE', value => self.stubbed-meta-object
@@ -286,7 +273,7 @@ class RakuAST::Package
                     )
                 );
             }
-            elsif $!declarator ne 'package' {
+            elsif self.declarator ne 'package' {
                 $resolver.declare-lexical(
                     RakuAST::VarDeclaration::Implicit::Constant.new(
                         name => '$?CLASS', value => self.stubbed-meta-object
@@ -348,7 +335,7 @@ class RakuAST::Package
             $type.HOW.add_attribute($type, $_.meta-object);
         }
 
-        if $!declarator eq 'role' {
+        if self.declarator eq 'role' {
             $type.HOW.set_body_block($type, $!body.meta-object);
 
             # The role needs to be composed before we add the possibility to the group
@@ -374,7 +361,7 @@ class RakuAST::Package
                 name => '$?PACKAGE', value => self.stubbed-meta-object
             )
         );
-        if $!declarator eq 'role' {
+        if self.declarator eq 'role' {
             $!body.add-generated-lexical-declaration(
                 RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?ROLE', value => self.stubbed-meta-object
@@ -386,7 +373,7 @@ class RakuAST::Package
                 )
             );
         }
-        elsif $!declarator eq 'module' {
+        elsif self.declarator eq 'module' {
             $!body.add-generated-lexical-declaration(
                 RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?MODULE', value => self.stubbed-meta-object
@@ -398,7 +385,7 @@ class RakuAST::Package
                 )
             );
         }
-        elsif $!declarator ne 'package' {
+        elsif self.declarator ne 'package' {
             $!body.add-generated-lexical-declaration(
                 RakuAST::VarDeclaration::Implicit::Constant.new(
                     name => '$?CLASS', value => self.stubbed-meta-object
@@ -432,7 +419,7 @@ class RakuAST::Package
     }
 
     method IMPL-COMPOSE() {
-        if $!declarator eq 'class' {
+        if self.declarator eq 'class' {
             # create BUILDALL method if there's something to create,
             # otherwise put in a generic fallback BUILDALL that doesn't
             # do anything
@@ -448,4 +435,46 @@ class RakuAST::Package
     }
 
     method needs-sink-call() { False }
+}
+
+class RakuAST::Role
+  is RakuAST::Package
+{
+    method declarator() { "role" }
+    method default-how() { Metamodel::ParametricRoleHOW }
+}
+
+class RakuAST::Class
+  is RakuAST::Package
+{
+    method declarator() { "class" }
+    method default-how() { Metamodel::ClassHOW }
+}
+
+class RakuAST::Grammar
+  is RakuAST::Package
+{
+    method declarator() { "grammar" }
+    method default-how() { Metamodel::GrammarHOW }
+}
+
+class RakuAST::Module
+  is RakuAST::Package
+{
+    method declarator() { "module" }
+    method default-how() { Metamodel::KnowHOW }
+}
+
+class RakuAST::Knowhow
+  is RakuAST::Package
+{
+    method declarator() { "knowhow" }
+    method default-how() { Metamodel::KnowHOW }
+}
+
+class RakuAST::Native
+  is RakuAST::Package
+{
+    method declarator() { "native" }
+    method default-how() { Metamodel::NativeHOW }
 }

@@ -1943,8 +1943,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         my $name-match := $*PACKAGE-NAME;
         my $name       := $name-match ?? $name-match.ast !! Nodify('Name');
-        my $package    := Nodify('Package').new(
-          :$declarator, :$how, :$name, :$scope, :$augmented
+        my $package    := Nodify(nqp::tclc($declarator)).new(
+          :$how, :$name, :$scope, :$augmented
         );
 
         $augmented

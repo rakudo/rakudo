@@ -330,9 +330,8 @@ class RakuAST::CompUnit
         # it as the current package.
         unless $!is-eval {
             my $global := RakuAST::Package.new(
-              declarator => 'package',
-              how        => $!global-package-how,
-              name       => RakuAST::Name.from-identifier('GLOBAL')
+              how  => $!global-package-how,
+              name => RakuAST::Name.from-identifier('GLOBAL')
             );
 
             add($global);

@@ -24,6 +24,10 @@ class RakuAST::Meta
     method compile-time-value() {
         self.meta-object
     }
+
+    method IMPL-RESET-CACHED-META-OBJECT() {
+        nqp::bindattr(self, RakuAST::Meta, '$!meta-object-produced', False);
+    }
 }
 
 # Anything doing RakuAST::StubbyMeta is not only capable of producing a

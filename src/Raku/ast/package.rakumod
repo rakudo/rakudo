@@ -68,32 +68,9 @@ class RakuAST::Package
     method declarator() { "package" }
     method default-how() { Metamodel::PackageHOW }
 
-    method replace-body(RakuAST::Code $body, RakuAST::Signature $signature?) {
-        $body := RakuAST::Block.new unless $body;
-
-        # The body of a role is internally a Sub that has the parameterization
-        # of the role as the signature.  This allows a role to be selected
-        # using ordinary dispatch semantics.  The statement list gets a return
-        # value added, so that the role's meta-object and lexpad are returned.
-        if self.declarator eq 'role' {
-            $signature := RakuAST::Signature.new unless $signature;
-            $signature.set-is-on-role-body(1);
-
-            $body := $body.body;
-            $body.statement-list.add-statement(
-              RakuAST::Statement::Expression.new(
-                expression => RakuAST::Nqp.new('list',
-                  RakuAST::Declaration::ResolvedConstant.new(
-                    compile-time-value => self.stubbed-meta-object
-                  ),
-                  RakuAST::Nqp.new('curlexpad')
-                )
-              )
-            );
-            $body := RakuAST::Sub.new(:name($!name), :$signature, :$body);
-        }
-
-        nqp::bindattr(self, RakuAST::Package, '$!body', $body);
+    method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
+        nqp::bindattr(self, RakuAST::Package, '$!body',
+          $body // RakuAST::Block.new);
         Nil
     }
 
@@ -131,16 +108,12 @@ class RakuAST::Package
 
     method dba() { 'package' }
 
-    method parameterization() {
-        self.declarator eq 'role' ?? $!body.signature !! Mu
-    }
+    method parameterization() { Mu }
 
     # While a package may be declared `my`, its installation semantics are
     # more complex, and thus handled as a BEGIN-time effect. (For example,
     # `my Foo::Bar { }` should not create a lexical symbol Foo::Bar.)
-    method is-simple-lexical-declaration() {
-        False
-    }
+    method is-simple-lexical-declaration() { False }
 
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
 
@@ -243,52 +216,29 @@ class RakuAST::Package
         if nqp::istype($resolver, RakuAST::Resolver::Compile) {
             $resolver.enter-scope(self);
 
-            if self.declarator eq 'role' {
-                $resolver.declare-lexical(
-                    RakuAST::VarDeclaration::Implicit::Constant.new(
-                        name => '$?ROLE', value => self.stubbed-meta-object
-                    )
-                );
-                $resolver.declare-lexical(
-                    RakuAST::VarDeclaration::Implicit::Constant.new(
-                        name => '::?ROLE', value => self.stubbed-meta-object
-                    )
-                );
-                $resolver.declare-lexical(
-                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('$?CLASS'))
-                );
-                $resolver.declare-lexical(
-                    RakuAST::Type::Capture.new(RakuAST::Name.from-identifier('::?CLASS'))
-                );
-            }
-            elsif self.declarator eq 'module' {
-                $resolver.declare-lexical(
-                    RakuAST::VarDeclaration::Implicit::Constant.new(
-                        name => '$?MODULE', value => self.stubbed-meta-object
-                    )
-                );
-                $resolver.declare-lexical(
-                    RakuAST::VarDeclaration::Implicit::Constant.new(
-                        name => '::?MODULE', value => self.stubbed-meta-object
-                    )
-                );
-            }
-            elsif self.declarator ne 'package' {
-                $resolver.declare-lexical(
-                    RakuAST::VarDeclaration::Implicit::Constant.new(
-                        name => '$?CLASS', value => self.stubbed-meta-object
-                    )
-                );
-                $resolver.declare-lexical(
-                    RakuAST::VarDeclaration::Implicit::Constant.new(
-                        name => '::?CLASS', value => self.stubbed-meta-object
-                    )
-                );
-            }
+            # define any lexicals
+            self.declare-lexicals($resolver);
         }
 
         # Apply traits.
         self.apply-traits($resolver, $context, self);
+    }
+
+    # Declare the lexicals for this type of package
+    method declare-lexicals(RakuAST::Resolver $resolver) {
+        self.meta-object-as-lexicals($resolver, 'CLASS')
+          unless self.declarator eq 'package';
+    }
+
+    # Helper method to create $?CLASS ::?CLASS and similar
+    method meta-object-as-lexicals(RakuAST::Resolver $resolver, str $root) {
+        for '$?', '::?' {
+            $resolver.declare-lexical(
+                RakuAST::VarDeclaration::Implicit::Constant.new(
+                  :name($_ ~ $root), :value(self.stubbed-meta-object)
+                )
+            );
+        }
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
@@ -442,6 +392,44 @@ class RakuAST::Role
 {
     method declarator() { "role" }
     method default-how() { Metamodel::ParametricRoleHOW }
+
+    method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
+        # The body of a role is internally a Sub that has the parameterization
+        # of the role as the signature.  This allows a role to be selected
+        # using ordinary dispatch semantics.  The statement list gets a return
+        # value added, so that the role's meta-object and lexpad are returned.
+        $signature := RakuAST::Signature.new unless $signature;
+        $signature.set-is-on-role-body(1);
+
+        $body := RakuAST::Block.new unless $body;
+        $body := $body.body;
+        $body.statement-list.add-statement(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Nqp.new('list',
+              RakuAST::Declaration::ResolvedConstant.new(
+                compile-time-value => self.stubbed-meta-object
+              ),
+              RakuAST::Nqp.new('curlexpad')
+            )
+          )
+        );
+        $body := RakuAST::Sub.new(:name(self.name), :$signature, :$body);
+
+        nqp::bindattr(self, RakuAST::Package, '$!body', $body);
+        Nil
+    }
+
+    method parameterization() { self.body.signature }
+
+    method declare-lexicals(RakuAST::Resolver $resolver) {
+        self.meta-object-as-lexicals($resolver, 'ROLE');
+
+        for '$?CLASS', '::?CLASS' {
+            $resolver.declare-lexical(
+              RakuAST::Type::Capture.new(RakuAST::Name.from-identifier($_))
+            );
+        }
+    }
 }
 
 class RakuAST::Class
@@ -463,6 +451,10 @@ class RakuAST::Module
 {
     method declarator() { "module" }
     method default-how() { Metamodel::KnowHOW }
+
+    method declare-lexicals(RakuAST::Resolver $resolver) {
+        self.meta-object-as-lexicals($resolver, 'MODULE');
+    }
 }
 
 class RakuAST::Knowhow

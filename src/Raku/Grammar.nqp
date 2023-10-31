@@ -3645,11 +3645,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                    ]+
         ]?
         [ <.ws> <trait>+ ]?
-        <.stub-variable($/)>
+        :my $where;
+        [
+            <.ws> <.constraint-where> <.ws> <EXPR('j')>
+            { $where := $<EXPR>.ast }
+        ]?
+        <.stub-variable($/, $where)>
         [<.ws> <initializer>]?
     }
 
-    token stub-variable($*VARIABLE-MATCH) { <?> }
+    token stub-variable($*VARIABLE-MATCH, $*WHERE) { <?> }
 
     token desigilname {
         [

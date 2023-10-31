@@ -2069,6 +2069,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my str $scope := $*SCOPE;
         my     $type  := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
         my str $sigil := $<sigil>;
+        my     $where := $*WHERE;
 
         my $decl;
         if $<desigilname> {
@@ -2085,7 +2086,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $forced-dynamic := $dynprag ?? $dynprag($name) !! 0;
             $decl := Nodify('VarDeclaration','Simple').new:
               :$scope, :$type, :$sigil, :$twigil, :desigilname($ast),
-              :$shape, :$forced-dynamic;
+              :$shape, :$forced-dynamic, :$where;
 
             $/.typed-worry('X::Redeclaration', :symbol($name))
               if ($scope eq 'my' || $scope eq 'state' || $scope eq 'our')

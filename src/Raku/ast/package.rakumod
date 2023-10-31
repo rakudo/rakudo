@@ -214,12 +214,25 @@ class RakuAST::Package
     # Helper method to create $?CLASS ::?CLASS and similar
     method meta-object-as-lexicals(RakuAST::Resolver $resolver, str $root) {
         for '$?', '::?' {
-            $resolver.declare-lexical(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                  :name($_ ~ $root), :value(self.stubbed-meta-object)
-                )
-            );
+            $resolver.declare-lexical(self.implicit-constant($_ ~ $root));
         }
+    }
+
+    # Helper method to create $?CLASS ::?CLASS and similar
+    method meta-object-as-body-lexicals(str $root) {
+        my $body := self.body;
+        for '$?', '::?' {
+            $body.add-generated-lexical-declaration(
+              self.implicit-constant($_ ~ $root)
+            )
+        }
+    }
+
+    # Helper method to define an implicit constant for the meta object
+    method implicit-constant(str $name) {
+        RakuAST::VarDeclaration::Implicit::Constant.new(
+          :$name, :value(self.stubbed-meta-object)
+        )
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
@@ -283,51 +296,18 @@ class RakuAST::Package
     }
 
     method apply-implicit-block-semantics() {
-        if $!block-semantics-applied {
-            return;
+        unless $!block-semantics-applied {
+            self.meta-object-as-body-lexicals('PACKAGE');
+            self.additional-body-lexicals;
+
+            nqp::bindattr(self,RakuAST::Package,'$!block-semantics-applied',1);
         }
-        nqp::bindattr(self, RakuAST::Package, '$!block-semantics-applied', 1);
-        $!body.add-generated-lexical-declaration(
-            RakuAST::VarDeclaration::Implicit::Constant.new(
-                name => '$?PACKAGE', value => self.stubbed-meta-object
-            )
-        );
-        if self.declarator eq 'role' {
-            $!body.add-generated-lexical-declaration(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '$?ROLE', value => self.stubbed-meta-object
-                )
-            );
-            $!body.add-generated-lexical-declaration(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '::?ROLE', value => self.stubbed-meta-object
-                )
-            );
-        }
-        elsif self.declarator eq 'module' {
-            $!body.add-generated-lexical-declaration(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '$?MODULE', value => self.stubbed-meta-object
-                )
-            );
-            $!body.add-generated-lexical-declaration(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '::?MODULE', value => self.stubbed-meta-object
-                )
-            );
-        }
-        elsif self.declarator ne 'package' {
-            $!body.add-generated-lexical-declaration(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '$?CLASS', value => self.stubbed-meta-object
-                )
-            );
-            $!body.add-generated-lexical-declaration(
-                RakuAST::VarDeclaration::Implicit::Constant.new(
-                    name => '::?CLASS', value => self.stubbed-meta-object
-                )
-            );
-        }
+    }
+
+    # Add any additional lexicals to the body
+    method additional-body-lexicals() {
+        self.meta-object-as-body-lexicals('CLASS')
+          unless self.declarator eq 'package';
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -350,11 +330,6 @@ class RakuAST::Package
     }
 
     method IMPL-COMPOSE() {
-        if self.declarator eq 'class' {
-            # create BUILDALL method if there's something to create,
-            # otherwise put in a generic fallback BUILDALL that doesn't
-            # do anything
-        }
         self.meta-object; # Ensure it's composed
     }
 
@@ -443,6 +418,10 @@ class RakuAST::Role
         $type-object.HOW.set_group($type-object, $group);
         nqp::bindattr(self, RakuAST::Package, '$!role-group', $group);
     }
+
+    method additional-body-lexicals() {
+        self.meta-object-as-body-lexicals('ROLE');
+    }
 }
 
 class RakuAST::Class
@@ -450,6 +429,13 @@ class RakuAST::Class
 {
     method declarator() { "class" }
     method default-how() { Metamodel::ClassHOW }
+
+    method IMPL-COMPOSE() {
+        # create BUILDALL method if there's something to create,
+        # otherwise put in a generic fallback BUILDALL that doesn't
+        # do anything
+        self.meta-object; # Ensure it's composed
+    }
 }
 
 class RakuAST::Grammar
@@ -467,6 +453,10 @@ class RakuAST::Module
 
     method declare-lexicals(RakuAST::Resolver $resolver) {
         self.meta-object-as-lexicals($resolver, 'MODULE');
+    }
+
+    method additional-body-lexicals() {
+        self.meta-object-as-body-lexicals('MODULE');
     }
 }
 

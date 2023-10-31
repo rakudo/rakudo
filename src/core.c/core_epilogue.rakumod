@@ -169,10 +169,8 @@ augment class Cool {
         my $*INSIDE-EVAL := 1;
 
         # Slang specified by string, go fetch it
-        if nqp::istype($slang,Str) {
-            my $L10N := "use L10N; L10N".EVAL;
-            $slang = $L10N.WHO{$slang};
-        }
+        $slang = "use L10N::$slang; L10N::$slang".EVAL
+          if nqp::istype($slang,Str);
 
         # Got a slang to mix in
         $grammar = $grammar.^mixin($slang)

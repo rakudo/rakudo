@@ -1,0 +1,766 @@
+# This file contains the Portuguese translation of features of the
+# Raku Programming Language.
+#
+# CONTRIBUTORS: Fernando Corrêa de Oliveira
+#
+# See tools/build/L10N/README.md for more explanation.
+
+# KEY             TRANSLATION
+#adverb-pc-delete  delete
+#adverb-pc-exists  exists
+#adverb-pc-k       k
+#adverb-pc-kv      kv
+#adverb-pc-p       p
+#adverb-pc-v       v
+
+# KEY                TRANSLATION
+#adverb-q-a           a
+#adverb-q-array       array
+#adverb-q-b           b
+#adverb-q-backslash   backslash
+#adverb-q-c           c
+#adverb-q-closure     closure
+#adverb-q-double      double
+#adverb-q-exec        exec
+#adverb-q-f           f
+#adverb-q-function    function
+#adverb-q-format      format
+#adverb-q-h           h
+#adverb-q-hash        hash
+#adverb-q-heredoc     heredoc
+#adverb-q-o           o
+#adverb-q-q           q
+#adverb-q-qq          qq
+#adverb-q-quotewords  quotewords
+#adverb-q-s           s
+#adverb-q-scalar      scalar
+#adverb-q-single      single
+#adverb-q-to          to
+#adverb-q-v           v
+#adverb-q-val         val
+#adverb-q-w           w
+#adverb-q-words       words
+#adverb-q-ww          ww
+#adverb-q-x           x
+
+# KEY                 TRANSLATION
+#adverb-rx-c           c
+#adverb-rx-continue    continue
+#adverb-rx-ex          ex
+#adverb-rx-exhaustive  exhaustive
+#adverb-rx-g           g
+#adverb-rx-global      global
+#adverb-rx-i           i
+#adverb-rx-ignorecase  ignorecase
+#adverb-rx-ignoremark  ignoremark
+#adverb-rx-ii          ii
+#adverb-rx-m           m
+#adverb-rx-mm          mm
+#adverb-rx-nd          nd
+#adverb-rx-nth         nth
+#adverb-rx-ov          ov
+#adverb-rx-overlap     overlap
+#adverb-rx-p           p
+#adverb-rx-pos         pos
+#adverb-rx-r           r
+#adverb-rx-ratchet     ratchet
+#adverb-rx-rd          rd
+#adverb-rx-s           s
+#adverb-rx-samecase    samecase
+#adverb-rx-samemark    samemark
+#adverb-rx-samespace   samespace
+#adverb-rx-sigspace    sigspace
+#adverb-rx-ss          ss
+#adverb-rx-st          st
+#adverb-rx-to          to
+#adverb-rx-x           x
+
+# KEY           TRANSLATION
+block-default   predefinita
+block-else      se-não
+block-elsif     se-não-se
+block-for       por
+block-given     dado
+block-if        se
+block-loop      ciclo
+block-orwith    ou-com
+block-repeat    ripita
+block-unless    a-não-ser
+block-until     até
+block-when      quando
+block-whenever  assim-que
+block-while     enquanto
+block-with      com
+block-without   sem
+
+# KEY             TRANSLATION
+constraint-where  quando
+
+# KEY                  TRANSLATION
+#core-abs               abs
+core-all               todos
+#core-antipairs         antipairs
+core-any               algum
+core-append            insere-no-final
+#core-ast               ast
+core-atomic-add-fetch  adiciona-e-retorna-atomicamente
+core-atomic-assign     define-valor-atomicamente
+core-atomic-dec-fetch  decrementa-e-retorna-atomicamente
+core-atomic-fetch      retorna-atomicamente
+core-atomic-fetch-add  retorna-e-adiciona-atomicamente
+core-atomic-fetch-dec  retorna-e-decrementa-atomicamente
+core-atomic-fetch-inc  retorna-e-incrementa-atomicamente
+core-atomic-fetch-sub  retorna-e-subtrai-atomicamente
+core-atomic-inc-fetch  incrementa-e-retorna-atomicamente
+core-atomic-sub-fetch  subtrai-e-retorna-atomicamente
+core-await             espera
+
+# KEY          TRANSLATION
+core-bag       bolsa
+#core-bail-out  bail-out
+core-bless     abençoa
+
+# KEY              TRANSLATION
+#core-callframe     callframe
+#core-callsame      callsame
+#core-callwith      callwith
+#core-can-ok        can-ok
+#core-cas           cas
+core-categorize    categorize
+# core-ceiling       soffitto
+#core-chars         chars
+#core-chdir         chdir
+#core-chmod         chmod
+#core-chomp         chomp
+#core-chop          chop
+#core-chown         chown
+#core-chr           chr
+#core-chrs          chrs
+core-classify      classifique
+# core-close         chide
+#core-cmp-ok        cmp-ok
+#core-codes         codes
+# core-comb          pettine
+core-combinations  combinações
+#core-conj          conj
+core-cross         cruz
+
+# KEY         TRANSLATION
+#core-decode   decode
+# core-deepmap  mappa-profonda
+core-defined  definido
+#core-diag     diag
+core-die      morra
+#core-dies-ok  dies-ok
+#core-dir      dir
+#core-does-ok  does-ok
+core-done     feito
+# core-duckmap  mappa-anatra
+
+# KEY               TRANSLATION
+#core-elems          elems
+core-emit           emita
+#core-encode         encode
+core-end            fim
+core-ends-with      termina-com
+#core-eval-dies-ok   eval-dies-ok
+#core-eval-lives-ok  eval-lives-ok
+core-exit           saia
+#core-exp            exp
+#core-expmod         expmod
+
+# KEY              TRANSLATION
+core-fail          falhe
+#core-fails-like    fails-like
+#core-fc            fc
+core-first         primo
+core-flat          plano
+#core-flip          flip
+core-floor         chão
+#core-flunk         flunk
+#core-fmt           fmt
+# core-full-barrier  barriera-completa
+
+# KEY      TRANSLATION
+core-get   pegue
+#core-getc  getc
+core-gist  essencia
+#core-grep  grep
+
+# KEY      TRANSLATION
+#core-hash  hash
+core-head  cabeça
+
+# KEY           TRANSLATION
+core-indent     indente
+core-index      indice
+core-indices    indices
+#core-indir      indir
+core-is         é
+#core-is-approx  is-approx
+#core-is-deeply  is-deeply
+#core-is-prime   is-prime
+#core-isa-ok     isa-ok
+core-isnt       não-é
+core-item       item
+
+# KEY      TRANSLATION
+core-join  junta
+
+# KEY      TRANSLATION
+core-key   chave
+core-keys  chaves
+core-kv    cv
+
+# KEY          TRANSLATION
+core-last      último
+core-lastcall  última-chamada
+#core-lc        lc
+#core-like      like
+core-lines     linhas
+#core-link      link
+core-list      lista
+#core-lives-ok  lives-ok
+#core-lsb       lsb
+
+# KEY        TRANSLATION
+core-make    faça
+# core-map     mappa
+#core-match   match
+#core-max     max
+#core-min     min
+#core-minmax  minmax
+#core-mix     mix
+#core-mkdir   mkdir
+core-move    mova
+#core-msb     msb
+
+# KEY            TRANSLATION
+#core-new         new
+core-next        próximo
+core-nextcallee  próxima-chamada
+core-nextsame    próximo-mesmo
+core-nextwith    próximo-com
+#core-nok         nok
+core-none        nenhum
+core-not         não
+core-note        nota
+
+# KEY      TRANSLATION
+#core-ok    ok
+core-one   um
+core-open  aberto
+#core-ord   ord
+#core-ords  ords
+
+# KEY              TRANSLATION
+core-pair          par
+core-pairs         pares
+#core-parse-base    parse-base
+#core-pass          pass
+core-permutations  permutações
+# core-pick          prendi
+#core-plan          plan
+#core-pop           pop
+#core-prepend       prepend
+core-print         escreva
+core-printf        escreva-formatado
+core-proceed       siga
+# core-prompt        richiesta
+# core-push          spinge
+# core-put           metti
+
+# KEY            TRANSLATION
+#core-rand        rand
+core-redo        refaça
+core-reduce      reduza
+core-repeated    repetido
+#core-repl        repl
+core-return      retorne
+core-return-rw   retorne-rw
+#core-reverse     reverse
+#core-rindex      rindex
+#core-rmdir       rmdir
+#core-roll        roll
+#core-roots       roots
+#core-rotate      rotate
+#core-round       round
+#core-roundrobin  roundrobin
+#core-run         run
+
+# KEY             TRANSLATION
+# core-samecase     stesso-caso
+# core-samemark     stessa-marca
+# core-samewith     stessa-con
+core-say          diga
+#core-set          set
+#core-shell        shell
+# core-shift        sposta
+core-sign         assine
+core-signal       sinal
+core-skip         pula
+#core-skip-rest    skip-rest
+core-sleep        durma
+#core-sleep-timer  sleep-timer
+core-sleep-until  durma-até
+# core-slip         scivola
+# core-slurp        bevi
+# core-snip         taglia
+# core-snitch       fail-la-spia
+# core-so           così
+core-sort         ordene
+# core-splice       unisci
+# core-split        divitevi
+#core-sprintf      sprintf
+# core-spurt        spruzza
+#core-sqrt         sqrt
+core-squish       encolha
+#core-srand        srand
+#core-starts-with  starts-with
+#core-subbuf       subbuf
+#core-subbuf-rw    subbuf-rw
+#core-subst        subst
+#core-substr       substr
+#core-substr-eq    substr-eq
+#core-substr-rw    substr-rw
+#core-subtest      subtest
+# core-succeed      riuscirci
+core-sum          some
+#core-symlink      symlink
+
+# KEY               TRANSLATION
+core-tail           cauda
+core-take           pegue
+core-take-rw        pegue-rw
+#core-tc             tc
+#core-tclc           tclc
+#core-throws-like    throws-like
+#core-todo           todo
+#core-trans          trans
+# core-trim           taglia
+# core-trim-leading   taglia-in-testa
+# core-trim-trailing  taglia-in-coda
+# core-truncate       troncare
+
+# KEY          TRANSLATION
+#core-uc        uc
+#core-unimatch  unimatch
+#core-uniname   uniname
+#core-uninames  uninames
+#core-uniparse  uniparse
+#core-uniprop   uniprop
+#core-uniprops  uniprops
+#core-unique    unique
+#core-unival    unival
+#core-univals   univals
+#core-unlike    unlike
+#core-unlink    unlink
+#core-unpolar   unpolar
+#core-unshift   unshift
+#core-use-ok    use-ok
+
+# KEY        TRANSLATION
+#core-val     val
+core-value   valor
+core-values  valores
+
+# KEY          TRANSLATION
+core-warn      avise
+# core-wordcase  caso-della-parola
+core-words     palavras
+
+# KEY     TRANSLATION
+#core-zip  zip
+
+# KEY             TRANSLATION
+#infix-(cont)      (cont)
+#infix-(elem)      (elem)
+#infix-^ff         ^ff
+#infix-^ff^        ^ff^
+#infix-^fff        ^fff
+#infix-^fff^       ^fff^
+infix-after       depois
+infix-and         e
+infix-andthen     e-então
+infix-before      antes
+infix-but         mas
+#infix-cmp         cmp
+#infix-coll        coll
+#infix-div         div
+infix-does        faz
+#infix-eq          eq
+#infix-ff          ff
+#infix-ff^         ff^
+#infix-fff         fff
+#infix-fff^        fff^
+#infix-gcd         gcd
+#infix-ge          ge
+#infix-gt          gt
+#infix-lcm         lcm
+#infix-le          le
+#infix-leg         leg
+#infix-lt          lt
+#infix-max         max
+#infix-min         min
+#infix-minmax      minmax
+#infix-mod         mod
+#infix-ne          ne
+infix-notandthen  não-então
+# infix-o           c
+infix-or          ou
+infix-orelse      ou-senão
+#infix-unicmp      unicmp
+#infix-x           x
+#infix-X           X
+#infix-xx          xx
+#infix-Z           Z
+
+# KEY   TRANSLATION
+#meta-R  R
+#meta-X  X
+#meta-Z  Z
+
+# KEY             TRANSLATION
+modifier-for      por
+modifier-given    dado
+modifier-if       se
+modifier-unless   a-não-ser
+modifier-until    até-que
+modifier-when     quando
+modifier-while    enquanto
+modifier-with     com
+modifier-without  sem
+
+# KEY        TRANSLATION
+#multi-multi  multi
+multi-only   só
+#multi-proto  proto
+
+# KEY           TRANSLATION
+#named-absolute  absolute
+#named-actions   actions
+#named-api       api
+#named-append    append
+#named-arg0      arg0
+#named-args      args
+#named-as        as
+#named-at        at
+#named-auth      auth
+
+# KEY            TRANSLATION
+#named-basename   basename
+#named-batch      batch
+#named-bin        bin
+#named-bleed      bleed
+#named-broadcast  broadcast
+
+# KEY             TRANSLATION
+#named-catch       catch
+#named-check       check
+#named-chomp       chomp
+#named-close       close
+#named-command     command
+#named-complement  complement
+#named-completely  completely
+#named-continue    continue
+#named-control     control
+#named-count       count
+#named-create      create
+#named-createonly  createonly
+#named-cwd         cwd
+#named-CWD         CWD
+
+# KEY          TRANSLATION
+#named-date     date
+#named-day      day
+#named-degree   degree
+#named-delete   delete
+#named-dirname  dirname
+
+# KEY             TRANSLATION
+#named-elems       elems
+#named-emit-timed  emit-timed
+#named-enc         enc
+#named-encoding    encoding
+#named-end         end
+#named-err         err
+#named-every       every
+#named-ex          ex
+#named-exclusive   exclusive
+#named-exhaustive  exhaustive
+#named-expires     expires
+
+# KEY            TRANSLATION
+#named-family     family
+#named-filename   filename
+#named-filter     filter
+#named-formatter  formatter
+
+# KEY         TRANSLATION
+#named-g       g
+#named-gid     gid
+#named-global  global
+
+# KEY       TRANSLATION
+#named-host  host
+#named-hour  hour
+
+# KEY             TRANSLATION
+#named-i           i
+#named-ignorecase  ignorecase
+#named-ignoremark  ignoremark
+#named-ii          ii
+#named-in          in
+#named-into        into
+
+# KEY         TRANSLATION
+#named-joiner  joiner
+
+# KEY      TRANSLATION
+#named-k    k
+#named-key  key
+#named-kv   kv
+
+# KEY            TRANSLATION
+#named-listen     listen
+#named-localhost  localhost
+#named-localport  localport
+
+# KEY         TRANSLATION
+#named-match   match
+#named-merge   merge
+#named-minute  minute
+#named-mm      mm
+#named-mode    mode
+#named-month   month
+
+# KEY               TRANSLATION
+#named-name          name
+#named-nd            nd
+#named-nl            nl
+#named-nl-in         nl-in
+#named-nl-out        nl-out
+#named-non-blocking  non-blocking
+#named-nth           nth
+
+# KEY             TRANSLATION
+#named-off         off
+#named-out         out
+#named-out-buffer  out-buffer
+#named-ov          ov
+#named-overlap     overlap
+
+# KEY          TRANSLATION
+#named-p        p
+#named-partial  partial
+#named-parts    parts
+#named-port     port
+#named-pos      pos
+#named-primary  primary
+
+# KEY             TRANSLATION
+#named-quaternary  quaternary
+
+# KEY              TRANSLATION
+#named-r            r
+#named-rd           rd
+#named-real         real
+#named-replacement  replacement
+#named-rule         rule
+#named-rw           rw
+#named-rx           rx
+
+# KEY              TRANSLATION
+#named-samecase     samecase
+#named-samespace    samespace
+#named-scheduler    scheduler
+#named-second       second
+#named-secondary    secondary
+#named-seconds      seconds
+#named-shared       shared
+#named-size         size
+#named-slip         slip
+#named-SPEC         SPEC
+#named-squash       squash
+#named-ss           ss
+#named-st           st
+#named-status       status
+#named-strict       strict
+#named-subscript    subscript
+#named-superscript  superscript
+
+# KEY               TRANSLATION
+#named-tertiary      tertiary
+#named-test          test
+#named-th            th
+#named-times         times
+#named-timezone      timezone
+#named-translate-nl  translate-nl
+#named-truncate      truncate
+
+# KEY         TRANSLATION
+#named-uid     uid
+#named-update  update
+
+# KEY          TRANSLATION
+#named-v        v
+#named-value    value
+#named-vent-at  vent-at
+#named-ver      ver
+#named-volume   volume
+
+# KEY                    TRANSLATION
+#named-w                  w
+#named-where              where
+#named-win-verbatim-args  win-verbatim-args
+
+# KEY    TRANSLATION
+#named-x  x
+
+# KEY       TRANSLATION
+#named-year  year
+
+# KEY            TRANSLATION
+package-class    classe
+package-grammar  gramática
+package-module   módulo
+package-package  pacote
+package-role     papel
+
+# KEY           TRANSLATION
+phaser-BEGIN    COMEÇO
+phaser-CATCH    PEGA
+phaser-CHECK    CHECAGEM
+phaser-CLOSE    FECHO
+phaser-CONTROL  CONTROLE
+#phaser-DOC      DOC
+phaser-END      FIM
+phaser-ENTER    ENTRADA
+phaser-FIRST    PRIMEIRA
+#phaser-INIT     INIT
+phaser-KEEP     TEM
+phaser-LAST     ÚLTIMO
+phaser-LEAVE    SAIDA
+phaser-NEXT     PRÓXIMO
+#phaser-POST     POST
+#phaser-PRE      PRE
+# phaser-QUIT     LASCIA
+phaser-UNDO     DESFAZ
+
+# KEY                      TRANSLATION
+#pragma-dynamic-scope       dynamic-scope
+#pragma-fatal               fatal
+#pragma-internals           internals
+#pragma-invocant            invocant
+#pragma-isms                isms
+#pragma-lib                 lib
+#pragma-MONKEY              MONKEY
+#pragma-MONKEY-GUTS         MONKEY-GUTS
+#pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
+#pragma-MONKEY-TYPING       MONKEY-TYPING
+#pragma-nqp                 nqp
+#pragma-precompilation      precompilation
+#pragma-soft                soft
+#pragma-strict              strict
+#pragma-trace               trace
+#pragma-variables           variables
+#pragma-worries             worries
+
+# KEY       TRANSLATION
+prefix-not  não
+# prefix-so   così
+
+# KEY              TRANSLATION
+routine-method     método
+#routine-regex      regex
+routine-rule       regra
+#routine-sub        sub
+#routine-submethod  submethod
+# routine-token      gettone
+
+# KEY          TRANSLATION
+#quote-lang-m   m
+#quote-lang-ms  ms
+#quote-lang-q   q
+#quote-lang-Q   Q
+#quote-lang-qq  qq
+#quote-lang-rx  rx
+#quote-lang-s   s
+#quote-lang-S   S
+#quote-lang-ss  ss
+#quote-lang-Ss  Ss
+
+# KEY           TRANSLATION
+#scope-anon      anon
+#scope-augment   aumenta
+scope-constant  constante
+scope-has       tem
+scope-HAS       TEM
+scope-my        meu
+scope-our       nosso
+scope-state     estado
+scope-unit      unidade
+
+# KEY                TRANSLATION
+stmt-prefix-also     também
+stmt-prefix-do       faz
+stmt-prefix-eager    impaciente
+stmt-prefix-gather   recolhe
+#stmt-prefix-hyper    hyper
+stmt-prefix-lazy     preguiçoso
+stmt-prefix-quietly  tranquilamente
+# stmt-prefix-race     gara
+stmt-prefix-react    reaja
+stmt-prefix-sink     cale
+stmt-prefix-start    comece
+# stmt-prefix-supply   fornitura
+stmt-prefix-try      tente
+
+# KEY      TRANSLATION
+#term-nano  nano
+term-now   agora
+#term-pi    pi
+#term-rand  rand
+term-self  si-mesmo
+#term-tau   tau
+term-time  tempo
+
+# KEY                           TRANSLATION
+#trait-is-built                  built
+#trait-is-copy                   copy
+#trait-is-default                default
+#trait-is-DEPRECATED             DEPRECATED
+#trait-is-equiv                  equiv
+#trait-is-export                 export
+#trait-is-hidden-from-backtrace  hidden-from-backtrace
+#trait-is-hidden-from-USAGE      hidden-from-USAGE
+#trait-is-implementation-detail  implementation-detail
+#trait-is-looser                 looser
+#trait-is-nodal                  nodal
+#trait-is-pure                   pure
+#trait-is-raw                    raw
+#trait-is-rw                     rw
+#trait-is-test-assertion         test-assertion
+#trait-is-tighter                tighter
+
+# KEY             TRANSLATION
+traitmod-does     faz
+traitmod-handles  cuida
+traitmod-hides    esconde
+traitmod-is       é
+traitmod-of       do
+traitmod-returns  retorna
+#traitmod-trusts   trusts
+
+# KEY         TRANSLATION
+#typer-enum    enum
+#typer-subset  subset
+
+# KEY        TRANSLATION
+use-import   importa
+use-need     precisa
+use-no       não
+use-require  requer
+use-use      usa
+
+# vim: expandtab shiftwidth=4

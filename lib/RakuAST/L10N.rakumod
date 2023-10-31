@@ -469,10 +469,9 @@ my sub slangify($language, %hash) is export {
     $statements.add-statement: make-mapper2str('pragma2str',    @pragma   );
 
     # Wrap the whole thing up in a role with the given name and return it
-    RakuAST::Package.new(
-      declarator => "role",
-      name       => RakuAST::Name.from-identifier-parts('L10N',$language),
-      body       => RakuAST::Block.new(
+    RakuAST::Role.new(
+      name => RakuAST::Name.from-identifier-parts('L10N',$language),
+      body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new($statements)
       )
     )
@@ -552,12 +551,11 @@ my sub deparsify($language, %hash) is export {
     # }
     #
     $statements.add-statement: RakuAST::Statement::Expression.new(
-      expression => RakuAST::Package.new(
-        declarator => "role",
-        name       => RakuAST::Name.from-identifier-parts(
-                        'RakuAST','Deparse','L10N',$language
-                      ),
-        body       => RakuAST::Block.new(
+      expression => RakuAST::Role.new(
+        name => RakuAST::Name.from-identifier-parts(
+                  'RakuAST','Deparse','L10N',$language
+                ),
+        body => RakuAST::Block.new(
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(

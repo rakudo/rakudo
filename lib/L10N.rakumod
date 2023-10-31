@@ -8,6 +8,7 @@ use L10N::EN 'dontslang';
 use L10N::FR 'dontslang';
 use L10N::IT 'dontslang';
 use L10N::NL 'dontslang';
+use L10N::PT 'dontslang';
 
 my sub EXPORT() {
     BEGIN Map.new: ("L10N" => L10N)

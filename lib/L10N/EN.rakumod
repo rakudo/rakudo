@@ -1,7 +1,7 @@
 # This file contains the English slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-24T19:26:38+02:00 by tools/build/makeL10N.raku
+#- Generated on 2023-10-29T01:51:53Z by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::EN {

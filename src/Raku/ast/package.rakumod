@@ -149,11 +149,15 @@ class RakuAST::Package
             :package(self);
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-         # Note that this early return is actually not effective as the begin handler will
-         # already be run when the parser enters the package and we only know that it's a
-         # stub when we are done parsing the body.
-         return Nil if $!is-stub;
+    method PERFORM-BEGIN(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
+        # Note that this early return is actually not effective as the
+        # begin handler will already be run when the parser enters the
+        # package and we only know that it's a stub when we are done
+        # parsing the body.
+        return Nil if $!is-stub;
 
         # Install the symbol.
         my str $scope := self.scope;
@@ -161,67 +165,44 @@ class RakuAST::Package
         my $name := $!name;
         if $name && !$name.is-empty {
             my $type-object := self.stubbed-meta-object;
-            my $current-package := $resolver.current-package;
-            my $full-name := $current-package =:= $resolver.get-global
-                ?? $name
-                !! $name.qualified-with(
-                    RakuAST::Name.from-identifier-parts(
-                        |nqp::split('::', $current-package.HOW.name($current-package))
+            my $current     := $resolver.current-package;
+            my $full-name   := nqp::eqaddr($current,$resolver.get-global)
+              ?? $name
+              !! $name.qualified-with(
+                   RakuAST::Name.from-identifier-parts(
+                     |nqp::split('::', $current.HOW.name($current))
                     )
-                );
+                 );
             $type-object.HOW.set_name(
                 $type-object,
                 $full-name.canonicalize(:colonpairs(0))
-            ) if !nqp::eqaddr($current-package, $resolver.get-global);
+            ) if !nqp::eqaddr($current, $resolver.get-global);
+
             # Update the Stash's name, too.
-            nqp::bindattr_s($type-object.WHO, Stash, '$!longname', $type-object.HOW.name($type-object));
+            nqp::bindattr_s($type-object.WHO, Stash, '$!longname',
+              $type-object.HOW.name($type-object));
 
-            if ($scope eq 'my' || $scope eq 'our') && self.declarator ne 'role' {
-                # Need to install the package somewhere.
-                self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $type-object, $resolver.current-package);
-            }
-
-            elsif self.declarator eq 'role' {
-                # Find an appropriate existing role group
-                my $group-name := $full-name.canonicalize(:colonpairs(0));
-                my $group := $resolver.resolve-lexical-constant($group-name);
-                if $group {
-                    $group := $group.compile-time-value;
-                }
-                else {
-                    # No existing one found - create a role group
-                    $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
-                        :name($group-name),
-                        :repr($!repr)
-                    );
-                    my $outer := $resolver.find-attach-target('block') // $resolver.find-attach-target('compunit');
-                    $outer.add-generated-lexical-declaration(
-                        RakuAST::VarDeclaration::Implicit::Constant.new(
-                            :name($name.canonicalize(:colonpairs(0))),
-                            :value($group)
-                        )
-                    );
-                    if $scope eq 'our' {
-                        self.IMPL-INSTALL-PACKAGE($resolver, $scope, $name, $group, $resolver.current-package, :no-lexical);
-                    }
-                }
-                # Add ourselves to the role group
-                $type-object.HOW.set_group($type-object, $group);
-                nqp::bindattr(self, RakuAST::Package, '$!role-group', $group);
-            }
+            self.install-in-scope(
+              $resolver, $scope, $name, $full-name, $type-object
+            );
         }
 
         # TODO split off the above into a pre-begin handler, so the enter-scope
         # and declarations can go back into RakuAST::Actions
         if nqp::istype($resolver, RakuAST::Resolver::Compile) {
             $resolver.enter-scope(self);
-
-            # define any lexicals
             self.declare-lexicals($resolver);
         }
 
-        # Apply traits.
+        # Apply any traits
         self.apply-traits($resolver, $context, self);
+    }
+
+    # Need to install the package somewhere
+    method install-in-scope($resolver, $scope, $name, $full-name, $type-object) {
+        self.IMPL-INSTALL-PACKAGE(
+          $resolver, $scope, $name, $type-object, $resolver.current-package
+        ) if $scope eq 'my' || $scope eq 'our';
     }
 
     # Declare the lexicals for this type of package
@@ -429,6 +410,38 @@ class RakuAST::Role
               RakuAST::Type::Capture.new(RakuAST::Name.from-identifier($_))
             );
         }
+    }
+
+    method install-in-scope($resolver, $scope, $name, $full-name, $type-object) {
+        # Find an appropriate existing role group
+        my $group-name := $full-name.canonicalize(:colonpairs(0));
+        my $group      := $resolver.resolve-lexical-constant($group-name);
+        if $group {
+            $group := $group.compile-time-value;
+        }
+
+        # No existing one found - create a role group
+        else {
+            $group := Perl6::Metamodel::ParametricRoleGroupHOW.new_type(
+              :name($group-name), :repr(self.repr)
+            );
+            my $outer := $resolver.find-attach-target('block')
+              // $resolver.find-attach-target('compunit');
+            $outer.add-generated-lexical-declaration(
+              RakuAST::VarDeclaration::Implicit::Constant.new(
+                :name($name.canonicalize(:colonpairs(0))),
+                :value($group)
+              )
+            );
+
+            self.IMPL-INSTALL-PACKAGE(
+              $resolver, $scope, $name, $group, $resolver.current-package,
+              :no-lexical
+            ) if $scope eq 'our';
+        }
+        # Add ourselves to the role group
+        $type-object.HOW.set_group($type-object, $group);
+        nqp::bindattr(self, RakuAST::Package, '$!role-group', $group);
     }
 }
 

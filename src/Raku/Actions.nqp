@@ -1611,7 +1611,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<nqp::op>($/) {
-        self.attach: $/, Nodify('Nqp').new: ~$<op>, $<args>.ast;
+        my $op := ~$<op>;
+        $*LANG.pragma('MONKEY-GUTS')
+          ?? self.attach: $/, Nodify('Nqp').new: $op, $<args>.ast
+          !! $/.typed-panic('X::NQP::NotFound', :$op);
     }
 
     method term:sym<nqp::const>($/) {

@@ -78,6 +78,7 @@ class RakuAST::Pragma
       RakuAST::IMPL::QASTContext $context
     ) {
         my $name    := $!name;
+        my $LANG    := $*LANG;
         my int $on  := nqp::not_i($!off);
         my $arglist := $!argument
           ?? self.IMPL-BEGIN-TIME-EVALUATE(
@@ -94,10 +95,10 @@ class RakuAST::Pragma
         elsif self.KNOWN-PRAGMAS{$name} {
             nqp::islist($arglist)
               ?? $resolver.build-exception('X::Pragma::NoArgs', :$name).throw
-              !! $*LANG.set_pragma($name, $on)
+              !! $LANG.set_pragma($name eq 'nqp' ?? 'MONKEY-GUTS' !! $name, $on)
         }
         elsif $name eq 'MONKEY' {
-            $*LANG.set_pragma($_.key, $on)
+            $LANG.set_pragma($_.key, $on)
               if nqp::eqat($_.key,'MONKEY',0) for self.KNOWN-PRAGMAS;
         }
         elsif $name eq 'lib' {
@@ -152,14 +153,14 @@ class RakuAST::Pragma
             if nqp::islist($arglist) {
                 for $arglist -> $ism {
                     (my $pragma := self.KNOWN-ISMS{$ism})
-                      ?? $*LANG.set_pragma($pragma, $on)
+                      ?? $LANG.set_pragma($pragma, $on)
                       !! $resolver.build-exception(
                            "X::Ism::Unknown", :name($ism)
                          ).throw;
                 }
             }
             else {
-                $*LANG.set_pragma($_.value, $on) for self.KNOWN-ISMS;
+                $LANG.set_pragma($_.value, $on) for self.KNOWN-ISMS;
             }
         }
         elsif $name eq 'soft' {
@@ -168,7 +169,7 @@ class RakuAST::Pragma
                    'X::NYI',
                    :feature("Arguments to '{$on ?? 'use' !! 'no' } soft'"),
                  ).throw
-              !! $*LANG.set_pragma($name, $on);
+              !! $LANG.set_pragma($name, $on);
         }
         elsif $name eq 'attributes'
            || $name eq 'invocant'
@@ -202,7 +203,7 @@ class RakuAST::Pragma
                     if nqp::istype($value,$Bool) && $value {
                         $type := $arg.key;
                         if $type eq 'D' || $type eq 'U' {
-                            $*LANG.set_pragma($name, $type);
+                            $LANG.set_pragma($name, $type);
                             next;
                         }
                         elsif $type eq '_' {
@@ -227,11 +228,11 @@ class RakuAST::Pragma
                 for $arglist {
                     %dyn{$_} := 1;
                 }
-                $*LANG.set_pragma('dynamic-scope', sub ($var) { %dyn{$var} || 0 });
+                $LANG.set_pragma('dynamic-scope', sub ($var) { %dyn{$var} || 0 });
             }
             else {
                 # All variables.
-                $*LANG.set_pragma('dynamic-scope', sub ($var) { 1 });
+                $LANG.set_pragma('dynamic-scope', sub ($var) { 1 });
             }
         }
         else {

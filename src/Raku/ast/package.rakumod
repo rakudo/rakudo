@@ -1,3 +1,7 @@
+#-------------------------------------------------------------------------------
+# Base class for all package related objects, and for the -package- statement
+# itself
+
 class RakuAST::Package
   is RakuAST::PackageInstaller
   is RakuAST::StubbyMeta
@@ -65,9 +69,27 @@ class RakuAST::Package
         $obj
     }
 
-    method declarator() { "package" }
+    # Informational methods
+    method declarator()  { "package"             }
+    method dba()         { "package"             }
     method default-how() { Metamodel::PackageHOW }
 
+    method default-scope()       { 'our' }
+    method can-have-methods()    { False }
+    method can-have-attributes() { False }
+    method IMPL-CAN-INTERPRET()  { True }
+
+    method parameterization() { Mu }
+
+    # While a package may be declared `my`, its installation semantics are
+    # more complex, and thus handled as a BEGIN-time effect. (For example,
+    # `my Foo::Bar { }` should not create a lexical symbol Foo::Bar.)
+    method is-simple-lexical-declaration() { False }
+
+    # We install the name before parsing the class body.
+    method is-begin-performed-before-children() { True }
+
+    # Setter methods
     method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
         nqp::bindattr(self, RakuAST::Package, '$!body',
           $body // RakuAST::Block.new);
@@ -92,28 +114,17 @@ class RakuAST::Package
         elsif $!name {
             my $resolved := $resolver.resolve-name-constant($!name);
             if $resolved {
-                my $meta-object := $resolved.compile-time-value;
-                if $meta-object.HOW.HOW.name($meta-object.HOW) ne 'Perl6::Metamodel::PackageHOW'
-                    && nqp::can($meta-object.HOW, 'is_composed')
-                    && !$meta-object.HOW.is_composed($meta-object)
-                {
+                my $meta := $resolved.compile-time-value;
+                my $how  := $meta.HOW;
+                if $how.HOW.name($how) ne 'Perl6::Metamodel::PackageHOW'
+                  && nqp::can($how, 'is_composed')
+                  && !$how.is_composed($meta) {
                     self.set-resolution($resolved);
                 }
             }
         }
         Nil
     }
-
-    method default-scope() { 'our' }
-
-    method dba() { 'package' }
-
-    method parameterization() { Mu }
-
-    # While a package may be declared `my`, its installation semantics are
-    # more complex, and thus handled as a BEGIN-time effect. (For example,
-    # `my Foo::Bar { }` should not create a lexical symbol Foo::Bar.)
-    method is-simple-lexical-declaration() { False }
 
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
 
@@ -138,9 +149,6 @@ class RakuAST::Package
         nqp::push($!attached-attribute-usages, $attribute);
         Nil
     }
-
-    # We install the name before parsing the class body.
-    method is-begin-performed-before-children() { True }
 
     method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
         RakuAST::Declaration::LexicalPackage.new:
@@ -199,7 +207,7 @@ class RakuAST::Package
     }
 
     # Need to install the package somewhere
-    method install-in-scope($resolver, $scope, $name, $full-name, $type-object) {
+    method install-in-scope($resolver,$scope,$name,$full-name,$type-object) {
         self.IMPL-INSTALL-PACKAGE(
           $resolver, $scope, $name, $type-object, $resolver.current-package
         ) if $scope eq 'my' || $scope eq 'our';
@@ -321,10 +329,6 @@ class RakuAST::Package
         $result
     }
 
-    method IMPL-CAN-INTERPRET() {
-        True
-    }
-
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.compile-time-value
     }
@@ -343,11 +347,17 @@ class RakuAST::Package
     method needs-sink-call() { False }
 }
 
+#-------------------------------------------------------------------------------
+# Specific logic to handle roles
+
 class RakuAST::Role
   is RakuAST::Package
 {
-    method declarator() { "role" }
+    method declarator()  { "role"                       }
     method default-how() { Metamodel::ParametricRoleHOW }
+
+    method can-have-methods()    { True }
+    method can-have-attributes() { True }
 
     method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
         # The body of a role is internally a Sub that has the parameterization
@@ -387,7 +397,7 @@ class RakuAST::Role
         }
     }
 
-    method install-in-scope($resolver, $scope, $name, $full-name, $type-object) {
+    method install-in-scope($resolver,$scope,$name,$full-name,$type-object) {
         # Find an appropriate existing role group
         my $group-name := $full-name.canonicalize(:colonpairs(0));
         my $group      := $resolver.resolve-lexical-constant($group-name);
@@ -424,11 +434,17 @@ class RakuAST::Role
     }
 }
 
+#-------------------------------------------------------------------------------
+# Specific logic to handle classes and grammars
+
 class RakuAST::Class
   is RakuAST::Package
 {
-    method declarator() { "class" }
+    method declarator()  { "class"             }
     method default-how() { Metamodel::ClassHOW }
+
+    method can-have-methods()    { True }
+    method can-have-attributes() { True }
 
     method IMPL-COMPOSE() {
         # create BUILDALL method if there's something to create,
@@ -438,17 +454,27 @@ class RakuAST::Class
     }
 }
 
+#-------------------------------------------------------------------------------
+# Specific logic to handle grammars
+
 class RakuAST::Grammar
-  is RakuAST::Package
+  is RakuAST::Class
 {
-    method declarator() { "grammar" }
+    method declarator()  { "grammar"             }
     method default-how() { Metamodel::GrammarHOW }
+
+    method IMPL-COMPOSE() {
+        self.meta-object; # Ensure it's composed
+    }
 }
+
+#-------------------------------------------------------------------------------
+# Specific logic to handle modules
 
 class RakuAST::Module
   is RakuAST::Package
 {
-    method declarator() { "module" }
+    method declarator()  { "module"           }
     method default-how() { Metamodel::KnowHOW }
 
     method declare-lexicals(RakuAST::Resolver $resolver) {
@@ -460,16 +486,22 @@ class RakuAST::Module
     }
 }
 
+#-------------------------------------------------------------------------------
+# Specific logic to handle -knowhow- blocks
+
 class RakuAST::Knowhow
   is RakuAST::Package
 {
-    method declarator() { "knowhow" }
+    method declarator()  { "knowhow"          }
     method default-how() { Metamodel::KnowHOW }
 }
+
+#-------------------------------------------------------------------------------
+# Specific logic to handle -native- blocks
 
 class RakuAST::Native
   is RakuAST::Package
 {
-    method declarator() { "native" }
+    method declarator()  { "native"             }
     method default-how() { Metamodel::NativeHOW }
 }

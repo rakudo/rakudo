@@ -608,6 +608,7 @@ class RakuAST::Type::Enum
 
 class RakuAST::Type::Subset
   is RakuAST::Type
+  is RakuAST::Lookup
   is RakuAST::Declaration
   is RakuAST::BeginTime
   is RakuAST::TraitTarget
@@ -642,6 +643,7 @@ class RakuAST::Type::Subset
         }
         $obj.set-traits($traits) if $traits;
         $obj.set-WHY($WHY);
+        $obj.set-resolution($obj);
         $obj
     }
 

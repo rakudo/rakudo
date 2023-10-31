@@ -435,6 +435,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Package     $!attribute-package;
     has RakuAST::Method      $!accessor;
     has RakuAST::Type        $!conflicting-type;
+    has RakuAST::Expression  $.where;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -448,6 +449,7 @@ class RakuAST::VarDeclaration::Simple
         RakuAST::Initializer :$initializer,
            RakuAST::SemiList :$shape,
                         Bool :$forced-dynamic,
+         RakuAST::Expression :$where,
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
@@ -471,6 +473,8 @@ class RakuAST::VarDeclaration::Simple
           RakuAST::Method);
         nqp::bindattr($obj, RakuAST::ContainerCreator, '$!forced-dynamic',
           $forced-dynamic ?? True !! False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
+          $where // RakuAST::Expression);
 
         if $WHY {
             $scope && $scope eq 'has'
@@ -494,7 +498,7 @@ class RakuAST::VarDeclaration::Simple
         self.twigil eq '.' ?? self.sigil ~ '!' ~ self.desigilname.canonicalize !! self.name
     }
 
-    method set-type($type) {
+    method set-type(RakuAST::Type $type) {
         nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $type);
     }
 
@@ -528,6 +532,7 @@ class RakuAST::VarDeclaration::Simple
         $visitor($!initializer) if nqp::isconcrete($!initializer);
         $visitor($!shape)       if nqp::isconcrete($!shape);
         $visitor($!accessor)    if nqp::isconcrete($!accessor);
+        $visitor($!where)       if nqp::isconcrete($!where);
         self.visit-traits($visitor);
         $visitor(self.WHY) if self.WHY;
     }
@@ -585,10 +590,11 @@ class RakuAST::VarDeclaration::Simple
         my @late-traits;
         my @traits := self.IMPL-UNWRAP-LIST(self.traits);
 
+        my $of-type;
         for @traits {
             if nqp::istype($_, RakuAST::Trait::Of) {
                 nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!conflicting-type', $!type) if $!type;
-                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $_.type);
+                nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!type', $of-type := $_.type);
                 next;
             }
             elsif nqp::istype($_, RakuAST::Trait::Is) {
@@ -603,25 +609,40 @@ class RakuAST::VarDeclaration::Simple
             nqp::push(@late-traits, $_);
         }
 
+        my $subset;
+        if my $where := $!where {
+            my $type := $of-type // self.get-implicit-lookups.AT-POS(0);
+            my $type-name := $type ?? $type.name.canonicalize !! "Mu";
+            my $subset-name := RakuAST::Name.from-identifier: QAST::Node.unique($type-name ~ '+anon_subset');
+            $subset := RakuAST::Type::Subset.new: :name($subset-name), :of($type ?? RakuAST::Trait::Of.new($type) !! Mu), :$where;
+            $subset.ensure-begin-performed($resolver, $context);
+            self.set-type($subset);
+        }
+
         # Apply any traits.
         self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
 
         if $scope eq 'has' || $scope eq 'HAS' {
-            if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE {
+            if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE || $subset {
                 my $args := $!shape
                     ?? RakuAST::ArgList.new(
                         RakuAST::ColonPair::Value.new(:key<shape>, :value($!shape))
                     )
                     !! RakuAST::ArgList.new;
-                my $of := $!type
-                  ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
-                  !! Mu;
+                my $of := $subset
+                        ?? $subset.meta-object
+                        !! $!type
+                            ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+                            !! Mu;
+
                 my $container-initializer-ast := RakuAST::ApplyPostfix.new(
                     operand => RakuAST::Declaration::ResolvedConstant.new(
                         :compile-time-value(
-                            $!shape && self.sigil eq '%'
-                                ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
-                                !! self.IMPL-CONTAINER-TYPE($of)
+                            $!sigil eq '$'
+                                ?? self.meta-object
+                                !! $!shape && self.sigil eq '%'
+                                    ?? self.IMPL-CONTAINER-TYPE($of, :key-type($!shape.code-statements[0].expression.compile-time-value))
+                                    !! self.IMPL-CONTAINER-TYPE($of)
                         )
                     ),
                     postfix => RakuAST::Call::Method.new(
@@ -629,6 +650,7 @@ class RakuAST::VarDeclaration::Simple
                         :$args
                     )
                 );
+
                 my $thunk := RakuAST::BlockThunk.new(:expression($container-initializer-ast));
                 $container-initializer-ast.wrap-with-thunk($thunk);
                 $thunk.ensure-begin-performed($resolver, $context);
@@ -828,8 +850,11 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
-        my $of :=
-          self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
+        my $of := $!where
+                    ?? $!type.meta-object
+                    !! $!type
+                        ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
+                        !! Mu;
 
         if $scope eq 'my' && !$!desigilname.is-multi-part {
             # Lexically scoped

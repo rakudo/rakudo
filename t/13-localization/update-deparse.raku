@@ -1,4 +1,4 @@
-#!/usr/bin/env raku
+#!/usr/bin/env RAKUDO_RAKUAST=1 raku
 
 use v6.e.PREVIEW;
 use RakuAST::Deparse::L10N;

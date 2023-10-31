@@ -1,7 +1,7 @@
 # This file contains the French Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-29T01:51:53Z by tools/build/makeL10N.raku
+#- Generated on 2023-10-31T19:16:06+01:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::FR {
@@ -201,8 +201,7 @@ my sub EXPORT($dontslang?) {
     unless $dontslang {
         my $LANG := $*LANG;
         $LANG.define_slang('MAIN',
-          $LANG.slang_grammar('MAIN').^mixin(L10N::FR),
-          $LANG.slang_actions('MAIN')
+          $LANG.slang_grammar('MAIN').^mixin(L10N::FR)
         );
     }
 

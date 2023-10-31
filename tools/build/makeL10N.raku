@@ -34,8 +34,7 @@ my sub EXPORT($dontslang?) {
     unless $dontslang {
         my $LANG := $*LANG;
         $LANG.define_slang('MAIN',
-          $LANG.slang_grammar('MAIN').^mixin(L10N::#LANGUAGE#),
-          $LANG.slang_actions('MAIN')
+          $LANG.slang_grammar('MAIN').^mixin(L10N::#LANGUAGE#)
         );
     }
 

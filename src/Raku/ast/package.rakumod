@@ -264,40 +264,43 @@ class RakuAST::Package
     method PRODUCE-META-OBJECT() {
         # Obtain the stubbed meta-object, which is the type object.
         my $type := self.stubbed-meta-object();
+        my $how  := $type.HOW;
 
         # Add methods and attributes.
         for $!attached-methods {
             my $name := $_.name.canonicalize;
             my $meta-object := $_.meta-object;
             if nqp::istype($_, RakuAST::Method) && $_.private {
-                $type.HOW.add_private_method($type, $name, $meta-object);
+                $how.add_private_method($type, $name, $meta-object);
             }
             elsif nqp::istype($_, RakuAST::Method) && $_.meta {
-                $type.HOW.add_meta_method($type, $name, $meta-object);
+                $how.add_meta_method($type, $name, $meta-object);
             }
             elsif $_.multiness eq 'multi' {
-                $type.HOW.add_multi_method($type, $name, $meta-object);
+                $how.add_multi_method($type, $name, $meta-object);
             }
             else {
-                $type.HOW.add_method($type, $name, $meta-object);
+                $how.add_method($type, $name, $meta-object);
             }
         }
         for $!attached-attributes {
             # TODO: create method BUILDALL here
-            $type.HOW.add_attribute($type, $_.meta-object);
+            $how.add_attribute($type, $_.meta-object);
         }
 
         if self.declarator eq 'role' {
-            $type.HOW.set_body_block($type, $!body.meta-object);
+            $how.set_body_block($type, $!body.meta-object);
 
-            # The role needs to be composed before we add the possibility to the group
-            $type.HOW.compose($type);
+            # The role needs to be composed before we add the possibility
+            # to the group
+            $how.compose($type);
 
             my $group := $!role-group;
             $group.HOW.add_possibility($group, $type) unless $group =:= Mu;
-        } else {
+        }
+        else {
             # Compose the meta-object
-            $type.HOW.compose($type);
+            $how.compose($type);
         }
         # Return the meta-object
         $type

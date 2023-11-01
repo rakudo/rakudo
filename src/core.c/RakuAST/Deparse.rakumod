@@ -2604,7 +2604,7 @@ CODE
         @parts.push(self.syn-scope($ast.scope));
         @parts.push(' ');
 
-        if $ast.type -> $type {
+        if $ast.original-type -> $type {
             @parts.push(self.syn-type($type));
             @parts.push(' ');
         }
@@ -2623,6 +2623,11 @@ CODE
                 @parts.push(' ');
                 @parts.push(self.deparse($_));
             }
+        }
+
+        if $ast.where -> $where {
+            @parts.push(' where ');
+            @parts.push(self.deparse($where));
         }
 
         if $ast.initializer -> $initializer {

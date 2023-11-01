@@ -436,6 +436,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Method      $!accessor;
     has RakuAST::Type        $!conflicting-type;
     has RakuAST::Expression  $.where;
+    has RakuAST::Type        $.original-type;
 
     has Mu $!container-initializer;
     has Mu $!package;
@@ -475,6 +476,8 @@ class RakuAST::VarDeclaration::Simple
           $forced-dynamic ?? True !! False);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!where',
           $where // RakuAST::Expression);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!original-type',
+          $type // RakuAST::Type);
 
         if $WHY {
             $scope && $scope eq 'has'
@@ -533,6 +536,7 @@ class RakuAST::VarDeclaration::Simple
         $visitor($!shape)       if nqp::isconcrete($!shape);
         $visitor($!accessor)    if nqp::isconcrete($!accessor);
         $visitor($!where)       if nqp::isconcrete($!where);
+        $visitor($!original-type) if nqp::isconcrete($!original-type);
         self.visit-traits($visitor);
         $visitor(self.WHY) if self.WHY;
     }

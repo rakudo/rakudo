@@ -255,6 +255,10 @@ augment class RakuAST::Node {
           'twigil', -> {
               my $twigil := self.twigil;
               :$twigil if $twigil
+          },
+          'original-type', -> {
+              my $type := self.original-type;
+              :$type if $type
           }
         );
 
@@ -1265,7 +1269,7 @@ augment class RakuAST::Node {
     multi method raku(RakuAST::VarDeclaration::Simple:D: --> Str:D) {
         self!add-WHY:
           self!nameds:
-            <scope type shape sigil twigil desigilname traits initializer>
+            <scope original-type shape sigil twigil desigilname traits initializer where>
     }
 
     multi method raku(RakuAST::VarDeclaration::Term:D: --> Str:D) {

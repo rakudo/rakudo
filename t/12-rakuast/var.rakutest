@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 53;
+plan 59;
 
 my $ast;
 my $deparsed;
@@ -1214,4 +1214,145 @@ subtest 'variable with a trait' => {
     }
 }
 
+subtest 'scalar variable with a where guard (passing initializer)' => {
+    ast RakuAST::VarDeclaration::Simple.new(
+      sigil       => "\$",
+      desigilname => RakuAST::Name.from-identifier("f"),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::IntLiteral.new(5)
+      ),
+      where       => RakuAST::IntLiteral.new(5)
+    );
+
+    is-deeply $deparsed, 'my $f where 5 = 5', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 5, "$type: EVAL";
+    }
+}
+
+subtest 'scalar variable with a where guard (failing initializer)' => {
+    ast RakuAST::VarDeclaration::Simple.new(
+      sigil       => "\$",
+      desigilname => RakuAST::Name.from-identifier("f"),
+      initializer => RakuAST::Initializer::Assign.new(
+       RakuAST::IntLiteral.new(6)
+      ),
+      where       => RakuAST::IntLiteral.new(5)
+    );
+
+    is-deeply $deparsed, 'my $f where 5 = 6', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, X::TypeCheck::Assignment, "$type: EVAL";
+    }
+}
+
+subtest 'array variable with a where guard (passing initializer)' => {
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => "\@",
+          desigilname => RakuAST::Name.from-identifier("h"),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(5)
+          ),
+          where       => RakuAST::IntLiteral.new(5)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new("\@h"),
+          postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+            index => RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::IntLiteral.new(0)
+              )
+            )
+          )
+        )
+      )
+    );
+    my $output = Q:to/END/;
+my @h where 5 = 5;
+@h[0]
+END
+    is-deeply $deparsed, $output, 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 5, "$type: EVAL";
+    }
+}
+
+subtest 'array variable with a where guard (failing initializer)' => {
+    ast RakuAST::VarDeclaration::Simple.new(
+      sigil       => "\@",
+      desigilname => RakuAST::Name.from-identifier("h"),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::IntLiteral.new(6)
+      ),
+      where       => RakuAST::IntLiteral.new(5)
+    );
+
+    is-deeply $deparsed, 'my @h where 5 = 6', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, X::TypeCheck::Assignment, "$type: EVAL";
+    }
+}
+
+subtest 'hash variable with a where guard (passing initializer)' => {
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
+          sigil       => "\%",
+          desigilname => RakuAST::Name.from-identifier("h"),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::ColonPair::Number.new(
+              key   => "s",
+              value => RakuAST::IntLiteral.new(5)
+            )
+          ),
+          where       => RakuAST::IntLiteral.new(5)
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new("\%h"),
+          postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+            index => RakuAST::QuotedString.new(
+              processors => <words val>,
+              segments   => (
+                RakuAST::StrLiteral.new("s"),
+              )
+            )
+          )
+        )
+      )
+    );
+
+    my $output = Q:to/END/;
+my %h where 5 = :5s;
+%h<s>
+END
+    is-deeply $deparsed, $output, 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        is-deeply EVAL($it), 5, "$type: EVAL";
+    }
+}
+
+subtest 'hash variable with a where guard (failing initializer)' => {
+    ast RakuAST::VarDeclaration::Simple.new(
+      sigil       => "\%",
+      desigilname => RakuAST::Name.from-identifier("h"),
+      initializer => RakuAST::Initializer::Assign.new(
+        RakuAST::ColonPair::Number.new(
+          key   => "s",
+          value => RakuAST::IntLiteral.new(6)
+        )
+      ),
+      where       => RakuAST::IntLiteral.new(5)
+    );
+
+    is-deeply $deparsed, 'my %h where 5 = :6s', 'deparse';
+    for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
+        throws-like { EVAL($it) }, X::TypeCheck::Assignment, "$type: EVAL";
+    }
+}
 # vim: expandtab shiftwidth=4

@@ -2376,7 +2376,10 @@ class RakuAST::QuotedRegex
                 $match-qast
             }
             else {
-                QAST::Op.new(:op('p6store'), $slash, $match-qast)
+                QAST::Op.new(
+                  :op('decont'),
+                  QAST::Op.new(:op('p6store'), $slash, $match-qast)
+                )
             }
         }
         else {

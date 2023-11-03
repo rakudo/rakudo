@@ -145,7 +145,7 @@ class RakuAST::Doc::Block
     ) {
         my $failed := self.literalize-config;
         if nqp::eqaddr($failed,RakuAST::Node::CannotLiteralize) {
-            self.sorry( self.build-exception: 'X::AdHoc',
+            self.add-sorry( self.build-exception: 'X::AdHoc',
                payload => "'$failed' is not constant in configuration"
             );
         }

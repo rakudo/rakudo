@@ -1342,8 +1342,8 @@ class RakuAST::ApplyInfix
             if $operator eq ',' || $operator eq 'xx' {
                 my $sigil := (try $left.sigil) // '';
                 if $sigil eq '$' || $sigil eq '@' {
-                    $resolver.add-worry:
-                      $resolver.build-exception: 'X::AdHoc',
+                    self.add-worry:
+                      self.build-exception: 'X::AdHoc',
                         payload => "Using $operator on a "
                           ~ ($sigil eq '$' ?? 'scalar' !! 'array')
                           ~ " is probably NOT what you want, as it will create\n"

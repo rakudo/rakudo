@@ -34,20 +34,20 @@ class RakuAST::CheckTime
     # Add a sorry check-time problem (which will produce a SORRY output in the
     # compiler).
     method add-sorry(Any $exception) {
-        unless $!sorries {
-            nqp::bindattr(self, RakuAST::CheckTime, '$!sorries', []);
-        }
-        nqp::push($!sorries, $exception);
+        nqp::push(
+          $!sorries // nqp::bindattr(self,RakuAST::CheckTime,'$!sorries',[]),
+          $exception
+        );
         Nil
     }
 
     # Add a worry check-time problem (which will produce a potential difficulties
     # output in the compiler).
     method add-worry(Any $exception) {
-        unless $!worries {
-            nqp::bindattr(self, RakuAST::CheckTime, '$!worries', []);
-        }
-        nqp::push($!worries, $exception);
+        nqp::push(
+          $!worries // nqp::bindattr(self,RakuAST::CheckTime,'$!worries',[]),
+          $exception
+        );
         Nil
     }
 

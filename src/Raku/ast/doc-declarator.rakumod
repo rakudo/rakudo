@@ -56,14 +56,13 @@ class RakuAST::Doc::Declarator
         if $!WHEREFORE {
             my $meta := $!WHEREFORE.meta-object;
             if $meta.HOW.name($meta) ne 'Any' {
-                my $*RESOLVER := $resolver;
                 $resolver.find-attach-target('compunit').set-pod-content(
                   $!pod-index, self.podify($meta)
                 );
             }
         }
         else {
-            self.add-worry: $resolver.build-exception:
+            self.worry: self.build-exception:
               'X::Syntax::Doc::Declarator::MissingDeclarand';
         }
         True

@@ -11,24 +11,6 @@ class RakuAST::Doc
 
     method new(*@_, *%_) { self.cannot-be-instantiated }
     method visit-children(Code $visitor) { self.must-define("visit-children") }
-
-    method worry-ad-hoc(Str $payload) {
-        my $resolver := $*RESOLVER;
-        $resolver
-          ?? $resolver.add-worry(
-               $resolver.build-exception: 'X::AdHoc', :$payload
-             )
-          !! nqp::say($payload);
-    }
-
-    method sorry-ad-hoc(Str $payload) {
-        my $resolver := $*RESOLVER;
-        $resolver
-          ?? $resolver.add-sorry(
-               $resolver.build-exception: 'X::AdHoc', :$payload
-             )
-          !! nqp::die($payload);
-    }
 }
 
 # Generic paragraph
@@ -161,10 +143,11 @@ class RakuAST::Doc::Block
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
     ) {
-        my $*RESOLVER := $resolver;
         my $failed := self.literalize-config;
         if nqp::eqaddr($failed,RakuAST::Node::CannotLiteralize) {
-            self.sorry-ad-hoc("'$failed' is not constant in configuration");
+            self.sorry( self.build-exception: 'X::AdHoc',
+               payload => "'$failed' is not constant in configuration"
+            );
         }
 
         # in an outermost block

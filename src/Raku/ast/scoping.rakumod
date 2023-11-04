@@ -219,8 +219,9 @@ class RakuAST::LexicalScope
             my $lexical-name := $_.lexical-name;
             if $lexical-name {
                 if nqp::existskey(%lookup, $lexical-name) {
-                    self.add-sorry: $resolver.build-exception:
-                        'X::Redeclaration', :symbol($lexical-name);
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Redeclaration',
+                        :symbol($lexical-name);
                 }
                 else {
                     %lookup{$lexical-name} := $_;
@@ -231,8 +232,9 @@ class RakuAST::LexicalScope
             my $lexical-name := $_.lexical-name;
             if $lexical-name && ! $_ =:= self {
                 if nqp::existskey(%lookup, $lexical-name) {
-                    self.add-sorry: $resolver.build-exception:
-                        'X::Redeclaration', :symbol($lexical-name);
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Redeclaration',
+                        :symbol($lexical-name);
                 }
                 else {
                     %lookup{$lexical-name} := $_;
@@ -250,7 +252,8 @@ class RakuAST::LexicalScope
             else {
                 if $var.is-resolved && nqp::existskey(%declarations, $var.name) {
                     my $decl := %declarations{$var.name};
-                    $decl.add-sorry: $resolver.build-exception:
+                    $decl.add-sorry:
+                      $resolver.build-exception:
                         $var.postdeclaration-exception-name,
                         :symbol($decl.lexical-name);
                     $resolver.add-node-with-check-time-problems($decl);

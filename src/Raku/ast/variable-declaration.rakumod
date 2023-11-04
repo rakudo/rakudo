@@ -375,11 +375,11 @@ class RakuAST::VarDeclaration::Constant
 
             unless nqp::istype(nqp::what($!value), $type) {
                 my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
-                self.add-sorry($resolver.build-exception('X::Comp::TypeCheck',
-                  operation => 'constant declaration of ' ~ ($name || '<anon>'),
-                  expected  => $type,
-                  got       => $!value
-                ));
+                self.add-sorry:
+                  $resolver.build-exception: 'X::Comp::TypeCheck',
+                    operation => 'constant declaration of ' ~ ($name || '<anon>'),
+                    expected  => $type,
+                    got       => $!value;
                 return False;
             }
         }
@@ -714,14 +714,15 @@ class RakuAST::VarDeclaration::Simple
     }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.add-sorry: $resolver.build-exception:
-            'X::Dynamic::Package', :symbol(self.name)
-            if self.twigil eq '*' && self.desigilname.is-multi-part;
+        self.add-sorry(
+          $resolver.build-exception: 'X::Dynamic::Package',
+            :symbol(self.name)
+        ) if self.twigil eq '*' && self.desigilname.is-multi-part;
 
-        self.add-sorry: $resolver.build-exception:
-            'X::Syntax::Variable::ConflictingTypes',
+        self.add-sorry(
+          $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
             :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
-            if $!conflicting-type;
+        ) if $!conflicting-type;
 
         my $type := self.type;
         if nqp::istype($type,RakuAST::Type::Simple) {
@@ -739,8 +740,9 @@ class RakuAST::VarDeclaration::Simple
                     if !nqp::istype($value,$vartype)
                         && nqp::istype($vartype,$resolver.resolve-name-constant-in-setting(RakuAST::Name.from-identifier('Numeric')).compile-time-value)
                     {
-                        $resolver.add-sorry: $resolver.build-exception:
-                            'X::Syntax::Number::LiteralType', :varname(self.name), :$vartype, :$value
+                        self.add-sorry:
+                          $resolver.build-exception: 'X::Syntax::Number::LiteralType',
+                            :varname(self.name), :$vartype, :$value;
                     }
                 }
             }
@@ -1834,12 +1836,10 @@ class RakuAST::VarDeclaration::Placeholder
             if $name eq '@_' || $name eq '%_' {
                 return True if $signature.IMPL-HAS-PARAMETER($name);
             }
-            self.add-sorry(
-              $resolver.build-exception('X::Signature::Placeholder',
+            self.add-sorry:
+              $resolver.build-exception: 'X::Signature::Placeholder',
                 precursor   => 1,
-                placeholder => $name
-              )
-            );
+                placeholder => $name;
             return False;
         }
         True

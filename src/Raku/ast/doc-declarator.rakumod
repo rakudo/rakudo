@@ -62,7 +62,7 @@ class RakuAST::Doc::Declarator
             }
         }
         else {
-            self.add-worry: self.build-exception:
+            self.add-worry: $resolver.build-exception:
               'X::Syntax::Doc::Declarator::MissingDeclarand';
         }
         True

@@ -100,7 +100,8 @@ class RakuAST::Term::Self
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless self.is-resolved {
-            self.add-sorry($resolver.build-exception('X::Syntax::Self::WithoutObject'))
+            self.add-sorry:
+              $resolver.build-exception: 'X::Syntax::Self::WithoutObject';
         }
     }
 
@@ -344,7 +345,7 @@ class RakuAST::Term::Reduce
       RakuAST::IMPL::QASTContext $context
     ) {
         (my $reason := self.properties.not-reducable)
-          ?? $resolver.add-sorry(
+          ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
                  meta     => "reduce",
                  operator => self.infix.operator,

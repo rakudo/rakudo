@@ -526,12 +526,9 @@ class RakuAST::Call::Method
       RakuAST::IMPL::QASTContext $context
     ) {
         if self.macroish && self.args.has-args {
-            self.add-sorry(
-              $resolver.build-exception(
-                'X::Syntax::Argument::MOPMacro',
-                macro => $!name.canonicalize
-              )
-            );
+            self.add-sorry:
+              $resolver.build-exception: 'X::Syntax::Argument::MOPMacro',
+                macro => $!name.canonicalize;
         }
     }
 }

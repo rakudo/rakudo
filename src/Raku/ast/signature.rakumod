@@ -770,7 +770,8 @@ class RakuAST::Parameter
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
                 for self.IMPL-UNWRAP-LIST(self.traits) {
                     if nqp::istype($_, RakuAST::Trait::Is) && $_.name.canonicalize eq 'copy' {
-                        self.add-worry: $resolver.build-exception: 'X::AdHoc',
+                        self.add-worry:
+                          $resolver.build-exception: 'X::AdHoc',
                             payload => "'is rw' on parameters of 'sub MAIN' usually cannot be satisfied.\nDid you mean 'is copy'?";
                         last;
                     }
@@ -781,11 +782,13 @@ class RakuAST::Parameter
         if $!default {
             # Ensure this is something that a default can go on.
             if nqp::isconcrete($!slurpy) {
-                self.add-sorry: $resolver.build-exception: 'X::Parameter::Default',
+                self.add-sorry:
+                  $resolver.build-exception: 'X::Parameter::Default',
                     how => 'slurpy', parameter => $!target.name;
             }
             if self.is-declared-required {
-                self.add-sorry: $resolver.build-exception: 'X::Parameter::Default',
+                self.add-sorry:
+                  $resolver.build-exception: 'X::Parameter::Default',
                     how => 'required', parameter => $!target.name;
             }
 

@@ -425,7 +425,8 @@ class RakuAST::Feed
         my $operator := nqp::getattr_s(self, RakuAST::Infix, '$!operator');
         if $operator eq "==>>" || $operator eq "<<==" {
             self.add-sorry:
-                $resolver.build-exception: 'X::Comp::NYI', :feature($operator ~ " feed operator");
+              $resolver.build-exception: 'X::Comp::NYI',
+                :feature($operator ~ " feed operator");
         }
     }
 
@@ -810,7 +811,7 @@ class RakuAST::MetaInfix
       RakuAST::IMPL::QASTContext $context
     ) {
         self.properties.fiddly
-          ?? $resolver.add-sorry(
+          ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
                  meta     => "negate",
                  operator => self.infix.operator,
@@ -846,7 +847,7 @@ class RakuAST::MetaInfix::Assign
     ) {
         my $properties := self.properties;
         $properties.fiddly || $properties.diffy
-          ?? $resolver.add-sorry(
+          ?? self.add-sorry(
                $resolver.build-exception("X::Syntax::CannotMeta",
                  meta     => "assign",
                  operator => self.infixx.operator,
@@ -925,7 +926,7 @@ class RakuAST::MetaInfix::Negate
       RakuAST::IMPL::QASTContext $context
     ) {
         self.properties.iffy
-          || $resolver.add-sorry:
+          || self.add-sorry:
                $resolver.build-exception: "X::Syntax::CannotMeta",
                  meta     => "negate",
                  operator => self.infix.operator,
@@ -1343,7 +1344,7 @@ class RakuAST::ApplyInfix
                 my $sigil := (try $left.sigil) // '';
                 if $sigil eq '$' || $sigil eq '@' {
                     self.add-worry:
-                      self.build-exception: 'X::AdHoc',
+                      $resolver.build-exception: 'X::AdHoc',
                         payload => "Using $operator on a "
                           ~ ($sigil eq '$' ?? 'scalar' !! 'array')
                           ~ " is probably NOT what you want, as it will create\n"
@@ -1355,7 +1356,7 @@ class RakuAST::ApplyInfix
         # a "normal" infix op
         elsif nqp::istype($infix,RakuAST::Infix) {
             if $infix.operator eq ':=' && !$left.can-be-bound-to {
-                $resolver.add-sorry:
+                self.add-sorry:
                   $resolver.build-exception: 'X::Bind';
             }
         }
@@ -2135,8 +2136,9 @@ class RakuAST::MetaPostfix::Hyper
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!postfix.can-be-used-with-hyper {
-            self.add-sorry: $resolver.build-exception: 'X::AdHoc',
-                payload => 'Cannot hyper this postfix'
+            self.add-sorry:
+              $resolver.build-exception: 'X::AdHoc',
+                payload => 'Cannot hyper this postfix';
         }
     }
 

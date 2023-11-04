@@ -2318,14 +2318,15 @@ class RakuAST::QuotedRegex
             if self.IMPL-IS-COMPILATION-ADVERB($norm) {
                 # Compile-time adverbs must have a simple compile time value.
                 unless nqp::isconcrete($_.simple-compile-time-quote-value()) {
-                    self.add-sorry: $resolver.build-exception:
-                        'X::Value::Dynamic', what => "Adverb $key";
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Value::Dynamic',
+                        what => "Adverb $key";
                 }
             }
             elsif !($!match-immediately && self.IMPL-IS-IMMEDIATE-MATCH-ADVERB($norm)) {
                 # Not applicable to the construct, so report.
-                self.add-sorry: $resolver.build-exception:
-                    'X::Syntax::Regex::Adverb',
+                self.add-sorry:
+                  $resolver.build-exception: 'X::Syntax::Regex::Adverb',
                     adverb    => $key,
                     construct => $!match-immediately ?? 'm' !! 'rx'
             }
@@ -2464,16 +2465,17 @@ class RakuAST::Substitution
             if self.IMPL-IS-COMPILATION-ADVERB(self.IMPL-SUBST-TO-MATCH-ADVERB($norm)) {
                 # Compile-time adverbs must have a simple compile time value.
                 unless nqp::isconcrete($_.simple-compile-time-quote-value()) {
-                    self.add-sorry: $resolver.build-exception:
-                        'X::Value::Dynamic', what => "Adverb $key";
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::Value::Dynamic',
+                        what => "Adverb $key";
                 }
             }
             elsif !self.IMPL-IS-SUBST-MATCH-ADVERB($norm) {
                 # Not applicable to the construct, so report.
-                self.add-sorry: $resolver.build-exception:
-                    'X::Syntax::Regex::Adverb',
+                self.add-sorry:
+                  $resolver.build-exception: 'X::Syntax::Regex::Adverb',
                     adverb    => $key,
-                    construct => $!immutable ?? 'S' !! 's'
+                    construct => $!immutable ?? 'S' !! 's';
             }
         }
 

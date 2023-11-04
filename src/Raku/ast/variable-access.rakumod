@@ -145,9 +145,10 @@ class RakuAST::Var::Dynamic
     method postdeclaration-exception-name() { 'X::Dynamic::Postdeclaration' }
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        self.add-sorry: $resolver.build-exception:
+        self.add-sorry(
+          $resolver.build-exception:
             'X::Dynamic::Package', :symbol($!name)
-            if nqp::index($!name, '::') >= 0;
+        ) if nqp::index($!name, '::') >= 0;
     }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {

@@ -795,11 +795,9 @@ class RakuAST::Regex::CharClass::Specified
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if nqp::chars($!characters) > 1 {
-            self.add-sorry(
-              $resolver.build-exception(
-                'X::NotSingleGrapheme', characters => $!characters
-              )
-            )
+            self.add-sorry:
+              $resolver.build-exception: 'X::NotSingleGrapheme',
+                characters => $!characters;
         }
     }
 
@@ -1597,14 +1595,16 @@ class RakuAST::Regex::CharClassElement::Enumeration
         if nqp::elems($!elements) {
             for $!elements {
                 unless nqp::istype($_,RakuAST::Regex::CharClassEnumerationElement) {
-                    self.add-sorry: $resolver.build-exception: 'X::AdHoc',
-                      payload => "Character classes can only be built with RakuAST::Regex::CharClassEnumerationElement objects, not with " ~ $_.HOW.name($_) ~ " elements";
+                    self.add-sorry:
+                      $resolver.build-exception: 'X::AdHoc',
+                        payload => "Character classes can only be built with RakuAST::Regex::CharClassEnumerationElement objects,\n not with " ~ $_.HOW.name($_) ~ " elements";
                 }
             }
         }
         else {
-            self.add-worry: $resolver.build-exception: 'X::AdHoc',
-              payload => "Character classes without elements will never match"
+            self.add-worry:
+              $resolver.build-exception: 'X::AdHoc',
+                payload => "Character classes without elements will never match"
         }
     }
 
@@ -1703,8 +1703,9 @@ class RakuAST::Regex::CharClassEnumerationElement::Range
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         if $!from > $!to {
-            self.add-sorry: $resolver.build-exception: 'X::AdHoc',
-                payload => "Illegal reversed character range"
+            self.add-sorry:
+              $resolver.build-exception: 'X::AdHoc',
+                payload => "Illegal reversed character range";
         }
     }
 
@@ -1802,7 +1803,8 @@ class RakuAST::Regex::QuantifiedAtom
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         unless $!atom.quantifiable {
-            self.add-sorry($resolver.build-exception('X::Syntax::Regex::NonQuantifiable'));
+            self.add-sorry:
+              $resolver.build-exception: 'X::Syntax::Regex::NonQuantifiable';
         }
     }
 

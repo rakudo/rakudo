@@ -3210,6 +3210,21 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
     nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant', $delegate);
 });
 
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-definite', -> $capture {
+    my $track-arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-arg);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-arg);
+    my $value := nqp::captureposarg($capture, 0);
+    if nqp::isconcrete_nd($value) && nqp::istype_nd($value, Scalar) {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness',
+             nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-arg, Scalar, '$!value'));
+        $value := nqp::getattr($value, Scalar, '$!value');
+    }
+    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+         nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0,
+            nqp::hllboolfor(nqp::isconcrete($value), 'Raku')));
+});
+
 # Smartmatch support
 {
     my $hllbool     := nqp::getstaticcode(-> $prim { nqp::hllboolfor(nqp::istrue($prim), 'Raku') });

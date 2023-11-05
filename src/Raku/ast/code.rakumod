@@ -1365,7 +1365,7 @@ class RakuAST::Routine
   is RakuAST::LexicalScope
   is RakuAST::Term
   is RakuAST::Code
-  is RakuAST::Meta
+  is RakuAST::StubbyMeta
   is RakuAST::Declaration
   is RakuAST::Attaching
   is RakuAST::ImplicitDeclarations
@@ -1390,13 +1390,11 @@ class RakuAST::Routine
 
     method replace-name(RakuAST::Name $new-name) {
         nqp::bindattr(self, RakuAST::Routine, '$!name', $new-name);
-        self.IMPL-RESET-CACHED-META-OBJECT;
         Nil
     }
 
     method replace-signature(RakuAST::Signature $new-signature) {
         nqp::bindattr(self, RakuAST::Routine, '$!signature', $new-signature);
-        self.IMPL-RESET-CACHED-META-OBJECT;
         Nil
     }
 
@@ -1427,8 +1425,12 @@ class RakuAST::Routine
         ])
     }
 
+    method PRODUCE-STUBBED-META-OBJECT() {
+        nqp::create(self.IMPL-META-OBJECT-TYPE)
+    }
+
     method PRODUCE-META-OBJECT() {
-        my $routine := nqp::create(self.IMPL-META-OBJECT-TYPE);
+        my $routine := self.stubbed-meta-object;
         my $signature := self.placeholder-signature || self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
         nqp::bindattr($signature.meta-object, Signature, '$!code', $routine);

@@ -1772,6 +1772,7 @@ class RakuAST::Routine
 # A subroutine.
 class RakuAST::Sub
   is RakuAST::Routine
+  is RakuAST::CheckTime
   is RakuAST::SinkBoundary
 {
     has RakuAST::Blockoid $.body;
@@ -1821,10 +1822,62 @@ class RakuAST::Sub
         $signature ?? $signature.provides-return-value !! False
     }
 
+    method PERFORM-CHECK(Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        return Nil unless self.multiness eq 'multi';
+
+        self.IMPL-CHECK-FOR-DUPLICATE-MULTI-SIGNATURES($resolver);
+    }
+
     method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-WRAP-RETURN-HANDLER($context,
             self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
                 self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context))))
+    }
+
+    method IMPL-CHECK-FOR-DUPLICATE-MULTI-SIGNATURES(Resolver $resolver) {
+        my $proto := self.meta-object.dispatcher;
+        my $signature := self.signature.compile-time-value;
+        my $meta := self.meta-object;
+
+        # If we ourselves can default, there is no need to check further
+        return Nil if $meta.can("default");
+
+        my int $has-post-constraints;
+        for self.IMPL-UNWRAP-LIST($signature.params) {
+            $has-post-constraints := 1 if $_.constraint_list;
+        }
+
+        my @seen-accepts;
+        for $proto.dispatchees {
+            last if $_.can("default");
+            next if $_ =:= $meta;
+
+            my $other-signature := $_.signature;
+            next unless $signature.arity == $other-signature.arity;
+
+            my $other-has-post-constraints;
+            for self.IMPL-UNWRAP-LIST($other-signature.params) {
+                $other-has-post-constraints := 1 if $_.constraint_list
+            }
+
+            @seen-accepts.push($_)
+                if !($has-post-constraints || $other-has-post-constraints)
+                        && ($other-signature.ACCEPTS($signature) && $signature.ACCEPTS($other-signature));
+
+            if @seen-accepts > 0 {
+                my %args;
+                if my $origin := self.origin {
+                    my $origin-match := self.origin.as-match;
+                    %args<filename>  := $origin-match.file;
+                    %args<line>      := $origin-match.line
+                }
+                self.add-worry: $resolver.build-exception:
+                        'X::Redeclaration::Multi',
+                        :symbol(self.name.canonicalize),
+                        :ambiguous(@seen-accepts),
+                        |%args;
+            }
+        }
     }
 }
 

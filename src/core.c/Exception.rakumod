@@ -1375,6 +1375,15 @@ my class X::Redeclaration::Outer does X::Comp {
     }
 }
 
+my class X::Redeclaration::Multi does X::Comp {
+    has $.symbol;
+    has @.ambiguous;
+    method message() {
+        ("Redeclaration of multi sub '$.symbol' with equivalent signatures would lead to ambiguous dispatch: "
+        ).naive-word-wrapper ~ "\n\t" ~ @!ambiguous.map({ .raku }).join("\n\t")
+    }
+}
+
 my class X::Dynamic::Postdeclaration does X::Comp {
     has $.symbol;
     method message() {

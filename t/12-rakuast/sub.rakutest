@@ -268,8 +268,9 @@ subtest 'Using return with acceptable type works' => {
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
               expression => RakuAST::Call::Name.new(
-                name => RakuAST::Name.from-identifier('return'),
-                args => RakuAST::ArgList.new(
+                name           => RakuAST::Name.from-identifier('return'),
+                no-parentheses => True,
+                args           => RakuAST::ArgList.new(
                   RakuAST::Var::Lexical.new('$x')
                 )
               )
@@ -281,7 +282,7 @@ subtest 'Using return with acceptable type works' => {
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 sub foo returns Int {
-    return($x)
+    return $x
 }
 CODE
 

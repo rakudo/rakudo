@@ -550,16 +550,18 @@ CODE
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> Str:D) {
-        my str $deparsed-postfix = self.deparse($ast.postfix);
+        my     $postfix         := $ast.postfix;
+        my str $deparsed-postfix = self.deparse($postfix);
 
-        if $ast.on-topic {
+        if $ast.on-topic && nqp::istype($postfix,RakuAST::Call::Method) {
             $deparsed-postfix
         }
         else {
             my     $operand         := $ast.operand;
             my str $deparsed-operand = self.deparse($operand);
 
-            nqp::istype($operand,RakuAST::ApplyListInfix)
+            nqp::istype($operand,RakuAST::ApplyInfix)
+              || nqp::istype($operand,RakuAST::ApplyListInfix)
               ?? '(' ~ $deparsed-operand ~ ')' ~ $deparsed-postfix
               !! $deparsed-operand ~ $deparsed-postfix
         }

@@ -64,7 +64,7 @@ my class TestClass {
         99
     }
     method meth-b {
-        self.meth-a()
+        self.meth-a
     }
 }
 CODE
@@ -74,7 +74,7 @@ CODE
       'Str', EVAL($deparsed),
       'Raku', EVAL(EVAL $raku)
     -> $type, Mu $class {
-        is-deeply $class.meth-b(), 99,
+        is-deeply $class.meth-b, 99,
           "$type: Method call via self works";
     }
 }
@@ -99,7 +99,7 @@ subtest 'Topic call applies the call to $_' => {
     );
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 given "argh" {
-    .uc()
+    .uc
 }
 CODE
 

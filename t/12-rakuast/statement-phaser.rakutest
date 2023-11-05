@@ -176,7 +176,7 @@ subtest 'CONTROL phaser catching a warning' => {
 
     plan 7;  # additional tests here that need to pass
     is-deeply $deparsed,
-      qq:!s:!c|CONTROL {\n    isa-ok($_, CX::Warn);\n    .resume()\n}\nwarn();\n42\n|,
+      qq:!s:!c|CONTROL {\n    isa-ok($_, CX::Warn);\n    .resume\n}\nwarn();\n42\n|,
       'deparse';
 
     is-deeply $_, 42, @type[$++]
@@ -240,7 +240,7 @@ subtest 'CATCH phaser catching an exception' => {
 CATCH {
     todo("Getting a warning instead of an exception???");
     isa-ok($_, X::AdHoc);
-    .resume()
+    .resume
 }
 die();
 666

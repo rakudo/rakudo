@@ -183,7 +183,7 @@ subtest 'The postfix "without" statement works with a type object' => {
       )
     );
 
-    is-deeply $deparsed, '.Str() without Int', 'deparse';
+    is-deeply $deparsed, '.Str without Int', 'deparse';
     is-deeply $_, "", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
@@ -231,7 +231,7 @@ subtest 'The postfix "given" statement works with a type object' => {
       )
     );
 
-    is-deeply $deparsed, '.Str() given Int', 'deparse';
+    is-deeply $deparsed, '.Str given Int', 'deparse';
     is-deeply $_, "", @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }

@@ -489,7 +489,7 @@ subtest 'supply statement prefix with expression evaluates to Supply' => {
 
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 supply whenever 42 {
-    .emit()
+    .emit
 }
 CODE
 
@@ -538,7 +538,7 @@ subtest 'supply statement prefix with block evaluates to Supply' => {
     is-deeply $deparsed, q:to/CODE/.chomp, 'deparse';
 supply {
     whenever 42 {
-        .emit()
+        .emit
     }
 }
 CODE

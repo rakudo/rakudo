@@ -278,16 +278,16 @@ CODE
 }
 
 subtest 'Application of dotty infix `.`' => {
-    # "foo" .uc()
+    # "foo" .uc
     ast RakuAST::ApplyDottyInfix.new(
       left => RakuAST::StrLiteral.new('foo'),
-      infix => RakuAST::DottyInfix::Call.new(),
+      infix => RakuAST::DottyInfix::Call.new,
       right => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('uc')
       )
     );
 
-    is-deeply $deparsed, '"foo" .uc()', 'deparse';
+    is-deeply $deparsed, '"foo" .uc', 'deparse';
     is-deeply $_, 'FOO', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
@@ -295,15 +295,15 @@ subtest 'Application of dotty infix `.`' => {
 subtest 'Application of dotty infix `.=` evaluates to expected value' => {
     my $var = 'foo';
 
-    # $var .= tc()
+    # $var .= tc
     ast RakuAST::ApplyDottyInfix.new(
       left => RakuAST::Var::Lexical.new('$var'),
-      infix => RakuAST::DottyInfix::CallAssign.new(),
+      infix => RakuAST::DottyInfix::CallAssign.new,
       right => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('tc')
       )
     );
-    is-deeply $deparsed, '$var .= tc()', 'deparse';
+    is-deeply $deparsed, '$var .= tc', 'deparse';
 
     for 'AST', $ast, 'Str', $deparsed, 'Raku', EVAL($raku) -> $type, $it {
         $var = "foo";

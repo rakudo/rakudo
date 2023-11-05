@@ -353,10 +353,11 @@ CODE
         $quantifier ~ self.deparse($ast.backtrack)
     }
 
-    method parenthesize($ast --> Str:D) {
-        $.parens-open
-          ~ ($ast.defined ?? self.deparse($ast).chomp !! '')
-          ~ $.parens-close
+    method parenthesize($ast, :$only-non-empty --> Str:D) {
+        my str $deparsed = $ast.defined ?? self.deparse($ast).chomp !! '';
+        $deparsed || !$only-non-empty
+          ?? $.parens-open ~ $deparsed ~ $.parens-close
+          !! $deparsed
     }
 
     method bracketize($ast --> Str:D) {
@@ -371,13 +372,15 @@ CODE
           ~ $.square-close
     }
 
-    method method-call($ast, str $dot, $macroish?, :$xsyn --> Str:D) {
+    method method-call(
+      $ast, str $dot, $macroish?, :$xsyn, :$only-non-empty
+    --> Str:D) {
         my $name := (nqp::istype($_,Str) ?? $_ !! self.deparse($_))
           with $ast.name;
 
         self.syn-routine($dot)
           ~ ($xsyn ?? self.xsyn('core', $name) !! $name)
-          ~ ($macroish ?? '' !! self.parenthesize($ast.args))
+          ~ ($macroish ?? '' !! self.parenthesize($ast.args, :$only-non-empty))
     }
 
     method quote-if-needed(str $literal) {
@@ -562,7 +565,10 @@ CODE
 
             nqp::istype($operand,RakuAST::ApplyInfix)
               || nqp::istype($operand,RakuAST::ApplyListInfix)
-              ?? '(' ~ $deparsed-operand ~ ')' ~ $deparsed-postfix
+              ?? $.parens-open
+                   ~ $deparsed-operand
+                   ~ $.parens-close
+                   ~ $deparsed-postfix
               !! $deparsed-operand ~ $deparsed-postfix
         }
     }
@@ -621,19 +627,19 @@ CODE
 #- Call ------------------------------------------------------------------------
 
     multi method deparse(RakuAST::Call::MaybeMethod:D $ast --> Str:D) {
-        self.method-call($ast, '.?')
+        self.method-call($ast, '.?', :only-non-empty)
     }
 
     multi method deparse(RakuAST::Call::MetaMethod:D $ast --> Str:D) {
-        self.method-call($ast, '.^')
+        self.method-call($ast, '.^', :only-non-empty)
     }
 
     multi method deparse(RakuAST::Call::Method:D $ast --> Str:D) {
-        self.method-call($ast, '.', $ast.macroish, :xsyn)
+        self.method-call($ast, '.', $ast.macroish, :xsyn, :only-non-empty)
     }
 
     multi method deparse(RakuAST::Call::PrivateMethod:D $ast --> Str:D) {
-        self.method-call($ast, '!')
+        self.method-call($ast, '!', :only-non-empty)
     }
 
     multi method deparse(RakuAST::Call::QuotedMethod:D $ast --> Str:D) {
@@ -652,7 +658,7 @@ CODE
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {
-        self.parenthesize($ast.args)
+        self.parenthesize($ast.args, :only-non-empty)
     }
 
 #- Circumfix -------------------------------------------------------------------

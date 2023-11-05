@@ -21,7 +21,7 @@ class TestTarget {
 }
 
 subtest 'Can make a call on a method without arguments' => {
-    # TestTarget.route()
+    # TestTarget.route
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier('TestTarget')
@@ -30,13 +30,13 @@ subtest 'Can make a call on a method without arguments' => {
         name => RakuAST::Name.from-identifier('route')
       )
     );
-    is-deeply $deparsed, 'TestTarget.route()', 'deparsed';
+    is-deeply $deparsed, 'TestTarget.route', 'deparsed';
     is-deeply $_, 66, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Can make a call on a submethod without arguments' => {
-    # TestTarget.subby()
+    # TestTarget.subby
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier('TestTarget')
@@ -45,7 +45,7 @@ subtest 'Can make a call on a submethod without arguments' => {
         name => RakuAST::Name.from-identifier('subby')
       )
     );
-    is-deeply $deparsed, 'TestTarget.subby()', 'deparsed';
+    is-deeply $deparsed, 'TestTarget.subby', 'deparsed';
     is-deeply $_, 42, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
@@ -173,12 +173,12 @@ subtest 'Can make a quoted call on a method with positional arguments' => {
 }
 
 subtest 'Can make a meta-method call' => {
-    # 42.^name()
+    # 42.^name
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(42),
       postfix => RakuAST::Call::MetaMethod.new(name => 'name')
     );
-    is-deeply $deparsed, '42.^name()', 'deparsed';
+    is-deeply $deparsed, '42.^name', 'deparsed';
     is-deeply $_, 'Int', @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
@@ -203,7 +203,7 @@ subtest 'Can make a method call if the method exists' => {
 }
 
 subtest 'Can make a method call if the method does not exist' => {
-    # TestTarget.?dunno()
+    # TestTarget.?dunno
     ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier('TestTarget')
@@ -212,7 +212,7 @@ subtest 'Can make a method call if the method does not exist' => {
         name => 'dunno'
       )
     );
-    is-deeply $deparsed, 'TestTarget.?dunno()', 'deparsed';
+    is-deeply $deparsed, 'TestTarget.?dunno', 'deparsed';
     is-deeply $_, Nil, @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
@@ -221,7 +221,7 @@ subtest 'Can make a private method call' => {
     class A {
         method !private(--> 42) { }
 
-        # A!private()
+        # A!private
         ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('A')
@@ -230,7 +230,7 @@ subtest 'Can make a private method call' => {
             name => RakuAST::Name.from-identifier('private')
           )
         );
-        is-deeply $deparsed, 'A!private()', 'deparsed';
+        is-deeply $deparsed, 'A!private', 'deparsed';
         is-deeply $_, 42, @type[$++]
           for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
     }

@@ -652,14 +652,19 @@ CODE
 
     multi method deparse(RakuAST::Call::Name:D $ast --> Str:D) {
         my $name := self.xsyn('core', self.deparse($ast.name));
-        my $args := $ast.args;
-
-        my str $deparsed = $args.defined ?? self.deparse($args).chomp !! '';
         $name.ends-with('::')
           ?? $name
-          !! $ast.no-parentheses
-            ?? "$name $deparsed"
-            !! $name ~ $.parens-open ~ $deparsed ~ $.parens-close
+          !! $name ~ self.parenthesize($ast.args)
+    }
+
+    multi method deparse(RakuAST::Call::Name::WithoutParentheses:D $ast
+    --> Str:D) {
+        my $name := self.xsyn('core', self.deparse($ast.name));
+        my $args := $ast.args;
+
+        $name
+          ~ ' '
+          ~ ($args.defined ?? self.deparse($args).chomp !! '')
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {

@@ -209,21 +209,12 @@ class RakuAST::Call::Name
   is RakuAST::Lookup
 {
     has RakuAST::Name $.name;
-    has Bool          $.no-parentheses;   # deparsing hint
-    has Mu            $!package;
+    has Mu $!package;
 
-    method new(
-         RakuAST::Name :$name!,
-                  Bool :$no-parentheses,
-      RakuAST::ArgList :$args
-    ) {
+    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Call::Name, '$!name', $name);
-        nqp::bindattr($obj, RakuAST::Call::Name, '$!no-parentheses',
-          $no-parentheses ?? True !! False);
-        nqp::bindattr($obj, RakuAST::Call, '$!args',
-          $args // RakuAST::ArgList.new);
-
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
         $obj
     }
 
@@ -346,6 +337,10 @@ class RakuAST::Call::Name
         }
     }
 }
+
+# The same as RakuAST::Call::Name, but will deparse without parentheses
+class RakuAST::Call::Name::WithoutParentheses
+  is RakuAST::Call::Name { }
 
 # A call to any term (the postfix () operator).
 class RakuAST::Call::Term

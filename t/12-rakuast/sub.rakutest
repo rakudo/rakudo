@@ -267,10 +267,9 @@ subtest 'Using return with acceptable type works' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              expression => RakuAST::Call::Name.new(
-                name           => RakuAST::Name.from-identifier('return'),
-                no-parentheses => True,
-                args           => RakuAST::ArgList.new(
+              expression => RakuAST::Call::Name::WithoutParentheses.new(
+                name => RakuAST::Name.from-identifier('return'),
+                args => RakuAST::ArgList.new(
                   RakuAST::Var::Lexical.new('$x')
                 )
               )

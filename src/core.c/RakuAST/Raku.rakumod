@@ -207,9 +207,6 @@ augment class RakuAST::Node {
           'negated', -> {
               :negated if self.negated
           },
-          'no-parentheses', -> {
-              :no-parentheses if self.no-parentheses
-          },
           'off', -> {
               :off if self.off
           },
@@ -350,10 +347,6 @@ augment class RakuAST::Node {
     # Generic RakuAST::Call::xxx handler
     multi method raku(RakuAST::Call:D: --> Str:D) {
         self!nameds: <name args>
-    }
-
-    multi method raku(RakuAST::Call::Name:D: --> Str:D) {
-        self!nameds: <name no-parentheses args>
     }
 
     multi method raku(RakuAST::Call::Term:D: --> Str:D) {

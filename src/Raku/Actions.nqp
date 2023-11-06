@@ -1632,7 +1632,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                    postfix => Nodify('Call','Method').new(:$name, :$args)
                  )
               # Normal named method call
-              !! Nodify('Call','Name').new(:$name, :$args, :no-parentheses)
+              !! Nodify('Call','Name','WithoutParentheses').new(:$name, :$args)
         }
         else {
             self.attach: $/, $*IS-TYPE

@@ -91,6 +91,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
           '11',    'Big Sur',
           '12',    'Monterey',
           '13',    'Ventura',
+          '14',    'Sonoma',
         );
 
         my ($major, $minor) = $version.split(".").head(2);

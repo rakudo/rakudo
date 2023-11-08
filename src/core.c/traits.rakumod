@@ -1,16 +1,17 @@
 # for errors
-my class X::Syntax::ParentAsHash { ... }
-my class X::Inheritance::Unsupported { ... }
-my class X::Inheritance::UnknownParent { ... }
-my class X::Export::NameClash        { ... }
-my class X::Composition::NotComposable { ... }
-my class X::Import::MissingSymbols   { ... }
-my class X::Redeclaration { ... }
-my class X::Inheritance::SelfInherit { ... }
-my class X::Comp::Trait::Unknown { ... }
-my class X::Comp::Trait::Invalid { ... }
-my class X::Experimental { ... }
 my class Pod::Block::Declarator { ... }
+my class X::Comp::Trait::Invalid { ... }
+my class X::Comp::Trait::Unknown { ... }
+my class X::Composition::NotComposable { ... }
+my class X::Experimental { ... }
+my class X::Export::NameClash        { ... }
+my class X::Import::MissingSymbols   { ... }
+my class X::Inheritance::SelfInherit { ... }
+my class X::Inheritance::UnknownParent { ... }
+my class X::Inheritance::Unsupported { ... }
+my class X::Redeclaration { ... }
+my class X::Syntax::ParentAsHash { ... }
+my class X::TypeCheck::Assignment { ... }
 
 proto sub trait_mod:<is>(Mu $, |) {*}
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
@@ -129,7 +130,19 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$required!) {
     );
 }
 multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
-    $attr.container_descriptor.set_default(nqp::decont($default));
+    my Mu $descriptor := $attr.container_descriptor;
+    my Mu $of := $descriptor.of;
+    if nqp::istype($default, $of) || nqp::eqaddr($default,Nil) || nqp::eqaddr($of, Mu) {
+        $descriptor.set_default(nqp::decont($default));
+    }
+    else {
+        X::TypeCheck::Attribute::Default.new(
+            :name($attr.name),
+            :operation("assign"),
+            :expected($of),
+            :got(nqp::eqaddr($default,Nil) ?? 'Nil' !! $default)
+        ).throw
+    }
     $attr.container = nqp::decont($default) if nqp::isrwcont($attr.container);
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :box_target($)!) {

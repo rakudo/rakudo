@@ -1863,7 +1863,7 @@ class RakuAST::Postfix::Power
   is RakuAST::Postfix::Literal
 {
 
-    method default-operator-properties() {
+    method properties() {
         OperatorProperties.postfix('ⁿ')
     }
 
@@ -1883,11 +1883,13 @@ class RakuAST::Postfix::Vulgar
   is RakuAST::Postfix::Literal
 {
 
-    method default-operator-properties() {
+    method properties() {
         OperatorProperties.postfix('+')
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
+        # Note that we're trying to resolve it here as an infix +, because
+        # that's what this actually does (and there is no &postfix:<+> sub)
         my $resolved := $resolver.resolve-infix('+');
         if $resolved {
             self.set-resolution($resolved);

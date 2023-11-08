@@ -2892,7 +2892,6 @@ my class X::TypeCheck::Argument is X::TypeCheck {
 
 my class X::TypeCheck::Attribute::Default is X::TypeCheck does X::Comp {
     has str $.name;
-    has $.operation;
     method message {
         self.priors() ~
         (nqp::istype($.expected.HOW, Metamodel::Explaining)

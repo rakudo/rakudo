@@ -1461,7 +1461,7 @@ my class X::Parameter::Default::TypeCheck does X::Comp {
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method message() {
-        "Default value '{Rakudo::Internals.MAYBE-STRING: $!got}' will never bind to a parameter of type {$!expected.^name}"
+        "Default value '{Rakudo::Internals.MAYBE-STRING: $!got}' will never bind to a {$!what} of type {$!expected.^name}"
     }
 }
 

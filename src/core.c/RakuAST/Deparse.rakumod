@@ -660,11 +660,9 @@ CODE
     multi method deparse(RakuAST::Call::Name::WithoutParentheses:D $ast
     --> Str:D) {
         my $name := self.xsyn('core', self.deparse($ast.name));
-        my $args := $ast.args;
+        my $args := $ast.args.defined ?? self.deparse($ast.args).chomp !! '';
 
-        $name
-          ~ ' '
-          ~ ($args.defined ?? self.deparse($args).chomp !! '')
+        $args ?? "$name $args" !! $name
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> Str:D) {

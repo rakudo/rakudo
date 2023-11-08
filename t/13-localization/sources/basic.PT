@@ -4,52 +4,52 @@ sub answer retorna Int é raw {
 meu classe Frobnicate {
     tem $.a = 42;
     método foo {
-        diga(si-mesmo.a())
+        diga si-mesmo.a
     }
 }
-diga(Frobnicate.new().foo());
+diga Frobnicate.new.foo;
 meu $a = 41;
 meu $b = 666;
 se $a {
     $a++
 }
 se-não-se $b {
-    morra("That is not the right number!")
+    morra "That is not the right number!"
 }
 se-não {
-    nota("Shouldn't see this")
+    nota "Shouldn't see this"
 }
-diga("incremented") se $a == answer();
+diga "incremented" se $a == answer;
 com $a {
-    diga($a)
+    diga $a
 }
 ou-com $b {
-    avise("still not the right number")
+    avise "still not the right number"
 }
 dado 666 {
     quando 42 {
-        diga("the answer")
+        diga "the answer"
     }
     predefinita {
-        tranquilamente avise("No answer")
+        tranquilamente avise "No answer"
     }
 }
 não strict;
 $c = 137;
-dd($c.indente(4));
+dd $c.indente(4);
 usa strict;
 meu @a = ^10;
-diga(@a.primo(* %% 2, :end));
+diga @a.primo(* %% 2, :end);
 meu %h = a => 666;
-diga(%h<a>:delete);
-put(qq:to/HERE/);
+diga %h<a>:delete;
+put qq:to/HERE/;
 heredoc
 HERE
 por ^3 {
-    .diga()
+    .diga
 }
-.diga() por <a b c>;
+.diga por <a b c>;
 ciclo {
-    diga("loop");
-    último()
+    diga "loop";
+    último
 }

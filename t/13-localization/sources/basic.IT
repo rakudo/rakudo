@@ -4,52 +4,52 @@ sub answer ritorna Int è raw {
 il-mio classe Frobnicate {
     ha $.a = 42;
     metodo foo {
-        dillo(se-stesso.a())
+        dillo se-stesso.a
     }
 }
-dillo(Frobnicate.new().foo());
+dillo Frobnicate.new.foo;
 il-mio $a = 41;
 il-mio $b = 666;
 se $a {
     $a++
 }
 altro-se $b {
-    muori("That is not the right number!")
+    muori "That is not the right number!"
 }
 altro {
-    nota("Shouldn't see this")
+    nota "Shouldn't see this"
 }
-dillo("incremented") se $a == answer();
+dillo "incremented" se $a == answer;
 con $a {
-    dillo($a)
+    dillo $a
 }
 o-con $b {
-    avviso("still not the right number")
+    avviso "still not the right number"
 }
 dato 666 {
     quando 42 {
-        dillo("the answer")
+        dillo "the answer"
     }
     predefinita {
-        tranquillamente avviso("No answer")
+        tranquillamente avviso "No answer"
     }
 }
 non strict;
 $c = 137;
-dd($c.indenta(4));
+dd $c.indenta(4);
 usare strict;
 il-mio @a = ^10;
-dillo(@a.primo(* %% 2, :end));
+dillo @a.primo(* %% 2, :end);
 il-mio %h = a => 666;
-dillo(%h<a>:delete);
-metti(qq:to/HERE/);
+dillo %h<a>:delete;
+metti qq:to/HERE/;
 heredoc
 HERE
 per ^3 {
-    .dillo()
+    .dillo
 }
-.dillo() per <a b c>;
+.dillo per <a b c>;
 ciclo {
-    dillo("loop");
-    ultimo()
+    dillo "loop";
+    ultimo
 }

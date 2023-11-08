@@ -4,52 +4,52 @@ sub answer returns Int ist roh {
 mein klasse Frobnicate {
     hat $.a = 42;
     methode foo {
-        sag(selbst.a())
+        sag selbst.a
     }
 }
-sag(Frobnicate.neu().foo());
+sag Frobnicate.neu.foo;
 mein $a = 41;
 mein $b = 666;
 wenn $a {
     $a++
 }
 sonstwenn $b {
-    sterb("That is not the right number!")
+    sterb "That is not the right number!"
 }
 sonst {
-    notiere("Shouldn't see this")
+    notiere "Shouldn't see this"
 }
-sag("incremented") wenn $a == answer();
+sag "incremented" wenn $a == answer;
 mit $a {
-    sag($a)
+    sag $a
 }
 odermit $b {
-    warne("still not the right number")
+    warne "still not the right number"
 }
 gegeben 666 {
     wann 42 {
-        sag("the answer")
+        sag "the answer"
     }
     standard {
-        leise warne("No answer")
+        leise warne "No answer"
     }
 }
 kein strict;
 $c = 137;
-dd($c.einzug(4));
+dd $c.einzug(4);
 verwende strict;
 mein @a = ^10;
-sag(@a.erste(* %% 2, :vonende));
+sag @a.erste(* %% 2, :vonende);
 mein %h = a => 666;
-sag(%h<a>:entferne);
-sag-es(qq:to/HERE/);
+sag %h<a>:entferne;
+sag-es qq:to/HERE/;
 heredoc
 HERE
 füralle ^3 {
-    .sag()
+    .sag
 }
-.sag() füralle <a b c>;
+.sag füralle <a b c>;
 schleife {
-    sag("loop");
-    letzte()
+    sag "loop";
+    letzte
 }

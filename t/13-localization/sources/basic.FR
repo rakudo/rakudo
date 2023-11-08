@@ -4,52 +4,52 @@ sub answer renvoie Int est raw {
 ma class Frobnicate {
     a $.a = 42;
     méthode foo {
-        dis(sois.a())
+        dis sois.a
     }
 }
-dis(Frobnicate.nouveau().foo());
+dis Frobnicate.nouveau.foo;
 ma $a = 41;
 ma $b = 666;
 si $a {
     $a++
 }
 ousi $b {
-    meurs("That is not the right number!")
+    meurs "That is not the right number!"
 }
 sinon {
-    note("Shouldn't see this")
+    note "Shouldn't see this"
 }
-dis("incremented") si $a == answer();
+dis "incremented" si $a == answer;
 avec $a {
-    dis($a)
+    dis $a
 }
 ouavec $b {
-    préviens("still not the right number")
+    préviens "still not the right number"
 }
 étantdonné 666 {
     quand 42 {
-        dis("the answer")
+        dis "the answer"
     }
     défaut {
-        silencieusement préviens("No answer")
+        silencieusement préviens "No answer"
     }
 }
 non strict;
 $c = 137;
-dd($c.indent(4));
+dd $c.indent(4);
 utilise strict;
 ma @a = ^10;
-dis(@a.premier(* %% 2, :end));
+dis @a.premier(* %% 2, :end);
 ma %h = a => 666;
-dis(%h<a>:delete);
-mets(qq:to/HERE/);
+dis %h<a>:delete;
+mets qq:to/HERE/;
 heredoc
 HERE
 pour ^3 {
-    .dis()
+    .dis
 }
-.dis() pour <a b c>;
+.dis pour <a b c>;
 boucle {
-    dis("loop");
-    dernier()
+    dis "loop";
+    dernier
 }

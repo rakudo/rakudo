@@ -1885,12 +1885,25 @@ class RakuAST::Methodish
     }
 
     method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
-        if nqp::getattr(self,RakuAST::Routine,'$!package') {
-            nqp::getattr(self,RakuAST::Routine,'$!package').ATTACH-METHOD(self)
-              unless self.scope eq 'our';
+        my $package := nqp::getattr(self,RakuAST::Routine,'$!package');
+        my str $name := self.name ?? self.name.canonicalize !! '';
+
+        if $package {
+            if nqp::istype($package,RakuAST::Package::Attachable) {
+                $package.ATTACH-METHOD(self) unless self.scope eq 'our';
+            }
+            else {
+                $resolver.add-worry:  # XXX should be self.add-worry
+                  $resolver.build-exception: 'X::Useless::Declaration',
+                    name  => $name,
+                    where => "a " ~ $package.declarator
+            }
         }
         elsif self.scope eq 'has' {
-            nqp::die('Did not find an attach target for method.');
+            $resolver.add-worry:  # XXX should be self.add-worry
+              $resolver.build-exception: 'X::Useless::Declaration',
+                name  => $name,
+                where => 'the mainline';
         }
 
         # Make sure that our placeholder signature has resolutions performed.
@@ -1910,7 +1923,7 @@ class RakuAST::Methodish
         self.IMPL-STUB-PHASERS($resolver, $context);
 
         my $stub := self.IMPL-STUB-CODE($resolver, $context);
-        nqp::setcodename($stub, self.name.canonicalize) if self.name;
+        nqp::setcodename($stub, $name) if $name;
 
         # Apply any traits.
         self.apply-traits($resolver, $context, self)

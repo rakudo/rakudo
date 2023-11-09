@@ -2651,6 +2651,14 @@ my class X::Sequence::Endpoint is Exception {
     }
 }
 
+my class X::Useless::Declaration is Exception {
+    has $.name;
+    has $.where;
+    method message() {
+        "Useless declaration of a has-scoped method in $.where.  Did you mean 'my method $.name'?".naive-word-wrapper
+    }
+}
+
 my class X::Cannot::Map is Exception {
     has $.what   = "(<unknown type>)";
     has $.using  = "(<an unknown expression>)";

@@ -35,8 +35,8 @@ class RakuAST::Initializer
     }
 }
 
-# An assignment (`=`) initializer.
-class RakuAST::Initializer::Assign
+# Role for classes that initialize from an expression
+class RakuAST::Initializer::Expression
   is RakuAST::Initializer
 {
     has RakuAST::Expression $.expression;
@@ -48,7 +48,7 @@ class RakuAST::Initializer::Assign
     }
 
     method set-expression(RakuAST::Expression $expression) {
-        nqp::bindattr(self, RakuAST::Initializer::Assign, '$!expression',
+        nqp::bindattr(self, RakuAST::Initializer::Expression, '$!expression',
           $expression // RakuAST::Expression);
     }
 
@@ -56,38 +56,25 @@ class RakuAST::Initializer::Assign
         $visitor($!expression);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast) {
+    method IMPL-TO-QAST(
+      RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast
+    ) {
         $!expression.IMPL-TO-QAST($context)
     }
 }
 
+# An assignment (`=`) initializer.
+class RakuAST::Initializer::Assign
+  is RakuAST::Initializer::Expression
+{
+    method is-binding() { False }
+}
+
 # A bind (`:=`) initializer.
 class RakuAST::Initializer::Bind
-  is RakuAST::Initializer
+  is RakuAST::Initializer::Expression
 {
-    has RakuAST::Expression $.expression;
-
-    method new(RakuAST::Expression $expression) {
-        my $obj := nqp::create(self);
-        $obj.set-expression($expression);
-        $obj
-    }
-
-    method set-expression(RakuAST::Expression $expression) {
-        nqp::bindattr(self, RakuAST::Initializer::Bind, '$!expression',
-            $expression // RakuAST::Expression);
-        Nil
-    }
-
     method is-binding() { True }
-
-    method visit-children(Code $visitor) {
-        $visitor($!expression);
-    }
-
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, Mu :$invocant-qast) {
-        $!expression.IMPL-TO-QAST($context)
-    }
 }
 
 # An mutating method call (`.=`) initializer.

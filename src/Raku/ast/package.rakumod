@@ -23,16 +23,8 @@ class RakuAST::Package
     has Str           $.repr;
     has Bool          $.augmented;
 
-    has Mu   $!role-group;
     has Mu   $!block-semantics-applied;
     has Bool $.is-stub;
-
-    # Methods and attributes are not directly added, but rather through the
-    # RakuAST::Attaching mechanism. Attribute usages are also attached for
-    # checking after compose time.
-    has Mu $!attached-methods;
-    has Mu $!attached-attributes;
-    has Mu $!attached-attribute-usages;
 
     method new(          str :$scope,
                RakuAST::Name :$name,
@@ -42,7 +34,7 @@ class RakuAST::Package
                           Mu :$attribute-type,
                           Mu :$how,
                          Str :$repr,
-                        Bool :$augmented, 
+                        Bool :$augmented,
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
@@ -59,11 +51,6 @@ class RakuAST::Package
         $obj.replace-body($body, $parameterization);
         $obj.set-WHY($WHY);
 
-        # Set up internal defaults
-        nqp::bindattr($obj, RakuAST::Package, '$!attached-methods', []);
-        nqp::bindattr($obj, RakuAST::Package, '$!attached-attributes', []);
-        nqp::bindattr($obj, RakuAST::Package, '$!attached-attribute-usages',[]);
-        nqp::bindattr($obj, RakuAST::Package, '$!role-group', Mu);
         nqp::bindattr($obj, RakuAST::Package, '$!is-stub', False);
 
         $obj
@@ -131,22 +118,6 @@ class RakuAST::Package
     method clear-attachments() {
         # Attributes and methods only attach once as a BEGIN effect, thus we
         # don't have to deal with duplicates on them.
-        Nil
-    }
-
-    method ATTACH-METHOD(RakuAST::Method $method) {
-        nqp::push($!attached-methods, $method);
-        Nil
-    }
-
-    # TODO also list-y declarations
-    method ATTACH-ATTRIBUTE(RakuAST::VarDeclaration::Simple $attribute) {
-        nqp::push($!attached-attributes, $attribute);
-        Nil
-    }
-
-    method ATTACH-ATTRIBUTE-USAGE(RakuAST::Var::Attribute $attribute) {
-        nqp::push($!attached-attribute-usages, $attribute);
         Nil
     }
 
@@ -262,47 +233,8 @@ class RakuAST::Package
     }
 
     method PRODUCE-META-OBJECT() {
-        # Obtain the stubbed meta-object, which is the type object.
-        my $type := self.stubbed-meta-object();
-        my $how  := $type.HOW;
-
-        # Add methods and attributes.
-        for $!attached-methods {
-            my $name := $_.name.canonicalize;
-            my $meta-object := $_.meta-object;
-            if nqp::istype($_, RakuAST::Method) && $_.private {
-                $how.add_private_method($type, $name, $meta-object);
-            }
-            elsif nqp::istype($_, RakuAST::Method) && $_.meta {
-                $how.add_meta_method($type, $name, $meta-object);
-            }
-            elsif $_.multiness eq 'multi' {
-                $how.add_multi_method($type, $name, $meta-object);
-            }
-            else {
-                $how.add_method($type, $name, $meta-object);
-            }
-        }
-        for $!attached-attributes {
-            # TODO: create method BUILDALL here
-            $how.add_attribute($type, $_.meta-object);
-        }
-
-        if self.declarator eq 'role' {
-            $how.set_body_block($type, $!body.meta-object);
-
-            # The role needs to be composed before we add the possibility
-            # to the group
-            $how.compose($type);
-
-            my $group := $!role-group;
-            $group.HOW.add_possibility($group, $type) unless $group =:= Mu;
-        }
-        else {
-            # Compose the meta-object
-            $how.compose($type);
-        }
-        # Return the meta-object
+        my $type := self.stubbed-meta-object;
+        $type.HOW.compose($type);
         $type
     }
 
@@ -351,10 +283,107 @@ class RakuAST::Package
 }
 
 #-------------------------------------------------------------------------------
+# Role for handling package types that can have methods and attributes
+# attached to it
+
+class RakuAST::Package::Attachable
+  is RakuAST::Package
+{
+    # Methods and attributes are not directly added, but rather through the
+    # RakuAST::Attaching mechanism. Attribute usages are also attached for
+    # checking after compose time.
+    has Mu $!attached-methods;
+    has Mu $!attached-attributes;
+    has Mu $!attached-attribute-usages;
+    has Mu $!role-group;
+
+    method new(          str :$scope,
+               RakuAST::Name :$name,
+          RakuAST::Signature :$parameterization,
+                        List :$traits,
+               RakuAST::Code :$body,
+                          Mu :$attribute-type,
+                          Mu :$how,
+                         Str :$repr,
+                        Bool :$augmented,
+    RakuAST::Doc::Declarator :$WHY
+    ) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
+        nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
+          nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
+        nqp::bindattr($obj, RakuAST::Package, '$!how',
+          nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how);
+        nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
+        nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
+
+        $obj.set-traits($traits) if $traits;
+        $obj.replace-body($body, $parameterization);
+        $obj.set-WHY($WHY);
+
+        nqp::bindattr($obj, RakuAST::Package, '$!is-stub', False);
+
+        # Set up internal defaults
+        nqp::bindattr($obj, RakuAST::Package::Attachable,
+          '$!attached-methods', []);
+        nqp::bindattr($obj, RakuAST::Package::Attachable,
+          '$!attached-attributes', []);
+        nqp::bindattr($obj, RakuAST::Package::Attachable,
+          '$!attached-attribute-usages', []);
+        nqp::bindattr($obj, RakuAST::Package::Attachable,
+          '$!role-group', Mu);
+
+        $obj
+    }
+
+    method ATTACH-METHOD(RakuAST::Method $method) {
+        nqp::push($!attached-methods, $method);
+        Nil
+    }
+
+    # TODO also list-y declarations
+    method ATTACH-ATTRIBUTE(RakuAST::VarDeclaration::Simple $attribute) {
+        nqp::push($!attached-attributes, $attribute);
+        Nil
+    }
+
+    method ATTACH-ATTRIBUTE-USAGE(RakuAST::Var::Attribute $attribute) {
+        nqp::push($!attached-attribute-usages, $attribute);
+        Nil
+    }
+
+    # Add methods and attributes to meta object
+    method PRODUCE-META-ATTACHABLES($type, $how) {
+        for $!attached-methods {
+            my $name        := $_.name.canonicalize;
+            my $meta-object := $_.meta-object;
+
+            if nqp::istype($_, RakuAST::Method) && $_.private {
+                $how.add_private_method($type, $name, $meta-object);
+            }
+            elsif nqp::istype($_, RakuAST::Method) && $_.meta {
+                $how.add_meta_method($type, $name, $meta-object);
+            }
+            elsif $_.multiness eq 'multi' {
+                $how.add_multi_method($type, $name, $meta-object);
+            }
+            else {
+                $how.add_method($type, $name, $meta-object);
+            }
+        }
+        for $!attached-attributes {
+            # TODO: create method BUILDALL here
+            $how.add_attribute($type, $_.meta-object);
+        }
+    }
+}
+
+#-------------------------------------------------------------------------------
 # Specific logic to handle roles
 
 class RakuAST::Role
-  is RakuAST::Package
+  is RakuAST::Package::Attachable
 {
     method declarator()  { "role"                       }
     method default-how() { Metamodel::ParametricRoleHOW }
@@ -429,11 +458,31 @@ class RakuAST::Role
         }
         # Add ourselves to the role group
         $type-object.HOW.set_group($type-object, $group);
-        nqp::bindattr(self, RakuAST::Package, '$!role-group', $group);
+        nqp::bindattr(self,RakuAST::Package::Attachable,'$!role-group',$group);
     }
 
     method additional-body-lexicals() {
         self.meta-object-as-body-lexicals('ROLE');
+    }
+
+    method PRODUCE-META-OBJECT() {
+        # Obtain the stubbed meta-object, which is the type object.
+        my $type := self.stubbed-meta-object;
+        my $how  := $type.HOW;
+
+        self.PRODUCE-META-ATTACHABLES($type, $how);
+
+        $how.set_body_block($type, self.body.meta-object);
+
+        # The role needs to be composed before we add the possibility
+        # to the group
+        $how.compose($type);
+
+        my $group :=
+          nqp::getattr(self, RakuAST::Package::Attachable, '$!role-group');
+        $group.HOW.add_possibility($group, $type) unless $group =:= Mu;
+
+        $type
     }
 }
 
@@ -441,7 +490,7 @@ class RakuAST::Role
 # Specific logic to handle classes and grammars
 
 class RakuAST::Class
-  is RakuAST::Package
+  is RakuAST::Package::Attachable
 {
     method declarator()  { "class"             }
     method default-how() { Metamodel::ClassHOW }
@@ -454,6 +503,16 @@ class RakuAST::Class
         # otherwise put in a generic fallback BUILDALL that doesn't
         # do anything
         self.meta-object; # Ensure it's composed
+    }
+
+    method PRODUCE-META-OBJECT() {
+        # Obtain the stubbed meta-object, which is the type object.
+        my $type := self.stubbed-meta-object();
+        my $how  := $type.HOW;
+
+        self.PRODUCE-META-ATTACHABLES($type, $how);
+        $how.compose($type);
+        $type
     }
 }
 

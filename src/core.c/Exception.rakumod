@@ -2651,7 +2651,7 @@ my class X::Sequence::Endpoint is Exception {
     }
 }
 
-my class X::Useless::Declaration is Exception {
+my class X::Useless::Declaration does X::Comp {
     has $.name;
     has $.where;
     method message() {

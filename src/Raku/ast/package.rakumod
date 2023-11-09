@@ -330,7 +330,7 @@ class RakuAST::Package::Attachable
         nqp::bindattr($obj, RakuAST::Package::Attachable,
           '$!attached-attributes', []);
         nqp::bindattr($obj, RakuAST::Package::Attachable,
-          '$!attached-attribute-usages', []);
+          '$!attached-attribute-usages', {});
         nqp::bindattr($obj, RakuAST::Package::Attachable,
           '$!role-group', Mu);
 
@@ -352,7 +352,7 @@ class RakuAST::Package::Attachable
     }
 
     method ATTACH-ATTRIBUTE-USAGE(RakuAST::Var::Attribute $attribute) {
-        nqp::push($!attached-attribute-usages, $attribute);
+        nqp::bindkey($!attached-attribute-usages, $attribute.name, $attribute);
         Nil
     }
 
@@ -376,6 +376,10 @@ class RakuAST::Package::Attachable
             }
         }
         for $!attached-attributes {
+
+            # attribute defined means we don't need to check it anymore
+            nqp::deletekey($!attached-attribute-usages, $_.name);
+
             # TODO: create method BUILDALL here
             $how.add_attribute($type, $_.meta-object);
         }

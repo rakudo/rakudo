@@ -337,6 +337,9 @@ class RakuAST::Package::Attachable
         $obj
     }
 
+    method can-have-methods()    { True }
+    method can-have-attributes() { True }
+
     method ATTACH-METHOD(RakuAST::Method $method) {
         nqp::push($!attached-methods, $method);
         Nil
@@ -387,9 +390,6 @@ class RakuAST::Role
 {
     method declarator()  { "role"                       }
     method default-how() { Metamodel::ParametricRoleHOW }
-
-    method can-have-methods()    { True }
-    method can-have-attributes() { True }
 
     method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
         # The body of a role is internally a Sub that has the parameterization
@@ -494,9 +494,6 @@ class RakuAST::Class
 {
     method declarator()  { "class"             }
     method default-how() { Metamodel::ClassHOW }
-
-    method can-have-methods()    { True }
-    method can-have-attributes() { True }
 
     method IMPL-COMPOSE() {
         # create BUILDALL method if there's something to create,

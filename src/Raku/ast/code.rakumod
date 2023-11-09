@@ -1884,12 +1884,15 @@ class RakuAST::Methodish
         }
     }
 
-    method PERFORM-BEGIN-AFTER-CHILDREN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN-AFTER-CHILDREN(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
         my $package := nqp::getattr(self,RakuAST::Routine,'$!package');
         my str $name := self.name ?? self.name.canonicalize !! '';
 
         if $package {
-            if nqp::istype($package,RakuAST::Package::Attachable) {
+            if $package.can-have-methods {
                 $package.ATTACH-METHOD(self) unless self.scope eq 'our';
             }
             else {

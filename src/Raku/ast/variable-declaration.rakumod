@@ -579,10 +579,18 @@ class RakuAST::VarDeclaration::Simple
         }
     }
 
-    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+    method PERFORM-BEGIN(
+               RakuAST::Resolver $resolver,
+      RakuAST::IMPL::QASTContext $context
+    ) {
         my str $scope := self.scope;
         if $!attribute-package && ($scope eq 'has' || $scope eq 'HAS') {
-            $!attribute-package.ATTACH-ATTRIBUTE(self);
+            $!attribute-package.can-have-attributes
+              ?? $!attribute-package.ATTACH-ATTRIBUTE(self)
+              !! $resolver.add-worry:  # XXX should be self.add-worry
+                   $resolver.build-exception: 'X::Attribute::Package',
+                     name         => self.name,
+                     package-kind => $!attribute-package.declarator;
         }
 
         # Process traits for `is Type` and `of Type`, which get special

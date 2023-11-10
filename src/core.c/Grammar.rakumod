@@ -4,7 +4,9 @@ my class Grammar is Match {
       $orig is raw, :$rule = "TOP", :$args, Mu :$actions
     ) is raw {
         my $*LINEPOSCACHE;
-        my $grammar := self.new(:$orig, |%_).set_actions($actions);
+        my $grammar := self.new(:$orig, |%_).set_actions(
+          nqp::eqaddr(nqp::decont($actions),Mu) ?? nqp::null() !! $actions
+        );
 
         nqp::decont(nqp::getlexcaller('$/') = nqp::if(
           (my $cursor := nqp::if(

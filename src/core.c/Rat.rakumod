@@ -1,3 +1,5 @@
+my class Raku { … }
+
 # XXX: should be Rational[Int, uint]
 my class Rat is Cool does Rational[Int, Int] {
     method Rat(Rat:D: Real $? --> Rat:D) {
@@ -24,8 +26,17 @@ my class Rat is Cool does Rational[Int, Int] {
             if $d == 1 and (my $b := self.base(10,*)).Numeric === self {
                 $b;
             }
-            else {
+            elsif Raku.legacy {
                 '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>'
+            }
+            else {
+                if $!numerator div $!denominator -> $wholes {
+                    my $parts := $!numerator - ($!denominator * $wholes);
+                    "$wholes$parts.Str(:superscript)/$!denominator.Str(:subscript)"
+                }
+                else {
+                    "$!numerator.Str(:superscript)/$!denominator.Str(:subscript)"
+                }
             }
         }
     }

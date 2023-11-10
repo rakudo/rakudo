@@ -187,7 +187,7 @@ For questions about MoarVM, you can join #moarvm on Libera.
 
 ## Code of Conduct
 
-The Raku community is committed to providing a welcoming, inclusive, safe, and enjoyable environment for everyone.  Programming should be `-Ofun`.  The Raku Community therefore has adopted a [Code of Conduct](https://github.com/Raku/problem-solving/blob/master/solutions/meta/code_of_conduct.md).  Please see the [CoC Incident Report Guide](https://github.com/Raku/problem-solving/blob/master/solutions/meta/coc_incident_response_guide.md) should you feel the need to report any violations of the Code of Conduct.
+The Raku community is committed to providing a welcoming, inclusive, safe, and enjoyable environment for everyone.  Programming should be `-Ofun`.  The Raku Community therefore has adopted a [Code of Conduct](https://github.com/Raku/problem-solving/blob/master/solutions/meta/code_of_conduct.md).  Please report any violations of the Code of Conduct by emailing the Raku community affairs team at CAT@raku.org.
 
 ## Reporting bugs
 

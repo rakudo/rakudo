@@ -4055,7 +4055,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token rational-number { '<' <bare-rational-number> '>' }
+    token rational-number {
+        [
+            '<' <bare-rational-number> '>'
+          | <super-sign>? <super-integer> '/' <sub-integer>
+        ]
+    }
     token bare-rational-number {
         <?before <.[-−+0..9<>:boxd]>+? '/'>
         <nu=.signed-integer> '/' <de=integer>

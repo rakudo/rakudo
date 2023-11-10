@@ -2578,7 +2578,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method rational-number($/) {
-        self.attach: $/, $<bare-rational-number>.ast;
+        my $ast;
+
+        if $<bare-rational-number> -> $rat {
+            $ast := $rat.ast;
+        }
+        else {
+            my $nu := super-int-to-Int(~$<super-integer>, ~$<super-sign>);
+            my $de := sub-int-to-Int(~$<sub-integer>);
+            $ast := Nodify('RatLiteral').new(
+              $*LITERALS.intern-rat($nu, $de)
+            );
+        }
+
+        self.attach: $/, $ast;
     }
 
     method bare-rational-number($/) {

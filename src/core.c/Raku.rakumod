@@ -23,6 +23,13 @@ class Raku does Systemic {
               !! nqp::bindkey($version-cache,$comp-ver,Version.new($comp-ver))
         }
     }
+
+    # until RakuAST becomes default
+    my $legacy := $*LANG.^name eq 'Perl6::Grammar';
+    method legacy(Raku:U:) is implementation-detail { $legacy }
+
+    # when RakuAST is default
+    #method legacy(Raku:U: --> False) is implementation-detail { }
 }
 
 class Perl is Raku { }  # indeed :-)

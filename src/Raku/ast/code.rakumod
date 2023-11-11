@@ -217,9 +217,123 @@ class RakuAST::Code
         });
     }
 
+    method IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
+
+        my $visit-block;
+        my $visit-children;
+
+        my @blocks;
+        my $current-block;
+        $visit-block := sub ($block) {
+            nqp::push(@blocks, $current-block := nqp::hash);
+            $visit-children($block);
+            nqp::pop(@blocks);
+            $current-block := nqp::elems(@blocks) ?? @blocks[nqp::elems(@blocks) - 1] !! NQPMu;
+        }
+
+        my $declared-in-cu := sub ($name) {
+            for @blocks {
+                return 1 if nqp::existskey($_, $name);
+            }
+            return 0;
+        }
+
+        my $visit-var := sub ($var) {
+            my str $scope := $var.scope;
+            my str $decl := $var.decl;
+            my str $name := $var.name;
+            if $scope eq 'attribute' || $scope eq 'attributeref' || $scope eq 'positional' || $scope eq 'associative' {
+                $visit-children($var);
+            }
+            if $decl {
+                $current-block{$name} := $var;
+                if $decl eq 'param' {
+                    $visit-children($var);
+                    my $default := $var.default;
+                    if $default {
+                        $visit-children($default);
+                    }
+                }
+            }
+            else {
+                if $scope eq 'lexical' && ! $declared-in-cu($name) {
+                    my $value := $var.ann('compile-time-value');
+                    if !($value =:= NQPMu) {
+                        $var := QAST::WVal.new(:$value);
+                    }
+                    elsif $name ne '$_' { #TODO figure out why we specifially don't declare $_ in ExpressionThunks
+                        my $decl := $!resolver.resolve-lexical-constant($name);
+                        if $decl {
+                            my $value := $decl.compile-time-value;
+                            $context.ensure-sc($value);
+                            $var := QAST::WVal.new(:$value);
+                        }
+                        else {
+                            nqp::die("Could not find a compile-time-value for lexical $name");
+                        }
+                    }
+                }
+            }
+            $var
+        }
+
+        $visit-children := sub ($node) {
+            my int $i := 0;
+            my int $n := nqp::elems($node);
+            while $i < $n {
+                my $visit := $node[$i];
+                $visit := $visit.shallow_clone if nqp::istype($visit, QAST::Node);
+                $node[$i] := $visit;
+                if nqp::istype($visit, QAST::Op) {
+                    my $op := $visit.op;
+                    if ($op eq 'call' || $op eq 'callstatic' || $op eq 'chain') && $visit.name {
+                        my $routine := $!resolver.resolve-lexical-constant($visit.name);
+                        my $value := $routine.compile-time-value;
+                        if ! $declared-in-cu($visit.name) {
+                            $context.ensure-sc($value);
+                            $visit.name(nqp::null);
+                            $visit.unshift(QAST::WVal.new(:$value));
+                        }
+                    }
+                    $visit-children($visit)
+                }
+                elsif nqp::istype($visit, QAST::Block) {
+                    $visit-block($visit);
+                }
+                elsif nqp::istype($visit, QAST::Stmt) || nqp::istype($visit, QAST::Stmts) || nqp::istype($visit, QAST::ParamTypeCheck) {
+                    $visit-children($visit);
+                }
+                elsif nqp::istype($visit, QAST::Var) {
+                    $node[$i] := $visit-var($visit);
+                }
+                else {
+                }
+                $i := $i + 1;
+            }
+        }
+
+        $visit-block($block);
+    }
+
     method IMPL-COMPILE-DYNAMICALLY(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context, Mu $block) {
-        my $wrapper := QAST::Block.new(QAST::Stmts.new(), $block);
+        my $wrapper := QAST::Block.new(QAST::Stmts.new(), nqp::clone($block));
         $wrapper.annotate('DYN_COMP_WRAPPER', 1);
+        $wrapper[0].push(QAST::Var.new(
+            :name('$_'), :scope('lexical'),
+            :decl('contvar'), :value(Mu)
+        ));
+        $wrapper[0].push(QAST::Var.new(
+            :name('$/'), :scope('lexical'),
+            :decl('contvar'), :value(Mu)
+        ));
+        my $package := $!resolver.current-package;
+        $context.ensure-sc($package);
+        $wrapper[0].push(QAST::Var.new(
+            :name('$?PACKAGE'), :scope('lexical'),
+            :decl('static'), :value($package)
+        ));
+
+        self.IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK($resolver, $context, $wrapper);
 
         my $compunit := QAST::CompUnit.new(
             :hll('Raku'),
@@ -229,32 +343,6 @@ class RakuAST::Code
         );
         my $comp := $*HLL-COMPILER // nqp::getcomp("Raku");
         my $precomp := $comp.compile($compunit, :from<qast>, :compunit_ok(1));
-        {
-            my $resolver := $!resolver;
-#?if !jvm
-            nqp::syscall(
-                'set-compunit-resolver',
-                $precomp,
-                -> $name {
-                    my $result := $resolver.resolve-lexical($name);
-                    if $result {
-                        nqp::istype($result, RakuAST::CompileTimeValue)
-                            ?? $result.compile-time-value
-                            !! Mu
-                    }
-                    else {
-                        nqp::die("No lexical found with name $name via resolver");
-                    }
-                },
-                -> $dyn-name {
-                    my $dynamic-fallback := $resolver.resolve-lexical-in-outer('&DYNAMIC-FALLBACK');
-                    my $without-star := nqp::replace($dyn-name, 1, 1, '');
-                    $dynamic-fallback.compile-time-value()($dyn-name, $without-star)
-                }
-            );
-#?endif
-        }
-
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
 

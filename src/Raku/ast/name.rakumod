@@ -2,22 +2,15 @@
 # complex (including pseudo-packages, interpolated parts, etc.)
 class RakuAST::Name
   is RakuAST::ImplicitLookups
-  is RakuAST::Attaching
 {
     has List $!parts;
     has List $.colonpairs;
-    has Mu $!setting;
 
     method new(*@parts) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Name, '$!parts', @parts);
         nqp::bindattr($obj, RakuAST::Name, '$!colonpairs', []);
         $obj
-    }
-
-    method attach(RakuAST::Resolver $resolver) {
-        # Might be needed for resolving CORE:: in dynamically compiled frames
-        nqp::bindattr(self, RakuAST::Name, '$!setting', $resolver.setting);
     }
 
     method from-identifier(Str $identifier) {
@@ -220,7 +213,7 @@ class RakuAST::Name
             nqp::shift($!parts); #FIXME don't modify please
             my $PseudoStash := $PseudoStash-lookup.resolution.compile-time-value;
             my $stash := nqp::create($PseudoStash);
-            my $found-ctx := $!setting;
+            my $found-ctx := $context.setting;
             nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found-ctx)),
             nqp::bindattr($stash, $PseudoStash, '$!ctx', $found-ctx),
             nqp::bindattr_i($stash, $PseudoStash, '$!mode', STATIC_CHAIN),

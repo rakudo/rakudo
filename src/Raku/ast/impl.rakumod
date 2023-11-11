@@ -5,6 +5,7 @@ class RakuAST::IMPL::QASTContext {
     has Mu $.post-deserialize;
     has Mu $.code-ref-blocks;
     has int $!precompilation-mode;
+    has Mu $.setting;
 
     # Mapping of sub IDs to their code objects; used for fixing up in
     # dynamic compilation.
@@ -25,7 +26,7 @@ class RakuAST::IMPL::QASTContext {
 
     has int $.is-nested;
 
-    method new(Mu :$sc!, int :$precompilation-mode) {
+    method new(Mu :$sc!, int :$precompilation-mode, :$setting) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
         nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!precompilation-mode', $precompilation-mode);
@@ -36,6 +37,7 @@ class RakuAST::IMPL::QASTContext {
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sub-id-to-sc-idx', {});
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!cleanup-tasks', []);
         nqp::bindattr_i($obj, RakuAST::IMPL::QASTContext, '$!is-nested', 0);
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!setting', $setting);
         $obj
     }
 

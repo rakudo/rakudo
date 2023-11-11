@@ -31,16 +31,19 @@ class RakuAST::CompUnit
     has Mu $!export-package;
     has Mu $.herestub-queue;
     has RakuAST::IMPL::QASTContext $.context;
+    has RakuAST::Resolver $!resolver;
 
     method new(          Str :$comp-unit-name!,
                          Str :$setting-name,
+                         Mu  :$setting,
                         Bool :$eval,
                           Mu :$global-package-how,
                          int :$language-revision,
                         Bool :$precompilation-mode,
                           Mu :$export-package,
       RakuAST::StatementList :$statement-list,
-           RakuAST::CompUnit :$outer-cu
+           RakuAST::CompUnit :$outer-cu,
+           RakuAST::Resolver :$resolver
     ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
@@ -71,6 +74,7 @@ class RakuAST::CompUnit
         nqp::bindattr($obj, RakuAST::CompUnit, '$!pod-content', Array.new);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!data-content', nqp::null);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!herestub-queue', []);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!resolver', $resolver);
 
         # If CompUnit's language revision is not set explicitly then guess it
         nqp::bindattr($obj, RakuAST::CompUnit, '$!language-revision',
@@ -101,7 +105,7 @@ class RakuAST::CompUnit
             nqp::pushcompsc($sc);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', $sc);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!context',
-              RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode));
+              RakuAST::IMPL::QASTContext.new(:$sc, :$precompilation-mode, :$setting));
             nqp::bindattr($obj, RakuAST::CompUnit, '$!pod',
               RakuAST::VarDeclaration::Implicit::Doc::Pod.new);
             nqp::bindattr($obj, RakuAST::CompUnit, '$!data',
@@ -398,6 +402,10 @@ class RakuAST::CompUnit
         self.add-phasers-to-code-object($!mainline.meta-object);
         self.add-phasers-handling-code($context, $top-level);
 
+        if $context.is-nested {
+            $!mainline.IMPL-FIXUP-DYNAMICALLY-COMPILED-BLOCK($!resolver, $context, $top-level);
+        }
+
         if !$!precompilation-mode
             && !$*INSIDE-EVAL
             && +(@*MODULES // []) == 0
@@ -419,7 +427,7 @@ class RakuAST::CompUnit
             :code_ref_blocks($context.code-ref-blocks),
             :compilation_mode($!precompilation-mode),
             :pre_deserialize(@pre-deserialize),
-            :post_deserialize($context.post-deserialize()),
+            :post_deserialize($context.is-nested ?? [] !! $context.post-deserialize()),
             :repo_conflict_resolver(QAST::Op.new(
                 :op('callmethod'), :name('resolve_repossession_conflicts'),
                 self.get-implicit-lookups.AT-POS(0).IMPL-TO-QAST($context) )),

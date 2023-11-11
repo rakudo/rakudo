@@ -334,7 +334,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :$setting-name,
               :eval,
               :outer-cu($*OUTER-CU),
-              :$language-revision
+              :$language-revision,
+              :setting($*R.setting),
+              :resolver($RESOLVER),
             );
         }
 
@@ -343,10 +345,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $*CU := Nodify('CompUnit').new(
               :$comp-unit-name,
               :$setting-name,
+              :setting($*R.setting),
               :global-package-how($package-how),
               :precompilation-mode(%OPTIONS<precomp>),
               :$export-package,
-              :$language-revision
+              :$language-revision,
+              :resolver($RESOLVER),
             );
 
             # Create a GLOBAL using the correct package meta-object.

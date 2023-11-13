@@ -27,14 +27,21 @@ my class Match is Capture is Cool does NQPMatchRole {
     method ast()  { nqp::istype($!made, Mu) ?? $!made !! Nil }
     method made() { nqp::istype($!made, Mu) ?? $!made !! Nil }
 
-    method Int(--> Int:D) { self.Str.Int }
+    method Int(--> Int:D) { self.Match::Str.Int }
 
-    method Str() is raw { self.NQPMatchRole::Str }
+    method Str() is raw {
+        $!pos >= $!from
+          ?? nqp::substr(
+               self.NQPMatchRole::target,
+               $!from,
+               nqp::sub_i(self.NQPMatchRole::to, $!from))
+          !! ''
+    }
 
     method STR() is implementation-detail {
         nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH)
-          ?? self.Str
-          !! self.MATCH.Str
+          ?? self.Match::Str
+          !! self.Match::MATCH.Str
     }
 
     method MATCH() is implementation-detail {
@@ -85,7 +92,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                     (my $cursor := nqp::atpos($cs,$i)),
                     nqp::unless(
                       nqp::isnull_s(nqp::getattr_s($cursor,$?CLASS,'$!name')),
-                      nqp::push($dest,$cursor.MATCH)  # recurse
+                      nqp::push($dest,$cursor.Match::MATCH)  # recurse
                     )
                   )
                 );
@@ -103,7 +110,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                       nqp::not_i(nqp::isnull_s($name))
                         && nqp::isge_i(nqp::chars($name),1),
                       nqp::stmts(                           # has a name
-                        (my $match := $cursor.MATCH),  # recurse
+                        (my $match := $cursor.Match::MATCH),  # recurse
                         nqp::if(
                           nqp::iseq_s($name,'$!from')
                             || nqp::iseq_s($name,'$!to'),
@@ -242,10 +249,10 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method ACCEPTS(Match:D: Mu) { self }
 
     method prematch(Match:D:) {
-        nqp::substr(self.target,0,$!from)
+        nqp::substr(self.NQPMatchRole::target,0,$!from)
     }
     method postmatch(Match:D:) {
-        nqp::substr(self.target,self.to)
+        nqp::substr(self.NQPMatchRole::target,self.NQPMatchRole::to)
     }
 
     method !sort-on-from-pos() {
@@ -257,7 +264,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     method caps(Match:D:) {
         my $caps := nqp::list;
-        for self.pairs {
+        for self.Match::pairs {
             my \key   := .key;
             my \value := .value;
 
@@ -275,14 +282,14 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     method chunks(Match:D:) {
         my $prev = $!from;
-        my $target := self.target;
+        my $target := self.NQPMatchRole::target;
         gather {
-            for self.caps {
-                if .value.from > $prev {
-                    take '~' => substr($target,$prev, .value.from - $prev)
+            for self.Match::caps {
+                if .value.NQPMatchRole::from > $prev {
+                    take '~' => substr($target,$prev,.value.NQPMatchRole::from - $prev)
                 }
                 take $_;
-                $prev = .value.pos;
+                $prev = .value.NQPMatchRole::pos;
             }
             take '~' => substr($target,$prev, $!pos - $prev) if $prev < $!pos;
         }
@@ -291,27 +298,27 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method raku(Match:D: --> Str:D) {
         my $attrs := nqp::list_s;
 
-        nqp::push_s($attrs,(orig => self.orig // '').raku);
-        nqp::push_s($attrs,(from => self.from // 0).raku);
-        nqp::push_s($attrs,(pos  => self.pos // 0).raku);
+        nqp::push_s($attrs,(orig => self.NQPMatchRole::orig // '').raku);
+        nqp::push_s($attrs,(from => self.NQPMatchRole::from // 0).raku);
+        nqp::push_s($attrs,(pos  => self.NQPMatchRole::pos // 0).raku);
         if self.Capture::list -> @list { nqp::push_s($attrs,:@list.raku) }
         if self.Capture::hash -> %hash { nqp::push_s($attrs,:%hash.raku) }
-        nqp::push_s($attrs,(made => $_).raku) with self.made;
+        nqp::push_s($attrs,(made => $_).raku) with self.NQPMatchRole::made;
 
         nqp::concat('Match.new(',nqp::concat(nqp::join(', ',$attrs),')'))
     }
     multi method gist (Match:D: $d = 0) {
         return "#<failed match>" unless self;
         my $s = ' ' x ($d + 1);
-        my $r = ("=> " if $d) ~ "\x[FF62]{self}\x[FF63]\n";
-        for @.caps {
-            $r ~= $s ~ (.key // '?') ~ ' ' ~ .value.gist($d + 1)
+        my $r = ("=> " if $d) ~ "｢" ~ self ~ "｣\n";
+        for self.Match::caps {
+            $r ~= $s ~ (.key // '?') ~ ' ' ~ &?ROUTINE(.value, $d + 1);
         }
-        $d == 0 ?? $r.chomp !! $r;
+        $d == 0 ?? $r.Match::chomp !! $r;
     }
 
     method replace-with(Match:D: Str() $replacement --> Str:D) {
-        self.prematch ~ $replacement ~ self.postmatch
+        self.Match::prematch ~ $replacement ~ self.Match::postmatch
     }
 }
 
@@ -319,10 +326,10 @@ multi sub infix:<eqv>(Match:D $a, Match:D $b) {
     $a =:= $b
     ||
     [&&] (
-        $a.pos  eqv $b.pos,
-        $a.from eqv $b.from,
-        $a.orig eqv $b.orig,
-        ($a.made // Any) eqv ($b.made // Any),
+        $a.NQPMatchRole::pos  eqv $b.NQPMatchRole::pos,
+        $a.NQPMatchRole::from eqv $b.NQPMatchRole::from,
+        $a.NQPMatchRole::orig eqv $b.NQPMatchRole::orig,
+        ($a.NQPMatchRole::made // Any) eqv ($b.NQPMatchRole::made // Any),
         ($a.Capture::list // nqp::list ) eqv ($b.Capture::list // nqp::list ),
         ($a.Capture::hash // nqp::hash ) eqv ($b.Capture::hash // nqp::hash )
     );

@@ -23,7 +23,7 @@ my class Grammar is Match {
             ),
             nqp::if(
               $cursor,
-              $cursor.MATCH,
+              $cursor.Match::MATCH,
               Nil
             )
           ),
@@ -35,8 +35,8 @@ my class Grammar is Match {
         my $grammar := self.new(:$orig, |%_).set_actions($actions);
         nqp::decont(
           nqp::getlexcaller('$/') = $args
-            ?? $grammar."$rule"(|$args.Capture).MATCH
-            !! $grammar."$rule"().MATCH
+            ?? $grammar."$rule"(|$args.Capture).Match::MATCH
+            !! $grammar."$rule"().Match::MATCH
         )
       }
 

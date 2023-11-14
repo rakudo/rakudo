@@ -333,9 +333,8 @@ class RakuAST::LegacyPodify {
         for $ast.paragraphs -> $row {
             if nqp::istype($row,Str) {
                 if $previous-was-divider {
-                    $ast.sorry-ad-hoc:
-                      "Table has multiple interior row separator lines.",
-                      "dummy argument that is somehow needed";
+                    die # $ast.sorry-ad-hoc:  XXX need better solution
+                      "Table has multiple interior row separator lines.";
                     last;
                 }
                 $previous-was-divider := True;
@@ -345,9 +344,8 @@ class RakuAST::LegacyPodify {
                 $previous-was-divider := False;
             }
         }
-        $ast.sorry-ad-hoc(
-          "Table has no data.",
-          "dummy argument that is somehow needed"
+        die( # $ast.sorry-ad-hoc(  XXX need better solution
+          "Table has no data."
         ) unless $has-data;
 
         # wrap up

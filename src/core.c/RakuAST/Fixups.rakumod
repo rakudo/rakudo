@@ -325,7 +325,7 @@ augment class RakuAST::Doc::Markup {
                 unless $string {
                     $string := $entity.uniparse;
                     unless $string {
-                        self.worry-ad-hoc:
+                        die # self.worry-ad-hoc:  XXX need better solution
                           qq/"$entity" is not a valid HTML5 entity./;
                     }
                 }
@@ -335,7 +335,7 @@ augment class RakuAST::Doc::Markup {
             $string := $chr;
         }
         else {
-            self.sorry-ad-hoc:
+            die # self.sorry-ad-hoc:  XXX need better solution
               "Codepoint $codepoint ($codepoint.base(16)) is out of bounds in E<>";
             $string := '';
         }
@@ -688,7 +688,7 @@ augment class RakuAST::Doc::Paragraph {
         # we have open markups left
         if nqp::elems($markups) -> int $elems {
             my $markup := nqp::atpos($markups,nqp::sub_i($elems,1));
-            self.worry-ad-hoc:
+            die # self.worry-ad-hoc:  XXX need better solution
               "RakuDoc markup code $markup.letter() missing endtag '$markup.closer()'.";
 
             nqp::while(
@@ -769,7 +769,7 @@ augment class RakuAST::Doc::Block {
                         "\n"
                     }
                     else {
-                        self.worry-ad-hoc:
+                        die # self.worry-ad-hoc:  XXX need better solution
                           "'$_.chomp()'
 does not have enough whitespace to allow for a margin of $margin positions";
                         .trim-leading
@@ -929,10 +929,9 @@ does not have enough whitespace to allow for a margin of $margin positions";
 
         # Error handling for mixed column divider types
         my sub mixed-up($line) {
-            self.sorry-ad-hoc(
+            die # self.sorry-ad-hoc:  XXX need better solution
               "Table has a mixture of visible and invisible column-separator types
-in line '$line'"
-            );
+in line '$line'";
         }
 
         my %config = self.config;

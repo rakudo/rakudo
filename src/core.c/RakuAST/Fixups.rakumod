@@ -186,13 +186,13 @@ my class RakuAST::Doc::Row is RakuAST::Node {
     has Bool $.multi-line     is built(False);  # columns are multi-line
 
     # Merge the cells of one or more rows with the current, by
-    # concatenating the corresponding cells with a newline.
+    # concatenating the corresponding cells with a newline,
+    # assuming no markup in cells.
     method merge-rows(RakuAST::Doc::Row:D: *@rows --> Nil) {
         if @rows && nqp::istype($!cells.are,Str) {
             my str @merged = $!cells;
             $!multi-line := True;
 
-            # simplified for now, assuming no format strings in cells
             for @rows -> $row {
                 my $other    := $row.cells;
                 my int $elems = $other.elems;
@@ -551,6 +551,7 @@ augment class RakuAST::Doc::Paragraph {
         my int $i     = -1;                  # index of current char
         my int $elems = nqp::elems(@codes);  # number of codes to parse
         my int $openers;                     # number of consecutive openers
+        my int $verbatims;                   # number of V's seen
 
         # return the object currently collecting
         sub collector() {
@@ -567,11 +568,11 @@ augment class RakuAST::Doc::Paragraph {
         }
 
         # add collected graphemes to given object, if any, and reset
-        sub add-graphemes($markup --> Nil) {
+        sub add-graphemes($ast --> Nil) {
             nqp::if(
               nqp::elems(@graphemes),
               nqp::stmts(
-                $markup.add-atom(nqp::strfromcodes(@graphemes)),
+                $ast.add-atom(nqp::strfromcodes(@graphemes)),
                 nqp::setelems(@graphemes, 0)
               )
             );
@@ -605,6 +606,7 @@ augment class RakuAST::Doc::Paragraph {
               ))
             ));
             $stopper = nqp::iseq_i($this,$open) ?? $close !! $cclose;
+            ++$verbatims if nqp::iseq_s($letter,'V');
         }
 
         # Whether we're at a real stopper (after the initial stopper
@@ -671,10 +673,16 @@ augment class RakuAST::Doc::Paragraph {
                   nqp::stmts(                              # markups left
                     add-graphemes(nqp::pop($markups)),
                     nqp::if(
-                      nqp::istype($current,RakuAST::Doc::Markup),
+                      nqp::istype($current,RakuAST::Doc::Markup)
+                        && nqp::not_i($verbatims),
                       $current.check-meta
                     ),
                     collector.add-atom($current),
+                    nqp::if(
+                      nqp::istype(collector,RakuAST::Doc::Markup)
+                        && nqp::iseq_s(collector.letter,"V"),
+                      --$verbatims
+                    ),
                     ($stopper =
                       nqp::istype(($current := collector),RakuAST::Doc::Markup)
                         && nqp::ord($current.closer)

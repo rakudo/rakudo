@@ -77,7 +77,7 @@ class Not-Inlined {
 class MoarVM::SIL {
     has Bag $.inlineds     is built(:bind);
     has Bag $.not-inlineds is built(:bind);
-    has Int $status        is built(:bind);
+    has Int $!status       is built(:bind);
 
     method sink() { say self.report }
     method report() {

@@ -188,7 +188,7 @@ my class RakuAST::Doc::Row is RakuAST::Node {
     # Merge the cells of one or more rows with the current, by
     # concatenating the corresponding cells with a newline.
     method merge-rows(RakuAST::Doc::Row:D: *@rows --> Nil) {
-        if @rows {
+        if @rows && nqp::istype($!cells.are,Str) {
             my str @merged = $!cells;
             $!multi-line := True;
 
@@ -209,7 +209,8 @@ my class RakuAST::Doc::Row is RakuAST::Node {
 
                 my int $i = -1;
                 nqp::while(
-                  nqp::islt_i(++$i,$elems) && $other.AT-POS($i),
+                  nqp::islt_i(++$i,$elems)
+                    && nqp::istype($other.AT-POS($i),Str),
                   nqp::bindpos_s(@merged,$i,
                     nqp::concat(
                       nqp::atpos_s(@merged,$i),

@@ -1909,6 +1909,32 @@ https://docs.raku.org/type/List#routine_grep
 #### stmt-prefix-try
 - https://docs.raku.org/language/statement-prefixes#try
 
+## system
+
+#### system-ACCEPTS
+- https://docs.raku.org/routine/ACCEPTS#type/Muroutinemethod
+
+#### system-BUILD
+- https://docs.raku.org/language/typesystem#submethod_BUILD
+- https://docs.raku.org/language/classtut#BUILD
+
+#### system-CALL-ME
+- https://docs.raku.org/type/Callable#method_CALL-ME
+
+#### system-COERCE
+
+#### system-FALLBACK
+- https://docs.raku.org/language/typesystem#Fallback_method
+
+#### system-MAIN
+- https://docs.raku.org/language/create-cli#sub_MAIN
+
+#### system-TWEAK
+- https://docs.raku.org/language/classtut#TWEAK
+
+#### system-UPGRADE-RAT
+- https://docs.raku.org/language/variables#$*RAT-OVERFLOW
+
 ## term
 
 #### term-nano

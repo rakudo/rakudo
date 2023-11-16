@@ -29,6 +29,7 @@
 #   quote-lang   quote language markers ("q","Q","qq", etc.)
 #   scope        types of scope ("my","our","state", etc.)
 #   stmt-prefix  statement prefixes ("do","eager","lazy", etc.)
+#   system       methods called by the system (TWEAK,BUILD,ACCEPTS etc.)
 #   term         terms ("time","now","self",etc.)
 #   trait        types of traits ("is","does","returns", etc.)
 #   typer        type constructors ("enum","subset")
@@ -754,6 +755,16 @@ stmt-prefix-sink     sink
 stmt-prefix-start    start
 stmt-prefix-supply   supply
 stmt-prefix-try      try
+
+# KEY               TRANSLATION
+system-ACCEPTS      ACCEPTS
+system-BUILD        BUILD
+system-CALL-ME      CALL-ME
+system-COERCE       COERCE
+system-FALLBACK     FALLBACK
+system-MAIN         MAIN
+system-TWEAK        TWEAK
+system-UPGRADE-RAT  UPGRADE-RAT
 
 # KEY      TRANSLATION
 term-nano  nano

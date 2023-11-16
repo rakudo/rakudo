@@ -715,6 +715,16 @@ stmt-prefix-start    start
 stmt-prefix-supply   supply
 stmt-prefix-try      try
 
+# KEY               TRANSLATION
+#system-ACCEPTS      ACCEPTS
+#system-BUILD        BUILD
+#system-CALL-ME      CALL-ME
+#system-COERCE       COERCE
+#system-FALLBACK     FALLBACK
+#system-MAIN         MAIN
+#system-TWEAK        TWEAK
+#system-UPGRADE-RAT  UPGRADE-RAT
+
 # KEY      TRANSLATION
 term-nano  nano
 term-now   now

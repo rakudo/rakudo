@@ -91,6 +91,9 @@ Types of scope ("my","our","state", etc.)
 ## stmt-prefix
 Statement prefixes ("do","eager","lazy","quietly", etc.)
 
+## system
+Methods called by the system (TWEAK,BUILD,ACCEPTS etc.)
+
 ## term
 Terms ("time","now","self",etc.)
 

@@ -2,7 +2,10 @@ sub answer returns Int ist roh {
     42
 }
 mein klasse Frobnicate {
-    hat $.a = 42;
+    hat $.a = 666;
+    submethode TWEAK {
+        $!a = 42
+    }
     methode foo {
         sag selbst.a
     }

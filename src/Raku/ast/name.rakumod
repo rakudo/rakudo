@@ -70,7 +70,8 @@ class RakuAST::Name
     # the empty string.  Can be used to either just check if the object is a
     # simple identifier, or also when the actual identifier is needed.
     method simple-identifier() {
-        nqp::elems($!parts) == 1
+        nqp::isconcrete(self)
+          && nqp::elems($!parts) == 1
           && nqp::istype((my $obj := $!parts[0]),RakuAST::Name::Part::Simple)
           && $obj.name
     }

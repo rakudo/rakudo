@@ -2,7 +2,10 @@ sub answer ritorna Int è raw {
     42
 }
 il-mio classe Frobnicate {
-    ha $.a = 42;
+    ha $.a = 666;
+    submethod TWEAK {
+        $!a = 42
+    }
     metodo foo {
         dillo se-stesso.a
     }

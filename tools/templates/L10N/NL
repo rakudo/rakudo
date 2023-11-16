@@ -715,6 +715,16 @@ stmt-prefix-start    start
 stmt-prefix-supply   lever
 stmt-prefix-try      probeer
 
+# KEY               TRANSLATION
+system-ACCEPTS      ACCEPTEERT
+system-BUILD        BOUW
+system-CALL-ME      AANROEP
+system-COERCE       VERANDER-IN
+system-FALLBACK     WIJKUIT
+system-MAIN         HOOFD
+system-TWEAK        VERFIJN
+system-UPGRADE-RAT  VERBETER-RAT
+
 # KEY      TRANSLATION
 term-nano  nano
 term-now   nu

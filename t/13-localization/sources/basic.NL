@@ -2,7 +2,10 @@ functie answer geeft-terug Int is rauw {
     42
 }
 mijn klasse Frobnicate {
-    heeft $.a = 42;
+    heeft $.a = 666;
+    submethode VERFIJN {
+        $!a = 42
+    }
     methode foo {
         zeg zelf.a
     }

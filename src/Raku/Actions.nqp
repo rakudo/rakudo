@@ -2154,26 +2154,34 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method method-def($/) {
-        my $routine := $*BLOCK;
+        my $method := $*BLOCK;
+
+        # Handle localizations for BUILD, TWEAK, ACCEPTS, etc
+        if $method.name.simple-identifier -> $name {
+            my $sys-name := $/.system2str($name);
+            $method.replace-name(Nodify('Name').from-identifier($sys-name))
+              unless $sys-name eq $name;
+        }
+
         if $<signature> {
-            $routine.replace-signature($<signature>.ast);
+            $method.replace-signature($<signature>.ast);
         }
         if $<specials> {
             my $specials := ~$<specials>;
             if $specials eq '^' {
-                $routine.set-meta(1);
+                $method.set-meta(1);
             }
             elsif $specials eq '!' {
-                $routine.set-private(1);
+                $method.set-private(1);
             }
         }
-        $routine.replace-body($<onlystar>
+        $method.replace-body($<onlystar>
           ?? Nodify('OnlyStar').new
           !! $<blockoid>.ast
         );
-        $routine.IMPL-CHECK($*R, $*CU.context, 1);
-        $routine.ensure-begin-performed($*R, $*CU.context);
-        self.attach: $/, $routine;
+        $method.IMPL-CHECK($*R, $*CU.context, 1);
+        $method.ensure-begin-performed($*R, $*CU.context);
+        self.attach: $/, $method;
     }
 
     method regex-declarator:sym<regex>($/) {

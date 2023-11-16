@@ -716,6 +716,16 @@ stmt-prefix-start    comece
 # stmt-prefix-supply   fornitura
 stmt-prefix-try      tente
 
+# KEY               TRANSLATION
+#system-ACCEPTS      ACCEPTS
+#system-BUILD        BUILD
+#system-CALL-ME      CALL-ME
+#system-COERCE       COERCE
+#system-FALLBACK     WIJKUIT
+#system-MAIN         MAIN
+#system-TWEAK        TWEAK
+#system-UPGRADE-RAT  UPGRADE-RAT
+
 # KEY      TRANSLATION
 #term-nano  nano
 term-now   agora

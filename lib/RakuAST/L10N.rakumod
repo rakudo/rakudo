@@ -14,7 +14,7 @@ use experimental :rakuast;
 my constant %known-groups = <
   adverb-pc adverb-q adverb-rx block constraint core infix meta modifier
   multi named package phaser pragma prefix quote-lang routine scope
-  stmt-prefix term traitmod trait-is typer use
+  stmt-prefix system term traitmod trait-is typer use
 >.map({ $_ => 1 });
 my constant %sub-groups = <core named>.map({ $_ => 1 });
 
@@ -404,6 +404,7 @@ my sub slangify($language, %hash) is export {
     my @named;
     my @pragma;
     my @quote-lang;
+    my @system;
     my @trait-is;
     for %hash.sort(-> $a, $b {
         $a.key.fc cmp $b.key.fc || $b.key cmp $a.key
@@ -444,6 +445,11 @@ my sub slangify($language, %hash) is export {
             accept($string, $name.substr(7), @pragma);
         }
 
+        # It's a system method
+        elsif $name.starts-with('system-') {
+            accept($string, $name.substr(7), @system);
+        }
+
         # Some other core feature, add a token for it
         else {
             $statements.add-statement: RakuAST::Statement::Expression.new(
@@ -467,6 +473,7 @@ my sub slangify($language, %hash) is export {
     $statements.add-statement: make-mapper2str('adverb-rx2str', @adverb-rx);
     $statements.add-statement: make-mapper2str('named2str',     @named    );
     $statements.add-statement: make-mapper2str('pragma2str',    @pragma   );
+    $statements.add-statement: make-mapper2str('system2str',    @system   );
 
     # Wrap the whole thing up in a role with the given name and return it
     RakuAST::Role.new(

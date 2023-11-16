@@ -1,7 +1,7 @@
-# This file contains the ……… Slang of the Raku Programming Language
+# This file contains the Portuguese Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-31T19:16:06+01:00 by tools/build/makeL10N.raku
+#- Generated on 2023-11-16T17:03:40+01:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::PT {
@@ -165,8 +165,8 @@ role L10N::PT {
     token use-use { usa}
     method core2ast {
         my %mapping = "todos", "all", "algum", "any", "insere-no-final", "append", "adiciona-e-retorna-atomicamente", "atomic-add-fetch", "define-valor-atomicamente", "atomic-assign", "decrementa-e-retorna-atomicamente", "atomic-dec-fetch", "retorna-atomicamente", "atomic-fetch", "retorna-e-adiciona-atomicamente", "atomic-fetch-add", "retorna-e-decrementa-atomicamente", "atomic-fetch-dec", "retorna-e-incrementa-atomicamente", "atomic-fetch-inc", "retorna-e-subtrai-atomicamente", "atomic-fetch-sub", "incrementa-e-retorna-atomicamente", "atomic-inc-fetch", "subtrai-e-retorna-atomicamente", "atomic-sub-fetch", "espera", "await", "bolsa", "bag", "abençoa", "bless", "classifique", "classify", "combinações", "combinations", "cruz", "cross", "definido", "defined", "morra", "die", "feito", "done", "emita", "emit", "fim", "end", "termina-com", "ends-with", "saia", "exit", "falhe", "fail", "primo", "first", "plano", "flat", "chão", "floor", "pegue", "get", "essencia", "gist", "cabeça", "head", "indente", "indent", "indice", "index", "é", "is", "não-é", "isnt", "junta", "join", "chave", "key", "chaves", "keys", "cv", "kv", "último", "last", "última-chamada", "lastcall", "linhas", "lines", "lista", "list", "faça", "make", "mova", "move", "próximo", "next", "próxima-chamada", "nextcallee", "próximo-mesmo", "nextsame", "próximo-com", "nextwith", "nenhum", "none", "não", "not", "nota", "note", "um", "one", "aberto", "open", "par", "pair", "pares", "pairs", "permutações", "permutations", "escreva", "print", "escreva-formatado", "printf", "siga", "proceed", "refaça", "redo", "reduza", "reduce", "repetido", "repeated", "retorne", "return", "retorne-rw", "return-rw", "diga", "say", "assine", "sign", "sinal", "signal", "pula", "skip", "durma", "sleep", "durma-até", "sleep-until", "ordene", "sort", "encolha", "squish", "some", "sum", "cauda", "tail", "pegue", "take", "pegue-rw", "take-rw", "valor", "value", "valores", "values", "avise", "warn", "palavras", "words";
-        my $ast := self.ast();
-        my $name := $ast ?? $ast.simple-identifier() !! self.Str();
+        my $ast := self.ast;
+        my $name := $ast ?? $ast.simple-identifier !! self.Str;
         if %mapping{$name} -> $original {
             RakuAST::Name.from-identifier($original)
         }
@@ -175,7 +175,7 @@ role L10N::PT {
         }
     }
     method trait-is2ast {
-        self.ast() // RakuAST::Name.from-identifier(self.Str())
+        self.ast // RakuAST::Name.from-identifier(self.Str)
     }
     method adverb-pc2str (str $key) {
         $key
@@ -190,6 +190,9 @@ role L10N::PT {
         $key
     }
     method pragma2str (str $key) {
+        $key
+    }
+    method system2str (str $key) {
         $key
     }
 }

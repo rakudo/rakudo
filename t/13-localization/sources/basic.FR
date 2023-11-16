@@ -2,7 +2,10 @@ sub answer renvoie Int est raw {
     42
 }
 ma class Frobnicate {
-    a $.a = 42;
+    a $.a = 666;
+    sousméthode TWEAK {
+        $!a = 42
+    }
     méthode foo {
         dis sois.a
     }

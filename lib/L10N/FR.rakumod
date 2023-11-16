@@ -1,7 +1,7 @@
 # This file contains the French Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-10-31T19:16:06+01:00 by tools/build/makeL10N.raku
+#- Generated on 2023-11-16T17:03:40+01:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::FR {
@@ -167,8 +167,8 @@ role L10N::FR {
     token use-use { utilise}
     method core2ast {
         my %mapping = "tout", "all", "nimporte", "any", "ajoute", "append", "asa", "ast", "attends", "await", "sac", "bag", "escampe", "bail-out", "bénit", "bless", "appelmeme", "callsame", "appelavec", "callwith", "peut-passable", "can-ok", "plafond", "ceiling", "cars", "chars", "chrep", "chdir", "classifie", "classify", "ferm", "close", "combinaisons", "combinations", "défini", "defined", "meurs", "die", "meurt-passable", "dies-ok", "rep", "dir", "fait-passable", "does-ok", "fait", "done", "élems", "elems", "émit", "emit", "fin", "end", "sortie", "exit", "échoue", "fail", "premier", "first", "applati", "flat", "retourne", "flip", "plancher", "floor", "rate", "flunk", "barrière-totale", "full-barrier", "dict", "hash", "tête", "head", "est", "is", "est-environ", "is-approx", "est-profondément", "is-deeply", "estun-passable", "isa-ok", "nestpas", "isnt", "article", "item", "joins", "join", "clef", "key", "clefs", "keys", "cv", "kv", "dernier", "last", "dernierappel", "lastcall", "mi", "lc", "comme", "like", "lignes", "lines", "lien", "link", "liste", "list", "vit-passable", "lives-ok", "bms", "lsb", "fais", "make", "mkrep", "mkdir", "bouge", "move", "bps", "msb", "nouveau", "new", "suivant", "next", "suivantappelé", "nextcallee", "suivantmeme", "nextsame", "suivantavec", "nextwith", "nonpassable", "nok", "aucun", "none", "pas", "not", "passable", "ok", "un", "one", "ouvre", "open", "paire", "pair", "paires", "pairs", "passe", "pass", "choisis", "pick", "éclos", "pop", "préfixe", "prepend", "imprime", "print", "imprimef", "printf", "poursuis", "proceed", "demande", "prompt", "pousse", "push", "mets", "put", "refais", "redo", "réduis", "reduce", "répété", "repeated", "renvoie", "return", "renvoie-le", "return-rw", "renverse", "reverse", "sprep", "rmdir", "tire", "roll", "tourne", "rotate", "rond", "round", "tourniquet", "roundrobin", "lance", "run", "memecasse", "samecase", "samediac", "samemark", "memeavec", "samewith", "dis", "say", "ens", "set", "coque", "shell", "décale", "shift", "signe", "sign", "signale", "signal", "omets", "skip", "omets-reste", "skip-rest", "dors", "sleep", "dors-minuteur", "sleep-timer", "dors-jusquà", "sleep-until", "enfile", "slip", "engloutis", "slurp", "découpe", "snip", "dénonce", "snitch", "donc", "so", "trie", "sort", "noue", "splice", "coupe", "split", "cimprmf", "sprintf", "gicle", "spurt", "racc", "sqrt", "soustampon", "subbuf", "soustampon-le", "subbuf-rw", "soustest", "subtest", "réussis", "succeed", "somme", "sum", "liensymb", "symlink", "queue", "tail", "prends", "take", "prends-le", "take-rw", "jete-comme", "throws-like", "àfaire", "todo", "rogne", "trim", "rogne-gauche", "trim-leading", "rogne-droite", "trim-trailing", "tronque", "truncate", "préviens", "warn", "motcasse", "wordcase", "mots", "words";
-        my $ast := self.ast();
-        my $name := $ast ?? $ast.simple-identifier() !! self.Str();
+        my $ast := self.ast;
+        my $name := $ast ?? $ast.simple-identifier !! self.Str;
         if %mapping{$name} -> $original {
             RakuAST::Name.from-identifier($original)
         }
@@ -177,7 +177,7 @@ role L10N::FR {
         }
     }
     method trait-is2ast {
-        self.ast() // RakuAST::Name.from-identifier(self.Str())
+        self.ast // RakuAST::Name.from-identifier(self.Str)
     }
     method adverb-pc2str (str $key) {
         $key
@@ -192,6 +192,9 @@ role L10N::FR {
         $key
     }
     method pragma2str (str $key) {
+        $key
+    }
+    method system2str (str $key) {
         $key
     }
 }

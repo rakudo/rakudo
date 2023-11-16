@@ -283,7 +283,7 @@ CODE
                 ?? "!$name"
                 !! $ast.meta
                   ?? "^$name"
-                  !! $name
+                  !! self.xsyn('system', $name)
               !! $name
             );
         }

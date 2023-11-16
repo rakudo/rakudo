@@ -6,7 +6,10 @@
 sub answer() returns Int is raw { 42 }
 
 my class Frobnicate {
-    has $.a = 42;
+    has $.a = 666;
+    submethod TWEAK() {
+        $!a = 42;
+    }
     method foo {
         say self.a
     }

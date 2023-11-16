@@ -851,15 +851,11 @@ CODE
 
         # handle implicite code blocks
         if $type eq 'implicit-code' {
-            $paragraphs := self.deparse($_)
-              with try $paragraphs.AST;  # try do highlighting on code
             self.hsyn('rakudoc-verbatim', $paragraphs)
         }
 
         # handle explicit code blocks
         elsif $type eq 'code' {
-            $paragraphs := self.deparse($_)
-              with try $paragraphs.AST;  # try do highlighting on code
             $paragraphs := self.hsyn('rakudoc-verbatim', $paragraphs);
 
             $abbreviated

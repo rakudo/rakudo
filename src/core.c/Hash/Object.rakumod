@@ -88,7 +88,7 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
             nqp::getattr(self,Map,'$!storage'),
             (my str $WHICH = key.WHICH)
           )),
-          TValue,
+          nqp::getattr(self, Hash, '$!descriptor').default,
           nqp::stmts(
             nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$WHICH),
             nqp::getattr(value,Pair,'$!value')

@@ -22,43 +22,136 @@ my class Match is Capture is Cool does NQPMatchRole {
     my $EMPTY_HASH := nqp::hash();
 #?endif
 
-    # When nothing's `made`, we get an NQPMu that we'd like to replace
-    # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
-    method ast()  { nqp::istype($!made, Mu) ?? $!made !! Nil }
-    method made() { nqp::istype($!made, Mu) ?? $!made !! Nil }
+#-------------------------------------------------------------------------------
+# Internal subroutine accessors to regex engine (embedded) attributes.  Note
+# that some of these are scoped to "our" to allow infix:<eqv> to access the
+# the attributes outside of the Match namespace.
 
-    method Int(--> Int:D) { self.Match::Str.Int }
-
-    method Str() is raw {
-        $!pos >= $!from
-          ?? nqp::substr(
-               self.NQPMatchRole::target,
-               $!from,
-               nqp::sub_i(self.NQPMatchRole::to, $!from))
-          !! ''
+    our sub from(Mu \SELF --> int) is raw is implementation-detail {
+        nqp::getattr_i(nqp::decont(SELF),Match,'$!from')
+    }
+    our sub pos(Mu \SELF --> int) is raw is implementation-detail {
+        nqp::getattr_i(nqp::decont(SELF),Match,'$!pos')
+    }
+    our sub to(Mu \SELF --> int) is raw is implementation-detail {
+        nqp::getattr_i(nqp::decont(SELF),Match,'$!to')
     }
 
+    # When nothing's `made`, we get an NQPMu that we'd like to replace
+    # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
+    our sub made(Mu \SELF) is raw is implementation-detail {
+        nqp::istype((my $made := nqp::getattr(SELF,Match,'$!made')),Mu)
+          ?? $made
+          !! Nil
+    }
+
+    our sub orig(Mu \SELF) is raw is implementation-detail {
+        my $shared := nqp::getattr(SELF,Match,'$!shared');
+        nqp::getattr($shared,$shared.WHAT,'$!orig')
+    }
+
+    # Special purpose accessor to return either the "to", or if that has
+    # been marked as invalid, the "pos"
+    sub to-or-pos(Mu \SELF --> int) is raw {
+        nqp::getattr_i(SELF,Match,'$!to') < 0
+          ?? nqp::getattr_i(SELF,Match,'$!pos')
+          !! nqp::getattr_i(SELF,Match,'$!to')
+    }
+
+    # Setter / Marker to indicate HLL Match object is set up
+    sub set-up(Mu \SELF --> Nil) {
+        nqp::bindattr(SELF,Match,'$!match',NQPdidMATCH)
+    }
+    sub is-set-up(Mu \SELF) {
+        nqp::eqaddr(nqp::getattr(SELF,Match,'$!match'),NQPdidMATCH)
+    }
+
+    sub regexsub(Mu \SELF) is raw { nqp::getattr(SELF,Match,'$!regexsub') }
+    sub restart( Mu \SELF) is raw { nqp::getattr(SELF,Match,'$!restart')  }
+    sub bstack(  Mu \SELF) is raw { nqp::getattr(SELF,Match,'$!bstack')   }
+    sub cstack(  Mu \SELF) is raw { nqp::getattr(SELF,Match,'$!cstack')   }
+#    sub shared(  Mu \SELF) is raw { nqp::getattr(SELF,Match,'$!shared')   }
+#    sub braid(   Mu \SELF) is raw { nqp::getattr(SELF,Match,'$!braid')    }
+
+    sub target(Mu \SELF --> str) is raw {
+        my $shared := nqp::getattr(SELF,Match,'$!shared');
+        nqp::getattr_s($shared,$shared.WHAT,'$!target')
+    }
+
+#-------------------------------------------------------------------------------
+# Internal subroutine mutators of regex engine (embedded) attributes.  Note
+# that some of these are scoped to "our" to allow sub make to access the
+# the attributes outside of the Match namespace.
+
+    our sub set-made(Mu \SELF, Mu \made) is raw is implementation-detail {
+        nqp::bindattr(SELF,Match,'$!made',
+          made.defined ?? nqp::decont(made) !! nqp::null
+        );
+    }
+
+    sub set-from(Mu \SELF, Mu \value) is raw {
+        nqp::bindattr_i(SELF,Match,'$!from',value)
+    }
+    sub set-pos(Mu \SELF, Mu \value) is raw {
+        nqp::bindattr_i(SELF,Match,'$!pos',value)
+    }
+    sub reset-from-to(Mu \SELF --> Nil) {
+        nqp::bindattr_i(SELF,Match,'$!from',
+          nqp::bindattr_i(SELF,Match,'$!to',-1)
+        )
+    }
+    sub release-regexsub-cstack(Mu \SELF --> Nil) {
+        nqp::bindattr(SELF,Match,'$!regexsub',nqp::null);
+        nqp::bindattr(SELF,Match,'$!cstack',nqp::null);
+    }
+    sub copy-shared-braid(Mu \to, Mu \from --> Nil) {
+        nqp::bindattr(to,Match,'$!shared',nqp::getattr(from,Match,'$!shared'));
+        nqp::bindattr(to,Match,'$!braid', nqp::getattr(from,Match,'$!braid'));
+    }
+
+#-------------------------------------------------------------------------------
+# Derived internal "methods"
+
+    sub as-string(Mu \SELF --> str) is raw {
+        pos(SELF) >= from(SELF)
+          ?? nqp::substr(target(SELF),from(SELF),to-or-pos(SELF) - from(SELF))
+          !! ''
+    }
+    sub as-integer(Mu \SELF --> Int:D) is raw { as-string(SELF).Int }
+
+    sub prematch( Mu \SELF --> str) is raw {
+        nqp::substr(target(SELF),0,from(SELF))
+    }
+    sub postmatch(Mu \SELF --> str) is raw {
+        nqp::substr(target(SELF),to-or-pos(SELF))
+    }
+
+#-------------------------------------------------------------------------------
+# Public method-based accessors
+
+    method ast()  { made(self) }
+    method made() { made(self) }
+
+    method Str(--> Str:D) { as-string(self)  }
+    method Int(--> Int:D) { as-integer(self) }
+
     method STR() is implementation-detail {
-        nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH)
-          ?? self.Match::Str
-          !! self.Match::MATCH.Str
+        is-set-up(self) ?? as-string(self) !! as-string(self.Match::MATCH)
     }
 
     method MATCH() is implementation-detail {
         nqp::unless(
-          nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
+          is-set-up(self),
           nqp::if(                           # must still set up
-            nqp::islt_i(
-              nqp::getattr_i(self,Match,'$!pos'),
-              nqp::getattr_i(self,Match,'$!from')
-            ) || nqp::isnull(my $rxsub := nqp::getattr(self,Match,'$!regexsub'))
-              || nqp::isnull(my $CAPS := nqp::tryfindmethod($rxsub,'CAPS'))
+            pos(self) < from(self)
+              || nqp::isnull(my $rxsub := regexsub(self))
+              || nqp::isnull(my $CAPS  := nqp::tryfindmethod($rxsub,'CAPS'))
               || nqp::isnull(my $captures := $CAPS($rxsub))
               || nqp::not_i($captures.has-captures),
             nqp::stmts(                      # no captures
               nqp::bindattr(self,Capture,'@!list',$EMPTY_LIST),
               nqp::bindattr(self,Capture,'%!hash',$EMPTY_HASH),
-              nqp::bindattr(self,Match,'$!match',NQPdidMATCH)  # mark as set up
+              set-up(self)                   # mark as set up
             ),
             self!MATCH-CAPTURES($captures)  # go reify all the captures
           )
@@ -73,7 +166,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         my $hash := nqp::findmethod($captures,'prepare-raku-hash')($captures);
 
         # walk the capture stack and populate the Match.
-        if nqp::istrue(my $cs := nqp::getattr(self,Match,'$!cstack')) {
+        if nqp::istrue(my $cs := cstack(self)) {
 
             # only one destination, avoid repeated hash lookups
             if $captures.onlyname -> str $onlyname {
@@ -84,7 +177,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                   $onlyname
                 );
 
-                # simpLy reify all the cursors
+                # simply reify all the cursors
                 my int $i = -1;
                 nqp::while(
                   nqp::islt_i(++$i,nqp::elems($cs)),
@@ -115,7 +208,8 @@ my class Match is Capture is Cool does NQPMatchRole {
                           nqp::iseq_s($name,'$!from')
                             || nqp::iseq_s($name,'$!to'),
                           nqp::bindattr_i(self,Match,$name, # it's from|to
-                            nqp::getattr_i($match,Match,'$!from')),
+                            from($match)
+                          ),
                           nqp::stmts(                       # other name(s)
                             (my $names := nqp::split('=',$name)),
                             nqp::while(
@@ -154,22 +248,17 @@ my class Match is Capture is Cool does NQPMatchRole {
 
         # We've produced the captures. If we know we're finished and will
         # never be backtracked into, we can release cstack and regexsub.
-        nqp::unless(
-          nqp::defined(nqp::getattr(self,Match,'$!bstack')),
-          nqp::bindattr(self,Match,'$!cstack',
-            nqp::bindattr(self,Match,'$!regexsub',nqp::null)
-          )
-        );
+        release-regexsub-cstack(self) unless nqp::defined(bstack(self));
 
         # mark as set up
-        nqp::bindattr(self,Match,'$!match',NQPdidMATCH);
+        set-up(self);
     }
 
     # from !cursor_next in nqp
     method CURSOR_NEXT() is raw is implementation-detail {
         nqp::if(
-          nqp::defined($!restart),
-          $!restart(self),
+          nqp::defined(restart(self)),
+          restart(self)(self),
           nqp::stmts(
             (my $cur := self."!cursor_start_cur"()),
             $cur."!cursor_fail"(),
@@ -187,30 +276,26 @@ my class Match is Capture is Cool does NQPMatchRole {
     # adapted from !cursor_more in nqp
     method CURSOR_OVERLAP() is raw is implementation-detail {
         my $new := nqp::create(self);
-        nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
-        nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
-        nqp::bindattr_i($new,$?CLASS,'$!from',
-          nqp::bindattr_i($new,$?CLASS,'$!to',-1));
-        nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1));
-        $!regexsub($new)
+        copy-shared-braid($new, self);
+        reset-from-to($new);
+        set-pos($new,from(self) + 1);
+        regexsub(self)($new)
     }
 
     # adapted from !cursor_more in nqp
     method CURSOR_MORE() is raw is implementation-detail {
         my $new := nqp::create(self);
-        nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
-        nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
-        nqp::bindattr_i($new,$?CLASS,'$!from',
-          nqp::bindattr_i($new,$?CLASS,'$!to',-1));
-        nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::isge_i($!from,$!pos)
+        copy-shared-braid($new, self);
+        reset-from-to($new);
+        set-pos($new, from(self) >= pos(self)
 #?if !js
-          ?? nqp::add_i($!from,1)
+          ?? from(self) + 1
 #?endif
 #?if js
-          ?? nqp::add_i($!from, move_cursor(self.target, $!pos))
+          ?? from(self) + move_cursor(target(self), pos(self))
 #?endif
-          !! $!pos);
-        $!regexsub($new)
+          !! pos(self));
+        regexsub(self)($new)
     }
 
     submethod BUILD(
@@ -225,8 +310,8 @@ my class Match is Capture is Cool does NQPMatchRole {
     {
         # :build tells !cursor_init that it's too late to do a CREATE
         self.'!cursor_init'($orig, :build, :p($pos), :$shared, :$braid);
-        nqp::bindattr_i(self, Match,   '$!from', $from);
-        nqp::bindattr(  self, Match,   '$!made', nqp::decont($made)) if $made.defined;
+        set-from(self, $from);
+        set-made(self, $made);
     }
 
     method clone() is raw { nqp::clone(self) }
@@ -237,34 +322,27 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     proto method Bool(|) {*}
     multi method Bool(Match:U: --> False) { }
-    multi method Bool(Match:D:) { nqp::hllbool($!pos >= $!from) }
+    multi method Bool(Match:D:) { nqp::hllbool(pos(self) >= from(self)) }
 
     proto method not(|) {*}
     multi method not(Match:U: --> True) { }
-    multi method not(Match:D:) { nqp::hllbool($!pos < $!from) }
+    multi method not(Match:D:) { nqp::hllbool(pos(self) < from(self)) }
 
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }
     multi method ACCEPTS(Match:D: Mu) { self }
 
-    method prematch(Match:D:) {
-        nqp::substr(self.NQPMatchRole::target,0,$!from)
-    }
-    method postmatch(Match:D:) {
-        nqp::substr(self.NQPMatchRole::target,self.NQPMatchRole::to)
-    }
+    method prematch( Match:D: --> Str:D) { prematch(self)  }
+    method postmatch(Match:D: --> Str:D) { postmatch(self) }
 
     method !sort-on-from-pos() {
-        nqp::add_i(
-          nqp::bitshiftl_i(nqp::getattr_i(self,Match,'$!from'),32),
-          nqp::getattr_i(self,Match,'$!pos')
-        )
+        nqp::bitshiftl_i(from(self),32) + pos(self)
     }
 
     method caps(Match:D:) {
         my $caps := nqp::list;
-        for self.Match::pairs {
+        for self.Capture::pairs {
             my \key   := .key;
             my \value := .value;
 
@@ -281,29 +359,30 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     method chunks(Match:D:) {
-        my $prev = $!from;
-        my $target := self.NQPMatchRole::target;
+        my int $prev   = from(self);
+        my str $target = target(self);
         gather {
             for self.Match::caps {
-                if .value.NQPMatchRole::from > $prev {
-                    take '~' => substr($target,$prev,.value.NQPMatchRole::from - $prev)
+                if from(.value) > $prev {
+                    take '~' => nqp::substr($target,$prev,from(.value) - $prev)
                 }
                 take $_;
-                $prev = .value.NQPMatchRole::pos;
+                $prev = pos(.value);
             }
-            take '~' => substr($target,$prev, $!pos - $prev) if $prev < $!pos;
+            take '~' => nqp::substr($target,$prev, pos(self) - $prev)
+              if $prev < pos(self);
         }
     }
 
     multi method raku(Match:D: --> Str:D) {
         my $attrs := nqp::list_s;
 
-        nqp::push_s($attrs,(orig => self.NQPMatchRole::orig // '').raku);
-        nqp::push_s($attrs,(from => self.NQPMatchRole::from // 0).raku);
-        nqp::push_s($attrs,(pos  => self.NQPMatchRole::pos // 0).raku);
+        nqp::push_s($attrs,'orig => ' ~ (orig(self) // '').raku);
+        nqp::push_s($attrs,'from => ' ~ (from(self) // 0).Str);
+        nqp::push_s($attrs,'pos => '  ~ (pos( self) // 0).Str);
         if self.Capture::list -> @list { nqp::push_s($attrs,:@list.raku) }
         if self.Capture::hash -> %hash { nqp::push_s($attrs,:%hash.raku) }
-        nqp::push_s($attrs,(made => $_).raku) with self.NQPMatchRole::made;
+        nqp::push_s($attrs,'made => ' ~ .raku) with made(self);
 
         nqp::concat('Match.new(',nqp::concat(nqp::join(', ',$attrs),')'))
     }
@@ -314,11 +393,11 @@ my class Match is Capture is Cool does NQPMatchRole {
         for self.Match::caps {
             $r ~= $s ~ (.key // '?') ~ ' ' ~ &?ROUTINE(.value, $d + 1);
         }
-        $d == 0 ?? $r.Match::chomp !! $r;
+        $d == 0 ?? $r.chomp !! $r;
     }
 
     method replace-with(Match:D: Str() $replacement --> Str:D) {
-        self.Match::prematch ~ $replacement ~ self.Match::postmatch
+        prematch(self) ~ $replacement ~ postmatch(self)
     }
 }
 
@@ -326,22 +405,20 @@ multi sub infix:<eqv>(Match:D $a, Match:D $b) {
     $a =:= $b
     ||
     [&&] (
-        $a.NQPMatchRole::pos  eqv $b.NQPMatchRole::pos,
-        $a.NQPMatchRole::from eqv $b.NQPMatchRole::from,
-        $a.NQPMatchRole::orig eqv $b.NQPMatchRole::orig,
-        ($a.NQPMatchRole::made // Any) eqv ($b.NQPMatchRole::made // Any),
+        Match::pos($a)  eqv Match::pos($b),
+        Match::from($a) eqv Match::from($b),
+        Match::orig($a) eqv Match::orig($b),
+        Match::made($a) eqv Match::made($b),
         ($a.Capture::list // nqp::list ) eqv ($b.Capture::list // nqp::list ),
         ($a.Capture::hash // nqp::hash ) eqv ($b.Capture::hash // nqp::hash )
     );
 }
 
-
 sub make(Mu \made) {
     my $slash := nqp::decont(nqp::getlexcaller('$/'));
-    nqp::istype($slash, NQPMatchRole)
-        ?? nqp::bindattr($slash,Match,'$!made',made)
-        !! X::Make::MatchRequired.new(:got($slash)).throw
+    nqp::istype($slash,NQPMatchRole)
+      ?? Match::set-made($slash, made)
+      !! X::Make::MatchRequired.new(:got($slash)).throw
 }
-
 
 # vim: expandtab shiftwidth=4

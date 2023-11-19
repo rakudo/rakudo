@@ -2413,19 +2413,23 @@ my class X::Constructor::BadType is Exception does X::BadType {
 
 my class X::Hash::Store::OddNumber is Exception {
     has $.found;
-    has $.last;
+    has Mu $.last is built(:bind);
     method message() {
         my $msg =
           "Odd number of elements found where hash initializer expected";
+        my $last = nqp::decont($!last) =:= Mu
+                    ?? Mu
+                    !! ($!last.DEFINITE || $!last === Nil
+                        ?? $!last.raku()
+                        !! "type object '" ~ $!last.^name ~ "'");
         if $.found == 1 {
-            $msg ~= $.last
-              ?? ":\nOnly saw: $.last.raku()"
-              !! ":\nOnly saw 1 element"
+            $msg ~= $last ?? ":\nOnly saw: $last" !! ":\nOnly saw 1 element"
         }
         else {
             $msg ~= ":\nFound $.found (implicit) elements";
-            $msg ~= ":\nLast element seen: $.last.raku()" if $.last;
+            $msg ~= ":\nLast element seen: $last" if $last;
         }
+        $msg
     }
 }
 

@@ -25,7 +25,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 #-------------------------------------------------------------------------------
 # Internal subroutine accessors to regex engine (embedded) attributes.  Note
 # that some of these are scoped to "our" to allow infix:<eqv> to access the
-# the attributes outside of the Match namespace.
+# attributes outside of the Match namespace.
 
     our sub from(Mu \SELF --> int) is raw is implementation-detail {
         nqp::getattr_i(nqp::decont(SELF),Match,'$!from')
@@ -81,7 +81,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 #-------------------------------------------------------------------------------
 # Internal subroutine mutators of regex engine (embedded) attributes.  Note
 # that some of these are scoped to "our" to allow sub make to access the
-# the attributes outside of the Match namespace.
+# attributes outside of the Match namespace.
 
     our sub set-made(Mu \SELF, Mu \made) is raw is implementation-detail {
         nqp::bindattr(SELF,Match,'$!made',
@@ -363,11 +363,11 @@ my class Match is Capture is Cool does NQPMatchRole {
         my str $target = target(self);
         gather {
             for self.Match::caps {
-                if from(.value) > $prev {
-                    take '~' => nqp::substr($target,$prev,from(.value) - $prev)
-                }
+                my $value := .value;
+                take '~' => nqp::substr($target,$prev,from($value) - $prev)
+                  if from($value) > $prev;
                 take $_;
-                $prev = pos(.value);
+                $prev = pos($value);
             }
             take '~' => nqp::substr($target,$prev, pos(self) - $prev)
               if $prev < pos(self);

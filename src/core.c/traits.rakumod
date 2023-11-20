@@ -132,7 +132,11 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$required!) {
 multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
     my Mu $descriptor := $attr.container_descriptor;
     my Mu $of := $descriptor.of;
-    if nqp::istype($default, $of) || nqp::eqaddr($default,Nil) || nqp::eqaddr($of, Mu) {
+    # When either $of or $default are generics we can't actually typecheck the default at compile time. Therefore we'd
+    # have to accept it as is for now.
+    if $of.^archetypes.generic || nqp::istype($default, $of)
+        || nqp::eqaddr($default,Nil) || nqp::eqaddr($of, Mu)
+    {
         $descriptor.set_default(nqp::decont($default));
     }
     else {

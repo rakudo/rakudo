@@ -2915,7 +2915,7 @@ my class X::TypeCheck::Attribute::Default is X::TypeCheck does X::Comp {
     has str $.name;
     method message {
         self.priors() ~
-        (nqp::istype($.expected.HOW, Metamodel::Explaining)
+        (nqp::istype(self.expected.HOW, Metamodel::Explaining)
             ?? "Can never $.operation default value to attribute '$.name': $.explain"
             !! "Can never $.operation default value $.gotn to attribute '$.name', it expects: $.expectedn")
     }

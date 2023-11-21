@@ -496,73 +496,73 @@ named-formatter  formatter
 # KEY         TRANSLATION
 named-g       g
 #named-gid     gid
-named-global  global
+named-global  globális
 
 # KEY       TRANSLATION
 #named-host  host
-named-hour  stunde
+named-hour  óra
 
 # KEY             TRANSLATION
 #named-i           i
 #named-ignorecase  ignorecase
 #named-ignoremark  ignoremark
 #named-ii          ii
-named-in          in
-#named-into        into
+named-in          ebben
+named-into        ebbe
 
 # KEY         TRANSLATION
 #named-joiner  joiner
 
 # KEY      TRANSLATION
-named-k    s
-named-key  schlüssel
-named-kv   sw
+named-k    k
+named-key  kulcs
+named-kv   ké
 
 # KEY            TRANSLATION
-named-listen     hören
+named-listen     hallgat
 #named-localhost  localhost
 #named-localport  localport
 
 # KEY         TRANSLATION
 #named-match   match
 #named-merge   merge
-named-minute  minute
+named-minute  perc
 #named-mm      mm
-#named-mode    mode
-named-month   monat
+named-mode    mód
+named-month   hónap
 
 # KEY               TRANSLATION
-named-name          name
-named-nd            te
+named-name          név
+named-nd            dik
 #named-nl            nl
 #named-nl-in         nl-in
 #named-nl-out        nl-out
 #named-non-blocking  non-blocking
-named-nth           te
+named-nth           dik
 
 # KEY             TRANSLATION
-named-off         aus
+named-off         ki
 #named-out         out
 #named-out-buffer  out-buffer
-named-ov          üb
-named-overlap     überlappung
+named-ov          átf
+named-overlap     átfedés
 
 # KEY          TRANSLATION
-named-p        p
-named-partial  teilweise
-named-parts    teile
+#named-p        p
+named-partial  részleges
+named-parts    részek
 #named-port     port
-named-pos      pos
+named-pos      poz
 #named-primary  primary
 
 # KEY             TRANSLATION
 #named-quaternary  quaternary
 
 # KEY              TRANSLATION
-named-r            r
-named-rd           te
+#named-r            r
+named-rd           dik
 #named-real         real
-named-replacement  ersatz
+named-replacement  csere
 #named-rule         rule
 #named-rw           rw
 #named-rx           rx
@@ -572,27 +572,27 @@ named-replacement  ersatz
 #named-samemark     samemark
 #named-samespace    samespace
 #named-scheduler    scheduler
-named-second       sekunde
+named-second       másodperc
 #named-secondary    secondary
-named-seconds      sekunden
+named-seconds      másodpercek
 #named-shared       shared
-named-size         größe
+named-size         méret
 #named-slip         slip
 #named-SPEC         SPEC
 named-squash       quetschen
 #named-ss           ss
-named-st           ste
+named-st           dik
 #named-status       status
-named-strict       strict
-named-subscript    tiefsatz
-named-superscript  hochgestellt
+named-strict       szigorú
+named-subscript    alsóindex
+named-superscript  felsőindex
 
 # KEY               TRANSLATION
 #named-tertiary      tertiary
-named-test          test
-named-th            te
-named-times         wie-oft
-named-timezone      zeitzone
+named-test          teszt
+named-th            dik
+named-times         ennyiszer
+named-timezone      időzóna
 #named-translate-nl  translate-nl
 #named-truncate      truncate
 
@@ -601,49 +601,49 @@ named-timezone      zeitzone
 #named-update  update
 
 # KEY          TRANSLATION
-named-v        w
-named-value    wert
+named-v        é
+named-value    érték
 #named-vent-at  vent-at
 #named-ver      ver
 #named-volume   volume
 
 # KEY                    TRANSLATION
 #named-w                  w
-named-where              wo
+named-where              ahol
 #named-win-verbatim-args  win-verbatim-args
 
 # KEY    TRANSLATION
-named-x  mal
+#named-x  mal
 
 # KEY       TRANSLATION
-named-year  jahr
+named-year  év
 
 # KEY            TRANSLATION
-package-class    klasse
-package-grammar  grammatik
+package-class    osztály
+package-grammar  nyelvtan
 package-module   modul
-package-package  paket
-package-role     rolle
+package-package  csomag
+package-role     szerep
 
 # KEY           TRANSLATION
 #phaser-BEGIN    BEGIN
-phaser-CATCH    FANGFEHLER
+phaser-CATCH    LEKEZELÉS
 #phaser-CHECK    CHECK
-phaser-CLOSE    SCHLIEßE
-phaser-CONTROL  FANGNACHRICHT
+phaser-CLOSE    BEZÁRÁS
+phaser-CONTROL  VEZÉRLÉS
 #phaser-DOC      DOC
-phaser-END      ENDE
-phaser-ENTER    EINTRITT
-phaser-FIRST    ERSTE
+phaser-END      VÉGE
+phaser-ENTER    BELÉPÉS
+phaser-FIRST    ELSŐ
 #phaser-INIT     INIT
-phaser-KEEP     AKZEPTIERE
-phaser-LAST     LETZTE
-phaser-LEAVE    VERLASSE
-phaser-NEXT     NÄCHSTE
-phaser-POST     NACHHER
-phaser-PRE      VORHER
-phaser-QUIT     AUSGESTIEGEN
-phaser-UNDO     AKZEPTIERENICHT
+phaser-KEEP     MEGTARTÁS
+phaser-LAST     UTOLSÓ
+phaser-LEAVE    KILÉPÉS
+phaser-NEXT     KÖVETKEZŐ
+phaser-POST     POSZT
+phaser-PRE      PRE
+phaser-QUIT     BEZÁRÁS
+phaser-UNDO     VISSZAVONÁS
 
 # KEY                      TRANSLATION
 #pragma-dynamic-scope       dynamic-scope
@@ -665,16 +665,16 @@ phaser-UNDO     AKZEPTIERENICHT
 #pragma-worries             worries
 
 # KEY       TRANSLATION
-prefix-not  nicht
-prefix-so   also
+prefix-not  nem
+prefix-so   tehát
 
 # KEY              TRANSLATION
-routine-method     methode
+routine-method     metódus
 routine-regex      regex
-routine-rule       regel
-routine-sub        sub
-routine-submethod  submethode
-routine-token      wertmarke
+routine-rule       szabály
+routine-sub        szub
+routine-submethod  szubmetódus
+routine-token      token
 
 # KEY           TRANSLATION
 scope-anon      anonim

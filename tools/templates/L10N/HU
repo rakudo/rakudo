@@ -86,7 +86,7 @@ block-loop      ciklus
 block-orwith    vagyezzel
 block-repeat    ismétel
 block-unless    kivéveha
-block-until     bis
+block-until     mígvégül
 block-when      amikor
 block-whenever  valahányszor
 block-while     amíg
@@ -97,9 +97,9 @@ block-without   enélkül
 constraint-where  ahol
 
 # KEY                  TRANSLATION
-core-abs               abs
+core-abs               absz
 core-all               mind
-core-antipairs         antipare
+core-antipairs         antipárok
 core-any               bármelyik
 core-append            hozzáfűz
 #core-ast               ast
@@ -116,9 +116,9 @@ core-append            hozzáfűz
 core-await             kivár
 
 # KEY          TRANSLATION
-core-bag       tasche
-core-bail-out  steig-aus
-core-bless     segne
+core-bag       zsák
+core-bail-out  kiment
+core-bless     megáld
 
 # KEY              TRANSLATION
 #core-callframe     callframe
@@ -126,218 +126,218 @@ core-bless     segne
 #core-callwith      callwith
 #core-can-ok        can-ok
 #core-cas           cas
-core-categorize    kategorisier
-core-ceiling       decke
-core-chars         zeichen
+core-categorize    rendszerez
+core-ceiling       felső-egészrész
+core-chars         betűk
 #core-chdir         chdir
 #core-chmod         chmod
-core-chomp         hack-linieende
-core-chop          hack
+core-chomp         levág-sorvég
+core-chop          levág
 #core-chown         chown
-core-chr           wie-zeiche
-core-chrs          wie-zeichen
-core-classify      klassifizier
-core-close         schließe
+core-chr           betűként
+core-chrs          betűkként
+core-classify      osztályoz
+core-close         bezár
 #core-cmp-ok        cmp-ok
-core-codes         codes
-core-comb          kamm
-core-combinations  kombinationen
+core-codes         kódok
+core-comb          fésű
+core-combinations  kombinációk
 #core-conj          conj
-core-contains      enthält
-core-cross         kreuz
+core-contains      tartalmaz
+core-cross         kereszt
 
 # KEY         TRANSLATION
-core-decode   dekodiere
-core-deepmap  tief-kartiere
-core-defined  definiert
-core-die      sterb
+core-decode   dekódol
+core-deepmap  mély-hozzárendel
+core-defined  definiált
+core-die      meghal
 #core-dir      dir
-core-done     fertig
-core-duckmap  duck-kartiere
+core-done     kész
+core-duckmap  kacsa-hozzárendel
 
 # KEY               TRANSLATION
-core-elems          elemente
-core-emit           sende
-core-encode         kodiere
-core-end            ende
-core-ends-with      endet-mit
-core-eval-dies-ok   eval-stirbt-ok
-core-eval-lives-ok  eval-lebt-ok
-core-exit           verlasse
+core-elems          elemek
+core-emit           kiküld
+core-encode         enkódol
+core-end            vég
+core-ends-with      ezzel-végződik
+core-eval-dies-ok   eval-meghal-ok
+core-eval-lives-ok  eval-él-ok
+core-exit           kilép
 core-exp            exp
 core-expmod         expmod
 
 # KEY              TRANSLATION
-core-fail          scheitere
-core-fails-like    scheitert-wie
+core-fail          meghiúsul
+core-fails-like    meghiúsul-mint
 #core-fc            fc
-core-first         erste
-core-flat          flach
-core-flip          drehum
-core-floor         boden
+core-first         első
+core-flat          lapos
+core-flip          visszafelé
+core-floor         alsó-egészrész
 #core-fmt           fmt
 #core-full-barrier  full-barrier
 
 # KEY      TRANSLATION
-core-get   erhalte
-core-getc  erhaltez
-core-gist  kern
-core-grep  filter
+core-get   bekér-sor
+core-getc  bekér-betű
+core-gist  lényeg
+core-grep  szűr
 
 # KEY      TRANSLATION
-core-hash  hasch
-core-head  kopf
+core-hash  szótár
+core-head  fej
 
 # KEY           TRANSLATION
-core-indent     einzug
+core-indent     behúzás
 core-index      index
-core-indices    indizes
+core-indices    indexek
 #core-indir      indir
-core-is         ist
-core-is-approx  ist-ungefähr
-core-is-deeply  ist-im-ganzen
-core-is-prime   ist-prim
-core-isa-ok     istein-ok
-core-isnt       istnicht
-core-item       artikel
+core-is         ez
+core-is-approx  nagyjából
+core-is-deeply  teljesen
+core-is-prime   prím-e
+core-isa-ok     ezegy-ok
+core-isnt       eznem
+core-item       elem
 
 # KEY      TRANSLATION
-core-join  verbinde
+core-join  illeszt
 
 # KEY      TRANSLATION
-core-key   schlüssel
-core-keys  schlüssels
-core-kv    sw
+core-key   kulcs
+core-keys  kulcsok
+core-kv    ké
 
 # KEY          TRANSLATION
-core-last      letzte
-core-lastcall  letzte-anruf
+core-last      utolsó
+core-lastcall  utolsó-hívás
 #core-lc        lc
-core-like      wie
-core-lines     linien
-core-link      verknüpfung
-core-list      liste
-core-lives-ok  lebt-ok
-core-lsb       niedrigstwertige-bit
+core-like      mint
+core-lines     sorok
+core-link      link
+core-list      felsorol
+core-lives-ok  él-ok
+core-lsb       alsó-bit
 
 # KEY        TRANSLATION
-core-make    mache
-core-map     kartiere
+core-make    készít
+core-map     hozzárendel
 core-match   paar
 core-max     max
 core-min     min
 core-minmax  minmax
 core-mix     mix
 #core-mkdir   mkdir
-core-move    bewege
-core-msb     höchstwertiges-bit
+core-move    mozgat
+core-msb     felső-bit
 
 # KEY            TRANSLATION
-core-new         neu
-core-next        nächste
+core-new         új
+core-next        következő
 #core-nextcallee  nextcallee
 #core-nextsame    nextsame
 #core-nextwith    nextwith
-core-nok         nicht-ok
-core-none        kein
-core-not         nicht
-core-note        notiere
+core-nok         nem-ok
+core-none        semelyik
+core-not         nem
+core-note        megjegyez
 
 # KEY      TRANSLATION
 core-ok    ok
-core-one   ein
+core-one   egy
 #core-open  open
-core-ord   als-zahl
-core-ords  als-zahlen
+core-ord   sorszám
+core-ords  sorszámok
 
 # KEY              TRANSLATION
-core-pair          paar
-core-pairs         paare
+core-pair          pár
+core-pairs         párok
 #core-parse-base    parse-base
-core-pass          gut
-core-permutations  permutationen
-core-pick          pflücke
-core-plan          plane
+core-pass          jó
+core-permutations  permutációk
+core-pick          választ
+core-plan          tervez
 #core-pop           pop
-core-prepend       stelle-voran
-core-print         druck
-core-printf        druckf
-core-proceed       fortfahre
-core-prompt        prompt
-core-push          schiebe-oben
-core-put           sag-es
+core-prepend       eléfűz
+core-print         nyomtat
+core-printf        nyomtatf
+core-proceed       továbbhalad
+#core-prompt        prompt
+core-push          mögészúr
+core-put           kitesz
 
 # KEY            TRANSLATION
-core-rand        zufällig
-core-redo        nochmals
-core-reduce      reduziere
-core-repeated    wiederholt
+core-rand        véletlen
+core-redo        újra
+core-reduce      redukál
+core-repeated    ismétlődő
 #core-repl        repl
-core-return      return
-core-return-rw   return-rw
-core-reverse     kehr-um
-core-rindex      um-index
+#core-return      return
+#core-return-rw   return-rw
+core-reverse     megfordít
+core-rindex      jobbindex
 #core-rmdir       rmdir
-core-roll        werfe
-#core-roots       roots
-core-rotate      drehe
-core-round       runde-ab
-core-roundrobin  jeder-mal
-core-run         laufe
+core-roll        megpörget
+core-roots       gyökök
+core-rotate      forgat
+core-round       kerekít
+#core-roundrobin  jeder-mal
+core-run         futtat
 
 # KEY             TRANSLATION
 #core-samecase     samecase
 #core-samemark     samemmark
 #core-samewith     samewith
-core-say          sag
-core-set          sammlung
+core-say          mond
+core-set          halmaz
 #core-shell        shell
-core-shift        schiebe-unter
+core-shift        kiléptet
 #core-sign         sign
-core-signal       signal
-core-skip         überspringe
-core-skip-rest    überspringe-alle
-core-sleep        schlaf
-core-sleep-timer  wecker
-core-sleep-until  schlafe-bis
+core-signal       jelző
+core-skip         átlép
+core-skip-rest    átlép-maradék
+core-sleep        alszik
+core-sleep-timer  vekker
+core-sleep-until  alszik-mígvégül
 #core-slip         slip
 core-slurp        schlürfe
 #core-snip         snip
-core-snitch       verpfeife
-core-so           also
-core-sort         sortier
-core-splice       spleiße
-core-split        teilt
-core-sprintf      sdruckf
-core-spurt        spritz
-core-sqrt         quadratwurzel
-core-squish       quetschen
-core-srand        zufällig-so
-core-starts-with  beginnt-mit
+core-snitch       elcsen
+core-so           tehát
+core-sort         rendez
+core-splice       összetold
+core-split        felvág
+#core-sprintf      sdruckf
+#core-spurt        spritzen
+core-sqrt         négyzetgyök
+core-squish       összeránt
+#core-srand        zufällig-so
+core-starts-with  ezzel-kezdődik
 #core-subbuf       subbuf
 #core-subbuf-rw    subbuf-rw
-core-subst        ersetz
+core-subst        cserél
 #core-substr       substr
 #core-substr-eq    substr-eq
 #core-substr-rw    substr-rw
-core-subtest      subtest
-core-succeed      gelinge
-core-sum          summiere
-core-symlink      symbolische-verknüpfung
+core-subtest      alteszt
+core-succeed      sikerül
+core-sum          összegez
+core-symlink      szimbolikus-link
 
 # KEY               TRANSLATION
-core-tail           schwanz
-core-take           nim
-core-take-rw        nmm-rw
+core-tail           farok
+core-take           vesz
+core-take-rw        vesz-ío
 #core-tc             tc
 #core-tclc           tclc
-core-throws-like    werft-wie
-core-todo           zumachen
-core-trans          übersetz
-core-trim           trim
-core-trim-leading   trim-führend
-core-trim-trailing  trim-hinterher
-core-truncate       kürzen
+core-throws-like    dob-mint
+core-todo           teendő
+core-trans          fordít
+core-trim           nyír
+core-trim-leading   nyír-elöl
+core-trim-trailing  nyír-hátul
+core-truncate       csonkít
 
 # KEY          TRANSLATION
 #core-uc        uc
@@ -347,97 +347,97 @@ core-truncate       kürzen
 #core-uniparse  uniparse
 #core-uniprop   uniprop
 #core-uniprops  uniprops
-core-unique    einzigartig
+core-unique    egyedi
 #core-unival    unival
 #core-univals   univals
-core-unlike    nicht-wie
-core-unlink    hebe-auf
+core-unlike    nem-ilyen
+core-unlink    elold
 #core-unpolar   unpolar
-core-unshift   onderin
-core-use-ok    verwende-ok
+core-unshift   elészúr
+core-use-ok    használ-ok
 
 # KEY        TRANSLATION
-core-val     wie-zahlen
-core-value   wert
-core-values  werte
+#core-val     wie-zahlen
+core-value   érték
+core-values  értékek
 
 # KEY          TRANSLATION
-core-warn      warne
+core-warn      figyelmeztet
 #core-wordcase  word-case
-core-words     wörter
+core-words     szavak
 
 # KEY     TRANSLATION
-core-zip  reißverschluss
+#core-zip  reißverschluss
 
 # KEY             TRANSLATION
-infix-(cont)      (enthält)
-infix-(elem)      (element)
+infix-(cont)      (tartalmaz)
+infix-(elem)      (eleme)
 #infix-^ff         ^ff
 #infix-^ff^        ^ff^
 #infix-^fff        ^fff
 #infix-^fff^       ^fff^
-infix-after       nach
-infix-and         und
-infix-andthen     unddann
-infix-before      vorher
-infix-but         aber
-infix-cmp         vergleich
+infix-after       ezután
+infix-and         és
+infix-andthen     ésakkor
+infix-before      ezelőtt
+infix-but         de
+infix-cmp         hasonlít
 #infix-coll        coll
-infix-div         teile
-infix-does        macht
-infix-eq          gleich
+infix-div         oszt
+infix-does        csinál
+infix-eq          egyenlő
 #infix-ff          ff
 #infix-ff^         ff^
 #infix-fff         fff
 #infix-fff^        fff^
 #infix-gcd         gcd
-infix-ge          größergleich
-infix-gt          größer
+infix-ge          nagyobbegyenlő
+infix-gt          nagyobb
 #infix-lcm         lcm
-infix-le          kleinergleich
-infix-leg         kgg
-infix-lt          kleiner
+infix-le          kisebbegyenlő
+infix-leg         kne
+infix-lt          kisebb
 infix-max         max
 infix-min         min
 infix-minmax      minmax
-infix-mod         modulo
-infix-ne          ungleich
-infix-notandthen  nichtunddann
+infix-mod         moduló
+infix-ne          nemegyenlő
+infix-notandthen  nemésakkor
 infix-o           o
-infix-or          oder
-infix-orelse      oderanders
+infix-or          vagy
+infix-orelse      vagyamúgy
 #infix-unicmp      unicmp
 infix-x           x
 infix-X           X
 infix-xx          xx
-infix-Z           R
+#infix-Z           R
 
 # KEY   TRANSLATION
-meta-R  U
-meta-X  X
-meta-Z  R
+#meta-R  U
+#meta-X  X
+#meta-Z  R
 
 # KEY             TRANSLATION
-modifier-for      füralle
-modifier-given    gegeben
-modifier-if       wenn
-modifier-unless   wennnicht
-modifier-until    bis
-modifier-when     wann
-modifier-while    solange
-modifier-with     mit
-modifier-without  ohne
+modifier-for      ezekre
+modifier-given    adva
+modifier-if       ha
+modifier-unless   kivéveha
+modifier-until    mígvégül
+modifier-when     amikor
+modifier-while    amíg
+modifier-with     ezzel
+modifier-without  enélkül
 
 # KEY        TRANSLATION
 #multi-multi  multi
-multi-only   nur
+multi-only   egyedüli
 #multi-proto  proto
 
 # KEY           TRANSLATION
-named-absolute  absolut
-named-actions   actionen
+named-absolute  abszolút
+#named-actions   aktionen
 #named-api       api
-named-append    anhängen
+named-append    hozzáfűz
 #named-arg0      arg0
 #named-args      args
 #named-as        as
@@ -455,43 +455,43 @@ named-append    anhängen
 #named-catch       catch
 #named-check       check
 #named-chomp       chomp
-named-close       schließe
+named-close       bezár
 #named-command     command
 #named-complement  complement
-named-completely  vollständig
-named-continue    fortsetzen
+named-completely  teljesen
+named-continue    folytat
 #named-control     control
-named-count       anzahl
+named-count       darabszám
 #named-create      create
 #named-createonly  createonly
 #named-cwd         cwd
 #named-CWD         CWD
 
 # KEY          TRANSLATION
-named-date     datum
-named-day      tag
+named-date     dátum
+named-day      nap
 #named-degree   degree
-named-delete   streiche
+named-delete   töröl
 #named-dirname  dirname
 
 # KEY             TRANSLATION
-named-elems       elementen
+named-elems       elemek
 #named-emit-timed  emit-timed
 #named-enc         enc
 #named-encoding    encoding
-named-end         vonende
+named-end         végétől
 #named-err         err
-named-every       jeder
-named-ex          er
-named-exclusive   exclusiv
-named-exhaustive  erschöpfend
-named-expires     läuftab
+named-every       minden
+#named-ex          er
+named-exclusive   exkluzív
+named-exhaustive  kimerítő
+named-expires     lejár
 
 # KEY            TRANSLATION
 #named-family     family
 #named-filename   filename
-named-filter     filter
-named-formatter  formatter
+#named-filter     filter
+named-formatter  formázó
 
 # KEY         TRANSLATION
 named-g       g

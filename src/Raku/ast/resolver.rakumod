@@ -186,6 +186,15 @@ class RakuAST::Resolver {
         self.IMPL-RESOLVE-NAME-CONSTANT($Rname, :setting)
     }
 
+    # Directly convert given name part(s) to setting type object
+    method type-from-setting(*@parts) {
+        self.resolve-name-constant-in-setting(
+          +@parts == 1
+            ?? RakuAST::Name.from-identifier(@parts[0])
+            !! RakuAST::Name.from-identifier-parts(|@parts)
+        ).compile-time-value
+    }
+
     # Helper method to create node for name in given stash
     method external-constant(Mu $stash, str $lexical-name) {
         RakuAST::Declaration::External::Constant.new(

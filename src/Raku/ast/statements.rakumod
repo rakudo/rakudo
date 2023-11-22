@@ -1459,9 +1459,9 @@ class RakuAST::ModuleLoading {
 
     method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver, RakuAST::Name $module-name) {
         # Build dependency specification for the module.
-        my $dependency-specification := $resolver.resolve-name-constant-in-setting(
-            RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')
-        ).compile-time-value;
+        my $dependency-specification := $resolver.type-from-setting(
+          'CompUnit', 'DependencySpecification'
+        );
         my $opts := nqp::hash();
         for $module-name.colonpairs {
             $opts{$_.key} := $_.simple-compile-time-quote-value;
@@ -1475,9 +1475,9 @@ class RakuAST::ModuleLoading {
         );
 
         # Load it using the registry.
-        my $registry := $resolver.resolve-name-constant-in-setting(
-            RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')
-        ).compile-time-value;
+        my $registry := $resolver.type-from-setting(
+          'CompUnit', 'RepositoryRegistry'
+        );
         my $comp-unit := $registry.head.need($spec);
         my $globalish := $comp-unit.handle.globalish-package;
         self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($globalish));

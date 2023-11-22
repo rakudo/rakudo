@@ -116,14 +116,12 @@ class RakuAST::Pragma
                 $resolver.build-exception('X::Package::UseLib', :what($*PKGDECL));
             }
             elsif nqp::islist($arglist) {
-                my $Registry := $resolver.resolve-name-constant-in-setting(
-                    RakuAST::Name.from-identifier-parts(
-                      'CompUnit', 'RepositoryRegistry'
-                    )
-                ).compile-time-value;
-                my $IO-Path := $resolver.resolve-name-constant-in-setting(
-                    RakuAST::Name.from-identifier-parts('IO', 'Path')
-                ).compile-time-value;
+                my $Registry := $resolver.type-from-setting(
+                  'CompUnit', 'RepositoryRegistry'
+                );
+                my $IO-Path := $resolver.type-from-setting(
+                  'IO', 'Path'
+                );
                 for $arglist -> $arg {
                     if $arg {
                         $Registry.use-repository($Registry.repository-for-spec(
@@ -184,12 +182,8 @@ class RakuAST::Pragma
               'X::Pragma::MustOneOf', :$name, :alternatives(':D, :U or :_')
             ).throw unless $arglist;
 
-            my $Pair := $resolver.resolve-name-constant-in-setting(
-              RakuAST::Name.from-identifier('Pair')
-            ).compile-time-value;
-            my $Bool := $resolver.resolve-name-constant-in-setting(
-              RakuAST::Name.from-identifier('Bool')
-            ).compile-time-value;
+            my $Pair := $resolver.type-from-setting('Pair');
+            my $Bool := $resolver.type-from-setting('Bool');
 
             my $type;
             for $arglist -> $arg {

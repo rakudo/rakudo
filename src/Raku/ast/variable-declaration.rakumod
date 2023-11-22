@@ -759,10 +759,10 @@ class RakuAST::VarDeclaration::Simple
 
                     my $value := $expression.compile-time-value;
                     if !nqp::istype($value,$vartype)
-                        && nqp::istype($vartype,$resolver.resolve-name-constant-in-setting(
-                             RakuAST::Name.from-identifier('Numeric')
-                           ).compile-time-value)
-                    {
+                      && nqp::istype(
+                           $vartype,
+                           $resolver.type-from-setting('Numeric')
+                         ) {
                         self.add-sorry:
                           $resolver.build-exception: 'X::Syntax::Number::LiteralType',
                             :varname(self.name), :$vartype, :$value;

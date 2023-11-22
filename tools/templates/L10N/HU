@@ -23,8 +23,8 @@ adverb-pc-v       é
 #adverb-q-double      double
 #adverb-q-exec        exec
 #adverb-q-f           f
-#adverb-q-function    function
 #adverb-q-format      format
+#adverb-q-function    function
 #adverb-q-h           h
 #adverb-q-hash        hash
 #adverb-q-heredoc     heredoc
@@ -150,8 +150,11 @@ core-cross         kereszt
 core-decode   dekódol
 core-deepmap  mély-hozzárendel
 core-defined  definiált
+#core-diag     diag
 core-die      meghal
+#core-dies-ok  dies-ok
 #core-dir      dir
+#core-does-ok  does-ok
 core-done     kész
 core-duckmap  kacsa-hozzárendel
 
@@ -175,6 +178,7 @@ core-first         első
 core-flat          lapos
 core-flip          visszafelé
 core-floor         alsó-egészrész
+#core-flunk         flunk
 #core-fmt           fmt
 #core-full-barrier  full-barrier
 
@@ -282,12 +286,12 @@ core-roll        megpörget
 core-roots       gyökök
 core-rotate      forgat
 core-round       kerekít
-#core-roundrobin  jeder-mal
+#core-roundrobin  roundrobin
 core-run         futtat
 
 # KEY             TRANSLATION
 #core-samecase     samecase
-#core-samemark     samemmark
+#core-samemark     samemark
 #core-samewith     samewith
 core-say          mond
 core-set          halmaz
@@ -308,11 +312,11 @@ core-so           tehát
 core-sort         rendez
 core-splice       összetold
 core-split        felvág
-#core-sprintf      sdruckf
-#core-spurt        spritzen
+#core-sprintf      sprintf
+#core-spurt        spurt
 core-sqrt         négyzetgyök
 core-squish       összeránt
-#core-srand        zufällig-so
+#core-srand        srand
 core-starts-with  ezzel-kezdődik
 #core-subbuf       subbuf
 #core-subbuf-rw    subbuf-rw
@@ -357,17 +361,17 @@ core-unshift   elészúr
 core-use-ok    használ-ok
 
 # KEY        TRANSLATION
-#core-val     wie-zahlen
+#core-val     val
 core-value   érték
 core-values  értékek
 
 # KEY          TRANSLATION
 core-warn      figyelmeztet
-#core-wordcase  word-case
+#core-wordcase  wordcase
 core-words     szavak
 
 # KEY     TRANSLATION
-#core-zip  reißverschluss
+#core-zip  zip
 
 # KEY             TRANSLATION
 infix-(cont)      (tartalmaz)
@@ -410,12 +414,12 @@ infix-orelse      vagyamúgy
 infix-x           x
 infix-X           X
 infix-xx          xx
-#infix-Z           R
+#infix-Z           Z
 
 # KEY   TRANSLATION
-#meta-R  U
+#meta-R  R
 #meta-X  X
-#meta-Z  R
+#meta-Z  Z
 
 # KEY             TRANSLATION
 modifier-for      ezekre
@@ -435,7 +439,7 @@ multi-only   egyedüli
 
 # KEY           TRANSLATION
 named-absolute  abszolút
-#named-actions   aktionen
+#named-actions   actions
 #named-api       api
 named-append    hozzáfűz
 #named-arg0      arg0
@@ -467,12 +471,13 @@ named-count       darabszám
 #named-cwd         cwd
 #named-CWD         CWD
 
-# KEY          TRANSLATION
-named-date     dátum
-named-day      nap
-#named-degree   degree
-named-delete   töröl
-#named-dirname  dirname
+# KEY           TRANSLATION
+#named-datagram  datagram
+named-date      dátum
+named-day       nap
+#named-degree    degree
+named-delete    töröl
+#named-dirname   dirname
 
 # KEY             TRANSLATION
 named-elems       elemek
@@ -482,7 +487,7 @@ named-elems       elemek
 named-end         végétől
 #named-err         err
 named-every       minden
-#named-ex          er
+#named-ex          ex
 named-exclusive   exkluzív
 named-exhaustive  kimerítő
 named-expires     lejár
@@ -613,7 +618,7 @@ named-where              ahol
 #named-win-verbatim-args  win-verbatim-args
 
 # KEY    TRANSLATION
-#named-x  mal
+#named-x  x
 
 # KEY       TRANSLATION
 named-year  év
@@ -668,6 +673,18 @@ phaser-UNDO     VISSZAVONÁS
 prefix-not  nem
 prefix-so   tehát
 
+# KEY          TRANSLATION
+#quote-lang-m   m
+#quote-lang-ms  ms
+#quote-lang-q   q
+#quote-lang-Q   Q
+#quote-lang-qq  qq
+#quote-lang-rx  rx
+#quote-lang-s   s
+#quote-lang-S   S
+#quote-lang-ss  ss
+#quote-lang-Ss  Ss
+
 # KEY              TRANSLATION
 routine-method     metódus
 routine-regex      regex
@@ -702,6 +719,16 @@ stmt-prefix-start    indít
 stmt-prefix-supply   ellát
 stmt-prefix-try      próbál
 
+# KEY               TRANSLATION
+#system-ACCEPTS      ACCEPTS
+#system-BUILD        BUILD
+#system-CALL-ME      CALL-ME
+#system-COERCE       COERCE
+#system-FALLBACK     FALLBACK
+#system-MAIN         MAIN
+#system-TWEAK        TWEAK
+#system-UPGRADE-RAT  UPGRADE-RAT
+
 # KEY      TRANSLATION
 term-nano  nano
 term-now   most
@@ -722,7 +749,7 @@ trait-is-export                 export
 #trait-is-hidden-from-USAGE      hidden-from-USAGE
 trait-is-implementation-detail  implementációs-részlet
 trait-is-looser                 lazább
-#trait-is-nodal                  nodális
+trait-is-nodal                  nodális
 trait-is-pure                   tiszta
 trait-is-raw                    nyers
 trait-is-rw                     írható-olvasható
@@ -740,7 +767,7 @@ traitmod-trusts   megbízik
 
 # KEY         TRANSLATION
 #typer-enum    enum
-#typer-subset  részhalmaz
+typer-subset  részhalmaz
 
 # KEY        TRANSLATION
 use-import   importál

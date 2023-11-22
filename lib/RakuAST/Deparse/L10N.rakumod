@@ -6,6 +6,7 @@
 use RakuAST::Deparse::L10N::DE;
 use RakuAST::Deparse::L10N::EN;
 use RakuAST::Deparse::L10N::FR;
+use RakuAST::Deparse::L10N::HU;
 use RakuAST::Deparse::L10N::IT;
 use RakuAST::Deparse::L10N::NL;
 use RakuAST::Deparse::L10N::PT;

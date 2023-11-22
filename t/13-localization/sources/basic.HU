@@ -1,0 +1,58 @@
+szub answer visszatér Int ez nyers {
+    42
+}
+enyém osztály Frobnicate {
+    bír $.a = 666;
+    szubmetódus TWEAK {
+        $!a = 42
+    }
+    metódus foo {
+        mond maga.a
+    }
+}
+mond Frobnicate.új.foo;
+enyém $a = 41;
+enyém $b = 666;
+ha $a {
+    $a++
+}
+különbenha $b {
+    meghal "That is not the right number!"
+}
+különben {
+    megjegyez "Shouldn't see this"
+}
+mond "incremented" ha $a == answer;
+ezzel $a {
+    mond $a
+}
+vagyezzel $b {
+    figyelmeztet "still not the right number"
+}
+adva 666 {
+    amikor 42 {
+        mond "the answer"
+    }
+    alapból {
+        halkan figyelmeztet "No answer"
+    }
+}
+nincs strict;
+$c = 137;
+dd $c.behúzás(4);
+használ strict;
+enyém @a = ^10;
+mond @a.első(* %% 2, :végétől);
+enyém %h = a => 666;
+mond %h<a>:töröl;
+kitesz qq:to/HERE/;
+heredoc
+HERE
+ezekre ^3 {
+    .mond
+}
+.mond ezekre <a b c>;
+ciklus {
+    mond "loop";
+    utolsó
+}

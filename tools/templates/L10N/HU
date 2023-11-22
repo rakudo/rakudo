@@ -1,0 +1,752 @@
+# This file contains that Hungarian translation of features of the
+# Raku Programming Language.
+#
+# CONTRIBUTORS: Polgár Márton (Martin Burger)
+#
+# See tools/build/L10N/README.md for more explanation.
+
+# KEY             TRANSLATION
+adverb-pc-delete  töröl
+adverb-pc-exists  létezik
+adverb-pc-k       k
+adverb-pc-kv      ké
+adverb-pc-p       p
+adverb-pc-v       é
+
+# KEY                TRANSLATION
+#adverb-q-a           a
+#adverb-q-array       array
+#adverb-q-b           b
+#adverb-q-backslash   backslash
+#adverb-q-c           c
+#adverb-q-closure     closure
+#adverb-q-double      double
+#adverb-q-exec        exec
+#adverb-q-f           f
+#adverb-q-function    function
+#adverb-q-format      format
+#adverb-q-h           h
+#adverb-q-hash        hash
+#adverb-q-heredoc     heredoc
+#adverb-q-o           o
+#adverb-q-q           q
+#adverb-q-qq          qq
+#adverb-q-quotewords  quotewords
+#adverb-q-s           s
+#adverb-q-scalar      scalar
+#adverb-q-single      single
+#adverb-q-to          to
+#adverb-q-v           v
+#adverb-q-val         val
+#adverb-q-w           w
+#adverb-q-words       words
+#adverb-q-ww          ww
+#adverb-q-x           x
+
+# KEY                 TRANSLATION
+adverb-rx-c           f
+adverb-rx-continue    folytat
+adverb-rx-ex          kim
+adverb-rx-exhaustive  kimerítő
+adverb-rx-g           g
+adverb-rx-global      globális
+#adverb-rx-i           i
+#adverb-rx-ignorecase  ignorecase
+#adverb-rx-ignoremark  ignoremark
+#adverb-rx-ii          ii
+#adverb-rx-m           m
+#adverb-rx-mm          mm
+adverb-rx-nd          odik
+adverb-rx-nth         edik
+adverb-rx-ov          átf
+adverb-rx-overlap     átfedés
+adverb-rx-p           p
+adverb-rx-pos         poz
+#adverb-rx-r           r
+adverb-rx-ratchet     racsni
+adverb-rx-rd          te
+#adverb-rx-s           s
+#adverb-rx-samecase    samecase
+#adverb-rx-samemark    samemark
+#adverb-rx-samespace   samespace
+#adverb-rx-sigspace    sigspace
+#adverb-rx-ss          ss
+adverb-rx-st          ödik
+adverb-rx-to          ig
+adverb-rx-x           szer
+
+# KEY           TRANSLATION
+block-default   alapból
+block-else      különben
+block-elsif     különbenha
+block-for       ezekre
+block-given     adva
+block-if        ha
+block-loop      ciklus
+block-orwith    vagyezzel
+block-repeat    ismétel
+block-unless    kivéveha
+block-until     mígvégül
+block-when      amikor
+block-whenever  valahányszor
+block-while     amíg
+block-with      ezzel
+block-without   enélkül
+
+# KEY             TRANSLATION
+constraint-where  ahol
+
+# KEY                  TRANSLATION
+core-abs               absz
+core-all               mind
+core-antipairs         antipárok
+core-any               bármelyik
+core-append            hozzáfűz
+#core-ast               ast
+#core-atomic-add-fetch  atomic-add-fetch
+#core-atomic-assign     atomic-assign
+#core-atomic-dec-fetch  atomic-dec-fetch
+#core-atomic-fetch      atomic-fetch
+#core-atomic-fetch-add  atomic-fetch-add
+#core-atomic-fetch-dec  atomic-fetch-dec
+#core-atomic-fetch-inc  atomic-fetch-inc
+#core-atomic-fetch-sub  atomic-fetch-sub
+#core-atomic-inc-fetch  atomic-inc-fetch
+#core-atomic-sub-fetch  atomic-sub-fetch
+core-await             kivár
+
+# KEY          TRANSLATION
+core-bag       zsák
+core-bail-out  kiment
+core-bless     megáld
+
+# KEY              TRANSLATION
+#core-callframe     callframe
+#core-callsame      callsame
+#core-callwith      callwith
+#core-can-ok        can-ok
+#core-cas           cas
+core-categorize    rendszerez
+core-ceiling       felső-egészrész
+core-chars         betűk
+#core-chdir         chdir
+#core-chmod         chmod
+core-chomp         levág-sorvég
+core-chop          levág
+#core-chown         chown
+core-chr           betűként
+core-chrs          betűkként
+core-classify      osztályoz
+core-close         bezár
+#core-cmp-ok        cmp-ok
+core-codes         kódok
+core-comb          fésű
+core-combinations  kombinációk
+#core-conj          conj
+core-contains      tartalmaz
+core-cross         kereszt
+
+# KEY         TRANSLATION
+core-decode   dekódol
+core-deepmap  mély-hozzárendel
+core-defined  definiált
+core-die      meghal
+#core-dir      dir
+core-done     kész
+core-duckmap  kacsa-hozzárendel
+
+# KEY               TRANSLATION
+core-elems          elemek
+core-emit           kiküld
+core-encode         enkódol
+core-end            vég
+core-ends-with      ezzel-végződik
+core-eval-dies-ok   eval-meghal-ok
+core-eval-lives-ok  eval-él-ok
+core-exit           kilép
+core-exp            exp
+core-expmod         expmod
+
+# KEY              TRANSLATION
+core-fail          meghiúsul
+core-fails-like    meghiúsul-mint
+#core-fc            fc
+core-first         első
+core-flat          lapos
+core-flip          visszafelé
+core-floor         alsó-egészrész
+#core-fmt           fmt
+#core-full-barrier  full-barrier
+
+# KEY      TRANSLATION
+core-get   bekér-sor
+core-getc  bekér-betű
+core-gist  lényeg
+core-grep  szűr
+
+# KEY      TRANSLATION
+core-hash  szótár
+core-head  fej
+
+# KEY           TRANSLATION
+core-indent     behúzás
+core-index      index
+core-indices    indexek
+#core-indir      indir
+core-is         ez
+core-is-approx  nagyjából
+core-is-deeply  teljesen
+core-is-prime   prím-e
+core-isa-ok     ezegy-ok
+core-isnt       eznem
+core-item       elem
+
+# KEY      TRANSLATION
+core-join  illeszt
+
+# KEY      TRANSLATION
+core-key   kulcs
+core-keys  kulcsok
+core-kv    ké
+
+# KEY          TRANSLATION
+core-last      utolsó
+core-lastcall  utolsó-hívás
+#core-lc        lc
+core-like      mint
+core-lines     sorok
+core-link      link
+core-list      felsorol
+core-lives-ok  él-ok
+core-lsb       alsó-bit
+
+# KEY        TRANSLATION
+core-make    készít
+core-map     hozzárendel
+core-match   paar
+core-max     max
+core-min     min
+core-minmax  minmax
+core-mix     mix
+#core-mkdir   mkdir
+core-move    mozgat
+core-msb     felső-bit
+
+# KEY            TRANSLATION
+core-new         új
+core-next        következő
+#core-nextcallee  nextcallee
+#core-nextsame    nextsame
+#core-nextwith    nextwith
+core-nok         nem-ok
+core-none        semelyik
+core-not         nem
+core-note        megjegyez
+
+# KEY      TRANSLATION
+core-ok    ok
+core-one   egy
+#core-open  open
+core-ord   sorszám
+core-ords  sorszámok
+
+# KEY              TRANSLATION
+core-pair          pár
+core-pairs         párok
+#core-parse-base    parse-base
+core-pass          jó
+core-permutations  permutációk
+core-pick          választ
+core-plan          tervez
+#core-pop           pop
+core-prepend       eléfűz
+core-print         nyomtat
+core-printf        nyomtatf
+core-proceed       továbbhalad
+#core-prompt        prompt
+core-push          mögészúr
+core-put           kitesz
+
+# KEY            TRANSLATION
+core-rand        véletlen
+core-redo        újra
+core-reduce      redukál
+core-repeated    ismétlődő
+#core-repl        repl
+#core-return      return
+#core-return-rw   return-rw
+core-reverse     megfordít
+core-rindex      jobbindex
+#core-rmdir       rmdir
+core-roll        megpörget
+core-roots       gyökök
+core-rotate      forgat
+core-round       kerekít
+#core-roundrobin  jeder-mal
+core-run         futtat
+
+# KEY             TRANSLATION
+#core-samecase     samecase
+#core-samemark     samemmark
+#core-samewith     samewith
+core-say          mond
+core-set          halmaz
+#core-shell        shell
+core-shift        kiléptet
+#core-sign         sign
+core-signal       jelző
+core-skip         átlép
+core-skip-rest    átlép-maradék
+core-sleep        alszik
+core-sleep-timer  vekker
+core-sleep-until  alszik-mígvégül
+#core-slip         slip
+core-slurp        schlürfe
+#core-snip         snip
+core-snitch       elcsen
+core-so           tehát
+core-sort         rendez
+core-splice       összetold
+core-split        felvág
+#core-sprintf      sdruckf
+#core-spurt        spritzen
+core-sqrt         négyzetgyök
+core-squish       összeránt
+#core-srand        zufällig-so
+core-starts-with  ezzel-kezdődik
+#core-subbuf       subbuf
+#core-subbuf-rw    subbuf-rw
+core-subst        cserél
+#core-substr       substr
+#core-substr-eq    substr-eq
+#core-substr-rw    substr-rw
+core-subtest      alteszt
+core-succeed      sikerül
+core-sum          összegez
+core-symlink      szimbolikus-link
+
+# KEY               TRANSLATION
+core-tail           farok
+core-take           vesz
+core-take-rw        vesz-ío
+#core-tc             tc
+#core-tclc           tclc
+core-throws-like    dob-mint
+core-todo           teendő
+core-trans          fordít
+core-trim           nyír
+core-trim-leading   nyír-elöl
+core-trim-trailing  nyír-hátul
+core-truncate       csonkít
+
+# KEY          TRANSLATION
+#core-uc        uc
+#core-unimatch  unimatch
+#core-uniname   uniname
+#core-uninames  uninames
+#core-uniparse  uniparse
+#core-uniprop   uniprop
+#core-uniprops  uniprops
+core-unique    egyedi
+#core-unival    unival
+#core-univals   univals
+core-unlike    nem-ilyen
+core-unlink    elold
+#core-unpolar   unpolar
+core-unshift   elészúr
+core-use-ok    használ-ok
+
+# KEY        TRANSLATION
+#core-val     wie-zahlen
+core-value   érték
+core-values  értékek
+
+# KEY          TRANSLATION
+core-warn      figyelmeztet
+#core-wordcase  word-case
+core-words     szavak
+
+# KEY     TRANSLATION
+#core-zip  reißverschluss
+
+# KEY             TRANSLATION
+infix-(cont)      (tartalmaz)
+infix-(elem)      (eleme)
+#infix-^ff         ^ff
+#infix-^ff^        ^ff^
+#infix-^fff        ^fff
+#infix-^fff^       ^fff^
+infix-after       ezután
+infix-and         és
+infix-andthen     ésakkor
+infix-before      ezelőtt
+infix-but         de
+infix-cmp         hasonlít
+#infix-coll        coll
+infix-div         oszt
+infix-does        csinál
+infix-eq          egyenlő
+#infix-ff          ff
+#infix-ff^         ff^
+#infix-fff         fff
+#infix-fff^        fff^
+#infix-gcd         gcd
+infix-ge          nagyobbegyenlő
+infix-gt          nagyobb
+#infix-lcm         lcm
+infix-le          kisebbegyenlő
+infix-leg         kne
+infix-lt          kisebb
+infix-max         max
+infix-min         min
+infix-minmax      minmax
+infix-mod         moduló
+infix-ne          nemegyenlő
+infix-notandthen  nemésakkor
+infix-o           o
+infix-or          vagy
+infix-orelse      vagyamúgy
+#infix-unicmp      unicmp
+infix-x           x
+infix-X           X
+infix-xx          xx
+#infix-Z           R
+
+# KEY   TRANSLATION
+#meta-R  U
+#meta-X  X
+#meta-Z  R
+
+# KEY             TRANSLATION
+modifier-for      ezekre
+modifier-given    adva
+modifier-if       ha
+modifier-unless   kivéveha
+modifier-until    mígvégül
+modifier-when     amikor
+modifier-while    amíg
+modifier-with     ezzel
+modifier-without  enélkül
+
+# KEY        TRANSLATION
+#multi-multi  multi
+multi-only   egyedüli
+#multi-proto  proto
+
+# KEY           TRANSLATION
+named-absolute  abszolút
+#named-actions   aktionen
+#named-api       api
+named-append    hozzáfűz
+#named-arg0      arg0
+#named-args      args
+#named-as        as
+#named-at        at
+#named-auth      auth
+
+# KEY            TRANSLATION
+#named-basename   basename
+#named-batch      batch
+#named-bin        bin
+#named-bleed      bleed
+#named-broadcast  broadcast
+
+# KEY             TRANSLATION
+#named-catch       catch
+#named-check       check
+#named-chomp       chomp
+named-close       bezár
+#named-command     command
+#named-complement  complement
+named-completely  teljesen
+named-continue    folytat
+#named-control     control
+named-count       darabszám
+#named-create      create
+#named-createonly  createonly
+#named-cwd         cwd
+#named-CWD         CWD
+
+# KEY          TRANSLATION
+named-date     dátum
+named-day      nap
+#named-degree   degree
+named-delete   töröl
+#named-dirname  dirname
+
+# KEY             TRANSLATION
+named-elems       elemek
+#named-emit-timed  emit-timed
+#named-enc         enc
+#named-encoding    encoding
+named-end         végétől
+#named-err         err
+named-every       minden
+#named-ex          er
+named-exclusive   exkluzív
+named-exhaustive  kimerítő
+named-expires     lejár
+
+# KEY            TRANSLATION
+#named-family     family
+#named-filename   filename
+#named-filter     filter
+named-formatter  formázó
+
+# KEY         TRANSLATION
+named-g       g
+#named-gid     gid
+named-global  globális
+
+# KEY       TRANSLATION
+#named-host  host
+named-hour  óra
+
+# KEY             TRANSLATION
+#named-i           i
+#named-ignorecase  ignorecase
+#named-ignoremark  ignoremark
+#named-ii          ii
+named-in          ebben
+named-into        ebbe
+
+# KEY         TRANSLATION
+#named-joiner  joiner
+
+# KEY      TRANSLATION
+named-k    k
+named-key  kulcs
+named-kv   ké
+
+# KEY            TRANSLATION
+named-listen     hallgat
+#named-localhost  localhost
+#named-localport  localport
+
+# KEY         TRANSLATION
+#named-match   match
+#named-merge   merge
+named-minute  perc
+#named-mm      mm
+named-mode    mód
+named-month   hónap
+
+# KEY               TRANSLATION
+named-name          név
+named-nd            dik
+#named-nl            nl
+#named-nl-in         nl-in
+#named-nl-out        nl-out
+#named-non-blocking  non-blocking
+named-nth           dik
+
+# KEY             TRANSLATION
+named-off         ki
+#named-out         out
+#named-out-buffer  out-buffer
+named-ov          átf
+named-overlap     átfedés
+
+# KEY          TRANSLATION
+#named-p        p
+named-partial  részleges
+named-parts    részek
+#named-port     port
+named-pos      poz
+#named-primary  primary
+
+# KEY             TRANSLATION
+#named-quaternary  quaternary
+
+# KEY              TRANSLATION
+#named-r            r
+named-rd           dik
+#named-real         real
+named-replacement  csere
+#named-rule         rule
+#named-rw           rw
+#named-rx           rx
+
+# KEY              TRANSLATION
+#named-samecase     samecase
+#named-samemark     samemark
+#named-samespace    samespace
+#named-scheduler    scheduler
+named-second       másodperc
+#named-secondary    secondary
+named-seconds      másodpercek
+#named-shared       shared
+named-size         méret
+#named-slip         slip
+#named-SPEC         SPEC
+named-squash       quetschen
+#named-ss           ss
+named-st           dik
+#named-status       status
+named-strict       szigorú
+named-subscript    alsóindex
+named-superscript  felsőindex
+
+# KEY               TRANSLATION
+#named-tertiary      tertiary
+named-test          teszt
+named-th            dik
+named-times         ennyiszer
+named-timezone      időzóna
+#named-translate-nl  translate-nl
+#named-truncate      truncate
+
+# KEY         TRANSLATION
+#named-uid     uid
+#named-update  update
+
+# KEY          TRANSLATION
+named-v        é
+named-value    érték
+#named-vent-at  vent-at
+#named-ver      ver
+#named-volume   volume
+
+# KEY                    TRANSLATION
+#named-w                  w
+named-where              ahol
+#named-win-verbatim-args  win-verbatim-args
+
+# KEY    TRANSLATION
+#named-x  mal
+
+# KEY       TRANSLATION
+named-year  év
+
+# KEY            TRANSLATION
+package-class    osztály
+package-grammar  nyelvtan
+package-module   modul
+package-package  csomag
+package-role     szerep
+
+# KEY           TRANSLATION
+#phaser-BEGIN    BEGIN
+phaser-CATCH    LEKEZELÉS
+#phaser-CHECK    CHECK
+phaser-CLOSE    BEZÁRÁS
+phaser-CONTROL  VEZÉRLÉS
+#phaser-DOC      DOC
+phaser-END      VÉGE
+phaser-ENTER    BELÉPÉS
+phaser-FIRST    ELSŐ
+#phaser-INIT     INIT
+phaser-KEEP     MEGTARTÁS
+phaser-LAST     UTOLSÓ
+phaser-LEAVE    KILÉPÉS
+phaser-NEXT     KÖVETKEZŐ
+phaser-POST     POSZT
+phaser-PRE      PRE
+phaser-QUIT     BEZÁRÁS
+phaser-UNDO     VISSZAVONÁS
+
+# KEY                      TRANSLATION
+#pragma-dynamic-scope       dynamic-scope
+#pragma-fatal               fatal
+#pragma-internals           internals
+#pragma-invocant            invocant
+#pragma-isms                isms
+#pragma-lib                 lib
+#pragma-MONKEY              MONKEY
+#pragma-MONKEY-GUTS         MONKEY-GUTS
+#pragma-MONKEY-SEE-NO-EVAL  MONKEY-SEE-NO-EVAL
+#pragma-MONKEY-TYPING       MONKEY-TYPING
+#pragma-nqp                 nqp
+#pragma-precompilation      precompilation
+#pragma-soft                soft
+#pragma-strict              strict
+#pragma-trace               trace
+#pragma-variables           variables
+#pragma-worries             worries
+
+# KEY       TRANSLATION
+prefix-not  nem
+prefix-so   tehát
+
+# KEY              TRANSLATION
+routine-method     metódus
+routine-regex      regex
+routine-rule       szabály
+routine-sub        szub
+routine-submethod  szubmetódus
+routine-token      token
+
+# KEY           TRANSLATION
+scope-anon      anonim
+scope-augment   bővít
+scope-constant  konstans
+scope-has       bír
+scope-HAS       BÍR
+scope-my        enyém
+scope-our       miénk
+scope-state     állapot
+scope-unit      egység
+
+# KEY                TRANSLATION
+stmt-prefix-also     szintén
+stmt-prefix-do       csinál
+stmt-prefix-eager    buzgó
+stmt-prefix-gather   gyűjt
+stmt-prefix-hyper    hyper
+stmt-prefix-lazy     lusta
+stmt-prefix-quietly  halkan
+stmt-prefix-race     verseny
+stmt-prefix-react    reagál
+stmt-prefix-sink     süllyeszt
+stmt-prefix-start    indít
+stmt-prefix-supply   ellát
+stmt-prefix-try      próbál
+
+# KEY      TRANSLATION
+term-nano  nano
+term-now   most
+term-pi    pi
+term-rand  véletlen
+term-self  maga
+term-tau   tau
+term-time  idő
+
+# KEY                           TRANSLATION
+#trait-is-built                  built
+trait-is-copy                   másolat
+trait-is-default                alapvető
+trait-is-DEPRECATED             ELAVULT
+trait-is-equiv                  ekvivalens
+trait-is-export                 export
+#trait-is-hidden-from-backtrace  hidden-from-backtrace
+#trait-is-hidden-from-USAGE      hidden-from-USAGE
+trait-is-implementation-detail  implementációs-részlet
+trait-is-looser                 lazább
+#trait-is-nodal                  nodális
+trait-is-pure                   tiszta
+trait-is-raw                    nyers
+trait-is-rw                     írható-olvasható
+#trait-is-test-assertion         test-assertion
+trait-is-tighter                szűkebb
+
+# KEY             TRANSLATION
+traitmod-does     csinál
+traitmod-handles  kezel
+traitmod-hides    elrejt
+traitmod-is       ez
+traitmod-of       ebből
+traitmod-returns  visszatér
+traitmod-trusts   megbízik
+
+# KEY         TRANSLATION
+#typer-enum    enum
+#typer-subset  részhalmaz
+
+# KEY        TRANSLATION
+use-import   importál
+use-need     szükséges
+use-no       nincs
+#use-require  require
+use-use      használ
+
+# vim: expandtab shiftwidth=4

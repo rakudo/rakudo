@@ -116,12 +116,12 @@ class RakuAST::Pragma
                 $resolver.build-exception('X::Package::UseLib', :what($*PKGDECL));
             }
             elsif nqp::islist($arglist) {
-                my $Registry := $resolver.resolve-name-constant(
+                my $Registry := $resolver.resolve-name-constant-in-setting(
                     RakuAST::Name.from-identifier-parts(
                       'CompUnit', 'RepositoryRegistry'
                     )
                 ).compile-time-value;
-                my $IO-Path := $resolver.resolve-name-constant(
+                my $IO-Path := $resolver.resolve-name-constant-in-setting(
                     RakuAST::Name.from-identifier-parts('IO', 'Path')
                 ).compile-time-value;
                 for $arglist -> $arg {
@@ -184,36 +184,39 @@ class RakuAST::Pragma
               'X::Pragma::MustOneOf', :$name, :alternatives(':D, :U or :_')
             ).throw unless $arglist;
 
-            my $Pair := $resolver.resolve-name-constant(
+            my $Pair := $resolver.resolve-name-constant-in-setting(
               RakuAST::Name.from-identifier('Pair')
-            );
-            my $Bool := $resolver.resolve-name-constant(
+            ).compile-time-value;
+            my $Bool := $resolver.resolve-name-constant-in-setting(
               RakuAST::Name.from-identifier('Bool')
-            );
+            ).compile-time-value;
 
             my $type;
             for $arglist -> $arg {
+                # Seen a type before
                 if $type {
                     $resolver.build-exception(
                       'X::Pragma::OnlyOne', :$name
                     ).throw;
                 }
+
+                # First time a Pair
                 elsif nqp::istype($arg,$Pair) {
+                       $type  := $arg.key;
                     my $value := $arg.value;
                     if nqp::istype($value,$Bool) && $value {
-                        $type := $arg.key;
                         if $type eq 'D' || $type eq 'U' {
                             $LANG.set_pragma($name, $type);
                             next;
                         }
                         elsif $type eq '_' {
-                            # XXX shouldn't know this
-                            nqp::deletekey($*LANG.slangs,$name);
+                            # XXX shouldn't need to know about .slangs
+                            nqp::deletekey($LANG.slangs,$name);
                             next;
                         }
                     }
                     $resolver.build-exception(
-                      'X::InvalidTypeSmiley', :name($arg.key)
+                      'X::InvalidTypeSmiley', :name($type)
                     ).throw;
                 }
                 $resolver.build-exception(

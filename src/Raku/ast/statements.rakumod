@@ -1459,7 +1459,7 @@ class RakuAST::ModuleLoading {
 
     method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver, RakuAST::Name $module-name) {
         # Build dependency specification for the module.
-        my $dependency-specification := $resolver.resolve-name-constant(
+        my $dependency-specification := $resolver.resolve-name-constant-in-setting(
             RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')
         ).compile-time-value;
         my $opts := nqp::hash();
@@ -1475,7 +1475,7 @@ class RakuAST::ModuleLoading {
         );
 
         # Load it using the registry.
-        my $registry := $resolver.resolve-name-constant(
+        my $registry := $resolver.resolve-name-constant-in-setting(
             RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')
         ).compile-time-value;
         my $comp-unit := $registry.head.need($spec);

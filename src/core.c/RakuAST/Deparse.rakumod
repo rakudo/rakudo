@@ -2407,10 +2407,12 @@ CODE
     }
 
     multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
+        my str $name = self.deparse($ast.base-type.name);
         $ast.through-pragma
-          ?? ''
-          !! self.deparse($ast.base-type.name)
-               ~ ($ast.definite ?? ':D' !! ':U')
+          ?? $name eq 'Any'
+            ?? ''
+            !! $name
+          !! $name ~ ($ast.definite ?? ':D' !! ':U')
     }
 
     multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {

@@ -35,6 +35,8 @@ class RakuAST::Type
     method IMPL-TARGET-TYPE() {
         self
     }
+
+    method is-native() { False }
 }
 
 # A simple type name, e.g. Int, Foo::Bar, etc.
@@ -79,6 +81,12 @@ class RakuAST::Type::Simple
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.resolution.compile-time-value
+    }
+
+    # This probably needs a better heuristic or be implemented as an attribute
+    method is-native() {
+        my str $name := $!name.canonicalize;
+        nqp::lc($name) eq $name
     }
 
     method visit-children(Code $visitor) {

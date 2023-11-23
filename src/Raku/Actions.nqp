@@ -2067,9 +2067,31 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $/ := $*VARIABLE-MATCH;
 
         my str $scope := $*SCOPE;
-        my     $type  := $*OFTYPE ?? $*OFTYPE.ast !! Nodify('Type');
+        my     $type  := $*OFTYPE.ast if $*OFTYPE;
         my str $sigil := $<sigil>;
         my     $where := $*WHERE;
+
+        my str $pragma  := $scope eq 'has' || $scope eq 'HAS'
+          ?? 'attributes'
+          !! $scope eq 'my' || $scope eq 'our' || $scope eq 'state'
+            ?? 'variables'
+            !! '';
+
+        # Need to check pragma setting *and* there is a setting
+        if $pragma && $*LANG.pragma($pragma) -> $value {
+            my $definedness := Nodify('Type','Definedness');
+            if !nqp::eqaddr($type.WHAT,$definedness)  # not already :D or :U
+              && ($value eq 'D' || $value eq 'U') {   # want :D or :U
+                $type := $definedness.new(            # wrap existing or new
+                  :base-type($type // Nodify('Type','Simple').new(
+                    Nodify('Name').from-identifier('Any')
+                  )), :definite($value eq 'D'), :through-pragma
+                );
+            }
+        }
+
+        # Fallback to no explicit type
+        $type := Nodify('Type') unless $type;
 
         my $decl;
         if $<desigilname> {

@@ -176,11 +176,19 @@ class RakuAST::Type::Definedness
   is RakuAST::Declaration
 {
     has Bool $.definite;
+    has Bool $.through-pragma;
 
-    method new(RakuAST::Type :$base-type!, Bool :$definite!) {
+    method new(
+      RakuAST::Type :$base-type!,
+               Bool :$definite!,
+               Bool :$through-pragma
+    ) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Type::Derived, '$!base-type', $base-type);
-        nqp::bindattr($obj, RakuAST::Type::Definedness, '$!definite', $definite ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Type::Definedness, '$!definite',
+          $definite ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Type::Definedness, '$!through-pragma',
+          $through-pragma ?? True !! False);
         $obj
     }
 

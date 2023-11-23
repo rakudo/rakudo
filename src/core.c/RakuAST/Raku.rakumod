@@ -241,6 +241,9 @@ augment class RakuAST::Node {
               as-class('slurpy', $slurpy.^name)
                 unless nqp::eqaddr($slurpy,RakuAST::Parameter::Slurpy)
           },
+          'through-pragma', -> {
+              :through-pragma if self.through-pragma
+          },
           'trailing', -> {
               my $trailing := nqp::decont(self.trailing);
               :$trailing if $trailing
@@ -1153,7 +1156,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::Type::Definedness:D: --> Str:D) {
-        self!nameds: <base-type definite>
+        self!nameds: <base-type definite through-pragma>
     }
 
     multi method raku(RakuAST::Type::Enum:D: --> Str:D) {

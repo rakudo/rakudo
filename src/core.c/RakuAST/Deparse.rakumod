@@ -2407,8 +2407,10 @@ CODE
     }
 
     multi method deparse(RakuAST::Type::Definedness:D $ast --> Str:D) {
-        self.deparse($ast.base-type.name)
-          ~ ($ast.definite ?? ':D' !! ':U')
+        $ast.through-pragma
+          ?? ''
+          !! self.deparse($ast.base-type.name)
+               ~ ($ast.definite ?? ':D' !! ':U')
     }
 
     multi method deparse(RakuAST::Type::Enum:D $ast --> Str:D) {
@@ -2601,8 +2603,10 @@ CODE
         @parts.push(' ');
 
         if $ast.original-type -> $type {
-            @parts.push(self.syn-type($type));
-            @parts.push(' ');
+            if self.syn-type($type) -> $the-type {
+                @parts.push($the-type);
+                @parts.push(' ');
+            }
         }
 
         my str $twigil = $ast.twigil;

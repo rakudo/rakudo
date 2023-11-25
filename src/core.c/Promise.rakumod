@@ -240,12 +240,9 @@ my class Promise does Awaitable {
         if $!status == Broken || $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
-            if $synchronous {
-                code(self);
-            }
-            else {
-                self.WHAT.start( { code(self) }, :$!scheduler);
-            }
+            $synchronous
+                ?? code(self)
+                !! self.WHAT.start( { code(self) }, :$!scheduler);
         }
         else {
             my $then-p := self.new(:$!scheduler);
@@ -266,12 +263,9 @@ my class Promise does Awaitable {
         elsif $!status == Kept {
             # Already have the result, start immediately.
             nqp::unlock($!lock);
-            if $synchronous {
-                code(self);
-            }
-            else {
-                self.WHAT.start( { code(self) }, :$!scheduler);
-            }
+            $synchronous
+                ?? code(self)
+                !! self.WHAT.start( { code(self) }, :$!scheduler);
         }
         else {
             my $then-p := self.new(:$!scheduler);
@@ -289,12 +283,9 @@ my class Promise does Awaitable {
         nqp::lock($!lock);
         if $!status == Broken {
             nqp::unlock($!lock);
-            if $synchronous {
-                code(self);
-            }
-            else {
-                self.WHAT.start( { code(self) }, :$!scheduler);
-            }
+            $synchronous
+                ?? code(self)
+                !! self.WHAT.start( { code(self) }, :$!scheduler);
         }
         elsif $!status == Kept {
             # Already have the result, start immediately.

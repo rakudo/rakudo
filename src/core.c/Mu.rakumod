@@ -131,8 +131,17 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
-        nqp::eqaddr((my $bless := nqp::tryfindmethod(self,'bless')),
-                    nqp::findmethod(Mu,'bless'))
+            my Mu $obj := self;
+        if nqp::getenvhash<RAKUDO_DEBUG> && self.^name eq 'A' {
+            note("class ", self.WHICH, " of ", self.HOW.^name, " self is ", self.VAR.^name, ", cont? ", nqp::iscont(self));
+            my $bless := nqp::tryfindmethod(self,'bless');
+            note "   -> bless method: ", $bless.^name, " // ", self.^lookup('bless').WHICH;
+        }
+        my $bless := do { nqp::tryfindmethod(self,'bless') };
+        if nqp::getenvhash<RAKUDO_DEBUG> && self.^name eq 'A' {
+            note "   => bless method: ", $bless.^name;
+        }
+        nqp::eqaddr($bless, nqp::findmethod(Mu,'bless'))
                 ?? nqp::create(self).BUILDALL(Empty, %attrinit)
                 !! $bless(self,|%attrinit)
     }
@@ -1040,6 +1049,13 @@ my class Mu { # declared in BOOTSTRAP
         }
         @pieces.DUMP-PIECES($before, :$indent-step);
     }
+
+    method is-generic is pure { False }
+
+    # Use proto to let child classes only have their own candidates for typeobject and instance invocators.
+    proto method INSTANTIATE-GENERIC(Mu) {*}
+    multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D --> Mu) is raw { self }
+    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D --> Mu) is raw { self }
 
     proto method isa(|) {*}
     multi method isa(Mu \SELF: Mu $type --> Bool:D) {

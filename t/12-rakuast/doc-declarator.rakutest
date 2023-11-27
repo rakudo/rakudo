@@ -426,6 +426,12 @@ CODE
         my ($class, $pod) := EVAL($it);
         isa-ok $class.HOW, Metamodel::ClassHOW, "$type: did we get a class";
         is $class.^name, 'A', "$type: did it get the right name";
+        use nqp;
+        note "BLESS METHOD\n  tryfindmethod: ", nqp::tryfindmethod($class, 'bless').^name, "\n",
+            "  Mu: ", nqp::findmethod(Mu, 'bless').WHICH;
+        note "CLASS : ", $class.WHICH, " of ", $class.HOW.WHICH;
+        note "CREATE: ", nqp::create(nqp::decont($class));
+        note "BLESS : ", $class.bless.BUILDALL(Empty, %());
         isa-ok $class.new, $class, "$type: can it instantiate";
 
         my $private-method := $class.^private_methods.head;

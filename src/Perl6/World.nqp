@@ -1935,10 +1935,17 @@ class Perl6::World is HLL::World {
                 %info<default_value>  := self.find_single_symbol_in_setting('Any');
             }
             if $shape || @cont_type {
+                if nqp::getenvhash<RAKUDO_DEBUG> {
+                    note("+++ container type: ", %info<container_type>.HOW.name(%info<container_type>));
+                }
+                my $cont_type := %info<container_type>;
                 my $ast := QAST::Op.new(
                     :op('callmethod'), :name('new'),
-                    QAST::WVal.new( :value(%info<container_type>) )
+                    ((my $is-generic := $cont_type.HOW.archetypes.generic)
+                        ?? QAST::Var.new( :name($cont_type.HOW.name($cont_type)), :scope<lexical> )
+                        !! QAST::WVal.new( :value(%info<container_type>) ))
                 );
+                $ast.annotate('is-generic', $is-generic);
                 if $shape {
                     my $shape_ast := $shape[0].ast;
                     $shape_ast.named('shape');

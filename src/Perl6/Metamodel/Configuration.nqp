@@ -87,6 +87,10 @@ class Perl6::Metamodel::Configuration {
     # Register HLL symbol for code which doesn't have direct access to this class. For example, moar/Perl6/Ops.nqp
     # relies on this symbol.
     nqp::bindhllsym('Raku', 'METAMODEL_CONFIGURATION', Perl6::Metamodel::Configuration);
+
+    my $type-env-type := nqp::null();
+    method set_type_env_type($type) { $type-env-type := $type }
+    method type_env_type()          { $type-env-type }
 }
 
 # vim: expandtab sw=4

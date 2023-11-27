@@ -57,69 +57,49 @@ my class Grammar is Match {
         self.typed_exception(X::Syntax::Confused, filename => ($filename // "<anon>"))
     }
 
-    method parse(\target, :$rule, :$args, Mu :$actions, :$filename) is raw {
+    method parse(\target, :$rule, :$args, Mu :$actions, :$filename) {
         my $*LINEPOSCACHE;
-        nqp::stmts(
-          (my $grammar := self.new(:orig(target), |%_).set_actions($actions)),
-          nqp::decont(nqp::getlexcaller('$/') =
+        my $grammar := self.new(:orig(target), |%_).set_actions($actions);
+        nqp::if(
+          (my $cursor := nqp::if(
+          $rule,
             nqp::if(
-              (my $cursor := nqp::if(
-                $rule,
-                nqp::if(
-                  $args,
-                  $grammar."$rule"(|$args.Capture),
-                  $grammar."$rule"()
-                ),
-                nqp::if(
-                  $args,
-                  $grammar.TOP(|$args.Capture),
-                  $grammar.TOP()
-                ),
-              )),
-              nqp::stmts(
-                (my $match := $cursor.MATCH),
-                nqp::while(
-                  $match && nqp::isne_i(
-                    nqp::getattr_i(($match := $cursor.MATCH),Match,'$!pos'),
-                    target.chars
-                  ),
-                  $match := ($cursor := $cursor.'!cursor_next'()).MATCH
-                ),
-                $match || $grammar.SETFAIL($match, :$filename),
-              ),
-              $grammar.SETFAIL($cursor, :$filename),
-            )
-          )
+              $args,
+              $grammar."$rule"(|$args.Capture),
+              $grammar."$rule"()
+            ),
+            nqp::if(
+              $args,
+              $grammar.TOP(|$args.Capture),
+              $grammar.TOP()
+            ),
+          )),
+          nqp::stmts(
+            (my $match := $cursor.Match::MATCH),
+            nqp::while(
+              $match && nqp::isne_i(
+                nqp::getattr_i(($match := $cursor.Match::MATCH),Match,'$!pos'),
+                target.chars
+            ),
+              $match := ($cursor := $cursor.'!cursor_next'()).Match::MATCH
+            ),
+            $match || $grammar.SETFAIL($match, :$filename),
+          ),
+          $grammar.SETFAIL($cursor, :$filename),
         )
     }
 
-    method subparse(\target, :$rule, :$args, :$actions) is raw {
-        nqp::stmts(
-          (my $grammar := self.new(:orig(target), |%_).set_actions($actions)),
-          nqp::decont(nqp::getlexcaller('$/') =
-            nqp::if(
-              $rule,
-              nqp::if(
-                $args,
-                $grammar."$rule"(|$args.Capture).MATCH,
-                $grammar."$rule"().MATCH,
-              ),
-              nqp::if(
-                $args,
-                $grammar.TOP(|$args.Capture).MATCH,
-                $grammar.TOP().MATCH
-              ),
-            )
-          )
-        )
-      }
+    method subparse(\target, :$rule = 'TOP', :$args, :$actions) {
+        my $grammar := self.new(:orig(target), |%_).set_actions($actions);
+        $args
+          ?? $grammar."$rule"(|$args.Capture).Match::MATCH
+          !! $grammar."$rule"().Match::MATCH
+    }
 
-    method parsefile(Str(Cool) $filename, :$enc) is raw {
-        nqp::decont(nqp::getlexcaller('$/') = nqp::if(
-          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
-          self.parse($filename.IO.slurp(:$enc), :$filename, |%_),
-          self.parse($filename.IO.slurp(:$enc), :$filename)
-        ))
+    method parsefile(Str(Cool) $filename, :$enc) {
+        nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+          ?? self.parse($filename.IO.slurp(:$enc), :$filename, |%_)
+          !! self.parse($filename.IO.slurp(:$enc), :$filename)
     }
 }
 

@@ -3311,7 +3311,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $cap
         }
         my $core-rev-sym := 'CORE-SETTING-REV';
         while nqp::isnull(nqp::getlexrel($ctx, $core-rev-sym)) {
-            $ctx := nqp::ctxcaller($ctx);
+            if nqp::isnull($ctx := nqp::ctxcaller($ctx)) {
+                last
+            }
         }
         until nqp::isnull($ctx) {
             my $lexpad := nqp::ctxlexpad($ctx);

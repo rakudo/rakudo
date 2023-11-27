@@ -33,10 +33,13 @@ class Perl6::Metamodel::ClassHOW
     has $!is_pun;
     has $!pun_source; # If class is coming from a pun then this is the source role
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new(
-        :nominal(1), :inheritable(1), :augmentable(1) );
+    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable );
+    my $archetypes-g := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable, :generic );
     method archetypes($obj?) {
-        $archetypes
+        my $dcobj := nqp::decont($obj);
+        nqp::can($dcobj, 'is-generic') && $dcobj.is-generic
+            ?? $archetypes-g
+            !! $archetypes
     }
 
     method new(*%named) {
@@ -293,11 +296,17 @@ class Perl6::Metamodel::ClassHOW
 
     # Handles the various dispatch fallback cases we have.
     method find_method_fallback($obj, $name, :$local = 0) {
+        if nqp::getenvhash<RAKUDO_DEBUG> {
+            note("<<< finding method fallback for '", $name, "' on ", $obj.HOW.name($obj), " of ", $obj.HOW.HOW.name($obj.HOW));
+        }
         # If the object is a junction, need to do a junction dispatch.
         if nqp::istype($obj.WHAT, $junction_type) && $junction_autothreader {
             my $p6name := nqp::hllizefor($name, 'Raku');
             return -> *@pos_args, *%named_args {
-                $junction_autothreader($p6name, |@pos_args, |%named_args)
+                # Fallback on an undefined junction means no method found.
+                nqp::isconcrete(@pos_args[0])
+                    ?? $junction_autothreader($p6name, |@pos_args, |%named_args)
+                    !! nqp::null()
             };
         }
 
@@ -349,6 +358,21 @@ class Perl6::Metamodel::ClassHOW
 
     method pun_source($obj) {
         $!pun_source
+    }
+
+    method instantiate_generic($obj, $type_environment) {
+        if nqp::getenvhash<RAKUDO_DEBUG> {
+            note("+++ class instantiation for ", $obj.HOW.name($obj));
+        }
+        return $obj if nqp::isnull(my $type-env-type := Perl6::Metamodel::Configuration.type_env_type);
+        if nqp::getenvhash<RAKUDO_DEBUG> {
+            note("+++ class instantiates ", $obj.HOW.name($obj));
+        }
+        my $c := $obj.INSTANTIATE-GENERIC($type-env-type.new-from-ctx($type_environment));
+        if nqp::getenvhash<RAKUDO_DEBUG> {
+            note("+++ class instantiated into ", $c.HOW.name($c));
+        }
+        $c
     }
 }
 

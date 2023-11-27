@@ -26,8 +26,18 @@ class Perl6::Metamodel::GenericHOW
     }
 
     method instantiate_generic($obj, $type_environment) {
+        my $found := nqp::null();
         my $name := self.name($obj);
-        my $found := nqp::getlexrel($type_environment, $name);
+        my $repr := nqp::reprname($type_environment);
+        if $repr eq 'MVMContext' {
+            $found := nqp::getlexrel($type_environment, $name);
+        }
+        elsif $repr eq 'VMHash' {
+            $found := nqp::atkey($type_environment, $name);
+        }
+        elsif nqp::isconcrete($type_environment) && $type_environment.EXISTS-KEY($name) {
+            $found := nqp::decont($type_environment.AT-KEY($name));
+        }
         nqp::isnull($found) ?? $obj !! $found
     }
 

@@ -37,6 +37,9 @@ my role Hash::Typed[::TValue] does Associative[TValue] {
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
         Hash.^parameterize: type-environment.instantiate(TValue)
     }
+    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
+        Hash.^parameterize( type-environment.instantiate(TValue) ).new(self)
+    }
 
     multi method raku(::?CLASS:D \SELF:) {
         SELF.rakuseen('Hash', {

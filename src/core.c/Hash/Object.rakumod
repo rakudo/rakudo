@@ -259,16 +259,15 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
         )
     }
 
-    method is-generic {
-        nqp::hllbool(
-            nqp::istrue(TValue.^archetypes.generic)
-            || nqp::istrue(TKey.^archetypes.generic))
-    }
+    method is-generic { nqp::hllbool(TValue.^archetypes.generic || TKey.^archetypes.generic) }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
-        Hash.^parameterize:
-            type-environment.instantiate(TValue),
-            type-environment.instantiate(TKey)
+        Hash.^parameterize: type-environment.instantiate(TValue), type-environment.instantiate(TKey)
+    }
+
+    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
+        Hash.^parameterize( type-environment.instantiate(TValue),
+                            type-environment.instantiate(TKey) ).new(self)
     }
 
     multi method raku(::?CLASS:D \SELF:) {

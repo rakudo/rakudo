@@ -1865,7 +1865,7 @@ class RakuAST::Regex::Quantifier::ZeroOrOne
 {
     method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
         self.backtrack.IMPL-QAST-APPLY:
-            QAST::Regex.new( :rxtype<quant>, :min(0), :max(1), $atom-qast ),
+            QAST::Regex.new( :rxtype<quant>, :subtype<item>, :min(0), :max(1), $atom-qast ),
             %mods
     }
 }

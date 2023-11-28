@@ -3,15 +3,8 @@ my class Mix does Mixy {
     has Real       $!total;
     has Real       $!total-positive;
 
-    my role KeyOf[::CONSTRAINT] {
-        method keyof() { CONSTRAINT }
-        method is-generic { CONSTRAINT.^archetypes.generic }
-        method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
-            Mix.^parameterize: type-environment.instantiate(CONSTRAINT)
-        }
-    }
     method ^parameterize(Mu \base, Mu \type) {
-        my \what := base.^mixin(KeyOf[type]);
+        my \what := base.^mixin(QuantHash::KeyOf[type]);
         what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
         what
     }

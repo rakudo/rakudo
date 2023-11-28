@@ -47,4 +47,12 @@ my role QuantHash does Associative {
     method Map()  { ... }
 }
 
+my role QuantHash::KeyOf[::CONSTRAINT] {
+    method keyof() { CONSTRAINT }
+    method is-generic { CONSTRAINT.^archetypes.generic }
+    method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
+        self.^parameterize: type-environment.instantiate(CONSTRAINT)
+    }
+}
+
 # vim: expandtab shiftwidth=4

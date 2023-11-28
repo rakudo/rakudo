@@ -296,9 +296,6 @@ class Perl6::Metamodel::ClassHOW
 
     # Handles the various dispatch fallback cases we have.
     method find_method_fallback($obj, $name, :$local = 0) {
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            note("<<< finding method fallback for '", $name, "' on ", $obj.HOW.name($obj), " of ", $obj.HOW.HOW.name($obj.HOW));
-        }
         # If the object is a junction, need to do a junction dispatch.
         if nqp::istype($obj.WHAT, $junction_type) && $junction_autothreader {
             my $p6name := nqp::hllizefor($name, 'Raku');
@@ -361,18 +358,8 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method instantiate_generic($obj, $type_environment) {
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            note("+++ class instantiation for ", $obj.HOW.name($obj));
-        }
         return $obj if nqp::isnull(my $type-env-type := Perl6::Metamodel::Configuration.type_env_type);
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            note("+++ class instantiates ", $obj.HOW.name($obj));
-        }
-        my $c := $obj.INSTANTIATE-GENERIC($type-env-type.new-from-ctx($type_environment));
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            note("+++ class instantiated into ", $c.HOW.name($c));
-        }
-        $c
+        $obj.INSTANTIATE-GENERIC($type-env-type.new-from-ctx($type_environment))
     }
 }
 

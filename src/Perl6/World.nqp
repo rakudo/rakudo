@@ -1935,9 +1935,6 @@ class Perl6::World is HLL::World {
                 %info<default_value>  := self.find_single_symbol_in_setting('Any');
             }
             if $shape || @cont_type {
-                if nqp::getenvhash<RAKUDO_DEBUG> {
-                    note("+++ container type: ", %info<container_type>.HOW.name(%info<container_type>));
-                }
                 my $cont_type := %info<container_type>;
                 my $ast := QAST::Op.new(
                     :op('callmethod'), :name('new'),

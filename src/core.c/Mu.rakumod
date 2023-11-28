@@ -131,16 +131,8 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
-            my Mu $obj := self;
-        if nqp::getenvhash<RAKUDO_DEBUG> && self.^name eq 'A' {
-            note("class ", self.WHICH, " of ", self.HOW.^name, " self is ", self.VAR.^name, ", cont? ", nqp::iscont(self));
-            my $bless := nqp::tryfindmethod(self,'bless');
-            note "   -> bless method: ", $bless.^name, " // ", self.^lookup('bless').WHICH;
-        }
-        my $bless := do { nqp::tryfindmethod(self,'bless') };
-        if nqp::getenvhash<RAKUDO_DEBUG> && self.^name eq 'A' {
-            note "   => bless method: ", $bless.^name;
-        }
+        my Mu $obj := self;
+        my $bless := nqp::tryfindmethod(self,'bless');
         nqp::eqaddr($bless, nqp::findmethod(Mu,'bless'))
                 ?? nqp::create(self).BUILDALL(Empty, %attrinit)
                 !! $bless(self,|%attrinit)

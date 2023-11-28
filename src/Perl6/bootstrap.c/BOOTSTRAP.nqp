@@ -1730,9 +1730,6 @@ BEGIN {
                 || nqp::defined($build), "Raku");
         }));
     Attribute.HOW.add_method(Attribute, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            nqp::say("^^^ instantiating attribute " ~ $self.name());
-        }
             my $dcself   := nqp::decont($self);
             my $type     := nqp::getattr($dcself, Attribute, '$!type');
             my $cd       := nqp::getattr($dcself, Attribute, '$!container_descriptor');
@@ -1755,17 +1752,6 @@ BEGIN {
                 $avcv := nqp::create(ScalarVAR);
                 nqp::bindattr($avcv, Scalar, '$!value', $avc);
             }
-            if nqp::getenvhash<RAKUDO_DEBUG> && nqp::iscont($avc) {
-                nqp::say("TRY avcv instantiate_generic on " ~ nqp::how_nd($avcv).name($avcv) ~ " for " ~ $self.name());
-                nqp::say(". is generic avcv? " ~ $avcv.is_generic());
-                $avcv.instantiate_generic($type_environment);
-            }
-            if nqp::getenvhash<RAKUDO_DEBUG> {
-                nqp::say("===  AVC: " ~ $avc.HOW.name($avc) ~ " of " ~ $avc.HOW.HOW.name($avc.HOW) ~ "\n"
-                       ~ "=== TYPE: " ~ $type.HOW.name($type) ~ " of " ~ $type.HOW.HOW.name($type.HOW)
-                       ~ " --> " ~ $ins.type.HOW.name($ins.type)
-                );
-            }
             my $avc_copy := nqp::iscont($avc)
                                 ?? ($avcv.is_generic()
                                     ?? $avcv.instantiate_generic($type_environment)
@@ -1774,14 +1760,6 @@ BEGIN {
                                     ?? $avc.HOW.instantiate_generic($avc, $type_environment)
                                     !! $avc);
             unless nqp::eqaddr($avc_copy, $avc) {
-                if nqp::getenvhash<RAKUDO_DEBUG> {
-                    nqp::say(
-                        nqp::join("",
-                            ("AVC for ", $self.name, ": ", $avc.HOW.name($avc), " --> ", nqp::how_nd($avc_copy).name($avc_copy), " of ", $avc_copy.HOW.name($avc_copy), "\n",
-                            "    is container? ", ~nqp::iscont($avc), " --> ", ~nqp::iscont($avc_copy),
-                            (nqp::iscont($avc) ?? " // " ~ $avcv.name() !! "")
-                        )));
-                }
                 if nqp::isconcrete_nd($avc_copy) {
                     my @avc_mro  := nqp::how_nd($avc_copy).mro($avc_copy);
                     my int $i := 0;
@@ -1817,9 +1795,6 @@ BEGIN {
     }));
     Scalar.HOW.add_method(Scalar, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
         my $dcself := nqp::decont($self);
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            nqp::say("INSTANTIATING Scalar of " ~ nqp::how_nd($dcself).name($dcself));
-        }
         nqp::bindattr($dcself, Scalar, '$!descriptor',
             nqp::getattr($dcself, Scalar, '$!descriptor').instantiate_generic(
                 $type_environment));

@@ -3960,6 +3960,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $build-ast := %cont_info<build_ast>;
                 my $build-thunk;
                 if $build-ast.ann('is-generic') {
+                    # If the initializer is a generic type it would need to be resolved into its final value. To do
+                    # so the codeobject must keep the closure to have access to role's arguments.
                     my $bblock := $world.push_lexpad($/);
                     $bblock.blocktype('declaration_static');
                     $bblock.push($build-ast);

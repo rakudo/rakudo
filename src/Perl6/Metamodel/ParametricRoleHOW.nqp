@@ -198,14 +198,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         # Go through attributes, reifying as needed and adding to
         # the concrete role.
         for self.attributes($obj, :local(1)) {
-            if nqp::getenvhash<RAKUDO_DEBUG> {
-                nqp::say("+++ ATTR " ~ $_.HOW.name($_) ~ " " ~ $_.name() ~ " of " ~ $obj.HOW.name($obj) ~ " is generic? " ~ $_.is_generic);
-            }
             $conc.HOW.add_attribute($conc,
                 (my $ins := $_.is_generic ?? $_.instantiate_generic($type_env) !! nqp::clone($_)));
-            if nqp::getenvhash<RAKUDO_DEBUG> {
-                nqp::say("+++ done with " ~ $_.name() ~ ": " ~ nqp::objectid($_) ~ " -> " ~ nqp::objectid($ins));
-            }
         }
 
         # Go through methods and instantiate them; we always do this

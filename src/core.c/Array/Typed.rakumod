@@ -100,17 +100,9 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     method is-generic { nqp::hllbool(nqp::istrue(TValue.^archetypes.generic)) }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            note "INSTANTIATING type ", self.^name, " with ", type-environment.WHICH,
-                " where TValue is ", type-environment<TValue>.^name;
-        }
         Array.^parameterize: type-environment.instantiate(TValue)
     }
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment) is raw {
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            note "INSTANTIATING object ", self.^name, " with ", type-environment.WHICH,
-                " where TValue is ", type-environment<TValue>.^name;
-        }
         Array.^parameterize(type-environment.instantiate(TValue)).new: |(self.elems ?? self !! Empty)
     }
 

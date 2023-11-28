@@ -13,13 +13,6 @@ my class Rat is Cool does Rational[Int, Int] {
           FatRat,'$!denominator',$!denominator
         )
     }
-
-    # These vulgars have a composed version and are *not* caught by the
-    # correctly displayable in decimal format.
-    my $composed := nqp::hash(
-       '¹/₃','⅓', '²/₃','⅔', '¹/₆','⅙', '⁵/₆','⅚', '¹/₇','⅐', '¹/₉','⅑'
-    );
-
     multi method raku(Rat:D: --> Str:D) {
         if $!denominator == 1 {
             $!numerator ~ '.0'
@@ -37,17 +30,13 @@ my class Rat is Cool does Rational[Int, Int] {
                 '<' ~ $!numerator ~ '/' ~ $!denominator ~ '>'
             }
             else {
-                my $wholes := $!numerator div $!denominator;
-                my $parts  := ($wholes
-                  ?? $!numerator - ($!denominator * $wholes)
-                  !! $!numerator
-                ).Str(:superscript);
-
-                $parts :=
-                  "$parts.Str(:superscript)/$!denominator.Str(:subscript)";
-                $parts := nqp::ifnull(nqp::atkey($composed,$parts),$parts);
-
-                $wholes ?? $wholes ~ $parts !! $parts
+                if $!numerator div $!denominator -> $wholes {
+                    my $parts := $!numerator - ($!denominator * $wholes);
+                    "$wholes$parts.Str(:superscript)/$!denominator.Str(:subscript)"
+                }
+                else {
+                    "$!numerator.Str(:superscript)/$!denominator.Str(:subscript)"
+                }
             }
         }
     }

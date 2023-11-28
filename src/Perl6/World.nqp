@@ -2007,10 +2007,15 @@ class Perl6::World is HLL::World {
                 %info<default_value>  := self.find_single_symbol_in_setting('Any');
             }
             if @cont_type {
-                %info<build_ast> := QAST::Op.new(
+                my $cont_type := %info<container_type>;
+                my $ast := QAST::Op.new(
                     :op('callmethod'), :name('new'),
-                    QAST::WVal.new( :value(%info<container_type>) )
+                    ((my $is-generic := $cont_type.HOW.archetypes.generic)
+                        ?? QAST::Var.new( :name($cont_type.HOW.name($cont_type)), :scope<lexical> )
+                        !! QAST::WVal.new( :value(%info<container_type>) ))
                 );
+                $ast.annotate('is-generic', $is-generic);
+                %info<build_ast> := $ast;
             }
         }
         elsif $sigil eq '&' {

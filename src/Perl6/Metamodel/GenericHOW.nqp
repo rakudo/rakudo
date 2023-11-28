@@ -28,11 +28,16 @@ class Perl6::Metamodel::GenericHOW
     method instantiate_generic($obj, $type_environment) {
         my $found := nqp::null();
         my $name := self.name($obj);
-        my $repr := nqp::reprname($type_environment);
-        if $repr eq 'MVMContext' {
+        my $te-kind := $type_environment.HOW.name($type_environment);
+#?if !jvm
+        if $te-kind eq 'BOOTContext' {
+#?endif
+#?if jvm
+        if $te-kind eq 'ContextRef' {
+#?endif
             $found := nqp::getlexrel($type_environment, $name);
         }
-        elsif $repr eq 'VMHash' {
+        elsif $te-kind eq 'BOOTHash' {
             $found := nqp::atkey($type_environment, $name);
         }
         elsif nqp::isconcrete($type_environment) && $type_environment.EXISTS-KEY($name) {

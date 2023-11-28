@@ -32,14 +32,20 @@ class Perl6::Metamodel::ClassHOW
     has $!composed;
     has $!is_pun;
     has $!pun_source; # If class is coming from a pun then this is the source role
+    has $!archetypes;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable );
     my $archetypes-g := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable, :generic );
     method archetypes($obj?) {
+        $!archetypes // $archetypes
+    }
+
+    method refresh_archetypes($obj) {
         my $dcobj := nqp::decont($obj);
-        nqp::can($dcobj, 'is-generic') && $dcobj.is-generic
-            ?? $archetypes-g
-            !! $archetypes
+        $!archetypes :=
+            (nqp::can($dcobj, 'is-generic') && $dcobj.is-generic)
+                ?? $archetypes-g
+                !! $archetypes;
     }
 
     method new(*%named) {
@@ -254,6 +260,8 @@ class Perl6::Metamodel::ClassHOW
         # Compose invocation protocol.
         self.compose_invocation($obj);
 #?endif
+
+        self.refresh_archetypes($obj);
 
         $obj
     }

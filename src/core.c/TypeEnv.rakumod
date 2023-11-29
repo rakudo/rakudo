@@ -24,8 +24,30 @@ my class TypeEnv { # declared in BOOTSTRAP
             Map, '$!storage', ctx)
     }
 
-    method instantiate(::?CLASS:D: Mu \obj --> Mu) is raw {
-        my Mu \type_environment = nqp::getattr(self, Map, '$!storage');
+    proto method instantiate(::?CLASS:D: Mu --> Mu) is raw {*}
+    multi method instantiate(::?CLASS:D: ContainerDescriptor:D \descriptor) is raw {
+        if nqp::getenvhash<RAKUDO_DEBUG> {
+            note "+++ instantiating container descriptor ", descriptor.name;
+        }
+        descriptor.instantiate_generic(nqp::getattr(self, Map, '$!storage'))
+    }
+    multi method instantiate(::?CLASS:D: Attribute:D \attr) is raw {
+        attr.instantiate_generic(nqp::getattr(self, Map, '$!storage'))
+    }
+    multi method instantiate(::?CLASS:D: Scalar:D \container) is raw {
+        container.VAR.instantiate_generic(nqp::getattr(self, Map, '$!storage'))
+    }
+    multi method instantiate(::?CLASS:D: Signature:D \sign) is raw {
+        sign.instantiate_generic(nqp::getattr(self, Map, '$!storage'))
+    }
+    multi method instantiate(::?CLASS:D: Parameter:D \param) is raw {
+        param.instantiate_generic(nqp::getattr(self, Map, '$!storage'))
+    }
+    multi method instantiate(::?CLASS:D: Code:D \code) is raw {
+        code.instantiate_generic(nqp::getattr(self, Map, '$!storage'))
+    }
+    # This is slow path.
+    multi method instantiate(::?CLASS:D: Mu \obj --> Mu) is raw {
         nqp::can(obj.HOW, 'instantiate_generic')
             ?? obj.^instantiate_generic(self)
             !! obj.INSTANTIATE-GENERIC(self)

@@ -1047,7 +1047,7 @@ my class Mu { # declared in BOOTSTRAP
     # Use proto to let child classes only have their own candidates for typeobject and instance invocators.
     proto method INSTANTIATE-GENERIC(Mu) {*}
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D --> Mu) is raw { self }
-    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D --> Mu) is raw { self }
+    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D --> Mu) is raw { self.clone }
 
     proto method isa(|) {*}
     multi method isa(Mu \SELF: Mu $type --> Bool:D) {

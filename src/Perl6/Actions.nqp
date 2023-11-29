@@ -3854,6 +3854,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $of_type := nqp::null;
         my $is_type := nqp::null;
+        my $*IS-TYPE-TRAIT := nqp::null;
 
         $world.handle_OFTYPE_for_pragma($/, $*SCOPE eq 'has' ?? 'attributes' !! 'variables');
         if $*OFTYPE {
@@ -3912,6 +3913,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                       $type.HOW.parameterize(
                                         $type, |$params.FLATTENABLE_LIST)
                                     );
+                                    $*IS-TYPE-TRAIT := $trait;
                                     next;  # handled the trait now
                                 }
                             }
@@ -6048,6 +6050,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 |%!named_args, |%additional);
         }
 
+        method match() { $!match }
         method mod() { $!trait_mod }
         method args() { @!pos_args }
     }

@@ -3756,10 +3756,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub check_default_value_type($/, $descriptor, $bind_constraint, $what) {
+        my $ddefault := $descriptor.default;
+        # We can't tell if attribute is properly declared because we don't know what the generics will instantiate into.
+        if $ddefault.HOW.archetypes.generic || $bind_constraint.HOW.archetypes.generic {
+            return
+        }
         my $matches;
         my $maybe := 0;
         try {
-            $matches := nqp::istype($descriptor.default, $bind_constraint);
+            $matches := nqp::istype($ddefault, $bind_constraint);
             CATCH {
                 $maybe := 1;
                 my $pl := nqp::getpayload($_);
@@ -3849,6 +3854,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $of_type := nqp::null;
         my $is_type := nqp::null;
+        my $*IS-TYPE-TRAIT := nqp::null;
 
         $world.handle_OFTYPE_for_pragma($/, $*SCOPE eq 'has' ?? 'attributes' !! 'variables');
         if $*OFTYPE {
@@ -3907,6 +3913,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                       $type.HOW.parameterize(
                                         $type, |$params.FLATTENABLE_LIST)
                                     );
+                                    $*IS-TYPE-TRAIT := $trait;
                                     next;  # handled the trait now
                                 }
                             }
@@ -3952,8 +3959,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 type => %cont_info<bind_constraint>,
                 package => $world.find_single_symbol('$?CLASS'));
             if %cont_info<build_ast> {
-                %config<container_initializer> := $*W.create_thunk($/,
-                    %cont_info<build_ast>);
+                my $build-ast := %cont_info<build_ast>;
+                my $build-thunk;
+                if $build-ast.ann('is-generic') {
+                    # If the initializer is a generic type it would need to be resolved into its final value. To do
+                    # so the codeobject must keep the closure to have access to role's arguments.
+                    my $bblock := $world.push_lexpad($/);
+                    $bblock.blocktype('declaration_static');
+                    $bblock.push($build-ast);
+                    $world.pop_lexpad();
+                    $build-thunk := $world.create_code_obj_and_add_child($bblock, 'Code');
+                    $world.cur_lexpad()[0].push(
+                        block_closure(
+                            reference_to_code_object($build-thunk, $bblock)));
+                }
+                else {
+                    $build-thunk := $*W.create_thunk($/, $build-ast, :mark-wanted);
+                }
+                %config<container_initializer> := $build-thunk;
             }
             my $attr := $world.pkg_add_attribute($/, $package, $metaattr,
                 %config, %cont_info, $descriptor);
@@ -6027,6 +6050,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 |%!named_args, |%additional);
         }
 
+        method match() { $!match }
         method mod() { $!trait_mod }
         method args() { @!pos_args }
     }

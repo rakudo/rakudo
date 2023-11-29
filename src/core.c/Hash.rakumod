@@ -433,6 +433,17 @@ my class Hash { # declared in BOOTSTRAP
         nqp::bindattr(self, Map, '$!storage', nqp::getattr(handle, LTHandle, '$!storage'));
     }
 
+    proto method is-generic {*}
+    multi method is-generic(::?CLASS:U:) { False }
+    multi method is-generic(::?CLASS:D:) { nqp::hllbool($!descriptor.is_generic) }
+
+    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment) is raw {
+        $!descriptor.is_generic
+            ??  nqp::p6bindattrinvres(
+                    self.clone, Hash, '$!descriptor', type-environment.instantiate($!descriptor) )
+            !! self.clone
+    }
+
     method ^parameterize(Mu:U \hash, Mu \of, Mu \keyof = Str(Any)) {
 
         # fast path

@@ -1756,7 +1756,7 @@ BEGIN {
                                 ?? ($avcv.is_generic()
                                     ?? $avcv.instantiate_generic($type_environment)
                                     !! nqp::clone_nd($avc))
-                                !! ($avc.HOW.archetypes.generic || $type.HOW.archetypes.generic
+                                !! (($avc.HOW.archetypes.generic || $avc.is-generic || $type.HOW.archetypes.generic)
                                     ?? $avc.HOW.instantiate_generic($avc, $type_environment)
                                     !! $avc);
             unless nqp::eqaddr($avc_copy, $avc) {

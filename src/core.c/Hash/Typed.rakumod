@@ -32,13 +32,17 @@ my role Hash::Typed[::TValue] does Associative[TValue] {
         )
     }
 
-    method is-generic { nqp::hllbool(nqp::istrue(TValue.^archetypes.generic)) }
+    method is-generic {
+        nqp::hllbool(callsame() || nqp::istrue(TValue.^archetypes.generic))
+    }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
         Hash.^parameterize: type-environment.instantiate(TValue)
     }
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
-        Hash.^parameterize( type-environment.instantiate(TValue) ).new(self)
+        my Mu $descr := type-environment.instantiate( nqp::getattr(self, Hash, '$!descriptor') );
+        nqp::p6bindattrinvres(
+            Hash.^parameterize( type-environment.instantiate(TValue) ).new(self), Hash, '$!descriptor', $descr )
     }
 
     multi method raku(::?CLASS:D \SELF:) {

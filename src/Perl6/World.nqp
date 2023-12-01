@@ -1908,7 +1908,7 @@ class Perl6::World is HLL::World {
         my sub containter-init-ast($cont_type) {
             my $new-ast;
             my $is-generic := 0;
-            if $cont_type.HOW.archetypes.generic {
+            if $*SCOPE eq 'has' && $cont_type.HOW.archetypes.generic {
                 $is-generic := 1;
                 if (my $trait := $*IS-TYPE-TRAIT) && $trait.match()<circumfix> -> $circumfix {
                     # When it is `is Type[Param1, ...]` then the parameterization of a generic is better be done

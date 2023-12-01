@@ -2,8 +2,11 @@ my class Bag does Baggy {
     has ValueObjAt $!WHICH;
     has Int        $!total;
 
+    my role KeyOf[::CONSTRAINT] {
+        method keyof() { CONSTRAINT }
+    }
     method ^parameterize(Mu \base, Mu \type) {
-        my \what := base.^mixin(QuantHash::KeyOf[type]);
+        my \what := base.^mixin(KeyOf[type]);
         what.^set_name(base.^name ~ '[' ~ type.^name ~ ']');
         what
     }

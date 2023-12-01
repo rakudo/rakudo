@@ -131,9 +131,8 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
-        my Mu $obj := self;
-        my $bless := nqp::tryfindmethod(self,'bless');
-        nqp::eqaddr($bless, nqp::findmethod(Mu,'bless'))
+        nqp::eqaddr((my $bless := nqp::tryfindmethod(self,'bless')),
+                    nqp::findmethod(Mu,'bless'))
                 ?? nqp::create(self).BUILDALL(Empty, %attrinit)
                 !! $bless(self,|%attrinit)
     }
@@ -1041,13 +1040,6 @@ my class Mu { # declared in BOOTSTRAP
         }
         @pieces.DUMP-PIECES($before, :$indent-step);
     }
-
-    method is-generic is pure { False }
-
-    # Use proto to let child classes only have their own candidates for typeobject and instance invocators.
-    proto method INSTANTIATE-GENERIC(Mu) {*}
-    multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D --> Mu) is raw { self }
-    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D --> Mu) is raw { self.clone }
 
     proto method isa(|) {*}
     multi method isa(Mu \SELF: Mu $type --> Bool:D) {

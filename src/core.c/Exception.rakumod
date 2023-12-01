@@ -2698,7 +2698,7 @@ my class X::Cannot::Empty is Exception {
     }
 }
 my class X::Cannot::New is Exception {
-    has Mu $.class is built(:bind);
+    has $.class;
     method message() {
         "Cannot make a {$.class.^name} object using .new";
     }

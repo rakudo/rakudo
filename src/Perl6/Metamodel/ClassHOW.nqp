@@ -32,20 +32,11 @@ class Perl6::Metamodel::ClassHOW
     has $!composed;
     has $!is_pun;
     has $!pun_source; # If class is coming from a pun then this is the source role
-    has $!archetypes;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable );
-    my $archetypes-g := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable, :generic );
+    my $archetypes := Perl6::Metamodel::Archetypes.new(
+        :nominal(1), :inheritable(1), :augmentable(1) );
     method archetypes($obj?) {
-        $!archetypes // $archetypes
-    }
-
-    method refresh_archetypes($obj) {
-        my $dcobj := nqp::decont($obj);
-        $!archetypes :=
-            (nqp::can($dcobj, 'is-generic') && $dcobj.is-generic)
-                ?? $archetypes-g
-                !! $archetypes;
+        $archetypes
     }
 
     method new(*%named) {
@@ -261,8 +252,6 @@ class Perl6::Metamodel::ClassHOW
         self.compose_invocation($obj);
 #?endif
 
-        self.refresh_archetypes($obj);
-
         $obj
     }
 
@@ -308,10 +297,7 @@ class Perl6::Metamodel::ClassHOW
         if nqp::istype($obj.WHAT, $junction_type) && $junction_autothreader {
             my $p6name := nqp::hllizefor($name, 'Raku');
             return -> *@pos_args, *%named_args {
-                # Fallback on an undefined junction means no method found.
-                nqp::isconcrete(@pos_args[0])
-                    ?? $junction_autothreader($p6name, |@pos_args, |%named_args)
-                    !! nqp::null()
+                $junction_autothreader($p6name, |@pos_args, |%named_args)
             };
         }
 
@@ -363,11 +349,6 @@ class Perl6::Metamodel::ClassHOW
 
     method pun_source($obj) {
         $!pun_source
-    }
-
-    method instantiate_generic($obj, $type_environment) {
-        return $obj if nqp::isnull(my $type-env-type := Perl6::Metamodel::Configuration.type_env_type);
-        $obj.INSTANTIATE-GENERIC($type-env-type.new-from-ctx($type_environment))
     }
 }
 

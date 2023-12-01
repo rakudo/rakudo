@@ -49,10 +49,6 @@ role Perl6::Metamodel::MultipleInheritance {
                     $parent.HOW.name($parent) ~ "'");
             }
         }
-        # With a new parent full method list would have to be refreshed.
-        if nqp::istype(self, Perl6::Metamodel::MROBasedMethodDispatch) {
-            self.invalidate_method_caches($obj);
-        }
         if $hides {
             @!hides[+@!hides] := $parent;
         }

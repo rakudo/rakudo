@@ -23,7 +23,6 @@ my role Hash::Typed[::TValue] does Associative[TValue] {
           (existing = assignval)
         )
     }
-
     method BIND-KEY(Mu \key, TValue \value) is raw {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
@@ -31,20 +30,6 @@ my role Hash::Typed[::TValue] does Associative[TValue] {
           value
         )
     }
-
-    method is-generic {
-        nqp::hllbool(callsame() || nqp::istrue(TValue.^archetypes.generic))
-    }
-
-    multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
-        Hash.^parameterize: type-environment.instantiate(TValue)
-    }
-    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
-        my Mu $descr := type-environment.instantiate( nqp::getattr(self, Hash, '$!descriptor') );
-        nqp::p6bindattrinvres(
-            Hash.^parameterize( type-environment.instantiate(TValue) ).new(self), Hash, '$!descriptor', $descr )
-    }
-
     multi method raku(::?CLASS:D \SELF:) {
         SELF.rakuseen('Hash', {
             '$' x nqp::iscont(SELF)  # self is always deconted

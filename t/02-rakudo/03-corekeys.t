@@ -731,7 +731,6 @@ my @allowed =
       Q{Tappable},
       Q{Thread},
       Q{ThreadPoolScheduler},
-      Q{TypeEnv},
       Q{True},
       Q{UINT64_UPPER},
       Q{UInt},

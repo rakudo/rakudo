@@ -3966,7 +3966,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     # so the codeobject must keep the closure to have access to role's arguments.
                     my $bblock := $world.push_lexpad($/);
                     $bblock.blocktype('declaration_static');
-                    $bblock.push($build-ast);
+                    $bblock[0].push(QAST::Stmt.new($build-ast));
                     $world.pop_lexpad();
                     $build-thunk := $world.create_code_obj_and_add_child($bblock, 'Code');
                     $world.cur_lexpad()[0].push(

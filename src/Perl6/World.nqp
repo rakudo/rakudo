@@ -1921,14 +1921,14 @@ class Perl6::World is HLL::World {
                     $params-ast.flat(1);
                     my $type-ast := QAST::WVal.new( :value($trait.args[0]) );
                     $BLOCK[0].push(
-                        QAST::Op.new(
-                            :op<bind>,
-                            QAST::Var.new( :name($ins_lexical), :scope<lexical>, :decl<var> ),
+                        QAST::Stmt.new(
                             QAST::Op.new(
-                                :op<callmethod>, :name<parameterize>,
-                                QAST::Op.new( :op<how>, $type-ast ),
-                                $type-ast, $params-ast )
-                        )
+                                :op<bind>,
+                                QAST::Var.new( :name($ins_lexical), :scope<lexical>, :decl<var> ),
+                                QAST::Op.new(
+                                    :op<callmethod>, :name<parameterize>,
+                                    QAST::Op.new( :op<how>, $type-ast ),
+                                    $type-ast, $params-ast )))
                     );
                     $new-ast := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
                 }

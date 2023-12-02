@@ -108,6 +108,21 @@ my class RoleToClassApplier {
                                 && (!nqp::istype($!to_compose_meta, Perl6::Metamodel::LanguageRevision)
                                     || $!to_compose.HOW.language_revision($!to_compose) < 3);
 
+        if @!roles && !$with_submethods && nqp::can($!target.HOW, 'concretizations') {
+            my @concs := $!target.HOW.concretizations($!target, :local);
+            my $idx := nqp::elems(@concs);
+
+            while --$idx >= 0 {
+                my $conc := @concs[$idx];
+                my $how := $conc.HOW;
+                if nqp::can($how, 'submethod_table')
+                    && nqp::existskey( (my %submethod-table := $how.submethod_table($conc)), 'COMPOSE' )
+                {
+                    %submethod-table<COMPOSE>($conc);
+                }
+            }
+        }
+
         # Compose in any methods.
         sub compose_method_table(@methods, @method_names) {
             my $method_iterator := nqp::iterator(@methods);

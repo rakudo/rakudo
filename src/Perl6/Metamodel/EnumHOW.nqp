@@ -20,6 +20,8 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
     does Perl6::Metamodel::Mixins
+    does Perl6::Metamodel::Concretization
+    does Perl6::Metamodel::ConcretizationCache
 {
     # Hash representing enumeration keys to values.
     has %!values;
@@ -126,9 +128,12 @@ class Perl6::Metamodel::EnumHOW
                 self.check-type-compat($obj, $ins, [3])
                     if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
+                self.add_concretization($obj, $r, $ins);
             }
             $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
             $rtca.prepare($obj, @ins_roles);
+
+            self.wipe_conc_cache;
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.

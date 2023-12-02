@@ -240,6 +240,15 @@ class CompUnit::PrecompilationStore::FileSystem
              }
              $subdir.rmdir;
          }
+         dd "let's just try the delete loop again";
+         for $compiler-dir.dir -> $subdir {
+             dd $subdir;
+             for $subdir.dir -> $subsubdir {
+                 dd $subsubdir;
+                 $subsubdir.unlink;
+             }
+             $subdir.rmdir;
+         }
          $compiler-dir.rmdir;
     }
 

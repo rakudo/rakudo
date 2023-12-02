@@ -28,7 +28,7 @@ variables:
     Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
   RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
-  MOAR_CHECKOUT_TYPE: downstream
+  MOAR_CHECKOUT_TYPE: MV1780
 
 stages:
 - stage: Test

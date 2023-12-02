@@ -229,8 +229,15 @@ class CompUnit::PrecompilationStore::FileSystem
 
     method delete-by-compiler(CompUnit::PrecompilationId:D $compiler-id) {
          my $compiler-dir := self.prefix.add($compiler-id);
+         dd "in delete-by-compiler";
+         dd $compiler-id;
+         dd $compiler-dir;
          for $compiler-dir.dir -> $subdir {
-             .unlink for $subdir.dir;
+             dd $subdir;
+             for $subdir.dir -> $subsubdir {
+                 dd $subsubdir;
+                 $subsubdir.unlink;
+             }
              $subdir.rmdir;
          }
          $compiler-dir.rmdir;

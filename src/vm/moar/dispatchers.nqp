@@ -2838,6 +2838,7 @@ sub multi-ambiguous-handler($ambig-call, $target, $capture) {
 # Helper sub to filter out revision-gated multi-candidates
 sub multi-filter-revision-gated-candidates($proto, $caller-revision) {
     my @candidates := $proto.dispatch_order;
+    my $proto-revision := $proto.REQUIRED-REVISION;
 
     my int $idx := 0;
     my int $allowed-idx := 0;
@@ -2852,11 +2853,12 @@ sub multi-filter-revision-gated-candidates($proto, $caller-revision) {
             next;
         }
 
-        my $required-revision := nqp::atkey($candidate, 'required_revision');
-        my $is-revision-specified := nqp::isconcrete($required-revision);
-        if !$is-revision-specified || $required-revision <= $caller-revision  {
-            if (nqp::existskey($candidate, 'signature')) && $is-revision-specified {
-                my $signature := nqp::atkey($candidate, 'signature').raku;
+        # If the candidate does not explicitly specify a revision, we use the revision set on the proto
+        my $required-revision := nqp::atkey($candidate, 'required_revision') // $proto-revision;
+        if $required-revision <= $caller-revision {
+            if nqp::existskey($candidate, 'signature') {
+                my $signature := nqp::atkey($candidate, 'signature').gist;
+
                 if nqp::existskey(%gated-candidates, $signature) {
                     my $candidate-idx := nqp::atkey(%gated-candidates, $signature);
                     my $last-seen-revision := nqp::atkey(
@@ -2880,7 +2882,16 @@ sub multi-filter-revision-gated-candidates($proto, $caller-revision) {
         }
     }
 
-    @allowed-candidates
+    my @final-candidates;
+    my int $final-idx := 0;
+    while $final-idx < nqp::elems(@allowed-candidates) {
+        my $candidate := nqp::atpos(@allowed-candidates, $final-idx++);
+        unless nqp::eqaddr($candidate, Mu) {
+            nqp::push(@final-candidates, $candidate);
+        }
+    }
+
+    @final-candidates
 }
 
 # The actual dispatcher

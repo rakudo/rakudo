@@ -499,6 +499,7 @@ my class IO::Path is Cool does IO {
         my str $path = self.absolute;
 #?if moar
         my $stat := nqp::syscall("file-stat", nqp::decont_s($path), 0);
+        die "Path does not exist" unless nqp::syscall("stat-flags", $stat, nqp::const::STAT_EXISTS);
 #?endif
         $uid = $uid.defined
           ?? $uid.UInt

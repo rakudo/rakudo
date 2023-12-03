@@ -729,6 +729,7 @@ my @expected = (
   Q{Thread},
   Q{ThreadPoolScheduler},
   Q{True},
+  Q{TypeEnv},
   Q{UINT64_UPPER},
   Q{UInt},
   Q{UIntAttrRef},

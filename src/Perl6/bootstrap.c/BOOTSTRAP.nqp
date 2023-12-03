@@ -77,6 +77,7 @@ my stub array metaclass Perl6::Metamodel::ClassHOW is repr('VMArray') { ... };
 my stub IterationBuffer metaclass Perl6::Metamodel::ClassHOW is repr('VMArray') { ... };
 my stub Map metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Hash metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub TypeEnv metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Capture metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Bool metaclass Perl6::Metamodel::EnumHOW { ... };
 my stub ObjAt metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -1196,7 +1197,7 @@ class ContainerDescriptor does Perl6::Metamodel::Explaining {
     method set_dynamic($dynamic) { $!dynamic := $dynamic; self }
 
     method is_generic() {
-        $!of.HOW.archetypes($!of).generic
+        $!of.HOW.archetypes($!of).generic || $!default.HOW.archetypes($!default).generic
     }
 
     method is_default_generic() {
@@ -1204,7 +1205,10 @@ class ContainerDescriptor does Perl6::Metamodel::Explaining {
     }
 
     method instantiate_generic($type_environment) {
-        my $ins_of := $!of.HOW.instantiate_generic($!of, $type_environment);
+        my $ins_of :=
+            $!of.HOW.archetypes($!of).generic
+                ?? $!of.HOW.instantiate_generic($!of, $type_environment)
+                !! $!of;
         my $ins_default := self.is_default_generic ?? $!default.HOW.instantiate_generic($!default, $type_environment) !! $!default;
         my $ins := nqp::clone(self);
         nqp::bindattr($ins, $?CLASS, '$!of', $ins_of);
@@ -1736,14 +1740,39 @@ BEGIN {
             if $type.HOW.archetypes($type).generic {
                 nqp::bindattr($ins, Attribute, '$!type',
                     $type.HOW.instantiate_generic($type, $type_environment));
-                my $cd_ins := $cd.instantiate_generic($type_environment);
+            }
+            my $cd_ins := $cd;
+            if $cd.is_generic {
+                $cd_ins := $cd.instantiate_generic($type_environment);
                 nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
-                my $avc_copy := nqp::clone_nd($avc);
-                my @avc_mro  := nqp::how_nd($avc).mro($avc);
-                my int $i := 0;
-                $i := $i + 1 while @avc_mro[$i].HOW.is_mixin(@avc_mro[$i]);
-                nqp::bindattr($avc_copy, @avc_mro[$i], '$!descriptor', $cd_ins);
-                nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc_copy);
+            }
+            my $avc-copy;
+            my $avc-is-generic;
+            if nqp::iscont($avc) {
+                # If $avc is a container then simulate nqp::p6var (.VAR) behavior
+                my $avcv := nqp::create(ScalarVAR);
+                nqp::bindattr($avcv, Scalar, '$!value', nqp::clone_nd($avc));
+                $avc-copy := ($avc-is-generic := $avcv.is_generic())
+                                ?? $avcv.instantiate_generic($type_environment)
+                                !! $avc;
+            }
+            else {
+                $avc-copy := ($avc-is-generic := ($avc.HOW.archetypes($avc).generic || $avc.is-generic
+                                                  || $type.HOW.archetypes($type).generic))
+                                ?? $avc.HOW.instantiate_generic($avc, $type_environment)
+                                !! $avc;
+            }
+            if $avc-is-generic {
+                if nqp::isconcrete_nd($avc-copy) {
+                    my @avc_mro  := nqp::how_nd($avc-copy).mro($avc-copy);
+                    my int $i := 0;
+                    my $avc_mro;
+                    $i := $i + 1 while ($avc_mro := @avc_mro[$i]).HOW.is_mixin($avc_mro);
+                    if $avc_mro.HOW.has_attribute($avc_mro, '$!descriptor') {
+                        nqp::bindattr($avc-copy, $avc_mro, '$!descriptor', $cd_ins);
+                    }
+                }
+                nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc-copy);
             }
             if $pkg.HOW.archetypes($pkg).generic {
                 nqp::bindattr($ins, Attribute, '$!package',
@@ -1764,7 +1793,8 @@ BEGIN {
     Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
     Scalar.HOW.add_method(Scalar, 'is_generic', nqp::getstaticcode(sub ($self) {
         my $dcself := nqp::decont($self);
-        nqp::getattr($dcself, Scalar, '$!descriptor').is_generic()
+        my $descr := nqp::getattr($dcself, Scalar, '$!descriptor');
+        $descr.is_generic() || $descr.is_default_generic()
     }));
     Scalar.HOW.add_method(Scalar, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
         my $dcself := nqp::decont($self);
@@ -3760,6 +3790,11 @@ BEGIN {
     Hash.HOW.compose_repr(Hash);
     nqp::settypehllrole(Hash, 5);
 
+    # my class TypeEnv is Map {
+    TypeEnv.HOW.add_parent(TypeEnv, Map);
+    TypeEnv.HOW.compose_repr(TypeEnv);
+    nqp::settypehllrole(TypeEnv, 5);
+
     # class Capture is Any {
     #     has @!list;
     #     has %!hash;
@@ -3888,6 +3923,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(IterationBuffer);
     Perl6::Metamodel::ClassHOW.add_stash(Map);
     Perl6::Metamodel::ClassHOW.add_stash(Hash);
+    Perl6::Metamodel::ClassHOW.add_stash(TypeEnv);
     Perl6::Metamodel::ClassHOW.add_stash(Capture);
     Perl6::Metamodel::EnumHOW.add_stash(Bool);
     Perl6::Metamodel::ClassHOW.add_stash(ObjAt);
@@ -4003,6 +4039,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<IterationBuffer> := IterationBuffer;
     EXPORT::DEFAULT.WHO<Map>        := Map;
     EXPORT::DEFAULT.WHO<Hash>       := Hash;
+    EXPORT::DEFAULT.WHO<TypeEnv>    := TypeEnv;
     EXPORT::DEFAULT.WHO<Capture>    := Capture;
     EXPORT::DEFAULT.WHO<ObjAt>      := ObjAt;
     EXPORT::DEFAULT.WHO<ValueObjAt> := ValueObjAt;

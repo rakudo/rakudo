@@ -1450,6 +1450,17 @@ my class Array { # declared in BOOTSTRAP
         nqp::bindattr(self, Array, '$!descriptor', nqp::getattr(handle, LTHandle, '$!descriptor'));
     }
 
+    proto method is-generic {*}
+    multi method is-generic(::?CLASS:U:) { False }
+    multi method is-generic(::?CLASS:D:) { nqp::hllbool($!descriptor.is_generic) }
+
+    multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment) is raw {
+        $!descriptor.is_generic
+            ??  nqp::p6bindattrinvres(
+                    self.clone, Array, '$!descriptor', type-environment.instantiate($!descriptor) )
+            !! self.clone
+    }
+
     method ^parameterize(Mu:U \arr, Mu \of) {
         if nqp::isconcrete(of) {
             die "Can not parameterize {arr.^name} with {of.raku}"

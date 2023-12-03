@@ -41,7 +41,7 @@ class Perl6::Metamodel::CurriedRoleHOW
             }
         }
         for %!named_args {
-            if $_.value.HOW.archetypes($_.value).generic {
+            if (my $value := $_.value).HOW.archetypes($value).generic {
                 return $archetypes_g;
             }
         }

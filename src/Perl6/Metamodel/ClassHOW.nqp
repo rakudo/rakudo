@@ -32,15 +32,35 @@ class Perl6::Metamodel::ClassHOW
     has $!composed;
     has $!is_pun;
     has $!pun_source; # If class is coming from a pun then this is the source role
+    has $!archetypes;
+    has $!archt-lock;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new(
-        :nominal(1), :inheritable(1), :augmentable(1) );
-    method archetypes($obj?) {
-        $archetypes
+    my $archetypes-ng := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable );
+    my $archetypes-g  := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable, :generic );
+
+    method archetypes($obj = nqp::null()) {
+#?if moar
+        # The dispatcher itself is declared at the end of this file. We can't have it in the BOOTSTRAP because the
+        # bootstrap process is using archetypes long before dispatchers from dispatchers.nqp gets registered.
+        nqp::dispatch('raku-class-archetypes', self, $obj)
+#?endif
+#?if !moar
+        if nqp::isconcrete(my $dcobj := nqp::decont($obj)) && nqp::can($dcobj, 'is-generic') {
+            return $dcobj.is-generic ?? $archetypes-g !! $archetypes-ng;
+        }
+        $!archetypes // $archetypes-ng
+#?endif
     }
 
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
+    }
+
+    method !refresh_archetypes($obj) {
+        $!archetypes :=
+            nqp::can($obj, 'is-generic') && $obj.is-generic
+                ?? $archetypes-g
+                !! $archetypes-ng
     }
 
     my $id_lock := NQPLock.new;
@@ -63,6 +83,7 @@ class Perl6::Metamodel::ClassHOW
         $metaclass.set_auth($obj, $auth) if $auth;
         $metaclass.set_api($obj, $api) if $api;
         $metaclass.setup_mixin_cache($obj);
+        nqp::bindattr($metaclass, Perl6::Metamodel::ClassHOW, '$!archt-lock', NQPLock.new);
         nqp::setboolspec($obj, 5, nqp::null());
         $obj
     }
@@ -252,6 +273,8 @@ class Perl6::Metamodel::ClassHOW
         self.compose_invocation($obj);
 #?endif
 
+        self.'!refresh_archetypes'($obj);
+
         $obj
     }
 
@@ -297,7 +320,10 @@ class Perl6::Metamodel::ClassHOW
         if nqp::istype($obj.WHAT, $junction_type) && $junction_autothreader {
             my $p6name := nqp::hllizefor($name, 'Raku');
             return -> *@pos_args, *%named_args {
-                $junction_autothreader($p6name, |@pos_args, |%named_args)
+                # Fallback on an undefined junction means no method found.
+                nqp::isconcrete(@pos_args[0])
+                    ?? $junction_autothreader($p6name, |@pos_args, |%named_args)
+                    !! nqp::null()
             };
         }
 
@@ -350,6 +376,74 @@ class Perl6::Metamodel::ClassHOW
     method pun_source($obj) {
         $!pun_source
     }
+
+    method instantiate_generic($obj, $type_environment) {
+        return $obj if nqp::isnull(my $type-env-type := Perl6::Metamodel::Configuration.type_env_type);
+        $obj.INSTANTIATE-GENERIC($type-env-type.new-from-ctx($type_environment))
+    }
+
+#?if moar
+    nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-class-archetypes', -> $capture {
+        # Returns archetypes of a class or a class instance
+        # Dispatcher arguments:
+        # ClassHOW object
+        # invocator
+        my $how := nqp::captureposarg($capture, 0);
+
+        my $track-how := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-how);
+
+        unless nqp::isconcrete($how) {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant', $archetypes-ng);
+        }
+
+        my $obj := nqp::captureposarg($capture, 1);
+        my $track-obj := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-obj);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-obj);
+
+        if nqp::isconcrete_nd($obj) && nqp::iscont($obj) {
+            my $Scalar := nqp::gethllsym('Raku', 'Scalar');
+            my $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-obj, $Scalar, '$!value');
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-value);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-value);
+            $obj := nqp::getattr($obj, $Scalar, '$!value');
+        }
+
+        my $can-is-generic := !nqp::isnull($obj) && nqp::can($obj, 'is-generic');
+        my $atype;
+
+        if nqp::isconcrete($obj) && $can-is-generic {
+            # If invocant of .HOW.archetypes is a concrete object implementing 'is-generic' method then method outcome
+            # is the ultimate result. But we won't cache it in type's HOW $!archetypes.
+            $atype := $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
+        }
+        else {
+            my $track-archetypes-attr :=
+                nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $track-how, Perl6::Metamodel::ClassHOW, '$!archetypes');
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-archetypes-attr);
+
+            $atype := nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes');
+        }
+
+        unless nqp::isconcrete($atype) {
+            # * If we still don't have an archetypes object then it means HOW doesn't know its archetypes yet. Therefore
+            #   whatever we determine here is type's ultimate archetypes.
+            # * Also, since we've taken care of a concrete object case then here 'is-generic' is invoked on the type
+            #   itself, not an instance of it.
+            $atype := $can-is-generic && $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
+            nqp::scwbdisable();
+            nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archt-lock').protect({
+                nqp::bindattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes', $atype);
+            });
+            nqp::scwbenable();
+        }
+
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0, $atype));
+    });
+#?endif
 }
 
 # vim: expandtab sw=4

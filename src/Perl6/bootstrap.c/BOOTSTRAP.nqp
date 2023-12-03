@@ -1746,30 +1746,33 @@ BEGIN {
                 $cd_ins := $cd.instantiate_generic($type_environment);
                 nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
             }
-            my $avcv := $avc;
+            my $avc-copy;
+            my $avc-is-generic;
             if nqp::iscont($avc) {
                 # If $avc is a container then simulate nqp::p6var (.VAR) behavior
-                $avcv := nqp::create(ScalarVAR);
-                nqp::bindattr($avcv, Scalar, '$!value', $avc);
+                my $avcv := nqp::create(ScalarVAR);
+                nqp::bindattr($avcv, Scalar, '$!value', nqp::clone_nd($avc));
+                $avc-copy := ($avc-is-generic := $avcv.is_generic())
+                                ?? $avcv.instantiate_generic($type_environment)
+                                !! $avc;
             }
-            my $avc_copy := nqp::iscont($avc)
-                                ?? ($avcv.is_generic()
-                                    ?? $avcv.instantiate_generic($type_environment)
-                                    !! nqp::clone_nd($avc))
-                                !! (($avc.HOW.archetypes.generic || $avc.is-generic || $type.HOW.archetypes.generic)
-                                    ?? $avc.HOW.instantiate_generic($avc, $type_environment)
-                                    !! $avc);
-            unless nqp::eqaddr($avc_copy, $avc) {
-                if nqp::isconcrete_nd($avc_copy) {
-                    my @avc_mro  := nqp::how_nd($avc_copy).mro($avc_copy);
+            else {
+                $avc-copy := ($avc-is-generic := ($avc.HOW.archetypes($avc).generic || $avc.is-generic
+                                                  || $type.HOW.archetypes($type).generic))
+                                ?? $avc.HOW.instantiate_generic($avc, $type_environment)
+                                !! $avc;
+            }
+            if $avc-is-generic {
+                if nqp::isconcrete_nd($avc-copy) {
+                    my @avc_mro  := nqp::how_nd($avc-copy).mro($avc-copy);
                     my int $i := 0;
                     my $avc_mro;
                     $i := $i + 1 while ($avc_mro := @avc_mro[$i]).HOW.is_mixin($avc_mro);
                     if $avc_mro.HOW.has_attribute($avc_mro, '$!descriptor') {
-                        nqp::bindattr($avc_copy, $avc_mro, '$!descriptor', $cd_ins);
+                        nqp::bindattr($avc-copy, $avc_mro, '$!descriptor', $cd_ins);
                     }
                 }
-                nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc_copy);
+                nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc-copy);
             }
             if $pkg.HOW.archetypes($pkg).generic {
                 nqp::bindattr($ins, Attribute, '$!package',

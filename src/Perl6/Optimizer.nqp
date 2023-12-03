@@ -2628,6 +2628,41 @@ class Perl6::Optimizer {
             $visit_children_mode := 'sm_chain';
         }
 
+        # Try to re-write list assignment into a list of assignments, e.g., `($a, $b) = ($c, $d);` into `$a = $c; $b = $d;`
+        # Right now we require the length of the two sides to be the same, and the LHS to only have vars. And if the RHS
+        # has any vars with the same name as already seen on the LHS, just bail, because `($a, $b) = ($b, $a);` cannot be
+        # turned into `$a = $b; $b = $a;`.
+        if $!level >= 2 && $optype eq 'p6store' && nqp::elems($op) == 2 && nqp::istype($op[0], QAST::Stmts) && nqp::istype($op[1], QAST::Stmts) &&
+          nqp::istype($op[0][0], QAST::Op) && $op[0][0].op eq 'call' && $op[0][0].name eq '&infix:<,>' && $!symbols.is_from_core($op[0][0].name) &&
+          nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'call' && $op[1][0].name eq '&infix:<,>' && $!symbols.is_from_core($op[1][0].name) &&
+          (my int $elems := nqp::elems($op[0][0].list)) == nqp::elems($op[1][0].list) {
+            self.visit_op_children($op);
+            my $rhs_list := $op[1];
+            # RHS is constants, e.g., `($a, $b) = (1, 2);`
+            if nqp::istype($rhs_list, QAST::WVal) && nqp::istype($rhs_list.value, $!symbols.find_in_setting("List")) {
+                $rhs_list := nqp::getattr($rhs_list.value, $!symbols.find_in_setting("List"), '$!reified');
+            }
+            my $stmts := QAST::Stmts.new;
+            my int $safe := 1;
+            my %lhs_vars := nqp::hash;
+            my int $i := -1;
+            while ++$i < $elems {
+                my $lhs := $op[0][$i];
+                my $rhs := $rhs_list[$i];
+                if !nqp::istype($lhs, QAST::Var) {
+                    $safe := 0;
+                    last;
+                }
+                %lhs_vars{$lhs.name} := 1;
+                if nqp::istype($rhs, QAST::Var) && nqp::existskey(%lhs_vars, $rhs.name) {
+                    $safe := 0;
+                    last;
+                }
+                $stmts.push(QAST::Op.new(:op('p6assign'), $lhs, nqp::istype($rhs, QAST::Var) ?? $rhs !! QAST::WVal.new(:value($rhs))));
+            }
+            return $stmts if $safe;
+        }
+
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
         if ($optype eq 'p6for' || $optype eq 'p6forstmt') && $op.sunk && nqp::elems($op) == 2 {

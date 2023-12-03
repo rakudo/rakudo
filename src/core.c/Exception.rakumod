@@ -3345,6 +3345,15 @@ my class X::Multi::NoMatch is Exception {
     has $.capture;
     method message {
         my @cand = $.dispatcher.dispatchees.map(*.signature.gist);
+
+        if $!dispatcher.can('REQUIRED-REVISION') && $!dispatcher.REQUIRED-REVISION {
+            @cand = @cand Z~ $!dispatcher.dispatchees.map({
+                $^c.can('REQUIRED-REVISION')
+                        ?? Q:c[ is revision-gated("6.{nqp::chr(nqp::ord('c') + ($c.REQUIRED-REVISION - 1))}")]
+                        !! ""
+            })
+        }
+
         my @un-rw-cand;
         if first / 'is rw' /, @cand {
             my $rw-capture = Capture.new(

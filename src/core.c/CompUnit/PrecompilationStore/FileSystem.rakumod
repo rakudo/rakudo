@@ -232,18 +232,9 @@ class CompUnit::PrecompilationStore::FileSystem
          dd "in delete-by-compiler";
          dd $compiler-id;
          dd $compiler-dir;
-         for $compiler-dir.dir -> $subdir {
+         for $compiler-dir.dir.list -> $subdir {
              dd $subdir;
-             for $subdir.dir -> $subsubdir {
-                 dd $subsubdir;
-                 $subsubdir.unlink;
-             }
-             $subdir.rmdir;
-         }
-         dd "let's just try the delete loop again";
-         for $compiler-dir.dir -> $subdir {
-             dd $subdir;
-             for $subdir.dir -> $subsubdir {
+             for $subdir.dir.list -> $subsubdir {
                  dd $subsubdir;
                  $subsubdir.unlink;
              }

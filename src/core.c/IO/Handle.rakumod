@@ -404,12 +404,15 @@ my class IO::Handle {
         has $!chomp;
         has $!decoder;
         has $!close;
-        method new(\handle,\close) {
+        method new(\handle,\close,\chomp) {
             my \res = nqp::create(self);
             nqp::bindattr(res, self.WHAT, '$!handle', handle);
             nqp::bindattr(res, self.WHAT, '$!close', close);
             nqp::bindattr(res, self.WHAT, '$!chomp',
-                nqp::getattr(handle, IO::Handle, '$!chomp'));
+              chomp.defined
+                ?? chomp   # explicit chomp behaviour requested, use that
+                !! nqp::getattr(handle, IO::Handle, '$!chomp')
+            );
             nqp::p6bindattrinvres(res, self.WHAT, '$!decoder',
                 nqp::getattr(handle, IO::Handle, '$!decoder'))
         }
@@ -463,9 +466,10 @@ my class IO::Handle {
     my class GetLineSlow does Iterator {
         has $!handle;
         has $!close;
-        method new(\handle,\close) {
+        method new(\handle,\close,\chomp) {
             my \res = nqp::create(self);
             nqp::bindattr(res, self.WHAT, '$!close', close);
+            handle.chomp = chomp if chomp.defined;
             nqp::p6bindattrinvres(res,self.WHAT,'$!handle',handle)
         }
         method pull-one() {
@@ -492,25 +496,25 @@ my class IO::Handle {
               !! try $!handle.seek(0,SeekFromEnd)  # seek to end
         }
     }
-    method !LINES-ITERATOR(IO::Handle:D: $close) {
+    method !LINES-ITERATOR(IO::Handle:D: $close, $chomp) {
         $!decoder
           ?? nqp::eqaddr(self.WHAT,IO::Handle)
-            ?? GetLineFast.new(self,$close)   # exact type, can shortcircuit
-            !! GetLineSlow.new(self,$close)   # can *NOT* shortcircuit .get
+            ?? GetLineFast.new(self,$close,$chomp)  # exact type, shortcircuit
+            !! GetLineSlow.new(self,$close,$chomp)  # can NOT shortcircuit .get
           !! self!failed('lines')
     }
 
     proto method lines (|) {*}
-    multi method lines(IO::Handle:D \SELF: $limit, :$close) {
+    multi method lines(IO::Handle:D \SELF: $limit, :$close, :$chomp) {
         nqp::istype($limit,Whatever) || $limit == Inf
-          ?? Seq.new(self!LINES-ITERATOR($close))
+          ?? Seq.new(self!LINES-ITERATOR($close, $chomp))
           !! $close
             ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
-                self!LINES-ITERATOR(0), $limit.Int, {SELF.close}))
-            !! self.lines.head($limit.Int)
+                self!LINES-ITERATOR(0, $chomp), $limit.Int, {SELF.close}))
+            !! self.lines(:$chomp).head($limit.Int)
     }
-    multi method lines(IO::Handle:D \SELF: :$close) {
-        Seq.new(self!LINES-ITERATOR($close))
+    multi method lines(IO::Handle:D \SELF: :$close, :$chomp) {
+        Seq.new(self!LINES-ITERATOR($close, $chomp))
     }
 
     method read(IO::Handle:D: Int(Cool:D) $bytes = $*DEFAULT-READ-ELEMS) {

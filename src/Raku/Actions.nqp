@@ -1345,6 +1345,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method infix:sym<cmp>($/) {
         self.attach: $/, Nodify('Infix').new('cmp')
     }
+    method infix:sym<(cont)>($/) {
+        self.attach: $/, Nodify('Infix').new('(cont)')
+    }
     method infix:sym<coll>($/) {
         self.attach: $/, Nodify('Infix').new('coll')
     }
@@ -1353,6 +1356,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
     method infix:sym<does>($/) {
         self.attach: $/, Nodify('Infix').new('does')
+    }
+    method infix:sym<(elem)>($/) {
+        self.attach: $/, Nodify('Infix').new('(elem)')
     }
     method infix:sym<eq>($/) {
         self.attach: $/, Nodify('Infix').new('eq')

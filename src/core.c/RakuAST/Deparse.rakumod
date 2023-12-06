@@ -2628,7 +2628,9 @@ CODE
         }
 
         if $ast.where -> $where {
-            @parts.push(' where ');
+            @parts.push(' ');
+            @parts.push(self.xsyn('constraint', 'where'));
+            @parts.push(' ');
             @parts.push(self.deparse($where));
         }
 

@@ -3,6 +3,8 @@ use Test;
 use nqp;
 
 # This test belongs to the Roast but not before there is common MOP API that allows not to use nqp ops.
+#
+plan 8;
 
 role InsHOW {
     has $!ins-orig;
@@ -113,3 +115,5 @@ is $ci.gimme-the-G.^name, 'R::S::G_2', 'method body resolves generic class into 
 cmp-ok $ci.gimme-the-G.^base-type, &[=:=], Int:D, "class instantiated over role's Int:D arguments";
 
 check-role "After Instantiations";
+
+done-testing;

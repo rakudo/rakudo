@@ -91,6 +91,11 @@ class Perl6::Metamodel::Configuration {
     my $type-env-type := nqp::null();
     method set_type_env_type($type) { $type-env-type := $type }
     method type_env_type()          { $type-env-type }
+    method type_env_from($ctx) {
+        return nqp::null() if nqp::isnull($type-env-type);
+        return $ctx if nqp::istype($ctx, $type-env-type);
+        $type-env-type.new-from-ctx($ctx)
+    }
 }
 
 # vim: expandtab sw=4

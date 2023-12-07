@@ -167,9 +167,9 @@ class Perl6::Metamodel::ParametricRoleHOW
                 my $error;
                 try {
                     my @result := $!body_block(|@pos_args, |%named_args);
-                    $type_env := @result[1];
+                    $type_env := nqp::ifnull(Perl6::Metamodel::Configuration.type_env_from(@result[1]), @result[1]);
                     CATCH {
-                        $error := $!
+                        $error := $!;
                     }
                 }
                 if $error {
@@ -179,7 +179,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                         "Could not instantiate role '" ~ self.name($obj)
                             ~ "':\n" ~ ($exception || nqp::getmessage($error)),
                         :role($obj),
-                        :$exception
+                        :exception($error)
                     )
                 }
 
@@ -195,6 +195,21 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method specialize_with($obj, $conc, $type_env, @pos_args) {
+        my $hll-typeenv := nqp::can($type_env, 'instantiate');
+        my $ctx := $hll-typeenv ?? $type_env.ctx !! $type_env;
+        my $ctx-iter := nqp::iterator($ctx);
+        while $ctx-iter {
+            my $decl := nqp::shift($ctx-iter);
+            if nqp::eqat((my $sym := nqp::iterkey_s($decl)), '!INS_OF_', 0) {
+                my $generic := nqp::iterval($decl);
+                nqp::bindkey(
+                    $ctx, $sym,
+                    ($hll-typeenv
+                        ?? $type_env.cache($generic)
+                        !! $generic.HOW.instantiate_generic($generic, $type_env)) );
+            }
+        }
+
         # Go through attributes, reifying as needed and adding to
         # the concrete role.
         for self.attributes($obj, :local(1)) {

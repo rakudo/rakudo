@@ -3383,6 +3383,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Handle parametricism for roles.
         if $*PKGDECL eq 'role' {
+            if nqp::isconcrete($*GENERICS) {
+                my $lexpad := $block[0];
+                my $gen_iter := nqp::iterator($*GENERICS);
+                while $gen_iter {
+                    my $decl := nqp::shift($gen_iter);
+                    $lexpad.push(
+                        QAST::Stmt.new(
+                            QAST::Op.new(
+                                :op<bind>,
+                                QAST::Var.new( :name(nqp::iterkey_s($decl)), :scope<lexical>, :decl<var> ),
+                                QAST::WVal.new( :value(nqp::iterval($decl)) ))));
+                }
+            }
             # Set up signature. Needs to have $?CLASS as an implicit
             # parameter, since any mention of it is generic.
             my %sig_info := $<signature> ?? $<signature>.ast !! hash(parameters => []);
@@ -3459,9 +3472,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $*POD_BLOCK.set_docee($package);
         }
 
-        make QAST::Stmts.new(
-            $block, QAST::WVal.new( :value($package) )
-        );
+        my $pkg-ast := QAST::Stmts.new($block, QAST::WVal.new( :value($package) ));
+
+        my $archetypes := $package.HOW.archetypes($package);
+        if $archetypes.generic && $archetypes.nominal && !$archetypes.parametric {
+            if nqp::isconcrete(my $generics := $*GENERICS) {
+                nqp::bindkey($generics, ins_lexical($package), $package);
+            }
+            else {
+                # This warning should be suppressible
+                $/.worry("Generic class '" ~ $package.HOW.name($package) ~ "' declared outside of generic scope");
+            }
+        }
+
+        make $pkg-ast;
     }
 
     # When code runs at BEGIN time, such as role bodies and BEGIN
@@ -10899,20 +10923,36 @@ Did you mean a call like '"
         )
     }
 
+    sub ins_lexical($type) {
+        '!INS_OF_' ~ $type.HOW.name($type)
+    }
+
     # Works out how to look up a type. If it's not generic and is in an SC, we
     # statically resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
         my $world := $*W;
-        CATCH {
+        my $err;
+        my $type := try {
+            CATCH { $err := $! }
+            $world.find_symbol(@name);
+        };
+        if $err {
             $world.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
         }
-        my $type := $world.find_symbol(@name);
-        my $is_generic :=
-            nqp::can($type.HOW, "archetypes")
-            && nqp::can($type.HOW.archetypes($type), "generic")
-            && $type.HOW.archetypes($type).generic;
+        my $archetypes := nqp::can($type.HOW, 'archetypes') ?? $type.HOW.archetypes($type) !! nqp::null();
+        my $is_generic := $archetypes && $archetypes.generic;
         my $past;
-        if $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
+        if nqp::isconcrete($archetypes) && $is_generic && $archetypes.nominal && !$archetypes.parametric {
+            my $ins_lexical := ins_lexical($type);
+            $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
+            if nqp::isconcrete($*GENERICS) {
+                nqp::bindkey($*GENERICS, $ins_lexical, $type);
+            }
+            else {
+                $/.worry("Generic class '" ~ $type.HOW.name($type) ~ "' is referenced outside of a role");
+            }
+        }
+        elsif $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
             $past := $world.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
         }

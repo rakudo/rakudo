@@ -800,6 +800,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*CAN_LOWER_TOPIC := 1;                # true if we optimize the $_ lexical away
         :my $*MAY_USE_RETURN := 0;                 # true if the current routine may use return
         :my $*WANT_RAKUAST := 0;                   # if `use experimental :rakuast` is in effect
+        :my $*GENERICS;                            # would be set by roles and by routines with type captures
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -1947,6 +1948,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*POD_BLOCK;
         :my $*BORG := {};
+        :my $*GENERICS := nqp::getlexreldyn(nqp::ctxcaller(nqp::ctx()), '$*GENERICS'); # shadow away any outer
         { $*DECLARATOR_DOCS := '' }
         <.attach_leading_docs>
 
@@ -2063,6 +2065,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     # then install it in that.
                     else {
                         # If the group doesn't exist, create it.
+                        $*GENERICS := nqp::hash();
                         my $group;
                         if $exists {
                             $group := $package;

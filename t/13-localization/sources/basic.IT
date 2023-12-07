@@ -1,3 +1,7 @@
+{
+    ENTRA dillo "hello";
+    VATTENE dillo "goodbye"
+}
 sub answer ritorna Int è raw {
     42
 }
@@ -6,13 +10,15 @@ il-mio classe Frobnicate {
     submethod TWEAK {
         $!a = 42
     }
-    metodo foo {
+    multi metodo foo {
         dillo se-stesso.a
     }
 }
 dillo Frobnicate.new.foo;
 il-mio $a = 41;
-il-mio $b = 666;
+il-mio $b dove * >= 666 = 666;
+dillo $b R/ $a;
+dillo 42 (elem) 1 .. 100;
 se $a {
     $a++
 }
@@ -56,3 +62,4 @@ ciclo {
     dillo "loop";
     ultimo
 }
+il-mio enum KNOBS <left right up down>

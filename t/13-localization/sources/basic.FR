@@ -1,3 +1,7 @@
+{
+    ENTRÉE dis "hello";
+    SORS dis "goodbye"
+}
 sub answer renvoie Int est raw {
     42
 }
@@ -6,13 +10,15 @@ ma class Frobnicate {
     sousméthode TWEAK {
         $!a = 42
     }
-    méthode foo {
+    multi méthode foo {
         dis sois.a
     }
 }
 dis Frobnicate.nouveau.foo;
 ma $a = 41;
-ma $b = 666;
+ma $b où * >= 666 = 666;
+dis $b R/ $a;
+dis 42 (elem) 1 .. 100;
 si $a {
     $a++
 }
@@ -56,3 +62,4 @@ boucle {
     dis "loop";
     dernier
 }
+ma énum KNOBS <left right up down>

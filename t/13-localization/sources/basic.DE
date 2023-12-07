@@ -1,3 +1,7 @@
+{
+    EINTRITT sag "hello";
+    VERLASSE sag "goodbye"
+}
 sub answer returns Int ist roh {
     42
 }
@@ -6,13 +10,15 @@ mein klasse Frobnicate {
     submethode TWEAK {
         $!a = 42
     }
-    methode foo {
+    multi methode foo {
         sag selbst.a
     }
 }
 sag Frobnicate.neu.foo;
 mein $a = 41;
-mein $b = 666;
+mein $b wo * >= 666 = 666;
+sag $b U/ $a;
+sag 42 (element) 1 .. 100;
 wenn $a {
     $a++
 }
@@ -56,3 +62,4 @@ schleife {
     sag "loop";
     letzte
 }
+mein enum KNOBS <left right up down>

@@ -1,3 +1,7 @@
+{
+    BELÉPÉS mond "hello";
+    KILÉPÉS mond "goodbye"
+}
 szub answer visszatér Int ez nyers {
     42
 }
@@ -6,13 +10,15 @@ enyém osztály Frobnicate {
     szubmetódus TWEAK {
         $!a = 42
     }
-    metódus foo {
+    multi metódus foo {
         mond maga.a
     }
 }
 mond Frobnicate.új.foo;
 enyém $a = 41;
-enyém $b = 666;
+enyém $b ahol * >= 666 = 666;
+mond $b R/ $a;
+mond 42 (eleme) 1 .. 100;
 ha $a {
     $a++
 }
@@ -56,3 +62,4 @@ ciklus {
     mond "loop";
     utolsó
 }
+enyém enum KNOBS <left right up down>

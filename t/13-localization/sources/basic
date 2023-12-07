@@ -3,6 +3,11 @@
 # would write, rather than how Raku would deparse this code in
 # English.
 
+{
+    ENTER say "hello";
+    LEAVE say "goodbye";
+}
+
 sub answer() returns Int is raw { 42 }
 
 my class Frobnicate {
@@ -10,7 +15,7 @@ my class Frobnicate {
     submethod TWEAK() {
         $!a = 42;
     }
-    method foo {
+    multi method foo {
         say self.a
     }
 }
@@ -18,7 +23,11 @@ my class Frobnicate {
 say Frobnicate.new.foo;
 
 my $a = 41;
-my $b = 666;
+my $b where * >= 666 = 666;
+
+say $b R/ $a;
+
+say 42 (elem) 1..100;
 
 if $a {
     $a++;
@@ -71,5 +80,8 @@ loop {
     say "loop";
     last;
 }
+
+my enum KNOBS <left right up down>;
+#say +down;  # still fails
 
 # vim: expandtab shiftwidth=4

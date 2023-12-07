@@ -1,3 +1,7 @@
+{
+    BINNENKOMST zeg "hello";
+    AFSCHEID zeg "goodbye"
+}
 functie answer geeft-terug Int is rauw {
     42
 }
@@ -6,13 +10,15 @@ mijn klasse Frobnicate {
     submethode VERFIJN {
         $!a = 42
     }
-    methode foo {
+    multi methode foo {
         zeg zelf.a
     }
 }
 zeg Frobnicate.nieuw.foo;
 mijn $a = 41;
-mijn $b = 666;
+mijn $b waar * >= 666 = 666;
+zeg $b O/ $a;
+zeg 42 (element) 1 .. 100;
 als $a {
     $a++
 }
@@ -56,3 +62,4 @@ lus {
     zeg "loop";
     laatste
 }
+mijn enum KNOBS <left right up down>

@@ -1,3 +1,7 @@
+{
+    ENTRADA diga "hello";
+    SAIDA diga "goodbye"
+}
 sub answer retorna Int é raw {
     42
 }
@@ -6,13 +10,15 @@ meu classe Frobnicate {
     submethod TWEAK {
         $!a = 42
     }
-    método foo {
+    multi método foo {
         diga si-mesmo.a
     }
 }
 diga Frobnicate.new.foo;
 meu $a = 41;
-meu $b = 666;
+meu $b quando * >= 666 = 666;
+diga $b R/ $a;
+diga 42 (elem) 1 .. 100;
 se $a {
     $a++
 }
@@ -56,3 +62,4 @@ ciclo {
     diga "loop";
     último
 }
+meu enum KNOBS <left right up down>

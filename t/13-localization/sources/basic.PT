@@ -62,4 +62,8 @@ ciclo {
     diga "loop";
     último
 }
-meu enum KNOBS <left right up down>
+meu enum KNOBS <left right up down>;
+diga down;
+meu subset FOO do Int quando * > 666;
+meu FOO $foo = 1000;
+diga $foo

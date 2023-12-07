@@ -62,4 +62,8 @@ boucle {
     dis "loop";
     dernier
 }
-ma énum KNOBS <left right up down>
+ma énum KNOBS <left right up down>;
+dis down;
+ma sousens FOO de Int où * > 666;
+ma FOO $foo = 1000;
+dis $foo

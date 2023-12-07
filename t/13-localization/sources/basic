@@ -82,6 +82,10 @@ loop {
 }
 
 my enum KNOBS <left right up down>;
-#say +down;  # still fails
+say down;
+
+my subset FOO of Int where * > 666;
+my FOO $foo = 1000;
+say $foo;
 
 # vim: expandtab shiftwidth=4

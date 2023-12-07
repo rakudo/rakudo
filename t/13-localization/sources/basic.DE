@@ -62,4 +62,8 @@ schleife {
     sag "loop";
     letzte
 }
-mein enum KNOBS <left right up down>
+mein enum KNOBS <left right up down>;
+sag down;
+mein subset FOO wie Int wobei * > 666;
+mein FOO $foo = 1000;
+sag $foo

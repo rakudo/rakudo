@@ -62,4 +62,8 @@ lus {
     zeg "loop";
     laatste
 }
-mijn enum KNOBS <left right up down>
+mijn enum KNOBS <left right up down>;
+zeg down;
+mijn subset FOO netals Int waarbij * > 666;
+mijn FOO $foo = 1000;
+zeg $foo

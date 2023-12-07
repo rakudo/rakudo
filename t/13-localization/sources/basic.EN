@@ -62,4 +62,8 @@ loop {
     say "loop";
     last
 }
-my enum KNOBS <left right up down>
+my enum KNOBS <left right up down>;
+say down;
+my subset FOO of Int where * > 666;
+my FOO $foo = 1000;
+say $foo

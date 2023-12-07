@@ -62,4 +62,8 @@ ciklus {
     mond "loop";
     utolsó
 }
-enyém enum KNOBS <left right up down>
+enyém enum KNOBS <left right up down>;
+mond down;
+enyém részhalmaz FOO ebből Int ahol * > 666;
+enyém FOO $foo = 1000;
+mond $foo

@@ -62,4 +62,8 @@ ciclo {
     dillo "loop";
     ultimo
 }
-il-mio enum KNOBS <left right up down>
+il-mio enum KNOBS <left right up down>;
+dillo down;
+il-mio subset FOO da Int dove * > 666;
+il-mio FOO $foo = 1000;
+dillo $foo

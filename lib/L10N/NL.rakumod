@@ -1,12 +1,12 @@
 # This file contains the Dutch Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-11-16T17:03:40+01:00 by tools/build/makeL10N.raku
+#- Generated on 2023-12-07T12:05:29+01:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::NL {
     use experimental :rakuast;
-    token block-default { gebrek}
+    token block-default { ingebreke}
     token block-else { anders}
     token block-elsif { andersals}
     token block-for { vooralle}
@@ -22,7 +22,7 @@ role L10N::NL {
     token block-while { zolang}
     token block-with { met}
     token block-without { zonder}
-    token constraint-where { waar}
+    token constraint-where { waarbij}
     token infix-pcontp { "(bevat)"}
     token infix-pelemp { "(element)"}
     token infix-cff { "^ff"}

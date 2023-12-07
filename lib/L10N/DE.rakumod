@@ -1,7 +1,7 @@
 # This file contains the German Slang of the Raku Programming Language
 
 #- start of generated part of localization ------------------------------------
-#- Generated on 2023-11-16T17:03:40+01:00 by tools/build/makeL10N.raku
+#- Generated on 2023-12-07T12:05:29+01:00 by tools/build/makeL10N.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 role L10N::DE {
@@ -22,7 +22,7 @@ role L10N::DE {
     token block-while { solange}
     token block-with { mit}
     token block-without { ohne}
-    token constraint-where { wo}
+    token constraint-where { wobei}
     token infix-pcontp { "(enthält)"}
     token infix-pelemp { "(element)"}
     token infix-cff { "^ff"}

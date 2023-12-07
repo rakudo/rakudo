@@ -76,7 +76,7 @@ adverb-rx-to          tot
 adverb-rx-x           keer
 
 # KEY           TRANSLATION
-block-default   gebrek
+block-default   ingebreke
 block-else      anders
 block-elsif     andersals
 block-for       vooralle
@@ -94,7 +94,7 @@ block-with      met
 block-without   zonder
 
 # KEY             TRANSLATION
-constraint-where  waar
+constraint-where  waarbij
 
 # KEY                  TRANSLATION
 core-abs               abs
@@ -430,9 +430,9 @@ modifier-with     met
 modifier-without  zonder
 
 # KEY        TRANSLATION
-#multi-multi  multi
+multi-multi  multi
 multi-only   alleen
-#multi-proto  proto
+multi-proto  proto
 
 # KEY           TRANSLATION
 named-absolute  absoluut

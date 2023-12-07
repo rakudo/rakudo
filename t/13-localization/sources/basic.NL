@@ -16,7 +16,7 @@ mijn klasse Frobnicate {
 }
 zeg Frobnicate.nieuw.foo;
 mijn $a = 41;
-mijn $b waar * >= 666 = 666;
+mijn $b waarbij * >= 666 = 666;
 zeg $b O/ $a;
 zeg 42 (element) 1 .. 100;
 als $a {
@@ -39,7 +39,7 @@ gegeven 666 {
     indien 42 {
         zeg "the answer"
     }
-    gebrek {
+    ingebreke {
         stilletjes waarschuw "No answer"
     }
 }

@@ -16,7 +16,7 @@ mein klasse Frobnicate {
 }
 sag Frobnicate.neu.foo;
 mein $a = 41;
-mein $b wo * >= 666 = 666;
+mein $b wobei * >= 666 = 666;
 sag $b U/ $a;
 sag 42 (element) 1 .. 100;
 wenn $a {

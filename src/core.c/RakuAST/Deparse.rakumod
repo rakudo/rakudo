@@ -2459,7 +2459,11 @@ CODE
         @parts.push(self.deparse($ast.name));
         @parts.push(self.deparse($_)) with $ast.of;
         @parts.push(self.deparse($_)) for $ast.traits;
-        @parts.push('where ' ~ self.deparse($_)) with $ast.where;
+
+        with $ast.where {
+            @parts.push(self.xsyn('constraint', 'where'));
+            @parts.push(self.deparse($_));
+        }
 
         self.add-any-docs(@parts.join(' '), $ast.WHY)
     }

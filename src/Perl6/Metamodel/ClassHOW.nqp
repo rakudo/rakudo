@@ -422,7 +422,7 @@ class Perl6::Metamodel::ClassHOW
             my $track-archetypes-attr :=
                 nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                             $track-how, Perl6::Metamodel::ClassHOW, '$!archetypes');
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-archetypes-attr);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-archetypes-attr);
 
             $atype := nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes');
         }

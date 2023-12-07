@@ -10,6 +10,9 @@ my class Range is Cool does Iterable does Positional {
     has int $!infinite;
     has int $!is-int;
 
+    # Before 6.e, any instantiated Range object boolified to True
+    multi method Bool(Range:D: --> True) { }
+
     method !SET-SELF(\min, \max, \excludes-min, \excludes-max, \infinite) {
         $!min := nqp::decont(min);
         $!max := nqp::decont(max);

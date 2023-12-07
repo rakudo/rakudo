@@ -165,11 +165,12 @@ augment class Pair {
 augment class Range {
 
     # handle Range.Bool correctly
-    multi method Bool(Range:D: --> Bool:D) {
-        nqp::hllbool($!is-int
+    multi method Bool(Range:D: --> Bool:D) is default {
+        $!is-int
           ?? ($!max - $!excludes-max - $!min - $!excludes-min) > -1
-          !! nqp::not_i(nqp::eqaddr(self.iterator.pull-one,IterationEnd))
-        )
+          !! nqp::hllbool(
+               nqp::not_i(nqp::eqaddr(self.iterator.pull-one,IterationEnd))
+             )
     }
 }
 

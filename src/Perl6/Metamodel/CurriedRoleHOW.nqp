@@ -96,7 +96,10 @@ class Perl6::Metamodel::CurriedRoleHOW
             my $type_env;
             try {
                 my @result := $candidate-how.body_block($!candidate)(|@pos_args, |%!named_args);
-                $type_env := @result[1];
+                $type_env :=
+                    self.archetypes.generic
+                     ?? nqp::ifnull(Perl6::Metamodel::Configuration.type_env_from(@result[1]), @result[1])
+                     !! @result[1];
             }
             for $candidate-how.roles($!candidate, :!transitive) -> $role {
                 if $role.HOW.archetypes.generic && $type_env {

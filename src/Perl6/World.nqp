@@ -1908,7 +1908,8 @@ class Perl6::World is HLL::World {
         my sub containter-init-ast($cont_type) {
             my $new-ast;
             my $is-generic := 0;
-            if $*SCOPE eq 'has' && $cont_type.HOW.archetypes.generic {
+            my $archetypes := $cont_type.HOW.archetypes;
+            if $*SCOPE eq 'has' && $archetypes.generic {
                 $is-generic := 1;
                 if (my $trait := $*IS-TYPE-TRAIT) && $trait.match()<circumfix> -> $circumfix {
                     # When it is `is Type[Param1, ...]` then the parameterization of a generic is better be done
@@ -1932,8 +1933,14 @@ class Perl6::World is HLL::World {
                     );
                     $new-ast := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
                 }
-                else {
+                elsif !($archetypes.nominal || $archetypes.nominalizable
+                        || $archetypes.composable || $archetypes.composalizable) {
+                    # Pure generic types, resolve via lexival lookup
                     $new-ast := QAST::Var.new( :name($cont_type.HOW.name($cont_type)), :scope<lexical> );
+                }
+                else {
+                    # Other generics must be resolved by the instantiation protocol.
+                    $new-ast := QAST::WVal.new( :value($cont_type) );
                 }
             }
             else {

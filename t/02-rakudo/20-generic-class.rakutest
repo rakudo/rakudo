@@ -115,5 +115,3 @@ is $ci.gimme-the-G.^name, 'R::S::G_2', 'method body resolves generic class into 
 cmp-ok $ci.gimme-the-G.^base-type, &[=:=], Int:D, "class instantiated over role's Int:D arguments";
 
 check-role "After Instantiations";
-
-done-testing;

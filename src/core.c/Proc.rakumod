@@ -242,9 +242,9 @@ multi sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
     $proc
 }
 
-sub QX($cmd, :$cwd = $*CWD, :$env) is implementation-detail {
+sub QX($cmd) is implementation-detail {
     my $proc := Proc.new(:out);
-    $proc.shell($cmd, :$cwd, :$env);
+    $proc.shell($cmd);
     $proc.out.slurp(:close) // "Unable to read from '$cmd'".Failure
 }
 

@@ -3,7 +3,7 @@
 # contains a Callable that will be called with the CALL-ME method.
 # Otherwise acts as a normal string.
 
-my class Format is Str {
+my class Format is Str is Callable {
     has str @!directives;
     has     &!code;
 

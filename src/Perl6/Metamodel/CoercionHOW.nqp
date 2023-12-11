@@ -15,13 +15,12 @@ class Perl6::Metamodel::CoercionHOW
 
     method archetypes($obj?) {
         unless nqp::isconcrete($!archetypes) {
-            my $generic := 
-                $!target_type.HOW.archetypes($!target_type).generic 
+            my $generic :=
+                $!target_type.HOW.archetypes($!target_type).generic
                 || $!constraint_type.HOW.archetypes($!constraint_type).generic;
             $!archetypes := Perl6::Metamodel::Archetypes.new(
                 :coercive, :nominalizable, :$generic,
-                definite => $!target_type.HOW.archetypes($!target_type).definite,
-            );
+                definite => $!target_type.HOW.archetypes($!target_type).definite );
         }
         $!archetypes
     }
@@ -75,7 +74,7 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method instantiate_generic($coercion_type, $type_env) {
-        return $coercion_type unless $!archetypes.generic;
+        return $coercion_type unless self.archetypes.generic;
         my $ins_target :=
             $!target_type.HOW.archetypes($!target_type).generic
                 ?? $!target_type.HOW.instantiate_generic($!target_type, $type_env)
@@ -136,9 +135,7 @@ class Perl6::Metamodel::CoercionHOW
           ?? nqp::defined(
                my $method := nqp::tryfindmethod(
                  nqp::what($value),
-                 $nominal_target.HOW.name($nominal_target)
-               )
-             ) 
+                 $nominal_target.HOW.name($nominal_target)))
             ?? (nqp::istype((my $coerced := $method($value)),$!target_type)
                 || nqp::istype($coerced, nqp::gethllsym('Raku', 'Failure')))
               ?? $coerced
@@ -166,9 +163,8 @@ class Perl6::Metamodel::CoercionHOW
     # Handle invalid type on accepting
     method !invalid_type($value) {
         self."!invalid"(
-          $value, 
-          "value is of unacceptable type " ~ $value.HOW.name($value)
-        )
+          $value,
+          "value is of unacceptable type " ~ $value.HOW.name($value) )
     }
 
     # Attempt coercion with TargetType.COERCE($value).
@@ -203,8 +199,7 @@ class Perl6::Metamodel::CoercionHOW
           "method $method_name returned "
              ~ (nqp::defined($coerced_value)
                  ?? "an instance of "
-                 !! "a type object "
-               )
+                 !! "a type object ")
              ~ $coerced_value.HOW.name($coerced_value)
         )
     }
@@ -238,11 +233,10 @@ class Perl6::Metamodel::CoercionHOW
                   if nqp::istype($coerced_value, $!target_type)
                     || nqp::istype(
                          $coerced_value,
-                         nqp::gethllsym('Raku', 'Failure')
-                       )
+                         nqp::gethllsym('Raku', 'Failure') )
             }
-            if nqp::defined($exception) { 
-                nqp::rethrow($exception); 
+            if nqp::defined($exception) {
+                nqp::rethrow($exception);
             }
             elsif !nqp::isnull($coerced_value) {
                 self."!invalid_coercion"($value, 'new', $coerced_value)

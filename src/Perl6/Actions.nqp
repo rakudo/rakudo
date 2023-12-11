@@ -6697,36 +6697,63 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::Op.new( :op('who'), $past );
             }
 
-            if $<colonpairs> && $<colonpairs>.ast<D> {
-                unless nqp::istype($past, QAST::WVal) {
-                    $/.panic("Type too complex to form a definite type");
+            my sub generics-table($ins_lexical) {
+                unless nqp::isconcrete(my $generics := $*GENERICS) && nqp::existskey($generics, $ins_lexical) {
+                    $/.panic("Type is marked generic but can't be resolved");
                 }
-                my $type := $world.create_definite_type($world.resolve_mo($/, 'definite'), $past.value, 1); # XXX add constants
-                $past    := QAST::WVal.new( :value($type) );
+                $generics
             }
-            elsif $<colonpairs> && $<colonpairs>.ast<U> {
-                unless nqp::istype($past, QAST::WVal) {
-                    $/.panic("Type too complex to form a definite type");
+
+            if (my $colonpairs := $<colonpairs>) && ($colonpairs.ast<D> || $colonpairs.ast<U>) {
+                my $definite := nqp::istrue($colonpairs.ast<D>);
+                my $kind := $definite ?? 'definite' !! 'undefined';
+                if nqp::istype($past, QAST::WVal) {
+                    my $type := $world.create_definite_type($world.resolve_mo($/, 'definite'), $past.value, $definite);
+                    $past    := QAST::WVal.new( :value($type) );
                 }
-                my $type := $world.create_definite_type($world.resolve_mo($/, 'definite'), $past.value, 0);
-                $past    := QAST::WVal.new( :value($type) );
+                else {
+                    if $past.ann('generic-lexical') -> $ins_lexical {
+                        my $generics := generics-table($ins_lexical);
+                        my $generic-type := nqp::atkey($generics, $ins_lexical);
+                        my $definite-lexical := $ins_lexical ~ ":D";
+                        my $definite-type :=
+                            $world.create_definite_type($world.resolve_mo($/, 'definite'), $generic-type, $definite);
+                        nqp::bindkey($generics, $definite-lexical, $definite-type);
+                        $past := QAST::Var.new( :name($definite-lexical), :scope<lexical> );
+                        $past.annotate('generic-lexical', $definite-lexical);
+                    }
+                    else {
+                        $/.panic("Type too complex to form a definite type");
+                    }
+                }
             }
 
             # If needed, try to form a coercion type.
             unless nqp::isnull(my $accept := $world.can_has_coercerz: $/) {
-                my $value;
-                if nqp::istype($past, QAST::WVal) {
-                    $value := $past.value;
-                }
-                elsif $past.has_compile_time_value {
-                    $value := $past.compile_time_value;
+                if $past.ann('generic-lexical') -> $ins_lexical {
+                    my $generics := generics-table($ins_lexical);
+                    my $generic-type := nqp::atkey($generics, $ins_lexical);
+                    my $coerce-type := $world.create_coercion_type($/, $generic-type, $accept);
+                    my $coerce-lexical := ins_lexical($coerce-type);
+                    nqp::bindkey($generics, $coerce-lexical, $coerce-type);
+                    $past := QAST::Var.new( :name($coerce-lexical), :scope<lexical> );
+                    $past.annotate('generic-lexical', $coerce-lexical);
                 }
                 else {
-                    $/.panic("Target type too complex to form a coercion type");
-                }
+                    my $value;
+                    if nqp::istype($past, QAST::WVal) {
+                        $value := $past.value;
+                    }
+                    elsif $past.has_compile_time_value {
+                        $value := $past.compile_time_value;
+                    }
+                    else {
+                        $/.panic("Target type too complex to form a coercion type");
+                    }
 
-                my $type := $world.create_coercion_type($/, $value, $accept);
-                $past := QAST::WVal.new( :value($type) );
+                    my $type := $world.create_coercion_type($/, $value, $accept);
+                    $past := QAST::WVal.new( :value($type) );
+                }
             }
         }
 
@@ -10944,7 +10971,7 @@ Did you mean a call like '"
         my $past;
         if nqp::isconcrete($archetypes) && $is_generic && $archetypes.nominal && !$archetypes.parametric {
             my $ins_lexical := ins_lexical($type);
-            $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
+            $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> ).annotate_self('generic-lexical',$ins_lexical);
             if nqp::isconcrete($*GENERICS) {
                 nqp::bindkey($*GENERICS, $ins_lexical, $type);
             }

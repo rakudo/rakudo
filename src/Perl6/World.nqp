@@ -1935,8 +1935,9 @@ class Perl6::World is HLL::World {
                 }
                 elsif !($archetypes.nominal || $archetypes.nominalizable
                         || $archetypes.composable || $archetypes.composalizable) {
-                    # Pure generic types, resolve via lexival lookup
-                    $new-ast := QAST::Var.new( :name($cont_type.HOW.name($cont_type)), :scope<lexical> );
+                    # Pure generic types, resolve via lexical lookup
+                    $new-ast := QAST::Var.new( :name(my $name := $cont_type.HOW.name($cont_type)), :scope<lexical> );
+                    $new-ast.annotate('pure-generic-lexical', 1);
                 }
                 else {
                     # Other generics must be resolved by the instantiation protocol.

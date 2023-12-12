@@ -3383,19 +3383,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Handle parametricism for roles.
         if $*PKGDECL eq 'role' {
-            if nqp::isconcrete($*GENERICS) {
-                my $lexpad := $block[0];
-                my $gen_iter := nqp::iterator($*GENERICS);
-                while $gen_iter {
-                    my $decl := nqp::shift($gen_iter);
-                    $lexpad.push(
-                        QAST::Stmt.new(
-                            QAST::Op.new(
-                                :op<bind>,
-                                QAST::Var.new( :name(nqp::iterkey_s($decl)), :scope<lexical>, :decl<var> ),
-                                QAST::WVal.new( :value(nqp::iterval($decl)) ))));
-                }
-            }
             # Set up signature. Needs to have $?CLASS as an implicit
             # parameter, since any mention of it is generic.
             my %sig_info := $<signature> ?? $<signature>.ast !! hash(parameters => []);
@@ -3476,8 +3463,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $archetypes := $package.HOW.archetypes($package);
         if $archetypes.generic && $archetypes.nominal && !$archetypes.parametric {
-            if nqp::isconcrete(my $generics := $*GENERICS) {
-                nqp::bindkey($generics, ins_lexical($package), $package);
+            if nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
+                $world.install_lexical_symbol($generics-pad, ins_lexical($package), $package);
             }
             else {
                 # This warning should be suppressible
@@ -6697,11 +6684,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::Op.new( :op('who'), $past );
             }
 
-            my sub generics-table($ins_lexical) {
-                unless nqp::isconcrete(my $generics := $*GENERICS) && nqp::existskey($generics, $ins_lexical) {
-                    $/.panic("Type is marked generic but can't be resolved");
+            my sub find-generic-lexical($ins_lexical) {
+                unless nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
+                    $/.panic("Type is marked generic but can't be resolved without a generic context");
                 }
-                $generics
+                if nqp::isnull(my $generic-type := try { $*W.find_single_symbol($ins_lexical) }) {
+                    $/.panic("Type is marked generic but no resolution found for it")
+                }
+                $generic-type
+            }
+
+            my sub generic-definite-type($generic-type, $lexical_name, $definite) {
+                my $generics-pad := $*GENERICS-PAD;
+                my $definite-type :=
+                    $world.create_definite_type($world.resolve_mo($/, 'definite'), $generic-type, $definite);
+                my $definite-lexical := ins_lexical($definite-type);
+                $world.install_lexical_symbol($generics-pad, $definite-lexical, $definite-type);
+                my $past := QAST::Var.new( :name($definite-lexical), :scope<lexical> );
+                $past.annotate_self('generic-lexical', 1);
             }
 
             if (my $colonpairs := $<colonpairs>) && ($colonpairs.ast<D> || $colonpairs.ast<U>) {
@@ -6712,15 +6712,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past    := QAST::WVal.new( :value($type) );
                 }
                 else {
-                    if $past.ann('generic-lexical') -> $ins_lexical {
-                        my $generics := generics-table($ins_lexical);
-                        my $generic-type := nqp::atkey($generics, $ins_lexical);
-                        my $definite-lexical := $ins_lexical ~ ":D";
-                        my $definite-type :=
-                            $world.create_definite_type($world.resolve_mo($/, 'definite'), $generic-type, $definite);
-                        nqp::bindkey($generics, $definite-lexical, $definite-type);
-                        $past := QAST::Var.new( :name($definite-lexical), :scope<lexical> );
-                        $past.annotate('generic-lexical', $definite-lexical);
+                    if $past.ann('generic-lexical') {
+                        $past := generic-definite-type(find-generic-lexical($past.name), $past.name, $definite);
+                    }
+                    elsif $past.ann('pure-generic-lexical') {
+                        # Pure generics are lexicals on their own.
+                        my $generic-type := $past.compile_time_value();
+                        $past := generic-definite-type($generic-type, $generic-type.HOW.name($generic-type), $definite);
                     }
                     else {
                         $/.panic("Type too complex to form a definite type");
@@ -6730,14 +6728,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # If needed, try to form a coercion type.
             unless nqp::isnull(my $accept := $world.can_has_coercerz: $/) {
-                if $past.ann('generic-lexical') -> $ins_lexical {
-                    my $generics := generics-table($ins_lexical);
-                    my $generic-type := nqp::atkey($generics, $ins_lexical);
-                    my $coerce-type := $world.create_coercion_type($/, $generic-type, $accept);
+                if $past.ann('generic-lexical') || $past.ann('pure-generic-lexical') {
+                    # $past is expected to be a QAST::Var
+                    my $coerce-type := $world.create_coercion_type($/, find-generic-lexical($past.name), $accept);
                     my $coerce-lexical := ins_lexical($coerce-type);
-                    nqp::bindkey($generics, $coerce-lexical, $coerce-type);
+                    $world.install_lexical_symbol($*GENERICS-PAD, $coerce-lexical, $coerce-type);
                     $past := QAST::Var.new( :name($coerce-lexical), :scope<lexical> );
-                    $past.annotate('generic-lexical', $coerce-lexical);
+                    $past.annotate('generic-lexical', 1);
                 }
                 else {
                     my $value;
@@ -10971,17 +10968,19 @@ Did you mean a call like '"
         my $past;
         if nqp::isconcrete($archetypes) && $is_generic && $archetypes.nominal && !$archetypes.parametric {
             my $ins_lexical := ins_lexical($type);
-            $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> ).annotate_self('generic-lexical',$ins_lexical);
-            if nqp::isconcrete($*GENERICS) {
-                nqp::bindkey($*GENERICS, $ins_lexical, $type);
+            if nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
+                $world.install_lexical_symbol($generics-pad, $ins_lexical, $type);
             }
             else {
                 $/.worry("Generic class '" ~ $type.HOW.name($type) ~ "' is referenced outside of a role");
             }
+            $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
+            $past.annotate('generic-lexical', 1);
         }
         elsif $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
             $past := $world.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
+            $past.annotate('pure-generic-lexical',1);
         }
         else {
             $past := QAST::WVal.new( :value($type) );

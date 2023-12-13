@@ -267,13 +267,15 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment --> Associative) is raw {
-        Hash.^parameterize: type-environment.instantiate(TValue), type-environment.instantiate(TKey)
+        self.WHAT.^parameterize: type-environment.instantiate(TValue), type-environment.instantiate(TKey)
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
         my Mu $descr := type-environment.instantiate( nqp::getattr(self, Hash, '$!descriptor') );
         nqp::p6bindattrinvres(
-            Hash.^parameterize( type-environment.instantiate(TValue), type-environment.instantiate(TKey) ).new(self),
+            self.WHAT.^parameterize(
+                type-environment.instantiate(TValue),
+                type-environment.instantiate(TKey) ).new(self),
             Hash, '$!descriptor', $descr )
     }
 

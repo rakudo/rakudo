@@ -7,7 +7,7 @@ Each file consists of lines, which are either a comment if they start
 with a "#" (and are thus ignored), or they consist of *two* words (as
 in: two strings, separated by whitespace)..
 
-The first word consists of a prefix, followed by a hypen, and then the
+The first word consists of a prefix, followed by a hyphen, and then the
 name of the Raku feature to be translated.
 
 The second word should be the translation in the given localization.

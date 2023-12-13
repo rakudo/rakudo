@@ -167,7 +167,9 @@ class Perl6::Metamodel::ParametricRoleHOW
                 my $error;
                 try {
                     my @result := $!body_block(|@pos_args, |%named_args);
+                    nqp::scwbdisable();
                     $type_env := nqp::ifnull(Perl6::Metamodel::Configuration.type_env_from(@result[1]), @result[1]);
+                    nqp::scwbenable();
                     CATCH {
                         $error := $!;
                     }
@@ -195,6 +197,8 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method specialize_with($obj, $conc, $type_env, @pos_args) {
+        # Here we instantiate generics bound to implementation detail lexicals !INS_OF_*. Perhaps, it'd make more
+        # sense to move this semantics into role body, where a TypeEnv instance would eventaully be created.
         my $hll-typeenv := nqp::can($type_env, 'instantiate');
         my $ctx := $hll-typeenv ?? $type_env.ctx !! $type_env;
         my $ctx-iter := nqp::iterator($ctx);

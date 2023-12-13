@@ -1743,7 +1743,12 @@ BEGIN {
                     $type.HOW.instantiate_generic($type, $type_environment));
             }
             if nqp::isconcrete($ci) {
+#?if !jvm
                 nqp::bindattr($ins, Attribute, '$!container_initializer', nqp::p6capturelexwhere($ci.clone()));
+#?endif
+#?if jvm
+                nqp::bindattr($ins, Attribute, '$!container_initializer', $ci.clone());
+#?endif
             }
             my $cd_ins := $cd;
             if $cd.is_generic {
@@ -1783,7 +1788,12 @@ BEGIN {
                     $pkg.HOW.instantiate_generic($pkg, $type_environment));
             }
             if nqp::defined($bc) {
+#?if !jvm
                 nqp::bindattr($ins, Attribute, '$!build_closure', nqp::p6capturelexwhere($bc.clone()));
+#?endif
+#?if jvm
+                nqp::bindattr($ins, Attribute, '$!build_closure', $bc.clone());
+#?endif
             }
             $ins
         }));

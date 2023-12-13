@@ -1736,10 +1736,14 @@ BEGIN {
             my $pkg      := nqp::getattr($dcself, Attribute, '$!package');
             my $avc      := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
             my $bc       := nqp::getattr($dcself, Attribute, '$!build_closure');
+            my $ci       := nqp::getattr($dcself, Attribute, '$!container_initializer');
             my $ins      := nqp::clone($dcself);
             if $type.HOW.archetypes($type).generic {
                 nqp::bindattr($ins, Attribute, '$!type',
                     $type.HOW.instantiate_generic($type, $type_environment));
+            }
+            if nqp::isconcrete($ci) {
+                nqp::bindattr($ins, Attribute, '$!container_initializer', nqp::p6capturelexwhere($ci.clone()));
             }
             my $cd_ins := $cd;
             if $cd.is_generic {
@@ -1779,7 +1783,7 @@ BEGIN {
                     $pkg.HOW.instantiate_generic($pkg, $type_environment));
             }
             if nqp::defined($bc) {
-                nqp::bindattr($ins, Attribute, '$!build_closure', $bc.clone());
+                nqp::bindattr($ins, Attribute, '$!build_closure', nqp::p6capturelexwhere($bc.clone()));
             }
             $ins
         }));

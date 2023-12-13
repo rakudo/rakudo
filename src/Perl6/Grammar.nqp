@@ -2027,6 +2027,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                         $fullname := $longname.fully_qualified_with($target_package);
                     }
 
+                    # Setup generic context.
+                    if $*PKGDECL eq 'role' {
+                        ($*GENERICS-PAD := $curpad).annotate('generic-attributes', []);
+                    }
+
                     # If it exists already, then it's either uncomposed (in which
                     # case we just stubbed it), a role (in which case multiple
                     # variants are OK) or else an illegal redecl.
@@ -2068,7 +2073,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     # a parametric role group for it (unless we got one), and
                     # then install it in that.
                     else {
-                        $*GENERICS-PAD := $curpad;
                         # If the group doesn't exist, create it.
                         my $group;
                         if $exists {

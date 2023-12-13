@@ -3391,6 +3391,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 is_multi_invocant => 1,
                 type_captures     => nqp::list_s('$?CLASS', '::?CLASS')
             ));
+
             my $sig := $world.create_signature_and_params($<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration_static');
@@ -3463,13 +3464,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $archetypes := $package.HOW.archetypes($package);
         if $archetypes.generic && $archetypes.nominal && !$archetypes.parametric {
-            if nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
-                $world.install_lexical_symbol($generics-pad, ins_lexical($package), $package);
-            }
-            else {
-                # This warning should be suppressible
-                $/.worry("Generic class '" ~ $package.HOW.name($package) ~ "' declared outside of generic scope");
-            }
+            $world.install_instantiation_lexical($package);
         }
 
         make $pkg-ast;
@@ -3971,21 +3966,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 package => $world.find_single_symbol('$?CLASS'));
             if %cont_info<build_ast> {
                 my $build-ast := %cont_info<build_ast>;
-                my $build-thunk;
+                my $bblock := $world.context.create_block($/);
+                $bblock.blocktype('declaration_static');
+                $bblock.annotate('outer', $world.cur_lexpad());
+                my $build-thunk := $*W.create_thunk($/, $build-ast, $bblock, :mark-wanted);
                 if $build-ast.ann('is-generic') {
-                    # If the initializer is a generic type it would need to be resolved into its final value. To do
-                    # so the codeobject must keep the closure to have access to role's arguments.
-                    my $bblock := $world.push_lexpad($/);
-                    $bblock.blocktype('declaration_static');
-                    $bblock[0].push(QAST::Stmt.new($build-ast));
-                    $world.pop_lexpad();
-                    $build-thunk := $world.create_code_obj_and_add_child($bblock, 'Code');
                     $world.cur_lexpad()[0].push(
                         block_closure(
                             reference_to_code_object($build-thunk, $bblock)));
-                }
-                else {
-                    $build-thunk := $*W.create_thunk($/, $build-ast, :mark-wanted);
                 }
                 %config<container_initializer> := $build-thunk;
             }
@@ -6698,8 +6686,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $generics-pad := $*GENERICS-PAD;
                 my $definite-type :=
                     $world.create_definite_type($world.resolve_mo($/, 'definite'), $generic-type, $definite);
-                my $definite-lexical := ins_lexical($definite-type);
-                $world.install_lexical_symbol($generics-pad, $definite-lexical, $definite-type);
+                my $definite-lexical := $world.install_instantiation_lexical($definite-type);
                 my $past := QAST::Var.new( :name($definite-lexical), :scope<lexical> );
                 $past.annotate_self('generic-lexical', 1);
             }
@@ -6731,8 +6718,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $past.ann('generic-lexical') || $past.ann('pure-generic-lexical') {
                     # $past is expected to be a QAST::Var
                     my $coerce-type := $world.create_coercion_type($/, find-generic-lexical($past.name), $accept);
-                    my $coerce-lexical := ins_lexical($coerce-type);
-                    $world.install_lexical_symbol($*GENERICS-PAD, $coerce-lexical, $coerce-type);
+                    my $coerce-lexical := $world.install_instantiation_lexical($coerce-type);
                     $past := QAST::Var.new( :name($coerce-lexical), :scope<lexical> );
                     $past.annotate('generic-lexical', 1);
                 }
@@ -10947,10 +10933,6 @@ Did you mean a call like '"
         )
     }
 
-    sub ins_lexical($type) {
-        '!INS_OF_' ~ $type.HOW.name($type)
-    }
-
     # Works out how to look up a type. If it's not generic and is in an SC, we
     # statically resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
@@ -10967,13 +10949,7 @@ Did you mean a call like '"
         my $is_generic := $archetypes && $archetypes.generic;
         my $past;
         if nqp::isconcrete($archetypes) && $is_generic && $archetypes.nominal && !$archetypes.parametric {
-            my $ins_lexical := ins_lexical($type);
-            if nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
-                $world.install_lexical_symbol($generics-pad, $ins_lexical, $type);
-            }
-            else {
-                $/.worry("Generic class '" ~ $type.HOW.name($type) ~ "' is referenced outside of a role");
-            }
+            my $ins_lexical := $world.install_instantiation_lexical($type);
             $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
             $past.annotate('generic-lexical', 1);
         }

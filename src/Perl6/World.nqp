@@ -1893,6 +1893,21 @@ class Perl6::World is HLL::World {
         self.add_object_if_no_sc($cont)
     }
 
+    method instantiation_lexical($type) {
+        '!INS_OF_' ~ $type.HOW.name($type)
+    }
+
+    method install_instantiation_lexical($type) {
+        my $ins_lexical := self.instantiation_lexical($type);
+        if nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
+            self.install_lexical_symbol($generics-pad, $ins_lexical, $type);
+        }
+        else {
+            $/.worry("Generic type '" ~ $type.HOW.name($type) ~ "' is used out of a generic context");
+        }
+        $ins_lexical
+    }
+
     # Given a sigil and the value type specified, works out the
     # container type (what should we instantiate and bind into the
     # attribute/lexpad), bind constraint (what could we bind to this
@@ -1916,7 +1931,7 @@ class Perl6::World is HLL::World {
                     # once when body block is being ran. For this we install a lexical to which the result of
                     # parameterization is bound.
                     my $BLOCK := $*CURPAD // $*W.cur_lexpad();
-                    my $ins_lexical := QAST::Node.unique('__type_ins_');
+                    my $ins_lexical := self.install_instantiation_lexical($cont_type);
                     my $params-ast := QAST::Op.new( :op<callmethod>, :name<FLATTENABLE_LIST>,
                                                     $circumfix[0].ast.shallow_clone );
                     $params-ast.flat(1);
@@ -1925,13 +1940,14 @@ class Perl6::World is HLL::World {
                         QAST::Stmt.new(
                             QAST::Op.new(
                                 :op<bind>,
-                                QAST::Var.new( :name($ins_lexical), :scope<lexical>, :decl<var> ),
+                                QAST::Var.new( :name($ins_lexical), :scope<lexical> ),
                                 QAST::Op.new(
                                     :op<callmethod>, :name<parameterize>,
                                     QAST::Op.new( :op<how>, $type-ast ),
                                     $type-ast, $params-ast )))
                     );
                     $new-ast := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
+                    $new-ast.annotate('generic-lexical', 1);
                 }
                 elsif !($archetypes.nominal || $archetypes.nominalizable
                         || $archetypes.composable || $archetypes.composalizable) {
@@ -1941,7 +1957,8 @@ class Perl6::World is HLL::World {
                 }
                 else {
                     # Other generics must be resolved by the instantiation protocol.
-                    $new-ast := QAST::WVal.new( :value($cont_type) );
+                    $new-ast := QAST::Var.new( :name(self.install_instantiation_lexical($cont_type)), :scope<lexical> );
+                    $new-ast.annotate('generic-lexical', 1);
                 }
             }
             else {

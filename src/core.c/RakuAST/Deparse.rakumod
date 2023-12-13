@@ -169,10 +169,11 @@ class RakuAST::Deparse {
 # Load any deparsing slang by given string
 
     method slang(Str:D $slang) {
+        my $basename := $slang.split(":").head;
         qq:to/CODE/.EVAL
 use experimental :rakuast;
 use RakuAST::Deparse::L10N::$slang;
-RakuAST::Deparse::L10N::$slang
+RakuAST::Deparse::L10N::$basename
 CODE
     }
 

@@ -22,6 +22,12 @@ my class Match is Capture is Cool does NQPMatchRole {
     my $EMPTY_HASH := nqp::hash();
 #?endif
 
+    method print() {
+        callframe(1).my<$¢>
+          ?? self.NQPMatchRole::print()
+          !! self.Any::print()
+    }
+
     # When nothing's `made`, we get an NQPMu that we'd like to replace
     # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
     method ast()  { nqp::istype($!made, Mu) ?? $!made !! Nil }

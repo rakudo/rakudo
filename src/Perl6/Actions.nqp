@@ -3383,19 +3383,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Handle parametricism for roles.
         if $*PKGDECL eq 'role' {
-            if nqp::isconcrete($*GENERICS) {
-                my $lexpad := $block[0];
-                my $gen_iter := nqp::iterator($*GENERICS);
-                while $gen_iter {
-                    my $decl := nqp::shift($gen_iter);
-                    $lexpad.push(
-                        QAST::Stmt.new(
-                            QAST::Op.new(
-                                :op<bind>,
-                                QAST::Var.new( :name(nqp::iterkey_s($decl)), :scope<lexical>, :decl<var> ),
-                                QAST::WVal.new( :value(nqp::iterval($decl)) ))));
-                }
-            }
             # Set up signature. Needs to have $?CLASS as an implicit
             # parameter, since any mention of it is generic.
             my %sig_info := $<signature> ?? $<signature>.ast !! hash(parameters => []);
@@ -3404,6 +3391,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 is_multi_invocant => 1,
                 type_captures     => nqp::list_s('$?CLASS', '::?CLASS')
             ));
+
+            my $type-env-var;
+            if nqp::elems(my @ins-list := $*GENERICS-PAD.ann('instantiation-lexicals')) {
+                $world.add_object_if_no_sc(@ins-list);
+                $type-env-var := QAST::Node.unique('__typeenv_');
+                $block[1].unshift(
+                    QAST::Op.new( :op<bind>,
+                        QAST::Var.new( :name($type-env-var), :scope<local>, :decl<var> ),
+                        QAST::Op.new( :op<callmethod>, :name<resolve_instantiations>,
+                            QAST::Op.new( :op<how>,
+                                QAST::Var.new( :name<::?ROLE>, :scope<lexical> ) ),
+                            QAST::Var.new( :name<::?ROLE>, :scope<lexical> ),
+                            QAST::Op.new( :op<curlexpad> ),
+                            QAST::WVal.new( :value(@ins-list) )
+                        )));
+            }
+
             my $sig := $world.create_signature_and_params($<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration_static');
@@ -3411,14 +3415,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Role bodies run at BEGIN time, so need fixup.
             begin_time_lexical_fixup($block);
 
-            # As its last act, it should grab the current lexpad so that
-            # we have the type environment, and also return the parametric
-            # role we're in (because if we land it through a multi-dispatch,
-            # we won't know).
+            # As its last act, it should return our type environment context, and also return the parametric role we're
+            # in (because if we land it through a multi-dispatch, we won't know).
+            # The type environment context would eithe be what Perl6::Metamodel::ParametericRoleHOW
+            # 'resolve_instantiations' method returned or lexpad of role's body closure.
             $block[1].push(QAST::Op.new(
                 :op('list'),
                 QAST::WVal.new( :value($package) ),
-                QAST::Op.new( :op('curlexpad') )));
+                $type-env-var
+                    ?? QAST::Var.new( :name($type-env-var), :scope<local> )
+                    !! QAST::Op.new( :op('curlexpad') )));
 
             # Finish code object and add it as the role's body block.
             my $code := $*CODE_OBJECT;
@@ -3476,13 +3482,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $archetypes := $package.HOW.archetypes($package);
         if $archetypes.generic && $archetypes.nominal && !$archetypes.parametric {
-            if nqp::isconcrete(my $generics := $*GENERICS) {
-                nqp::bindkey($generics, ins_lexical($package), $package);
-            }
-            else {
-                # This warning should be suppressible
-                $/.worry("Generic class '" ~ $package.HOW.name($package) ~ "' declared outside of generic scope");
-            }
+            $world.install_instantiation_lexical($package);
         }
 
         make $pkg-ast;
@@ -3984,21 +3984,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 package => $world.find_single_symbol('$?CLASS'));
             if %cont_info<build_ast> {
                 my $build-ast := %cont_info<build_ast>;
-                my $build-thunk;
+                my $bblock := $world.context.create_block($/);
+                $bblock.blocktype('declaration_static');
+                $bblock.annotate('outer', $world.cur_lexpad());
+                my $build-thunk := $*W.create_thunk($/, $build-ast, $bblock, :mark-wanted);
                 if $build-ast.ann('is-generic') {
-                    # If the initializer is a generic type it would need to be resolved into its final value. To do
-                    # so the codeobject must keep the closure to have access to role's arguments.
-                    my $bblock := $world.push_lexpad($/);
-                    $bblock.blocktype('declaration_static');
-                    $bblock[0].push(QAST::Stmt.new($build-ast));
-                    $world.pop_lexpad();
-                    $build-thunk := $world.create_code_obj_and_add_child($bblock, 'Code');
                     $world.cur_lexpad()[0].push(
                         block_closure(
                             reference_to_code_object($build-thunk, $bblock)));
-                }
-                else {
-                    $build-thunk := $*W.create_thunk($/, $build-ast, :mark-wanted);
                 }
                 %config<container_initializer> := $build-thunk;
             }
@@ -6697,36 +6690,71 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past := QAST::Op.new( :op('who'), $past );
             }
 
-            if $<colonpairs> && $<colonpairs>.ast<D> {
-                unless nqp::istype($past, QAST::WVal) {
-                    $/.panic("Type too complex to form a definite type");
+            my sub find-generic-lexical($ins_lexical) {
+                unless nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
+                    $/.panic("Type is marked generic but can't be resolved without a generic context");
                 }
-                my $type := $world.create_definite_type($world.resolve_mo($/, 'definite'), $past.value, 1); # XXX add constants
-                $past    := QAST::WVal.new( :value($type) );
+                if nqp::isnull(my $generic-type := try { $*W.find_single_symbol($ins_lexical) }) {
+                    $/.panic("Type is marked generic but no resolution found for it")
+                }
+                $generic-type
             }
-            elsif $<colonpairs> && $<colonpairs>.ast<U> {
-                unless nqp::istype($past, QAST::WVal) {
-                    $/.panic("Type too complex to form a definite type");
+
+            my sub generic-definite-type($generic-type, $lexical_name, $definite) {
+                my $generics-pad := $*GENERICS-PAD;
+                my $definite-type :=
+                    $world.create_definite_type($world.resolve_mo($/, 'definite'), $generic-type, $definite);
+                my $definite-lexical := $world.install_instantiation_lexical($definite-type);
+                my $past := QAST::Var.new( :name($definite-lexical), :scope<lexical> );
+                $past.annotate_self('generic-lexical', 1);
+            }
+
+            if (my $colonpairs := $<colonpairs>) && ($colonpairs.ast<D> || $colonpairs.ast<U>) {
+                my $definite := nqp::istrue($colonpairs.ast<D>);
+                my $kind := $definite ?? 'definite' !! 'undefined';
+                if nqp::istype($past, QAST::WVal) {
+                    my $type := $world.create_definite_type($world.resolve_mo($/, 'definite'), $past.value, $definite);
+                    $past    := QAST::WVal.new( :value($type) );
                 }
-                my $type := $world.create_definite_type($world.resolve_mo($/, 'definite'), $past.value, 0);
-                $past    := QAST::WVal.new( :value($type) );
+                else {
+                    if $past.ann('generic-lexical') {
+                        $past := generic-definite-type(find-generic-lexical($past.name), $past.name, $definite);
+                    }
+                    elsif $past.ann('pure-generic-lexical') {
+                        # Pure generics are lexicals on their own.
+                        my $generic-type := $past.compile_time_value();
+                        $past := generic-definite-type($generic-type, $generic-type.HOW.name($generic-type), $definite);
+                    }
+                    else {
+                        $/.panic("Type too complex to form a definite type");
+                    }
+                }
             }
 
             # If needed, try to form a coercion type.
             unless nqp::isnull(my $accept := $world.can_has_coercerz: $/) {
-                my $value;
-                if nqp::istype($past, QAST::WVal) {
-                    $value := $past.value;
-                }
-                elsif $past.has_compile_time_value {
-                    $value := $past.compile_time_value;
+                if $past.ann('generic-lexical') || $past.ann('pure-generic-lexical') {
+                    # $past is expected to be a QAST::Var
+                    my $coerce-type := $world.create_coercion_type($/, find-generic-lexical($past.name), $accept);
+                    my $coerce-lexical := $world.install_instantiation_lexical($coerce-type);
+                    $past := QAST::Var.new( :name($coerce-lexical), :scope<lexical> );
+                    $past.annotate('generic-lexical', 1);
                 }
                 else {
-                    $/.panic("Target type too complex to form a coercion type");
-                }
+                    my $value;
+                    if nqp::istype($past, QAST::WVal) {
+                        $value := $past.value;
+                    }
+                    elsif $past.has_compile_time_value {
+                        $value := $past.compile_time_value;
+                    }
+                    else {
+                        $/.panic("Target type too complex to form a coercion type");
+                    }
 
-                my $type := $world.create_coercion_type($/, $value, $accept);
-                $past := QAST::WVal.new( :value($type) );
+                    my $type := $world.create_coercion_type($/, $value, $accept);
+                    $past := QAST::WVal.new( :value($type) );
+                }
             }
         }
 
@@ -10923,10 +10951,6 @@ Did you mean a call like '"
         )
     }
 
-    sub ins_lexical($type) {
-        '!INS_OF_' ~ $type.HOW.name($type)
-    }
-
     # Works out how to look up a type. If it's not generic and is in an SC, we
     # statically resolve it. Otherwise, we punt to a runtime lexical lookup.
     sub instantiated_type(@name, $/) {
@@ -10943,18 +10967,14 @@ Did you mean a call like '"
         my $is_generic := $archetypes && $archetypes.generic;
         my $past;
         if nqp::isconcrete($archetypes) && $is_generic && $archetypes.nominal && !$archetypes.parametric {
-            my $ins_lexical := ins_lexical($type);
+            my $ins_lexical := $world.install_instantiation_lexical($type);
             $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
-            if nqp::isconcrete($*GENERICS) {
-                nqp::bindkey($*GENERICS, $ins_lexical, $type);
-            }
-            else {
-                $/.worry("Generic class '" ~ $type.HOW.name($type) ~ "' is referenced outside of a role");
-            }
+            $past.annotate('generic-lexical', 1);
         }
         elsif $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
             $past := $world.symbol_lookup(@name, $/);
             $past.set_compile_time_value($type);
+            $past.annotate('pure-generic-lexical',1);
         }
         else {
             $past := QAST::WVal.new( :value($type) );

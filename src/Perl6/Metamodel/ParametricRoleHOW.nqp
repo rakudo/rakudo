@@ -195,21 +195,6 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method specialize_with($obj, $conc, $type_env, @pos_args) {
-        my $hll-typeenv := nqp::can($type_env, 'instantiate');
-        my $ctx := $hll-typeenv ?? $type_env.ctx !! $type_env;
-        my $ctx-iter := nqp::iterator($ctx);
-        while $ctx-iter {
-            my $decl := nqp::shift($ctx-iter);
-            if nqp::eqat((my $sym := nqp::iterkey_s($decl)), '!INS_OF_', 0) {
-                my $generic := nqp::iterval($decl);
-                nqp::bindkey(
-                    $ctx, $sym,
-                    ($hll-typeenv
-                        ?? $type_env.cache($generic)
-                        !! $generic.HOW.instantiate_generic($generic, $type_env)) );
-            }
-        }
-
         # Go through attributes, reifying as needed and adding to
         # the concrete role.
         for self.attributes($obj, :local(1)) {
@@ -278,6 +263,22 @@ class Perl6::Metamodel::ParametricRoleHOW
 
         $conc.HOW.compose($conc);
         return $conc;
+    }
+
+    # Instantiate all generics bound to special lexicals in role's body. Must be invoked by role code before any
+    # of these lexicals is referenced.
+    method resolve_instantiations($obj, $ctx, @ins-list) {
+        my $type_env := Perl6::Metamodel::Configuration.type_env_from($ctx, :boundary-by('::?ROLE'));
+        my $hll-typeenv := nqp::isnull($type_env);
+        for @ins-list {
+            my $generic := nqp::getlexrel($ctx, $_);
+            nqp::bindkey(
+                $ctx, $_,
+                ($hll-typeenv
+                    ?? $type_env.cache($generic)
+                    !! $generic.HOW.instantiate_generic($generic, $type_env)));
+        }
+        $hll-typeenv ?? $type_env !! $ctx
     }
 
     method mro($obj, :$roles, :$concretizations, :$unhidden) {

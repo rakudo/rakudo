@@ -800,7 +800,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*CAN_LOWER_TOPIC := 1;                # true if we optimize the $_ lexical away
         :my $*MAY_USE_RETURN := 0;                 # true if the current routine may use return
         :my $*WANT_RAKUAST := 0;                   # if `use experimental :rakuast` is in effect
-        :my $*GENERICS;                            # would be set by roles and by routines with type captures
+        :my $*GENERICS-PAD;                        # would be set by roles and by routines with type captures
 
         # Various interesting scopes we'd like to keep to hand.
         :my $*GLOBALish;
@@ -1948,7 +1948,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         :my $*POD_BLOCK;
         :my $*BORG := {};
-        :my $*GENERICS := nqp::getlexreldyn(nqp::ctxcaller(nqp::ctx()), '$*GENERICS'); # shadow away any outer
+        # Propagade $*GENERICS-PAD from the caller scope to preserve the context. At the same time if this package
+        # is a role then $*GENERICS-PAD will be overriden to create a new context.
+        :my $*GENERICS-PAD := nqp::getlexreldyn(nqp::ctxcaller(nqp::ctx()), '$*GENERICS-PAD');
         { $*DECLARATOR_DOCS := '' }
         <.attach_leading_docs>
 
@@ -1982,6 +1984,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 my $target_package := $longname && $longname.is_declared_in_global()
                     ?? $*GLOBALish
                     !! $*OUTERPACKAGE;
+
+                my $curpad := $*W.cur_lexpad();
 
                 # Unless we're augmenting...
                 if $*SCOPE ne 'augment' {
@@ -2021,6 +2025,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     my $fullname;
                     if @name {
                         $fullname := $longname.fully_qualified_with($target_package);
+                    }
+
+                    # Setup generic context.
+                    if $*PKGDECL eq 'role' {
+                        ($*GENERICS-PAD := $curpad).annotate('instantiation-lexicals', []);
                     }
 
                     # If it exists already, then it's either uncomposed (in which
@@ -2065,7 +2074,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     # then install it in that.
                     else {
                         # If the group doesn't exist, create it.
-                        $*GENERICS := nqp::hash();
                         my $group;
                         if $exists {
                             $group := $package;
@@ -2124,7 +2132,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 }
 
                 # Install $?PACKAGE, $?MODULE, $?ROLE, $?CLASS, and :: variants as needed.
-                my $curpad := $*W.cur_lexpad();
                 unless $curpad.symbol('$?PACKAGE') {
                     $*W.install_lexical_symbol($curpad, '$?PACKAGE', $package);
                     $*W.install_lexical_symbol($curpad, '::?PACKAGE', $package);

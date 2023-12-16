@@ -1736,10 +1736,19 @@ BEGIN {
             my $pkg      := nqp::getattr($dcself, Attribute, '$!package');
             my $avc      := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
             my $bc       := nqp::getattr($dcself, Attribute, '$!build_closure');
+            my $ci       := nqp::getattr($dcself, Attribute, '$!container_initializer');
             my $ins      := nqp::clone($dcself);
             if $type.HOW.archetypes($type).generic {
                 nqp::bindattr($ins, Attribute, '$!type',
                     $type.HOW.instantiate_generic($type, $type_environment));
+            }
+            if nqp::isconcrete($ci) {
+#?if !jvm
+                nqp::bindattr($ins, Attribute, '$!container_initializer', nqp::p6capturelexwhere($ci.clone()));
+#?endif
+#?if jvm
+                nqp::bindattr($ins, Attribute, '$!container_initializer', $ci.clone());
+#?endif
             }
             my $cd_ins := $cd;
             if $cd.is_generic {
@@ -1779,7 +1788,12 @@ BEGIN {
                     $pkg.HOW.instantiate_generic($pkg, $type_environment));
             }
             if nqp::defined($bc) {
+#?if !jvm
+                nqp::bindattr($ins, Attribute, '$!build_closure', nqp::p6capturelexwhere($bc.clone()));
+#?endif
+#?if jvm
                 nqp::bindattr($ins, Attribute, '$!build_closure', $bc.clone());
+#?endif
             }
             $ins
         }));
@@ -3794,9 +3808,6 @@ BEGIN {
     TypeEnv.HOW.add_parent(TypeEnv, Map);
     TypeEnv.HOW.add_attribute(TypeEnv, Attribute.new(:name<$!primary>, :type(Bool), :package(TypeEnv)));
     TypeEnv.HOW.add_attribute(TypeEnv, Attribute.new(:name<$!WHICH>, :type(ValueObjAt), :package(TypeEnv)));
-    TypeEnv.HOW.add_method(TypeEnv, 'ctx', nqp::getstaticcode(sub ($self) {
-        nqp::getattr($self, Map, '$!storage')
-    }));
     TypeEnv.HOW.compose_repr(TypeEnv);
     nqp::settypehllrole(TypeEnv, 5);
 

@@ -1461,11 +1461,12 @@ my class Array { # declared in BOOTSTRAP
             !! self.clone
     }
 
-    method ^parameterize(Mu:U \arr, Mu \of) {
+    method ^parameterize(Mu:U \type, Mu \of) {
         if nqp::isconcrete(of) {
-            die "Can not parameterize {arr.^name} with {of.raku}"
+            die "Can not parameterize {type.^name} with {of.raku}"
         }
         else {
+            my \arr = type.^mro.first(!*.^is_mixin);
             my $what := arr.^mixin(Array::Typed[of]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name("{arr.^name}[{of.^name}]");

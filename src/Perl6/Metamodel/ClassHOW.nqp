@@ -378,8 +378,9 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method instantiate_generic($obj, $type_environment) {
-        return $obj if nqp::isnull(my $type-env-type := Perl6::Metamodel::Configuration.type_env_from($type_environment));
-        $type-env-type.cache($obj, { $obj.INSTANTIATE-GENERIC($type-env-type) });
+        my $type-env := Perl6::Metamodel::Configuration.type_env_from($type_environment);
+        return $obj if nqp::isnull($type-env);
+        $type-env.cache($obj, { $obj.INSTANTIATE-GENERIC($type-env) });
     }
 
 #?if moar
@@ -416,7 +417,12 @@ class Perl6::Metamodel::ClassHOW
         if nqp::isconcrete($obj) && $can-is-generic {
             # If invocant of .HOW.archetypes is a concrete object implementing 'is-generic' method then method outcome
             # is the ultimate result. But we won't cache it in type's HOW $!archetypes.
-            $atype := $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1),
+                        0),
+                    0, { $obj.is-generic ?? $archetypes-g !! $archetypes-ng }));
         }
         else {
             my $track-archetypes-attr :=
@@ -425,23 +431,23 @@ class Perl6::Metamodel::ClassHOW
             nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-archetypes-attr);
 
             $atype := nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes');
-        }
 
-        unless nqp::isconcrete($atype) {
-            # * If we still don't have an archetypes object then it means HOW doesn't know its archetypes yet. Therefore
-            #   whatever we determine here is type's ultimate archetypes.
-            # * Also, since we've taken care of a concrete object case then here 'is-generic' is invoked on the type
-            #   itself, not an instance of it.
-            $atype := $can-is-generic && $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
-            nqp::scwbdisable();
-            nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archt-lock').protect({
-                nqp::bindattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes', $atype);
-            });
-            nqp::scwbenable();
-        }
+            unless nqp::isconcrete($atype) {
+                # * If we still don't have an archetypes object then it means HOW doesn't know its archetypes yet. Therefore
+                #   whatever we determine here is type's ultimate archetypes.
+                # * Also, since we've taken care of a concrete object case then here 'is-generic' is invoked on the type
+                #   itself, not an instance of it.
+                $atype := $can-is-generic && $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
+                nqp::scwbdisable();
+                nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archt-lock').protect({
+                    nqp::bindattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes', $atype);
+                });
+                nqp::scwbenable();
+            }
 
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0, $atype));
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0, $atype));
+        }
     });
 #?endif
 }

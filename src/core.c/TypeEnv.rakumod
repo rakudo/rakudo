@@ -7,7 +7,6 @@
 # underlying context is preserved after that and a new TypeEnv gets created it would become a new primary and will start
 # producing new instantiations for the same generics.
 
-my class TypeEnv::LexPad {...}
 my class TypeEnv { # declared in BOOTSTRAP
 # my class TypeEnv is Map {
 #     has $!primary;
@@ -15,12 +14,57 @@ my class TypeEnv { # declared in BOOTSTRAP
 
     method new(|) { callsame()!INIT() }
 
-    method new-from-ctx(Mu \ctx) {
-        nqp::p6bindattrinvres(
-            nqp::create(nqp::reprname(ctx) eq 'MVMContext' ?? TypeEnv::LexPad !! self.WHAT),
-            Map,
-            '$!storage',
-            (nqp::istype(ctx, Map) ?? nqp::getattr(ctx, Map, '$!storage') !! ctx) )!INIT()
+    method !flatten-ctx(Mu \ctx, Mu \ctx-hash, :$boundary-by) {
+        my Mu $cur-ctx := ctx;
+        while nqp::isconcrete($cur-ctx) {
+            # Stop iterating outers if there is no boundary symbol in the current context (say, `::?ROLE` defines role's
+            # generic context); or if we iterated all the way out to the core where it'd be way to expensive to collect
+            # all available symbols while there is no sense in doing it.
+            last if ($boundary-by && nqp::isnull(nqp::getlexrel($cur-ctx, $boundary-by)))
+                    || nqp::existskey($cur-ctx, 'CORE-SETTING-REV');
+
+            my Mu \iter := nqp::iterator(nqp::ctxlexpad($cur-ctx));
+            while iter {
+                my Mu \pair = nqp::shift(iter);
+                my $sym := nqp::iterkey_s(pair);
+                unless nqp::existskey(ctx-hash, $sym) {
+                    nqp::bindkey(ctx-hash, $sym, (my \v = nqp::iterval(pair)));
+                }
+            }
+
+            $cur-ctx := try nqp::ctxouter($cur-ctx);
+        }
+    }
+
+    method new-from-ctx(Mu \ctx, Str :$boundary-by --> ::?CLASS:D) is raw {
+        my Mu $type-env;
+        my $ctx-repr := nqp::reprname(ctx);
+        my Mu $ctx-hash;
+        my Mu $which-object;
+#?if jvm
+        if nqp::reprname(ctx) eq 'ContextRef' {
+#?endif
+#?if !jvm
+        if nqp::reprname(ctx) eq 'MVMContext' {
+#?endif
+            $which-object := ctx;
+            self!flatten-ctx(ctx, ($ctx-hash := nqp::hash()), :$boundary-by);
+        }
+        elsif nqp::istype(ctx, Map) {
+            $ctx-hash := nqp::getattr(ctx, Map, '$!storage');
+        }
+        elsif nqp::ishash(ctx) {
+            $ctx-hash := ctx;
+        }
+        else {
+            die "Can't create a TypeEnv from an instance of '" ~ ctx.^name ~ "'";
+        }
+
+        $type-env := nqp::p6bindattrinvres(nqp::create(self.WHAT), Map, '$!storage', $ctx-hash);
+
+        # If created from a nqp::ctx() then use it as our ID for WHICH. Otherwise use the hashe we've got either
+        # directly as the argument, or indirectly from a Map.
+        $type-env!INIT(nqp::isconcrete($which-object) ?? $which-object !! $ctx-hash)
     }
 
     method primary { ? $!primary }
@@ -28,9 +72,9 @@ my class TypeEnv { # declared in BOOTSTRAP
     my Mu $ins-cache := nqp::hash();
     my $cache-lock = Lock.new;
 
-    method !INIT() {
+    method !INIT(Mu $which-object? is raw) {
         $cache-lock.protect: {
-            my $self-key := self.WHICH;
+            my $self-key := nqp::isconcrete($which-object) ?? self!WHICH-FROM($which-object) !! self.WHICH;
             unless nqp::existskey($ins-cache, $self-key) {
                 $!primary := True;
                 nqp::bindkey($ins-cache, $self-key, nqp::hash());
@@ -81,7 +125,7 @@ my class TypeEnv { # declared in BOOTSTRAP
         my Mu $ins;
         $cache-lock.protect: {
             my $ins-lexical = '!INS_OF_' ~ obj.^name;
-            my \ctx = self.ctx;
+            my \ctx = nqp::getattr(self, Map, '$!storage');
             my $has-lexical := nqp::existskey(ctx, $ins-lexical);
             my $obj-id;
             my Mu $obj-idx;
@@ -109,29 +153,14 @@ my class TypeEnv { # declared in BOOTSTRAP
         $ins
     }
 
+    method !WHICH-FROM(Mu \ctx) {
+        $!WHICH := nqp::box_s( self.^name ~ "|" ~ nqp::objectid(ctx), ValueObjAt )
+    }
+
     # Bind own identity to the underlying context object. This way two independently created instances of TypeEnv
     # would be considered the same entity if they share the same context.
     multi method WHICH(::?CLASS:D:) {
-        $!WHICH // ($!WHICH := nqp::box_s(
-            self.^name ~ "|" ~ nqp::objectid(nqp::getattr(self, Map, '$!storage')),
-            ValueObjAt
-        ))
-    }
-}
-
-my class TypeEnv::LexPad is TypeEnv {
-    multi method AT-KEY(::?CLASS:D: Str:D $key --> Mu) is raw {
-        nqp::ifnull(nqp::getlexrel(nqp::getattr(self, Map, '$!storage'), $key), Nil)
-    }
-    multi method AT-KEY(::?CLASS:D: Mu \key --> Mu) is raw {
-        nqp::ifnull(nqp::getlexrel(nqp::getattr(self, Map, '$!storage'), key.Str), Nil)
-    }
-
-    multi method EXISTS-KEY(::?CLASS:D: Str:D $key --> Mu) is raw {
-        ! nqp::isnull(nqp::getlexrel(nqp::getattr(self, Map, '$!storage'), $key))
-    }
-    multi method EXISTS-KEY(::?CLASS:D: Mu \key --> Mu) is raw {
-        ! nqp::isnull(nqp::getlexrel(nqp::getattr(self, Map, '$!storage'), key.Str))
+        $!WHICH // self!WHICH-FROM(nqp::getattr(self, Map, '$!storage'))
     }
 }
 

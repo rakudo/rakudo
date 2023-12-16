@@ -3808,9 +3808,6 @@ BEGIN {
     TypeEnv.HOW.add_parent(TypeEnv, Map);
     TypeEnv.HOW.add_attribute(TypeEnv, Attribute.new(:name<$!primary>, :type(Bool), :package(TypeEnv)));
     TypeEnv.HOW.add_attribute(TypeEnv, Attribute.new(:name<$!WHICH>, :type(ValueObjAt), :package(TypeEnv)));
-    TypeEnv.HOW.add_method(TypeEnv, 'ctx', nqp::getstaticcode(sub ($self) {
-        nqp::getattr($self, Map, '$!storage')
-    }));
     TypeEnv.HOW.compose_repr(TypeEnv);
     nqp::settypehllrole(TypeEnv, 5);
 

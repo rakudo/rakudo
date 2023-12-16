@@ -43,7 +43,11 @@ class Perl6::Metamodel::GenericHOW
         elsif nqp::isconcrete($type_environment) && $type_environment.EXISTS-KEY($name) {
             $found := nqp::decont($type_environment.AT-KEY($name));
         }
-        nqp::isnull($found) ?? $obj !! $found
+        nqp::isnull($found)
+            ?? $obj
+            !! $found.HOW.archetypes($found).generic
+                ?? $found.HOW.instantiate_generic($found, $type_environment)
+                !! $found
     }
 
     method compose($obj) {

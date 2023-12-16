@@ -378,8 +378,9 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method instantiate_generic($obj, $type_environment) {
-        return $obj if nqp::isnull(my $type-env-type := Perl6::Metamodel::Configuration.type_env_from($type_environment));
-        $type-env-type.cache($obj, { $obj.INSTANTIATE-GENERIC($type-env-type) });
+        my $type-env := Perl6::Metamodel::Configuration.type_env_from($type_environment);
+        return $obj if nqp::isnull($type-env);
+        $type-env.cache($obj, { $obj.INSTANTIATE-GENERIC($type-env) });
     }
 
 #?if moar

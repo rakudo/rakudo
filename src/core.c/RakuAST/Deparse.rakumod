@@ -1917,8 +1917,9 @@ CODE
     multi method deparse(RakuAST::Statement::Expression:D $ast --> Str:D) {
         my @*HEREDOCS;
         my $expression := $ast.expression;
-        my str @parts   = self.deparse($expression);
+        my str $deparsed = self.deparse($expression);
 
+        my str @parts;
         if $ast.condition-modifier -> $condition {
             @parts.push(self.deparse($condition));
         }
@@ -1927,8 +1928,21 @@ CODE
             @parts.push(self.deparse($loop));
         }
 
+        # condition or loop modifier
+        if @parts {
+            my $chop := $deparsed.ends-with(self.end-statement)
+              ?? self.end-statement.chars
+              !! $deparsed.ends-with(self.last-statement)
+                ?? self.last-statement.chars
+                !! 0;
+            $deparsed = $deparsed.chop($chop)
+              ~ ' '
+              ~ @parts.join(' ')
+              ~ $deparsed.substr(* - $chop)
+        }
+
         my $text := self.labels($ast)
-          ~ @parts.join(' ')
+          ~ $deparsed
           ~ (nqp::istype($expression,RakuAST::Doc::DeclaratorTarget)
               ?? ""
               !! $*DELIMITER

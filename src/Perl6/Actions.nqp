@@ -3392,6 +3392,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 type_captures     => nqp::list_s('$?CLASS', '::?CLASS')
             ));
 
+            my $type-env-var;
+            if nqp::elems(my @ins-list := $*GENERICS-PAD.ann('instantiation-lexicals')) {
+                $world.add_object_if_no_sc(@ins-list);
+                $type-env-var := QAST::Node.unique('__typeenv_');
+                $block[1].unshift(
+                    QAST::Op.new( :op<bind>,
+                        QAST::Var.new( :name($type-env-var), :scope<local>, :decl<var> ),
+                        QAST::Op.new( :op<callmethod>, :name<resolve_instantiations>,
+                            QAST::Op.new( :op<how>,
+                                QAST::Var.new( :name<::?ROLE>, :scope<lexical> ) ),
+                            QAST::Var.new( :name<::?ROLE>, :scope<lexical> ),
+                            QAST::Op.new( :op<curlexpad> ),
+                            QAST::WVal.new( :value(@ins-list) )
+                        )));
+            }
+
             my $sig := $world.create_signature_and_params($<signature>, %sig_info, $block, 'Mu');
             add_signature_binding_code($block, $sig, @params);
             $block.blocktype('declaration_static');
@@ -3399,14 +3415,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Role bodies run at BEGIN time, so need fixup.
             begin_time_lexical_fixup($block);
 
-            # As its last act, it should grab the current lexpad so that
-            # we have the type environment, and also return the parametric
-            # role we're in (because if we land it through a multi-dispatch,
-            # we won't know).
+            # As its last act, it should return our type environment context, and also return the parametric role we're
+            # in (because if we land it through a multi-dispatch, we won't know).
+            # The type environment context would eithe be what Perl6::Metamodel::ParametericRoleHOW
+            # 'resolve_instantiations' method returned or lexpad of role's body closure.
             $block[1].push(QAST::Op.new(
                 :op('list'),
                 QAST::WVal.new( :value($package) ),
-                QAST::Op.new( :op('curlexpad') )));
+                $type-env-var
+                    ?? QAST::Var.new( :name($type-env-var), :scope<local> )
+                    !! QAST::Op.new( :op('curlexpad') )));
 
             # Finish code object and add it as the role's body block.
             my $code := $*CODE_OBJECT;

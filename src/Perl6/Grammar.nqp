@@ -2029,7 +2029,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
                     # Setup generic context.
                     if $*PKGDECL eq 'role' {
-                        ($*GENERICS-PAD := $curpad).annotate('generic-attributes', []);
+                        ($*GENERICS-PAD := $curpad).annotate('instantiation-lexicals', []);
                     }
 
                     # If it exists already, then it's either uncomposed (in which

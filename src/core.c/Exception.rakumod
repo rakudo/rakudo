@@ -1850,6 +1850,17 @@ my class X::Role::Instantiation is Exception does X::Wrapper {
     }
 }
 
+my class X::Role::BodyReturn is Exception {
+    has Mu $.role is required;
+    has Str:D $.expected is required;
+    has Str:D $.got is required;
+    method message() {
+        "Bad return value of role '" ~ $!role.^name
+            ~ "' body block; expected " ~ $.expected
+            ~ " but got " ~ $.got
+    }
+}
+
 my class X::Role::Initialization is Exception {
     method message() { "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '{$.role.^name}'" }
 }

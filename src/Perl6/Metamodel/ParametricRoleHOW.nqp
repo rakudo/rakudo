@@ -166,8 +166,37 @@ class Perl6::Metamodel::ParametricRoleHOW
                 my $type_env;
                 my $error;
                 try {
-                    my @result := $!body_block(|@pos_args, |%named_args);
-                    $type_env := nqp::ifnull(Perl6::Metamodel::Configuration.type_env_from(@result[1]), @result[1]);
+                    my $result := $!body_block(|@pos_args, |%named_args);
+                    if nqp::isconcrete($result) {
+                        # Support for bodies returning Raku's positional
+                        my $original-result := $result;
+                        if nqp::can($result, 'FLATTENABLE_LIST') {
+                            $result := $result.FLATTENABLE_LIST();
+                        }
+                        if nqp::islist($result) && nqp::elems($result) == 2 {
+                            $type_env :=
+                                nqp::ifnull(Perl6::Metamodel::Configuration.type_env_from($result[1]), $result[1]);
+                        }
+                        else {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::Role::BodyReturn',
+                                "Role '" ~ $obj.HOW.name($obj) ~ "' body block is expected to return a list, got '"
+                                    ~ $original-result.HOW.name($original-result) ~ "' instead",
+                                :role($obj),
+                                :expected("a list of two elements"),
+                                :got( (nqp::isconcrete($original-result)
+                                        ?? "an object instance" !! "a type object")
+                                      ~ " of type " ~ $original-result.HOW.name($original-result) ))
+                        }
+                    }
+                    else {
+                        # When there is no concrete return value from the body use empty TypeEnv then.
+                        # Assuming that no Raku-generated role body would return an undefined value, especially those
+                        # that belong to the core; and assuming that the only period of time when TypeEnv is not
+                        # available on the configuration class is the early stages of the CORE.c compilation, – we can
+                        # safely skip the check for nullness. Can't we?
+                        $type_env := Perl6::Metamodel::Configuration.type_env_type().new;
+                    }
                     CATCH {
                         $error := $!;
                     }
@@ -179,8 +208,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                         "Could not instantiate role '" ~ self.name($obj)
                             ~ "':\n" ~ ($exception || nqp::getmessage($error)),
                         :role($obj),
-                        :exception($error)
-                    )
+                        :exception($error) )
                 }
 
                 # Use it to build a concrete role.

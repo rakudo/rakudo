@@ -3482,7 +3482,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $archetypes := $package.HOW.archetypes($package);
         if $archetypes.generic && $archetypes.nominal && !$archetypes.parametric {
-            $world.install_instantiation_lexical($package);
+            $world.install_instantiation_lexical($/, $package);
         }
 
         make $pkg-ast;
@@ -6704,7 +6704,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $generics-pad := $*GENERICS-PAD;
                 my $definite-type :=
                     $world.create_definite_type($world.resolve_mo($/, 'definite'), $generic-type, $definite);
-                my $definite-lexical := $world.install_instantiation_lexical($definite-type);
+                my $definite-lexical := $world.install_instantiation_lexical($/, $definite-type);
                 my $past := QAST::Var.new( :name($definite-lexical), :scope<lexical> );
                 $past.annotate_self('generic-lexical', 1);
             }
@@ -6736,7 +6736,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $past.ann('generic-lexical') || $past.ann('pure-generic-lexical') {
                     # $past is expected to be a QAST::Var
                     my $coerce-type := $world.create_coercion_type($/, find-generic-lexical($past.name), $accept);
-                    my $coerce-lexical := $world.install_instantiation_lexical($coerce-type);
+                    my $coerce-lexical := $world.install_instantiation_lexical($/, $coerce-type);
                     $past := QAST::Var.new( :name($coerce-lexical), :scope<lexical> );
                     $past.annotate('generic-lexical', 1);
                 }
@@ -10967,7 +10967,7 @@ Did you mean a call like '"
         my $is_generic := $archetypes && $archetypes.generic;
         my $past;
         if nqp::isconcrete($archetypes) && $is_generic && $archetypes.nominal && !$archetypes.parametric {
-            my $ins_lexical := $world.install_instantiation_lexical($type);
+            my $ins_lexical := $world.install_instantiation_lexical($/, $type);
             $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
             $past.annotate('generic-lexical', 1);
         }

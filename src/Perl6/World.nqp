@@ -1897,16 +1897,16 @@ class Perl6::World is HLL::World {
         '!INS_OF_' ~ $type.HOW.name($type)
     }
 
-    method install_instantiation_lexical($type) {
-        my $ins_lexical := self.instantiation_lexical($type);
-        if nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
-            unless $generics-pad.symbol($ins_lexical) {
-                $generics-pad.ann('instantiation-lexicals').push($ins_lexical);
-                self.install_lexical_symbol($generics-pad, $ins_lexical, $type);
-            }
-        }
-        else {
+    method install_instantiation_lexical($/, $type) {
+        unless nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
             $/.worry("Generic type '" ~ $type.HOW.name($type) ~ "' is used out of a generic context");
+            return $type.HOW.name($type);
+        }
+
+        my $ins_lexical := self.instantiation_lexical($type);
+        unless $generics-pad.symbol($ins_lexical) {
+            $generics-pad.ann('instantiation-lexicals').push($ins_lexical);
+            self.install_lexical_symbol($generics-pad, $ins_lexical, $type);
         }
         $ins_lexical
     }
@@ -1934,7 +1934,7 @@ class Perl6::World is HLL::World {
                     # once when body block is being ran. For this we install a lexical to which the result of
                     # parameterization is bound.
                     my $BLOCK := $*CURPAD // $*W.cur_lexpad();
-                    my $ins_lexical := self.install_instantiation_lexical($cont_type);
+                    my $ins_lexical := self.install_instantiation_lexical($/, $cont_type);
                     my $params-ast := QAST::Op.new( :op<callmethod>, :name<FLATTENABLE_LIST>,
                                                     $circumfix[0].ast.shallow_clone );
                     $params-ast.flat(1);
@@ -1960,7 +1960,8 @@ class Perl6::World is HLL::World {
                 }
                 else {
                     # Other generics must be resolved by the instantiation protocol.
-                    $new-ast := QAST::Var.new( :name(self.install_instantiation_lexical($cont_type)), :scope<lexical> );
+                    $new-ast :=
+                        QAST::Var.new( :name(self.install_instantiation_lexical($/, $cont_type)), :scope<lexical> );
                     $new-ast.annotate('generic-lexical', 1);
                 }
             }

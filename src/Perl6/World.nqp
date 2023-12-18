@@ -1900,7 +1900,7 @@ class Perl6::World is HLL::World {
     method install_instantiation_lexical($/, $type) {
         unless nqp::isconcrete(my $generics-pad := $*GENERICS-PAD) {
             $/.worry("Generic type '" ~ $type.HOW.name($type) ~ "' is used out of a generic context");
-            return $type.HOW.name($type);
+            return nqp::null();
         }
 
         my $ins_lexical := self.instantiation_lexical($type);

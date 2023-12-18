@@ -438,11 +438,11 @@ class Perl6::Metamodel::ClassHOW
                 # * Also, since we've taken care of a concrete object case then here 'is-generic' is invoked on the type
                 #   itself, not an instance of it.
                 $atype := $can-is-generic && $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
-                nqp::scwbdisable();
                 nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archt-lock').protect({
+                    nqp::scwbdisable();
                     nqp::bindattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes', $atype);
+                    nqp::scwbenable();
                 });
-                nqp::scwbenable();
             }
 
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',

@@ -10968,8 +10968,10 @@ Did you mean a call like '"
         my $past;
         if nqp::isconcrete($archetypes) && $is_generic && $archetypes.nominal && !$archetypes.parametric {
             my $ins_lexical := $world.install_instantiation_lexical($/, $type);
-            $past := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
-            $past.annotate('generic-lexical', 1);
+            $past :=
+                nqp::isnull($ins_lexical)
+                    ?? QAST::WVal.new( :value($type) )
+                    !! QAST::Var.new( :name($ins_lexical), :scope<lexical> ).annotate_self('generic-lexical', 1);
         }
         elsif $is_generic || nqp::isnull(nqp::getobjsc($type)) || istype($type.HOW,$/.how('package')) {
             $past := $world.symbol_lookup(@name, $/);

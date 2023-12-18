@@ -15,9 +15,7 @@ my %provides =
     "safe-snapper"                  => "lib/safe-snapper.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
     "RakuDoc::To::Text"             => "lib/RakuDoc/To/Text.rakumod",
-    "L10N"                          => "lib/L10N.rakumod",
     "RakuAST::L10N"                 => "lib/RakuAST/L10N.rakumod",
-    "RakuAST::Deparse::L10N"        => "lib/RakuAST/Deparse/L10N.rakumod",
     "RakuAST::Deparse::Highlight::HTML"
       => "lib/RakuAST/Deparse/Highlight/HTML.rakumod",
 ;
@@ -32,17 +30,6 @@ if Compiler.backend eq 'moar' {
     %provides<SL>               = "lib/SL.rakumod";
     %provides<MoarVM::SIL>      = "lib/MoarVM/SIL.rakumod";
     %provides<SIL>              = "lib/SIL.rakumod";
-}
-
-for dir $*PROGRAM.parent.sibling("templates").child("L10N") {
-    my str $language = .basename;
-    next if $language eq 'CORE'
-         || $language.ends-with('.md')   # any translator documentation
-         || $language.starts-with(".");  # ignore editor temp files
-
-    %provides{"L10N::$language"} = "lib/L10N/$language.rakumod";
-    %provides{"RakuAST::Deparse::L10N::$language"}
-      = "lib/RakuAST/Deparse/L10N/$language.rakumod";
 }
 
 my $prefix := @*ARGS[0];

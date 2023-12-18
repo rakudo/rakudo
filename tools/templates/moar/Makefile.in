@@ -105,7 +105,7 @@ MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 
 @bpv(RUN_CLEAN_TARGET_FILES)@ = @nfp(@base_dir@/@bpm(RUNNER)@)@ @script(clean-target-files.raku)@ $(VERBOSE)
 
-@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/09-moar)@ @nfp(t/12-rakuast)@ @nfp(t/13-localization)@
+@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/09-moar)@ @nfp(t/12-rakuast)@
 
 @include(Makefile-backend-common)@
 

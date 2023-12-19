@@ -313,8 +313,8 @@ class Perl6::Compiler is HLL::Compiler {
   --full-cleanup       try to free all memory and exit cleanly
   --debug-port=port    listen for incoming debugger connections
   --debug-suspend      pause execution at the entry point
-  --tracing            output a line to stderr on every interpreter instr (only if
-                       enabled in MoarVM)
+  --tracing            output a line to stderr on every interpreter instr
+                       (only if enabled in MoarVM)
 ♥;
     }
     $print-func(($name ?? $name !! "") ~ qq♥ [switches] [--] [programfile] [arguments]
@@ -346,12 +346,12 @@ and, by default, also executes the compiled code.
   --repl-mode=interactive|non-interactive
                        when running without "-e" or filename arguments,
                        a REPL is started. By default, if STDIN is a TTY,
-                       "interactive" REPL is started that shows extra messages and
-                       prompts, otherwise a "non-interactive" mode is used where
-                       STDIN is read entirely and evaluated as if it were a program,
-                       without any extra output (in fact, no REPL machinery is even
-                       loaded). This option allows to bypass TTY detection and
-                       force one of the REPL modes.
+                       "interactive" REPL is started that shows extra messages
+                       and prompts, otherwise a "non-interactive" mode is used
+                       where STDIN is read entirely and evaluated as if it were
+                       a program, without any extra output (in fact, no REPL
+                       machinery is even loaded). This option allows to bypass
+                       TTY detection and force one of the REPL modes.
 $moar-options
 Note that only boolean single-letter options may be bundled.
 

@@ -100,13 +100,12 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     method is-generic { nqp::hllbool(callsame() || nqp::istrue(TValue.^archetypes.generic)) }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:U: TypeEnv:D \type-environment) is raw {
-        self.WHAT.^parameterize: type-environment.instantiate(TValue)
+        self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize: type-environment.instantiate(TValue)
     }
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment) is raw {
         my Mu $descr := type-environment.instantiate(nqp::getattr(self, Array, '$!descriptor'));
         nqp::p6bindattrinvres(
-            self.WHAT.^parameterize(type-environment.instantiate(TValue)).new( |(self.elems ?? self !! Empty) ),
-            Array, '$!descriptor', $descr )
+            self.WHAT.INSTANTIATE-GENERIC(type-environment).new(self), Array, '$!descriptor', $descr )
     }
 
     multi method raku(::?CLASS:D:) {

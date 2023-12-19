@@ -437,9 +437,9 @@ class Perl6::Metamodel::ClassHOW
                 #   whatever we determine here is type's ultimate archetypes.
                 # * Also, since we've taken care of a concrete object case then here 'is-generic' is invoked on the type
                 #   itself, not an instance of it.
-                $atype := $can-is-generic && $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
                 nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archt-lock').protect({
                     nqp::scwbdisable();
+                    $atype := $can-is-generic && $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
                     nqp::bindattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes', $atype);
                     nqp::scwbenable();
                 });

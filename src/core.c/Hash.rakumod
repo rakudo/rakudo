@@ -444,18 +444,15 @@ my class Hash { # declared in BOOTSTRAP
             !! self.clone
     }
 
-    method ^parameterize(Mu:U \type, Mu \of, Mu \keyof = Str(Any)) {
-
-        my \hash = type.^mro.first(!*.^is_mixin);
-
+    method ^parameterize(Mu:U \hash, Mu \of, Mu \keyof = Str(Any)) {
         # fast path
         if nqp::eqaddr(of,Mu) && nqp::eqaddr(keyof,Str(Any)) {
-            type
+            hash
         }
 
         # error checking
         elsif nqp::isconcrete(of) {
-            "Can not parameterize {type.^name} with {of.raku}"
+            "Can not parameterize {hash.^name} with {of.raku}"
         }
 
         # only constraint on type
@@ -469,12 +466,12 @@ my class Hash { # declared in BOOTSTRAP
 
         # error checking
         elsif nqp::isconcrete(keyof) {
-            "Can not parameterize {type.^name} with {keyof.raku}"
+            die "Can not parameterize {hash.^name} with {keyof.raku}"
         }
 
         # no support for native types yet
         elsif nqp::objprimspec(keyof) {
-            'Parameterization of hashes with native '
+            die 'Parameterization of hashes with native '
               ~ keyof.raku
               ~ ' not yet implemented. Sorry.'
         }

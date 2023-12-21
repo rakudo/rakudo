@@ -103,9 +103,9 @@ my role Array::Typed[::TValue] does Positional[TValue] {
         self.^mro.first({ !(.^is_mixin && .is-generic) }).^parameterize: type-environment.instantiate(TValue)
     }
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment) is raw {
+        my \ins-arr = self.WHAT.INSTANTIATE-GENERIC(type-environment);
         my Mu $descr := type-environment.instantiate(nqp::getattr(self, Array, '$!descriptor'));
-        nqp::p6bindattrinvres(
-            self.WHAT.INSTANTIATE-GENERIC(type-environment).new(self), Array, '$!descriptor', $descr )
+        nqp::p6bindattrinvres((self.elems ?? ins-arr.new(self) !! ins-arr.new), Array, '$!descriptor', $descr )
     }
 
     multi method raku(::?CLASS:D:) {

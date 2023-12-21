@@ -273,9 +273,9 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
     }
 
     multi method INSTANTIATE-GENERIC(::?CLASS:D: TypeEnv:D \type-environment --> Associative) is raw {
+        my \ins-hash = self.INSTANTIATE-GENERIC(type-environment);
         my Mu $descr := type-environment.instantiate( nqp::getattr(self, Hash, '$!descriptor') );
-        nqp::p6bindattrinvres(
-            self.WHAT.INSTANTIATE-GENERIC(type-environment).new(self), Hash, '$!descriptor', $descr )
+        nqp::p6bindattrinvres((self.elems ?? ins-hash.new(self) !! ins-hash.new), Hash, '$!descriptor', $descr )
     }
 
     multi method raku(::?CLASS:D \SELF:) {

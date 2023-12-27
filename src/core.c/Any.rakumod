@@ -614,13 +614,11 @@ sub dd(|c) {  # is implementation-detail
                 my $name :=
                   !nqp::istype($var.VAR,Failure) && try $var.VAR.name;
                 $name := '' if $name && ($name eq 'element' | '%');
-
-                my @parts = $var.WHAT.^name.split("::");
-                my $type := @parts.pop;
-                if @parts {
-                    $type := $type.chop if $type.contains(/ \W $ /);
-                }
-
+                my $type := $name
+                  ?? nqp::istype($var,Failure)
+                    ?? 'Failure'
+                    !! $var.VAR.of.raku
+                  !! '';
                 my $what := nqp::can($var,'raku')
                   ?? $var.raku
                   !! nqp::can($var,'perl')
@@ -634,6 +632,7 @@ sub dd(|c) {  # is implementation-detail
                             ?? BOOTThread($var)
                             !! "($var.^name() without .raku or .perl method)"
                     !! "($var.^name() without .raku or .perl method)";
+
                 note $name ?? "$type $name = $what" !! $what;
             }
         }

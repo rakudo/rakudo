@@ -122,14 +122,14 @@ sub parse-names(Str:D \names) is DEPRECATED('uniparse') {
 
 sub to-json(|c)
   is implementation-detail
-  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.raku.org/')
+  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://raku.land/')
 {
     Rakudo::Internals::JSON.to-json(|c);
 }
 
 sub from-json($text)
   is implementation-detail
-  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.raku.org/')
+  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://raku.land/')
 {
     Rakudo::Internals::JSON.from-json($text);
 }

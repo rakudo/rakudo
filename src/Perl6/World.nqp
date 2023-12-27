@@ -1499,6 +1499,16 @@ class Perl6::World is HLL::World {
         self.add_object_if_no_sc($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);
         my $comp_unit := $registry.head.need($spec);
+        if $RMD {
+            my $name := $comp_unit.short-name;
+            my $auth := $comp_unit.auth;
+            $auth := $auth ?? ":auth<$auth>" !! '';
+            my $version := $comp_unit.version;
+            $version := $version ?? ':ver<' ~ $version.Str ~ '>' !! '';
+            my $api := $comp_unit.api;
+            $api := $api ?? ':api<' ~ $api.Str ~ '>' !! '';
+            $RMD("Loaded $name$auth$version$api");
+        }
         my $globalish := $comp_unit.handle.globalish-package;
         nqp::gethllsym('Raku','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
 

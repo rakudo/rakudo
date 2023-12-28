@@ -1500,14 +1500,25 @@ class Perl6::World is HLL::World {
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);
         my $comp_unit := $registry.head.need($spec);
         if $RMD {
-            my $name := $comp_unit.short-name;
-            my $auth := $comp_unit.auth;
-            $auth := $auth ?? ":auth<$auth>" !! '';
-            my $version := $comp_unit.version;
-            $version := $version ?? ':ver<' ~ $version.Str ~ '>' !! '';
-            my $api := $comp_unit.api;
-            $api := $api ?? ':api<' ~ $api.Str ~ '>' !! '';
-            $RMD("Loaded $name$auth$version$api");
+            if $comp_unit.distribution -> $distribution {
+                $RMD('Loaded ' ~ $distribution.Str);
+            }
+            else {
+                my $name := $comp_unit.short-name;
+                my $from := $comp_unit.from;
+                $from := $from eq 'Perl6' || $from eq 'Raku'
+                  ?? ''
+                  !! ":from<$from>";
+                my $auth := $comp_unit.auth;
+                $auth := $auth ?? ":auth<$auth>" !! '';
+                my $version := $comp_unit.version;
+                $version := nqp::defined($version)
+                  ?? ':ver<' ~ $version.Str ~ '>'
+                  !!  '';
+                my $api := $comp_unit.api;
+                $api := $api ?? ':api<' ~ $api.Str ~ '>' !! '';
+                $RMD("Loaded $name$from$version$auth$api");
+            }
         }
         my $globalish := $comp_unit.handle.globalish-package;
         nqp::gethllsym('Raku','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);

@@ -22,7 +22,9 @@ class Distribution::Resource {
     }
 
     # delegate appropriate IO::Path methods to the resource IO::Path object
-    multi method Str(::?CLASS:D: |c) {
+    multi method Str(::?CLASS:D: |c)
+      is DEPRECATED('%?RESOURCES<key> directly instead')
+    {
         self.IO.Str(|c)
     }
     multi method gist(::?CLASS:D: |c) {

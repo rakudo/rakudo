@@ -33,7 +33,6 @@ class Perl6::Metamodel::ClassHOW
     has $!is_pun;
     has $!pun_source; # If class is coming from a pun then this is the source role
     has $!archetypes;
-    has $!archt-lock;
 
     my $archetypes-ng := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable );
     my $archetypes-g  := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable, :generic );
@@ -83,7 +82,6 @@ class Perl6::Metamodel::ClassHOW
         $metaclass.set_auth($obj, $auth) if $auth;
         $metaclass.set_api($obj, $api) if $api;
         $metaclass.setup_mixin_cache($obj);
-        nqp::bindattr($metaclass, Perl6::Metamodel::ClassHOW, '$!archt-lock', NQPLock.new);
         nqp::setboolspec($obj, 5, nqp::null());
         $obj
     }
@@ -412,7 +410,6 @@ class Perl6::Metamodel::ClassHOW
         }
 
         my $can-is-generic := !nqp::isnull($obj) && nqp::can($obj, 'is-generic');
-        my $atype;
 
         if nqp::isconcrete($obj) && $can-is-generic {
             # If invocant of .HOW.archetypes is a concrete object implementing 'is-generic' method then method outcome
@@ -430,23 +427,9 @@ class Perl6::Metamodel::ClassHOW
                             $track-how, Perl6::Metamodel::ClassHOW, '$!archetypes');
             nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-archetypes-attr);
 
-            $atype := nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes');
-
-            unless nqp::isconcrete($atype) {
-                # * If we still don't have an archetypes object then it means HOW doesn't know its archetypes yet. Therefore
-                #   whatever we determine here is type's ultimate archetypes.
-                # * Also, since we've taken care of a concrete object case then here 'is-generic' is invoked on the type
-                #   itself, not an instance of it.
-                nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archt-lock').protect({
-                    nqp::scwbdisable();
-                    $atype := $can-is-generic && $obj.is-generic ?? $archetypes-g !! $archetypes-ng;
-                    nqp::bindattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes', $atype);
-                    nqp::scwbenable();
-                });
-            }
-
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0, $atype));
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0,
+                    (nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes') // $archetypes-ng)));
         }
     });
 #?endif

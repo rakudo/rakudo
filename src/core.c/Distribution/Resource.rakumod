@@ -21,44 +21,9 @@ class Distribution::Resource {
             !!  $*VM.platform-library-name($library)
     }
 
-    # delegate appropriate IO::Path methods to the resource IO::Path object
-    multi method Str(::?CLASS:D: |c)
-      is DEPRECATED('%?RESOURCES<key> directly')
-    {
-        self.IO.Str(|c)
-    }
-    method absolute(|c) {
-        self.IO.absolute(|c)
-    }
-    method is-absolute(|c) {
-        self.IO.is-absolute(|c)
-    }
-    method relative(|c) {
-        self.IO.relative(|c)
-    }
-    method is-relative(|c) {
-        self.IO.is-relative(|c)
-    }
-    method parts(|c) {
-        self.IO.parts(|c)
-    }
-    method volume(|c) {
-        self.IO.volume(|c)
-    }
-    method dirname(|c) {
-        self.IO.dirname(|c)
-    }
-    method basename(|c) {
-        self.IO.basename(|c)
-    }
-    method extension(|c) {
-        self.IO.extension(|c)
-    }
+    # delegate appropriate IO::Handle methods
     method open(|c) {
         self.IO.open(|c)
-    }
-    method resolve(|c) {
-        self.IO.resolve(|c)
     }
     method slurp(|c) {
         self.IO.slurp(|c)
@@ -77,6 +42,65 @@ class Distribution::Resource {
     }
     method copy(|c) {
         self.IO.copy(|c)
+    }
+
+    # treating a Distribution::Resource like an IO::Path (instead of an IO::Handle)
+    # should be avoided, so we have deprecated all methods that assume IO::Path
+    # behavior
+    multi method Str(::?CLASS:D: |c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.Str(|c)
+    }
+    method absolute(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.absolute(|c)
+    }
+    method is-absolute(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.is-absolute(|c)
+    }
+    method relative(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.relative(|c)
+    }
+    method is-relative(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.is-relative(|c)
+    }
+    method parts(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.parts(|c)
+    }
+    method volume(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.volume(|c)
+    }
+    method dirname(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.dirname(|c)
+    }
+    method basename(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.basename(|c)
+    }
+    method extension(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.extension(|c)
+    }
+    method resolve(|c)
+      is DEPRECATED('%?RESOURCES<key> directly')
+    {
+        self.IO.resolve(|c)
     }
 }
 

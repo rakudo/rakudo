@@ -27,12 +27,6 @@ class Distribution::Resource {
     {
         self.IO.Str(|c)
     }
-    multi method gist(::?CLASS:D: |c) {
-        self.IO.gist(|c)
-    }
-    multi method raku(::?CLASS:D: |c) {
-        self.IO.raku(|c)
-    }
     method absolute(|c) {
         self.IO.absolute(|c)
     }

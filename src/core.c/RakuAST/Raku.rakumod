@@ -166,6 +166,9 @@ augment class RakuAST::Node {
           'for', -> {
               :for if self.for
           },
+          'forced-dynamic', -> {
+              :forced-dynamic if self.forced-dynamic
+          },
           'how', -> {
               my $how := self.how;
               as-class('how', $how.^name.subst("Perl6::"))
@@ -607,7 +610,7 @@ augment class RakuAST::Node {
     }
 
     multi method raku(RakuAST::ParameterTarget::Var:D: --> Str:D) {
-        self!literal(self.name)
+        self!nameds: <name forced-dynamic>
     }
 
     multi method raku(RakuAST::ParameterTarget::Term:D: --> Str:D) {

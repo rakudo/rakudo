@@ -2948,7 +2948,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $forced-dynamic := $dynprag
                 ?? $dynprag(~$<declname>)
                 !! 0;
-            my $decl := Nodify('ParameterTarget', 'Var').new(~$<declname>, :$forced-dynamic);
+            my $decl := Nodify('ParameterTarget', 'Var').new(
+              :name(~$<declname>), :$forced-dynamic
+            );
             $/.typed-panic('X::Redeclaration', :symbol(~$<declname>))
               if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
             %args<target> := $decl;

@@ -60,7 +60,7 @@ subtest 'A pointy block node taking a parameter evaluates to a Block' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$param')
+              target => RakuAST::ParameterTarget::Var.new(:name<$param>)
             ),
           )
         ),

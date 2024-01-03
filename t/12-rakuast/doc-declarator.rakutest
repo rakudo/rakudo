@@ -624,7 +624,7 @@ subtest 'Sub with declarator pod on parameter (1)' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new("\$b")
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>)
           ).declarator-docs(
             leading  => ("leading comment\n",),
             trailing => ("trailing comment\n",)
@@ -661,13 +661,13 @@ subtest 'Sub with declarator pod on parameter (2)' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$b')
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>)
           ).declarator-docs(
             leading  => ("leading comment\n",),
             trailing => ("trailing comment\n",)
           ),
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$c')
+            target => RakuAST::ParameterTarget::Var.new(:name<$c>)
           )
         )
       ),
@@ -702,13 +702,13 @@ subtest 'Sub with declarator pod on parameter (3)' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$b'),
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>),
             WHY => RakuAST::Doc::Declarator.new(
               leading  => ("leading comment b\n",)
             )
           ),
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$c'),
+            target => RakuAST::ParameterTarget::Var.new(:name<$c>),
             WHY => RakuAST::Doc::Declarator.new(
               leading  => ("leading comment c\n",)
             )
@@ -760,7 +760,7 @@ subtest 'Sub with declarator pod on parameter (4)' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$b')
+            target => RakuAST::ParameterTarget::Var.new(:name<$b>)
           ).declarator-docs(
             leading  => ("leading param\n",),
             trailing => ("trailing param\n",)

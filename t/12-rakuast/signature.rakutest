@@ -20,7 +20,7 @@ subtest 'Default type for block and routine' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$param'),
+            target => RakuAST::ParameterTarget::Var.new(:name<$param>),
           ),
         )
       )
@@ -37,7 +37,7 @@ subtest 'Default type for block and routine' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$param'),
+            target => RakuAST::ParameterTarget::Var.new(:name<$param>),
           ),
         )
       )
@@ -57,7 +57,7 @@ subtest 'Type constraint is enforced on Scalar' => {
             type => RakuAST::Type::Simple.new(
               RakuAST::Name.from-identifier('Int')
             ),
-            target => RakuAST::ParameterTarget::Var.new('$x'),
+            target => RakuAST::ParameterTarget::Var.new(:name<$x>),
           ),
         )
       )
@@ -118,7 +118,7 @@ subtest 'Optional Scalar parameter defaults to type object' => {
             type => RakuAST::Type::Simple.new(
               RakuAST::Name.from-identifier('Int')
             ),
-            target => RakuAST::ParameterTarget::Var.new('$x'),
+            target => RakuAST::ParameterTarget::Var.new(:name<$x>),
             optional => True,
           ),
         )
@@ -162,7 +162,7 @@ subtest 'One required named parameter' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$named'),
+            target => RakuAST::ParameterTarget::Var.new(:name<$named>),
             names => ['named'],
             :!optional
           ),
@@ -215,7 +215,7 @@ subtest 'Required named parameter with alias' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('$var'),
+            target => RakuAST::ParameterTarget::Var.new(:name<$var>),
             names => ['first', 'fst'],
             :!optional
           ),
@@ -272,7 +272,7 @@ subtest 'Slurpy hash parameter' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('%h'),
+            target => RakuAST::ParameterTarget::Var.new(:name<%h>),
             slurpy => RakuAST::Parameter::Slurpy::Flattened
           ),
         )
@@ -320,7 +320,7 @@ subtest 'Slurpy flattening array parameter' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('@a'),
+            target => RakuAST::ParameterTarget::Var.new(:name<@a>),
             slurpy => RakuAST::Parameter::Slurpy::Flattened
           ),
         )
@@ -370,7 +370,7 @@ subtest 'Slurpy non-flattening array parameter' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('@a'),
+            target => RakuAST::ParameterTarget::Var.new(:name<@a>),
             slurpy => RakuAST::Parameter::Slurpy::Unflattened
           ),
         )
@@ -422,7 +422,7 @@ subtest 'Slurpy single arg rule array parameter' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new('@a'),
+            target => RakuAST::ParameterTarget::Var.new(:name<@a>),
             slurpy => RakuAST::Parameter::Slurpy::SingleArgument
           ),
         )

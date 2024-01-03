@@ -137,8 +137,8 @@ class RakuAST::Signature
                 unless $slurpy-hash-seen {
                     nqp::bindattr(self, RakuAST::Signature, '$!implicit-slurpy-hash',
                         RakuAST::Parameter.new(
-                            :slurpy(RakuAST::Parameter::Slurpy::Flattened.new),
-                            :target(RakuAST::ParameterTarget::Var.new('%_'))
+                          :slurpy(RakuAST::Parameter::Slurpy::Flattened.new),
+                          :target(RakuAST::ParameterTarget::Var.new(:name<%_>))
                         )
                     );
                 }
@@ -1271,7 +1271,7 @@ class RakuAST::ParameterTarget::Var
     has RakuAST::VarDeclaration::Simple $!declaration;
     has str $!scope;
 
-    method new(str $name!, Bool :$forced-dynamic) {
+    method new(str :$name!, Bool :$forced-dynamic) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::ParameterTarget::Var, '$!name', $name);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Var, '$!type', Mu);

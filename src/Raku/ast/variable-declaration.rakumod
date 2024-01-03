@@ -668,26 +668,29 @@ class RakuAST::VarDeclaration::Simple
             if $!initializer {
                 my $initializer := $!initializer;
                 my $method := RakuAST::Method.new(
-                    :signature(RakuAST::Signature.new(
-                        :parameters([
-                            RakuAST::Parameter.new(
-                                target => RakuAST::ParameterTarget::Var.new('$_')
-                            )
-                        ])
-                    )),
-                    :body(RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            !nqp::istype($initializer,RakuAST::Initializer::CallAssign)
-                                ?? RakuAST::Statement::Expression.new(:expression($initializer.expression))
-                                !! RakuAST::Statement::Expression.new(:expression(
-                                    RakuAST::ApplyPostfix.new(
-                                        operand => $!type,
-                                        postfix => $initializer.postfixish
-                                    )
-                                ))
-                            )
+                  :signature(RakuAST::Signature.new(
+                    :parameters([
+                      RakuAST::Parameter.new(
+                        target => RakuAST::ParameterTarget::Var.new(:name<$_>)
+                      )
+                    ])
+                  )),
+                  :body(RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new(
+                        :expression(
+                          nqp::istype(
+                            $initializer,
+                            RakuAST::Initializer::CallAssign
+                          ) ?? RakuAST::ApplyPostfix.new(
+                                 operand => $!type,
+                                 postfix => $initializer.postfixish
+                               )
+                             !! $initializer.expression
                         )
-                    ),
+                      )
+                    )
+                  ))
                 );
                 $!attribute-package.add-generated-lexical-declaration($method);
                 self.add-trait(RakuAST::Trait::Will.new('build', $method));
@@ -1910,7 +1913,7 @@ class RakuAST::VarDeclaration::Placeholder::Positional
 
     method generate-parameter() {
         RakuAST::Parameter.new:
-            target => RakuAST::ParameterTarget::Var.new(self.lexical-name)
+          target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name))
     }
 }
 
@@ -1931,10 +1934,11 @@ class RakuAST::VarDeclaration::Placeholder::Named
     }
 
     method generate-parameter() {
+        my str $name := self.lexical-name;
         RakuAST::Parameter.new:
-            target => RakuAST::ParameterTarget::Var.new(self.lexical-name),
-            names => [nqp::substr(self.lexical-name, 1)],
-            optional => 0
+          target   => RakuAST::ParameterTarget::Var.new(:$name),
+          names    => [nqp::substr($name,1)],
+          optional => 0
     }
 }
 
@@ -1946,8 +1950,8 @@ class RakuAST::VarDeclaration::Placeholder::SlurpyArray
 
     method generate-parameter() {
         RakuAST::Parameter.new:
-            target => RakuAST::ParameterTarget::Var.new(self.lexical-name),
-            slurpy => RakuAST::Parameter::Slurpy::Flattened
+          target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name)),
+          slurpy => RakuAST::Parameter::Slurpy::Flattened
     }
 }
 
@@ -1959,7 +1963,7 @@ class RakuAST::VarDeclaration::Placeholder::SlurpyHash
 
     method generate-parameter() {
         RakuAST::Parameter.new:
-            target => RakuAST::ParameterTarget::Var.new(self.lexical-name),
-            slurpy => RakuAST::Parameter::Slurpy::Flattened
+          target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name)),
+          slurpy => RakuAST::Parameter::Slurpy::Flattened
     }
 }

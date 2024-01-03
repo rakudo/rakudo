@@ -617,7 +617,7 @@ our class Formatter {
                 my @parameters = (^@directives).map: {
                     RakuAST::Parameter.new(
                       target => RakuAST::ParameterTarget::Var.new(
-                        '$' ~ $letter++
+                        :name('$' ~ $letter++)
                       )
                     )
                 }

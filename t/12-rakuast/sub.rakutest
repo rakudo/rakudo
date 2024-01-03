@@ -51,7 +51,7 @@ subtest 'A sub node evaluates to a Sub' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$param')
+              target => RakuAST::ParameterTarget::Var.new(:name<$param>)
             ),
           )
         ),
@@ -97,7 +97,7 @@ subtest 'Can call a named sub declaration' => {
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
-                target => RakuAST::ParameterTarget::Var.new('$param')
+                target => RakuAST::ParameterTarget::Var.new(:name<$param>)
               ),
             )
           ),

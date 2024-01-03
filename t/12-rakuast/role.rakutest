@@ -173,7 +173,7 @@ subtest 'creating a parameterized role' => {
       parameterization => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target  => RakuAST::ParameterTarget::Var.new("\$a"),
+            target  => RakuAST::ParameterTarget::Var.new(:name<$a>),
             default => RakuAST::IntLiteral.new(42)
           ),
         )
@@ -221,7 +221,7 @@ subtest 'creating a parameterized role with a type capture' => {
                         ),
                         definite  => True
                       ),
-                      target => RakuAST::ParameterTarget::Var.new("\$a")
+                      target => RakuAST::ParameterTarget::Var.new(:name<$a>)
                     ),
                   )
                 ),

@@ -130,7 +130,7 @@ subtest 'Subset with a where pointy block' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$a')
+              target => RakuAST::ParameterTarget::Var.new(:name<$a>)
             ),
           )
         ),

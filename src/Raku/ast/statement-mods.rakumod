@@ -243,11 +243,13 @@ class RakuAST::StatementModifier::For::Thunk
     method IMPL-THUNK-SIGNATURE() {
         RakuAST::Signature.new(parameters => [
             RakuAST::Parameter.new(
-                target => RakuAST::ParameterTarget::Var.new('$_'),
-                traits => [
-                    RakuAST::Trait::Is.new(name => RakuAST::Name.from-identifier('raw'))
-                ]
-            )
+              target => RakuAST::ParameterTarget::Var.new(:name<$_>),
+              traits => [
+                RakuAST::Trait::Is.new(
+                  name => RakuAST::Name.from-identifier('raw')
+                )
+              ]
+          )
         ])
     }
 }

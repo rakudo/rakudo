@@ -175,7 +175,7 @@ subtest 'Placeholder fake slurpy array' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new("\@_")
+            target => RakuAST::ParameterTarget::Var.new(:name<@_>)
           ),
         )
       ),
@@ -220,7 +220,7 @@ subtest 'Placeholder fake slurpy hash' => {
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
-            target => RakuAST::ParameterTarget::Var.new("\%_")
+            target => RakuAST::ParameterTarget::Var.new(:name<%_>)
           ),
         )
       ),

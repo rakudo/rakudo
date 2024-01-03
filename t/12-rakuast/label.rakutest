@@ -115,7 +115,7 @@ subtest 'Basic with structure with label' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),
@@ -232,7 +232,7 @@ subtest 'given with explicit signature' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),
@@ -468,7 +468,7 @@ subtest 'Statement level for loop' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),

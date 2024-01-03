@@ -186,7 +186,7 @@ subtest 'Basic with / orwith / else structure' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),
@@ -205,7 +205,7 @@ subtest 'Basic with / orwith / else structure' => {
             signature => RakuAST::Signature.new(
               parameters => (
                 RakuAST::Parameter.new(
-                  target => RakuAST::ParameterTarget::Var.new('$x')
+                  target => RakuAST::ParameterTarget::Var.new(:name<$x>)
                 ),
               )
             ),
@@ -224,7 +224,7 @@ subtest 'Basic with / orwith / else structure' => {
               signature => RakuAST::Signature.new(
                 parameters => (
                   RakuAST::Parameter.new(
-                    target => RakuAST::ParameterTarget::Var.new('$x')
+                    target => RakuAST::ParameterTarget::Var.new(:name<$x>)
                   ),
                 )
               ),
@@ -242,7 +242,7 @@ subtest 'Basic with / orwith / else structure' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),
@@ -299,7 +299,7 @@ subtest 'simple with evaluation' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),
@@ -737,7 +737,7 @@ subtest 'Statement level for loop' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),
@@ -783,7 +783,7 @@ subtest 'for loop with explicit iteration variable' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),
@@ -872,7 +872,7 @@ subtest 'given with explicit signature' => {
         signature => RakuAST::Signature.new(
           parameters => (
             RakuAST::Parameter.new(
-              target => RakuAST::ParameterTarget::Var.new('$x')
+              target => RakuAST::ParameterTarget::Var.new(:name<$x>)
             ),
           )
         ),

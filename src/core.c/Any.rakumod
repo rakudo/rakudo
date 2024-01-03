@@ -608,7 +608,9 @@ sub dd(|c) {  # is implementation-detail
         while $args {
             my $var  := nqp::shift($args);
             if nqp::istype($var,RakuAST::Node) {
-                note $var.DEPARSE.chomp;
+                note nqp::isconcrete($var)
+                  ?? $var.DEPARSE.chomp
+                  !! $var.^name;
             }
             else {
                 my $name :=

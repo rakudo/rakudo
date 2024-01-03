@@ -1258,13 +1258,9 @@ augment class RakuAST::Node {
         self!positional(self.lexical-name)
     }
 
+    # handles SlurpyArray / SlurpyHash
     multi method raku(
-      RakuAST::VarDeclaration::Placeholder::SlurpyArray:D: --> Str:D) {
-        self!none
-    }
-
-    multi method raku(
-      RakuAST::VarDeclaration::Placeholder::SlurpyHash:D: --> Str:D) {
+      RakuAST::VarDeclaration::Placeholder::Slurpy:D: --> Str:D) {
         self!none
     }
 

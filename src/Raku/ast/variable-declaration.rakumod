@@ -1942,12 +1942,10 @@ class RakuAST::VarDeclaration::Placeholder::Named
     }
 }
 
-# A slurpy array placeholder parameter.
-class RakuAST::VarDeclaration::Placeholder::SlurpyArray
+# base class for slurpy placeholders
+class RakuAST::VarDeclaration::Placeholder::Slurpy
   is RakuAST::VarDeclaration::Placeholder
 {
-    method lexical-name() { '@_' }
-
     method generate-parameter() {
         RakuAST::Parameter.new:
           target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name)),
@@ -1955,15 +1953,16 @@ class RakuAST::VarDeclaration::Placeholder::SlurpyArray
     }
 }
 
+# A slurpy array placeholder parameter.
+class RakuAST::VarDeclaration::Placeholder::SlurpyArray
+  is RakuAST::VarDeclaration::Placeholder::Slurpy
+{
+    method lexical-name() { '@_' }
+}
+
 # A slurpy hash placeholder parameter.
 class RakuAST::VarDeclaration::Placeholder::SlurpyHash
-  is RakuAST::VarDeclaration::Placeholder
+  is RakuAST::VarDeclaration::Placeholder::Slurpy
 {
     method lexical-name() { '%_' }
-
-    method generate-parameter() {
-        RakuAST::Parameter.new:
-          target => RakuAST::ParameterTarget::Var.new(:name(self.lexical-name)),
-          slurpy => RakuAST::Parameter::Slurpy::Flattened
-    }
 }

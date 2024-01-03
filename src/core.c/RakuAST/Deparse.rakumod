@@ -2592,16 +2592,11 @@ CODE
           given $ast.lexical-name
     }
 
+    # handles SlurpyArray/SlurpyHash
     multi method deparse(
-      RakuAST::VarDeclaration::Placeholder::SlurpyArray:D $
+      RakuAST::VarDeclaration::Placeholder::Slurpy:D $ast
     --> Str:D) {
-        self.hsyn('var-placeholder', '@_')
-    }
-
-    multi method deparse(
-      RakuAST::VarDeclaration::Placeholder::SlurpyHash:D $
-    --> Str:D) {
-        self.hsyn('var-placeholder', '%_')
+        self.hsyn('var-placeholder', $ast.lexical-name)
     }
 
     multi method deparse(RakuAST::VarDeclaration::Signature:D $ast --> Str:D) {

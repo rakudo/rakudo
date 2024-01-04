@@ -208,7 +208,7 @@ augment class RakuAST::Node {
         }
         else {
             unless self.is-resolved {
-                self.resolve-with($_) with $*RESOLVER;
+                self.resolve-with($_) with $*R;
             }
 
             with try self.resolution andthen .compile-time-value {
@@ -228,7 +228,7 @@ augment class RakuAST::Node {
 
     multi method literalize(RakuAST::Type::Simple:D:) {
         unless self.is-resolved {
-            self.resolve-with($_) with $*RESOLVER;
+            self.resolve-with($_) with $*R;
         }
 
         with try self.resolution {

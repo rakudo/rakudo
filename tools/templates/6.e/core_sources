@@ -9,4 +9,5 @@ src/core.e/Formatter.rakumod
 src/core.e/Format.rakumod
 src/core.e/Rakudo/Iterator.rakumod
 src/core.e/Fixups.rakumod
+src/core.e/ValueList.rakumod
 src/core.e/additions.rakumod

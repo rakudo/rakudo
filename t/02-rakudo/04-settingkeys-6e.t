@@ -747,6 +747,7 @@ my %allowed = (
     Q{Unicode},
     Q{UnsignedBlob},
     Q{VM},
+    Q{ValueList},
     Q{ValueObjAt},
     Q{Variable},
     Q{Version},

@@ -825,6 +825,7 @@ my @allowed =
         Q{Formatter},
         Q{Grammar},
         Q{PseudoStash},
+        Q{ValueList},
     );
 
 my %nyi-for-backend = (

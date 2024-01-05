@@ -2943,16 +2943,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method param-var($/) {
         # Work out what kind of thing we're binding into, if any.
         my %args;
-        if $<name> {
+        my str $name := ~$<declname>;
+        if $name {
             my $dynprag := $*LANG.pragma('dynamic-scope');
             my $forced-dynamic := $dynprag
-                ?? $dynprag(~$<declname>)
+                ?? $dynprag($name)
                 !! 0;
             my $decl := Nodify('ParameterTarget', 'Var').new(
-              :name(~$<declname>), :$forced-dynamic
+              :$name, :$forced-dynamic
             );
-            $/.typed-panic('X::Redeclaration', :symbol(~$<declname>))
-              if $*DECLARE-TARGETS && $*R.declare-lexical($decl);
+            $/.typed-panic('X::Redeclaration', :symbol($name))
+              if $decl.can-be-resolved
+              && $*DECLARE-TARGETS
+              && $*R.declare-lexical($decl);
             %args<target> := $decl;
         }
         elsif $<signature> {

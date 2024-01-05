@@ -1295,6 +1295,13 @@ class RakuAST::VarDeclaration::Anonymous
     method allowed-scopes() {
         self.IMPL-WRAP-LIST(['my', 'state'])
     }
+
+    method IMPL-BIND-QAST(
+      RakuAST::IMPL::QASTContext $context,
+                      QAST::Node $source-qast
+    ) {
+        $source-qast
+    }
 }
 
 # The declaration of a term (sigilless) variable.

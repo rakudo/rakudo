@@ -1284,16 +1284,29 @@ class RakuAST::ParameterTarget::Var
             $obj,
             RakuAST::ParameterTarget::Var,
             '$!declaration',
-            RakuAST::VarDeclaration::Simple.new(
-                :scope($obj.scope),
-                :desigilname(RakuAST::Name.from-identifier($obj.desigilname)),
-                :$sigil,
-                :$twigil,
-                :type(Mu),
-                :$forced-dynamic,
-            )
+            nqp::chars($name) == 1
+              ?? RakuAST::VarDeclaration::Anonymous.new(
+                   :scope('anon'),
+                   :sigil($name),
+                   :type(Mu),
+                 )
+              !! RakuAST::VarDeclaration::Simple.new(
+                  :scope($obj.scope),
+                  :desigilname(RakuAST::Name.from-identifier($obj.desigilname)),
+                  :$sigil,
+                  :$twigil,
+                  :type(Mu),
+                  :$forced-dynamic,
+                )
         );
         $obj
+    }
+
+    # Can be resolved if the parameter is not anonymous
+    method can-be-resolved() {
+        nqp::not_i(
+          nqp::istype($!declaration,RakuAST::VarDeclaration::Anonymous)
+        )
     }
 
     method lexical-name() {
@@ -1301,7 +1314,7 @@ class RakuAST::ParameterTarget::Var
     }
 
     method introspection-name() {
-        $!name
+        self.can-be-resolved ?? $!name !! nqp::null_s
     }
 
     method scope() {

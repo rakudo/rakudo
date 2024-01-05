@@ -1007,7 +1007,7 @@ CODE
     }
 
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
-        self.syn-infix(self.deparse($ast.infix) ~ '!')
+        self.syn-infix('!' ~ self.deparse($ast.infix))
     }
 
     multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {

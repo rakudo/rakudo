@@ -923,6 +923,10 @@ CODE
 
 #- F ---------------------------------------------------------------------------
 
+    multi method deparse(RakuAST::FakeSignature:D $ast --> Str:D) {
+        ':' ~ self.parenthesize($ast.signature)
+    }
+
     multi method deparse(RakuAST::FatArrow:D $ast --> Str:D) {
         $ast.key ~ $.fatarrow ~ self.deparse($ast.value)
     }

@@ -460,6 +460,10 @@ augment class RakuAST::Node {
 
 #- F ---------------------------------------------------------------------------
 
+    multi method raku(RakuAST::FakeSignature:D: --> Str:D) {
+        self!positional(self.signature)
+    }
+
     multi method raku(RakuAST::FatArrow:D: --> Str:D) {
         self!nameds: <key value>
     }

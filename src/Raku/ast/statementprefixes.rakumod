@@ -70,66 +70,51 @@ class RakuAST::StatementPrefix::Quietly
     }
 }
 
-# The `race` statement prefix.
-class RakuAST::StatementPrefix::Race
+# Base class for statement prefixes that call a method by "type" name
+class RakuAST::StatementPrefix::CallMethod
   is RakuAST::StatementPrefix
 {
-    method type() { "race" }
+    method type() { nqp::die('Must have a type specified') }
 
+    # default for these cases is False
     method allowed-on-for-statement() { False }
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
-            :op('callmethod'), :name('race'),
-            self.IMPL-CALLISH-QAST($context),
+          :op('callmethod'), :name(self.type),
+          self.IMPL-CALLISH-QAST($context),
         )
     }
+}
+
+# The `race` statement prefix.
+class RakuAST::StatementPrefix::Race
+  is RakuAST::StatementPrefix::CallMethod
+{
+    method type() { "race" }
 }
 
 # The `hyper` statement prefix.
 class RakuAST::StatementPrefix::Hyper
-  is RakuAST::StatementPrefix
+  is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "hyper" }
-
-    method allowed-on-for-statement() { False }
-
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(
-            :op('callmethod'), :name('hyper'),
-            self.IMPL-CALLISH-QAST($context),
-        )
-    }
 }
 
 # The `lazy` statement prefix.
 class RakuAST::StatementPrefix::Lazy
-  is RakuAST::StatementPrefix
+  is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "lazy" }
-
-    method allowed-on-for-statement() { False }
-
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(
-            :op('callmethod'), :name('lazy'),
-            self.IMPL-CALLISH-QAST($context),
-        )
-    }
 }
 
 # The `eager` statement prefix.
 class RakuAST::StatementPrefix::Eager
-  is RakuAST::StatementPrefix
+  is RakuAST::StatementPrefix::CallMethod
 {
     method type() { "eager" }
 
-    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(
-            :op('callmethod'), :name('eager'),
-            self.IMPL-CALLISH-QAST($context),
-        )
-    }
+    method allowed-on-for-statement() { True }
 }
 
 # The `try` statement prefix.

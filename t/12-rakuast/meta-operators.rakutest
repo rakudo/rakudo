@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 9;
+plan 10;
 
 my $ast;
 my $deparsed;
@@ -12,6 +12,21 @@ sub ast(RakuAST::Node:D $node --> Nil) {
     $deparsed := $node.DEPARSE;
     $raku     := 'use experimental :rakuast; ' ~ $node.raku;
     diag $deparsed.chomp;
+}
+
+subtest 'Negate meta-op evaluates to expected value' => {
+  # 1 !== 2
+  ast RakuAST::ApplyInfix.new(
+    left  => RakuAST::IntLiteral.new(1),
+    infix => RakuAST::MetaInfix::Negate.new(
+      RakuAST::Infix.new("==")
+      ),
+    right => RakuAST::IntLiteral.new(2)
+    );
+
+  is-deeply $deparsed, '1 !== 2', 'deparse';
+  is-deeply $_, True, @type[$++]
+  for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 
 subtest 'Assignment meta-op evaluates to expected value' => {

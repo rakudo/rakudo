@@ -471,10 +471,6 @@ CODE
         self.hsyn("block-$type", self.xsyn('block', $type))
     }
 
-    method syn-infix(str $operator) {
-        self.hsyn("infix", self.xsyn('infix', $operator))
-    }
-
     method syn-infix-ws(Str:D $operator) {
         $operator.leading-whitespace
           ~ self.hsyn("infix", self.xsyn('infix', $operator.trim))
@@ -961,7 +957,7 @@ CODE
 
     # Also for ::FlipFlop
     multi method deparse(RakuAST::Infix:D $ast --> Str:D) {
-        self.syn-infix($ast.operator)
+        self.hsyn("infix", self.xsyn('infix', $ast.operator))
     }
 
     multi method deparse(RakuAST::Initializer::Assign:D $ast --> Str:D) {
@@ -991,31 +987,37 @@ CODE
 #- M ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::MetaInfix::Assign:D $ast --> Str:D) {
-        self.syn-infix(self.deparse($ast.infix) ~ '=')
+        self.hsyn("infix", self.xsyn("infix",$ast.infix.operator) ~ '=')
     }
 
     multi method deparse(RakuAST::MetaInfix::Cross:D $ast --> Str:D) {
-        self.syn-infix(self.xsyn('meta','X') ~ self.deparse($ast.infix))
+        self.hsyn("infix",
+          self.xsyn('meta','X') ~ self.xsyn("infix", $ast.infix.operator)
+        )
     }
 
     multi method deparse(RakuAST::MetaInfix::Hyper:D $ast --> Str:D) {
-        self.hsyn('infix',
+        self.hsyn("infix",
           ($ast.dwim-left ?? '<<' !! '>>')
-            ~ self.xsyn('infix', self.deparse($ast.infix))
+            ~ self.xsyn("infix", $ast.infix.operator)
             ~ ($ast.dwim-right ?? '>>' !! '<<')
         )
     }
 
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
-        self.syn-infix(self.deparse($ast.infix) ~ '!')
+        self.hsyn("infix", '!' ~ self.xsyn("infix",$ast.infix.operator))
     }
 
     multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {
-        self.syn-infix(self.xsyn('meta','R') ~ self.deparse($ast.infix))
+        self.hsyn("infix", 
+          self.xsyn('meta','R') ~ self.xsyn("infix",$ast.infix.operator)
+        )
     }
 
     multi method deparse(RakuAST::MetaInfix::Zip:D $ast --> Str:D) {
-        self.syn-infix(self.xsyn('meta','Z') ~ self.deparse($ast.infix))
+        self.hsyn("infix", 
+          self.xsyn('meta','Z') ~ self.xsyn("infix",$ast.infix.operator)
+        )
     }
 
     multi method deparse(RakuAST::Method:D $ast --> Str:D) {

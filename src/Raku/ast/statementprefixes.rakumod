@@ -392,21 +392,19 @@ class RakuAST::StatementPrefix::Start
     }
 }
 
-# The `react` statement prefix.
-class RakuAST::StatementPrefix::React
+# # Base class for prefixes that can have whenevers in them
+class RakuAST::StatementPrefix::Wheneverable
   is RakuAST::StatementPrefix::Blorst
 {
-    method type() { "react" }
-
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
-        my str $name := '&REACT';
+        my str $name := '&' ~ nqp::uc(self.type);
         my $blorst   := self.blorst;
         if nqp::istype($blorst, RakuAST::Statement::Whenever) {
-            $name := '&REACT-ONE-WHENEVER'
+            $name := $name ~ '-ONE-WHENEVER'
               unless $blorst.body.body.statement-list.any-whenevers;
         }
         else {
-            $name := '&REACT-ONE-WHENEVER'
+            $name := $name ~ '-ONE-WHENEVER'
               if $blorst.body.statement-list.single-last-whenever;
         }
 
@@ -416,9 +414,16 @@ class RakuAST::StatementPrefix::React
     }
 }
 
+# The `react` statement prefix.
+class RakuAST::StatementPrefix::React
+  is RakuAST::StatementPrefix::Wheneverable
+{
+    method type() { "react" }
+}
+
 # The `supply` statement prefix.
 class RakuAST::StatementPrefix::Supply
-  is RakuAST::StatementPrefix::Blorst
+  is RakuAST::StatementPrefix::Wheneverable
 {
     method type() { "supply" }
 }

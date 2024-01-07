@@ -259,14 +259,15 @@ class RakuAST::StatementList
     method single-last-whenever() {
         if nqp::isconcrete(self) {
             my int $i := +$!statements;
-            if nqp::istype($!statements[--$i],RakuAST::Statement::Whenever) {
+            if $i
+              && nqp::istype($!statements[--$i],RakuAST::Statement::Whenever) {
                 while $i-- {
                     return False if nqp::istype(  # found another!
                       $!statements[$i],
                       RakuAST::Statement::Whenever
                     );
                 }
-                True                              # no other found
+                return True;                      # no other found
             }
         }
         False

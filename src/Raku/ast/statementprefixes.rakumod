@@ -397,6 +397,23 @@ class RakuAST::StatementPrefix::React
   is RakuAST::StatementPrefix::Blorst
 {
     method type() { "react" }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        my str $name := '&REACT';
+        my $blorst   := self.blorst;
+        if nqp::istype($blorst, RakuAST::Statement::Whenever) {
+            $name := '&REACT-ONE-WHENEVER'
+              unless $blorst.body.body.statement-list.any-whenevers;
+        }
+        else {
+            $name := '&REACT-ONE-WHENEVER'
+              if $blorst.body.statement-list.single-last-whenever;
+        }
+
+        QAST::Op.new(
+          :op<call>, :$name, self.IMPL-CLOSURE-QAST($context)
+        )
+    }
 }
 
 # The `supply` statement prefix.

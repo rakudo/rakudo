@@ -247,6 +247,31 @@ class RakuAST::StatementList
         self.IMPL-WRAP-LIST($!statements)
     }
 
+    # Return whether there are any whenevers
+    method any-whenevers() {
+        for $!statements {
+            return True if nqp::istype($_,RakuAST::Statement::Whenever);
+        }
+        False
+    }
+
+    # Return whether there is a single whenever and it's the last one
+    method single-last-whenever() {
+        if nqp::isconcrete(self) {
+            my int $i := +$!statements;
+            if nqp::istype($!statements[--$i],RakuAST::Statement::Whenever) {
+                while $i-- {
+                    return False if nqp::istype(  # found another!
+                      $!statements[$i],
+                      RakuAST::Statement::Whenever
+                    );
+                }
+                True                              # no other found
+            }
+        }
+        False
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Blob')),

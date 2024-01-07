@@ -910,6 +910,10 @@ class RakuAST::Block
         $obj
     }
 
+    # Helper method to return if there are any whenevers in this block,
+    # either directly, or in any embedded blocks.
+    method any-whenevers() { self.body.statement-list.any-whenevers }
+
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Block, '$!body', $new-body);
         Nil

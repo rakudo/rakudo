@@ -401,7 +401,7 @@ class RakuAST::StatementPrefix::Wheneverable
         my $blorst   := self.blorst;
         if nqp::istype($blorst, RakuAST::Statement::Whenever) {
             $name := $name ~ '-ONE-WHENEVER'
-              unless $blorst.body.body.statement-list.any-whenevers;
+              unless $blorst.body.any-whenevers;
         }
         else {
             $name := $name ~ '-ONE-WHENEVER'

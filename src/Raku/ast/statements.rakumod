@@ -250,7 +250,9 @@ class RakuAST::StatementList
     # Return whether there are any whenevers
     method any-whenevers() {
         for $!statements {
-            return True if nqp::istype($_,RakuAST::Statement::Whenever);
+            return True
+              if nqp::istype($_,RakuAST::Statement::Whenever)
+              || (nqp::istype($_,RakuAST::Block) && $_.any-whenevers)
         }
         False
     }
@@ -259,15 +261,20 @@ class RakuAST::StatementList
     method single-last-whenever() {
         if nqp::isconcrete(self) {
             my int $i := +$!statements;
-            if $i
-              && nqp::istype($!statements[--$i],RakuAST::Statement::Whenever) {
-                while $i-- {
-                    return False if nqp::istype(  # found another!
-                      $!statements[$i],
-                      RakuAST::Statement::Whenever
-                    );
+            if $i {
+                my $last := $!statements[--$i];
+                if nqp::istype($last,RakuAST::Statement::Whenever) {
+                    return False                      # embedded whenevers
+                      if $last.body.any-whenevers;
+
+                    while $i-- {
+                        return False if nqp::istype(  # found another here!
+                          $!statements[$i],
+                          RakuAST::Statement::Whenever
+                        );
+                    }
+                    return True;                      # no other found
                 }
-                return True;                      # no other found
             }
         }
         False

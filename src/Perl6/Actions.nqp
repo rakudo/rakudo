@@ -885,133 +885,112 @@ register_op_desugar('time_n', -> $qast {
     QAST::Op.new( :op('div_n'), QAST::Op.new( :op('time' ) ), QAST::NVal.new( :value(1000000000e0) ) )
 });
 {
-    my $is_moar;
     register_op_desugar('p6decontrv_internal', -> $qast {
-        unless nqp::isconcrete($is_moar) {
-            $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
-        }
-        if $is_moar {
-            QAST::Op.new(
-                :op('dispatch'),
-                QAST::SVal.new( :value($qast[1] eq '6c' ?? 'raku-rv-decont-6c' !! 'raku-rv-decont') ),
-                QAST::Op.new( :op('p6box'), QAST::Op.new( :op('wantdecont'), $qast[0] ) )
-            )
-        }
-        else {
-            my $result := QAST::Node.unique('result');
-            my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
-            my $Iterable := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Iterable')) );
-            QAST::Stmt.new(
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
-                    QAST::Op.new( :op('wantdecont'), $qast[0] )
+#?if moar
+        QAST::Op.new(:op('dispatch'),
+          QAST::SVal.new(
+            :value($qast[1] eq '6c' ?? 'raku-rv-decont-6c' !! 'raku-rv-decont')
+          ),
+          QAST::Op.new(:op('p6box'),
+            QAST::Op.new(:op('wantdecont'), $qast[0])
+          )
+        )
+#?endif
+#?if !moar
+        my $result   := QAST::Node.unique('result');
+        my $Scalar   := QAST::WVal.new(:value(nqp::gethllsym('Raku','Scalar')));
+        my $Iterable := QAST::WVal.new(:value(nqp::gethllsym('Raku','Iterable')));
+        QAST::Stmt.new(
+          QAST::Op.new(:op('bind'),
+            QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
+            QAST::Op.new( :op('wantdecont'), $qast[0] )
+          ),
+          QAST::Op.new(:op('if'),
+            # If it's a container...
+            QAST::Op.new(:op('if'),
+              QAST::Op.new(:op('isconcrete_nd'),
+                QAST::Var.new(:name($result),:scope('local'))
+              ),
+              QAST::Op.new(:op('iscont'),
+                QAST::Var.new(:name($result),:scope('local'))
+              )
+            ),
+            # It's a container; is it an rw one?
+            QAST::Op.new(:op('if'),
+              QAST::Op.new(:op('isrwcont'),
+                QAST::Var.new(:name($result),:scope('local'))
+              ),
+              # Yes; does it contain an Iterable? If so, rewrap it. If
+              # not, strip it.
+              QAST::Op.new(:op('if'),
+                QAST::Op.new(:op('istype'),
+                  QAST::Var.new(:name($result),:scope('local')),
+                  $Iterable
                 ),
-                QAST::Op.new(
-                    # If it's a container...
-                    :op('if'),
-                    QAST::Op.new(
-                        :op('if'),
-                        QAST::Op.new(
-                            :op('isconcrete_nd'),
-                            QAST::Var.new( :name($result), :scope('local') )
-                        ),
-                        QAST::Op.new(
-                            :op('iscont'),
-                            QAST::Var.new( :name($result), :scope('local') )
-                        )
-                    ),
-                    # It's a container; is it an rw one?
-                    QAST::Op.new(
-                        :op('if'),
-                        QAST::Op.new(
-                            :op('isrwcont'),
-                            QAST::Var.new( :name($result), :scope('local') )
-                        ),
-                        # Yes; does it contain an Iterable? If so, rewrap it. If
-                        # not, strip it.
-                        QAST::Op.new(
-                            :op('if'),
-                            QAST::Op.new(
-                                :op('istype'),
-                                QAST::Var.new( :name($result), :scope('local') ),
-                                $Iterable
-                            ),
-                            QAST::Op.new(
-                                :op('p6bindattrinvres'),
-                                QAST::Op.new( :op('create'), $Scalar ),
-                                $Scalar,
-                                QAST::SVal.new( :value('$!value') ),
-                                QAST::Op.new(
-                                    :op('decont'),
-                                    QAST::Var.new( :name($result), :scope('local') )
-                                )
-                            ),
-                            QAST::Op.new(
-                                :op('decont'),
-                                QAST::Var.new( :name($result), :scope('local') )
-                            )
-                        ),
-                        # Not rw, so leave container in place.
-                        QAST::Var.new( :name($result), :scope('local') )
-                    ),
-                    # Not a container, so just hand back value
-                    QAST::Var.new( :name($result), :scope('local') )
+                QAST::Op.new(:op('p6bindattrinvres'),
+                  QAST::Op.new(:op('create'),$Scalar),
+                  $Scalar,
+                  QAST::SVal.new(:value('$!value')),
+                  QAST::Op.new(:op('decont'),
+                    QAST::Var.new( :name($result),:scope('local'))
+                  )
+                ),
+                QAST::Op.new(:op('decont'),
+                  QAST::Var.new(:name($result),:scope('local'))
                 )
-            )
-        }
+              ),
+              # Not rw, so leave container in place.
+              QAST::Var.new(:name($result),:scope('local'))
+            ),
+            # Not a container, so just hand back value
+            QAST::Var.new(:name($result),:scope('local'))
+          )
+        )
+#?endif
     });
 }
 {
-    my $is_moar;
     register_op_desugar('p6assign', -> $qast {
-        unless nqp::isconcrete($is_moar) {
-            $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
-        }
-        if $is_moar {
-            my $cont := QAST::Node.unique('assign_cont');
-            QAST::Stmts.new(
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($cont), :scope('local'), :decl('var') ),
-                    $qast[0]
-                ),
-                QAST::Op.new(
-                    :op('dispatch'),
-                    QAST::SVal.new( :value('raku-assign') ),
-                    QAST::Var.new( :name($cont), :scope('local') ),
-                    QAST::Op.new( :op('decont'), $qast[1] )
-                ),
-                QAST::Var.new( :name($cont), :scope('local') )
-            )
-        }
-        else {
-            QAST::Op.new( :op('assign'), $qast[0], $qast[1] )
-        }
+#?if moar
+        my $cont := QAST::Node.unique('assign_cont');
+        QAST::Stmts.new(
+          QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($cont), :scope('local'), :decl('var') ),
+            $qast[0]
+          ),
+          QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-assign') ),
+            QAST::Var.new( :name($cont), :scope('local') ),
+            QAST::Op.new( :op('decont'), $qast[1] )
+          ),
+          QAST::Var.new( :name($cont), :scope('local') )
+        )
+#?endif
+#?if !moar
+        QAST::Op.new( :op('assign'), $qast[0], $qast[1] )
+#?endif
     });
 }
 {
-    my $is_moar;
     register_op_desugar('p6attrinited', -> $qast {
-        unless nqp::isconcrete($is_moar) {
-            $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
-        }
-        if $is_moar {
-            QAST::Op.new(
-                :op('dispatch'), :returns(int),
-                QAST::SVal.new( :value('raku-is-attr-inited') ),
-                $qast[0]
-            )
-        }
-        else {
-            QAST::Op.new(
-                :op('callmethod'), :name('check'),
-                QAST::WVal.new(
-                    :value(nqp::gethllsym('Raku', 'UninitializedAttributeChecker'))
-                ),
-                $qast[0]
-            )
-        }
+#?if moar
+        QAST::Op.new(
+          :op('dispatch'), :returns(int),
+          QAST::SVal.new( :value('raku-is-attr-inited') ),
+          $qast[0]
+        );
+#?endif
+#?if !moar
+        QAST::Op.new(
+          :op('callmethod'), :name('check'),
+          QAST::WVal.new(
+            :value(nqp::gethllsym('Raku', 'UninitializedAttributeChecker'))
+          ),
+          $qast[0]
+        )
+#?endif
     });
 }
 
@@ -4164,9 +4143,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
 
     sub decontrv_op() {
-        (my $comp := nqp::getcomp('Raku')).language_revision < 2 && $comp.backend.name eq 'moar'
-            ?? 'p6decontrv_6c'
-            !! 'p6decontrv'
+#?if moar
+        nqp::getcomp('Raku').language_revision < 2
+          ?? 'p6decontrv_6c'
+          !! 'p6decontrv'
+#?endif
+#?if !moar
+        'p6decontrv'
+#?endif
     }
 
     method routine_def($/) {

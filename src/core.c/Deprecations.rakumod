@@ -36,7 +36,7 @@ class Deprecation {
 
         %DEPRECATIONS = ();  # reset for new batches if applicable
 
-        $message.chop;
+        $message.chop
     }
     multi method report (Deprecation:D:) {
         my $type    = $.type ?? "$.type " !! "";
@@ -44,20 +44,26 @@ class Deprecation {
         my $package = $.package ?? "(from $.package) " !! "";
         my $message = $type ~ $name ~ $package ~ "seen at:\n";
         for %.callsites.kv -> $file, $lines {
-            $message ~= "  $file, line{ 's' if +$lines > 1 } {
-                $lines.keys.sort(*.Int).join(',')
-            }\n";
-            if $.from or $.removed {
-                $message ~= $.from
-                  ?? "Deprecated since v$.from, will be removed"
-                  !! "Will be removed";
-                $message ~= $.removed
-                  ?? " with release v$.removed!\n"
-                  !! " sometime in the future\n";
+            if $file eq 'environment variable' {
+                $message = "The $.name environment variable being set, support will be removed with v$.removed.\n";
+                last;
+            }
+            else {
+                $message ~= "  $file, line{ 's' if +$lines > 1 } {
+                    $lines.keys.sort(*.Int).join(',')
+                }\n";
+                if $.from or $.removed {
+                    $message ~= $.from
+                      ?? "Deprecated since v$.from, will be removed"
+                      !! "Will be removed";
+                    $message ~= $.removed
+                      ?? " with release v$.removed!\n"
+                      !! " sometime in the future\n";
+                }
             }
         }
         $message ~= "Please use $.alternative instead.\n";
-        $message;
+        $message
     }
 }
 

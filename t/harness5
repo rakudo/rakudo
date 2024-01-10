@@ -43,7 +43,7 @@ my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
 $ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
-$ENV{'PERL6LIB'} = "./lib";
+$ENV{'RAKULIB'} = "./lib";
 my $rakuast = $ENV{'RAKUDO_RAKUAST'};
 
 my @slow;

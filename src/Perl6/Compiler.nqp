@@ -358,7 +358,7 @@ Note that only boolean single-letter options may be bundled.
 The following environment variables are respected:
 
   RAKULIB     Modify the module search path
-  PERL6LIB    Modify the module search path # to be deprecated
+  PERL6LIB    Modify the module search path (DEPRECATED)
   RAKUDO_HOME Override the path of the Rakudo runtime files
   NQP_HOME    Override the path of the NQP runtime files
 

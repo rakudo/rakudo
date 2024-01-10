@@ -1,22 +1,18 @@
 my class IO::Handle {
     has $.path;
     has $!PIO;
-    has $.chomp is rw;
-    has $.nl-in;
-    has Str $.nl-out is rw;
+    has $.chomp is rw = Bool::True;
+    has $.nl-in = ["\x0A", "\r\n"];
+    has Str:D $.nl-out is rw = "\n";
     has Str $.encoding;
     has Encoding::Decoder $!decoder;
     has Encoding::Encoder $!encoder;
     has int $!out-buffer;
 
-    submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil --> Nil) {
+    submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
         $bin
           ?? nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw
-          !! ($!encoding = $encoding || 'utf8');
-
-        $!chomp  = True             unless nqp::isconcrete($!chomp);
-        $!nl-in  = ["\x0A", "\r\n"] unless nqp::isconcrete($!nl-in);
-        $!nl-out = "\n"             unless nqp::isconcrete($!nl-out);
+          !! ($!encoding = $encoding || 'utf8')
     }
 
 #?if moar

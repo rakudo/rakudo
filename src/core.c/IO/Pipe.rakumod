@@ -16,7 +16,6 @@ my class IO::Pipe is IO::Handle {
             my $encoding = Encoding::Registry.find($enc || 'utf-8');
             nqp::bindattr(self, IO::Handle, '$!encoding', $encoding.name);
             my $decoder := $encoding.decoder(:translate-nl);
-$.nl-in = ["\x0A", "\r\n"] unless $.nl-in;  # TEMPORARY WORKAROUND #5444
             $decoder.set-line-separators($.nl-in.list);
             nqp::bindattr(self, IO::Handle, '$!decoder', $decoder);
             nqp::bindattr(self, IO::Handle, '$!encoder', $encoding.encoder(:translate-nl))

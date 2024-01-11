@@ -20,9 +20,7 @@ my class Code { # declared in BOOTSTRAP
     method reducer() { ::('&METAOP_REDUCE_LEFT') }
 
 #?if moar
-    method bytecode-size() {
-        nqp::dispatch('boot-syscall', 'code-bytecode-size', $!do)
-    }
+    method bytecode-size() { nqp::syscall('code-bytecode-size', $!do) }
 #?endif
 
     proto method POSITIONS(|) {*} #  is implementation-detail

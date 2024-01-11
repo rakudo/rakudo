@@ -232,8 +232,7 @@ class RakuAST::Code
         {
             my $resolver := $!resolver;
 #?if !jvm
-            nqp::dispatch(
-                'boot-syscall',
+            nqp::syscall(
                 'set-compunit-resolver',
                 $precomp,
                 -> $name {

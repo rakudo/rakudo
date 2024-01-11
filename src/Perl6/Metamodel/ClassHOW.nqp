@@ -382,30 +382,30 @@ class Perl6::Metamodel::ClassHOW
     }
 
 #?if moar
-    nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-class-archetypes', -> $capture {
+    nqp::register('raku-class-archetypes', -> $capture {
         # Returns archetypes of a class or a class instance
         # Dispatcher arguments:
         # ClassHOW object
         # invocator
         my $how := nqp::captureposarg($capture, 0);
 
-        my $track-how := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-how);
+        my $track-how := nqp::syscall('dispatcher-track-arg', $capture, 0);
+        nqp::syscall('dispatcher-guard-concreteness', $track-how);
 
         unless nqp::isconcrete($how) {
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant', $archetypes-ng);
+            nqp::delegate('boot-code-constant', $archetypes-ng);
         }
 
         my $obj := nqp::captureposarg($capture, 1);
-        my $track-obj := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-obj);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-obj);
+        my $track-obj := nqp::syscall('dispatcher-track-arg', $capture, 1);
+        nqp::syscall('dispatcher-guard-concreteness', $track-obj);
+        nqp::syscall('dispatcher-guard-type', $track-obj);
 
         if nqp::isconcrete_nd($obj) && nqp::iscont($obj) {
             my $Scalar := nqp::gethllsym('Raku', 'Scalar');
-            my $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-obj, $Scalar, '$!value');
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-value);
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-value);
+            my $track-value := nqp::syscall('dispatcher-track-attr', $track-obj, $Scalar, '$!value');
+            nqp::syscall('dispatcher-guard-concreteness', $track-value);
+            nqp::syscall('dispatcher-guard-type', $track-value);
             $obj := nqp::getattr($obj, $Scalar, '$!value');
         }
 
@@ -414,21 +414,21 @@ class Perl6::Metamodel::ClassHOW
         if nqp::isconcrete($obj) && $can-is-generic {
             # If invocant of .HOW.archetypes is a concrete object implementing 'is-generic' method then method outcome
             # is the ultimate result. But we won't cache it in type's HOW $!archetypes.
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1),
+            nqp::delegate('boot-code-constant',
+                nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-drop-arg',
+                        nqp::syscall('dispatcher-drop-arg', $capture, 1),
                         0),
                     0, { $obj.is-generic ?? $archetypes-g !! $archetypes-ng }));
         }
         else {
             my $track-archetypes-attr :=
-                nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                nqp::syscall('dispatcher-track-attr',
                             $track-how, Perl6::Metamodel::ClassHOW, '$!archetypes');
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-archetypes-attr);
+            nqp::syscall('dispatcher-guard-literal', $track-archetypes-attr);
 
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj', $capture, 0,
+            nqp::delegate('boot-constant',
+                nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0,
                     (nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes') // $archetypes-ng)));
         }
     });

@@ -1386,9 +1386,9 @@ my class Rakudo::Internals {
               nqp::stmts(
                 (my str $path = nqp::concat($!abspath,$entry)),
 #?if moar
-                (my $stat := nqp::dispatch('boot-syscall', 'file-stat', nqp::decont_s($path), 0)),
+                (my $stat := nqp::syscall('file-stat', nqp::decont_s($path), 0)),
                 nqp::if(
-                  nqp::dispatch('boot-syscall', 'stat-flags', $stat, nqp::const::STAT_ISREG) && $!file.ACCEPTS($entry),
+                  nqp::syscall('stat-flags', $stat, nqp::const::STAT_ISREG) && $!file.ACCEPTS($entry),
 #?endif
 #?if !moar
                 nqp::if(
@@ -1398,7 +1398,7 @@ my class Rakudo::Internals {
                   nqp::if(
                     $!dir.ACCEPTS($entry) &&
 #?if moar
-                      nqp::dispatch('boot-syscall', 'stat-flags', $stat, nqp::const::STAT_ISDIR),
+                      nqp::syscall('stat-flags', $stat, nqp::const::STAT_ISDIR),
 #?endif
 #?if !moar
                       nqp::stat($path, nqp::const::STAT_ISDIR),

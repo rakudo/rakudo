@@ -6764,7 +6764,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $i := $i + 2;
             }
         }
-        elsif $op eq 'dispatch' {
+        elsif $op eq 'dispatch'
+           || $op eq 'syscall'
+           || $op eq 'register'
+           || $op eq 'delegate' {
             # We generally want to send unboxed string/int values in for dispatch
             # arguments (although leave normal ones alone); we can't really
             # know which are which, but if we're writing out an `nqp::op`

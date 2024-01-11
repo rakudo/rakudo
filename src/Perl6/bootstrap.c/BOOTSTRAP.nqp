@@ -3252,9 +3252,9 @@ BEGIN {
 #?if moar
         my $raku-capture := nqp::create(Capture);
         nqp::bindattr($raku-capture, Capture, '@!list',
-            nqp::dispatch('boot-syscall', 'capture-pos-args', $capture));
+            nqp::syscall('capture-pos-args', $capture));
         nqp::bindattr($raku-capture, Capture, '%!hash',
-            nqp::dispatch('boot-syscall', 'capture-named-args', $capture));
+            nqp::syscall('capture-named-args', $capture));
         $raku-capture
 #?endif
     }));
@@ -4373,54 +4373,54 @@ my @transform_type := nqp::list(
     },
     -> $uint { nqp::box_u($uint, Int) },
 );
-nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-hllize', -> $capture {
-    my $arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
-    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $arg);
-    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $arg);
+nqp::register('raku-hllize', -> $capture {
+    my $arg := nqp::syscall('dispatcher-track-arg', $capture, 0);
+    nqp::syscall('dispatcher-guard-type', $arg);
+    nqp::syscall('dispatcher-guard-concreteness', $arg);
     my $spec := nqp::captureposprimspec($capture, 0);
     if $spec {
-        nqp::dispatch(
-            'boot-syscall', 'dispatcher-delegate', 'lang-call',
-            nqp::dispatch(
-                'boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $capture, 0, @transform_type[$spec == 10 ?? 7 !! $spec > 3 ?? 1 !! $spec]
-            )
-        )
+        nqp::delegate('lang-call',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture,
+            0,
+            @transform_type[$spec == 10 ?? 7 !! $spec > 3 ?? 1 !! $spec]
+           )
+        );
     }
     else {
         my $obj := nqp::captureposarg($capture, 0);
 
         if nqp::isnull($obj) {
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-                    0, Mu
-                )
+            nqp::delegate('boot-constant',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                nqp::syscall('dispatcher-drop-arg', $capture, 0),
+                0,
+                Mu
+              )
             );
         }
         else {
             my $role := nqp::gettypehllrole($obj);
             if $role > 0 {
                 if nqp::isconcrete($obj) {
-                    nqp::dispatch(
-                        'boot-syscall', 'dispatcher-delegate', 'lang-call',
-                        nqp::dispatch(
-                            'boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                            $capture, 0, @transform_type[$role]
-                        )
-                    )
+                    nqp::delegate('lang-call',
+                      nqp::syscall('dispatcher-insert-arg-literal-obj',
+                        $capture, 0, @transform_type[$role]
+                      )
+                    );
                 }
                 else {
-                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-                            0, @types_for_hll_role[$role]
-                        )
+                    nqp::delegate('boot-constant',
+                      nqp::syscall('dispatcher-insert-arg-literal-obj',
+                        nqp::syscall('dispatcher-drop-arg', $capture, 0),
+                        0,
+                        @types_for_hll_role[$role]
+                      )
                     );
                 }
             }
             else {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+                nqp::delegate('boot-value', $capture);
             }
         }
     }

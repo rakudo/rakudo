@@ -7,7 +7,7 @@ my class Int { ... }
 my subset UInt of Int where {
     nqp::not_i(nqp::isconcrete($_)) || nqp::isge_I(nqp::decont($_),0)
 }
-nqp::dispatch('boot-syscall', 'set-cur-hll-config-key', 'uint_box', UInt);
+nqp::syscall('set-cur-hll-config-key', 'uint_box', UInt);
 
 my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool

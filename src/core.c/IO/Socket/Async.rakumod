@@ -205,7 +205,7 @@ my class IO::Socket::Async {
         my $p = Promise.new;
         my $v = $p.vow;
         my $encoding = Encoding::Registry.find($enc);
-        nqp::dispatch('boot-syscall', 'async-unix-connect',
+        nqp::syscall('async-unix-connect',
             $scheduler.queue,
             -> Mu \socket, Mu \err, Mu \peer-host, Mu \peer-port, Mu \socket-host, Mu \socket-port {
                 if err {
@@ -373,7 +373,7 @@ my class IO::Socket::Async {
                     }
                 }
  
-                my $cancellation := nqp::dispatch('boot-syscall', 'async-unix-listen',
+                my $cancellation := nqp::syscall('async-unix-listen',
                     $!scheduler.queue(:hint-affinity),
                     -> Mu \client-socket, Mu \err, Mu \peer-host, Mu \peer-port,
                        Mu \server-socket, Mu \socket-host, Mu \socket-port {

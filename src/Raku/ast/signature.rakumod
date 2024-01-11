@@ -215,8 +215,7 @@ class RakuAST::Signature
             $bindings.push(QAST::Op.new(
                 :op('if'),
                 QAST::Op.new(
-                    :op('dispatch'),
-                    QAST::SVal.new( :value('boot-syscall') ),
+                    :op('syscall'),
                     QAST::SVal.new( :value('bind-will-resume-on-failure') )
                 ),
                 QAST::Op.new(

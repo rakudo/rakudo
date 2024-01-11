@@ -51,6 +51,7 @@
 ### lang-call
 ### lang-meth-call
 ### lang-meth-not-found
+### set-cur-hll-config-key
 ### type-check-mode-flags
 
 ## NQP

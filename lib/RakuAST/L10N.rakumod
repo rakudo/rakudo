@@ -208,7 +208,9 @@ sub make-mapper2ast(str $name, @operands) {
                 signature => RakuAST::Signature.new(
                   parameters => (
                     RakuAST::Parameter.new(
-                      target => RakuAST::ParameterTarget::Var.new("\$original")
+                      target => RakuAST::ParameterTarget::Var.new(
+                        :name<$original>
+                      )
                     ),
                   )
                 ),
@@ -353,7 +355,9 @@ sub make-mapper2str(str $name, @operands) {
             type   => RakuAST::Type::Simple.new(
               RakuAST::Name.from-identifier("str")
             ),
-            target => RakuAST::ParameterTarget::Var.new("\$key")
+            target => RakuAST::ParameterTarget::Var.new(
+              :name<$key>
+            )
           ),
         )
       ),
@@ -559,13 +563,17 @@ my sub deparsify($language, %hash) is export {
                         type   => RakuAST::Type::Simple.new(
                           RakuAST::Name.from-identifier("str")
                         ),
-                        target => RakuAST::ParameterTarget::Var.new("\$prefix")
+                        target => RakuAST::ParameterTarget::Var.new(
+                          :name<$prefix>
+                        )
                       ),
                       RakuAST::Parameter.new(
                         type   => RakuAST::Type::Simple.new(
                           RakuAST::Name.from-identifier("str")
                         ),
-                        target => RakuAST::ParameterTarget::Var.new("\$key")
+                        target => RakuAST::ParameterTarget::Var.new(
+                          :name<$key>
+                        )
                       ),
                     )
                   ),

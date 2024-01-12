@@ -1,19 +1,66 @@
 # Dispatchers available in Rakudo on MoarVM
 
 ## MoarVM
+
+Dispatchers provided by MoarVM.
+
+Recommended reading:
+- [Towards a new general dispatch mechanism in MoarVM](https://6guts.wordpress.com/2021/03/15/towards-a-new-general-dispatch-mechanism-in-moarvm/)
+- [Raku multiple dispatch with the new MoarVM dispatcher](https://6guts.wordpress.com/2021/04/15/raku-multiple-dispatch-with-the-new-moarvm-dispatcher/)
+- i[The new MoarVM dispatch mechanism is here!](https://6guts.wordpress.com/2021/09/29/the-new-moarvm-dispatch-mechanism-is-here/)
+
 ### boot-code
+```
+nqp::dispatch('boot-code', $vmhandle, …);
+```
+Take the first argument, which must be a VM bytecode handle, and run that
+bytecode, passing the rest of the arguments as its parameters; evaluate to
+the return value of the bytecode.
+
 ### boot-code-constant
+```
+nqp::dispatch('boot-code-constant', $vmhandle, …);
+```
+Take the first argument, which must be a VM bytecode handle, and run that
+bytecode, passing the rest of the arguments as its parameters; evaluate to
+the return value of the bytecode.  Treat the VM bytecode handle as
+immutable, thus providing the optimizer with options.
+
+### boot-constant
+```
+nqp::dispatch('boot-constant', $value);
+```
+Take the first argument and produce it as the result, but also treat it as
+a constant value that will always be produced (thus meaning the optimizer
+could consider any pure code used to calculate the value as dead).
+
+### boot-resume
+```
+nqp::dispatch('boot-resume');
+```
+Resume the topmost ongoing dispatch.
+
 ### boot-syscall
+```
+nqp::dispatch('boot-syscall', $name, …);
+nqp::syscall($name, …);                   # same, using shortcut NQP op
+```
+Treat the first argument as the name of a VM-provided built-in operation
+(or operation added later with `'dispatcher-register'`) and call it,
+providing the remaining arguments as its parameters
+
 ### boot-value
+```
+nqp::dispatch('boot-value', $value);
+```
+Take the first argument and use it as the result (the identity function,
+except discarding any further arguments).
+
 ### can-unbox-to-int
 ### can-unbox-to-num
 ### can-unbox-to-str
 ### capture-is-literal-arg
 ### code-is-stub
-### dispatcher-boot-code
-### dispatcher-boot-code-constant
-### dispatcher-boot-constant
-### dispatcher-boot-value
 ### dispatcher-delegate
 ### dispatcher-do-not-install
 ### dispatcher-drop-arg
@@ -33,6 +80,7 @@
 ### dispatcher-insert-arg-literal-str
 ### dispatcher-is-arg-literal
 ### dispatcher-next-resumption
+### dispatcher-register
 ### dispatcher-replace-arg
 ### dispatcher-replace-arg-literal-obj
 ### dispatcher-resume-after-bind

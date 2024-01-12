@@ -7,7 +7,7 @@ Dispatchers provided by MoarVM.
 Recommended reading:
 - [Towards a new general dispatch mechanism in MoarVM](https://6guts.wordpress.com/2021/03/15/towards-a-new-general-dispatch-mechanism-in-moarvm/)
 - [Raku multiple dispatch with the new MoarVM dispatcher](https://6guts.wordpress.com/2021/04/15/raku-multiple-dispatch-with-the-new-moarvm-dispatcher/)
-- i[The new MoarVM dispatch mechanism is here!](https://6guts.wordpress.com/2021/09/29/the-new-moarvm-dispatch-mechanism-is-here/)
+- [The new MoarVM dispatch mechanism is here!](https://6guts.wordpress.com/2021/09/29/the-new-moarvm-dispatch-mechanism-is-here/)
 
 ### boot-code
 ```
@@ -51,7 +51,7 @@ providing the remaining arguments as its parameters
 
 ### boot-value
 ```
-nqp::dispatch('boot-value', $value);
+nqp::dispatch('boot-value', $value, …);
 ```
 Take the first argument and use it as the result (the identity function,
 except discarding any further arguments).
@@ -62,6 +62,13 @@ except discarding any further arguments).
 ### capture-is-literal-arg
 ### code-is-stub
 ### dispatcher-delegate
+```
+nqp::dispatch('boot-syscall', 'dispatcher-delegate', $name, …);
+nqp::delegate($name, …);              # same, using shortcut NQP op
+```
+Delegate control to the given dispatcher by name (either pre-defined, or
+user-defined) and pass any given additional arguments to it.
+
 ### dispatcher-do-not-install
 ### dispatcher-drop-arg
 ### dispatcher-drop-n-args
@@ -81,6 +88,20 @@ except discarding any further arguments).
 ### dispatcher-is-arg-literal
 ### dispatcher-next-resumption
 ### dispatcher-register
+```
+nqp::dispatch('boot-syscall', 'dispatcher-register', $name, -> $capture {
+    …
+});
+nqp::register($name, -> $capture {    # same, using shortcut NQP op
+    …
+});
+```
+Register a dispatcher.  Takes a name for the dispatcher along with a closure,
+which will be called each time we need to handle the dispatch (the
+"dispatch callback"). It receives a single argument, which is a capture of
+arguments (see
+[Captures](https://github.com/Raku/nqp/blob/main/docs/ops.markdown#captures)).
+
 ### dispatcher-replace-arg
 ### dispatcher-replace-arg-literal-obj
 ### dispatcher-resume-after-bind

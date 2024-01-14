@@ -118,7 +118,7 @@ my class Mu { # declared in BOOTSTRAP
         self.HOW.set_why($why);
     }
 
-    method Sub(str $method) { nqp::findmethod(self, $method) }
+    method Sub(str $method) is pure { nqp::findmethod(self, $method) }
 
     proto method Bool() {*}
     multi method Bool(Mu:U: --> False) { }

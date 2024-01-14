@@ -150,7 +150,7 @@ my class IO::Path is Cool does IO {
     }
     multi method extension(IO::Path:D:
       Str $subst,
-      Int :$parts = 1,
+      Int :$parts = ?self.extension,
       Str :$joiner = nqp::chars($subst) ?? '.' !! ''
     ) {
       self.new: :dirname(self.dirname), :volume(self.volume),

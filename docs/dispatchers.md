@@ -1,13 +1,13 @@
 # Dispatchers available in Rakudo on MoarVM
 
-## MoarVM
-
-Dispatchers provided by MoarVM.
-
-Recommended reading:
+Recommended reading to understand what dispatchers are and why they exist:
 - [Towards a new general dispatch mechanism in MoarVM](https://6guts.wordpress.com/2021/03/15/towards-a-new-general-dispatch-mechanism-in-moarvm/)
 - [Raku multiple dispatch with the new MoarVM dispatcher](https://6guts.wordpress.com/2021/04/15/raku-multiple-dispatch-with-the-new-moarvm-dispatcher/)
 - [The new MoarVM dispatch mechanism is here!](https://6guts.wordpress.com/2021/09/29/the-new-moarvm-dispatch-mechanism-is-here/)
+
+## MoarVM
+
+Dispatchers provided by MoarVM.
 
 ---
 

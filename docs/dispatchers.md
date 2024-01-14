@@ -9,6 +9,8 @@ Recommended reading:
 - [Raku multiple dispatch with the new MoarVM dispatcher](https://6guts.wordpress.com/2021/04/15/raku-multiple-dispatch-with-the-new-moarvm-dispatcher/)
 - [The new MoarVM dispatch mechanism is here!](https://6guts.wordpress.com/2021/09/29/the-new-moarvm-dispatch-mechanism-is-here/)
 
+---
+
 ### boot-code
 ```
 nqp::dispatch('boot-code', $vmhandle, …);
@@ -57,10 +59,43 @@ Take the first argument and use it as the result (the identity function,
 except discarding any further arguments).
 
 ### can-unbox-to-int
+```
+nqp::syscall("can-unbox-to-int",42.Int);  # 1
+nqp::syscall("can-unbox-to-int",42.Str);  # 0
+```
+Takes the argument (a non-native object) and returns non-zero if it can be
+unboxed to a native integer, and 0 otherwise.
+
 ### can-unbox-to-num
+```
+nqp::syscall("can-unbox-to-num",42.Num);  # 2
+nqp::syscall("can-unbox-to-num",42.Str);  # 0
+```
+Takes the argument (a non-native object) and returns non-zero if it can be
+unboxed to a native num, and 0 otherwise.
+
 ### can-unbox-to-str
+```
+nqp::syscall("can-unbox-to-str",42.Int);  # 0
+nqp::syscall("can-unbox-to-str",42.Str);  # 4
+```
+Takes the argument (a non-native object) and returns non-zero if it can be
+unboxed to a native integer, and 0 otherwise.
+
 ### capture-is-literal-arg
+```
+nqp::syscall("capture-is-literal-arg",$capture);
+```
+Takes the argument (made with nqp::savecapture) and returns non-zero if it
+consists of a single literal argument, and 0 otherwise.
+
 ### code-is-stub
+```
+nqp::syscall("code-is-stub",$mvmcode);
+```
+Takes the argument (a low-level MoarVM code object) and returns non-zero if
+it it is a stub, and 0 otherwise.
+
 ### dispatcher-delegate
 ```
 nqp::dispatch('boot-syscall', 'dispatcher-delegate', $name, …);
@@ -70,6 +105,12 @@ Delegate control to the given dispatcher by name (either pre-defined, or
 user-defined) and pass any given additional arguments to it.
 
 ### dispatcher-do-not-install
+```
+nqp::syscall("dispatcher-do-not-install");
+```
+Marks the current dispatch program as to not be installed upon completion.
+Returns VMNull.
+
 ### dispatcher-drop-arg
 ### dispatcher-drop-n-args
 ### dispatcher-get-resume-init-args
@@ -117,13 +158,39 @@ arguments (see
 ### dispatcher-track-unbox-num
 ### dispatcher-track-unbox-str
 ### has-type-check-cache
+```
+nqp::syscall("has-type-check-cache",$object);
+```
+Takes the argument (a HLL object) and returns non-zero if the class of the
+object has a cache for type checking, and 0 if not.
+
 ### lang-call
 ### lang-meth-call
 ### lang-meth-not-found
 ### set-cur-hll-config-key
+```
+nqp::syscall("set-cur-hll-config-key",$key,$value);
+```
+Takes two arguments: a string key and a value, and sets that in the
+configuration information of the current HLL language.  Returns VMNull.
+
 ### type-check-mode-flags
+```
+nqp::syscall("type-check-mode-flags",$object);
+```
+Returns the type check mode flags of the given object.  Possible values are:
+- 0 no typecheck (?)
+- 1 check type using "type_check" method
+- 2 check type using "accepts-type" method
+
+---
 
 ## NQP
+
+These dispatcher are provided by the NQP bootstrap.
+
+---
+
 ### nqp-call
 ### nqp-find-meth
 ### nqp-find-meth-mega-name
@@ -141,7 +208,14 @@ arguments (see
 ### nqp-stringify
 ### nqp-uintify
 
+---
+
 ## Rakudo
+
+These dispatcher are provided by the Rakudo bootstrap.
+
+---
+
 ### raku-assign
 ### raku-bind-assert
 ### raku-boolify

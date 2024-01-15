@@ -118,7 +118,7 @@ my class Mu { # declared in BOOTSTRAP
         self.HOW.set_why($why);
     }
 
-    method Sub(str $method) is pure { 
+    method Callable(str $method) is pure { 
         nqp::ifnull(nqp::tryfindmethod(self,$method),Nil)
     }
 

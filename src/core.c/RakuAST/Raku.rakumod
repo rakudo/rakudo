@@ -519,6 +519,10 @@ augment class RakuAST::Node {
         self!nameds: <dwim-left infix dwim-right>
     }
 
+    multi method raku(RakuAST::MetaPostfix::Hyper:D: --> Str:D) {
+        self!positional(self.postfix)
+    }
+
     multi method raku(RakuAST::Method:D: --> Str:D) {
         my str @nameds = 'name';
         @nameds.unshift("private")   if self.private;

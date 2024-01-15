@@ -1004,6 +1004,12 @@ CODE
         )
     }
 
+    multi method deparse(RakuAST::MetaPostfix::Hyper:D $ast --> Str:D) {
+        self.hsyn("postfix",
+          '>>' ~ self.xsyn("postfix", self.deparse($ast.postfix))
+        )
+    }
+
     multi method deparse(RakuAST::MetaInfix::Negate:D $ast --> Str:D) {
         self.hsyn("infix", '!' ~ self.xsyn("infix",$ast.infix.operator))
     }

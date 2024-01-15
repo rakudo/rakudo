@@ -1,7 +1,7 @@
 use v6.e.PREVIEW;
 use Test;
 
-plan 10;
+plan 11;
 
 my $ast;
 my $deparsed;
@@ -130,6 +130,27 @@ subtest 'Hyper meta-op evaluates to expected value' => {
 
     is-deeply $deparsed, '(1, 2) >>+>> 1', 'deparse';
     is-deeply $_, (2,3), @type[$++]
+      for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
+}
+
+subtest 'Hypering evaluates to expected value' => {
+    # <pies cats>>>.uc
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::QuotedString.new(
+        processors => <words val>,
+        segments   => (
+          RakuAST::StrLiteral.new("pies cats"),
+        )
+      ),
+      postfix => RakuAST::MetaPostfix::Hyper.new(
+        RakuAST::Call::Method.new(
+          name => RakuAST::Name.from-identifier("uc")
+        )
+      )
+    );
+
+    is-deeply $deparsed, '<pies cats>>>.uc', 'deparse';
+    is-deeply $_, ("PIES", "CATS"), @type[$++]
       for EVAL($ast), EVAL($deparsed), EVAL(EVAL $raku);
 }
 

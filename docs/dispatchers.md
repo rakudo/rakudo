@@ -185,31 +185,6 @@ Returns the type check mode flags of the given object.  Possible values are:
 
 ---
 
-## NQP
-
-These dispatcher are provided by the NQP bootstrap.
-
----
-
-### nqp-call
-### nqp-find-meth
-### nqp-find-meth-mega-name
-### nqp-find-meth-mega-type
-### nqp-hllize
-### nqp-intify
-### nqp-isinvokable
-### nqp-istype
-### nqp-meth-call
-### nqp-meth-call-mega-name
-### nqp-meth-call-mega-type
-### nqp-multi
-### nqp-multi-core
-### nqp-numify
-### nqp-stringify
-### nqp-uintify
-
----
-
 ## Rakudo
 
 These dispatcher are provided by the Rakudo bootstrap.

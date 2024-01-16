@@ -118,15 +118,6 @@ my class Mu { # declared in BOOTSTRAP
         self.HOW.set_why($why);
     }
 
-    method Callable(str $method) { 
-        nqp::ifnull(
-          nqp::tryfindmethod(self,$method),
-          X::Method::NotFound.new(
-            :invocant(self), :typename(self.^name), :$method
-          ).Failure
-        )
-    }
-
     proto method Bool() {*}
     multi method Bool(Mu:U: --> False) { }
     multi method Bool(Mu:D:) { self.defined }

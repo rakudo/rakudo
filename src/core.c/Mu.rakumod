@@ -118,8 +118,13 @@ my class Mu { # declared in BOOTSTRAP
         self.HOW.set_why($why);
     }
 
-    method Callable(str $method) is pure { 
-        nqp::ifnull(nqp::tryfindmethod(self,$method),Nil)
+    method Callable(str $method) { 
+        nqp::ifnull(
+          nqp::tryfindmethod(self,$method),
+          X::Method::NotFound.new(
+            :invocant(self), :typename(self.^name), :$method
+          ).Failure
+        )
     }
 
     proto method Bool() {*}

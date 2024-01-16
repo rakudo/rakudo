@@ -96,6 +96,15 @@ nqp::syscall("code-is-stub",$mvmcode);
 Takes the argument (a low-level MoarVM code object) and returns non-zero if
 it it is a stub, and 0 otherwise.
 
+### Notes on dispatcher- calls
+
+The `dispatcher-` prefix means that it's part of specifying the dispatch
+program.  So you're not only getting a return value, but the dispatch
+recording has tracked the operation.  For instance, in case of these calls
+taking and returning a capture, it also internally builds up a tree of
+relationships between the various captures.  And so knows what they are
+made up of.
+
 ### dispatcher-delegate
 ```
 nqp::dispatch('boot-syscall', 'dispatcher-delegate', $name, …);
@@ -112,22 +121,96 @@ Marks the current dispatch program as to not be installed upon completion.
 Returns VMNull.
 
 ### dispatcher-drop-arg
+```
+nqp::syscall("dispatcher-drop-arg", $capture, int $index);
+```
+Takes the specified capture and returns a capture with the positional
+argument at the given $index removed.
+
 ### dispatcher-drop-n-args
+```
+nqp::syscall("dispatcher-drop-n-args", $capture, int $index, int $count);
+```
+Takes the specified capture and returns a capture with the $count positional
+argument at the given $index removed.
+
 ### dispatcher-get-resume-init-args
+```
+nqp::syscall("dispatcher-get-resume-init-args");
+```
+Returns the capture that was previously saved with
+`nqp::syscall("dispatcher-set-resume-init-args", $capture)`.
+
 ### dispatcher-get-resume-state
+```
+nqp::syscall("dispatcher-get-resume-state");
+```
+Returns the resume state that was previously saved with
+`nqp::syscall("dispatcher-set-resume-state", $state)` or 
+`nqp::syscall("dispatcher-set-resume-state-literal", $state)`.
+
 ### dispatcher-guard-concreteness
 ### dispatcher-guard-literal
 ### dispatcher-guard-type
 ### dispatcher-index-lookup-table
 ### dispatcher-index-tracked-lookup-table
 ### dispatcher-inline-cache-size
+```
+nqp::syscall("dispatcher-inline-cache-size");
+```
+Returns a native integer with the number of entries that can be held in the
+inline cache.
+
 ### dispatcher-insert-arg
+```
+nqp::syscall("dispatcher-insert-arg", $capture, int $index, $value);
+```
+Returns a capture based on the given $capture, but with the $value (regardless
+of being a native type or not) inserted at position $index.
+
 ### dispatcher-insert-arg-literal-int
+```
+nqp::syscall("dispatcher-insert-arg-literal-int", $capture, int $index, int $value);
+```
+Returns a capture based on the given $capture, but with a native integer
+$value inserted at position $index.
+
 ### dispatcher-insert-arg-literal-num
+```
+nqp::syscall("dispatcher-insert-arg-literal-num", $capture, int $index, num $value);
+```
+Returns a capture based on the given $capture, but with a native num
+$value inserted at position $index.
+
 ### dispatcher-insert-arg-literal-obj
+```
+nqp::syscall("dispatcher-insert-arg-literal-obj", $capture, int $index, $object);
+```
+Returns a capture based on the given $capture, but with an object $object
+inserted at position $index.
+
 ### dispatcher-insert-arg-literal-str
+```
+nqp::syscall("dispatcher-insert-arg-literal-str", $capture, int $index, str $value);
+```
+Returns a capture based on the given $capture, but with a native string
+$value inserted at position $index.
+
 ### dispatcher-is-arg-literal
+```
+nqp::syscall("dispatcher-is-arg-literal", $capture, int $index);
+```
+Returns 1 if the argument at position $index in the given $capture, is a
+literal value.  0 if not.
+
 ### dispatcher-next-resumption
+```
+nqp::syscall("dispatcher-is-arg-literal");
+nqp::syscall("dispatcher-is-arg-literal", $capture);
+```
+Returns 1 if there is a next resumption for the current dispatcher, optionally
+for the given $capture.  0 if not.
+
 ### dispatcher-register
 ```
 nqp::dispatch('boot-syscall', 'dispatcher-register', $name, -> $capture {
@@ -144,19 +227,93 @@ arguments (see
 [Captures](https://github.com/Raku/nqp/blob/main/docs/ops.markdown#captures)).
 
 ### dispatcher-replace-arg
+```
+nqp::syscall("dispatcher-replace-arg", $capture, int $index, $value);
+```
+Returns a capture based on the given $capture, but with the positional
+argument at position $index replaced by $value (regardless of being a
+native type or not).
+
 ### dispatcher-replace-arg-literal-obj
+```
+nqp::syscall("dispatcher-replace-arg-literal-obj", $capture, int $index, $object);
+```
+Returns a capture based on the given $capture, but with the positional
+argument at position $index replaced by $object.
+
 ### dispatcher-resume-after-bind
 ### dispatcher-resume-on-bind-failure
 ### dispatcher-set-resume-init-args
+```
+nqp::syscall("dispatcher-set-resume-init-args", $capture);
+```
+Set the capture to be returned with
+`nqp::syscall("dispatcher-get-resume-init-args")`.
+
 ### dispatcher-set-resume-state
+```
+nqp::syscall("dispatcher-set-resume-state", $state);
+```
+Set the resume $state that to be returned by
+`nqp::syscall("dispatcher-get-resume-state")`.
+
 ### dispatcher-set-resume-state-literal
+```
+nqp::syscall("dispatcher-set-resume-state-literal", $state);
+```
+Set the resume $state that to be returned by
+`nqp::syscall("dispatcher-get-resume-state")`.  This is usually used to mark
+the dispatch as exhausted.
+
 ### dispatcher-track-arg
+```
+nqp::syscall("dispatcher-track-arg", $capture, int $index);
+```
+Returns a tracker object for the positional argument in the given $capture
+at the given $index.
+
 ### dispatcher-track-attr
+```
+nqp::syscall("dispatcher-track-attr", $tracker, $type, $name);
+```
+Returns a tracker object for the attribute in the object of the given
+$tracker object for the given $type and $name.
+
 ### dispatcher-track-how
+```
+nqp::syscall("dispatcher-track-how", $tracker);
+```
+Returns a tracker object for the HOW of the object of the given $tracker
+object.
+
 ### dispatcher-track-resume-state
+```
+nqp::syscall("dispatcher-track-resume-state");
+```
+Returns a tracker object for the current resume state as set with
+`nqp::syscall("dispatcher-set-resume-state", $state)`.
+
 ### dispatcher-track-unbox-int
+```
+nqp::syscall("dispatcher-track-unbox-int", $tracker);
+```
+Returns a tracker object for the unboxed integer for the given tracker of a
+a boxed integer.
+
 ### dispatcher-track-unbox-num
+```
+nqp::syscall("dispatcher-track-unbox-num", $tracker);
+```
+Returns a tracker object for the unboxed num for the given tracker of a
+a boxed num.
+
 ### dispatcher-track-unbox-str
+```
+nqp::syscall("dispatcher-track-unbox-str", $tracker);
+```
+Returns a tracker object for the unboxed string for the given tracker of a
+a boxed string.
+
 ### has-type-check-cache
 ```
 nqp::syscall("has-type-check-cache",$object);

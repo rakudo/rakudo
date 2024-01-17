@@ -389,23 +389,23 @@ class Perl6::Metamodel::ClassHOW
         # invocator
         my $how := nqp::captureposarg($capture, 0);
 
-        my $track-how := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-concreteness', $track-how);
+        my $track-how := nqp::track('arg', $capture, 0);
+        nqp::guard('concreteness', $track-how);
 
         unless nqp::isconcrete($how) {
             nqp::delegate('boot-code-constant', $archetypes-ng);
         }
 
         my $obj := nqp::captureposarg($capture, 1);
-        my $track-obj := nqp::syscall('dispatcher-track-arg', $capture, 1);
-        nqp::syscall('dispatcher-guard-concreteness', $track-obj);
-        nqp::syscall('dispatcher-guard-type', $track-obj);
+        my $track-obj := nqp::track('arg', $capture, 1);
+        nqp::guard('concreteness', $track-obj);
+        nqp::guard('type', $track-obj);
 
         if nqp::isconcrete_nd($obj) && nqp::iscont($obj) {
             my $Scalar := nqp::gethllsym('Raku', 'Scalar');
-            my $track-value := nqp::syscall('dispatcher-track-attr', $track-obj, $Scalar, '$!value');
-            nqp::syscall('dispatcher-guard-concreteness', $track-value);
-            nqp::syscall('dispatcher-guard-type', $track-value);
+            my $track-value := nqp::track('attr', $track-obj, $Scalar, '$!value');
+            nqp::guard('concreteness', $track-value);
+            nqp::guard('type', $track-value);
             $obj := nqp::getattr($obj, $Scalar, '$!value');
         }
 
@@ -422,10 +422,9 @@ class Perl6::Metamodel::ClassHOW
                     0, { $obj.is-generic ?? $archetypes-g !! $archetypes-ng }));
         }
         else {
-            my $track-archetypes-attr :=
-                nqp::syscall('dispatcher-track-attr',
-                            $track-how, Perl6::Metamodel::ClassHOW, '$!archetypes');
-            nqp::syscall('dispatcher-guard-literal', $track-archetypes-attr);
+            my $track-archetypes-attr := nqp::track('attr',
+              $track-how, Perl6::Metamodel::ClassHOW, '$!archetypes');
+            nqp::guard('literal', $track-archetypes-attr);
 
             nqp::delegate('boot-constant',
                 nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0,

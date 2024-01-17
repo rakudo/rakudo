@@ -4374,9 +4374,9 @@ my @transform_type := nqp::list(
     -> $uint { nqp::box_u($uint, Int) },
 );
 nqp::register('raku-hllize', -> $capture {
-    my $arg := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    nqp::syscall('dispatcher-guard-type', $arg);
-    nqp::syscall('dispatcher-guard-concreteness', $arg);
+    my $arg := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $arg);
+    nqp::guard('concreteness', $arg);
     my $spec := nqp::captureposprimspec($capture, 0);
     if $spec {
         nqp::delegate('lang-call',

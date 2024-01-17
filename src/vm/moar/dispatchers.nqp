@@ -47,10 +47,9 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         else {
             # We always need to guard on type and concreteness.
             my $rv := nqp::captureposarg($capture, 0);
-            my $rv_arg := nqp::syscall('dispatcher-track-arg',
-                    $capture, 0);
-            nqp::syscall('dispatcher-guard-type', $rv_arg);
-            nqp::syscall('dispatcher-guard-concreteness', $rv_arg);
+            my $rv_arg := nqp::track('arg', $capture, 0);
+            nqp::guard('type', $rv_arg);
+            nqp::guard('concreteness', $rv_arg);
 
             # Is it a container?
             if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
@@ -58,16 +57,16 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 if nqp::istype_nd($rv, Scalar) {
                     # Check if the descriptor is undefined, in which case it's read-only.
                     my $desc := nqp::getattr($rv, Scalar, '$!descriptor');
-                    my $desc_arg := nqp::syscall('dispatcher-track-attr',
-                            $rv_arg, Scalar, '$!descriptor');
-                    nqp::syscall('dispatcher-guard-concreteness', $desc_arg);
+                    my $desc_arg :=
+                      nqp::track('attr', $rv_arg, Scalar, '$!descriptor');
+                    nqp::guard('concreteness', $desc_arg);
                     if nqp::isconcrete($desc) {
                         # Writeable, so we may need to recontainerize the value if
                         # the type is iterable, otherwise we can decont it.
                         my $value := nqp::getattr($rv, Scalar, '$!value');
-                        my $value_arg := nqp::syscall('dispatcher-track-attr',
+                        my $value_arg := nqp::track('attr',
                             $rv_arg, Scalar, '$!value');
-                        nqp::syscall('dispatcher-guard-type', $value_arg);
+                        nqp::guard('type', $value_arg);
                         if nqp::istype_nd($value, nqp::gethllsym('Raku', 'Iterable')) {
                             # Need to recont in order to preserve item nature.
                             # Shuffle in the recont code to invoke. We already
@@ -124,10 +123,9 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         # accept it for now. We need to revisit this in the future.
         my $rv := nqp::captureposarg($capture, 0);
         if nqp::eqaddr(nqp::what_nd($rv), Proxy) && nqp::isconcrete_nd($rv) {
-            my $rv_arg := nqp::syscall('dispatcher-track-arg',
-                    $capture, 0);
-            nqp::syscall('dispatcher-guard-type', $rv_arg);
-            nqp::syscall('dispatcher-guard-concreteness', $rv_arg);
+            my $rv_arg := nqp::track('arg', $capture, 0);
+            nqp::guard('type', $rv_arg);
+            nqp::guard('concreteness', $rv_arg);
             nqp::delegate('boot-value', $capture);
         }
         else {
@@ -239,19 +237,19 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
     nqp::register('raku-assign', -> $capture {
         # Whatever we do, we'll guard on the type of the container and its
         # concreteness.
-        my $tracked-cont := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-type', $tracked-cont);
-        nqp::syscall('dispatcher-guard-concreteness', $tracked-cont);
+        my $tracked-cont := nqp::track('arg', $capture, 0);
+        nqp::guard('type', $tracked-cont);
+        nqp::guard('concreteness', $tracked-cont);
 
         # We have various fast paths for an assignment to a Scalar.
         my int $optimized := 0;
         my $cont := nqp::captureposarg($capture, 0);
         if nqp::eqaddr(nqp::what_nd($cont), Scalar) && nqp::isconcrete_nd($cont) {
             # Now see what the Scalar descriptor type is.
-            my $tracked-desc := nqp::syscall('dispatcher-track-attr',
+            my $tracked-desc := nqp::track('attr',
                     $tracked-cont, Scalar, '$!descriptor');
             my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            my $tracked-value := nqp::syscall('dispatcher-track-arg', $capture, 1);
+            my $tracked-value := nqp::track('arg', $capture, 1);
             my $value := nqp::captureposarg($capture, 1);
             if nqp::eqaddr($desc.WHAT, ContainerDescriptor) && nqp::isconcrete($desc) {
                 # Simple assignment, no whence. But is Nil being assigned?
@@ -259,11 +257,11 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 if nqp::eqaddr($value, Nil) {
                     # Yes; just copy in the default, provided we've a simple type.
                     if $of.HOW.archetypes.nominal {
-                        nqp::syscall('dispatcher-guard-type', $tracked-value);
-                        nqp::syscall('dispatcher-guard-type', $tracked-desc);
-                        my $tracked-of := nqp::syscall('dispatcher-track-attr',
-                                $tracked-desc, ContainerDescriptor, '$!of');
-                        nqp::syscall('dispatcher-guard-literal', $tracked-of);
+                        nqp::guard('type', $tracked-value);
+                        nqp::guard('type', $tracked-desc);
+                        my $tracked-of := nqp::track('attr',
+                          $tracked-desc, ContainerDescriptor, '$!of');
+                        nqp::guard('literal', $tracked-of);
                         nqp::delegate('boot-code-constant',
                             nqp::syscall('dispatcher-insert-arg-literal-obj',
                                 $capture, 0, $assign-scalar-nil-no-whence));
@@ -273,14 +271,14 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 else {
                     # No whence, no Nil. Is it a nominal type? If yes, we can check
                     # it here.
-                    nqp::syscall('dispatcher-guard-type', $tracked-desc);
+                    nqp::guard('type', $tracked-desc);
                     if $of.HOW.archetypes.nominal && nqp::istype($value, $of) {
                         # Nominal and passes type check; stack up gurads and delegate to
                         # simple bind.
-                        my $tracked-of := nqp::syscall('dispatcher-track-attr',
-                                $tracked-desc, ContainerDescriptor, '$!of');
-                        nqp::syscall('dispatcher-guard-literal', $tracked-of);
-                        nqp::syscall('dispatcher-guard-type', $tracked-value);
+                        my $tracked-of := nqp::track('attr',
+                          $tracked-desc, ContainerDescriptor, '$!of');
+                        nqp::guard('literal', $tracked-of);
+                        nqp::guard('type', $tracked-value);
                         nqp::delegate('boot-code-constant',
                             nqp::syscall('dispatcher-insert-arg-literal-obj',
                                 $capture, 0, $assign-scalar-no-whence-no-typecheck));
@@ -288,7 +286,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                     }
                     else {
                         # Non-nominal or type check error.
-                        nqp::syscall('dispatcher-guard-not-literal-obj', $tracked-value, Nil);
+                        nqp::guard('not-literal-obj', $tracked-value, Nil);
                         nqp::delegate('boot-code-constant',
                             nqp::syscall('dispatcher-insert-arg-literal-obj',
                                 $capture, 0, $assign-scalar-no-whence));
@@ -303,12 +301,11 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 else {
                     # Assignment to an untyped container descriptor; no type check
                     # is required, just bind the value into place.
-                    nqp::syscall('dispatcher-guard-type', $tracked-desc);
-                    nqp::syscall('dispatcher-guard-not-literal-obj',
-                        $tracked-value, Nil);
+                    nqp::guard('type', $tracked-desc);
+                    nqp::guard('not-literal-obj', $tracked-value, Nil);
                     nqp::delegate('boot-code-constant',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj',
-                            $capture, 0, $assign-scalar-no-whence-no-typecheck));
+                      nqp::syscall('dispatcher-insert-arg-literal-obj',
+                        $capture, 0, $assign-scalar-no-whence-no-typecheck));
                     $optimized := 1;
                 }
             }
@@ -318,7 +315,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 # was assigned to. We can produce a fast path for this, though
                 # should check what the ultimate descriptor is. It really should
                 # be a normal, boring, container descriptor.
-                nqp::syscall('dispatcher-guard-type', $tracked-desc);
+                nqp::guard('type', $tracked-desc);
                 my $next := nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
                     '$!next-descriptor');
                 if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
@@ -327,17 +324,16 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                     # probably not terribly likely).
                     unless nqp::eqaddr($value.WHAT, Nil) {
                         # Go by whether we can type check the target.
-                        my $tracked-next := nqp::syscall('dispatcher-track-attr',
+                        my $tracked-next := nqp::track('attr',
                             $tracked-desc, ContainerDescriptor::UninitializedAttribute,
                             '$!next-descriptor');
-                        nqp::syscall('dispatcher-guard-literal',
-                            $tracked-next);
-                        nqp::syscall('dispatcher-guard-type', $tracked-value);
+                        nqp::guard('literal', $tracked-next);
+                        nqp::guard('type', $tracked-value);
                         my $of := $next.of;
-                        my $delegate := $of.HOW.archetypes.nominal &&
-                                (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
-                            ?? $assign-scalar-uninit-no-typecheck
-                            !! $assign-scalar-uninit;
+                        my $delegate := $of.HOW.archetypes.nominal
+                          && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
+                          ?? $assign-scalar-uninit-no-typecheck
+                          !! $assign-scalar-uninit;
                         nqp::delegate('boot-code-constant',
                             nqp::syscall('dispatcher-insert-arg-literal-obj',
                                 $capture, 0, $delegate));
@@ -349,7 +345,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 # Bind into an array. We can produce a fast path for this, though
                 # should check what the ultimate descriptor is. It really should
                 # be a normal, boring, container descriptor.
-                nqp::syscall('dispatcher-guard-type', $tracked-desc);
+                nqp::guard('type', $tracked-desc);
                 my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos,
                     '$!next-descriptor');
                 if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
@@ -359,17 +355,16 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                     # vivifying we'll likely have a new container).
                     unless nqp::eqaddr($value.WHAT, Nil) {
                         # Go by whether we can type check the target.
-                        my $tracked-next := nqp::syscall('dispatcher-track-attr',
+                        my $tracked-next := nqp::track('attr',
                             $tracked-desc, ContainerDescriptor::BindArrayPos,
                             '$!next-descriptor');
-                        nqp::syscall('dispatcher-guard-literal',
-                            $tracked-next);
-                        nqp::syscall('dispatcher-guard-type', $tracked-value);
+                        nqp::guard('literal', $tracked-next);
+                        nqp::guard('type', $tracked-value);
                         my $of := $next.of;
-                        my $delegate := $of.HOW.archetypes.nominal &&
-                                (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
-                            ?? $assign-scalar-bindpos-no-typecheck
-                            !! $assign-scalar-bindpos;
+                        my $delegate := $of.HOW.archetypes.nominal
+                          && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
+                          ?? $assign-scalar-bindpos-no-typecheck
+                          !! $assign-scalar-bindpos;
                         nqp::delegate('boot-code-constant',
                             nqp::syscall('dispatcher-insert-arg-literal-obj',
                                 $capture, 0, $delegate));
@@ -414,10 +409,8 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
             if nqp::istype_nd($value-decont, $type) {
                 # Nominal, so a type guard on the decont'd value will suffice,
                 # then produce the original value.
-                nqp::syscall('dispatcher-guard-type',
-                        nqp::syscall('dispatcher-track-arg', $capture, 1));
-                nqp::syscall('dispatcher-guard-type',
-                        nqp::syscall('dispatcher-track-arg', $capture, 2));
+                nqp::guard('type', nqp::track('arg', $capture, 1));
+                nqp::guard('type', nqp::track('arg', $capture, 2));
                 nqp::delegate('boot-value', $capture);
             }
             else {
@@ -428,8 +421,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         else {
             # Not a nominal type, can't guard it, so set up a call to do the
             # check late-bound.
-            nqp::syscall('dispatcher-guard-type',
-                    nqp::syscall('dispatcher-track-arg', $capture, 2));
+            nqp::guard('type', nqp::track('arg', $capture, 2));
             my $delegate := nqp::syscall('dispatcher-insert-arg-literal-obj',
               $capture, 0, $bind-check);
             nqp::delegate('boot-code-constant', $delegate);
@@ -452,11 +444,11 @@ nqp::register('raku-is-attr-inited', -> $capture {
     # If there's a non-concrete object observed, then we bound a non-container
     # in place, so trivially initialized.
     my $attr := nqp::captureposarg($capture, 0);
-    my $track-attr := nqp::syscall('dispatcher-track-arg', $capture, 0);
+    my $track-attr := nqp::track('arg', $capture, 0);
     my int $inited := 0;
     my $need-elem-check;
     if !nqp::isconcrete_nd($attr) {
-        nqp::syscall('dispatcher-guard-concreteness', $track-attr);
+        nqp::guard('concreteness', $track-attr);
         $inited := 1;
     }
 
@@ -471,7 +463,7 @@ nqp::register('raku-is-attr-inited', -> $capture {
         try {
             $base := nqp::how_nd($attr).mixin_base($attr);
             $desc := nqp::getattr($attr, $base, '$!descriptor');
-            $track-desc := nqp::syscall('dispatcher-track-attr',
+            $track-desc := nqp::track('attr',
                 $track-attr, $base, '$!descriptor');
         }
 
@@ -483,7 +475,7 @@ nqp::register('raku-is-attr-inited', -> $capture {
             # Guard on the descriptor type, then outcome depends on if
             # it's an uninitialized attribute descriptor. If it is, then
             # for arrays and hashes we also need an extra check.
-            nqp::syscall('dispatcher-guard-type', $track-desc);
+            nqp::guard('type', $track-desc);
             $inited := !nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute);
             if nqp::istype($base, Array) {
                 $need-elem-check := $array-init-check;
@@ -496,8 +488,8 @@ nqp::register('raku-is-attr-inited', -> $capture {
         # Otherwise, bound concrete value. Guard on type and concreteness,
         # outcome is that it's initialized.
         else {
-            nqp::syscall('dispatcher-guard-type', $track-attr);
-            nqp::syscall('dispatcher-guard-concreteness', $track-attr);
+            nqp::guard('type', $track-attr);
+            nqp::guard('concreteness', $track-attr);
             $inited := 1;
         }
     }
@@ -522,9 +514,9 @@ nqp::register('raku-is-attr-inited', -> $capture {
 nqp::register('raku-sink', -> $capture {
     # Guard on the type and concreteness.
     my $sinkee := nqp::captureposarg($capture, 0);
-    my $track-sinkee := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    nqp::syscall('dispatcher-guard-type', $track-sinkee);
-    nqp::syscall('dispatcher-guard-concreteness', $track-sinkee);
+    my $track-sinkee := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $track-sinkee);
+    nqp::guard('concreteness', $track-sinkee);
 
     # Now consider what we're sinking.
     if nqp::isconcrete_nd($sinkee) {
@@ -566,12 +558,12 @@ nqp::register('raku-call', -> $capture {
     # that the set of dispatchees shall not change, even over closure clones -
     # this may not always be a good assumption - and so we guard on that. If
     # it's not a dispatcher, we'll be guarding on a literal type object.)
-    my $track_callee := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    nqp::syscall('dispatcher-guard-type', $track_callee);
+    my $track_callee := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $track_callee);
     my $callee := nqp::captureposarg($capture, 0);
     if nqp::istype_nd($callee, Method) && (my str $meth-name := $callee.name) &&
             (my $inv_param := try { $callee.signature.params.AT-POS(0) }) {
-        nqp::syscall('dispatcher-guard-literal', $track_callee);
+        nqp::guard('literal', $track_callee);
         my $meth-type := $inv_param.type;
         my $with-type := nqp::syscall('dispatcher-insert-arg-literal-obj',
             $capture, 1, $meth-type);
@@ -591,9 +583,8 @@ nqp::register('raku-call', -> $capture {
             my int $code-constant := nqp::syscall('dispatcher-is-arg-literal',
                 $capture, 0);
             unless $code-constant {
-                nqp::syscall('dispatcher-guard-literal',
-                    nqp::syscall('dispatcher-track-attr',
-                        $track_callee, Routine, '@!dispatchees'));
+                nqp::guard('literal',
+                  nqp::track('attr', $track_callee, Routine, '@!dispatchees'));
             }
             nqp::syscall('dispatcher-delegate',
                 $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
@@ -624,8 +615,7 @@ nqp::register('raku-meth-call', -> $capture {
         # to do the call on the pun.
         if nqp::istype($how, Perl6::Metamodel::RolePunning) &&
                 $how.is_method_call_punned($obj, $name) {
-            nqp::syscall('dispatcher-guard-type',
-                nqp::syscall('dispatcher-track-arg', $capture, 0));
+            nqp::guard('type', nqp::track('arg', $capture, 0));
             $obj := $how.pun($obj);
             $how := $obj.HOW;
             $capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
@@ -652,10 +642,8 @@ nqp::register('raku-meth-call', -> $capture {
 
         # Establish a guard on the invocant type and method name (however the name
         # may well be a literal, in which case this is free).
-        nqp::syscall('dispatcher-guard-type',
-            nqp::syscall('dispatcher-track-arg', $capture, 0));
-        nqp::syscall('dispatcher-guard-literal',
-            nqp::syscall('dispatcher-track-arg', $capture, 1));
+        nqp::guard('type', nqp::track('arg', $capture, 0));
+        nqp::guard('literal', nqp::track('arg', $capture, 1));
 
         # Add the resolved method and delegate to the resolved method dispatcher.
         my $capture_delegate := nqp::syscall(
@@ -702,17 +690,17 @@ nqp::register('raku-meth-call-mega', -> $capture {
         # It exists. We'll set up a dispatch program that tracks the HOW of
         # the type, looks up the cached method table on it, and then tracks
         # the resolution of the method.
-        my $track-obj := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        my $track-how := nqp::syscall('dispatcher-track-how', $track-obj);
-        my $track-table := nqp::syscall('dispatcher-track-attr', $track-how,
+        my $track-obj := nqp::track('arg', $capture, 0);
+        my $track-how := nqp::track('how', $track-obj);
+        my $track-table := nqp::track('attr', $track-how,
             Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
-        my $track-name := nqp::syscall('dispatcher-track-arg', $capture, 1);
+        my $track-name := nqp::track('arg', $capture, 1);
         my $track-resolution := nqp::syscall(
           'dispatcher-index-tracked-lookup-table', $track-table, $track-name);
 
         # This is only a valid dispatch program if the method is found. (If
         # not, we'll run this again to report the error.)
-        nqp::syscall('dispatcher-guard-concreteness', $track-resolution);
+        nqp::guard('concreteness', $track-resolution);
         # Add the resolved method and delegate to the resolved method dispatcher.
         my $capture-delegate := nqp::syscall(
           'dispatcher-insert-arg', $capture, 0, $track-resolution);
@@ -761,10 +749,8 @@ nqp::register('raku-meth-call-qualified', -> $capture {
     );
 
     # Establish a guard on the invocant and qualifying type.
-    nqp::syscall('dispatcher-guard-type',
-        nqp::syscall('dispatcher-track-arg', $capture, 0));
-    nqp::syscall('dispatcher-guard-type',
-        nqp::syscall('dispatcher-track-arg', $capture, 2));
+    nqp::guard('type', nqp::track('arg', $capture, 0));
+    nqp::guard('type', nqp::track('arg', $capture, 2));
 
     # Try to resolve the method.
     my $obj := nqp::captureposarg($capture, 0);
@@ -807,8 +793,7 @@ nqp::register('raku-meth-call-qualified', -> $capture {
 # Maybe method dispatch, of the form $obj.?foo.
 nqp::register('raku-meth-call-me-maybe', -> $capture {
     # Establish a guard on the invocant type.
-    nqp::syscall('dispatcher-guard-type',
-        nqp::syscall('dispatcher-track-arg', $capture, 0));
+    nqp::guard('type', nqp::track('arg', $capture, 0));
 
     # Try to find the method.
     my $invocant := nqp::captureposarg($capture, 0);
@@ -845,8 +830,7 @@ nqp::register('raku-meth-private', -> $capture {
     # there's no deferral (due to no inheritance relationship) or multi
     # dispatch for private methods.
     if nqp::isconcrete($meth) {
-        nqp::syscall('dispatcher-guard-type',
-            nqp::syscall('dispatcher-track-arg', $capture, 0));
+        nqp::guard('type', nqp::track('arg', $capture, 0));
         my $capture_delegate := nqp::syscall(
             'dispatcher-insert-arg-literal-obj',
             nqp::syscall('dispatcher-drop-n-args', $capture, 0, 2),
@@ -951,8 +935,7 @@ nqp::register('raku-meth-call-resolved',
             $capture, 0);
         unless $code-constant {
             # Need at least a type guard on the callee, if it's not constant.
-            nqp::syscall('dispatcher-guard-type',
-                nqp::syscall('dispatcher-track-arg', $capture, 0));
+            nqp::guard('type', nqp::track('arg', $capture, 0));
         }
         if nqp::istype($method, Routine) {
             if nqp::can($method, 'WRAPPERS') {
@@ -967,10 +950,11 @@ nqp::register('raku-meth-call-resolved',
                 # and if so on the candidate list. (Will want to move this when we
                 # have a megamorphic multi solution.)
                 unless $code-constant {
-                    nqp::syscall('dispatcher-guard-literal',
-                        nqp::syscall('dispatcher-track-attr',
-                            nqp::syscall('dispatcher-track-arg', $capture, 0),
-                            Routine, '@!dispatchees'));
+                    nqp::guard('literal', nqp::track('attr',
+                      nqp::track('arg', $capture, 0),
+                      Routine,
+                      '@!dispatchees')
+                    );
                 }
                 my str $dispatcher := $method.is_dispatcher ?? 'raku-multi' !! 'raku-invoke';
                 nqp::delegate($dispatcher,
@@ -992,16 +976,16 @@ nqp::register('raku-meth-call-resolved',
         # We put a sentinel value into the resume state in the case that we have
         # already set up the method resumption. We always guard on it too.
         my $state := nqp::syscall('dispatcher-get-resume-state');
-        my $track_state := nqp::syscall('dispatcher-track-resume-state');
-        nqp::syscall('dispatcher-guard-literal', $track_state);
+        my $track_state := nqp::track('resume-state');
+        nqp::guard('literal', $track_state);
 
         # Mark that the deferral was already set up, so we don't do this
         # again.
         nqp::syscall('dispatcher-set-resume-state-literal', Exhausted);
 
         # Guard on the kind of resume we're doing, and get that flag.
-        my $track_kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track_kind);
+        my $track_kind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $track_kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
 
         # If the state is null, it's we are entering a walk through the methods.
@@ -1011,10 +995,10 @@ nqp::register('raku-meth-call-resolved',
             # No state, so just starting the resumption. Guard on the
             # invocant type and name.
             my $init := nqp::syscall('dispatcher-get-resume-init-args');
-            my $track_start_type := nqp::syscall('dispatcher-track-arg', $init, 0);
-            nqp::syscall('dispatcher-guard-type', $track_start_type);
-            my $track_name := nqp::syscall('dispatcher-track-arg', $init, 1);
-            nqp::syscall('dispatcher-guard-literal', $track_name);
+            my $track_start_type := nqp::track('arg', $init, 0);
+            nqp::guard('type', $track_start_type);
+            my $track_name := nqp::track('arg', $init, 1);
+            nqp::guard('literal', $track_name);
 
             # Build up the list of methods to defer through.
             my $start_type := nqp::captureposarg($init, 0);
@@ -1053,7 +1037,7 @@ nqp::register('raku-meth-call-resolved',
                 my $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
                 my $with_invocant := nqp::syscall('dispatcher-insert-arg',
                     $args, 0,
-                    nqp::syscall('dispatcher-track-arg', $init, 2));
+                    nqp::track('arg', $init, 2));
                 $args_with_kind := nqp::syscall(
                     'dispatcher-insert-arg-literal-int', $with_invocant, 0,
                     nqp::const::DISP_CALLSAME);
@@ -1130,8 +1114,8 @@ nqp::register('raku-meth-deferral',
     # Resumption, wherein we walk another step through the chain.
     -> $capture {
         # Guard on the kind of resume we're doing, and get that flag.
-        my $track_kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track_kind);
+        my $track_kind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $track_kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
 
         # If we're doing a lastcall, set the state to exhausted and we're done.
@@ -1148,15 +1132,15 @@ nqp::register('raku-meth-deferral',
             # find the next method.
             my $init := nqp::syscall('dispatcher-get-resume-init-args');
             my $state := nqp::syscall('dispatcher-get-resume-state');
-            my $track_state := nqp::syscall('dispatcher-track-resume-state');
+            my $track_state := nqp::track('resume-state');
             my $chain;
             my $track_chain;
             if nqp::isnull($state) {
                 # Guard that the resume state is null, and then extract the chain
                 # from the init state.
-                nqp::syscall('dispatcher-guard-literal', $track_state);
+                nqp::guard('literal', $track_state);
                 $chain := nqp::captureposarg($init, 0);
-                $track_chain := nqp::syscall('dispatcher-track-arg', $init, 0);
+                $track_chain := nqp::track('arg', $init, 0);
             }
             else {
                 # The chain is the state.
@@ -1166,7 +1150,7 @@ nqp::register('raku-meth-deferral',
 
             # If we're exhausted already, then produce Nil.
             if nqp::istype($chain, Exhausted) {
-                nqp::syscall('dispatcher-guard-literal', $track_chain);
+                nqp::guard('literal', $track_chain);
                 nqp::delegate('boot-constant',
                     nqp::syscall('dispatcher-insert-arg-literal-obj',
                         $capture, 0, Nil));
@@ -1184,9 +1168,9 @@ nqp::register('raku-meth-deferral',
 
             else {
                 # Otherwise, guard on the candidate that we shall be invoking.
-                my $track_method := nqp::syscall('dispatcher-track-attr',
+                my $track_method := nqp::track('attr',
                     $track_chain, DeferralChain, '$!code');
-                nqp::syscall('dispatcher-guard-literal', $track_method);
+                nqp::guard('literal', $track_method);
 
                 # Now perform the action needed based upon the kind of resumption
                 # we have.
@@ -1202,7 +1186,7 @@ nqp::register('raku-meth-deferral',
                         $capture, 0);
                     my $with_invocant := nqp::syscall('dispatcher-insert-arg',
                         $new_args, 0,
-                        nqp::syscall('dispatcher-track-arg', $args, 0));
+                        nqp::track('arg', $args, 0));
                     my $new_args_with_kind := nqp::syscall(
                         'dispatcher-insert-arg-literal-int', $with_invocant, 0,
                         nqp::const::DISP_CALLSAME);
@@ -1213,7 +1197,7 @@ nqp::register('raku-meth-deferral',
                 }
                 else {
                     # Update dispatch state to point to the next method.
-                    my $track_next := nqp::syscall('dispatcher-track-attr',
+                    my $track_next := nqp::track('attr',
                         $track_chain, DeferralChain, '$!next');
                     nqp::syscall('dispatcher-set-resume-state', $track_next);
 
@@ -1296,24 +1280,21 @@ nqp::register('raku-multi',
     # should go ahead and do the dispatch. Make sure we only do this if we
     # are signalled to that it's a resume for an onlystar.
     -> $capture {
-        my $track_kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track_kind);
+        my $track_kind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $track_kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
         if $kind == nqp::const::DISP_ONLYSTAR {
             # Put a guard on the dispatchee list, as a given proto may be
             # cloned and used for multiple candidate lists.
             my $init_args := nqp::syscall('dispatcher-get-resume-init-args');
-            my $track_callee := nqp::syscall('dispatcher-track-arg',
+            my $track_callee := nqp::track('arg',
                 $init_args, 0);
-            nqp::syscall('dispatcher-guard-literal',
-                nqp::syscall('dispatcher-track-attr',
-                    $track_callee, Routine, '@!dispatchees'));
-            nqp::delegate('raku-multi-core',
-                $init_args);
+            nqp::guard('literal',
+              nqp::track('attr', $track_callee, Routine, '@!dispatchees'));
+            nqp::delegate('raku-multi-core', $init_args);
         }
         elsif !nqp::syscall('dispatcher-next-resumption', $capture) {
-            nqp::delegate('raku-resume-error',
-                $capture);
+            nqp::delegate('raku-resume-error', $capture);
         }
     });
 
@@ -1624,8 +1605,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
         my int $i;
         while $i < $num_args {
             if nqp::captureposprimspec($capture, $i) == 0 {
-                nqp::syscall('dispatcher-guard-type',
-                    nqp::syscall('dispatcher-track-arg', $capture, $i));
+                nqp::guard('type', nqp::track('arg', $capture, $i));
             }
             $i++;
         }
@@ -1927,24 +1907,23 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
     while $i < $num_args {
         my $tracked_value;
         if nqp::atpos_i($need_scalar_read, $i) {
-            my $tracked := nqp::syscall('dispatcher-track-arg', $capture, $i);
+            my $tracked := nqp::track('arg', $capture, $i);
             if nqp::atpos_i($need_scalar_rw_check, $i) {
-                my $tracked_desc := nqp::syscall('dispatcher-track-attr',
-                        $tracked, Scalar, '$!descriptor');
-                nqp::syscall('dispatcher-guard-concreteness', $tracked_desc);
+                my $tracked_desc :=
+                  nqp::track('attr', $tracked, Scalar, '$!descriptor');
+                nqp::guard('concreteness', $tracked_desc);
             }
-            $tracked_value := nqp::syscall('dispatcher-track-attr',
-                    $tracked, Scalar, '$!value');
+            $tracked_value :=
+              nqp::track('attr', $tracked, Scalar, '$!value');
         }
         else {
-            $tracked_value := nqp::syscall('dispatcher-track-arg',
-                    $capture, $i);
+            $tracked_value := nqp::track('arg', $capture, $i);
         }
         if nqp::atpos_i($need_type_guard, $i) {
-            nqp::syscall('dispatcher-guard-type', $tracked_value);
+            nqp::guard('type', $tracked_value);
         }
         if nqp::atpos_i($need_conc_guard, $i) {
-            nqp::syscall('dispatcher-guard-concreteness', $tracked_value);
+            nqp::guard('concreteness', $tracked_value);
         }
         $i++;
     }
@@ -1985,14 +1964,14 @@ sub multi-junction-failover($capture) {
         while $i < $num-args {
             if nqp::syscall('capture-arg-prim-spec', $capture, $i) == 0 {
                 my $arg := nqp::syscall('capture-arg-value', $capture, $i);
-                my $tracked := nqp::syscall('dispatcher-track-arg',
+                my $tracked := nqp::track('arg',
                     $capture, $i);
                 if nqp::istype_nd($arg, Scalar) {
-                    $tracked := nqp::syscall('dispatcher-track-attr',
+                    $tracked := nqp::track('attr',
                         $tracked, Scalar, '$!value');
                 }
-                nqp::syscall('dispatcher-guard-type', $tracked);
-                nqp::syscall('dispatcher-guard-concreteness', $tracked);
+                nqp::guard('type', $tracked);
+                nqp::guard('concreteness', $tracked);
             }
             $i++;
         }
@@ -2100,15 +2079,15 @@ nqp::register('raku-multi-core',
     -> $capture {
         # Obtain and guard on the kind of resume.
         my $kind := nqp::captureposarg_i($capture, 0);
-        my $track-kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track-kind);
+        my $track-kind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $track-kind);
 
         # We'll delegate the hard work to the non-trivial dispatcher. We
         # only want to do that once, however, and so set the dispatch state
         # to exhausted if we've already done it. Check that's not so. Also
         # shortcut here if it's lastcall.
-        my $track-state := nqp::syscall('dispatcher-track-resume-state');
-        nqp::syscall('dispatcher-guard-literal', $track-state);
+        my $track-state := nqp::track('resume-state');
+        nqp::guard('literal', $track-state);
         my $state := nqp::syscall('dispatcher-get-resume-state');
         if nqp::isnull($state) && $kind != nqp::const::DISP_LASTCALL {
             # First time. Set state to exhausted.
@@ -2122,11 +2101,9 @@ nqp::register('raku-multi-core',
             my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 0);
 
             # Put a guard on the dispatchees.
-            my $track-target := nqp::syscall('dispatcher-track-arg',
-                $init, 0);
-            nqp::syscall('dispatcher-guard-literal',
-                nqp::syscall('dispatcher-track-attr',
-                    $track-target, Routine, '@!dispatchees'));
+            my $track-target := nqp::track('arg', $init, 0);
+            nqp::guard('literal',
+              nqp::track('attr', $track-target, Routine, '@!dispatchees'));
 
             # We already called the first candidate in the trivial plan, so
             # drop it.
@@ -2139,8 +2116,7 @@ nqp::register('raku-multi-core',
                 # delegate to the non-trivial dispatch handler.
                 my $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
                 if nqp::istype($target, Method) {
-                    my $track-invocant := nqp::syscall(
-                      'dispatcher-track-arg', $arg-capture, 0);
+                    my $track-invocant := nqp::track('arg', $arg-capture, 0);
                     $args := nqp::syscall('dispatcher-insert-arg',
                       $args, 0, $track-invocant);
                 }
@@ -2194,8 +2170,8 @@ nqp::register('raku-multi-non-trivial',
     # kind, which is zero if we're not resuming.
     -> $capture {
         # Extract and guard on the kind (first argument).
-        my $track-kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track-kind);
+        my $track-kind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $track-kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
 
         # If it's propagating callwith arguments, then we don't want to invoke
@@ -2221,7 +2197,7 @@ nqp::register('raku-multi-non-trivial',
         # Otherwise, we probably want to run a candidate.
         else {
             # Extract and track the current state.
-            my $track-cur-state := nqp::syscall('dispatcher-track-arg',
+            my $track-cur-state := nqp::track('arg',
                 $capture, 1);
             my $cur-state := nqp::captureposarg($capture, 1);
 
@@ -2240,12 +2216,12 @@ nqp::register('raku-multi-non-trivial',
     },
     -> $capture {
         # Extract and guard on the kind (first argument).
-        my $track-kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track-kind);
+        my $track-kind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $track-kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
 
         # Obtain and track state.
-        my $track-state := nqp::syscall('dispatcher-track-resume-state');
+        my $track-state := nqp::track('resume-state');
         my $state := nqp::syscall('dispatcher-get-resume-state');
 
         # If it's a lastcall, we'll poke an Exhausted into the state,
@@ -2261,7 +2237,7 @@ nqp::register('raku-multi-non-trivial',
 
         # If we're already exhausted, try for the next dispatcher.
         elsif nqp::istype($state, Exhausted) {
-            nqp::syscall('dispatcher-guard-type', $track-state);
+            nqp::guard('type', $track-state);
             nil-or-callwith-propagation-terminal($capture);
         }
 
@@ -2273,23 +2249,22 @@ nqp::register('raku-multi-non-trivial',
             my $init := nqp::syscall('dispatcher-get-resume-init-args');
             my $target := nqp::captureposarg($init, 1);
             if nqp::istype($target, Method) {
-                my $track-invocant := nqp::syscall('dispatcher-track-arg',
+                my $track-invocant := nqp::track('arg',
                   $init, 2);
                 $args := nqp::syscall('dispatcher-insert-arg',
                   $args, 0, $track-invocant);
             }
             my $track-cur-state;
             if nqp::isnull($state) {
-                nqp::syscall('dispatcher-guard-literal', $track-state);
-                $track-cur-state := nqp::syscall('dispatcher-track-arg',
-                  $init, 0);
+                nqp::guard('literal', $track-state);
+                $track-cur-state := nqp::track('arg', $init, 0);
             }
             else {
-                nqp::syscall('dispatcher-guard-type', $track-state);
+                nqp::guard('type', $track-state);
                 $track-cur-state := $track-state;
             }
             nqp::syscall('dispatcher-set-resume-state-literal', Exhausted);
-            my $track-target := nqp::syscall('dispatcher-track-arg',
+            my $track-target := nqp::track('arg',
               $init, 1);
             my $with-target := nqp::syscall('dispatcher-insert-arg',
               $args, 0, $track-target);
@@ -2314,14 +2289,14 @@ nqp::register('raku-multi-non-trivial',
             # Have dispatch state already, or first resume?
             if nqp::isnull($state) {
                 # First resumption. Guard that it is so.
-                nqp::syscall('dispatcher-guard-literal', $track-state);
+                nqp::guard('literal', $track-state);
 
                 # Obtain plan and args from init state.
-                my $track-cur-state := nqp::syscall('dispatcher-track-arg',
-                    $init, 0);
+                my $track-cur-state := nqp::track('arg', $init, 0);
                 my $cur-state := nqp::captureposarg($init, 0);
-                raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $orig-capture,
-                    $arg-capture, 1);
+                raku-multi-non-trivial-step(
+                  $kind, $track-cur-state, $cur-state, $orig-capture,
+                  $arg-capture, 1);
             }
             else {
                 raku-multi-non-trivial-step($kind, $track-state, $state, $orig-capture,
@@ -2334,9 +2309,9 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
     if nqp::istype($cur-state, MultiDispatchCall) {
         # Guard on the current state and on the callee (the type guards are
         # implicitly established when we guard the callee).
-        my $track-candidate := nqp::syscall('dispatcher-track-attr',
+        my $track-candidate := nqp::track('attr',
             $track-cur-state, MultiDispatchCall, '$!candidate');
-        nqp::syscall('dispatcher-guard-literal', $track-candidate);
+        nqp::guard('literal', $track-candidate);
 
         # If it's a bind failure or success, the we were doing nextcallee
         # on a dispatch needing a bind check, and want to hand back the
@@ -2352,7 +2327,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
         elsif $kind == nqp::const::DISP_BIND_FAILURE {
             # Unsuccessful. Skip over the candidate we already tried, and then
             # try again.
-            $track-cur-state := nqp::syscall('dispatcher-track-attr',
+            $track-cur-state := nqp::track('attr',
                 $track-cur-state, MultiDispatchCall, '$!next');
             $cur-state := $cur-state.next;
             return raku-multi-non-trivial-step(nqp::const::DISP_NEXTCALLEE,
@@ -2414,7 +2389,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
             multi-no-match-handler($target, $arg-capture, $orig-capture, $arg-capture);
         }
         else {
-            nqp::syscall('dispatcher-guard-type', $track-cur-state);
+            nqp::guard('type', $track-cur-state);
             unless nqp::syscall('dispatcher-next-resumption') {
                 nqp::delegate('boot-constant',
                     nqp::syscall('dispatcher-insert-arg-literal-obj',
@@ -2430,12 +2405,13 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
         }
         # Otherwise, step past it and do whatever comes next.
         else {
-            nqp::syscall('dispatcher-guard-type', $track-cur-state);
-            $track-cur-state := nqp::syscall('dispatcher-track-attr',
-                $track-cur-state, MultiDispatchAmbiguous, '$!next');
+            nqp::guard('type', $track-cur-state);
+            $track-cur-state := nqp::track('attr',
+              $track-cur-state, MultiDispatchAmbiguous, '$!next');
             $cur-state := $cur-state.next;
-            return raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state,
-                $orig-capture, $arg-capture, $is-resume);
+            return raku-multi-non-trivial-step(
+              $kind, $track-cur-state, $cur-state,
+              $orig-capture, $arg-capture, $is-resume);
         }
     }
     else {
@@ -2444,7 +2420,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
 }
 sub peel-off-candidate($is-resume, $track-cur-state, $cur-state, $orig-capture) {
     if $is-resume {
-        my $track-next := nqp::syscall('dispatcher-track-attr',
+        my $track-next := nqp::track('attr',
             $track-cur-state, MultiDispatchCall, '$!next');
         nqp::syscall('dispatcher-set-resume-state', $track-next);
     }
@@ -2473,8 +2449,8 @@ nqp::register('raku-multi-remove-proxies',
     -> $capture {
         # Make sure this really is the resume with the proxies stripped,
         # not some inner resume, which we should just pass along.
-        my $track_kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track_kind);
+        my $track_kind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $track_kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
         if $kind == nqp::const::DISP_DECONT {
             # Yes, it's the resume we're looking for. Locate the candidates by
@@ -2487,11 +2463,10 @@ nqp::register('raku-multi-remove-proxies',
             # the generated removers becoming a polymorphic blow-up point; when
             # we can associate it with the dispatch program of the initial
             # dispatch, that will be rather better.)
-            my $track_callee := nqp::syscall('dispatcher-track-arg',
+            my $track_callee := nqp::track('arg',
                 $orig-capture, 0);
-            nqp::syscall('dispatcher-guard-literal',
-                nqp::syscall('dispatcher-track-attr',
-                    $track_callee, Routine, '@!dispatchees'));
+            nqp::guard('literal',
+              nqp::track('attr', $track_callee, Routine, '@!dispatchees'));
 
             # We now make the dispatch plan using the arguments with proxies
             # removed, put pass along the original arg capture too, for use
@@ -2558,10 +2533,10 @@ nqp::register('raku-invoke', -> $capture {
     my $code := nqp::captureposarg($capture, 0);
     my int $code-constant := nqp::syscall('dispatcher-is-arg-literal',
         $capture, 0);
-    my $code_arg := nqp::syscall('dispatcher-track-arg', $capture, 0);
+    my $code_arg := nqp::track('arg', $capture, 0);
     unless $code-constant {
-        nqp::syscall('dispatcher-guard-type', $code_arg);
-        nqp::syscall('dispatcher-guard-concreteness', $code_arg);
+        nqp::guard('type', $code_arg);
+        nqp::guard('concreteness', $code_arg);
     }
 
     # If it's already a VM-level code reference, just invoke it.
@@ -2604,7 +2579,7 @@ nqp::register('raku-invoke', -> $capture {
                 nqp::delegate('boot-code-constant', $delegate_capture);
             }
             else {
-                my $do_attr := nqp::syscall('dispatcher-track-attr',
+                my $do_attr := nqp::track('attr',
                     $code_arg, Code, '$!do');
                 my $delegate_capture := nqp::syscall('dispatcher-insert-arg',
                     nqp::syscall('dispatcher-drop-arg', $capture, 0),
@@ -2623,7 +2598,7 @@ nqp::register('raku-invoke', -> $capture {
     # lang-code to run whatever is wrapped there.
     elsif nqp::istype($code, ForeignCode) {
         if nqp::isconcrete($code) {
-            my $do_attr := nqp::syscall('dispatcher-track-attr',
+            my $do_attr := nqp::track('attr',
                 $code_arg, ForeignCode, '$!do');
             my $delegate_capture := nqp::syscall('dispatcher-insert-arg',
                 nqp::syscall('dispatcher-drop-arg', $capture, 0),
@@ -2649,7 +2624,7 @@ nqp::register('raku-invoke', -> $capture {
                 nqp::delegate('boot-code-constant', $delegate_capture);
             }
             else {
-                my $do_attr := nqp::syscall('dispatcher-track-attr',
+                my $do_attr := nqp::track('attr',
                   $code_arg, NQPRoutine, '$!do');
                 my $delegate_capture := nqp::syscall('dispatcher-insert-arg',
                   nqp::syscall('dispatcher-drop-arg', $capture, 0),
@@ -2679,17 +2654,15 @@ nqp::register('raku-invoke', -> $capture {
                 # Object argument, so type guard.
                 my $arg := nqp::captureposarg($capture, 1);
                 $arg-type := $arg.WHAT;
-                my $track-arg := nqp::syscall('dispatcher-track-arg',
-                    $capture, 1);
-                nqp::syscall('dispatcher-guard-type', $track-arg);
+                my $track-arg := nqp::track('arg', $capture, 1);
+                nqp::guard('type', $track-arg);
                 if nqp::isconcrete_nd($arg) && nqp::iscont($arg) {
                     # Containerized. If it's a Scalar, we can deref and guard
                     # on that. If not, we'll have to thunk it and figure it
                     # out each time.
                     if nqp::istype_nd($arg, Scalar) {
-                        nqp::syscall('dispatcher-guard-type',
-                            nqp::syscall('dispatcher-track-attr',
-                                $track-arg, Scalar, '$!value'));
+                        nqp::guard('type',
+                          nqp::track('attr', $track-arg, Scalar, '$!value'));
                     }
                     else {
                         $could-not-guard := 1;
@@ -2722,9 +2695,11 @@ nqp::register('raku-invoke', -> $capture {
                 # Form the coercion type.
                 my $how := nqp::how_nd($code);
                 my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
-                    (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($code)
-                        ?? $how.pun_source($code)
-                        !! $code.WHAT),
+                    (nqp::istype($how, Perl6::Metamodel::ClassHOW)
+                       && $how.is_pun($code)
+                       ?? $how.pun_source($code)
+                       !! $code.WHAT
+                    ),
                     $arg-type);
 
                 # Call $coercion-type.HOW.coerce($coercion-type, $val). We
@@ -2818,8 +2793,8 @@ sub pass-decontainerized($code, $args) {
             my $arg := nqp::captureposarg($args, $i);
             if nqp::isconcrete_nd($arg) && nqp::what_nd($arg) =:= Scalar {
                 # Read it from the container and pass it decontainerized.
-                my $track-arg := nqp::syscall('dispatcher-track-arg', $args, $i);
-                my $track-value := nqp::syscall('dispatcher-track-attr',
+                my $track-arg := nqp::track('arg', $args, $i);
+                my $track-value := nqp::track('attr',
                     $track-arg, Scalar, '$!value');
                $args := nqp::syscall('dispatcher-insert-arg',
                     nqp::syscall('dispatcher-drop-arg', $args, $i),
@@ -2838,10 +2813,10 @@ nqp::register('raku-invoke-wrapped', -> $capture {
     # so we can rely on its identity).
     my $routine := nqp::captureposarg($capture, 0);
     my $wrapper-type := $routine.WRAPPER-TYPE;
-    my $track-routine := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    my $track-wrappers := nqp::syscall('dispatcher-track-attr',
+    my $track-routine := nqp::track('arg', $capture, 0);
+    my $track-wrappers := nqp::track('attr',
             $track-routine, $wrapper-type, '$!wrappers');
-    nqp::syscall('dispatcher-guard-literal', $track-wrappers);
+    nqp::guard('literal', $track-wrappers);
 
     # With wrappers, we pretty much know we'll be traversing them, so we
     # build the deferral chain up front, unlike in other dispatchers.
@@ -2869,11 +2844,11 @@ nqp::register('raku-wrapper-deferral',
     -> $capture {
         # Obtain and guard on the first wrapper callee.
         my $cur_deferral := nqp::captureposarg($capture, 1);
-        my $track_cur_deferral := nqp::syscall('dispatcher-track-arg',
+        my $track_cur_deferral := nqp::track('arg',
             $capture, 1);
-        my $track_code := nqp::syscall('dispatcher-track-attr',
-            $track_cur_deferral, DeferralChain, '$!code');
-        nqp::syscall('dispatcher-guard-literal', $track_code);
+        my $track_code :=
+          nqp::track('attr', $track_cur_deferral, DeferralChain, '$!code');
+        nqp::guard('literal', $track_code);
 
         # Extract the arguments and set the resume init args to be the next item
         # in the chain prepended to the arguments, so long as there is a next
@@ -2910,8 +2885,8 @@ nqp::register('raku-wrapper-deferral',
     # Resumption.
     -> $capture {
         # Guard on the kind of resume we're doing, and get that flag.
-        my $track_kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track_kind);
+        my $track_kind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $track_kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
 
         # Work out which wrapper we'll call next.
@@ -2930,24 +2905,24 @@ nqp::register('raku-wrapper-deferral',
         elsif nqp::isnull($state) {
             # No state, so the initial resumption. Guard on there being no
             # dispatch state.
-            my $track_state := nqp::syscall('dispatcher-track-resume-state');
-            nqp::syscall('dispatcher-guard-literal', $track_state);
+            my $track_state := nqp::track('resume-state');
+            nqp::guard('literal', $track_state);
 
             # The current deferral is obtained from the initialization state.
-            $track_cur_deferral := nqp::syscall('dispatcher-track-arg', $init, 0);
+            $track_cur_deferral := nqp::track('arg', $init, 0);
             $cur_deferral := nqp::captureposarg($init, 0);
         }
         elsif !nqp::istype($state, Exhausted) {
             # Already working through a chain of wrappers deferrals. Thus the
             # current deferral is the current state;
-            $track_cur_deferral := nqp::syscall('dispatcher-track-resume-state');
+            $track_cur_deferral := nqp::track('resume-state');
             $cur_deferral := $state;
         }
         else {
             # Dispatch already exhausted; guard on that and fall through to returning
             # Nil.
-            my $track_state := nqp::syscall('dispatcher-track-resume-state');
-            nqp::syscall('dispatcher-guard-literal', $track_state);
+            my $track_state := nqp::track('resume-state');
+            nqp::guard('literal', $track_state);
         }
 
         # If we have a current deferral...
@@ -2972,11 +2947,11 @@ nqp::register('raku-wrapper-deferral',
                 # Not callwith, so we keep walking the list. Update state to
                 # move to the next wrapper in the list and then put into effect
                 # the resumption.
-                my $track_code := nqp::syscall('dispatcher-track-attr',
-                    $track_cur_deferral, DeferralChain, '$!code');
-                nqp::syscall('dispatcher-guard-literal', $track_code);
-                my $track_next := nqp::syscall('dispatcher-track-attr',
-                    $track_cur_deferral, DeferralChain, '$!next');
+                my $track_code := nqp::track('attr',
+                  $track_cur_deferral, DeferralChain, '$!code');
+                nqp::guard('literal', $track_code);
+                my $track_next := nqp::track('attr',
+                  $track_cur_deferral, DeferralChain, '$!next');
                 nqp::syscall('dispatcher-set-resume-state', $track_next);
                 if $kind == nqp::const::DISP_CALLSAME {
                     # Invoke the next bit of code. We send the original dispatchee to
@@ -3011,13 +2986,12 @@ nqp::register('raku-wrapper-deferral',
 # Like raku-call, except assumes that any method call we see will already have
 # been taken care of.
 nqp::register('raku-call-simple', -> $capture {
-    my $track_callee := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    nqp::syscall('dispatcher-guard-type', $track_callee);
+    my $track_callee := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $track_callee);
     my $callee := nqp::captureposarg($capture, 0);
     if nqp::istype_nd($callee, Routine) {
-        nqp::syscall('dispatcher-guard-literal',
-            nqp::syscall('dispatcher-track-attr',
-                $track_callee, Routine, '@!dispatchees'));
+        nqp::guard('literal',
+          nqp::track('attr', $track_callee, Routine, '@!dispatchees'));
         nqp::syscall('dispatcher-delegate',
             $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
     }
@@ -3042,10 +3016,8 @@ nqp::register('raku-find-meth', -> $capture {
     }
     else {
         # Guard on the invocant type and method name.
-        nqp::syscall('dispatcher-guard-type',
-            nqp::syscall('dispatcher-track-arg', $capture, 0));
-        nqp::syscall('dispatcher-guard-literal',
-            nqp::syscall('dispatcher-track-arg', $capture, 1));
+        nqp::guard('type',    nqp::track('arg', $capture, 0));
+        nqp::guard('literal', nqp::track('arg', $capture, 1));
 
         # Try to find the method.
         my str $name := nqp::captureposarg_s($capture, 1);
@@ -3061,8 +3033,7 @@ nqp::register('raku-find-meth', -> $capture {
         # Otherwise, depends on exceptional flag whether we report the missing
         # method or hand back a null.
         else {
-            nqp::syscall('dispatcher-guard-literal',
-                nqp::syscall('dispatcher-track-arg', $capture, 2));
+            nqp::guard('literal', nqp::track('arg', $capture, 2));
             if $exceptional {
                 nqp::delegate('lang-meth-not-found',
                     nqp::syscall('dispatcher-drop-arg', $capture, 0));
@@ -3078,8 +3049,7 @@ nqp::register('raku-find-meth', -> $capture {
 nqp::register('raku-find-meth-mega', -> $capture {
     # Always guard on the exception mode (which should always be false, since we
     # don't handle it here).
-    nqp::syscall('dispatcher-guard-literal',
-        nqp::syscall('dispatcher-track-arg', $capture, 2));
+    nqp::guard('literal', nqp::track('arg', $capture, 2));
 
     # Make sure that we have a method table build for this type (but we don't
     # actually need the table itself).
@@ -3092,14 +3062,14 @@ nqp::register('raku-find-meth-mega', -> $capture {
     $how.all_method_table($obj);
 
     # Track the HOW and then the attribute holding the table.
-    my $track-obj := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    my $track-how := nqp::syscall('dispatcher-track-how', $track-obj);
-    my $track-table := nqp::syscall('dispatcher-track-attr', $track-how,
+    my $track-obj := nqp::track('arg', $capture, 0);
+    my $track-how := nqp::track('how', $track-obj);
+    my $track-table := nqp::track('attr', $track-how,
         Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
 
     # Do the lookup of the method in the table we found in the meta-object. If
     # it's not found, the outcome will be a null, which is exactly what we want.
-    my $track-name := nqp::syscall('dispatcher-track-arg', $capture, 1);
+    my $track-name := nqp::track('arg', $capture, 1);
     my $track-resolution := nqp::syscall(
       'dispatcher-index-tracked-lookup-table', $track-table, $track-name);
     my $delegate := nqp::syscall('dispatcher-insert-arg',
@@ -3111,18 +3081,16 @@ nqp::register('raku-find-meth-mega', -> $capture {
 # extracts the underlying handle and causes it to be captured.
 nqp::register('raku-capture-lex', -> $capture {
     my $code := nqp::captureposarg($capture, 0);
-    my $track-code := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    nqp::syscall('dispatcher-guard-type', $track-code);
+    my $track-code := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $track-code);
     if nqp::istype($code, Code) {
-        my $do := nqp::syscall('dispatcher-track-attr',
-            $track-code, Code, '$!do');
+        my $do := nqp::track('attr', $track-code, Code, '$!do');
         my $with-do := nqp::syscall('dispatcher-insert-arg',
             nqp::syscall('dispatcher-drop-arg', $capture, 0),
             0, $do);
         my $delegate := nqp::syscall('dispatcher-insert-arg-literal-str',
             $with-do, 0, 'try-capture-lex');
-        nqp::delegate('boot-syscall',
-            $delegate);
+        nqp::delegate('boot-syscall', $delegate);
     }
     else {
         nqp::delegate('boot-value', $capture);
@@ -3134,18 +3102,16 @@ nqp::register('raku-capture-lex', -> $capture {
 # matches the outer, and captures it.
 nqp::register('raku-capture-lex-callers', -> $capture {
     my $code := nqp::captureposarg($capture, 0);
-    my $track-code := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    nqp::syscall('dispatcher-guard-type', $track-code);
+    my $track-code := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $track-code);
     if nqp::istype($code, Code) {
-        my $do := nqp::syscall('dispatcher-track-attr',
-            $track-code, Code, '$!do');
+        my $do := nqp::track('attr', $track-code, Code, '$!do');
         my $with-do := nqp::syscall('dispatcher-insert-arg',
             nqp::syscall('dispatcher-drop-arg', $capture, 0),
             0, $do);
         my $delegate := nqp::syscall('dispatcher-insert-arg-literal-str',
             $with-do, 0, 'try-capture-lex-callers');
-        nqp::delegate('boot-syscall',
-            $delegate);
+        nqp::delegate('boot-syscall', $delegate);
     }
     else {
         nqp::delegate('boot-value', $capture);
@@ -3157,8 +3123,8 @@ nqp::register('raku-capture-lex-callers', -> $capture {
 nqp::register('raku-get-code-outer-ctx', -> $capture {
     my $code := nqp::captureposarg($capture, 0);
     if nqp::istype($code, Code) {
-        my $track-code := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        my $do := nqp::syscall('dispatcher-track-attr',
+        my $track-code := nqp::track('arg', $capture, 0);
+        my $do := nqp::track('attr',
             $track-code, Code, '$!do');
         my $with-do := nqp::syscall('dispatcher-insert-arg',
             nqp::syscall('dispatcher-drop-arg', $capture, 0),
@@ -3186,8 +3152,7 @@ nqp::register('raku-resume-error', -> $capture {
 # Invokability test dispatcher.
 nqp::register('raku-isinvokable', -> $capture {
     # Guard on the type, then evaluate to a constant for if it's a Code type.
-    nqp::syscall('dispatcher-guard-type',
-        nqp::syscall('dispatcher-track-arg', $capture, 0));
+    nqp::guard('type', nqp::track('arg', $capture, 0));
     my $callee := nqp::captureposarg($capture, 0);
     my $delegate := nqp::syscall('dispatcher-insert-arg-literal-int',
         $capture, 0, nqp::istype($callee, Code));
@@ -3235,19 +3200,19 @@ nqp::register('raku-isinvokable', -> $capture {
         else {
             $arg := nqp::captureposarg($capture, 0);
         }
-        my $track_arg := nqp::syscall('dispatcher-track-arg', $capture, 0);
+        my $track_arg := nqp::track('arg', $capture, 0);
         my $explicit-call := 0;
         if nqp::isconcrete($arg) {
             if $arg-spec {
-                nqp::syscall('dispatcher-guard-concreteness', $track_arg);
-                nqp::syscall('dispatcher-guard-type', $track_arg);
+                nqp::guard('concreteness', $track_arg);
+                nqp::guard('type', $track_arg);
                 nqp::delegate('boot-code-constant',
                     nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, $hllbool)
                 );
             }
             elsif nqp::istype($arg, Bool) {
-                nqp::syscall('dispatcher-guard-concreteness', $track_arg);
-                nqp::syscall('dispatcher-guard-type', $track_arg);
+                nqp::guard('concreteness', $track_arg);
+                nqp::guard('type', $track_arg);
                 nqp::delegate('boot-value', $capture);
             }
             else {
@@ -3256,8 +3221,8 @@ nqp::register('raku-isinvokable', -> $capture {
         }
         elsif is-method-setting-only($arg, 'Bool', :U) {
             # For non-concrete objects default method Bool candidate would always produce False.
-            nqp::syscall('dispatcher-guard-concreteness', $track_arg);
-            nqp::syscall('dispatcher-guard-type', $track_arg);
+            nqp::guard('concreteness', $track_arg);
+            nqp::guard('type', $track_arg);
             nqp::delegate('boot-value',
                 nqp::syscall('dispatcher-insert-arg-literal-obj',
                     $capture, 0, $hllbool(0)
@@ -3322,20 +3287,18 @@ nqp::register('raku-isinvokable', -> $capture {
         my $lhs                 := nqp::captureposarg($capture, 0);
         my $rhs                 := nqp::captureposarg($capture, 1);
         my $boolification       := nqp::captureposarg_i($capture, 2);
-        my $track-lhs           := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        my $track-rhs           := nqp::syscall('dispatcher-track-arg', $capture, 1);
+        my $track-lhs           := nqp::track('arg', $capture, 0);
+        my $track-rhs           := nqp::track('arg', $capture, 1);
 
         if nqp::istype_nd($lhs, Scalar) {
-            nqp::syscall('dispatcher-guard-type', $track-lhs );
-            $track-lhs :=
-                nqp::syscall('dispatcher-track-attr', $track-lhs, Scalar, '$!value');
+            nqp::guard('type', $track-lhs );
+            $track-lhs := nqp::track('attr', $track-lhs, Scalar, '$!value');
             $lhs := nqp::getattr($lhs, Scalar, '$!value');
         }
 
         if nqp::istype_nd($rhs, Scalar) {
-            nqp::syscall('dispatcher-guard-type', $track-rhs );
-            $track-rhs :=
-                nqp::syscall('dispatcher-track-attr', $track-rhs, Scalar, '$!value');
+            nqp::guard('type', $track-rhs );
+            $track-rhs := nqp::track('attr', $track-rhs, Scalar, '$!value');
             $rhs := nqp::getattr($rhs, Scalar, '$!value');
         }
 
@@ -3344,9 +3307,9 @@ nqp::register('raku-isinvokable', -> $capture {
         if $boolification == 0 {
             if nqp::isconcrete_nd($rhs) && nqp::istype_nd($rhs, Junction) {
                 # Make sure to collapse a Junction.
-                # nqp::syscall('dispatcher-guard-literal', $track-boolification);
-                nqp::syscall('dispatcher-guard-concreteness', $track-rhs);
-                nqp::syscall('dispatcher-guard-type', $track-rhs);
+                # nqp::guard('literal', $track-boolification);
+                nqp::guard('concreteness', $track-rhs);
+                nqp::guard('type', $track-rhs);
                 nqp::delegate('raku-meth-call',
                     nqp::syscall('dispatcher-insert-arg-literal-str',
                         nqp::syscall('dispatcher-insert-arg-literal-obj',
@@ -3359,9 +3322,9 @@ nqp::register('raku-isinvokable', -> $capture {
             }
             elsif nqp::isconcrete_nd($rhs) && nqp::istype_nd($rhs, List) {
                 # A list must be reified in order to fire up any code embedded into regexes.
-                # nqp::syscall('dispatcher-guard-literal', $track-boolification);
-                nqp::syscall('dispatcher-guard-concreteness', $track-rhs);
-                nqp::syscall('dispatcher-guard-type', $track-rhs);
+                # nqp::guard('literal', $track-boolification);
+                nqp::guard('concreteness', $track-rhs);
+                nqp::guard('type', $track-rhs);
                 nqp::delegate('raku-meth-call',
                     nqp::syscall('dispatcher-insert-arg-literal-str',
                         nqp::syscall('dispatcher-insert-arg-literal-obj',
@@ -3373,16 +3336,16 @@ nqp::register('raku-isinvokable', -> $capture {
                 $explicit-accepts := 0;
             }
             elsif nqp::istype_nd($rhs, Nil) {
-                # nqp::syscall('dispatcher-guard-literal', $track-boolification);
-                nqp::syscall('dispatcher-guard-type', $track-rhs);
+                # nqp::guard('literal', $track-boolification);
+                nqp::guard('type', $track-rhs);
                 nqp::delegate('boot-value',
                     nqp::syscall('dispatcher-insert-arg-literal-obj',
                         $capture, 0, nqp::hllboolfor(0, 'Raku')));
                 $explicit-accepts := 0;
             }
             else {
-                # nqp::syscall('dispatcher-guard-literal', $track-boolification);
-                nqp::syscall('dispatcher-guard-type', $track-rhs);
+                # nqp::guard('literal', $track-boolification);
+                nqp::guard('type', $track-rhs);
                 # Bypass is normally used with Regex-kind of RHS and it is not specced wether the smartmatch result must
                 # be deconted in this case. Therefore we better return what we've got on RHS as-is.
                 nqp::delegate('boot-value',
@@ -3401,11 +3364,11 @@ nqp::register('raku-isinvokable', -> $capture {
             && !(nqp::isconcrete_nd($rhs) && $boolification == 1 && nqp::istype_nd($rhs, Regex))
             && is-method-setting-only($rhs, 'ACCEPTS', :D)
         {
-            # nqp::syscall('dispatcher-guard-literal', $track-boolification);
-            nqp::syscall('dispatcher-guard-type', $track-lhs);
-            nqp::syscall('dispatcher-guard-concreteness', $track-lhs);
-            nqp::syscall('dispatcher-guard-type', $track-rhs);
-            nqp::syscall('dispatcher-guard-concreteness', $track-rhs);
+            # nqp::guard('literal', $track-boolification);
+            nqp::guard('type', $track-lhs);
+            nqp::guard('concreteness', $track-lhs);
+            nqp::guard('type', $track-rhs);
+            nqp::guard('concreteness', $track-rhs);
             my $method-capture := nqp::syscall('dispatcher-drop-arg', $capture, 2);
             $method-capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
                 $method-capture, 2, nqp::hllboolfor($boolification == -1, 'Raku')); # boolification -> Raku's Bool negation flag
@@ -3423,9 +3386,9 @@ nqp::register('raku-isinvokable', -> $capture {
             if nqp::isconcrete_nd($rhs) {
                 if $boolification < 0 {
                     if nqp::istype_nd($rhs, Bool) {
-                        # nqp::syscall('dispatcher-guard-literal', $track-boolification);
-                        nqp::syscall('dispatcher-guard-type', $track-rhs);
-                        nqp::syscall('dispatcher-guard-literal', $track-rhs);
+                        # nqp::guard('literal', $track-boolification);
+                        nqp::guard('type', $track-rhs);
+                        nqp::guard('literal', $track-rhs);
                         nqp::delegate('boot-value',
                             nqp::syscall('dispatcher-insert-arg-literal-obj',
                                 nqp::syscall('dispatcher-drop-arg', $capture, 0),
@@ -3433,9 +3396,9 @@ nqp::register('raku-isinvokable', -> $capture {
                         $explicit-accepts := 0;
                     }
                     elsif nqp::istype_nd($rhs, $Match) {
-                        # nqp::syscall('dispatcher-guard-literal', $track-boolification);
-                        nqp::syscall('dispatcher-guard-concreteness', $track-rhs);
-                        nqp::syscall('dispatcher-guard-type', $track-rhs);
+                        # nqp::guard('literal', $track-boolification);
+                        nqp::guard('concreteness', $track-rhs);
+                        nqp::guard('type', $track-rhs);
                         nqp::delegate('raku-meth-call',
                             nqp::syscall('dispatcher-insert-arg-literal-str',
                                 nqp::syscall('dispatcher-insert-arg-literal-obj',
@@ -3448,9 +3411,9 @@ nqp::register('raku-isinvokable', -> $capture {
                     }
                 }
                 elsif nqp::istype_nd($rhs, Bool) || nqp::istype_nd($rhs, $Match) {
-                    # nqp::syscall('dispatcher-guard-literal', $track-boolification);
-                    nqp::syscall('dispatcher-guard-concreteness', $track-rhs);
-                    nqp::syscall('dispatcher-guard-type', $track-rhs);
+                    # nqp::guard('literal', $track-boolification);
+                    nqp::guard('concreteness', $track-rhs);
+                    nqp::guard('type', $track-rhs);
                     nqp::delegate('boot-value',
                         nqp::syscall('dispatcher-drop-arg', $capture, 0)); # drop LHS
                     $explicit-accepts := 0;
@@ -3458,8 +3421,8 @@ nqp::register('raku-isinvokable', -> $capture {
             }
             elsif is-method-setting-only($rhs, 'ACCEPTS', :U) { # Non-concrete RHS
                 # A typeobject on RHS with default ACCEPTS can be reduced to nqp::istype, unless LHS is a concrete Junction.
-                nqp::syscall('dispatcher-guard-concreteness', $track-rhs);
-                nqp::syscall('dispatcher-guard-type', $track-rhs);
+                nqp::guard('concreteness', $track-rhs);
+                nqp::guard('type', $track-rhs);
                 my $rhs-how := $rhs.HOW;
                 my $can-archetypes := nqp::can($rhs-how, 'archetypes');
 
@@ -3467,10 +3430,10 @@ nqp::register('raku-isinvokable', -> $capture {
                     || !$rhs-how.archetypes($rhs).nominalizable
                     || nqp::isnull($rhs-how.wrappee-lookup($rhs, :subset))
                 {
-                    nqp::syscall('dispatcher-guard-type', $track-lhs);
+                    nqp::guard('type', $track-lhs);
                     if $can-archetypes && $rhs-how.archetypes($rhs).definite {
                         # If RHS is a definite then concreteness of LHS must be considered.
-                        nqp::syscall('dispatcher-guard-concreteness', $track-lhs);
+                        nqp::guard('concreteness', $track-lhs);
                     }
 
                     my $matches := try nqp::istype_nd($lhs, $rhs);
@@ -3496,8 +3459,8 @@ nqp::register('raku-isinvokable', -> $capture {
         }
 
         if $explicit-accepts {
-            nqp::syscall('dispatcher-guard-concreteness', $track-rhs);
-            nqp::syscall('dispatcher-guard-type', $track-rhs);
+            nqp::guard('concreteness', $track-rhs);
+            nqp::guard('type', $track-rhs);
             if $boolification == 0 || (nqp::isconcrete_nd($rhs) && $boolification > -1 && nqp::istype_nd($rhs, Regex)) {
                 # Do not boolify over a Regex RHS.
 
@@ -3507,7 +3470,7 @@ nqp::register('raku-isinvokable', -> $capture {
                 $method-capture :=
                     nqp::syscall('dispatcher-insert-arg',
                         $method-capture, 0,
-                        nqp::syscall('dispatcher-track-arg', $capture, 1)); # Move RHS to the start
+                        nqp::track('arg', $capture, 1)); # Move RHS to the start
                 $method-capture :=
                     nqp::syscall('dispatcher-drop-arg', $method-capture, 2); # Old RHS
                 # Then prepare for raku-meth-call: deconted RHS, method name, RHS, LHS.
@@ -3708,23 +3671,22 @@ nqp::register('raku-isinvokable', -> $capture {
         # - coercion type object
         # - value
 
-        my $track-coercion := nqp::syscall('dispatcher-track-arg', $capture, 0);
-        my $track-value := nqp::syscall('dispatcher-track-arg', $capture, 1);
+        my $track-coercion := nqp::track('arg', $capture, 0);
+        my $track-value := nqp::track('arg', $capture, 1);
 
-        nqp::syscall('dispatcher-guard-type', $track-coercion);
-        nqp::syscall('dispatcher-guard-type', $track-value);
+        nqp::guard('type', $track-coercion);
+        nqp::guard('type', $track-value);
 
         my $value := nqp::captureposarg($capture, 1);
         my $coercion := nqp::captureposarg($capture, 0);
 
         if nqp::istype_nd($value, Scalar) {
-            $track-value :=
-                nqp::syscall('dispatcher-track-attr', $track-value, Scalar, '$!value');
-            nqp::syscall('dispatcher-guard-type', $track-value);
+            $track-value := nqp::track('attr', $track-value, Scalar, '$!value');
+            nqp::guard('type', $track-value);
             $value := nqp::getattr($value, Scalar, '$!value');
         }
 
-        nqp::syscall('dispatcher-guard-concreteness', $track-value);
+        nqp::guard('concreteness', $track-value);
 
         my $coercionHOW   := nqp::how($coercion);
 
@@ -3897,8 +3859,8 @@ nqp::register('raku-isinvokable', -> $capture {
 
         # If the type has been instantiated from a generic then we'd need to track over it too.
         if $is_generic {
-            my $track-ret-type := nqp::syscall('dispatcher-track-arg', $capture, 1);
-            nqp::syscall('dispatcher-guard-type', $track-ret-type);
+            my $track-ret-type := nqp::track('arg', $capture, 1);
+            nqp::guard('type', $track-ret-type);
         }
 
         # We will never need the $is_generic argument, but otherwise the capture is used to call checker subs where the
@@ -3940,21 +3902,19 @@ nqp::register('raku-isinvokable', -> $capture {
                 }
             }
 
-            my $track-value := nqp::syscall('dispatcher-track-arg', $capture, 0);
+            my $track-value := nqp::track('arg', $capture, 0);
 
             if nqp::istype_nd($rv, Scalar) {
-                nqp::syscall('dispatcher-guard-type', $track-value);
-                $track-value := nqp::syscall(
-                  'dispatcher-track-attr', $track-value, Scalar, '$!value');
+                nqp::guard('type', $track-value);
+                $track-value :=
+                  nqp::track('attr', $track-value, Scalar, '$!value');
             }
 
-            nqp::syscall('dispatcher-guard-type', $track-value);
-            nqp::syscall('dispatcher-guard-concreteness', $track-value)
-                if $definite-check != -1;
+            nqp::guard('type', $track-value);
+            nqp::guard('concreteness', $track-value) if $definite-check != -1;
 
             my $need-coercion := $how.archetypes($type).coercive
-                                    && !nqp::istype($rv,
-                                        nqp::how_nd($coercion-type).target_type($coercion-type));
+              && !nqp::istype($rv, nqp::how_nd($coercion-type).target_type($coercion-type));
             my $is-Nil := nqp::istype($rv, Nil);
 
             if $is-Nil || !($runtime-check || $need-coercion)

@@ -152,6 +152,7 @@ Returns the resume state that was previously saved with
 ### dispatcher-guard-concreteness
 ```
 nqp::syscall("dispatcher-guard-concreteness", $tracker);
+nqp::guard('concreteness", $tracker);
 ```
 Record a guard for the concreteness of the given $tracker in the current
 dispatch program.  Returns the given $tracker.
@@ -159,6 +160,7 @@ dispatch program.  Returns the given $tracker.
 ### dispatcher-guard-literal
 ```
 nqp::syscall("dispatcher-guard-literal", $tracker);
+nqp::guard("literal", $tracker);
 ```
 Record a guard for the given $tracker in the current dispatch program on
 whether the tracked objects is a literal or not.  Returns the given $tracker.
@@ -166,6 +168,7 @@ whether the tracked objects is a literal or not.  Returns the given $tracker.
 ### dispatcher-guard-type
 ```
 nqp::syscall("dispatcher-guard-type", $tracker);
+nqp::guard("type", $tracker);
 ```
 Record a guard for the type of the given $tracker in the current dispatch
 program.  Returns the given $tracker.
@@ -311,6 +314,7 @@ the dispatch as exhausted.
 ### dispatcher-track-arg
 ```
 nqp::syscall("dispatcher-track-arg", $capture, int $index);
+nqp::track("arg", $capture, int $index);
 ```
 Returns a tracker object for the positional argument in the given $capture
 at the given $index.
@@ -318,6 +322,7 @@ at the given $index.
 ### dispatcher-track-attr
 ```
 nqp::syscall("dispatcher-track-attr", $tracker, $type, $name);
+nqp::track("attr", $tracker, $type, $name);
 ```
 Returns a tracker object for the attribute in the object of the given
 $tracker object for the given $type and $name.
@@ -325,6 +330,7 @@ $tracker object for the given $type and $name.
 ### dispatcher-track-how
 ```
 nqp::syscall("dispatcher-track-how", $tracker);
+nqp::track("how", $tracker);
 ```
 Returns a tracker object for the HOW of the object of the given $tracker
 object.
@@ -332,6 +338,7 @@ object.
 ### dispatcher-track-resume-state
 ```
 nqp::syscall("dispatcher-track-resume-state");
+nqp::track("resume-state");
 ```
 Returns a tracker object for the current resume state as set with
 `nqp::syscall("dispatcher-set-resume-state", $state)`.
@@ -339,6 +346,7 @@ Returns a tracker object for the current resume state as set with
 ### dispatcher-track-unbox-int
 ```
 nqp::syscall("dispatcher-track-unbox-int", $tracker);
+nqp::track("unbox-int", $tracker);
 ```
 Returns a tracker object for the unboxed integer for the given tracker of a
 a boxed integer.
@@ -346,6 +354,7 @@ a boxed integer.
 ### dispatcher-track-unbox-num
 ```
 nqp::syscall("dispatcher-track-unbox-num", $tracker);
+nqp::track("unbox-num", $tracker);
 ```
 Returns a tracker object for the unboxed num for the given tracker of a
 a boxed num.
@@ -353,6 +362,7 @@ a boxed num.
 ### dispatcher-track-unbox-str
 ```
 nqp::syscall("dispatcher-track-unbox-str", $tracker);
+nqp::track("unbox-str", $tracker);
 ```
 Returns a tracker object for the unboxed string for the given tracker of a
 a boxed string.

@@ -150,16 +150,46 @@ Returns the resume state that was previously saved with
 `nqp::syscall("dispatcher-set-resume-state-literal", $state)`.
 
 ### dispatcher-guard-concreteness
+```
+nqp::syscall("dispatcher-guard-concreteness", $tracker);
+```
+Record a guard for the concreteness of the given $tracker in the current
+dispatch program.  Returns the given $tracker.
+
 ### dispatcher-guard-literal
+```
+nqp::syscall("dispatcher-guard-literal", $tracker);
+```
+Record a guard for the given $tracker in the current dispatch program on
+whether the tracked objects is a literal or not.  Returns the given $tracker.
+
 ### dispatcher-guard-type
+```
+nqp::syscall("dispatcher-guard-type", $tracker);
+```
+Record a guard for the type of the given $tracker in the current dispatch
+program.  Returns the given $tracker.
+
 ### dispatcher-index-lookup-table
+```
+nqp::syscall("dispatcher-index-lookup-table", %lookup, $tracker);
+```
+Adds a (mega-morphic) %lookup hash table to the current dispatch program,
+tracked by the given tracker.
+
 ### dispatcher-index-tracked-lookup-table
+```
+nqp::syscall("dispatcher-index-tracked-lookup-table", $tracked-lookup, $tracker);
+```
+Adds a (mega-morphic) tracked lookup hash table to the current dispatch
+program, tracked by the given tracker.
+
 ### dispatcher-inline-cache-size
 ```
 nqp::syscall("dispatcher-inline-cache-size");
 ```
-Returns a native integer with the number of entries that can be held in the
-inline cache.
+Returns a native integer with the number of entries that are being held in
+the inline cache.
 
 ### dispatcher-insert-arg
 ```
@@ -242,7 +272,20 @@ Returns a capture based on the given $capture, but with the positional
 argument at position $index replaced by $object.
 
 ### dispatcher-resume-after-bind
+```
+nqp::syscall("dispatcher-resume-after-bind", int $success, int $failure);
+```
+Mark the current dispatch program to resume after a successful bind with the
+given $success kind of dispatch, otherwise with the $failure kind of dispatch.
+(both are nqp::const::DISP_xxx values).
+
 ### dispatcher-resume-on-bind-failure
+```
+nqp::syscall("dispatcher-resume-on-bind-failure", int $kind);
+```
+Mark the current dispatch program to resume after a successful bind with the
+given kind of dispatch (an nqp::const::DISP_xxx value).
+
 ### dispatcher-set-resume-init-args
 ```
 nqp::syscall("dispatcher-set-resume-init-args", $capture);
@@ -316,24 +359,42 @@ a boxed string.
 
 ### has-type-check-cache
 ```
-nqp::syscall("has-type-check-cache",$object);
+nqp::syscall("has-type-check-cache", $object);
 ```
 Takes the argument (a HLL object) and returns non-zero if the class of the
 object has a cache for type checking, and 0 if not.
 
 ### lang-call
+```
+nqp::delegate("lang-call", $capture);
+```
+Call the code given by the first argument in the $capture, and pass any other
+arguments to that code.
+
 ### lang-meth-call
+```
+nqp::delegate("lang-meth-call", $capture);
+```
+Call the method given of which the name is given by the second argument in
+the $capture, on the invocant in the first argument of the capture, and pass
+any other arguments to that method.
+
 ### lang-meth-not-found
+```
+nqp::delegate("lang-meth-not-found", $capture);
+```
+Delegate as if a method was not found.
+
 ### set-cur-hll-config-key
 ```
-nqp::syscall("set-cur-hll-config-key",$key,$value);
+nqp::syscall("set-cur-hll-config-key", $key, $value);
 ```
 Takes two arguments: a string key and a value, and sets that in the
 configuration information of the current HLL language.  Returns VMNull.
 
 ### type-check-mode-flags
 ```
-nqp::syscall("type-check-mode-flags",$object);
+nqp::syscall("type-check-mode-flags", $object);
 ```
 Returns the type check mode flags of the given object.  Possible values are:
 - 0 no typecheck (?)

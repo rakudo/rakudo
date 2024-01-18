@@ -420,6 +420,11 @@ These dispatcher are provided by the Rakudo bootstrap.
 ---
 
 ### raku-assign
+```
+nqp::dispatch("raku-assign", $container, $value);
+```
+Assigns the given $value to the given $container, and produces the $container.
+
 ### raku-bind-assert
 ### raku-boolify
 ### raku-call

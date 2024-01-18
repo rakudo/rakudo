@@ -134,167 +134,221 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
     });
 }
 
-
-# Assignment dispatcher, which case-analyzes assignments and provides optimized
-# paths for a range of common situations, and typically lifting type checks to
-# be guards.
+#- raku-assign -----------------------------------------------------------------
+# Assignment dispatcher, which case-analyzes assignments and provides
+# optimized paths for a range of common situations, and typically lifting
+# type checks to be guards.
 {
-    sub assign-type-error($desc, $value) {
+    # Shortcut for throwing type errors on assignment
+    sub assign-type-error($desc, $got) {
         Perl6::Metamodel::Configuration.throw_or_die(
-            'X::TypeCheck::Assignment',
-            "Type check failed in assignment",
-            :symbol($desc.name),
-            :$desc,
-            :got($value),
-            :expected($desc.of)
+          'X::TypeCheck::Assignment', "Type check failed in assignment",
+          :symbol($desc.name), :$desc, :$got, :expected($desc.of)
         );
     }
 
+    # Handler for when there is no optimization possible, moving all
+    # type checks to runtime
     my $assign-fallback := -> $cont, $value {
         nqp::assign($cont, $value)
     }
 
+    # Handler for simplest container assignment that is not part of
+    # an array or hash (just bind value)
     my $assign-scalar-no-whence-no-typecheck := -> $cont, $value {
         nqp::bindattr($cont, Scalar, '$!value', $value)
     }
 
+    # Handler for assigning Nil to a container that is not part of
+    # an array or hash, which will set the default value from the
+    # descriptor
     my $assign-scalar-nil-no-whence := -> $cont, $value {
-        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
         nqp::bindattr($cont, Scalar, '$!value',
-            nqp::getattr($desc, ContainerDescriptor, '$!default'))
+          nqp::getattr(
+            nqp::getattr($cont, Scalar, '$!descriptor'),
+            ContainerDescriptor,
+            '$!default'
+          )
+        )
     }
 
+    # Handler for assigning a value to a container that is not part
+    # of an array or hash, with type check done at runtime.
     my $assign-scalar-no-whence := -> $cont, $value {
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
         my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
-        if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes($type).coercive {
-                $value := nqp::dispatch('raku-coercion', $type, $value);
-            }
-            nqp::bindattr($cont, Scalar, '$!value', $value);
-        }
-        else {
-            assign-type-error($desc, $value);
-        }
+
+        nqp::istype($value, $type)
+          ?? nqp::bindattr($cont, Scalar, '$!value',
+               nqp::how_nd($type).archetypes($type).coercive
+                 ?? nqp::dispatch('raku-coercion', $type, $value)
+                 !! $value
+             )
+          !! assign-type-error($desc, $value);
     }
 
+    # Handler for assigning a value to a container that is to be
+    # part of an array.  Binds the container to the array, normalizes
+    # the descriptor and sets the value without any typechecking.
     my $assign-scalar-bindpos-no-typecheck := -> $cont, $value {
-        nqp::bindattr($cont, Scalar, '$!value', $value);
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+
+        # Install the container in the array
         nqp::bindpos(
-            nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),
-            nqp::getattr_i($desc, ContainerDescriptor::BindArrayPos, '$!pos'),
-            $cont);
+          nqp::getattr(  $desc, ContainerDescriptor::BindArrayPos, '$!target'),
+          nqp::getattr_i($desc, ContainerDescriptor::BindArrayPos, '$!pos'),
+          $cont
+        );
+
+        # Initialization done, install "normal" descriptor
         nqp::bindattr($cont, Scalar, '$!descriptor',
-            nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor'));
+          nqp::getattr(
+            $desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor'
+          )
+        );
+
+        # Set the value
+        nqp::bindattr($cont, Scalar, '$!value', $value);
     }
 
+    # Handler for assigning a value to a container that is to be
+    # part of an array with typechecking.  Binds the container to
+    # the array, normalizes the descriptor and sets the value.
     my $assign-scalar-bindpos := -> $cont, $value {
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-        my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor');
+        my $next := nqp::getattr(
+          $desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor'
+        );
+
+        # Quit if typecheck failed
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
-        if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes($type).coercive {
-                $value := nqp::dispatch('raku-coercion', $type, $value);
-            }
-            nqp::bindattr($cont, Scalar, '$!value', $value);
-            nqp::bindpos(
-                nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),
-                nqp::getattr_i($desc, ContainerDescriptor::BindArrayPos, '$!pos'),
-                $cont);
-            nqp::bindattr($cont, Scalar, '$!descriptor', $next);
-        }
-        else {
-            assign-type-error($next, $value);
-        }
+        assign-type-error($next, $value) unless nqp::istype($value, $type);
+
+        # Install the container in the array
+        nqp::bindpos(
+          nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),
+          nqp::getattr_i($desc, ContainerDescriptor::BindArrayPos, '$!pos'),
+          $cont
+        );
+
+        # Install "normal" descriptor
+        nqp::bindattr($cont, Scalar, '$!descriptor', $next);
+
+        # Set the value
+        nqp::bindattr($cont, Scalar, '$!value',
+          nqp::how_nd($type).archetypes($type).coercive
+            ?? nqp::dispatch('raku-coercion', $type, $value)
+            !! $value
+        );
     }
 
+    # Handler for initializing an attribute.  The container is
+    # assumed to have been bound to its object already.
     my $assign-scalar-uninit-no-typecheck := -> $cont, $value {
-        nqp::bindattr($cont, Scalar, '$!value', $value);
-        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+
+        # Install "normal" descriptor
         nqp::bindattr($cont, Scalar, '$!descriptor',
-            nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
-                '$!next-descriptor'));
+          nqp::getattr(
+            nqp::getattr($cont, Scalar, '$!descriptor'),
+            ContainerDescriptor::UninitializedAttribute,
+            '$!next-descriptor'
+          )
+        );
+
+        # Set the value
+        nqp::bindattr($cont, Scalar, '$!value', $value);
     }
 
+    # Handler for initializing an attribute with typecheck.  The
+    # container is assumed to have been bound to its object already.
     my $assign-scalar-uninit := -> $cont, $value {
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-        my $next := nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
-            '$!next-descriptor');
+        my $next := nqp::getattr(
+          $desc,
+          ContainerDescriptor::UninitializedAttribute,
+          '$!next-descriptor'
+        );
+
+        # Quit if typecheck failed
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
-        if nqp::istype($value, $type) {
-            if nqp::how_nd($type).archetypes($type).coercive {
-                $value := nqp::dispatch('raku-coercion', $type, $value);
-            }
-            nqp::bindattr($cont, Scalar, '$!value', $value);
-            nqp::bindattr($cont, Scalar, '$!descriptor', $next);
-        }
-        else {
-            assign-type-error($next, $value);
-        }
+        assign-type-error($next, $value) unless nqp::istype($value, $type);
+
+        # Install "normal" descriptor
+        nqp::bindattr($cont, Scalar, '$!descriptor', $next);
+
+        # Set the value
+        nqp::bindattr($cont, Scalar, '$!value',
+          nqp::how_nd($type).archetypes($type).coercive
+            ?? nqp::dispatch('raku-coercion', $type, $value)
+            !! $value
+        );
     }
 
+    # Dispatcher for assignment in Raku.  Expects a capture with the
+    # container as its first argument, and the value as the second
+    # argument.
     nqp::register('raku-assign', -> $capture {
-        # Whatever we do, we'll guard on the type of the container and its
-        # concreteness.
-        my $tracked-cont := nqp::track('arg', $capture, 0);
-        nqp::guard('type', $tracked-cont);
+
+        # Whatever we do, we'll guard on the type of the container
+        # and its concreteness
+        my $cont         := nqp::captureposarg($capture, 0);
+        my $tracked-cont := nqp::track('arg',  $capture, 0);
+        nqp::guard('type',         $tracked-cont);
         nqp::guard('concreteness', $tracked-cont);
 
-        # We have various fast paths for an assignment to a Scalar.
-        my int $optimized := 0;
-        my $cont := nqp::captureposarg($capture, 0);
-        if nqp::eqaddr(nqp::what_nd($cont), Scalar) && nqp::isconcrete_nd($cont) {
-            # Now see what the Scalar descriptor type is.
-            my $tracked-desc := nqp::track('attr',
-                    $tracked-cont, Scalar, '$!descriptor');
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            my $tracked-value := nqp::track('arg', $capture, 1);
-            my $value := nqp::captureposarg($capture, 1);
-            if nqp::eqaddr($desc.WHAT, ContainerDescriptor) && nqp::isconcrete($desc) {
-                # Simple assignment, no whence. But is Nil being assigned?
-                my $of := $desc.of;
+        # Final handler to be delegated to
+        my $handler := $assign-fallback;
+
+        if nqp::eqaddr(nqp::what_nd($cont), Scalar)   # it's a container
+          && nqp::isconcrete_nd($cont)                # and it's concrete
+          && nqp::isconcrete(                         # and descriptor ok
+               my $desc := nqp::getattr($cont, Scalar, '$!descriptor')
+             ) {
+            my $desc-what := $desc.WHAT;
+            my $tracked-desc :=
+              nqp::track('attr', $tracked-cont, Scalar, '$!descriptor');
+            my $value         := nqp::captureposarg($capture, 1);
+            my $tracked-value := nqp::track('arg',  $capture, 1);
+
+            # A simple container assignment that contains type information
+            if nqp::eqaddr($desc-what, ContainerDescriptor) {
+                my $of := nqp::getattr($desc, ContainerDescriptor, '$!of');
+                my $nominal := $of.HOW.archetypes.nominal;
+
                 if nqp::eqaddr($value, Nil) {
                     # Yes; just copy in the default, provided we've a simple type.
-                    if $of.HOW.archetypes.nominal {
+                    if $nominal {
                         nqp::guard('type', $tracked-value);
                         nqp::guard('type', $tracked-desc);
                         my $tracked-of := nqp::track('attr',
                           $tracked-desc, ContainerDescriptor, '$!of');
                         nqp::guard('literal', $tracked-of);
-                        nqp::delegate('boot-code-constant',
-                            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                $capture, 0, $assign-scalar-nil-no-whence));
-                        $optimized := 1;
+                        $handler := $assign-scalar-nil-no-whence;
                     }
                 }
                 else {
                     # No whence, no Nil. Is it a nominal type? If yes, we can check
                     # it here.
                     nqp::guard('type', $tracked-desc);
-                    if $of.HOW.archetypes.nominal && nqp::istype($value, $of) {
-                        # Nominal and passes type check; stack up gurads and delegate to
+                    if $nominal && nqp::istype($value, $of) {
+                        # Nominal and passes type check; stack up guards and delegate to
                         # simple bind.
                         my $tracked-of := nqp::track('attr',
                           $tracked-desc, ContainerDescriptor, '$!of');
                         nqp::guard('literal', $tracked-of);
                         nqp::guard('type', $tracked-value);
-                        nqp::delegate('boot-code-constant',
-                            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                $capture, 0, $assign-scalar-no-whence-no-typecheck));
-                        $optimized := 1;
+                        $handler := $assign-scalar-no-whence-no-typecheck;
                     }
                     else {
                         # Non-nominal or type check error.
                         nqp::guard('not-literal-obj', $tracked-value, Nil);
-                        nqp::delegate('boot-code-constant',
-                            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                $capture, 0, $assign-scalar-no-whence));
-                        $optimized := 1;
+                        $handler := $assign-scalar-no-whence;
                     }
                 }
             }
-            elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) && nqp::isconcrete($desc) {
+
+            # A container assignment without type information
+            elsif nqp::eqaddr($desc-what, ContainerDescriptor::Untyped) {
                 if nqp::eqaddr($value, Nil) {
                     # Nil case is NYI.
                 }
@@ -303,21 +357,22 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                     # is required, just bind the value into place.
                     nqp::guard('type', $tracked-desc);
                     nqp::guard('not-literal-obj', $tracked-value, Nil);
-                    nqp::delegate('boot-code-constant',
-                      nqp::syscall('dispatcher-insert-arg-literal-obj',
-                        $capture, 0, $assign-scalar-no-whence-no-typecheck));
-                    $optimized := 1;
+                    $handler := $assign-scalar-no-whence-no-typecheck;
                 }
             }
-            elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute)
-                    && nqp::isconcrete($desc) {
+
+            # An attribute initialization
+            elsif nqp::eqaddr($desc-what, ContainerDescriptor::UninitializedAttribute) {
                 # First assignment to an attribute where we care about whether it
                 # was assigned to. We can produce a fast path for this, though
                 # should check what the ultimate descriptor is. It really should
                 # be a normal, boring, container descriptor.
                 nqp::guard('type', $tracked-desc);
-                my $next := nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
-                    '$!next-descriptor');
+                my $next := nqp::getattr(
+                  $desc,
+                  ContainerDescriptor::UninitializedAttribute,
+                  '$!next-descriptor'
+                );
                 if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
                     nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
                     # Ensure we're not assigning Nil (not yet fast-pathed, but
@@ -330,24 +385,25 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                         nqp::guard('literal', $tracked-next);
                         nqp::guard('type', $tracked-value);
                         my $of := $next.of;
-                        my $delegate := $of.HOW.archetypes.nominal
+                        $handler := $of.HOW.archetypes.nominal
                           && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
                           ?? $assign-scalar-uninit-no-typecheck
                           !! $assign-scalar-uninit;
-                        nqp::delegate('boot-code-constant',
-                            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                $capture, 0, $delegate));
-                        $optimized := 1;
                     }
                 }
             }
-            elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::BindArrayPos) {
+
+            # An array element initialization
+            elsif nqp::eqaddr($desc-what, ContainerDescriptor::BindArrayPos) {
                 # Bind into an array. We can produce a fast path for this, though
                 # should check what the ultimate descriptor is. It really should
                 # be a normal, boring, container descriptor.
                 nqp::guard('type', $tracked-desc);
-                my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos,
-                    '$!next-descriptor');
+                my $next := nqp::getattr(
+                  $desc,
+                  ContainerDescriptor::BindArrayPos,
+                  '$!next-descriptor'
+                );
                 if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
                     nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
                     # Ensure we're not assigning Nil. (This would be very odd, as
@@ -361,25 +417,21 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                         nqp::guard('literal', $tracked-next);
                         nqp::guard('type', $tracked-value);
                         my $of := $next.of;
-                        my $delegate := $of.HOW.archetypes.nominal
+                        $handler := $of.HOW.archetypes.nominal
                           && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
                           ?? $assign-scalar-bindpos-no-typecheck
                           !! $assign-scalar-bindpos;
-                        nqp::delegate('boot-code-constant',
-                            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                $capture, 0, $delegate));
-                        $optimized := 1;
                     }
                 }
             }
         }
 
-        # If nothing we could optimize, go for the fallback.
-        unless $optimized {
-            nqp::delegate('boot-code-constant',
-                nqp::syscall('dispatcher-insert-arg-literal-obj',
-                    $capture, 0, $assign-fallback));
-        }
+        # Do the delegation with the indicated handler
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, $handler
+          )
+        );
     });
 }
 

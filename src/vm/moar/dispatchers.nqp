@@ -317,10 +317,10 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
 
         # Whatever we do, we'll guard on the type of the container
         # and its concreteness
-        my $cont         := nqp::captureposarg($capture, 0);
-        my $tracked-cont := nqp::track('arg',  $capture, 0);
-        nqp::guard('type',         $tracked-cont);
-        nqp::guard('concreteness', $tracked-cont);
+        my $cont  := nqp::captureposarg($capture, 0);
+        my $Tcont := nqp::track('arg',  $capture, 0);
+        nqp::guard('type',         $Tcont);
+        nqp::guard('concreteness', $Tcont);
 
         # Final handler to be delegated to
         my $handler := $assign-fallback;
@@ -331,43 +331,44 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                my $desc := nqp::getattr($cont, Scalar, '$!descriptor')
              ) {
             my $desc-what := $desc.WHAT;
-            my $tracked-desc :=
-              nqp::track('attr', $tracked-cont, Scalar, '$!descriptor');
-            my $value         := nqp::captureposarg($capture, 1);
-            my $tracked-value := nqp::track('arg',  $capture, 1);
+            my $Tdesc := nqp::track('attr', $Tcont, Scalar, '$!descriptor');
+            my $value  := nqp::captureposarg($capture, 1);
+            my $Tvalue := nqp::track('arg',  $capture, 1);
 
             # A simple container assignment that contains type information
             if nqp::eqaddr($desc-what, ContainerDescriptor) {
                 my $of := nqp::getattr($desc, ContainerDescriptor, '$!of');
                 my $nominal := $of.HOW.archetypes.nominal;
 
+                # Need to set default value
                 if nqp::eqaddr($value, Nil) {
-                    # Yes; just copy in the default, provided we've a simple type.
+                    # Copy in the default, provided we've a simple type.
                     if $nominal {
-                        nqp::guard('type', $tracked-value);
-                        nqp::guard('type', $tracked-desc);
-                        my $tracked-of := nqp::track('attr',
-                          $tracked-desc, ContainerDescriptor, '$!of');
-                        nqp::guard('literal', $tracked-of);
+                        nqp::guard('type', $Tvalue);
+                        nqp::guard('type', $Tdesc);
+                        nqp::guard('literal',
+                          nqp::track('attr',$Tdesc,ContainerDescriptor,'$!of')
+                        );
                         $handler := $assign-scalar-nil-no-whence;
                     }
                 }
+
+                # No whence, no Nil. Is it a nominal type? If yes, we can
+                # check it here.
                 else {
-                    # No whence, no Nil. Is it a nominal type? If yes, we can check
-                    # it here.
-                    nqp::guard('type', $tracked-desc);
+                    nqp::guard('type', $Tdesc);
                     if $nominal && nqp::istype($value, $of) {
-                        # Nominal and passes type check; stack up guards and delegate to
-                        # simple bind.
-                        my $tracked-of := nqp::track('attr',
-                          $tracked-desc, ContainerDescriptor, '$!of');
-                        nqp::guard('literal', $tracked-of);
-                        nqp::guard('type', $tracked-value);
+                        # Nominal and passes type check; stack up guards and
+                        # delegate to simple bind.
+                        nqp::guard('literal',
+                          nqp::track('attr',$Tdesc,ContainerDescriptor,'$!of')
+                        );
+                        nqp::guard('type', $Tvalue);
                         $handler := $assign-scalar-no-whence-no-typecheck;
                     }
                     else {
                         # Non-nominal or type check error.
-                        nqp::guard('not-literal-obj', $tracked-value, Nil);
+                        nqp::guard('not-literal-obj', $Tvalue, Nil);
                         $handler := $assign-scalar-no-whence;
                     }
                 }
@@ -379,21 +380,26 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                     # Nil case is NYI.
                 }
                 else {
-                    # Assignment to an untyped container descriptor; no type check
-                    # is required, just bind the value into place.
-                    nqp::guard('type', $tracked-desc);
-                    nqp::guard('not-literal-obj', $tracked-value, Nil);
+                    # Assignment to an untyped container descriptor;
+                    # no type check is required, just bind the value
+                    # into place.
+                    nqp::guard('type', $Tdesc);
+                    nqp::guard('not-literal-obj', $Tvalue, Nil);
                     $handler := $assign-scalar-no-whence-no-typecheck;
                 }
             }
 
             # An attribute initialization
-            elsif nqp::eqaddr($desc-what, ContainerDescriptor::UninitializedAttribute) {
-                # First assignment to an attribute where we care about whether it
-                # was assigned to. We can produce a fast path for this, though
-                # should check what the ultimate descriptor is. It really should
-                # be a normal, boring, container descriptor.
-                nqp::guard('type', $tracked-desc);
+            elsif nqp::eqaddr(
+                    $desc-what,
+                    ContainerDescriptor::UninitializedAttribute
+                  ) {
+                # First assignment to an attribute where we care about
+                # whether it was assigned to. We can produce a fast path
+                # for this, though should check what the ultimate descriptor
+                # is. It really should be a normal, boring, container
+                # descriptor.
+                nqp::guard('type', $Tdesc);
                 my $next := nqp::getattr(
                   $desc,
                   ContainerDescriptor::UninitializedAttribute,
@@ -401,15 +407,18 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 );
                 if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
                     nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
+
                     # Ensure we're not assigning Nil (not yet fast-pathed, but
                     # probably not terribly likely).
                     unless nqp::eqaddr($value.WHAT, Nil) {
                         # Go by whether we can type check the target.
-                        my $tracked-next := nqp::track('attr',
-                            $tracked-desc, ContainerDescriptor::UninitializedAttribute,
-                            '$!next-descriptor');
-                        nqp::guard('literal', $tracked-next);
-                        nqp::guard('type', $tracked-value);
+                        nqp::guard('literal', nqp::track('attr',
+                          $Tdesc,
+                          ContainerDescriptor::UninitializedAttribute,
+                          '$!next-descriptor'
+                        ));
+                        nqp::guard('type', $Tvalue);
+
                         my $of := $next.of;
                         $handler := $of.HOW.archetypes.nominal
                           && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
@@ -421,14 +430,12 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
 
             # An array element initialization
             elsif nqp::eqaddr($desc-what, ContainerDescriptor::BindArrayPos) {
-                # Bind into an array. We can produce a fast path for this, though
-                # should check what the ultimate descriptor is. It really should
-                # be a normal, boring, container descriptor.
-                nqp::guard('type', $tracked-desc);
+                # Bind into an array. We can produce a fast path for this,
+                # though should check what the ultimate descriptor is. It
+                # really should be a normal, boring, container descriptor.
+                nqp::guard('type', $Tdesc);
                 my $next := nqp::getattr(
-                  $desc,
-                  ContainerDescriptor::BindArrayPos,
-                  '$!next-descriptor'
+                  $desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor'
                 );
                 if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
                     nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
@@ -437,11 +444,13 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                     # vivifying we'll likely have a new container).
                     unless nqp::eqaddr($value.WHAT, Nil) {
                         # Go by whether we can type check the target.
-                        my $tracked-next := nqp::track('attr',
-                            $tracked-desc, ContainerDescriptor::BindArrayPos,
-                            '$!next-descriptor');
-                        nqp::guard('literal', $tracked-next);
-                        nqp::guard('type', $tracked-value);
+                        nqp::guard('literal', nqp::track('attr',
+                          $Tdesc,
+                          ContainerDescriptor::BindArrayPos,
+                          '$!next-descriptor'
+                        ));
+                        nqp::guard('type', $Tvalue);
+
                         my $of := $next.of;
                         $handler := $of.HOW.archetypes.nominal
                           && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))

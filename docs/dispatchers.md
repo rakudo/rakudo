@@ -457,7 +457,20 @@ Assigns the given $value to the given $container, and produces the $container.
 ### raku-nativecall-deproxy
 ### raku-resume-error
 ### raku-rv-decont
+```
+nqp::dispatch("raku-rv-decont", $value);
+```
+Returns the given $value without any container.
+
 ### raku-rv-decont-6c
+```
+nqp::dispatch("raku-rv-decont-6c", $value);
+```
+Returns the given $value without any container using 6.c semantics, which
+implies that any `Proxy` object will **not** be decontainerized.  This was
+an error in the 6.c implementation on which some modules in the ecosystem
+depend.
+
 ### raku-rv-typecheck
 ### raku-sink
 ### raku-smartmatch

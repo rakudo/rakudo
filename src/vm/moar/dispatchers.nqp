@@ -385,13 +385,39 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
           && nqp::isconcrete(                         # and descriptor ok
                my $desc := nqp::getattr($cont, Scalar, '$!descriptor')
              ) {
-            my $desc-what := $desc.WHAT;
+            my $desc-WHAT := $desc.WHAT;
             my $Tdesc := nqp::track('attr', $Tcont, Scalar, '$!descriptor');
             my $value  := nqp::captureposarg($capture, 1);
             my $Tvalue := nqp::track('arg',  $capture, 1);
 
+            # Helper sub for handling container descriptors that have a
+            # whence, aka that handle containers in an array or a hash
+            sub delegate-whence($no-typecheck, $typecheck) {
+                nqp::guard('type', $Tdesc);
+                my $next := nqp::getattr($desc, $desc-WHAT, '$!next-descriptor');
+                if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
+                    nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
+                    # Ensure we're not assigning Nil. (This would be very odd, as
+                    # a Scalar starts off with its default value, and if we are
+                    # vivifying we'll likely have a new container).
+                    unless nqp::eqaddr($value.WHAT, Nil) {
+                        # Go by whether we can type check the target.
+                        nqp::guard('literal', nqp::track(
+                          'attr', $Tdesc, $desc-WHAT, '$!next-descriptor'
+                        ));
+                        nqp::guard('type', $Tvalue);
+
+                        my $of := $next.of;
+                        $handler := $of.HOW.archetypes.nominal
+                          && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
+                          ?? $no-typecheck
+                          !! $typecheck;
+                    }
+                }
+            }
+
             # A simple container assignment that contains type information
-            if nqp::eqaddr($desc-what, ContainerDescriptor) {
+            if nqp::eqaddr($desc-WHAT, ContainerDescriptor) {
                 my $of := nqp::getattr($desc, ContainerDescriptor, '$!of');
                 my $nominal := $of.HOW.archetypes.nominal;
 
@@ -430,7 +456,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
             }
 
             # A container assignment without type information
-            elsif nqp::eqaddr($desc-what, ContainerDescriptor::Untyped) {
+            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::Untyped) {
                 if nqp::eqaddr($value, Nil) {
                     # Nil case is NYI.
                 }
@@ -446,105 +472,29 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
 
             # An attribute initialization
             elsif nqp::eqaddr(
-                    $desc-what,
+                    $desc-WHAT,
                     ContainerDescriptor::UninitializedAttribute
                   ) {
-                # First assignment to an attribute where we care about
-                # whether it was assigned to. We can produce a fast path
-                # for this, though should check what the ultimate descriptor
-                # is. It really should be a normal, boring, container
-                # descriptor.
-                nqp::guard('type', $Tdesc);
-                my $next := nqp::getattr(
-                  $desc,
-                  ContainerDescriptor::UninitializedAttribute,
-                  '$!next-descriptor'
+                delegate-whence(
+                  $assign-scalar-uninit-no-typecheck,
+                  $assign-scalar-uninit
                 );
-                if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
-                    nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
-
-                    # Ensure we're not assigning Nil (not yet fast-pathed, but
-                    # probably not terribly likely).
-                    unless nqp::eqaddr($value.WHAT, Nil) {
-                        # Go by whether we can type check the target.
-                        nqp::guard('literal', nqp::track('attr',
-                          $Tdesc,
-                          ContainerDescriptor::UninitializedAttribute,
-                          '$!next-descriptor'
-                        ));
-                        nqp::guard('type', $Tvalue);
-
-                        my $of := $next.of;
-                        $handler := $of.HOW.archetypes.nominal
-                          && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
-                          ?? $assign-scalar-uninit-no-typecheck
-                          !! $assign-scalar-uninit;
-                    }
-                }
             }
 
             # An array element initialization
-            elsif nqp::eqaddr($desc-what, ContainerDescriptor::BindArrayPos) {
-                # Bind into an array. We can produce a fast path for this,
-                # though should check what the ultimate descriptor is. It
-                # really should be a normal, boring, container descriptor.
-                nqp::guard('type', $Tdesc);
-                my $next := nqp::getattr(
-                  $desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor'
+            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::BindArrayPos) {
+                delegate-whence(
+                  $assign-scalar-bindpos-no-typecheck,
+                  $assign-scalar-bindpos
                 );
-                if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
-                    nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
-                    # Ensure we're not assigning Nil. (This would be very odd, as
-                    # a Scalar starts off with its default value, and if we are
-                    # vivifying we'll likely have a new container).
-                    unless nqp::eqaddr($value.WHAT, Nil) {
-                        # Go by whether we can type check the target.
-                        nqp::guard('literal', nqp::track('attr',
-                          $Tdesc,
-                          ContainerDescriptor::BindArrayPos,
-                          '$!next-descriptor'
-                        ));
-                        nqp::guard('type', $Tvalue);
-
-                        my $of := $next.of;
-                        $handler := $of.HOW.archetypes.nominal
-                          && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
-                          ?? $assign-scalar-bindpos-no-typecheck
-                          !! $assign-scalar-bindpos;
-                    }
-                }
             }
 
             # A hash element initialization
-            elsif nqp::eqaddr($desc-what, ContainerDescriptor::BindHashKey) {
-                # Bind into a hash. We can produce a fast path for this,
-                # though should check what the ultimate descriptor is. It
-                # really should be a normal, boring, container descriptor.
-                nqp::guard('type', $Tdesc);
-                my $next := nqp::getattr(
-                  $desc, ContainerDescriptor::BindHashKey, '$!next-descriptor'
+            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::BindHashKey) {
+                delegate-whence(
+                  $assign-scalar-bindkey-no-typecheck,
+                  $assign-scalar-bindkey
                 );
-                if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
-                    nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
-                    # Ensure we're not assigning Nil. (This would be very odd, as
-                    # a Scalar starts off with its default value, and if we are
-                    # vivifying we'll likely have a new container).
-                    unless nqp::eqaddr($value.WHAT, Nil) {
-                        # Go by whether we can type check the target.
-                        nqp::guard('literal', nqp::track('attr',
-                          $Tdesc,
-                          ContainerDescriptor::BindHashKey,
-                          '$!next-descriptor'
-                        ));
-                        nqp::guard('type', $Tvalue);
-
-                        my $of := $next.of;
-                        $handler := $of.HOW.archetypes.nominal
-                          && (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
-                          ?? $assign-scalar-bindkey-no-typecheck
-                          !! $assign-scalar-bindkey;
-                    }
-                }
             }
         }
 

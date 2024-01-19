@@ -274,7 +274,7 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
     my $assign-scalar-bindkey-no-typecheck := -> $cont, $value {
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
 
-        # Install the container in the array
+        # Install the container in the hash
         nqp::bindkey(
           nqp::getattr($desc, ContainerDescriptor::BindHashKey, '$!target'),
           nqp::getattr($desc, ContainerDescriptor::BindHashKey, '$!key'),
@@ -298,18 +298,84 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
     my $assign-scalar-bindkey := -> $cont, $value {
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
         my $next := nqp::getattr(
-          $desc, ContainerDescriptor::BindHasKey, '$!next-descriptor'
+          $desc, ContainerDescriptor::BindHashKey, '$!next-descriptor'
         );
 
         # Quit if typecheck failed
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
         assign-type-error($next, $value) unless nqp::istype($value, $type);
 
-        # Install the container in the array
+        # Install the container in the hash
         nqp::bindkey(
           nqp::getattr($desc, ContainerDescriptor::BindHashKey, '$!target'),
           nqp::getattr($desc, ContainerDescriptor::BindHashKey, '$!key'),
           $cont
+        );
+
+        # Install "normal" descriptor
+        nqp::bindattr($cont, Scalar, '$!descriptor', $next);
+
+        # Set the value
+        nqp::bindattr($cont, Scalar, '$!value',
+          nqp::how_nd($type).archetypes($type).coercive
+            ?? nqp::dispatch('raku-coercion', $type, $value)
+            !! $value
+        );
+    }
+
+    # Handler for assigning a value to a container that is to be
+    # part of an object hash.  Binds the container to the hash,
+    # normalizes the descriptor and sets the value without any
+    # typechecking.
+    my $assign-scalar-obj-bindkey-no-typecheck := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+
+        # Install the container in the object hash
+        nqp::bindkey(
+          nqp::getattr($desc, ContainerDescriptor::BindObjHashKey, '$!target'),
+          nqp::getattr($desc, ContainerDescriptor::BindObjHashKey, '$!which'),
+          nqp::getattr(
+            $desc, ContainerDescriptor::BindObjHashKey, '$!pair'
+          ).new(
+            nqp::getattr($desc, ContainerDescriptor::BindObjHashKey, '$!key'),
+            $cont
+          )
+        );
+
+        # Initialization done, install "normal" descriptor
+        nqp::bindattr($cont, Scalar, '$!descriptor',
+          nqp::getattr(
+            $desc, ContainerDescriptor::BindObjHashKey, '$!next-descriptor'
+          )
+        );
+
+        # Set the value
+        nqp::bindattr($cont, Scalar, '$!value', $value);
+    }
+
+    # Handler for assigning a value to a container that is to be part
+    # of an object hash with typechecking.  Binds the container to
+    # the object hash, normalizes the descriptor and sets the value.
+    my $assign-scalar-obj-bindkey := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        my $next := nqp::getattr(
+          $desc, ContainerDescriptor::BindObjHashKey, '$!next-descriptor'
+        );
+
+        # Quit if typecheck failed
+        my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
+        assign-type-error($next, $value) unless nqp::istype($value, $type);
+
+        # Install the container in the object hash
+        nqp::bindkey(
+          nqp::getattr($desc, ContainerDescriptor::BindObjHashKey, '$!target'),
+          nqp::getattr($desc, ContainerDescriptor::BindObjHashKey, '$!which'),
+          nqp::getattr(
+            $desc, ContainerDescriptor::BindObjHashKey, '$!pair'
+          ).new(
+            nqp::getattr($desc, ContainerDescriptor::BindObjHashKey, '$!key'),
+            $cont
+          )
         );
 
         # Install "normal" descriptor
@@ -494,6 +560,14 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 delegate-whence(
                   $assign-scalar-bindkey-no-typecheck,
                   $assign-scalar-bindkey
+                );
+            }
+
+            # An object hash element initialization
+            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::BindObjHashKey) {
+                delegate-whence(
+                  $assign-scalar-obj-bindkey-no-typecheck,
+                  $assign-scalar-obj-bindkey
                 );
             }
         }

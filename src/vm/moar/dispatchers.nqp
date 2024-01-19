@@ -389,6 +389,63 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
     }
 
     # Handler for assigning a value to a container that is to be
+    # part of an N-dimensional array.  Binds the container to the
+    # array, normalizes the descriptor and sets the value without
+    # any typechecking.
+    my $assign-scalar-bindposnd-no-typecheck := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+
+        # Install the container in the array
+        nqp::bindposnd(
+          nqp::getattr(  $desc, ContainerDescriptor::BindArrayPosND, '$!target'),
+          nqp::getattr($desc, ContainerDescriptor::BindArrayPosND, '$!idxs'),
+          $cont
+        );
+
+        # Initialization done, install "normal" descriptor
+        nqp::bindattr($cont, Scalar, '$!descriptor',
+          nqp::getattr(
+            $desc, ContainerDescriptor::BindArrayPosND, '$!next-descriptor'
+          )
+        );
+
+        # Set the value
+        nqp::bindattr($cont, Scalar, '$!value', $value);
+    }
+
+    # Handler for assigning a value to a container that is to be
+    # part of an N-dimensional array with typechecking.  Binds the
+    # container to the array, normalizes the descriptor and sets the
+    # value.
+    my $assign-scalar-bindposnd := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        my $next := nqp::getattr(
+          $desc, ContainerDescriptor::BindArrayPosND, '$!next-descriptor'
+        );
+
+        # Quit if typecheck failed
+        my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
+        assign-type-error($next, $value) unless nqp::istype($value, $type);
+
+        # Install the container in the array
+        nqp::bindposnd(
+          nqp::getattr($desc, ContainerDescriptor::BindArrayPosND, '$!target'),
+          nqp::getattr($desc, ContainerDescriptor::BindArrayPosND, '$!idxs'),
+          $cont
+        );
+
+        # Install "normal" descriptor
+        nqp::bindattr($cont, Scalar, '$!descriptor', $next);
+
+        # Set the value
+        nqp::bindattr($cont, Scalar, '$!value',
+          nqp::how_nd($type).archetypes($type).coercive
+            ?? nqp::dispatch('raku-coercion', $type, $value)
+            !! $value
+        );
+    }
+
+    # Handler for assigning a value to a container that is to be
     # part of a hash.  Binds the container to the hash, normalizes
     # the descriptor and sets the value without any typechecking.
     my $assign-scalar-bindkey-no-typecheck := -> $cont, $value {
@@ -704,6 +761,14 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 delegate-whence(
                   $assign-scalar-bindpos3d-no-typecheck,
                   $assign-scalar-bindpos3d
+                );
+            }
+
+            # An N-dimensional array element initialization
+            elsif nqp::eqaddr($desc-WHAT, ContainerDescriptor::BindArrayPosND) {
+                delegate-whence(
+                  $assign-scalar-bindposnd-no-typecheck,
+                  $assign-scalar-bindposnd
                 );
             }
         }

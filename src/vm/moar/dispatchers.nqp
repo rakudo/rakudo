@@ -782,48 +782,64 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
     });
 }
 
-# Binding type assertion dispatcher, used to do type checks of binds. Evaluates
-# to the value itself when the type check passes, installing a guard along the
-# way. Otherwise, throws.
+#- raku-bind-assert ------------------------------------------------------------
+# Binding type assertion dispatcher, used to do type checks of binds.
+# Evaluates to the value itself when the type check passes, installing
+# a guard along the way. Otherwise, throws.
 {
-    sub bind-error($value, $type) {
+    # Helper sub to throw type check error
+    sub bind-error($got, $expected) {
         Perl6::Metamodel::Configuration.throw_or_die(
             'X::TypeCheck::Binding',
-            "Type check failed in binding; expected '" ~
-                nqp::how_nd($type).name($value) ~ "' but got '" ~
-                nqp::how_nd($value).name($value) ~ "'",
-            :got($value),
-            :expected($type)
+            "Type check failed in binding; expected '"
+              ~ nqp::how_nd($expected).name($expected)
+              ~ "' but got '"
+              ~ nqp::how_nd($got).name($got)
+              ~ "'",
+            :$got, :$expected
         );
     }
 
+    # The run-time checker
     my $bind-check := -> $value, $value-decont, $type {
-        nqp::istype_nd($value-decont, $type) ?? $value !! bind-error($value, $type)
+        nqp::istype_nd($value-decont, $type)
+          ?? $value
+          !! bind-error($value, $type)
     }
 
+    # Actual dispatcher Expects the original value as the first argument,
+    # the deconted value as the second, and the type to be checked against
+    # as the third argument.
     nqp::register('raku-bind-assert', -> $capture {
         my $value-decont := nqp::captureposarg($capture, 1);
         my $type := nqp::captureposarg($capture, 2);
+
+        # Nominal, so a type guard on the decont'd value will suffice,
+        # then produce the original value.
         if nqp::how_nd($type).archetypes.nominal {
+
+            # Type is ok
             if nqp::istype_nd($value-decont, $type) {
-                # Nominal, so a type guard on the decont'd value will suffice,
-                # then produce the original value.
                 nqp::guard('type', nqp::track('arg', $capture, 1));
                 nqp::guard('type', nqp::track('arg', $capture, 2));
                 nqp::delegate('boot-value', $capture);
             }
+
+            # Not ok
             else {
-                my $value := nqp::captureposarg($capture, 0);
-                bind-error($value, $type)
+                bind-error(nqp::captureposarg($capture, 0), $type);
             }
         }
+
+        # Not a nominal type, can't guard it, so set up a call to do the
+        # check late-bound.
         else {
-            # Not a nominal type, can't guard it, so set up a call to do the
-            # check late-bound.
             nqp::guard('type', nqp::track('arg', $capture, 2));
-            my $delegate := nqp::syscall('dispatcher-insert-arg-literal-obj',
-              $capture, 0, $bind-check);
-            nqp::delegate('boot-code-constant', $delegate);
+            nqp::delegate('boot-code-constant',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                $capture, 0, $bind-check
+              )
+            );
         }
     });
 }

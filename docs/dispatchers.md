@@ -426,6 +426,12 @@ nqp::dispatch("raku-assign", $container, $value);
 Assigns the given $value to the given $container, and produces the $container.
 
 ### raku-bind-assert
+```
+nqp::dispatch("raku-bind-assert", $value, $deconted, $type);
+```
+Returns the given $value if the $deconted value type matches against $type.
+Otherwise throws.
+
 ### raku-boolify
 ### raku-call
 ### raku-call-simple

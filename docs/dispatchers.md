@@ -488,5 +488,11 @@ depend.
 
 ### raku-rv-typecheck
 ### raku-sink
+```
+nqp::dispatch("raku-sink", $value);
+```
+Perform any non-standard sink logic on the potentially containerized value,
+or don't do anything otherwise.
+
 ### raku-smartmatch
 ### raku-wrapper-deferral

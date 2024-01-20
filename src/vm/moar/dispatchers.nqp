@@ -936,33 +936,48 @@ nqp::register('raku-is-attr-inited', -> $capture {
          );
 });
 
-# Sink dispatcher. Called in void context with the decontainerized value to sink.
+#- raku-sink -------------------------------------------------------------------
+# Sink dispatcher. Called in void context with the value to sink, possibly
+# inside a container.
 nqp::register('raku-sink', -> $capture {
     # Guard on the type and concreteness.
-    my $sinkee := nqp::captureposarg($capture, 0);
-    my $track-sinkee := nqp::track('arg', $capture, 0);
-    nqp::guard('type', $track-sinkee);
-    nqp::guard('concreteness', $track-sinkee);
+    my $sinkee  := nqp::captureposarg($capture, 0);
+    my $Tsinkee := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $Tsinkee);
+    nqp::guard('concreteness', $Tsinkee);
 
     # Now consider what we're sinking.
     if nqp::isconcrete_nd($sinkee) {
         # Concrete. See if it has a `sink` method, and then also if it's not
-        # Mu.sink, which is a no-op.
-        my $meth := nqp::decont(nqp::how_nd($sinkee).find_method($sinkee, 'sink'));
-        if nqp::isconcrete($meth) && !nqp::eqaddr($meth, Mu.HOW.find_method(Mu, 'sink')) {
-            # Need to do a call to the sink method. Since sink is a Raku thing,
-            # assume we can go straight for the Raku method dispatcher.
-            my $with-name := nqp::syscall('dispatcher-insert-arg-literal-str',
-              $capture, 0, 'sink');
-            my $with-type := nqp::syscall('dispatcher-insert-arg-literal-obj',
-              $with-name, 0, nqp::what_nd($sinkee));
-            my $with-callee := nqp::syscall('dispatcher-insert-arg-literal-obj',
-              $with-type, 0, $meth);
-            nqp::delegate('raku-meth-call-resolved', $with-callee);
+        # Mu.sink, which is a no-op
+        my $sink := nqp::decont(
+          nqp::how_nd($sinkee).find_method($sinkee, 'sink')
+        );
+
+        # A non-standard .sink method
+        if nqp::isconcrete($sink)
+          && !nqp::eqaddr($sink, Mu.HOW.find_method(Mu, 'sink')) {
+
+            # Need to actually do a call to the sink method. Since sink
+            # is a Raku thing, assume we can go straight for the Raku
+            # method dispatcher, with the necessary args prefixed
+            # (resolved method, type, name)
+            nqp::delegate('raku-meth-call-resolved',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                nqp::syscall('dispatcher-insert-arg-literal-obj',
+                  nqp::syscall('dispatcher-insert-arg-literal-str',
+                    $capture, 0, 'sink'
+                  ),
+                  0, nqp::what_nd($sinkee)
+                ),
+                0, $sink
+              )
+            );
         }
+
+        # Nothing to do (use boot-value and let void context take
+        # care of discarding the value)
         else {
-            # Nothing to do (use boot-value and let void context take care of
-            # discarding the value).
             nqp::delegate('boot-value', $capture);
         }
     }

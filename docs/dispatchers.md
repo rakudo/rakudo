@@ -470,7 +470,6 @@ Calls the given $method (by name) on the given $invocant with the given
 arguments, and returns the result.
 
 ### raku-meth-call-me-maybe
-### raku-meth-call-mega
 ### raku-meth-call-qualified
 ### raku-meth-call-resolved
 ### raku-meth-deferral

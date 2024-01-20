@@ -1137,6 +1137,8 @@ nqp::register('raku-meth-call', -> $capture {
     }
 });
 
+#- raku-meth-call-mega ---------------------------------------------------------
+# Internal dispatcher to be run when the inline cache is too large.
 nqp::register('raku-meth-call-mega', -> $capture {
     # We're megamorphic in both type and name. Make sure the type has a lookup
     # table, and ensure the method exists. If it does not have a method table
@@ -1146,45 +1148,58 @@ nqp::register('raku-meth-call-mega', -> $capture {
     # up the same program repeatedly at the callsite.
     my $obj := nqp::captureposarg($capture, 0);
     my $how := nqp::how_nd($obj);
-    unless nqp::isconcrete(nqp::getattr($how, Perl6::Metamodel::ClassHOW,
-            '$!cached_all_method_table')) {
-        nqp::syscall('dispatcher-do-not-install');
-    }
+
+    # Don't install if no method table
+    nqp::syscall('dispatcher-do-not-install')
+      unless nqp::isconcrete(nqp::getattr(
+               $how,
+               Perl6::Metamodel::ClassHOW,
+               '$!cached_all_method_table'
+             ));
+
+    # Obtain lookup table and key to look for
     my %lookup := $how.all_method_table($obj);
     my str $name := nqp::captureposarg_s($capture, 1);
-    if nqp::isconcrete(nqp::atkey(%lookup, $name)) {
-        # It exists. We'll set up a dispatch program that tracks the HOW of
-        # the type, looks up the cached method table on it, and then tracks
-        # the resolution of the method.
-        my $track-obj := nqp::track('arg', $capture, 0);
-        my $track-how := nqp::track('how', $track-obj);
-        my $track-table := nqp::track('attr', $track-how,
-            Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
-        my $track-name := nqp::track('arg', $capture, 1);
-        my $track-resolution := nqp::syscall(
-          'dispatcher-index-tracked-lookup-table', $track-table, $track-name);
 
-        # This is only a valid dispatch program if the method is found. (If
-        # not, we'll run this again to report the error.)
-        nqp::guard('concreteness', $track-resolution);
+    # It exists. We'll set up a dispatch program that tracks the HOW of
+    # the type, looks up the cached method table on it, and then tracks
+    # the resolution of the method.
+    if nqp::isconcrete(nqp::atkey(%lookup, $name)) {
+        my $Tobj := nqp::track('arg', $capture, 0);
+        my $Thow := nqp::track('how', $Tobj);
+        my $Ttable := nqp::track('attr',
+          $Thow, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
+        my $Tname := nqp::track('arg', $capture, 1);
+        my $Tresolution := nqp::syscall(
+          'dispatcher-index-tracked-lookup-table', $Ttable, $Tname
+        );
+
+        # This is only a valid dispatch program if the method is found.
+        # (If not, we'll run this again to report the error)
+        nqp::guard('concreteness', $Tresolution);
+
         # Add the resolved method and delegate to the resolved method dispatcher.
-        my $capture-delegate := nqp::syscall(
-          'dispatcher-insert-arg', $capture, 0, $track-resolution);
-        nqp::delegate('raku-meth-call-resolved', $capture-delegate);
+        nqp::delegate('raku-meth-call-resolved',
+          nqp::syscall('dispatcher-insert-arg', $capture, 0, $Tresolution)
+        );
     }
+
+    # Probably method not found, but sometimes the cache ends up
+    # missing entries
     else {
-        # Probably method not found, but sometimes the cache ends up missing
-        # entries.
-        my $slowpath-found := $how.find_method($obj, $name);
-        if nqp::isconcrete($slowpath-found) {
+        my $slowpath := $how.find_method($obj, $name);
+        if nqp::isconcrete($slowpath) {
             nqp::syscall('dispatcher-do-not-install');
-            my $capture-delegate := nqp::syscall(
-              'dispatcher-insert-arg-literal-obj',$capture, 0, $slowpath-found);
-            nqp::delegate('raku-meth-call-resolved', $capture-delegate);
+            nqp::delegate('raku-meth-call-resolved',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                $capture, 0, $slowpath
+              )
+            );
         }
         else {
-            my $class := nqp::getlexcaller('$?CLASS');
-            report-method-not-found($obj, $name, $class, $how, nqp::iscont($obj));
+            report-method-not-found(
+              $obj, $name, nqp::getlexcaller('$?CLASS'), $how, nqp::iscont($obj)
+            );
         }
     }
 });

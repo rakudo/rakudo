@@ -640,9 +640,9 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 my $next := nqp::getattr($desc, $desc-WHAT, '$!next-descriptor');
                 if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
                     nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
-                    # Ensure we're not assigning Nil. (This would be very odd, as
-                    # a Scalar starts off with its default value, and if we are
-                    # vivifying we'll likely have a new container).
+                    # Ensure we're not assigning Nil. (This would be very odd,
+                    # as a Scalar starts off with its default value, and if we
+                    # are vivifying we'll likely have a new container).
                     unless nqp::eqaddr($value.WHAT, Nil) {
                         # Go by whether we can type check the target.
                         nqp::guard('literal', nqp::track(
@@ -844,85 +844,96 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
     });
 }
 
+#- raku-is-attr-inited ---------------------------------------------------------
 # Object construction time checking of if a container is initialized. Done as
 # a dispatcher primarily to intern .^mixin_type, but also for more compact
 # bytecode size in generated BUILDALL.
+
+# Array initialization checker
 my $array-init-check := -> $arr {
     my $storage := nqp::getattr($arr, List, '$!reified');
     nqp::isconcrete($storage) && nqp::elems($storage)
 }
+
+# Hash initialization checker
 my $hash-init-check := -> $hash {
     my $storage := nqp::getattr($hash, Map, '$!storage');
     nqp::isconcrete($storage) && nqp::elems($storage)
 }
+
+# Actual dispatcher taking the attribute and returning 1 if initialized,
+# and 0 if not.
 nqp::register('raku-is-attr-inited', -> $capture {
     # If there's a non-concrete object observed, then we bound a non-container
     # in place, so trivially initialized.
-    my $attr := nqp::captureposarg($capture, 0);
-    my $track-attr := nqp::track('arg', $capture, 0);
+    my $attr  := nqp::captureposarg($capture, 0);
+    my $Tattr := nqp::track('arg', $capture, 0);
     my int $inited := 0;
-    my $need-elem-check;
-    if !nqp::isconcrete_nd($attr) {
-        nqp::guard('concreteness', $track-attr);
-        $inited := 1;
-    }
+    my $elem-check;
 
-    # Otherwise, might be a container that was assigned.
-    else {
+    # Might be a container that was assigned.
+    if nqp::isconcrete_nd($attr) {
         # Just try and read a descriptor. Also see if we have an array or
         # hash, which needs an additional element check to handle an
         # assignment to an individual element during BUILD.
         my $base;
         my $desc;
-        my $track-desc;
+        my $Tdesc;
         try {
-            $base := nqp::how_nd($attr).mixin_base($attr);
-            $desc := nqp::getattr($attr, $base, '$!descriptor');
-            $track-desc := nqp::track('attr',
-                $track-attr, $base, '$!descriptor');
+            $base  := nqp::how_nd($attr).mixin_base($attr);
+            $desc  := nqp::getattr($attr, $base, '$!descriptor');
+            $Tdesc := nqp::track('attr', $Tattr, $base, '$!descriptor');
         }
 
         # If we managed to track a descriptor, then we have a container to
         # see if was uninitialized. The attribute tracking above will have
         # established type/concreteness guards on the attribute, so don't
         # repeat them.
-        if $track-desc {
+        if $Tdesc {
             # Guard on the descriptor type, then outcome depends on if
             # it's an uninitialized attribute descriptor. If it is, then
             # for arrays and hashes we also need an extra check.
-            nqp::guard('type', $track-desc);
-            $inited := !nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute);
+            nqp::guard('type', $Tdesc);
+            $inited := !nqp::eqaddr(
+              $desc.WHAT, ContainerDescriptor::UninitializedAttribute
+            );
             if nqp::istype($base, Array) {
-                $need-elem-check := $array-init-check;
+                $elem-check := $array-init-check;
             }
             elsif nqp::istype($base, Hash) {
-                $need-elem-check := $hash-init-check;
+                $elem-check := $hash-init-check;
             }
         }
 
         # Otherwise, bound concrete value. Guard on type and concreteness,
         # outcome is that it's initialized.
         else {
-            nqp::guard('type', $track-attr);
-            nqp::guard('concreteness', $track-attr);
+            nqp::guard('type', $Tattr);
+            nqp::guard('concreteness', $Tattr);
             $inited := 1;
         }
     }
 
-    # Evaluate to result.
-    if nqp::isconcrete($need-elem-check) && !$inited {
-        # The descriptor suggests it's not initialized by assignment to
-        # the entire array/hash, but individual elements may have been.
-        nqp::delegate('boot-code-constant',
-            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                $capture, 0, $need-elem-check));
-    }
+    # Nothing concrete, so no container yet
     else {
-        # It's certainly initialized per the descriptor, so we're done.
-        nqp::delegate('boot-constant',
-            nqp::syscall('dispatcher-insert-arg-literal-int',
-                $capture, 0, $inited));
+        nqp::guard('concreteness', $Tattr);
+        $inited := 1;
     }
+
+    $inited || !nqp::isconcrete($elem-check)
+      # Initialized per the descriptor, or no additional check needed
+      ?? nqp::delegate('boot-constant',
+           nqp::syscall('dispatcher-insert-arg-literal-int',
+             $capture, 0, $inited
+           )
+         )
+      # The descriptor suggests it's not initialized by assignment to
+      # the entire array/hash, but individual elements may have been.
+      !! nqp::delegate('boot-code-constant',
+           nqp::syscall('dispatcher-insert-arg-literal-obj',
+             $capture, 0, $elem-check
+           )
+         );
 });
 
 # Sink dispatcher. Called in void context with the decontainerized value to sink.

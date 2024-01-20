@@ -450,6 +450,11 @@ Otherwise throws.
 ### raku-invoke
 ### raku-invoke-wrapped
 ### raku-is-attr-inited
+```
+nqp::dispatch("raku-is-attr-inited", $attribute);
+```
+Returns 1 if the given attribute is initialized, 0 if not.
+
 ### raku-isinvokable
 ### raku-meth-call
 ### raku-meth-call-me-maybe

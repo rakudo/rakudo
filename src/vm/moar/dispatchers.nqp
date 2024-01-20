@@ -987,53 +987,67 @@ nqp::register('raku-sink', -> $capture {
     }
 });
 
+#- raku-call -------------------------------------------------------------------
 # A standard call (such as `func($arg)`, `$obj($arg)`, etc.) It receives the
 # decontainerized callee as the first argument, followed by the arguments. Its
 # primary purpose is to deal with multi dispatch vs. single dispatch and then
-# delegate on to the appropriate dispatcher. It also looks at if we are doing a
-# call to a method (either because it was looked up separately, or because we
-# are here via lang-call), and in that case sends it via the resolved method
-# call dispatcher. This means it will have a working nextsame etc.
+# delegate on to the appropriate dispatcher. It also looks at if we are doing
+# a call to a method (either because it was looked up separately, or because
+# we# are here via lang-call), and in that case sends it via the resolved
+# method call dispatcher. This means it will have a working nextsame etc.
 nqp::register('raku-call', -> $capture {
+
     # Guard on the type and, if it's a routine, on the dispatchees. (We assume
     # that the set of dispatchees shall not change, even over closure clones -
     # this may not always be a good assumption - and so we guard on that. If
     # it's not a dispatcher, we'll be guarding on a literal type object.)
-    my $track_callee := nqp::track('arg', $capture, 0);
-    nqp::guard('type', $track_callee);
-    my $callee := nqp::captureposarg($capture, 0);
-    if nqp::istype_nd($callee, Method) && (my str $meth-name := $callee.name) &&
-            (my $inv_param := try { $callee.signature.params.AT-POS(0) }) {
-        nqp::guard('literal', $track_callee);
-        my $meth-type := $inv_param.type;
-        my $with-type := nqp::syscall('dispatcher-insert-arg-literal-obj',
-            $capture, 1, $meth-type);
-        my $with-name := nqp::syscall('dispatcher-insert-arg-literal-str',
-            $with-type, 2, $meth-name);
-        nqp::delegate('raku-meth-call-resolved',
-            $with-name);
+    my $callee  := nqp::captureposarg($capture, 0);
+    my $Tcallee := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $Tcallee);
+
+    # The actual delegation to be done
+    my str $delegate := 'raku-invoke';
+
+    # Looks like a resolved method
+    if nqp::istype_nd($callee, Method)
+      && (my str $meth-name := $callee.name)
+      && (my $inv_param := try { $callee.signature.params.AT-POS(0) }) {
+        nqp::guard('literal', $Tcallee);
+
+        # Add the type and method name to capture as expected
+        $capture := nqp::syscall('dispatcher-insert-arg-literal-str',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 1, $inv_param.type
+          ),
+          2, $meth-name
+        );
+
+        $delegate := 'raku-meth-call-resolved';
     }
+
+    # Looks like a sub, set appropriate delegator
     elsif nqp::istype_nd($callee, Routine) {
+
+        # Need extra handling of wrappers
         if nqp::can($callee, 'WRAPPERS') {
-            nqp::delegate('raku-invoke-wrapped', $capture);
+            $delegate := 'raku-invoke-wrapped';
         }
-        elsif nqp::can($callee, 'CALL-ME') {
-            nqp::delegate('raku-invoke', $capture);
-        }
-        else {
-            my int $code-constant := nqp::syscall('dispatcher-is-arg-literal',
-                $capture, 0);
-            unless $code-constant {
-                nqp::guard('literal',
-                  nqp::track('attr', $track_callee, Routine, '@!dispatchees'));
-            }
-            nqp::syscall('dispatcher-delegate',
-                $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
+
+        # not something to just invoke
+        elsif !nqp::can($callee, 'CALL-ME') {
+
+            # Guard if not a literal callee
+            nqp::guard('literal',
+              nqp::track('attr', $Tcallee, Routine, '@!dispatchees')
+            ) unless nqp::syscall('dispatcher-is-arg-literal', $capture, 0);
+
+            $delegate := $callee.is_dispatcher
+              ?? 'raku-multi'
+              !! 'raku-invoke';
         }
     }
-    else {
-        nqp::delegate('raku-invoke', $capture);
-    }
+
+    nqp::delegate($delegate, $capture);
 });
 
 # A standard method call of the form $obj.meth($arg); also used for the

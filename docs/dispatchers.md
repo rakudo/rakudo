@@ -438,6 +438,12 @@ Otherwise throws.
 
 ### raku-boolify
 ### raku-call
+```
+nqp::dispatch("raku-call", $callee, …);
+```
+Calls the given $callee with the given arguments, and returns the result.
+The $callee can be a sub / method / code object.  
+
 ### raku-call-simple
 ### raku-capture-lex
 ### raku-capture-lex-callers

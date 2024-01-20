@@ -30,11 +30,15 @@ immutable, thus providing the optimizer with options.
 
 ### boot-constant
 ```
-nqp::dispatch('boot-constant', $value);
+nqp::dispatch('boot-constant', $value, …);
 ```
 Take the first argument and produce it as the result, but also treat it as
 a constant value that will always be produced (thus meaning the optimizer
 could consider any pure code used to calculate the value as dead).
+
+Ignores all other arguments: this allows calls to this dispatcher to be
+using an existing capture by just inserting a value as the first argument,
+thus removing the need to remove any superfluous arguments.
 
 ### boot-resume
 ```

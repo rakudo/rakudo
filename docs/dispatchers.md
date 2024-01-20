@@ -463,6 +463,12 @@ Returns 1 if the given attribute is initialized, 0 if not.
 
 ### raku-isinvokable
 ### raku-meth-call
+```
+nqp::dispatch("raku-meth-call", $invocant, str $method, …);
+```
+Calls the given $method (by name) on the given $invocant with the given
+arguments, and returns the result.
+
 ### raku-meth-call-me-maybe
 ### raku-meth-call-mega
 ### raku-meth-call-qualified

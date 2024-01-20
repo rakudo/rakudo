@@ -1050,27 +1050,58 @@ nqp::register('raku-call', -> $capture {
     nqp::delegate($delegate, $capture);
 });
 
+#- raku-meth-call --------------------------------------------------------------
 # A standard method call of the form $obj.meth($arg); also used for the
-# indirect form $obj."$name"($arg). It receives the decontainerized invocant,
-# the method name, and the args (starting with the invocant including any
-# container).
+# indirect form $obj."$name"($arg).
+
+# Helper sub for error reporting.
+sub report-method-not-found($obj, $name, $class, $how, $containerized) {
+    my $message := "Method '$name' not found for invocant of class '"
+      ~ $how.name($obj)
+      ~ "'";
+
+    $name eq 'STORE'
+      ?? Perl6::Metamodel::Configuration.throw_or_die(
+           'X::Assignment::RO', $message, :value($obj)
+         )
+      !! Perl6::Metamodel::Configuration.throw_or_die(
+           'X::Method::NotFound',
+           $message,
+           :invocant($obj),
+           :method($name),
+           :typename($how.name($obj)),
+           :private(nqp::hllboolfor(0, 'Raku')),
+           :in-class-call(
+              nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku')
+            ),
+           :containerized(nqp::hllboolfor($containerized, 'Raku'))
+         );
+}
+# The actual dispatcher of a method.  Expects to receive the decontainerized
+# invocant, the method name, and the args (starting with the invocant
+# including any container).
 nqp::register('raku-meth-call', -> $capture {
+
     # See if this callsite is heading megamorphic due to loads of different
     # method names or types; if so, we'll try to cope with that.
     my $obj := nqp::captureposarg($capture, 0);
-    my str $name := nqp::captureposarg_s($capture, 1);
     my $how := nqp::how_nd($obj);
-    my int $cache-size := nqp::syscall('dispatcher-inline-cache-size');
-    if $cache-size >= $MEGA-METH-CALLSITE-SIZE && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
-        nqp::delegate('raku-meth-call-mega',
-            $capture);
+    if nqp::syscall('dispatcher-inline-cache-size') >= $MEGA-METH-CALLSITE-SIZE
+      && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+        nqp::delegate('raku-meth-call-mega', $capture);
     }
+
+    # Not mega-morphic yet, look more closely
     else {
-        # See if we're making the method lookup on a pun; if so, rewrite the args
-        # to do the call on the pun.
+
+        # See if we're making the method lookup on a pun; if so,
+        # rewrite the args to do the call on the pun.
+        my str $name := nqp::captureposarg_s($capture, 1);
         if nqp::istype($how, Perl6::Metamodel::RolePunning) &&
-                $how.is_method_call_punned($obj, $name) {
+          $how.is_method_call_punned($obj, $name) {
             nqp::guard('type', nqp::track('arg', $capture, 0));
+
+            # Replace by pun
             $obj := $how.pun($obj);
             $how := $obj.HOW;
             $capture := nqp::syscall('dispatcher-insert-arg-literal-obj',
@@ -1081,50 +1112,30 @@ nqp::register('raku-meth-call', -> $capture {
                 2, $obj);
         }
 
-        # Try to resolve the method call.
-        # TODO Assorted optimizations are possible here later on to speed up some
-        # kinds of dispatch, including:
-        # * Using the dispatcher to directly rewrite args and invoke FALLBACK if
-        #   needed
+        # TODO Assorted optimizations are possible here later on to speed
+        # up some kinds of dispatch, including:
+        # * Using the dispatcher to directly rewrite args and invoke
+        #   FALLBACK if needed
         # * Handling some forms of delegation via the dispatcher mechanism
+
+        # Try to resolve the method call, report an error if there is
+        # no such method.
         my $meth := nqp::decont($how.find_method($obj, $name));
+        report-method-not-found(
+          $obj, $name, nqp::getlexcaller('$?CLASS'), $how, nqp::iscont($obj)
+        ) unless nqp::isconcrete($meth);
 
-        # Report an error if there is no such method.
-        unless nqp::isconcrete($meth) {
-            my $class := nqp::getlexcaller('$?CLASS');
-            report-method-not-found($obj, $name, $class, $how, nqp::iscont($obj));
-        }
-
-        # Establish a guard on the invocant type and method name (however the name
-        # may well be a literal, in which case this is free).
-        nqp::guard('type', nqp::track('arg', $capture, 0));
+        # Establish a guard on the invocant type and method name (however
+        # the name may well be a literal, in which case this is free).
+        nqp::guard('type',    nqp::track('arg', $capture, 0));
         nqp::guard('literal', nqp::track('arg', $capture, 1));
 
-        # Add the resolved method and delegate to the resolved method dispatcher.
-        my $capture_delegate := nqp::syscall(
-            'dispatcher-insert-arg-literal-obj', $capture, 0, $meth);
-        nqp::delegate('raku-meth-call-resolved', $capture_delegate);
-    }
-});
-sub report-method-not-found($obj, $name, $class, $how, $containerized) {
-    my $msg := "Method '$name' not found for invocant of class '{$how.name($obj)}'";
-    if $name eq 'STORE' {
-        Perl6::Metamodel::Configuration.throw_or_die(
-            'X::Assignment::RO', $msg, :value($obj));
-    }
-    else {
-        Perl6::Metamodel::Configuration.throw_or_die(
-            'X::Method::NotFound',
-            $msg,
-            :invocant($obj),
-            :method($name),
-            :typename($how.name($obj)),
-            :private(nqp::hllboolfor(0, 'Raku')),
-            :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku')),
-            :containerized(nqp::hllboolfor($containerized, 'Raku'))
+        # Add the resolved method, delegate to the resolved method dispatcher
+        nqp::delegate('raku-meth-call-resolved',
+          nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, $meth)
         );
     }
-}
+});
 
 nqp::register('raku-meth-call-mega', -> $capture {
     # We're megamorphic in both type and name. Make sure the type has a lookup

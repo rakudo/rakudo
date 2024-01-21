@@ -1276,30 +1276,36 @@ nqp::register('raku-meth-call-qualified', -> $capture {
          );
 });
 
-# Maybe method dispatch, of the form $obj.?foo.
+#- raku-meth-call-me-maybe -----------------------------------------------------
+# Maybe method dispatch, of the form $obj.?foo.  Expects the invocant and
+# the method name, followed by any arguments.
 nqp::register('raku-meth-call-me-maybe', -> $capture {
-    # Establish a guard on the invocant type.
+
+    # Establish a guard on the invocant type
     nqp::guard('type', nqp::track('arg', $capture, 0));
 
-    # Try to find the method.
     my $invocant := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
-    my $meth := nqp::decont(nqp::how_nd($invocant).find_method($invocant, $name));
-    if nqp::isconcrete($meth) {
-        # Found it. Put in resolved method and leave the rest to the resolved
-        # method call dispatcher.
-        my $capture_delegate := nqp::syscall(
-          'dispatcher-insert-arg-literal-obj', $capture, 0, $meth);
-        nqp::syscall('dispatcher-delegate',
-                'raku-meth-call-resolved', $capture_delegate);
-    }
-    else {
-        # Not found. Insert a Nil value at the start (boot-constant ignores
-        # the rest of the args).
-        nqp::delegate('boot-constant',
-            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                $capture, 0, Nil));
-    }
+
+    # Try to find the method
+    my $method := nqp::decont(
+      nqp::how_nd($invocant).find_method($invocant, $name)
+    );
+    nqp::isconcrete($method)
+      # Found it. Put in resolved method and leave the rest to the
+      # resolved method call dispatcher.
+      ?? nqp::delegate('raku-meth-call-resolved',
+           nqp::syscall('dispatcher-insert-arg-literal-obj',
+             $capture, 0, $method
+           )
+         )
+      # Not found. Insert a Nil value at the start (boot-constant
+      # ignores the rest of the args)
+      !! nqp::delegate('boot-constant',
+           nqp::syscall('dispatcher-insert-arg-literal-obj',
+             $capture, 0, Nil
+           )
+         );
 });
 
 # Private method dispatch. This is actually a fallback, since in the best

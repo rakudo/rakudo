@@ -470,6 +470,13 @@ Calls the given $method (by name) on the given $invocant with the given
 arguments, and return the result.
 
 ### raku-meth-call-me-maybe
+```
+nqp::dispatch("raku-meth-call-me-maybe", $invocant, str $method, …);
+```
+Calls the given $method (by name) on the given $invocant with the given
+arguments if the method can be found, and return the result.  Otherwise
+returns `Nil`.
+
 ### raku-meth-call-qualified
 ```
 nqp::dispatch("raku-meth-callqualified", $invocant, str $method, $type, …);

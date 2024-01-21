@@ -488,6 +488,12 @@ the arguments, and return the result.
 ### raku-meth-call-resolved
 ### raku-meth-deferral
 ### raku-meth-private
+```
+nqp::dispatch("raku-meth-private", $invocant, str $method, …);
+```
+Calls the given private $method (by name) on the given $invocant with the
+given arguments, and return the result.
+
 ### raku-multi
 ### raku-multi-core
 ### raku-multi-non-trivial

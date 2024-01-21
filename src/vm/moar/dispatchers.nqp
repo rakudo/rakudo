@@ -1308,12 +1308,13 @@ nqp::register('raku-meth-call-me-maybe', -> $capture {
          );
 });
 
+#- raku-meth-private -----------------------------------------------------------
 # Private method dispatch. This is actually a fallback, since in the best
 # case we can resolve the private method into a constant at code-gen time
 # and just invoke that. This happens with private methods in roles.
 nqp::register('raku-meth-private', -> $capture {
     # Find the private method.
-    my $type := nqp::captureposarg($capture, 0);
+    my $type     := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
     my $meth := nqp::how_nd($type).find_private_method($type, $name);
 
@@ -1323,15 +1324,18 @@ nqp::register('raku-meth-private', -> $capture {
     # dispatch for private methods.
     if nqp::isconcrete($meth) {
         nqp::guard('type', nqp::track('arg', $capture, 0));
-        my $capture_delegate := nqp::syscall(
-            'dispatcher-insert-arg-literal-obj',
+        nqp::delegate('raku-invoke',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
             nqp::syscall('dispatcher-drop-n-args', $capture, 0, 2),
-            0,
-            $meth);
-        nqp::delegate('raku-invoke', $capture_delegate);
+            0, $meth
+          )
+        );
     }
+
+    # Not found
     else {
         # TODO typed exception
+        # NOTE: did not find a way to fire this path yet
         nqp::die("No such private method '$name' on " ~ nqp::how_nd($type).name($type));
     }
 });

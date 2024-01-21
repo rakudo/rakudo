@@ -1033,7 +1033,7 @@ nqp::register('raku-call', -> $capture {
             $delegate := 'raku-invoke-wrapped';
         }
 
-        # not something to just invoke
+        # Not something to just invoke
         elsif !nqp::can($callee, 'CALL-ME') {
 
             # Guard if not a literal callee
@@ -1340,6 +1340,7 @@ nqp::register('raku-meth-private', -> $capture {
     }
 });
 
+#- raku-meth-call-resolved -----------------------------------------------------
 # A linked list is used to model the state of a dispatch that is deferring
 # through a set of methods or wrappers (a similar approach is used for
 # multi dispatch, but it needs more types of node). The Exhausted class
@@ -1358,8 +1359,8 @@ my class DeferralChain {
     }
     method code() { $!code }
     method next() { $!next }
-};
-my class Exhausted {};
+}
+my class Exhausted {}
 
 # We also need a strategy for `callwith`. The complication is that arguments
 # given to `callwith` should trigger a resumption of the innermost dispatch
@@ -1395,17 +1396,16 @@ my class Exhausted {};
 # candidate of the innermost dispatch is invoked.
 sub nil-or-callwith-propagation-terminal($capture) {
     unless nqp::syscall('dispatcher-next-resumption', $capture) {
-        if nqp::captureposarg_i($capture, 0) == nqp::const::DISP_PROPAGATE_CALLWITH {
-            my str $dispatcher := nqp::captureposarg_s($capture, 1);
-            my $invoke-args := nqp::syscall('dispatcher-drop-n-args',
-                $capture, 0, 3);
-            nqp::delegate($dispatcher, $invoke-args);
-        }
-        else {
-            nqp::delegate('boot-constant',
-                nqp::syscall('dispatcher-insert-arg-literal-obj',
-                    $capture, 0, Nil));
-        }
+        nqp::captureposarg_i($capture,0) == nqp::const::DISP_PROPAGATE_CALLWITH
+          ?? nqp::delegate(
+               nqp::captureposarg_s($capture, 1),
+               nqp::syscall('dispatcher-drop-n-args', $capture, 0, 3)
+             )
+          !! nqp::delegate('boot-constant',
+               nqp::syscall('dispatcher-insert-arg-literal-obj',
+                 $capture, 0, Nil
+               )
+             );
     }
 }
 
@@ -1414,53 +1414,57 @@ sub nil-or-callwith-propagation-terminal($capture) {
 # third are the type and name (used in deferral), and the rest are the args to
 # the method.
 nqp::register('raku-meth-call-resolved',
+
     # Initial dispatch
     -> $capture {
-        # Save dispatch state for resumption. We don't need the method that will
-        # be called now, so drop it.
-        my $resume-capture := nqp::syscall('dispatcher-drop-arg',
-            $capture, 0);
-        nqp::syscall('dispatcher-set-resume-init-args', $resume-capture);
+        # Save dispatch state for resumption. We don't need the method that
+        # will be called now, so drop it.
+        nqp::syscall('dispatcher-set-resume-init-args',
+          nqp::syscall('dispatcher-drop-arg', $capture, 0)
+        );
 
-        # Drop the dispatch start type and name, and delegate to multi-dispatch or
-        # just invoke if it's single dispatch.
-        my $delegate_capture := nqp::syscall('dispatcher-drop-n-args',
-            $capture, 1, 2);
-        my $method := nqp::captureposarg($delegate_capture, 0);
-        my int $code-constant := nqp::syscall('dispatcher-is-arg-literal',
-            $capture, 0);
-        unless $code-constant {
-            # Need at least a type guard on the callee, if it's not constant.
-            nqp::guard('type', nqp::track('arg', $capture, 0));
-        }
+        # Drop the dispatch start type and name, and delegate to
+        # multi-dispatch or just invoke if it's single dispatch.
+        my str $delegate := 'raku-invoke';
+        $capture := nqp::syscall('dispatcher-drop-n-args', $capture, 1, 2);
+        my $method := nqp::captureposarg($capture, 0);
+
+        # Need at least a type guard on the callee, if it's not constant.
+        my int $code-constant :=
+          nqp::syscall('dispatcher-is-arg-literal', $capture, 0);
+        nqp::guard('type', nqp::track('arg', $capture, 0))
+          unless $code-constant;
+
+        # Looks like a sub, set appropriate delegator
         if nqp::istype($method, Routine) {
+
+            # Need extra handling of wrappers
             if nqp::can($method, 'WRAPPERS') {
-                nqp::delegate('raku-invoke-wrapped',
-                    $delegate_capture);
+                $delegate := 'raku-invoke-wrapped';
             }
-            elsif nqp::can($method, 'CALL-ME') {
-                nqp::delegate('raku-invoke', $delegate_capture);
-            }
-            else {
-                # If it's not a constant, need a guard on whether it's a dispatcher,
-                # and if so on the candidate list. (Will want to move this when we
-                # have a megamorphic multi solution.)
-                unless $code-constant {
-                    nqp::guard('literal', nqp::track('attr',
-                      nqp::track('arg', $capture, 0),
-                      Routine,
-                      '@!dispatchees')
-                    );
-                }
-                my str $dispatcher := $method.is_dispatcher ?? 'raku-multi' !! 'raku-invoke';
-                nqp::delegate($dispatcher,
-                    $delegate_capture);
+
+            # Not something to just invoke
+            elsif !nqp::can($method, 'CALL-ME') {
+                # If it's not a constant, need a guard on whether it's a
+                # dispatcher, and if so on the candidate list. (Will want
+                # to move this when we have a megamorphic multi solution.)
+                nqp::guard('literal',
+                  nqp::track('attr',
+                    nqp::track('arg', $capture, 0),
+                    Routine,
+                    '@!dispatchees'
+                  )
+                ) unless $code-constant;
+
+                $delegate := $method.is_dispatcher
+                  ?? 'raku-multi'
+                  !! 'raku-invoke';
             }
         }
-        else {
-            nqp::delegate('raku-invoke', $delegate_capture);
-        }
+
+        nqp::delegate($delegate, $capture);
     },
+
     # Resumption. The capture itself has a first argument indicating the kind
     # of resumption operation we're doing. The resume init capture's first two
     # arguments are the type that we initially did a method dispatch against
@@ -1469,74 +1473,83 @@ nqp::register('raku-meth-call-resolved',
     # dispatcher to handle movement through that list (this structure helps
     # us to handle `callwith`).
     -> $capture {
-        # We put a sentinel value into the resume state in the case that we have
-        # already set up the method resumption. We always guard on it too.
+
+        # We put a sentinel value into the resume state in the case that we
+        # have already set up the method resumption. We always guard on that
+        # as well.
         my $state := nqp::syscall('dispatcher-get-resume-state');
-        my $track_state := nqp::track('resume-state');
-        nqp::guard('literal', $track_state);
+        my $Tstate := nqp::track('resume-state');
+        nqp::guard('literal', $Tstate);
 
         # Mark that the deferral was already set up, so we don't do this
         # again.
         nqp::syscall('dispatcher-set-resume-state-literal', Exhausted);
 
         # Guard on the kind of resume we're doing, and get that flag.
-        my $track_kind := nqp::track('arg', $capture, 0);
-        nqp::guard('literal', $track_kind);
+        my $Tkind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $Tkind);
         my int $kind := nqp::captureposarg_i($capture, 0);
 
-        # If the state is null, it's we are entering a walk through the methods.
-        # We can short-circuit this if it's a lastcall (and the Exhausted above
-        # puts it into effect).
+        # If the state is null, it's we are entering a walk through the
+        # methods.  We can short-circuit this if it's a lastcall (and
+        # the Exhausted above puts it into effect).
         if nqp::isnull($state) && $kind != nqp::const::DISP_LASTCALL {
+
             # No state, so just starting the resumption. Guard on the
             # invocant type and name.
             my $init := nqp::syscall('dispatcher-get-resume-init-args');
-            my $track_start_type := nqp::track('arg', $init, 0);
-            nqp::guard('type', $track_start_type);
-            my $track_name := nqp::track('arg', $init, 1);
-            nqp::guard('literal', $track_name);
+            my $Tstart_type := nqp::track('arg', $init, 0);
+            nqp::guard('type', $Tstart_type);
+            my $Tname := nqp::track('arg', $init, 1);
+            nqp::guard('literal', $Tname);
 
             # Build up the list of methods to defer through.
             my $start_type := nqp::captureposarg($init, 0);
             my str $name := nqp::captureposarg_s($init, 1);
             my $start_type_how := nqp::how_nd($start_type);
             my @mro := nqp::can($start_type_how, 'mro_unhidden')
-                ?? $start_type_how.mro_unhidden($start_type)
-                !! nqp::can($start_type_how, 'mro')
-                    ?? $start_type_how.mro($start_type)
-                    !! [];
+              ?? $start_type_how.mro_unhidden($start_type)
+              !! nqp::can($start_type_how, 'mro')
+                ?? $start_type_how.mro($start_type)
+                !! [];
+
             my @methods;
             for @mro {
-                my %mt := nqp::hllize(nqp::how_nd($_).method_table($_));
-                if nqp::existskey(%mt, $name) {
-                    @methods.push(%mt{$name});
-                }
+                my $method := nqp::atkey(
+                  nqp::how_nd($_).method_table($_), $name
+                );
+                @methods.push($method) unless nqp::isnull($method);
             }
 
-            # Turn it into a linked list.
+            # Turn it into a linked list if there is a chain, otherwise
+            # mark as exhausted.
             my $chain := Exhausted;
             if nqp::elems(@methods) >= 2 {
-                @methods.shift; # Discard the first one, which we initially called
+                # Discard the first one, which we initially called
+                @methods.shift;
+
                 while @methods {
                     $chain := DeferralChain.new(@methods.pop, $chain);
                 }
             }
 
-            # Determine the args to pass to the method we defer to. If it's a
-            # callwith, then the arguments are given to us here. If it's a
-            # callwith propagration, we need to use those args also. Otherwise,
-            # they are those from the initial capture.
+            # Determine the args to pass to the method we defer to. If
+            # it's a callwith, then the arguments are given to us here.
+            # If it's a callwith propagration, we need to use those args
+            # also. Otherwise, they are those from the initial capture.
             my $args_with_kind;
             if $kind == nqp::const::DISP_CALLWITH {
+
                 # Rewrite the kind into callsame, since we've already accounted
                 # for the callwith. We do need to insert the original invocant.
                 my $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
-                my $with_invocant := nqp::syscall('dispatcher-insert-arg',
-                    $args, 0,
-                    nqp::track('arg', $init, 2));
                 $args_with_kind := nqp::syscall(
-                    'dispatcher-insert-arg-literal-int', $with_invocant, 0,
-                    nqp::const::DISP_CALLSAME);
+                  'dispatcher-insert-arg-literal-int',
+                  nqp::syscall('dispatcher-insert-arg',
+                    $args, 0, nqp::track('arg', $init, 2)
+                  ),
+                  0, nqp::const::DISP_CALLSAME
+                );
             }
             elsif $kind == nqp::const::DISP_PROPAGATE_CALLWITH {
                 $args_with_kind := $capture;
@@ -1545,22 +1558,25 @@ nqp::register('raku-meth-call-resolved',
                 my $args := nqp::syscall('dispatcher-drop-n-args',
                     $init, 0, 2);
                 $args_with_kind := nqp::syscall('dispatcher-insert-arg',
-                    $args, 0, $track_kind);
+                  nqp::syscall('dispatcher-drop-n-args', $init, 0, 2),
+                  0, $Tkind
+                );
             }
 
             # Prepend the chain of methods we dispatch through and defer.
-            my $delegate := nqp::syscall('dispatcher-insert-arg-literal-obj',
-                $args_with_kind, 0, $chain);
             nqp::delegate('raku-meth-deferral',
-                $delegate);
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                $args_with_kind, 0, $chain
+              )
+            );
         }
 
         # Otherwise, we already set up - and presumably completed - walking
         # through the methods.
         else {
             nqp::delegate('boot-constant', nqp::syscall(
-              'dispatcher-insert-arg-literal-obj', $capture, 0, Nil)
-            );
+              'dispatcher-insert-arg-literal-obj', $capture, 0, Nil
+            ));
         }
     });
 

@@ -467,10 +467,17 @@ Returns 1 if the given attribute is initialized, 0 if not.
 nqp::dispatch("raku-meth-call", $invocant, str $method, …);
 ```
 Calls the given $method (by name) on the given $invocant with the given
-arguments, and returns the result.
+arguments, and return the result.
 
 ### raku-meth-call-me-maybe
 ### raku-meth-call-qualified
+```
+nqp::dispatch("raku-meth-callqualified", $invocant, str $method, $type, …);
+```
+Calls the given $method (by name) on the given $invocant but starting method
+lookup with the given $type, then call that resolved method with the rest of
+the arguments, and return the result.
+
 ### raku-meth-call-resolved
 ### raku-meth-deferral
 ### raku-meth-private

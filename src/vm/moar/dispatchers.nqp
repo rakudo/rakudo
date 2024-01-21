@@ -1204,29 +1204,31 @@ nqp::register('raku-meth-call-mega', -> $capture {
     }
 });
 
+#- raku-meth-call-qualified ----------------------------------------------------
 # Qualified method call dispatcher. This is used for calls of the form
-# $foo.Some::ClassOrRole::bar($arg). It receives the decontainerized
+# $foo.Some::ClassOrRole::bar($arg).  It receives the decontainerized
 # invocant, the method name, the type qualifier, and then the args
 # (starting with the invocant including any container).
 nqp::register('raku-meth-call-qualified', -> $capture {
+
     # Lookup outers of the caller and locate the first occurence of the
     # symbols of interest, which tell us about the caller type.
     my $ctx := nqp::ctxcaller(nqp::ctx());
     my $caller-type := nqp::null();
     nqp::repeat_while(
-        nqp::isnull($caller-type) && !nqp::isnull($ctx),
-        nqp::stmts(
-            (my $pad := nqp::ctxlexpad($ctx)),
-            nqp::if(
-                nqp::existskey($pad, '$?CONCRETIZATION'),
-                ($caller-type := nqp::atkey($pad, '$?CONCRETIZATION')),
-                nqp::if(
-                    nqp::existskey($pad, '$?CLASS'),
-                    ($caller-type := nqp::atkey($pad, '$?CLASS')),
-                )
-            ),
-            ($ctx := nqp::ctxouterskipthunks($ctx)),
-        )
+      nqp::isnull($caller-type) && !nqp::isnull($ctx),
+      nqp::stmts(
+        (my $pad := nqp::ctxlexpad($ctx)),
+        nqp::if(
+          nqp::existskey($pad, '$?CONCRETIZATION'),
+          ($caller-type := nqp::atkey($pad, '$?CONCRETIZATION')),
+          nqp::if(
+            nqp::existskey($pad, '$?CLASS'),
+            ($caller-type := nqp::atkey($pad, '$?CLASS')),
+          )
+        ),
+        ($ctx := nqp::ctxouterskipthunks($ctx)),
+      )
     );
 
     # Establish a guard on the invocant and qualifying type.
@@ -1234,41 +1236,44 @@ nqp::register('raku-meth-call-qualified', -> $capture {
     nqp::guard('type', nqp::track('arg', $capture, 2));
 
     # Try to resolve the method.
-    my $obj := nqp::captureposarg($capture, 0);
+    my $obj      := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
-    my $type := nqp::captureposarg($capture, 2);
+    my $type     := nqp::captureposarg($capture, 2);
     my $meth;
     for ($caller-type, $obj.WHAT) {
-        if nqp::istype($_, $type) {
-            $meth := nqp::how_nd($_).find_method_qualified($_, $type, $name);
-            last if nqp::isconcrete($meth);
-        }
+        last if nqp::istype($_, $type) && nqp::isconcrete(
+          $meth := nqp::how_nd($_).find_method_qualified($_, $type, $name)
+        );
     }
 
     # If it's resolved, then:
-    # 1. Drop the invocant and type arguments targetted at this resolution
-    # 2. Insert the type we resolved the method against before those, for
-    #    deferral (the name is retained ahead of this)
-    # 3. Finally, prepend the resolved method, and delegate to the resolved
-    #    method dispatcher.
-    if nqp::isconcrete($meth) {
-        my $with_name_and_args := nqp::syscall('dispatcher-drop-arg',
-          nqp::syscall('dispatcher-drop-arg', $capture, 2), 0);
-        my $with_resolution_start := nqp::syscall(
-          'dispatcher-insert-arg-literal-obj', $with_name_and_args, 0, $type);
-        my $capture_delegate := nqp::syscall(
-          'dispatcher-insert-arg-literal-obj', $with_resolution_start, 0, $meth);
-        nqp::delegate('raku-meth-call-resolved', $capture_delegate);
-    }
-
-    # Otherwise, exception.
-    else {
-        Perl6::Metamodel::Configuration.throw_or_die(
-            'X::Method::InvalidQualifier',
-            "Cannot dispatch to method $name on " ~ nqp::how_nd($type).name($type) ~
-                " because it is not inherited or done by " ~ nqp::how_nd($obj).name($obj),
-            :method($name), :invocant($obj), :qualifier-type($type));
-    }
+    nqp::isconcrete($meth)
+      # 1. Drop the invocant and type arguments targetted at this resolution
+      # 2. Insert the type we resolved the method against before those, for
+      #    deferral (the name is retained ahead of this)
+      # 3. Finally, prepend the resolved method, and delegate to the
+      #    resolved method dispatcher
+      ?? nqp::delegate('raku-meth-call-resolved',
+           nqp::syscall('dispatcher-insert-arg-literal-obj',   # prepend method
+             nqp::syscall('dispatcher-insert-arg-literal-obj', # prepend type
+               nqp::syscall('dispatcher-drop-arg',             # drop args
+                 nqp::syscall('dispatcher-drop-arg', $capture, 2),
+                 0
+               ),
+               0, $type
+             ),
+             0, $meth
+           )
+         )
+      # Otherwise, exception
+      !! Perl6::Metamodel::Configuration.throw_or_die(
+           'X::Method::InvalidQualifier',
+           "Cannot dispatch to method $name on "
+             ~ nqp::how_nd($type).name($type)
+             ~ " because it is not inherited or done by "
+             ~ nqp::how_nd($obj).name($obj),
+           :method($name), :invocant($obj), :qualifier-type($type)
+         );
 });
 
 # Maybe method dispatch, of the form $obj.?foo.

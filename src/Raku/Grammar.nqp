@@ -2311,7 +2311,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
     token vulgar {
           <[ ½ ↉ ⅓ ⅔ ¼ ¾ ⅕ ⅖ ⅗ ⅘ ⅙ ⅚ ⅐ ⅛ ⅜ ⅝ ⅞ ⅑ ⅒ ]>
-        | [ <super-integer> '/' <sub-integer> ]
+        | [ <super-integer> [ '/' | '⁄' ] <sub-integer> ]
     }
 
     token dottyopish { <term=.dottyop> }

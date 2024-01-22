@@ -140,11 +140,13 @@ class Perl6::Compiler is HLL::Compiler {
     method lvs() { LanguageVersionServices }
 
     method version_string(:$shorten-versions, :$no-unicode) {
-        my $config-version  := self.config()<version>;
-        my $backend-version := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
+        my $config-version     := self.config()<version>;
+        my $backend-version    := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
+        my $rakudo-core-flavor := " v";
 
         my $raku;
         my $rakudo;
+        my $rakudo-flavor;
         if $shorten-versions {
             my $index := nqp::index($config-version,"-");
             $config-version := nqp::substr($config-version,0,$index)
@@ -163,10 +165,17 @@ class Perl6::Compiler is HLL::Compiler {
             $raku   := "Raku®";
             $rakudo := "Rakudo™";
         }
+        
+        if nqp::existskey(nqp::getenvhash(), 'RAKUDO_FLAVOR') {
+            $rakudo-flavor := (nqp::getenvhash<RAKUDO_FLAVOR>) ~ $rakudo-core-flavor;
+        }
+        else {
+             $rakudo-flavor := $rakudo-core-flavor;
+        }
 
         "Welcome to "
           ~ $rakudo
-          ~ " v"
+          ~ $rakudo-flavor
           ~ $config-version
           ~ ".\nImplementing the "
           ~ $raku

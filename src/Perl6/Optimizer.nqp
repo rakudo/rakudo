@@ -3633,7 +3633,12 @@ class Perl6::Optimizer {
               QAST::Op.new: :op<call>, :name($metaop[0][0].name),
                 $operand,
                 QAST::Op.new(:op<if>,
+#?if moar
+                  QAST::Op.new(:op<dispatch>, QAST::SVal.new(:value<raku-definite>), $assignee_var),
+#?endif
+#?if !moar
                   QAST::Op.new(:op<p6definite>, $assignee_var),
+#?endif
                   $assignee_var,
                   QAST::Op.new(:op<call>, :name($metaop[0][0].name)));
             }
@@ -3644,7 +3649,12 @@ class Perl6::Optimizer {
               $op.push:
               QAST::Op.new: :op<call>, :name($metaop[0].name),
                 QAST::Op.new(:op<if>,
+#?if moar
+                  QAST::Op.new(:op<dispatch>, QAST::SVal.new(:value<raku-definite>), $assignee_var),
+#?endif
+#?if !moar
                   QAST::Op.new(:op<p6definite>, $assignee_var),
+#?endif
                   $assignee_var,
                   QAST::Op.new(:op<call>, :name($metaop[0].name))),
                 $operand;

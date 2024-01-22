@@ -6319,7 +6319,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif $name eq 'DEFINITE' {
                 whine_if_args($/, $past, $name);
+#?if moar
+                $past := QAST::Op.new(
+                    :op<dispatch>,
+                    QAST::SVal.new(:value<raku-definite>),
+                );
+#?endif
+#?if !moar
                 $past.op('p6definite');
+#?endif
             }
             else {
                 $past.name( $name );
@@ -6416,7 +6424,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method term:sym<dotty>($/) {
         my $past := $<dotty>.ast;
-        $past.unshift(WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'dotty') );
+        if $past.op eq 'dispatch' {
+            my $syscall := $past.shift;
+            $past.unshift(WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'dotty') );
+            $past.unshift($syscall);
+        }
+        else {
+            $past.unshift(WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'dotty') );
+        }
         make QAST::Op.new( :op('hllize'), $past);
     }
 
@@ -7449,7 +7464,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Method calls may be to a foreign language, and thus return
             # values may need type mapping into Raku land.
-            $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
+            if $past.op eq 'dispatch' {
+                my $syscall := $past.shift;
+                $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
+                $past.unshift($syscall);
+            }
+            else {
+                $past.unshift(WANTED($/[0].ast,'EXPR/POSTFIX'));
+            }
             if nqp::istype($past, QAST::Op) && $past.op eq 'callmethod' {
                 unless $<OPER> && (
                   (my $sym := $<OPER><sym>) eq '.=' ||

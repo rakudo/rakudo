@@ -7,158 +7,157 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
 # Return value decontainerization dispatcher. Often we have nothing at all
 # to do, in which case we can make it identity. Other times, we need a
 # decont. In a few, we need to re-wrap it.
-{
-    # Simple re-containerization logic
-    my $recont := -> $obj {
-        my $rc := nqp::create(Scalar);
-        nqp::bindattr($rc, Scalar, '$!value', nqp::decont($obj));
-        $rc
-    }
 
-    # Default decontainerize logic, with check for Iterables
-    my $container-fallback := -> $Iterable, $cont {
-        if nqp::isrwcont($cont) {
-            # It's an RW container, so we really need to decont it.
-            my $rv := nqp::decont($cont);
-            if nqp::istype($rv, $Iterable) {
-                my $rc := nqp::create(Scalar);
-                nqp::bindattr($rc, Scalar, '$!value', $rv);
-                $rc
-            }
-            else {
-                $rv
-            }
-        }
-        else {
-            # A read-only container, so just return it.
-            $cont
-        }
-    }
-
-    # Dispatcher for decontainerization of return values in Raku.
-    # Expects a capture with the value as its first argument.
-    nqp::register('raku-rv-decont', -> $capture {
-
-        # If it's heading megamorphic, then we'll install the fallback,
-        # without any conditions, which is faster than over-filling the
-        # cache and running this dispatch logic every time.
-        my int $cache-size := nqp::syscall('dispatcher-inline-cache-size');
-        if $cache-size >= $MEGA-TYPE-CALLSITE-SIZE {
-            nqp::delegate('boot-code-constant',
-              nqp::syscall('dispatcher-insert-arg-literal-obj',
-                nqp::syscall('dispatcher-insert-arg-literal-obj',
-                  $capture, 0, nqp::gethllsym('Raku', 'Iterable')
-                ),
-                0, $container-fallback
-              )
-            );
-        }
-        else {
-            # We always need to guard on type and concreteness.
-            my $rv  := nqp::captureposarg($capture, 0);
-            my $Trv := nqp::track('arg',  $capture, 0);
-            nqp::guard('type', $Trv);
-            nqp::guard('concreteness', $Trv);
-
-            # Is it a container?
-            if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
-
-                # It's a container. We have special cases for Scalar.
-                if nqp::istype_nd($rv, Scalar) {
-
-                    # Check if the descriptor is undefined, in which case
-                    # it's read-only.
-                    my $desc := nqp::getattr($rv, Scalar, '$!descriptor');
-                    my $Tdesc :=
-                      nqp::track('attr', $Trv, Scalar, '$!descriptor');
-                    nqp::guard('concreteness', $Tdesc);
-                    if nqp::isconcrete($desc) {
-
-                        # Writeable, so we may need to recontainerize the
-                        # value if the type is iterable, otherwise we can
-                        # decont it.
-                        my $value := nqp::getattr($rv, Scalar, '$!value');
-                        my $Tvalue :=
-                           nqp::track('attr', $Trv, Scalar, '$!value');
-                        nqp::guard('type', $Tvalue);
-                        if nqp::istype_nd(
-                             $value, nqp::gethllsym('Raku', 'Iterable')
-                           ) {
-
-                            # Need to recont in order to preserve item nature.
-                            # Shuffle in the recont code to invoke. We already
-                            # read the deconted value, so we insert that as the
-                            # arg so it needn't be dereferenced again.
-                            nqp::delegate('boot-code-constant',
-                              nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                nqp::syscall('dispatcher-replace-arg',
-                                  $capture, 0, $Tvalue
-                                ),
-                                0, $recont
-                              )
-                            );
-                        }
-
-                        # Not an Iterable
-                        else {
-                            # Decont, so just evaluate to the read attr
-                            # (boot-value ignores all but the first argument)
-                            nqp::delegate('boot-value',
-                              nqp::syscall('dispatcher-insert-arg',
-                                $capture, 0, $Tvalue
-                              )
-                            );
-                        }
-                    }
-
-                    # No descriptor, so read-only: identity will do
-                    else {
-                        nqp::delegate('boot-value', $capture);
-                    }
-                }
-                else {
-                    # Delegate to non-Scalar container fallback.
-                    nqp::delegate('boot-code-constant',
-                      nqp::syscall('dispatcher-insert-arg-literal-obj',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj',
-                          $capture, 0, nqp::gethllsym('Raku', 'Iterable')
-                        ),
-                        0, $container-fallback
-                      )
-                    );
-                }
-            }
-            else {
-                # Not containerized, so identity shall do.
-                # Unless it is null, then we map it to Mu.
-                nqp::isnull($rv)
-                  ?? nqp::delegate('boot-constant',
-                       nqp::syscall('dispatcher-insert-arg-literal-obj',
-                         $capture, 0, Mu
-                       )
-                     )
-                  !! nqp::delegate('boot-value', $capture);
-            }
-        }
-    });
-
-    # This emulates a bug where Proxy was never decontainerized no
-    # matter what. The ecosystem came to depend on that, so we will
-    # accept it for now. We need to revisit this in the future.
-    # Expects the value to be in the first argument like raku-rv-decont.
-    nqp::register('raku-rv-decont-6c', -> $capture {
-        my $rv := nqp::captureposarg($capture, 0);
-        if nqp::eqaddr(nqp::what_nd($rv), Proxy) && nqp::isconcrete_nd($rv) {
-            my $Trv := nqp::track('arg', $capture, 0);
-            nqp::guard('type', $Trv);
-            nqp::guard('concreteness', $Trv);
-            nqp::delegate('boot-value', $capture);
-        }
-        else {
-            nqp::delegate('raku-rv-decont', $capture);
-        }
-    });
+# Simple re-containerization logic
+sub recont($obj) {
+    my $rc := nqp::create(Scalar);
+    nqp::bindattr($rc, Scalar, '$!value', nqp::decont($obj));
+    $rc
 }
+
+# Default decontainerize logic, with check for Iterables
+sub container-fallback($Iterable, $cont) {
+    if nqp::isrwcont($cont) {
+        # It's an RW container, so we really need to decont it.
+        my $rv := nqp::decont($cont);
+        if nqp::istype($rv, $Iterable) {
+            my $rc := nqp::create(Scalar);
+            nqp::bindattr($rc, Scalar, '$!value', $rv);
+            $rc
+        }
+        else {
+            $rv
+        }
+    }
+    else {
+        # A read-only container, so just return it.
+        $cont
+    }
+}
+
+# Dispatcher for decontainerization of return values in Raku.
+# Expects a capture with the value as its first argument.
+nqp::register('raku-rv-decont', -> $capture {
+
+    # If it's heading megamorphic, then we'll install the fallback,
+    # without any conditions, which is faster than over-filling the
+    # cache and running this dispatch logic every time.
+    my int $cache-size := nqp::syscall('dispatcher-inline-cache-size');
+    if $cache-size >= $MEGA-TYPE-CALLSITE-SIZE {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            nqp::syscall('dispatcher-insert-arg-literal-obj',
+              $capture, 0, nqp::gethllsym('Raku', 'Iterable')
+            ),
+            0, &container-fallback
+          )
+        );
+    }
+    else {
+        # We always need to guard on type and concreteness.
+        my $rv  := nqp::captureposarg($capture, 0);
+        my $Trv := nqp::track('arg',  $capture, 0);
+        nqp::guard('type', $Trv);
+        nqp::guard('concreteness', $Trv);
+
+        # Is it a container?
+        if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
+
+            # It's a container. We have special cases for Scalar.
+            if nqp::istype_nd($rv, Scalar) {
+
+                # Check if the descriptor is undefined, in which case
+                # it's read-only.
+                my $desc := nqp::getattr($rv, Scalar, '$!descriptor');
+                my $Tdesc :=
+                  nqp::track('attr', $Trv, Scalar, '$!descriptor');
+                nqp::guard('concreteness', $Tdesc);
+                if nqp::isconcrete($desc) {
+
+                    # Writeable, so we may need to recontainerize the
+                    # value if the type is iterable, otherwise we can
+                    # decont it.
+                    my $value := nqp::getattr($rv, Scalar, '$!value');
+                    my $Tvalue :=
+                       nqp::track('attr', $Trv, Scalar, '$!value');
+                    nqp::guard('type', $Tvalue);
+                    if nqp::istype_nd(
+                         $value, nqp::gethllsym('Raku', 'Iterable')
+                       ) {
+
+                        # Need to recont in order to preserve item nature.
+                        # Shuffle in the recont code to invoke. We already
+                        # read the deconted value, so we insert that as the
+                        # arg so it needn't be dereferenced again.
+                        nqp::delegate('boot-code-constant',
+                          nqp::syscall('dispatcher-insert-arg-literal-obj',
+                            nqp::syscall('dispatcher-replace-arg',
+                              $capture, 0, $Tvalue
+                            ),
+                            0, &recont
+                          )
+                        );
+                    }
+
+                    # Not an Iterable
+                    else {
+                        # Decont, so just evaluate to the read attr
+                        # (boot-value ignores all but the first argument)
+                        nqp::delegate('boot-value',
+                          nqp::syscall('dispatcher-insert-arg',
+                            $capture, 0, $Tvalue
+                          )
+                        );
+                    }
+                }
+
+                # No descriptor, so read-only: identity will do
+                else {
+                    nqp::delegate('boot-value', $capture);
+                }
+            }
+            else {
+                # Delegate to non-Scalar container fallback.
+                nqp::delegate('boot-code-constant',
+                  nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-insert-arg-literal-obj',
+                      $capture, 0, nqp::gethllsym('Raku', 'Iterable')
+                    ),
+                    0, &container-fallback
+                  )
+                );
+            }
+        }
+        else {
+            # Not containerized, so identity shall do.
+            # Unless it is null, then we map it to Mu.
+            nqp::isnull($rv)
+              ?? nqp::delegate('boot-constant',
+                   nqp::syscall('dispatcher-insert-arg-literal-obj',
+                     $capture, 0, Mu
+                   )
+                 )
+              !! nqp::delegate('boot-value', $capture);
+        }
+    }
+});
+
+# This emulates a bug where Proxy was never decontainerized no
+# matter what. The ecosystem came to depend on that, so we will
+# accept it for now. We need to revisit this in the future.
+# Expects the value to be in the first argument like raku-rv-decont.
+nqp::register('raku-rv-decont-6c', -> $capture {
+    my $rv := nqp::captureposarg($capture, 0);
+    if nqp::eqaddr(nqp::what_nd($rv), Proxy) && nqp::isconcrete_nd($rv) {
+        my $Trv := nqp::track('arg', $capture, 0);
+        nqp::guard('type', $Trv);
+        nqp::guard('concreteness', $Trv);
+        nqp::delegate('boot-value', $capture);
+    }
+    else {
+        nqp::delegate('raku-rv-decont', $capture);
+    }
+});
 
 #- raku-assign -----------------------------------------------------------------
 # Assignment dispatcher, which case-analyzes assignments and provides

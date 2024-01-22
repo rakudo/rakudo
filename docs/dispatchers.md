@@ -485,7 +485,6 @@ Calls the given $method (by name) on the given $invocant but starting method
 lookup with the given $type, then call that resolved method with the rest of
 the arguments, and return the result.
 
-### raku-meth-deferral
 ### raku-meth-private
 ```
 nqp::dispatch("raku-meth-private", $invocant, str $method, …);

@@ -1776,59 +1776,14 @@ nqp::register('raku-meth-deferral',
     }
 );
 
-# Multi-dispatch dispatcher, used for both multi sub and multi method dispatch.
-# Assumes that we have already guarded on a literal code object (methods) or
-# ensured consistency of routine (subs where closure cloning may take place).
-# This does not do the heart of the dispatch itself, but rather determines if
-# we have a simple or complex proto, and thus whether we need to invoke the
-# proto at all. In the case of a complex proto, we use dispatch resumption to
-# continue with the dispatch.
-nqp::register('raku-multi',
-    # Initial dispatch, only setting up resumption if we need to invoke the
-    # proto.
-    -> $capture {
-        my $callee := nqp::captureposarg($capture, 0);
-        my int $onlystar := $callee.onlystar;
-        my int $simple := $onlystar && simple-args-proto($callee, $capture);
-        if $simple {
-            # Don't need to invoke the proto itself, so just get on with the
-            # candidate dispatch.
-            nqp::delegate('raku-multi-core', $capture);
-        }
-        else {
-            # Set resume init args and run the proto.
-            nqp::syscall('dispatcher-set-resume-init-args', $capture);
-            nqp::delegate('raku-invoke', $capture);
-        }
-    },
-    # Resumption means that we have reached the {*} in the proto and so now
-    # should go ahead and do the dispatch. Make sure we only do this if we
-    # are signalled to that it's a resume for an onlystar.
-    -> $capture {
-        my $track_kind := nqp::track('arg', $capture, 0);
-        nqp::guard('literal', $track_kind);
-        my int $kind := nqp::captureposarg_i($capture, 0);
-        if $kind == nqp::const::DISP_ONLYSTAR {
-            # Put a guard on the dispatchee list, as a given proto may be
-            # cloned and used for multiple candidate lists.
-            my $init_args := nqp::syscall('dispatcher-get-resume-init-args');
-            my $track_callee := nqp::track('arg',
-                $init_args, 0);
-            nqp::guard('literal',
-              nqp::track('attr', $track_callee, Routine, '@!dispatchees'));
-            nqp::delegate('raku-multi-core', $init_args);
-        }
-        elsif !nqp::syscall('dispatcher-next-resumption', $capture) {
-            nqp::delegate('raku-resume-error', $capture);
-        }
-    });
+#- raku-multi ------------------------------------------------------------------
+# We in principle could always call the proto and have correct behavior.
+# It is, however, nice when we can go straight to a candidate. To see if
+# that's the case, we have to introspect the signature.
+sub is-simple-args-proto($callee, $capture) {
 
-# We in principle could always call the proto and have correct behavior. It is,
-# however, nice when we can go straight to a candidate. To see if that's the
-# case, we have to introspect the signature.
-sub simple-args-proto($callee, $capture) {
-    # If we're compiling the setting, all sorts of things we need to do the
-    # analysis are missing, so don't even try. Nothing invoked in the
+    # If we're compiling the setting, all sorts of things we need to do
+    # the analysis are missing, so don't even try. Nothing invoked in the
     # CORE.setting build today that has an onlystar proto actually needs
     # its proto invoking today, so we also regard them all as simple, to
     # avoid a bunch of throwaway compilations.
@@ -1837,15 +1792,26 @@ sub simple-args-proto($callee, $capture) {
     # If it's out of range so far as arity goes, we'll call the proto to
     # produce an error.
     my $signature := $callee.signature;
-    my int $got-args := nqp::captureposelems($capture) - 1; # First element is the callee
-    return 0 if nqp::islt_i($got-args, $signature.arity) || nqp::isgt_n($got-args, $signature.count);
+
+    # First element is the callee
+    my int $got-args := nqp::captureposelems($capture) - 1;
+    return 0 if nqp::islt_i(
+      $got-args,
+      nqp::getattr_i($signature, Signature, '$!arity')
+    ) || nqp::isgt_n(
+      $got-args,
+      nqp::getattr($signature, Signature, '$!count')
+    );
 
     # Otherwise, arity is alright. Look through the params.
     my int $accepts-any-named := 0;
-    for $signature.params.FLATTENABLE_LIST -> $param {
+    for nqp::getattr($signature, Signature, '@!params') -> $param {
         # If there's a constraint or unpack, need the proto to be run.
-        return 0 unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) &&
-            nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature'));
+        return 0 unless nqp::isnull(
+          nqp::getattr($param, Parameter, '@!post_constraints')
+        ) && nqp::isnull(
+          nqp::getattr($param, Parameter, '$!sub_signature')
+        );
 
         # Otherwise, go by kind of parameter.
         if $param.capture {
@@ -1855,16 +1821,71 @@ sub simple-args-proto($callee, $capture) {
             $accepts-any-named := 1 if $param.named;
         }
         elsif $param.named {
-            # Can be a bit smarter by diffing what nameds we have or miss, but
-            # for now conservatively run the proto.
+            # Can be a bit smarter by diffing what nameds we have or
+            # miss, but for now conservatively run the proto.
             return 0;
         }
     }
 
-    # If we get here, it's OK to elide running the proto so long as if we have
-    # any named args, it accepts them.
-    return nqp::capturehasnameds($capture) ?? $accepts-any-named !! 1;
+    # If we get here, it's OK to elide running the proto so long as
+    # if we have any named args, it accepts them.
+    nqp::capturehasnameds($capture) ?? $accepts-any-named !! 1;
 }
+
+# Multi-dispatch dispatcher, used for both multi sub and multi method dispatch.
+# Assumes that we have already guarded on a literal code object (methods) or
+# ensured consistency of routine (subs where closure cloning may take place).
+# This does not do the heart of the dispatch itself, but rather determines if
+# we have a simple or complex proto, and thus whether we need to invoke the
+# proto at all. In the case of a complex proto, we use dispatch resumption to
+# continue with the dispatch.
+nqp::register('raku-multi',
+
+    # Initial dispatch, only setting up resumption if we need to invoke the
+    # proto.
+    -> $capture {
+        my $callee := nqp::captureposarg($capture, 0);
+        my int $onlystar := $callee.onlystar;
+        my int $simple := $onlystar && is-simple-args-proto($callee, $capture);
+        my str $delegate := 'raku-multi-core';
+
+        # Need to invoke the proto itself, so set resume init args and
+        # make it run the proto.
+        unless $simple {
+            nqp::syscall('dispatcher-set-resume-init-args', $capture);
+            $delegate := 'raku-invoke';
+        }
+
+        nqp::delegate($delegate, $capture);
+    },
+    # Resumption means that we have reached the {*} in the proto and so now
+    # should go ahead and do the dispatch. Make sure we only do this if we
+    # are signalled to that it's a resume for an onlystar.
+    -> $capture {
+        my $Tkind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $Tkind);
+        my int $kind := nqp::captureposarg_i($capture, 0);
+
+        # A resume of an onlystar
+        if $kind == nqp::const::DISP_ONLYSTAR {
+
+            # Put a guard on the dispatchee list, as a given proto may be
+            # cloned and used for multiple candidate lists.
+            $capture := nqp::syscall('dispatcher-get-resume-init-args');
+            nqp::guard('literal',
+              nqp::track('attr',
+                nqp::track('arg', $capture, 0), Routine, '@!dispatchees'
+              )
+            );
+            nqp::delegate('raku-multi-core', $capture);
+        }
+
+        # Nothing to resume to, so make it error out
+        elsif !nqp::syscall('dispatcher-next-resumption', $capture) {
+            nqp::delegate('raku-resume-error', $capture);
+        }
+    }
+);
 
 # If we invoke a multi with an argument that is a Proxy (or some other non-Scalar
 # container), we need to read the value(s) from the Proxy argument(s) and then go

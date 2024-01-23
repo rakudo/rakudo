@@ -447,6 +447,11 @@ The $callee can be a sub / method / code object.
 ### raku-capture-lex
 ### raku-capture-lex-callers
 ### raku-class-archetypes
+```
+nqp::dispatch("raku-class-archetypes", $HOW, $object);
+```
+Returns a list of archetypes of the given $HOW and $object.
+
 ### raku-coercion
 ### raku-find-meth
 ### raku-find-meth-mega

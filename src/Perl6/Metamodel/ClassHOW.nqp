@@ -382,55 +382,61 @@ class Perl6::Metamodel::ClassHOW
     }
 
 #?if moar
+    # Returns archetypes of a class or a class instance.
+    # Dispatcher arguments: ClassHOW object, invocant object
     nqp::register('raku-class-archetypes', -> $capture {
-        # Returns archetypes of a class or a class instance
-        # Dispatcher arguments:
-        # ClassHOW object
-        # invocator
+
         my $how := nqp::captureposarg($capture, 0);
+        my $Thow := nqp::track('arg', $capture, 0);
+        nqp::guard('concreteness', $Thow);
 
-        my $track-how := nqp::track('arg', $capture, 0);
-        nqp::guard('concreteness', $track-how);
+        nqp::delegate('boot-code-constant', $archetypes-ng)
+          unless nqp::isconcrete($how);
 
-        unless nqp::isconcrete($how) {
-            nqp::delegate('boot-code-constant', $archetypes-ng);
-        }
-
-        my $obj := nqp::captureposarg($capture, 1);
-        my $track-obj := nqp::track('arg', $capture, 1);
-        nqp::guard('concreteness', $track-obj);
-        nqp::guard('type', $track-obj);
+        my $obj  := nqp::captureposarg($capture, 1);
+        my $Tobj := nqp::track('arg', $capture, 1);
+        nqp::guard('concreteness', $Tobj);
+        nqp::guard('type', $Tobj);
 
         if nqp::isconcrete_nd($obj) && nqp::iscont($obj) {
             my $Scalar := nqp::gethllsym('Raku', 'Scalar');
-            my $track-value := nqp::track('attr', $track-obj, $Scalar, '$!value');
-            nqp::guard('concreteness', $track-value);
-            nqp::guard('type', $track-value);
+            my $Tvalue := nqp::track('attr', $Tobj, $Scalar, '$!value');
+            nqp::guard('concreteness', $Tvalue);
+            nqp::guard('type', $Tvalue);
             $obj := nqp::getattr($obj, $Scalar, '$!value');
         }
 
-        my $can-is-generic := !nqp::isnull($obj) && nqp::can($obj, 'is-generic');
-
+        my $can-is-generic :=
+          !nqp::isnull($obj) && nqp::can($obj, 'is-generic');
         if nqp::isconcrete($obj) && $can-is-generic {
-            # If invocant of .HOW.archetypes is a concrete object implementing 'is-generic' method then method outcome
-            # is the ultimate result. But we won't cache it in type's HOW $!archetypes.
+            # If invocant of .HOW.archetypes is a concrete object
+            # implementing 'is-generic' method then method outcome
+            # is the ultimate result. But we won't cache it in
+            # type's HOW $!archetypes.
             nqp::delegate('boot-code-constant',
-                nqp::syscall('dispatcher-insert-arg-literal-obj',
-                    nqp::syscall('dispatcher-drop-arg',
-                        nqp::syscall('dispatcher-drop-arg', $capture, 1),
-                        0),
-                    0, { $obj.is-generic ?? $archetypes-g !! $archetypes-ng }));
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                nqp::syscall('dispatcher-drop-n-args',
+                  $capture, 0, 2
+                ),
+                0, { $obj.is-generic ?? $archetypes-g !! $archetypes-ng }
+              )
+            );
         }
         else {
-            my $track-archetypes-attr := nqp::track('attr',
-              $track-how, Perl6::Metamodel::ClassHOW, '$!archetypes');
-            nqp::guard('literal', $track-archetypes-attr);
+            nqp::guard('literal', nqp::track('attr',
+              $Thow, Perl6::Metamodel::ClassHOW, '$!archetypes'
+            ));
 
             nqp::delegate('boot-constant',
-                nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0,
-                    (nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes') // $archetypes-ng)));
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                $capture, 0,
+                nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes')
+                  // $archetypes-ng
+              )
+            );
         }
-    });
+    }
+);
 #?endif
 }
 

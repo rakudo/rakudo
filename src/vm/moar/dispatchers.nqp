@@ -3521,21 +3521,23 @@ nqp::register('raku-wrapper-deferral',
         }
     });
 
+#- raku-call-simple ------------------------------------------------------------
 # Like raku-call, except assumes that any method call we see will already have
 # been taken care of.
 nqp::register('raku-call-simple', -> $capture {
-    my $track_callee := nqp::track('arg', $capture, 0);
-    nqp::guard('type', $track_callee);
-    my $callee := nqp::captureposarg($capture, 0);
+    my $callee  := nqp::captureposarg($capture, 0);
+    my $Tcallee := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $Tcallee);
+    my str $delegate := 'raku-invoke';
+
     if nqp::istype_nd($callee, Routine) {
         nqp::guard('literal',
-          nqp::track('attr', $track_callee, Routine, '@!dispatchees'));
-        nqp::syscall('dispatcher-delegate',
-            $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
+          nqp::track('attr', $Tcallee, Routine, '@!dispatchees')
+        );
+        $delegate := 'raku-multi' if $callee.is_dispatcher;
     }
-    else {
-        nqp::delegate('raku-invoke', $capture);
-    }
+
+    nqp::delegate($delegate, $capture);
 });
 
 # Dispatcher to try to find a method, backing nqp::findmethod, nqp::tryfindmethod,

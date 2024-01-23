@@ -444,7 +444,6 @@ nqp::dispatch("raku-call", $callee, …);
 Calls the given $callee with the given arguments, and returns the result.
 The $callee can be a sub / method / code object.  
 
-### raku-call-simple
 ### raku-capture-lex
 ### raku-capture-lex-callers
 ### raku-class-archetypes
@@ -453,8 +452,6 @@ The $callee can be a sub / method / code object.
 ### raku-find-meth-mega
 ### raku-get-code-outer-ctx
 ### raku-hllize
-### raku-invoke
-### raku-invoke-wrapped
 ### raku-is-attr-inited
 ```
 nqp::dispatch("raku-is-attr-inited", $attribute);
@@ -492,9 +489,6 @@ nqp::dispatch("raku-meth-private", $invocant, str $method, …);
 Calls the given private $method (by name) on the given $invocant with the
 given arguments, and return the result.
 
-### raku-multi-core
-### raku-multi-non-trivial
-### raku-multi-remove-proxies
 ### raku-nativecall
 ### raku-nativecall-core
 ### raku-nativecall-deproxy

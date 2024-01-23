@@ -3,17 +3,21 @@
 my int $MEGA-TYPE-CALLSITE-SIZE := 16;
 my int $MEGA-METH-CALLSITE-SIZE := 16;
 
-# Helper sub to delegate to return Nil
-sub delegate-Nil($capture) {
+
+# Helper sub to delegate to return given value
+sub delegate-constant($capture, $value) {
 
     # Insert a Nil value at the start (boot-constant ignores the rest
     # of the args) and delegate
     nqp::delegate('boot-constant',
       nqp::syscall('dispatcher-insert-arg-literal-obj',
-        $capture, 0, Nil
+        $capture, 0, $value
       )
     );
-};
+}
+
+# Helper sub to delegate to return Nil
+sub delegate-constant-Nil($capture) { delegate-constant($capture, Nil) };
 
 #- raku-rv-decont --------------------------------------------------------------
 # Return value decontainerization dispatcher. Often we have nothing at all
@@ -144,11 +148,7 @@ sub delegate-Nil($capture) {
                 # Not containerized, so identity shall do.
                 # Unless it is null, then we map it to Mu.
                 nqp::isnull($rv)
-                  ?? nqp::delegate('boot-constant',
-                       nqp::syscall('dispatcher-insert-arg-literal-obj',
-                         $capture, 0, Mu
-                       )
-                     )
+                  ?? delegate-constant($capture, Mu)
                   !! nqp::delegate('boot-value', $capture);
             }
         }
@@ -1312,7 +1312,7 @@ nqp::register('raku-meth-call-me-maybe', -> $capture {
            )
          )
       # Not found. Return Nil
-      !! delegate-Nil($capture);
+      !! delegate-constant-Nil($capture);
 });
 
 #- raku-meth-private -----------------------------------------------------------
@@ -1408,7 +1408,7 @@ sub nil-or-callwith-propagation-terminal($capture) {
                nqp::captureposarg_s($capture, 1),
                nqp::syscall('dispatcher-drop-n-args', $capture, 0, 3)
              )
-          !! delegate-Nil($capture);
+          !! delegate-constant-Nil($capture);
     }
 }
 
@@ -1577,7 +1577,7 @@ nqp::register('raku-meth-call-resolved',
         # Otherwise, we already set up - and presumably completed - walking
         # through the methods.
         else {
-            delegate-Nil($capture);
+            delegate-constant-Nil($capture);
         }
     }
 );
@@ -1614,9 +1614,7 @@ sub method-deferral-step($chain-head, int $kind, $args) {
 
     # We just want method itself, not to invoke it.
     elsif $kind == nqp::const::DISP_NEXTCALLEE {
-        nqp::delegate('boot-constant',
-          nqp::syscall('dispatcher-insert-arg-literal-obj', $args, 0, $code)
-        );
+        delegate-constant($args, $code);
     }
     else {
         nqp::die('Unexpected resumption kind in method dispatch');
@@ -1693,7 +1691,7 @@ nqp::register('raku-meth-deferral',
         # If we're doing a lastcall, set the state to exhausted and we're done.
         if $kind == nqp::const::DISP_LASTCALL {
             nqp::syscall('dispatcher-set-resume-state-literal', Exhausted);
-            delegate-Nil($capture);
+            delegate-constant-Nil($capture);
         }
 
         else {
@@ -1721,7 +1719,7 @@ nqp::register('raku-meth-deferral',
             # If we're exhausted already, then produce Nil.
             if nqp::istype($chain, Exhausted) {
                 nqp::guard('literal', $Tchain);
-                delegate-Nil($capture);
+                delegate-constant-Nil($capture);
             }
 
             # If we're propagating new callwith args then mark this dispatcher
@@ -2774,7 +2772,7 @@ nqp::register('raku-multi-non-trivial',
         # propagate it, and produce Nil.
         if $kind == nqp::const::DISP_LASTCALL {
             nqp::syscall('dispatcher-set-resume-state-literal', Exhausted);
-            delegate-Nil($capture)
+            delegate-constant-Nil($capture)
               unless nqp::syscall('dispatcher-next-resumption');
         }
 
@@ -2933,7 +2931,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
         }
         else {
             nqp::guard('type', $track-cur-state);
-            delegate-Nil($arg-capture)
+            delegate-constant-Nil($arg-capture)
               unless nqp::syscall('dispatcher-next-resumption');
         }
     }
@@ -3043,7 +3041,7 @@ nqp::register('raku-multi-remove-proxies',
             }
         }
         elsif !nqp::syscall('dispatcher-next-resumption') {
-            delegate-Nil($capture);
+            delegate-constant-Nil($capture);
         }
     });
 
@@ -3505,9 +3503,7 @@ nqp::register('raku-wrapper-deferral',
                 }
                 elsif $kind == nqp::const::DISP_NEXTCALLEE {
                     # We just want the code itself, not to invoke it.
-                    nqp::delegate('boot-constant',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj',
-                            $capture, 0, $cur_deferral.code));
+                    delegate-constant($capture, $cur_deferral.code);
                 }
                 else {
                     nqp::die('Unimplemented resumption kind in wrap dispatch');
@@ -3540,52 +3536,54 @@ nqp::register('raku-call-simple', -> $capture {
     nqp::delegate($delegate, $capture);
 });
 
-# Dispatcher to try to find a method, backing nqp::findmethod, nqp::tryfindmethod,
-# and nqp::can.
+#- raku-find-meth --------------------------------------------------------------
+# Dispatcher to try to find a method, backing nqp::findmethod,
+# nqp::tryfindmethod, and nqp::can.  Expects the invocant and
+# method name as arguments, and an integer indicating whether
+# to throw an exception if not found
 nqp::register('raku-find-meth', -> $capture {
-    # See if this callsite is going megamorphic and do a fallback if so. We only do
-    # this in the non-exceptional case.
+
+    # See if this callsite is going megamorphic and do a fallback if so.
+    # We only do this in the non-exceptional case.
     my $obj := nqp::captureposarg($capture, 0);
     my $how := nqp::how_nd($obj);
-    my int $cache-size := nqp::syscall('dispatcher-inline-cache-size');
-    my int $exceptional := nqp::captureposarg_i($capture, 2);
-    if $cache-size >= $MEGA-METH-CALLSITE-SIZE && !$exceptional &&
-            nqp::istype($how, Perl6::Metamodel::ClassHOW) {
-        nqp::delegate('raku-find-meth-mega',
-            $capture);
+    my int $throw    := nqp::captureposarg_i($capture, 2);
+
+    # Looks like megamorphic
+    if nqp::syscall('dispatcher-inline-cache-size') >= $MEGA-METH-CALLSITE-SIZE
+      && !$throw
+      && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+        nqp::delegate('raku-find-meth-mega', $capture);
     }
+
+    # Not megamorphic
     else {
+
         # Guard on the invocant type and method name.
         nqp::guard('type',    nqp::track('arg', $capture, 0));
         nqp::guard('literal', nqp::track('arg', $capture, 1));
 
         # Try to find the method.
-        my str $name := nqp::captureposarg_s($capture, 1);
-        my $meth := $how.find_method($obj, $name);
+        my $meth := $how.find_method($obj, nqp::captureposarg_s($capture, 1));
 
-        # If it's found, evaluate to it.
+        # If it's found, set to evaluate to it.
         if nqp::isconcrete($meth) {
-            my $delegate := nqp::syscall('dispatcher-insert-arg-literal-obj',
-                $capture, 0, $meth);
-            nqp::delegate('boot-constant', $delegate);
+            delegate-constant($capture, $meth);
         }
 
-        # Otherwise, depends on exceptional flag whether we report the missing
-        # method or hand back a null.
+        # Otherwise, depends on exceptional flag whether we report the
+        # missing method or hand back a null (trymethod/can).
         else {
             nqp::guard('literal', nqp::track('arg', $capture, 2));
-            if $exceptional {
-                nqp::delegate('lang-meth-not-found',
-                    nqp::syscall('dispatcher-drop-arg', $capture, 0));
-            }
-            else {
-                my $delegate := nqp::syscall('dispatcher-insert-arg-literal-obj',
-                    $capture, 0, nqp::null());
-                nqp::delegate('boot-constant', $delegate);
-            }
+            $throw
+              ?? nqp::delegate('lang-meth-not-found',
+                   nqp::syscall('dispatcher-drop-arg', $capture, 0)
+                 )
+              !! delegate-constant($capture, nqp::null);
         }
     }
 });
+
 nqp::register('raku-find-meth-mega', -> $capture {
     # Always guard on the exception mode (which should always be false, since we
     # don't handle it here).

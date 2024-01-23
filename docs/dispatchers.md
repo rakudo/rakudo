@@ -454,6 +454,13 @@ Returns a list of archetypes of the given $HOW and $object.
 
 ### raku-coercion
 ### raku-find-meth
+```
+nqp::dispatch("raku-find-meth", $invocant, str $method, int $throw);
+```
+Returns the `Method` object for the given $invocant and $method name if
+it can be found.  If it is not found, the $throw determines whether this
+will cause a "method not found" dispatch (if 1) or `nqp::null` (if 0).
+
 ### raku-find-meth-mega
 ### raku-get-code-outer-ctx
 ### raku-hllize

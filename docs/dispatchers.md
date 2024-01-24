@@ -448,9 +448,16 @@ The $callee can be a sub / method / code object.
 ```
 nqp::dispatch("raku-capture-lex", $code);
 ```
-Returns a capture the lexical environment of the given $code object.
+Returns a capture of the lexical environment of the given $code object.
+Workhorse of `nqp::p6capturelex`.
 
 ### raku-capture-lex-callers
+```
+nqp::dispatch("raku-capture-lex-callers", $code);
+```
+Returns a capture of the environment of the caller matching the outer of
+the given $code object.  Workhorse of `nqp::p6capturelexwhere`.
+
 ### raku-class-archetypes
 ```
 nqp::dispatch("raku-class-archetypes", $HOW, $object);

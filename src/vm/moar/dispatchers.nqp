@@ -3650,25 +3650,29 @@ nqp::register('raku-capture-lex', -> $capture {
       !! nqp::delegate('boot-value', $capture);
 });
 
-# The dispatcher backing p6capturelexwhere. If we are passed a code object, then
-# extracts the underlying handle and looks down the callstack for a caller that
-# matches the outer, and captures it.
+#- raku-capture-lex-callers ----------------------------------------------------
+# The dispatcher backing p6capturelexwhere. If we are passed a code object,
+# then extracts the underlying handle and looks down the callstack for a
+# caller that matches the outer, and captures it.
 nqp::register('raku-capture-lex-callers', -> $capture {
     my $code := nqp::captureposarg($capture, 0);
-    my $track-code := nqp::track('arg', $capture, 0);
-    nqp::guard('type', $track-code);
-    if nqp::istype($code, Code) {
-        my $do := nqp::track('attr', $track-code, Code, '$!do');
-        my $with-do := nqp::syscall('dispatcher-insert-arg',
-            nqp::syscall('dispatcher-drop-arg', $capture, 0),
-            0, $do);
-        my $delegate := nqp::syscall('dispatcher-insert-arg-literal-str',
-            $with-do, 0, 'try-capture-lex-callers');
-        nqp::delegate('boot-syscall', $delegate);
-    }
-    else {
-        nqp::delegate('boot-value', $capture);
-    }
+    my $Tcode := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $Tcode);
+
+    nqp::istype($code, Code)
+      # Delegate to calling try-capture-lex-callers function
+      ?? nqp::delegate('boot-syscall',
+           nqp::syscall('dispatcher-insert-arg-literal-str',
+             nqp::syscall('dispatcher-insert-arg',
+               nqp::syscall('dispatcher-drop-arg', $capture, 0),
+               0, nqp::track('attr', $Tcode, Code, '$!do')
+             ),
+             0, 'try-capture-lex-callers'
+           )
+         )
+
+      # Produce whatever we were given
+      !! nqp::delegate('boot-value', $capture);
 });
 
 # The dispatcher backing p6getouterctx. Unwraps the code object, and then

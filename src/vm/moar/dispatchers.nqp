@@ -3675,6 +3675,7 @@ nqp::register('raku-capture-lex-callers', -> $capture {
       !! nqp::delegate('boot-value', $capture);
 });
 
+#- raku-get-code-outer-ctx -----------------------------------------------------
 # The dispatcher backing p6getouterctx. Unwraps the code object, and then
 # gets a context object for its enclosing scope.
 nqp::register('raku-get-code-outer-ctx', -> $capture {
@@ -3692,18 +3693,19 @@ nqp::register('raku-get-code-outer-ctx', -> $capture {
         );
     }
     else {
-#        nqp::delegate('boot-value', $capture);
         nqp::die('raku-get-code-outer-ctx requires a Code object');
     }
 });
 
-# Resumption error reporting dispatcher.
+#- raku-resume-error -----------------------------------------------------------
+# Resumption error reporting dispatcher.  Throws with the name of
+# the name of the caller dispatcher.
 nqp::register('raku-resume-error', -> $capture {
     my str $redispatcher := nqp::getcodename(nqp::callercode());
     Perl6::Metamodel::Configuration.throw_or_die(
-        'X::NoDispatcher',
-        "$redispatcher is not in the dynamic scope of a dispatcher",
-        :$redispatcher
+      'X::NoDispatcher',
+      "$redispatcher is not in the dynamic scope of a dispatcher",
+      :$redispatcher
     );
 });
 

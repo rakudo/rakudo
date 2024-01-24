@@ -522,6 +522,11 @@ given arguments, and return the result.
 ### raku-nativecall-core
 ### raku-nativecall-deproxy
 ### raku-resume-error
+```
+nqp::dispatch("raku-resume-error");
+```
+Throws an `X::NoDispatcher` error with the name of the calling dispatcher.
+
 ### raku-rv-decont
 ```
 nqp::dispatch("raku-rv-decont", $value);

@@ -3696,14 +3696,17 @@ nqp::register('raku-resume-error', -> $capture {
     );
 });
 
-# Invokability test dispatcher.
+#- raku-isinvokable ------------------------------------------------------------
+# Delegate to returning 1 if given object is a Code, else 0
 nqp::register('raku-isinvokable', -> $capture {
-    # Guard on the type, then evaluate to a constant for if it's a Code type.
+
+    # Guard on the type, then evaluate to a constant for if it's a Code type
     nqp::guard('type', nqp::track('arg', $capture, 0));
-    my $callee := nqp::captureposarg($capture, 0);
-    my $delegate := nqp::syscall('dispatcher-insert-arg-literal-int',
-        $capture, 0, nqp::istype($callee, Code));
-    nqp::delegate('boot-constant', $delegate);
+    nqp::delegate('boot-constant',
+      nqp::syscall('dispatcher-insert-arg-literal-int',
+        $capture, 0, nqp::istype(nqp::captureposarg($capture, 0), Code)
+      )
+    );
 });
 
 # Smartmatch support

@@ -485,9 +485,15 @@ Returns the context of the outer of the given $code object.  Workhorse of
 ```
 nqp::dispatch("raku-is-attr-inited", $attribute);
 ```
-Returns 1 if the given attribute is initialized, 0 if not.
+Returns 1 if the given $attribute is initialized, 0 if not.
 
 ### raku-isinvokable
+```
+nqp::dispatch("raku-isinvokable", $object);
+```
+Returns 1 if the given $object can be invoked (aka, is a `Code` object).
+Returns 0 if not.
+
 ### raku-meth-call
 ```
 nqp::dispatch("raku-meth-call", $invocant, str $method, …);

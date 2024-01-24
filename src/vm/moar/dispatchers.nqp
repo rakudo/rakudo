@@ -3584,35 +3584,46 @@ nqp::register('raku-find-meth', -> $capture {
     }
 });
 
+#- raku-find-meth-mega  --------------------------------------------------------
+# Dispatcher to try to find a method in a mega-morphic situation.  Expects
+# the same arguments as 'raku-find-meth'.
 nqp::register('raku-find-meth-mega', -> $capture {
-    # Always guard on the exception mode (which should always be false, since we
-    # don't handle it here).
+
+    # Always guard on the throw mode (which should always be false,
+    # since we don't handle it here).
     nqp::guard('literal', nqp::track('arg', $capture, 2));
 
-    # Make sure that we have a method table build for this type (but we don't
-    # actually need the table itself).
+    # Make sure that we have a method table built for this type (but
+    # we don't actually need the table itself).
     my $obj := nqp::captureposarg($capture, 0);
     my $how := nqp::how_nd($obj);
-    unless nqp::isconcrete(nqp::getattr($how, Perl6::Metamodel::ClassHOW,
-            '$!cached_all_method_table')) {
-        nqp::syscall('dispatcher-do-not-install');
-    }
+
+    # Don't install if we do't have a method table yet
+    nqp::syscall('dispatcher-do-not-install')
+      unless nqp::isconcrete(nqp::getattr(
+        $how, Perl6::Metamodel::ClassHOW, '$!cached_all_method_table'
+      ));
+
+    # Make sure there's a method table from now on
     $how.all_method_table($obj);
 
-    # Track the HOW and then the attribute holding the table.
-    my $track-obj := nqp::track('arg', $capture, 0);
-    my $track-how := nqp::track('how', $track-obj);
-    my $track-table := nqp::track('attr', $track-how,
-        Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
-
-    # Do the lookup of the method in the table we found in the meta-object. If
-    # it's not found, the outcome will be a null, which is exactly what we want.
-    my $track-name := nqp::track('arg', $capture, 1);
-    my $track-resolution := nqp::syscall(
-      'dispatcher-index-tracked-lookup-table', $track-table, $track-name);
-    my $delegate := nqp::syscall('dispatcher-insert-arg',
-      $capture, 0, $track-resolution);
-    nqp::delegate('boot-value', $delegate);
+    # Track the HOW and then the attribute holding the table.  Do the
+    # lookup of the method in the table we found in the meta-object.
+    # If it's not found, the outcome will be a null, which is exactly
+    # what we want to indicate lookup failure
+    nqp::delegate('boot-value',
+      nqp::syscall('dispatcher-insert-arg', $capture, 0,
+        nqp::syscall(
+          'dispatcher-index-tracked-lookup-table',
+          nqp::track('attr',
+            nqp::track('how', nqp::track('arg', $capture, 0)),
+            Perl6::Metamodel::ClassHOW,
+            '$!cached_all_method_table'
+          ),
+          nqp::track('arg', $capture, 1)
+        )
+      )
+    );
 });
 
 # The dispatcher backing p6capturelex. If we are passed a code object, then

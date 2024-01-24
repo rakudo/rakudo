@@ -474,6 +474,12 @@ it can be found.  If it is not found, the $throw determines whether this
 will cause a "method not found" dispatch (if 1) or `nqp::null` (if 0).
 
 ### raku-get-code-outer-ctx
+```
+nqp::dispatch("raku-get-outer-ctx", $code);
+```
+Returns the context of the outer of the given $code object.  Workhorse of
+`nqp::p6getouterctx`.
+
 ### raku-hllize
 ### raku-is-attr-inited
 ```

@@ -3680,18 +3680,19 @@ nqp::register('raku-capture-lex-callers', -> $capture {
 nqp::register('raku-get-code-outer-ctx', -> $capture {
     my $code := nqp::captureposarg($capture, 0);
     if nqp::istype($code, Code) {
-        my $track-code := nqp::track('arg', $capture, 0);
-        my $do := nqp::track('attr',
-            $track-code, Code, '$!do');
-        my $with-do := nqp::syscall('dispatcher-insert-arg',
-            nqp::syscall('dispatcher-drop-arg', $capture, 0),
-            0, $do);
-        my $delegate := nqp::syscall('dispatcher-insert-arg-literal-str',
-            $with-do, 0, 'get-code-outer-ctx');
+        my $Tcode := nqp::track('arg', $capture, 0);
         nqp::delegate('boot-syscall',
-            $delegate);
+          nqp::syscall('dispatcher-insert-arg-literal-str',
+            nqp::syscall('dispatcher-insert-arg',
+              nqp::syscall('dispatcher-drop-arg', $capture, 0),
+              0, nqp::track('attr', $Tcode, Code, '$!do')
+            ),
+            0, 'get-code-outer-ctx'
+          )
+        );
     }
     else {
+#        nqp::delegate('boot-value', $capture);
         nqp::die('raku-get-code-outer-ctx requires a Code object');
     }
 });

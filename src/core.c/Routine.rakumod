@@ -282,17 +282,36 @@ my class Routine { # declared in BOOTSTRAP
         CandidateIterator.new(self, $local, $with-proto)
     }
 
-    method IS-SETTING-ONLY(:$U, :$D, :$with-proto --> Bool:D) is implementation-detail {
-        for self.candidates(:!local, :$with-proto) -> &cand {
-            if $U || $D {
-                next unless nqp::istype(&cand, Method) || nqp::istype(&cand, Submethod);
-                my $invocant-type := &cand.signature.params[0].type;
-                my $is-definite := $invocant-type.^archetypes.definite && $invocant-type.^definite;
-                next unless ($U && !$is-definite) || ($D && $is-definite);
-            }
-            return False unless &cand.file.starts-with: 'SETTING::';
+    # Return 1 if all candidates of the given proto have a :U invocant
+    # constraint, else 0.
+    method IS-SETTING-ONLY-U() is implementation-detail {
+        for self.candidates(:!local, :with-proto) -> &cand {
+            next unless nqp::istype(&cand, Method)
+                     || nqp::istype(&cand, Submethod);
+
+            my $invocant-type := &cand.signature.params[0].type;
+            next unless $invocant-type.^archetypes.definite
+                     && $invocant-type.^definite;
+
+            return 0 unless &cand.file.starts-with: 'SETTING::';
         }
-        True
+        1
+    }
+
+    # Return 1 if all candidates of the given proto have a :D invocant
+    # constraint, else 0.
+    method IS-SETTING-ONLY-D() is implementation-detail {
+        for self.candidates(:!local, :with-proto) -> &cand {
+            next unless nqp::istype(&cand, Method)
+                     || nqp::istype(&cand, Submethod);
+
+            my $invocant-type := &cand.signature.params[0].type;
+            next if $invocant-type.^archetypes.definite
+                 && $invocant-type.^definite;
+
+            return 0 unless &cand.file.starts-with: 'SETTING::';
+        }
+        1
     }
 
 #-------------------------------------------------------------------------------

@@ -437,6 +437,11 @@ Returns the given $value if the $deconted value type matches against $type.
 Otherwise throws.
 
 ### raku-boolify
+```
+nqp::dispatch("raku-boolify", $value);
+```
+Returns `True` if the given $value is true, else returns `False`.
+
 ### raku-call
 ```
 nqp::dispatch("raku-call", $callee, …);

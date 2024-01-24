@@ -3709,88 +3709,110 @@ nqp::register('raku-isinvokable', -> $capture {
     );
 });
 
-# Smartmatch support
-{
-    my $hllbool     := nqp::getstaticcode(-> $prim { nqp::hllboolfor(nqp::istrue($prim), 'Raku') });
-    my $hllbool_not := nqp::getstaticcode(-> $prim { nqp::hllboolfor(nqp::not_i(nqp::istrue($prim)), 'Raku') });
+#- raku-boolify -------------------------------------------------------------
+# Dispatcher for boolification of a value.
 
-    sub is-routine-setting-only($routine, :$U = 0, :$D = 0) {
-        if nqp::istype($routine, Routine) {
-            return nqp::istrue(
-                $routine.IS-SETTING-ONLY(
-                    U => $hllbool($U),
-                    D => $hllbool($D),
-                    with-proto => $hllbool(1)));
-        }
-        elsif nqp::istype($routine, Code) {
-            return nqp::istrue($routine.file.starts-with('SETTING::'));
-        }
-        # Non-Raku code objects are considered coming from the setting.
-        1
+# Code for HLLizing to a Raku Bool
+my $hllbool := nqp::getstaticcode(
+  -> $prim { nqp::hllboolfor(nqp::istrue($prim), 'Raku') }
+);
+# Code for HLLizing to a Raku Bool, negating the value
+my $hllbool_not := nqp::getstaticcode(
+  -> $prim { nqp::hllboolfor(nqp::isfalse($prim), 'Raku') }
+);
+
+# Return whether all candidates of the given method name on the
+# given type have an :U constraint on the invocant, and whether
+# the method is part of the coe setting.
+sub is-method-setting-only-U($type, str $method-name) {
+    my $method := nqp::tryfindmethod($type, $method-name);
+    nqp::defined($method) && nqp::istype($method, Routine)
+      ?? $method.IS-SETTING-ONLY-U
+      !! nqp::istype($method, Code)
+        ?? nqp::istrue($method.file.starts-with('SETTING::'))
+        !! 1 # Non-Raku code objects are considered coming from setting
+}
+
+# Return whether all candidates of the given method name on the
+# given type have an :D constraint on the invocant, and whether
+# the method is part of the core setting.
+sub is-method-setting-only-D($type, str $method-name) {
+    my $method := nqp::tryfindmethod($type, $method-name);
+    nqp::defined($method) && nqp::istype($method, Routine)
+      ?? $method.IS-SETTING-ONLY-D
+      !! nqp::istype($method, Code)
+        ?? nqp::istrue($method.file.starts-with('SETTING::'))
+        !! 1 # Non-Raku code objects are considered coming from setting
+}
+
+# The actual boolification dispatcher: expects a value to boolify, and
+# produces either True or False
+nqp::register('raku-boolify', -> $capture {
+
+    # Get the thing to boolify and track it
+    my $arg-spec := nqp::captureposprimspec($capture, 0);
+    my $arg := $arg-spec
+      ?? $arg-spec == 1
+        ?? nqp::captureposarg_i($capture, 0)
+        !! $arg-spec == 2
+          ?? nqp::captureposarg_n($capture, 0)
+          !! nqp::captureposarg_s($capture, 0)
+      !! nqp::captureposarg($capture, 0);
+    my $Targ := nqp::track('arg', $capture, 0);
+
+    # There is no need to guard for type when fallback to method call
+    sub fallback-type() {
+        nqp::delegate('raku-meth-call',
+          nqp::syscall('dispatcher-insert-arg-literal-str',
+            nqp::syscall('dispatcher-insert-arg-literal-obj',
+              $capture, 0, nqp::what($arg)
+            ),
+            1, 'Bool'
+          )
+        );
     }
 
-    sub is-method-setting-only($type, str $method-name, :$U = 0, :$D = 0) {
-        my $method := nqp::tryfindmethod($type, $method-name);
-        return 0 unless nqp::defined($method);
-        is-routine-setting-only($method, :$U, :$D)
-    }
-
-    nqp::register('raku-boolify', -> $capture {
-        my $arg-spec := nqp::captureposprimspec($capture, 0);
-        my $arg;
-        if $arg-spec == 1 {
-            $arg := nqp::captureposarg_i($capture, 0);
-        }
-        elsif $arg-spec == 2 {
-            $arg := nqp::captureposarg_n($capture, 0);
-        }
-        elsif $arg-spec == 3 {
-            $arg := nqp::captureposarg_s($capture, 0);
-        }
-        else {
-            $arg := nqp::captureposarg($capture, 0);
-        }
-        my $track_arg := nqp::track('arg', $capture, 0);
-        my $explicit-call := 0;
-        if nqp::isconcrete($arg) {
-            if $arg-spec {
-                nqp::guard('concreteness', $track_arg);
-                nqp::guard('type', $track_arg);
-                nqp::delegate('boot-code-constant',
-                    nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, $hllbool)
-                );
-            }
-            elsif nqp::istype($arg, Bool) {
-                nqp::guard('concreteness', $track_arg);
-                nqp::guard('type', $track_arg);
-                nqp::delegate('boot-value', $capture);
-            }
-            else {
-                $explicit-call := 1;
-            }
-        }
-        elsif is-method-setting-only($arg, 'Bool', :U) {
-            # For non-concrete objects default method Bool candidate would always produce False.
-            nqp::guard('concreteness', $track_arg);
-            nqp::guard('type', $track_arg);
-            nqp::delegate('boot-value',
-                nqp::syscall('dispatcher-insert-arg-literal-obj',
-                    $capture, 0, $hllbool(0)
-                )
+    if nqp::isconcrete($arg) {
+        if $arg-spec {
+            nqp::guard('concreteness', $Targ);
+            nqp::guard('type', $Targ);
+            nqp::delegate('boot-code-constant',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                $capture, 0, $hllbool
+              )
             );
         }
+        elsif nqp::istype($arg, Bool) {
+            nqp::guard('concreteness', $Targ);
+            nqp::guard('type', $Targ);
+            nqp::delegate('boot-value', $capture);
+        }
         else {
-            $explicit-call := 1;
+            fallback-type();
         }
-        if $explicit-call {
-            # There is no need to guard for type when fallback to method call.
-            nqp::delegate('raku-meth-call',
-                nqp::syscall('dispatcher-insert-arg-literal-str',
-                    nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, nqp::what($arg)),
-                    1, 'Bool'));
-        }
-    });
+    }
 
+    # For non-concrete objects default method Bool candidate would always
+    # produce False if it's a setting object
+    elsif is-method-setting-only-U($arg, 'Bool') {
+        nqp::guard('concreteness', $Targ);
+        nqp::guard('type', $Targ);
+        nqp::delegate('boot-value',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            $capture, 0, $hllbool(0)
+          )
+        );
+    }
+
+    # Non-core types we're not so sure, so type.Bool
+    else {
+        fallback-type();
+    }
+});
+
+#- raku-smartmatch -------------------------------------------------------------
+# Smartmatch support
+{
     my &smartmatch-code := nqp::getstaticcode(-> $topic, $rhs {
         nqp::dispatch('raku-boolify', $rhs.ACCEPTS($topic))
     });
@@ -3912,7 +3934,7 @@ nqp::register('raku-isinvokable', -> $capture {
             && nqp::isconcrete_nd($lhs)
             && (nqp::isconcrete_nd($rhs) || !nqp::istype($rhs, Junction))
             && !(nqp::isconcrete_nd($rhs) && $boolification == 1 && nqp::istype_nd($rhs, Regex))
-            && is-method-setting-only($rhs, 'ACCEPTS', :D)
+            && is-method-setting-only-D($rhs, 'ACCEPTS')
         {
             # nqp::guard('literal', $track-boolification);
             nqp::guard('type', $track-lhs);
@@ -3969,7 +3991,7 @@ nqp::register('raku-isinvokable', -> $capture {
                     $explicit-accepts := 0;
                 }
             }
-            elsif is-method-setting-only($rhs, 'ACCEPTS', :U) { # Non-concrete RHS
+            elsif is-method-setting-only-U($rhs, 'ACCEPTS') { # Non-concrete RHS
                 # A typeobject on RHS with default ACCEPTS can be reduced to nqp::istype, unless LHS is a concrete Junction.
                 nqp::guard('concreteness', $track-rhs);
                 nqp::guard('type', $track-rhs);

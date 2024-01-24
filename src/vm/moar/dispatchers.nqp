@@ -17,13 +17,35 @@ sub delegate-constant($capture, $value) {
 }
 
 # Helper sub to delegate to return Nil
-sub delegate-constant-Nil($capture) { delegate-constant($capture, Nil) };
+sub delegate-constant-Nil($capture) { delegate-constant($capture, Nil) }
+
+# Helper sub to delegate to a syscall for a code object as the first
+# argument in a capture
+sub delegate-code-syscall($capture, str $dispatcher) {
+    my $Tcode := nqp::track('arg', $capture, 0);
+    nqp::guard('type', $Tcode);
+
+    nqp::istype(nqp::captureposarg($capture, 0), Code)
+      # Delegate to calling try-capture-lex-callers function
+      ?? nqp::delegate('boot-syscall',
+           nqp::syscall('dispatcher-insert-arg-literal-str',
+             nqp::syscall('dispatcher-insert-arg',
+               nqp::syscall('dispatcher-drop-arg', $capture, 0),
+               0, nqp::track('attr', $Tcode, Code, '$!do')
+             ),
+             0, $dispatcher
+           )
+         )
+
+      # Produce whatever we were given
+      !! nqp::delegate('boot-value', $capture);
+}
 
 #- raku-rv-decont --------------------------------------------------------------
 # Return value decontainerization dispatcher. Often we have nothing at all
 # to do, in which case we can make it identity. Other times, we need a
 # decont. In a few, we need to re-wrap it.
-{
+;{
     # Simple re-containerization logic
     my $recont := -> $obj {
         my $rc := nqp::create(Scalar);
@@ -3630,24 +3652,7 @@ nqp::register('raku-find-meth-mega', -> $capture {
 # The dispatcher backing p6capturelex. If we are passed a code object, then
 # extracts the underlying handle and causes it to be captured.
 nqp::register('raku-capture-lex', -> $capture {
-    my $code := nqp::captureposarg($capture, 0);
-    my $Tcode := nqp::track('arg', $capture, 0);
-    nqp::guard('type', $Tcode);
-
-    nqp::istype($code, Code)
-      # Delegate to calling try-capture-lex function
-      ?? nqp::delegate('boot-syscall',
-           nqp::syscall('dispatcher-insert-arg-literal-str',
-             nqp::syscall('dispatcher-insert-arg',
-               nqp::syscall('dispatcher-drop-arg', $capture, 0),
-               0, nqp::track('attr', $Tcode, Code, '$!do')
-             ),
-             0, 'try-capture-lex'
-           )
-         )
-
-      # Produce whatever we were given
-      !! nqp::delegate('boot-value', $capture);
+    delegate-code-syscall($capture, 'try-capture-lex');
 });
 
 #- raku-capture-lex-callers ----------------------------------------------------
@@ -3655,32 +3660,14 @@ nqp::register('raku-capture-lex', -> $capture {
 # then extracts the underlying handle and looks down the callstack for a
 # caller that matches the outer, and captures it.
 nqp::register('raku-capture-lex-callers', -> $capture {
-    my $code := nqp::captureposarg($capture, 0);
-    my $Tcode := nqp::track('arg', $capture, 0);
-    nqp::guard('type', $Tcode);
-
-    nqp::istype($code, Code)
-      # Delegate to calling try-capture-lex-callers function
-      ?? nqp::delegate('boot-syscall',
-           nqp::syscall('dispatcher-insert-arg-literal-str',
-             nqp::syscall('dispatcher-insert-arg',
-               nqp::syscall('dispatcher-drop-arg', $capture, 0),
-               0, nqp::track('attr', $Tcode, Code, '$!do')
-             ),
-             0, 'try-capture-lex-callers'
-           )
-         )
-
-      # Produce whatever we were given
-      !! nqp::delegate('boot-value', $capture);
+    delegate-code-syscall($capture, 'try-capture-lex-callers');
 });
 
 #- raku-get-code-outer-ctx -----------------------------------------------------
 # The dispatcher backing p6getouterctx. Unwraps the code object, and then
 # gets a context object for its enclosing scope.
 nqp::register('raku-get-code-outer-ctx', -> $capture {
-    my $code := nqp::captureposarg($capture, 0);
-    if nqp::istype($code, Code) {
+    if nqp::istype(nqp::captureposarg($capture, 0), Code) {
         my $Tcode := nqp::track('arg', $capture, 0);
         nqp::delegate('boot-syscall',
           nqp::syscall('dispatcher-insert-arg-literal-str',

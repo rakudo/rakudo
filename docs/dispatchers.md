@@ -445,6 +445,11 @@ Calls the given $callee with the given arguments, and returns the result.
 The $callee can be a sub / method / code object.  
 
 ### raku-capture-lex
+```
+nqp::dispatch("raku-capture-lex", $code);
+```
+Returns a capture the lexical environment of the given $code object.
+
 ### raku-capture-lex-callers
 ### raku-class-archetypes
 ```

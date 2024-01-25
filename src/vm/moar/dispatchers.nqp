@@ -51,6 +51,12 @@ sub delegate-code-syscall($capture, str $dispatcher) {
       !! nqp::delegate('boot-value', $capture);
 }
 
+# Guard the given tracker on type and concreteness
+sub guard-type-concreteness($tracker) {
+    nqp::guard('type', $tracker);
+    nqp::guard('concreteness', $tracker);
+}
+
 #- raku-rv-decont --------------------------------------------------------------
 # Return value decontainerization dispatcher. Often we have nothing at all
 # to do, in which case we can make it identity. Other times, we need a
@@ -105,8 +111,7 @@ sub delegate-code-syscall($capture, str $dispatcher) {
             # We always need to guard on type and concreteness.
             my $rv  := nqp::captureposarg($capture, 0);
             my $Trv := nqp::track('arg',  $capture, 0);
-            nqp::guard('type', $Trv);
-            nqp::guard('concreteness', $Trv);
+            guard-type-concreteness($Trv);
 
             # Is it a container?
             if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
@@ -189,9 +194,7 @@ sub delegate-code-syscall($capture, str $dispatcher) {
     nqp::register('raku-rv-decont-6c', -> $capture {
         my $rv := nqp::captureposarg($capture, 0);
         if nqp::eqaddr(nqp::what_nd($rv), Proxy) && nqp::isconcrete_nd($rv) {
-            my $Trv := nqp::track('arg', $capture, 0);
-            nqp::guard('type', $Trv);
-            nqp::guard('concreteness', $Trv);
+            guard-type-concreteness(nqp::track('arg', $capture, 0));
             nqp::delegate('boot-value', $capture);
         }
         else {
@@ -657,8 +660,7 @@ sub delegate-code-syscall($capture, str $dispatcher) {
         # and its concreteness
         my $cont  := nqp::captureposarg($capture, 0);
         my $Tcont := nqp::track('arg',  $capture, 0);
-        nqp::guard('type',         $Tcont);
-        nqp::guard('concreteness', $Tcont);
+        guard-type-concreteness($Tcont);
 
         # Final handler to be delegated to
         my $handler := $assign-fallback;
@@ -948,8 +950,7 @@ nqp::register('raku-is-attr-inited', -> $capture {
         # Otherwise, bound concrete value. Guard on type and concreteness,
         # outcome is that it's initialized.
         else {
-            nqp::guard('type', $Tattr);
-            nqp::guard('concreteness', $Tattr);
+            guard-type-concreteness($Tattr);
             $inited := 1;
         }
     }
@@ -981,10 +982,8 @@ nqp::register('raku-is-attr-inited', -> $capture {
 # inside a container.
 nqp::register('raku-sink', -> $capture {
     # Guard on the type and concreteness.
-    my $sinkee  := nqp::captureposarg($capture, 0);
-    my $Tsinkee := nqp::track('arg', $capture, 0);
-    nqp::guard('type', $Tsinkee);
-    nqp::guard('concreteness', $Tsinkee);
+    my $sinkee := nqp::captureposarg($capture, 0);
+    guard-type-concreteness(nqp::track('arg', $capture, 0));
 
     # Now consider what we're sinking.
     if nqp::isconcrete_nd($sinkee) {
@@ -2542,8 +2541,7 @@ sub multi-junction-failover($capture) {
                     $tracked := nqp::track('attr',
                         $tracked, Scalar, '$!value');
                 }
-                nqp::guard('type', $tracked);
-                nqp::guard('concreteness', $tracked);
+                guard-type-concreteness($tracked);
             }
             $i++;
         }
@@ -3096,10 +3094,7 @@ nqp::register('raku-invoke', -> $capture {
     my int $code-constant := nqp::syscall('dispatcher-is-arg-literal',
         $capture, 0);
     my $code_arg := nqp::track('arg', $capture, 0);
-    unless $code-constant {
-        nqp::guard('type', $code_arg);
-        nqp::guard('concreteness', $code_arg);
-    }
+    guard-type-concreteness($code_arg) unless $code-constant;
 
     # If it's already a VM-level code reference, just invoke it.
     if nqp::reprname($code) eq 'MVMCode' {

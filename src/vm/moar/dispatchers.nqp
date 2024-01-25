@@ -3,12 +3,12 @@
 my int $MEGA-TYPE-CALLSITE-SIZE := 16;
 my int $MEGA-METH-CALLSITE-SIZE := 16;
 
-
-# Helper sub to delegate to return given value
+#- General Helper Subs ---------------------------------------------------------
+# Helper sub to delegate to return given constant
 sub delegate-constant($capture, $value) {
 
-    # Insert a Nil value at the start (boot-constant ignores the rest
-    # of the args) and delegate
+    # Insert the literal value at the start (boot-constant ignores
+    # the rest of the args) and delegate
     nqp::delegate('boot-constant',
       nqp::syscall('dispatcher-insert-arg-literal-obj',
         $capture, 0, $value
@@ -18,6 +18,16 @@ sub delegate-constant($capture, $value) {
 
 # Helper sub to delegate to return Nil
 sub delegate-constant-Nil($capture) { delegate-constant($capture, Nil) }
+
+# Helper sub to delegate to return given value
+sub delegate-value($capture, $value) {
+
+    # Insert the value at the start (boot-value ignores the rest
+    # of the args) and delegate
+    nqp::delegate('boot-value',
+      nqp::syscall('dispatcher-insert-arg', $capture, 0, $value)
+    );
+}
 
 # Helper sub to delegate to a syscall for a code object as the first
 # argument in a capture
@@ -141,11 +151,7 @@ sub delegate-code-syscall($capture, str $dispatcher) {
                         else {
                             # Decont, so just evaluate to the read attr
                             # (boot-value ignores all but the first argument)
-                            nqp::delegate('boot-value',
-                              nqp::syscall('dispatcher-insert-arg',
-                                $capture, 0, $Tvalue
-                              )
-                            );
+                            delegate-value($capture, $Tvalue);
                         }
                     }
 
@@ -2882,9 +2888,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
         if $kind == nqp::const::DISP_BIND_SUCCESS {
             # Successful. Peel off the candidate and hand it back.
             peel-off-candidate($is-resume, $track-cur-state, $cur-state, $orig-capture);
-            nqp::delegate('boot-value',
-                nqp::syscall('dispatcher-insert-arg',
-                    $arg-capture, 0, $track-candidate));
+            delegate-value($arg-capture, $track-candidate);
             return;
         }
         elsif $kind == nqp::const::DISP_BIND_FAILURE {
@@ -3633,17 +3637,15 @@ nqp::register('raku-find-meth-mega', -> $capture {
     # lookup of the method in the table we found in the meta-object.
     # If it's not found, the outcome will be a null, which is exactly
     # what we want to indicate lookup failure
-    nqp::delegate('boot-value',
-      nqp::syscall('dispatcher-insert-arg', $capture, 0,
-        nqp::syscall(
-          'dispatcher-index-tracked-lookup-table',
-          nqp::track('attr',
-            nqp::track('how', nqp::track('arg', $capture, 0)),
-            Perl6::Metamodel::ClassHOW,
-            '$!cached_all_method_table'
-          ),
-          nqp::track('arg', $capture, 1)
-        )
+    delegate-value(
+      $capture,
+      nqp::syscall('dispatcher-index-tracked-lookup-table',
+        nqp::track('attr',
+          nqp::track('how', nqp::track('arg', $capture, 0)),
+          Perl6::Metamodel::ClassHOW,
+          '$!cached_all_method_table'
+        ),
+        nqp::track('arg', $capture, 1)
       )
     );
 });

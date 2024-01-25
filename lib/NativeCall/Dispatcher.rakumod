@@ -15,15 +15,14 @@ my sub raku-nativecall-deproxy(Mu $capture is raw) {
 }
 
 my sub raku-nativecall-deproxy-resume(Mu $capture is raw) {
-    my $track_kind := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    nqp::syscall('dispatcher-guard-literal', $track_kind);
+    my $Tkind := nqp::track('arg', $capture, 0);
+    nqp::guard('literal', $Tkind);
     my int $kind = nqp::captureposarg_i($capture, 0);
 
     if $kind == nqp::const::DISP_DECONT {
         my $orig-capture := nqp::syscall('dispatcher-get-resume-init-args');
-        my $track_callee := nqp::syscall('dispatcher-track-arg',
-            $orig-capture, 0);
-        nqp::syscall('dispatcher-guard-literal', $track_callee);
+        my $Tcallee := nqp::track('arg', $orig-capture, 0);
+        nqp::guard('literal', $Tcallee);
         my $callee := nqp::captureposarg($orig-capture, 0);
         my $capture-delegate := nqp::syscall(
           'dispatcher-insert-arg-literal-obj',
@@ -40,8 +39,8 @@ nqp::register('raku-nativecall-deproxy', $do, $do-resume);
 
 my $PROXY-READERS := nqp::gethllsym('Raku', 'PROXY-READERS');
 my sub raku-nativecall(Mu $capture is raw) {
-    my $track_callee := nqp::syscall('dispatcher-track-arg', $capture, 0);
-    nqp::syscall('dispatcher-guard-literal', $track_callee);
+    my $Tcallee := nqp::track('arg', $capture, 0);
+    nqp::guard('literal', $Tcallee);
     my $callee := nqp::captureposarg($capture, 0);
     $callee.setup;
 
@@ -70,8 +69,8 @@ my sub raku-nativecall(Mu $capture is raw) {
         $i = 0;
         while $i < $pos-args {
             if nqp::captureposprimspec($args, $i) == 0 {
-                my $track-arg := nqp::syscall('dispatcher-track-arg', $args, nqp::unbox_i($i));
-                nqp::syscall('dispatcher-guard-type', $track-arg);
+                my $Targ := nqp::track('arg', $args, nqp::unbox_i($i));
+                nqp::guard('type', $Targ);
             }
             $i++;
         }
@@ -104,45 +103,41 @@ my sub raku-nativecall-core(Mu $capture is raw) {
         # If it should be passed read only, and it's an object...
         if nqp::captureposprimspec($args, $i) == 0 {
             # If it's in a Scalar container...
-            my $track-arg := nqp::syscall('dispatcher-track-arg', $args, nqp::unbox_i($i));
-            nqp::syscall('dispatcher-guard-type', $track-arg);
-            nqp::syscall('dispatcher-guard-concreteness', $track-arg);
+            my $Targ := nqp::track('arg', $args, nqp::unbox_i($i));
+            nqp::guard('type', $Targ);
+            nqp::guard('concreteness', $Targ);
             my $arg := nqp::captureposarg($args, $i);
-            my $track-value;
+            my $Tvalue;
             my $cstr = False;
             if nqp::isconcrete_nd($arg) && nqp::istype_nd($arg, Scalar) {
                 # Read it from the container and pass it decontainerized.
-                $track-value := nqp::syscall('dispatcher-track-attr',
-                    $track-arg, Scalar, '$!value');
+                $Tvalue := nqp::track('attr', $Targ, Scalar, '$!value');
                 $args := nqp::syscall('dispatcher-insert-arg',
                     nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                    nqp::unbox_i($i), $track-value);
+                    nqp::unbox_i($i), $Tvalue);
                 $arg := nqp::decont($arg);
             }
             else {
-                $track-value := $track-arg;
+                $Tvalue := $Targ;
             }
             if nqp::isconcrete_nd($arg) && nqp::istype_nd($arg, Code) {
-                $track-value := nqp::syscall('dispatcher-track-attr',
-                    $track-value, Code, '$!do');
+                $Tvalue := nqp::track('attr', $Tvalue, Code, '$!do');
                 $args := nqp::syscall('dispatcher-insert-arg',
                     nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                    nqp::unbox_i($i), $track-value);
+                    nqp::unbox_i($i), $Tvalue);
             }
             if nqp::isconcrete_nd($arg) && $arg.does(NativeCall::Types::ExplicitlyManagedString) {
                 $cstr = True;
-                $track-value := nqp::syscall('dispatcher-track-attr',
-                    $track-value, $arg.WHAT, '$!cstr');
+                $Tvalue := nqp::track('attr', $Tvalue, $arg.WHAT, '$!cstr');
                 $args := nqp::syscall('dispatcher-insert-arg',
                     nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                    nqp::unbox_i($i), $track-value);
+                    nqp::unbox_i($i), $Tvalue);
                 $arg := nqp::getattr($arg, $arg.WHAT, '$!cstr');
                 if nqp::isconcrete_nd($arg) && nqp::what_nd($arg) =:= Scalar {
-                    $track-value := nqp::syscall('dispatcher-track-attr',
-                        $track-value, Scalar, '$!value');
+                    $Tvalue := nqp::track('attr', $Tvalue, Scalar, '$!value');
                     $args := nqp::syscall('dispatcher-insert-arg',
                         nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                        nqp::unbox_i($i), $track-value);
+                        nqp::unbox_i($i), $Tvalue);
                     $arg := nqp::decont($arg);
                 }
             }
@@ -151,11 +146,10 @@ my sub raku-nativecall-core(Mu $capture is raw) {
             unless $param.rw or nqp::isrwcont($arg) {
                 if $param.type ~~ Int or $param.type.REPR eq 'CPointer' {
                     if nqp::isconcrete_nd($arg) {
-                        $track-value := nqp::syscall('dispatcher-track-unbox-int',
-                            $track-value);
+                        $Tvalue := nqp::track('unbox-int', $Tvalue);
                         $args := nqp::syscall('dispatcher-insert-arg',
                             nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), $track-value);
+                            nqp::unbox_i($i), $Tvalue);
                     }
                     else {
                         $args := nqp::syscall('dispatcher-insert-arg-literal-int',
@@ -165,11 +159,10 @@ my sub raku-nativecall-core(Mu $capture is raw) {
                 }
                 elsif $param.type ~~ Num {
                     if nqp::isconcrete_nd($arg) {
-                        $track-value := nqp::syscall('dispatcher-track-unbox-num',
-                            $track-value);
+                        $Tvalue := nqp::track('unbox-num', $Tvalue);
                         $args := nqp::syscall('dispatcher-insert-arg',
                             nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), $track-value);
+                            nqp::unbox_i($i), $Tvalue);
                     }
                     else {
                         $args := nqp::syscall('dispatcher-insert-arg-literal-num',
@@ -179,11 +172,10 @@ my sub raku-nativecall-core(Mu $capture is raw) {
                 }
                 elsif $param.type ~~ Str and not $cstr {
                     if nqp::isconcrete_nd($arg) {
-                        $track-value := nqp::syscall('dispatcher-track-unbox-str',
-                            $track-value);
+                        $Tvalue := nqp::track('unbox-str', $Tvalue);
                         $args := nqp::syscall('dispatcher-insert-arg',
                             nqp::syscall('dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                            nqp::unbox_i($i), $track-value);
+                            nqp::unbox_i($i), $Tvalue);
                     }
                     else {
                         $args := nqp::syscall('dispatcher-insert-arg-literal-int',

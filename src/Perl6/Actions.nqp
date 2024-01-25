@@ -6775,14 +6775,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # know which are which, but if we're writing out an `nqp::op`
             # just assume that they should all be unboxed; most situations
             # will see the dispatch op generated anyway.
-            my int $i := 0;
+            my int $i := -1;
             my int $n := nqp::elems($past.list);
-            while $i < $n {
-                if nqp::istype($past[$i], QAST::Want) &&
-                        ($past[$i][1] eq 'Ss' || $past[$i][1] eq 'Ii') {
-                    $past[$i] := $past[$i][2];
-                }
-                $i++;
+            while ++$i < $n {
+                my $pasti := $past[$i];
+                $past[$i] := $pasti[2]
+                  if nqp::istype($pasti, QAST::Want)
+                  && ($pasti[1] eq 'Ss' || $pasti[1] eq 'Ii');
             }
         }
         $past.node($/);

@@ -1,10 +1,15 @@
 role Perl6::Metamodel::C3MRO {
     # Storage of the MRO.
     has %!mro;
+    has $!mro_lock;
+
+    method setup_mro_engine() {
+        $!mro_lock := NQPLock.new();
+    }
 
     # Computes C3 MRO.
     method compute_mro($class) {
-        %!mro := nqp::hash(
+        my %mro := nqp::hash(
             'all', nqp::hash(
                 'no_roles', nqp::list(),    # MRO with roles excluded
                 'all', nqp::list(),         # MRO with roles as parametric groups
@@ -97,18 +102,20 @@ role Perl6::Metamodel::C3MRO {
             }
         }
 
-        %!mro := nqp::hash(
-            'all', nqp::hash(
-                'all', @all,
-                'all_conc', @all_conc,
-                'no_roles', @no_roles,
-            ),
-            'unhidden', nqp::hash(
-                'all', @unhidden_all,
-                'all_conc', @unhidden_all_conc,
-                'no_roles', @unhidden_no_roles,
-            ),
-        );
+        $!mro_lock.protect({
+            %!mro := nqp::hash(
+                'all', nqp::hash(
+                    'all', @all,
+                    'all_conc', @all_conc,
+                    'no_roles', @no_roles,
+                ),
+                'unhidden', nqp::hash(
+                    'all', @unhidden_all,
+                    'all_conc', @unhidden_all_conc,
+                    'no_roles', @unhidden_no_roles,
+                ),
+            )
+        })
     }
 
     # C3 merge routine.
@@ -179,12 +186,16 @@ role Perl6::Metamodel::C3MRO {
 
     # Introspects the Method Resolution Order.
     method mro($obj, :$roles = 0, :$concretizations = 0, :$unhidden = 0) {
-        unless nqp::existskey(%!mro, 'all') {
-            self.compute_mro($obj);
+        # Make sure we get a snapshot of MRO hash without competing with compute_mro working in another thread.
+        # It should be safe to pull in just %!mro without cloning it because the hash itself remains immutable, it's
+        # only the %!mro attribute that gets updated with new object.
+        my %mro := $!mro_lock.protect({ %!mro });
+        unless nqp::existskey(%mro, 'all') {
+            %mro := self.compute_mro($obj);
         }
         my $all_key := $concretizations ?? 'all_conc' !! 'all';
         nqp::atkey(
-            nqp::atkey(%!mro, $unhidden ?? 'unhidden' !! 'all'),
+            nqp::atkey(%mro, $unhidden ?? 'unhidden' !! 'all'),
             $concretizations ?? 'all_conc' !! ($roles ?? 'all' !! 'no_roles')
         );
     }
@@ -193,10 +204,6 @@ role Perl6::Metamodel::C3MRO {
     # been hidden.
     method mro_unhidden($obj, :$roles = 0, :$concretizations = 0) {
         self.mro($obj, :$roles, :$concretizations, :unhidden)
-    }
-
-    method mro_hash() {
-        %!mro
     }
 }
 

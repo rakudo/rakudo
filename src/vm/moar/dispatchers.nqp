@@ -1585,8 +1585,6 @@ nqp::register('raku-meth-call-resolved',
                 $args_with_kind := $capture;
             }
             else {
-                my $args := nqp::syscall('dispatcher-drop-n-args',
-                    $init, 0, 2);
                 $args_with_kind := nqp::syscall('dispatcher-insert-arg',
                   nqp::syscall('dispatcher-drop-n-args', $init, 0, 2),
                   0, $Tkind

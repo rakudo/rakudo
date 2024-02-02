@@ -1778,8 +1778,9 @@ nqp::register('raku-meth-deferral',
                     nqp::delegate('raku-meth-deferral',
                       nqp::syscall('dispatcher-insert-arg',
                         nqp::syscall('dispatcher-insert-arg-literal-int',
-                          nqp::syscall('dispatcher-replace-arg',
-                            $capture, 0, nqp::track('arg', $args, 0)
+                          nqp::syscall('dispatcher-insert-arg',
+                            nqp::syscall('dispatcher-drop-arg', $capture, 0),
+                            0, nqp::track('arg', $args, 0)
                           ),
                           0, nqp::const::DISP_CALLSAME
                         ),

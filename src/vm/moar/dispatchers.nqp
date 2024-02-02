@@ -1886,12 +1886,10 @@ nqp::register('raku-multi',
     # should go ahead and do the dispatch. Make sure we only do this if we
     # are signalled to that it's a resume for an onlystar.
     -> $capture {
-        my $Tkind := nqp::track('arg', $capture, 0);
-        nqp::guard('literal', $Tkind);
-        my int $kind := nqp::captureposarg_i($capture, 0);
+        nqp::guard('literal', nqp::track('arg', $capture, 0));
 
         # A resume of an onlystar
-        if $kind == nqp::const::DISP_ONLYSTAR {
+        if nqp::captureposarg_i($capture, 0) == nqp::const::DISP_ONLYSTAR {
 
             # Put a guard on the dispatchee list, as a given proto may be
             # cloned and used for multiple candidate lists.

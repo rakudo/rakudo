@@ -407,7 +407,7 @@ class RakuAST::Resolver {
         }
         else {
             my $new := '';
-            my int $i := 0;
+            my int $i;
             my int $e := nqp::chars($v);
             while $i < $e {
                 my $ch := nqp::substr($v,$i,1);
@@ -1032,11 +1032,11 @@ class RakuAST::Resolver::Compile
     }
 
     method make_levenshtein_evaluator($orig_name, @candidates) {
-        my $find-count := 0;
-        my $try-count := 0;
+        my int $find-count;
+        my int $try-count;
         my &inner := my sub ($name) {
             # difference in length is a good lower bound.
-            $try-count := $try-count + 1;
+            ++$try-count;
             return 0 if $find-count > 20 || $try-count > 1000;
             my $parlen := nqp::chars($orig_name);
             my $lendiff := nqp::chars($name) - $parlen;
@@ -1051,7 +1051,7 @@ class RakuAST::Resolver::Compile
             if $target != -1 {
                 my $name-str := nqp::box_s($name, Str);
                 nqp::push($target, $name-str);
-                $find-count := $find-count + 1;
+                ++$find-count;
             }
             1;
         }

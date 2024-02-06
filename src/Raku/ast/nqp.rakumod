@@ -34,7 +34,7 @@ class RakuAST::Nqp
         # We want to make use of nqp ops as simple as possible, so
         # we automatically convert common types to their RakuAST
         # equivalents.
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems($args);
         while $i < $n {
             my $arg := $args[$i];
@@ -72,7 +72,7 @@ class RakuAST::Nqp
         # know which are which, but if we're writing out an `nqp::op`
         # just assume that they should all be unboxed; most situations
         # will see the dispatch op generated anyway.
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems($call.list);
         while $i < $n {
             my $arg := $call[$i];
@@ -80,7 +80,7 @@ class RakuAST::Nqp
               && ($arg[1] eq 'Ss' || $arg[1] eq 'Ii') {
                 $call[$i] := $arg[2];
             }
-            $i++;
+            ++$i;
         }
         $call
     }

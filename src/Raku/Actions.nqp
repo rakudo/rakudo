@@ -688,7 +688,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # collect the if and all of the elsifs / orwiths
         my @elsifs;
-        my $index := 0;
+        my int $index;
         for @*IF-PARTS {
             @elsifs.push:
               Nodify('Statement',$_).new:
@@ -1221,15 +1221,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     sub intify($sign, $digits, $from) {
         my $Int       := $*LITERALS.int-type;
         my $value     := nqp::box_i(0, $Int);
-        my int $i     := -1;
         my int $chars := nqp::chars($digits);
+        my int $i;
 
-        while ++$i < $chars {
+        while $i < $chars {
             $value := nqp::add_I(
               nqp::mul_I($value, nqp::box_i(10, $Int), $Int),
               nqp::box_i(nqp::index($from, nqp::substr($digits,$i,1)), $Int),
               $Int
             );
+            ++$i;
         }
         $sign eq '⁻' || $sign eq '¯' ?? nqp::neg_I($value,$Int) !! $value
     }
@@ -2843,7 +2844,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method signature($/) {
         my @parameters;
-        my int $param_idx := 0;
+        my int $param_idx;
         for $<parameter> {
             my $param := $_.ast;
             my $sep := @*SEPS[$param_idx];
@@ -2857,7 +2858,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $param.set-invocant(1);
             }
             @parameters.push($param);
-            $param_idx := $param_idx + 1;
+            ++$param_idx;
         }
         my $returns;
         if $<typename> {
@@ -3919,7 +3920,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     method assertion:sym<[>($/) {
         my @elems := $<cclass_elem>;
         my @asts;
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems(@elems);
         while $i < $n {
             my $sign := @elems[$i]<sign>;
@@ -3928,7 +3929,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                 $sign.panic('Missing + or - between character class elements')
             }
             @asts.push(@elems[$i].ast);
-            $i++;
+            ++$i;
         }
         self.attach: $/, Nodify('Regex', 'Assertion', 'CharClass').new(|@asts);
     }

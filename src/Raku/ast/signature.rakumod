@@ -127,7 +127,7 @@ class RakuAST::Signature
                     RakuAST::Parameter.new(:invocant, :$type));
             }
             unless $!is-on-meta-method {
-                my $slurpy-hash-seen := 0;
+                my int $slurpy-hash-seen;
                 for @param-asts {
                     if !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $_.target && $_.target.sigil eq '%' {
                         $slurpy-hash-seen := 1;
@@ -248,24 +248,24 @@ class RakuAST::Signature
     }
 
     method arity() {
-        my int $arity := 0;
-        $arity++ if $!implicit-invocant;
+        my int $arity;
+        ++$arity if $!implicit-invocant;
         if $!parameters {
             for $!parameters {
                 last unless $_.is-positional && !$_.is-optional;
-                $arity++;
+                ++$arity;
             }
         }
         nqp::box_i($arity, Int)
     }
 
     method count() {
-        my int $count := 0;
-        $count++ if $!implicit-invocant;
+        my int $count;
+        ++$count if $!implicit-invocant;
         if $!parameters {
             for $!parameters {
                 if $_.is-positional {
-                    $count++;
+                    ++$count;
                 }
                 elsif !($_.slurpy =:= RakuAST::Parameter::Slurpy)
                          && $_.target.sigil ne '%' {

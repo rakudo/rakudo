@@ -63,11 +63,12 @@ class RakuAST::ColonPairish {
         else {
             my $new := '';
             my int $e := nqp::chars($v);
-            my int $i := -1;
-            while ++$i < $e {
+            my int $i;
+            while $i < $e {
                 my $ch := nqp::substr($v,$i,1);
                 $new := $new ~ '\\' if $ch eq '<' || $ch eq '>';
                 $new := $new ~ $ch;
+                ++$i;
             }
             '<' ~ $new ~ '>';
         }

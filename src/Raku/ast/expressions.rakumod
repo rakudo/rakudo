@@ -223,13 +223,13 @@ class RakuAST::Infix
             || $!operator eq 'with'   || $!operator eq 'without'
         ) {
             my $thunky := self.properties.thunky;
-            my $i := 0;
+            my int $i;
             for @operands {
                 my $type := nqp::substr($thunky, $i, $i + 1);
                 if $type && $type ne '.' {
                     self.IMPL-THUNK-ARGUMENT($resolver, $context, $_, $type);
                 }
-                $i++ if $i < nqp::chars($thunky) - 1;
+                ++$i if $i < nqp::chars($thunky) - 1;
             }
         }
     }
@@ -1225,7 +1225,7 @@ class RakuAST::WhateverApplicable
                 my $index := -1;
                 for @operands {
                     my $operand := $_;
-                    $index++; # it needs to count every time so that we write into the appropriate slot in @operands
+                    ++$index; # it needs to count every time so that we write into the appropriate slot in @operands
                     if  $child-curries-whatevercode
                             &&
                         ((nqp::istype($operand, RakuAST::WhateverApplicable)

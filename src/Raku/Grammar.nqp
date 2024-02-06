@@ -55,9 +55,10 @@ role Raku::Common {
             $string eq nqp::chr(nqp::ord($string))
         }
         else {
-            my int $i := -1;
-            while ++$i < $chars
+            my int $i;
+            while $i < $chars
               && nqp::eqat($string,nqp::chr(nqp::ord($string,$i)),$i) {
+                ++$i;
             }
             $i == $chars
         }
@@ -358,11 +359,12 @@ role Raku::Common {
                     my int $actualchars := nqp::chars($ws);
                     my int $indent := $actualchars;
                     my int $tabstop := $*R.resolve-lexical('$?TABSTOP').compile-time-value;
-                    my int $checkidx := -1;
-                    while ++$checkidx < $actualchars {
+                    my int $checkidx;
+                    while $checkidx < $actualchars {
                         if nqp::eqat($ws, "\t", $checkidx) {
                             $indent := $indent + ($tabstop - 1);
                         }
+                        ++$checkidx;
                     }
                     $heredoc.set-indent($indent);
                     $heredoc.trim();
@@ -1469,7 +1471,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.block-loop><.kok>
         :s''
         [
-          :my $exprs := 0;
+          :my int $exprs;
           '('
           [
             <e1=.EXPR>? { $exprs := 1 if $<e1> }
@@ -3044,7 +3046,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                  unless $*LANG.pragma('p5isms') {
                      if $name eq 'say' || $name eq 'put' || $name eq 'print' {
                          my $al := $<args><arglist>;
-                         my int $ok := 0;
+                         my int $ok;
                          $ok := 1 unless $al<EXPR> eq '';
                          $ok := 1 if $<args><semiarglist>;
                          unless $ok {
@@ -4908,7 +4910,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         # Work out what default precedence we want, or if it's more special
         # than just an operator.
         my %prec;
-        my $is-operator := 0;
+        my int $is-operator;
         my @parts := nqp::split(' ', $opname);
 
         # Sanity checks

@@ -347,7 +347,7 @@ class RakuAST::StatementList
         # Sink all statements, with the possible exception of the last one (only if
         # we are not sunk).
         my @statements := self.code-statements;
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems(@statements);
         my int $wanted-statement := $is-sunk ?? -1 !! $n - 1;
         while $i < $n {
@@ -356,7 +356,7 @@ class RakuAST::StatementList
             if $has-block-parent && nqp::istype($cur-statement, RakuAST::BlockStatementSensitive) {
                 $cur-statement.mark-block-statement();
             }
-            $i++;
+            ++$i;
         }
         nqp::bindattr_i(self, RakuAST::StatementList, '$!is-sunk', $is-sunk ?? 1 !! 0);
         Nil

@@ -329,11 +329,11 @@ class RakuAST::Type::Parameterized
         else {
             my $args := $!args.args;
             if nqp::istype($args.AT-POS(0), RakuAST::QuotedString) {
-                my $is-only-quoted-string := 0;
-                my $arg-count := 0;
+                my int $is-only-quoted-string;
+                my int $arg-count;
                 for self.IMPL-UNWRAP-LIST($args) {
-                    $is-only-quoted-string := nqp::istype($_, RakuAST::QuotedString) ?? 1 !! 0;
-                    $arg-count++;
+                    $is-only-quoted-string := nqp::istype($_, RakuAST::QuotedString);
+                    ++$arg-count;
                     last unless $is-only-quoted-string;
                 }
                 if $is-only-quoted-string {
@@ -575,7 +575,7 @@ class RakuAST::Type::Enum
 
         # Create type objects for each value and install into proper scop
         my %stash := $resolver.IMPL-STASH-HASH($anonymous ?? $!current-package !! $meta);
-        my $index := 0;
+        my int $index;
         for %values -> $pair {
             my $key     := $pair.key;
             my $value   := $pair.value;

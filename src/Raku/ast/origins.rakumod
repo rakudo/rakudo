@@ -96,10 +96,10 @@ class RakuAST::Origin::Source {
 
     method SETUP-LINE-POSITIONS() {
         nqp::bindattr(self, RakuAST::Origin::Source, '$!line-ends', []);
-        my int $nl-pos := 0;
+        my int $nl-pos;
         my int $total := nqp::chars($!orig);
         while ($nl-pos := nqp::findcclass(nqp::const::CCLASS_NEWLINE, $!orig, $nl-pos, $total)) < $total {
-            my $ord := nqp::ord($!orig, $nl-pos);
+            my int $ord := nqp::ord($!orig, $nl-pos);
             nqp::push($!line-ends, ++$nl-pos);
             # Treat \r\n as a single logical newline. Note that NFG
             # implementations, we should check it really is a lone \r,
@@ -133,7 +133,7 @@ class RakuAST::Origin::Source {
 
     method original-line-column(int $pos) {
         my @line-ends := $!line-ends;
-        my int $lo := 0;
+        my int $lo;
         my int $hi := nqp::elems(@line-ends);
         my int $line;
         while $lo < $hi {
@@ -159,7 +159,7 @@ class RakuAST::Origin::Source {
         my $orig-line := @orig-line-col[0];
         my $column := @orig-line-col[1];
         my int $hi := nqp::elems($!line-file);
-        my int $lo := 0;
+        my int $lo;
         my int $idx;
         while $lo < $hi {
             $idx := nqp::div_i($lo + $hi, 2);

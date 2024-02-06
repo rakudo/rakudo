@@ -265,9 +265,9 @@ class RakuAST::Code
         # lexpads, if they have any.
         my @coderefs := $comp.backend.compunit_coderefs($precomp);
         my int $num-subs := nqp::elems(@coderefs);
-        my int $i := -1;
+        my int $i;
         my $result;
-        while ++$i < $num-subs {
+        while $i < $num-subs {
             my $subid := nqp::getcodecuid(@coderefs[$i]);
 
             # un-stub code objects for blocks we just compiled:
@@ -309,6 +309,7 @@ class RakuAST::Code
                 # asked to compile.
                 $result := @coderefs[$i];
             }
+            ++$i;
         }
         $result
     }
@@ -569,22 +570,22 @@ class RakuAST::PlaceholderParameterOwner
         for self.IMPL-PLACEHOLDER-MAP() {
             my $placeholder := $_.value[0];
             if nqp::istype($placeholder, RakuAST::VarDeclaration::Placeholder::Positional) {
-                my int $insert-at := 0;
+                my int $insert-at;
                 my str $desigil-insert := nqp::substr($placeholder.lexical-name, 1);
                 while $insert-at < nqp::elems(@positionals) {
                     my str $desigil-cur := nqp::substr(@positionals[$insert-at].lexical-name, 1);
                     last if $desigil-insert lt $desigil-cur;
-                    $insert-at++;
+                    ++$insert-at;
                 }
                 nqp::splice(@positionals, [$placeholder], $insert-at, 0);
             }
             elsif nqp::istype($placeholder, RakuAST::VarDeclaration::Placeholder::Named) {
-                my int $insert-at := 0;
+                my int $insert-at;
                 my str $desigil-insert := nqp::substr($placeholder.lexical-name, 1);
                 while $insert-at < nqp::elems(@nameds) {
                     my str $desigil-cur := nqp::substr(@nameds[$insert-at].lexical-name, 1);
                     last if $desigil-insert lt $desigil-cur;
-                    $insert-at++;
+                    ++$insert-at;
                 }
                 nqp::splice(@nameds, [$placeholder], $insert-at, 0);
             }
@@ -1578,9 +1579,9 @@ class RakuAST::Routine
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
-        my $slash := 1;
-        my $exclamation-mark := 1;
-        my $underscore := 1;
+        my int $slash := 1;
+        my int $exclamation-mark := 1;
+        my int $underscore := 1;
         my @declarations;
         if $!signature {
             $!signature.IMPL-ENSURE-IMPLICITS;
@@ -2427,7 +2428,7 @@ class RakuAST::QuotedRegex
             my $match-qast := QAST::Op.new(
               :op('callmethod'), :name('match'), $topic, $closure
             );
-            my int $is-multiple-match := 0;
+            my int $is-multiple-match;
             for self.IMPL-UNWRAP-LIST(self.adverbs) {
                 my str $norm := self.IMPL-NORMALIZE-ADVERB($_.key);
                 if self.IMPL-IS-POSITION-ADVERB($norm) {
@@ -2601,8 +2602,8 @@ class RakuAST::Substitution
         my $match-lookup := $slash.IMPL-TO-QAST($context);
         my int $samespace := $!samespace;
         my int $sigspace := $samespace;
-        my int $samecase := 0;
-        my int $samemark := 0;
+        my int $samecase;
+        my int $samemark;
         for self.IMPL-UNWRAP-LIST(self.adverbs) {
             my str $norm := self.IMPL-NORMALIZE-ADVERB($_.key);
             if self.IMPL-IS-POSITION-ADVERB($norm) {

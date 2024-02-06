@@ -235,7 +235,7 @@ class RakuAST::Name
               $PseudoStash-lookup.IMPL-TO-QAST($context)
             );
         }
-        my $first := 1;
+        my int $first := 1;
         for $!parts {
             if $first { # don't call .WHO on the pseudo package itself, index into it instead
                 $first := 0;
@@ -251,7 +251,7 @@ class RakuAST::Name
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package, RakuAST::Declaration :$lexical, str :$sigil, Bool :$global-fallback) {
         my $result := QAST::WVal.new(:value($start-package));
         my $final := $!parts[nqp::elems($!parts) - 1];
-        my int $first := 0;
+        my int $first;
         if nqp::istype($!parts[0], RakuAST::Name::Part::Simple) && $!parts[0].name eq 'GLOBAL' {
             $result := QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<GLOBAL>));
             $first := 1;

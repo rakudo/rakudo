@@ -305,12 +305,9 @@ class RakuAST::QuotedString
             }
         }
 
-        my int $return-list := 0;
+        my int $return-list;
         for $!processors {
-            if $_ eq 'words' {
-                $return-list := 1;
-            }
-            elsif $_ eq 'quotewords' {
+            if $_ eq 'words' || $_ eq 'quotewords' {
                 $return-list := 1;
             }
             elsif $_ eq 'val' && nqp::elems(@parts) == 1 {

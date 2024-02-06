@@ -4060,502 +4060,560 @@ nqp::register('raku-boolify', -> $capture {
     });
 }
 
-# Coercion protocol
-{
-    # Coerce by target method name. I.e. $value.TargetType.
-    my $coerce-by-type-method := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
-        nqp::istype((my $coerced_value := $method($value)), $target_type)
-            || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
-            ?? $coerced_value
-            !! nqp::how($coercion)."!invalid_coercion"(
-                $value, nqp::how_nd($nominal_target).name($nominal_target), $coerced_value)
-    });
+#- raku-coercion ---------------------------------------------------------------
+# Coercion protocol handling
 
-    # Indirect methods are `COERCE` or `new` on the target type.
-    my $coerce-indirect-method := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
+# Coerce by target method name. I.e. $value.TargetType.
+my $coerce-by-type-method := nqp::getstaticcode(
+  -> $coercion, $value, $method, $nominal_target, $target_type {
+    nqp::istype((my $coerced_value := $method($value)), $target_type)
+      || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
+      ?? $coerced_value
+      !! nqp::how($coercion)."!invalid_coercion"(
+           $value,
+           nqp::how_nd($nominal_target).name($nominal_target),
+           $coerced_value
+         )
+});
+
+# Indirect methods are `COERCE` or `new` on the target type.
+my $coerce-indirect-method := nqp::getstaticcode(
+  -> $coercion, $value, $method, $nominal_target, $target_type {
+    my $*COERCION-TYPE := $coercion;
+    nqp::istype(
+      (my $coerced_value := $method($nominal_target, $value)),
+      $target_type
+    ) || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
+      ?? $coerced_value
+      !! nqp::how($coercion)."!invalid_coercion"(
+           $value, $method.name, $coerced_value
+         )
+});
+
+# The special case of `new` when we suspect it may throw
+# X::Constructor::Positional which we interpret as "no coercion method found"
+my $coerce-new := nqp::getstaticcode(
+  -> $coercion, $value, $method, $nominal_target, $target_type {
+    my $exception;
+    my $coerced_value := nqp::null();
+    try {
+        CATCH {
+            my $exception_obj := nqp::getpayload($!);
+            $exception := $!
+              if $exception_obj.HOW.name($exception_obj)
+                   ne 'X::Constructor::Positional';
+        }
+
         my $*COERCION-TYPE := $coercion;
-        nqp::istype((my $coerced_value := $method($nominal_target, $value)), $target_type)
-            || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
-            ?? $coerced_value
-            !! nqp::how($coercion)."!invalid_coercion"($value, $method.name, $coerced_value)
-    });
-
-    # The special case of `new` when we suspect it may throw X::Constructor::Positional which we interpret as "no
-    # coercion method found".
-    my $coerce-new := nqp::getstaticcode(-> $coercion, $value, $method, $nominal_target, $target_type {
-        my $exception;
-        my $coerced_value := nqp::null();
-        try {
-            CATCH {
-                my $exception_obj := nqp::getpayload($!);
-
-                if $exception_obj.HOW.name($exception_obj) ne 'X::Constructor::Positional' {
-                    $exception := $!;
-                }
-            }
-
-            my $*COERCION-TYPE := $coercion;
-            $coerced_value := $method($nominal_target, $value);
-        }
-        nqp::if(nqp::defined($exception), nqp::rethrow($exception));
-        nqp::isnull($coerced_value)
-            ?? nqp::how($coercion)."!invalid"($value, "no acceptable coercion method found")
-            !! nqp::istype($coerced_value, $target_type)
-                || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
-                ?? $coerced_value
-                !! nqp::how($coercion)."!invalid_coercion"($value, 'new', $coerced_value)
-    });
-
-    my $coerce-runtime := nqp::getstaticcode(-> $coercion, $value, *@pos {
-        nqp::how($coercion)."!coerce_TargetType"($coercion, $value)
-    });
-
-    my $coerce-via-container := nqp::getstaticcode(-> $coercion, $value {
-        nqp::dispatch('raku-coercion', $coercion, nqp::decont($value))
-    });
-
-    sub select-coercer($coercion, $value, :$with-runtime = 0) {
-        my $target_type := nqp::how($coercion).target_type($coercion);
-        my $constraint_type := nqp::how($coercion).constraint_type($coercion);
-        my $nominal_target := nqp::how($coercion).nominal_target($coercion);
-        my $coercer := nqp::null();
-        my $method := nqp::null();
-
-        # Routine's method `cando` doesn't work well with a Match object passed into as the first positional.
-        # Besides, it requires type conversions on NQP/Raku language boundary. Therefore we use a truncated local
-        # version of it.
-        my sub method-cando($method, *@pos) {
-            my $disp;
-            if $method.is_dispatcher {
-                $disp := $method;
-            }
-            else {
-                $disp := nqp::create(nqp::what($method));
-                nqp::bindattr($disp, Routine, '@!dispatchees', nqp::list($method));
-            }
-            -> *@_ { $disp.find_best_dispatchee( nqp::usecapture(), 1) }(|@pos)
-        }
-
-        # Make sure none of the coercion method candidates uses run-time constraints.
-        my sub method-is-optimizable($method) {
-            # Can do no assumptions about a non-Routine.
-            return 0 unless nqp::istype($method, Routine);
-            my @cands := $method.is_dispatcher
-                            ?? nqp::getattr($method, Routine, '@!dispatchees')
-                            !! nqp::list($method);
-            for @cands -> $cand {
-                my $signature := nqp::decont($cand.signature);
-
-                # Skip the candidate if it has too few positionals or requires too many of them.
-                next if nqp::islt_n(nqp::decont($signature.count), 2)
-                        || nqp::isgt_n(nqp::decont($signature.arity), 2);
-
-                my $vparam := nqp::atpos(nqp::getattr($cand.signature, Signature, '@!params'), 1);
-                my $ptype := $vparam.type;
-                my $ptypeHOW := nqp::how($ptype);
-                return 0 if $ptypeHOW.archetypes($ptype).nominalizable
-                            && !nqp::isnull(my $subset := $ptypeHOW.wrappee-lookup($ptype, :subset))
-                            && nqp::isconcrete(nqp::how($subset).refinement($subset));
-                # XXX Retreat on any parameter postconstraint present. Some refinement is possible here, but to be
-                # done later.
-                return 0 if nqp::getattr($vparam, Parameter, '@!post_constraints');
-
-            }
-            1
-        }
-
-        my sub pun-nominal-target() {
-            CATCH {
-                Perl6::Metamodel::Configuration.throw_or_die(
-                    'X::Coerce::Role',
-                    "Coercion from " ~ $value.HOW.name($value)
-                        ~ " into " ~ $nominal_target.HOW.name($nominal_target)
-                        ~ " died while tried to pun the target role",
-                    :target-type($target_type),
-                    :from-type(nqp::what($value)),
-                    :exception($!)
-                )
-            }
-            $nominal_target := nqp::how_nd($nominal_target).pun($nominal_target);
-        }
-
-        if $with-runtime
-            && nqp::can((my $archetypes := nqp::how($constraint_type).archetypes($constraint_type)), 'coercive')
-            && $archetypes.coercive
-        {
-            $coercer := $coerce-runtime;
-        }
-        elsif nqp::defined(
-            $method := nqp::tryfindmethod(
-                nqp::what($value),
-                nqp::how_nd($nominal_target).name($nominal_target)))
-            && method-cando($method, $value)
-        {
-            # There is .TargetType method on the value, use it.
-            $coercer := $coerce-by-type-method;
-        }
-        elsif nqp::defined($method := nqp::tryfindmethod(
-                    (nqp::how_nd($nominal_target).archetypes.composable ?? pun-nominal-target() !! $nominal_target),
-                    'COERCE'))
-                && method-cando($method, $nominal_target, $value)
-        {
-            # The target type can .COERCE.
-            if method-is-optimizable($method) {
-                $coercer := $coerce-indirect-method
-            }
-        }
-        elsif nqp::defined($method := nqp::tryfindmethod($nominal_target, 'new'))
-                && (my @cands := method-cando($method, $nominal_target, $value))
-        {
-            if method-is-optimizable($method) {
-                # We can TargetType.new($value).
-                if +@cands == 1 {
-                    if nqp::eqaddr(@cands[0].package, Mu) {
-                        # The only .new candidate for a single positional arg call comes from Mu. That one throws
-                        # "only named arguments" error which means no candidates are actually found. Simulate this by
-                        # resetting $method and pretend it's never been found.
-                        $method := nqp::null();
-                    }
-                    else {
-                        $coercer := $coerce-indirect-method;
-                    }
-                }
-                else {
-                    $coercer := $coerce-new;
-                }
-            }
-        }
-        elsif $with-runtime && nqp::isconcrete($method) {
-            $coercer := $coerce-runtime;
-        }
-
-        nqp::list($coercer, $method, $nominal_target)
+        $coerced_value := $method($nominal_target, $value);
     }
+    nqp::rethrow($exception) if nqp::defined($exception);
 
-    nqp::register('raku-coercion', -> $capture {
-        # The dispatch receives:
-        # - coercion type object
-        # - value
+    nqp::isnull($coerced_value)
+      ?? nqp::how($coercion)."!invalid"(
+           $value, "no acceptable coercion method found"
+         )
+      !! nqp::istype($coerced_value, $target_type)
+           || nqp::istype($coerced_value, nqp::gethllsym('Raku', 'Failure'))
+           ?? $coerced_value
+           !! nqp::how($coercion)."!invalid_coercion"(
+                $value, 'new', $coerced_value
+              )
+});
 
-        my $track-coercion := nqp::track('arg', $capture, 0);
-        my $track-value := nqp::track('arg', $capture, 1);
+# Perform coercion at runtime
+my $coerce-runtime := nqp::getstaticcode(-> $coercion, $value, *@pos {
+    nqp::how($coercion)."!coerce_TargetType"($coercion, $value)
+});
 
-        nqp::guard('type', $track-coercion);
-        nqp::guard('type', $track-value);
+# Perform dispatch through the value in a container
+my $coerce-via-container := nqp::getstaticcode(-> $coercion, $value {
+    nqp::dispatch('raku-coercion', $coercion, nqp::decont($value))
+});
 
-        my $value := nqp::captureposarg($capture, 1);
-        my $coercion := nqp::captureposarg($capture, 0);
+# Return a list with coercer, method object and nominal target for the
+# given coercion object, value and optional force :with-runtime flag
+sub select-coercer($coercion, $value, :$with-runtime = 0) {
+    my $how             := $coercion.HOW;
+    my $target_type     := $how.target_type($coercion);
+    my $constraint_type := $how.constraint_type($coercion);
+    my $nominal_target  := $how.nominal_target($coercion);
+    my $coercer         := nqp::null();
+    my $method          := nqp::null();
 
-        if nqp::istype_nd($value, Scalar) {
-            $track-value := nqp::track('attr', $track-value, Scalar, '$!value');
-            nqp::guard('type', $track-value);
-            $value := nqp::getattr($value, Scalar, '$!value');
-        }
-
-        nqp::guard('concreteness', $track-value);
-
-        my $coercionHOW   := nqp::how($coercion);
-
-        # If the type happens to be another nominalizable, like a subset wrapped around a coercion, then pull out the
-        # actual coercion type we need.
-        unless nqp::istype($coercionHOW, Perl6::Metamodel::CoercionHOW) {
-            $coercion    := $coercionHOW.wrappee($coercion, :coercion);
-            $coercionHOW := nqp::how_nd($coercion);
-        }
-
-        my $target_type   := $coercionHOW.target_type($coercion);
-        my $constraint    := $coercionHOW.constraint_type($coercion);
-        my $constraintHOW := nqp::how($constraint);
-
-        my sub runtime-fallback() {
-            my $method-capture :=
-                nqp::syscall('dispatcher-insert-arg-literal-obj',
-                    nqp::syscall('dispatcher-insert-arg-literal-str',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, $coercionHOW),
-                        0, '!coerce_TargetType'),
-                    0, $coercionHOW);
-            nqp::delegate('raku-meth-call', $method-capture);
-        }
-
-        if nqp::iscont($value) {
-            # If despite our efforts the value is still a container then try deconting it first and then re-dispatch.
-            my $code-capture :=
-                nqp::syscall('dispatcher-insert-arg-literal-obj',
-                    nqp::syscall('dispatcher-replace-arg-literal-obj', $capture, 1, $value),
-                    0, $coerce-via-container);
-            nqp::delegate('boot-code-constant', $code-capture);
-        }
-        elsif nqp::istype_nd($value, $target_type) {
-            # Just matches, use identity.
-            nqp::delegate('boot-value',
-                nqp::syscall('dispatcher-drop-arg', $capture, 0));
-        }
-        elsif !nqp::eqaddr($constraint, Mu) && !nqp::istype_nd($value, $constraint) {
-            # The value doesn't match constraint type, throw.
-            my $method-capture :=
-                nqp::syscall('dispatcher-insert-arg-literal-obj',
-                    nqp::syscall('dispatcher-insert-arg-literal-str',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                nqp::syscall('dispatcher-drop-arg', $capture, 0),
-                            0, $coercionHOW),
-                        0, '!invalid_type'),
-                    0, $coercionHOW);
-            nqp::delegate('raku-meth-call', $method-capture);
-        }
-        elsif nqp::can((my $archetypes := $constraintHOW.archetypes($constraint)), 'coercive')
-            && $archetypes.coercive
-        {
-            # The constraint type is a coercion on its own. This is not a dispatchable case. Fallback to the metamodel
-            # method.
-            runtime-fallback();
+    # Routine's method `cando` doesn't work well with a Match object passed
+    # into as the first positional.  Besides, it requires type conversions
+    # on NQP/Raku language boundary. Therefore we use a truncated local
+    # version of it.
+    my sub method-cando($method, *@pos) {
+        my $disp;
+        if $method.is_dispatcher {
+            $disp := $method;
         }
         else {
-            # Try finding one of the coercion methods.
+            $disp := nqp::create(nqp::what($method));
+            nqp::bindattr($disp, Routine, '@!dispatchees', nqp::list($method));
+        }
+        -> *@_ { $disp.find_best_dispatchee( nqp::usecapture(), 1) }(|@pos)
+    }
 
-            my @cdesc := select-coercer($coercion, $value);
-            my $coercer := @cdesc[0]; # Code object to do the coercion
-            my $method := @cdesc[1];
-            my $nominal_target := @cdesc[2];
+    # Make sure none of the coercion method candidates uses run-time
+    # constraints.
+    my sub method-is-optimizable($method) {
+        # Can do no assumptions about a non-Routine.
+        return 0 unless nqp::istype($method, Routine);
 
-            if nqp::isconcrete($coercer) {
-                # We found an acceptable coercer, use it.
-                my $code-capture :=
-                    nqp::syscall('dispatcher-insert-arg-literal-obj',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj',
-                            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                nqp::syscall('dispatcher-insert-arg-literal-obj', $capture,
-                                    0, $coercer),
-                                3, $method),
-                            4, $nominal_target),
-                        5, $target_type);
-                nqp::delegate('boot-code-constant', $code-capture);
-            }
-            elsif nqp::isconcrete($method) {
-                # We found a method but cannot reliably assume that it can be optimized. Let the run-time handle it.
-                runtime-fallback();
+        my @cands := $method.is_dispatcher
+          ?? nqp::getattr($method, Routine, '@!dispatchees')
+          !! nqp::list($method);
+
+        for @cands -> $cand {
+            my $signature := nqp::decont($cand.signature);
+
+            # Skip the candidate if it has too few positionals or
+            # requires too many of them.
+            next if nqp::islt_n($signature.count,2)
+                 || nqp::isgt_n($signature.arity,2);
+
+            my $vparam := nqp::atpos(
+              nqp::getattr($cand.signature, Signature, '@!params'), 1
+            );
+            my $ptype    := $vparam.type;
+            my $ptypeHOW := $ptype.HOW;
+
+            return 0
+              if $ptypeHOW.archetypes($ptype).nominalizable
+              && !nqp::isnull(
+                   my $subset := $ptypeHOW.wrappee-lookup($ptype, :subset)
+                 )
+              && nqp::isconcrete(nqp::how($subset).refinement($subset));
+
+            # XXX Retreat on any parameter postconstraint present. Some
+            # refinement is possible here, but to be done later.
+            return 0
+              if nqp::getattr($vparam, Parameter, '@!post_constraints');
+        }
+        1  # it's optimizable!
+    }
+
+    # Pun a role in $nominal_target into a class
+    my sub pun-nominal-target() {
+        CATCH {
+            Perl6::Metamodel::Configuration.throw_or_die(
+              'X::Coerce::Role',
+              "Coercion from " ~ $value.HOW.name($value)
+                ~ " into " ~ $nominal_target.HOW.name($nominal_target)
+                ~ " died while tried to pun the target role",
+              :target-type($target_type),
+              :from-type($value.WHAT),
+              :exception($!)
+            )
+        }
+        $nominal_target := nqp::how_nd($nominal_target).pun($nominal_target);
+    }
+
+    # Runtime requested and the constraint type can coerce
+    if $with-runtime
+      && nqp::can(
+           (my $types := $constraint_type.HOW.archetypes($constraint_type)),
+           'coercive'
+         )
+      && $types.coercive {
+        $coercer := $coerce-runtime;
+    }
+
+    # There is .TargetType method on the value, use it.
+    elsif nqp::defined(
+      $method := nqp::tryfindmethod(
+        $value.WHAT,
+        nqp::how_nd($nominal_target).name($nominal_target)
+      )
+    ) && method-cando($method, $value) {
+        $coercer := $coerce-by-type-method;
+    }
+
+    # The target type can .COERCE.
+    elsif nqp::defined(
+      $method := nqp::tryfindmethod(
+        (nqp::how_nd($nominal_target).archetypes.composable
+          ?? pun-nominal-target()
+          !! $nominal_target
+        ),
+        'COERCE'
+      )
+    ) && method-cando($method, $nominal_target, $value) {
+
+        $coercer := $coerce-indirect-method
+          if method-is-optimizable($method);
+    }
+
+    # We can TargetType.new($value).
+    elsif nqp::defined(
+      $method := nqp::tryfindmethod($nominal_target, 'new'))
+        && (my @cands := method-cando($method, $nominal_target, $value)) {
+
+        if method-is-optimizable($method) {
+            if nqp::elems(@cands) == 1 {
+                # The only .new candidate for a single positional arg call
+                # comes from Mu. That one throws "only named arguments"
+                # error which means no candidates are actually# found.
+                # Simulate this by resetting $method and pretend it's never
+                # been found.  Otherwise use the indirect method approach
+                nqp::eqaddr(@cands[0].package, Mu)
+                  ?? ($method  := nqp::null)
+                  !! ($coercer := $coerce-indirect-method)
             }
             else {
-                # There is no way we can coerce the value.
-                my $method-capture :=
-                    nqp::syscall('dispatcher-insert-arg-literal-obj',
-                        nqp::syscall('dispatcher-insert-arg-literal-str',
-                            nqp::syscall('dispatcher-insert-arg-literal-obj',
-                                nqp::syscall('dispatcher-insert-arg-literal-str',
-                                    nqp::syscall('dispatcher-drop-arg', $capture, 0),
-                                    1, "no acceptable coercion method found"),
-                                0, $coercionHOW),
-                            0, '!invalid'),
-                        0, $coercionHOW);
-                nqp::delegate('raku-meth-call', $method-capture);
+                $coercer := $coerce-new;
             }
         }
-    });
+    }
+    elsif $with-runtime && nqp::isconcrete($method) {
+        $coercer := $coerce-runtime;
+    }
+
+    nqp::list($coercer, $method, $nominal_target)
+}
+
+# The actual coercion dispatcher. Expected to receive the coercion type object
+# and the value to be coerced as values
+nqp::register('raku-coercion', -> $capture {
+
+    my $Tcoercion := nqp::track('arg', $capture, 0);
+    my $Tvalue    := nqp::track('arg', $capture, 1);
+    nqp::guard('type', $Tcoercion);
+    nqp::guard('type', $Tvalue);
+
+    # Got a container, need to track/guard its value
+    my $value := nqp::captureposarg($capture, 1);
+    if nqp::istype_nd($value, Scalar) {
+        $Tvalue := nqp::track('attr', $Tvalue, Scalar, '$!value');
+        nqp::guard('type', $Tvalue);
+        $value := nqp::getattr($value, Scalar, '$!value');
+    }
+    nqp::guard('concreteness', $Tvalue);
+
+    # If the type happens to be another nominalizable, like a subset wrapped
+    # around a coercion, then pull out the actual coercion type we need.
+    my $coercion    := nqp::captureposarg($capture, 0);
+    my $coercionHOW := $coercion.HOW;
+    unless nqp::istype($coercionHOW, Perl6::Metamodel::CoercionHOW) {
+        $coercion    := $coercionHOW.wrappee($coercion, :coercion);
+        $coercionHOW := nqp::how_nd($coercion);
+    }
+
+    # Helper sub to dispatch on the MOP coercion method
+    my sub runtime-fallback() {
+        nqp::delegate('raku-meth-call',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            nqp::syscall('dispatcher-insert-arg-literal-str',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                $capture, 0, $coercionHOW
+              ), 0, '!coerce_TargetType'
+            ), 0, $coercionHOW
+          )
+        );
+    }
+
+    # Some shortcuts
+    my $target_type   := $coercionHOW.target_type($coercion);
+    my $constraint    := $coercionHOW.constraint_type($coercion);
+    my $constraintHOW := $constraint.HOW;
+
+    # If despite our efforts the value is still a container then try
+    # deconting it first and then re-dispatch.
+    if nqp::iscont($value) {
+        nqp::delegate('boot-code-constant',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            nqp::syscall('dispatcher-replace-arg-literal-obj',
+              $capture, 1, $value
+            ), 0, $coerce-via-container
+          )
+        );
+    }
+
+    # Just matches, use identity.
+    elsif nqp::istype_nd($value, $target_type) {
+        nqp::delegate('boot-value',
+          nqp::syscall('dispatcher-drop-arg', $capture, 0)
+        );
+    }
+
+    # The value doesn't match constraint type, throw by calling the MOP
+    # error throwing method
+    elsif !nqp::eqaddr($constraint, Mu)
+      && !nqp::istype_nd($value, $constraint) {
+        nqp::delegate('raku-meth-call',
+          nqp::syscall('dispatcher-insert-arg-literal-obj',
+            nqp::syscall('dispatcher-insert-arg-literal-str',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                nqp::syscall('dispatcher-drop-arg',
+                  $capture, 0
+                ), 0, $coercionHOW
+              ), 0, '!invalid_type'
+            ), 0, $coercionHOW
+          )
+        );
+    }
+
+    # The constraint type is a coercion on its own. This is not a
+    # dispatchable case. Fallback to the metamodel method.
+    elsif nqp::can(
+            (my $archetypes := $constraintHOW.archetypes($constraint)),
+            'coercive'
+          ) && $archetypes.coercive {
+        runtime-fallback();
+    }
+
+    # Try finding one of the coercion methods.
+    else {
+        my @cdesc := select-coercer($coercion, $value);
+
+        # We found an acceptable coercer, use it.
+        if nqp::isconcrete(nqp::atpos(@cdesc,0)) {       # coercer
+            nqp::delegate('boot-code-constant',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                nqp::syscall('dispatcher-insert-arg-literal-obj',
+                  nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-insert-arg-literal-obj',
+                      $capture, 0, nqp::atpos(@cdesc,0)  # coercer
+                    ), 3, nqp::atpos(@cdesc,1)           # method
+                  ), 4, nqp::atpos(@cdesc,2)             # nominal_target
+                ), 5, $target_type
+              )
+            );
+        }
+
+        # We found a method but cannot reliably assume that it can be
+        # optimized. Let the run-time handle it.
+        elsif nqp::isconcrete(nqp::atpos(@cdesc,1))  {   # method
+            runtime-fallback();
+        }
+
+        # There is no way we can coerce the value.  Let the MOP handle the
+        # error reporting
+        else {
+            nqp::delegate('raku-meth-call',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                nqp::syscall('dispatcher-insert-arg-literal-str',
+                  nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-insert-arg-literal-str',
+                      nqp::syscall(
+                        'dispatcher-drop-arg', $capture, 0
+                      ), 1, "no acceptable coercion method found"
+                    ), 0, $coercionHOW
+                  ), 0, '!invalid'
+                ), 0, $coercionHOW
+              )
+            );
+        }
+    }
+});
 
 # Return value type-check dispatcher. The first value is the return value,
 # the second is the type that is expected, which may be a definiteness or
 # coercion type.
-    sub return_error($got, $wanted) {
-        Perl6::Metamodel::Configuration.throw_or_die(
-            'X::TypeCheck::Return',
-            "Type check failed for return value; expected '" ~
-                $wanted.HOW.name($wanted) ~ "' but got '" ~
-                $got.HOW.name($got) ~ "'",
-            :$got,
-            :expected($wanted)
-        );
+sub return_error($got, $wanted) {
+    Perl6::Metamodel::Configuration.throw_or_die(
+        'X::TypeCheck::Return',
+        "Type check failed for return value; expected '" ~
+            $wanted.HOW.name($wanted) ~ "' but got '" ~
+            $got.HOW.name($got) ~ "'",
+        :$got,
+        :expected($wanted)
+    );
+}
+
+my $check_type_typeobj := -> $ret, $type {
+    !nqp::isconcrete($ret) && nqp::istype($ret, $type)
+        ?? $ret
+        !! return_error($ret, $type)
+}
+
+my $check_type_concrete := -> $ret, $type {
+    nqp::isconcrete($ret) && nqp::istype($ret, $type)
+        ?? $ret
+        !! return_error($ret, $type)
+}
+
+my $check_type := -> $ret, $type {
+    nqp::istype($ret, $type)
+        ?? $ret
+        !! return_error($ret, $type)
+}
+
+# For @cdesc values see select-coercer sub.
+my $check_type_typeobj_coerce := -> $ret, $type, $coercion, @cdesc {
+    !nqp::isconcrete($ret) && nqp::istype($ret, $type)
+        ?? @cdesc[0]( # coercer code
+            $coercion, $ret,
+            @cdesc[1], # coercing method
+            @cdesc[2], # nominal target
+            nqp::how($coercion).target_type($coercion))
+        !! return_error($ret, $type)
+}
+
+my $check_type_concrete_coerce := -> $ret, $type, $coercion, @cdesc {
+    nqp::isconcrete($ret) && nqp::istype($ret, $type)
+        ?? @cdesc[0](
+            $coercion, $ret,
+            @cdesc[1],
+            @cdesc[2],
+            nqp::how($coercion).target_type($coercion))
+        !! return_error($ret, $type)
+}
+
+my $check_type_coerce := -> $ret, $type, $coercion, @cdesc {
+    nqp::istype($ret, $type)
+        ?? @cdesc[0](
+            $coercion, $ret,
+            @cdesc[1],
+            @cdesc[2],
+            nqp::how($coercion).target_type($coercion))
+        !! return_error($ret, $type)
+}
+
+nqp::register('raku-rv-typecheck', -> $capture {
+    # Dispatcher arguments:
+    # - return value
+    # - type
+    # - "is generic" flag
+    # If the type is Mu or unset, then nothing is needed except identity.
+    my $type := nqp::captureposarg($capture, 1);
+    my $is_generic := nqp::captureposarg_i($capture, 2);
+
+    # If the type has been instantiated from a generic then we'd need to track over it too.
+    if $is_generic {
+        my $track-ret-type := nqp::track('arg', $capture, 1);
+        nqp::guard('type', $track-ret-type);
     }
 
-    my $check_type_typeobj := -> $ret, $type {
-        !nqp::isconcrete($ret) && nqp::istype($ret, $type)
-            ?? $ret
-            !! return_error($ret, $type)
+    # We will never need the $is_generic argument, but otherwise the capture is used to call checker subs where the
+    # third argument is not anticipated.
+    $capture := nqp::syscall('dispatcher-drop-arg', $capture, 2);
+
+    if nqp::isnull($type) || $type =:= Mu {
+        nqp::delegate('boot-value',
+            nqp::syscall('dispatcher-drop-arg', $capture, 1))
     }
 
-    my $check_type_concrete := -> $ret, $type {
-        nqp::isconcrete($ret) && nqp::istype($ret, $type)
-            ?? $ret
-            !! return_error($ret, $type)
-    }
-
-    my $check_type := -> $ret, $type {
-        nqp::istype($ret, $type)
-            ?? $ret
-            !! return_error($ret, $type)
-    }
-
-    # For @cdesc values see select-coercer sub.
-    my $check_type_typeobj_coerce := -> $ret, $type, $coercion, @cdesc {
-        !nqp::isconcrete($ret) && nqp::istype($ret, $type)
-            ?? @cdesc[0]( # coercer code
-                $coercion, $ret,
-                @cdesc[1], # coercing method
-                @cdesc[2], # nominal target
-                nqp::how($coercion).target_type($coercion))
-            !! return_error($ret, $type)
-    }
-
-    my $check_type_concrete_coerce := -> $ret, $type, $coercion, @cdesc {
-        nqp::isconcrete($ret) && nqp::istype($ret, $type)
-            ?? @cdesc[0](
-                $coercion, $ret,
-                @cdesc[1],
-                @cdesc[2],
-                nqp::how($coercion).target_type($coercion))
-            !! return_error($ret, $type)
-    }
-
-    my $check_type_coerce := -> $ret, $type, $coercion, @cdesc {
-        nqp::istype($ret, $type)
-            ?? @cdesc[0](
-                $coercion, $ret,
-                @cdesc[1],
-                @cdesc[2],
-                nqp::how($coercion).target_type($coercion))
-            !! return_error($ret, $type)
-    }
-
-    nqp::register('raku-rv-typecheck', -> $capture {
-        # Dispatcher arguments:
-        # - return value
-        # - type
-        # - "is generic" flag
-        # If the type is Mu or unset, then nothing is needed except identity.
-        my $type := nqp::captureposarg($capture, 1);
-        my $is_generic := nqp::captureposarg_i($capture, 2);
-
-        # If the type has been instantiated from a generic then we'd need to track over it too.
-        if $is_generic {
-            my $track-ret-type := nqp::track('arg', $capture, 1);
-            nqp::guard('type', $track-ret-type);
+    # Otherwise, need to look at the type.
+    else {
+        my sub runtime-only($t) {
+            return 0 if nqp::isnull($t);
+            nqp::isconcrete(nqp::how_nd($t).refinement($t))
+                || nqp::how_nd(my $refinee := nqp::how_nd($t).refinee($t)).archetypes($refinee).nominalizable
+                    && runtime-only(nqp::how_nd($refinee).wrappee-lookup($refinee, :subset))
         }
 
-        # We will never need the $is_generic argument, but otherwise the capture is used to call checker subs where the
-        # third argument is not anticipated.
-        $capture := nqp::syscall('dispatcher-drop-arg', $capture, 2);
-
-        if nqp::isnull($type) || $type =:= Mu {
-            nqp::delegate('boot-value',
-                nqp::syscall('dispatcher-drop-arg', $capture, 1))
+        my $rv := nqp::captureposarg($capture, 0);
+        my int $definite-check := -1;
+        my $how := nqp::how_nd($type);
+        my $coercion-type;
+        my $constraint-type := nqp::null();
+        my $runtime-check := 0; # Is there a run-time constraint?
+        if $how.archetypes($type).nominalizable {
+            $runtime-check := runtime-only($how.wrappee-lookup($type, :subset));
+            unless nqp::isnull($coercion-type := $how.wrappee-lookup($type, :coercion)) {
+                unless nqp::isnull($constraint-type := nqp::how_nd($coercion-type).constraint_type($coercion-type)) {
+                    $runtime-check := $runtime-check
+                        || (nqp::how_nd($constraint-type).archetypes($constraint-type).nominalizable
+                            && runtime-only(nqp::how_nd($constraint-type).wrappee-lookup($constraint-type, :subset)));
+                }
+            }
+            if $how.archetypes($type).definite {
+                my $dtype := $how.wrappee($type, :definite);
+                $definite-check := nqp::how_nd($dtype).definite($dtype);
+            }
         }
 
-        # Otherwise, need to look at the type.
-        else {
-            my sub runtime-only($t) {
-                return 0 if nqp::isnull($t);
-                nqp::isconcrete(nqp::how_nd($t).refinement($t))
-                    || nqp::how_nd(my $refinee := nqp::how_nd($t).refinee($t)).archetypes($refinee).nominalizable
-                        && runtime-only(nqp::how_nd($refinee).wrappee-lookup($refinee, :subset))
-            }
+        my $track-value := nqp::track('arg', $capture, 0);
 
-            my $rv := nqp::captureposarg($capture, 0);
-            my int $definite-check := -1;
-            my $how := nqp::how_nd($type);
-            my $coercion-type;
-            my $constraint-type := nqp::null();
-            my $runtime-check := 0; # Is there a run-time constraint?
-            if $how.archetypes($type).nominalizable {
-                $runtime-check := runtime-only($how.wrappee-lookup($type, :subset));
-                unless nqp::isnull($coercion-type := $how.wrappee-lookup($type, :coercion)) {
-                    unless nqp::isnull($constraint-type := nqp::how_nd($coercion-type).constraint_type($coercion-type)) {
-                        $runtime-check := $runtime-check
-                            || (nqp::how_nd($constraint-type).archetypes($constraint-type).nominalizable
-                                && runtime-only(nqp::how_nd($constraint-type).wrappee-lookup($constraint-type, :subset)));
-                    }
-                }
-                if $how.archetypes($type).definite {
-                    my $dtype := $how.wrappee($type, :definite);
-                    $definite-check := nqp::how_nd($dtype).definite($dtype);
-                }
-            }
-
-            my $track-value := nqp::track('arg', $capture, 0);
-
-            if nqp::istype_nd($rv, Scalar) {
-                nqp::guard('type', $track-value);
-                $track-value :=
-                  nqp::track('attr', $track-value, Scalar, '$!value');
-            }
-
+        if nqp::istype_nd($rv, Scalar) {
             nqp::guard('type', $track-value);
-            nqp::guard('concreteness', $track-value) if $definite-check != -1;
+            $track-value :=
+              nqp::track('attr', $track-value, Scalar, '$!value');
+        }
 
-            my $need-coercion := $how.archetypes($type).coercive
-              && !nqp::istype($rv, nqp::how_nd($coercion-type).target_type($coercion-type));
-            my $is-Nil := nqp::istype($rv, Nil);
+        nqp::guard('type', $track-value);
+        nqp::guard('concreteness', $track-value) if $definite-check != -1;
 
-            if $is-Nil || !($runtime-check || $need-coercion)
-            {
-                # Static typecheck which would either result in identity or error.
-                if $is-Nil
-                    || (nqp::istype($rv, $type)
-                        && ($definite-check == 0
-                            ?? !nqp::isconcrete($rv)
-                            !! $definite-check == 1
-                                ?? nqp::isconcrete($rv)
-                                !! 1))
-                {
-                    nqp::delegate('boot-value',
-                        nqp::syscall('dispatcher-drop-arg', $capture, 1));
-                }
-                else {
-                    # Not passing the definedness check.
-                    nqp::delegate('boot-code',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, &return_error));
-                }
-            }
-            elsif $runtime-check && !$need-coercion {
-                # The case of subset with run-time constraints, no coercion.
-                my $checker :=
-                    $definite-check == 0
-                        ?? $check_type_typeobj
+        my $need-coercion := $how.archetypes($type).coercive
+          && !nqp::istype($rv, nqp::how_nd($coercion-type).target_type($coercion-type));
+        my $is-Nil := nqp::istype($rv, Nil);
+
+        if $is-Nil || !($runtime-check || $need-coercion)
+        {
+            # Static typecheck which would either result in identity or error.
+            if $is-Nil
+                || (nqp::istype($rv, $type)
+                    && ($definite-check == 0
+                        ?? !nqp::isconcrete($rv)
                         !! $definite-check == 1
-                            ?? $check_type_concrete
-                            !! $check_type;
-                nqp::delegate('boot-code-constant',
-                    nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, $checker));
-            }
-            elsif !$runtime-check && $need-coercion {
-                # Coercion only. Make sure we can coerce by matching the constraint type and then dispatch directly to
-                # the coercion dispatcher.
-                if nqp::eqaddr($constraint-type, Mu) || nqp::istype($rv, $constraint-type) {
-                    # Coercion dispatcher uses reverse order of arguments, same as the metamodel method `coerce`.
-                    my $coercion-capture :=
-                        nqp::syscall('dispatcher-insert-arg-literal-obj',
-                            nqp::syscall('dispatcher-drop-arg', $capture, 1),
-                            0, $type);
-                    nqp::delegate('raku-coercion', $coercion-capture);
-                }
-                else {
-                    # Coercion is not possible.
-                    nqp::delegate('boot-code-constant',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, &return_error));
-                }
+                            ?? nqp::isconcrete($rv)
+                            !! 1))
+            {
+                nqp::delegate('boot-value',
+                    nqp::syscall('dispatcher-drop-arg', $capture, 1));
             }
             else {
-                # The most expensive path: subset with constraints and coercion.
-                # First, we re-consider defininite check because now we're going to use coercion constraint for that.
-                $definite-check :=
-                    nqp::how_nd($constraint-type).archetypes($constraint-type).definite
-                        ?? nqp::how_nd(
-                                my $dt := nqp::how_nd($constraint-type).wrappee($constraint-type, :definite)
-                            ).definite($dt)
-                        !! -1;
-                my $checker :=
-                    $definite-check == 0
-                        ?? $check_type_typeobj_coerce
-                        !! $definite-check == 1
-                            ?? $check_type_concrete_coerce
-                            !! $check_type_coerce;
-                my @cdesc := select-coercer($coercion-type, $rv, :with-runtime);
-                my $checker-capture :=
-                    nqp::syscall('dispatcher-insert-arg-literal-obj',
-                        nqp::syscall('dispatcher-insert-arg-literal-obj',
-                            nqp::syscall('dispatcher-insert-arg-literal-obj', $capture,
-                                2, $coercion-type),
-                            3, @cdesc), # coercer code
-                        0, $checker);
-                nqp::delegate('boot-code-constant', $checker-capture);
+                # Not passing the definedness check.
+                nqp::delegate('boot-code',
+                    nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, &return_error));
             }
         }
-    });
-}
+        elsif $runtime-check && !$need-coercion {
+            # The case of subset with run-time constraints, no coercion.
+            my $checker :=
+                $definite-check == 0
+                    ?? $check_type_typeobj
+                    !! $definite-check == 1
+                        ?? $check_type_concrete
+                        !! $check_type;
+            nqp::delegate('boot-code-constant',
+                nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, $checker));
+        }
+        elsif !$runtime-check && $need-coercion {
+            # Coercion only. Make sure we can coerce by matching the constraint type and then dispatch directly to
+            # the coercion dispatcher.
+            if nqp::eqaddr($constraint-type, Mu) || nqp::istype($rv, $constraint-type) {
+                # Coercion dispatcher uses reverse order of arguments, same as the metamodel method `coerce`.
+                my $coercion-capture :=
+                    nqp::syscall('dispatcher-insert-arg-literal-obj',
+                        nqp::syscall('dispatcher-drop-arg', $capture, 1),
+                        0, $type);
+                nqp::delegate('raku-coercion', $coercion-capture);
+            }
+            else {
+                # Coercion is not possible.
+                nqp::delegate('boot-code-constant',
+                    nqp::syscall('dispatcher-insert-arg-literal-obj', $capture, 0, &return_error));
+            }
+        }
+        else {
+            # The most expensive path: subset with constraints and coercion.
+            # First, we re-consider defininite check because now we're going to use coercion constraint for that.
+            $definite-check :=
+                nqp::how_nd($constraint-type).archetypes($constraint-type).definite
+                    ?? nqp::how_nd(
+                            my $dt := nqp::how_nd($constraint-type).wrappee($constraint-type, :definite)
+                        ).definite($dt)
+                    !! -1;
+            my $checker :=
+                $definite-check == 0
+                    ?? $check_type_typeobj_coerce
+                    !! $definite-check == 1
+                        ?? $check_type_concrete_coerce
+                        !! $check_type_coerce;
+            my @cdesc := select-coercer($coercion-type, $rv, :with-runtime);
+            my $checker-capture :=
+                nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-insert-arg-literal-obj',
+                        nqp::syscall('dispatcher-insert-arg-literal-obj', $capture,
+                            2, $coercion-type),
+                        3, @cdesc), # coercer code
+                    0, $checker);
+            nqp::delegate('boot-code-constant', $checker-capture);
+        }
+    }
+});

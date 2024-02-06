@@ -470,6 +470,11 @@ nqp::dispatch("raku-class-archetypes", $HOW, $object);
 Returns a list of archetypes of the given $HOW and $object.
 
 ### raku-coercion
+```
+nqp::dispatch("raku-coercion", $coercion-type, $value);
+```
+Returns a coerced value for the given $coercion-type and $value.
+
 ### raku-find-meth
 ```
 nqp::dispatch("raku-find-meth", $invocant, str $method, int $throw);

@@ -910,7 +910,7 @@ nqp::register('raku-is-attr-inited', -> $capture {
     # in place, so trivially initialized.
     my $attr  := nqp::captureposarg($capture, 0);
     my $Tattr := nqp::track('arg', $capture, 0);
-    my int $inited := 0;
+    my int $inited;
     my $elem-check;
 
     # Might be a container that was assigned.
@@ -1828,7 +1828,7 @@ sub is-simple-args-proto($callee, $capture) {
     );
 
     # Otherwise, arity is alright. Look through the params.
-    my int $accepts-any-named := 0;
+    my int $accepts-any-named;
     for nqp::getattr($signature, Signature, '@!params') -> $param {
         # If there's a constraint or unpack, need the proto to be run.
         return 0 unless nqp::isnull(
@@ -1931,7 +1931,7 @@ class ProxyReaderFactory {
             my int $i;
             while $i < nqp::elems($indices) {
                 $key := $key ~ nqp::atpos_i($indices, $i) ~ ',';
-                $i++;
+                ++$i;
             }
 
             # If we don't already have a reader for this key, produce it.
@@ -1947,10 +1947,10 @@ class ProxyReaderFactory {
         # Create a block taking each positional arg required, adding a
         # slurpy named if needed.
         my $block := QAST::Block.new(:is_thunk);
-        my int $i := 0;
+        my int $i;
         while $i < $num-args {
             $block.push(QAST::Var.new( :name("a$i"), :decl<param>, :scope<local> ));
-            $i++;
+            ++$i;
         }
         if $has-nameds {
             $block.push(QAST::Var.new( :name<n>, :decl<param>, :scope<local>, :named, :slurpy ));
@@ -1967,12 +1967,12 @@ class ProxyReaderFactory {
             my $var := QAST::Var.new( :name("a$i"), :scope<local> );
             if nqp::atpos_i($indices, $decont-index) == $i {
                 $dispatch.push(QAST::Op.new( :op<decont>, $var ));
-                $decont-index++;
+                ++$decont-index
             }
             else {
                 $dispatch.push($var);
             }
-            $i++;
+            ++$i;
         }
         if $has-nameds {
             $dispatch.push(QAST::Var.new( :name<n>, :scope<local>, :named, :flat ));
@@ -2108,22 +2108,22 @@ sub has-named-args-mismatch($capture, %info) {
         return 1 unless $nameds-list;
 
         # Otherwise check that required nameds are present.
-        my int $i := 0;
+        my int $i;
         my int $n := nqp::elems($required-name-sets);
         while $i < $n {
-            my int $found := 0;
+            my int $found;
             my $names := nqp::atpos($required-name-sets, $i);
-            my int $j := 0;
+            my int $j;
             my int $m := nqp::elems($names);
             while $j < $m {
                 if nqp::captureexistsnamed($capture, nqp::atpos_s($names, $j)) {
                     $found := 1;
                     last;
                 }
-                $j++;
+                ++$j;
             }
             return 1 unless $found;
-            $i++;
+            ++$i;
         }
     }
 
@@ -2138,7 +2138,7 @@ sub has-named-args-mismatch($capture, %info) {
         my int $n := nqp::elems($nameds-list);
         while $i < $n {
             return 1 unless nqp::existskey($allowed-names, nqp::atpos_s($nameds-list, $i));
-            $i++;
+            ++$i;
         }
     }
 
@@ -2163,7 +2163,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                 nqp::push_i($non-scalar, $i);
             }
         }
-        $i++;
+        ++$i;
     }
     if nqp::elems($non-scalar) {
         # Establish guards on types of all positionals, but not on the values
@@ -2175,7 +2175,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
             if nqp::captureposprimspec($capture, $i) == 0 {
                 nqp::guard('type', nqp::track('arg', $capture, $i));
             }
-            $i++;
+            ++$i;
         }
 
         # Hand back the indices we need to strip Proxy from.
@@ -2191,8 +2191,8 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
     # setting guards on the incoming arguments OR by the shape of the
     # callsite. That callsite shape includes argument count, which named
     # arguments are present, and which arguments are natively typed.
-    my int $cur_idx := 0;
-    my int $done := 0;
+    my int $cur_idx;
+    my int $done;
     my $need_scalar_read := nqp::list_i();
     my $need_scalar_rw_check := nqp::list_i();
     my $need_type_guard := nqp::list_i();
@@ -2214,9 +2214,9 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                 my int $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
                     ?? $num_args
                     !! nqp::atkey($cur_candidate, 'num_types');
-                my int $type_mismatch := 0;
-                my int $rwness_mismatch := 0;
-                my int $i := 0;
+                my int $type_mismatch;
+                my int $rwness_mismatch;
+                my int $i;
                 while $i < $type_check_count && !($type_mismatch +| $rwness_mismatch) {
                     # Obtain parameter properties.
                     my $type := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
@@ -2352,7 +2352,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                             $type_mismatch := 1 unless nqp::istype($test_type, $type);
                         }
                     }
-                    $i++;
+                    ++$i;
                 }
 
                 # Add it to the possibles list of this group.
@@ -2380,13 +2380,13 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                     my %info := @possibles[$i];
                     unless has-named-args-mismatch($capture, %info) {
                         nqp::push(@filtered-possibles, %info);
-                        $need-bind-check++ if nqp::existskey(%info, 'bind_check');
+                        ++$need-bind-check if nqp::existskey(%info, 'bind_check');
                         my $sub := %info<sub>;
                         nqp::push(@defaults, %info) if nqp::can($sub, 'default') && $sub.default;
                         nqp::push(@exact-arity, %info) if %info<min_arity> == $num_args &&
                            %info<max_arity> == $num_args;
                     }
-                    $i++;
+                    ++$i;
                 }
 
                 # If we still have multiple possibles and we don't need a bind
@@ -2439,7 +2439,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                         $current-tail.set-next($node);
                     }
                     $current-tail := $node;
-                    $i++;
+                    ++$i;
                 }
 
                 # If we are to stop at a trivial match and nothing needs a
@@ -2493,7 +2493,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
         if nqp::atpos_i($need_conc_guard, $i) {
             nqp::guard('concreteness', $tracked_value);
         }
-        $i++;
+        ++$i;
     }
 
     # Return the dispatch plan.
@@ -2522,7 +2522,7 @@ sub multi-junction-failover($capture) {
                 last;
             }
         }
-        $i++;
+        ++$i;
     }
 
     # If there is a Junction arg, then take another pass through to put type
@@ -2540,7 +2540,7 @@ sub multi-junction-failover($capture) {
                 }
                 guard-type-concreteness($tracked);
             }
-            $i++;
+            ++$i;
         }
     }
 
@@ -3339,7 +3339,7 @@ sub pass-decontainerized($code, $args) {
     my $signature := nqp::getattr($code, Code, '$!signature');
     my int $readonly := nqp::getattr_i($signature, Signature, '$!readonly');
     my int $pos-args := nqp::captureposelems($args);
-    my int $i := 0;
+    my int $i;
     while $i < $pos-args {
         # If it should be passed read only, and it's an object...
         if $readonly +& nqp::bitshiftl_i(1, $i) && nqp::captureposprimspec($args, $i) == 0 {
@@ -3355,7 +3355,7 @@ sub pass-decontainerized($code, $args) {
                     $i, $track-value);
             }
         }
-        $i++;
+        ++$i;
     }
     $args
 }

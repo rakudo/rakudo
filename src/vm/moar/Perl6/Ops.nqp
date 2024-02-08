@@ -408,33 +408,28 @@ $ops.add_hll_op('Raku', 'p6box', -> $qastcomp, $op {
 });
 $ops.add_hll_op('Raku', 'p6typecheckrv', -> $qastcomp, $op {
     if nqp::istype($op[1], QAST::WVal) {
-        my $type := &get_binder().get_return_type($op[1].value);
-        if nqp::isnull($type) || nqp::objprimspec(nqp::decont($type)) {
-            $qastcomp.as_mast($op[0])
+        my $value := $op[0];
+        my $type  := &get_binder().get_return_type($op[1].value);
+        if nqp::isnull($type) {
+            $qastcomp.as_mast(QAST::Op.new(:op<p6box>, $value));
+        }
+        elsif nqp::objprimspec(nqp::decont($type)) {
+            $qastcomp.as_mast($value)
         }
         else {
             my $is_generic := $type.HOW.archetypes($type).generic;
-            my $type_ast;
-            if $is_generic {
-                $type_ast :=
-                    QAST::Op.new(
-                        :op<callmethod>,
-                        :name<instantiate_generic>,
-                        QAST::Op.new(:op<how>, QAST::WVal.new(:value($type))),
-                        QAST::WVal.new(:value($type)),
-                        QAST::Op.new(:op<curlexpad>)
-                    );
-            }
-            else {
-                $type_ast := QAST::WVal.new( :value($type) );
-            }
-            $qastcomp.as_mast(QAST::Op.new(
-                :op('dispatch'),
-                QAST::SVal.new( :value('raku-rv-typecheck') ),
-                QAST::Op.new( :op('p6box'), $op[0] ),
-                $type_ast,
-                QAST::IVal.new(:value($is_generic))
-            ))
+            $qastcomp.as_mast(QAST::Op.new(:op<dispatch>,
+              QAST::SVal.new( :value('raku-rv-typecheck') ),
+              QAST::Op.new( :op('p6box'), $value ),
+              $is_generic
+                ?? QAST::Op.new(:op<callmethod>, :name<instantiate_generic>,
+                     QAST::Op.new(:op<how>, QAST::WVal.new(:value($type))),
+                     QAST::WVal.new(:value($type)),
+                     QAST::Op.new(:op<curlexpad>)
+                   )
+                !! QAST::WVal.new(:value($type)),
+              QAST::IVal.new(:value($is_generic))
+            ));
         }
     }
     else {

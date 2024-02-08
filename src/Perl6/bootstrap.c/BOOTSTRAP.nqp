@@ -1031,7 +1031,12 @@ my class Binder {
     }
 
     method get_return_type($code) {
-        nqp::getattr(nqp::getattr($code, Code, '$!signature'), Signature, '$!returns')
+        my $type := nqp::getattr(
+          nqp::getattr($code, Code, '$!signature'), Signature, '$!returns'
+        );
+        nqp::eqaddr($type,Mu) || nqp::eqaddr($type,NQPMu)
+          ?? nqp::null
+          !! $type
     }
 #?endif
 

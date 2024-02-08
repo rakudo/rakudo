@@ -416,19 +416,22 @@ $ops.add_hll_op('Raku', 'p6typecheckrv', -> $qastcomp, $op {
         elsif nqp::objprimspec(nqp::decont($type)) {
             $qastcomp.as_mast($value)
         }
+        elsif $type.HOW.archetypes($type).generic {
+            $qastcomp.as_mast(QAST::Op.new(:op<dispatch>,
+              QAST::SVal.new( :value('raku-rv-typecheck-generic') ),
+              QAST::Op.new( :op('p6box'), $value ),
+              QAST::Op.new(:op<callmethod>, :name<instantiate_generic>,
+                QAST::Op.new(:op<how>, QAST::WVal.new(:value($type))),
+                QAST::WVal.new(:value($type)),
+                QAST::Op.new(:op<curlexpad>)
+              )
+            ));
+        }
         else {
-            my $is_generic := $type.HOW.archetypes($type).generic;
             $qastcomp.as_mast(QAST::Op.new(:op<dispatch>,
               QAST::SVal.new( :value('raku-rv-typecheck') ),
               QAST::Op.new( :op('p6box'), $value ),
-              $is_generic
-                ?? QAST::Op.new(:op<callmethod>, :name<instantiate_generic>,
-                     QAST::Op.new(:op<how>, QAST::WVal.new(:value($type))),
-                     QAST::WVal.new(:value($type)),
-                     QAST::Op.new(:op<curlexpad>)
-                   )
-                !! QAST::WVal.new(:value($type)),
-              QAST::IVal.new(:value($is_generic))
+              QAST::WVal.new(:value($type))
             ));
         }
     }

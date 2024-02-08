@@ -4413,6 +4413,15 @@ nqp::register('raku-coercion', -> $capture {
     }
 });
 
+#- raku-rv-typecheck-generic ---------------------------------------------------
+# Return value type-check dispatcher for instantiated generic types. The
+# first value is the return value, the second is the type that is expected,
+# which may be a definiteness or coercion type.
+nqp::register('raku-rv-typecheck-generic', -> $capture {
+    nqp::guard('type', nqp::track('arg', $capture, 1));
+    nqp::delegate('raku-rv-typecheck', $capture);
+});
+
 #- raku-rv-typecheck -----------------------------------------------------------
 # Typechecking return values
 
@@ -4492,8 +4501,8 @@ my $check_type_coerce := -> $ret, $type, $coercion, @cdesc {
 
 # Return value type-check dispatcher. The first value is the return value,
 # the second is the type that is expected, which may be a definiteness or
-# coercion type.  The third argument is a native integer flag indicating
-# whether type is generic or not.
+# coercion type.  The type is supposed to be guarded already if it is an
+# instantiated generic type.
 nqp::register('raku-rv-typecheck', -> $capture {
 
     # Preset most common case, which will return identity
@@ -4504,7 +4513,7 @@ nqp::register('raku-rv-typecheck', -> $capture {
     my $Tvalue := nqp::track( 'arg', $capture, 0);
     if nqp::istype($rv, Nil)
       && (!nqp::iscont($rv) || nqp::istype_nd($rv,Scalar)) {
-        nqp::guard('type', nqp::iscont($rv)
+        nqp::guard('type', nqp::istype_nd($rv,Scalar)
           ?? nqp::track('attr', $Tvalue, Scalar, '$!value')
           !! $Tvalue
         );
@@ -4525,16 +4534,6 @@ nqp::register('raku-rv-typecheck', -> $capture {
                         nqp::how_nd($refinee).wrappee-lookup($refinee, :subset)
                       )
         }
-
-        # If the type has been instantiated from a generic then we'd need to
-        # track over it too.
-        nqp::guard('type', nqp::track('arg', $capture, 1))
-          if nqp::captureposarg_i($capture, 2);
-
-        # We will never need the $is_generic argument, but otherwise the
-        # capture is used to call checker subs where the third argument is
-        # not anticipated.
-        $capture := nqp::syscall('dispatcher-drop-arg', $capture, 2);
 
         # Make sure we guard on on the value and concreteness, even if
         # inside a container

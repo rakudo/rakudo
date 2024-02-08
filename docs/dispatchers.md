@@ -558,7 +558,21 @@ implies that any `Proxy` object will **not** be decontainerized.  This was
 an error in the 6.c implementation on which some modules in the ecosystem
 depend.
 
+### raku-rv-typecheck-generic
+```
+nqp::dispatch("raku-rv-typecheck", $value, $generic-type);
+```
+Returns the given $value if the typecheck with the **generic** type-value
+is successful: assumes the actual type value can vary due to its
+genericness.  Otherwise throw an error.
+
 ### raku-rv-typecheck
+```
+nqp::dispatch("raku-rv-typecheck", $value, $type);
+```
+Returns the given $value if the typecheck with the type-value is successful
+assuming the type at the call-site is a constant.  Otherwise throw an error.
+
 ### raku-sink
 ```
 nqp::dispatch("raku-sink", $value);

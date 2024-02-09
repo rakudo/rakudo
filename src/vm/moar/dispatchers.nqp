@@ -1987,6 +1987,7 @@ class ProxyReaderFactory {
 my $PROXY-READERS := ProxyReaderFactory.new;
 nqp::bindhllsym('Raku', 'PROXY-READERS', $PROXY-READERS);
 
+#- raku-multi-core -------------------------------------------------------------
 # The core of multi dispatch. Once we are here, either there was a simple
 # proto that we don't need to inovke, or we already did invoke the proto.
 #
@@ -2025,58 +2026,66 @@ my class MultiDispatchCall {
         nqp::bindattr($obj, MultiDispatchCall, '$!candidate', $candidate);
         $obj
     }
-    method set-next($next) {
-        $!next := $next;
-    }
+    method set-next($next) { $!next := $next }
     method candidate() { $!candidate }
     method next() { $!next }
     method debug() {
         "Candidate " ~ $!candidate.signature.raku ~ "\n" ~ $!next.debug
     }
 }
+
 # * A candidate to try and invoke; if there's a bind failure, it will be
 #   mapped into a resumption
 my class MultiDispatchTry is MultiDispatchCall {
     method debug() {
-        "Try candidate " ~ self.candidate.signature.raku ~ "\n" ~ self.next.debug
+        "Try candidate " ~ self.candidate.signature.raku ~ "\n"
+          ~ self.next.debug
     }
 }
+
 # * An ambiguity. It's only an error if it's reached during the initial
 #   phase of dispatch, not during a callsame-alike, thus why the chain
 #   continues beyond this point.
 my class MultiDispatchAmbiguous {
     has $!next;
-    method set-next($next) {
-        $!next := $next;
-    }
+    method set-next($next) { $!next := $next }
     method next() { $!next }
-    method debug() {
-        "Ambiguous\n" ~ $!next.debug
-    }
+    method debug() { "Ambiguous\n" ~ $!next.debug }
 }
+
 # * The end of the candidates. Either a "no applicable candidates" error
 #   if we are in the initial phase of dispatch, or a next resumption (or
 #   Nil) otherwise.
 my class MultiDispatchEnd {
-    method debug() {
-        "End"
-    }
+    method debug() { "End" }
 }
+
 # * Not actually used in a plan, but instead conveys that we have containers
 #   that need complex (running code) removal. This is created with the indices
 #   of the arguments that need it removing.
 my class MultiDispatchNonScalar {
     has $!args;
-    method new($args) {
+    method new($capture, int $num_args, $args) {
+
+        # Establish guards on types of all positionals, but not on the values
+        # inside of them if they are Scalar containers; we just need to make
+        # sure we have the appropriate tuple of Proxy vs non-Proxy for the
+        # Proxy removal code we'll invoke.
+        my int $i;
+        while $i < $num_args {
+            nqp::guard('type', nqp::track('arg', $capture, $i))
+              unless nqp::captureposprimspec($capture, $i);
+            ++$i;
+        }
+
         my $obj := nqp::create(self);
         nqp::bindattr($obj, MultiDispatchNonScalar, '$!args', $args);
         $obj
     }
     method args() { $!args }
-    method debug() {
-        "Non-Scalar container dispatch"
-    }
+    method debug() { "Non-Scalar container dispatch" }
 }
+
 # Apart from the last one, these are used as the dispatch state; this is the
 # same immutable linked list traversal approach as used in other kinds of
 # resumption.
@@ -2093,16 +2102,23 @@ my int $TYPE_NATIVE_INT   := 4;
 my int $TYPE_NATIVE_UINT  := 32;
 my int $TYPE_NATIVE_NUM   := 8;
 my int $TYPE_NATIVE_STR   := 16;
-my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT
+                               +| $TYPE_NATIVE_UINT
+                               +| $TYPE_NATIVE_NUM
+                               +| $TYPE_NATIVE_STR;
 my int $BIND_VAL_OBJ      := 0;
 my int $BIND_VAL_INT      := 1;
 my int $BIND_VAL_UINT     := 10;
 my int $BIND_VAL_NUM      := 2;
 my int $BIND_VAL_STR      := 3;
+my @hll_type := (Nil, Int, Num, Str, Nil, Nil, Nil, Nil, Nil, Nil, Int);
+
+# Helper sub, returning 1 if there is a mismatch in named arguments, else 0.
 sub has-named-args-mismatch($capture, %info) {
     # First consider required nameds.
     my $required-name-sets := %info<required_names>;
     my $nameds-list := nqp::syscall('capture-names-list', $capture);
+
     if $required-name-sets {
         # Quick exit if we required names, but have none.
         return 1 unless $nameds-list;
@@ -2137,7 +2153,10 @@ sub has-named-args-mismatch($capture, %info) {
         my int $i;
         my int $n := nqp::elems($nameds-list);
         while $i < $n {
-            return 1 unless nqp::existskey($allowed-names, nqp::atpos_s($nameds-list, $i));
+            return 1
+              unless nqp::existskey(
+                $allowed-names, nqp::atpos_s($nameds-list, $i)
+            );
             ++$i;
         }
     }
@@ -2145,42 +2164,44 @@ sub has-named-args-mismatch($capture, %info) {
     # Otherwise, no mismatch.
     0
 }
-sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture = $capture) {
+
+# Helper sub to create the dispatch plan.  Takes a list of candidates, the
+# capture in question, an int flag to indicate to stop at a trivial error,
+# and an optional "original capture" argument
+sub raku-multi-plan(
+      @candidates,
+      $capture,
+  int $stop-at-trivial,
+      $orig-capture = $capture
+) {
+    my int $num_args := nqp::captureposelems($capture);
+
     # First check there's no non-Scalar containers in the positional arguments.
     # If there are, establish guards relating to those and we're done. Native
     # references don't count; we know the native types they shall match up with
     # and don't need to dereference them.
-    my int $num_args := nqp::captureposelems($capture);
-    my int $i;
     my $non-scalar := nqp::list_i();
+    my int $i;
     while $i < $num_args {
-        my int $got_prim := nqp::captureposprimspec($capture, $i);
-        if $got_prim == 0 {
+        unless nqp::captureposprimspec($capture, $i) {
             my $value := nqp::captureposarg($capture, $i);
-            if nqp::isconcrete_nd($value) &&
-                nqp::iscont($value) && !nqp::istype_nd($value, Scalar) &&
-                !(nqp::iscont_i($value) || nqp::iscont_u($value) || nqp::iscont_n($value) || nqp::iscont_s($value)) {
-                nqp::push_i($non-scalar, $i);
-            }
+            nqp::push_i($non-scalar, $i)
+              if nqp::isconcrete_nd($value)        # outside instantiated
+              && nqp::iscont($value)               # and is a container
+              && !(nqp::istype_nd($value, Scalar)  # but not a Scalar container
+                    || nqp::iscont_s($value)  # nor a str container
+                    || nqp::iscont_i($value)  # nor an int container
+                    || nqp::iscont_u($value)  # nor an unsigned int container
+                    || nqp::iscont_n($value)  # nor a num container
+                  );
         }
         ++$i;
     }
-    if nqp::elems($non-scalar) {
-        # Establish guards on types of all positionals, but not on the values
-        # inside of them if they are Scalar containers; we just need to make
-        # sure we have the appropriate tuple of Proxy vs non-Proxy for the
-        # Proxy removal code we'll invoke.
-        my int $i;
-        while $i < $num_args {
-            if nqp::captureposprimspec($capture, $i) == 0 {
-                nqp::guard('type', nqp::track('arg', $capture, $i));
-            }
-            ++$i;
-        }
 
-        # Hand back the indices we need to strip Proxy from.
-        return MultiDispatchNonScalar.new($non-scalar);
-    }
+    # Found non-scalar containers (proxies) so hand back the indices we
+    # need to strip Proxy from.
+    return MultiDispatchNonScalar.new($capture, $num_args, $non-scalar)
+      if nqp::elems($non-scalar);
 
     # We keep track of the head of the plan as well as the tail node of it,
     # so we know where to add the next step.
@@ -2191,200 +2212,244 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
     # setting guards on the incoming arguments OR by the shape of the
     # callsite. That callsite shape includes argument count, which named
     # arguments are present, and which arguments are natively typed.
-    my int $cur_idx;
-    my int $done;
-    my $need_scalar_read := nqp::list_i();
-    my $need_scalar_rw_check := nqp::list_i();
-    my $need_type_guard := nqp::list_i();
-    my $need_conc_guard := nqp::list_i();
+    my $need_scalar_read     := nqp::list_i;
+    my $need_scalar_rw_check := nqp::list_i;
+    my $need_type_guard      := nqp::list_i;
+    my $need_conc_guard      := nqp::list_i;
     my @possibles;
-    my $Positional := nqp::gethllsym('Raku', 'MD_Pos');
+
+    # XXX why do they live here?
+    my $Positional             := nqp::gethllsym('Raku', 'MD_Pos');
+    my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
+
+    my int $done;
+    my int $cur_idx;
     until $done {
+
         # The candidate list is broken into tied groups (that is, groups of
         # candidates that are equally narrow). Those are seperated by a
         # type object sentinel.
         my $cur_candidate := nqp::atpos(@candidates, $cur_idx++);
+
+        # An actual candidate
         if nqp::isconcrete($cur_candidate) {
+
             # Candidate; does the arity fit? (If not, it drops out on callsite
             # shape.)
-            if $num_args >= nqp::atkey($cur_candidate, 'min_arity') &&
-                    $num_args <= nqp::atkey($cur_candidate, 'max_arity') {
+            if   $num_args >= nqp::atkey($cur_candidate, 'min_arity')
+              && $num_args <= nqp::atkey($cur_candidate, 'max_arity') {
+
                 # Arity OK; now go through the arguments and see if we can
                 # eliminate any of them based on guardable properties.
-                my int $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
-                    ?? $num_args
-                    !! nqp::atkey($cur_candidate, 'num_types');
+                my int $type_check_count :=
+                  nqp::atkey($cur_candidate, 'num_types');
+                $type_check_count := $num_args
+                  if $type_check_count > $num_args;
+
                 my int $type_mismatch;
                 my int $rwness_mismatch;
                 my int $i;
-                while $i < $type_check_count && !($type_mismatch +| $rwness_mismatch) {
-                    # Obtain parameter properties.
-                    my $type := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
-                    my int $is-mu := nqp::eqaddr($type, Mu);
-                    my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
-                    my int $definedness := $type_flags +& $DEFCON_MASK;
-                    my int $rwness := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
+                while $i < $type_check_count
+                  && !($type_mismatch +| $rwness_mismatch) {
 
-                    # Get the primitive type of the argument, and go on whether it's an
-                    # object or primitive type.
-                    my int $got_prim := nqp::captureposprimspec($capture, $i);
+                    # Obtain parameter properties.
+                    my $type := nqp::atpos(
+                      nqp::atkey($cur_candidate, 'types'), $i
+                    );
+                    my int $type_flags := nqp::atpos_i(
+                      nqp::atkey($cur_candidate, 'type_flags'), $i
+                    );
+                    my int $rwness := nqp::atpos_i(
+                      nqp::atkey($cur_candidate, 'rwness'), $i
+                    );
+
+                    my int $definedness := $type_flags +& $DEFCON_MASK;
+
+                    # Get the primitive type of the argument, and go on
+                    # whether it's an object or primitive type
+                    my int $got_prim  := nqp::captureposprimspec($capture, $i);
                     my int $want_prim := $type_flags +& $TYPE_NATIVE_MASK;
-                    if $got_prim == 0 && $want_prim == 0 {
+
+                    # It's a native
+                    if $got_prim {
+
+                        # Read/write and type object incompatible with natives
+                        if $rwness   # want rw, we ain't got it
+                          || $definedness == $DEFCON_UNDEFINED {  # type object
+                            $rwness_mismatch := 1;
+                        }
+
+                        # Wrong type of native is a mismatch.
+                        elsif $want_prim {
+                            $type_mismatch := 1
+                              if (($type_flags +& $TYPE_NATIVE_STR)
+                                   && $got_prim != $BIND_VAL_STR)
+                              || (($type_flags +& $TYPE_NATIVE_INT)
+                                   && $got_prim != $BIND_VAL_INT)
+                              || (($type_flags +& $TYPE_NATIVE_UINT)
+                                   && $got_prim != $BIND_VAL_UINT)
+                              || (($type_flags +& $TYPE_NATIVE_NUM)
+                                   && $got_prim != $BIND_VAL_NUM);
+                        }
+
+                        # Otherwise, we want an object type. Figure out the
+                        # correct one that we shall box to and test that
+                        else {
+                            $type_mismatch := 1 unless nqp::istype(
+                              nqp::atpos(@hll_type, $got_prim), $type
+                            );
+                        }
+                    }
+
+                    # Want a native from an opaque
+                    elsif $want_prim {
+
+                        # Mark a type guard for this argument
+                        nqp::bindpos_i($need_type_guard, $i, 1);
+
+                        # Make sure it's the expected kind of native container
+                        my $contish := nqp::captureposarg($capture, $i);
+                        $type_mismatch := 1
+                          unless (($type_flags +& $TYPE_NATIVE_STR)
+                                   && nqp::iscont_s($contish))
+                              || (($type_flags +& $TYPE_NATIVE_INT)
+                                   && nqp::iscont_i($contish))
+                              || (($type_flags +& $TYPE_NATIVE_UINT)
+                                   && nqp::iscont_u($contish))
+                              || (($type_flags +& $TYPE_NATIVE_NUM)
+                                   && nqp::iscont_n($contish));
+                    }
+
+                    # Got a opaque, want an opaque
+                    else {
+                        my int $is-mu := nqp::eqaddr($type, Mu);
+
                         # For a type that's exactly Mu we do not need a type
                         # guard, however if it's got a definedness constraint
                         # we do, since we might then wrongly accept a Scalar
-                        # container that meets the definedness property.
-                        if $definedness || !$is-mu {
-                            nqp::bindpos_i($need_type_guard, $i, 1);
-                        }
+                        # container that meets the definedness property
+                        nqp::bindpos_i($need_type_guard, $i, 1)
+                          if $definedness || !$is-mu;
 
-                        # It's an object type. Obtain the value, and go by if it's a
-                        # container or not.
+                        # It's an object type. Obtain the value, and go by
+                        # if it's a container or not.
                         my $value := nqp::captureposarg($capture, $i);
                         my int $promoted_primitive;
+
+                        # Containerized
                         if nqp::iscont($value) && nqp::isconcrete_nd($value) {
-                            # Containerized. Scalar we handle specially.
+
+                            # Scalar we handle specially
                             if nqp::istype_nd($value, Scalar) {
                                 nqp::bindpos_i($need_scalar_read, $i, 1);
+
                                 if $rwness {
-                                    nqp::bindpos_i($need_scalar_rw_check, $i, 1);
-                                    my $desc := nqp::getattr($value, Scalar, '$!descriptor');
-                                    unless nqp::isconcrete($desc) {
-                                        $rwness_mismatch := 1;
-                                    }
+                                    nqp::bindpos_i($need_scalar_rw_check,$i,1);
+
+                                    # Only a real descriptor can write
+                                    $rwness_mismatch := 1
+                                      unless nqp::isconcrete(nqp::getattr(
+                                        $value,Scalar,'$!descriptor'
+                                      ));
                                 }
-                                $value := nqp::getattr($value, Scalar, '$!value');
+                                $value := nqp::getattr($value,Scalar,'$!value');
                             }
-                            # Otherwise, it should be a native reference. We'll
-                            # promote these to their boxed type.
-                            elsif nqp::iscont_i($value) {
-                                $value := Int;
-                                $promoted_primitive := 1;
-                            }
-                            elsif nqp::iscont_u($value) {
-                                $value := Int;
-                                $promoted_primitive := 1;
-                            }
-                            elsif nqp::iscont_n($value) {
-                                $value := Num;
-                                $promoted_primitive := 1;
-                            }
-                            elsif nqp::iscont_s($value) {
-                                $value := Str;
-                                $promoted_primitive := 1;
-                            }
+
+                            # Otherwise, it should be a native reference.
+                            # Promote these to their boxed type
                             else {
-                                nqp::die('Unknown kind of l-value in multiple dispatch');
-                            }
-                        }
-                        else {
-                            # If we need an rw argument and didn't get a container,
-                            # we're out of luck. Before asserting this, we should make
-                            # sure that the original container (which maybe was a
-                            # Proxy that was removed in the args we're doing the
-                            # dispatch over) was not itself rw.
-                            if $rwness && !nqp::iscont(nqp::captureposarg($orig-capture, $i)) {
-                                $rwness_mismatch := 1;
+                                $value := nqp::iscont_s($value)
+                                  ?? Str
+                                  !! nqp::iscont_i($value)
+                                       || nqp::iscont_u($value)
+                                    ?? Int
+                                    !! nqp::iscont_n($value)
+                                      ?? Num
+                                      !! nqp::die('Unknown kind of l-value in multiple dispatch');
+                                $promoted_primitive := 1;
                             }
                         }
 
-                        # Ensure the value meets the required type constraints.
-                        unless $is-mu ||
-                                nqp::istype_nd(nqp::hllizefor($value, 'Raku'), $type) {
+                        # Not containerized
+                        else {
+                            # If we need an rw argument and didn't get a
+                            # container, we're out of luck. Before asserting
+                            # this, we should make sure that the original
+                            # container (which maybe was a Proxy that was
+                            # removed in the args we're doing the dispatch
+                            # over) was not itself rw.
+                            $rwness_mismatch := 1
+                              if $rwness
+                              && !nqp::iscont(
+                                   nqp::captureposarg($orig-capture, $i)
+                                 );
+                        }
+
+                        # Ensure the value meets the required type constraints
+                        unless $is-mu || nqp::istype_nd(
+                          nqp::hllizefor($value, 'Raku'), $type
+                        ) {
                             if $type =:= $Positional {
                                 # Things like Seq can bind to an @ sigil.
-                                my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
-                                unless nqp::istype_nd($value, $PositionalBindFailover) {
-                                    $type_mismatch := 1;
-                                }
-                            } else {
+                                $type_mismatch := 1 unless nqp::istype_nd(
+                                    $value, $PositionalBindFailover
+                                );
+                            }
+                            else {
                                 $type_mismatch := 1;
                             }
                         }
 
                         # Also ensure any concreteness constraints are unheld.
                         if !$type_mismatch && $definedness {
-                            my int $got := $promoted_primitive || nqp::isconcrete_nd($value);
-                            if ($got && $definedness == $DEFCON_UNDEFINED) ||
-                                    (!$got && $definedness == $DEFCON_DEFINED) {
-                                $type_mismatch := 1;
-                            }
+                            my int $got := $promoted_primitive
+                              || nqp::isconcrete_nd($value);
+                            $type_mismatch := 1
+                              if ($got && $definedness == $DEFCON_UNDEFINED)
+                              || (!$got && $definedness == $DEFCON_DEFINED);
                             nqp::bindpos_i($need_conc_guard, $i, 1);
-                        }
-                    }
-                    elsif $got_prim == 0 { # and $want_prim != 0 per last condition
-                        # Make sure it's the expected kind of native container.
-                        nqp::bindpos_i($need_type_guard, $i, 1);
-                        my $contish := nqp::captureposarg($capture, $i);
-                        unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
-                               (($type_flags +& $TYPE_NATIVE_UINT) && nqp::iscont_u($contish)) ||
-                               (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
-                               (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
-                            $type_mismatch := 1;
-                        }
-                    }
-                    else {
-                        # It's a primitive type. If we want rw, then we ain't got it.
-                        if $rwness {
-                            $rwness_mismatch := 1;
-                        }
-                        # If we want a type object, it's certainly not that either.
-                        elsif $definedness == $DEFCON_UNDEFINED {
-                            $type_mismatch := 1;
-                        }
-                        # If we want a primitive type, but got the wrong one, then it's
-                        # a mismatch.
-                        elsif $want_prim {
-                            if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
-                                    (($type_flags +& $TYPE_NATIVE_UINT) && $got_prim != $BIND_VAL_UINT) ||
-                                    (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
-                                    (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
-                                $type_mismatch := 1;
-                            }
-                        }
-                        # Otherwise, we want an object type. Figure out the correct
-                        # one that we shall box to.
-                        else {
-                            my $test_type := $got_prim == $BIND_VAL_INT  ?? Int !!
-                                             $got_prim == $BIND_VAL_UINT ?? Int !!
-                                             $got_prim == $BIND_VAL_NUM  ?? Num !!
-                                                                            Str;
-                            $type_mismatch := 1 unless nqp::istype($test_type, $type);
                         }
                     }
                     ++$i;
                 }
 
                 # Add it to the possibles list of this group.
-                unless $type_mismatch || $rwness_mismatch {
-                    nqp::push(@possibles, $cur_candidate);
-                }
+                nqp::push(@possibles, $cur_candidate)
+                  unless $type_mismatch || $rwness_mismatch;
             }
         }
+
+        # End of tied group
         else {
-            # End of tied group. If there's possibles...
+
+            # If there's possibles...
             if nqp::elems(@possibles) {
                 # Build a new list of filtered possibles by ruling out any
-                # that have unaccepted of missing nameds. Track if we need bind
-                # checks or if we have declarative candidates. Also check for
-                # defaults and exact arity matches, which we can use for
-                # tie-breaking if there are ambiguities.
-                my int $i;
-                my int $n := nqp::elems(@possibles);
+                # that have unaccepted of missing nameds. Track if we need
+                # bind checks or if we have declarative candidates. Also
+                # check for defaults and exact arity matches, which we can
+                # use for tie-breaking if there are ambiguities.
                 my int $need-bind-check;
                 my int $first-group := nqp::isnull($current-head);
                 my @filtered-possibles;
                 my @defaults;
                 my @exact-arity;
+
+                my int $n := nqp::elems(@possibles);
+                my int $i;
                 while $i < $n {
                     my %info := @possibles[$i];
                     unless has-named-args-mismatch($capture, %info) {
                         nqp::push(@filtered-possibles, %info);
-                        ++$need-bind-check if nqp::existskey(%info, 'bind_check');
-                        my $sub := %info<sub>;
-                        nqp::push(@defaults, %info) if nqp::can($sub, 'default') && $sub.default;
-                        nqp::push(@exact-arity, %info) if %info<min_arity> == $num_args &&
-                           %info<max_arity> == $num_args;
+                        ++$need-bind-check
+                          if nqp::existskey(%info, 'bind_check');
+                        my $sub := nqp::atkey(%info, 'sub');
+                        nqp::push(@defaults, %info)
+                          if nqp::can($sub, 'default')
+                          && $sub.default;
+                        nqp::push(@exact-arity, %info)
+                          if nqp::atkey(%info,'min_arity') == $num_args
+                          && nqp::atkey(%info,'max_arity') == $num_args;
                     }
                     ++$i;
                 }
@@ -2401,104 +2466,97 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                     }
                     else {
                         my $node := MultiDispatchAmbiguous.new();
-                        if nqp::isnull($current-head) {
-                            $current-head := $node;
-                        }
-                        else {
-                            $current-tail.set-next($node);
-                        }
+                        nqp::isnull($current-head)
+                          ?? ($current-head := $node)
+                          !! $current-tail.set-next($node);
                         $current-tail := $node;
                     }
                 }
 
-                # Add the filtered possibles to the plan.
+                # Add the filtered possibles to the plan
                 $i := 0;
                 $n := nqp::elems(@filtered-possibles);
                 while $i < $n {
-                    my %info := @filtered-possibles[$i];
+                    my %info := nqp::atpos(@filtered-possibles, $i);
                     my $node;
+
                     if $need-bind-check {
+
                         # Ensure it's already compiled, otherwise we can have
-                        # compiler frames obscuring the bind control record we
-                        # use for trying the next candidate.
-                        my $sub := %info<sub>;
-                        my $cs := nqp::getattr($sub, Code, '@!compstuff');
+                        # compiler frames obscuring the bind control record
+                        # we use for trying the next candidate.
+                        my $sub := nqp::atkey(%info, 'sub');
+                        my $cs  := nqp::getattr($sub, Code, '@!compstuff');
                         unless nqp::isnull($cs) {
-                            my $ctf := $cs[1];
+                            my $ctf := nqp::atpos($cs,1);
                             $ctf() if $ctf;
                         }
                         $node := MultiDispatchTry.new($sub);
                     }
+
+                    # No bind check needed
                     else {
-                        $node := MultiDispatchCall.new(%info<sub>);
+                        $node := MultiDispatchCall.new(nqp::atkey(%info,'sub'));
                     }
-                    if nqp::isnull($current-head) {
-                        $current-head := $node;
-                    }
-                    else {
-                        $current-tail.set-next($node);
-                    }
+
+                    nqp::isnull($current-head)
+                      ?? ($current-head := $node)
+                      !! $current-tail.set-next($node);
                     $current-tail := $node;
                     ++$i;
                 }
 
                 # If we are to stop at a trivial match and nothing needs a
                 # bind check, and we've no results before now, we're done.
-                if $stop-at-trivial && $first-group &&
-                        nqp::elems(@filtered-possibles) == 1 && $need-bind-check == 0 {
-                    $done := 1;
-                }
-
-                # Otherwise, clear the set of possibles for the next group.
-                else {
-                    nqp::setelems(@possibles, 0);
-                }
+                # Otherwise, clear the set of possibles for the next group
+                $stop-at-trivial
+                  && $first-group
+                  && nqp::elems(@filtered-possibles) == 1
+                  && $need-bind-check == 0
+                  ?? ($done := 1)
+                  !! nqp::setelems(@possibles, 0);
             }
 
-            # If we're really at the end of the list, we're done.
-            unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
-                $done := 1;
-            }
+            # If we're really at the end of the list, we're done
+            $done := 1
+              unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx));
         }
     }
 
-    # Add an end node.
-    if nqp::isnull($current-head) {
-        $current-head := MultiDispatchEnd;
-    }
-    else {
-        $current-tail.set-next(MultiDispatchEnd);
-    }
+    # Add an end node
+    nqp::isnull($current-head)
+      ?? ($current-head := MultiDispatchEnd)
+      !! $current-tail.set-next(MultiDispatchEnd);
 
-    # Install guards as required.
+    # Install guards as required
     $i := 0;
     while $i < $num_args {
-        my $tracked_value;
+        my $Tvalue;
         if nqp::atpos_i($need_scalar_read, $i) {
-            my $tracked := nqp::track('arg', $capture, $i);
-            if nqp::atpos_i($need_scalar_rw_check, $i) {
-                my $tracked_desc :=
-                  nqp::track('attr', $tracked, Scalar, '$!descriptor');
-                nqp::guard('concreteness', $tracked_desc);
-            }
-            $tracked_value :=
-              nqp::track('attr', $tracked, Scalar, '$!value');
+            my $Targ := nqp::track('arg', $capture, $i);
+
+            nqp::guard('concreteness',
+              nqp::track('attr', $Targ, Scalar, '$!descriptor')
+            ) if nqp::atpos_i($need_scalar_rw_check, $i);
+
+            $Tvalue := nqp::track('attr', $Targ, Scalar, '$!value');
         }
         else {
-            $tracked_value := nqp::track('arg', $capture, $i);
+            $Tvalue := nqp::track('arg', $capture, $i);
         }
-        if nqp::atpos_i($need_type_guard, $i) {
-            nqp::guard('type', $tracked_value);
-        }
-        if nqp::atpos_i($need_conc_guard, $i) {
-            nqp::guard('concreteness', $tracked_value);
-        }
+        nqp::guard('type', $Tvalue)
+          if nqp::atpos_i($need_type_guard, $i);
+
+        nqp::guard('concreteness', $Tvalue)
+          if nqp::atpos_i($need_conc_guard, $i);
+
         ++$i;
     }
 
-    # Return the dispatch plan.
+    # Return the dispatch plan
     $current-head
 }
+
 sub form-raku-capture($vm-capture) {
     my $raku-capture := nqp::create(Capture);
     nqp::bindattr($raku-capture, Capture, '@!list',

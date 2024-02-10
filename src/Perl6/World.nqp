@@ -4,36 +4,6 @@ use Perl6::ModuleLoader;
 use Perl6::Pod;
 use Perl6::Ops;
 
-# Binder constants.
-# XXX Want constant syntax in NQP really.
-my $SIG_ELEM_BIND_CAPTURE        := 1;
-my $SIG_ELEM_BIND_PRIVATE_ATTR   := 2;
-my $SIG_ELEM_BIND_PUBLIC_ATTR    := 4;
-my $SIG_ELEM_SLURPY_POS          := 8;
-my $SIG_ELEM_SLURPY_NAMED        := 16;
-my $SIG_ELEM_SLURPY_LOL          := 32;
-my $SIG_ELEM_INVOCANT            := 64;
-my $SIG_ELEM_MULTI_INVOCANT      := 128;
-my $SIG_ELEM_IS_RW               := 256;
-my $SIG_ELEM_IS_COPY             := 512;
-my $SIG_ELEM_IS_RAW              := 1024;
-my $SIG_ELEM_IS_OPTIONAL         := 2048;
-my $SIG_ELEM_ARRAY_SIGIL         := 4096;
-my $SIG_ELEM_HASH_SIGIL          := 8192;
-my $SIG_ELEM_DEFAULT_FROM_OUTER  := 16384;
-my $SIG_ELEM_IS_CAPTURE          := 32768;
-my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
-my $SIG_ELEM_DEFINED_ONLY        := 131072;
-my $SIG_ELEM_TYPE_GENERIC        := 524288;
-my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
-my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
-my $SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
-my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
-my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
-my $SIG_ELEM_SLURPY_ONEARG       := 16777216;
-my $SIG_ELEM_CODE_SIGIL          := 33554432;
-my int $SIG_ELEM_IS_COERCIVE     := 67108864;
-
 sub p6ize_recursive($x) {
     if nqp::islist($x) {
         my @copy := [];
@@ -2286,80 +2256,80 @@ class Perl6::World is HLL::World {
         # Calculate flags.
         my int $flags := 0;
         if %param_info<optional> {
-            $flags := $flags + $SIG_ELEM_IS_OPTIONAL;
+            $flags := $flags + nqp::const::SIG_ELEM_IS_OPTIONAL;
         }
         if %param_info<is_invocant> {
-            $flags := $flags + $SIG_ELEM_INVOCANT;
+            $flags := $flags + nqp::const::SIG_ELEM_INVOCANT;
         }
         if %param_info<is_multi_invocant> {
-            $flags := $flags + $SIG_ELEM_MULTI_INVOCANT;
+            $flags := $flags + nqp::const::SIG_ELEM_MULTI_INVOCANT;
         }
         if %param_info<is_rw> {
-            $flags := $flags + $SIG_ELEM_IS_RW;
+            $flags := $flags + nqp::const::SIG_ELEM_IS_RW;
         }
         if %param_info<is_raw> {
-            $flags := $flags + $SIG_ELEM_IS_RAW;
+            $flags := $flags + nqp::const::SIG_ELEM_IS_RAW;
         }
         if %param_info<pos_onearg> {
-            $flags := $flags + $SIG_ELEM_SLURPY_ONEARG;
+            $flags := $flags + nqp::const::SIG_ELEM_SLURPY_ONEARG;
         }
         if %param_info<is_capture> {
-            $flags := $flags + $SIG_ELEM_IS_CAPTURE + $SIG_ELEM_IS_RAW;
+            $flags := $flags + nqp::const::SIG_ELEM_IS_CAPTURE + nqp::const::SIG_ELEM_IS_RAW;
         }
         if %param_info<undefined_only> {
-            $flags := $flags + $SIG_ELEM_UNDEFINED_ONLY;
+            $flags := $flags + nqp::const::SIG_ELEM_UNDEFINED_ONLY;
         }
         if %param_info<defined_only> {
-            $flags := $flags + $SIG_ELEM_DEFINED_ONLY;
+            $flags := $flags + nqp::const::SIG_ELEM_DEFINED_ONLY;
         }
         if %param_info<pos_slurpy> {
-            $flags := $flags + $SIG_ELEM_SLURPY_POS;
+            $flags := $flags + nqp::const::SIG_ELEM_SLURPY_POS;
         }
         if %param_info<named_slurpy> {
-            $flags := $flags + $SIG_ELEM_SLURPY_NAMED;
+            $flags := $flags + nqp::const::SIG_ELEM_SLURPY_NAMED;
         }
         if %param_info<pos_lol> {
-            $flags := $flags + $SIG_ELEM_SLURPY_LOL;
+            $flags := $flags + nqp::const::SIG_ELEM_SLURPY_LOL;
         }
         if %param_info<bind_attr> {
-            $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR;
+            $flags := $flags + nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR;
         }
         if %param_info<bind_accessor> {
-            $flags := $flags + $SIG_ELEM_BIND_PUBLIC_ATTR;
+            $flags := $flags + nqp::const::SIG_ELEM_BIND_PUBLIC_ATTR;
         }
         if %param_info<sigil> eq '@' {
-            $flags := $flags + $SIG_ELEM_ARRAY_SIGIL;
+            $flags := $flags + nqp::const::SIG_ELEM_ARRAY_SIGIL;
         }
         elsif %param_info<sigil> eq '%' {
-            $flags := $flags + $SIG_ELEM_HASH_SIGIL;
+            $flags := $flags + nqp::const::SIG_ELEM_HASH_SIGIL;
         }
         elsif %param_info<sigil> eq '&' {
-            $flags := $flags + $SIG_ELEM_CODE_SIGIL;
+            $flags := $flags + nqp::const::SIG_ELEM_CODE_SIGIL;
         }
         if %param_info<default_from_outer> {
-            $flags := $flags + $SIG_ELEM_DEFAULT_FROM_OUTER;
+            $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER;
         }
         if %param_info<type_generic> {
-            $flags := $flags + $SIG_ELEM_TYPE_GENERIC;
+            $flags := $flags + nqp::const::SIG_ELEM_TYPE_GENERIC;
         }
         if $parameter_type.HOW.archetypes($parameter_type).coercive {
-            $flags := $flags + $SIG_ELEM_IS_COERCIVE;
+            $flags := $flags + nqp::const::SIG_ELEM_IS_COERCIVE;
         }
         if %param_info<default_is_literal> {
-            $flags := $flags + $SIG_ELEM_DEFAULT_IS_LITERAL;
+            $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
         }
         my $primspec := nqp::objprimspec(%param_info<type>);
         if $primspec == 1 {
-            $flags := $flags + $SIG_ELEM_NATIVE_INT_VALUE;
+            $flags := $flags + nqp::const::SIG_ELEM_NATIVE_INT_VALUE;
         }
         elsif $primspec == 2 {
-            $flags := $flags + $SIG_ELEM_NATIVE_NUM_VALUE;
+            $flags := $flags + nqp::const::SIG_ELEM_NATIVE_NUM_VALUE;
         }
         elsif $primspec == 3 {
-            $flags := $flags + $SIG_ELEM_NATIVE_STR_VALUE;
+            $flags := $flags + nqp::const::SIG_ELEM_NATIVE_STR_VALUE;
         }
         elsif $primspec == 10 {
-            $flags := $flags + $SIG_ELEM_NATIVE_UINT_VALUE;
+            $flags := $flags + nqp::const::SIG_ELEM_NATIVE_UINT_VALUE;
         }
 
         # Populate it.
@@ -2495,7 +2465,7 @@ class Perl6::World is HLL::World {
             my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
             my $varname := $_<variable_name>;
 
-            if $varname && ($flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_COPY) {
+            if $varname && ($flags +& nqp::const::SIG_ELEM_IS_RW || $flags +& nqp::const::SIG_ELEM_IS_COPY) {
                 my %sym := $lexpad.symbol($varname);
                 if +%sym && !nqp::existskey(%sym, 'descriptor') {
                     my $type := $_<type>;
@@ -2511,14 +2481,14 @@ class Perl6::World is HLL::World {
             # If it's natively typed and we got "is rw" set, need to mark the
             # container as being a lexical ref.
             if $varname && nqp::objprimspec($_<type>) {
-                if $flags +& $SIG_ELEM_IS_RW {
+                if $flags +& nqp::const::SIG_ELEM_IS_RW {
                     for @($lexpad[0]) {
                         if nqp::istype($_, QAST::Var) && $_.name eq $varname {
                             $_.scope('lexicalref');
                         }
                     }
                 }
-                elsif !($flags +& $SIG_ELEM_IS_COPY) {
+                elsif !($flags +& nqp::const::SIG_ELEM_IS_COPY) {
                     $lexpad.symbol($varname, :ro(1));
                 }
             }
@@ -2561,15 +2531,15 @@ class Perl6::World is HLL::World {
         while ++$i < $n {
             my $param := @parameters[$i];
             my int $flags := nqp::getattr_i($param, $p_type, '$!flags');
-            if $flags +& ($SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG) {
+            if $flags +& (nqp::const::SIG_ELEM_IS_CAPTURE +| nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
                 $count := -1;
             }
-            elsif !($flags +& $SIG_ELEM_SLURPY_NAMED) &&
+            elsif !($flags +& nqp::const::SIG_ELEM_SLURPY_NAMED) &&
                     nqp::isnull(nqp::getattr($param, $p_type, '@!named_names')) {
                 $count++;
-                $arity++ unless $flags +& $SIG_ELEM_IS_OPTIONAL;
+                $arity++ unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL;
                 if $i < 64 {
-                    unless $flags +& ($SIG_ELEM_IS_RW +| $SIG_ELEM_IS_RAW) {
+                    unless $flags +& (nqp::const::SIG_ELEM_IS_RW +| nqp::const::SIG_ELEM_IS_RAW) {
                         $readonly := $readonly +| nqp::bitshiftl_i(1, $i);
                     }
                 }

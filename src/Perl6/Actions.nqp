@@ -4473,7 +4473,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     # types, we figure there's a good chance it's a high-value inline and we
     # can try to do it at compile time, so we generate inlining info here. In
     # any other cases, we will not.
-    my $SIG_ELEM_IS_COPY := 512;
     method maybe_add_inlining_info($/, $code, $sig, $past, @params) {
         # Cannot inline things with custom invocation handler or phasers.
         return 0 if nqp::can($code, 'CALL-ME');
@@ -4503,7 +4502,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 %info<bind_accessor> || %info<named_names> || %info<type_captures>;
             my $param_obj := @p_objs[$i];
             my int $flags := nqp::getattr_i($param_obj, $Param, '$!flags');
-            return 0 if $flags +& $SIG_ELEM_IS_COPY;
+            return 0 if $flags +& nqp::const::SIG_ELEM_IS_COPY;
             %arg_placeholders{%info<variable_name>} :=
                 QAST::InlinePlaceholder.new( :position($i) );
         }
@@ -9424,10 +9423,6 @@ Did you mean a call like '"
         }
         ''
     }
-    my $SIG_ELEM_IS_RW       := 256;
-    my $SIG_ELEM_IS_RAW      := 1024;
-    my $SIG_ELEM_IS_OPTIONAL := 2048;
-    my $SIG_ELEM_IS_COERCIVE := 67108864;
     my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
     sub lower_signature($block, $sig, @params) {
         my $world := $*W;
@@ -9536,7 +9531,7 @@ Did you mean a call like '"
             elsif %info<pos_slurpy> || %info<pos_lol> || %info<pos_onearg> {
                 $var.slurpy(1);
                 my $type := $world.find_symbol(
-                    [$flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
+                    [$flags +& nqp::const::SIG_ELEM_IS_RAW || $flags +& nqp::const::SIG_ELEM_IS_RW ?? 'List' !! 'Array' ]);
                 $var.push(QAST::Op.new(
                     :op('bind'),
                     QAST::Var.new( :name($name), :scope('local') ),
@@ -9579,7 +9574,7 @@ Did you mean a call like '"
             my $nomtype    := !$is_generic && $ptype_archetypes.nominalizable
                                 ?? $param_type.HOW.nominalize($param_type)
                                 !! $param_type;
-            my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
+            my int $is_rw := $flags +& nqp::const::SIG_ELEM_IS_RW;
             my int $spec  := nqp::objprimspec($nomtype);
             my $decont_name;
             my int $decont_name_invalid := 0;
@@ -9770,7 +9765,7 @@ Did you mean a call like '"
                                     QAST::WVal.new(:value($Param)),
                                     QAST::SVal.new(:value('$!flags'))
                                 ),
-                                QAST::IVal.new(:value($SIG_ELEM_IS_COERCIVE))
+                                QAST::IVal.new(:value(nqp::const::SIG_ELEM_IS_COERCIVE))
                             ),
                             QAST::Op.new(
                                 :op('bind'),
@@ -9828,7 +9823,7 @@ Did you mean a call like '"
             }
 
             # If it's optional, do any default handling.
-            if $flags +& $SIG_ELEM_IS_OPTIONAL {
+            if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                 $decont_name_invalid := 1;
                 if nqp::existskey(%info, 'default_value') {
                     my $wval := QAST::WVal.new( :value(%info<default_value>) );
@@ -9901,7 +9896,7 @@ Did you mean a call like '"
 
             # Bind to lexical if needed.
             if nqp::existskey(%info, 'variable_name') && !%info<bind_attr> {
-                if nqp::objprimspec($nomtype) || $is_rw || $flags +& $SIG_ELEM_IS_RAW {
+                if nqp::objprimspec($nomtype) || $is_rw || $flags +& nqp::const::SIG_ELEM_IS_RAW {
                     my $scope := $spec && $is_rw ?? 'lexicalref' !! 'lexical';
                     $var.push(QAST::Op.new(
                         :op('bind'),
@@ -9910,7 +9905,7 @@ Did you mean a call like '"
                     ));
                 }
                 elsif %info<sigil> eq '@' {
-                    if $flags +& $SIG_ELEM_IS_COPY {
+                    if $flags +& nqp::const::SIG_ELEM_IS_COPY {
                         $var.push(
                             QAST::Op.new( :op<bind>,
                                 QAST::Var.new( :name( my $array_copy_var := $block.unique('array_copy_var') ), :scope<local>, :decl<var> ),
@@ -9940,7 +9935,7 @@ Did you mean a call like '"
                     }
                 }
                 elsif %info<sigil> eq '%' {
-                    if $flags +& $SIG_ELEM_IS_COPY {
+                    if $flags +& nqp::const::SIG_ELEM_IS_COPY {
                         $var.push(
                             QAST::Op.new( :op<bind>,
                                 QAST::Var.new( :name( my $hash_copy_var := $block.unique('hash_copy_var') ), :scope<local>, :decl<var> ),
@@ -9973,7 +9968,7 @@ Did you mean a call like '"
                     # If the type means there's no way this could possibly be
                     # Iterable, we know it can't flatten. This in turn means
                     # we need not wrap it in a read-only scalar.
-                    my $wrap := $flags +& $SIG_ELEM_IS_COPY;
+                    my $wrap := $flags +& nqp::const::SIG_ELEM_IS_COPY;
                     unless $wrap {
                         if !$param_obj.coercive {
                             $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);

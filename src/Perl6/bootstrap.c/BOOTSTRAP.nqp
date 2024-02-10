@@ -117,38 +117,6 @@ my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 # The JVM backend really only uses trial_bind,
 # so we exclude everything else.
 my class Binder {
-    # Flags that can be set on a signature element. See Parameter.pm6
-    my int $SIG_ELEM_BIND_CAPTURE        := 1;
-    my int $SIG_ELEM_BIND_PRIVATE_ATTR   := 2;
-    my int $SIG_ELEM_BIND_PUBLIC_ATTR    := 4;
-    my int $SIG_ELEM_BIND_ATTRIBUTIVE    := ($SIG_ELEM_BIND_PRIVATE_ATTR +| $SIG_ELEM_BIND_PUBLIC_ATTR);
-    my int $SIG_ELEM_SLURPY_POS          := 8;
-    my int $SIG_ELEM_SLURPY_NAMED        := 16;
-    my int $SIG_ELEM_SLURPY_LOL          := 32;
-    my int $SIG_ELEM_INVOCANT            := 64;
-    my int $SIG_ELEM_MULTI_INVOCANT      := 128;
-    my int $SIG_ELEM_IS_RW               := 256;
-    my int $SIG_ELEM_IS_COPY             := 512;
-    my int $SIG_ELEM_IS_RAW              := 1024;
-    my int $SIG_ELEM_IS_OPTIONAL         := 2048;
-    my int $SIG_ELEM_ARRAY_SIGIL         := 4096;
-    my int $SIG_ELEM_HASH_SIGIL          := 8192;
-    my int $SIG_ELEM_DEFAULT_FROM_OUTER  := 16384;
-    my int $SIG_ELEM_IS_CAPTURE          := 32768;
-    my int $SIG_ELEM_UNDEFINED_ONLY      := 65536;
-    my int $SIG_ELEM_DEFINED_ONLY        := 131072;
-    my int $SIG_ELEM_DEFINEDNES_CHECK    := ($SIG_ELEM_UNDEFINED_ONLY +| $SIG_ELEM_DEFINED_ONLY);
-    my int $SIG_ELEM_TYPE_GENERIC        := 524288;
-    my int $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
-    my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
-    my int $SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
-    my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
-    my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
-    my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_UINT_VALUE +| $SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
-    my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
-    my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG);
-    my int $SIG_ELEM_CODE_SIGIL          := 33554432;
-    my int $SIG_ELEM_IS_COERCIVE         := 67108864;
 
     # Binding result flags.
     my int $BIND_RESULT_OK       := 0;
@@ -172,12 +140,12 @@ my class Binder {
 
             if !nqp::isnull(nqp::getattr($param, Parameter, '@!named_names')) {
             }
-            elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
+            elsif $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED {
             }
-            elsif $flags +& $SIG_ELEM_SLURPY {
+            elsif $flags +& nqp::const::SIG_ELEM_IS_SLURPY {
                 $count := -1000;  # in case a pos can sneak past a slurpy somehow
             }
-            elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
+            elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                 ++$count
             }
             else {
@@ -222,17 +190,17 @@ my class Binder {
           !! ($has_varname := 1);
 
         # Check if boxed/unboxed expectations are met.
-        my int $desired_native := $flags +& $SIG_ELEM_NATIVE_VALUE;
-        my int $is_rw          := $flags +& $SIG_ELEM_IS_RW;
+        my int $desired_native := $flags +& nqp::const::SIG_ELEM_NATIVE_VALUE;
+        my int $is_rw          := $flags +& nqp::const::SIG_ELEM_IS_RW;
         if $is_rw && $desired_native {
             if $got_native {
-                if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE
+                if $desired_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE
                   && !nqp::iscont_i($oval)
                   ?? "int"
-                  !! $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE
+                  !! $desired_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
                        && !nqp::iscont_u($oval)
                     ?? "unsigned int"
-                    !! $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE
+                    !! $desired_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
                          && !nqp::iscont_n($oval)
                       ?? "num"
                       !! !nqp::iscont_s($oval)  # SIG_ELEM_NATIVE_STR_VALUE
@@ -248,11 +216,11 @@ my class Binder {
         elsif $desired_native != $got_native {
             # Maybe we need to box the native.
             if $desired_native == 0 {
-                $got_native == $SIG_ELEM_NATIVE_INT_VALUE
+                $got_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE
                   ?? ($oval := nqp::box_i($ival, Int))
-                  !! $got_native == $SIG_ELEM_NATIVE_UINT_VALUE
+                  !! $got_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
                     ?? ($oval := nqp::box_u($ival, Int))
-                    !! $got_native == $SIG_ELEM_NATIVE_NUM_VALUE
+                    !! $got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
                       ?? ($oval := nqp::box_n($nval, Num))
                       # assume SIG_ELEM_NATIVE_STR_VALUE
                       !! ($oval := nqp::box_s($sval, Str));
@@ -262,11 +230,11 @@ my class Binder {
             elsif !$got_native {
                 # XXX Probably want to do this a little differently to get a
                 # better error.
-                $desired_native == $SIG_ELEM_NATIVE_INT_VALUE
+                $desired_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE
                   ?? ($ival := nqp::unbox_i($oval))
-                  !! $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE
+                  !! $desired_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
                     ?? ($ival := nqp::unbox_u($oval))
-                    !! $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE
+                    !! $desired_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
                       ?? ($nval := nqp::unbox_n($oval))
                       # assume  SIG_ELEM_NATIVE_STR_VALUE
                       !! ($sval := nqp::unbox_s($oval));
@@ -295,7 +263,7 @@ my class Binder {
                 # Is the nominal type generic and in need of instantiation? (This
                 # can happen in (::T, T) where we didn't learn about the type until
                 # during the signature bind).
-                if $flags +& $SIG_ELEM_TYPE_GENERIC {
+                if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
                     $param_type := $param_type.HOW.instantiate_generic($param_type, $lexpad);
                 }
 
@@ -338,15 +306,15 @@ my class Binder {
                 }
 
                 # Also enforce definedness constraints.
-                if $flags +& $SIG_ELEM_DEFINEDNES_CHECK {
-                    if (my $should_be_concrete := $flags +& $SIG_ELEM_DEFINED_ONLY   && !nqp::isconcrete($oval)) ||
-                                                  $flags +& $SIG_ELEM_UNDEFINED_ONLY &&  nqp::isconcrete($oval)
+                if $flags +& nqp::const::SIG_ELEM_DEFINEDNES_CHECK {
+                    if (my $should_be_concrete := $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY   && !nqp::isconcrete($oval)) ||
+                                                  $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY &&  nqp::isconcrete($oval)
                     {
                         if nqp::defined($error) {
                             my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
                             my $class  := $param_type.HOW.name($param_type);
                             my $got    := $oval.HOW.name($oval);
-                            my $die_msg := $flags +& $SIG_ELEM_INVOCANT
+                            my $die_msg := $flags +& nqp::const::SIG_ELEM_INVOCANT
                                   ?? $should_be_concrete
                                        ?? "Invocant of method '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
                                        !! "Invocant of method '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?"
@@ -362,7 +330,7 @@ my class Binder {
                                     :routine($method),
                                     :param($varname),
                                     :should-be-concrete(nqp::hllboolfor($should_be_concrete, 'Raku')),
-                                    :param-is-invocant(nqp::hllboolfor($flags +& $SIG_ELEM_INVOCANT, 'Raku'))
+                                    :param-is-invocant(nqp::hllboolfor($flags +& nqp::const::SIG_ELEM_INVOCANT, 'Raku'))
                                 );
                             };
                         }
@@ -400,15 +368,15 @@ my class Binder {
 
         # If it's not got attributive binding, we'll go about binding it into
         # the lex pad.
-        my int $is_attributive := $flags +& $SIG_ELEM_BIND_ATTRIBUTIVE;
+        my int $is_attributive := $flags +& nqp::const::SIG_ELEM_BIND_ATTRIBUTIVE;
         unless $is_attributive {
             # Is it native? If so, just go ahead and bind it.
             if $got_native {
-                $got_native == $SIG_ELEM_NATIVE_INT_VALUE
+                $got_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE
                   ?? nqp::bindkey_i($lexpad, $varname, $ival)
-                  !! $got_native == $SIG_ELEM_NATIVE_UINT_VALUE
+                  !! $got_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
                     ?? nqp::bindkey_i($lexpad, $varname, $ival) #FIXME bindkey_u missing
-                    !! $got_native == $SIG_ELEM_NATIVE_NUM_VALUE
+                    !! $got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
                       ?? nqp::bindkey_n($lexpad, $varname, $nval)
                       # assume SIG_ELEM_NATIVE_STR_VALUE
                       !! nqp::bindkey_s($lexpad, $varname, $sval);
@@ -435,14 +403,14 @@ my class Binder {
                 }
             }
             elsif $has_varname {
-                if $flags +& $SIG_ELEM_IS_RAW {
+                if $flags +& nqp::const::SIG_ELEM_IS_RAW {
                     # Just bind the thing as is into the lexpad.
                     nqp::bindkey($lexpad, $varname, $oval);
                 }
                 # If it's an array, copy means make a new one and store,
                 # and a normal bind is a straightforward binding.
-                elsif $flags +& $SIG_ELEM_ARRAY_SIGIL {
-                    if $flags +& $SIG_ELEM_IS_COPY {
+                elsif $flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL {
+                    if $flags +& nqp::const::SIG_ELEM_IS_COPY {
                         my $bindee := nqp::create(Array);
                         $bindee.STORE(nqp::decont($oval));
                         nqp::bindkey($lexpad, $varname, $bindee);
@@ -453,8 +421,8 @@ my class Binder {
                 }
 
                 # If it's a hash, similar approach to array.
-                elsif $flags +& $SIG_ELEM_HASH_SIGIL {
-                    if $flags +& $SIG_ELEM_IS_COPY {
+                elsif $flags +& nqp::const::SIG_ELEM_HASH_SIGIL {
+                    if $flags +& nqp::const::SIG_ELEM_IS_COPY {
                         my $bindee := nqp::create(Hash);
                         $bindee.STORE(nqp::decont($oval));
                         nqp::bindkey($lexpad, $varname, $bindee);
@@ -478,7 +446,7 @@ my class Binder {
         }
 
         # Is it the invocant? If so, also have to bind to self lexical.
-        if $flags +& $SIG_ELEM_INVOCANT {
+        if $flags +& nqp::const::SIG_ELEM_INVOCANT {
             nqp::bindkey($lexpad, 'self', nqp::decont($oval));
         }
 
@@ -527,19 +495,19 @@ my class Binder {
                     $result := $cons_type.ACCEPTS($oval);
                     $bad_value := $oval unless $result;
                 }
-                elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                elsif $got_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE {
                     $result := $cons_type.ACCEPTS($ival);
                     $bad_value := $ival unless $result;
                 }
-                elsif $got_native == $SIG_ELEM_NATIVE_UINT_VALUE {
+                elsif $got_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE {
                     $result := $cons_type.ACCEPTS($ival);
                     $bad_value := $ival unless $result;
                 }
-                elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
+                elsif $got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE {
                     $result := $cons_type.ACCEPTS($nval);
                     $bad_value := $nval unless $result;
                 }
-                elsif $got_native == $SIG_ELEM_NATIVE_STR_VALUE {
+                elsif $got_native == nqp::const::SIG_ELEM_NATIVE_STR_VALUE {
                     $result := $cons_type.ACCEPTS($sval);
                     $bad_value := $sval unless $result;
                 }
@@ -585,7 +553,7 @@ my class Binder {
 
             # If it's private, just need to fetch the attribute.
             my $assignee;
-            if ($flags +& $SIG_ELEM_BIND_PRIVATE_ATTR) {
+            if ($flags +& nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR) {
                 $assignee := nqp::getattr($self,
                     nqp::getattr($param, Parameter, '$!attr_package'),
                     $varname);
@@ -606,7 +574,7 @@ my class Binder {
         unless nqp::isnull($subsig) {
             # Turn value into a capture, unless we already have one.
             my $capture;
-            if $flags +& $SIG_ELEM_IS_CAPTURE {
+            if $flags +& nqp::const::SIG_ELEM_IS_CAPTURE {
                 $capture := $oval;
             }
             elsif nqp::can($oval, 'Capture') {
@@ -642,7 +610,7 @@ my class Binder {
     # value if there is one, or creates an appropriate undefined-ish thingy.
     sub handle_optional($param, int $flags, $lexpad) {
         # Is the "get default from outer" flag set?
-        if $flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
+        if $flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER {
             nqp::atkey(
                 nqp::ctxouter($lexpad),
                 nqp::getattr_s($param, Parameter, '$!variable_name'))
@@ -650,7 +618,7 @@ my class Binder {
 
         # Do we have a default value or value closure?
         elsif !nqp::isnull(my $default_value := nqp::getattr($param, Parameter, '$!default_value')) {
-            if $flags +& $SIG_ELEM_DEFAULT_IS_LITERAL {
+            if $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL {
                 $default_value;
             }
             else {
@@ -661,10 +629,10 @@ my class Binder {
         # Otherwise, go by sigil to pick the correct default type of value.
         else {
             my $type := nqp::getattr($param, Parameter, '$!type');
-            if $flags +& $SIG_ELEM_ARRAY_SIGIL {
+            if $flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL {
                 nqp::create($type =:= Positional ?? Array !! Array.HOW.parameterize(Array, $type.of));
             }
-            elsif $flags +& $SIG_ELEM_HASH_SIGIL {
+            elsif $flags +& nqp::const::SIG_ELEM_HASH_SIGIL {
                 nqp::create($type =:= Associative ?? Hash !! Hash.HOW.parameterize(Hash, $type.of, $type.keyof));
             }
             else {
@@ -702,7 +670,7 @@ my class Binder {
             # Is it looking for us to bind a capture here?
             my int $bind_fail;
             my int $got_prim;
-            if $flags +& $SIG_ELEM_IS_CAPTURE {
+            if $flags +& nqp::const::SIG_ELEM_IS_CAPTURE {
                 # Capture the arguments from this point forwards into a Capture.
                 # Of course, if there's no variable name we can (cheaply) do pretty
                 # much nothing.
@@ -759,14 +727,14 @@ my class Binder {
                 else {
                     my $next_param := nqp::atpos(@params, $i);
                     my int $next_flags := nqp::getattr_i($next_param, Parameter, '$!flags');
-                    if $next_flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED) {
+                    if $next_flags +& (nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_NAMED) {
                         $suppress_arity_fail := 1;
                     }
                 }
             }
 
             # Could it be a named slurpy?
-            elsif $flags +& $SIG_ELEM_SLURPY_NAMED {
+            elsif $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED {
                 # We'll either take the current named arguments copy hash which
                 # will by definition contain all unbound named arguments and use
                 # that. If there are none, just keep the storage uninitialized
@@ -786,7 +754,7 @@ my class Binder {
             # Otherwise, maybe it's a positional.
             elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '@!named_names')) {
                 # Slurpy or LoL-slurpy?
-                if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG) {
+                if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
                     # Create Perl 6 array, create VM Array of all remaining things, then
                     # store it.
                     my $temp := nqp::list();
@@ -809,10 +777,10 @@ my class Binder {
                         }
                         ++$cur_pos_arg;
                     }
-                    my $slurpy_type := $flags +& $SIG_ELEM_IS_RAW || $flags +& $SIG_ELEM_IS_RW ?? List !! Array;
-                    my $bindee := $flags +& $SIG_ELEM_SLURPY_ONEARG
+                    my $slurpy_type := $flags +& nqp::const::SIG_ELEM_IS_RAW || $flags +& nqp::const::SIG_ELEM_IS_RW ?? List !! Array;
+                    my $bindee := $flags +& nqp::const::SIG_ELEM_SLURPY_ONEARG
                         ?? $slurpy_type.from-slurpy-onearg($temp)
-                        !! $flags +& $SIG_ELEM_SLURPY_POS
+                        !! $flags +& nqp::const::SIG_ELEM_SLURPY_POS
                         ?? $slurpy_type.from-slurpy-flat($temp)
                         !! $slurpy_type.from-slurpy($temp);
                     $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
@@ -832,19 +800,19 @@ my class Binder {
                         }
                         elsif $got_prim == 1 {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                $SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_i($capture, $cur_pos_arg), 0.0, '');
+                                nqp::const::SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_i($capture, $cur_pos_arg), 0.0, '');
                         }
                         elsif $got_prim == 2 {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                $SIG_ELEM_NATIVE_NUM_VALUE, nqp::null(), 0, nqp::captureposarg_n($capture, $cur_pos_arg), '');
+                                nqp::const::SIG_ELEM_NATIVE_NUM_VALUE, nqp::null(), 0, nqp::captureposarg_n($capture, $cur_pos_arg), '');
                         }
                         elsif $got_prim == 10 {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                $SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_u($capture, $cur_pos_arg), 0.0, '');
+                                nqp::const::SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_u($capture, $cur_pos_arg), 0.0, '');
                         }
                         else {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                $SIG_ELEM_NATIVE_STR_VALUE, nqp::null(), 0, 0.0, nqp::captureposarg_s($capture, $cur_pos_arg));
+                                nqp::const::SIG_ELEM_NATIVE_STR_VALUE, nqp::null(), 0, 0.0, nqp::captureposarg_s($capture, $cur_pos_arg));
                         }
                         return $bind_fail if $bind_fail;
                         ++$cur_pos_arg;
@@ -852,7 +820,7 @@ my class Binder {
                     # No value. If it's optional, fetch a default and bind that;
                     # if not, we're screwed. Note that we never nominal type check
                     # an optional with no value passed.
-                    elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
+                    elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                         $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
                             0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
                         return $bind_fail if $bind_fail;
@@ -887,7 +855,7 @@ my class Binder {
                 # Did we get one?
                 if nqp::isnull($value) {
                     # Nope. We'd better hope this param was optional...
-                    if $flags +& $SIG_ELEM_IS_OPTIONAL {
+                    if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                         $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
                             0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
                     }
@@ -1050,7 +1018,7 @@ my class Binder {
         # If there's a single capture parameter, then we're OK. (Worth
         # handling especially as it's the common case for protos).
         if $num_params == 1 {
-            if nqp::getattr_i(@params[0], Parameter, '$!flags') +& $SIG_ELEM_IS_CAPTURE
+            if nqp::getattr_i(@params[0], Parameter, '$!flags') +& nqp::const::SIG_ELEM_IS_CAPTURE
             && nqp::isnull(
               nqp::getattr(@params[0], Parameter, '@!post_constraints')) {
                 return $TRIAL_BIND_OK;
@@ -1068,16 +1036,16 @@ my class Binder {
             # positional parameter, we won't analyze it and will bail out,
             # unless it's a slurpy named param, in which case just ignore it
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
-            if $flags +& $SIG_ELEM_SLURPY_NAMED
+            if $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED
               && nqp::isnull(
                 nqp::getattr($param, Parameter, '@!post_constraints')) {
                   next
             }
             if $flags +& nqp::bitneg_i(
-                    $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_RAW +|
-                    $SIG_ELEM_IS_COPY +| $SIG_ELEM_ARRAY_SIGIL +|
-                    $SIG_ELEM_HASH_SIGIL +| $SIG_ELEM_NATIVE_VALUE +|
-                    $SIG_ELEM_IS_OPTIONAL) || $flags +& $SIG_ELEM_IS_RW {
+                    nqp::const::SIG_ELEM_MULTI_INVOCANT +| nqp::const::SIG_ELEM_IS_RAW +|
+                    nqp::const::SIG_ELEM_IS_COPY +| nqp::const::SIG_ELEM_ARRAY_SIGIL +|
+                    nqp::const::SIG_ELEM_HASH_SIGIL +| nqp::const::SIG_ELEM_NATIVE_VALUE +|
+                    nqp::const::SIG_ELEM_IS_OPTIONAL) || $flags +& nqp::const::SIG_ELEM_IS_RW {
                 return $TRIAL_BIND_NOT_SURE;
             }
             unless nqp::isnull(nqp::getattr($param, Parameter, '@!named_names')) {
@@ -1096,27 +1064,27 @@ my class Binder {
             # Do we have an argument for this parameter?
             if $cur_pos_arg >= $num_pos_args {
                 # No; if it's not optional, fail.
-                unless $flags +& $SIG_ELEM_IS_OPTIONAL {
+                unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                     return $TRIAL_BIND_NO_WAY;
                 }
             }
             else {
                 # Yes, need to consider type
                 my int $got_prim := $sigflags[$cur_pos_arg] +& 0xF;
-                if $flags +& $SIG_ELEM_NATIVE_VALUE {
+                if $flags +& nqp::const::SIG_ELEM_NATIVE_VALUE {
                     if $got_prim == 0 {
                         # We got an object; if we aren't sure we can unbox, we can't
                         # be sure about the dispatch.
-                        if $flags +& $SIG_ELEM_NATIVE_INT_VALUE {
+                        if $flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE {
                             return $TRIAL_BIND_NOT_SURE unless nqp::isint($args[$cur_pos_arg]);
                         }
-                        elsif $flags +& $SIG_ELEM_NATIVE_UINT_VALUE {
+                        elsif $flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE {
                             return $TRIAL_BIND_NOT_SURE unless nqp::isint($args[$cur_pos_arg]);
                         }
-                        elsif $flags +& $SIG_ELEM_NATIVE_NUM_VALUE {
+                        elsif $flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE {
                             return $TRIAL_BIND_NOT_SURE unless nqp::isnum($args[$cur_pos_arg]);
                         }
-                        elsif $flags +& $SIG_ELEM_NATIVE_STR_VALUE {
+                        elsif $flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE {
                             return $TRIAL_BIND_NOT_SURE unless nqp::isstr($args[$cur_pos_arg]);
                         }
                         else {
@@ -1127,10 +1095,10 @@ my class Binder {
                     else {
                         # If it's the wrong type of native, there's no way it
                         # can ever bind.
-                        if (($flags +& $SIG_ELEM_NATIVE_INT_VALUE) && $got_prim != 1) ||
-                           (($flags +& $SIG_ELEM_NATIVE_UINT_VALUE) && $got_prim != 10 && $got_prim != 1) ||
-                           (($flags +& $SIG_ELEM_NATIVE_NUM_VALUE) && $got_prim != 2) ||
-                           (($flags +& $SIG_ELEM_NATIVE_STR_VALUE) && $got_prim != 3) {
+                        if (($flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE) && $got_prim != 1) ||
+                           (($flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE) && $got_prim != 10 && $got_prim != 1) ||
+                           (($flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE) && $got_prim != 2) ||
+                           (($flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE) && $got_prim != 3) {
                             return $TRIAL_BIND_NO_WAY;
                         }
                     }
@@ -2146,8 +2114,6 @@ BEGIN {
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
-            my int $SIG_ELEM_TYPE_GENERIC := 524288;
-            my int $SIG_ELEM_IS_COERCIVE  := 67108864;
             my $ins      := nqp::clone($self);
             my $type     := nqp::getattr($self, Parameter, '$!type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
@@ -2169,13 +2135,13 @@ BEGIN {
                     !! $sigc;
             my int $flags := nqp::getattr_i($ins, Parameter, '$!flags');
             unless $ins_type.HOW.archetypes($ins_type).generic {
-                if $flags +& $SIG_ELEM_TYPE_GENERIC {
-                    nqp::bindattr_i($ins, Parameter, '$!flags', $flags - $SIG_ELEM_TYPE_GENERIC);
+                if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
+                    nqp::bindattr_i($ins, Parameter, '$!flags', $flags - nqp::const::SIG_ELEM_TYPE_GENERIC);
                 }
             }
             my $archetypes := $ins_type.HOW.archetypes($ins_type);
             if nqp::can($archetypes, 'coercive') && $archetypes.coercive {
-                nqp::bindattr_i($ins, Parameter, '$!flags', $flags +| $SIG_ELEM_IS_COERCIVE);
+                nqp::bindattr_i($ins, Parameter, '$!flags', $flags +| nqp::const::SIG_ELEM_IS_COERCIVE);
             }
             nqp::bindattr($ins, Parameter, '$!type', $ins_type);
             nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd);
@@ -2184,8 +2150,6 @@ BEGIN {
             $ins
         }));
     Parameter.HOW.add_method(Parameter, 'set_rw', nqp::getstaticcode(sub ($self) {
-            my $SIG_ELEM_IS_RW       := 256;
-            my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := nqp::decont($self);
             my str $varname := nqp::getattr_s($dcself, Parameter, '$!variable_name');
             unless nqp::isnull_s($varname) || nqp::eqat($varname, '$', 0) {
@@ -2198,7 +2162,7 @@ BEGIN {
                 nqp::die($error);
             }
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            if $flags +& $SIG_ELEM_IS_OPTIONAL {
+            if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                 Perl6::Metamodel::Configuration.throw_or_die(
                     'X::Trait::Invalid',
                     "Cannot use 'is rw' on optional parameter '$varname'",
@@ -2208,43 +2172,39 @@ BEGIN {
                     :name($varname)
                 );
             }
-            nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
+            nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + nqp::const::SIG_ELEM_IS_RW);
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_copy', nqp::getstaticcode(sub ($self) {
-            my $SIG_ELEM_IS_COPY := 512;
             my $dcself := nqp::decont($self);
             nqp::bindattr_i($dcself, Parameter, '$!flags',
-                nqp::getattr_i($dcself, Parameter, '$!flags') + $SIG_ELEM_IS_COPY);
+                nqp::getattr_i($dcself, Parameter, '$!flags') + nqp::const::SIG_ELEM_IS_COPY);
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_required', nqp::getstaticcode(sub ($self) {
-            my $SIG_ELEM_IS_OPTIONAL := 2048;
             my $dcself := nqp::decont($self);
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            if $flags +& $SIG_ELEM_IS_OPTIONAL {
+            if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                 nqp::bindattr_i($dcself, Parameter, '$!flags',
-                    $flags - $SIG_ELEM_IS_OPTIONAL);
+                    $flags - nqp::const::SIG_ELEM_IS_OPTIONAL);
             }
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_raw', nqp::getstaticcode(sub ($self) {
-            my $SIG_ELEM_IS_RAW := 1024;
             my $dcself := nqp::decont($self);
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            unless $flags +& $SIG_ELEM_IS_RAW {
+            unless $flags +& nqp::const::SIG_ELEM_IS_RAW {
                 nqp::bindattr_i($dcself, Parameter, '$!flags',
-                    $flags + $SIG_ELEM_IS_RAW);
+                    $flags + nqp::const::SIG_ELEM_IS_RAW);
             }
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_onearg', nqp::getstaticcode(sub ($self) {
-            my $SIG_ELEM_SLURPY_ONEARG := 16777216;
             my $dcself := nqp::decont($self);
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            unless $flags +& $SIG_ELEM_SLURPY_ONEARG {
+            unless $flags +& nqp::const::SIG_ELEM_SLURPY_ONEARG {
                 nqp::bindattr_i($dcself, Parameter, '$!flags',
-                    $flags + $SIG_ELEM_SLURPY_ONEARG);
+                    $flags + nqp::const::SIG_ELEM_SLURPY_ONEARG);
             }
             $dcself
         }));
@@ -2262,8 +2222,7 @@ BEGIN {
                 Parameter, '$!container_descriptor');
         }));
     Parameter.HOW.add_method(Parameter, 'coercive', nqp::getstaticcode(sub ($self) {
-            #my int $SIG_ELEM_IS_COERCIVE  := 67108864;
-            nqp::if(nqp::bitand_i(nqp::getattr(nqp::decont($self), Parameter, '$!flags'), 67108864), 1, 0)
+            nqp::if(nqp::bitand_i(nqp::getattr(nqp::decont($self), Parameter, '$!flags'), nqp::const::SIG_ELEM_IS_COERCIVE), 1, 0)
         }));
     Parameter.HOW.compose_repr(Parameter);
 
@@ -2539,22 +2498,6 @@ BEGIN {
             my int $TYPE_NATIVE_UINT  := 32;
             my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
 
-            my int $SIG_ELEM_SLURPY_POS          := 8;
-            my int $SIG_ELEM_SLURPY_NAMED        := 16;
-            my int $SIG_ELEM_SLURPY_LOL          := 32;
-            my int $SIG_ELEM_MULTI_INVOCANT      := 128;
-            my int $SIG_ELEM_IS_RW               := 256;
-            my int $SIG_ELEM_IS_OPTIONAL         := 2048;
-            my int $SIG_ELEM_IS_CAPTURE          := 32768;
-            my int $SIG_ELEM_UNDEFINED_ONLY      := 65536;
-            my int $SIG_ELEM_DEFINED_ONLY        := 131072;
-            my int $SIG_ELEM_TYPE_GENERIC        := 524288;
-            my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
-            my int $SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
-            my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
-            my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
-            my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
-
             # Takes two candidates and determines if the first one is narrower
             # than the second. Returns a true value if they are.
             sub is_narrower(%a, %b) {
@@ -2695,8 +2638,8 @@ BEGIN {
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
                     my $named_names := nqp::getattr($param, Parameter, '@!named_names');
                     unless nqp::isnull($named_names) {
-                        if $flags +& $SIG_ELEM_MULTI_INVOCANT {
-                            unless $flags +& $SIG_ELEM_IS_OPTIONAL {
+                        if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT {
+                            unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                                 %info<required_names> := [] unless %info<required_names>;
                                 nqp::push(%info<required_names>, $named_names);
                                 if nqp::elems($named_names) == 1 {
@@ -2714,20 +2657,20 @@ BEGIN {
                         }
                         next;
                     }
-                    if $flags +& ($SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_IS_CAPTURE) {
+                    if $flags +& (nqp::const::SIG_ELEM_SLURPY_NAMED +| nqp::const::SIG_ELEM_IS_CAPTURE) {
                         %info<allows_all_names> := 1;
                         nqp::deletekey(%info, 'allowed_names');
                     }
-                    if $flags +& $SIG_ELEM_SLURPY_NAMED {
+                    if $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED {
                         last;
                     }
 
                     # Otherwise, positional or slurpy and contributes to arity.
-                    if $flags +& ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_SLURPY_ONEARG) {
+                    if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_IS_CAPTURE +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
                         $max_arity := $SLURPY_ARITY;
                         next;
                     }
-                    elsif $flags +& $SIG_ELEM_IS_OPTIONAL {
+                    elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                         ++$max_arity;
                     }
                     else {
@@ -2736,7 +2679,7 @@ BEGIN {
                     }
 
                     # Record type info for this parameter.
-                    if $flags +& $SIG_ELEM_TYPE_GENERIC {
+                    if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
                         %info<bind_check> := 1;
                         %info<constrainty> := 1;
                         %info<types>[$significant_param] := Any;
@@ -2754,31 +2697,31 @@ BEGIN {
                             && !nqp::defined(nqp::getattr($param, Parameter, '$!signature_constraint')) {
                         %info<constraints>[$significant_param] := 1;
                     }
-                    if $flags +& $SIG_ELEM_MULTI_INVOCANT {
+                    if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT {
                         ++$num_types;
                     }
-                    if $flags +& $SIG_ELEM_IS_RW {
+                    if $flags +& nqp::const::SIG_ELEM_IS_RW {
                         nqp::bindpos_i(%info<rwness>, $significant_param, 1);
                     }
-                    if $flags +& $SIG_ELEM_DEFINED_ONLY {
+                    if $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY {
                         nqp::bindpos_i(%info<type_flags>, $significant_param, $DEFCON_DEFINED);
                     }
-                    elsif $flags +& $SIG_ELEM_UNDEFINED_ONLY {
+                    elsif $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY {
                         nqp::bindpos_i(%info<type_flags>, $significant_param, $DEFCON_UNDEFINED);
                     }
-                    if $flags +& $SIG_ELEM_NATIVE_INT_VALUE {
+                    if $flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE {
                         nqp::bindpos_i(%info<type_flags>, $significant_param,
                             $TYPE_NATIVE_INT + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
-                    elsif $flags +& $SIG_ELEM_NATIVE_UINT_VALUE {
+                    elsif $flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE {
                         nqp::bindpos_i(%info<type_flags>, $significant_param,
                             $TYPE_NATIVE_UINT + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
-                    elsif $flags +& $SIG_ELEM_NATIVE_NUM_VALUE {
+                    elsif $flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE {
                         nqp::bindpos_i(%info<type_flags>, $significant_param,
                             $TYPE_NATIVE_NUM + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
-                    elsif $flags +& $SIG_ELEM_NATIVE_STR_VALUE {
+                    elsif $flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE {
                         nqp::bindpos_i(%info<type_flags>, $significant_param,
                             $TYPE_NATIVE_STR + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }

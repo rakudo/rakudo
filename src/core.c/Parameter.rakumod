@@ -11,53 +11,17 @@ my class Parameter { # declared in BOOTSTRAP
     #     has Mu $!attr_package;
     #     has Mu $!why;
 
-    my constant $SIG_ELEM_BIND_CAPTURE       = 1 +<  0;
-    my constant $SIG_ELEM_BIND_PRIVATE_ATTR  = 1 +<  1;
-    my constant $SIG_ELEM_BIND_PUBLIC_ATTR   = 1 +<  2;
-    my constant $SIG_ELEM_SLURPY_POS         = 1 +<  3;
-    my constant $SIG_ELEM_SLURPY_NAMED       = 1 +<  4;
-    my constant $SIG_ELEM_SLURPY_LOL         = 1 +<  5;
-    my constant $SIG_ELEM_INVOCANT           = 1 +<  6;
-    my constant $SIG_ELEM_MULTI_INVOCANT     = 1 +<  7;
-    my constant $SIG_ELEM_IS_RW              = 1 +<  8;
-    my constant $SIG_ELEM_IS_COPY            = 1 +<  9;
-    my constant $SIG_ELEM_IS_RAW             = 1 +< 10;
-    my constant $SIG_ELEM_IS_OPTIONAL        = 1 +< 11;
-    my constant $SIG_ELEM_ARRAY_SIGIL        = 1 +< 12;
-    my constant $SIG_ELEM_HASH_SIGIL         = 1 +< 13;
-    my constant $SIG_ELEM_DEFAULT_FROM_OUTER = 1 +< 14;
-    my constant $SIG_ELEM_IS_CAPTURE         = 1 +< 15;
-    my constant $SIG_ELEM_UNDEFINED_ONLY     = 1 +< 16;
-    my constant $SIG_ELEM_DEFINED_ONLY       = 1 +< 17;
-    my constant $SIG_ELEM_DEFAULT_IS_LITERAL = 1 +< 20;
-    my constant $SIG_ELEM_SLURPY_ONEARG      = 1 +< 24;
-    my constant $SIG_ELEM_CODE_SIGIL         = 1 +< 25;
-    my constant $SIG_ELEM_IS_COERCIVE        = 1 +< 26;
-
-    my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
-                                           +| $SIG_ELEM_SLURPY_NAMED
-                                           +| $SIG_ELEM_SLURPY_LOL
-                                           +| $SIG_ELEM_SLURPY_ONEARG
-                                           +| $SIG_ELEM_IS_CAPTURE;
-    my constant $SIG_ELEM_IS_SLURPY = $SIG_ELEM_SLURPY_POS
-                                   +| $SIG_ELEM_SLURPY_NAMED
-                                   +| $SIG_ELEM_SLURPY_LOL
-                                   +| $SIG_ELEM_SLURPY_ONEARG;
-    my constant $SIG_ELEM_IS_NOT_READONLY = $SIG_ELEM_IS_RW
-                                         +| $SIG_ELEM_IS_COPY
-                                         +| $SIG_ELEM_IS_RAW;
-
 #?if !js
     my constant $sigils2bit = nqp::hash(
 #?endif
 #?if js
     my $sigils2bit := nqp::hash(
 #?endif
-      Q/@/, $SIG_ELEM_ARRAY_SIGIL,
-      Q/%/, $SIG_ELEM_HASH_SIGIL,
-      Q/&/, $SIG_ELEM_CODE_SIGIL,
-      Q/\/, $SIG_ELEM_IS_RAW,
-      Q/|/, $SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_IS_RAW,
+      Q/@/, nqp::const::SIG_ELEM_ARRAY_SIGIL,
+      Q/%/, nqp::const::SIG_ELEM_HASH_SIGIL,
+      Q/&/, nqp::const::SIG_ELEM_CODE_SIGIL,
+      Q/\/, nqp::const::SIG_ELEM_IS_RAW,
+      Q/|/, nqp::const::SIG_ELEM_IS_CAPTURE +| nqp::const::SIG_ELEM_IS_RAW,
     );
     sub set-sigil-bits(str $sigil, \flags --> Nil) {
         if nqp::atkey($sigils2bit,$sigil) -> $bit {
@@ -71,11 +35,11 @@ my class Parameter { # declared in BOOTSTRAP
 
     sub str-to-type(Str:D $type, Int:D $flags is rw --> Mu) {
         if $type.ends-with(Q/:D/) {
-            $flags +|= $SIG_ELEM_DEFINED_ONLY;
+            $flags +|= nqp::const::SIG_ELEM_DEFINED_ONLY;
             definitize-type($type.chop(2), True)
         }
         elsif $type.ends-with(Q/:U/) {
-            $flags +|= $SIG_ELEM_UNDEFINED_ONLY;
+            $flags +|= nqp::const::SIG_ELEM_UNDEFINED_ONLY;
             definitize-type($type.chop(2), False)
         }
         elsif $type.ends-with(Q/:_/) {
@@ -122,7 +86,7 @@ my class Parameter { # declared in BOOTSTRAP
             elsif $sigil eq Q/+/ {
                 $name  = $name.substr(1);
                 $sigil = $name.substr(-1,1);
-                $flags +|= $SIG_ELEM_IS_RAW +| $SIG_ELEM_SLURPY_ONEARG;
+                $flags +|= nqp::const::SIG_ELEM_IS_RAW +| nqp::const::SIG_ELEM_SLURPY_ONEARG;
             }
 
             if $name.ends-with(Q/)/) {
@@ -147,22 +111,22 @@ my class Parameter { # declared in BOOTSTRAP
                 if $sigil eq Q/*/ {                  # is it a double slurpy?
                     $name  = $name.substr(1);
                     $sigil = $name.substr(0,1);
-                    $flags +|= $SIG_ELEM_SLURPY_LOL;
+                    $flags +|= nqp::const::SIG_ELEM_SLURPY_LOL;
                 }
                 elsif $sigil eq Q/@/ {               # a slurpy array?
-                    $flags +|= $SIG_ELEM_SLURPY_POS;
+                    $flags +|= nqp::const::SIG_ELEM_SLURPY_POS;
                 }
                 elsif $sigil eq Q/%/ {               # a slurpy hash?
-                    $flags +|= $SIG_ELEM_SLURPY_NAMED;
+                    $flags +|= nqp::const::SIG_ELEM_SLURPY_NAMED;
                 }
             }
 
             if $name.substr(1,1) -> $twigil {
                 if $twigil eq Q/!/ {
-                    $flags +|= $SIG_ELEM_BIND_PRIVATE_ATTR;
+                    $flags +|= nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR;
                 }
                 elsif $twigil eq Q/./ {
-                    $flags +|= $SIG_ELEM_BIND_PUBLIC_ATTR;
+                    $flags +|= nqp::const::SIG_ELEM_BIND_PUBLIC_ATTR;
                 }
             }
 
@@ -205,9 +169,9 @@ my class Parameter { # declared in BOOTSTRAP
             }
             else {
                 nqp::bind($!default_value,$default);
-                $flags +|= $SIG_ELEM_DEFAULT_IS_LITERAL;
+                $flags +|= nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
             }
-            $flags +|= $SIG_ELEM_IS_OPTIONAL;
+            $flags +|= nqp::const::SIG_ELEM_IS_OPTIONAL;
         }
 
         if %args.EXISTS-KEY('where') {
@@ -219,19 +183,19 @@ my class Parameter { # declared in BOOTSTRAP
         }
 
         if $named {
-            $flags +|= $SIG_ELEM_IS_OPTIONAL unless $mandatory;
+            $flags +|= nqp::const::SIG_ELEM_IS_OPTIONAL unless $mandatory;
             @!named_names := nqp::list_s($name.substr(1))
               unless @!named_names;
         }
         else {
-            $flags +|= $SIG_ELEM_IS_OPTIONAL if $optional;
+            $flags +|= nqp::const::SIG_ELEM_IS_OPTIONAL if $optional;
         }
 
-        $flags +|= $SIG_ELEM_MULTI_INVOCANT if $multi-invocant;
-        $flags +|= $SIG_ELEM_IS_COPY        if $is-copy;
-        $flags +|= $SIG_ELEM_IS_RAW         if $is-raw;
-        $flags +|= $SIG_ELEM_IS_RW          if $is-rw;
-        $flags +|= $SIG_ELEM_IS_COERCIVE    if $!type.^archetypes.coercive;
+        $flags +|= nqp::const::SIG_ELEM_MULTI_INVOCANT if $multi-invocant;
+        $flags +|= nqp::const::SIG_ELEM_IS_COPY        if $is-copy;
+        $flags +|= nqp::const::SIG_ELEM_IS_RAW         if $is-raw;
+        $flags +|= nqp::const::SIG_ELEM_IS_RW          if $is-rw;
+        $flags +|= nqp::const::SIG_ELEM_IS_COERCIVE    if $!type.^archetypes.coercive;
 
         $!variable_name = $name if $name;
         $!flags = $flags;
@@ -252,30 +216,30 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method sigil(Parameter:D: --> Str:D) {
-        nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE)
+        nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_CAPTURE)
           ?? '|'
           !! nqp::isnull_s($!variable_name)
-            ?? nqp::bitand_i($!flags,$SIG_ELEM_ARRAY_SIGIL)
+            ?? nqp::bitand_i($!flags,nqp::const::SIG_ELEM_ARRAY_SIGIL)
               ?? '@'
-              !!  nqp::bitand_i($!flags,$SIG_ELEM_HASH_SIGIL)
+              !!  nqp::bitand_i($!flags,nqp::const::SIG_ELEM_HASH_SIGIL)
                 ?? '%'
-                !! nqp::bitand_i($!flags,$SIG_ELEM_CODE_SIGIL)
+                !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_CODE_SIGIL)
                   ?? '&'
-                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
+                  !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_RAW)
                     && $.name
                     && nqp::isnull($!default_value)
                     ?? '\\'
                     !! '$'
-            !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::iseq_i(
+            !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_RAW) && nqp::iseq_i(
                  nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
               ?? '\\'
               !! nqp::substr($!variable_name,0,1)
     }
 
     method twigil(Parameter:D: --> Str:D) {
-        nqp::bitand_i($!flags,$SIG_ELEM_BIND_PUBLIC_ATTR)
+        nqp::bitand_i($!flags,nqp::const::SIG_ELEM_BIND_PUBLIC_ATTR)
           ?? '.'
-          !! nqp::bitand_i($!flags,$SIG_ELEM_BIND_PRIVATE_ATTR)
+          !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR)
             ?? '!'
             !! nqp::isnull_s($!variable_name)
               ?? ''
@@ -285,29 +249,29 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method prefix(Parameter:D: --> Str:D) {
-        nqp::bitand_i($!flags, nqp::bitor_i($SIG_ELEM_SLURPY_POS, $SIG_ELEM_SLURPY_NAMED))
+        nqp::bitand_i($!flags, nqp::bitor_i(nqp::const::SIG_ELEM_SLURPY_POS, nqp::const::SIG_ELEM_SLURPY_NAMED))
           ?? '*'
-          !! nqp::bitand_i($!flags, $SIG_ELEM_SLURPY_LOL)
+          !! nqp::bitand_i($!flags, nqp::const::SIG_ELEM_SLURPY_LOL)
             ?? '**'
-            !! nqp::bitand_i($!flags, $SIG_ELEM_SLURPY_ONEARG)
+            !! nqp::bitand_i($!flags, nqp::const::SIG_ELEM_SLURPY_ONEARG)
               ?? '+'
               !! ''
     }
 
     method suffix(Parameter:D: --> Str:D) {
         nqp::isnull(@!named_names)
-          ?? nqp::bitand_i($!flags, $SIG_ELEM_IS_OPTIONAL) && nqp::isnull($!default_value)
+          ?? nqp::bitand_i($!flags, nqp::const::SIG_ELEM_IS_OPTIONAL) && nqp::isnull($!default_value)
             ?? '?'
             !! ''
-          !! nqp::bitand_i($!flags, $SIG_ELEM_IS_OPTIONAL)
+          !! nqp::bitand_i($!flags, nqp::const::SIG_ELEM_IS_OPTIONAL)
             ?? ''
             !! '!'
     }
 
     method modifier(Parameter:D: --> Str:D) {
-        nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY)
+        nqp::bitand_i($!flags,nqp::const::SIG_ELEM_DEFINED_ONLY)
           ?? ':D'
-          !! nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY)
+          !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_UNDEFINED_ONLY)
             ?? ':U'
             !! ''
     }
@@ -344,46 +308,46 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method named(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::not_i(nqp::isnull(@!named_names)) || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
+        nqp::hllbool(nqp::not_i(nqp::isnull(@!named_names)) || nqp::bitand_i($!flags,nqp::const::SIG_ELEM_SLURPY_NAMED))
     }
     method positional(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::isnull(@!named_names) && nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_POSITIONAL),0))
+        nqp::hllbool(nqp::isnull(@!named_names) && nqp::iseq_i(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_NOT_POSITIONAL),0))
     }
     method slurpy(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_SLURPY))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_SLURPY))
     }
     method optional(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_OPTIONAL))
     }
     method raw(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_RAW))
     }
     method capture(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_CAPTURE))
     }
     method rw(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RW))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_RW))
     }
     method onearg(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_SLURPY_ONEARG))
     }
     method copy(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COPY))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_COPY))
     }
     method readonly(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_READONLY),0))
+        nqp::hllbool(nqp::iseq_i(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_NOT_READONLY),0))
     }
     method invocant(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_INVOCANT))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_INVOCANT))
     }
     method multi-invocant(Parameter:D: --> Bool:D) {
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_MULTI_INVOCANT))
     }
 
     method default(Parameter:D: --> Code:_) {
         nqp::isnull($!default_value)
           ?? Code
-          !! nqp::bitand_i($!flags,$SIG_ELEM_DEFAULT_IS_LITERAL)
+          !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL)
             ?? { $!default_value }
             !! $!default_value
     }
@@ -420,43 +384,43 @@ my class Parameter { # declared in BOOTSTRAP
                 # here not defined only, or both defined only
                 return False
                   unless nqp::isle_i(
-                    nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY),
-                    nqp::bitand_i( oflags,$SIG_ELEM_DEFINED_ONLY))
+                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_DEFINED_ONLY),
+                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_DEFINED_ONLY))
 
                 # here not undefined only, or both undefined only
                   && nqp::isle_i(
-                    nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY),
-                    nqp::bitand_i( oflags,$SIG_ELEM_UNDEFINED_ONLY))
+                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_UNDEFINED_ONLY),
+                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_UNDEFINED_ONLY))
 
                 # here is rw, or both is rw
                   && nqp::isle_i(
-                    nqp::bitand_i($!flags,$SIG_ELEM_IS_RW),
-                    nqp::bitand_i( oflags,$SIG_ELEM_IS_RW))
+                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_RW),
+                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_IS_RW))
 
                 # other is optional, or both are optional
                   && nqp::isle_i(
-                    nqp::bitand_i( oflags,$SIG_ELEM_IS_OPTIONAL),
-                    nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
+                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_IS_OPTIONAL),
+                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_OPTIONAL))
 
                 # other is slurpy positional, or both are slurpy positional
                   && nqp::isle_i(
-                    nqp::bitand_i( oflags,$SIG_ELEM_SLURPY_POS),
-                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_POS))
+                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_SLURPY_POS),
+                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_SLURPY_POS))
 
                 # other is slurpy named, or both are slurpy named
                   && nqp::isle_i(
-                    nqp::bitand_i( oflags,$SIG_ELEM_SLURPY_NAMED),
-                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
+                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_SLURPY_NAMED),
+                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_SLURPY_NAMED))
 
                 # other is slurpy one arg, or both are slurpy one arg
                   && nqp::isle_i(
-                    nqp::bitand_i( oflags,$SIG_ELEM_SLURPY_ONEARG),
-                    nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
+                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_SLURPY_ONEARG),
+                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_SLURPY_ONEARG))
 
                 # here is part of MMD, or both are part of MMD
                   && nqp::isle_i(
-                    nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT),
-                    nqp::bitand_i( oflags,$SIG_ELEM_MULTI_INVOCANT));
+                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_MULTI_INVOCANT),
+                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_MULTI_INVOCANT));
             }
         }
 
@@ -542,9 +506,9 @@ my class Parameter { # declared in BOOTSTRAP
 
         my $modifier = $.modifier;
         my $type     = $!type.^name;
-        if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
-            $!flags +& $SIG_ELEM_HASH_SIGIL or
-            $!flags +& $SIG_ELEM_CODE_SIGIL {
+        if $!flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL or
+            $!flags +& nqp::const::SIG_ELEM_HASH_SIGIL or
+            $!flags +& nqp::const::SIG_ELEM_CODE_SIGIL {
             $type ~~ / .*? \[ <( .* )> \] $$/;
             $raku ~= $/ ~ $modifier if $/;
         }
@@ -582,12 +546,12 @@ my class Parameter { # declared in BOOTSTRAP
         }
 
         my $rest = '';
-        if $!flags +& $SIG_ELEM_IS_RW {
+        if $!flags +& nqp::const::SIG_ELEM_IS_RW {
             $rest ~= ' is rw';
-        } elsif $!flags +& $SIG_ELEM_IS_COPY {
+        } elsif $!flags +& nqp::const::SIG_ELEM_IS_COPY {
             $rest ~= ' is copy';
         }
-        if $!flags +& $SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
+        if $!flags +& nqp::const::SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
             $rest ~= ' is raw';
@@ -612,7 +576,7 @@ my class Parameter { # declared in BOOTSTRAP
         if $.default {
             $rest ~= " = $!default_value.raku()";
         }
-        elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
+        elsif $!flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER {
             $rest ~= " = OUTER::<$name>";
         }
 

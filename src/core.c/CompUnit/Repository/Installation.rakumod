@@ -231,7 +231,9 @@ sub MAIN(*@, *%) {
         my @*MODULES;
         my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
         my $lock = $.prefix.add('repo.lock').open(:create, :w);
+        LEAVE $lock.close;
         $lock.lock;
+        LEAVE $lock.unlock;
 
         my $version = self!repository-version;
         self.upgrade-repository unless $version == 2;
@@ -239,7 +241,6 @@ sub MAIN(*@, *%) {
         my $dist-id = $dist.id;
         my $dist-dir = self!dist-dir;
         if not $force and $dist-dir.add($dist-id) ~~ :e {
-            $lock.unlock;
             fail "$dist already installed";
         }
 
@@ -364,8 +365,6 @@ sub MAIN(*@, *%) {
             }
             PROCESS::<$REPO> := $head;
         }
-
-        $lock.unlock;
     } ) }
 
     my sub unlink-if-exists(IO::Path:D $io) { $io.unlink if $io.e }

@@ -231,6 +231,7 @@ sub MAIN(*@, *%) {
         my @*MODULES;
         my $path   = self!writeable-path or die "No writeable path found, $.prefix not writeable";
         my $lock = $.prefix.add('repo.lock').open(:create, :w);
+        LEAVE $lock.close;
         $lock.lock;
 
         my $version = self!repository-version;

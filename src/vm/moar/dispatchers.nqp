@@ -2016,6 +2016,13 @@ nqp::bindhllsym('Raku', 'PROXY-READERS', $PROXY-READERS);
 # production of an error (ambiguous dispatch or no applicable candidate).
 #
 # The plan nodes are as follows:
+# * The end of the candidates. Either a "no applicable candidates" error
+#   if we are in the initial phase of dispatch, or a next resumption (or
+#   Nil) otherwise.
+my class MultiDispatchEnd {
+    method debug() { "End" }
+}
+
 # * A candidate to call; we don't expect any bind failure (that is, we
 #   consider it safe from nominality alone).
 my class MultiDispatchCall {
@@ -2029,6 +2036,7 @@ my class MultiDispatchCall {
     method set-next($next) { $!next := $next }
     method candidate() { $!candidate }
     method next() { $!next }
+    method trivial() { nqp::istype($!next,MultiDispatchEnd) }
     method debug() {
         "Candidate " ~ $!candidate.signature.raku ~ "\n" ~ $!next.debug
     }
@@ -2037,6 +2045,7 @@ my class MultiDispatchCall {
 # * A candidate to try and invoke; if there's a bind failure, it will be
 #   mapped into a resumption
 my class MultiDispatchTry is MultiDispatchCall {
+    method trivial() { 0 }
     method debug() {
         "Try candidate " ~ self.candidate.signature.raku ~ "\n"
           ~ self.next.debug
@@ -2050,14 +2059,8 @@ my class MultiDispatchAmbiguous {
     has $!next;
     method set-next($next) { $!next := $next }
     method next() { $!next }
+    method more() { nqp::istype($!next,MultiDispatchCall) }
     method debug() { "Ambiguous\n" ~ $!next.debug }
-}
-
-# * The end of the candidates. Either a "no applicable candidates" error
-#   if we are in the initial phase of dispatch, or a next resumption (or
-#   Nil) otherwise.
-my class MultiDispatchEnd {
-    method debug() { "End" }
 }
 
 # * Not actually used in a plan, but instead conveys that we have containers
@@ -2143,11 +2146,11 @@ sub has-named-args-mismatch($capture, %info) {
         }
     }
 
-    # If we don't accept all nameds, then check there are acceptable nameds.
-    if $nameds-list && !%info<allows_all_names> {
-        # Quick exit if there are no allowed nameds.
-        my $allowed-names := %info<allowed_names>;
-        return 1 unless $allowed-names;
+    # If we don't accept all nameds, then check there are acceptable nameds
+    if $nameds-list && !nqp::atkey(%info, 'allows_all_names') {
+        # Quick exit if there are no allowed nameds
+        return 1
+          unless my $allowed-names := nqp::atkey(%info, 'allowed_names');
 
         # Go through the nameds and check they are allowed.
         my int $i;
@@ -2161,25 +2164,29 @@ sub has-named-args-mismatch($capture, %info) {
         }
     }
 
-    # Otherwise, no mismatch.
+    # Otherwise, no mismatch
     0
 }
 
-# Helper sub to create the dispatch plan.  Takes a list of candidates, the
-# capture in question, an int flag to indicate to stop at a trivial error,
-# and an optional "original capture" argument
+# HLL roles needed for checks.  Sadly these cannot be initialized in the
+# mainline, because of bootstrapping issues, so these will be initialized
+# when needed.
+my $Positional             := nqp::null;
+my $PositionalBindFailover := nqp::null;
+
+# Helper sub to create the dispatch plan.
 sub raku-multi-plan(
-      @candidates,
-      $capture,
-  int $stop-at-trivial,
-      $orig-capture = $capture
+      @candidates,              # list of candidates to check
+      $capture,                 # the arguments to work with
+  int $stop-at-trivial,         # flag: stop at trivial problem
+      $orig-capture = $capture  # original arguments, if any
 ) {
     my int $num_args := nqp::captureposelems($capture);
 
     # First check there's no non-Scalar containers in the positional arguments.
     # If there are, establish guards relating to those and we're done. Native
     # references don't count; we know the native types they shall match up with
-    # and don't need to dereference them.
+    # and don't need to dereference them
     my $non-scalar := nqp::list_i();
     my int $i;
     while $i < $num_args {
@@ -2199,7 +2206,7 @@ sub raku-multi-plan(
     }
 
     # Found non-scalar containers (proxies) so hand back the indices we
-    # need to strip Proxy from.
+    # need to strip Proxy from
     return MultiDispatchNonScalar.new($capture, $num_args, $non-scalar)
       if nqp::elems($non-scalar);
 
@@ -2217,10 +2224,6 @@ sub raku-multi-plan(
     my $need_type_guard      := nqp::list_i;
     my $need_conc_guard      := nqp::list_i;
     my @possibles;
-
-    # XXX why do they live here?
-    my $Positional             := nqp::gethllsym('Raku', 'MD_Pos');
-    my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
 
     my int $done;
     my int $cur_idx;
@@ -2320,7 +2323,7 @@ sub raku-multi-plan(
                                    && nqp::iscont_n($contish));
                     }
 
-                    # Got a opaque, want an opaque
+                    # Got an opaque, want an opaque
                     else {
                         my int $is-mu := nqp::eqaddr($type, Mu);
 
@@ -2377,7 +2380,7 @@ sub raku-multi-plan(
                             # this, we should make sure that the original
                             # container (which maybe was a Proxy that was
                             # removed in the args we're doing the dispatch
-                            # over) was not itself rw.
+                            # over) was not itself rw
                             $rwness_mismatch := 1
                               if $rwness
                               && !nqp::iscont(
@@ -2386,15 +2389,36 @@ sub raku-multi-plan(
                         }
 
                         # Ensure the value meets the required type constraints
+                        # by converting listy and hashy values to Positional
+                        # and Associative HLL roles that can be checked
                         unless $is-mu || nqp::istype_nd(
                           nqp::hllizefor($value, 'Raku'), $type
                         ) {
-                            if $type =:= $Positional {
-                                # Things like Seq can bind to an @ sigil.
+
+                            # Type did not check out, but we got a listy thing
+                            if nqp::eqaddr(
+                                 $type,
+                                 nqp::ifnull(
+                                   $Positional,
+                                   $Positional :=
+                                     nqp::gethllsym('Raku', 'MD_Pos')
+                                 )
+                            ) {
+
+                                # Things like Seq, which do the
+                                # PositionalBindFailover role, can bind to
+                                # an @ sigil, so then there's no mismatch
                                 $type_mismatch := 1 unless nqp::istype_nd(
-                                    $value, $PositionalBindFailover
+                                  $value,
+                                  nqp::ifnull(
+                                    $PositionalBindFailover,
+                                    $PositionalBindFailover :=
+                                      nqp::gethllsym('Raku', 'MD_PBF')
+                                  )
                                 );
                             }
+
+                            # Not an listy thing, and type did not match
                             else {
                                 $type_mismatch := 1;
                             }
@@ -2405,8 +2429,8 @@ sub raku-multi-plan(
                             my int $got := $promoted_primitive
                               || nqp::isconcrete_nd($value);
                             $type_mismatch := 1
-                              if ($got && $definedness == $DEFCON_UNDEFINED)
-                              || (!$got && $definedness == $DEFCON_DEFINED);
+                              if ( $got && $definedness == $DEFCON_UNDEFINED)
+                              || (!$got && $definedness == $DEFCON_DEFINED  );
                             nqp::bindpos_i($need_conc_guard, $i, 1);
                         }
                     }
@@ -2499,10 +2523,12 @@ sub raku-multi-plan(
                         $node := MultiDispatchCall.new(nqp::atkey(%info,'sub'));
                     }
 
+                    # Add the node at the right place
                     nqp::isnull($current-head)
                       ?? ($current-head := $node)
                       !! $current-tail.set-next($node);
                     $current-tail := $node;
+
                     ++$i;
                 }
 
@@ -2510,9 +2536,9 @@ sub raku-multi-plan(
                 # bind check, and we've no results before now, we're done.
                 # Otherwise, clear the set of possibles for the next group
                 $stop-at-trivial
+                  && !$need-bind-check
                   && $first-group
                   && nqp::elems(@filtered-possibles) == 1
-                  && $need-bind-check == 0
                   ?? ($done := 1)
                   !! nqp::setelems(@possibles, 0);
             }
@@ -2522,11 +2548,6 @@ sub raku-multi-plan(
               unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx));
         }
     }
-
-    # Add an end node
-    nqp::isnull($current-head)
-      ?? ($current-head := MultiDispatchEnd)
-      !! $current-tail.set-next(MultiDispatchEnd);
 
     # Install guards as required
     $i := 0;
@@ -2553,94 +2574,120 @@ sub raku-multi-plan(
         ++$i;
     }
 
-    # Return the dispatch plan
-    $current-head
+    # Return the dispatch plan, just an end marker if none so far
+    if nqp::isnull($current-head) {
+        MultiDispatchEnd
+    }
+    else {
+        $current-tail.set-next(MultiDispatchEnd);
+        $current-head
+    }
 }
 
-sub form-raku-capture($vm-capture) {
+# Helper sub to return a Raku Capture for the given VM capture
+sub form-raku-capture($capture) {
     my $raku-capture := nqp::create(Capture);
     nqp::bindattr($raku-capture, Capture, '@!list',
-        nqp::syscall('capture-pos-args', $vm-capture));
+      nqp::syscall('capture-pos-args', $capture)
+    );
     nqp::bindattr($raku-capture, Capture, '%!hash',
-        nqp::syscall('capture-named-args', $vm-capture));
+      nqp::syscall('capture-named-args', $capture)
+    );
     $raku-capture
 }
+
+# Helper sub to determine whether there's a Junction as one of the arguments.
+# If so, guard all of the non-native arguments and return indicating a Junction
+# was found.
 sub multi-junction-failover($capture) {
+
     # Take a first pass to see if there's a Junction arg (we look at both
     # named and positional).
     my int $num-args := nqp::syscall('capture-num-args', $capture);
     my int $i;
-    my $found-junction;
     while $i < $num-args {
-        my int $got-prim := nqp::syscall('capture-arg-prim-spec', $capture, $i);
-        if $got-prim == 0 {
+        unless nqp::syscall('capture-arg-prim-spec', $capture, $i) {
             my $value := nqp::syscall('capture-arg-value', $capture, $i);
+
             if nqp::isconcrete($value) && nqp::istype($value, Junction) {
-                $found-junction := 1;
-                last;
+                # If there is a Junction arg, then pass through all arguments
+                # to put guards on all argument types if they're not natives
+                $i := 0;
+                while $i < $num-args {
+                    unless nqp::syscall('capture-arg-prim-spec', $capture, $i) {
+                        my $Targ := nqp::track('arg', $capture, $i);
+                        guard-type-concreteness(nqp::istype_nd(
+                          nqp::syscall('capture-arg-value', $capture, $i),
+                          Scalar
+                        ) ?? nqp::track('attr', $Targ, Scalar, '$!value')
+                          !! $Targ
+                        );
+                    }
+                    ++$i;
+                }
+
+                # Found a junction
+                return 1;
             }
         }
         ++$i;
     }
 
-    # If there is a Junction arg, then take another pass through to put type
-    # guards on all argument types.
-    if $found-junction {
-        $i := 0;
-        while $i < $num-args {
-            if nqp::syscall('capture-arg-prim-spec', $capture, $i) == 0 {
-                my $arg := nqp::syscall('capture-arg-value', $capture, $i);
-                my $tracked := nqp::track('arg',
-                    $capture, $i);
-                if nqp::istype_nd($arg, Scalar) {
-                    $tracked := nqp::track('attr',
-                        $tracked, Scalar, '$!value');
-                }
-                guard-type-concreteness($tracked);
-            }
-            ++$i;
-        }
+    # Did not find a function
+    0
+}
+
+# Helper sub if there is no apparent candidate for dispatch found.  Check
+# for any Junction arguments, and if so, delegate to autothread.  If not,
+# throw a no-match error.
+sub multi-no-match-handler(
+  $target,
+  $dispatch-arg-capture,
+  $orig-capture,
+  $orig-arg-capture
+) {
+    # If no candidates are found but there is a Junction argument, we'll
+    # dispatch to that.  Otherwise, it's just an error
+    multi-junction-failover($dispatch-arg-capture)  # Guards added if needed
+      ?? nqp::delegate('raku-invoke',
+           nqp::syscall('dispatcher-insert-arg-literal-obj',
+             nqp::syscall('dispatcher-insert-arg-literal-obj',
+               $orig-capture, 0, Junction
+             ), 0, Junction.HOW.find_method(Junction, 'AUTOTHREAD')
+           )
+         )
+      !! Perl6::Metamodel::Configuration.throw_or_die(
+           'X::Multi::NoMatch',
+            "Cannot call " ~ $target.name() ~ "; no signatures match",
+           :dispatcher($target),
+           :capture(form-raku-capture($orig-arg-capture))
+         )
+}
+
+# Helper sub to handle ambiguous dispatch: collect all of the ambiguous
+# candidates and throw an error with them.
+sub multi-ambiguous-handler($ambig-call, $target, $capture) {
+    my @ambiguous;
+    while nqp::istype(($ambig-call := $ambig-call.next), MultiDispatchCall) {
+        nqp::push(@ambiguous, $ambig-call.candidate);
     }
 
-    $found-junction
-}
-sub multi-no-match-handler($target, $dispatch-arg-capture, $orig-capture, $orig-arg-capture) {
-    # If no candidates are found but there is a Junction argument, we'll
-    # dispatch to that.
-    if multi-junction-failover($dispatch-arg-capture) { # Guards added here
-        my $with-invocant := nqp::syscall(
-            'dispatcher-insert-arg-literal-obj', $orig-capture, 0, Junction);
-        my $threader := Junction.HOW.find_method(Junction, 'AUTOTHREAD') //
-            nqp::die('Junction auto-thread method not found');
-        my $capture-delegate := nqp::syscall(
-            'dispatcher-insert-arg-literal-obj', $with-invocant, 0, $threader);
-        nqp::delegate('raku-invoke', $capture-delegate);
-    }
-    # Otherwise, it's just an error.
-    else {
-        Perl6::Metamodel::Configuration.throw_or_die(
-            'X::Multi::NoMatch',
-            "Cannot call " ~ $target.name() ~ "; no signatures match",
-            :dispatcher($target), :capture(form-raku-capture($orig-arg-capture)));
-    }
-}
-sub multi-ambiguous-handler($dispatch-plan, $target, $arg-capture) {
-    my @ambiguous;
-    my $ambig-call := $dispatch-plan.next;
-    while nqp::istype($ambig-call, MultiDispatchCall) {
-        nqp::push(@ambiguous, $ambig-call.candidate);
-        $ambig-call := $ambig-call.next;
-    }
     Perl6::Metamodel::Configuration.throw_or_die(
-        'X::Multi::Ambiguous',
-        "Ambiguous call to " ~ $target.name(),
-        :dispatcher($target), :@ambiguous,
-        :capture(form-raku-capture($arg-capture)));
+      'X::Multi::Ambiguous',
+      "Ambiguous call to " ~ $target.name(),
+      :dispatcher($target),
+      :@ambiguous,
+      :capture(form-raku-capture($capture))
+    );
 }
+
+# The actual dispatcher
 nqp::register('raku-multi-core',
+
     # Initial dispatch. Tries to find an initial candidate.
     -> $capture {
-        # Obtain the candidate list, producing it if it doesn't already exist.
+
+        # Obtain the candidate list, producing it if it doesn't already exist
         my $target := nqp::captureposarg($capture, 0);
         my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
         if nqp::isnull(@candidates) {
@@ -2650,143 +2697,171 @@ nqp::register('raku-multi-core',
             nqp::scwbenable();
         }
 
-        # Drop the first argument, to get just the arguments to dispatch on, and
-        # then produce a multi-dispatch plan. Decide what to do based upon it.
+        # Drop the first argument, to get just the arguments to dispatch on,
+        # and then produce a multi-dispatch plan. Decide what to do based
+        # upon it
         my $arg-capture := nqp::syscall('dispatcher-drop-arg', $capture, 0);
         my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 1);
-        if nqp::istype($dispatch-plan, MultiDispatchCall) &&
-                !nqp::istype($dispatch-plan, MultiDispatchTry) &&
-                nqp::istype($dispatch-plan.next, MultiDispatchEnd) {
-            # Trivial multi dispatch. Set dispatch state for resumption, and
-            # then delegate to raku-invoke to run it.
+
+        # A trivial multi dispatch
+        if nqp::istype($dispatch-plan, MultiDispatchCall)
+          && $dispatch-plan.trivial {
+
+            # Set dispatch state for resumption, and then delegate to
+            # to the appropriate handler
             nqp::syscall('dispatcher-set-resume-init-args', $capture);
             my $candidate := $dispatch-plan.candidate;
-            my $capture-delegate := nqp::syscall(
-              'dispatcher-insert-arg-literal-obj', $arg-capture, 0, $candidate);
-            nqp::delegate(
-              nqp::can($candidate, 'WRAPPERS')
-                ?? 'raku-invoke-wrapped'
-                !! 'raku-invoke',
-                $capture-delegate
+            nqp::delegate(nqp::can($candidate, 'WRAPPERS')
+              ?? 'raku-invoke-wrapped'
+              !! 'raku-invoke',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                $arg-capture, 0, $candidate
+              )
             );
         }
+
+        # Proxies are involved in dispatch
         elsif nqp::istype($dispatch-plan, MultiDispatchNonScalar) {
+
             # Need to strip the Proxy arguments and then try again. Produce a
             # proxy reader code object to do so, insert it as the first arg,
             # and delegate to a dispatcher to manage reading the args and
             # then retrying with the outcome.
-            my $reader := $PROXY-READERS.reader-for($arg-capture, $dispatch-plan.args);
-            my $capture-delegate := nqp::syscall(
-                'dispatcher-insert-arg-literal-obj', $capture, 0, $reader);
-            nqp::delegate('raku-multi-remove-proxies', $capture-delegate);
+            nqp::delegate('raku-multi-remove-proxies',
+              nqp::syscall('dispatcher-insert-arg-literal-obj',
+                $capture, 0, $PROXY-READERS.reader-for(
+                  $arg-capture, $dispatch-plan.args
+                )
+              )
+            );
         }
-        elsif nqp::istype($dispatch-plan, MultiDispatchAmbiguous) &&
-                nqp::istype($dispatch-plan.next, MultiDispatchCall) {
+
+        # More than a simple ambiguous dispatch
+        elsif nqp::istype($dispatch-plan, MultiDispatchAmbiguous)
+          && $dispatch-plan.more {
             multi-ambiguous-handler($dispatch-plan, $target, $arg-capture);
         }
+
+        # Nothing to dispatch to
         elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
-            multi-no-match-handler($target, $arg-capture, $capture, $arg-capture);
+            multi-no-match-handler(
+              $target, $arg-capture, $capture, $arg-capture
+            );
         }
+
+        # It's a non-trivial multi dispatch
         else {
-            # It's a non-trivial multi dispatch. Prefix the capture with
-            # the dispatch plan, and also a DISP_NONE to indicate this
-            # is not a resumption of any kind. Then delegate to the
-            # non-trivial multi dispatcher.
-            my $capture-with-plan := nqp::syscall(
-              'dispatcher-insert-arg-literal-obj', $capture, 0, $dispatch-plan);
-            my $capture-delegate := nqp::syscall(
-              'dispatcher-insert-arg-literal-int', $capture-with-plan, 0,
-              nqp::const::DISP_NONE);
-            nqp::delegate('raku-multi-non-trivial', $capture-delegate);
+
+            # Prefix the capture with the dispatch plan, and also a
+            # DISP_NONE to indicate this is not a resumption of any kind.
+            # Then delegate to the non-trivial multi dispatcher
+            nqp::delegate('raku-multi-non-trivial',
+              nqp::syscall('dispatcher-insert-arg-literal-int',
+                nqp::syscall('dispatcher-insert-arg-literal-obj',
+                  $capture, 0, $dispatch-plan
+                ), 0, nqp::const::DISP_NONE
+              )
+            );
         }
     },
+
     # Resume of a trivial dispatch.
     -> $capture {
+
         # Obtain and guard on the kind of resume.
-        my $kind := nqp::captureposarg_i($capture, 0);
-        my $track-kind := nqp::track('arg', $capture, 0);
-        nqp::guard('literal', $track-kind);
+        my $Tkind := nqp::track('arg', $capture, 0);
+        nqp::guard('literal', $Tkind);
+        nqp::guard('literal', nqp::track('resume-state'));
+        my $state := nqp::syscall('dispatcher-get-resume-state');
 
         # We'll delegate the hard work to the non-trivial dispatcher. We
         # only want to do that once, however, and so set the dispatch state
         # to exhausted if we've already done it. Check that's not so. Also
         # shortcut here if it's lastcall.
-        my $track-state := nqp::track('resume-state');
-        nqp::guard('literal', $track-state);
-        my $state := nqp::syscall('dispatcher-get-resume-state');
+
+        my int $kind := nqp::captureposarg_i($capture, 0);
         if nqp::isnull($state) && $kind != nqp::const::DISP_LASTCALL {
+
             # First time. Set state to exhausted.
             nqp::syscall('dispatcher-set-resume-state-literal', Exhausted);
 
             # Obtain resume initialization arguments and form the plan.
-            my $init := nqp::syscall('dispatcher-get-resume-init-args');
-            my $target := nqp::captureposarg($init, 0);
-            my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
-            my $arg-capture := nqp::syscall('dispatcher-drop-arg', $init, 0);
+            my $init-args  := nqp::syscall('dispatcher-get-resume-init-args');
+            my $target     := nqp::captureposarg($init-args, 0);
+            my @candidates := nqp::getattr($target,Routine,'@!dispatch_order');
+            my $arg-capture := nqp::syscall('dispatcher-drop-arg',$init-args,0);
             my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 0);
 
             # Put a guard on the dispatchees.
-            my $track-target := nqp::track('arg', $init, 0);
+            my $Ttarget := nqp::track('arg', $init-args, 0);
             nqp::guard('literal',
-              nqp::track('attr', $track-target, Routine, '@!dispatchees'));
+              nqp::track('attr', $Ttarget, Routine, '@!dispatchees')
+            );
 
             # We already called the first candidate in the trivial plan, so
-            # drop it.
+            # drop it.  Then go by the kind of resumption we have
             $dispatch-plan := $dispatch-plan.next;
 
-            # Now go by the kind of resumption we have.
+            # It's a callwith
             if $kind == nqp::const::DISP_CALLWITH {
-                # It's a callwith, so we'll use the provided args (except
-                # for adding the invocant if it's a multi method), and then
-                # delegate to the non-trivial dispatch handler.
+
+                # We'll use the provided args (except for adding the invocant
+                # if it's a multi method), and then delegate to the non-trivial
+                # dispatch handler
                 my $args := nqp::syscall('dispatcher-drop-arg', $capture, 0);
-                if nqp::istype($target, Method) {
-                    my $track-invocant := nqp::track('arg', $arg-capture, 0);
-                    $args := nqp::syscall('dispatcher-insert-arg',
-                      $args, 0, $track-invocant);
-                }
-                my $with-target := nqp::syscall('dispatcher-insert-arg',
-                  $args, 0, $track-target);
-                my $capture-with-plan := nqp::syscall(
-                  'dispatcher-insert-arg-literal-obj', $with-target, 0,
-                  $dispatch-plan);
-                my $capture-delegate := nqp::syscall(
-                  'dispatcher-insert-arg-literal-int', $capture-with-plan,
-                  0, nqp::const::DISP_CALLWITH);
-                nqp::delegate('raku-multi-non-trivial', $capture-delegate);
-            }
-            elsif $kind == nqp::const::DISP_PROPAGATE_CALLWITH {
-                # We're propagating a callwith. Insert our multi dispatch plan
-                # and target after the kind and then pass it along to the
-                # non-trivial dispatcher.
-                my $capture-with-target := nqp::syscall('dispatcher-insert-arg',
-                    $capture, 1, $track-target);
-                my $capture-with-plan := nqp::syscall(
-                  'dispatcher-insert-arg-literal-obj', $capture-with-target, 1,
-                  $dispatch-plan);
-                nqp::delegate('raku-multi-non-trivial', $capture-with-plan);
-            }
-            else {
-                # Delegate to the non-trivial dispatcher, passing along the kind
-                # of dispatch we're doing and the plan.
-                my $capture-with-plan := nqp::syscall(
-                  'dispatcher-insert-arg-literal-obj', $init, 0, $dispatch-plan
+                $args := nqp::syscall('dispatcher-insert-arg',
+                  $args, 0, nqp::track('arg', $arg-capture, 0)
+                ) if nqp::istype($target, Method);
+
+                nqp::delegate('raku-multi-non-trivial',
+                  nqp::syscall('dispatcher-insert-arg-literal-int',
+                    nqp::syscall('dispatcher-insert-arg-literal-obj',
+                      nqp::syscall('dispatcher-insert-arg',
+                        $args, 0, $Ttarget
+                      ), 0, $dispatch-plan
+                    ), 0, nqp::const::DISP_CALLWITH
+                  )
                 );
-                my $capture-delegate := nqp::syscall(
-                  'dispatcher-insert-arg', $capture-with-plan, 0, $track-kind);
-                nqp::delegate('raku-multi-non-trivial', $capture-delegate);
+            }
+
+            # We're propagating a callwith
+            elsif $kind == nqp::const::DISP_PROPAGATE_CALLWITH {
+
+                # Insert our multi dispatch plan and target after the kind
+                # and then pass it along to the non-trivial dispatcher
+                nqp::delegate('raku-multi-non-trivial',
+                  nqp::syscall('dispatcher-insert-arg-literal-obj',
+                    nqp::syscall('dispatcher-insert-arg',
+                      $capture, 1, $Ttarget
+                    ), 1, $dispatch-plan
+                  )
+                );
+            }
+
+            # Definitely non-trivial
+            else {
+
+                # Delegate to the non-trivial dispatcher, passing along the
+                # kind of dispatch we're doing and the plan
+                nqp::delegate('raku-multi-non-trivial',
+                  nqp::syscall('dispatcher-insert-arg',
+                    nqp::syscall('dispatcher-insert-arg-literal-obj',
+                      $init-args, 0, $dispatch-plan
+                    ), 0, $Tkind
+                  )
+                );
             }
         }
         else {
-            # Mark dispatcher exhausted if it's lastcall.
-            if $kind == nqp::const::DISP_LASTCALL {
-                nqp::syscall('dispatcher-set-resume-state-literal', Exhausted);
-            }
+            # Mark dispatcher exhausted if it's lastcall
+            nqp::syscall('dispatcher-set-resume-state-literal', Exhausted)
+              if $kind == nqp::const::DISP_LASTCALL;
 
-            # Resume next dispatcher, if any, otherwise hand back Nil.
+            # Resume next dispatcher, if any, otherwise hand back Nil
             nil-or-callwith-propagation-terminal($capture);
         }
-    });
+    }
+);
 
 # The non-trivial multi dispatch has quite similar initial and resume steps,
 # and thus the majority of the work is factored out into a subroutine.

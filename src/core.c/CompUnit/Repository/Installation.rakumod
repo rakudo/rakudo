@@ -233,6 +233,9 @@ sub MAIN(*@, *%) {
         my $lock = $.prefix.add('repo.lock').open(:create, :w);
         LEAVE .unlock, .close with $lock;
 
+        # Workaround buggy LEAVE + IO::Handle::DESTROY interaction on windows
+        $lock.do-not-close-automatically;
+
         my $version = self!repository-version;
         self.upgrade-repository unless $version == 2;
 

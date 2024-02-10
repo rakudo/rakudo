@@ -347,6 +347,12 @@ multi sub infix:<div>(Int:D $a, Int:D $b --> Int:D) {
 multi sub infix:<div>(int  $a, int  $b --> int)  { nqp::div_i($a, $b) }
 multi sub infix:<div>(uint $a, uint $b --> uint) { nqp::div_i($a, $b) }
 
+multi sub infix:<div>($a, $b --> Int:D) {
+    $b.Int
+      ?? nqp::div_I($a.Int,$b.Int,Int)
+      !! X::Numeric::DivideByZero.new(:using<div>, :numerator($a)).Failure
+}
+
 multi sub infix:<%>(Int:D $a, Int:D $b --> Int:D) {
     nqp::isbig_I($a) || nqp::isbig_I($b)
       ?? $b

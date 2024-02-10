@@ -160,6 +160,7 @@ multi sub prefix:<->(Real:D $a) { -$a.Bridge }
 # so fails on differing types."  Thus no casts here.
 proto sub infix:<mod>($, $, *%) is pure {*}
 multi sub infix:<mod>(Real:D $a, Real:D $b) { $a - ($a div $b) * $b }
+multi sub infix:<mod>($a, $b) { $a.Real - ($a.Real div $b.Real) * $b.Real }
 
 multi sub abs(Real:D $a) { $a < 0 ?? -$a !! $a }
 

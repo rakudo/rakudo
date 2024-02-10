@@ -216,21 +216,22 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method sigil(Parameter:D: --> Str:D) {
-        nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_CAPTURE)
+        my int $flags = $!flags;
+        nqp::bitand_i($flags,nqp::const::SIG_ELEM_IS_CAPTURE)
           ?? '|'
           !! nqp::isnull_s($!variable_name)
-            ?? nqp::bitand_i($!flags,nqp::const::SIG_ELEM_ARRAY_SIGIL)
+            ?? nqp::bitand_i($flags,nqp::const::SIG_ELEM_ARRAY_SIGIL)
               ?? '@'
-              !!  nqp::bitand_i($!flags,nqp::const::SIG_ELEM_HASH_SIGIL)
+              !!  nqp::bitand_i($flags,nqp::const::SIG_ELEM_HASH_SIGIL)
                 ?? '%'
-                !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_CODE_SIGIL)
+                !! nqp::bitand_i($flags,nqp::const::SIG_ELEM_CODE_SIGIL)
                   ?? '&'
-                  !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_RAW)
+                  !! nqp::bitand_i($flags,nqp::const::SIG_ELEM_IS_RAW)
                     && $.name
                     && nqp::isnull($!default_value)
                     ?? '\\'
                     !! '$'
-            !! nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_RAW) && nqp::iseq_i(
+            !! nqp::bitand_i($flags,nqp::const::SIG_ELEM_IS_RAW) && nqp::iseq_i(
                  nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
               ?? '\\'
               !! nqp::substr($!variable_name,0,1)
@@ -249,11 +250,12 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method prefix(Parameter:D: --> Str:D) {
-        nqp::bitand_i($!flags, nqp::bitor_i(nqp::const::SIG_ELEM_SLURPY_POS, nqp::const::SIG_ELEM_SLURPY_NAMED))
+        my int $flags = $!flags;
+        nqp::bitand_i($flags, nqp::bitor_i(nqp::const::SIG_ELEM_SLURPY_POS, nqp::const::SIG_ELEM_SLURPY_NAMED))
           ?? '*'
-          !! nqp::bitand_i($!flags, nqp::const::SIG_ELEM_SLURPY_LOL)
+          !! nqp::bitand_i($flags, nqp::const::SIG_ELEM_SLURPY_LOL)
             ?? '**'
-            !! nqp::bitand_i($!flags, nqp::const::SIG_ELEM_SLURPY_ONEARG)
+            !! nqp::bitand_i($flags, nqp::const::SIG_ELEM_SLURPY_ONEARG)
               ?? '+'
               !! ''
     }
@@ -376,51 +378,52 @@ my class Parameter { # declared in BOOTSTRAP
 
         # nominal type is acceptable
         if $!type.ACCEPTS(nqp::getattr(o,Parameter,'$!type')) {
-            my \oflags := nqp::getattr(o,Parameter,'$!flags');
+            my int $flags  = $!flags;
+            my int $oflags = nqp::getattr_i(o,Parameter,'$!flags');
 
             # flags are not same, so we need to look more in depth
-            if nqp::isne_i($!flags,oflags) {
+            if nqp::isne_i($flags,$oflags) {
 
                 # here not defined only, or both defined only
                 return False
                   unless nqp::isle_i(
-                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_DEFINED_ONLY),
-                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_DEFINED_ONLY))
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_DEFINED_ONLY),
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_DEFINED_ONLY))
 
                 # here not undefined only, or both undefined only
                   && nqp::isle_i(
-                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_UNDEFINED_ONLY),
-                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_UNDEFINED_ONLY))
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_UNDEFINED_ONLY),
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_UNDEFINED_ONLY))
 
                 # here is rw, or both is rw
                   && nqp::isle_i(
-                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_RW),
-                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_IS_RW))
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_IS_RW),
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_IS_RW))
 
                 # other is optional, or both are optional
                   && nqp::isle_i(
-                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_IS_OPTIONAL),
-                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_OPTIONAL))
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_IS_OPTIONAL),
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_IS_OPTIONAL))
 
                 # other is slurpy positional, or both are slurpy positional
                   && nqp::isle_i(
-                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_SLURPY_POS),
-                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_SLURPY_POS))
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_SLURPY_POS),
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_SLURPY_POS))
 
                 # other is slurpy named, or both are slurpy named
                   && nqp::isle_i(
-                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_SLURPY_NAMED),
-                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_SLURPY_NAMED))
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_SLURPY_NAMED),
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_SLURPY_NAMED))
 
                 # other is slurpy one arg, or both are slurpy one arg
                   && nqp::isle_i(
-                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_SLURPY_ONEARG),
-                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_SLURPY_ONEARG))
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_SLURPY_ONEARG),
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_SLURPY_ONEARG))
 
                 # here is part of MMD, or both are part of MMD
                   && nqp::isle_i(
-                    nqp::bitand_i($!flags,nqp::const::SIG_ELEM_MULTI_INVOCANT),
-                    nqp::bitand_i( oflags,nqp::const::SIG_ELEM_MULTI_INVOCANT));
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_MULTI_INVOCANT),
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_MULTI_INVOCANT));
             }
         }
 

@@ -1,6 +1,6 @@
 role Perl6::Metamodel::C3MRO {
     # Storage of the MRO.
-    has %!mro;
+    has $!mro;
     has $!mro_lock;
 
     method setup_mro_engine() {
@@ -9,7 +9,7 @@ role Perl6::Metamodel::C3MRO {
 
     # Computes C3 MRO.
     method compute_mro($class) {
-        my %mro := nqp::hash(
+        my $mro := nqp::hash(
           'all', nqp::hash(
             'no_roles', nqp::list,    # MRO with roles excluded
             'all', nqp::list,         # MRO with roles as parametric groups
@@ -140,7 +140,7 @@ role Perl6::Metamodel::C3MRO {
         }
 
         $!mro_lock.protect({
-            %!mro := nqp::hash(
+            $!mro := nqp::hash(
               'all', nqp::hash(
                 'all',      @all,
                 'all_conc', @all_conc,
@@ -155,7 +155,7 @@ role Perl6::Metamodel::C3MRO {
         })
     }
 
-    # C3 merge routine.
+    # C3 merge routine
     method c3_merge(@merge_list) {
         my @result;
         my $accepted;
@@ -244,17 +244,16 @@ role Perl6::Metamodel::C3MRO {
     method mro($obj, :$roles = 0, :$concretizations = 0, :$unhidden = 0) {
         # Make sure we get a snapshot of MRO hash without competing
         # with compute_mro working in another thread.  It should be
-        # safe to pull in just %!mro without cloning it because the
-        # hash itself remains immutable, it's only the %!mro attribute
+        # safe to pull in just $!mro without cloning it because the
+        # hash itself remains immutable, it's only the $!mro attribute
         # that gets updated with new object.
-        my %mro := $!mro_lock.protect({ %!mro });
+        my $mro := $!mro;
 
-        # Compute the MRO if there is non yet (???)
-        %mro := self.compute_mro($obj)
-          unless nqp::existskey(%mro, 'all');
+        # Compute the MRO if there is none yet (???)
+        $mro := self.compute_mro($obj) if nqp::eqaddr($mro,NQPMu);
 
         nqp::atkey(
-          nqp::atkey(%mro, $unhidden ?? 'unhidden' !! 'all'),
+          nqp::atkey($mro, $unhidden ?? 'unhidden' !! 'all'),
           $concretizations
             ?? 'all_conc'
             !! $roles

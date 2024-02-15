@@ -467,6 +467,21 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method Version() { self.Str.Version }
+
+    method  int(-->  int) is raw { my  int $a = self.Int; $a }
+    method uint(--> uint) is raw { my uint $a = self.Int; $a }
+
+    method int64(--> int64) is raw { my int64 $a = self.Int; $a }
+    method int32(--> int32) is raw { my int32 $a = self.Int; $a }
+    method int16(--> int16) is raw { my int16 $a = self.Int; $a }
+    method int8( --> int8 ) is raw { my int8  $a = self.Int; $a }
+
+    method uint64(--> uint64) is raw { my uint64 $a = self.Int; $a }
+    method uint32(--> uint32) is raw { my uint32 $a = self.Int; $a }
+    method uint16(--> uint16) is raw { my uint16 $a = self.Int; $a }
+    method uint8( --> uint8 ) is raw { my uint8  $a = self.Int; $a }
+    method byte(  --> byte  ) is raw { my byte   $a = self.Int; $a }
+
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 

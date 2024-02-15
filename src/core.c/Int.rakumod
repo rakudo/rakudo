@@ -272,6 +272,20 @@ my class Int does Real { # declared in BOOTSTRAP
             }
         }
     }
+
+    method  int(-->  int) is raw { my  int $a = self; $a }
+    method uint(--> uint) is raw { my uint $a = self; $a }
+
+    method int64(--> int64) is raw { my int64 $a = self; $a }
+    method int32(--> int32) is raw { my int32 $a = self; $a }
+    method int16(--> int16) is raw { my int16 $a = self; $a }
+    method int8( --> int8 ) is raw { my int8  $a = self; $a }
+
+    method uint64(--> uint64) is raw { my uint64 $a = self; $a }
+    method uint32(--> uint32) is raw { my uint32 $a = self; $a }
+    method uint16(--> uint16) is raw { my uint16 $a = self; $a }
+    method uint8( --> uint8 ) is raw { my uint8  $a = self; $a }
+    method byte(  --> byte  ) is raw { my byte   $a = self; $a }
 }
 
 multi sub prefix:<++>(Int:D $a is rw --> Int:D) {

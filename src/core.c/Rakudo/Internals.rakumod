@@ -123,7 +123,7 @@ my class Rakudo::Internals {
         parts
     }
 
-    method SET_LEADING_DOCS($obj, $docs) {
+    method SET_LEADING_DOCS(Mu $obj, $docs) {
         my $current_why := $obj.WHY;
 
         if $current_why {
@@ -144,7 +144,7 @@ my class Rakudo::Internals {
         }
     }
 
-    method SET_TRAILING_DOCS($obj, $docs) {
+    method SET_TRAILING_DOCS(Mu $obj, $docs) {
         my $current_why := $obj.WHY;
 
         if $current_why {

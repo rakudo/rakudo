@@ -1900,7 +1900,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         # Give it a fresh capture list, since we'll have assumed it has
         # no positional captures and not taken them.
-        nqp::bindattr($op,NQPCapture,'@!array',nqp::list);
+        nqp::bindattr($op,NQPCapture,'@!list',nqp::list);
 
         # Some shortcuts
         my $properties := self.properties-for-node($op);

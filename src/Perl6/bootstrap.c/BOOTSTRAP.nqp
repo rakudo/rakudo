@@ -287,11 +287,26 @@ my class Binder {
 
                     if nqp::defined($error) {
                         $error[0] := {
-                            Perl6::Metamodel::Configuration.throw_or_die(
-                                'X::TypeCheck::Binding::Parameter',
+                            my $msg :=
                                 "Nominal type check failed for parameter '" ~ $varname
                                     ~ "'; expected " ~ $expected.HOW.name($expected)
-                                    ~ " but got " ~ $oval.HOW.name($oval),
+                                    ~ " but got " ~ $oval.HOW.name($oval);
+
+                            # A lot of beginners make mistakes when typing array parameters,
+                            # so let's try and catch some of the common ones
+                            if nqp::eqaddr($param_type, $Positional) {
+                                # Positionals have an `of` method
+                                if nqp::istype($expected.of, Array) {
+                                    $msg := $msg ~ ". Did you mean to expect an array of Arrays?";
+                                }
+                                # but we don't know what $!got is and it may not have an `of` method
+                                elsif nqp::can($oval, 'of') && nqp::istype($oval.of, Mu) {
+                                    $msg := $msg ~ ". You have to pass an explicitly typed array, not one that just might happen to contain elements of the correct type.";
+                                }
+                            }
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::TypeCheck::Binding::Parameter',
+                                $msg,
                                 :got($oval),
                                 :expected($expected.WHAT),
                                 :symbol(nqp::hllizefor($varname, 'Raku')),

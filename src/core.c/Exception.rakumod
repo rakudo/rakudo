@@ -2814,9 +2814,23 @@ my class X::TypeCheck is Exception {
             !! $complainee.Str
     }
     method explain {
-        nqp::istype($!expected.HOW, Metamodel::Explaining)
+        my $msg = nqp::istype($!expected.HOW, Metamodel::Explaining)
             ?? self.complainee-message
-            !! "expected $.expectedn but got $.gotn"
+            !! "expected $.expectedn but got $.gotn";
+
+        # A lot of beginners make mistakes when typing array parameters,
+        # so let's try and catch some of the common ones
+        if $!expected ~~ Positional {
+            # Positionals have an `of` method
+            if $!expected.of ~~ Array {
+                $msg ~= ". Did you mean to expect an array of Arrays?";
+            }
+            # but we don't know what $!got is and it may not have an `of` method
+            elsif $!got.^can('of') && $!got.of =:= Mu {
+                $msg ~= ". You have to pass an explicitly typed array, not one that just might happen to contain elements of the correct type.";
+            }
+        }
+        $msg.naive-word-wrapper
     }
     method message() {
         self.priors() ~

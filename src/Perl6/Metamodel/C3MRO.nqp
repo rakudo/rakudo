@@ -3,7 +3,7 @@ role Perl6::Metamodel::C3MRO {
     has $!mro;
     has $!mro_lock;
 
-    method setup_mro_engine() {
+    method TWEAK(*%named) {
         $!mro_lock := NQPLock.new();
     }
 

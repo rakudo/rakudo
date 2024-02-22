@@ -52,9 +52,7 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method new(*%named) {
-        my $obj := nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named);
-        $obj.setup_mro_engine();
-        $obj
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method !refresh_archetypes($obj) {

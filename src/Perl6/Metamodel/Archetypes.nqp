@@ -51,17 +51,32 @@ class Perl6::Metamodel::Archetypes {
     # Are we allowed to augment the type?
     has $!augmentable;
 
-    method nominal() { $!nominal // 0 }
-    method nominalizable() { $!nominalizable // 0 }
-    method inheritable() { $!inheritable // 0 }
-    method inheritalizable() { $!inheritalizable // 0 }
-    method composable() { $!composable // 0 }
-    method composalizable() { $!composalizable // 0 }
-    method generic() { $!generic // 0 }
-    method parametric() { $!parametric // 0 }
-    method coercive() { $!coercive // 0 }
-    method definite() { $!definite // 0 }
-    method augmentable() { $!augmentable // 0 }
+    # Normalize all attributes
+    method TWEAK(*%_) {
+        $!nominal         := $!nominal         ?? 1 !! 0;
+        $!nominalizable   := $!nominalizable   ?? 1 !! 0;
+        $!inheritable     := $!inheritable     ?? 1 !! 0;
+        $!inheritalizable := $!inheritalizable ?? 1 !! 0;
+        $!composable      := $!composable      ?? 1 !! 0;
+        $!composalizable  := $!composalizable  ?? 1 !! 0;
+        $!generic         := $!generic         ?? 1 !! 0;
+        $!parametric      := $!parametric      ?? 1 !! 0;
+        $!coercive        := $!coercive        ?? 1 !! 0;
+        $!definite        := $!definite        ?? 1 !! 0;
+        $!augmentable     := $!augmentable     ?? 1 !! 0;
+    }
+
+    method nominal()         { $!nominal         }
+    method nominalizable()   { $!nominalizable   }
+    method inheritable()     { $!inheritable     }
+    method inheritalizable() { $!inheritalizable }
+    method composable()      { $!composable      }
+    method composalizable()  { $!composalizable  }
+    method generic()         { $!generic         }
+    method parametric()      { $!parametric      }
+    method coercive()        { $!coercive        }
+    method definite()        { $!definite        }
+    method augmentable()     { $!augmentable     }
 }
 
 # vim: expandtab sw=4

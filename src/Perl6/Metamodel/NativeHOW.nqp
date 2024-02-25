@@ -1,6 +1,7 @@
 class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Composing
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::MultipleInheritance
@@ -10,7 +11,6 @@ class Perl6::Metamodel::NativeHOW
 {
     has $!nativesize;
     has int $!unsigned;
-    has $!composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1) );
     method archetypes($obj?) {
@@ -37,7 +37,7 @@ class Perl6::Metamodel::NativeHOW
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);
-        if !$!composed && ($!nativesize || $!unsigned) {
+        if !self.is_composed && ($!nativesize || $!unsigned) {
             my $info := nqp::hash();
             $info<integer> := nqp::hash();
             $info<integer><unsigned> := 1 if $!unsigned;
@@ -54,11 +54,7 @@ class Perl6::Metamodel::NativeHOW
             }
             nqp::composetype($obj, $info);
         }
-        $!composed := 1;
-    }
-
-    method is_composed($obj) {
-        $!composed
+        self.set_composed;
     }
 
     method set_ctype($obj, $ctype) {

@@ -1,6 +1,7 @@
 class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Composing
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
@@ -29,7 +30,6 @@ class Perl6::Metamodel::ClassHOW
     has @!roles;
     has @!role_typecheck_list;
     has @!fallbacks;
-    has $!composed;
     has $!is_pun;
     has $!pun_source; # If class is coming from a pun then this is the source role
     has $!archetypes;
@@ -168,14 +168,14 @@ class Perl6::Metamodel::ClassHOW
 
         # Some things we only do if we weren't already composed once, like
         # building the MRO.
-        my $was_composed := $!composed;
-        unless $!composed {
-            if self.parents($obj, :local(1)) == 0 && self.has_default_parent_type && self.name($obj) ne 'Mu' {
+        my $was_composed := self.run_if_not_composed({
+            if self.parents($obj, :local) == 0
+              && self.has_default_parent_type
+              && self.name($obj) ne 'Mu' {
                 self.add_parent($obj, self.get_default_parent_type);
             }
             self.compute_mro($obj);
-            $!composed := 1;
-        }
+        });
 
         # Incorporate any new multi candidates (needs MRO built).
         self.incorporate_multi_candidates($obj);
@@ -294,11 +294,7 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method role_typecheck_list($obj) {
-        $!composed ?? @!role_typecheck_list !! self.roles_to_compose($obj)
-    }
-
-    method is_composed($obj) {
-        $!composed
+        self.is_composed ?? @!role_typecheck_list !! self.roles_to_compose($obj)
     }
 
     # Stuff for junctiony dispatch fallback.

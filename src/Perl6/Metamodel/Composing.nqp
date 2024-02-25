@@ -11,6 +11,20 @@ role Perl6::Metamodel::Composing {
     method set_composed($XXX?) { $!composed := 1 }
     method is_composed($XXX?)  { $!composed      }
 
+    # Helper method to run code if the object was not composed yet, set
+    # the flag to being composed, and return whether the object was
+    # composed already.
+    method run_if_not_composed($code) {
+        my int $was_composed := $!composed;
+
+        # Run code and set flag if we were not composed yet
+        unless $was_composed {
+            $code();
+            $!composed := 1;
+        }
+
+        $was_composed
+    }
 }
 
 # vim: expandtab sw=4

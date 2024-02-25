@@ -9,116 +9,101 @@ class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::MROBasedMethodDispatch
     does Perl6::Metamodel::MROBasedTypeChecking
 {
-    has $!nativesize;
+    has     $!nativesize;   # XXX should probably be an int
     has int $!unsigned;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1) );
-    method archetypes($obj?) {
-        $archetypes
-    }
+    my $archetypes := Perl6::Metamodel::Archetypes.new(:nominal);
+    method archetypes($XXX?) { $archetypes }
 
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
-    method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth, :$api) {
-        my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'Raku');
-        $metaclass.set_name($obj, $name);
-        $metaclass.set_ver($obj, $ver);
-        $metaclass.set_auth($obj, $auth) if $auth;
-        $metaclass.set_api($obj, $api) if $api;
-        self.add_stash($obj);
+    method new_type(
+      :$name = '<anon>',
+      :$repr = 'P6opaque',
+      :$ver,
+      :$auth,
+      :$api
+    ) {
+        my $HOW    := self.new;
+        my $target := nqp::settypehll(nqp::newtype($HOW, $repr), 'Raku');
+
+        $HOW.set_name($target, $name);
+        $HOW.set_ver( $target, $ver);
+        $HOW.set_auth($target, $auth) if $auth;
+        $HOW.set_api( $target, $api)  if $api;
+        $HOW.add_stash($target);
     }
 
-    method compose($the-obj, :$compiler_services) {
-        my $obj := nqp::decont($the-obj);
+    method compose($target, *%_) {
+        $target := nqp::decont($target);
 
-        self.compute_mro($obj);
-        self.publish_method_cache($obj);
-        self.publish_type_cache($obj);
+        self.compute_mro($target);
+        self.publish_method_cache($target);
+        self.publish_type_cache($target);
+
         if !self.is_composed && ($!nativesize || $!unsigned) {
-            my $info := nqp::hash();
-            $info<integer> := nqp::hash();
-            $info<integer><unsigned> := 1 if $!unsigned;
-            $info<float> := nqp::hash();
+            my $info := nqp::hash(
+              'integer', nqp::hash('unsigned', $!unsigned),
+              'float',   nqp::hash
+            );
+
+            # Specified using a native
             if nqp::objprimspec($!nativesize) {
-                $info<integer><bits> := $!nativesize;
+                $info<integer><bits> :=
                 $info<float><bits>   := $!nativesize;
             }
-            else {
-                if $!nativesize {
-                    $info<integer><bits> := nqp::unbox_i($!nativesize);
-                    $info<float><bits>   := nqp::unbox_i($!nativesize);
-                }
+
+            # Actually specified with a HLL (hopefully Int) value
+            elsif $!nativesize {
+                $info<integer><bits> :=
+                $info<float><bits>   := nqp::unbox_i($!nativesize);
             }
-            nqp::composetype($obj, $info);
+
+            nqp::composetype($target, $info);
         }
         self.set_composed;
     }
 
-    method set_ctype($obj, $ctype) {
-        if $ctype eq 'char' {
-            $!nativesize := nqp::const::C_TYPE_CHAR;
-        }
-        elsif $ctype eq 'short' {
-            $!nativesize := nqp::const::C_TYPE_SHORT;
-        }
-        elsif $ctype eq 'int' {
-            $!nativesize := nqp::const::C_TYPE_INT;
-        }
-        elsif $ctype eq 'long' {
-            $!nativesize := nqp::const::C_TYPE_LONG;
-        }
-        elsif $ctype eq 'longlong' {
-            $!nativesize := nqp::const::C_TYPE_LONGLONG;
-        }
-        elsif $ctype eq 'float' {
-            $!nativesize := nqp::const::C_TYPE_FLOAT;
-        }
-        elsif $ctype eq 'double' {
-            $!nativesize := nqp::const::C_TYPE_DOUBLE;
-        }
-        elsif $ctype eq 'longdouble' {
-            $!nativesize := nqp::const::C_TYPE_LONGDOUBLE;
-        }
-        elsif $ctype eq 'bool' {
-            $!nativesize := nqp::const::C_TYPE_BOOL;
-        }
-        elsif $ctype eq 'size_t' {
-            $!nativesize := nqp::const::C_TYPE_SIZE_T;
-        }
-        elsif $ctype eq 'atomic' {
-            $!nativesize := nqp::const::C_TYPE_ATOMIC_INT;
-        }
-        else {
-            nqp::die("Unhandled C type '$ctype'")
-        }
+    my constant CTYPES := nqp::hash(
+      'atomic',     nqp::const::C_TYPE_ATOMIC_INT,
+      'bool',       nqp::const::C_TYPE_BOOL,
+      'char',       nqp::const::C_TYPE_CHAR,
+      'double',     nqp::const::C_TYPE_DOUBLE,
+      'float',      nqp::const::C_TYPE_FLOAT,
+      'int',        nqp::const::C_TYPE_INT,
+      'long',       nqp::const::C_TYPE_LONG,
+      'longdouble', nqp::const::C_TYPE_LONGDOUBLE,
+      'longlong',   nqp::const::C_TYPE_LONGLONG,
+      'short',      nqp::const::C_TYPE_SHORT,
+      'size_t',     nqp::const::C_TYPE_SIZE_T,
+    );
+    method set_ctype($XXX, str $ctype) {
+        $!nativesize := nqp::ifnull(
+          nqp::atkey(CTYPES, $ctype),
+          nqp::die("Unhandled C type '$ctype'")
+        )
     }
 
-    method set_nativesize($obj, $nativesize) {
+    method set_nativesize($XXX, $nativesize) {
         $!nativesize := $nativesize;
     }
-
-    method nativesize($obj) {
-        $!nativesize
-    }
-
-    method set_unsigned($obj, $unsigned) {
+    method set_unsigned($XXX, $unsigned) {
         $!unsigned := $unsigned ?? 1 !! 0
     }
 
-    method unsigned($obj) {
-        $!unsigned
-    }
+    method unsigned(  $XXX?) { $!unsigned   }
+    method nativesize($XXX?) { $!nativesize }
 
-    method method_table($obj) {
+    method method_table($XXX?) {
         nqp::hash('new',
           nqp::getstaticcode(sub (*@_, *%_) {
             nqp::die('Cannot instantiate a native type')
           }))
     }
-    method submethod_table($obj) { nqp::hash() }
+
+    method submethod_table($XXX?) { nqp::hash }
 }
 
 # vim: expandtab sw=4

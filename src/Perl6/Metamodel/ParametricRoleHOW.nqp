@@ -3,6 +3,7 @@ my $currier := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Composing
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::MethodContainer
     does Perl6::Metamodel::PrivateMethodContainer
@@ -16,7 +17,6 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::ArrayType
     does Perl6::Metamodel::InvocationProtocol
 {
-    has $!composed;
     has $!body_block;
     has $!in_group;
     has $!group;
@@ -95,12 +95,8 @@ class Perl6::Metamodel::ParametricRoleHOW
 #?if !moar
         self.compose_invocation($obj);
 #?endif
-        $!composed := 1;
+        self.set_composed;
         $obj
-    }
-
-    method is_composed($obj) {
-        $!composed
     }
 
     method roles($obj, :$transitive = 1, :$mro) {

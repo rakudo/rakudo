@@ -4,8 +4,6 @@ role Perl6::Metamodel::ArrayType {
     has     $!array_type;
     has int $!is_array_type;
 
-    method TWEAK(*%_) { $!is_array_type := 0 }
-
     method    array_type($XXX?) { $!array_type    }
     method is_array_type($XXX?) { $!is_array_type }
 

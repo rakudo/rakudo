@@ -5,6 +5,7 @@
 class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Composing
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
@@ -36,9 +37,6 @@ class Perl6::Metamodel::EnumHOW
     # Role'd version of the enum.
     has $!role;
     has int $!roled;
-
-    # Are we composed yet?
-    has $!composed;
 
     # Exportation callback for enum symbols, if any.
     has $!export_callback;
@@ -168,9 +166,9 @@ class Perl6::Metamodel::EnumHOW
         self.create_BUILDPLAN($obj);
 
         # Compose the representation.
-        unless $!composed {
+        unless self.is_composed {
             self.compose_repr($obj);
-            $!composed := 1;
+            self.set_composed;
         }
 
 #?if !moar
@@ -198,10 +196,6 @@ class Perl6::Metamodel::EnumHOW
             $!roled := 1;
         }
         $!role
-    }
-
-    method is_composed($obj) {
-        $!composed
     }
 
     method role_typecheck_list($obj) {

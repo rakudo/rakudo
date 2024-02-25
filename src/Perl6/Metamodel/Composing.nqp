@@ -6,7 +6,7 @@ role Perl6::Metamodel::Composing {
     has int $!composed;
 
     # Null operation, if the consumer doesn't supply a "compose" of its own
-    method compose($XXX?, :$compiler_services) { $!composed := 1 }
+    method compose($XXX?, *%_) { $!composed := 1 }
 
     method set_composed($XXX?) { $!composed := 1 }
     method is_composed($XXX?)  { $!composed      }

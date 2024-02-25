@@ -473,6 +473,7 @@ my %allowed = (
     Q{&trait_mod:<returns>},
     Q{&trait_mod:<trusts>},
     Q{&trait_mod:<will>},
+    Q{&trans},
     Q{&trim},
     Q{&trim-leading},
     Q{&trim-trailing},

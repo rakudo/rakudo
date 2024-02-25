@@ -48,4 +48,11 @@ multi sub snitch(&snitcher, \SNITCHEE) is raw {
     SNITCHEE
 }
 
+# Introducing trans as a sub for use with feed operatos. Making this a multi is
+# useless, as this candidate would always match
+sub trans(**@a, *%_) {
+    # dd @a, @a.head, @a.tail;
+    @a.tail».trans(|@a.head.list, |%_)
+}
+
 # vim: expandtab shiftwidth=4

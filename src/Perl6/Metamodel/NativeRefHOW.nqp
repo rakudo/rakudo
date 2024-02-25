@@ -1,6 +1,7 @@
 class Perl6::Metamodel::NativeRefHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Composing
     does Perl6::Metamodel::Versioning
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::MultipleInheritance
@@ -10,7 +11,6 @@ class Perl6::Metamodel::NativeRefHOW
 {
     has $!type;
     has $!refkind;
-    has $!composed;
     has $!repr_composed;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :inheritable(1) );
@@ -39,7 +39,7 @@ class Perl6::Metamodel::NativeRefHOW
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);
-        $!composed := 1;
+        self.set_composed;
         $obj
     }
 
@@ -52,10 +52,6 @@ class Perl6::Metamodel::NativeRefHOW
             nqp::composetype(nqp::decont($obj), $info);
             $!repr_composed := 1;
         }
-    }
-
-    method is_composed($obj) {
-        $!composed
     }
 
     method set_native_type($obj, $type) {

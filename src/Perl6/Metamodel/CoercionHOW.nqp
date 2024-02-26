@@ -127,8 +127,7 @@ class Perl6::Metamodel::CoercionHOW
     method !coerce_TargetType($obj, $value) {
         my $constraintHOW := $!constraint_type.HOW;
         $value := $constraintHOW.coerce($!constraint_type, $value)
-          if nqp::can((my $archetypes := $constraintHOW.archetypes($!constraint_type)), 'coercive')
-          && $archetypes.coercive;
+          if $constraintHOW.archetypes($!constraint_type).coercive;
 
         my $nominal_target := $!nominal_target;
         nqp::istype($value, $!constraint_type)

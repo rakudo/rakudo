@@ -2155,7 +2155,7 @@ BEGIN {
                 }
             }
             my $archetypes := $ins_type.HOW.archetypes($ins_type);
-            if nqp::can($archetypes, 'coercive') && $archetypes.coercive {
+            if $archetypes.coercive {
                 nqp::bindattr_i($ins, Parameter, '$!flags', $flags +| nqp::const::SIG_ELEM_IS_COERCIVE);
             }
             nqp::bindattr($ins, Parameter, '$!type', $ins_type);

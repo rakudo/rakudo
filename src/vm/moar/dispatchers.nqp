@@ -4347,11 +4347,7 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
 
     # Runtime requested and the constraint type can coerce
     if $with-runtime
-      && nqp::can(
-           (my $types := $constraint_type.HOW.archetypes($constraint_type)),
-           'coercive'
-         )
-      && $types.coercive {
+      && $constraint_type.HOW.archetypes($constraint_type).coercive {
         $coercer := $coerce-runtime;
     }
 
@@ -4494,10 +4490,7 @@ nqp::register('raku-coercion', -> $capture {
 
     # The constraint type is a coercion on its own. This is not a
     # dispatchable case. Fallback to the metamodel method.
-    elsif nqp::can(
-            (my $archetypes := $constraintHOW.archetypes($constraint)),
-            'coercive'
-          ) && $archetypes.coercive {
+    elsif $constraintHOW.archetypes($constraint).coercive {
         runtime-fallback();
     }
 

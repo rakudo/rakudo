@@ -9788,7 +9788,7 @@ Did you mean a call like '"
                                     QAST::Var.new(:name($name), :scope('local')))))));
 #?endif
             }
-            elsif nqp::can($ptype_archetypes, 'coercive') && $ptype_archetypes.coercive {
+            elsif $ptype_archetypes.coercive {
                 $decont_name_invalid := 1;
                 my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
                 my $target_type := $coercion_type.HOW.target_type($coercion_type);

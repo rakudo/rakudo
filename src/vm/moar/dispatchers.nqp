@@ -249,7 +249,7 @@ sub guard-type-concreteness($tracker) {
 
         nqp::istype($value, $type)
           ?? nqp::bindattr($cont, Scalar, '$!value',
-               nqp::how_nd($type).archetypes($type).coercive
+               nqp::how_nd($type).archetypes.coercive
                  ?? nqp::dispatch('raku-coercion', $type, $value)
                  !! $value
              )
@@ -305,7 +305,7 @@ sub guard-type-concreteness($tracker) {
 
         # Set the value
         nqp::bindattr($cont, Scalar, '$!value',
-          nqp::how_nd($type).archetypes($type).coercive
+          nqp::how_nd($type).archetypes.coercive
             ?? nqp::dispatch('raku-coercion', $type, $value)
             !! $value
         );
@@ -364,7 +364,7 @@ sub guard-type-concreteness($tracker) {
 
         # Set the value
         nqp::bindattr($cont, Scalar, '$!value',
-          nqp::how_nd($type).archetypes($type).coercive
+          nqp::how_nd($type).archetypes.coercive
             ?? nqp::dispatch('raku-coercion', $type, $value)
             !! $value
         );
@@ -425,7 +425,7 @@ sub guard-type-concreteness($tracker) {
 
         # Set the value
         nqp::bindattr($cont, Scalar, '$!value',
-          nqp::how_nd($type).archetypes($type).coercive
+          nqp::how_nd($type).archetypes.coercive
             ?? nqp::dispatch('raku-coercion', $type, $value)
             !! $value
         );
@@ -482,7 +482,7 @@ sub guard-type-concreteness($tracker) {
 
         # Set the value
         nqp::bindattr($cont, Scalar, '$!value',
-          nqp::how_nd($type).archetypes($type).coercive
+          nqp::how_nd($type).archetypes.coercive
             ?? nqp::dispatch('raku-coercion', $type, $value)
             !! $value
         );
@@ -537,7 +537,7 @@ sub guard-type-concreteness($tracker) {
 
         # Set the value
         nqp::bindattr($cont, Scalar, '$!value',
-          nqp::how_nd($type).archetypes($type).coercive
+          nqp::how_nd($type).archetypes.coercive
             ?? nqp::dispatch('raku-coercion', $type, $value)
             !! $value
         );
@@ -603,7 +603,7 @@ sub guard-type-concreteness($tracker) {
 
         # Set the value
         nqp::bindattr($cont, Scalar, '$!value',
-          nqp::how_nd($type).archetypes($type).coercive
+          nqp::how_nd($type).archetypes.coercive
             ?? nqp::dispatch('raku-coercion', $type, $value)
             !! $value
         );
@@ -645,7 +645,7 @@ sub guard-type-concreteness($tracker) {
 
         # Set the value
         nqp::bindattr($cont, Scalar, '$!value',
-          nqp::how_nd($type).archetypes($type).coercive
+          nqp::how_nd($type).archetypes.coercive
             ?? nqp::dispatch('raku-coercion', $type, $value)
             !! $value
         );
@@ -4126,11 +4126,11 @@ nqp::register('raku-boolify', -> $capture {
                 my $can-archetypes := nqp::can($rhs-how, 'archetypes');
 
                 if !$can-archetypes
-                    || !$rhs-how.archetypes($rhs).nominalizable
+                    || !$rhs-how.archetypes.nominalizable
                     || nqp::isnull($rhs-how.wrappee-lookup($rhs, :subset))
                 {
                     nqp::guard('type', $track-lhs);
-                    if $can-archetypes && $rhs-how.archetypes($rhs).definite {
+                    if $can-archetypes && $rhs-how.archetypes.definite {
                         # If RHS is a definite then concreteness of LHS must be considered.
                         nqp::guard('concreteness', $track-lhs);
                     }
@@ -4315,7 +4315,7 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
             my $ptypeHOW := $ptype.HOW;
 
             return 0
-              if $ptypeHOW.archetypes($ptype).nominalizable
+              if $ptypeHOW.archetypes.nominalizable
               && !nqp::isnull(
                    my $subset := $ptypeHOW.wrappee-lookup($ptype, :subset)
                  )
@@ -4346,12 +4346,7 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
     }
 
     # Runtime requested and the constraint type can coerce
-    if $with-runtime
-      && nqp::can(
-           (my $types := $constraint_type.HOW.archetypes($constraint_type)),
-           'coercive'
-         )
-      && $types.coercive {
+    if $with-runtime && $constraint_type.HOW.archetypes.coercive {
         $coercer := $coerce-runtime;
     }
 
@@ -4494,10 +4489,7 @@ nqp::register('raku-coercion', -> $capture {
 
     # The constraint type is a coercion on its own. This is not a
     # dispatchable case. Fallback to the metamodel method.
-    elsif nqp::can(
-            (my $archetypes := $constraintHOW.archetypes($constraint)),
-            'coercive'
-          ) && $archetypes.coercive {
+    elsif $constraintHOW.archetypes.coercive {
         runtime-fallback();
     }
 
@@ -4662,7 +4654,7 @@ nqp::register('raku-rv-typecheck', -> $capture {
               !! nqp::isconcrete(nqp::how_nd($t).refinement($t))
                    || nqp::how_nd(
                         my $refinee := nqp::how_nd($t).refinee($t)
-                      ).archetypes($refinee).nominalizable
+                      ).archetypes.nominalizable
                    && runtime-only(
                         nqp::how_nd($refinee).wrappee-lookup($refinee, :subset)
                       )
@@ -4684,23 +4676,23 @@ nqp::register('raku-rv-typecheck', -> $capture {
         my int $definite-check := -1;  # do we need to check on concreteness?
         my int $runtime-check;         # Is there a run-time constraint?
 
-        if $how.archetypes($type).nominalizable {
+        if $how.archetypes.nominalizable {
             $runtime-check := runtime-only($how.wrappee-lookup($type, :subset));
             unless nqp::isnull($coercion-type := $how.wrappee-lookup($type, :coercion)) {
                 unless nqp::isnull($constraint-type := nqp::how_nd($coercion-type).constraint_type($coercion-type)) {
                     $runtime-check := $runtime-check
-                        || (nqp::how_nd($constraint-type).archetypes($constraint-type).nominalizable
+                        || (nqp::how_nd($constraint-type).archetypes.nominalizable
                             && runtime-only(nqp::how_nd($constraint-type).wrappee-lookup($constraint-type, :subset)));
                 }
             }
-            if $how.archetypes($type).definite {
+            if $how.archetypes.definite {
                 my $dtype := $how.wrappee($type, :definite);
                 $definite-check := nqp::how_nd($dtype).definite($dtype);
                 nqp::guard('concreteness', $Tvalue);
             }
         }
 
-        my $need-coercion := $how.archetypes($type).coercive
+        my $need-coercion := $how.archetypes.coercive
           && !nqp::istype(
                 $rv,
                 nqp::how_nd($coercion-type).target_type($coercion-type)
@@ -4717,7 +4709,7 @@ nqp::register('raku-rv-typecheck', -> $capture {
                 $definite-check :=
                   nqp::how_nd(
                     $constraint-type
-                  ).archetypes($constraint-type).definite
+                  ).archetypes.definite
                     ?? nqp::how_nd(
                          my $dt := nqp::how_nd($constraint-type).wrappee(
                            $constraint-type, :definite

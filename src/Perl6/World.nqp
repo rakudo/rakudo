@@ -2117,12 +2117,12 @@ class Perl6::World is HLL::World {
         # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
         # current compiler.
         my $v-how := $v.HOW;
-        !$v-how.archetypes($v).coercive
+        !$v-how.archetypes.coercive
             && (nqp::can($v-how, 'language_revision')
                     ?? $v-how.language_revision($v) < 3
                     !! nqp::getcomp('Raku').language_revision < 3)
             ?? self.maybe-definite-how-base($v)
-            !! ($v-how.archetypes($v).nominalizable
+            !! ($v-how.archetypes.nominalizable
                 ?? $v-how.nominalize($v)
                 !! $v)
     }
@@ -2231,7 +2231,7 @@ class Perl6::World is HLL::World {
         if nqp::istype($varast, QAST::Var) {
             $varast.scope('lexical');
             $varast.returns(%cont_info<bind_constraint>);
-            if %cont_info<bind_constraint>.HOW.archetypes(%cont_info<bind_constraint>).generic {
+            if %cont_info<bind_constraint>.HOW.archetypes.generic {
                 $varast := QAST::Op.new(
                     :op('callmethod'), :name('instantiate_generic'),
                     QAST::Op.new( :op('p6var'), $varast ),
@@ -2312,7 +2312,7 @@ class Perl6::World is HLL::World {
         if %param_info<type_generic> {
             $flags := $flags + nqp::const::SIG_ELEM_TYPE_GENERIC;
         }
-        if $parameter_type.HOW.archetypes($parameter_type).coercive {
+        if $parameter_type.HOW.archetypes.coercive {
             $flags := $flags + nqp::const::SIG_ELEM_IS_COERCIVE;
         }
         if %param_info<default_is_literal> {

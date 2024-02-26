@@ -45,7 +45,7 @@ class Perl6::Metamodel::GenericHOW
         }
         nqp::isnull($found)
             ?? $obj
-            !! $found.HOW.archetypes($found).generic
+            !! $found.HOW.archetypes.generic
                 ?? $found.HOW.instantiate_generic($found, $type_environment)
                 !! $found
     }

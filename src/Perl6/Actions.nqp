@@ -3459,7 +3459,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         my $pkg-ast := QAST::Stmts.new($block, QAST::WVal.new( :value($package) ));
 
-        my $archetypes := $package.HOW.archetypes;
+        my $archetypes := $package.HOW.archetypes($package);
         if $archetypes.generic && $archetypes.nominal && !$archetypes.parametric {
             $world.install_instantiation_lexical($/, $package);
         }
@@ -3609,7 +3609,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 elsif $past.ann('metaattr') -> $attr {
-                    if !$attr.required && !$attr.type.HOW.archetypes.generic {
+                    if !$attr.required && !$attr.type.HOW.archetypes($attr.type).generic {
                         check_default_value_type($/, $attr.container_descriptor, $attr.type, 'attribute');
                     }
                 }
@@ -3862,7 +3862,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $world.handle_OFTYPE_for_pragma($/, $*SCOPE eq 'has' ?? 'attributes' !! 'variables');
         if $*OFTYPE {
             $of_type := $*OFTYPE.ast;
-            my $archetypes := $of_type.HOW.archetypes;
+            my $archetypes := $of_type.HOW.archetypes($of_type);
             unless $archetypes.nominal
                 || $archetypes.nominalizable
                 || $archetypes.generic
@@ -4045,7 +4045,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past.name($name);
                 $past.returns($bind_type);
                 $past.scope(nqp::objprimspec($bind_type) ?? 'lexicalref' !! 'lexical');
-                if %cont_info<bind_constraint>.HOW.archetypes.generic {
+                if %cont_info<bind_constraint>.HOW.archetypes(%cont_info<bind_constraint>).generic {
                     $past := QAST::Op.new(
                         :op('callmethod'), :name('instantiate_generic'),
                         QAST::Op.new( :op('p6var'), $past ),
@@ -5947,7 +5947,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub dissect_type_into_parameter($/, $type) {
         my %param_info := %*PARAM_INFO;
-        my $archetypes := $type.HOW.archetypes;
+        my $archetypes := $type.HOW.archetypes($type);
         if nqp::isconcrete($type) {
             if nqp::istype($type, $*W.find_single_symbol_in_setting('Bool')) {
                 my $val := $type.gist;
@@ -5972,7 +5972,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $archetypes.definite && nqp::eqaddr($type.HOW.wrappee($type, :definite), $type) {
             dissect_type_into_parameter($/, $type.HOW.base_type($type));
         }
-        elsif $type.HOW.archetypes.generic {
+        elsif $type.HOW.archetypes($type).generic {
             %param_info<type> := $type;
         }
         elsif $archetypes.nominalizable {
@@ -6274,7 +6274,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my int $found_wval := 0;
                 try {
                     my $sym := $world.find_symbol(@parts);
-                    unless $sym.HOW.archetypes.generic {
+                    unless $sym.HOW.archetypes($sym).generic {
                         $past.unshift(QAST::WVal.new( :value($sym) ));
                         $found_wval := 1;
                     }
@@ -6619,7 +6619,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 wantall($past, 'name');
                 for @($ast) {
                     if !$_.has_compile_time_value
-                        || $_.compile_time_value.HOW.archetypes.generic
+                        || (my $value_type := nqp::what($_.compile_time_value)).HOW.archetypes($value_type).generic
                     {
                         $all_compile_time := 0;
                         last;
@@ -9568,7 +9568,7 @@ Did you mean a call like '"
 
             # Add type checks.
             my $param_type := %info<type>;
-            my $ptype_archetypes := $param_type.HOW.archetypes;
+            my $ptype_archetypes := $param_type.HOW.archetypes($param_type);
             my int $is_generic := %info<type_generic>;
             my int $is_coercive := $ptype_archetypes.coercive;
             my $nomtype    := !$is_generic && $ptype_archetypes.nominalizable
@@ -10156,7 +10156,7 @@ Did you mean a call like '"
                 # If the type given for the attr_package is generic, we're
                 # dealing with a role and have to look up what type it's
                 # supposed to grab the attribute from during run-time.
-                if %info<attr_package>.HOW.archetypes.generic {
+                if %info<attr_package>.HOW.archetypes(%info<attr_package>).generic {
                     my $packagename := %info<attr_package>.HOW.name(%info<attr_package>);
                     $var.push(QAST::Op.new(
                         :op('p6store'),
@@ -10946,10 +10946,10 @@ Did you mean a call like '"
         if $err {
             $world.throw($/, ['X', 'NoSuchSymbol'], symbol => join('::', @name));
         }
-        my $archetypes := nqp::can($type.HOW, 'archetypes') ?? $type.HOW.archetypes !! nqp::null;
-        my $is_generic := $archetypes && $archetypes.generic;  # true implies archetypes valid
+        my $archetypes := nqp::can($type.HOW, 'archetypes') ?? $type.HOW.archetypes($type) !! nqp::null();
+        my $is_generic := $archetypes && $archetypes.generic;
         my $past;
-        if $is_generic && $archetypes.nominal && !$archetypes.parametric {
+        if nqp::isconcrete($archetypes) && $is_generic && $archetypes.nominal && !$archetypes.parametric {
             my $ins_lexical := $world.install_instantiation_lexical($/, $type);
             $past :=
                 nqp::isnull($ins_lexical)

@@ -416,7 +416,7 @@ $ops.add_hll_op('Raku', 'p6typecheckrv', -> $qastcomp, $op {
         elsif nqp::objprimspec(nqp::decont($type)) {
             $qastcomp.as_mast($value)
         }
-        elsif $type.HOW.archetypes.generic {
+        elsif $type.HOW.archetypes($type).generic {
             $qastcomp.as_mast(QAST::Op.new(:op<dispatch>,
               QAST::SVal.new( :value('raku-rv-typecheck-generic') ),
               QAST::Op.new( :op('p6box'), $value ),

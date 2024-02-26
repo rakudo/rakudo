@@ -1583,10 +1583,10 @@ my class SmartmatchOptimizer {
         # - the type is a generic
         return nqp::null()
             if !nqp::can($sm_type_how, 'archetypes')
-                || $sm_type_how.archetypes.generic;
+                || $sm_type_how.archetypes($sm_type).generic;
 
         my $sm_is_subset :=
-            $sm_type_how.archetypes.nominalizable
+            $sm_type_how.archetypes($sm_type).nominalizable
             && !nqp::isnull($sm_type_how.wrappee-lookup($sm_type, :subset));
 
         note("Try typematch over RHS ", $sm_type.HOW.name($sm_type)) if $!debug;
@@ -1603,7 +1603,7 @@ my class SmartmatchOptimizer {
                 ", ast returns: ", $lhs.ast.returns.HOW.name($lhs.ast.returns),
                 "), constant substitution is possible") if $!debug;
 
-            return nqp::null() if $lhs.value.HOW.archetypes.generic;
+            return nqp::null() if $lhs.value.HOW.archetypes($lhs.value).generic;
 
             # Wrap into try because for if there a user-defined `where`-block involved into typematching it might throw.
             # Consider this case a failed typematch and proceed further.
@@ -4575,7 +4575,7 @@ class Perl6::Optimizer {
 
                 my $invocant_type := $signature.params.AT-POS(0).type;
                 # Skip a method with :D if requested
-                next if $invocant_type.HOW.archetypes.definite
+                next if $invocant_type.HOW.archetypes($invocant_type).definite
                         && $invocant_type.HOW.definite($invocant_type);
             }
 

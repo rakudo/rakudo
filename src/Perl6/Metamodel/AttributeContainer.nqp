@@ -19,7 +19,7 @@ role Perl6::Metamodel::AttributeContainer {
                 "' already has an attribute named '$name'");
         }
         if $!attr_rw_by_default { $meta_attr.default_to_rw() }
-        @!attributes[+@!attributes] := $meta_attr;
+        nqp::push(@!attributes, $meta_attr);
         %!attribute_lookup{$name}   := $meta_attr;
     }
 

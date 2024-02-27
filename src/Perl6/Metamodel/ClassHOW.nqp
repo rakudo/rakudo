@@ -88,7 +88,7 @@ class Perl6::Metamodel::ClassHOW
         my %desc;
         %desc<cond> := $condition;
         %desc<calc> := $calculator;
-        @!fallbacks[+@!fallbacks] := %desc;
+        nqp::push(@!fallbacks, %desc);
     }
 
     sub has_method($target, $name) {
@@ -120,8 +120,8 @@ class Perl6::Metamodel::ClassHOW
             my @ins_roles;
             while @roles_to_compose {
                 my $r := @roles_to_compose.pop();
-                @!roles[+@!roles] := $r;
-                @!role_typecheck_list[+@!role_typecheck_list] := $r;
+                nqp::push(@!roles, $r);
+                nqp::push(@!role_typecheck_list, $r);
                 my $ins := $r.HOW.specialize($r, $target);
                 # If class is a result of pun then transfer hidden flag from the source role
                 if $!pun_source =:= $r {
@@ -140,9 +140,9 @@ class Perl6::Metamodel::ClassHOW
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
             for @ins_roles {
-                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                nqp::push(@!role_typecheck_list, $_);
                 for $_.HOW.role_typecheck_list($_) {
-                    @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                    nqp::push(@!role_typecheck_list, $_);
                 }
             }
         }

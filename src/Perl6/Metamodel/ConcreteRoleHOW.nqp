@@ -46,9 +46,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     method add_collision($XXX, $colliding_name, @role_names, :$private = 0, :$multi) {
-        @!collisions[+@!collisions] := Collision.new(
+        nqp::push(@!collisions, Collision.new(
             :name($colliding_name), :roles(@role_names), :$private, :$multi
-        );
+        ));
     }
 
     method compose($target) {
@@ -56,15 +56,15 @@ class Perl6::Metamodel::ConcreteRoleHOW
 
         Perl6::Metamodel::Configuration.role_to_role_applier_type.apply($target, self.roles_to_compose($target));
         for self.roles_to_compose($target) {
-            @!role_typecheck_list[+@!role_typecheck_list] := $_;
+            nqp::push(@!role_typecheck_list, $_);
             for $_.HOW.role_typecheck_list($_) {
-                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                nqp::push(@!role_typecheck_list, $_);
             }
         }
         for @!roles {
-            @!role_typecheck_list[+@!role_typecheck_list] := $_;
+            nqp::push(@!role_typecheck_list, $_);
             for $_.HOW.role_typecheck_list($_) {
-                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                nqp::push(@!role_typecheck_list, $_);
             }
         }
         self.publish_type_cache($target);
@@ -82,7 +82,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     method add_to_role_typecheck_list($XXX, $type) {
-        @!role_typecheck_list[+@!role_typecheck_list] := $type;
+        nqp::push(@!role_typecheck_list, $type);
     }
 
     method role_typecheck_list($XXX?) { @!role_typecheck_list }

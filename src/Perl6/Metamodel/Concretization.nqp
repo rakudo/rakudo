@@ -6,7 +6,7 @@ role Perl6::Metamodel::Concretization {
     my $lock := NQPLock.new;
 
     method add_concretization($XXX, $role, $concrete) {
-        @!concretizations[+@!concretizations] := [$role, $concrete];
+        nqp::push(@!concretizations, nqp::list($role, $concrete))
     }
 
     method concretizations($target, :$local = 0, :$transitive = 1) {

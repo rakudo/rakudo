@@ -2,7 +2,7 @@ role Perl6::Metamodel::RoleContainer {
     has @!roles_to_compose;
 
     method add_role($XXX, $role) {
-        @!roles_to_compose[+@!roles_to_compose] := nqp::decont($role)
+        nqp::push(@!roles_to_compose, nqp::decont($role))
     }
 
     method roles_to_compose($XXX?) { @!roles_to_compose }

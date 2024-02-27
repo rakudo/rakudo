@@ -53,10 +53,8 @@ role Perl6::Metamodel::MultipleInheritance {
         if nqp::istype(self, Perl6::Metamodel::MROBasedMethodDispatch) {
             self.invalidate_method_caches($target);
         }
-        if $hides {
-            @!hides[+@!hides] := $parent;
-        }
-        @!parents[+@!parents] := $parent;
+        nqp::push(@!hides,   $parent) if $hides;
+        nqp::push(@!parents, $parent);
     }
 
     # Introspects the parents.

@@ -62,7 +62,7 @@ class Perl6::Metamodel::EnumHOW
 
     method add_enum_value($XXX, $value) {
         %!values{nqp::unbox_s($value.key)} := $value.value;
-        @!enum_value_list[+@!enum_value_list] := $value;
+        nqp::push(@!enum_value_list, $value);
         nqp::scwbdisable();
         $!value_to_enum := NQPMu;
         nqp::scwbenable();
@@ -108,8 +108,8 @@ class Perl6::Metamodel::EnumHOW
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
-                my $r := @roles_to_compose.pop();
-                @!role_typecheck_list[+@!role_typecheck_list] := $r;
+                my $r := nqp::pop(@roles_to_compose);
+                nqp::push(@!role_typecheck_list, $r);
                 my $ins := $r.HOW.specialize($r, $target);
                 self.check-type-compat($target, $ins, [3])
                     if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
@@ -121,9 +121,9 @@ class Perl6::Metamodel::EnumHOW
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
             for @ins_roles {
-                @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                nqp::push(@!role_typecheck_list, $_);
                 for $_.HOW.role_typecheck_list($_) {
-                    @!role_typecheck_list[+@!role_typecheck_list] := $_;
+                    nqp::push(@!role_typecheck_list, $_);
                 }
             }
         }

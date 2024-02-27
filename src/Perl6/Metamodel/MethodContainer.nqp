@@ -67,8 +67,8 @@ role Perl6::Metamodel::MethodContainer {
             self.invalidate_method_caches($target);
         }
         %!cache := {};
-        @!method_order[+@!method_order] := $code_obj;
-        @!method_names[+@!method_names] := $name;
+        nqp::push(@!method_order, $code_obj);
+        nqp::push(@!method_names, $name);
     }
 
     # Gets the method hierarchy.

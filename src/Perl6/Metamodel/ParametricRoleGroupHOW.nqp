@@ -88,7 +88,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method add_possibility($target, $possible) {
-        @!candidates[+@!candidates] := $possible;
+        nqp::push(@!candidates, $possible);
         nqp::push(@!nonsignatured, nqp::decont($possible)) unless $possible.HOW.signatured($possible);
         $!selector.add_dispatchee($possible.HOW.body_block($possible));
         self.update_role_typecheck_list($target);

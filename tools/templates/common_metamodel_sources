@@ -12,6 +12,7 @@ src/Perl6/Metamodel/TypePretense.nqp
 src/Perl6/Metamodel/MethodDelegation.nqp
 src/Perl6/Metamodel/BoolificationProtocol.nqp
 src/Perl6/Metamodel/ContainerSpecProtocol.nqp
+src/Perl6/Metamodel/BUILDALL.nqp
 src/Perl6/Metamodel/PackageHOW.nqp
 src/Perl6/Metamodel/ModuleHOW.nqp
 src/Perl6/Metamodel/GenericHOW.nqp

@@ -2,6 +2,7 @@ my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
 my $currier := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::LanguageRevision
@@ -26,10 +27,6 @@ class Perl6::Metamodel::ParametricRoleHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes($XXX?) { $archetypes }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
-    }
 
     my $anon_id := 1;
     method new_type(:$name, :$ver, :$auth, :$api, :$repr, :$signatured, *%extra) {

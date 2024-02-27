@@ -4,6 +4,7 @@
 # This means we get cross-compilation-unit interning "for free", as well as
 # avoiding a meta-object instance per coercion type created.
 class Perl6::Metamodel::CoercionHOW
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Nominalizable
 {
@@ -22,10 +23,6 @@ class Perl6::Metamodel::CoercionHOW
                 definite => $!target_type.HOW.archetypes($!target_type).definite );
         }
         $!archetypes
-    }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type($target, $constraint) {

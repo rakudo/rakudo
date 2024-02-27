@@ -4,13 +4,10 @@
 # of these confers genericity on the holder.
 class Perl6::Metamodel::GenericHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
 {
     my $archetypes := Perl6::Metamodel::Archetypes.new( :generic(1) );
     method archetypes($XXX?) { $archetypes }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
-    }
 
     # The name we're created with is both the name we'll claim
     # to be if asked, but also the name we'll look up in a

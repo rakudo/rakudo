@@ -16,9 +16,10 @@
 # as both a way to curry on your way to a full specialization, but also
 # as a way to do type-checking or punning.
 class Perl6::Metamodel::CurriedRoleHOW
+    does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::TypePretense
-    does Perl6::Metamodel::Naming
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::InvocationProtocol
@@ -53,10 +54,6 @@ class Perl6::Metamodel::CurriedRoleHOW
             return $!archetypes;
         }
         $archetypes_ng
-    }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type($curried_role, *@pos_args, *%named_args) {

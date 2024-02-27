@@ -1,6 +1,7 @@
 #- Metamodel::PackageHOW -------------------------------------------------------
 class Perl6::Metamodel::PackageHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::Stashing
@@ -10,10 +11,6 @@ class Perl6::Metamodel::PackageHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new;
     method archetypes($XXX?) { $archetypes }
-
-    method new(*%_) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %_)
-    }
 
     method new_type(:$name = '<anon>', :$repr, *%_) {
         nqp::die("'package' does not support custom representations")

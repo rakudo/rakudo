@@ -12,6 +12,7 @@
 # a particular candidate.
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
@@ -25,10 +26,6 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes($XXX?) { $archetypes }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
-    }
 
     my $selector_creator;
     method set_selector_creator($sc) {

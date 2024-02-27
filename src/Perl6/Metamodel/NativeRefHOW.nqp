@@ -1,6 +1,7 @@
 #- Metamodel::NativeRefHOW -----------------------------------------------------
 class Perl6::Metamodel::NativeRefHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::Versioning
@@ -16,10 +17,6 @@ class Perl6::Metamodel::NativeRefHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new(:nominal, :inheritable);
     method archetypes($XXX?) { $archetypes }
-
-    method new(*%_) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %_)
-    }
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$api) {
         my $HOW    := self.new;

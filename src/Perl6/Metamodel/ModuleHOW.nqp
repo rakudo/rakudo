@@ -1,6 +1,7 @@
 #- Metamodel::ModuleHOW --------------------------------------------------------
 class Perl6::Metamodel::ModuleHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::Versioning
@@ -11,11 +12,6 @@ class Perl6::Metamodel::ModuleHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new;
     method archetypes($XXX?) { $archetypes }
-
-    # XXX is this needed??
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
-    }
 
     method new_type(:$name = '<anon>', :$repr, :$ver, :$auth, :$api) {
         nqp::die("'module' does not support custom representations")

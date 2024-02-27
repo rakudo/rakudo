@@ -1,5 +1,6 @@
 class Perl6::Metamodel::ConcreteRoleHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::PrivateMethodContainer
@@ -24,10 +25,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1) );
     method archetypes($XXX?) { $archetypes }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
-    }
 
     my class Collision {
         has $!name;

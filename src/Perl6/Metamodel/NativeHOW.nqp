@@ -1,5 +1,6 @@
 class Perl6::Metamodel::NativeHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::Versioning
@@ -14,10 +15,6 @@ class Perl6::Metamodel::NativeHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new(:nominal);
     method archetypes($XXX?) { $archetypes }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
-    }
 
     method new_type(
       :$name = '<anon>',

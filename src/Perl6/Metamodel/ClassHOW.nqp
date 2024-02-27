@@ -1,5 +1,6 @@
 class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::LanguageRevision
@@ -49,10 +50,6 @@ class Perl6::Metamodel::ClassHOW
         }
         $!archetypes // $archetypes-ng
 #?endif
-    }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method !refresh_archetypes($target) {

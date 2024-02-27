@@ -4,6 +4,7 @@
 # one or two of which presumably provide the core enum-ish methods.
 class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::Naming
+    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::LanguageRevision
@@ -44,10 +45,6 @@ class Perl6::Metamodel::EnumHOW
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1),
                                                         :augmentable(1) );
     method archetypes($XXX?) { $archetypes }
-
-    method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
-    }
 
     method new_type(:$name!, :$base_type?, :$repr = 'P6opaque', :$is_mixin) {
         my $meta := self.new();

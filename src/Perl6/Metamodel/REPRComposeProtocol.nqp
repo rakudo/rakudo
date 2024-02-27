@@ -4,12 +4,12 @@ role Perl6::Metamodel::REPRComposeProtocol {
     method compose_repr($target) {
         unless $!composed_repr {
             # Is it an array type?
-            if nqp::can(self, 'is_array_type') && self.is_array_type($target) {
+            if nqp::can(self, 'is_array_type') && self.is_array_type {
                 if self.attributes($target) {
                     nqp::die("Cannot have attributes on an array representation");
                 }
                 nqp::composetype(nqp::decont($target), nqp::hash('array',
-                    nqp::hash('type', nqp::decont(self.array_type($target)))));
+                    nqp::hash('type', nqp::decont(self.array_type))));
             }
 
             # Otherwise, presume it's an attribute type.

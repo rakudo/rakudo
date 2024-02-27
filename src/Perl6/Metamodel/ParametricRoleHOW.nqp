@@ -268,8 +268,8 @@ class Perl6::Metamodel::ParametricRoleHOW
 
         # Resolve any array type being passed along (only really used in the
         # punning case, since roles are the way we get generic types).
-        if self.is_array_type($target) {
-            my $at := self.array_type($target);
+        if self.is_array_type {
+            my $at := self.array_type;
             if $at.HOW.archetypes($at).generic {
                 $at := $at.HOW.instantiate_generic($at, $type_env);
             }

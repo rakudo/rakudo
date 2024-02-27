@@ -291,10 +291,10 @@ my class RoleToRoleApplier {
                 }
             }
 
-            if nqp::can($target.HOW, 'is_array_type') && !$target.HOW.is_array_type($target) {
+            if nqp::can($target.HOW, 'is_array_type') && !$target.HOW.is_array_type {
                 if nqp::can($how, 'is_array_type') {
-                    if $how.is_array_type($r) {
-                        $target.HOW.set_array_type($target, $how.array_type($r));
+                    if $how.is_array_type {
+                        $target.HOW.set_array_type($target, $how.array_type);
                     }
                 }
             }

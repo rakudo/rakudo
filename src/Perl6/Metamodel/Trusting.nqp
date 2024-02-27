@@ -1,3 +1,4 @@
+#- Metamodel::Trusting ---------------------------------------------------------
 # Implements managing trust relationships between types.
 role Perl6::Metamodel::Trusting {
     # Who do we trust?
@@ -5,7 +6,7 @@ role Perl6::Metamodel::Trusting {
 
     # Adds a type that we trust.
     method add_trustee($XXX, $trustee) {
-        @!trustees[+@!trustees] := $trustee;
+        nqp::push(@!trustees, $trustee);
     }
 
     # Introspect the types that we trust.
@@ -14,15 +15,21 @@ role Perl6::Metamodel::Trusting {
     # Checks if we trust a certain type. Can be used by the compiler
     # to check if a private call is allowable.
     method is_trusted($target, $claimant) {
+        my $WHAT := $claimant.WHAT;
+
         # Always trust ourself.
-        if $claimant.WHAT =:= $target.WHAT {
-            return 1;
-        }
+        return 1 if nqp::eqaddr($target.WHAT, $WHAT);
 
         # Otherwise, look through our trustee list.
-        for @!trustees {
-            if $_.WHAT =:= $claimant.WHAT {
-                return 1;
+        if nqp::elems(@!trustees) {
+            my @trustees := @!trustees;
+
+            my int $m := nqp::elems(@trustees);
+            my int $i;
+            while $i < $m {
+                nqp::eqaddr(nqp::atpos(@trustees, $i).WHAT, $WHAT)
+                  ?? (return 1)
+                  !! ++$i;
             }
         }
 

@@ -90,7 +90,7 @@ role Perl6::Metamodel::Mixins {
             nqp::push_s($names,      ~$role.HOW.name($role));
             nqp::push_s($shortnames, ~$role.HOW.shortname($role));
             if nqp::can($role.HOW, 'language_revision') {
-                my $role_lang_rev := $role.HOW.language_revision($role);
+                my $role_lang_rev := $role.HOW.language_revision;
                 $lang_rev := $role_lang_rev if $lang_rev < $role_lang_rev;
             }
 

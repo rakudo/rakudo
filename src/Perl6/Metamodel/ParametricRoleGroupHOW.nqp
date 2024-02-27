@@ -221,7 +221,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method language_revision($XXX?) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? nqp::null()
-            !! $c.HOW.language_revision($c)
+            !! $c.HOW.language_revision
     }
 
     method is-implementation-detail($XXX?) {

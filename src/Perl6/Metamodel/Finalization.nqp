@@ -14,7 +14,7 @@ role Perl6::Metamodel::Finalization {
             my $DESTROY := $HOW.find_method($class, 'DESTROY', :no_fallback);
             nqp::push(@destroyers, $DESTROY) unless nqp::isnull($DESTROY);
 
-            if self.language_revision($target) >= 3
+            if self.language_revision >= 3
                 && nqp::can($HOW, 'ins_roles')
                 && nqp::can($HOW, 'roles')
             {

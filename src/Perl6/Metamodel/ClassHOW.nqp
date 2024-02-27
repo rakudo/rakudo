@@ -135,7 +135,7 @@ class Perl6::Metamodel::ClassHOW
                 # If class is a result of pun then transfer hidden flag from the source role
                 if $!pun_source =:= $r {
                     self.set_hidden($target) if $ins.HOW.hidden($ins);
-                    self.set_language_revision($target, $ins.HOW.language_revision($ins), :force);
+                    self.set_language_revision($target, $ins.HOW.language_revision, :force);
                 }
                 @ins_roles.push($ins);
                 self.add_concretization($target, $r, $ins);

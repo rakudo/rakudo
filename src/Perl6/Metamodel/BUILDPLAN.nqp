@@ -48,7 +48,7 @@ role Perl6::Metamodel::BUILDPLAN {
         # considered.
         my $ohow := $target.HOW;
         my $only_6e_roles := nqp::can($ohow, 'language_revision')
-                                ?? $ohow.language_revision($target) < 3
+                                ?? $ohow.language_revision < 3
                                 !! nqp::can($ohow, 'lang-rev-before')
                                     ?? $ohow.lang-rev-before($target, 'e') # Support legacy approach where implemented
                                     !! 1; # Assume the HOW being compiled against an older Raku language version
@@ -96,7 +96,7 @@ role Perl6::Metamodel::BUILDPLAN {
             while --$i >= 0 {
                 my $role := @ins_roles[$i];
                 # Skip any non-6.e+ role if the target is pre-6.e
-                next if $only_6e_roles && $role.HOW.language_revision($role) < 3;
+                next if $only_6e_roles && $role.HOW.language_revision < 3;
                 my $submeth := nqp::atkey($role.HOW.submethod_table($role), $name);
                 if !nqp::isnull($submeth) {
                     nqp::push(@plan, $submeth);

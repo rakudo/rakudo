@@ -55,13 +55,13 @@ role Perl6::Metamodel::LanguageRevision
     # compatible with. For example, 6.c/d classes cannot consume 6.e roles.
     # Because there could be more than one such boundary in the future they can be passed in as an array.
     method check-type-compat($target, $type, @revs) {
-        unless nqp::isnull(self.incompat-revisions($target, $!lang_rev, $type.HOW.language_revision($type), @revs)) {
+        unless nqp::isnull(self.incompat-revisions($target, $!lang_rev, $type.HOW.language_revision, @revs)) {
             my $comp := nqp::getcomp('Raku');
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::Language::IncompatRevisions',
                 "Type object " ~ $target.HOW.name($target) ~ " of v" ~ $comp.lvs.as-public-repr($!lang_rev, :as-str)
                     ~ " is not compatible with " ~ $type.HOW.name($type)
-                    ~ " of v" ~ $comp.lvs.as-public-repr($type.HOW.language_revision($type), :as-str),
+                    ~ " of v" ~ $comp.lvs.as-public-repr($type.HOW.language_revision, :as-str),
                 :type-a($target),
                 :type-b($type)
             )

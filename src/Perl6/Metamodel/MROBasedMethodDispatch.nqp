@@ -127,11 +127,11 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             while $i-- {
                 my $class := nqp::atpos($mro, $i);
                 for $class.HOW.method_table($class) {
-                    nqp::bindkey($table,$_.key, nqp::decont($_.value)); 
+                    nqp::bindkey($table,$_.key, nqp::decont($_.value));
                 }
             }
             for self.submethod_table($target) {
-                nqp::bindkey($table,$_.key, nqp::decont($_.value)); 
+                nqp::bindkey($table,$_.key, nqp::decont($_.value));
             }
             nqp::scwbdisable;
             $!cached_all_method_table := $table;

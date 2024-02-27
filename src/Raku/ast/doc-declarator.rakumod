@@ -16,7 +16,7 @@ class RakuAST::Doc::Declarator
         $obj.set-trailing($trailing);
 
         if nqp::isconcrete($*LEGACY-POD-INDEX) {
-            nqp::bindattr_i($obj,RakuAST::Doc::Declarator, 
+            nqp::bindattr_i($obj,RakuAST::Doc::Declarator,
               '$!pod-index', $*LEGACY-POD-INDEX++);
         }
         else {

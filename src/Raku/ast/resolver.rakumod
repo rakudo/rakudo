@@ -335,7 +335,6 @@ class RakuAST::Resolver {
                     );
                 }
 
-                # 
                 else {
                     return RakuAST::Declaration::External.new(
                       :lexical-name($name)
@@ -387,7 +386,6 @@ class RakuAST::Resolver {
         self.resolve-lexical-constant-in-context($!setting, $name)
     }
 
-    # 
     method IMPL-SETTING-FROM-CONTEXT(Mu $context) {
         # TODO locate the setting frame
         until nqp::isnull($context) {

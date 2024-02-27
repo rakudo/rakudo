@@ -1082,7 +1082,7 @@ augment class RakuAST::Node {
         @nameds.unshift("scope") if self.scope ne self.default-scope;
         @nameds.push("signature") if self.signature.parameters-initialized;
         @nameds.append: <traits body>;
-        
+
         self!add-WHY: self!nameds: @nameds;
     }
 

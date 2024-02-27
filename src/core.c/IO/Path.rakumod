@@ -704,7 +704,7 @@ my class IO::Path is Cool does IO {
         # check if we need a BOM
         if $enc eq 'utf16' {
 
-            # add a BOM if (over)writing 
+            # add a BOM if (over)writing
             if $mode eq 'w' {
                 nqp::unshift_i($blob,254);
                 nqp::unshift_i($blob,255);

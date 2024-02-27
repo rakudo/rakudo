@@ -49,8 +49,8 @@ role Perl6::Metamodel::MethodContainer {
         # XXX Also skip this step if method is being added under a different name but the original code object has been
         # installed earlier. This step is here until Method::Also incorporates support for :!handles argument.
         if $handles
-            && nqp::can($code_obj, 'apply_handles') 
-            && nqp::can(self, 'find_method_fallback') 
+            && nqp::can($code_obj, 'apply_handles')
+            && nqp::can(self, 'find_method_fallback')
         {
             my $do_apply := 1;
             for @!method_order {

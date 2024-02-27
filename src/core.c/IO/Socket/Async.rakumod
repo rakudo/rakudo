@@ -372,7 +372,7 @@ my class IO::Socket::Async {
                         quit($_);
                     }
                 }
- 
+
                 my $cancellation := nqp::syscall('async-unix-listen',
                     $!scheduler.queue(:hint-affinity),
                     -> Mu \client-socket, Mu \err, Mu \peer-host, Mu \peer-port,

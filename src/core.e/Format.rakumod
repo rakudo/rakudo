@@ -73,7 +73,7 @@ my class Format is Str is Callable {
                         nqp::push($buffer,$pulled)
                       )
                     );
-                    
+
                     my int $found = nqp::elems($buffer);
                     $found
                       ?? $found == $arity

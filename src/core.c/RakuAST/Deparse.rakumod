@@ -1015,13 +1015,13 @@ CODE
     }
 
     multi method deparse(RakuAST::MetaInfix::Reverse:D $ast --> Str:D) {
-        self.hsyn("infix", 
+        self.hsyn("infix",
           self.xsyn('meta','R') ~ self.xsyn("infix",$ast.infix.operator)
         )
     }
 
     multi method deparse(RakuAST::MetaInfix::Zip:D $ast --> Str:D) {
-        self.hsyn("infix", 
+        self.hsyn("infix",
           self.xsyn('meta','Z') ~ self.xsyn("infix",$ast.infix.operator)
         )
     }

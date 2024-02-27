@@ -21,7 +21,7 @@ role Perl6::Metamodel::Versioning {
         self.set_name(
           $target,
           nqp::ifnull(
-            nqp::atkey(%nameds, 'name'), 
+            nqp::atkey(%nameds, 'name'),
             "<anon|" ~ $anon_id_lock.protect({ ++$anon_id })
           )
         );

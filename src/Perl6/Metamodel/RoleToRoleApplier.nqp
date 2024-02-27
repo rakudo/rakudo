@@ -1,5 +1,7 @@
 my class RoleToRoleApplier {
     method apply($target, @roles) {
+        my $HOW := $target.HOW;
+
         # Ensure we actually have something to appply.
         unless +@roles {
             return [];
@@ -13,7 +15,7 @@ my class RoleToRoleApplier {
         my %priv_meth_info;
         my @priv_meth_names;
         my %priv_meth_providers;
-        my $with_submethods := $target.HOW.language_revision < 3; # less than 6.e
+        my $with_submethods := $HOW.language_revision < 3; # less than 6.e
         my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
         for @roles {
             my $role := $_;
@@ -68,7 +70,7 @@ my class RoleToRoleApplier {
         }
 
         # Also need methods of target.
-        my %target_meth_info := nqp::hllize($target.HOW.method_table($target));
+        my %target_meth_info := nqp::hllize($HOW.method_table($target));
 
         # Process method list.
         for @meth_names -> $name {
@@ -79,7 +81,7 @@ my class RoleToRoleApplier {
             unless nqp::existskey(%target_meth_info, $name) {
                 # No methods in the target role. If only one, it's easy...
                 if +@add_meths == 1 {
-                    $target.HOW.add_method($target, $name, @add_meths[0]);
+                    $HOW.add_method($target, $name, @add_meths[0]);
                 }
                 else {
                     # Find if any of the methods are actually requirements, not
@@ -97,26 +99,26 @@ my class RoleToRoleApplier {
                     # If we got down to just one, add it. If they were all requirements,
                     # just choose one.
                     if +@impl_meths == 1 {
-                        $target.HOW.add_method($target, $name, @impl_meths[0]);
+                        $HOW.add_method($target, $name, @impl_meths[0]);
                     }
                     elsif +@impl_meths == 0 {
-                        $target.HOW.add_method($target, $name, @add_meths[0]);
+                        $HOW.add_method($target, $name, @add_meths[0]);
                     }
                     else {
-                        $target.HOW.add_collision($target, $name, %meth_providers{$name});
+                        $HOW.add_collision($target, $name, %meth_providers{$name});
                     }
                 }
             }
         }
 
         # Process private method list.
-        if nqp::can($target.HOW, 'private_method_table') {
-            my %target_priv_meth_info := nqp::hllize($target.HOW.private_method_table($target));
+        if nqp::can($HOW, 'private_method_table') {
+            my %target_priv_meth_info := nqp::hllize($HOW.private_method_table($target));
             for @priv_meth_names -> $name {
                 my @add_meths := %priv_meth_info{$name};
                 unless nqp::existskey(%target_priv_meth_info, $name) {
                     if +@add_meths == 1 {
-                        $target.HOW.add_private_method($target, $name, @add_meths[0]);
+                        $HOW.add_private_method($target, $name, @add_meths[0]);
                     }
                     else {
                         # Find if any of the methods are actually requirements, not
@@ -134,14 +136,14 @@ my class RoleToRoleApplier {
                         # If we got down to just one, add it. If they were all requirements,
                         # just choose one.
                         if +@impl_meths == 1 {
-                            $target.HOW.add_private_method($target, $name, @impl_meths[0]);
+                            $HOW.add_private_method($target, $name, @impl_meths[0]);
                         }
                         elsif +@impl_meths == 0 {
                             # any of the method stubs will do
-                            $target.HOW.add_private_method($target, $name, @add_meths[0]);
+                            $HOW.add_private_method($target, $name, @add_meths[0]);
                         }
                         else {
-                            $target.HOW.add_collision($target, $name, %priv_meth_providers{$name}, :private(1));
+                            $HOW.add_collision($target, $name, %priv_meth_providers{$name}, :private(1));
                         }
                     }
                 }
@@ -207,10 +209,10 @@ my class RoleToRoleApplier {
                     }
                 }
                 if @collides {
-                    $target.HOW.add_collision($target, $name, @collides, :multi($c1[1]));
+                    $HOW.add_collision($target, $name, @collides, :multi($c1[1]));
                 }
                 else {
-                    $target.HOW.add_multi_method($target, $name, $c1[1]);
+                    $HOW.add_multi_method($target, $name, $c1[1]);
                 }
             }
         }
@@ -220,7 +222,7 @@ my class RoleToRoleApplier {
         # class, so we can avoid duplicating that logic here.)
         for @multis_required_names -> $name {
             for %multis_required_by_name{$name} {
-                $target.HOW.add_multi_method($target, $name, $_);
+                $HOW.add_multi_method($target, $name, $_);
             }
         }
 
@@ -237,7 +239,7 @@ my class RoleToRoleApplier {
             %cur-attrs{$attr.name} := AttrReg.new(:$attr, :$from);
         }
 
-        my @cur_attrs := $target.HOW.attributes($target, :local(1));
+        my @cur_attrs := $HOW.attributes($target, :local(1));
         for @cur_attrs {
             reg-cur-attr($_, $target);
         }
@@ -278,7 +280,7 @@ my class RoleToRoleApplier {
                 }
 
                 unless $skip {
-                    $target.HOW.add_attribute($target, $add_attr);
+                    $HOW.add_attribute($target, $add_attr);
                     reg-cur-attr($add_attr, $r);
                 }
             }
@@ -287,14 +289,14 @@ my class RoleToRoleApplier {
             if nqp::can($how, 'parents') {
                 my @parents := $how.parents($r, :local(1));
                 for @parents -> $p {
-                    $target.HOW.add_parent($target, $p, :hides($how.hides_parent($r, $p)));
+                    $HOW.add_parent($target, $p, :hides($how.hides_parent($r, $p)));
                 }
             }
 
-            if nqp::can($target.HOW, 'is_array_type') && !$target.HOW.is_array_type {
+            if nqp::can($HOW, 'is_array_type') && !$HOW.is_array_type {
                 if nqp::can($how, 'is_array_type') {
                     if $how.is_array_type {
-                        $target.HOW.set_array_type($target, $how.array_type);
+                        $HOW.set_array_type($target, $how.array_type);
                     }
                 }
             }

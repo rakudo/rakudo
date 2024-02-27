@@ -32,8 +32,11 @@ my class RoleToClassApplier {
     }
 
     method prepare($target, @roles) {
+        my $HOW := $target.HOW;
+
         $!target := $target;
         @!roles := @roles;
+
         # If we have many things to compose, then get them into a single helper
         # role first.
         if +@roles == 1 {
@@ -43,7 +46,7 @@ my class RoleToClassApplier {
         else {
             $!to_compose := $concrete.new_type();
             $!to_compose_meta := $!to_compose.HOW;
-            $!to_compose_meta.set_language_revision($!to_compose, $target.HOW.language_revision);
+            $!to_compose_meta.set_language_revision($!to_compose, $HOW.language_revision);
             for @roles {
                 $!to_compose_meta.add_role($!to_compose, $_);
             }
@@ -58,7 +61,7 @@ my class RoleToClassApplier {
                     Perl6::Metamodel::Configuration.throw_or_die(
                         'X::Role::Unresolved::Private',
                         "Private method '" ~ $_.name
-                        ~ "' must be resolved by class " ~ $target.HOW.name($target)
+                        ~ "' must be resolved by class " ~ $HOW.name($target)
                         ~ " because it exists in multiple roles (" ~ nqp::join(", ", $_.roles) ~ ")",
                         :method($_),
                         :$target,
@@ -67,7 +70,7 @@ my class RoleToClassApplier {
             }
             elsif nqp::isconcrete($_.multi) {
                 my $match := 0;
-                for $target.HOW.multi_methods_to_incorporate($target) -> $maybe {
+                for $HOW.multi_methods_to_incorporate($target) -> $maybe {
                     if $_.name eq $maybe.name &&
                             Perl6::Metamodel::Configuration.compare_multi_sigs($_.multi, $maybe.code) {
                         $match := 1;
@@ -78,7 +81,7 @@ my class RoleToClassApplier {
                     Perl6::Metamodel::Configuration.throw_or_die(
                         'X::Role::Unresolved::Multi',
                         "Multi method '" ~ $_.name ~ "' with signature "
-                        ~ $_.multi.signature.raku ~ " must be resolved by class " ~ $target.HOW.name($target)
+                        ~ $_.multi.signature.raku ~ " must be resolved by class " ~ $HOW.name($target)
                         ~ " because it exists in multiple roles (" ~ nqp::join(", ", $_.roles) ~ ")",
                         :method($_),
                         :$target
@@ -90,7 +93,7 @@ my class RoleToClassApplier {
                     Perl6::Metamodel::Configuration.throw_or_die(
                         'X::Role::Unresolved::Method',
                         "Method '" ~ $_.name
-                        ~ "' must be resolved by class " ~ $target.HOW.name($target)
+                        ~ "' must be resolved by class " ~ $HOW.name($target)
                         ~ " because it exists in multiple roles (" ~ nqp::join(", ", $_.roles) ~ ")",
                         :method($_),
                         :$target

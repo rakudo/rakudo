@@ -187,16 +187,18 @@ class Perl6::Metamodel::ClassHOW
         # See if we have a Bool method other than the one in the top type.
         # If not, all it does is check if we have the type object.
         unless self.get_boolification_mode($target) != 0 {
-            my $i := 0;
             my @mro := self.mro($target);
-            while $i < +@mro {
+
+            my int $m := nqp::elems(@mro);
+            my int $i;
+            while $i < $m {
                 my $ptype := @mro[$i];
                 last if nqp::existskey(nqp::hllize($ptype.HOW.method_table($ptype)), 'Bool');
                 last if nqp::can($ptype.HOW, 'submethod_table') &&
                     nqp::existskey(nqp::hllize($ptype.HOW.submethod_table($ptype)), 'Bool');
-                $i := $i + 1;
+                ++$i;
             }
-            if $i + 1 == +@mro {
+            if $i + 1 == $m {
                 self.set_boolification_mode($target, 5)
             }
         }
@@ -318,13 +320,19 @@ class Perl6::Metamodel::ClassHOW
 
         unless $local {
             my @mro := self.mro($target);
-            my $i := 0;
-            while ++$i < +@mro {
-                my $parent := @mro[$i];
-                if nqp::can($parent.HOW, 'find_method_fallback')
-                    && !nqp::isnull(my $fallback := $parent.HOW.find_method_fallback($target, $name, :local)) {
-                    return $fallback
-                }
+
+            my int $m := nqp::elems(@mro);
+            my int $i := 1;  # intentionally skip first
+            while $i < $m {
+                my $HOW := nqp::atpos(@mro, $i).HOW;
+                nqp::can($HOW, 'find_method_fallback')
+                  && nqp::not_i(nqp::isnull(
+                       my $fallback := $HOW.find_method_fallback(
+                         $target, $name, :local
+                       )
+                     ))
+                  ?? (return $fallback)
+                  !! ++$i;
             }
         }
 
@@ -334,13 +342,21 @@ class Perl6::Metamodel::ClassHOW
 
     # Does the type have any fallbacks?
     method has_fallbacks($target, :$local = 0) {
-        return 1 if nqp::istype($target, $junction_type) || +@!fallbacks;
+        return 1
+          if nqp::istype($target, $junction_type)
+          || nqp::elems(@!fallbacks);
+
         unless $local {
-            my $i := 0;
             my @mro := self.mro($target);
-            while ++$i < +@mro {
-                my $parent := @mro[$i];
-                return 1 if nqp::can($parent.HOW, 'has_fallbacks') && $parent.HOW.has_fallbacks($target, :local)
+
+            my int $m := nqp::elems(@mro);
+            my int $i := 1;  # skip first intentionally
+            while $i < $m {
+                my $HOW := nqp::atpos(@mro, $i).HOW;
+                nqp::can($HOW, 'has_fallbacks')
+                  && $HOW.has_fallbacks($target, :local)
+                  ?? (return 1)
+                  !! ++$i;
             }
         }
         0

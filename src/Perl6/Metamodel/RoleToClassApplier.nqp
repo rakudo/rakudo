@@ -39,7 +39,7 @@ my class RoleToClassApplier {
 
         # If we have many things to compose, then get them into a single helper
         # role first.
-        if +@roles == 1 {
+        if nqp::elems(@roles) == 1 {
             $!to_compose := @roles[0];
             $!to_compose_meta := $!to_compose.HOW;
         }

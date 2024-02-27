@@ -7,7 +7,11 @@ class Perl6::Metamodel::BaseDispatcher {
 
     method candidates() { @!candidates }
 
-    method exhausted() { $!idx >= +@!candidates && (!nqp::isconcrete($!next_dispatcher) || $!next_dispatcher.exhausted()) }
+    method exhausted() {
+        $!idx >= nqp::elems(@!candidates)
+          && (nqp::not_i(nqp::isconcrete($!next_dispatcher))
+               || $!next_dispatcher.exhausted)
+    }
 
     method last()      { @!candidates := [] }
 
@@ -29,7 +33,7 @@ class Perl6::Metamodel::BaseDispatcher {
             return [$disp, 1];
         }
         else {
-            my $last_candidate := $!idx >= +@!candidates;
+            my $last_candidate := $!idx >= nqp::elems(@!candidates);
             if  $last_candidate && nqp::isconcrete($!next_dispatcher) {
                 nqp::setdispatcherfor($!next_dispatcher, $call);
                 $!next_dispatcher := nqp::null();
@@ -144,15 +148,19 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
     }
 
     method remove($wrapper) {
+        $wrapper  := nqp::decont($wrapper);
         my @cands := self.candidates;
-        my int $i := -1;
-        while ++$i < +@cands {
-            if nqp::decont(@cands[$i]) =:= nqp::decont($wrapper) {
-                nqp::splice(@cands, [], $i, 1);
+
+        my int $m := nqp::elems(@cands);
+        my int $i;
+        while $i < $m {
+            if nqp::eqaddr(nqp::decont(nqp::atpos(@cands, $i)), $wrapper) {
+                nqp::splice(@cands, nqp::list, $i, 1);
                 return 1;
             }
+            ++$i;
         }
-        return 0;
+        0
     }
 
     method get_first($next_dispatcher) {

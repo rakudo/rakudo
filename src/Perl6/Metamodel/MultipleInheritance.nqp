@@ -77,16 +77,18 @@ role Perl6::Metamodel::MultipleInheritance {
             # All parents is MRO minus the first thing (which is us).
             my @mro := self.mro($target);
             my @parents;
-            my $i := 1;
+
+            my int $m := nqp::elems(@mro);
+            my int $i := 1;  # intentionally skip first
             while $i < +@mro {
-                my $exclude := 0;
+                my int $exclude;
                 unless $all {
                     for @excluded {
                         $exclude := 1 if @mro[$i] =:= $_;
                     }
                 }
                 @parents.push(@mro[$i]) unless $exclude;
-                $i := $i + 1;
+                ++$i;
             }
             @parents
         }

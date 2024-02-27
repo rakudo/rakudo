@@ -91,15 +91,14 @@ role Perl6::Metamodel::BUILDPLAN {
 
         sub add_from_roles($name) {
             my @ins_roles := self.ins_roles($target, :with-submethods-only);
-            my $i := +@ins_roles;
+            my int $i := nqp::elems(@ins_roles);
             while --$i >= 0 {
-                my $role := @ins_roles[$i];
+                my $role := nqp::atpos(@ins_roles, $i);
                 # Skip any non-6.e+ role if the target is pre-6.e
                 next if $only_6e_roles && $role.HOW.language_revision < 3;
+
                 my $submeth := nqp::atkey($role.HOW.submethod_table($role), $name);
-                if !nqp::isnull($submeth) {
-                    nqp::push(@plan, $submeth);
-                }
+                nqp::push(@plan, $submeth) unless nqp::isnull($submeth);
             }
         }
 
@@ -260,25 +259,24 @@ role Perl6::Metamodel::BUILDPLAN {
             # least derived to most derived, copying the plans.
             my @all_plan;
             my @mro := self.mro($target);
-            my $i := +@mro;
-            my $noops := 0;
-            while $i > 0 {
-                $i := $i - 1;
-                my $class := @mro[$i];
+            my int $noops;
+
+            my int $i := nqp::elems(@mro);
+            while --$i >= 0 {
+                my $class := nqp::atpos(@mro, $i);
                 for $class.HOW.BUILDPLAN($class) {
-                    if nqp::islist($_) && $_[0] == 1000 {   # noop in BUILDALLPLAN
-                        $noops := 1;
-                    }
-                    else {
-                        nqp::push(@all_plan, $_);
-                    }
+                    nqp::islist($_) && nqp::atpos($_, 0) == 1000
+                      # noop in BUILDALLPLAN
+                      ?? ($noops := 1)
+                      !! nqp::push(@all_plan, $_);
                 }
             }
 
             # Same number of elems and no noops, identical, so just keep 1 copy
-            @!BUILDALLPLAN := $noops || +@all_plan != +@plan
+            @!BUILDALLPLAN := $noops
+              || nqp::elems(@all_plan) != nqp::elems(@plan)
               ?? @all_plan
-              !! @plan
+              !! @plan;
         }
 
         # BUILDPLAN of class itself is empty
@@ -289,8 +287,8 @@ role Perl6::Metamodel::BUILDPLAN {
 
             # Take the first "super"class's BUILDALLPLAN if possible
             my @mro := self.mro($target);
-            @!BUILDALLPLAN := +@mro > 1
-              ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
+            @!BUILDALLPLAN := nqp::elems(@mro) > 1
+              ?? nqp::atpos(@mro, 1).HOW.BUILDALLPLAN(nqp::atpos(@mro, 1))
               !! @EMPTY
         }
     }

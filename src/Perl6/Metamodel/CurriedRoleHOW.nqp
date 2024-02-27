@@ -246,11 +246,11 @@ class Perl6::Metamodel::CurriedRoleHOW
         }
 
         # Provided we have some candidates, check the arguments.
-        my int $num_args := +@!pos_args;
+        my int $num_args := nqp::elems(@!pos_args);
         if @cands {
             for @cands {
                 my @try_args := $_.HOW.role_arguments($_);
-                if +@try_args == $num_args {
+                if nqp::elems(@try_args) == $num_args {
                     my int $i := -1;
                     my int $ok := 1;
                     while ($i := $i + 1) < $num_args {

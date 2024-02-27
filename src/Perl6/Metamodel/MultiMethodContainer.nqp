@@ -41,8 +41,8 @@ role Perl6::Metamodel::MultiMethodContainer {
     # Incorporates the multi candidates into the appropriate proto. Need to
     # implement proto incorporation yet.
     method incorporate_multi_candidates($target) {
-        my $num_todo := +@!multi_methods_to_incorporate;
-        my $i := 0;
+        my $num_todo := nqp::elems(@!multi_methods_to_incorporate);
+        my int $i;
         my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
         my @new_protos;
         while $i != $num_todo {
@@ -78,9 +78,9 @@ role Perl6::Metamodel::MultiMethodContainer {
                 unless $is_submethod {
                     # Go hunting in the MRO for a method proto. Note that we don't traverse MRO for submethods.
                     my @mro := self.mro($target);
-                    my $j := 1;
-                    while $j != +@mro && !$found {
-                        my $parent := @mro[$j];
+                    my int $j := 1;
+                    while $j != nqp::elems(@mro) && !$found {
+                        my $parent := nqp::atpos(@mro, $j);
                         my %meths := nqp::hllize($parent.HOW."$method_table"($parent));
                         if nqp::existskey(%meths, $name) {
                             # Found a possible - make sure it's a dispatcher, not
@@ -95,7 +95,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                                 $found := 1;
                             }
                         }
-                        $j := $j + 1;
+                        ++$j;
                     }
                 }
                 unless $found {

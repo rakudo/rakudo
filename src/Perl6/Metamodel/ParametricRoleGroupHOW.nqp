@@ -251,7 +251,9 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method !get_nonsignatured_candidate() {
-        +@!nonsignatured ?? @!nonsignatured[0] !! nqp::null()
+        nqp::elems(@!nonsignatured)
+          ?? nqp::atpos(@!nonsignatured, 0)
+          !! nqp::null
     }
 
     method publish_type_cache($target) {

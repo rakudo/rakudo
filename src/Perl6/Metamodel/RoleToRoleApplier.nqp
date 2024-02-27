@@ -3,9 +3,7 @@ my class RoleToRoleApplier {
         my $HOW := $target.HOW;
 
         # Ensure we actually have something to appply.
-        unless +@roles {
-            return [];
-        }
+        return nqp::list unless nqp::elems(@roles);
 
         # Aggregate all of the methods sharing names, eliminating
         # any duplicates (a method can't collide with itself).
@@ -80,8 +78,8 @@ my class RoleToRoleApplier {
             # methods we have from elsewhere.
             unless nqp::existskey(%target_meth_info, $name) {
                 # No methods in the target role. If only one, it's easy...
-                if +@add_meths == 1 {
-                    $HOW.add_method($target, $name, @add_meths[0]);
+                if nqp::elems(@add_meths) == 1 {
+                    $HOW.add_method($target, $name, nqp::atpos(@add_meths, 0));
                 }
                 else {
                     # Find if any of the methods are actually requirements, not
@@ -98,10 +96,10 @@ my class RoleToRoleApplier {
                     # If there's still more than one possible - add to collisions list.
                     # If we got down to just one, add it. If they were all requirements,
                     # just choose one.
-                    if +@impl_meths == 1 {
+                    if nqp::elems(@impl_meths) == 1 {
                         $HOW.add_method($target, $name, @impl_meths[0]);
                     }
-                    elsif +@impl_meths == 0 {
+                    elsif nqp::elems(@impl_meths) == 0 {
                         $HOW.add_method($target, $name, @add_meths[0]);
                     }
                     else {
@@ -117,7 +115,7 @@ my class RoleToRoleApplier {
             for @priv_meth_names -> $name {
                 my @add_meths := %priv_meth_info{$name};
                 unless nqp::existskey(%target_priv_meth_info, $name) {
-                    if +@add_meths == 1 {
+                    if nqp::elems(@add_meths) == 1 {
                         $HOW.add_private_method($target, $name, @add_meths[0]);
                     }
                     else {
@@ -135,10 +133,10 @@ my class RoleToRoleApplier {
                         # If there's still more than one possible - add to collisions list.
                         # If we got down to just one, add it. If they were all requirements,
                         # just choose one.
-                        if +@impl_meths == 1 {
+                        if nqp::elems(@impl_meths) == 1 {
                             $HOW.add_private_method($target, $name, @impl_meths[0]);
                         }
-                        elsif +@impl_meths == 0 {
+                        elsif nqp::elems(@impl_meths) == 0 {
                             # any of the method stubs will do
                             $HOW.add_private_method($target, $name, @add_meths[0]);
                         }

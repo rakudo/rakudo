@@ -14,7 +14,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
 
         # uncomment line below for verbose information about uncached
         # method lookups
-        #nqp::say( "looking for " ~ $name ~ " in " ~ $target.HOW.name($target));
+        #nqp::say( "looking for " ~ $name ~ " in " ~ self.name($target));
 
         my $HOW := nqp::how_nd($target);
         if nqp::can($HOW, 'submethod_table') {
@@ -104,7 +104,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         }
 
         # Also add submethods.
-        for nqp::hllize($target.HOW.submethod_table($target)) {
+        for nqp::hllize(self.submethod_table($target)) {
             %cache{$_.key} := nqp::decont($_.value);
         }
 

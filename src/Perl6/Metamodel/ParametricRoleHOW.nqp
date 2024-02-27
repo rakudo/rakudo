@@ -142,8 +142,8 @@ class Perl6::Metamodel::ParametricRoleHOW
                 # to initialize $?CONCRETIZATION by role's body block.
                 my $*MOP-ROLE-CONCRETIZATION := $conc :=
                     $concrete.new_type(:roles([$target]), :name(self.name($target)));
-                $conc.HOW.set_language_revision($conc, $target.HOW.language_revision);
-                $conc.HOW.set_hidden($conc) if $target.HOW.hidden($target);
+                $conc.HOW.set_language_revision($conc, self.language_revision);
+                $conc.HOW.set_hidden($conc) if self.hidden($target);
 
                 # Run the body block to get the type environment (we know
                 # the role in this case).
@@ -164,7 +164,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                         else {
                             Perl6::Metamodel::Configuration.throw_or_die(
                                 'X::Role::BodyReturn',
-                                "Role '" ~ $target.HOW.name($target) ~ "' body block is expected to return a list, got '"
+                                "Role '" ~ self.name($target) ~ "' body block is expected to return a list, got '"
                                     ~ $original-result.HOW.name($original-result) ~ "' instead",
                                 :role($target),
                                 :expected("a list of two elements"),
@@ -237,7 +237,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             if $_.HOW.archetypes($_).generic {
                 $ins := $ins.HOW.instantiate_generic($ins, $type_env);
                 unless $ins.HOW.archetypes.parametric {
-                    my $target-name := $target.HOW.name($target);
+                    my $target-name := self.name($target);
                     my $role-name := $ins.HOW.name($ins);
                     Perl6::Metamodel::Configuration.throw_or_die(
                         'X::Composition::NotComposable',

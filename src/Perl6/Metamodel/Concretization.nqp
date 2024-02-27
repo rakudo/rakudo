@@ -83,7 +83,7 @@ role Perl6::Metamodel::Concretization {
             }
             return @result if @result[0];
         }
-        return [0] if !$relaxed && $target.HOW.is_composed($target) && !nqp::istype(nqp::decont($target), $ptype);
+        return [0] if !$relaxed && self.is_composed($target) && !nqp::istype(nqp::decont($target), $ptype);
         if $transitive {
             for @!concretizations {
                 if nqp::istype($_[1], $ptype) {

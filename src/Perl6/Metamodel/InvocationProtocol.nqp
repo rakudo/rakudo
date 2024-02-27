@@ -33,7 +33,7 @@ role Perl6::Metamodel::InvocationProtocol {
         # Check if we have a invoke, and if so install
         # the default invocation forwarder. Otherwise, see if we or
         # a parent has an invocation attr.
-        if $target.HOW.archetypes.composable {
+        if self.archetypes.composable {
             # We special case roles by using only default handler
             nqp::setinvokespec($target, nqp::null(), nqp::null_s(),
                 $default_invoke_handler);

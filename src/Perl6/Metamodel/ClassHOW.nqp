@@ -111,7 +111,7 @@ class Perl6::Metamodel::ClassHOW
                 return 1;
             }
         }
-        return 0;
+        0
     }
 
     method compose($target, :$compiler_services) {
@@ -235,8 +235,8 @@ class Perl6::Metamodel::ClassHOW
             if nqp::isconcrete($compiler_services) {
 
                 # Class does not appear to have a BUILDALL yet
-                unless nqp::existskey(nqp::hllize($target.HOW.submethod_table($target)),'BUILDALL')
-                  || nqp::existskey(nqp::hllize($target.HOW.method_table($target)),'BUILDALL') {
+                unless nqp::existskey(nqp::hllize(self.submethod_table($target)),'BUILDALL')
+                  || nqp::existskey(nqp::hllize(self.method_table($target)),'BUILDALL') {
                     my $builder := nqp::findmethod(
                       $compiler_services,'generate_buildplan_executor');
                     my $method :=

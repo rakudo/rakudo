@@ -93,7 +93,7 @@ class Perl6::Metamodel::DefiniteHOW
     }
 
     method nominalize($target) {
-        my $base_type := $target.HOW.base_type($target);
+        my $base_type := self.base_type($target);
         $base_type.HOW.archetypes($base_type).nominalizable
             ?? $base_type.HOW.nominalize($base_type)
             !! $base_type

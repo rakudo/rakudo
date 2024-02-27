@@ -103,7 +103,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                     $role := $role.HOW.instantiate_generic($role, $type_env);
                 }
                 unless $role.HOW.archetypes.generic || $role.HOW.archetypes.parametric {
-                    my $target-name := $target.HOW.name($target);
+                    my $target-name := self.name($target);
                     my $role-name := $role.HOW.name($role);
                     Perl6::Metamodel::Configuration.throw_or_die(
                         'X::Composition::NotComposable',

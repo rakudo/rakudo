@@ -59,7 +59,7 @@ role Perl6::Metamodel::LanguageRevision
             my $comp := nqp::getcomp('Raku');
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::Language::IncompatRevisions',
-                "Type object " ~ $target.HOW.name($target) ~ " of v" ~ $comp.lvs.as-public-repr($!lang_rev, :as-str)
+                "Type object " ~ self.name($target) ~ " of v" ~ $comp.lvs.as-public-repr($!lang_rev, :as-str)
                     ~ " is not compatible with " ~ $type.HOW.name($type)
                     ~ " of v" ~ $comp.lvs.as-public-repr($type.HOW.language_revision, :as-str),
                 :type-a($target),

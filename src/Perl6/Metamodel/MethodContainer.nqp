@@ -50,7 +50,7 @@ role Perl6::Metamodel::MethodContainer {
         # installed earlier. This step is here until Method::Also incorporates support for :!handles argument.
         if $handles
             && nqp::can($code_obj, 'apply_handles') 
-            && nqp::can($target.HOW, 'find_method_fallback') 
+            && nqp::can(self, 'find_method_fallback') 
         {
             my $do_apply := 1;
             for @!method_order {

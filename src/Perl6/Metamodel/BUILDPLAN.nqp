@@ -43,14 +43,13 @@ role Perl6::Metamodel::BUILDPLAN {
     method create_BUILDPLAN($target) {
         # First, we'll create the build plan for just this class.
         my @plan;
-        my @attrs := $target.HOW.attributes($target, :local(1));
+        my @attrs := self.attributes($target, :local(1));
         # When adding role's BUILD/TWEAK into the buildplan for pre-6.e classes only roles of 6.e+ origin must be
         # considered.
-        my $ohow := $target.HOW;
-        my $only_6e_roles := nqp::can($ohow, 'language_revision')
-                                ?? $ohow.language_revision < 3
-                                !! nqp::can($ohow, 'lang-rev-before')
-                                    ?? $ohow.lang-rev-before($target, 'e') # Support legacy approach where implemented
+        my $only_6e_roles := nqp::can(self, 'language_revision')
+                                ?? self.language_revision < 3
+                                !! nqp::can(self, 'lang-rev-before')
+                                    ?? self.lang-rev-before($target, 'e') # Support legacy approach where implemented
                                     !! 1; # Assume the HOW being compiled against an older Raku language version
 
         # Emit any container initializers. Also build hash of attrs we
@@ -71,7 +70,7 @@ role Perl6::Metamodel::BUILDPLAN {
                                 "Defaults on compound attribute types",
                               workaround =>
                                 "Create/Adapt TWEAK method in class "
-                                  ~ $target.HOW.name($target)
+                                  ~ self.name($target)
                                   ~ ", e.g:\n\n    method TWEAK() \{\n        "
                                   ~ $_.name
                                   ~ " := (initial values) unless "
@@ -107,7 +106,7 @@ role Perl6::Metamodel::BUILDPLAN {
         add_from_roles('BUILD');
 
         # Does it have its own BUILD?
-        my $build := $target.HOW.find_method($target, 'BUILD', :no_fallback(1));
+        my $build := self.find_method($target, 'BUILD', :no_fallback(1));
         if !nqp::isnull($build) && $build {
             # We'll call the custom one.
             nqp::push(@plan,$build);
@@ -246,7 +245,7 @@ role Perl6::Metamodel::BUILDPLAN {
         add_from_roles('TWEAK');
 
         # Does it have a TWEAK?
-        my $TWEAK := $target.HOW.find_method($target, 'TWEAK', :no_fallback(1));
+        my $TWEAK := self.find_method($target, 'TWEAK', :no_fallback(1));
         if !nqp::isnull($TWEAK) && $TWEAK {
             nqp::push(@plan,$TWEAK);
         }

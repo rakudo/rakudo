@@ -111,7 +111,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                     nqp::push(@new_protos, $proto);
                 }
             }
-            if nqp::can($code, 'apply_handles') && nqp::can($target.HOW, 'find_method_fallback') {
+            if nqp::can($code, 'apply_handles') && nqp::can(self, 'find_method_fallback') {
                 $code.apply_handles($target);
             }
             $i := $i + 1;

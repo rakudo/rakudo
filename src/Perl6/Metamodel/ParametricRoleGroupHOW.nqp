@@ -112,7 +112,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::Role::Parametric::NoSuchCandidate',
                 "Could not find an appropriate parametric role variant for '"
-                    ~ $target.HOW.name($target) ~ "' using the arguments supplied:\n    "
+                    ~ self.name($target) ~ "' using the arguments supplied:\n    "
                     ~ $hint
                     ,
                 :role($target), :$hint

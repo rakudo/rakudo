@@ -37,14 +37,12 @@ class Perl6::Metamodel::ConcreteRoleHOW
         method multi() { $!multi }
     }
 
-    method new_type(:@roles, :$name = '<anon>', :$ver, :$auth, :$repr, :$api) {
-        my $metarole := self.new(:roles(@roles));
-        my $obj := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'Raku');
-        $metarole.set_name($obj, $name);
-        $metarole.set_ver($obj, $ver);
-        $metarole.set_auth($obj, $auth) if $auth;
-        $metarole.set_api($obj, $api) if $api;
-        $obj;
+    method new_type(:@roles, :$repr, *%_) {
+        my $HOW    := self.new(:roles(@roles));
+        my $target := nqp::settypehll(nqp::newtype($HOW, 'Uninstantiable'), 'Raku');
+
+        $HOW.set_identity($target, %_);
+        $target
     }
 
     method add_collision($XXX, $colliding_name, @role_names, :$private = 0, :$multi) {

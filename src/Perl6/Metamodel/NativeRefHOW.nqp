@@ -18,14 +18,11 @@ class Perl6::Metamodel::NativeRefHOW
     my $archetypes := Perl6::Metamodel::Archetypes.new(:nominal, :inheritable);
     method archetypes($XXX?) { $archetypes }
 
-    method new_type(:$name = '<anon>', :$ver, :$auth, :$api) {
+    method new_type(*%_) {
         my $HOW    := self.new;
         my $target := nqp::settypehll(nqp::newtype($HOW, 'NativeRef'), 'Raku');
 
-        $HOW.set_name($target, $name);
-        $HOW.set_ver( $target, $ver);
-        $HOW.set_auth($target, $auth) if $auth;
-        $HOW.set_api( $target, $api)  if $api;
+        $HOW.set_identity($target, %_);
         $HOW.add_stash($target);
     }
 

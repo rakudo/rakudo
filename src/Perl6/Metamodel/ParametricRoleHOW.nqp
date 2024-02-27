@@ -28,19 +28,16 @@ class Perl6::Metamodel::ParametricRoleHOW
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes($XXX?) { $archetypes }
 
-    my $anon_id := 1;
-    method new_type(:$name, :$ver, :$auth, :$api, :$repr, :$signatured, *%extra) {
-        my $metarole := self.new(:signatured($signatured), :specialize_lock(NQPLock.new));
-        my $type := nqp::settypehll(nqp::newtype($metarole, 'Uninstantiable'), 'Raku');
-        $metarole.set_name($type, $name // "<anon|{$anon_id++}>");
-        $metarole.set_ver($type, $ver);
-        $metarole.set_auth($type, $auth) if $auth;
-        $metarole.set_api($type, $api) if $api;
-        $metarole.set_pun_repr($type, $repr) if $repr;
-        if nqp::existskey(%extra, 'group') {
-            $metarole.set_group($type, %extra<group>);
-        }
-        self.add_stash($type);
+    method new_type(:$repr, :$signatured, *%_) {
+        my $HOW    := self.new(:$signatured, :specialize_lock(NQPLock.new));
+        my $target := nqp::settypehll(nqp::newtype($HOW, 'Uninstantiable'), 'Raku');
+
+        $HOW.set_identity($target, %_);
+
+        $HOW.set_group($target, nqp::atkey(%_, 'group'))
+          if nqp::existskey(%_, 'group');
+
+        $HOW.add_stash($target);
     }
 
     method parameterize($target, *@pos_args, *%named_args) {

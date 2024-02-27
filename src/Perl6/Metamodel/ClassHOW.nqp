@@ -59,28 +59,19 @@ class Perl6::Metamodel::ClassHOW
                 !! $archetypes-ng
     }
 
-    my $id_lock := NQPLock.new;
-    my $anon_id := 1;
-    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api, :$is_mixin) {
-        my $metaclass := self.new();
-        my $new_type;
-        if $is_mixin {
-            $new_type := nqp::newmixintype($metaclass, $repr);
-        }
-        else {
-            $new_type := nqp::newtype($metaclass, $repr);
-        }
-        my $obj := nqp::settypehll($new_type, 'Raku');
-        $metaclass.set_name($obj, $name // "<anon|{
-                $id_lock.protect: { $anon_id++ }
-            }>");
-        self.add_stash($obj);
-        $metaclass.set_ver($obj, $ver) if $ver;
-        $metaclass.set_auth($obj, $auth) if $auth;
-        $metaclass.set_api($obj, $api) if $api;
-        $metaclass.setup_mixin_cache($obj);
-        nqp::setboolspec($obj, 5, nqp::null());
-        $obj
+    method new_type(:$repr = 'P6opaque', :$is_mixin, *%_) {
+        my $HOW := self.new;
+        my $new_type := $is_mixin
+          ?? nqp::newmixintype($HOW, $repr)
+          !! nqp::newtype(     $HOW, $repr);
+        my $target := nqp::settypehll($new_type, 'Raku');
+
+        $HOW.set_identity($target, %_);
+
+        $HOW.add_stash($target);
+        $HOW.setup_mixin_cache($target);
+        nqp::setboolspec($target, 5, nqp::null);
+        $target
     }
 
     # Adds a new fallback for method dispatch. Expects the specified

@@ -13,20 +13,16 @@ class Perl6::Metamodel::ModuleHOW
     my $archetypes := Perl6::Metamodel::Archetypes.new;
     method archetypes($XXX?) { $archetypes }
 
-    method new_type(:$name = '<anon>', :$repr, :$ver, :$auth, :$api) {
+    method new_type(:$repr, *%_) {
         nqp::die("'module' does not support custom representations")
           if $repr;
 
-        my $HOW := nqp::create(self);
+        my $HOW    := nqp::create(self);
         my $target := nqp::settypehll(
           nqp::newtype($HOW, 'Uninstantiable'), 'Raku'
         );
-        $HOW.set_name($target, $name);
-        $HOW.set_ver( $target, $ver );
-        $HOW.set_auth($target, $auth) if $auth;
-        $HOW.set_api( $target, $api ) if $api;
-
-        self.add_stash($target);
+        $HOW.set_identity($target, %_);
+        $HOW.add_stash($target);
     }
 }
 

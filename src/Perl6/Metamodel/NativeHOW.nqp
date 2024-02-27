@@ -16,20 +16,11 @@ class Perl6::Metamodel::NativeHOW
     my $archetypes := Perl6::Metamodel::Archetypes.new(:nominal);
     method archetypes($XXX?) { $archetypes }
 
-    method new_type(
-      :$name = '<anon>',
-      :$repr = 'P6opaque',
-      :$ver,
-      :$auth,
-      :$api
-    ) {
+    method new_type(:$repr = 'P6opaque', *%_) {
         my $HOW    := self.new;
         my $target := nqp::settypehll(nqp::newtype($HOW, $repr), 'Raku');
 
-        $HOW.set_name($target, $name);
-        $HOW.set_ver( $target, $ver);
-        $HOW.set_auth($target, $auth) if $auth;
-        $HOW.set_api( $target, $api)  if $api;
+        $HOW.set_identity($target, %_);
         $HOW.add_stash($target);
     }
 

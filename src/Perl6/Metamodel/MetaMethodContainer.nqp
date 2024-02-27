@@ -65,16 +65,16 @@ role Perl6::Metamodel::MetaMethodContainer {
 
         # If we have any meta-methods, build a role for them to go in and
         # compose it into the meta-object..
-        if nqp::elems($names) -> int $m {
+        if nqp::elems($names) {
             $!meta_method_lock.protect({
                 my $role := $?PACKAGE.HOW.new_type;
                 my $HOW  := $role.HOW;
 
+                my int $m := nqp::elems($names);
                 my int $i;
                 while $i < $m {
                     my str $name := nqp::atpos_s($names, $i);
                     $HOW.add_method($role, $name, nqp::atkey($seen, $name));
-
                     ++$i;
                 }
 

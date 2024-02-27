@@ -4251,7 +4251,7 @@ nqp::sethllconfig('Raku', nqp::hash(
         );
     },
 #?endif
-    'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {
+    'lexical_handler_not_found_error', -> $cat, $out_of_dyn_scope {
         if $cat == nqp::const::CONTROL_RETURN {
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::ControlFlow::Return',

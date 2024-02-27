@@ -16,7 +16,7 @@ class Perl6::Metamodel::SubsetHOW
 
     has $!archetypes;
 
-    method archetypes($obj?) {
+    method archetypes($XXX?) {
         unless nqp::isconcrete($!archetypes) {
             my $refinee_archetypes := $!refinee.HOW.archetypes($!refinee);
             my $generic := $refinee_archetypes.generic
@@ -37,9 +37,9 @@ class Perl6::Metamodel::SubsetHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
-    method mro($obj, *%named) {
+    method mro($target, *%named) {
         my @mro;
-        @mro.push($obj);
+        @mro.push($target);
         for $!refinee.HOW.mro($!refinee, |%named) {
             @mro.push($_);
         }
@@ -61,7 +61,7 @@ class Perl6::Metamodel::SubsetHOW
         self.add_stash($type)
     }
 
-    method set_of($obj, $refinee) {
+    method set_of($XXX, $refinee) {
         my $archetypes := $refinee.HOW.archetypes($refinee);
         if $archetypes.generic {
             nqp::die("Use of a generic as 'of' type of a subset is not implemented yet")
@@ -80,25 +80,21 @@ class Perl6::Metamodel::SubsetHOW
         }
     }
 
-    method set_where($obj, $refinement) {
+    method set_where($XXX, $refinement) {
         $!refinement := nqp::decont($refinement)
     }
 
-    method refinee($obj) {
-        $!refinee
-    }
+    method refinee($XXX?) { $!refinee }
 
-    method refinement($obj) {
-        nqp::hllize($!refinement)
-    }
+    method refinement($XXX?) { nqp::hllize($!refinement) }
 
-    method isa($obj, $type) {
+    method isa($XXX, $type) {
         $!refinee.isa($type)
             || nqp::hllboolfor(nqp::istrue($type.HOW =:= self), "Raku")
     }
 
-    method instantiate_generic($obj, $type_env) {
-        return $obj unless $!archetypes.generic;
+    method instantiate_generic($target, $type_env) {
+        return $target unless $!archetypes.generic;
         my $ins_refinee := $!refinee.HOW.instantiate_generic($!refinee, $type_env);
         my $ins_refinement := $!refinement;
         if nqp::isconcrete($!refinement) {
@@ -106,10 +102,10 @@ class Perl6::Metamodel::SubsetHOW
                 $ins_refinement := $!refinement.instantiate_generic($type_env);
             }
         }
-        self.new_type(:name(self.name($obj)), :refinee($ins_refinee), :refinement($ins_refinement))
+        self.new_type(:name(self.name($target)), :refinee($ins_refinee), :refinement($ins_refinement))
     }
 
-    method nominalize($obj) {
+    method nominalize($XXX?) {
         $!refinee.HOW.archetypes($!refinee).nominalizable
             ?? $!refinee.HOW.nominalize($!refinee)
             !! $!refinee
@@ -118,12 +114,12 @@ class Perl6::Metamodel::SubsetHOW
     # Should have the same methods of the (eventually nominal) type
     # that we refine. (For the performance win, work out a way to
     # steal its method cache.)
-    method find_method($obj, $name, *%c) {
+    method find_method($XXX, $name, *%c) {
         $!refinee.HOW.find_method($!refinee, $name, |%c)
     }
 
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
-    method type_check($obj, $checkee) {
+    method type_check($XXX, $checkee) {
         nqp::hllboolfor(
             ($!pre-e-behavior && nqp::istrue($checkee.HOW =:= self))
                 || nqp::istype($!refinee, $checkee),
@@ -132,7 +128,7 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     # Here we check the value itself (when on RHS on smartmatch).
-    method accepts_type($obj, $checkee) {
+    method accepts_type($XXX, $checkee) {
         nqp::hllboolfor(
             nqp::istype($checkee, $!refinee) &&
             (nqp::isnull($!refinement)
@@ -144,7 +140,7 @@ class Perl6::Metamodel::SubsetHOW
 
     # Methods needed by Perl6::Metamodel::Nominalizable
     method nominalizable_kind() { 'subset' }
-    method !wrappee($obj) { $!refinee }
+    method !wrappee($XXX?) { $!refinee }
 }
 
 # vim: expandtab sw=4

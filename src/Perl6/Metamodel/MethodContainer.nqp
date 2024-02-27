@@ -14,7 +14,7 @@ role Perl6::Metamodel::MethodContainer {
     has %!cache;
 
     # Add a method.
-    method add_method($obj, $name, $code_obj, :$handles = 1) {
+    method add_method($target, $name, $code_obj, :$handles = 1) {
         # Ensure we haven't already got it.
         $code_obj := nqp::decont($code_obj);
         $name := nqp::decont_s($name);
@@ -24,7 +24,7 @@ role Perl6::Metamodel::MethodContainer {
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::Method::Duplicate',
                 "Package '"
-                    ~ self.name($obj)
+                    ~ self.name($target)
                     ~ "' already has a "
                     ~ $method-type
                     ~ " '"
@@ -32,7 +32,7 @@ role Perl6::Metamodel::MethodContainer {
                     ~ "' (did you mean to declare a multi method?)",
                 :$method-type,
                 :method($name),
-                :typename(self.name($obj))
+                :typename(self.name($target))
             );
         }
 
@@ -50,7 +50,7 @@ role Perl6::Metamodel::MethodContainer {
         # installed earlier. This step is here until Method::Also incorporates support for :!handles argument.
         if $handles
             && nqp::can($code_obj, 'apply_handles') 
-            && nqp::can($obj.HOW, 'find_method_fallback') 
+            && nqp::can($target.HOW, 'find_method_fallback') 
         {
             my $do_apply := 1;
             for @!method_order {
@@ -59,12 +59,12 @@ role Perl6::Metamodel::MethodContainer {
                     last
                 }
             }
-            $code_obj.apply_handles($obj) if $do_apply;
+            $code_obj.apply_handles($target) if $do_apply;
         }
 
         # Adding a method means any cache is no longer authoritative.
         if nqp::can(self, "invalidate_method_caches") {
-            self.invalidate_method_caches($obj);
+            self.invalidate_method_caches($target);
         }
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
@@ -72,7 +72,7 @@ role Perl6::Metamodel::MethodContainer {
     }
 
     # Gets the method hierarchy.
-    method methods($obj, :$local, :$excl, :$all, :$implementation-detail) {
+    method methods($target, :$local, :$excl, :$all, :$implementation-detail) {
         my @meths;
 
         my $check-implementation-detail := !$implementation-detail;
@@ -87,7 +87,7 @@ role Perl6::Metamodel::MethodContainer {
 
         # If local flag was not passed, include those from parents.
         unless $local {
-            for self.parents($obj, :all($all), :excl($excl)) {
+            for self.parents($target, :all($all), :excl($excl)) {
                 for nqp::hllize($_.HOW.method_table($_)) {
                     @meths.push(nqp::hllizefor(nqp::decont($_.value),'Raku'))
                       unless $check-implementation-detail
@@ -106,40 +106,31 @@ role Perl6::Metamodel::MethodContainer {
         @meths
     }
 
-    method method_order($obj) {
-        @!method_order
-    }
-
-    method method_names($obj) {
-        @!method_names
-    }
+    method method_order($XXX?) { @!method_order }
+    method method_names($XXX?) { @!method_names }
 
     # Get the method table. Only contains methods directly declared here,
     # and excludes submethods.
-    method method_table($obj) {
-        %!methods
-    }
+    method method_table($XXX?) { %!methods }
 
     # Gets the submethods table.
-    method submethod_table($obj) {
-        %!submethods
-    }
+    method submethod_table($XXX?) { %!submethods }
 
     # Checks if this package (not its parents) declares a given
     # method. Checks submethods also.
-    method declares_method($obj, $name) {
+    method declares_method($XXX, $name) {
         %!methods{$name} || %!submethods{$name} ?? 1 !! 0
     }
 
     # Looks up a method with the provided name, for introspection purposes.
-    method lookup($obj, $name) {
-        for self.mro($obj) {
-            my %meth := nqp::hllize($_.HOW.method_table($obj));
+    method lookup($target, $name) {
+        for self.mro($target) {
+            my %meth := nqp::hllize($_.HOW.method_table($target));
             if nqp::existskey(%meth, $name) {
                 return nqp::decont(%meth{$name});
             }
             if nqp::can($_.HOW, 'submethod_table') {
-                my %submeth := nqp::hllize($_.HOW.submethod_table($obj));
+                my %submeth := nqp::hllize($_.HOW.submethod_table($target));
                 if nqp::existskey(%submeth, $name) {
                     return nqp::decont(%submeth{$name});
                 }
@@ -149,19 +140,19 @@ role Perl6::Metamodel::MethodContainer {
     }
 
     # Caches or updates a cached value.
-    method cache($obj, str $key, $value_generator) {
+    method cache($target, str $key, $value_generator) {
         my %orig_cache := %!cache;
         nqp::ishash(%orig_cache) && nqp::existskey(%!cache, $key)
             ?? %!cache{$key}
-            !! self.cache_add($obj, $key, $value_generator())
+            !! self.cache_add($target, $key, $value_generator())
     }
 
-    method cache_get($obj, str $key) {
+    method cache_get($XXX, str $key) {
         my %caches := %!cache;
         nqp::ishash(%caches) ?? nqp::atkey(%caches, $key) !! nqp::null()
     }
 
-    method cache_add($obj, str $key, $value) {
+    method cache_add($XXX, str $key, $value) {
         my %orig_cache := %!cache;
         my %copy := nqp::ishash(%orig_cache) ?? nqp::clone(%orig_cache) !! {};
         %copy{$key} := $value;

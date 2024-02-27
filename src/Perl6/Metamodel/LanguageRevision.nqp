@@ -5,13 +5,13 @@ role Perl6::Metamodel::LanguageRevision
     # Internal representation, where 1 stands for 'c'
     has int $!lang_rev;
 
-    method !set_type_ver($obj, $internal, :$force) {
-        self.set_ver($obj, nqp::getcomp('Raku').lvs.as-public-repr($internal, :as-str))
-            if ($*COMPILING_CORE_SETTING || $force) && !self.ver($obj);
+    method !set_type_ver($target, $internal, :$force) {
+        self.set_ver($target, nqp::getcomp('Raku').lvs.as-public-repr($internal, :as-str))
+            if ($*COMPILING_CORE_SETTING || $force) && !self.ver($target);
     }
 
     # The only allowed version formats are 6.X or v6.X
-    method set_language_version($obj, $ver?, :$force = 0) {
+    method set_language_version($target, $ver?, :$force = 0) {
         my @lang-ver;
         my $comp := nqp::getcomp('Raku');
         if nqp::isconcrete($ver) {
@@ -34,16 +34,16 @@ role Perl6::Metamodel::LanguageRevision
         else {
             return
         }
-        self."!set_type_ver"($obj, @lang-ver, :$force);
-        $!lang_rev := @lang-ver[0] if !$!lang_rev || $ver; # Awlays set if $ver is explicit
+        self."!set_type_ver"($target, @lang-ver, :$force);
+        $!lang_rev := @lang-ver[0] if !$!lang_rev || $ver; # Always set if $ver is explicit
     }
 
-    method set_language_revision($obj, int $rev, :$force = 0) {
+    method set_language_revision($target, int $rev, :$force = 0) {
         if nqp::isconcrete($rev) {
             if nqp::chars($rev) < 1 {
                 nqp::die("Language revision cannot be less than 1, got " ~ $rev);
             }
-            self."!set_type_ver"($obj, $rev, :$force);
+            self."!set_type_ver"($target, $rev, :$force);
             $!lang_rev := $rev;
         }
         else {
@@ -54,21 +54,21 @@ role Perl6::Metamodel::LanguageRevision
     # Check if we're compatible with type object $type. I.e. it doesn't come from language version newer than we're
     # compatible with. For example, 6.c/d classes cannot consume 6.e roles.
     # Because there could be more than one such boundary in the future they can be passed in as an array.
-    method check-type-compat($obj, $type, @revs) {
-        unless nqp::isnull(self.incompat-revisions($obj, $!lang_rev, $type.HOW.language_revision($type), @revs)) {
+    method check-type-compat($target, $type, @revs) {
+        unless nqp::isnull(self.incompat-revisions($target, $!lang_rev, $type.HOW.language_revision($type), @revs)) {
             my $comp := nqp::getcomp('Raku');
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::Language::IncompatRevisions',
-                "Type object " ~ $obj.HOW.name($obj) ~ " of v" ~ $comp.lvs.as-public-repr($!lang_rev, :as-str)
+                "Type object " ~ $target.HOW.name($target) ~ " of v" ~ $comp.lvs.as-public-repr($!lang_rev, :as-str)
                     ~ " is not compatible with " ~ $type.HOW.name($type)
                     ~ " of v" ~ $comp.lvs.as-public-repr($type.HOW.language_revision($type), :as-str),
-                :type-a($obj),
+                :type-a($target),
                 :type-b($type)
             )
         }
     }
 
-    method incompat-revisions($obj, int $rev-a, int $rev-b, @revs) {
+    method incompat-revisions($XXX, int $rev-a, int $rev-b, @revs) {
         for @revs -> $rev {
             if $rev-a < $rev && $rev-b >= $rev {
                 return $rev
@@ -79,7 +79,7 @@ role Perl6::Metamodel::LanguageRevision
 
     # Public interface to conform to S14-roles/versioning.t behavior but still maintain compatibility with numeric
     # internal representation of language revisions.
-    method language-revision($obj) {
+    method language-revision($XXX?) {
         my $lang-rev-type := Perl6::Metamodel::Configuration.language_revision_type;
         nqp::isnull($lang-rev-type)
             ?? $!lang_rev
@@ -87,11 +87,9 @@ role Perl6::Metamodel::LanguageRevision
     }
 
     # This method is a private interface always returning an int, akin to compiler's object method of the same name.
-    method language_revision($obj) {
-        $!lang_rev
-    }
+    method language_revision($XXX?) { $!lang_rev }
 
-    method language-version($obj) {
+    method language-version($XXX?) {
         nqp::getcomp('Raku').lvs.as-public-repr: $!lang_rev, :as-str
     }
 }

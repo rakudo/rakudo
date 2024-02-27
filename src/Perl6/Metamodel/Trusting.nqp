@@ -4,20 +4,18 @@ role Perl6::Metamodel::Trusting {
     has @!trustees;
 
     # Adds a type that we trust.
-    method add_trustee($obj, $trustee) {
+    method add_trustee($XXX, $trustee) {
         @!trustees[+@!trustees] := $trustee;
     }
 
     # Introspect the types that we trust.
-    method trusts($obj) {
-        @!trustees
-    }
+    method trusts($XXX?) { @!trustees }
 
     # Checks if we trust a certain type. Can be used by the compiler
     # to check if a private call is allowable.
-    method is_trusted($obj, $claimant) {
+    method is_trusted($target, $claimant) {
         # Always trust ourself.
-        if $claimant.WHAT =:= $obj.WHAT {
+        if $claimant.WHAT =:= $target.WHAT {
             return 1;
         }
 

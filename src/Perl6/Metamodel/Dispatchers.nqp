@@ -82,9 +82,9 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
     }
 
     method vivify_for($sub, $lexpad, $args) {
-        my $obj      := $lexpad<self>;
-        my $name     := $sub.name;
-        my @mro      := nqp::can($obj.HOW, 'mro_unhidden')
+        my $obj  := $lexpad<self>;
+        my $name := $sub.name;
+        my @mro  := nqp::can($obj.HOW, 'mro_unhidden')
             ?? $obj.HOW.mro_unhidden($obj)
             !! $obj.HOW.mro($obj);
         my @methods;
@@ -94,7 +94,7 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
                 @methods.push(%mt{$name});
             }
         }
-        self.new(:candidates(@methods), :obj($obj), :idx(1))
+        self.new(:candidates(@methods), :$obj, :idx(1))
     }
 
     method has_invocant() { 1 }

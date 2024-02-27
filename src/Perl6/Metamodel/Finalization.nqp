@@ -2,8 +2,8 @@
 role Perl6::Metamodel::Finalization {
     has @!destroyers;
 
-    method setup_finalization($obj) {
-        my @mro := self.mro($obj);
+    method setup_finalization($target) {
+        my @mro := self.mro($target);
         my @destroyers;
 
         my int $m := nqp::elems(@mro);
@@ -14,7 +14,7 @@ role Perl6::Metamodel::Finalization {
             my $DESTROY := $HOW.find_method($class, 'DESTROY', :no_fallback);
             nqp::push(@destroyers, $DESTROY) unless nqp::isnull($DESTROY);
 
-            if self.language_revision($obj) >= 3
+            if self.language_revision($target) >= 3
                 && nqp::can($HOW, 'ins_roles')
                 && nqp::can($HOW, 'roles')
             {
@@ -39,7 +39,7 @@ role Perl6::Metamodel::Finalization {
 
         if nqp::elems(@destroyers) {
             @!destroyers := @destroyers;
-            nqp::settypefinalize($obj, 1);
+            nqp::settypefinalize($target, 1);
         }
     }
 

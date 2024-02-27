@@ -23,9 +23,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     has @!role_typecheck_list;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1) );
-    method archetypes($obj?) {
-        $archetypes
-    }
+    method archetypes($XXX?) { $archetypes }
 
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
@@ -52,17 +50,17 @@ class Perl6::Metamodel::ConcreteRoleHOW
         $obj;
     }
 
-    method add_collision($obj, $colliding_name, @role_names, :$private = 0, :$multi) {
+    method add_collision($XXX, $colliding_name, @role_names, :$private = 0, :$multi) {
         @!collisions[+@!collisions] := Collision.new(
             :name($colliding_name), :roles(@role_names), :$private, :$multi
         );
     }
 
-    method compose($the-obj) {
-        my $obj := nqp::decont($the-obj);
+    method compose($target) {
+        $target := nqp::decont($target);
 
-        Perl6::Metamodel::Configuration.role_to_role_applier_type.apply($obj, self.roles_to_compose($obj));
-        for self.roles_to_compose($obj) {
+        Perl6::Metamodel::Configuration.role_to_role_applier_type.apply($target, self.roles_to_compose($target));
+        for self.roles_to_compose($target) {
             @!role_typecheck_list[+@!role_typecheck_list] := $_;
             for $_.HOW.role_typecheck_list($_) {
                 @!role_typecheck_list[+@!role_typecheck_list] := $_;
@@ -74,59 +72,55 @@ class Perl6::Metamodel::ConcreteRoleHOW
                 @!role_typecheck_list[+@!role_typecheck_list] := $_;
             }
         }
-        self.publish_type_cache($obj);
+        self.publish_type_cache($target);
         self.set_composed;
-        $obj
+        $target
     }
 
-    method collisions($obj) {
-        @!collisions
-    }
+    method collisions($XXX?) { @!collisions }
 
     # It makes sense for concretizations to default to MRO order of roles.
-    method roles($obj, :$transitive = 1, :$mro = 1) {
+    method roles($target, :$transitive = 1, :$mro = 1) {
         $transitive
-            ?? self.roles-ordered($obj, @!roles, :transitive, :$mro)
+            ?? self.roles-ordered($target, @!roles, :transitive, :$mro)
             !! @!roles
     }
 
-    method add_to_role_typecheck_list($obj, $type) {
+    method add_to_role_typecheck_list($XXX, $type) {
         @!role_typecheck_list[+@!role_typecheck_list] := $type;
     }
 
-    method role_typecheck_list($obj) {
-        @!role_typecheck_list
-    }
+    method role_typecheck_list($XXX?) { @!role_typecheck_list }
 
-    method type_check($obj, $checkee) {
-        my $decont := nqp::decont($checkee);
-        if $decont =:= $obj.WHAT {
+    method type_check($target, $checkee) {
+        $checkee := nqp::decont($checkee);
+        if $checkee =:= $target.WHAT {
             return 1;
         }
         for @!role_typecheck_list {
-            if nqp::decont($_) =:= $decont {
+            if nqp::decont($_) =:= $checkee {
                 return 1;
             }
         }
         0
     }
 
-    method publish_type_cache($obj) {
-        my @types := [$obj.WHAT];
+    method publish_type_cache($target) {
+        my @types := [$target.WHAT];
         for @!role_typecheck_list { @types.push($_) }
-        nqp::settypecache($obj, @types)
+        nqp::settypecache($target, @types)
     }
 
-    method mro($obj, :$roles, :$concretizations, :$unhidden) {
-        [$obj]
+    method mro($target, :$roles, :$concretizations, :$unhidden) {
+        [$target]
     }
 
-    method find_method_qualified($obj, $qtype, $name) {
-        $obj := nqp::decont($obj);
+    method find_method_qualified($target, $qtype, $name) {
+        $target := nqp::decont($target);
         $qtype := nqp::decont($qtype);
         if $qtype.HOW.archetypes.parametric {
             my $found-role := nqp::null();
-            for self.concretizations($obj, :transitive) {
+            for self.concretizations($target, :transitive) {
                 my $candidate := $_;
                 my $role := $_.HOW.roles($_, :!transitive, :!mro)[0];
                 if nqp::can($role.HOW, 'group') {
@@ -148,7 +142,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
                    || $found-role.HOW.submethod_table($found-role){$name}
                    || nqp::null()
         }
-        elsif nqp::istype($obj, $qtype) {
+        elsif nqp::istype($target, $qtype) {
             # Non-parametric, so just locate it from the already concrete type.
             nqp::findmethod($qtype, $name)
         }
@@ -157,8 +151,8 @@ class Perl6::Metamodel::ConcreteRoleHOW
         }
     }
 
-    method is-implementation-detail($obj) {
-        @!roles[0].is-implementation-detail($obj)
+    method is-implementation-detail($target) {
+        @!roles[0].is-implementation-detail($target)
     }
 }
 

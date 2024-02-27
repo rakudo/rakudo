@@ -40,17 +40,17 @@ role Perl6::Metamodel::BUILDPLAN {
     # 1502 die if a required num attribute is 0e0
     # 1503 die if a required str attribute is null_s (will be '' in the future)
     # 1510 die if a required uint attribute is 0
-    method create_BUILDPLAN($obj) {
+    method create_BUILDPLAN($target) {
         # First, we'll create the build plan for just this class.
         my @plan;
-        my @attrs := $obj.HOW.attributes($obj, :local(1));
+        my @attrs := $target.HOW.attributes($target, :local(1));
         # When adding role's BUILD/TWEAK into the buildplan for pre-6.e classes only roles of 6.e+ origin must be
         # considered.
-        my $ohow := $obj.HOW;
+        my $ohow := $target.HOW;
         my $only_6e_roles := nqp::can($ohow, 'language_revision')
-                                ?? $ohow.language_revision($obj) < 3
+                                ?? $ohow.language_revision($target) < 3
                                 !! nqp::can($ohow, 'lang-rev-before')
-                                    ?? $ohow.lang-rev-before($obj, 'e') # Support legacy approach where implemented
+                                    ?? $ohow.lang-rev-before($target, 'e') # Support legacy approach where implemented
                                     !! 1; # Assume the HOW being compiled against an older Raku language version
 
         # Emit any container initializers. Also build hash of attrs we
@@ -71,7 +71,7 @@ role Perl6::Metamodel::BUILDPLAN {
                                 "Defaults on compound attribute types",
                               workaround =>
                                 "Create/Adapt TWEAK method in class "
-                                  ~ $obj.HOW.name($obj)
+                                  ~ $target.HOW.name($target)
                                   ~ ", e.g:\n\n    method TWEAK() \{\n        "
                                   ~ $_.name
                                   ~ " := (initial values) unless "
@@ -81,7 +81,7 @@ role Perl6::Metamodel::BUILDPLAN {
                         }
                     }
 
-                    nqp::push(@plan,[900, $obj, $_.name, $ci]);
+                    nqp::push(@plan,[900, $target, $_.name, $ci]);
                     next;
                 }
             }
@@ -91,7 +91,7 @@ role Perl6::Metamodel::BUILDPLAN {
         }
 
         sub add_from_roles($name) {
-            my @ins_roles := self.ins_roles($obj, :with-submethods-only);
+            my @ins_roles := self.ins_roles($target, :with-submethods-only);
             my $i := +@ins_roles;
             while --$i >= 0 {
                 my $role := @ins_roles[$i];
@@ -107,7 +107,7 @@ role Perl6::Metamodel::BUILDPLAN {
         add_from_roles('BUILD');
 
         # Does it have its own BUILD?
-        my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
+        my $build := $target.HOW.find_method($target, 'BUILD', :no_fallback(1));
         if !nqp::isnull($build) && $build {
             # We'll call the custom one.
             nqp::push(@plan,$build);
@@ -129,7 +129,7 @@ role Perl6::Metamodel::BUILDPLAN {
                       ?? 0 + $primspec
                       !! 1300;
 
-                    my $info := [$action,$obj,$name,nqp::substr($name,2)];
+                    my $info := [$action,$target,$name,nqp::substr($name,2)];
 
                     # binding may need type info for runtime checks
                     if $action == 1300 {
@@ -153,7 +153,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 my $type := $_.type;
                 my int $primspec := nqp::objprimspec($type);
                 my int $op := $primspec ?? 1500 + $primspec !! 800;
-                nqp::push(@plan,[$op, $obj, $_.name, $_.required]);
+                nqp::push(@plan,[$op, $target, $_.name, $_.required]);
                 nqp::deletekey(%attrs_untouched, $_.name);
             }
         }
@@ -174,7 +174,7 @@ role Perl6::Metamodel::BUILDPLAN {
             if nqp::isconcrete($default) {
                 my $name   := $_.name;
                 my $opcode := $primspec || !$_.is_bound ?? 400 + $primspec !! 1400;
-                my @action := [$opcode, $obj, $name, $default];
+                my @action := [$opcode, $target, $name, $default];
 
                 # binding defaults to additional check at runtime
                 my $check-at-runtime := $opcode == 1400;
@@ -239,20 +239,20 @@ role Perl6::Metamodel::BUILDPLAN {
         # Add vivify instructions.
         for @attrs { # iterate over the array to get a consistent order
             if nqp::existskey(%attrs_untouched, $_.name) {
-                nqp::push(@plan,[1000, $obj, $_.name]);
+                nqp::push(@plan,[1000, $target, $_.name]);
             }
         }
 
         add_from_roles('TWEAK');
 
         # Does it have a TWEAK?
-        my $TWEAK := $obj.HOW.find_method($obj, 'TWEAK', :no_fallback(1));
+        my $TWEAK := $target.HOW.find_method($target, 'TWEAK', :no_fallback(1));
         if !nqp::isnull($TWEAK) && $TWEAK {
             nqp::push(@plan,$TWEAK);
         }
 
         # Something in the buildplan of this class
-        if @plan || nqp::elems(self.parents($obj)) > 1 {
+        if @plan || nqp::elems(self.parents($target)) > 1 {
 
             # Install plan for this class.
             @!BUILDPLAN := @plan;
@@ -260,7 +260,7 @@ role Perl6::Metamodel::BUILDPLAN {
             # Now create the full plan by getting the MRO, and working from
             # least derived to most derived, copying the plans.
             my @all_plan;
-            my @mro := self.mro($obj);
+            my @mro := self.mro($target);
             my $i := +@mro;
             my $noops := 0;
             while $i > 0 {
@@ -289,7 +289,7 @@ role Perl6::Metamodel::BUILDPLAN {
             @!BUILDPLAN := @EMPTY;
 
             # Take the first "super"class's BUILDALLPLAN if possible
-            my @mro := self.mro($obj);
+            my @mro := self.mro($target);
             @!BUILDALLPLAN := +@mro > 1
               ?? @mro[1].HOW.BUILDALLPLAN(@mro[1])
               !! @EMPTY
@@ -314,10 +314,10 @@ role Perl6::Metamodel::BUILDPLAN {
         }
     }
 
-    method ins_roles($obj, :$with-submethods-only = 0) {
+    method ins_roles($target, :$with-submethods-only = 0) {
         my @ins_roles;
         if nqp::can(self, 'concretizations') {
-            for self.concretizations($obj, :local) {
+            for self.concretizations($target, :local) {
                 next if $with-submethods-only && !nqp::can($_.HOW, 'submethod_table');
                 @ins_roles.push($_);
             }
@@ -325,13 +325,8 @@ role Perl6::Metamodel::BUILDPLAN {
         @ins_roles
     }
 
-    method BUILDPLAN($obj) {
-        @!BUILDPLAN
-    }
-
-    method BUILDALLPLAN($obj) {
-        @!BUILDALLPLAN
-    }
+    method BUILDPLAN(   $XXX?) { @!BUILDPLAN    }
+    method BUILDALLPLAN($XXX?) { @!BUILDALLPLAN }
 }
 
 # vim: expandtab sw=4

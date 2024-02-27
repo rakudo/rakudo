@@ -24,9 +24,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     has @!nonsignatured;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
-    method archetypes($obj?) {
-        $archetypes
-    }
+    method archetypes($XXX?) { $archetypes }
 
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
@@ -67,39 +65,39 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     # unequal.
     my class NO_NAMEDS { }
 
-    method parameterize($obj, *@args, *%named_args) {
+    method parameterize($target, *@args, *%named_args) {
         my int $n := nqp::elems(@args);
         my int $i := -1;
         while ++$i < $n {
             @args[$i] := nqp::decont(@args[$i]);
         }
         nqp::push(@args, %named_args || NO_NAMEDS);
-        nqp::parameterizetype($obj, @args);
+        nqp::parameterizetype($target, @args);
     }
 
-    method !produce_parameterization($obj, @packed) {
+    method !produce_parameterization($target, @packed) {
         my @args := nqp::clone(@packed);
         my $maybe_nameds := nqp::pop(@args);
         my $curried;
         if $maybe_nameds {
             my %nameds := $maybe_nameds;
-            $curried := $currier.new_type($obj, |@args, |%nameds);
+            $curried := $currier.new_type($target, |@args, |%nameds);
         }
         else {
-            $curried := $currier.new_type($obj, |@args);
+            $curried := $currier.new_type($target, |@args);
         }
-        $curried.HOW.set_pun_repr($curried, self.pun_repr($obj));
+        $curried.HOW.set_pun_repr($curried, self.pun_repr($target));
         $curried
     }
 
-    method add_possibility($obj, $possible) {
+    method add_possibility($target, $possible) {
         @!candidates[+@!candidates] := $possible;
         nqp::push(@!nonsignatured, nqp::decont($possible)) unless $possible.HOW.signatured($possible);
         $!selector.add_dispatchee($possible.HOW.body_block($possible));
-        self.update_role_typecheck_list($obj);
+        self.update_role_typecheck_list($target);
     }
 
-    method select_candidate($obj, @pos_args, %named_args) {
+    method select_candidate($target, @pos_args, %named_args) {
         # Use multi-dispatcher to pick the body block of the best role.
         my $error;
         my $selected_body;
@@ -117,10 +115,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::Role::Parametric::NoSuchCandidate',
                 "Could not find an appropriate parametric role variant for '"
-                    ~ $obj.HOW.name($obj) ~ "' using the arguments supplied:\n    "
+                    ~ $target.HOW.name($target) ~ "' using the arguments supplied:\n    "
                     ~ $hint
                     ,
-                :role($obj), :$hint
+                :role($target), :$hint
             );
         }
 
@@ -138,80 +136,78 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $selected
     }
 
-    method specialize($obj, *@pos_args, *%named_args) {
-        my $selected := self.select_candidate($obj, @pos_args, %named_args);
+    method specialize($target, *@pos_args, *%named_args) {
+        my $selected := self.select_candidate($target, @pos_args, %named_args);
         # Having picked the appropriate one, specialize it.
         $selected.HOW.specialize($selected, |@pos_args, |%named_args);
     }
 
-    method update_role_typecheck_list($obj) {
+    method update_role_typecheck_list($XXX?) {
         my $ns := self.'!get_nonsignatured_candidate'();
         @!role_typecheck_list := $ns.HOW.role_typecheck_list($ns) unless nqp::isnull($ns);
     }
 
-    method role_typecheck_list($obj) {
-        @!role_typecheck_list
-    }
+    method role_typecheck_list($XXX?) { @!role_typecheck_list }
 
-    method type_check($obj, $checkee) {
-        my $decont := nqp::decont($checkee);
-        if $decont =:= $obj.WHAT {
+    method type_check($target, $checkee) {
+        $checkee := nqp::decont($checkee);
+        if $checkee =:= $target.WHAT {
             return 1;
         }
         for self.pretending_to_be() {
-            if $decont =:= nqp::decont($_) {
+            if $checkee =:= nqp::decont($_) {
                 return 1;
             }
         }
         for @!role_typecheck_list {
-            if $decont =:= nqp::decont($_) {
+            if $checkee =:= nqp::decont($_) {
                 return 1;
             }
         }
         my $ns := self.'!get_nonsignatured_candidate'();
-        return $ns.HOW.type_check_parents($ns, $decont) unless nqp::isnull($ns);
+        return $ns.HOW.type_check_parents($ns, $checkee) unless nqp::isnull($ns);
         0;
     }
 
-    method candidates($obj) { nqp::clone(@!candidates) }
+    method candidates($XXX?) { nqp::clone(@!candidates) }
 
-    method lookup($obj, $name) {
+    method lookup($XXX, $name) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? []
             !! $c.HOW.lookup($c, $name);
     }
 
-    method methods($obj, *@pos, *%name) {
+    method methods($XXX, *@pos, *%name) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? []
             !! $c.HOW.methods($c, |@pos, |%name);
     }
 
-    method attributes($obj, *@pos, *%name) {
+    method attributes($XXX, *@pos, *%name) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? []
             !! $c.HOW.attributes($c, |@pos, |%name);
     }
 
-    method parents($obj, *%named) {
+    method parents($XXX, *%named) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? []
             !! $c.HOW.parents($c, |%named)
     }
 
-    method roles($obj, *%named) {
+    method roles($XXX, *%named) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? []
             !! $c.HOW.roles($c, |%named)
     }
 
-    method ver($obj) {
+    method ver($XXX?) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? nqp::null()
             !! $c.HOW.ver($c)
     }
 
-    method auth($obj) {
+    method auth($XXX?) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? nqp::null()
             !! $c.HOW.auth($c)
@@ -219,19 +215,19 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
 
     # See Perl6::Metamodel::LanguageRevision role comments about the difference between these two language revision
     # methods.
-    method language-revision($obj) {
+    method language-revision($XXX?) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? nqp::null()
             !! $c.HOW.language-revision($c)
     }
 
-    method language_revision($obj) {
+    method language_revision($XXX?) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? nqp::null()
             !! $c.HOW.language_revision($c)
     }
 
-    method is-implementation-detail($obj) {
+    method is-implementation-detail($XXX?) {
         nqp::isnull(my $c := self.'!get_default_candidate'())
             ?? nqp::null()
             !! $c.HOW.is-implementation-detail($c)
@@ -261,12 +257,12 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         +@!nonsignatured ?? @!nonsignatured[0] !! nqp::null()
     }
 
-    method publish_type_cache($obj) {
+    method publish_type_cache($target) {
         # We can at least include ourself and the types a role pretends to be.
         my @tc := nqp::clone(self.pretending_to_be());
-        nqp::push(@tc, $obj.WHAT);
-        nqp::settypecache($obj, @tc);
-        nqp::settypecheckmode($obj, 1);
+        nqp::push(@tc, $target.WHAT);
+        nqp::settypecache($target, @tc);
+        nqp::settypecheckmode($target, 1);
     }
 }
 

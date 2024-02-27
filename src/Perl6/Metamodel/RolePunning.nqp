@@ -20,21 +20,17 @@ role Perl6::Metamodel::RolePunning {
         %exceptions := %my_exceptions;
     }
 
-    method set_pun_repr($obj, $repr) {
-        $!pun_repr := $repr
-    }
+    method set_pun_repr($XXX, $repr) { $!pun_repr := $repr }
 
-    method pun_repr($obj) {
-        $!pun_repr
-    }
+    method pun_repr($XXX?) { $!pun_repr }
 
     # Produces the pun.
-    method make_pun($obj) {
+    method make_pun($target) {
         my $pun := $!pun_repr
-            ?? $pun_meta.new_type(:name(self.name($obj)), :repr($!pun_repr))
-            !! $pun_meta.new_type(:name(self.name($obj)));
-        $pun.HOW.add_role($pun, $obj);
-        $pun.HOW.set_pun_source($pun, $obj);
+            ?? $pun_meta.new_type(:name(self.name($target)), :repr($!pun_repr))
+            !! $pun_meta.new_type(:name(self.name($target)));
+        $pun.HOW.add_role($pun, $target);
+        $pun.HOW.set_pun_source($pun, $target);
         $pun.HOW.compose($pun);
         my $why := self.WHY;
         if $why {
@@ -44,26 +40,26 @@ role Perl6::Metamodel::RolePunning {
     }
 
     # Returns the pun (only creating it if it wasn't already created)
-    method pun($obj) {
+    method pun($target) {
         unless $!made_pun {
-            $!pun := self.make_pun($obj);
+            $!pun := self.make_pun($target);
             $!made_pun := 1;
         }
         $!pun
     }
 
     # Produces something that can be inherited from (the pun).
-    method inheritalize($obj) {
-        self.pun($obj)
+    method inheritalize($target) {
+        self.pun($target)
     }
 
     # Do a pun-based dispatch. If we pun, return a thunk that will delegate.
-    method find_method($obj, $name, *%c) {
+    method find_method($target, $name, *%c) {
         if nqp::existskey(%exceptions, $name) {
             return nqp::findmethod(%exceptions{$name}, $name);
         }
         unless $!made_pun {
-            $!pun := self.make_pun($obj);
+            $!pun := self.make_pun($target);
             $!made_pun := 1;
         }
         unless nqp::can($!pun, $name) {
@@ -74,7 +70,7 @@ role Perl6::Metamodel::RolePunning {
         }
     }
 
-    method is_method_call_punned($obj, $name) {
+    method is_method_call_punned($XXX, $name) {
         !nqp::existskey(%exceptions, $name)
     }
 }

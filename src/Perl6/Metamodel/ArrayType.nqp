@@ -7,7 +7,7 @@ role Perl6::Metamodel::ArrayType {
     method    array_type($XXX?) { $!array_type    }
     method is_array_type($XXX?) { $!is_array_type }
 
-    method set_array_type($obj, $type) {
+    method set_array_type($XXX, $type) {
         $!array_type    := $type;
         $!is_array_type := 1;
     }

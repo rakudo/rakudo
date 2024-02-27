@@ -1,15 +1,15 @@
 role Perl6::Metamodel::REPRComposeProtocol {
     has $!composed_repr;
 
-    method compose_repr($obj) {
+    method compose_repr($target) {
         unless $!composed_repr {
             # Is it an array type?
-            if nqp::can(self, 'is_array_type') && self.is_array_type($obj) {
-                if self.attributes($obj) {
+            if nqp::can(self, 'is_array_type') && self.is_array_type($target) {
+                if self.attributes($target) {
                     nqp::die("Cannot have attributes on an array representation");
                 }
-                nqp::composetype(nqp::decont($obj), nqp::hash('array',
-                    nqp::hash('type', nqp::decont(self.array_type($obj)))));
+                nqp::composetype(nqp::decont($target), nqp::hash('array',
+                    nqp::hash('type', nqp::decont(self.array_type($target)))));
             }
 
             # Otherwise, presume it's an attribute type.
@@ -19,7 +19,7 @@ role Perl6::Metamodel::REPRComposeProtocol {
                 my @repr_info;
 
                 # ...which contains an array per MRO entry...
-                for self.mro($obj) -> $type_obj {
+                for self.mro($target) -> $type_obj {
                     my @type_info;
                     nqp::push(@repr_info, @type_info);
 
@@ -60,16 +60,14 @@ role Perl6::Metamodel::REPRComposeProtocol {
                 }
 
                 # Compose the representation using it.
-                nqp::composetype(nqp::decont($obj), nqp::hash('attribute', @repr_info));
+                nqp::composetype(nqp::decont($target), nqp::hash('attribute', @repr_info));
             }
 
             $!composed_repr := 1;
         }
     }
 
-    method repr_composed($obj) {
-        $!composed_repr;
-    }
+    method repr_composed($XXX?) { $!composed_repr }
 }
 
 # vim: expandtab sw=4

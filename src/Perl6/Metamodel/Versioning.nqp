@@ -3,15 +3,15 @@ role Perl6::Metamodel::Versioning {
     has $!auth;
     has $!api;
 
-    method ver($obj) { $!ver // nqp::null() }
-    method auth($obj) { $!auth // '' }
-    method api($obj) { $!api // '' }
+    method ver( $XXX?) { $!ver  // nqp::null }
+    method auth($XXX?) { $!auth // ''        }
+    method api( $XXX?) { $!api  // ''        }
 
-    method set_ver($obj, $ver) {
+    method set_ver($XXX, $ver) {
         $!ver := $ver if $ver
     }
-    method set_auth($obj, $auth) { $!auth := $auth }
-    method set_api($obj, $api) { $!api := $api }
+    method set_auth($XXX, $auth) { $!auth := $auth }
+    method set_api( $XXX, $api ) { $!api  := $api  }
 }
 
 # vim: expandtab sw=4

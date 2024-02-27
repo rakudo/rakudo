@@ -9,8 +9,8 @@ role Perl6::Metamodel::TypePretense {
         @pretending
     }
 
-    method type_check($obj, $checkee) {
-        if $obj =:= $checkee {
+    method type_check($target, $checkee) {
+        if $target =:= $checkee {
             return 1;
         }
         for self.pretending_to_be() {

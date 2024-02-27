@@ -6,19 +6,19 @@ role Perl6::Metamodel::BaseType {
     has $!base_type_set;
     has @!mro;
 
-    method set_base_type($obj, $base_type) {
+    method set_base_type($target, $base_type) {
         if $!base_type_set {
-            nqp::die("Base type has already been set for " ~ self.name($obj));
+            nqp::die("Base type has already been set for " ~ self.name($target));
         }
         $!base_type := $base_type;
         $!base_type_set := 1;
     }
 
     # Our MRO is just that of base type.
-    method mro($obj, :$roles = 0, :$concretizations = 0, :$unhidden = 0) {
+    method mro($target, :$roles = 0, :$concretizations = 0, :$unhidden = 0) {
         unless @!mro {
             @!mro := nqp::list();
-            @!mro[0] := $obj;
+            @!mro[0] := $target;
             for $!base_type.HOW.mro($!base_type, :$roles, :$concretizations, :$unhidden) {
                 @!mro.push($_);
             }
@@ -26,10 +26,10 @@ role Perl6::Metamodel::BaseType {
         @!mro
     }
 
-    method parents($obj, :$local, :$excl, :$all) {
+    method parents($XXX?, :$local, :$excl, :$all) {
         my @parents := [$!base_type];
         unless $local {
-            for $!base_type.HOW.parents($!base_type, :excl($excl), :all($all)) {
+            for $!base_type.HOW.parents($!base_type, :$excl, :$all) {
                 @parents.push($_);
             }
         }

@@ -1,15 +1,13 @@
 role Perl6::Metamodel::RoleContainer {
     has @!roles_to_compose;
 
-    method add_role($obj, $role) {
+    method add_role($XXX, $role) {
         @!roles_to_compose[+@!roles_to_compose] := nqp::decont($role)
     }
 
-    method roles_to_compose($obj) {
-        @!roles_to_compose
-    }
+    method roles_to_compose($XXX?) { @!roles_to_compose }
 
-    method roles-ordered($obj, @roles, :$transitive = 1, :$mro = 0) {
+    method roles-ordered($XXX, @roles, :$transitive = 1, :$mro = 0) {
         if $transitive {
             my @result;
             $mro := nqp::can(self, 'c3_merge') if $mro;

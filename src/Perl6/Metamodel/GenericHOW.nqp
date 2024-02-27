@@ -6,9 +6,7 @@ class Perl6::Metamodel::GenericHOW
     does Perl6::Metamodel::Naming
 {
     my $archetypes := Perl6::Metamodel::Archetypes.new( :generic(1) );
-    method archetypes($obj?) {
-        $archetypes
-    }
+    method archetypes($XXX?) { $archetypes }
 
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
@@ -25,9 +23,9 @@ class Perl6::Metamodel::GenericHOW
         $obj
     }
 
-    method instantiate_generic($obj, $type_environment) {
+    method instantiate_generic($target, $type_environment) {
         my $found := nqp::null();
-        my $name := self.name($obj);
+        my $name := self.name($target);
         my $te-kind := $type_environment.HOW.name($type_environment);
 #?if !jvm
         if $te-kind eq 'BOOTContext' {
@@ -44,20 +42,19 @@ class Perl6::Metamodel::GenericHOW
             $found := nqp::decont($type_environment.AT-KEY($name));
         }
         nqp::isnull($found)
-            ?? $obj
+            ?? $target
             !! $found.HOW.archetypes($found).generic
                 ?? $found.HOW.instantiate_generic($found, $type_environment)
                 !! $found
     }
 
-    method compose($obj) {
-    }
+    method compose($target) { $target }
 
-    method find_method($obj, $name, *%c) {
+    method find_method($XXX, $name, *%c) {
         nqp::null()
     }
 
-    method type_check($obj, $checkee) {
+    method type_check($XXX, $checkee) {
         0
     }
 }

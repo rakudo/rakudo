@@ -25,33 +25,33 @@ role Perl6::Metamodel::MultipleInheritance {
     }
 
     # Adds a parent.
-    method add_parent($obj, $parent, :$hides) {
-        if self.is_composed($obj) {
-            nqp::die("Parents cannot be added to class '" ~ self.name($obj) ~ "'after it has been composed");
+    method add_parent($target, $parent, :$hides) {
+        if self.is_composed($target) {
+            nqp::die("Parents cannot be added to class '" ~ self.name($target) ~ "'after it has been composed");
         }
-        if nqp::decont($parent) =:= nqp::decont($obj) {
-            nqp::die("Class " ~ self.name($obj) ~ " cannot inherit from itself");
+        if nqp::decont($parent) =:= nqp::decont($target) {
+            nqp::die("Class " ~ self.name($target) ~ " cannot inherit from itself");
         }
         my $parent_how := $parent.HOW;
         if nqp::can($parent_how, 'repr_composed') && !$parent_how.repr_composed($parent) {
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::Inheritance::NotComposed',
-                "Class " ~ self.name($obj) ~ " cannot inherit from "
+                "Class " ~ self.name($target) ~ " cannot inherit from "
                     ~ $parent_how.name($parent) ~ " because the parent is not composed yet",
-                :child-name(nqp::hllizefor(self.name($obj), 'Raku')),
+                :child-name(nqp::hllizefor(self.name($target), 'Raku')),
                 :parent-name(nqp::hllizefor($parent_how.name($parent), 'Raku'))
             );
         }
         for @!parents {
             if nqp::decont($_) =:= nqp::decont($parent) {
-                nqp::die("Package '" ~ self.name($obj) ~
+                nqp::die("Package '" ~ self.name($target) ~
                     "' already has parent '" ~
                     $parent.HOW.name($parent) ~ "'");
             }
         }
         # With a new parent full method list would have to be refreshed.
         if nqp::istype(self, Perl6::Metamodel::MROBasedMethodDispatch) {
-            self.invalidate_method_caches($obj);
+            self.invalidate_method_caches($target);
         }
         if $hides {
             @!hides[+@!hides] := $parent;
@@ -60,7 +60,7 @@ role Perl6::Metamodel::MultipleInheritance {
     }
 
     # Introspects the parents.
-    method parents($obj, :$local, :$tree, :$excl, :$all) {
+    method parents($target, :$local, :$tree, :$excl, :$all) {
         if $local {
             @!parents
         }
@@ -77,7 +77,7 @@ role Perl6::Metamodel::MultipleInheritance {
         }
         else {
             # All parents is MRO minus the first thing (which is us).
-            my @mro := self.mro($obj);
+            my @mro := self.mro($target);
             my @parents;
             my $i := 1;
             while $i < +@mro {
@@ -94,22 +94,16 @@ role Perl6::Metamodel::MultipleInheritance {
         }
     }
 
-    method hides($obj) {
-        @!hides
-    }
+    method hides($XXX?) { @!hides }
 
-    method hides_parent($obj, $parent) {
+    method hides_parent($XXX, $parent) {
         self.'!rebuild_hides_ids'() if nqp::elems(%!hides_ids) < nqp::elems(@!hides);
         %!hides_ids{~nqp::objectid(nqp::decont($parent))} || 0;
     }
 
-    method hidden($obj) {
-        $!hidden ?? 1 !! 0
-    }
+    method hidden($XXX?) { $!hidden ?? 1 !! 0 }
 
-    method set_hidden($obj) {
-        $!hidden := 1;
-    }
+    method set_hidden($XXX?) { $!hidden := 1 }
 }
 
 # vim: expandtab sw=4

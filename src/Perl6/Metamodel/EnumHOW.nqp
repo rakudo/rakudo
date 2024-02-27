@@ -43,9 +43,7 @@ class Perl6::Metamodel::EnumHOW
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composalizable(1),
                                                         :augmentable(1) );
-    method archetypes($obj?) {
-        $archetypes
-    }
+    method archetypes($XXX?) { $archetypes }
 
     method new(*%named) {
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
@@ -61,11 +59,11 @@ class Perl6::Metamodel::EnumHOW
     }
 
     # We only have add_parent to support mixins, which expect this method.
-    method add_parent($obj, $parent) {
-        self.set_base_type($obj, $parent);
+    method add_parent($target, $parent) {
+        self.set_base_type($target, $parent);
     }
 
-    method add_enum_value($obj, $value) {
+    method add_enum_value($XXX, $value) {
         %!values{nqp::unbox_s($value.key)} := $value.value;
         @!enum_value_list[+@!enum_value_list] := $value;
         nqp::scwbdisable();
@@ -73,19 +71,14 @@ class Perl6::Metamodel::EnumHOW
         nqp::scwbenable();
     }
 
-    method set_export_callback($obj, $callback) {
+    method set_export_callback($XXX, $callback) {
         $!export_callback := $callback
     }
 
-    method enum_values($obj) {
-        %!values
-    }
+    method enum_values($XXX?) {            %!values  }
+    method elems(      $XXX?) { nqp::elems(%!values) }
 
-    method elems($obj) {
-        nqp::elems(%!values)
-    }
-
-    method enum_from_value($obj, $value) {
+    method enum_from_value($XXX, $value) {
         my $value_to_enum := $!value_to_enum;
         unless $value_to_enum {
             $value_to_enum := nqp::hash;
@@ -101,32 +94,32 @@ class Perl6::Metamodel::EnumHOW
             !! nqp::null()
     }
 
-    method enum_value_list($obj) {
+    method enum_value_list($XXX?) {
         @!enum_value_list
     }
 
-    method compose($the-obj, :$compiler_services) {
-        my $obj := nqp::decont($the-obj);
+    method compose($target, :$compiler_services) {
+         $target := nqp::decont($target);
 
-        self.set_language_version($obj);
+        self.set_language_version($target);
 
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
-        my @roles_to_compose := self.roles_to_compose($obj);
+        my @roles_to_compose := self.roles_to_compose($target);
         my $rtca;
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
                 my $r := @roles_to_compose.pop();
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
-                my $ins := $r.HOW.specialize($r, $obj);
-                self.check-type-compat($obj, $ins, [3])
+                my $ins := $r.HOW.specialize($r, $target);
+                self.check-type-compat($target, $ins, [3])
                     if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
             }
             $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
-            $rtca.prepare($obj, @ins_roles);
+            $rtca.prepare($target, @ins_roles);
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
@@ -139,8 +132,8 @@ class Perl6::Metamodel::EnumHOW
         }
 
         # Compose own attributes first.
-        for self.attributes($obj, :local) {
-            $_.compose($obj);
+        for self.attributes($target, :local) {
+            $_.compose($target);
         }
 
         if $rtca {
@@ -148,40 +141,40 @@ class Perl6::Metamodel::EnumHOW
         }
 
         # Incorporate any new multi candidates (needs MRO built).
-        self.incorporate_multi_candidates($obj);
+        self.incorporate_multi_candidates($target);
 
         # Compose remaining attributes.
-        for self.attributes($obj, :local) {
-            $_.compose($obj);
+        for self.attributes($target, :local) {
+            $_.compose($target);
         }
 
         # Publish type and method caches.
-        self.publish_type_cache($obj);
-        self.publish_method_cache($obj);
+        self.publish_type_cache($target);
+        self.publish_method_cache($target);
 
         # Publish boolification spec.
-        self.publish_boolification_spec($obj);
+        self.publish_boolification_spec($target);
 
         # Create BUILDPLAN.
-        self.create_BUILDPLAN($obj);
+        self.create_BUILDPLAN($target);
 
         # Compose the representation.
         unless self.is_composed {
-            self.compose_repr($obj);
+            self.compose_repr($target);
             self.set_composed;
         }
 
 #?if !moar
         # Compose invocation protocol.
-        self.compose_invocation($obj);
+        self.compose_invocation($target);
 #?endif
 
-        $obj
+        $target
     }
 
     # Called by the compiler when all enum values have been added, to trigger
     # any needed actions.
-    method compose_values($obj) {
+    method compose_values($XXX?) {
         if $!export_callback {
             $!export_callback();
             $!export_callback := Mu;
@@ -190,17 +183,15 @@ class Perl6::Metamodel::EnumHOW
 
     my $composalizer;
     method set_composalizer($c) { $composalizer := $c }
-    method composalize($obj) {
+    method composalize($target) {
         unless $!roled {
-            $!role := $composalizer($obj, self.name($obj), @!enum_value_list);
+            $!role := $composalizer($target, self.name($target), @!enum_value_list);
             $!roled := 1;
         }
         $!role
     }
 
-    method role_typecheck_list($obj) {
-        @!role_typecheck_list
-    }
+    method role_typecheck_list($XXX?) { @!role_typecheck_list }
 }
 
 # vim: expandtab sw=4

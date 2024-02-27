@@ -84,14 +84,14 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         @methods
     }
 
-    method publish_method_cache($obj) {
+    method publish_method_cache($target) {
 #?if !moar
         # Walk MRO and add methods to cache, unless another method
         # lower in the class hierarchy "shadowed" it.
         my %cache;
         my @mro_reversed;
         my $authable := 1;
-        for self.mro($obj) {
+        for self.mro($target) {
             @mro_reversed.unshift($_);
         }
         for @mro_reversed {
@@ -104,13 +104,13 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         }
 
         # Also add submethods.
-        for nqp::hllize($obj.HOW.submethod_table($obj)) {
+        for nqp::hllize($target.HOW.submethod_table($target)) {
             %cache{$_.key} := nqp::decont($_.value);
         }
 
-        nqp::setmethcache($obj, %cache);
-        unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($obj) {
-            nqp::setmethcacheauth($obj, $authable);
+        nqp::setmethcache($target, %cache);
+        unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($target) {
+            nqp::setmethcacheauth($target, $authable);
         }
 #?endif
     }

@@ -5,11 +5,11 @@ role Perl6::Metamodel::Concretization {
 
     my $lock := NQPLock.new;
 
-    method add_concretization($obj, $role, $concrete) {
+    method add_concretization($XXX, $role, $concrete) {
         @!concretizations[+@!concretizations] := [$role, $concrete];
     }
 
-    method concretizations($obj, :$local = 0, :$transitive = 1) {
+    method concretizations($target, :$local = 0, :$transitive = 1) {
         my @conc;
         for @!concretizations {
             my @c := $transitive ?? [] !! @conc;
@@ -23,7 +23,7 @@ role Perl6::Metamodel::Concretization {
         }
         @conc := self.c3_merge(@conc) if $transitive;
         unless $local {
-            for self.parents($obj, :local) {
+            for self.parents($target, :local) {
                 if nqp::can($_.HOW, 'concretizations') {
                     for $_.HOW.concretizations($_, :$local, :$transitive) {
                         nqp::push(@conc, $_)
@@ -61,7 +61,7 @@ role Perl6::Metamodel::Concretization {
     }
 
     # Returns a list where the first element is the number of roles found and the rest are actual type objects.
-    method concretization_lookup($obj, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
+    method concretization_lookup($target, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
         my %working_conc_table := self.'!maybe_rebuild_table'();
         return [0] unless !$local || $transitive || nqp::elems(%working_conc_table);
         $ptype := nqp::decont($ptype);
@@ -83,7 +83,7 @@ role Perl6::Metamodel::Concretization {
             }
             return @result if @result[0];
         }
-        return [0] if !$relaxed && $obj.HOW.is_composed($obj) && !nqp::istype(nqp::decont($obj), $ptype);
+        return [0] if !$relaxed && $target.HOW.is_composed($target) && !nqp::istype(nqp::decont($target), $ptype);
         if $transitive {
             for @!concretizations {
                 if nqp::istype($_[1], $ptype) {
@@ -93,7 +93,7 @@ role Perl6::Metamodel::Concretization {
             }
         }
         unless $local {
-            for self.parents($obj, :local) {
+            for self.parents($target, :local) {
                 @result := $_.HOW.concretization_lookup($_, $ptype, :local(0), :$transitive, :$relaxed);
                 return @result if @result[0];
             }
@@ -101,8 +101,8 @@ role Perl6::Metamodel::Concretization {
         [0]
     }
 
-    method concretization($obj, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
-        my @result := self.concretization_lookup($obj, $ptype, :$local, :$transitive, :$relaxed);
+    method concretization($target, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
+        my @result := self.concretization_lookup($target, $ptype, :$local, :$transitive, :$relaxed);
         nqp::die("No concretization found for " ~ $ptype.HOW.name($ptype)) unless @result[0];
         nqp::die("Ambiguous concretization lookup for " ~ $ptype.HOW.name($ptype)) if @result[0] > 1;
         @result[1]

@@ -12,46 +12,45 @@ role Perl6::Metamodel::InvocationProtocol {
         $default_invoke_handler := $h;
     }
 
-    method set_invocation_attr($obj, $class, str $name) {
+    method set_invocation_attr($XXX, $class, str $name) {
         $!has_invocation_attr   := 1;
         $!invocation_attr_class := $class;
         $!invocation_attr_name  := $name;
     }
 
-    method set_invocation_handler($obj, $handler) {
+    method set_invocation_handler($XXX, $handler) {
         $!has_invocation_handler := 1;
         $!invocation_handler     := $handler;
     }
 
-    method has_invocation_attr($obj) { $!has_invocation_attr }
-    method invocation_attr_class($obj) { $!invocation_attr_class }
-    method invocation_attr_name($obj) { $!invocation_attr_name }
+    method has_invocation_attr(   $XXX?) { $!has_invocation_attr    }
+    method invocation_attr_class( $XXX?) { $!invocation_attr_class  }
+    method invocation_attr_name(  $XXX?) { $!invocation_attr_name   }
+    method has_invocation_handler($XXX?) { $!has_invocation_handler }
+    method invocation_handler(    $XXX?) { $!invocation_handler     }
 
-    method has_invocation_handler($obj) { $!has_invocation_handler }
-    method invocation_handler($obj) { $!invocation_handler }
-
-    method compose_invocation($obj) {
+    method compose_invocation($target) {
         # Check if we have a invoke, and if so install
         # the default invocation forwarder. Otherwise, see if we or
         # a parent has an invocation attr.
-        if $obj.HOW.archetypes.composable {
+        if $target.HOW.archetypes.composable {
             # We special case roles by using only default handler
-            nqp::setinvokespec($obj, nqp::null(), nqp::null_s(),
+            nqp::setinvokespec($target, nqp::null(), nqp::null_s(),
                 $default_invoke_handler);
         }
         else {
-            my $pcmeth := self.find_method($obj, 'CALL-ME', :no_fallback(1));
+            my $pcmeth := self.find_method($target, 'CALL-ME', :no_fallback(1));
             if nqp::defined($pcmeth) {
                 nqp::die('Default invocation handler is not invokable')
                     unless nqp::isinvokable($default_invoke_handler);
-                nqp::setinvokespec($obj, nqp::null(), nqp::null_s(),
+                nqp::setinvokespec($target, nqp::null(), nqp::null_s(),
                     $default_invoke_handler);
             }
             else {
-                for self.mro($obj) -> $class {
+                for self.mro($target) -> $class {
                     if nqp::can($class.HOW, 'has_invocation_attr') {
                         if $class.HOW.has_invocation_attr($class) {
-                            nqp::setinvokespec($obj,
+                            nqp::setinvokespec($target,
                                 $class.HOW.invocation_attr_class($class),
                                 $class.HOW.invocation_attr_name($class),
                                 nqp::null());
@@ -60,7 +59,7 @@ role Perl6::Metamodel::InvocationProtocol {
                     }
                     if nqp::can($class.HOW, 'has_invocation_handler') {
                         if $class.HOW.has_invocation_handler($class) {
-                            nqp::setinvokespec($obj,
+                            nqp::setinvokespec($target,
                                 nqp::null(), nqp::null_s(),
                                 $class.HOW.invocation_handler($class));
                             last;

@@ -2,17 +2,15 @@ role Perl6::Metamodel::Naming {
     has $!name;
     has $!shortname;
 
-    method name($obj) {
-        $!name // ($!name := '')
-    }
+    method name($XXX?) { $!name // ($!name := '') }
 
-    method set_name($obj, $name) {
+    method set_name($target, $name) {
         $!name      := $name;
         $!shortname := NQPMu; # Gets set once it's needed.
-        nqp::setdebugtypename($obj, $name);
+        nqp::setdebugtypename($target, $name);
     }
 
-    method shortname($obj) {
+    method shortname($XXX?) {
         sub to_shortname($name) {
             return '' unless $name;
 
@@ -37,7 +35,7 @@ role Perl6::Metamodel::Naming {
         $!shortname // ($!shortname := to_shortname($!name))
     }
 
-    method set_shortname($obj, $shortname) {
+    method set_shortname($XXX, $shortname) {
         $!shortname := $shortname;
     }
 }

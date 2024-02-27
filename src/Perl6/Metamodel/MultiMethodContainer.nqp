@@ -18,7 +18,7 @@ role Perl6::Metamodel::MultiMethodContainer {
     # yet, maybe, which influences whether we even can have multis, need to
     # generate a proto and so forth. So just queue them up in a todo list and
     # we handle it at class composition time.
-    method add_multi_method($obj, $name, $code_obj) {
+    method add_multi_method($XXX, $name, $code_obj) {
         # Represents a multi candidate to incorporate.
         my class MultiToIncorporate {
             has $!name;
@@ -34,13 +34,13 @@ role Perl6::Metamodel::MultiMethodContainer {
     }
 
     # Gets the multi methods that are to be incorporated.
-    method multi_methods_to_incorporate($obj) {
+    method multi_methods_to_incorporate($XXX?) {
         @!multi_methods_to_incorporate
     }
 
     # Incorporates the multi candidates into the appropriate proto. Need to
     # implement proto incorporation yet.
-    method incorporate_multi_candidates($obj) {
+    method incorporate_multi_candidates($target) {
         my $num_todo := +@!multi_methods_to_incorporate;
         my $i := 0;
         my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
@@ -59,7 +59,7 @@ role Perl6::Metamodel::MultiMethodContainer {
             my $autogen_proto := $is_submethod
                                     ?? $autogen_submethod_proto
                                     !! $autogen_method_proto;
-            my %meths := nqp::hllize(self."$method_table"($obj));
+            my %meths := nqp::hllize(self."$method_table"($target));
             if nqp::existskey(%meths, $name) {
                 # Yes. Only or dispatcher, though? If only, error. If
                 # dispatcher, simply add new dispatchee.
@@ -70,14 +70,14 @@ role Perl6::Metamodel::MultiMethodContainer {
                 else {
                     nqp::die("Cannot have a multi candidate for '" ~ $name ~
                         "' when an only method is also in the package '" ~
-                        self.name($obj) ~ "'");
+                        self.name($target) ~ "'");
                 }
             }
             else {
                 my $found := 0;
                 unless $is_submethod {
                     # Go hunting in the MRO for a method proto. Note that we don't traverse MRO for submethods.
-                    my @mro := self.mro($obj);
+                    my @mro := self.mro($target);
                     my $j := 1;
                     while $j != +@mro && !$found {
                         my $parent := @mro[$j];
@@ -90,7 +90,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                                 # Clone it and install it in our method table.
                                 my $copy := $dispatcher.derive_dispatcher();
                                 $copy.add_dispatchee($code);
-                                self.add_method($obj, $name, $copy);
+                                self.add_method($target, $name, $copy);
                                 nqp::push(@new_protos, $copy);
                                 $found := 1;
                             }
@@ -104,15 +104,15 @@ role Perl6::Metamodel::MultiMethodContainer {
                         nqp::die("Cannot auto-generate a proto method for '$name' in the setting");
                     }
                     my $proto := $autogen_proto.instantiate_generic(
-                        nqp::hash('T', $obj));
+                        nqp::hash('T', $target));
                     $proto.set_name($name);
                     $proto.add_dispatchee($code);
-                    self.add_method($obj, $name, $proto);
+                    self.add_method($target, $name, $proto);
                     nqp::push(@new_protos, $proto);
                 }
             }
-            if nqp::can($code, 'apply_handles') && nqp::can($obj.HOW, 'find_method_fallback') {
-                $code.apply_handles($obj);
+            if nqp::can($code, 'apply_handles') && nqp::can($target.HOW, 'find_method_fallback') {
+                $code.apply_handles($target);
             }
             $i := $i + 1;
         }
@@ -125,7 +125,7 @@ role Perl6::Metamodel::MultiMethodContainer {
         %!multi_candidate_names := nqp::hash();
     }
 
-    method has_multi_candidate($obj, $name) {
+    method has_multi_candidate($target, $name) {
         %!multi_candidate_names{$name}
     }
 }

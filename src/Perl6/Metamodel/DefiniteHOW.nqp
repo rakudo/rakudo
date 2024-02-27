@@ -92,8 +92,8 @@ class Perl6::Metamodel::DefiniteHOW
         nqp::eqaddr(nqp::typeparameterat($definite_type, 1), Definite) ?? 1 !! 0
     }
 
-    method nominalize($obj) {
-        my $base_type := $obj.HOW.base_type($obj);
+    method nominalize($target) {
+        my $base_type := $target.HOW.base_type($target);
         $base_type.HOW.archetypes($base_type).nominalizable
             ?? $base_type.HOW.nominalize($base_type)
             !! $base_type
@@ -138,7 +138,7 @@ class Perl6::Metamodel::DefiniteHOW
 
     # Methods needed by Perl6::Metamodel::Nominalizable
     method nominalizable_kind() { 'definite' }
-    method !wrappee($obj) { self.base_type($obj) }
+    method !wrappee($target) { self.base_type($target) }
 }
 
 BEGIN {

@@ -241,7 +241,7 @@ role Perl6::Metamodel::C3MRO {
     }
 
     # Introspects the Method Resolution Order.
-    method mro($obj, :$roles = 0, :$concretizations = 0, :$unhidden = 0) {
+    method mro($target, :$roles = 0, :$concretizations = 0, :$unhidden = 0) {
         # Make sure we get a snapshot of MRO hash without competing
         # with compute_mro working in another thread.  It should be
         # safe to pull in just $!mro without cloning it because the
@@ -250,7 +250,7 @@ role Perl6::Metamodel::C3MRO {
         my $mro := $!mro;
 
         # Compute the MRO if there is none yet (???)
-        $mro := self.compute_mro($obj) if nqp::eqaddr($mro,NQPMu);
+        $mro := self.compute_mro($target) if nqp::eqaddr($mro,NQPMu);
 
         nqp::atkey(
           nqp::atkey($mro, $unhidden ?? 'unhidden' !! 'all'),
@@ -264,8 +264,8 @@ role Perl6::Metamodel::C3MRO {
 
     # Introspects the Method Resolution Order without anything that has
     # been hidden.
-    method mro_unhidden($obj, :$roles = 0, :$concretizations = 0) {
-        self.mro($obj, :$roles, :$concretizations, :unhidden)
+    method mro_unhidden($target, :$roles = 0, :$concretizations = 0) {
+        self.mro($target, :$roles, :$concretizations, :unhidden)
     }
 }
 

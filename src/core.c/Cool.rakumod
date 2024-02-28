@@ -472,9 +472,6 @@ my class Cool { # declared in BOOTSTRAP
         $_ := nqp::bitand_I(self.Int, 0xffffffffffffffff, Int);
         $_ >= 0x8000000000000000 ?? $_ - 0x10000000000000000 !! $_
     }
-    method !uint() {
-        nqp::bitand_I(self.Int, 0xffffffffffffffff, Int)
-    }
 
     method int  (--> int  ) is raw { my int   $a = self!int; $a }
     method int64(--> int64) is raw { my int64 $a = self!int; $a }
@@ -482,12 +479,30 @@ my class Cool { # declared in BOOTSTRAP
     method int16(--> int16) is raw { my int16 $a = self!int; $a }
     method int8( --> int8 ) is raw { my int8  $a = self!int; $a }
 
-    method uint  (--> uint  ) is raw { my uint   $a = self!uint; $a }
-    method uint64(--> uint32) is raw { my uint64 $a = self!uint; $a }
-    method uint32(--> uint32) is raw { my uint32 $a = self!uint; $a }
-    method uint16(--> uint16) is raw { my uint16 $a = self!uint; $a }
-    method uint8( --> uint8 ) is raw { my uint8  $a = self!uint; $a }
-    method byte(  --> byte  ) is raw { my byte   $a = self!uint; $a }
+    method uint  (--> uint  ) is raw {
+        my uint   $a = nqp::bitand_I(self.Int, 0xffffffffffffffff, Int);
+        $a
+    }
+    method uint64(--> uint32) is raw {
+        my uint64 $a = nqp::bitand_I(self.Int, 0xffffffffffffffff, Int);
+        $a
+    }
+    method uint32(--> uint32) is raw {
+        my uint32 $a = nqp::bitand_I(self.Int, 0x00000000ffffffff, Int);
+        $a
+    }
+    method uint16(--> uint16) is raw {
+        my uint16 $a = nqp::bitand_I(self.Int, 0x000000000000ffff, Int);
+        $a
+    }
+    method uint8( --> uint8 ) is raw {
+        my uint8  $a = nqp::bitand_I(self.Int, 0x00000000000000ff, Int);
+        $a
+    }
+    method byte(  --> byte  ) is raw {
+        my byte   $a = nqp::bitand_I(self.Int, 0x00000000000000ff, Int);
+        $a
+    }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 

@@ -32,7 +32,7 @@ my @lower = ("",<<
   run samecase samemark samewith say sec sech set shell shift sign
   signal sin sinh skip sleep sleep-timer sleep-until slip slurp snip snitch
   so sort splice split sprintf spurt sqrt squish srand subbuf-rw substr
-  substr-rw succeed sum symlink tail take take-rw tan tanh tc tclc trim
+  substr-rw succeed sum symlink tail take take-rw tan tanh tc tclc trans trim
   trim-leading trim-trailing truncate uc unimatch uniname
   uninames uniparse uniprop uniprops unique unival univals unlink
   unpolar unshift val values warn wordcase words zprintf

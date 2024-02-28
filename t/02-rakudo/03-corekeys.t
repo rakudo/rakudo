@@ -820,6 +820,7 @@ my @allowed =
         Q{&snitch},
         Q{&sprintf},
         Q{&term:<nano>},
+        Q{&trans},
         Q{CORE-SETTING-REV},
         Q{Format},
         Q{Formatter},

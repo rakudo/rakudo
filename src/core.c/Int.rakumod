@@ -1,7 +1,5 @@
 my class Rat { ... }
-my class X::Cannot::Capture       { ... }
-my class X::Numeric::DivideByZero { ... }
-my class X::NYI::BigInt { ... }
+my class X::Cannot::Capture { ... }
 
 my class Int { ... }
 my subset UInt of Int where {

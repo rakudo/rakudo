@@ -11,7 +11,6 @@ my class Promise   { ... }
 my class Channel   { ... }
 my class X::OutOfRange { ... }
 my class X::Dynamic::NotFound { ... }
-my class X::SecurityPolicy::Eval { ... }
 my class X::Channel::ReceiveOnClosed { ... }
 
 my role QuantHash { ... }

@@ -1074,7 +1074,7 @@ my class X::NYI::Available is X::NYI {
         "Please install { self.available-str } for $.feature support. "
     }
 }
-my class X::NYI::BigInt is Exception {
+my class X::NYI::BigInt is Exception {  # XXX not used in core
     has $.op;
     has $.big;
     has $.side = 'right';

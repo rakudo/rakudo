@@ -1,6 +1,4 @@
-my class X::ControlFlow::Return { ... }
 my class X::Eval::NoSuchLang { ... }
-my class X::Multi::NoMatch { ... }
 my class X::NYI { ... }
 my class PseudoStash { ... }
 my class Label { ... }

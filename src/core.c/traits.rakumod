@@ -5,7 +5,6 @@ my class X::Comp::Trait::Unknown { ... }
 my class X::Composition::NotComposable { ... }
 my class X::Experimental { ... }
 my class X::Export::NameClash        { ... }
-my class X::Import::MissingSymbols   { ... }
 my class X::Inheritance::SelfInherit { ... }
 my class X::Inheritance::UnknownParent { ... }
 my class X::Inheritance::Unsupported { ... }

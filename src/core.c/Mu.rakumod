@@ -1,7 +1,6 @@
 my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
-my class X::Attribute::Required      { ... }
 my class WalkList                    { ... }
 
 my class Mu { # declared in BOOTSTRAP

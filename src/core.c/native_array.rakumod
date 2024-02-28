@@ -1,7 +1,6 @@
 my class X::Delete { ... }
 my class X::MustBeParametric { ... }
 my class X::TooManyDimensions { ... }
-my class X::TypeCheck::Assignment { ... }
 
 my class array does Iterable does Positional {
 

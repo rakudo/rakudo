@@ -770,8 +770,8 @@ my class Binder {
             elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '@!named_names')) {
                 # Slurpy or LoL-slurpy?
                 if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
-                    # Create Perl 6 array, create VM Array of all remaining things, then
-                    # store it.
+                    # Create Raku array, create VM Array of all remaining
+                    # things, then store it.
                     my $temp := nqp::list();
                     while $cur_pos_arg < $num_pos_args {
                         $got_prim := nqp::captureposprimspec($capture, $cur_pos_arg);
@@ -1998,7 +1998,7 @@ BEGIN {
     Proxy.HOW.compose(Proxy);
     Proxy.HOW.compose_repr(Proxy);
 
-    # Helper for creating a scalar attribute. Sets it up as a real Perl 6
+    # Helper for creating a scalar attribute. Sets it up as a real Raku 
     # Attribute instance, complete with container descriptor and optional
     # auto-viv container.
     sub scalar_attr($name, $type, $package, :$associative_delegate, :$auto_viv_container = 1) {
@@ -2117,7 +2117,7 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!why>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, scalar_attr('$!signature_constraint', Signature, Parameter, :!auto_viv_container));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
-            # If nonimnal type or attr_package is generic, so are we.
+            # If nominal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!type');
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
             my $sigc := nqp::getattr($self, Parameter, '$!signature_constraint');

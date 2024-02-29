@@ -4,6 +4,7 @@ my class Parameter { # declared in BOOTSTRAP
     #     has @!named_names
     #     has @!type_captures
     #     has int $!flags
+    #     has Mu $!type
     #     has @!post_constraints
     #     has Signature $!sub_signature
     #     has Code $!default_value
@@ -204,6 +205,7 @@ my class Parameter { # declared in BOOTSTRAP
     method name(Parameter:D: --> Str:D) {
         nqp::isnull_s($!variable_name) ?? '' !! $!variable_name
     }
+    method of(Parameter:D:) { $!type }
 
     method usage-name(Parameter:D: --> Str:D) {
         nqp::isnull_s($!variable_name)

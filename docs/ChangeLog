@@ -1,3 +1,34 @@
+New in 2024.02:
+
++ Improvements:
+    + Better errors for common array parameter mistakes [47fb8c35]
+    + Improve stability in heavy async situations [761153bc][5c289878]
+
++ Additions:
+    + Add Int/Real coercing versions of `infix:<div|mod>` [71c0151a]
+    + Implement sub form of &trans, mainly to support feed operators [b238fad8]
+    + Provide native int coercers to Int/Cool [a67842ac][1eaa9d71][dc5414d6]
+
++ Fixes:
+    + Avoid leaking repo.lock handle [155818f4][e6207699][7ca96bbd][a723c387]
+
++ Deprecations:
+
++ Internal:
+    * Document and/or streamline dispatchers and related [d176728c][78d4fbc0]
+      [344f7978][e6fd943f][02bc10c2][ccbe370a][07049e7f][b151e2d7][35760ceb]
+    * Streamline "core" (bootstrap, core, metamodel) [51297879][bae06a2c]
+      [6117df24][e93208ce][b0dd4ef4][6b231533][024212cd][8e840a51][19da50e3]
+      [88151678][975b6634][1dfd7b4b][9f0d361b][80ac4336][760e7a72][eef53371]
+      [02aaf9e9][0b759a7a][614571d2][67153138][4c86ef77][dab2c235][c944dae4]
+      [2e4113c5][69877047][d49cd4e0][9a828454][de923f1b][1ce9b4c6][3c9f07a8]
+      [24a1e67c][4181d461][2c64cbc7][4f64b487][5585454f][cf773dc2][68cd850f]
+      [fd936efe][04229899][3c218265][192d7d0a][3271329c][71dcfd42][52dfda3f]
+      [b720babd][9f7a3419]
+
++ RakuAST Development:
+    + RakuAST: some nano optimizations [9478d5c7]
+
 New in 2024.01:
 
 + Improvements:

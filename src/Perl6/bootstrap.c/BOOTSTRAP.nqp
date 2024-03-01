@@ -928,13 +928,16 @@ my class Binder {
     }
 
     method try_bind_sig($capture) {
-        # Get signature and lexpad.
-        my $caller := nqp::getcodeobj(nqp::callercode());
-        my $sig    := nqp::getattr($caller, Code, '$!signature');
-        my $lexpad := nqp::ctxcaller(nqp::ctx());
-
         # Call binder, and return non-zero if the bind is successful.
-        bind($capture, $sig, $lexpad, 0, NQPMu) == 0
+        nqp::not_i(
+          bind(
+            $capture,
+            nqp::getattr(nqp::getcodeobj(nqp::callercode), Code, '$!signature'),
+            nqp::ctxcaller(nqp::ctx),
+            0,
+            NQPMu
+          )
+        )
     }
 
     method bind_sig($capture) {

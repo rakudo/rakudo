@@ -2013,28 +2013,41 @@ BEGIN {
     # Helper for creating a scalar attribute. Sets it up as a real Raku 
     # Attribute instance, complete with container descriptor and optional
     # auto-viv container.
-    sub scalar_attr($name, $type, $package, :$associative_delegate, :$auto_viv_container = 1) {
-        my $cd := ContainerDescriptor.new(:of($type), :$name);
+    sub scalar_attr(
+      $name, $type, $package, :$associative_delegate, :$auto_viv_container = 1
+    ) {
+        my $container_descriptor := ContainerDescriptor.new(:$name, :of($type));
+
         if $auto_viv_container {
-            my $scalar := nqp::create(Scalar);
-            nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
-            nqp::bindattr($scalar, Scalar, '$!value', $type);
-            return Attribute.new( :$name, :$type, :$package,
-                :container_descriptor($cd), :auto_viv_container($scalar),
-                :$associative_delegate );
+            $auto_viv_container := nqp::create(Scalar);
+            nqp::bindattr($auto_viv_container, Scalar, '$!descriptor',
+              $container_descriptor);
+            nqp::bindattr($auto_viv_container, Scalar, '$!value', $type);
         }
         else {
-            return Attribute.new( :$name, :$type, :$package,
-                :container_descriptor($cd), :$associative_delegate );
+            $auto_viv_container := nqp::null;
         }
+
+        Attribute.new(
+          :$name, :$type, :$package,
+          :$container_descriptor, :$auto_viv_container, :$associative_delegate
+        )
     }
 
     # Helper for creating an attribute that vivifies to a clone of some VM
     # storage type (or, if it's a type object, is just initialized with that
     # type object); used for the storage slots of arrays and hashes.
-    sub storage_attr($name, $type, $package, $clonee, :$associative_delegate) {
-        return Attribute.new( :$name, :$type, :$package, :auto_viv_primitive($clonee),
-            :$associative_delegate );
+    sub storage_attr(
+      $name,
+      $type,
+      $package,
+      $auto_viv_primitive,
+      :$associative_delegate
+    ) {
+        Attribute.new(
+          :$name, :$type, :$package,
+          :$auto_viv_primitive, :$associative_delegate
+        )
     }
 
     # class Signature is Any{

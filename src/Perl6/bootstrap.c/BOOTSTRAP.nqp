@@ -668,32 +668,42 @@ my class Binder {
             $named_args := nqp::capturenamedshash($capture);
         }
 
+        # Fail on arity error by default
+        my int $arity_fail := 1;
+
         # Now we'll walk through the signature and go about binding things.
         my $named_names;
-        my int $cur_pos_arg := 0;
+        my int $cur_pos_arg;
         my int $num_pos_args := nqp::captureposelems($capture);
-        my int $suppress_arity_fail := 0;
+
         my int $num_params := nqp::elems(@params);
-        my int $i := 0;
+        my int $i;
         while $i < $num_params {
             # Get parameter object and its flags.
             my $param := nqp::atpos(@params, $i);
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
             my str $var_name := nqp::getattr_s($param, Parameter, '$!variable_name');
+
+            # Increment now to allow more easily determining whether this
+            # is the last parameter and to more easily obtain info on the
+            # next parameter.
             ++$i;
 
             # Is it looking for us to bind a capture here?
             my int $bind_fail;
             my int $got_prim;
             if $flags +& nqp::const::SIG_ELEM_IS_CAPTURE {
-                # Capture the arguments from this point forwards into a Capture.
-                # Of course, if there's no variable name we can (cheaply) do pretty
-                # much nothing.
+
+                # Capture the arguments from this point forwards into a
+                # Capture.  Of course, if there's no variable name we can
+                # (cheaply) do pretty much nothing.
                 if nqp::isnull_s($var_name)
-                    && !nqp::getattr($param, Parameter, '$!sub_signature')
-                    && !nqp::getattr($param, Parameter, '@!post_constraints') {
+                  && !nqp::getattr($param, Parameter, '$!sub_signature')
+                  && !nqp::getattr($param, Parameter, '@!post_constraints') {
                     $bind_fail := $BIND_RESULT_OK;
                 }
+
+                # Has a name, so we need to do the work.
                 else {
                     my $capsnap := nqp::create(Capture);
 
@@ -701,190 +711,274 @@ my class Binder {
                     my int $k := $cur_pos_arg;
                     while $k < $num_pos_args {
                         $got_prim := nqp::captureposprimspec($capture, $k);
-                        if $got_prim == 0 {
-                            nqp::push(@pos_args, nqp::captureposarg($capture, $k));
-                        }
-                        elsif $got_prim == 1 {
-                            nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_i($capture, $k), Int));
-                        }
-                        elsif $got_prim == 2 {
-                            nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
-                        }
-                        elsif $got_prim == 10 {
-                            nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_u($capture, $k), Int));
-                        }
-                        else {
-                            nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
-                        }
+                        nqp::push(@pos_args, $got_prim
+                          ?? $got_prim == 3
+                            ?? nqp::box_s(
+                                 nqp::captureposarg_s($capture, $k), Str
+                               )
+                            !! $got_prim == 2
+                              ?? nqp::box_n(
+                                   nqp::captureposarg_n($capture, $k), Num
+                                 )
+                              !! nqp::box_i(  # 1 or 10
+                                   $got_prim == 10
+                                     ?? nqp::captureposarg_u($capture, $k)
+                                     !! nqp::captureposarg_i($capture, $k),
+                                   Int
+                                 )
+                          !! nqp::captureposarg($capture, $k)
+                        );
                         ++$k;
                     }
+
                     nqp::bindattr($capsnap, Capture, '@!list', @pos_args);
+                    nqp::bindattr($capsnap, Capture, '%!hash',
+                      $named_args ?? nqp::clone($named_args) !! nqp::hash
+                    );
 
-                    if $named_args {
-                        nqp::bindattr($capsnap, Capture, '%!hash', nqp::clone($named_args));
-                    }
-                    else {
-                        nqp::bindattr($capsnap, Capture, '%!hash', nqp::hash());
-                    }
+                    # Bind the parameter
+                    $bind_fail := bind_one_param(
+                      $lexpad, $sig, $param, $no_param_type_check, $error,
+                      0, $capsnap, 0, 0.0, '');
+                }
 
-                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                        0, $capsnap, 0, 0.0, '');
-                }
-                if ($bind_fail) {
-                    return $bind_fail;
-                }
-                elsif $i == $num_params {
-                    # Since a capture acts as "the ultimate slurpy" in a sense, if
-                    # this is the last parameter in the signature we can return
-                    # success right off the bat.
-                    return $BIND_RESULT_OK;
-                }
-                else {
-                    my $next_param := nqp::atpos(@params, $i);
-                    my int $next_flags := nqp::getattr_i($next_param, Parameter, '$!flags');
-                    if $next_flags +& (nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_NAMED) {
-                        $suppress_arity_fail := 1;
-                    }
-                }
+                return $bind_fail if $bind_fail;
+
+                # Since a capture acts as "the ultimate slurpy" in a sense, if
+                # this is the last parameter in the signature we can return
+                # success right off the bat.
+                return $BIND_RESULT_OK if $i == $num_params;
+
+                # Not the last parameter, reset flag if next is slurpy
+                $arity_fail := 0
+                  if nqp::getattr_i(nqp::atpos(@params,$i),Parameter,'$!flags')
+                  +& (nqp::const::SIG_ELEM_SLURPY_POS
+                       +| nqp::const::SIG_ELEM_SLURPY_NAMED);
             }
 
             # Could it be a named slurpy?
             elsif $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED {
-                # We'll either take the current named arguments copy hash which
-                # will by definition contain all unbound named arguments and use
-                # that. If there are none, just keep the storage uninitialized
-                # and rely on autovivification to build up an empty nqp::hash
-                # whenever needed.
+
+                # We'll either take the current named arguments copy hash
+                # which will by definition contain all unbound named arguments
+                # and use that. If there are none, just keep the storage
+                # uninitialized and rely on autovivification to build up an
+                # empty nqp::hash whenever needed.
                 my $hash := nqp::create(Hash);
-                nqp::bindattr($hash, Map, '$!storage', $named_args) if $named_args;
-                $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                    0, $hash, 0, 0.0, '');
+                nqp::bindattr($hash, Map, '$!storage', $named_args)
+                  if $named_args;
+                $bind_fail := bind_one_param(
+                  $lexpad, $sig, $param, $no_param_type_check, $error,
+                  0, $hash, 0, 0.0, '');
+
+                # Done if failed
                 return $bind_fail if $bind_fail;
 
-                # Undefine named arguments hash now we've consumed it, to mark all
-                # is well.
+                # Undefine named arguments hash now we've consumed it, to mark
+                # all is well.
                 $named_args := NQPMu;
             }
 
             # Otherwise, maybe it's a positional.
-            elsif nqp::isnull($named_names := nqp::getattr($param, Parameter, '@!named_names')) {
+            elsif nqp::isnull(
+              $named_names := nqp::getattr($param, Parameter, '@!named_names')
+            ) {
+
                 # Slurpy or LoL-slurpy?
-                if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
+                if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS
+                               +| nqp::const::SIG_ELEM_SLURPY_LOL
+                               +| nqp::const::SIG_ELEM_SLURPY_ONEARG
+                             ) {
+
                     # Create Raku array, create VM Array of all remaining
                     # things, then store it.
-                    my $temp := nqp::list();
+                    my $temp := nqp::list;
                     while $cur_pos_arg < $num_pos_args {
-                        $got_prim := nqp::captureposprimspec($capture, $cur_pos_arg);
-                        if $got_prim == 0 {
-                            nqp::push($temp, nqp::captureposarg($capture, $cur_pos_arg));
-                        }
-                        elsif $got_prim == 1 {
-                            nqp::push($temp, nqp::box_i(nqp::captureposarg_i($capture, $cur_pos_arg), Int));
-                        }
-                        elsif $got_prim == 2 {
-                            nqp::push($temp, nqp::box_n(nqp::captureposarg_n($capture, $cur_pos_arg), Num));
-                        }
-                        elsif $got_prim == 10 {
-                            nqp::push($temp, nqp::box_i(nqp::captureposarg_u($capture, $cur_pos_arg), Int));
-                        }
-                        else {
-                            nqp::push($temp, nqp::box_s(nqp::captureposarg_s($capture, $cur_pos_arg), Str));
-                        }
+                        $got_prim :=
+                          nqp::captureposprimspec($capture, $cur_pos_arg);
+
+                        nqp::push($temp, $got_prim
+                          ?? $got_prim == 3
+                            ?? nqp::box_s(
+                                 nqp::captureposarg_s($capture, $cur_pos_arg),
+                                 Str
+                               )
+                            !! $got_prim == 2
+                              ?? nqp::box_n(
+                                   nqp::captureposarg_n($capture, $cur_pos_arg),
+                                   Num
+                                 )
+                              !! nqp::box_i(  # 1 or 10
+                                   $got_prim == 10
+                                     ?? nqp::captureposarg_u(
+                                          $capture, $cur_pos_arg
+                                        )
+                                     !! nqp::captureposarg_i(
+                                          $capture, $cur_pos_arg
+                                        ),
+                                   Int
+                                 )
+                          !! nqp::captureposarg($capture, $cur_pos_arg)
+                        );
                         ++$cur_pos_arg;
                     }
-                    my $slurpy_type := $flags +& nqp::const::SIG_ELEM_IS_RAW || $flags +& nqp::const::SIG_ELEM_IS_RW ?? List !! Array;
+
+                    my $slurpy_type := $flags +& nqp::const::SIG_ELEM_IS_RAW
+                      || $flags +& nqp::const::SIG_ELEM_IS_RW
+                      ?? List
+                      !! Array;
+
                     my $bindee := $flags +& nqp::const::SIG_ELEM_SLURPY_ONEARG
-                        ?? $slurpy_type.from-slurpy-onearg($temp)
-                        !! $flags +& nqp::const::SIG_ELEM_SLURPY_POS
+                      ?? $slurpy_type.from-slurpy-onearg($temp)
+                      !! $flags +& nqp::const::SIG_ELEM_SLURPY_POS
                         ?? $slurpy_type.from-slurpy-flat($temp)
                         !! $slurpy_type.from-slurpy($temp);
-                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                        0, $bindee, 0, 0.0, '');
+
+                    $bind_fail := bind_one_param(
+                      $lexpad, $sig, $param, $no_param_type_check, $error,
+                      0, $bindee, 0, 0.0, '');
                     return $bind_fail if $bind_fail;
                 }
 
-                # Otherwise, a positional.
+                # Otherwise, a positional.   Do we have a value?
+                elsif $cur_pos_arg < $num_pos_args {
+                    # Easy - just bind that.
+                    $got_prim :=
+                      nqp::captureposprimspec($capture, $cur_pos_arg);
+
+                    $bind_fail := $got_prim
+                      ?? $got_prim == 3
+                        ?? bind_one_param(
+                             $lexpad, $sig, $param, $no_param_type_check,
+                             $error,
+                             nqp::const::SIG_ELEM_NATIVE_STR_VALUE,
+                             nqp::null,
+                             0,
+                             0.0,
+                             nqp::captureposarg_s($capture, $cur_pos_arg)
+                           )
+                        !! $got_prim == 2
+                          ?? bind_one_param(
+                               $lexpad, $sig, $param, $no_param_type_check,
+                               $error,
+                               nqp::const::SIG_ELEM_NATIVE_NUM_VALUE,
+                               nqp::null,
+                               0,
+                               nqp::captureposarg_n($capture, $cur_pos_arg),
+                               ''
+                             )
+                          !! bind_one_param(  # 1 or 10
+                               $lexpad, $sig, $param, $no_param_type_check,
+                               $error,
+                               nqp::const::SIG_ELEM_NATIVE_INT_VALUE,
+                               nqp::null,
+                               $got_prim == 10
+                                 ?? nqp::captureposarg_u($capture,$cur_pos_arg)
+                                 !! nqp::captureposarg_i($capture,$cur_pos_arg),
+                               0.0,
+                               ''
+                             )
+                      !! bind_one_param(
+                           $lexpad, $sig, $param, $no_param_type_check,
+                           $error,
+                           0,
+                           nqp::captureposarg($capture, $cur_pos_arg),
+                           0,
+                           0.0,
+                           ''
+                         );
+
+                    return $bind_fail if $bind_fail;
+                    ++$cur_pos_arg;
+                }
+
+                # No value. If it's optional, fetch a default and bind that;
+                # Note that we never nominal type check an optional with no
+                # value passed.
+                elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
+                    $bind_fail := bind_one_param(
+                      $lexpad, $sig, $param, $no_param_type_check,
+                      $error,
+                      0,
+                      handle_optional($param, $flags, $lexpad),
+                      0,
+                      0.0,
+                      ''
+                    );
+
+                    return $bind_fail if $bind_fail;
+                }
+
+                # Optional and no default
                 else {
-                    # Do we have a value?
-                    if $cur_pos_arg < $num_pos_args {
-                        # Easy - just bind that.
-                        $got_prim := nqp::captureposprimspec($capture, $cur_pos_arg);
-                        if $got_prim == 0 {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                0, nqp::captureposarg($capture, $cur_pos_arg), 0, 0.0, '');
-                        }
-                        elsif $got_prim == 1 {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                nqp::const::SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_i($capture, $cur_pos_arg), 0.0, '');
-                        }
-                        elsif $got_prim == 2 {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                nqp::const::SIG_ELEM_NATIVE_NUM_VALUE, nqp::null(), 0, nqp::captureposarg_n($capture, $cur_pos_arg), '');
-                        }
-                        elsif $got_prim == 10 {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                nqp::const::SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_u($capture, $cur_pos_arg), 0.0, '');
-                        }
-                        else {
-                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                                nqp::const::SIG_ELEM_NATIVE_STR_VALUE, nqp::null(), 0, 0.0, nqp::captureposarg_s($capture, $cur_pos_arg));
-                        }
-                        return $bind_fail if $bind_fail;
-                        ++$cur_pos_arg;
-                    }
-                    # No value. If it's optional, fetch a default and bind that;
-                    # if not, we're screwed. Note that we never nominal type check
-                    # an optional with no value passed.
-                    elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                        $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                            0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
-                        return $bind_fail if $bind_fail;
-                    }
-                    else {
-                        if nqp::defined($error) {
-                            $error[0] := arity_fail(@params, $num_params, $num_pos_args, 0, $lexpad);
-                        }
-                        return $BIND_RESULT_FAIL;
-                    }
+                    nqp::bindpos($error, 0, arity_fail(
+                      @params, $num_params, $num_pos_args, 0, $lexpad
+                    )) if nqp::defined($error);
+
+                    return $BIND_RESULT_FAIL;
                 }
             }
 
             # Else, it's a non-slurpy named.
             else {
                 # Try and get hold of value.
-                my $value := nqp::null();
+                my $value := nqp::null;
                 if $named_args {
-                    my int $num_names := nqp::elems($named_names);
-                    my int $j := -1;
                     my str $cur_name;
-                    while ++$j < $num_names {
+
+                    my int $num_names := nqp::elems($named_names);
+                    my int $j;
+                    while $j < $num_names {
                         $cur_name := nqp::atpos_s($named_names, $j);
-                        $value := nqp::atkey($named_args, $cur_name);
-                        unless nqp::isnull($value) {
+                        $value    := nqp::atkey($named_args, $cur_name);
+
+                        if nqp::isnull($value) {
+                            ++$j;
+                        }
+                        else {
                             nqp::deletekey($named_args, $cur_name);
                             $j := $num_names;
                         }
+
                     }
                 }
 
                 # Did we get one?
                 if nqp::isnull($value) {
+
                     # Nope. We'd better hope this param was optional...
                     if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                        $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                            0, handle_optional($param, $flags, $lexpad), 0, 0.0, '');
+                        $bind_fail := bind_one_param(
+                          $lexpad, $sig, $param, $no_param_type_check,
+                          $error,
+                          0,
+                          handle_optional($param, $flags, $lexpad),
+                          0,
+                          0.0,
+                          ''
+                        );
                     }
-                    elsif !$suppress_arity_fail {
-                        if nqp::defined($error) {
-                            $error[0] := "Required named argument '" ~
-                                nqp::atpos_s($named_names,0) ~ "' not passed";
-                        }
+                    elsif $arity_fail {
+                        nqp::bindpos($error, 0, "Required named argument '"
+                          ~ nqp::atpos_s($named_names,0)
+                          ~ "' not passed"
+                        ) if nqp::defined($error);
+
                         return $BIND_RESULT_FAIL;
                     }
                 }
+
+                # Found a value
                 else {
-                    $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
-                        0, $value, 0, 0.0, '');
+                    $bind_fail := bind_one_param(
+                      $lexpad, $sig, $param, $no_param_type_check,
+                      $error,
+                      0,
+                      $value,
+                      0,
+                      0.0,
+                      ''
+                    );
                 }
 
                 # If we got a binding failure, return it.
@@ -893,34 +987,42 @@ my class Binder {
         }
 
         # Do we have any left-over args?
-        if $cur_pos_arg < $num_pos_args && !$suppress_arity_fail {
+        if $cur_pos_arg < $num_pos_args && $arity_fail {
+
             # Oh noes, too many positionals passed.
-            if nqp::defined($error) {
-                $error[0] := arity_fail(@params, $num_params, $num_pos_args, 1, $lexpad);
-            }
-            return $BIND_RESULT_FAIL;
+            nqp::bindpos($error, 0, arity_fail(
+              @params, $num_params, $num_pos_args, 1, $lexpad
+            )) if nqp::defined($error);
+
+            $BIND_RESULT_FAIL
         }
-        if $named_args {
-            # Oh noes, unexpected named args.
+
+        # Oh noes, unexpected named args.
+        elsif $named_args {
+
             if nqp::defined($error) {
                 my int $num_extra := nqp::elems($named_args);
                 my @names;
                 for $named_args {
                     nqp::push(@names, $_.key);
                 }
-                if $num_extra == 1 {
-                    $error[0] := "Unexpected named argument '" ~ @names[0] ~ "' passed";
-                }
-                else {
-                    $error[0] := $num_extra ~ " unexpected named arguments passed (" ~
-                        nqp::join(",", @names) ~")";
-                }
+
+                nqp::bindpos($error, 0, $num_extra == 1
+                  ?? "Unexpected named argument '"
+                       ~ nqp::atpos(@names, 0)
+                       ~ "' passed"
+                  !! "$num_extra  unexpected named arguments passed ("
+                       ~ nqp::join(",", @names)
+                       ~")"
+                );
             }
-            return $BIND_RESULT_FAIL;
+            $BIND_RESULT_FAIL
         }
 
         # If we get here, we're done.
-        return $BIND_RESULT_OK;
+        else {
+            $BIND_RESULT_OK
+        }
     }
 
     method bind($capture, $sig, $lexpad, int $no_param_type_check, $error) {
@@ -2013,7 +2115,7 @@ BEGIN {
     Proxy.HOW.compose(Proxy);
     Proxy.HOW.compose_repr(Proxy);
 
-    # Helper for creating a scalar attribute. Sets it up as a real Raku 
+    # Helper for creating a scalar attribute. Sets it up as a real Raku
     # Attribute instance, complete with container descriptor and optional
     # auto-viv container.
     sub scalar_attr(

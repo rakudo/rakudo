@@ -1555,50 +1555,62 @@ BEGIN {
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!composed>, :type(int), :package(Attribute)));
 
     # Need new and accessor methods for Attribute in here for now.
-    Attribute.HOW.add_method(Attribute, 'new',
-        nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!,
-          :$inlined = 0, :$has_accessor = 0, :$is_built = $has_accessor,
-          :$is_bound = 0, :$positional_delegate = 0, :$associative_delegate = 0,
-          *%other) {
-            my $attr := nqp::create($self);
-            nqp::bindattr_s($attr, Attribute, '$!name', $name);
-            nqp::bindattr($attr, Attribute, '$!type', nqp::decont($type));
-            nqp::bindattr_i($attr, Attribute, '$!is_built', $is_built);
-            nqp::bindattr_i($attr, Attribute, '$!is_bound', $is_bound);
-            nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
-            nqp::bindattr($attr, Attribute, '$!package', nqp::decont($package));
-            nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
-            nqp::bindattr($attr, Attribute, '$!original', $attr);
-            if nqp::existskey(%other, 'auto_viv_primitive') {
-                nqp::bindattr($attr, Attribute, '$!auto_viv_container',
-                    %other<auto_viv_primitive>);
-            }
-            elsif nqp::existskey(%other, 'container_descriptor') {
-                nqp::bindattr($attr, Attribute, '$!container_descriptor', %other<container_descriptor>);
-                if nqp::existskey(%other, 'auto_viv_container') {
-                    nqp::bindattr($attr, Attribute, '$!auto_viv_container',
-                        %other<auto_viv_container>);
-                }
-            }
-            else {
-                my $cd := ContainerDescriptor.new(:of(nqp::decont($type)), :$name);
-                my $scalar := nqp::create(Scalar);
-                nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
-                nqp::bindattr($scalar, Scalar, '$!value', nqp::decont($type));
-                nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
-                nqp::bindattr($attr, Attribute, '$!auto_viv_container', $scalar);
-            }
-            if nqp::existskey(%other, 'container_initializer') {
-                nqp::bindattr($attr, Attribute, '$!container_initializer',
-                    %other<container_initializer>);
-            }
-            nqp::bindattr_i($attr, Attribute, '$!positional_delegate', $positional_delegate);
-            nqp::bindattr_i($attr, Attribute, '$!associative_delegate', $associative_delegate);
-            if nqp::existskey(%other, 'build') {
-                $attr.set_build(%other<build>);
-            }
-            $attr
-        }));
+    Attribute.HOW.add_method(Attribute, 'new', nqp::getstaticcode(sub (
+       $self, :$name!, :$type!, :$package!, *%_
+    ) {
+        my $attr := nqp::create($self);
+        $type    := nqp::decont($type);
+
+        nqp::bindattr_s($attr, Attribute, '$!name', $name);
+
+        nqp::bindattr($attr, Attribute, '$!type',     $type);
+        nqp::bindattr($attr, Attribute, '$!package',  nqp::decont($package));
+        nqp::bindattr($attr, Attribute, '$!original', $attr);
+
+        nqp::bindattr_i($attr, Attribute, '$!has_accessor',
+          my int $has_accessor := nqp::ifnull(nqp::atkey(%_,'has_accessor'),0));
+        nqp::bindattr_i($attr, Attribute, '$!is_built',
+          nqp::ifnull(nqp::atkey(%_, 'is_bound'), $has_accessor));
+
+        nqp::bindattr_i($attr, Attribute, '$!is_bound',
+          nqp::ifnull(nqp::atkey(%_, 'is_bound'), 0));
+        nqp::bindattr_i($attr, Attribute, '$!inlined',
+          nqp::ifnull(nqp::atkey(%_, 'inlined'), 0));
+        nqp::bindattr_i($attr, Attribute, '$!positional_delegate',
+          nqp::ifnull(nqp::atkey(%_, 'positional_delegate'), 0));
+        nqp::bindattr_i($attr, Attribute, '$!associative_delegate',
+          nqp::ifnull(nqp::atkey(%_, 'associative_delegate'), 0));
+
+        if nqp::existskey(%_, 'auto_viv_primitive') {
+            nqp::bindattr($attr, Attribute, '$!auto_viv_container',
+              nqp::ifnull(nqp::atkey(%_, 'auto_viv_primitive'), NQPMu));
+        }
+
+        elsif nqp::existskey(%_, 'container_descriptor') {
+            nqp::bindattr($attr, Attribute, '$!container_descriptor',
+              nqp::atkey(%_, 'container_descriptor'));
+
+            nqp::bindattr($attr, Attribute, '$!auto_viv_container',
+              nqp::atkey(%_, 'auto_viv_container')
+            ) if nqp::existskey(%_, 'auto_viv_container');
+        }
+        else {
+            my $cd     := ContainerDescriptor.new(:of($type), :$name);
+            my $scalar := nqp::create(Scalar);
+            nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
+            nqp::bindattr($scalar, Scalar, '$!value',      $type);
+            nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
+            nqp::bindattr($attr, Attribute, '$!auto_viv_container',   $scalar);
+        }
+
+        nqp::bindattr($attr, Attribute, '$!container_initializer',
+          nqp::atkey(%_, 'container_initializer')
+        ) if nqp::existskey(%_, 'container_initializer');
+
+        nqp::existskey(%_, 'build')
+          ?? $attr.set_build(nqp::atkey(%_, 'build'))
+          !! $attr
+    }));
     Attribute.HOW.add_method(Attribute, 'name', nqp::getstaticcode(sub ($self) {
             nqp::getattr_s(nqp::decont($self),
                 Attribute, '$!name');

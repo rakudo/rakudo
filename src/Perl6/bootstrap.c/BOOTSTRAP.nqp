@@ -2064,15 +2064,24 @@ BEGIN {
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Num), :package(Signature)));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Code), :package(Signature)));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!readonly>, :type(int), :package(Signature)));
-    Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub ($self) {
-            # If any parameter is generic, so are we.
-            my @params := nqp::getattr($self, Signature, '@!params');
-            for @params {
-                my $is_generic := $_.is_generic();
-                if $is_generic { return $is_generic }
-            }
-            return nqp::hllboolfor(0, "Raku");
-        }));
+
+    Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub (
+      $self
+    ) {   # XXX this should be an attribute, set at build time
+
+        # If any parameter is generic, so are we.
+        my @params := nqp::getattr($self, Signature, '@!params');
+        my int $m := nqp::elems(@params);
+        my int $i;
+        while $i < $m {
+            nqp::atpos(@params, $i).is_generic
+              ?? (return 1)
+              !! ++$i;
+        }
+
+        0
+    }));
+
     Signature.HOW.add_method(Signature, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Go through parameters, builidng new list. If any
             # are generic, instantiate them. Otherwise leave them

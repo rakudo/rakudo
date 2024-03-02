@@ -113,6 +113,7 @@ my stub Int64PosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 #?endif
 
+#- Binder ----------------------------------------------------------------------
 # Implement the signature binder.
 # The JVM backend really only uses trial_bind,
 # so we exclude everything else.
@@ -1141,9 +1142,9 @@ my class Binder {
 
     method bind_sig($capture) {
         # Get signature and lexpad.
-        my $caller := nqp::getcodeobj(nqp::callercode());
+        my $caller := nqp::getcodeobj(nqp::callercode);
         my $sig    := nqp::getattr($caller, Code, '$!signature');
-        my $lexpad := nqp::ctxcaller(nqp::ctx());
+        my $lexpad := nqp::ctxcaller(nqp::ctx);
 
         # Call binder.
         my @error;
@@ -1151,66 +1152,77 @@ my class Binder {
         if $bind_res {
             if $bind_res == $BIND_RESULT_JUNCTION {
                 my @pos_args;
+
                 my int $num_pos_args := nqp::captureposelems($capture);
-                my int $k := -1;
-                my int $got_prim;
-                while ++$k < $num_pos_args {
-                    $got_prim := nqp::captureposprimspec($capture, $k);
-                    if $got_prim == 0 {
-                        nqp::push(@pos_args, nqp::captureposarg($capture, $k));
-                    }
-                    elsif $got_prim == 1 {
-                        nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_i($capture, $k), Int));
-                    }
-                    elsif $got_prim == 2 {
-                        nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
-                    }
-                    elsif $got_prim == 10 {
-                        nqp::push(@pos_args, nqp::box_u(nqp::captureposarg_u($capture, $k), Int));
-                    }
-                    else {
-                        nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
-                    }
+                my int $k;
+                while $k < $num_pos_args {
+                    my $got_prim := nqp::captureposprimspec($capture, $k);
+                    nqp::push(@pos_args, $got_prim
+                      ?? $got_prim == 3
+                        ?? nqp::box_s(nqp::captureposarg_s($capture, $k), Str)
+                        !! $got_prim == 1
+                          ?? nqp::box_i(nqp::captureposarg_i($capture, $k), Int)
+                          !! $got_prim == 2
+                            ?? nqp::box_n(
+                                 nqp::captureposarg_n($capture, $k), Num)
+                            !! nqp::box_u(  # assume 10
+                                 nqp::captureposarg_u($capture, $k), Int)
+                      !! nqp::captureposarg($capture, $k)
+                    );
+
+                    ++$k;
                 }
-                my %named_args := nqp::capturenamedshash($capture);
-                return Junction.AUTOTHREAD($caller,
-                        |@pos_args,
-                        |%named_args);
+
+                Junction.AUTOTHREAD(
+                  $caller,
+                  |@pos_args,
+                  |nqp::capturenamedshash($capture)
+                );
             }
             else {
-                nqp::isinvokable(@error[0]) ?? @error[0]() !! nqp::die(@error[0]);
+                my $error := nqp::atpos(@error, 0);
+                nqp::isinvokable($error) ?? $error() !! nqp::die($error);
             }
         }
-        nqp::null();
+        else {
+            nqp::null;
+        }
     }
 
     sub make_vm_capture($capture) {
-        sub vm_capture(*@pos, *%named) { nqp::savecapture() }
+        sub vm_capture(*@pos, *%named) { nqp::savecapture }
+
         my @list := nqp::getattr($capture, Capture, '@!list');
-        @list    := nqp::list() unless nqp::islist(@list);
+        @list    := nqp::list unless nqp::islist(@list);
         my %hash := nqp::getattr($capture, Capture, '%!hash');
-        %hash    := nqp::hash() unless nqp::ishash(%hash);
+        %hash    := nqp::hash unless nqp::ishash(%hash);
         vm_capture(|@list, |%hash)
     }
 
     method is_bindable($sig, $capture) {
-        unless nqp::reprname($capture) eq 'MVMCapture' {
-            $capture := make_vm_capture($capture);
-        }
-        my $bind-test := -> {
-            bind($capture, $sig, nqp::ctxcaller(nqp::ctx()), 0, NQPMu) != $BIND_RESULT_FAIL
-        }
+        $capture := make_vm_capture($capture)
+          unless nqp::reprname($capture) eq 'MVMCapture';
+
         nqp::p6invokeunder(
-            nqp::getattr(nqp::getattr($sig, Signature, '$!code'), Code, '$!do'),
-            $bind-test)
+          nqp::getattr(nqp::getattr($sig, Signature, '$!code'), Code, '$!do'),
+          -> {
+              bind(
+                $capture, $sig, nqp::ctxcaller(nqp::ctx), 0, NQPMu
+              ) != $BIND_RESULT_FAIL
+             }
+        )
     }
 
-    method bind_cap_to_sig($sig, $cap) {
-        my $capture := make_vm_capture($cap);
-        my $lexpad  := nqp::ctxcaller(nqp::ctx());
-        my @error;
-        if bind($capture, $sig, $lexpad, 0, @error) != $BIND_RESULT_OK {
-            nqp::isinvokable(@error[0]) ?? @error[0]() !! nqp::die(@error[0]);
+    method bind_cap_to_sig($sig, $capture) {
+        if bind(
+             make_vm_capture($capture),
+             $sig,
+             nqp::ctxcaller(nqp::ctx),
+             0,
+             my @error
+        ) {
+            my $error := nqp::atpos(@error, 0);
+            nqp::isinvokable($error) ?? $error() !! nqp::die($error);
         }
         $sig
     }

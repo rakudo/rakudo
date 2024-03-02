@@ -169,6 +169,99 @@ my class Binder {
         }
     }
 
+    # Helper sub to create block with concreteness fail error message
+    sub concreteness_fail(
+      :$lexpad,
+      :$param_type,
+      :$oval,
+      :$varname,
+      :$should_be_concrete,
+      :$flags,
+    ) {
+        my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
+        my $class  := $param_type.HOW.name($param_type);
+        my $got    := $oval.HOW.name($oval);
+
+        my $msg := $flags +& nqp::const::SIG_ELEM_INVOCANT
+          ?? $should_be_concrete
+            ?? "Invocant of method '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
+            !! "Invocant of method '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?"
+          !! $should_be_concrete
+            ?? "Parameter '$varname' of routine '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
+            !! "Parameter '$varname' of routine '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?";
+
+        -> {
+          Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Parameter::InvalidConcreteness',
+            $msg,
+            :expected($class),
+            :$got,
+            :routine($method),
+            :param($varname),
+            :should-be-concrete(
+              nqp::hllboolfor($should_be_concrete, 'Raku')
+            ),
+            :param-is-invocant(
+              nqp::hllboolfor($flags +& nqp::const::SIG_ELEM_INVOCANT, 'Raku')
+            )
+          );
+        }
+    }
+
+    # Helper sub to create block with typecheck fail error message
+    sub typecheck_fail(
+      :$param,
+      :$varname,
+      :$oval,
+      :$param_type,
+    ) {
+        # Try to figure out the most helpful name for the
+        # expected
+        my $expected := (
+          (my $post := nqp::getattr($param, Parameter,
+            '@!post_constraints'))
+          && nqp::not_i(nqp::istype(nqp::atpos($post, 0), Code))
+        ) ?? nqp::atpos($post, 0)
+          !! $param_type;
+
+        my $msg :=
+          "Nominal type check failed for parameter '"
+          ~ $varname
+          ~ "'; expected "
+          ~ $expected.HOW.name($expected)
+          ~ " but got "
+          ~ $oval.HOW.name($oval);
+
+        # A lot of beginners make mistakes when typing
+        # array parameters, so let's try and catch some
+        # of the common ones
+        if nqp::eqaddr($param_type, $Positional) {
+
+            # Positionals have an `of` method
+            if nqp::istype($expected.of, Array) {
+                $msg := $msg
+                  ~ ". Did you mean to expect an array of Arrays?"
+            }
+
+            # but we don't know what $!got is and it may
+            # not have an `of` method
+            elsif nqp::can($oval, 'of') && nqp::istype($oval.of, Mu) {
+                $msg := $msg
+                  ~ ". You have to pass an explicitly typed array, not one that just might happen to contain elements of the correct type.";
+            }
+        }
+
+        -> {
+            Perl6::Metamodel::Configuration.throw_or_die(
+              'X::TypeCheck::Binding::Parameter',
+              $msg,
+              :got($oval),
+              :expected($expected.WHAT),
+              :symbol(nqp::hllizefor($varname, 'Raku')),
+              :parameter($param))
+        }
+    }
+
     method set_autothreader($callable) {
         $autothreader := $callable;
     }
@@ -179,8 +272,18 @@ my class Binder {
     }
 
     # Binds a single parameter.
-    sub bind_one_param($lexpad, $sig, $param, int $no_param_type_check, $error,
-                       int $got_native, $oval, int $ival, num $nval, str $sval) {
+    sub bind_one_param(
+      $lexpad,
+      $sig,
+      $param,
+      int $no_param_type_check,
+      $error,
+      int $got_native,
+      $oval,
+      int $ival,
+      num $nval,
+      str $sval
+    ) {
         # Grab flags and variable name.
         my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
         my str $varname := nqp::getattr_s($param, Parameter, '$!variable_name');
@@ -195,24 +298,27 @@ my class Binder {
         if $is_rw && $desired_native {
             if $got_native {
                 if $desired_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE
-                  && !nqp::iscont_i($oval)
+                  && nqp::not_i(nqp::iscont_i($oval))
                   ?? "int"
                   !! $desired_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
-                       && !nqp::iscont_u($oval)
+                       && nqp::not_i(nqp::iscont_u($oval))
                     ?? "unsigned int"
                     !! $desired_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
-                         && !nqp::iscont_n($oval)
+                         && nqp::not_i(nqp::iscont_n($oval))
                       ?? "num"
-                      !! !nqp::iscont_s($oval)  # SIG_ELEM_NATIVE_STR_VALUE
+                      # SIG_ELEM_NATIVE_STR_VALUE
+                      !! nqp::not_i(nqp::iscont_s($oval))
                         ?? "str"
                         !! 0 -> $expected {
-                    if nqp::defined($error) {
-                        $error[0] := "Expected a modifiable native $expected argument for '$varname'";
-                    }
+                    nqp::bindpos($error, 0,
+                      "Expected a modifiable native $expected argument for '$varname'"
+                    ) if nqp::defined($error);
+
                     return $BIND_RESULT_FAIL;
                 }
             }
         }
+
         elsif $desired_native != $got_native {
             # Maybe we need to box the native.
             if $desired_native == 0 {
@@ -227,7 +333,8 @@ my class Binder {
             }
 
             # Otherwise, maybe we need to unbox.
-            elsif !$got_native {
+            elsif nqp::not_i($got_native) {
+
                 # XXX Probably want to do this a little differently to get a
                 # better error.
                 $desired_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE
@@ -242,11 +349,13 @@ my class Binder {
 
             # Otherwise, incompatible native types.
             else {
-                if nqp::defined($error) {
-                    $error[0] := "Incompatible native type passed for '$varname'";
-                }
+                nqp::bindpos($error, 0,
+                  "Incompatible native type passed for '$varname'"
+                ) if nqp::defined($error);
+
                 return $BIND_RESULT_FAIL;
             }
+
             $got_native := $desired_native;
         }
 
@@ -260,98 +369,59 @@ my class Binder {
 
             # Skip nominal type check if not needed.
             unless $no_param_type_check {
-                # Is the nominal type generic and in need of instantiation? (This
-                # can happen in (::T, T) where we didn't learn about the type until
-                # during the signature bind).
+                # Is the nominal type generic and in need of instantiation?
+                # (This can happen in (::T, T) where we didn't learn about
+                # the type until during the signature bind).
                 if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
-                    $param_type := $param_type.HOW.instantiate_generic($param_type, $lexpad);
+                    $param_type :=
+                      $param_type.HOW.instantiate_generic($param_type, $lexpad);
                 }
 
                 # If the expected type is Positional, see if we need to do the
                 # positional bind failover.
-                if nqp::eqaddr($param_type, $Positional) && nqp::istype($oval, $PositionalBindFailover) {
-                    $oval := $oval.cache;
-                }
+                $oval := $oval.cache
+                  if nqp::eqaddr($param_type, $Positional)
+                  && nqp::istype($oval, $PositionalBindFailover);
 
                 # If not, do the check. If the wanted nominal type is Mu, then
                 # anything goes.
-                unless $param_type =:= Mu || nqp::istype($oval, $param_type) {
-                    # Type check failed; produce error if needed.
-
-                    # Try to figure out the most helpful name for the expected
-                    my $expected := (
-                      (my $post := nqp::getattr($param, Parameter,
-                        '@!post_constraints'))
-                      && ! nqp::istype(nqp::atpos($post, 0), Code)
-                    ) ?? nqp::atpos($post, 0) !! $param_type;
-
-                    if nqp::defined($error) {
-                        $error[0] := {
-                            my $msg :=
-                                "Nominal type check failed for parameter '" ~ $varname
-                                    ~ "'; expected " ~ $expected.HOW.name($expected)
-                                    ~ " but got " ~ $oval.HOW.name($oval);
-
-                            # A lot of beginners make mistakes when typing array parameters,
-                            # so let's try and catch some of the common ones
-                            if nqp::eqaddr($param_type, $Positional) {
-                                # Positionals have an `of` method
-                                if nqp::istype($expected.of, Array) {
-                                    $msg := $msg ~ ". Did you mean to expect an array of Arrays?";
-                                }
-                                # but we don't know what $!got is and it may not have an `of` method
-                                elsif nqp::can($oval, 'of') && nqp::istype($oval.of, Mu) {
-                                    $msg := $msg ~ ". You have to pass an explicitly typed array, not one that just might happen to contain elements of the correct type.";
-                                }
-                            }
-                            Perl6::Metamodel::Configuration.throw_or_die(
-                                'X::TypeCheck::Binding::Parameter',
-                                $msg,
-                                :got($oval),
-                                :expected($expected.WHAT),
-                                :symbol(nqp::hllizefor($varname, 'Raku')),
-                                :parameter($param))
-                        };
-                    }
+                unless nqp::eqaddr($param_type, Mu)
+                  || nqp::istype($oval, $param_type) {
 
                     # Report junction failure mode if it's a junction.
-                    return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
-                        ?? $BIND_RESULT_JUNCTION
-                        !! $BIND_RESULT_FAIL;
+                    return $BIND_RESULT_JUNCTION
+                      if nqp::eqaddr($oval.WHAT, Junction)
+                      && nqp::isconcrete($oval);
+
+                    # Type check failed; produce error if needed.
+                    nqp::bindpos($error, 0, typecheck_fail(
+                      :$oval, :$param, :$param_type, :$varname,
+                    )) if nqp::defined($error);
+                    return $BIND_RESULT_FAIL;
                 }
 
                 # Also enforce definedness constraints.
                 if $flags +& nqp::const::SIG_ELEM_DEFINEDNES_CHECK {
-                    if (my $should_be_concrete := $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY   && !nqp::isconcrete($oval)) ||
-                                                  $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY &&  nqp::isconcrete($oval)
-                    {
-                        if nqp::defined($error) {
-                            my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
-                            my $class  := $param_type.HOW.name($param_type);
-                            my $got    := $oval.HOW.name($oval);
-                            my $die_msg := $flags +& nqp::const::SIG_ELEM_INVOCANT
-                                  ?? $should_be_concrete
-                                       ?? "Invocant of method '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
-                                       !! "Invocant of method '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?"
-                                  !! $should_be_concrete
-                                       ?? "Parameter '$varname' of routine '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
-                                       !! "Parameter '$varname' of routine '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?";
-                            $error[0] := {
-                                Perl6::Metamodel::Configuration.throw_or_die(
-                                    'X::Parameter::InvalidConcreteness',
-                                    $die_msg,
-                                    :expected($class),
-                                    :got($got),
-                                    :routine($method),
-                                    :param($varname),
-                                    :should-be-concrete(nqp::hllboolfor($should_be_concrete, 'Raku')),
-                                    :param-is-invocant(nqp::hllboolfor($flags +& nqp::const::SIG_ELEM_INVOCANT, 'Raku'))
-                                );
-                            };
-                        }
-                        return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
-                            ?? $BIND_RESULT_JUNCTION
-                            !! $BIND_RESULT_FAIL;
+                    my int $isconcrete := nqp::isconcrete($oval);
+                    my $should_be_concrete :=
+                      $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY
+                      && nqp::not_i($isconcrete);
+
+                    if $should_be_concrete
+                      || $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY
+                           && $isconcrete {
+
+                        # Report junction failure mode if it's a junction.
+                        return $BIND_RESULT_JUNCTION
+                          if $isconcrete
+                          && nqp::eqaddr($oval.WHAT, Junction);
+
+                        # Concreteness check failed; produce error if needed.
+                        nqp::bindpos($error, 0, concreteness_fail(
+                          :$flags, :$lexpad, :$oval, :$param_type,
+                          :$should_be_concrete, :$varname,
+                        )) if nqp::defined($error);
+                        return $BIND_RESULT_FAIL;
                     }
                 }
             }
@@ -361,9 +431,10 @@ my class Binder {
         my $type_caps := nqp::getattr($param, Parameter, '@!type_captures');
         unless nqp::isnull($type_caps) {
             my int $num_type_caps := nqp::elems($type_caps);
-            my int $i := -1;
-            while ++$i < $num_type_caps {
+            my int $i;
+            while $i < $num_type_caps {
                 nqp::bindkey($lexpad, nqp::atpos_s($type_caps, $i), $oval.WHAT);
+                ++$i;
             }
         }
 
@@ -371,30 +442,32 @@ my class Binder {
         if $param.coercive {
             # Coercing natives not possible - nothing to call a method on.
             if $got_native {
-                if nqp::defined($error) {
-                    $error[0] := "Unable to coerce natively typed parameter '$varname'";
-                }
+                nqp::bindpos($error, 0,
+                  "Unable to coerce natively typed parameter '$varname'"
+                ) if nqp::defined($error);
                 return $BIND_RESULT_FAIL;
             }
 
-            my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
+            my $coercion_type := $param_type.HOW.wrappee($param_type,:coercion);
             $oval := $coercion_type.HOW.coerce($coercion_type, $oval);
         }
 
         # If it's not got attributive binding, we'll go about binding it into
         # the lex pad.
-        my int $is_attributive := $flags +& nqp::const::SIG_ELEM_BIND_ATTRIBUTIVE;
+        my int $is_attributive :=
+          $flags +& nqp::const::SIG_ELEM_BIND_ATTRIBUTIVE;
         unless $is_attributive {
+
             # Is it native? If so, just go ahead and bind it.
             if $got_native {
                 $got_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE
+                  #FIXME bindkey_u missing
+                  || $got_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
                   ?? nqp::bindkey_i($lexpad, $varname, $ival)
-                  !! $got_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
-                    ?? nqp::bindkey_i($lexpad, $varname, $ival) #FIXME bindkey_u missing
-                    !! $got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
-                      ?? nqp::bindkey_n($lexpad, $varname, $nval)
-                      # assume SIG_ELEM_NATIVE_STR_VALUE
-                      !! nqp::bindkey_s($lexpad, $varname, $sval);
+                  !! $got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
+                    ?? nqp::bindkey_n($lexpad, $varname, $nval)
+                    # assume SIG_ELEM_NATIVE_STR_VALUE
+                    !! nqp::bindkey_s($lexpad, $varname, $sval);
             }
 
             # Otherwise it's some objecty case.
@@ -402,191 +475,195 @@ my class Binder {
                 if nqp::isrwcont($oval) {
                     nqp::bindkey($lexpad, $varname, $oval) if $has_varname;
                 }
+
+                # No rw container founnd, error out
                 else {
-                    if nqp::defined($error) {
-                        $error[0] := {
-                            Perl6::Metamodel::Configuration.throw_or_die(
-                                'X::Parameter::RW',
-                                "Parameter '$varname' expected a writable container, but got an " ~
-                                    ~ $oval.HOW.name($oval) ~ " value",
-                                :got($oval),
-                                :symbol($varname)
-                            )
-                        };
-                    }
+                    nqp::bindpos($error, 0, {
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                          'X::Parameter::RW',
+                          "Parameter '$varname' expected a writable container, but got an " ~
+                            ~ $oval.HOW.name($oval) ~ " value",
+                          :got($oval),
+                          :symbol($varname)
+                        )
+                    }) if nqp::defined($error);
                     return $BIND_RESULT_FAIL;
                 }
             }
+
             elsif $has_varname {
+                my $bindee;
+
                 if $flags +& nqp::const::SIG_ELEM_IS_RAW {
                     # Just bind the thing as is into the lexpad.
-                    nqp::bindkey($lexpad, $varname, $oval);
-                }
-                # If it's an array, copy means make a new one and store,
-                # and a normal bind is a straightforward binding.
-                elsif $flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL {
-                    if $flags +& nqp::const::SIG_ELEM_IS_COPY {
-                        my $bindee := nqp::create(Array);
-                        $bindee.STORE(nqp::decont($oval));
-                        nqp::bindkey($lexpad, $varname, $bindee);
-                    }
-                    else {
-                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
-                    }
+                    $bindee := $oval;
                 }
 
-                # If it's a hash, similar approach to array.
-                elsif $flags +& nqp::const::SIG_ELEM_HASH_SIGIL {
-                    if $flags +& nqp::const::SIG_ELEM_IS_COPY {
-                        my $bindee := nqp::create(Hash);
-                        $bindee.STORE(nqp::decont($oval));
-                        nqp::bindkey($lexpad, $varname, $bindee);
-                    }
-                    else {
-                        nqp::bindkey($lexpad, $varname, nqp::decont($oval));
-                    }
-                }
-
-                # If it's a scalar, we always need to wrap it into a new
-                # container and store it; the container descriptor will be
-                # provided and make it rw if it's an `is copy`.
+                # Always need the deconted bindee by default
                 else {
-                    my $new_cont := nqp::create(Scalar);
-                    nqp::bindattr($new_cont, Scalar, '$!descriptor',
-                        nqp::getattr($param, Parameter, '$!container_descriptor'));
-                    nqp::bindattr($new_cont, Scalar, '$!value', nqp::decont($oval));
-                    nqp::bindkey($lexpad, $varname, $new_cont);
+                    $bindee := nqp::decont($oval);
+
+                    # Helper sub to store value in a copy of a Hash/Array
+                    sub STORE($type, $value) {
+                        my $stored := nqp::create($type);
+                        $stored.STORE($value);
+                        $stored
+                    }
+
+                    # If it's an array, copy means make a new one and store,
+                    # and a normal bind is a straightforward binding.
+                    if $flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL {
+                        $bindee := STORE(Array, $bindee)
+                          if $flags +& nqp::const::SIG_ELEM_IS_COPY;
+                    }
+
+                    # If it's a hash, similar approach to array.
+                    elsif $flags +& nqp::const::SIG_ELEM_HASH_SIGIL {
+                        $bindee := STORE(Hash, $bindee)
+                          if $flags +& nqp::const::SIG_ELEM_IS_COPY;
+                    }
+
+                    # If it's a scalar, we always need to wrap it into a new
+                    # container and store it; the container descriptor will be
+                    # provided and make it rw if it's an `is copy`.
+                    else {
+                        my $new_cont := nqp::create(Scalar);
+                        nqp::bindattr($new_cont, Scalar, '$!descriptor',
+                          nqp::getattr($param, Parameter, '$!container_descriptor')
+                        );
+                        nqp::bindattr($new_cont, Scalar, '$!value', $bindee);
+                        $bindee := $new_cont;
+                    }
                 }
+
+                # Do the actual bind
+                nqp::bindkey($lexpad, $varname, $bindee);
             }
         }
 
         # Is it the invocant? If so, also have to bind to self lexical.
-        if $flags +& nqp::const::SIG_ELEM_INVOCANT {
-            nqp::bindkey($lexpad, 'self', nqp::decont($oval));
-        }
+        nqp::bindkey($lexpad, 'self', nqp::decont($oval))
+          if $flags +& nqp::const::SIG_ELEM_INVOCANT;
 
-        if nqp::defined(my $sigc := nqp::getattr($param, Parameter, '$!signature_constraint')) {
-            # Assume argument not passed if it is undefined and is the same as parameter default type
-            unless !nqp::isconcrete($oval) && nqp::eqaddr(nqp::decont($oval), nqp::getattr($param, Parameter, '$!type')) {
-                my $can_signature;
-                unless ($can_signature := nqp::can($oval, 'signature'))
-                        && ( $sigc.is_generic
-                                ?? ($sigc := $sigc.instantiate_generic($lexpad))
-                                !! $sigc ).ACCEPTS($oval.signature)
-                {
-                    if nqp::defined($error) {
-                        $error[0] := {
-                            Perl6::Metamodel::Configuration.throw_or_die(
-                                'X::TypeCheck::Binding::Parameter',
-                                "Signature check failed for parameter '$varname'",
-                                :got($can_signature ?? $oval.signature !! Nil),
-                                :expected($sigc),
-                                :symbol($varname),
-                                :parameter($param),
-                                :what("Signature constraint")
-                            )
-                        };
-                    }
+        # We have a signature constraint
+        my $sigc := nqp::getattr($param, Parameter, '$!signature_constraint');
+        if nqp::defined($sigc) {
+
+            # Assume argument not passed if it is undefined and is the same
+            # as parameter default type
+            unless !nqp::isconcrete($oval)
+              && nqp::eqaddr(
+                   nqp::decont($oval),
+                   nqp::getattr($param, Parameter, '$!type')
+                 ) {
+
+                my $can_signature := nqp::can($oval, 'signature');
+                unless $can_signature
+                  && ($sigc.is_generic
+                       ?? ($sigc := $sigc.instantiate_generic($lexpad))
+                       !! $sigc
+                     ).ACCEPTS($oval.signature) {
+
+                    nqp::bindpos($error, 0, {
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                          'X::TypeCheck::Binding::Parameter',
+                          "Signature check failed for parameter '$varname'",
+                          :got($can_signature ?? $oval.signature !! Nil),
+                          :expected($sigc),
+                          :symbol($varname),
+                          :parameter($param),
+                          :what("Signature constraint")
+                        )
+                    }) if nqp::defined($error);
+
                     return $BIND_RESULT_FAIL;
                 }
             }
         }
 
-        # Handle any constraint types (note that they may refer to the parameter by
-        # name, so we need to have bound it already).
+        # Handle any constraint types (note that they may refer to the
+        # parameter by name, so we need to have bound it already).
         my $post_cons := nqp::getattr($param, Parameter, '@!post_constraints');
         unless nqp::isnull($post_cons) {
             my int $n := nqp::elems($post_cons);
-            my int $i := -1;
-            while ++$i < $n {
+            my int $i;
+            while $i < $n {
                 # Check we meet the constraint.
                 my $cons_type := nqp::atpos($post_cons, $i);
-                if nqp::istype($cons_type, Code) {
-                    $cons_type := nqp::p6capturelexwhere($cons_type.clone());
-                }
-                my $result;
-                my $bad_value;
-                if $got_native == 0 {
-                    $result := $cons_type.ACCEPTS($oval);
-                    $bad_value := $oval unless $result;
-                }
-                elsif $got_native == nqp::const::SIG_ELEM_NATIVE_INT_VALUE {
-                    $result := $cons_type.ACCEPTS($ival);
-                    $bad_value := $ival unless $result;
-                }
-                elsif $got_native == nqp::const::SIG_ELEM_NATIVE_UINT_VALUE {
-                    $result := $cons_type.ACCEPTS($ival);
-                    $bad_value := $ival unless $result;
-                }
-                elsif $got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE {
-                    $result := $cons_type.ACCEPTS($nval);
-                    $bad_value := $nval unless $result;
-                }
-                elsif $got_native == nqp::const::SIG_ELEM_NATIVE_STR_VALUE {
-                    $result := $cons_type.ACCEPTS($sval);
-                    $bad_value := $sval unless $result;
-                }
-                unless $result {
-                    if nqp::defined($error) {
-                        $error[0] := {
-                            Perl6::Metamodel::Configuration.throw_or_die(
-                                'X::TypeCheck::Binding::Parameter',
-                                "Constraint type check failed for parameter '$varname'",
-                                :got($bad_value),
-                                :expected($cons_type),
-                                :symbol($varname),
-                                :parameter($param),
-                                :constraint(nqp::hllboolfor(1, 'Raku'))
-                            )
-                        };
-                    }
+                $cons_type := nqp::p6capturelexwhere($cons_type.clone)
+                  if nqp::istype($cons_type, Code);
+
+                my $got := $got_native
+                  ?? $got_native == nqp::const::SIG_ELEM_NATIVE_STR_VALUE
+                    ?? $sval
+                    !! $got_native == nqp::const::SIG_ELEM_NATIVE_NUM_VALUE
+                      ?? $nval
+                      !! $ival  # assume native int or uint
+                  !! $oval;
+
+                # Alas, no luck
+                unless $cons_type.ACCEPTS($got) {
+                    nqp::bindpos($error, 0, {
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                          'X::TypeCheck::Binding::Parameter',
+                          "Constraint type check failed for parameter '$varname'",
+                          :$got,
+                          :expected($cons_type),
+                          :symbol($varname),
+                          :parameter($param),
+                          :constraint(nqp::hllboolfor(1, 'Raku'))
+                        )
+                    }) if nqp::defined($error);
+
                     return $BIND_RESULT_FAIL;
                 }
+
+                ++$i;
             }
         }
 
         # If it's attributive, now we assign it.
         if $is_attributive {
-            # Find self.
-            my $self;
-            if nqp::existskey($lexpad, 'self') {
-                $self := nqp::atkey($lexpad, 'self');
-            } else {
-                if nqp::defined($error) {
-                    $error[0] := "Unable to bind attributive parameter '$varname'; could not find self";
-                }
+
+            # No self?
+            if nqp::not_i(nqp::existskey($lexpad, 'self')) {
+                nqp::bindpos($error, 0,
+                  "Unable to bind attributive parameter '$varname'; could not find self"
+                ) if nqp::defined($error);
+
                 return $BIND_RESULT_FAIL;
             }
 
             # Ensure it's not native; NYI.
-            if $got_native {
-                if nqp::defined($error) {
-                    $error[0] := "Binding to natively typed attributive parameter '$varname' not supported";
-                }
+            elsif $got_native {
+                nqp::bindpos($error, 0,
+                  "Binding to natively typed attributive parameter '$varname' not supported"
+                ) if nqp::defined($error);
+
                 return $BIND_RESULT_FAIL;
             }
 
-            # If it's private, just need to fetch the attribute.
-            my $assignee;
-            if ($flags +& nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR) {
-                $assignee := nqp::getattr($self,
-                    nqp::getattr($param, Parameter, '$!attr_package'),
-                    $varname);
-            }
-
-            # Otherwise if it's public, do a method call to get the assignee.
-            else {
-                $assignee := $self."$varname"();
-            }
+            # Find self and get the attribute container
+            my $self     := nqp::atkey($lexpad, 'self');
+            my $assignee := $flags +& nqp::const::SIG_ELEM_BIND_PRIVATE_ATTR
+              # If it's private, just need to fetch the attribute.
+              ?? nqp::getattr(
+                   $self,
+                   nqp::getattr($param, Parameter, '$!attr_package'),
+                   $varname
+                 )
+              # Otherwise if it's public, do a method call to get the assignee.
+              !! $self."$varname"();
 
             nqp::iscont($assignee)
-                ?? nqp::assign($assignee, $oval)
-                !! $assignee.STORE(nqp::decont($oval));
+              ?? nqp::assign($assignee, $oval)
+              !! $assignee.STORE(nqp::decont($oval));
         }
 
         # If it has a sub-signature, bind that.
         my $subsig := nqp::getattr($param, Parameter, '$!sub_signature');
         unless nqp::isnull($subsig) {
+
             # Turn value into a capture, unless we already have one.
             my $capture;
             if $flags +& nqp::const::SIG_ELEM_IS_CAPTURE {
@@ -596,23 +673,33 @@ my class Binder {
                 $capture := $oval.Capture;
             }
             else {
-                if nqp::defined($error) {
-                    $error[0] := "Could not turn argument into capture";
-                }
+                nqp::bindpos(
+                  $error, 0, "Could not turn argument into capture"
+                ) if nqp::defined($error);
+
                 return $BIND_RESULT_FAIL;
             }
 
             # Recurse into signature binder.
-            my $result := bind(make_vm_capture($capture), $subsig, $lexpad,
-                $no_param_type_check, $error);
+            my $result := bind(
+              make_vm_capture($capture),
+              $subsig,
+              $lexpad,
+              $no_param_type_check,
+              $error
+            );
             unless $result == $BIND_RESULT_OK {
-                if $error && nqp::isstr($error[0]) {
-                    # Note in the error message that we're in a sub-signature.
-                    $error[0] := $error[0] ~ " in sub-signature";
-                    if $has_varname {
-                        $error[0] := $error[0] ~ " of parameter " ~ $varname;
-                    }
+                if nqp::defined($error)
+                  && nqp::isstr(my $message := nqp::atpos($error, 0)) {
+
+                    # Note in error message that we're in a sub-signature.
+                    $message := $message ~ " in sub-signature";
+                    $message := $message ~ " or parameter $varname"
+                      if $has_varname;
+
+                    nqp::bindpos($error, 0, $message);
                 }
+
                 return $BIND_RESULT_FAIL;
             }
         }
@@ -621,43 +708,54 @@ my class Binder {
         $BIND_RESULT_OK
     }
 
-    # This takes a signature element and either runs the closure to get a default
-    # value if there is one, or creates an appropriate undefined-ish thingy.
+    # Helper sub to take a signature element and either runs the closure to
+    # get a default value if there is one, or creates an appropriate
+    # undefined-ish thingy.
     sub handle_optional($param, int $flags, $lexpad) {
+
         # Is the "get default from outer" flag set?
         if $flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER {
             nqp::atkey(
-                nqp::ctxouter($lexpad),
-                nqp::getattr_s($param, Parameter, '$!variable_name'))
-        }
-
-        # Do we have a default value or value closure?
-        elsif !nqp::isnull(my $default_value := nqp::getattr($param, Parameter, '$!default_value')) {
-            if $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL {
-                $default_value;
-            }
-            else {
-                nqp::p6capturelexwhere($default_value.clone)();
-            }
+              nqp::ctxouter($lexpad),
+              nqp::getattr_s($param, Parameter, '$!variable_name')
+            )
         }
 
         # Otherwise, go by sigil to pick the correct default type of value.
-        else {
+        elsif nqp::isnull(my $default_value := nqp::getattr(
+          $param, Parameter, '$!default_value'
+        )) {
             my $type := nqp::getattr($param, Parameter, '$!type');
-            if $flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL {
-                nqp::create($type =:= Positional ?? Array !! Array.HOW.parameterize(Array, $type.of));
-            }
-            elsif $flags +& nqp::const::SIG_ELEM_HASH_SIGIL {
-                nqp::create($type =:= Associative ?? Hash !! Hash.HOW.parameterize(Hash, $type.of, $type.keyof));
-            }
-            else {
-                $type
-            }
+
+            $flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL
+              ?? nqp::create(nqp::eqaddr($type, Positional)
+                   ?? Array
+                   !! Array.HOW.parameterize(Array, $type.of)
+                 )
+              !! $flags +& nqp::const::SIG_ELEM_HASH_SIGIL
+                ?? nqp::create(nqp::eqaddr($type, Associative)
+                     ?? Hash
+                     !! Hash.HOW.parameterize(Hash, $type.of, $type.keyof)
+                   )
+                !! $type
+        }
+
+        # Do we have a default value or value closure?
+        else {
+            $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL
+              ?? $default_value
+              !! nqp::p6capturelexwhere($default_value.clone)()
         }
     }
 
     # Drives the overall binding process.
-    sub bind($capture, $sig, $lexpad, int $no_param_type_check, $error) {
+    sub bind(
+      $capture,
+      $sig,
+      $lexpad,
+      int $no_param_type_check,
+      $error
+    ) {
         # Get params.
         my @params := nqp::getattr($sig, Signature, '@!params');
 

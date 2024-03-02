@@ -262,6 +262,46 @@ my class Binder {
         }
     }
 
+    # Helper sub to take a signature element and either runs the closure to
+    # get a default value if there is one, or creates an appropriate
+    # undefined-ish thingy.
+    sub handle_optional($param, int $flags, $lexpad) {
+
+        # Is the "get default from outer" flag set?
+        if $flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER {
+            nqp::atkey(
+              nqp::ctxouter($lexpad),
+              nqp::getattr_s($param, Parameter, '$!variable_name')
+            )
+        }
+
+        # Otherwise, go by sigil to pick the correct default type of value.
+        elsif nqp::isnull(my $default_value := nqp::getattr(
+          $param, Parameter, '$!default_value'
+        )) {
+            my $type := nqp::getattr($param, Parameter, '$!type');
+
+            $flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL
+              ?? nqp::create(nqp::eqaddr($type, Positional)
+                   ?? Array
+                   !! Array.HOW.parameterize(Array, $type.of)
+                 )
+              !! $flags +& nqp::const::SIG_ELEM_HASH_SIGIL
+                ?? nqp::create(nqp::eqaddr($type, Associative)
+                     ?? Hash
+                     !! Hash.HOW.parameterize(Hash, $type.of, $type.keyof)
+                   )
+                !! $type
+        }
+
+        # Do we have a default value or value closure?
+        else {
+            $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL
+              ?? $default_value
+              !! nqp::p6capturelexwhere($default_value.clone)()
+        }
+    }
+
     method set_autothreader($callable) {
         $autothreader := $callable;
     }
@@ -273,11 +313,11 @@ my class Binder {
 
     # Binds a single parameter.
     sub bind_one_param(
-      $lexpad,
       $sig,
-      $param,
+      $lexpad,
       int $no_param_type_check,
       $error,
+      $param,
       int $got_native,
       $oval,
       int $ival,
@@ -708,46 +748,6 @@ my class Binder {
         $BIND_RESULT_OK
     }
 
-    # Helper sub to take a signature element and either runs the closure to
-    # get a default value if there is one, or creates an appropriate
-    # undefined-ish thingy.
-    sub handle_optional($param, int $flags, $lexpad) {
-
-        # Is the "get default from outer" flag set?
-        if $flags +& nqp::const::SIG_ELEM_DEFAULT_FROM_OUTER {
-            nqp::atkey(
-              nqp::ctxouter($lexpad),
-              nqp::getattr_s($param, Parameter, '$!variable_name')
-            )
-        }
-
-        # Otherwise, go by sigil to pick the correct default type of value.
-        elsif nqp::isnull(my $default_value := nqp::getattr(
-          $param, Parameter, '$!default_value'
-        )) {
-            my $type := nqp::getattr($param, Parameter, '$!type');
-
-            $flags +& nqp::const::SIG_ELEM_ARRAY_SIGIL
-              ?? nqp::create(nqp::eqaddr($type, Positional)
-                   ?? Array
-                   !! Array.HOW.parameterize(Array, $type.of)
-                 )
-              !! $flags +& nqp::const::SIG_ELEM_HASH_SIGIL
-                ?? nqp::create(nqp::eqaddr($type, Associative)
-                     ?? Hash
-                     !! Hash.HOW.parameterize(Hash, $type.of, $type.keyof)
-                   )
-                !! $type
-        }
-
-        # Do we have a default value or value closure?
-        else {
-            $flags +& nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL
-              ?? $default_value
-              !! nqp::p6capturelexwhere($default_value.clone)()
-        }
-    }
-
     # Drives the overall binding process.
     sub bind(
       $capture,
@@ -765,7 +765,6 @@ my class Binder {
         if nqp::capturehasnameds($capture) {
             $named_args := nqp::capturenamedshash($capture);
         }
-
         # Fail on arity error by default
         my int $arity_fail := 1;
 
@@ -836,8 +835,8 @@ my class Binder {
 
                     # Bind the parameter
                     $bind_fail := bind_one_param(
-                      $lexpad, $sig, $param, $no_param_type_check, $error,
-                      0, $capsnap, 0, 0.0, '');
+                      $sig, $lexpad, $no_param_type_check, $error,
+                      $param, 0, $capsnap, 0, 0.0, '');
                 }
 
                 return $bind_fail if $bind_fail;
@@ -866,8 +865,8 @@ my class Binder {
                 nqp::bindattr($hash, Map, '$!storage', $named_args)
                   if $named_args;
                 $bind_fail := bind_one_param(
-                  $lexpad, $sig, $param, $no_param_type_check, $error,
-                  0, $hash, 0, 0.0, '');
+                  $sig, $lexpad, $no_param_type_check, $error,
+                  $param, 0, $hash, 0, 0.0, '');
 
                 # Done if failed
                 return $bind_fail if $bind_fail;
@@ -933,8 +932,8 @@ my class Binder {
                         !! $slurpy_type.from-slurpy($temp);
 
                     $bind_fail := bind_one_param(
-                      $lexpad, $sig, $param, $no_param_type_check, $error,
-                      0, $bindee, 0, 0.0, '');
+                      $sig, $lexpad, $no_param_type_check, $error,
+                      $param, 0, $bindee, 0, 0.0, '');
                     return $bind_fail if $bind_fail;
                 }
 
@@ -947,8 +946,8 @@ my class Binder {
                     $bind_fail := $got_prim
                       ?? $got_prim == 3
                         ?? bind_one_param(
-                             $lexpad, $sig, $param, $no_param_type_check,
-                             $error,
+                             $sig, $lexpad, $no_param_type_check, $error,
+                             $param,
                              nqp::const::SIG_ELEM_NATIVE_STR_VALUE,
                              nqp::null,
                              0,
@@ -957,8 +956,8 @@ my class Binder {
                            )
                         !! $got_prim == 2
                           ?? bind_one_param(
-                               $lexpad, $sig, $param, $no_param_type_check,
-                               $error,
+                               $sig, $lexpad, $no_param_type_check, $error,
+                               $param,
                                nqp::const::SIG_ELEM_NATIVE_NUM_VALUE,
                                nqp::null,
                                0,
@@ -966,8 +965,8 @@ my class Binder {
                                ''
                              )
                           !! bind_one_param(  # 1 or 10
-                               $lexpad, $sig, $param, $no_param_type_check,
-                               $error,
+                               $sig, $lexpad, $no_param_type_check, $error,
+                               $param,
                                nqp::const::SIG_ELEM_NATIVE_INT_VALUE,
                                nqp::null,
                                $got_prim == 10
@@ -977,8 +976,8 @@ my class Binder {
                                ''
                              )
                       !! bind_one_param(
-                           $lexpad, $sig, $param, $no_param_type_check,
-                           $error,
+                           $sig, $lexpad, $no_param_type_check, $error,
+                           $param,
                            0,
                            nqp::captureposarg($capture, $cur_pos_arg),
                            0,
@@ -995,8 +994,8 @@ my class Binder {
                 # value passed.
                 elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                     $bind_fail := bind_one_param(
-                      $lexpad, $sig, $param, $no_param_type_check,
-                      $error,
+                      $sig, $lexpad, $no_param_type_check, $error,
+                      $param,
                       0,
                       handle_optional($param, $flags, $lexpad),
                       0,
@@ -1047,8 +1046,8 @@ my class Binder {
                     # Nope. We'd better hope this param was optional...
                     if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
                         $bind_fail := bind_one_param(
-                          $lexpad, $sig, $param, $no_param_type_check,
-                          $error,
+                          $sig, $lexpad, $no_param_type_check, $error,
+                          $param,
                           0,
                           handle_optional($param, $flags, $lexpad),
                           0,
@@ -1069,8 +1068,8 @@ my class Binder {
                 # Found a value
                 else {
                     $bind_fail := bind_one_param(
-                      $lexpad, $sig, $param, $no_param_type_check,
-                      $error,
+                      $sig, $lexpad, $no_param_type_check, $error,
+                      $param,
                       0,
                       $value,
                       0,

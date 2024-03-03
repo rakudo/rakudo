@@ -1696,7 +1696,7 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
     method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
     method assigned($scalar) {
         my $target := $!target;
-        
+
         (nqp::isconcrete($target)
           ?? $target
           !! nqp::assign($target, Hash.new)
@@ -1738,9 +1738,10 @@ class ContainerDescriptor::UninitializedAttribute {
     method is_default_generic() { self.next.is_default_generic }
 }
 
+#?if !moar
+#- UninitializedAttributeChecker -----------------------------------------------
 # On MoarVM we have a dispatcher for checking if an attribute is not
 # initialized, this is the portable fallback for other VMs.
-#?if !moar
 my class UninitializedAttributeChecker {
     method check($attr) {
         # If there's a non-concrete object observed, then we bound a non-container
@@ -1787,74 +1788,124 @@ BEGIN {
     # Ensure Rakudo runtime support is initialized.
     nqp::p6init();
 
-    # On MoarVM, to get us through the bootstrap, put the NQP dispatchers in place
-    # as the Raku ones; they will get replaced later in the bootstrap.
 #?if moar
+    # On MoarVM, to get us through the bootstrap, put the NQP dispatchers in
+    # place as the Raku ones; they will get replaced later in the bootstrap.
     nqp::sethllconfig('Raku', nqp::hash(
-        'call_dispatcher', 'nqp-call',
-        'method_call_dispatcher', 'nqp-meth-call',
-        'find_method_dispatcher', 'nqp-find-meth',
+      'call_dispatcher',        'nqp-call',
+      'method_call_dispatcher', 'nqp-meth-call',
+      'find_method_dispatcher', 'nqp-find-meth',
     ));
 #?endif
 
+#- Mu --------------------------------------------------------------------------
     # class Mu { ... }
     Mu.HOW.compose_repr(Mu);
 
+#- Any -------------------------------------------------------------------------
     # class Any is Mu { ... }
     Any.HOW.add_parent(Any, Mu);
     Any.HOW.compose_repr(Any);
 
+#- Cool ------------------------------------------------------------------------
     # class Cool is Any { ... }
     Cool.HOW.add_parent(Cool, Any);
     Cool.HOW.compose_repr(Cool);
 
-    # class Attribute is Any {
-    #     has str $!name;
-    #     has int $!rw;
-    #     has int $!is_built;
-    #     has int $!is_bound;
-    #     has int $!has_accessor;
-    #     has Mu $!type;
-    #     has Mu $!container_descriptor;
-    #     has Mu $!auto_viv_container;
-    #     has Mu $!build_closure;
-    #     has Mu $!package;
-    #     has int $!inlined;
-    #     has Mu $!dimensions;
-    #     has int $!positional_delegate;
-    #     has int $!associative_delegate;
-    #     has Mu $!why;
-    #     has Mu $!container_initializer;
-    #     has Attribute $!original; # original attribute object used for instantiation
+#- Attribute -------------------------------------------------------------------
+# class Attribute is Any {
+#     has str $!name;
+#     has int $!rw;
+#     has int $!is_built;
+#     has int $!is_bound;
+#     has int $!has_accessor;
+#     has Mu  $!type;
+#     has Mu  $!container_descriptor;
+#     has Mu  $!auto_viv_container;
+#     has Mu  $!build_closure;
+#     has Mu  $!package;
+#     has int $!inlined;
+#     has Mu  $!dimensions;
+#     has int $!positional_delegate;
+#     has int $!associative_delegate;
+#     has Mu  $!why;
+#     has Mu  $!container_initializer;
+#     # original attribute object used for instantiation
+#     has Attribute $!original;
+
     Attribute.HOW.add_parent(Attribute, Any);
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
-    # The existence of both $!rw and $!ro might be confusing, but they're needed for late trait application with
-    # `also is rw`. In this case we must remember the earlier applied per-attribute traits.
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!is_built>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!is_bound>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!has_accessor>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!type>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_descriptor>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!auto_viv_container>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!build_closure>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!package>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!inlined>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!dimensions>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!box_target>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!positional_delegate>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!associative_delegate>, :type(int), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!why>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!container_initializer>, :type(Mu), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!original>, :type(Attribute), :package(Attribute)));
-    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!composed>, :type(int), :package(Attribute)));
+
+    Attribute.HOW.add_attribute(Attribute,
+      BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute))
+    );
+
+    # The existence of both $!rw and $!ro might be confusing, but they're
+    # needed for late trait application with `also is rw`. In this case we
+    # must remember the earlier applied per-attribute traits.
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!rw>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!ro>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!required>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!is_built>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!is_bound>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!has_accessor>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!type>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!container_descriptor>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!auto_viv_container>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!build_closure>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!package>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!inlined>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!dimensions>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!box_target>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!positional_delegate>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!associative_delegate>, :type(int), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!why>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!container_initializer>, :type(Mu), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!original>, :type(Attribute), :package(Attribute)
+    ));
+    Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(
+      :name<$!composed>, :type(int), :package(Attribute)
+    ));
 
     # Need new and accessor methods for Attribute in here for now.
-    Attribute.HOW.add_method(Attribute, 'new', nqp::getstaticcode(sub (
-       $self, :$name!, :$type!, :$package!, *%_
-    ) {
+    Attribute.HOW.add_method(Attribute, 'new',
+      nqp::getstaticcode(sub ($self, :$name!, :$type!, :$package!, *%_) {
         my $attr := nqp::create($self);
         $type    := nqp::decont($type);
 
@@ -1908,217 +1959,315 @@ BEGIN {
           ?? $attr.set_build(nqp::atkey(%_, 'build'))
           !! $attr
     }));
-    Attribute.HOW.add_method(Attribute, 'name', nqp::getstaticcode(sub ($self) {
-            nqp::getattr_s(nqp::decont($self),
-                Attribute, '$!name');
-        }));
-    Attribute.HOW.add_method(Attribute, 'type', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!type');
-        }));
-    Attribute.HOW.add_method(Attribute, 'container_descriptor', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!container_descriptor');
-        }));
-    Attribute.HOW.add_method(Attribute, 'auto_viv_container', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my $cont := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
-            if nqp::isconcrete_nd($cont) && (
-                    nqp::getattr($dcself, Attribute, '$!required') ||
-                    nqp::isconcrete(nqp::getattr($dcself, Attribute, '$!build_closure'))) {
-                try {
-                    my $base := nqp::how_nd($cont).mixin_base($cont);
-                    my $desc := nqp::getattr($cont, $base, '$!descriptor');
-                    $cont := nqp::clone_nd($cont);
-                    nqp::bindattr($cont, $base, '$!descriptor',
-                        ContainerDescriptor::UninitializedAttribute.new($desc));
-                }
+
+    Attribute.HOW.add_method(Attribute, 'name',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr_s(nqp::decont($self), Attribute, '$!name')
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'type',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr(nqp::decont($self), Attribute, '$!type')
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'container_descriptor',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr(nqp::decont($self), Attribute, '$!container_descriptor')
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'auto_viv_container',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+        my $cont := nqp::getattr($self, Attribute, '$!auto_viv_container');
+
+        if nqp::isconcrete_nd($cont)
+          && (nqp::getattr($self, Attribute, '$!required')
+               || nqp::isconcrete(
+                    nqp::getattr($self, Attribute, '$!build_closure')
+                  )
+             ) {
+
+            try {
+                my $base := nqp::how_nd($cont).mixin_base($cont);
+                $cont    := nqp::clone_nd($cont);
+                nqp::bindattr(
+                  $cont,
+                  $base,
+                  '$!descriptor',
+                  ContainerDescriptor::UninitializedAttribute.new(
+                    nqp::getattr($cont, $base, '$!descriptor')
+                  )
+                );
             }
-            $cont
-        }));
-    Attribute.HOW.add_method(Attribute, 'is_built', nqp::getstaticcode(sub ($self) {
-            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!is_built'), "Raku");
-        }));
-    Attribute.HOW.add_method(Attribute, 'is_bound', nqp::getstaticcode(sub ($self) {
-            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!is_bound'), "Raku");
-        }));
-    Attribute.HOW.add_method(Attribute, 'has_accessor', nqp::getstaticcode(sub ($self) {
-            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!has_accessor'), "Raku");
-        }));
-    Attribute.HOW.add_method(Attribute, 'rw', nqp::getstaticcode(sub ($self) {
-            nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!rw'), "Raku");
-        }));
-    Attribute.HOW.add_method(Attribute, 'set_rw', nqp::getstaticcode(sub ($self) {
-            nqp::bindattr_i(nqp::decont($self),
-                Attribute, '$!rw', 1);
-            nqp::hllboolfor(1, "Raku")
-        }));
-    Attribute.HOW.add_method(Attribute, 'set_readonly', nqp::getstaticcode(sub ($self) {
-            nqp::bindattr_i(nqp::decont($self),
-                Attribute, '$!ro', 1);
-            # Explicit set of readonly must reset rw as it might be a result of `is rw` trait.
-            nqp::bindattr_i(nqp::decont($self),
-                Attribute, '$!rw', 0);
-            nqp::hllboolfor(1, "Raku")
-        }));
-    Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {
-            $*W.add_object_if_no_sc($value);
-            nqp::bindattr(nqp::decont($self),
-                Attribute, '$!required', $value);
-            nqp::hllboolfor(1, "Raku")
-        }));
-    Attribute.HOW.add_method(Attribute, 'required', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!required');
-        }));
-    Attribute.HOW.add_method(Attribute, 'default_to_rw', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            unless nqp::getattr_i($dcself, Attribute, '$!ro') {
-                nqp::bindattr_i($dcself, Attribute, '$!rw', 1);
-            }
-            nqp::hllboolfor(1, "Raku")
-        }));
-    Attribute.HOW.add_method(Attribute, 'set_build', nqp::getstaticcode(sub ($self, $closure) {
-            nqp::bindattr(nqp::decont($self), Attribute, '$!build_closure', $closure);
-            $self
-        }));
-    Attribute.HOW.add_method(Attribute, 'build', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!build_closure');
-        }));
-    Attribute.HOW.add_method(Attribute, 'set_box_target', nqp::getstaticcode(sub ($self) {
-            nqp::bindattr_i(nqp::decont($self),
-                Attribute, '$!box_target', 1);
-            nqp::hllboolfor(1, "Raku")
-        }));
-    Attribute.HOW.add_method(Attribute, 'box_target', nqp::getstaticcode(sub ($self) {
-            nqp::getattr_i(nqp::decont($self),
-                Attribute, '$!box_target')
-        }));
-    Attribute.HOW.add_method(Attribute, 'positional_delegate', nqp::getstaticcode(sub ($self) {
-            nqp::getattr_i(nqp::decont($self), Attribute, '$!positional_delegate');
-        }));
-    Attribute.HOW.add_method(Attribute, 'associative_delegate', nqp::getstaticcode(sub ($self) {
-            nqp::getattr_i(nqp::decont($self), Attribute, '$!associative_delegate')
-        }));
-    Attribute.HOW.add_method(Attribute, 'container_initializer', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!container_initializer');
-        }));
-    Attribute.HOW.add_method(Attribute, 'original', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!original');
-        }));
-    Attribute.HOW.add_method(Attribute, 'is_generic', nqp::getstaticcode(sub ($self) {
-            my $dcself   := nqp::decont($self);
-            my $type := nqp::getattr(nqp::decont($dcself),
-                Attribute, '$!type');
-            my $package := nqp::getattr(nqp::decont($dcself),
-                Attribute, '$!package');
-            my $build := nqp::getattr(nqp::decont($dcself),
-                Attribute, '$!build_closure');
-            nqp::hllboolfor(
-                $type.HOW.archetypes($type).generic
-                || $package.HOW.archetypes($package).generic
-                || nqp::defined($build), "Raku");
-        }));
-    Attribute.HOW.add_method(Attribute, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
-            my $dcself   := nqp::decont($self);
-            my $type     := nqp::getattr($dcself, Attribute, '$!type');
-            my $cd       := nqp::getattr($dcself, Attribute, '$!container_descriptor');
-            my $pkg      := nqp::getattr($dcself, Attribute, '$!package');
-            my $avc      := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
-            my $bc       := nqp::getattr($dcself, Attribute, '$!build_closure');
-            my $ci       := nqp::getattr($dcself, Attribute, '$!container_initializer');
-            my $ins      := nqp::clone($dcself);
-            if $type.HOW.archetypes($type).generic {
-                nqp::bindattr($ins, Attribute, '$!type',
-                    $type.HOW.instantiate_generic($type, $type_environment));
-            }
-            if nqp::isconcrete($ci) {
+        }
+
+        $cont
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'is_built',
+      nqp::getstaticcode(sub ($self) {
+        nqp::hllboolfor(
+          nqp::getattr_i(nqp::decont($self), Attribute, '$!is_built'),
+          "Raku"
+        )
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'is_bound',
+      nqp::getstaticcode(sub ($self) {
+        nqp::hllboolfor(
+          nqp::getattr_i(nqp::decont($self), Attribute, '$!is_bound'),
+          "Raku"
+        )
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'has_accessor',
+      nqp::getstaticcode(sub ($self) {
+        nqp::hllboolfor(
+          nqp::getattr_i(nqp::decont($self), Attribute, '$!has_accessor'),
+          "Raku"
+        )
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'rw',
+      nqp::getstaticcode(sub ($self) {
+        nqp::hllboolfor(
+          nqp::getattr_i(nqp::decont($self), Attribute, '$!rw'),
+          "Raku"
+        );
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'set_rw',
+      nqp::getstaticcode(sub ($self) {
+        nqp::bindattr_i(nqp::decont($self), Attribute, '$!rw', 1);
+        nqp::hllboolfor(1, "Raku")
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'set_readonly',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # Explicit set of readonly must reset rw as it might be a result
+        # of `is rw` trait.
+        nqp::bindattr_i($self, Attribute, '$!rw', 0);
+
+        nqp::bindattr_i($self, Attribute, '$!ro', 1);
+        nqp::hllboolfor(1, "Raku")
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'set_required',
+      nqp::getstaticcode(sub ($self, $value) {
+
+        # The value can also be a string that will be shown in the error
+        # message if this named argument is *not* specified.  Make sure it
+        # is added to the serialization context.
+        $*W.add_object_if_no_sc($value);  # XXX RakuAST
+        nqp::bindattr(nqp::decont($self), Attribute, '$!required', $value);
+        nqp::hllboolfor(1, "Raku")
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'required',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr(nqp::decont($self), Attribute, '$!required')
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'default_to_rw',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr_i($self, Attribute, '$!rw', 1)
+          unless nqp::getattr_i($self, Attribute, '$!ro');
+
+        nqp::hllboolfor(1, "Raku")
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'set_build',
+      nqp::getstaticcode(sub ($self, $closure) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr($self, Attribute, '$!build_closure', $closure);
+        $self
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'build',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr(nqp::decont($self), Attribute, '$!build_closure');
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'set_box_target',
+      nqp::getstaticcode(sub ($self) {
+        nqp::bindattr_i(nqp::decont($self), Attribute, '$!box_target', 1);
+        nqp::hllboolfor(1, "Raku")
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'box_target',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr_i(nqp::decont($self), Attribute, '$!box_target')
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'positional_delegate',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr_i(nqp::decont($self), Attribute, '$!positional_delegate');
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'associative_delegate',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr_i(nqp::decont($self), Attribute, '$!associative_delegate')
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'container_initializer',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr(nqp::decont($self), Attribute, '$!container_initializer')
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'original',
+      nqp::getstaticcode(sub ($self) {
+        nqp::getattr(nqp::decont($self), Attribute, '$!original')
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'is_generic',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        my $type    := nqp::getattr($self, Attribute, '$!type'         );
+        my $package := nqp::getattr($self, Attribute, '$!package'      );
+        my $build   := nqp::getattr($self, Attribute, '$!build_closure');
+
+        nqp::hllboolfor(
+          $type.HOW.archetypes($type).generic
+            || $package.HOW.archetypes($package).generic
+            || nqp::defined($build),
+          "Raku"
+        );
+    }));
+
+    Attribute.HOW.add_method(Attribute, 'instantiate_generic',
+      nqp::getstaticcode(sub ($self, $type_environment) {
+        $self    := nqp::decont($self);
+        my $ins  := nqp::clone($self);
+
+        my $type := nqp::getattr($self, Attribute, '$!type');
+        my $cd   := nqp::getattr($self, Attribute, '$!container_descriptor');
+        my $pkg  := nqp::getattr($self, Attribute, '$!package');
+        my $avc  := nqp::getattr($self, Attribute, '$!auto_viv_container');
+        my $bc   := nqp::getattr($self, Attribute, '$!build_closure');
+        my $ci   := nqp::getattr($self, Attribute, '$!container_initializer');
+
+        nqp::bindattr($ins, Attribute, '$!type',
+          $type.HOW.instantiate_generic($type, $type_environment)
+        ) if $type.HOW.archetypes($type).generic;
+
+        nqp::bindattr($ins, Attribute, '$!container_initializer',
 #?if !jvm
-                nqp::bindattr($ins, Attribute, '$!container_initializer', nqp::p6capturelexwhere($ci.clone()));
+          nqp::p6capturelexwhere($ci.clone)
 #?endif
 #?if jvm
-                nqp::bindattr($ins, Attribute, '$!container_initializer', $ci.clone());
+          $ci.clone
 #?endif
+        ) if nqp::isconcrete($ci);
+
+        my $cd_ins := $cd;
+        if $cd.is_generic {
+            $cd_ins := $cd.instantiate_generic($type_environment);
+            nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
+        }
+
+        my $avc-copy;
+        my $avc-is-generic;
+        if nqp::iscont($avc) {
+            # If $avc is a container then simulate nqp::p6var (.VAR) behavior
+            my $avcv := nqp::create(ScalarVAR);
+            nqp::bindattr($avcv, Scalar, '$!value', nqp::clone_nd($avc));
+            $avc-is-generic := $avcv.is_generic;
+
+            $avc-copy := $avc-is-generic
+              ?? $avcv.instantiate_generic($type_environment)
+              !! $avc;
+        }
+        else {
+            $avc-is-generic := $avc.HOW.archetypes($avc).generic
+              || $avc.is-generic
+              || $type.HOW.archetypes($type).generic;
+
+            $avc-copy := $avc-is-generic
+              ?? $avc.HOW.instantiate_generic($avc, $type_environment)
+              !! $avc;
+        }
+
+        if $avc-is-generic {
+            if nqp::isconcrete_nd($avc-copy) {
+                my @avc_mro  := nqp::how_nd($avc-copy).mro($avc-copy);
+                my $avc_mro;
+
+                my int $i;
+                ++$i while (
+                  $avc_mro := nqp::atpos(@avc_mro, $i)
+                ).HOW.is_mixin($avc_mro);
+
+                nqp::bindattr($avc-copy, $avc_mro, '$!descriptor', $cd_ins)
+                  if $avc_mro.HOW.has_attribute($avc_mro, '$!descriptor');
             }
-            my $cd_ins := $cd;
-            if $cd.is_generic {
-                $cd_ins := $cd.instantiate_generic($type_environment);
-                nqp::bindattr($ins, Attribute, '$!container_descriptor', $cd_ins);
-            }
-            my $avc-copy;
-            my $avc-is-generic;
-            if nqp::iscont($avc) {
-                # If $avc is a container then simulate nqp::p6var (.VAR) behavior
-                my $avcv := nqp::create(ScalarVAR);
-                nqp::bindattr($avcv, Scalar, '$!value', nqp::clone_nd($avc));
-                $avc-copy := ($avc-is-generic := $avcv.is_generic())
-                                ?? $avcv.instantiate_generic($type_environment)
-                                !! $avc;
-            }
-            else {
-                $avc-copy := ($avc-is-generic := ($avc.HOW.archetypes($avc).generic || $avc.is-generic
-                                                  || $type.HOW.archetypes($type).generic))
-                                ?? $avc.HOW.instantiate_generic($avc, $type_environment)
-                                !! $avc;
-            }
-            if $avc-is-generic {
-                if nqp::isconcrete_nd($avc-copy) {
-                    my @avc_mro  := nqp::how_nd($avc-copy).mro($avc-copy);
-                    my int $i := 0;
-                    my $avc_mro;
-                    $i := $i + 1 while ($avc_mro := @avc_mro[$i]).HOW.is_mixin($avc_mro);
-                    if $avc_mro.HOW.has_attribute($avc_mro, '$!descriptor') {
-                        nqp::bindattr($avc-copy, $avc_mro, '$!descriptor', $cd_ins);
-                    }
-                }
-                nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc-copy);
-            }
-            if $pkg.HOW.archetypes($pkg).generic {
-                nqp::bindattr($ins, Attribute, '$!package',
-                    $pkg.HOW.instantiate_generic($pkg, $type_environment));
-            }
-            if nqp::defined($bc) {
+            nqp::bindattr($ins, Attribute, '$!auto_viv_container', $avc-copy);
+        }
+
+        if $pkg.HOW.archetypes($pkg).generic {
+            nqp::bindattr($ins, Attribute, '$!package',
+              $pkg.HOW.instantiate_generic($pkg, $type_environment)
+            );
+        }
+        nqp::bindattr($ins, Attribute, '$!build_closure',
 #?if !jvm
-                nqp::bindattr($ins, Attribute, '$!build_closure', nqp::p6capturelexwhere($bc.clone()));
+          nqp::p6capturelexwhere($bc.clone)
 #?endif
 #?if jvm
-                nqp::bindattr($ins, Attribute, '$!build_closure', $bc.clone());
+          $bc.clone
 #?endif
-            }
-            $ins
-        }));
+        ) if nqp::defined($bc);
+
+        $ins
+    }));
+
     Attribute.HOW.compose_repr(Attribute);
 
-    # class Scalar is Any {
-    #     has Mu $!descriptor;
-    #     has Mu $!value;
+#- Scalar ----------------------------------------------------------------------
+# class Scalar is Any {
+#     has Mu $!descriptor;
+#     has Mu $!value;
+
     Scalar.HOW.add_parent(Scalar, Any);
-    Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!descriptor>, :type(Mu), :package(Scalar)));
-    Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(:name<$!value>, :type(Mu), :package(Scalar)));
-    Scalar.HOW.add_method(Scalar, 'is_generic', nqp::getstaticcode(sub ($self) {
-        my $dcself := nqp::decont($self);
-        my $descr := nqp::getattr($dcself, Scalar, '$!descriptor');
-        $descr.is_generic() || $descr.is_default_generic()
+
+    Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(
+      :name<$!descriptor>, :type(Mu), :package(Scalar)
+    ));
+
+    Scalar.HOW.add_attribute(Scalar, BOOTSTRAPATTR.new(
+      :name<$!value>, :type(Mu), :package(Scalar)
+    ));
+
+    Scalar.HOW.add_method(Scalar, 'is_generic',
+      nqp::getstaticcode(sub ($self) {
+
+        my $descr := nqp::getattr(nqp::decont($self), Scalar, '$!descriptor');
+        $descr.is_generic || $descr.is_default_generic
     }));
-    Scalar.HOW.add_method(Scalar, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
-        my $dcself := nqp::decont($self);
-        nqp::bindattr($dcself, Scalar, '$!descriptor',
-            nqp::getattr($dcself, Scalar, '$!descriptor').instantiate_generic(
-                $type_environment));
-        my $val := nqp::getattr($dcself, Scalar, '$!value');
-        if $val.HOW.archetypes($val).generic {
-            nqp::bindattr($dcself, Scalar, '$!value',
-                $val.HOW.instantiate_generic($val, $type_environment));
-        }
-        $dcself
+
+    Scalar.HOW.add_method(Scalar, 'instantiate_generic',
+      nqp::getstaticcode(sub ($self, $type_environment) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr($self, Scalar, '$!descriptor',
+          nqp::getattr($self, Scalar, '$!descriptor').instantiate_generic(
+            $type_environment
+          )
+        );
+
+        my $value := nqp::getattr($self, Scalar, '$!value');
+        nqp::bindattr($self, Scalar, '$!value',
+          $value.HOW.instantiate_generic($value, $type_environment)
+        ) if $value.HOW.archetypes($value).generic;
+
+        $self
     }));
+
     Scalar.HOW.compose_repr(Scalar);
 
     # To preserve historical behavior, we never repossess a Scalar container.

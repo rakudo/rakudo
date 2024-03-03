@@ -1377,30 +1377,34 @@ BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
 
 # Container descriptors come here so that they can refer to Raku types.
+
+#- ContainerDescriptor ---------------------------------------------------------
 class ContainerDescriptor does Perl6::Metamodel::Explaining {
     has     $!of;
     has str $!name;
     has     $!default;
     has int $!dynamic;
 
-    method BUILD(:$of, str :$name, :$default, int :$dynamic) {
-        $!of := $of;
-        $!name := $name;
-        $!default := $default;
-        $!dynamic := $dynamic;
+    method new(:$of, str :$name, :$default, int :$dynamic) {
+        my $obj := nqp::create(self);
+        nqp::bindattr(  $obj, ContainerDescriptor, '$!of',      $of     );
+        nqp::bindattr_s($obj, ContainerDescriptor, '$!name',    $name   );
+        nqp::bindattr(  $obj, ContainerDescriptor, '$!default', $default);
+        nqp::bindattr_i($obj, ContainerDescriptor, '$!dynamic', $dynamic);
+        $obj
     }
 
-    method of() { $!of }
-    method name() { $!name }
+    method of()      { $!of      }
+    method name()    { $!name    }
     method default() { $!default }
     method dynamic() { $!dynamic }
 
-    method set_of($of) { $!of := $of; self }
+    method set_of     ($of     ) { $!of      := $of;      self }
     method set_default($default) { $!default := $default; self }
     method set_dynamic($dynamic) { $!dynamic := $dynamic; self }
 
     method is_generic() {
-        $!of.HOW.archetypes($!of).generic || $!default.HOW.archetypes($!default).generic
+        $!of.HOW.archetypes($!of).generic || self.is_default_generic
     }
 
     method is_default_generic() {
@@ -1408,36 +1412,49 @@ class ContainerDescriptor does Perl6::Metamodel::Explaining {
     }
 
     method instantiate_generic($type_environment) {
-        my $ins_of :=
-            $!of.HOW.archetypes($!of).generic
-                ?? $!of.HOW.instantiate_generic($!of, $type_environment)
-                !! $!of;
-        my $ins_default := self.is_default_generic ?? $!default.HOW.instantiate_generic($!default, $type_environment) !! $!default;
-        my $ins := nqp::clone(self);
-        nqp::bindattr($ins, $?CLASS, '$!of', $ins_of);
-        nqp::bindattr($ins, $?CLASS, '$!default', $ins_default);
-        $ins
+        my $obj := nqp::clone(self);
+
+        nqp::bindattr($obj, $?CLASS, '$!of', $!of.HOW.archetypes($!of).generic
+          ?? $!of.HOW.instantiate_generic($!of, $type_environment)
+          !! $!of
+        );
+        nqp::bindattr($obj, $?CLASS, '$!default', self.is_default_generic
+          ?? $!default.HOW.instantiate_generic($!default, $type_environment)
+          !! $!default
+        );
+
+        $obj
     }
 }
-class ContainerDescriptor::Untyped is ContainerDescriptor {
-    # Container descriptor for when the type is Mu; the type of this
-    # container descriptor is used as a marker
-}
+
+#- ContainerDescriptor::Untyped ------------------------------------------------
+# Container descriptor for when the type is Mu; the type of this container
+# descriptor is used as a marker
+class ContainerDescriptor::Untyped is ContainerDescriptor { }
+
+#- ContainerDescriptor::Whence -------------------------------------------------
+# Role for container descriptors that need to bind the container to some place
+# (hence the "whence") on first assignment.  Most commonly used for elements
+# in arrays and keys in hashes.
 role ContainerDescriptor::Whence {
     has $!next-descriptor;
 
     method next() {
         my $next := $!next-descriptor;
         nqp::isconcrete($next)
-            ?? $next
-            !! ($!next-descriptor := nqp::gethllsym('Raku', 'default_cont_spec'))
+          ?? $next
+          !! ($!next-descriptor := nqp::gethllsym('Raku', 'default_cont_spec'))
     }
-    method of() { self.next.of }
+    method of()      { self.next.of      }
     method default() { self.next.default }
     method dynamic() { self.next.dynamic }
 }
+
+#- ContainerDescriptor::BindArrayPos -------------------------------------------
+# Container descriptor that will bind to a one-dimensional array on first
+# assignment
 class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
-    has $!target;
+    has     $!target;
     has int $!pos;
 
     method new($desc, $target, int $pos) {
@@ -1456,8 +1473,12 @@ class ContainerDescriptor::BindArrayPos does ContainerDescriptor::Whence {
         nqp::bindpos($!target, $!pos, $scalar);
     }
 }
+
+#- ContainerDescriptor::BindArrayPos2D -----------------------------------------
+# Container descriptor that will bind to a two-dimensional array on first
+# assignment
 class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
-    has $!target;
+    has     $!target;
     has int $!one;
     has int $!two;
 
@@ -1481,8 +1502,12 @@ class ContainerDescriptor::BindArrayPos2D does ContainerDescriptor::Whence {
         nqp::bindpos2d($!target, $!one, $!two, $scalar);
     }
 }
+
+#- ContainerDescriptor::BindArrayPos3D -----------------------------------------
+# Container descriptor that will bind to a three-dimensional array on first
+# assignment
 class ContainerDescriptor::BindArrayPos3D does ContainerDescriptor::Whence {
-    has $!target;
+    has     $!target;
     has int $!one;
     has int $!two;
     has int $!three;
@@ -1509,6 +1534,10 @@ class ContainerDescriptor::BindArrayPos3D does ContainerDescriptor::Whence {
         nqp::bindpos3d($!target, $!one, $!two, $!three, $scalar);
     }
 }
+
+#- ContainerDescriptor::BindArrayPosND -----------------------------------------
+# Container descriptor that will bind to a N-dimensional array on first
+# assignment
 class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
     has $!target;
     has $!idxs;
@@ -1529,6 +1558,10 @@ class ContainerDescriptor::BindArrayPosND does ContainerDescriptor::Whence {
         nqp::bindposnd($!target, $!idxs, $scalar);
     }
 }
+
+#- ContainerDescriptor::BindHashKey --------------------------------------------
+# Container descriptor that will bind to a key in a hash on first
+# assignment
 class ContainerDescriptor::BindHashKey does ContainerDescriptor::Whence {
     has $!target;
     has $!key;
@@ -1547,11 +1580,15 @@ class ContainerDescriptor::BindHashKey does ContainerDescriptor::Whence {
     method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
     method assigned($scalar) {
         my $hash := nqp::getattr($!target, Map, '$!storage');
-        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash())
-            unless nqp::isconcrete($hash);
+        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
+          unless nqp::isconcrete($hash);
         nqp::bindkey($hash, $!key, $scalar);
     }
 }
+
+#- ContainerDescriptor::BindObjHashKey -----------------------------------------
+# Container descriptor that will bind to a key in an object hash on first
+# assignment
 class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
     has $!target;
     has $!key;
@@ -1576,11 +1613,15 @@ class ContainerDescriptor::BindObjHashKey does ContainerDescriptor::Whence {
     method name() { 'element of ' ~ self.next.name }  # XXX correct key
     method assigned($scalar) {
         my $hash := nqp::getattr($!target, Map, '$!storage');
-        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash())
-            unless nqp::isconcrete($hash);
+        $hash := nqp::bindattr($!target, Map, '$!storage', nqp::hash)
+          unless nqp::isconcrete($hash);
         nqp::bindkey($hash, $!which, $!pair.new($!key, $scalar));
     }
 }
+
+#- ContainerDescriptor::VivifyArray --------------------------------------------
+# Container descriptor that will bind to position in an array to be vivified
+# on first assignment
 class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
     has $!target;
     has int $!pos;
@@ -1597,12 +1638,17 @@ class ContainerDescriptor::VivifyArray does ContainerDescriptor::Whence {
     method name() { self.next.name ~ '[' ~ $!pos ~ ']' }
     method assigned($scalar) {
         my $target := $!target;
-        my $array := nqp::isconcrete($target)
-            ?? $target
-            !! nqp::assign($target, Array.new);
-        $array.BIND-POS($!pos, $scalar);
+
+        (nqp::isconcrete($target)
+          ?? $target
+          !! nqp::assign($target, Array.new)
+        ).BIND-POS($!pos, $scalar)
     }
 }
+
+#- ContainerDescriptor::VivifyHash ---------------------------------------------
+# Container descriptor that will bind to position in an array to be vivified
+# on first assignment
 class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
     has $!target;
     has $!key;
@@ -1619,12 +1665,15 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
     method name() { self.next.name ~ "\{'" ~ $!key ~ "'\}" }
     method assigned($scalar) {
         my $target := $!target;
-        my $hash := nqp::isconcrete($target)
-            ?? $target
-            !! nqp::assign($target, Hash.new);
-        $hash.BIND-KEY($!key, $scalar);
+        
+        (nqp::isconcrete($target)
+          ?? $target
+          !! nqp::assign($target, Hash.new)
+        ).BIND-KEY($!key, $scalar)
     }
 }
+
+#- ContainerDescriptor::UninitializedAttribute ---------------------------------
 # Attributes that are either required or have a default need us to detect if
 # they have been initialized. We do this by starting them out with a descriptor
 # that indicates they are uninitialized, and then swapping it out for a the
@@ -1642,17 +1691,19 @@ class ContainerDescriptor::UninitializedAttribute {
     method next() {
         my $next := $!next-descriptor;
         nqp::isconcrete($next)
-            ?? $next
-            !! ($!next-descriptor := nqp::gethllsym('Raku', 'default_cont_spec'))
+          ?? $next
+          !! ($!next-descriptor := nqp::gethllsym('Raku', 'default_cont_spec'))
     }
-    method name() { self.next.name }
-    method of() { self.next.of }
+
+    method of()      { self.next.of      }
+    method name()    { self.next.name    }
     method default() { self.next.default }
     method dynamic() { self.next.dynamic }
+
     method instantiate_generic($type_environment) {
         self.new(self.next.instantiate_generic($type_environment))
     }
-    method is_generic() { self.next.is_generic }
+    method is_generic()         { self.next.is_generic         }
     method is_default_generic() { self.next.is_default_generic }
 }
 
@@ -2153,9 +2204,11 @@ BEGIN {
 
     # Cache a single default Scalar container spec, to ensure we only get
     # one of them.
-    Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
-        ContainerDescriptor::Untyped.new(
-            :of(Mu), :default(Any), :name('element')));
+    Scalar.HOW.cache_add(
+      Scalar,
+      'default_cont_spec',
+      ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :name('element'))
+    );
 
     # class ScalarVAR is Scalar {
     ScalarVAR.HOW.add_parent(ScalarVAR, Scalar);

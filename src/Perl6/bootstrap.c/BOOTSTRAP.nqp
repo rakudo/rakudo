@@ -1263,7 +1263,7 @@ my class Binder {
         my int $num_pos_args := nqp::elems($args);
         my int $i;
         while $i < $num_params {
-            my $param := @params[$i];
+            my $param := nqp::atpos(@params, $i);
 
             # If the parameter is anything other than a boring old
             # positional parameter, we won't analyze it and will bail out,
@@ -1361,13 +1361,13 @@ my class Binder {
                 else {
                     # Work out a parameter type to consider, and see if it
                     # matches.
-                    my $arg := $got_prim == 3
-                      ?? Str
-                      !! $got_prim == 1 || $got_prim == 10
-                        ?? Int
-                        !! $got_prim == 3
-                          ?? Num
-                          !! nqp::atpos($args, $cur_pos_arg);
+                    my $arg := $got_prim
+                      ?? $got_prim == 3
+                        ?? Str
+                        !! $got_prim == 1 || $got_prim == 10
+                          ?? Int
+                          !! Num  # assume $got_prim == 2
+                      !! nqp::atpos($args, $cur_pos_arg);
 
                     my $param_type := nqp::getattr($param, Parameter, '$!type');
                     unless nqp::eqaddr($param_type, Mu)

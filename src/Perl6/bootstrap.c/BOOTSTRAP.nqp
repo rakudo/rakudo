@@ -124,11 +124,21 @@ my class Binder {
     my int $BIND_RESULT_FAIL     := 1;
     my int $BIND_RESULT_JUNCTION := 2;
 
+#?if !jvm
+
     my $autothreader;
     my $Positional;
     my $PositionalBindFailover;
 
-#?if !jvm
+    method set_autothreader($callable) {
+        $autothreader := $callable;
+    }
+
+    method set_pos_bind_failover($pos, $pos_bind_failover) {
+        $Positional := $pos;
+        $PositionalBindFailover := $pos_bind_failover;
+    }
+
     sub arity_fail($params, int $num_params, int $num_pos_args, int $too_many, $lexpad) {
         my str $error_prefix := $too_many ?? "Too many" !! "Too few";
         my int $count;
@@ -301,15 +311,6 @@ my class Binder {
               ?? $default_value
               !! nqp::p6capturelexwhere($default_value.clone)()
         }
-    }
-
-    method set_autothreader($callable) {
-        $autothreader := $callable;
-    }
-
-    method set_pos_bind_failover($pos, $pos_bind_failover) {
-        $Positional := $pos;
-        $PositionalBindFailover := $pos_bind_failover;
     }
 
     # Binds a single parameter.

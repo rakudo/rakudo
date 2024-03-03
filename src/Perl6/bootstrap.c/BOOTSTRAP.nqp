@@ -2390,41 +2390,51 @@ BEGIN {
       ContainerDescriptor::Untyped.new(:of(Mu), :default(Any), :name('element'))
     );
 
-    # class ScalarVAR is Scalar {
+#- ScalarVAR -------------------------------------------------------------------
+# class ScalarVAR is Scalar {
     ScalarVAR.HOW.add_parent(ScalarVAR, Scalar);
     ScalarVAR.HOW.compose_repr(ScalarVAR);
     setup_scalar_contspec(ScalarVAR);
 
-    # Set up various native reference types.
+#- xxxRef ----------------------------------------------------------------------
+# Set up various native reference types.
+
     sub setup_native_ref_type($type, $primitive, $ref_kind) {
-        $type.HOW.add_parent($type, Any);
-        $type.HOW.set_native_type($type, $primitive);
-        $type.HOW.set_ref_kind($type, $ref_kind);
-        $type.HOW.compose_repr($type);
-        nqp::setcontspec($type, 'native_ref', nqp::null());
+        my $HOW := $type.HOW;
+
+        $HOW.add_parent($type, Any);
+        $HOW.set_native_type($type, $primitive);
+        $HOW.set_ref_kind($type, $ref_kind);
+        $HOW.compose_repr($type);
+
+        nqp::setcontspec($type, 'native_ref', nqp::null);
     }
-    setup_native_ref_type(IntLexRef, int, 'lexical');
-    setup_native_ref_type(UIntLexRef, uint, 'lexical');
-    setup_native_ref_type(NumLexRef, num, 'lexical');
-    setup_native_ref_type(StrLexRef, str, 'lexical');
-    setup_native_ref_type(IntAttrRef, int, 'attribute');
-    setup_native_ref_type(UIntAttrRef, uint, 'attribute');
-    setup_native_ref_type(NumAttrRef, num, 'attribute');
-    setup_native_ref_type(StrAttrRef, str, 'attribute');
-    setup_native_ref_type(IntPosRef, int, 'positional');
-    setup_native_ref_type(UIntPosRef, uint, 'positional');
-    setup_native_ref_type(NumPosRef, num, 'positional');
-    setup_native_ref_type(StrPosRef, str, 'positional');
-    setup_native_ref_type(IntMultidimRef, int, 'multidim');
+
+    setup_native_ref_type(IntLexRef,        int, 'lexical');
+    setup_native_ref_type(UIntLexRef,      uint, 'lexical');
+    setup_native_ref_type(NumLexRef,        num, 'lexical');
+    setup_native_ref_type(StrLexRef,        str, 'lexical');
+
+    setup_native_ref_type(IntAttrRef,       int, 'attribute');
+    setup_native_ref_type(UIntAttrRef,     uint, 'attribute');
+    setup_native_ref_type(NumAttrRef,       num, 'attribute');
+    setup_native_ref_type(StrAttrRef,       str, 'attribute');
+
+    setup_native_ref_type(IntPosRef,        int, 'positional');
+    setup_native_ref_type(UIntPosRef,      uint, 'positional');
+    setup_native_ref_type(NumPosRef,        num, 'positional');
+    setup_native_ref_type(StrPosRef,        str, 'positional');
+
+    setup_native_ref_type(IntMultidimRef,   int, 'multidim');
     setup_native_ref_type(UIntMultidimRef, uint, 'multidim');
-    setup_native_ref_type(NumMultidimRef, num, 'multidim');
-    setup_native_ref_type(StrMultidimRef, str, 'multidim');
+    setup_native_ref_type(NumMultidimRef,   num, 'multidim');
+    setup_native_ref_type(StrMultidimRef,   str, 'multidim');
 
 #?if js
-    setup_native_ref_type(Int64LexRef, int64, 'lexical');
-    setup_native_ref_type(Int64AttrRef, int64, 'attribute');
-    setup_native_ref_type(Int64PosRef, int64, 'positional');
-    setup_native_ref_type(Int64MultidimRef, int64, 'multidim');
+    setup_native_ref_type(Int64LexRef,      int64, 'lexical'   );
+    setup_native_ref_type(Int64AttrRef,     int64, 'attribute' );
+    setup_native_ref_type(Int64PosRef,      int64, 'positional');
+    setup_native_ref_type(Int64MultidimRef, int64, 'multidim'  );
 #?endif
 
     # class Proxy is Any {

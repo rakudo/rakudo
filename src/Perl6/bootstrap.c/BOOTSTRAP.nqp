@@ -1238,28 +1238,31 @@ my class Binder {
     }
 #?endif
 
-    my int $TRIAL_BIND_NOT_SURE :=  0;   # Plausible, but need to check at runtime.
+    my int $TRIAL_BIND_NOT_SURE :=  0;   # Plausible, need to check at runtime.
     my int $TRIAL_BIND_OK       :=  1;   # Bind will always work out.
     my int $TRIAL_BIND_NO_WAY   := -1;   # Bind could never work out.
+
     method trial_bind($sig, $args, $sigflags) {
         my @params         := nqp::getattr($sig, Signature, '@!params');
         my int $num_params := nqp::elems(@params);
 
         # If there's a single capture parameter, then we're OK. (Worth
         # handling especially as it's the common case for protos).
-        if $num_params == 1 {
-            if nqp::getattr_i(@params[0], Parameter, '$!flags') +& nqp::const::SIG_ELEM_IS_CAPTURE
-            && nqp::isnull(
-              nqp::getattr(@params[0], Parameter, '@!post_constraints')) {
-                return $TRIAL_BIND_OK;
-            }
-        }
+        return $TRIAL_BIND_OK
+          if $num_params == 1
+          && nqp::getattr_i(
+               nqp::atpos(@params, 0), Parameter, '$!flags'
+             ) +& nqp::const::SIG_ELEM_IS_CAPTURE
+          && nqp::isnull(nqp::getattr(
+               nqp::atpos(@params, 0), Parameter, '@!post_constraints'
+             ));
 
         # Walk through the signature and consider the parameters.
+        my int $cur_pos_arg;
+
         my int $num_pos_args := nqp::elems($args);
-        my int $cur_pos_arg  := 0;
-        my int $i            := -1;
-        while ++$i < $num_params {
+        my int $i;
+        while $i < $num_params {
             my $param := @params[$i];
 
             # If the parameter is anything other than a boring old
@@ -1268,111 +1271,139 @@ my class Binder {
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
             if $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED
               && nqp::isnull(
-                nqp::getattr($param, Parameter, '@!post_constraints')) {
+                   nqp::getattr($param, Parameter, '@!post_constraints')
+                 ) {
+                  ++$i;
                   next
             }
-            if $flags +& nqp::bitneg_i(
-                    nqp::const::SIG_ELEM_MULTI_INVOCANT +| nqp::const::SIG_ELEM_IS_RAW +|
-                    nqp::const::SIG_ELEM_IS_COPY +| nqp::const::SIG_ELEM_ARRAY_SIGIL +|
-                    nqp::const::SIG_ELEM_HASH_SIGIL +| nqp::const::SIG_ELEM_NATIVE_VALUE +|
-                    nqp::const::SIG_ELEM_IS_OPTIONAL) || $flags +& nqp::const::SIG_ELEM_IS_RW {
-                return $TRIAL_BIND_NOT_SURE;
-            }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '@!named_names')) {
-                return $TRIAL_BIND_NOT_SURE;
-            }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
-                return $TRIAL_BIND_NOT_SURE;
-            }
-            unless nqp::isnull(nqp::getattr($param, Parameter, '@!type_captures')) {
-                return $TRIAL_BIND_NOT_SURE;
-            }
-            if $param.coercive {
-                return $TRIAL_BIND_NOT_SURE;
-            }
+
+            return $TRIAL_BIND_NOT_SURE
+              if $flags +& nqp::bitneg_i(
+                   nqp::const::SIG_ELEM_MULTI_INVOCANT
+                +| nqp::const::SIG_ELEM_IS_RAW
+                +| nqp::const::SIG_ELEM_IS_COPY
+                +| nqp::const::SIG_ELEM_ARRAY_SIGIL
+                +| nqp::const::SIG_ELEM_HASH_SIGIL
+                +| nqp::const::SIG_ELEM_NATIVE_VALUE
+                +| nqp::const::SIG_ELEM_IS_OPTIONAL
+              )
+              || $flags +& nqp::const::SIG_ELEM_IS_RW;
+
+            return $TRIAL_BIND_NOT_SURE
+              unless nqp::isnull(
+                   nqp::getattr($param, Parameter, '@!named_names')
+                 )
+              || nqp::isnull(
+                   nqp::getattr($param, Parameter, '@!post_constraints')
+                 )
+              || nqp::isnull(
+                   nqp::getattr($param, Parameter, '@!type_captures')
+                 );
+
+            return $TRIAL_BIND_NOT_SURE
+              if $param.coercive;
 
             # Do we have an argument for this parameter?
             if $cur_pos_arg >= $num_pos_args {
+
                 # No; if it's not optional, fail.
-                unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                    return $TRIAL_BIND_NO_WAY;
-                }
+                return $TRIAL_BIND_NO_WAY
+                  unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL;
             }
+
+            # An argument for this position
             else {
                 # Yes, need to consider type
-                my int $got_prim := $sigflags[$cur_pos_arg] +& 0xF;
+                my int $got_prim := nqp::atpos($sigflags, $cur_pos_arg) +& 0xF;
+
+                # Parameter is a native
                 if $flags +& nqp::const::SIG_ELEM_NATIVE_VALUE {
-                    if $got_prim == 0 {
-                        # We got an object; if we aren't sure we can unbox, we can't
-                        # be sure about the dispatch.
-                        if $flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE {
-                            return $TRIAL_BIND_NOT_SURE unless nqp::isint($args[$cur_pos_arg]);
-                        }
-                        elsif $flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE {
-                            return $TRIAL_BIND_NOT_SURE unless nqp::isint($args[$cur_pos_arg]);
-                        }
-                        elsif $flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE {
-                            return $TRIAL_BIND_NOT_SURE unless nqp::isnum($args[$cur_pos_arg]);
-                        }
-                        elsif $flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE {
-                            return $TRIAL_BIND_NOT_SURE unless nqp::isstr($args[$cur_pos_arg]);
-                        }
-                        else {
-                            # WTF...
-                            return $TRIAL_BIND_NOT_SURE;
-                        }
-                    }
-                    else {
+
+                    # Got a native
+                    if $got_prim {
+
                         # If it's the wrong type of native, there's no way it
                         # can ever bind.
-                        if (($flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE) && $got_prim != 1) ||
-                           (($flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE) && $got_prim != 10 && $got_prim != 1) ||
-                           (($flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE) && $got_prim != 2) ||
-                           (($flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE) && $got_prim != 3) {
-                            return $TRIAL_BIND_NO_WAY;
-                        }
+                        return $TRIAL_BIND_NO_WAY
+                          if (($flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE)
+                               && $got_prim != 3)
+                          || (($flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE)
+                               && $got_prim != 1)
+                          || (($flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE)
+                               && $got_prim != 10 && $got_prim != 1)
+                          || (($flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE)
+                               && $got_prim != 2);
+                    }
+
+                    # We got an object; if we aren't sure we can unbox,
+                    # we can't be sure about the dispatch.
+                    elsif $flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE {
+                        return $TRIAL_BIND_NOT_SURE
+                          unless nqp::isstr(nqp::atpos($args, $cur_pos_arg));
+                    }
+                    elsif $flags +& (
+                      nqp::const::SIG_ELEM_NATIVE_INT_VALUE
+                      +| nqp::const::SIG_ELEM_NATIVE_UINT_VALUE) {
+                        return $TRIAL_BIND_NOT_SURE
+                          unless nqp::isint(nqp::atpos($args, $cur_pos_arg));
+                    }
+                    elsif $flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE {
+                        return $TRIAL_BIND_NOT_SURE
+                          unless nqp::isnum(nqp::atpos($args, $cur_pos_arg));
+                    }
+                    else {
+                        # WTF...
+                        return $TRIAL_BIND_NOT_SURE;
                     }
                 }
-                else {
-                    # Work out a parameter type to consider, and see if it matches.
-                    my $arg := $got_prim == 1 ?? Int !!
-                               $got_prim == 10 ?? Int !!
-                               $got_prim == 2 ?? Num !!
-                               $got_prim == 3 ?? Str !!
-                               $args[$cur_pos_arg];
-                    my $param_type := nqp::getattr($param, Parameter, '$!type');
-                    unless $param_type =:= Mu || nqp::istype($arg, $param_type) {
-                        # If it failed because we got a junction, may auto-thread;
-                        # hand back 'not sure' for now.
-                        if $arg.WHAT =:= Junction {
-                            return $TRIAL_BIND_NOT_SURE;
-                        }
 
-                        # It failed to, but that doesn't mean it can't work at runtime;
-                        # we perhaps want an Int, and the most we know is we have an Any,
-                        # which would include Int. However, the Int ~~ Str case can be
-                        # rejected now, as there's no way it'd ever match. Basically, we
+                # Parameter is an object
+                else {
+                    # Work out a parameter type to consider, and see if it
+                    # matches.
+                    my $arg := $got_prim == 3
+                      ?? Str
+                      !! $got_prim == 1 || $got_prim == 10
+                        ?? Int
+                        !! $got_prim == 3
+                          ?? Num
+                          !! nqp::atpos($args, $cur_pos_arg);
+
+                    my $param_type := nqp::getattr($param, Parameter, '$!type');
+                    unless nqp::eqaddr($param_type, Mu)
+                      || nqp::istype($arg, $param_type) {
+
+                        # If it failed because we got a junction, may
+                        # auto-thread; hand back 'not sure' for now.
+                        return $TRIAL_BIND_NOT_SURE
+                          if nqp::eqaddr($arg.WHAT, Junction);
+
+                        # It failed to, but that doesn't mean it can't work
+                        # at runtime; we perhaps want an Int, and the most
+                        # we know is we have an Any, which would include Int.
+                        # However, the Int ~~ Str case can be rejected now,
+                        # as there's no way it'd ever match. Basically, we
                         # just flip the type check around.
                         return nqp::istype($param_type, $arg.WHAT)
-                            ?? $TRIAL_BIND_NOT_SURE
-                            !! $TRIAL_BIND_NO_WAY;
+                          ?? $TRIAL_BIND_NOT_SURE
+                          !! $TRIAL_BIND_NO_WAY;
                     }
                 }
             }
 
             # Continue to next argument.
             ++$cur_pos_arg;
+            ++$i;
         }
 
-        # If we have any left over arguments, it's a binding fail.
-        if $cur_pos_arg < $num_pos_args {
-            return $TRIAL_BIND_NO_WAY;
-        }
-
-        # Otherwise, if we get there, all is well.
-        return $TRIAL_BIND_OK;
+        $cur_pos_arg < $num_pos_args
+          # If we have any left over arguments, it's a binding fail.
+          ?? $TRIAL_BIND_NO_WAY
+          # Otherwise, if we get there, all is well.
+          !! $TRIAL_BIND_OK
     }
 }
+
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
 

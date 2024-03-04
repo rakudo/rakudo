@@ -2943,8 +2943,10 @@ BEGIN {
             $self    := nqp::clone($self);
             my $do   := nqp::getattr($self, Code, '$!do');
             my $cldo := nqp::clone($do);
-            nqp::bindattr($self, Code, '$!do', $cldo);
-            nqp::setcodeobj($cldo, $self);
+            nqp::setcodeobj(
+              nqp::bindattr($self, Code, '$!do', $cldo),
+              $self
+            );
 
             my $compstuff := nqp::getattr($self, Code, '@!compstuff');
             nqp::atpos($compstuff, 2)($do, $self)  # XXX will $cldo do?
@@ -3006,133 +3008,142 @@ BEGIN {
     Code.HOW.compose_repr(Code);
 
 #?if !moar
-    # Need to actually run the code block. Also need this available before we finish
-    # up the stub.
+    # Need to actually run the code block. Also need this available before
+    # we finish up the stub.
     Code.HOW.set_invocation_attr(Code, Code, '$!do');
     Code.HOW.compose_invocation(Code);
 #?endif
 
-    # class Block is Code {
-    #     has Mu $!phasers;                # phasers for this block
-    #     has Mu $!why;
+#- Block -----------------------------------------------------------------------
+# class Block is Code {
+#     has Mu $!phasers;                # phasers for this block
+#     has Mu $!why;
+
     Block.HOW.add_parent(Block, Code);
-    Block.HOW.add_attribute(Block, Attribute.new(:name<$!phasers>, :type(Mu), :package(Block), :auto_viv_primitive(nqp::null())));
+
+    Block.HOW.add_attribute(Block, Attribute.new(
+      :name<$!phasers>, :type(Mu), :package(Block), :auto_viv_primitive(NQPMu)
+    ));
+
     Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block));
-    Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            if nqp::isconcrete($dcself) {
-                my $cloned := nqp::clone($dcself);
-                my $do     := nqp::getattr($dcself, Code, '$!do');
-                nqp::setcodeobj(
-                  nqp::bindattr($cloned, Code, '$!do', my $cldo := nqp::clone($do)),
-                  $cloned
-                );
-#?if !jvm
-                my $phasers := nqp::getattr($dcself, Block, '$!phasers');
-                $dcself."!clone_phasers"($cloned, $phasers)
-                  if nqp::ishash($phasers);
-#?endif
-                my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
-                nqp::atpos($compstuff, 2)($do, $cloned) unless nqp::isnull($compstuff);
 
-                # XXX this should probably be done after the clone that installs
-                #     the sub
-                my $why := nqp::getattr($dcself, Block, '$!why');
-                $why.set_docee($cloned) unless nqp::isnull($why);
+    Block.HOW.add_method(Block, 'clone',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
 
-                $cloned
-            }
-            else {
-                $dcself
-            }
-        }));
-    Block.HOW.add_method(Block, '!clone_phasers', nqp::getstaticcode(sub ($self, $cloned, $phasers) {
+        if nqp::isconcrete($self) {
+            my $cloned := nqp::clone($self);
+            my $do     := nqp::getattr($self, Code, '$!do');
+            my $cldo   := nqp::clone($do);
+
+            nqp::setcodeobj(
+              nqp::bindattr($cloned, Code, '$!do', $cldo),
+              $cloned
+            );
 #?if !jvm
-            my int $next := nqp::existskey($phasers, 'NEXT');
-            my int $last := nqp::existskey($phasers, 'LAST');
-            my int $quit := nqp::existskey($phasers, 'QUIT');
-            my int $close := nqp::existskey($phasers, 'CLOSE');
-            if $next +| $last +| $quit +| $close {
-                my %pclone := nqp::clone($phasers);
-                if $next {
-                    my @nexts := nqp::clone($phasers<NEXT>);
-                    my int $i := -1;
-                    while ++$i < nqp::elems(@nexts) {
-                        @nexts[$i] := @nexts[$i].clone();
-                    }
-                    %pclone<NEXT> := @nexts;
-                }
-                if $last {
-                    my @lasts := nqp::clone($phasers<LAST>);
-                    my int $i := -1;
-                    while ++$i < nqp::elems(@lasts) {
-                        nqp::captureinnerlex(nqp::getattr(
-                            (@lasts[$i] := @lasts[$i].clone()),
-                            Code, '$!do'));
-                    }
-                    %pclone<LAST> := @lasts;
-                }
-                if $quit {
-                    my @quits := nqp::clone($phasers<QUIT>);
-                    my int $i := -1;
-                    while ++$i < nqp::elems(@quits) {
-                        nqp::captureinnerlex(nqp::getattr(
-                            (@quits[$i] := @quits[$i].clone()),
-                            Code, '$!do'));
-                    }
-                    %pclone<QUIT> := @quits;
-                }
-                if $close {
-                    my @closes := nqp::clone($phasers<CLOSE>);
-                    my int $i := -1;
-                    while ++$i < nqp::elems(@closes) {
-                        nqp::captureinnerlex(nqp::getattr(
-                            (@closes[$i] := @closes[$i].clone()),
-                            Code, '$!do'));
-                    }
-                    %pclone<CLOSE> := @closes;
-                }
-                nqp::bindattr($cloned, Block, '$!phasers', %pclone);
-            }
+            my $phasers := nqp::getattr($cloned, Block, '$!phasers');
+            $self."!clone_phasers"($cloned, $phasers) if nqp::ishash($phasers);
 #?endif
-        }));
-    Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
-            my $dcself  := nqp::decont($self);
-#?if !jvm
-            my $phasers := nqp::getattr($dcself, Block, '$!phasers');
-            if nqp::ishash($phasers) {
-                my @next := nqp::atkey($phasers, 'NEXT');
-                if nqp::islist(@next) {
-                    my int $i := -1;
-                    while ++$i < nqp::elems(@next) {
-                        nqp::p6capturelexwhere(@next[$i]);
-                    }
-                }
-                my @last := nqp::atkey($phasers, 'LAST');
-                if nqp::islist(@last) {
-                    my int $i := -1;
-                    while ++$i < nqp::elems(@last) {
-                        nqp::p6capturelexwhere(@last[$i]);
-                    }
-                }
-                my @quit := nqp::atkey($phasers, 'QUIT');
-                if nqp::islist(@quit) {
-                    my int $i := -1;
-                    while ++$i < nqp::elems(@quit) {
-                        nqp::p6capturelexwhere(@quit[$i]);
-                    }
-                }
-                my @close := nqp::atkey($phasers, 'CLOSE');
-                if nqp::islist(@close) {
-                    my int $i := -1;
-                    while ++$i < nqp::elems(@close) {
-                        nqp::p6capturelexwhere(@close[$i]);
-                    }
-                }
-            }
-#?endif
-            $dcself
+
+            my $compstuff := nqp::getattr($cloned, Code, '@!compstuff');
+            nqp::atpos($compstuff, 2)($do, $cloned)
+              unless nqp::isnull($compstuff);
+
+            # XXX this should probably be done after the clone that installs
+            #     the sub
+            my $why := nqp::getattr($cloned, Block, '$!why');
+            $why.set_docee($cloned) unless nqp::isnull($why);
+            $cloned
+        }
+        else {
+            $self
+        }
     }));
+
+    Block.HOW.add_method(Block, '!clone_phasers',
+      nqp::getstaticcode(sub ($self, $cloned, $phasers) {
+#?if !jvm
+
+        # Helper sub for phasers that require innerlex capturing
+        my $cl_phasers := nqp::null;
+        sub clone_if_phasers(str $name) {
+            my $list   := nqp::atkey($phasers, $name);
+            my int $m  := nqp::elems($list);
+            my @blocks := nqp::create(IterationBuffer);
+
+            my int $i;
+            while $i < $m {
+                nqp::captureinnerlex(
+                  nqp::getattr(
+                    nqp::push(@blocks, nqp::atpos($list, $i).clone),
+                    Code,
+                    '$!do'
+                  )
+                );
+                ++$i;
+            }
+
+            nqp::bindkey(
+              nqp::ifnull($cl_phasers, $cl_phasers := nqp::clone($phasers)),
+              $name,
+              @blocks
+            );
+        }
+
+        # XXX don't capture innerlex, why?
+        if nqp::existskey($phasers, 'NEXT') {
+            my $next   := nqp::atkey($phasers, 'NEXT');
+            my int $m  := nqp::elems($next);
+            my @blocks := nqp::create(IterationBuffer);
+
+            my int $i;
+            while $i < $m {
+                nqp::push(@blocks, nqp::atpos($next, $i).clone);
+                ++$i;
+            }
+
+            nqp::bindkey(
+              nqp::ifnull($cl_phasers, $cl_phasers := nqp::clone($phasers)),
+              'NEXT',
+              @blocks
+            );
+        }
+
+        clone_if_phasers('LAST')  if nqp::existskey($phasers, 'LAST' );
+        clone_if_phasers('QUIT')  if nqp::existskey($phasers, 'QUIT' );
+        clone_if_phasers('CLOSE') if nqp::existskey($phasers, 'CLOSE');
+
+        nqp::bindattr($cloned, Block, '$!phasers', $cl_phasers)
+          unless nqp::isnull($cl_phasers);
+#?endif
+    }));
+
+    Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
+            $self  := nqp::decont($self);
+#?if !jvm
+
+            # Assumes we *always* get a hash here
+            my $phasers := nqp::getattr($self, Block, '$!phasers');
+
+            sub capture_phaser(str $name) {
+                my @blocks := nqp::atkey($phasers, $name);
+
+                my int $m := nqp::elems(@blocks);
+                my int $i;
+                while $i < $m {
+                    nqp::p6capturelexwhere(nqp::atpos(@blocks, $i));
+                    ++$i;
+                }
+            }
+
+            capture_phaser('NEXT')  if nqp::existskey($phasers, 'NEXT' );
+            capture_phaser('LAST')  if nqp::existskey($phasers, 'LAST' );
+            capture_phaser('QUIT')  if nqp::existskey($phasers, 'QUIT' );
+            capture_phaser('CLOSE') if nqp::existskey($phasers, 'CLOSE');
+#?endif
+            $self
+    }));
+
     Block.HOW.compose_repr(Block);
 #?if !moar
     Block.HOW.compose_invocation(Block);

@@ -1962,24 +1962,30 @@ BEGIN {
 
     Attribute.HOW.add_method(Attribute, 'name',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr_s(nqp::decont($self), Attribute, '$!name')
+        $self := nqp::decont($self);
+
+        nqp::getattr_s($self, Attribute, '$!name')
     }));
 
     Attribute.HOW.add_method(Attribute, 'type',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr(nqp::decont($self), Attribute, '$!type')
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!type')
     }));
 
     Attribute.HOW.add_method(Attribute, 'container_descriptor',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr(nqp::decont($self), Attribute, '$!container_descriptor')
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!container_descriptor')
     }));
 
     Attribute.HOW.add_method(Attribute, 'auto_viv_container',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
-        my $cont := nqp::getattr($self, Attribute, '$!auto_viv_container');
 
+        my $cont := nqp::getattr($self, Attribute, '$!auto_viv_container');
         if nqp::isconcrete_nd($cont)
           && (nqp::getattr($self, Attribute, '$!required')
                || nqp::isconcrete(
@@ -2006,39 +2012,49 @@ BEGIN {
 
     Attribute.HOW.add_method(Attribute, 'is_built',
       nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
         nqp::hllboolfor(
-          nqp::getattr_i(nqp::decont($self), Attribute, '$!is_built'),
+          nqp::getattr_i($self, Attribute, '$!is_built'),
           "Raku"
         )
     }));
 
     Attribute.HOW.add_method(Attribute, 'is_bound',
       nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
         nqp::hllboolfor(
-          nqp::getattr_i(nqp::decont($self), Attribute, '$!is_bound'),
+          nqp::getattr_i($self, Attribute, '$!is_bound'),
           "Raku"
         )
     }));
 
     Attribute.HOW.add_method(Attribute, 'has_accessor',
       nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
         nqp::hllboolfor(
-          nqp::getattr_i(nqp::decont($self), Attribute, '$!has_accessor'),
+          nqp::getattr_i($self, Attribute, '$!has_accessor'),
           "Raku"
         )
     }));
 
     Attribute.HOW.add_method(Attribute, 'rw',
       nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
         nqp::hllboolfor(
-          nqp::getattr_i(nqp::decont($self), Attribute, '$!rw'),
+          nqp::getattr_i($self, Attribute, '$!rw'),
           "Raku"
         );
     }));
 
     Attribute.HOW.add_method(Attribute, 'set_rw',
       nqp::getstaticcode(sub ($self) {
-        nqp::bindattr_i(nqp::decont($self), Attribute, '$!rw', 1);
+        $self := nqp::decont($self);
+
+        nqp::bindattr_i($self, Attribute, '$!rw', 1);
         nqp::hllboolfor(1, "Raku")
     }));
 
@@ -2056,18 +2072,21 @@ BEGIN {
 
     Attribute.HOW.add_method(Attribute, 'set_required',
       nqp::getstaticcode(sub ($self, $value) {
+        $self := nqp::decont($self);
 
         # The value can also be a string that will be shown in the error
         # message if this named argument is *not* specified.  Make sure it
         # is added to the serialization context.
         $*W.add_object_if_no_sc($value);  # XXX RakuAST
-        nqp::bindattr(nqp::decont($self), Attribute, '$!required', $value);
+        nqp::bindattr($self, Attribute, '$!required', $value);
         nqp::hllboolfor(1, "Raku")
     }));
 
     Attribute.HOW.add_method(Attribute, 'required',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr(nqp::decont($self), Attribute, '$!required')
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!required')
     }));
 
     Attribute.HOW.add_method(Attribute, 'default_to_rw',
@@ -2090,38 +2109,52 @@ BEGIN {
 
     Attribute.HOW.add_method(Attribute, 'build',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr(nqp::decont($self), Attribute, '$!build_closure');
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!build_closure');
     }));
 
     Attribute.HOW.add_method(Attribute, 'set_box_target',
       nqp::getstaticcode(sub ($self) {
-        nqp::bindattr_i(nqp::decont($self), Attribute, '$!box_target', 1);
+        $self := nqp::decont($self);
+
+        nqp::bindattr_i($self, Attribute, '$!box_target', 1);
         nqp::hllboolfor(1, "Raku")
     }));
 
     Attribute.HOW.add_method(Attribute, 'box_target',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr_i(nqp::decont($self), Attribute, '$!box_target')
+        $self := nqp::decont($self);
+
+        nqp::getattr_i($self, Attribute, '$!box_target')
     }));
 
     Attribute.HOW.add_method(Attribute, 'positional_delegate',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr_i(nqp::decont($self), Attribute, '$!positional_delegate');
+        $self := nqp::decont($self);
+
+        nqp::getattr_i($self, Attribute, '$!positional_delegate');
     }));
 
     Attribute.HOW.add_method(Attribute, 'associative_delegate',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr_i(nqp::decont($self), Attribute, '$!associative_delegate')
+        $self := nqp::decont($self);
+
+        nqp::getattr_i($self, Attribute, '$!associative_delegate')
     }));
 
     Attribute.HOW.add_method(Attribute, 'container_initializer',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr(nqp::decont($self), Attribute, '$!container_initializer')
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!container_initializer')
     }));
 
     Attribute.HOW.add_method(Attribute, 'original',
       nqp::getstaticcode(sub ($self) {
-        nqp::getattr(nqp::decont($self), Attribute, '$!original')
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Attribute, '$!original')
     }));
 
     Attribute.HOW.add_method(Attribute, 'is_generic',
@@ -2143,8 +2176,8 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'instantiate_generic',
       nqp::getstaticcode(sub ($self, $type_environment) {
         $self    := nqp::decont($self);
-        my $ins  := nqp::clone($self);
 
+        my $ins  := nqp::clone($self);
         my $type := nqp::getattr($self, Attribute, '$!type');
         my $cd   := nqp::getattr($self, Attribute, '$!container_descriptor');
         my $pkg  := nqp::getattr($self, Attribute, '$!package');
@@ -2245,8 +2278,9 @@ BEGIN {
 
     Scalar.HOW.add_method(Scalar, 'is_generic',
       nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
 
-        my $descr := nqp::getattr(nqp::decont($self), Scalar, '$!descriptor');
+        my $descr := nqp::getattr($self, Scalar, '$!descriptor');
         $descr.is_generic || $descr.is_default_generic
     }));
 
@@ -2437,42 +2471,58 @@ BEGIN {
     setup_native_ref_type(Int64MultidimRef, int64, 'multidim'  );
 #?endif
 
+#- Proxy -----------------------------------------------------------------------
     # class Proxy is Any {
     #    has Mu &!FETCH;
     #    has Mu &!STORE;
-    my $PROXY_FETCH;
-    my $PROXY_STORE;
-    Proxy.HOW.add_parent(Proxy, Any);
-    Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!FETCH>, :type(Mu), :package(Proxy)));
-    Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(:name<&!STORE>, :type(Mu), :package(Proxy)));
-    Proxy.HOW.add_method(Proxy, 'FETCH', ($PROXY_FETCH := nqp::getstaticcode(sub ($cont) {
+    my $PROXY_FETCH := nqp::getstaticcode(sub ($cont) {
         my $var := nqp::create(Scalar);
         nqp::bindattr($var, Scalar, '$!value', $cont);
         nqp::decont(nqp::getattr($cont, Proxy, '&!FETCH')($var))
-    })));
-    Proxy.HOW.add_method(Proxy, 'STORE', ($PROXY_STORE := nqp::getstaticcode(sub ($cont, $val) {
+    });
+
+    my $PROXY_STORE := nqp::getstaticcode(sub ($cont, $val) {
         my $var := nqp::create(Scalar);
         nqp::bindattr($var, Scalar, '$!value', $cont);
         nqp::getattr($cont, Proxy, '&!STORE')($var, $val)
-    })));
-    Proxy.HOW.add_method(Proxy, 'new', nqp::getstaticcode(sub ($type, :$FETCH!, :$STORE!) {
+    });
+
+    Proxy.HOW.add_parent(Proxy, Any);
+
+    Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(
+      :name<&!FETCH>, :type(Mu), :package(Proxy)
+    ));
+
+    Proxy.HOW.add_attribute(Proxy, BOOTSTRAPATTR.new(
+      :name<&!STORE>, :type(Mu), :package(Proxy)
+    ));
+
+    Proxy.HOW.add_method(Proxy, 'FETCH', $PROXY_FETCH);
+    Proxy.HOW.add_method(Proxy, 'STORE', $PROXY_STORE);
+
+    Proxy.HOW.add_method(Proxy, 'new',
+      nqp::getstaticcode(sub ($type, :$FETCH!, :$STORE!) {
         my $cont := nqp::create(nqp::decont($type));
         nqp::bindattr($cont, Proxy, '&!FETCH', $FETCH);
         nqp::bindattr($cont, Proxy, '&!STORE', $STORE);
         $cont
     }));
+
     Proxy.HOW.set_container_spec(Proxy, nqp::hash(
-        'fetch', $PROXY_FETCH,
-        'store', $PROXY_STORE
+      'fetch', $PROXY_FETCH,
+      'store', $PROXY_STORE
     ));
+
     Proxy.HOW.compose(Proxy);
     Proxy.HOW.compose_repr(Proxy);
+
+#- Signature -------------------------------------------------------------------
 
     # Helper for creating a scalar attribute. Sets it up as a real Raku
     # Attribute instance, complete with container descriptor and optional
     # auto-viv container.
     sub scalar_attr(
-      $name, $type, $package, :$associative_delegate, :$auto_viv_container = 1
+      $name, $type, $package, :$associative_delegate, :$auto_viv_container
     ) {
         my $container_descriptor := ContainerDescriptor.new(:$name, :of($type));
 
@@ -2508,24 +2558,43 @@ BEGIN {
         )
     }
 
-    # class Signature is Any{
-    #    has @!params;
-    #    has Mu $!returns;
-    #    has int $!arity;
-    #    has Num $!count;
-    #    has Code $!code;
-    #    has int $!readonly;
-    Signature.HOW.add_parent(Signature, Any);
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<@!params>, :type(List), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, scalar_attr('$!returns', Mu, Signature, :!auto_viv_container));
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!arity>, :type(int), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Num), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Code), :package(Signature)));
-    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!readonly>, :type(int), :package(Signature)));
+# class Signature is Any {
+#    has @!params;
+#    has Mu $!returns;
+#    has int $!arity;
+#    has Num $!count;
+#    has Code $!code;
+#    has int $!readonly;
 
-    Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub (
-      $self
-    ) {   # XXX this should be an attribute, set at build time
+    Signature.HOW.add_parent(Signature, Any);
+
+    Signature.HOW.add_attribute(Signature, Attribute.new(
+      :name<@!params>, :type(List), :package(Signature)
+    ));
+
+    Signature.HOW.add_attribute(Signature, scalar_attr(
+      '$!returns', Mu, Signature
+    ));
+
+    Signature.HOW.add_attribute(Signature, Attribute.new(
+      :name<$!arity>, :type(int), :package(Signature)
+    ));
+
+    Signature.HOW.add_attribute(Signature, Attribute.new(
+      :name<$!count>, :type(Num), :package(Signature)
+    ));
+
+    Signature.HOW.add_attribute(Signature, Attribute.new(
+      :name<$!code>, :type(Code), :package(Signature)
+    ));
+
+    Signature.HOW.add_attribute(Signature, Attribute.new(
+      :name<$!readonly>, :type(int), :package(Signature)
+    ));
+
+    Signature.HOW.add_method(Signature, 'is_generic',
+      nqp::getstaticcode(sub ($self) {
+        # XXX this should be an attribute, set at build time
 
         # If any parameter is generic, so are we.
         my @params := nqp::getattr($self, Signature, '@!params');
@@ -2540,258 +2609,400 @@ BEGIN {
         0
     }));
 
-    Signature.HOW.add_method(Signature, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
-            # Go through parameters, builidng new list. If any
-            # are generic, instantiate them. Otherwise leave them
-            # as they are.
-            my $ins    := nqp::clone($self);
-            my @params := nqp::getattr($self, Signature, '@!params');
-            my @ins_params;
-            for @params {
-                if $_.is_generic() {
-                    @ins_params.push($_.instantiate_generic($type_environment))
-                }
-                else {
-                    @ins_params.push($_);
-                }
-            }
-            nqp::bindattr($ins, Signature, '@!params', @ins_params);
-            my $returns := nqp::getattr($self, Signature, '$!returns');
-            if !nqp::isnull($returns) && $returns.HOW.archetypes($returns).generic {
-                nqp::bindattr($ins, Signature, '$!returns',
-                    $returns.HOW.instantiate_generic($returns, $type_environment));
-            }
-            $ins
-        }));
-    Signature.HOW.add_method(Signature, 'returns', nqp::getstaticcode(sub ($self) {
-        nqp::getattr(nqp::decont($self),Signature,'$!returns')
-        }));
-    Signature.HOW.add_method(Signature, 'set_returns', nqp::getstaticcode(sub ($self, $type) {
-            nqp::bindattr(nqp::decont($self),
-                Signature, '$!returns', nqp::decont($type));
-        }));
-    Signature.HOW.add_method(Signature, 'has_returns', nqp::getstaticcode(sub ($self) {
-            nqp::hllboolfor(
-                nqp::not_i(
-                    nqp::isnull(
-                        nqp::getattr(nqp::decont($self),
-                            Signature, '$!returns')
-                    )
-                ),
-                'Raku'
+    Signature.HOW.add_method(Signature, 'instantiate_generic',
+      nqp::getstaticcode(sub ($self, $type_environment) {
+
+        # Go through parameters, builidng new list. If any
+        # are generic, instantiate them. Otherwise leave them
+        # as they are.
+        my $ins    := nqp::clone($self);
+        nqp::bindattr($ins, Signature, '@!params', my @ins_params);
+
+        my @params := nqp::getattr($self, Signature, '@!params');
+        my $m := nqp::elems(@params);
+        my int $i;
+        while $i < $m {
+            my $param := nqp::atpos(@params, $i);
+            nqp::push(
+              @ins_params,
+              $param.is_generic
+                ?? $param.instantiate_generic($type_environment)
+                !! $param
             );
-        }));
+            ++$i;
+        }
+
+        my $returns := nqp::getattr($self, Signature, '$!returns');
+        nqp::bindattr($ins, Signature, '$!returns',
+          $returns.HOW.instantiate_generic($returns, $type_environment)
+        ) if nqp::not_i(nqp::isnull($returns))
+          && $returns.HOW.archetypes($returns).generic;
+
+        $ins
+    }));
+
+    Signature.HOW.add_method(Signature, 'returns',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self,Signature,'$!returns')
+    }));
+
+    Signature.HOW.add_method(Signature, 'set_returns',
+      nqp::getstaticcode(sub ($self, $type) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr(
+          $self, Signature, '$!returns', nqp::decont($type)
+        )
+    }));
+
+    Signature.HOW.add_method(Signature, 'has_returns',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::hllboolfor(
+          nqp::not_i(nqp::isnull(
+            nqp::getattr($self, Signature, '$!returns')
+          )),
+          'Raku'
+        )
+    }));
+
     Signature.HOW.compose_repr(Signature);
 
-    # class Parameter is Any {
-    #     has str $!variable_name
-    #     has @!named_names
-    #     has @!type_captures
-    #     has int $!flags
-    #     has Mu $!type
-    #     has @!post_constraints
-    #     has Signature $!sub_signature
-    #     has Code $!default_value
-    #     has Mu $!container_descriptor;
-    #     has Mu $!attr_package;
-    #     has Mu $!why;
+#- Parameter -------------------------------------------------------------------
+# class Parameter is Any {
+#     has str $!variable_name
+#     has @!named_names
+#     has @!type_captures
+#     has int $!flags
+#     has Mu $!type
+#     has @!post_constraints
+#     has Signature $!sub_signature
+#     has Code $!default_value
+#     has Mu $!container_descriptor;
+#     has Mu $!attr_package;
+#     has Mu $!why;
+
     Parameter.HOW.add_parent(Parameter, Any);
-    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!variable_name>, :type(str), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!named_names', Mu, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!type_captures', Mu, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!flags>, :type(int), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!type>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('@!post_constraints', List, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!sub_signature', Signature, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!default_value', Code, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!container_descriptor', Mu, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!why>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!signature_constraint', Signature, Parameter, :!auto_viv_container));
-    Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
-            # If nominal type or attr_package is generic, so are we.
-            my $type := nqp::getattr($self, Parameter, '$!type');
-            my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
-            my $sigc := nqp::getattr($self, Parameter, '$!signature_constraint');
-            nqp::hllboolfor(
-                $type.HOW.archetypes($type).generic
-                || (!nqp::isnull($ap) && $ap.HOW.archetypes($ap).generic)
-                || (nqp::defined($sigc) && $sigc.is_generic),
-                "Raku")
-        }));
-    Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
-            # Clone with the type instantiated.
-            my $ins      := nqp::clone($self);
-            my $type     := nqp::getattr($self, Parameter, '$!type');
-            my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
-            my $ap       := nqp::getattr($self, Parameter, '$!attr_package');
-            my $sigc     := nqp::getattr($self, Parameter, '$!signature_constraint');
-            my $ins_type := $type;
-            my $ins_cd   := $cd;
-            if $type.HOW.archetypes($type).generic {
-                $ins_type := $type.HOW.instantiate_generic($type, $type_environment);
-                $ins_cd   := nqp::isnull($cd) ?? $cd !! $cd.instantiate_generic($type_environment);
-            }
-            my $ins_ap :=
-                !nqp::isnull($ap) && $ap.HOW.archetypes($ap).generic
-                    ?? $ap.HOW.instantiate_generic($ap, $type_environment)
-                    !! $ap;
-            my $ins_sigc :=
-                nqp::defined($sigc) && $sigc.is_generic
-                    ?? $sigc.instantiate_generic($type_environment)
-                    !! $sigc;
-            my int $flags := nqp::getattr_i($ins, Parameter, '$!flags');
-            unless $ins_type.HOW.archetypes($ins_type).generic {
-                if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
-                    nqp::bindattr_i($ins, Parameter, '$!flags', $flags - nqp::const::SIG_ELEM_TYPE_GENERIC);
-                }
-            }
-            my $archetypes := $ins_type.HOW.archetypes($ins_type);
-            if $archetypes.coercive {
-                nqp::bindattr_i($ins, Parameter, '$!flags', $flags +| nqp::const::SIG_ELEM_IS_COERCIVE);
-            }
-            nqp::bindattr($ins, Parameter, '$!type', $ins_type);
-            nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd);
-            nqp::bindattr($ins, Parameter, '$!attr_package', $ins_ap);
-            nqp::bindattr($ins, Parameter, '$!signature_constraint', $ins_sigc);
-            $ins
-        }));
-    Parameter.HOW.add_method(Parameter, 'set_rw', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my str $varname := nqp::getattr_s($dcself, Parameter, '$!variable_name');
-            unless nqp::isnull_s($varname) || nqp::eqat($varname, '$', 0) {
-                my $error;
-                if nqp::eqat($varname, '%', 0) || nqp::eqat($varname, '@', 0)  {
-                    my $sig := nqp::substr($varname, 0, 1);
-                    $error := "For parameter '$varname', '$sig' sigil containers don't need 'is rw' to be writable\n";
-                }
-                $error := $error ~ "Can only use 'is rw' on a scalar ('\$' sigil) parameter, not '$varname'";
-                nqp::die($error);
-            }
-            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                Perl6::Metamodel::Configuration.throw_or_die(
-                    'X::Trait::Invalid',
-                    "Cannot use 'is rw' on optional parameter '$varname'",
-                    :type('is'),
-                    :subtype('rw'),
-                    :declaring('optional parameter'),
-                    :name($varname)
-                );
-            }
-            nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + nqp::const::SIG_ELEM_IS_RW);
-            $dcself
-        }));
-    Parameter.HOW.add_method(Parameter, 'set_copy', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            nqp::bindattr_i($dcself, Parameter, '$!flags',
-                nqp::getattr_i($dcself, Parameter, '$!flags') + nqp::const::SIG_ELEM_IS_COPY);
-            $dcself
-        }));
-    Parameter.HOW.add_method(Parameter, 'set_required', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                nqp::bindattr_i($dcself, Parameter, '$!flags',
-                    $flags - nqp::const::SIG_ELEM_IS_OPTIONAL);
-            }
-            $dcself
-        }));
-    Parameter.HOW.add_method(Parameter, 'set_raw', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            unless $flags +& nqp::const::SIG_ELEM_IS_RAW {
-                nqp::bindattr_i($dcself, Parameter, '$!flags',
-                    $flags + nqp::const::SIG_ELEM_IS_RAW);
-            }
-            $dcself
-        }));
-    Parameter.HOW.add_method(Parameter, 'set_onearg', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
-            unless $flags +& nqp::const::SIG_ELEM_SLURPY_ONEARG {
-                nqp::bindattr_i($dcself, Parameter, '$!flags',
-                    $flags + nqp::const::SIG_ELEM_SLURPY_ONEARG);
-            }
-            $dcself
-        }));
-    Parameter.HOW.add_method(Parameter, 'WHY', nqp::getstaticcode(sub ($self) {
-            my $why := nqp::getattr(nqp::decont($self), Parameter, '$!why');
-            if nqp::isnull($why) || !$why {
-                Nil
-            } else {
-                $why.set_docee($self);
-                $why
-            }
-        }));
-    Parameter.HOW.add_method(Parameter, 'container_descriptor', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Parameter, '$!container_descriptor');
-        }));
-    Parameter.HOW.add_method(Parameter, 'coercive', nqp::getstaticcode(sub ($self) {
-            nqp::if(nqp::bitand_i(nqp::getattr(nqp::decont($self), Parameter, '$!flags'), nqp::const::SIG_ELEM_IS_COERCIVE), 1, 0)
-        }));
+
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(
+      :name<$!variable_name>, :type(str), :package(Parameter)
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, scalar_attr(
+      '@!named_names', Mu, Parameter
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, scalar_attr(
+      '@!type_captures', Mu, Parameter
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(
+      :name<$!flags>, :type(int), :package(Parameter)
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(
+      :name<$!type>, :type(Mu), :package(Parameter)
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, scalar_attr(
+      '@!post_constraints', List, Parameter
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, scalar_attr(
+      '$!sub_signature', Signature, Parameter
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, scalar_attr(
+      '$!default_value', Code, Parameter
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, scalar_attr(
+      '$!container_descriptor', Mu, Parameter
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(
+      :name<$!attr_package>, :type(Mu), :package(Parameter)
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(
+      :name<$!why>, :type(Mu), :package(Parameter)
+    ));
+
+    Parameter.HOW.add_attribute(Parameter, scalar_attr(
+      '$!signature_constraint', Signature, Parameter
+    ));
+
+    Parameter.HOW.add_method(Parameter, 'is_generic',
+      nqp::getstaticcode(sub ($self) {
+        # XXX this should be an attribute set at build time
+
+        # If nominal type or attr_package is generic, so are we.
+        my $type := nqp::getattr($self, Parameter, '$!type');
+        my int $generic := $type.HOW.archetypes($type).generic;
+
+        unless $generic {
+            my $ap := nqp::getattr($self, Parameter, '$!attr_package');
+            $generic := nqp::not_i(nqp::isnull($ap))
+              && $ap.HOW.archetypes($ap).generic;
+        }
+        unless $generic {
+            my $sigc := nqp::getattr($self,Parameter, '$!signature_constraint');
+            $generic := nqp::defined($sigc) && $sigc.is_generic;
+        }
+
+        nqp::hllboolfor($generic, "Raku")
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'instantiate_generic',
+      nqp::getstaticcode(sub ($self, $type_environment) {
+
+        # Clone with the type instantiated.
+        my $ins  := nqp::clone($self);
+        my $type := my $ins_type :=
+          nqp::getattr($self, Parameter, '$!type');
+        my $cd   := my $ins_cd :=
+          nqp::getattr($self, Parameter, '$!container_descriptor');
+        my $ap   := my $ins_ap :=
+          nqp::getattr($self, Parameter, '$!attr_package');
+        my $sigc := my $ins_sigc :=
+          nqp::getattr($self, Parameter, '$!signature_constraint');
+        my int $flags := nqp::getattr_i($self, Parameter, '$!flags');
+
+        if $type.HOW.archetypes($type).generic {
+            $ins_type := $type.HOW.instantiate_generic($type,$type_environment);
+            $ins_cd   := $cd.instantiate_generic($type_environment)
+              unless nqp::isnull($cd);
+        }
+
+        $ins_ap := $ap.HOW.instantiate_generic($ap, $type_environment)
+          if nqp::not_i(nqp::isnull($ap))
+          && $ap.HOW.archetypes($ap).generic;
+
+        $ins_sigc := $sigc.instantiate_generic($type_environment)
+          if nqp::defined($sigc) && $sigc.is_generic;
+
+        unless $ins_type.HOW.archetypes($ins_type).generic {
+            nqp::bindattr_i($ins, Parameter, '$!flags',
+              $flags - nqp::const::SIG_ELEM_TYPE_GENERIC
+            ) if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC;
+        }
+
+        nqp::bindattr_i($ins, Parameter, '$!flags',
+          $flags +| nqp::const::SIG_ELEM_IS_COERCIVE
+        ) if $ins_type.HOW.archetypes($ins_type).coercive;
+
+        nqp::bindattr($ins, Parameter, '$!type',                 $ins_type);
+        nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd  );
+        nqp::bindattr($ins, Parameter, '$!attr_package',         $ins_ap  );
+        nqp::bindattr($ins, Parameter, '$!signature_constraint', $ins_sigc);
+
+        $ins
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'set_rw',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # XXX This error handling doesn't belong here
+        my str $name := nqp::getattr_s($self, Parameter, '$!variable_name');
+        unless nqp::isnull_s($name) || nqp::eqat($name, '$', 0) {
+            my $error;
+            $error := "For parameter '$name', '"
+              ~ nqp::substr($name, 0, 1)
+              ~ "' sigil containers don't need 'is rw' to be writable\n"
+              if nqp::eqat($name, '%', 0) || nqp::eqat($name, '@', 0);
+
+            $error := $error
+              ~ "Can only use 'is rw' on a scalar ('\$' sigil) parameter, not '$name'";
+            nqp::die($error);
+        }
+
+        my int $flags := nqp::getattr_i($self, Parameter, '$!flags');
+        if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
+            Perl6::Metamodel::Configuration.throw_or_die(
+              'X::Trait::Invalid',
+              "Cannot use 'is rw' on optional parameter '$name'",
+              :type<is>,
+              :subtype<rw>,
+              :declaring('optional parameter'),
+              :$name
+            );
+        }
+
+        nqp::bindattr_i($self, Parameter, '$!flags',
+          $flags +| nqp::const::SIG_ELEM_IS_RW);
+
+        $self
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'set_copy',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr_i($self, Parameter, '$!flags',
+          nqp::getattr_i($self, Parameter, '$!flags')
+            +| nqp::const::SIG_ELEM_IS_COPY
+        );
+
+        $self
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'set_required',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        my int $flags := nqp::getattr_i($self, Parameter, '$!flags');
+        nqp::bindattr_i($self, Parameter, '$!flags',
+          $flags - nqp::const::SIG_ELEM_IS_OPTIONAL
+        ) if $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL;
+
+        $self
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'set_raw',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr_i($self, Parameter, '$!flags',
+          nqp::getattr_i($self, Parameter, '$!flags')
+            +| nqp::const::SIG_ELEM_IS_RAW
+        );
+
+        $self
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'set_onearg',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr_i($self, Parameter, '$!flags',
+          nqp::getattr_i($self, Parameter, '$!flags')
+            +| nqp::const::SIG_ELEM_SLURPY_ONEARG
+        );
+
+        $self
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'WHY',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        my $why := nqp::getattr($self, Parameter, '$!why');
+        if nqp::isnull($why) || !$why {
+            Nil
+        }
+        else {
+            $why.set_docee($self);
+            $why
+        }
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'container_descriptor',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Parameter, '$!container_descriptor')
+    }));
+
+    Parameter.HOW.add_method(Parameter, 'coercive',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        (nqp::getattr_i($self, Parameter, '$!flags')
+          +& nqp::const::SIG_ELEM_IS_COERCIVE) && 1
+    }));
+
     Parameter.HOW.compose_repr(Parameter);
 
-    # class Code {
-    #     has Code $!do;              # Low level code object
-    #     has Signature $!signature;  # Signature object
-    #     has @!compstuff;            # Place for the compiler to hang stuff
+#- Code ------------------------------------------------------------------------
+# class Code {
+#     has Code      $!do;         # Low level code object
+#     has Signature $!signature;  # Signature object
+#     has           @!compstuff;  # Place for the compiler to hang stuff
+
     Code.HOW.add_parent(Code, Any);
-    Code.HOW.add_attribute(Code, Attribute.new(:name<$!do>, :type(Code), :package(Code)));
-    Code.HOW.add_attribute(Code, Attribute.new(:name<$!signature>, :type(Signature), :package(Code)));
-    Code.HOW.add_attribute(Code, scalar_attr('@!compstuff', List, Code, :!auto_viv_container));
+    Code.HOW.add_attribute(Code, Attribute.new(
+      :name<$!do>, :type(Code), :package(Code)
+    ));
+    Code.HOW.add_attribute(Code, Attribute.new(
+      :name<$!signature>, :type(Signature), :package(Code)
+    ));
+    Code.HOW.add_attribute(Code, scalar_attr(
+      '@!compstuff', List, Code
+    ));
 
     # Need clone in here, plus generics instantiation.
-    Code.HOW.add_method(Code, 'clone', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            if nqp::isconcrete($dcself) {
-                my $clself := nqp::clone($dcself);
-                my $do     := nqp::getattr($dcself, Code, '$!do');
-                my $cldo   := nqp::clone($do);
-                nqp::bindattr($clself, Code, '$!do', $cldo);
-                nqp::setcodeobj($cldo, $clself);
+    Code.HOW.add_method(Code, 'clone',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
 
-                my $compstuff := nqp::getattr($dcself, Code, '@!compstuff');
-                $compstuff[2]($do, $clself) unless nqp::isnull($compstuff);
+        if nqp::isconcrete($self) {
+            $self    := nqp::clone($self);
+            my $do   := nqp::getattr($self, Code, '$!do');
+            my $cldo := nqp::clone($do);
+            nqp::bindattr($self, Code, '$!do', $cldo);
+            nqp::setcodeobj($cldo, $self);
 
-                $clself
-            }
-            else {
-                $dcself
-            }
-        }));
-    Code.HOW.add_method(Code, 'is_generic', nqp::getstaticcode(sub ($self) {
-            # Delegate to signature, since it contains all the type info.
-            nqp::getattr(nqp::decont($self), Code, '$!signature').is_generic()
-        }));
-    Code.HOW.add_method(Code, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
-            # Clone the code object, then instantiate the generic signature. Also
-            # need to clone dispatchees list.
-            my $dcself := nqp::decont($self);
-            my $ins := $self.clone();
-            if nqp::defined(nqp::getattr($dcself, Routine, '@!dispatchees')) {
-                nqp::bindattr($ins, Routine, '@!dispatchees',
-                    nqp::clone(nqp::getattr($dcself, Routine, '@!dispatchees')));
-            }
-            my $sig := nqp::getattr($dcself, Code, '$!signature');
-            nqp::bindattr($ins, Code, '$!signature',
-                $sig.instantiate_generic($type_environment));
-            $ins
-        }));
-    Code.HOW.add_method(Code, 'name', nqp::getstaticcode(sub ($self) {
-            nqp::getcodename(nqp::getattr(nqp::decont($self),
-                Code, '$!do'))
-        }));
-    Code.HOW.add_method(Code, 'set_name', nqp::getstaticcode(sub ($self, $name) {
-            nqp::setcodename(
-                nqp::getattr(nqp::decont($self), Code, '$!do'),
-                $name)
-        }));
-    Code.HOW.add_method(Code, 'id', nqp::getstaticcode(sub ($self) {
-            nqp::where(nqp::getattr(nqp::decont($self),
-                Code, '$!do'))
-        }));
+            my $compstuff := nqp::getattr($self, Code, '@!compstuff');
+            nqp::atpos($compstuff, 2)($do, $self)  # XXX will $cldo do?
+              unless nqp::isnull($compstuff);
+        }
+
+        $self
+    }));
+
+    Code.HOW.add_method(Code, 'is_generic',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # Delegate to signature, since it contains all the type info.
+        nqp::getattr($self, Code, '$!signature').is_generic
+    }));
+
+    Code.HOW.add_method(Code, 'instantiate_generic',
+      nqp::getstaticcode(sub ($self, $type_environment) {
+        $self := nqp::decont($self);
+
+        # Clone the code object, then instantiate the generic signature.
+        # Also need to clone dispatchees list.
+        my $ins := $self.clone;
+
+        my $dispatchees := nqp::getattr($self, Routine, '@!dispatchees');
+        nqp::bindattr($ins, Routine, '@!dispatchees', nqp::clone($dispatchees))
+          if nqp::defined($dispatchees);
+
+        my $sig := nqp::getattr($self, Code, '$!signature');
+        nqp::bindattr($ins, Code, '$!signature',
+          $sig.instantiate_generic($type_environment)
+        );
+
+        $ins
+    }));
+
+    Code.HOW.add_method(Code, 'name',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getcodename(nqp::getattr($self, Code, '$!do'))
+    }));
+
+    Code.HOW.add_method(Code, 'set_name',
+      nqp::getstaticcode(sub ($self, $name) {
+        $self := nqp::decont($self);
+
+        nqp::setcodename(nqp::getattr($self, Code, '$!do'), $name)
+    }));
+
+    Code.HOW.add_method(Code, 'id',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::where(nqp::getattr($self, Code, '$!do'))
+    }));
+
     Code.HOW.compose_repr(Code);
 
 #?if !moar
@@ -2806,7 +3017,7 @@ BEGIN {
     #     has Mu $!why;
     Block.HOW.add_parent(Block, Code);
     Block.HOW.add_attribute(Block, Attribute.new(:name<$!phasers>, :type(Mu), :package(Block), :auto_viv_primitive(nqp::null())));
-    Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block, :!auto_viv_container));
+    Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
             if nqp::isconcrete($dcself) {
@@ -4147,12 +4358,12 @@ BEGIN {
     #     has $!topic;
     #     has $!slash;
     Regex.HOW.add_parent(Regex, Method);
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!topic', Mu, Regex));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!slash', Mu, Regex));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex, :auto_viv_container));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex, :auto_viv_container));
+    Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex, :auto_viv_container));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex, :auto_viv_container));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!topic', Mu, Regex, :auto_viv_container));
+    Regex.HOW.add_attribute(Regex, scalar_attr('$!slash', Mu, Regex, :auto_viv_container));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $capnames) {
             nqp::bindattr(nqp::decont($self), Regex, '$!caps',
                 RegexCaptures.from-capnames($capnames))
@@ -4270,17 +4481,17 @@ BEGIN {
     #     has @!list;
     #     has %!hash;
     Capture.HOW.add_parent(Capture, Any);
-    Capture.HOW.add_attribute(Capture, scalar_attr('@!list', List, Capture, :!auto_viv_container));
-    Capture.HOW.add_attribute(Capture, scalar_attr('%!hash', Hash, Capture, :!auto_viv_container));
+    Capture.HOW.add_attribute(Capture, scalar_attr('@!list', List, Capture));
+    Capture.HOW.add_attribute(Capture, scalar_attr('%!hash', Hash, Capture));
     Capture.HOW.compose_repr(Capture);
 
     # class Junction is Mu {
     #     has Mu $!eigenstates;
     #     has str $!type;
     Junction.HOW.add_parent(Junction, Mu);
-    Junction.HOW.add_attribute(Junction, scalar_attr('$!eigenstates', Mu, Junction));
-    Junction.HOW.add_attribute(Junction, scalar_attr('$!type', str, Junction));
-    Junction.HOW.add_attribute(Junction, Attribute.new(:name<$!WHICH>, :type(ValueObjAt), :package(Junction)));
+    Junction.HOW.add_attribute(Junction, scalar_attr('$!eigenstates', Mu, Junction, :auto_viv_container));
+    Junction.HOW.add_attribute(Junction, scalar_attr('$!type', str, Junction, :auto_viv_container));
+    Junction.HOW.add_attribute(Junction, Attribute.new(:name<$!WHICH>, :type(ValueObjAt), :package(Junction), :auto_viv_container));
     Junction.HOW.compose_repr(Junction);
 
     # class Bool is Int {

@@ -3737,353 +3737,362 @@ BEGIN {
         )
     }));
 
-    Routine.HOW.add_method(Routine, 'find_best_dispatchee', nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
-            my int $DEFCON_DEFINED    := 1;
-            my int $DEFCON_UNDEFINED  := 2;
-            my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
-            my int $TYPE_NATIVE_INT   := 4;
-            my int $TYPE_NATIVE_NUM   := 8;
-            my int $TYPE_NATIVE_STR   := 16;
-            my int $TYPE_NATIVE_UINT   := 32;
-            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
-            my int $BIND_VAL_OBJ      := 0;
-            my int $BIND_VAL_INT      := 1;
-            my int $BIND_VAL_UINT     := 10;
-            my int $BIND_VAL_NUM      := 2;
-            my int $BIND_VAL_STR      := 3;
+    Routine.HOW.add_method(Routine, 'find_best_dispatchee',
+      nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
+        my int $DEFCON_DEFINED    := 1;
+        my int $DEFCON_UNDEFINED  := 2;
+        my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
+        my int $TYPE_NATIVE_INT   := 4;
+        my int $TYPE_NATIVE_NUM   := 8;
+        my int $TYPE_NATIVE_STR   := 16;
+        my int $TYPE_NATIVE_UINT   := 32;
+        my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT
+                                       +| $TYPE_NATIVE_UINT
+                                       +| $TYPE_NATIVE_NUM
+                                       +| $TYPE_NATIVE_STR;
+        my int $BIND_VAL_OBJ      := 0;
+        my int $BIND_VAL_INT      := 1;
+        my int $BIND_VAL_UINT     := 10;
+        my int $BIND_VAL_NUM      := 2;
+        my int $BIND_VAL_STR      := 3;
 
-            # Count arguments.
-            my int $num_args := nqp::captureposelems($capture);
+        # Count arguments.
+        my int $num_args := nqp::captureposelems($capture);
 
-            # Get list and number of candidates, triggering a sort if there are none.
-            my $dcself := nqp::decont($self);
-            my @candidates := $self.dispatch_order;
+        # Get list and number of candidates, triggering a sort if there are none.
+        $self := nqp::decont($self);
+        my @candidates := $self.dispatch_order;
 
-            # Iterate over the candidates and collect best ones; terminate
-            # when we see two type objects (indicating end).
-            my int $cur_idx := 0;
-            my $cur_candidate;
-            my int $type_check_count;
-            my int $type_mismatch;
-            my int $rwness_mismatch;
-            my int $i;
-            my int $pure_type_result := 1;
-            my $many_res := $many ?? [] !! Mu;
-            my @possibles;
-            my int $done := 0;
-            my int $done_bind_check := 0;
-            my $Positional := nqp::gethllsym('Raku', 'MD_Pos');
-            until $done {
-                $cur_candidate := nqp::atpos(@candidates, $cur_idx);
+        # Iterate over the candidates and collect best ones; terminate
+        # when we see two type objects (indicating end).
+        my int $cur_idx := 0;
+        my int $pure_type_result := 1;
+        my $many_res := $many ?? nqp::list !! Mu;
+        my @possibles;
+        my int $done_bind_check;
+        my $Positional := nqp::gethllsym('Raku', 'MD_Pos');
 
-                if nqp::isconcrete($cur_candidate) {
-                    # Check if it's admissible by arity.
-                    unless $num_args < nqp::atkey($cur_candidate, 'min_arity')
-                    || $num_args > nqp::atkey($cur_candidate, 'max_arity') {
-                        # Arity OK; now check if it's admissible by type.
-                        $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
-                            ?? $num_args
-                            !! nqp::atkey($cur_candidate, 'num_types');
-                        $type_mismatch := 0;
-                        $rwness_mismatch := 0;
+        my int $done;
+        until $done {
+            my $candidate := nqp::atpos(@candidates, $cur_idx);
 
-                        $i := -1;
-                        while ++$i < $type_check_count && !$type_mismatch && !$rwness_mismatch {
-                            my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
-                            my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
-                            my int $got_prim   := nqp::captureposprimspec($capture, $i);
-                            my int $rwness     := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
-                            if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
-                                # If we need a container but don't have one it clearly can't work.
-                                $rwness_mismatch := 1;
-                            }
-                            elsif $type_flags +& $TYPE_NATIVE_MASK {
-                                # Looking for a natively typed value. Did we get one?
-                                if $got_prim == $BIND_VAL_OBJ {
-                                    # Object, but could be a native container. If not, mismatch.
-                                    my $contish := nqp::captureposarg($capture, $i);
-                                    unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
-                                           (($type_flags +& $TYPE_NATIVE_UINT) && nqp::iscont_u($contish)) ||
-                                           (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
-                                           (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
-                                        $type_mismatch := 1;
-                                    }
-                                }
-                                elsif (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
-                                   (($type_flags +& $TYPE_NATIVE_UINT) && $got_prim != $BIND_VAL_UINT) ||
-                                   (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
-                                   (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
-                                    # Mismatch.
+            if nqp::isconcrete($candidate) {
+                # Check if it's admissible by arity.
+                unless $num_args < nqp::atkey($candidate, 'min_arity')
+                || $num_args > nqp::atkey($candidate, 'max_arity') {
+                    # Arity OK; now check if it's admissible by type.
+                    my int $type_check_count :=
+                      nqp::atkey($candidate, 'num_types') > $num_args
+                        ?? $num_args
+                        !! nqp::atkey($candidate, 'num_types');
+                    my int $type_mismatch;
+                    my int $rwness_mismatch;
+
+                    my int $i;
+                    while $i < $type_check_count && !$type_mismatch && !$rwness_mismatch {
+                        my $type_obj       := nqp::atpos(nqp::atkey($candidate, 'types'), $i);
+                        my int $type_flags := nqp::atpos_i(nqp::atkey($candidate, 'type_flags'), $i);
+                        my int $got_prim   := nqp::captureposprimspec($capture, $i);
+                        my int $rwness     := nqp::atpos_i(nqp::atkey($candidate, 'rwness'), $i);
+                        if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
+                            # If we need a container but don't have one it clearly can't work.
+                            $rwness_mismatch := 1;
+                        }
+                        elsif $type_flags +& $TYPE_NATIVE_MASK {
+                            # Looking for a natively typed value. Did we get one?
+                            if $got_prim == $BIND_VAL_OBJ {
+                                # Object, but could be a native container. If not, mismatch.
+                                my $contish := nqp::captureposarg($capture, $i);
+                                unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
+                                       (($type_flags +& $TYPE_NATIVE_UINT) && nqp::iscont_u($contish)) ||
+                                       (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
+                                       (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
                                     $type_mismatch := 1;
                                 }
                             }
-                            else {
-                                my $param;
-                                my int $primish := 0;
-                                if $got_prim == $BIND_VAL_OBJ {
-                                    $param := nqp::captureposarg($capture, $i);
-                                    if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
-                                    elsif nqp::iscont_u($param) { $param := Int; $primish := 1; }
-                                    elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
-                                    elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
-                                    else { $param := nqp::hllizefor($param, 'Raku') }
-                                }
-                                else {
-                                    $param := $got_prim == $BIND_VAL_INT ?? Int !!
-                                              $got_prim == $BIND_VAL_UINT ?? Int !!
-                                              $got_prim == $BIND_VAL_NUM ?? Num !!
-                                                                            Str;
-                                    $primish := 1;
-                                }
-                                if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
-                                    if $i == 0 && nqp::existskey($cur_candidate, 'exact_invocant') {
-                                        unless $param.WHAT =:= $type_obj {
-                                            $type_mismatch := 1;
-                                        }
-                                    }
-                                }
-                                else {
-                                    if $type_obj =:= $Positional {
-                                        my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
-                                        unless nqp::istype($param, $PositionalBindFailover) {
-                                            $type_mismatch := 1;
-                                        }
-                                    } else {
-                                        $type_mismatch := 1;
-                                    }
-                                }
-                                if !$type_mismatch && $type_flags +& $DEFCON_MASK {
-                                    my int $defined := $primish || nqp::isconcrete($param);
-                                    my int $desired := $type_flags +& $DEFCON_MASK;
-                                    if ($defined && $desired == $DEFCON_UNDEFINED) ||
-                                       (!$defined && $desired == $DEFCON_DEFINED) {
-                                        $type_mismatch := 1;
-                                    }
-                                }
+                            elsif (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
+                               (($type_flags +& $TYPE_NATIVE_UINT) && $got_prim != $BIND_VAL_UINT) ||
+                               (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
+                               (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
+                                # Mismatch.
+                                $type_mismatch := 1;
                             }
-                        }
-
-                        unless $type_mismatch || $rwness_mismatch {
-                            # It's an admissible candidate; add to list.
-                            nqp::push(@possibles, $cur_candidate);
-                        }
-                    }
-
-                    ++$cur_idx;
-                } else {
-                    # We've hit the end of a tied group now. If any of them have a
-                    # bindability check requirement, we'll do any of those now.
-                    if nqp::elems(@possibles) {
-                        my $new_possibles;
-                        my %info;
-                        $i := -1;
-                        while ++$i < nqp::elems(@possibles) {
-                            %info := nqp::atpos(@possibles, $i);
-
-                            # First, if there's a required named parameter and it was
-                            # not passed, we can very quickly eliminate this candidate
-                            # without doing a full bindability check.
-                            if nqp::existskey(%info, 'req_named')
-                            && !nqp::captureexistsnamed($capture, nqp::atkey(%info, 'req_named')) {
-                                # Required named arg not passed, so we eliminate
-                                # it right here. Flag that we've built a list of
-                                # new possibles, and that this was not a pure
-                                # type-based result that we can cache.
-                                $new_possibles := [] unless nqp::islist($new_possibles);
-                            }
-
-                            # Otherwise, may need full bind check.
-                            elsif nqp::existskey(%info, 'bind_check') {
-                                my $sub := nqp::atkey(%info, 'sub');
-                                my $cs := nqp::getattr($sub, Code, '@!compstuff');
-                                unless nqp::isnull($cs) {
-                                    # We need to do the tie-break on something not yet compiled.
-                                    # Get it compiled.
-                                    my $ctf := $cs[1];
-                                    $ctf() if $ctf;
-                                }
-
-                                # Since we had to do a bindability check, this is not
-                                # a result we can cache on nominal type.
-                                $pure_type_result := 0 if nqp::existskey(%info, 'constrainty');
-
-                                # If we haven't got a possibles storage space, allocate it now.
-                                $new_possibles := [] unless nqp::islist($new_possibles);
-
-                                my $sig := nqp::getattr($sub, Code, '$!signature');
-                                unless $done_bind_check {
-                                    # Need a copy of the capture, as we may later do a
-                                    # multi-dispatch when evaluating the constraint.
-                                    $capture := nqp::clone($capture);
-                                    $done_bind_check := 1;
-                                }
-                                if nqp::p6isbindable($sig, $capture) {
-                                    nqp::push($new_possibles, nqp::atpos(@possibles, $i));
-                                    unless $many {
-                                        # Terminate the loop.
-                                        $i := nqp::elems(@possibles);
-                                    }
-                                }
-                            }
-
-                            # Otherwise, it's just nominal; accept it.
-                            elsif $new_possibles {
-                                nqp::push($new_possibles, nqp::atpos(@possibles, $i));
-                            }
-                            else {
-                                $new_possibles := [nqp::atpos(@possibles, $i)];
-                            }
-                        }
-
-                        # If we have an updated list of possibles, use this
-                        # new one from here on in.
-                        if nqp::islist($new_possibles) {
-                            @possibles := $new_possibles;
-                        }
-                    }
-
-                    # Now we have eliminated any that fail the bindability check.
-                    # See if we need to push it onto the many list and continue.
-                    # Otherwise, we have the result we were looking for.
-                    if $many {
-                        while @possibles {
-                            nqp::push($many_res, nqp::atkey(nqp::shift(@possibles), 'sub'))
-                        }
-                        ++$cur_idx;
-                        unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
-                            $done := 1;
-                        }
-                    }
-                    elsif @possibles {
-                        $done := 1;
-                    }
-                    else {
-                        # Keep looping and looking, unless we really hit the end.
-                        ++$cur_idx;
-                        unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
-                            $done := 1;
-                        }
-                    }
-                }
-            }
-
-            # If we were looking for many candidates, we're done now.
-            if $many {
-                return $many_res;
-            }
-
-            # If we still have multiple options and we want one, then check default
-            # trait and then, failing that, if we got an exact arity match on required
-            # parameters (which will beat matches on optional parameters).
-            if nqp::elems(@possibles) > 1 {
-                # Locate any default candidates; if we find multiple defaults, this is
-                # no help, so we'll not bother collecting just which ones are good.
-                my $default_cand;
-                for @possibles {
-                    my $sub := nqp::atkey($_, 'sub');
-                    if nqp::can($sub, 'default') && $sub.default {
-                        if nqp::isconcrete($default_cand) {
-                            $default_cand := Mu;
                         }
                         else {
-                            $default_cand := $_;
-                        }
-                    }
-                }
-                if nqp::isconcrete($default_cand) {
-                    nqp::pop(@possibles) while @possibles;
-                    @possibles[0] := $default_cand;
-                }
-
-                # Failing that, look for exact arity match.
-                if nqp::elems(@possibles) > 1 {
-                    my $exact_arity;
-                    for @possibles {
-                        if nqp::atkey($_, 'min_arity') == $num_args &&
-                           nqp::atkey($_, 'max_arity') == $num_args {
-                            if nqp::isconcrete($exact_arity) {
-                                $exact_arity := NQPMu;
-                                last;
+                            my $param;
+                            my int $primish := 0;
+                            if $got_prim == $BIND_VAL_OBJ {
+                                $param := nqp::captureposarg($capture, $i);
+                                if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
+                                elsif nqp::iscont_u($param) { $param := Int; $primish := 1; }
+                                elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
+                                elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
+                                else { $param := nqp::hllizefor($param, 'Raku') }
                             }
                             else {
-                                $exact_arity := $_;
+                                $param := $got_prim == $BIND_VAL_INT ?? Int !!
+                                          $got_prim == $BIND_VAL_UINT ?? Int !!
+                                          $got_prim == $BIND_VAL_NUM ?? Num !!
+                                                                        Str;
+                                $primish := 1;
+                            }
+                            if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+                                if $i == 0 && nqp::existskey($candidate, 'exact_invocant') {
+                                    unless $param.WHAT =:= $type_obj {
+                                        $type_mismatch := 1;
+                                    }
+                                }
+                            }
+                            else {
+                                if $type_obj =:= $Positional {
+                                    my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
+                                    unless nqp::istype($param, $PositionalBindFailover) {
+                                        $type_mismatch := 1;
+                                    }
+                                } else {
+                                    $type_mismatch := 1;
+                                }
+                            }
+                            if !$type_mismatch && $type_flags +& $DEFCON_MASK {
+                                my int $defined := $primish || nqp::isconcrete($param);
+                                my int $desired := $type_flags +& $DEFCON_MASK;
+                                if ($defined && $desired == $DEFCON_UNDEFINED) ||
+                                   (!$defined && $desired == $DEFCON_DEFINED) {
+                                    $type_mismatch := 1;
+                                }
                             }
                         }
+
+                        ++$i;
                     }
-                    if nqp::isconcrete($exact_arity) {
-                        nqp::pop(@possibles) while @possibles;
-                        @possibles[0] := $exact_arity;
+
+                    unless $type_mismatch || $rwness_mismatch {
+                        # It's an admissible candidate; add to list.
+                        nqp::push(@possibles, $candidate);
+                    }
+                }
+
+                ++$cur_idx;
+            }
+
+            # We've hit the end of a tied group now. If any of them have a
+            # bindability check requirement, we'll do any of those now.
+            else {
+                if nqp::elems(@possibles) {
+                    my $new_possibles;
+                    my %info;
+                    my int $i;
+                    while $i < nqp::elems(@possibles) {
+                        %info := nqp::atpos(@possibles, $i);
+
+                        # First, if there's a required named parameter and it was
+                        # not passed, we can very quickly eliminate this candidate
+                        # without doing a full bindability check.
+                        if nqp::existskey(%info, 'req_named')
+                        && !nqp::captureexistsnamed($capture, nqp::atkey(%info, 'req_named')) {
+                            # Required named arg not passed, so we eliminate
+                            # it right here. Flag that we've built a list of
+                            # new possibles, and that this was not a pure
+                            # type-based result that we can cache.
+                            $new_possibles := [] unless nqp::islist($new_possibles);
+                        }
+
+                        # Otherwise, may need full bind check.
+                        elsif nqp::existskey(%info, 'bind_check') {
+                            my $sub := nqp::atkey(%info, 'sub');
+                            my $cs := nqp::getattr($sub, Code, '@!compstuff');
+                            unless nqp::isnull($cs) {
+                                # We need to do the tie-break on something not yet compiled.
+                                # Get it compiled.
+                                my $ctf := $cs[1];
+                                $ctf() if $ctf;
+                            }
+
+                            # Since we had to do a bindability check, this is not
+                            # a result we can cache on nominal type.
+                            $pure_type_result := 0 if nqp::existskey(%info, 'constrainty');
+
+                            # If we haven't got a possibles storage space, allocate it now.
+                            $new_possibles := [] unless nqp::islist($new_possibles);
+
+                            my $sig := nqp::getattr($sub, Code, '$!signature');
+                            unless $done_bind_check {
+                                # Need a copy of the capture, as we may later do a
+                                # multi-dispatch when evaluating the constraint.
+                                $capture := nqp::clone($capture);
+                                $done_bind_check := 1;
+                            }
+                            if nqp::p6isbindable($sig, $capture) {
+                                nqp::push($new_possibles, nqp::atpos(@possibles, $i));
+                                unless $many {
+                                    # Terminate the loop.
+                                    $i := nqp::elems(@possibles);
+                                }
+                            }
+                        }
+
+                        # Otherwise, it's just nominal; accept it.
+                        elsif $new_possibles {
+                            nqp::push($new_possibles, nqp::atpos(@possibles, $i));
+                        }
+                        else {
+                            $new_possibles := [nqp::atpos(@possibles, $i)];
+                        }
+
+                        ++$i;
+                    }
+
+                    # If we have an updated list of possibles, use this
+                    # new one from here on in.
+                    if nqp::islist($new_possibles) {
+                        @possibles := $new_possibles;
+                    }
+                }
+
+                # Now we have eliminated any that fail the bindability check.
+                # See if we need to push it onto the many list and continue.
+                # Otherwise, we have the result we were looking for.
+                if $many {
+                    while @possibles {
+                        nqp::push($many_res, nqp::atkey(nqp::shift(@possibles), 'sub'))
+                    }
+                    ++$cur_idx;
+                    unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
+                        $done := 1;
+                    }
+                }
+                elsif @possibles {
+                    $done := 1;
+                }
+                else {
+                    # Keep looping and looking, unless we really hit the end.
+                    ++$cur_idx;
+                    unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
+                        $done := 1;
                     }
                 }
             }
+        }
 
-#?if !moar
-            # If we're at a single candidate here, and we also know there's no
-            # type constraints that follow, we can cache the result.
-            sub add_to_cache($entry) {
-                return 0 if nqp::capturehasnameds($capture);
-                nqp::scwbdisable();
-                nqp::bindattr($dcself, Routine, '$!dispatch_cache',
-                    nqp::multicacheadd(
-                        nqp::getattr($dcself, Routine, '$!dispatch_cache'),
-                        $capture, $entry));
-                nqp::scwbenable();
-            }
-            if nqp::elems(@possibles) == 1 && $pure_type_result {
-                add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));
-            }
-#?endif
+        # If we were looking for many candidates, we're done now.
+        if $many {
+            return $many_res;
+        }
 
-            # Perhaps we found nothing but have junctional arguments?
-            my $junctional_res;
-            if nqp::elems(@possibles) == 0 {
-                my int $has_junc_args := 0;
-                $i := -1;
-                while ++$i < $num_args {
-                    if !nqp::captureposprimspec($capture, $i) {
-                        my $arg := nqp::captureposarg($capture, $i);
-                        if nqp::istype($arg, Junction) && nqp::isconcrete($arg) {
-                            $has_junc_args := 1;
+        # If we still have multiple options and we want one, then check default
+        # trait and then, failing that, if we got an exact arity match on required
+        # parameters (which will beat matches on optional parameters).
+        if nqp::elems(@possibles) > 1 {
+            # Locate any default candidates; if we find multiple defaults, this is
+            # no help, so we'll not bother collecting just which ones are good.
+            my $default_cand;
+            for @possibles {
+                my $sub := nqp::atkey($_, 'sub');
+                if nqp::can($sub, 'default') && $sub.default {
+                    if nqp::isconcrete($default_cand) {
+                        $default_cand := Mu;
+                    }
+                    else {
+                        $default_cand := $_;
+                    }
+                }
+            }
+            if nqp::isconcrete($default_cand) {
+                nqp::pop(@possibles) while @possibles;
+                @possibles[0] := $default_cand;
+            }
+
+            # Failing that, look for exact arity match.
+            if nqp::elems(@possibles) > 1 {
+                my $exact_arity;
+                for @possibles {
+                    if nqp::atkey($_, 'min_arity') == $num_args &&
+                       nqp::atkey($_, 'max_arity') == $num_args {
+                        if nqp::isconcrete($exact_arity) {
+                            $exact_arity := NQPMu;
+                            last;
+                        }
+                        else {
+                            $exact_arity := $_;
                         }
                     }
                 }
-                if $has_junc_args {
-                    $junctional_res := -> *@pos, *%named {
-                        Junction.AUTOTHREAD($self, |@pos, |%named)
-                    }
-#?if !moar
-                    add_to_cache($junctional_res);
-#?endif
+                if nqp::isconcrete($exact_arity) {
+                    nqp::pop(@possibles) while @possibles;
+                    @possibles[0] := $exact_arity;
                 }
             }
+        }
 
-            # Need a unique candidate.
-            if nqp::elems(@possibles) == 1 {
-                nqp::atkey(nqp::atpos(@possibles, 0), 'sub')
-            }
-            elsif nqp::isconcrete($junctional_res) {
-                $junctional_res;
-            }
-            elsif nqp::elems(@possibles) == 0 {
-                Perl6::Metamodel::Configuration.throw_or_die(
-                    'X::Multi::NoMatch',
-                    "Cannot call " ~ $self.name() ~ "; no signatures match",
-                    :dispatcher($self),
-                    :capture($self.'!p6capture'($capture)));
-            }
-            else {
-                my @ambiguous;
-                for @possibles {
-                    nqp::push(@ambiguous, $_<sub>);
+#?if !moar
+        # If we're at a single candidate here, and we also know there's no
+        # type constraints that follow, we can cache the result.
+        sub add_to_cache($entry) {
+            return 0 if nqp::capturehasnameds($capture);
+            nqp::scwbdisable();
+            nqp::bindattr($self, Routine, '$!dispatch_cache',
+                nqp::multicacheadd(
+                    nqp::getattr($self, Routine, '$!dispatch_cache'),
+                    $capture, $entry));
+            nqp::scwbenable();
+        }
+        if nqp::elems(@possibles) == 1 && $pure_type_result {
+            add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));
+        }
+#?endif
+
+        # Perhaps we found nothing but have junctional arguments?
+        my $junctional_res;
+        if nqp::elems(@possibles) == 0 {
+            my int $has_junc_args := 0;
+            my int $i;
+            while $i < $num_args {
+                if !nqp::captureposprimspec($capture, $i) {
+                    my $arg := nqp::captureposarg($capture, $i);
+                    if nqp::istype($arg, Junction) && nqp::isconcrete($arg) {
+                        $has_junc_args := 1;
+                    }
                 }
-                Perl6::Metamodel::Configuration.throw_or_die(
-                    'X::Multi::Ambiguous',
-                    "Ambiguous call to " ~ $self.name(),
-                    :dispatcher($self),
-                    :@ambiguous,
-                    :capture($self.'!p6capture'($capture)));
+                ++$i;
             }
-        }));
+            if $has_junc_args {
+                $junctional_res := -> *@pos, *%named {
+                    Junction.AUTOTHREAD($self, |@pos, |%named)
+                }
+#?if !moar
+                add_to_cache($junctional_res);
+#?endif
+            }
+        }
+
+        # Need a unique candidate.
+        if nqp::elems(@possibles) == 1 {
+            nqp::atkey(nqp::atpos(@possibles, 0), 'sub')
+        }
+        elsif nqp::isconcrete($junctional_res) {
+            $junctional_res;
+        }
+        elsif nqp::elems(@possibles) == 0 {
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Multi::NoMatch',
+                "Cannot call " ~ $self.name() ~ "; no signatures match",
+                :dispatcher($self),
+                :capture($self.'!p6capture'($capture)));
+        }
+        else {
+            my @ambiguous;
+            for @possibles {
+                nqp::push(@ambiguous, $_<sub>);
+            }
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Multi::Ambiguous',
+                "Ambiguous call to " ~ $self.name(),
+                :dispatcher($self),
+                :@ambiguous,
+                :capture($self.'!p6capture'($capture)));
+        }
+    }));
+
     Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
 #?if !moar
         sub assemble_capture(*@pos, *%named) {

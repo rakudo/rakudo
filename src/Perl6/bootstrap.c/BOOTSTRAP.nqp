@@ -3715,13 +3715,28 @@ BEGIN {
         @result
     }));
 
-    Routine.HOW.add_method(Routine, 'sort_dispatchees', nqp::getstaticcode(sub ($self) {
-    my $dcself := nqp::decont($self);
-    unless nqp::isnull(nqp::getattr($dcself, Routine, '@!dispatch_order')) {
-        nqp::bindattr($dcself, Routine, '@!dispatch_order',
-            $self.'!sort_dispatchees_internal'());
-    }
+    Routine.HOW.add_method(Routine, 'sort_dispatchees',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        unless nqp::isnull(nqp::getattr($self, Routine, '@!dispatch_order')) {
+            nqp::bindattr($self, Routine, '@!dispatch_order',
+                $self.'!sort_dispatchees_internal'());
+        }
     }));
+
+    Routine.HOW.add_method(Routine, 'dispatch_order',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::ifnull(
+          nqp::getattr($self, Routine, '@!dispatch_order'),
+          nqp::bindattr($self, Routine, '@!dispatch_order',
+            $self.'!sort_dispatchees_internal'()
+          )
+        )
+    }));
+
     Routine.HOW.add_method(Routine, 'find_best_dispatchee', nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
             my int $DEFCON_DEFINED    := 1;
             my int $DEFCON_UNDEFINED  := 2;
@@ -3742,13 +3757,7 @@ BEGIN {
 
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
-            if nqp::isnull(@candidates) {
-                nqp::scwbdisable();
-                @candidates := $dcself.'!sort_dispatchees_internal'();
-                nqp::bindattr($dcself, Routine, '@!dispatch_order', @candidates);
-                nqp::scwbenable();
-            }
+            my @candidates := $self.dispatch_order;
 
             # Iterate over the candidates and collect best ones; terminate
             # when we see two type objects (indicating end).
@@ -4121,13 +4130,7 @@ BEGIN {
 
             # Get list and number of candidates, triggering a sort if there are none.
             my $dcself := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '@!dispatch_order');
-            if nqp::isnull(@candidates) {
-                nqp::scwbdisable();
-                @candidates := $dcself.'!sort_dispatchees_internal'();
-                nqp::bindattr($dcself, Routine, '@!dispatch_order', @candidates);
-                nqp::scwbenable();
-            }
+            my @candidates := $dcself.dispatch_order;
 
             # Look through the candidates. If we see anything that needs a bind
             # check or a definedness check, we can't decide it at compile time,

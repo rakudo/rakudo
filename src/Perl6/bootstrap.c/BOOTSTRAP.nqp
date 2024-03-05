@@ -1931,7 +1931,8 @@ BEGIN {
 
         if nqp::existskey(%_, 'auto_viv_primitive') {
             nqp::bindattr($attr, Attribute, '$!auto_viv_container',
-              nqp::ifnull(nqp::atkey(%_, 'auto_viv_primitive'), NQPMu));
+              nqp::atkey(%_, 'auto_viv_primitive')
+            );
         }
 
         elsif nqp::existskey(%_, 'container_descriptor') {
@@ -3149,421 +3150,577 @@ BEGIN {
     Block.HOW.compose_invocation(Block);
 #?endif
 
-    # class Routine is Block {
-    #     has @!dispatchees;
-    #     has Mu $!dispatcher;
-    #     has int $!flags;
-    #     has Mu $!inline_info;
-    #     has Mu $!package;
-    #     has @!dispatch_order;
-    #     has Mu $!dispatch_cache;
-    #     has Mu $!op_props;
+#- Routine ---------------------------------------------------------------------
+# class Routine is Block {
+#     has @!dispatchees;
+#     has Mu $!dispatcher;
+#     has int $!flags;
+#     has Mu $!inline_info;
+#     has Mu $!package;
+#     has @!dispatch_order;
+#     has Mu $!dispatch_cache;
+#     has Mu $!op_props;
+
     Routine.HOW.add_parent(Routine, Block);
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<@!dispatchees>, :type(List), :package(Routine), :auto_viv_primitive(nqp::null())));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher>, :type(Mu), :package(Routine), :auto_viv_primitive(nqp::null())));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!flags>, :type(int), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<@!dispatchees>, :type(List), :package(Routine),
+      :auto_viv_primitive(NQPMu)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!dispatcher>, :type(Mu), :package(Routine),
+      :auto_viv_primitive(NQPMu)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!flags>, :type(int), :package(Routine)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!inline_info>, :type(Mu), :package(Routine)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!package>, :type(Mu), :package(Routine)
+    ));
+
+    Routine.HOW.add_attribute(Routine, scalar_attr(
+      '@!dispatch_order', List, Routine
+    ));
+
 #?if !moar
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!dispatch_cache>, :type(Mu), :package(Routine)
+    ));
 #?endif
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!op_props>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
-            my $dc_self   := nqp::decont($self);
-            my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
-            nqp::hllboolfor(nqp::defined($disp_list), "Raku");
-        }));
-    Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
-            my $dc_self   := nqp::decont($self);
-            my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
-            if nqp::defined($disp_list) {
-                $disp_list.push($dispatchee);
-                nqp::bindattr(nqp::decont($dispatchee),
-                    Routine, '$!dispatcher', $dc_self);
-                nqp::scwbdisable();
-                nqp::bindattr($dc_self, Routine, '@!dispatch_order', nqp::null());
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!op_props>, :type(Mu), :package(Routine)
+    ));
+
+    Routine.HOW.add_method(Routine, 'is_dispatcher',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::hllboolfor(
+          nqp::defined(nqp::getattr($self, Routine, '@!dispatchees')),
+          "Raku"
+        );
+    }));
+
+    Routine.HOW.add_method(Routine, 'add_dispatchee',
+      nqp::getstaticcode(sub ($self, $dispatchee) {
+        $self := nqp::decont($self);
+
+        my $dispatchees := nqp::getattr($self, Routine, '@!dispatchees');
+        nqp::die("Cannot add dispatchee '"
+          ~ $dispatchee.name
+          ~ "' to non-dispatcher code object '"
+          ~ $self.name()
+          ~ "'"
+        ) unless nqp::defined($dispatchees);
+
+        nqp::push($dispatchees, $dispatchee);
+        nqp::bindattr($dispatchee, Routine, '$!dispatcher', $self);
+
+        nqp::scwbdisable;
+        nqp::bindattr($self, Routine, '@!dispatch_order', nqp::null);
 #?if !moar
-                nqp::bindattr($dc_self, Routine, '$!dispatch_cache', nqp::null());
+        nqp::bindattr($self, Routine, '$!dispatch_cache', nqp::null);
 #?endif
-                nqp::scwbenable();
-                $dc_self
+        nqp::scwbenable;
+
+        $self
+    }));
+
+    Routine.HOW.add_method(Routine, 'derive_dispatcher',
+      nqp::getstaticcode(sub ($self) {
+        $self  := $self.clone;
+
+        nqp::bindattr($self, Routine, '@!dispatchees',
+          nqp::clone(nqp::getattr($self, Routine, '@!dispatchees'))
+        );
+
+        $self
+    }));
+
+    Routine.HOW.add_method(Routine, 'dispatcher',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Routine, '$!dispatcher')
+    }));
+
+    Routine.HOW.add_method(Routine, 'dispatchees',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Routine, '@!dispatchees')
+    }));
+
+    Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
+      nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
+        nqp::bindhllsym('Raku', 'MD_Pos', $Positional);
+        nqp::bindhllsym('Raku', 'MD_PBF', $PositionalBindFailover);
+    }));
+
+    Routine.HOW.add_method(Routine, '!sort_dispatchees_internal',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # XXX convert to nqp::const::xxx
+        my int $SLURPY_ARITY      := 1073741824;  # 1 +< 30
+        my int $EDGE_REMOVAL_TODO := -1;
+        my int $EDGE_REMOVED      := -2;
+        my int $DEFCON_NONE       := 0;
+        my int $DEFCON_DEFINED    := 1;
+        my int $DEFCON_UNDEFINED  := 2;
+        my int $DEFCON_MASK       := 3;  # DEFINED +| UNDEFINED
+        my int $TYPE_NATIVE_INT   := 4;
+        my int $TYPE_NATIVE_NUM   := 8;
+        my int $TYPE_NATIVE_STR   := 16;
+        my int $TYPE_NATIVE_UINT  := 32;
+        my int $TYPE_NATIVE_MASK  := 60;  # INT +| UINT +| NUM +| STR;
+
+        # Takes two candidates and determines if the first one is narrower
+        # than the second. Returns a true value if they are.
+        sub is_narrower(%a, %b) {
+
+            # Work out how many parameters to compare, factoring in
+            # slurpiness and optionals.
+            my int $types_to_check := nqp::atkey(%a, 'num_types');
+            my int $num_types_b    := nqp::atkey(%b, 'num_types');
+
+            my int $max_arity_a := nqp::atkey(%a, 'max_arity');
+            my int $max_arity_b := nqp::atkey(%b, 'max_arity');
+
+            if $types_to_check == $num_types_b {
+                # already set
+            }
+            elsif nqp::atkey(%a, 'min_arity') == nqp::atkey(%b, 'min_arity') {
+                $types_to_check := $num_types_b
+                  if $types_to_check > $num_types_b
+            }
+            elsif $max_arity_a != $SLURPY_ARITY
+               && $max_arity_b == $SLURPY_ARITY {
+                return 1;
             }
             else {
-                nqp::die("Cannot add dispatchee '" ~ $dispatchee.name() ~
-                         "' to non-dispatcher code object '" ~ $self.name() ~ "'");
+                return 0;
             }
-        }));
-    Routine.HOW.add_method(Routine, 'derive_dispatcher', nqp::getstaticcode(sub ($self) {
-            my $clone := $self.clone();
-            nqp::bindattr($clone, Routine, '@!dispatchees',
-                nqp::clone(nqp::getattr($self, Routine, '@!dispatchees')));
-            $clone
-        }));
-    Routine.HOW.add_method(Routine, 'dispatcher', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Routine, '$!dispatcher')
-        }));
-    Routine.HOW.add_method(Routine, 'dispatchees', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Routine, '@!dispatchees')
-        }));
-    Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
-        nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
-            nqp::bindhllsym('Raku', 'MD_Pos', $Positional);
-            nqp::bindhllsym('Raku', 'MD_PBF', $PositionalBindFailover);
-        }));
-    Routine.HOW.add_method(Routine, '!sort_dispatchees_internal', nqp::getstaticcode(sub ($self) {
-            my int $SLURPY_ARITY      := nqp::bitshiftl_i(1, 30);
-            my int $EDGE_REMOVAL_TODO := -1;
-            my int $EDGE_REMOVED      := -2;
-            my int $DEFCON_NONE       := 0;
-            my int $DEFCON_DEFINED    := 1;
-            my int $DEFCON_UNDEFINED  := 2;
-            my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
-            my int $TYPE_NATIVE_INT   := 4;
-            my int $TYPE_NATIVE_NUM   := 8;
-            my int $TYPE_NATIVE_STR   := 16;
-            my int $TYPE_NATIVE_UINT  := 32;
-            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
 
-            # Takes two candidates and determines if the first one is narrower
-            # than the second. Returns a true value if they are.
-            sub is_narrower(%a, %b) {
-                # Work out how many parameters to compare, factoring in
-                # slurpiness and optionals.
-                my int $types_to_check;
-                if %a<num_types> == %b<num_types> {
-                    $types_to_check := %a<num_types>;
-                }
-                elsif %a<min_arity> == %b<min_arity> {
-                    $types_to_check := %a<num_types> > %b<num_types>
-                        ?? %b<num_types>
-                        !! %a<num_types>;
-                }
-                elsif %a<max_arity> != $SLURPY_ARITY && %b<max_arity> == $SLURPY_ARITY {
-                    return 1;
-                }
-                else {
-                    return 0;
-                }
+            # Analyse each parameter in the two candidates.
+            my int $narrower;
+            my int $tied;
+            my int $i;
+            while $i < $types_to_check {
+                my $type_obj_a := nqp::atpos(nqp::atkey(%a, 'types'), $i);
+                my $type_obj_b := nqp::atpos(nqp::atkey(%b, 'types'), $i);
 
-                # Analyse each parameter in the two candidates.
-                my int $narrower := 0;
-                my int $tied := 0;
-                my int $i := -1;
-                while ++$i < $types_to_check {
-                    my $type_obj_a := %a<types>[$i];
-                    my $type_obj_b := %b<types>[$i];
-                    if nqp::eqaddr($type_obj_a, $type_obj_b) {
-                        # Same type; narrower if first has constraints and other doesn't;
-                        # narrower if first is rw and second isn't; tied if neither has
-                        # constraints or both have constraints.
-                        if %a<constraints>[$i] && !%b<constraints>[$i] {
-                            ++$narrower;
-                        }
-                        elsif nqp::atpos_i(%a<rwness>, $i) > nqp::atpos_i(%b<rwness>, $i) {
-                            ++$narrower;
-                        }
-                        elsif (!%a<constraints>[$i] && !%b<constraints>[$i])
-                           || (%a<constraints>[$i] && %b<constraints>[$i]) {
-                            ++$tied;
-                        }
+                if nqp::eqaddr($type_obj_a, $type_obj_b) {
+
+                    # Same type; narrower if first has constraints and other
+                    # doesn't; narrower if first is rw and second isn't; tied
+                    # if neither has constraints or both have constraints.
+                    my $constraints_a :=
+                      nqp::atpos(nqp::atkey(%a, 'constraints'), $i);
+                    my $constraints_b :=
+                      nqp::atpos(nqp::atkey(%b, 'constraints'), $i);
+
+                    if $constraints_a && !$constraints_b {
+                        ++$narrower;
                     }
-                    elsif (nqp::atpos_i(%a<type_flags>, $i) +& $TYPE_NATIVE_MASK)
-                      && !(nqp::atpos_i(%b<type_flags>, $i) +& $TYPE_NATIVE_MASK) {
+                    elsif nqp::atpos_i(nqp::atkey(%a, 'rwness'), $i)
+                        > nqp::atpos_i(nqp::atkey(%b, 'rwness'), $i) {
+                        ++$narrower;
+                    }
+                    elsif !$constraints_a && !$constraints_b
+                       ||  $constraints_a &&  $constraints_b {
+                        ++$tied;
+                    }
+                }
+
+                # Different types
+                else {
+                    my int $type_flags_a :=
+                      nqp::atpos_i(nqp::atkey(%a, 'type_flags'), $i);
+                    my int $type_flags_b :=
+                      nqp::atpos_i(nqp::atkey(%b, 'type_flags'), $i);
+
+                    if $type_flags_a +& $TYPE_NATIVE_MASK
+                      && nqp::not_i($type_flags_b +& $TYPE_NATIVE_MASK) {
                         # Narrower because natives always are.
                         ++$narrower;
                     }
-                    elsif (nqp::atpos_i(%b<type_flags>, $i) +& $TYPE_NATIVE_MASK)
-                      && !(nqp::atpos_i(%a<type_flags>, $i) +& $TYPE_NATIVE_MASK) {
-                        # Wider; skip over here so we don't go counting this as tied in
-                        # the next branch.
+
+                    elsif $type_flags_b +& $TYPE_NATIVE_MASK
+                      && nqp::not_i($type_flags_a +& $TYPE_NATIVE_MASK) {
+                        # Wider; skip over here so we don't go counting this
+                        # as tied in the next branch.
                     }
-                    else {
-                        if nqp::istype($type_obj_a, $type_obj_b) {
-                            # Narrower - note it and we're done.
-                            ++$narrower;
-                        }
-                        else {
-                            # Make sure it's tied, rather than the other way around.
-                            unless nqp::istype($type_obj_b, $type_obj_a) {
-                                ++$tied;
-                            }
-                        }
+                    elsif nqp::istype($type_obj_a, $type_obj_b) {
+                        # Narrower - note it and we're done.
+                        ++$narrower;
+                    }
+
+                    elsif nqp::not_i(nqp::istype($type_obj_b, $type_obj_a)) {
+                        # Make sure it's tied, rather than the other way around.
+                        ++$tied;
                     }
                 }
 
-                # If one is narrower than the other from current analysis, we're done.
-                if $narrower >= 1 && $narrower + $tied == $types_to_check {
-                    return 1;
-                }
-
-                # If they aren't tied, we're also done.
-                elsif $tied != $types_to_check {
-                    return 0;
-                }
-
-                # Otherwise, we see if one has a slurpy and the other not. A lack of
-                # slurpiness makes the candidate narrower.
-                if %a<max_arity> != $SLURPY_ARITY && %b<max_arity> == $SLURPY_ARITY {
-                    return 1;
-                }
-
-                # Also narrower if the first needs a bind check and the second doesn't, if
-                # we wouldn't deem the other one narrower than this one in terms of
-                # slurpyness. Otherwise, they're tied.
-                return !(%b<max_arity> != $SLURPY_ARITY && %a<max_arity> == $SLURPY_ARITY)
-                    && (%a<bind_check> && !%b<bind_check>);
+                ++$i;
             }
 
-            my $dcself     := nqp::decont($self);
-            my @candidates := nqp::getattr($dcself, Routine, '@!dispatchees');
+            # And now for the result
+            $narrower && $narrower + $tied == $types_to_check
+              # If one is narrower than the other from current analysis,
+              # we're done.
+              ?? 1
+              !! $tied != $types_to_check
+                # If they aren't tied, we're also done.
+                ?? 0
+                !! $max_arity_a != $SLURPY_ARITY
+                     && $max_arity_b == $SLURPY_ARITY
+                  # Otherwise, we see if one has a slurpy and the other not.
+                  # A lack of slurpiness makes the candidate narrower.
+                  ?? 1
+                  # Also narrower if the first needs a bind check and the
+                  # second doesn't, if we wouldn't deem the other one narrower
+                  # than this one in terms of slurpyness. Otherwise, they're
+                  # tied.
+                  !! nqp::not_i($max_arity_b != $SLURPY_ARITY
+                             && $max_arity_a == $SLURPY_ARITY
+                     ) &&  nqp::atkey(%a, 'bind_check')
+                       && !nqp::atkey(%b, 'bind_check')
+        }
 
-            # Create a node for each candidate in the graph.
-            my @graph;
-            for @candidates -> $candidate {
-                # Get hold of signature.
-                my $sig    := nqp::getattr($candidate, Code, '$!signature');
-                my @params := nqp::getattr($sig, Signature, '@!params');
+        my @candidates := nqp::getattr($self, Routine, '@!dispatchees');
+        my @graph;
 
-                # Create it an entry.
-                my %info := nqp::hash(
-                    'sub',          $candidate,
-                    'signature',    $sig,
-                    'types',        [],
-                    'type_flags',   nqp::list_i(),
-                    'constraints',  [],
-                    'rwness',       nqp::list_i()
-                );
-                if nqp::istype($candidate, Submethod) {
-                    %info<exact_invocant> := 1;
+        # Create a node for each candidate in the graph.
+        my int $m := nqp::elems(@candidates);
+        my int $i;
+        while $i < $m {
+            my $candidate := nqp::atpos(@candidates, $i);
+
+            # Get hold of signature.
+            my $sig    := nqp::getattr($candidate, Code, '$!signature');
+            my @params := nqp::getattr($sig, Signature, '@!params');
+
+            my @types       := nqp::list;
+            my @type_flags  := nqp::list_i;
+            my @constraints := nqp::list;
+            my @rwness      := nqp::list_i;
+
+            # Create it an entry.
+            my %info := nqp::hash(
+              'sub',         $candidate,
+              'signature',   $sig,
+              'types',       @types,
+              'type_flags',  @type_flags,
+              'constraints', @constraints,
+              'rwness',      @rwness,
+            );
+
+            nqp::bindkey(%info, 'exact_invocant', 1)
+              if nqp::istype($candidate, Submethod);
+
+            my int $significant_param;
+            my int $min_arity;
+            my int $max_arity;
+            my int $num_types;
+            my @coerce_type_idxs;
+            my @coerce_type_objs;
+
+            my int $n := nqp::elems(@params);
+            my int $j;
+            while $j < $n {
+                my $param := nqp::atpos(@params, $j);
+                ++$j;  # increment here so we can "next"
+
+                # If it's got a sub-signature, also need a bind check and
+                # to check constraint on every dispatch. Same if it's got a
+                # `where` clause.
+                unless nqp::isnull(
+                  nqp::getattr($param, Parameter, '$!sub_signature')
+                ) && nqp::isnull(
+                  nqp::getattr($param, Parameter, '@!post_constraints')
+                ) && nqp::not_i(nqp::defined(
+                  nqp::getattr($param, Parameter, '$!signature_constraint')
+                )) {
+                    nqp::bindkey(%info, 'bind_check',  1);
+                    nqp::bindkey(%info, 'constrainty', 1);
                 }
-                my int $significant_param := 0;
-                my int $min_arity         := 0;
-                my int $max_arity         := 0;
-                my int $num_types         := 0;
-                my @coerce_type_idxs;
-                my @coerce_type_objs;
-                for @params -> $param {
-                    # If it's got a sub-signature, also need a bind check and
-                    # to check constraint on every dispatch. Same if it's got a
-                    # `where` clause.
-                    unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) &&
-                           nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) &&
-                           !nqp::defined(nqp::getattr($param, Parameter, '$!signature_constraint'))
-                    {
-                        %info<bind_check> := 1;
-                        %info<constrainty> := 1;
-                    }
 
-                    # For named arguments:
-                    # * Under the legacy dispatcher (not on MoarVM, which uses new-disp)
-                    #   we leave named argument checking to be done via a bind check. We
-                    #   only set that if it's a required named.
-                    # * For the new-disp based dispatcher, we collect a list of required
-                    #   named arguments and allowed named arguments, and filter those out
-                    #   without the bind check.
-                    my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
-                    my $named_names := nqp::getattr($param, Parameter, '@!named_names');
-                    unless nqp::isnull($named_names) {
-                        if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT {
-                            unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                                %info<required_names> := [] unless %info<required_names>;
-                                nqp::push(%info<required_names>, $named_names);
-                                if nqp::elems($named_names) == 1 {
-                                    %info<req_named> := nqp::atpos_s($named_names, 0);
-                                }
-                            }
-                            %info<bind_check> := 1;
-                        }
-                        %info<allowed_names> := nqp::hash() unless %info<allowed_names>;
-                        my int $i;
-                        my int $n := nqp::elems($named_names);
-                        while $i < $n {
-                            %info<allowed_names>{nqp::atpos_s($named_names, $i)} := NQPMu;
-                            $i++;
-                        }
-                        next;
-                    }
-                    if $flags +& (nqp::const::SIG_ELEM_SLURPY_NAMED +| nqp::const::SIG_ELEM_IS_CAPTURE) {
-                        %info<allows_all_names> := 1;
-                        nqp::deletekey(%info, 'allowed_names');
-                    }
-                    if $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED {
-                        last;
-                    }
+                # For named arguments:
+                # * Under the legacy dispatcher (not on MoarVM, which uses
+                #   new-disp) we leave named argument checking to be done via
+                #   a bind check. We only set that if it's a required named.
+                # * For the new-disp based dispatcher, we collect a list of
+                #   required named arguments and allowed named arguments, and
+                #   filter those out without the bind check.
+                my int $flags :=
+                  nqp::getattr_i($param, Parameter, '$!flags');
+                my $named_names :=
+                  nqp::getattr($param, Parameter, '@!named_names');
 
-                    # Otherwise, positional or slurpy and contributes to arity.
-                    if $flags +& (nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_IS_CAPTURE +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
-                        $max_arity := $SLURPY_ARITY;
-                        next;
-                    }
-                    elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                        ++$max_arity;
-                    }
-                    else {
-                        ++$max_arity;
-                        ++$min_arity;
-                    }
-
-                    # Record type info for this parameter.
-                    if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
-                        %info<bind_check> := 1;
-                        %info<constrainty> := 1;
-                        %info<types>[$significant_param] := Any;
-                    }
-                    else {
-                        my $ptype :=
-                            nqp::getattr($param, Parameter, '$!type');
-                        if $ptype.HOW.archetypes($ptype).coercive {
-                            my $coercion_type := $ptype.HOW.wrappee($ptype, :coercion);
-                            $ptype := $coercion_type.HOW.constraint_type($coercion_type);
-                        }
-                        %info<types>[$significant_param] := $ptype;
-                    }
-                    unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints'))
-                            && !nqp::defined(nqp::getattr($param, Parameter, '$!signature_constraint')) {
-                        %info<constraints>[$significant_param] := 1;
-                    }
+                unless nqp::isnull($named_names) {
                     if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT {
-                        ++$num_types;
-                    }
-                    if $flags +& nqp::const::SIG_ELEM_IS_RW {
-                        nqp::bindpos_i(%info<rwness>, $significant_param, 1);
-                    }
-                    if $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY {
-                        nqp::bindpos_i(%info<type_flags>, $significant_param, $DEFCON_DEFINED);
-                    }
-                    elsif $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY {
-                        nqp::bindpos_i(%info<type_flags>, $significant_param, $DEFCON_UNDEFINED);
-                    }
-                    if $flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE {
-                        nqp::bindpos_i(%info<type_flags>, $significant_param,
-                            $TYPE_NATIVE_INT + nqp::atpos_i(%info<type_flags>, $significant_param));
-                    }
-                    elsif $flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE {
-                        nqp::bindpos_i(%info<type_flags>, $significant_param,
-                            $TYPE_NATIVE_UINT + nqp::atpos_i(%info<type_flags>, $significant_param));
-                    }
-                    elsif $flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE {
-                        nqp::bindpos_i(%info<type_flags>, $significant_param,
-                            $TYPE_NATIVE_NUM + nqp::atpos_i(%info<type_flags>, $significant_param));
-                    }
-                    elsif $flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE {
-                        nqp::bindpos_i(%info<type_flags>, $significant_param,
-                            $TYPE_NATIVE_STR + nqp::atpos_i(%info<type_flags>, $significant_param));
+                        unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
+                            nqp::push(
+                              nqp::ifnull(
+                                nqp::atkey(%info, 'required_names'),
+                                nqp::bindkey(%info, 'required_names', nqp::list)
+                              ),
+                              $named_names
+                            );
+                            nqp::bindkey(
+                              %info, 'req_named', nqp::atpos_s($named_names, 0)
+                            ) if nqp::elems($named_names) == 1;
+                        }
+                        nqp::bindkey(%info, 'bind_check', 1);
                     }
 
-                    # Keep track of coercion types; they'll need an extra entry
-                    # in the things we sort.
-                    if $param.coercive {
-                        nqp::push(@coerce_type_idxs, $significant_param);
-                        my $param_type := nqp::getattr($param, Parameter, '$!type');
-                        my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
-                        nqp::push(@coerce_type_objs, $coercion_type.HOW.target_type($coercion_type));
-                    }
+                    my $allowed_names := nqp::ifnull(
+                      nqp::atkey(%info, 'allowed_names'),
+                      nqp::bindkey(%info, 'allowed_names', nqp::hash)
+                    );
 
-                    ++$significant_param;
+                    my int $o := nqp::elems($named_names);
+                    my int $k;
+                    while $k < $o {
+                        nqp::bindkey(
+                          $allowed_names,
+                          nqp::atpos_s($named_names, $k),
+                          NQPMu
+                        );
+                        ++$k;
+                    }
+                    next;
                 }
-                %info<min_arity> := $min_arity;
-                %info<max_arity> := $max_arity;
-                %info<num_types> := $num_types;
 
-                # Add it to graph node, and initialize list of edges.
+                if $flags +& nqp::const::SIG_ELEM_ALL_NAMES_OK {
+                    nqp::bindkey(%info, 'allows_all_names', 1);
+                    nqp::deletekey(%info, 'allowed_names');
+                }
+                last if $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED;
+
+                # Otherwise, positional or slurpy and contributes to arity.
+                if $flags +& nqp::const::SIG_ELEM_SLURPY_ARITY {
+                    $max_arity := $SLURPY_ARITY;
+                    next;
+                }
+                elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
+                    ++$max_arity;
+                }
+                else {
+                    ++$max_arity;
+                    ++$min_arity;
+                }
+
+                # Record type info for this parameter.
+                if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
+                    nqp::bindkey(%info, 'bind_check', 1);
+                    nqp::bindkey(%info, 'constrainty', 1);
+                    nqp::bindpos(@types, $significant_param, Any);
+                }
+                else {
+                    my $ptype := nqp::getattr($param, Parameter, '$!type');
+                    if $ptype.HOW.archetypes($ptype).coercive {
+                        my $ctype := $ptype.HOW.wrappee($ptype, :coercion);
+                        $ptype    := $ctype.HOW.constraint_type($ctype);
+                    }
+                    nqp::bindpos(@types, $significant_param, $ptype);
+                }
+
+                nqp::bindpos(@constraints, $significant_param, 1)
+                  unless nqp::isnull(
+                    nqp::getattr($param, Parameter, '@!post_constraints')
+                  ) && nqp::not_i(nqp::defined(
+                    nqp::getattr($param, Parameter, '$!signature_constraint')
+                  ));
+
+                ++$num_types
+                  if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT;
+
+                nqp::bindpos_i(@rwness, $significant_param, 1)
+                  if $flags +& nqp::const::SIG_ELEM_IS_RW;
+
+                if $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY {
+                    nqp::bindpos_i(
+                      @type_flags, $significant_param, $DEFCON_DEFINED
+                    );
+                }
+                elsif $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY {
+                    nqp::bindpos_i(
+                      @type_flags, $significant_param, $DEFCON_UNDEFINED
+                    );
+                }
+
+                if $flags +& nqp::const::SIG_ELEM_NATIVE_VALUE {
+                    nqp::bindpos_i(
+                      @type_flags,
+                      $significant_param,
+                      ($flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE
+                        ?? $TYPE_NATIVE_STR
+                        !! $flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE
+                          ?? $TYPE_NATIVE_INT
+                          !! $flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
+                            ?? $TYPE_NATIVE_UINT
+                            !! $TYPE_NATIVE_NUM  # SIG_ELEM_NATIVE_NUM_VALUE
+                      ) + nqp::atpos_i(@type_flags, $significant_param)
+                    )
+                }
+
+                # Keep track of coercion types; they'll need an extra entry
+                # in the things we sort.
+                if $param.coercive {
+                    nqp::push(@coerce_type_idxs, $significant_param);
+                    my $ptype := nqp::getattr($param, Parameter, '$!type');
+                    my $ctype := $ptype.HOW.wrappee($ptype, :coercion);
+                    nqp::push(
+                      @coerce_type_objs, $ctype.HOW.target_type($ctype)
+                    );
+                }
+
+                ++$significant_param;
+            }
+            nqp::bindkey(%info, 'min_arity', $min_arity);
+            nqp::bindkey(%info, 'max_arity', $max_arity);
+            nqp::bindkey(%info, 'num_types', $num_types);
+
+            # Add it to graph node, and initialize list of edges.
+            nqp::push(@graph, nqp::hash(
+                'info',      %info,
+                'edges',     nqp::list,
+                'edges_in',  0,
+                'edges_out', 0
+            ));
+
+            # If there were any coercion types, then we also need to create
+            # a candidate entry for the specific types.
+            if @coerce_type_idxs {
+                my %c_info  := nqp::clone(%info);
+                my @c_types := nqp::clone(@types);
+                nqp::bindkey(%c_info, 'types', @c_types);
+
+                my int $m := nqp::elems(@coerce_type_idxs);
+                my int $i;
+                while $i < $m {
+                    nqp::bindpos(
+                      @c_types,
+                      nqp::atpos(@coerce_type_idxs, $i),
+                      nqp::atpos(@coerce_type_objs, $i)
+                    );
+                    ++$i;
+                }
                 nqp::push(@graph, nqp::hash(
-                    'info',      %info,
-                    'edges',     [],
+                    'info',      %c_info,
+                    'edges',     nqp::list,
                     'edges_in',  0,
                     'edges_out', 0
                 ));
-
-                # If there were any coercion types, then we also need to create
-                # a candidate entry for the specific types.
-                if @coerce_type_idxs {
-                    my %c_info     := nqp::clone(%info);
-                    %c_info<types> := nqp::clone(%c_info<types>);
-                    my int $i      := 0;
-                    while $i < nqp::elems(@coerce_type_idxs) {
-                        %c_info<types>[@coerce_type_idxs[$i]] := @coerce_type_objs[$i];
-                        ++$i;
-                    }
-                    nqp::push(@graph, nqp::hash(
-                        'info',      %c_info,
-                        'edges',     [],
-                        'edges_in',  0,
-                        'edges_out', 0
-                    ));
-                }
             }
 
-            # Now analyze type narrowness of the candidates relative to each
-            # other and create the edges.
-            my int $j;
-            my int $n := nqp::elems(@graph);
-            my int $i := -1;
-            while ++$i < $n {
-                $j := -1;
-                while ++$j < $n {
-                    unless $i == $j {
-                        if is_narrower(@graph[$i]<info>, @graph[$j]<info>) {
-                            @graph[$i]<edges>[@graph[$i]<edges_out>] := @graph[$j];
-                            ++@graph[$i]<edges_out>;
-                            ++@graph[$j]<edges_in>;
-                        }
-                    }
-                }
-            }
-
-            # Perform the topological sort.
-            my int $candidates_to_sort := nqp::elems(@graph);
-            my @result;
-            while $candidates_to_sort > 0 {
-                my int $rem_results := nqp::elems(@result);
-
-                # Find any nodes that have no incoming edges and add them to
-                # results.
-                $i := -1;
-                while ++$i < $n {
-                    if @graph[$i]<edges_in> == 0 {
-                        # Add to results.
-                        nqp::push(@result, @graph[$i]<info>);
-                        --$candidates_to_sort;
-                        @graph[$i]<edges_in> := $EDGE_REMOVAL_TODO;
-                    }
-                }
-                if $rem_results == nqp::elems(@result) {
-                    nqp::die("Circularity detected in multi sub types" ~ ($self.name ?? " for &" ~ $self.name !! ''));
-                }
-
-                # Now we need to decrement edges in counts for things that had
-                # edges from candidates we added here.
-                $i := -1;
-                while ++$i < $n {
-                    if @graph[$i]<edges_in> == $EDGE_REMOVAL_TODO {
-                        $j := -1;
-                        while ++$j < @graph[$i]<edges_out> {
-                            --@graph[$i]<edges>[$j]<edges_in>;
-                        }
-                        @graph[$i]<edges_in> := $EDGE_REMOVED;
-                    }
-                }
-
-                # This is end of a tied group, so leave a gap.
-                nqp::push(@result, Mu);
-            }
-
-            # Add final null sentinel.
-            nqp::push(@result, Mu);
-
-            @result
-        }));
-    Routine.HOW.add_method(Routine, 'sort_dispatchees', nqp::getstaticcode(sub ($self) {
-        my $dcself := nqp::decont($self);
-        unless nqp::isnull(nqp::getattr($dcself, Routine, '@!dispatch_order')) {
-            nqp::bindattr($dcself, Routine, '@!dispatch_order',
-                $self.'!sort_dispatchees_internal'());
+            ++$i;
         }
+
+        # Now analyze type narrowness of the candidates relative to each
+        # other and create the edges.
+        $m := nqp::elems(@graph);
+        $i := 0;
+        while $i < $m {
+            my int $j;
+            while $j < $m {
+                unless $i == $j {
+                    my %graph_i := nqp::atpos(@graph, $i);
+                    my %graph_j := nqp::atpos(@graph, $j);
+
+                    if is_narrower(
+                      nqp::atkey(%graph_i, 'info'),
+                      nqp::atkey(%graph_j, 'info')
+                    ) {
+                        nqp::bindpos(
+                          nqp::atkey(%graph_i, 'edges'),
+                          nqp::atkey(%graph_i, 'edges_out'),
+                          nqp::atpos(@graph, $j)
+                        );
+
+                        ++%graph_i<edges_out>;
+                        ++%graph_j<edges_in>;
+                    }
+                }
+                ++$j;
+            }
+            ++$i;
+        }
+
+        # Perform the topological sort.
+        my int $candidates_to_sort := nqp::elems(@graph);
+        my @result;
+        while $candidates_to_sort > 0 {
+            my int $rem_results := nqp::elems(@result);
+
+            # Find any nodes that have no incoming edges and add them to
+            # results.
+            $i := 0;
+            while $i < $m {
+                my %graph_i := nqp::atpos(@graph, $i);
+
+                if nqp::atkey(%graph_i, 'edges_in') == 0 {
+
+                    # Add to results.
+                    nqp::push(@result, nqp::atkey(%graph_i, 'info'));
+
+                    --$candidates_to_sort;
+                    nqp::bindkey(%graph_i, 'edges_in', $EDGE_REMOVAL_TODO);
+                }
+                ++$i;
+            }
+
+            nqp::die("Circularity detected in multi sub types"
+              ~ ($self.name ?? " for &" ~ $self.name !! '')
+            ) if $rem_results == nqp::elems(@result);
+
+            # Now we need to decrement edges in counts for things that had
+            # edges from candidates we added here.
+            $i := 0;
+            while $i < $m {
+                my %graph_i := nqp::atpos(@graph, $i);
+
+                if nqp::atkey(%graph_i, 'edges_in') == $EDGE_REMOVAL_TODO {
+                    my int $edges_out := nqp::atkey(%graph_i, 'edges_out');
+
+                    my int $j;
+                    while $j < $edges_out {
+                        --nqp::atpos(
+                            nqp::atkey(%graph_i, 'edges'), $j
+                          )<edges_in>;
+                        ++$j;
+                    }
+                    nqp::bindkey(%graph_i, 'edges_in', $EDGE_REMOVED);
+                }
+                ++$i;
+            }
+
+            # This is end of a tied group, so leave a gap.
+            nqp::push(@result, Mu);
+        }
+
+        # Add final null sentinel.
+        nqp::push(@result, Mu);
+
+        @result
+    }));
+
+    Routine.HOW.add_method(Routine, 'sort_dispatchees', nqp::getstaticcode(sub ($self) {
+    my $dcself := nqp::decont($self);
+    unless nqp::isnull(nqp::getattr($dcself, Routine, '@!dispatch_order')) {
+        nqp::bindattr($dcself, Routine, '@!dispatch_order',
+            $self.'!sort_dispatchees_internal'());
+    }
     }));
     Routine.HOW.add_method(Routine, 'find_best_dispatchee', nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
             my int $DEFCON_DEFINED    := 1;

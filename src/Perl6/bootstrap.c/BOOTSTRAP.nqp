@@ -4008,10 +4008,10 @@ BEGIN {
                 }
             }
 
+#?if !moar
             # If we're at a single candidate here, and we also know there's no
             # type constraints that follow, we can cache the result.
             sub add_to_cache($entry) {
-#?if !moar
                 return 0 if nqp::capturehasnameds($capture);
                 nqp::scwbdisable();
                 nqp::bindattr($dcself, Routine, '$!dispatch_cache',
@@ -4019,11 +4019,11 @@ BEGIN {
                         nqp::getattr($dcself, Routine, '$!dispatch_cache'),
                         $capture, $entry));
                 nqp::scwbenable();
-#?endif
             }
             if nqp::elems(@possibles) == 1 && $pure_type_result {
                 add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));
             }
+#?endif
 
             # Perhaps we found nothing but have junctional arguments?
             my $junctional_res;
@@ -4042,7 +4042,9 @@ BEGIN {
                     $junctional_res := -> *@pos, *%named {
                         Junction.AUTOTHREAD($self, |@pos, |%named)
                     }
+#?if !moar
                     add_to_cache($junctional_res);
+#?endif
                 }
             }
 

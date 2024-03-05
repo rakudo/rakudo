@@ -3788,17 +3788,16 @@ BEGIN {
                     $type_check_count := $num_args
                       if $type_check_count > $num_args;
 
-                    my int $mismatch;
-
+                    my int $no_mismatch := 1;
                     my int $i;
-                    while $i < $type_check_count && !$mismatch {
+                    while $i < $type_check_count && $no_mismatch {
                         my $type_obj       := nqp::atpos(nqp::atkey($candidate, 'types'), $i);
                         my int $type_flags := nqp::atpos_i(nqp::atkey($candidate, 'type_flags'), $i);
                         my int $got_prim   := nqp::captureposprimspec($capture, $i);
                         my int $rwness     := nqp::atpos_i(nqp::atkey($candidate, 'rwness'), $i);
                         if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
                             # If we need a container but don't have one it clearly can't work.
-                            $mismatch := 1;
+                            $no_mismatch := 0;
                         }
                         elsif $type_flags +& $TYPE_NATIVE_MASK {
                             # Looking for a natively typed value. Did we get one?
@@ -3809,7 +3808,7 @@ BEGIN {
                                        (($type_flags +& $TYPE_NATIVE_UINT) && nqp::iscont_u($contish)) ||
                                        (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
                                        (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
-                                    $mismatch := 1;
+                                    $no_mismatch := 0;
                                 }
                             }
                             elsif (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
@@ -3817,7 +3816,7 @@ BEGIN {
                                (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
                                (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
                                 # Mismatch.
-                                $mismatch := 1;
+                                $no_mismatch := 0;
                             }
                         }
                         else {
@@ -3841,7 +3840,7 @@ BEGIN {
                             if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
                                 if $i == 0 && nqp::existskey($candidate, 'exact_invocant') {
                                     unless $param.WHAT =:= $type_obj {
-                                        $mismatch := 1;
+                                        $no_mismatch := 0;
                                     }
                                 }
                             }
@@ -3849,18 +3848,18 @@ BEGIN {
                                 if $type_obj =:= $Positional {
                                     my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
                                     unless nqp::istype($param, $PositionalBindFailover) {
-                                        $mismatch := 1;
+                                        $no_mismatch := 0;
                                     }
                                 } else {
-                                    $mismatch := 1;
+                                    $no_mismatch := 0;
                                 }
                             }
-                            if !$mismatch && $type_flags +& $DEFCON_MASK {
+                            if $no_mismatch && $type_flags +& $DEFCON_MASK {
                                 my int $defined := $primish || nqp::isconcrete($param);
                                 my int $desired := $type_flags +& $DEFCON_MASK;
                                 if ($defined && $desired == $DEFCON_UNDEFINED) ||
                                    (!$defined && $desired == $DEFCON_DEFINED) {
-                                    $mismatch := 1;
+                                    $no_mismatch := 0;
                                 }
                             }
                         }
@@ -3869,7 +3868,7 @@ BEGIN {
                     }
 
                     # If it's an admissible candidate; add to list.
-                    nqp::push(@possibles, $candidate) unless $mismatch;
+                    nqp::push(@possibles, $candidate) if $no_mismatch;
                 }
 
                 ++$cur_idx;

@@ -3765,7 +3765,7 @@ BEGIN {
 
         # Iterate over the candidates and collect best ones; terminate
         # when we see two type objects (indicating end).
-        my int $cur_idx := 0;
+        my int $cur_idx;
         my int $pure_type_result := 1;
         my $many_res := $many ?? nqp::list !! Mu;
         my @possibles;
@@ -3937,65 +3937,85 @@ BEGIN {
             # We've hit the end of a tied group now. If any of them have a
             # bindability check requirement, we'll do any of those now.
             else {
-                if nqp::elems(@possibles) {
-                    my $new_possibles;
-                    my %info;
-                    my int $i;
-                    while $i < nqp::elems(@possibles) {
-                        %info := nqp::atpos(@possibles, $i);
 
-                        # First, if there's a required named parameter and it was
-                        # not passed, we can very quickly eliminate this candidate
-                        # without doing a full bindability check.
+                # Need to further check any possible candidates
+                if nqp::elems(@possibles) {
+
+                    my $new_possibles := nqp::null;
+                    my int $m := nqp::elems(@possibles);
+                    my int $i;
+                    while $i < $m {
+                        my %info := nqp::atpos(@possibles, $i);
+
+                        # First, if there's a required named parameter and
+                        # it was not passed, we can very quickly eliminate
+                        # this candidate without doing a full bindability check
                         if nqp::existskey(%info, 'req_named')
-                        && !nqp::captureexistsnamed($capture, nqp::atkey(%info, 'req_named')) {
+                          && nqp::not_i(nqp::captureexistsnamed(
+                               $capture,
+                               nqp::atkey(%info, 'req_named')
+                             )) {
+
                             # Required named arg not passed, so we eliminate
                             # it right here. Flag that we've built a list of
                             # new possibles, and that this was not a pure
                             # type-based result that we can cache.
-                            $new_possibles := [] unless nqp::islist($new_possibles);
+                            $new_possibles := nqp::list
+                              if nqp::isnull($new_possibles);
                         }
 
                         # Otherwise, may need full bind check.
                         elsif nqp::existskey(%info, 'bind_check') {
                             my $sub := nqp::atkey(%info, 'sub');
-                            my $cs := nqp::getattr($sub, Code, '@!compstuff');
+                            my $cs  := nqp::getattr($sub, Code, '@!compstuff');
+
                             unless nqp::isnull($cs) {
-                                # We need to do the tie-break on something not yet compiled.
-                                # Get it compiled.
+                                # We need to do the tie-break on something
+                                # not yet compiled.  Get it compiled.
                                 my $ctf := $cs[1];
                                 $ctf() if $ctf;
                             }
 
-                            # Since we had to do a bindability check, this is not
-                            # a result we can cache on nominal type.
-                            $pure_type_result := 0 if nqp::existskey(%info, 'constrainty');
+                            # Since we had to do a bindability check, this is
+                            # not a result we can cache on nominal type.
+                            $pure_type_result := 0
+                              if nqp::existskey(%info, 'constrainty');
 
-                            # If we haven't got a possibles storage space, allocate it now.
-                            $new_possibles := [] unless nqp::islist($new_possibles);
+                            # If we haven't got a possibles storage space,
+                            # allocate it now.
+                            $new_possibles := nqp::list
+                              if nqp::isnull($new_possibles);
 
                             my $sig := nqp::getattr($sub, Code, '$!signature');
                             unless $done_bind_check {
-                                # Need a copy of the capture, as we may later do a
-                                # multi-dispatch when evaluating the constraint.
+                                # Need a copy of the capture, as we may later
+                                # do a multi-dispatch when evaluating the
+                                # constraint.
                                 $capture := nqp::clone($capture);
                                 $done_bind_check := 1;
                             }
+
+                            # Accept if we can bind the sig to the capture
                             if nqp::p6isbindable($sig, $capture) {
-                                nqp::push($new_possibles, nqp::atpos(@possibles, $i));
-                                unless $many {
-                                    # Terminate the loop.
-                                    $i := nqp::elems(@possibles);
-                                }
+                                nqp::push(
+                                  $new_possibles,
+                                  nqp::atpos(@possibles, $i)
+                                );
+
+                                # Terminate the loop if we only want one result
+                                $i := $m unless $many;
                             }
                         }
 
                         # Otherwise, it's just nominal; accept it.
-                        elsif $new_possibles {
-                            nqp::push($new_possibles, nqp::atpos(@possibles, $i));
-                        }
                         else {
-                            $new_possibles := [nqp::atpos(@possibles, $i)];
+                            nqp::push(
+                              nqp::ifnull(
+                                $new_possibles,
+                                $new_possibles := nqp::list
+                              ),
+                              nqp::atpos(@possibles, $i)
+                            )
                         }
 
                         ++$i;
@@ -4003,40 +4023,34 @@ BEGIN {
 
                     # If we have an updated list of possibles, use this
                     # new one from here on in.
-                    if nqp::islist($new_possibles) {
-                        @possibles := $new_possibles;
-                    }
+                    @possibles := $new_possibles
+                      unless nqp::isnull($new_possibles);
                 }
 
                 # Now we have eliminated any that fail the bindability check.
                 # See if we need to push it onto the many list and continue.
                 # Otherwise, we have the result we were looking for.
                 if $many {
-                    while @possibles {
-                        nqp::push($many_res, nqp::atkey(nqp::shift(@possibles), 'sub'))
-                    }
-                    ++$cur_idx;
-                    unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
-                        $done := 1;
-                    }
-                }
-                elsif @possibles {
-                    $done := 1;
-                }
-                else {
-                    # Keep looping and looking, unless we really hit the end.
-                    ++$cur_idx;
-                    unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
-                        $done := 1;
+                    while nqp::elems(@possibles) {
+                        nqp::push(
+                          $many_res,
+                          nqp::atkey(nqp::shift(@possibles), 'sub')
+                        )
                     }
                 }
+
+                $done := 1
+                  # Found what we were looking for
+                  if @possibles
+                  # Or really reached the end (incrementing index on the fly)
+                  || nqp::not_i(nqp::isconcrete(
+                       nqp::atpos(@candidates, ++$cur_idx)
+                     ));
             }
         }
 
         # If we were looking for many candidates, we're done now.
-        if $many {
-            return $many_res;
-        }
+        return $many_res if $many;
 
         # If we still have multiple options and we want one, then check default
         # trait and then, failing that, if we got an exact arity match on required

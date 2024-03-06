@@ -4053,47 +4053,64 @@ BEGIN {
         return $many_res if $many;
 
         # If we still have multiple options and we want one, then check default
-        # trait and then, failing that, if we got an exact arity match on required
-        # parameters (which will beat matches on optional parameters).
+        # trait and then, failing that, if we got an exact arity match on
+        # required parameters (which will beat matches on optional parameters).
         if nqp::elems(@possibles) > 1 {
-            # Locate any default candidates; if we find multiple defaults, this is
-            # no help, so we'll not bother collecting just which ones are good.
-            my $default_cand;
-            for @possibles {
-                my $sub := nqp::atkey($_, 'sub');
+
+            # Locate any default candidates; if we find multiple defaults,
+            # this is no help, so we'll not bother collecting just which
+            # ones are good.
+            my $default_cand := nqp::null;
+            my int $m := nqp::elems(@possibles);
+            my int $i;
+            while $i < $m {
+                my $possibility := nqp::atpos(@possibles, $i);
+                my $sub         := nqp::atkey($possibility, 'sub');
+
+                # Is the routine marked with "is default"?
                 if nqp::can($sub, 'default') && $sub.default {
-                    if nqp::isconcrete($default_cand) {
-                        $default_cand := Mu;
+
+                    # Set default if first or reset if not first
+                    if nqp::isnull($default_cand) {
+                        $default_cand := $possibility;
                     }
                     else {
-                        $default_cand := $_;
+                        $default_cand := nqp::null;
+                        last;
                     }
                 }
-            }
-            if nqp::isconcrete($default_cand) {
-                nqp::pop(@possibles) while @possibles;
-                @possibles[0] := $default_cand;
+
+                ++$i;
             }
 
-            # Failing that, look for exact arity match.
-            if nqp::elems(@possibles) > 1 {
-                my $exact_arity;
-                for @possibles {
-                    if nqp::atkey($_, 'min_arity') == $num_args &&
-                       nqp::atkey($_, 'max_arity') == $num_args {
-                        if nqp::isconcrete($exact_arity) {
-                            $exact_arity := NQPMu;
-                            last;
+            # No single default found among the possibilities, so look for
+            # exact arity match.
+            if nqp::isnull($default_cand) {
+                my $exact_arity := nqp::null;
+                my int $i;
+                while $i < $m {
+                    my $possibility := nqp::atpos(@possibles, $i);
+                    if nqp::atkey($possibility, 'min_arity') == $num_args &&
+                       nqp::atkey($possibility, 'max_arity') == $num_args {
+
+                        if nqp::isnull($exact_arity) {
+                            $exact_arity := $possibility;
                         }
                         else {
-                            $exact_arity := $_;
+                            $exact_arity := nqp::null;
+                            last;
                         }
                     }
+                    ++$i;
                 }
-                if nqp::isconcrete($exact_arity) {
-                    nqp::pop(@possibles) while @possibles;
-                    @possibles[0] := $exact_arity;
-                }
+
+                @possibles := nqp::list($exact_arity)
+                  unless nqp::isnull($exact_arity);
+            }
+
+            # Reset possibilities to default: only one default default found
+            else {
+                @possibles := nqp::list($default_cand);
             }
         }
 

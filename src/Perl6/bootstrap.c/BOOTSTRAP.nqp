@@ -4131,27 +4131,24 @@ BEGIN {
         }
 #?endif
 
-        # Perhaps we found nothing but have junctional arguments?
-        my $junctional_res;
-        if nqp::elems(@possibles) == 0 {
-            my int $has_junc_args := 0;
+        # Found nothing but have junctional arguments?
+        unless nqp::elems(@possibles) {
             my int $i;
             while $i < $num_args {
-                if !nqp::captureposprimspec($capture, $i) {
+                unless nqp::captureposprimspec($capture, $i) {
                     my $arg := nqp::captureposarg($capture, $i);
                     if nqp::istype($arg, Junction) && nqp::isconcrete($arg) {
-                        $has_junc_args := 1;
+                        my $junctional_res := -> *@pos, *%named {
+                            Junction.AUTOTHREAD($self, |@pos, |%named)
+                        }
+#?if !moar
+                        add_to_cache($junctional_res);
+#?endif
+                        # We're done: it's a Junction, deal with it!
+                        return $junctional_res;
                     }
                 }
                 ++$i;
-            }
-            if $has_junc_args {
-                $junctional_res := -> *@pos, *%named {
-                    Junction.AUTOTHREAD($self, |@pos, |%named)
-                }
-#?if !moar
-                add_to_cache($junctional_res);
-#?endif
             }
         }
 
@@ -4159,49 +4156,50 @@ BEGIN {
         if nqp::elems(@possibles) == 1 {
             nqp::atkey(nqp::atpos(@possibles, 0), 'sub')
         }
-        elsif nqp::isconcrete($junctional_res) {
-            $junctional_res;
-        }
-        elsif nqp::elems(@possibles) == 0 {
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Multi::NoMatch',
-                "Cannot call " ~ $self.name() ~ "; no signatures match",
-                :dispatcher($self),
-                :capture($self.'!p6capture'($capture)));
-        }
+
+        # Alas, throw the appropriate error.  Don't care about optmizinng,
+        # we're about to throw anyway
         else {
             my @ambiguous;
             for @possibles {
                 nqp::push(@ambiguous, $_<sub>);
             }
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Multi::Ambiguous',
-                "Ambiguous call to " ~ $self.name(),
-                :dispatcher($self),
-                :@ambiguous,
-                :capture($self.'!p6capture'($capture)));
+            my str $name := self.name;
+#?if !moar
+            sub assemble_capture(*@pos, *%named) {
+                my $c := nqp::create(Capture);
+                nqp::bindattr($c, Capture, '@!list', @pos);
+                nqp::bindattr($c, Capture, '%!hash', %named);
+                $c
+            }
+            my $raku_capture :=
+              nqp::invokewithcapture(&assemble_capture, $capture)
+#?endif
+#?if moar
+            my $raku_capture := nqp::create(Capture);
+            nqp::bindattr($raku_capture, Capture, '@!list',
+              nqp::syscall('capture-pos-args', $capture));
+            nqp::bindattr($raku_capture, Capture, '%!hash',
+              nqp::syscall('capture-named-args', $capture));
+#?endif
+
+            nqp::elems(@possibles)
+              ?? Perl6::Metamodel::Configuration.throw_or_die(
+                   'X::Multi::Ambiguous',
+                   "Ambiguous call to $name",
+                   :dispatcher($self),
+                   :@ambiguous,
+                   :capture($raku_capture)
+                 )
+              !! Perl6::Metamodel::Configuration.throw_or_die(
+                   'X::Multi::NoMatch',
+                   "Cannot call $name; no signatures match",
+                   :dispatcher($self),
+                   :capture($raku_capture)
+                 );
         }
     }));
 
-    Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
-#?if !moar
-        sub assemble_capture(*@pos, *%named) {
-            my $c := nqp::create(Capture);
-            nqp::bindattr($c, Capture, '@!list', @pos);
-            nqp::bindattr($c, Capture, '%!hash', %named);
-            $c
-        }
-        nqp::invokewithcapture(&assemble_capture, $capture)
-#?endif
-#?if moar
-        my $raku-capture := nqp::create(Capture);
-        nqp::bindattr($raku-capture, Capture, '@!list',
-            nqp::syscall('capture-pos-args', $capture));
-        nqp::bindattr($raku-capture, Capture, '%!hash',
-            nqp::syscall('capture-named-args', $capture));
-        $raku-capture
-#?endif
-    }));
     Routine.HOW.add_method(Routine, 'analyze_dispatch', nqp::getstaticcode(sub ($self, @args, @flags) {
             # Compile time dispatch result.
             my $MD_CT_NOT_SURE :=  0;  # Needs a runtime dispatch.

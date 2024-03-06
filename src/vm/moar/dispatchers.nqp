@@ -2098,9 +2098,6 @@ my class MultiDispatchNonScalar {
 # mode. A resumption of a trivial dispatch will call this again, but with that
 # flag not set, and then drop the first candidate from the plan, which was
 # already invoked. It will then walk the candidate list as usual.
-my int $DEFCON_DEFINED    := 1;
-my int $DEFCON_UNDEFINED  := 2;
-my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
 my int $TYPE_NATIVE_INT   := 4;
 my int $TYPE_NATIVE_UINT  := 32;
 my int $TYPE_NATIVE_NUM   := 8;
@@ -2266,7 +2263,8 @@ sub raku-multi-plan(
                       nqp::atkey($cur_candidate, 'rwness'), $i
                     );
 
-                    my int $definedness := $type_flags +& $DEFCON_MASK;
+                    my int $definedness :=
+                      $type_flags +& nqp::const::DEFCON_MASK;
 
                     # Get the primitive type of the argument, and go on
                     # whether it's an object or primitive type
@@ -2277,8 +2275,10 @@ sub raku-multi-plan(
                     if $got_prim {
 
                         # Read/write and type object incompatible with natives
-                        if $rwness   # want rw, we ain't got it
-                          || $definedness == $DEFCON_UNDEFINED {  # type object
+                          # want rw, we ain't got it
+                        if $rwness
+                          # type object
+                          || $definedness == nqp::const::DEFCON_UNDEFINED {
                             $rwness_mismatch := 1;
                         }
 
@@ -2429,8 +2429,10 @@ sub raku-multi-plan(
                             my int $got := $promoted_primitive
                               || nqp::isconcrete_nd($value);
                             $type_mismatch := 1
-                              if ( $got && $definedness == $DEFCON_UNDEFINED)
-                              || (!$got && $definedness == $DEFCON_DEFINED  );
+                              if ( $got && $definedness ==
+                                             nqp::const::DEFCON_UNDEFINED)
+                              || (!$got && $definedness ==
+                                             nqp::const::DEFCON_DEFINED  );
                             nqp::bindpos_i($need_conc_guard, $i, 1);
                         }
                     }

@@ -3273,10 +3273,6 @@ BEGIN {
         my int $SLURPY_ARITY      := 1073741824;  # 1 +< 30
         my int $EDGE_REMOVAL_TODO := -1;
         my int $EDGE_REMOVED      := -2;
-        my int $DEFCON_NONE       := 0;
-        my int $DEFCON_DEFINED    := 1;
-        my int $DEFCON_UNDEFINED  := 2;
-        my int $DEFCON_MASK       := 3;  # DEFINED +| UNDEFINED
         my int $TYPE_NATIVE_INT   := 4;
         my int $TYPE_NATIVE_NUM   := 8;
         my int $TYPE_NATIVE_STR   := 16;
@@ -3550,12 +3546,16 @@ BEGIN {
 
                 if $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY {
                     nqp::bindpos_i(
-                      @type_flags, $significant_param, $DEFCON_DEFINED
+                      @type_flags,
+                      $significant_param,
+                      nqp::const::DEFCON_DEFINED
                     );
                 }
                 elsif $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY {
                     nqp::bindpos_i(
-                      @type_flags, $significant_param, $DEFCON_UNDEFINED
+                      @type_flags,
+                      $significant_param,
+                      nqp::const::DEFCON_UNDEFINED
                     );
                 }
 
@@ -3739,9 +3739,6 @@ BEGIN {
 
     Routine.HOW.add_method(Routine, 'find_best_dispatchee',
       nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
-        my int $DEFCON_DEFINED    := 1;
-        my int $DEFCON_UNDEFINED  := 2;
-        my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
         my int $TYPE_NATIVE_INT   := 4;
         my int $TYPE_NATIVE_NUM   := 8;
         my int $TYPE_NATIVE_STR   := 16;
@@ -3916,10 +3913,11 @@ BEGIN {
                             # Check for definedness if it still makes sense
                             if $no_mismatch {
                                 $no_mismatch := 0
-                                  if (my int $mask := $flags +& $DEFCON_MASK)
+                                  if (my int $mask :=
+                                        $flags +& nqp::const::DEFCON_MASK)
                                   && ($primish || nqp::isconcrete($arg)
-                                       ?? $DEFCON_DEFINED
-                                       !! $DEFCON_UNDEFINED
+                                       ?? nqp::const::DEFCON_DEFINED
+                                       !! nqp::const::DEFCON_UNDEFINED
                                      ) != $mask
                             }
                         }
@@ -4207,9 +4205,6 @@ BEGIN {
             my $MD_CT_NO_WAY   := -1;  # Proved it'd never manage to dispatch.
 
             # Other constants we need.
-            my int $DEFCON_DEFINED    := 1;
-            my int $DEFCON_UNDEFINED  := 2;
-            my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
             my int $TYPE_NATIVE_INT   := 4;
             my int $TYPE_NATIVE_NUM   := 8;
             my int $TYPE_NATIVE_STR   := 16;
@@ -4344,7 +4339,7 @@ BEGIN {
                                 last;
                             }
                         }
-                        elsif $type_flags +& $DEFCON_MASK {
+                        elsif $type_flags +& nqp::const::DEFCON_MASK {
                             $used_defcon := 1;
                         }
                     }

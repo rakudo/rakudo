@@ -3273,11 +3273,6 @@ BEGIN {
         my int $SLURPY_ARITY      := 1073741824;  # 1 +< 30
         my int $EDGE_REMOVAL_TODO := -1;
         my int $EDGE_REMOVED      := -2;
-        my int $TYPE_NATIVE_INT   := 4;
-        my int $TYPE_NATIVE_NUM   := 8;
-        my int $TYPE_NATIVE_STR   := 16;
-        my int $TYPE_NATIVE_UINT  := 32;
-        my int $TYPE_NATIVE_MASK  := 60;  # INT +| UINT +| NUM +| STR;
 
         # Takes two candidates and determines if the first one is narrower
         # than the second. Returns a true value if they are.
@@ -3344,14 +3339,18 @@ BEGIN {
                     my int $type_flags_b :=
                       nqp::atpos_i(nqp::atkey(%b, 'type_flags'), $i);
 
-                    if $type_flags_a +& $TYPE_NATIVE_MASK
-                      && nqp::not_i($type_flags_b +& $TYPE_NATIVE_MASK) {
+                    if $type_flags_a +& nqp::const::TYPE_NATIVE_MASK
+                      && nqp::not_i(
+                           $type_flags_b +& nqp::const::TYPE_NATIVE_MASK
+                         ) {
                         # Narrower because natives always are.
                         ++$narrower;
                     }
 
-                    elsif $type_flags_b +& $TYPE_NATIVE_MASK
-                      && nqp::not_i($type_flags_a +& $TYPE_NATIVE_MASK) {
+                    elsif $type_flags_b +& nqp::const::TYPE_NATIVE_MASK
+                      && nqp::not_i(
+                           $type_flags_a +& nqp::const::TYPE_NATIVE_MASK
+                         ) {
                         # Wider; skip over here so we don't go counting this
                         # as tied in the next branch.
                     }
@@ -3564,12 +3563,12 @@ BEGIN {
                       @type_flags,
                       $significant_param,
                       ($flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE
-                        ?? $TYPE_NATIVE_STR
+                        ?? nqp::const::TYPE_NATIVE_STR
                         !! $flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE
-                          ?? $TYPE_NATIVE_INT
+                          ?? nqp::const::TYPE_NATIVE_INT
                           !! $flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
-                            ?? $TYPE_NATIVE_UINT
-                            !! $TYPE_NATIVE_NUM  # SIG_ELEM_NATIVE_NUM_VALUE
+                            ?? nqp::const::TYPE_NATIVE_UINT
+                            !! nqp::const::TYPE_NATIVE_NUM  # SIG_ELEM_NATIVE_NUM_VALUE
                       ) + nqp::atpos_i(@type_flags, $significant_param)
                     )
                 }
@@ -3739,14 +3738,6 @@ BEGIN {
 
     Routine.HOW.add_method(Routine, 'find_best_dispatchee',
       nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
-        my int $TYPE_NATIVE_INT   := 4;
-        my int $TYPE_NATIVE_NUM   := 8;
-        my int $TYPE_NATIVE_STR   := 16;
-        my int $TYPE_NATIVE_UINT   := 32;
-        my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT
-                                       +| $TYPE_NATIVE_UINT
-                                       +| $TYPE_NATIVE_NUM
-                                       +| $TYPE_NATIVE_STR;
         my int $BIND_VAL_OBJ      := 0;
         my int $BIND_VAL_INT      := 1;
         my int $BIND_VAL_UINT     := 10;
@@ -3811,7 +3802,7 @@ BEGIN {
                         }
 
                         # A natively typed value?
-                        elsif $flags +& $TYPE_NATIVE_MASK {
+                        elsif $flags +& nqp::const::TYPE_NATIVE_MASK {
 
                             # Looking for a natively typed value. Did we
                             # get one?
@@ -3821,26 +3812,26 @@ BEGIN {
                                 # If not, mismatch.
                                 $no_mismatch := 0
                                   unless (
-                                    ($flags +& $TYPE_NATIVE_STR)
+                                    ($flags +& nqp::const::TYPE_NATIVE_STR)
                                       && nqp::iscont_s($arg)
                                   ) || (
-                                    ($flags +& $TYPE_NATIVE_INT)
+                                    ($flags +& nqp::const::TYPE_NATIVE_INT)
                                       && nqp::iscont_i($arg)
                                   ) || (
-                                    ($flags +& $TYPE_NATIVE_UINT)
+                                    ($flags +& nqp::const::TYPE_NATIVE_UINT)
                                       && nqp::iscont_u($arg)
                                   ) || nqp::iscont_n($arg);  # NATIVE_NUM
                             }
 
                             # Got a native, does it match?
                             elsif (
-                              ($flags +& $TYPE_NATIVE_STR)
+                              ($flags +& nqp::const::TYPE_NATIVE_STR)
                                 && $got_prim != $BIND_VAL_STR
                             ) || (
-                              ($flags +& $TYPE_NATIVE_INT)
+                              ($flags +& nqp::const::TYPE_NATIVE_INT)
                                 && $got_prim != $BIND_VAL_INT
                             ) || (
-                              ($flags +& $TYPE_NATIVE_UINT)
+                              ($flags +& nqp::const::TYPE_NATIVE_UINT)
                                 && $got_prim != $BIND_VAL_UINT
                             ) || $got_prim != $BIND_VAL_NUM {  # NATIVE_NUM
 
@@ -4205,11 +4196,6 @@ BEGIN {
             my $MD_CT_NO_WAY   := -1;  # Proved it'd never manage to dispatch.
 
             # Other constants we need.
-            my int $TYPE_NATIVE_INT   := 4;
-            my int $TYPE_NATIVE_NUM   := 8;
-            my int $TYPE_NATIVE_STR   := 16;
-            my int $TYPE_NATIVE_UINT  := 32;
-            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
             my int $BIND_VAL_OBJ      := 0;
             my int $BIND_VAL_INT      := 1;
             my int $BIND_VAL_UINT     := 10;
@@ -4279,7 +4265,7 @@ BEGIN {
                 while ++$i < $type_check_count {
                     my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $got_prim   := nqp::atpos(@flags, $i) +& 0xF;
-                    if $type_flags +& $TYPE_NATIVE_MASK {
+                    if $type_flags +& nqp::const::TYPE_NATIVE_MASK {
                         # Looking for a natively typed value. Did we get one?
                         if $got_prim == $BIND_VAL_OBJ {
                             # Object; won't do.
@@ -4289,10 +4275,10 @@ BEGIN {
 
                         # Yes, but does it have the right type? Also look at rw-ness for literals.
                         my int $literal := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
-                        if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
-                        || (($type_flags +& $TYPE_NATIVE_UINT) && $got_prim != $BIND_VAL_UINT)
-                        || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
-                        || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
+                        if (($type_flags +& nqp::const::TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
+                        || (($type_flags +& nqp::const::TYPE_NATIVE_UINT) && $got_prim != $BIND_VAL_UINT)
+                        || (($type_flags +& nqp::const::TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
+                        || (($type_flags +& nqp::const::TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
                         || ($literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i)) {
                             # Mismatch.
                             $type_mismatch := 1;

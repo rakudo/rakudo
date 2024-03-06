@@ -2098,14 +2098,6 @@ my class MultiDispatchNonScalar {
 # mode. A resumption of a trivial dispatch will call this again, but with that
 # flag not set, and then drop the first candidate from the plan, which was
 # already invoked. It will then walk the candidate list as usual.
-my int $TYPE_NATIVE_INT   := 4;
-my int $TYPE_NATIVE_UINT  := 32;
-my int $TYPE_NATIVE_NUM   := 8;
-my int $TYPE_NATIVE_STR   := 16;
-my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT
-                               +| $TYPE_NATIVE_UINT
-                               +| $TYPE_NATIVE_NUM
-                               +| $TYPE_NATIVE_STR;
 my int $BIND_VAL_OBJ      := 0;
 my int $BIND_VAL_INT      := 1;
 my int $BIND_VAL_UINT     := 10;
@@ -2269,7 +2261,8 @@ sub raku-multi-plan(
                     # Get the primitive type of the argument, and go on
                     # whether it's an object or primitive type
                     my int $got_prim  := nqp::captureposprimspec($capture, $i);
-                    my int $want_prim := $type_flags +& $TYPE_NATIVE_MASK;
+                    my int $want_prim :=
+                      $type_flags +& nqp::const::TYPE_NATIVE_MASK;
 
                     # It's a native
                     if $got_prim {
@@ -2285,13 +2278,13 @@ sub raku-multi-plan(
                         # Wrong type of native is a mismatch.
                         elsif $want_prim {
                             $type_mismatch := 1
-                              if (($type_flags +& $TYPE_NATIVE_STR)
+                              if (($type_flags +& nqp::const::TYPE_NATIVE_STR)
                                    && $got_prim != $BIND_VAL_STR)
-                              || (($type_flags +& $TYPE_NATIVE_INT)
+                              || (($type_flags +& nqp::const::TYPE_NATIVE_INT)
                                    && $got_prim != $BIND_VAL_INT)
-                              || (($type_flags +& $TYPE_NATIVE_UINT)
+                              || (($type_flags +& nqp::const::TYPE_NATIVE_UINT)
                                    && $got_prim != $BIND_VAL_UINT)
-                              || (($type_flags +& $TYPE_NATIVE_NUM)
+                              || (($type_flags +& nqp::const::TYPE_NATIVE_NUM)
                                    && $got_prim != $BIND_VAL_NUM);
                         }
 
@@ -2313,13 +2306,13 @@ sub raku-multi-plan(
                         # Make sure it's the expected kind of native container
                         my $contish := nqp::captureposarg($capture, $i);
                         $type_mismatch := 1
-                          unless (($type_flags +& $TYPE_NATIVE_STR)
+                          unless (($type_flags +& nqp::const::TYPE_NATIVE_STR)
                                    && nqp::iscont_s($contish))
-                              || (($type_flags +& $TYPE_NATIVE_INT)
+                              || (($type_flags +& nqp::const::TYPE_NATIVE_INT)
                                    && nqp::iscont_i($contish))
-                              || (($type_flags +& $TYPE_NATIVE_UINT)
+                              || (($type_flags +& nqp::const::TYPE_NATIVE_UINT)
                                    && nqp::iscont_u($contish))
-                              || (($type_flags +& $TYPE_NATIVE_NUM)
+                              || (($type_flags +& nqp::const::TYPE_NATIVE_NUM)
                                    && nqp::iscont_n($contish));
                     }
 

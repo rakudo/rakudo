@@ -3770,7 +3770,10 @@ BEGIN {
         my $many_res := $many ?? nqp::list !! Mu;
         my @possibles;
         my int $done_bind_check;
-        my $Positional := nqp::gethllsym('Raku', 'MD_Pos');
+
+        # Core types to be initialized lazily once needed
+        my $Positional             := nqp::null;
+        my $PositionalBindFailover := nqp::null;
 
         my int $done;
         until $done {
@@ -3875,15 +3878,24 @@ BEGIN {
                                     }
                                 }
                             }
+                            elsif nqp::eqaddr(
+                              $type_obj,
+                              nqp::ifnull(
+                                $Positional,
+                                $Positional := nqp::gethllsym('Raku', 'MD_Pos')
+                              )
+                            ) {
+                                $no_mismatch := 0 unless nqp::istype(
+                                  $param,
+                                  nqp::ifnull(
+                                    $PositionalBindFailover,
+                                    $PositionalBindFailover :=
+                                      nqp::gethllsym('Raku', 'MD_PBF')
+                                  )
+                                );
+                            }
                             else {
-                                if nqp::eqaddr($type_obj, $Positional) {
-                                    my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
-                                    unless nqp::istype($param, $PositionalBindFailover) {
-                                        $no_mismatch := 0;
-                                    }
-                                } else {
-                                    $no_mismatch := 0;
-                                }
+                                $no_mismatch := 0;
                             }
 
                             # Check for definedness if it still makes sense

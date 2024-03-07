@@ -3157,7 +3157,7 @@ BEGIN {
 #     has int $!flags;
 #     has Mu $!inline_info;
 #     has Mu $!package;
-#     has @!dispatch_order;
+#     has $!dispatch_order;
 #     has Mu $!dispatch_cache;
 #     has Mu $!op_props;
 
@@ -3186,7 +3186,7 @@ BEGIN {
     ));
 
     Routine.HOW.add_attribute(Routine, scalar_attr(
-      '@!dispatch_order', List, Routine
+      '$!dispatch_order', List, Routine
     ));
 
 #?if !moar
@@ -3225,7 +3225,7 @@ BEGIN {
         nqp::bindattr($dispatchee, Routine, '$!dispatcher', $self);
 
         nqp::scwbdisable;
-        nqp::bindattr($self, Routine, '@!dispatch_order', nqp::null);
+        nqp::bindattr($self, Routine, '$!dispatch_order', nqp::null);
 #?if !moar
         nqp::bindattr($self, Routine, '$!dispatch_cache', nqp::null);
 #?endif
@@ -3265,31 +3265,190 @@ BEGIN {
         nqp::bindhllsym('Raku', 'MD_PBF', $PositionalBindFailover);
     }));
 
-    Routine.HOW.add_method(Routine, '!sort_dispatchees_internal',
-      nqp::getstaticcode(sub ($self) {
-        $self := nqp::decont($self);
+    # A helper class to abstract a lot of logic in dispatching.  Instead of
+    # using a hash to keep information, we're using a proper object and
+    # (potentially easily inlineable) methods.
+    my class Possible {
+        has     $!sub;
+        has     $!signature;
+        has int $!min_arity;
+        has int $!max_arity;
+        has int $!num_types;
+        has int $!flags,
+        has     $!types;
+        has     $!type_flags;
+        has     $!constraints;
+        has     $!rwness;
+        has     $!allowed_names;
+        has     $!required_names;
 
-        # XXX convert to nqp::const::xxx
-        my int $SLURPY_ARITY      := 1073741824;  # 1 +< 30
-        my int $EDGE_REMOVAL_TODO := -1;
-        my int $EDGE_REMOVED      := -2;
+        method new(
+          :$sub!,
+          :$signature!,
+          :$types!,
+          :$type_flags!,
+          :$constraints!,
+          :$rwness!,
+        ) {
+            my $obj := nqp::create(self);
+            nqp::bindattr(  $obj, Possible, '$!sub',       $sub);
+            nqp::bindattr(  $obj, Possible, '$!signature', $signature);
+            nqp::bindattr_i($obj, Possible, '$!flags', 2)
+              if nqp::istype($sub, Submethod);
 
-        # Takes two candidates and determines if the first one is narrower
-        # than the second. Returns a true value if they are.
-        sub is_narrower(%a, %b) {
+            nqp::bindattr($obj, Possible, '$!types',       $types);
+            nqp::bindattr($obj, Possible, '$!type_flags',  $type_flags);
+            nqp::bindattr($obj, Possible, '$!constraints', $constraints);
+            nqp::bindattr($obj, Possible, '$!rwness',      $rwness);
+
+            nqp::bindattr($obj, Possible, '$!allowed_names',  nqp::null  );
+            nqp::bindattr($obj, Possible, '$!required_names', nqp::null  );
+
+            $obj
+        }
+
+        # Base information
+        method sub()       { $!sub       }
+        method signature() { $!signature }
+
+        # Numeric info
+        method min_arity() { $!min_arity }
+        method max_arity() { $!max_arity }
+        method num_types() { $!num_types }
+
+        # Flags
+        method bind_check()       { $!flags +& 1 }
+        method exact_invocant()   { $!flags +& 2 }
+        method constrainty()      { $!flags +& 4 }
+        method allows_all_names() { nqp::isnull($!allowed_names) }
+
+        # Entry per parameter index
+        method types()       { $!types          }
+        method constraints() { $!constraints    }
+        method rwness()      { $!rwness         }
+        method type_flags()  { $!type_flags     }
+
+        # Checking per parameter index
+        method type_at(      int $i) { nqp::atpos(  $!types,       $i) }
+        method type_flags_at(int $i) { nqp::atpos_i($!type_flags,  $i) }
+        method constraint_at(int $i) { nqp::atpos(  $!constraints, $i) }
+        method rwness_at(    int $i) { nqp::atpos_i($!rwness,      $i) }
+
+        # Named arg handling
+        method allowed_names()    { $!allowed_names  }
+        method required_names()   { $!required_names }
+
+        method allowed_name(str $name) {
+            nqp::isnull($!allowed_names)
+              || nqp::existskey($!allowed_names, $name)
+        }
+
+        # Add list_s of names to the allowed names hash
+        method add_allowed_names($names) {
+            my $allowed_names := nqp::ifnull(
+              $!allowed_names,
+              nqp::bindattr(self, Possible, '$!allowed_names', nqp::hash)
+            );
+
+            my int $m := nqp::elems($names);
+            my int $i;
+            while $i < $m {
+                nqp::bindkey($allowed_names, nqp::atpos_s($names, $i), NQPMu);
+                ++$i;
+            }
+        }
+
+        # Add a list of names to the list of required names: vivify the
+        # list if it hasn't been yet.
+        method add_required_names($list) {
+            nqp::push(
+              nqp::ifnull(
+                $!required_names,
+                nqp::bindattr(self, Possible, '$!required_names', nqp::list)
+              ),
+              $list
+            )
+        }
+
+        # Name of parameter if only one named name and it's required
+        method req_named() {
+            nqp::isnull($!required_names)
+              || nqp::elems($!required_names) > 1
+              || nqp::elems(nqp::atpos($!required_names, 0)) > 1
+              ?? nqp::null_s
+              !! nqp::atpos_s(nqp::atpos($!required_names, 0), 0)
+        }
+
+        # Return 1 if the arity is exactly the same as the given arity, else 0
+        method exact_arity(int $arity) {
+            $arity == $!min_arity && $arity == $!max_arity
+        }
+
+        # Return 1 if the arity is fits the given arity, else 0
+        method arity-fits(int $arity) {
+            $arity >= $!min_arity && $arity <= $!max_arity
+        }
+
+        # Return the number of type checks to perform for given number of args
+        method type_check_count(int $num_args) {
+            $!num_types > $num_args ?? $num_args !! $!num_types
+        }
+
+        # Return 1 if the candidate has a "is default" marker
+        method is_default() {
+            nqp::can($!sub, 'default') && $!sub.default
+        }
+
+        # Setters
+        method set_min_arity(int $min_arity) {
+            nqp::bindattr_i(self, Possible, '$!min_arity', $min_arity);
+        }
+        method set_max_arity(int $max_arity) {
+            nqp::bindattr_i(self, Possible, '$!max_arity', $max_arity);
+        }
+        method set_num_types(int $num_types) {
+            nqp::bindattr_i(self, Possible, '$!num_types', $num_types);
+        }
+
+        method set_types($types) {
+            nqp::bindattr(self, Possible, '$!types', $types);
+        }
+        method set_constraints($constraints) {
+            nqp::bindattr(self, Possible, '$!constraints', $constraints);
+        }
+        method set_allowed_names($allowed_names) {
+            nqp::bindattr(self, Possible, '$!allowed_names', $allowed_names);
+        }
+
+        method mark_bind_check() {
+            nqp::bindattr_i(self, Possible, '$!flags', $!flags +| 1);
+        }
+        method mark_constrainty() {
+            nqp::bindattr_i(self, Possible, '$!flags', $!flags +| 4);
+        }
+        method mark_allows_all_names() {
+            nqp::bindattr(self, Possible, '$!allowed_names', nqp::null);
+        }
+
+        # Takes another candidate and determines if the invocant is narrower
+        # than the other candidate. Returns 1 if they are, 0 if not.
+        method is_narrower($b) {
+
+            # XXX convert to nqp::const::xxx
+            my int $SLURPY_ARITY := 1073741824;  # 1 +< 30
 
             # Work out how many parameters to compare, factoring in
             # slurpiness and optionals.
-            my int $types_to_check := nqp::atkey(%a, 'num_types');
-            my int $num_types_b    := nqp::atkey(%b, 'num_types');
+            my int $types_to_check := $!num_types;
+            my int $num_types_b    := $b.num_types;
 
-            my int $max_arity_a := nqp::atkey(%a, 'max_arity');
-            my int $max_arity_b := nqp::atkey(%b, 'max_arity');
+            my int $max_arity_a := $!max_arity;
+            my int $max_arity_b := $b.max_arity;
 
             if $types_to_check == $num_types_b {
                 # already set
             }
-            elsif nqp::atkey(%a, 'min_arity') == nqp::atkey(%b, 'min_arity') {
+            elsif $!min_arity == $b.min_arity {
                 $types_to_check := $num_types_b
                   if $types_to_check > $num_types_b
             }
@@ -3306,24 +3465,19 @@ BEGIN {
             my int $tied;
             my int $i;
             while $i < $types_to_check {
-                my $type_obj_a := nqp::atpos(nqp::atkey(%a, 'types'), $i);
-                my $type_obj_b := nqp::atpos(nqp::atkey(%b, 'types'), $i);
+                my $type_obj_a := nqp::atpos($!types, $i);
+                my $type_obj_b := $b.type_at($i);
 
                 if nqp::eqaddr($type_obj_a, $type_obj_b) {
 
                     # Same type; narrower if first has constraints and other
                     # doesn't; narrower if first is rw and second isn't; tied
                     # if neither has constraints or both have constraints.
-                    my $constraints_a :=
-                      nqp::atpos(nqp::atkey(%a, 'constraints'), $i);
-                    my $constraints_b :=
-                      nqp::atpos(nqp::atkey(%b, 'constraints'), $i);
+                    my $constraints_a := nqp::atpos($!constraints, $i);
+                    my $constraints_b := $b.constraint_at($i);
 
-                    if $constraints_a && !$constraints_b {
-                        ++$narrower;
-                    }
-                    elsif nqp::atpos_i(nqp::atkey(%a, 'rwness'), $i)
-                        > nqp::atpos_i(nqp::atkey(%b, 'rwness'), $i) {
+                    if ($constraints_a && !$constraints_b)
+                      || nqp::atpos_i($!rwness, $i) > $b.rwness_at($i) {
                         ++$narrower;
                     }
                     elsif !$constraints_a && !$constraints_b
@@ -3334,10 +3488,8 @@ BEGIN {
 
                 # Different types
                 else {
-                    my int $type_flags_a :=
-                      nqp::atpos_i(nqp::atkey(%a, 'type_flags'), $i);
-                    my int $type_flags_b :=
-                      nqp::atpos_i(nqp::atkey(%b, 'type_flags'), $i);
+                    my int $type_flags_a := nqp::atpos_i($!type_flags, $i);
+                    my int $type_flags_b := $b.type_flags_at($i);
 
                     if $type_flags_a +& nqp::const::TYPE_NATIVE_MASK
                       && nqp::not_i(
@@ -3387,40 +3539,63 @@ BEGIN {
                   # tied.
                   !! nqp::not_i($max_arity_b != $SLURPY_ARITY
                              && $max_arity_a == $SLURPY_ARITY
-                     ) &&  nqp::atkey(%a, 'bind_check')
-                       && !nqp::atkey(%b, 'bind_check')
+                     ) && self.bind_check
+                       && nqp::not_i($b.bind_check)
         }
 
-        my @candidates := nqp::getattr($self, Routine, '@!dispatchees');
+        # Create a clone of the candidate, but with coerced types from a
+        # given list of indexes and associated coerced types
+        method clone_with_coercions(@idxs, @coercions) {
+            my $obj   := nqp::clone(self);
+            nqp::bindattr($obj, Possible, '$!types',
+              my $types := nqp::clone($!types)
+            );
+
+            my int $m := nqp::elems(@idxs);
+            my int $i;
+            while $i < $m {
+                nqp::bindpos(
+                  $types,
+                  nqp::atpos(@idxs, $i),
+                  nqp::atpos(@coercions, $i)
+                );
+                ++$i;
+            }
+
+            $obj
+        }
+    }
+
+    Routine.HOW.add_method(Routine, '!sort_dispatchees_internal',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # XXX convert to nqp::const::xxx
+        my int $SLURPY_ARITY := 1073741824;  # 1 +< 30
+        my int $EDGE_REMOVAL_TODO := -1;
+        my int $EDGE_REMOVED      := -2;
+
+        my @subs := nqp::getattr($self, Routine, '@!dispatchees');
         my @graph;
 
         # Create a node for each candidate in the graph.
-        my int $m := nqp::elems(@candidates);
+        my int $m := nqp::elems(@subs);
         my int $i;
         while $i < $m {
-            my $candidate := nqp::atpos(@candidates, $i);
+            my $sub := nqp::atpos(@subs, $i);
 
             # Get hold of signature.
-            my $sig    := nqp::getattr($candidate, Code, '$!signature');
-            my @params := nqp::getattr($sig, Signature, '@!params');
+            my $signature := nqp::getattr($sub, Code, '$!signature');
 
-            my @types       := nqp::list;
-            my @type_flags  := nqp::list_i;
-            my @constraints := nqp::list;
-            my @rwness      := nqp::list_i;
-
-            # Create it an entry.
-            my %info := nqp::hash(
-              'sub',         $candidate,
-              'signature',   $sig,
-              'types',       @types,
-              'type_flags',  @type_flags,
-              'constraints', @constraints,
-              'rwness',      @rwness,
+            # Create an entry.
+            my $possible := Possible.new(
+              :$sub,
+              :$signature,
+              :types(      my @types       := nqp::list  ),
+              :type_flags( my @type_flags  := nqp::list_i),
+              :constraints(my @constraints := nqp::list  ),
+              :rwness(     my @rwness      := nqp::list_i),
             );
-
-            nqp::bindkey(%info, 'exact_invocant', 1)
-              if nqp::istype($candidate, Submethod);
 
             my int $significant_param;
             my int $min_arity;
@@ -3429,6 +3604,7 @@ BEGIN {
             my @coerce_type_idxs;
             my @coerce_type_objs;
 
+            my @params := nqp::getattr($signature, Signature, '@!params');
             my int $n := nqp::elems(@params);
             my int $j;
             while $j < $n {
@@ -3445,8 +3621,8 @@ BEGIN {
                 ) && nqp::not_i(nqp::defined(
                   nqp::getattr($param, Parameter, '$!signature_constraint')
                 )) {
-                    nqp::bindkey(%info, 'bind_check',  1);
-                    nqp::bindkey(%info, 'constrainty', 1);
+                    $possible.mark_bind_check;
+                    $possible.mark_constrainty;
                 }
 
                 # For named arguments:
@@ -3463,43 +3639,18 @@ BEGIN {
 
                 unless nqp::isnull($named_names) {
                     if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT {
-                        unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                            nqp::push(
-                              nqp::ifnull(
-                                nqp::atkey(%info, 'required_names'),
-                                nqp::bindkey(%info, 'required_names', nqp::list)
-                              ),
-                              $named_names
-                            );
-                            nqp::bindkey(
-                              %info, 'req_named', nqp::atpos_s($named_names, 0)
-                            ) if nqp::elems($named_names) == 1;
-                        }
-                        nqp::bindkey(%info, 'bind_check', 1);
+                        $possible.add_required_names($named_names)
+                          unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL;
+                        $possible.mark_bind_check;
                     }
 
-                    my $allowed_names := nqp::ifnull(
-                      nqp::atkey(%info, 'allowed_names'),
-                      nqp::bindkey(%info, 'allowed_names', nqp::hash)
-                    );
-
-                    my int $o := nqp::elems($named_names);
-                    my int $k;
-                    while $k < $o {
-                        nqp::bindkey(
-                          $allowed_names,
-                          nqp::atpos_s($named_names, $k),
-                          NQPMu
-                        );
-                        ++$k;
-                    }
+                    $possible.add_allowed_names($named_names);
                     next;
                 }
 
-                if $flags +& nqp::const::SIG_ELEM_ALL_NAMES_OK {
-                    nqp::bindkey(%info, 'allows_all_names', 1);
-                    nqp::deletekey(%info, 'allowed_names');
-                }
+                $possible.mark_allows_all_names
+                  if $flags +& nqp::const::SIG_ELEM_ALL_NAMES_OK;
+
                 last if $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED;
 
                 # Otherwise, positional or slurpy and contributes to arity.
@@ -3517,8 +3668,8 @@ BEGIN {
 
                 # Record type info for this parameter.
                 if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
-                    nqp::bindkey(%info, 'bind_check', 1);
-                    nqp::bindkey(%info, 'constrainty', 1);
+                    $possible.mark_bind_check;
+                    $possible.mark_constrainty;
                     nqp::bindpos(@types, $significant_param, Any);
                 }
                 else {
@@ -3586,42 +3737,29 @@ BEGIN {
 
                 ++$significant_param;
             }
-            nqp::bindkey(%info, 'min_arity', $min_arity);
-            nqp::bindkey(%info, 'max_arity', $max_arity);
-            nqp::bindkey(%info, 'num_types', $num_types);
+
+            $possible.set_min_arity($min_arity);
+            $possible.set_max_arity($max_arity);
+            $possible.set_num_types($num_types);
 
             # Add it to graph node, and initialize list of edges.
             nqp::push(@graph, nqp::hash(
-                'info',      %info,
-                'edges',     nqp::list,
-                'edges_in',  0,
-                'edges_out', 0
+              'possible',  $possible,
+              'edges',     nqp::list,
+              'edges_in',  0,
+              'edges_out', 0
             ));
 
             # If there were any coercion types, then we also need to create
             # a candidate entry for the specific types.
-            if @coerce_type_idxs {
-                my %c_info  := nqp::clone(%info);
-                my @c_types := nqp::clone(@types);
-                nqp::bindkey(%c_info, 'types', @c_types);
-
-                my int $m := nqp::elems(@coerce_type_idxs);
-                my int $i;
-                while $i < $m {
-                    nqp::bindpos(
-                      @c_types,
-                      nqp::atpos(@coerce_type_idxs, $i),
-                      nqp::atpos(@coerce_type_objs, $i)
-                    );
-                    ++$i;
-                }
-                nqp::push(@graph, nqp::hash(
-                    'info',      %c_info,
-                    'edges',     nqp::list,
-                    'edges_in',  0,
-                    'edges_out', 0
-                ));
-            }
+            nqp::push(@graph, nqp::hash(
+              'possible',  $possible.clone_with_coercions(
+                @coerce_type_idxs, @coerce_type_objs
+              ),
+              'edges',     nqp::list,
+              'edges_in',  0,
+              'edges_out', 0
+            )) if @coerce_type_idxs;
 
             ++$i;
         }
@@ -3637,10 +3775,9 @@ BEGIN {
                     my %graph_i := nqp::atpos(@graph, $i);
                     my %graph_j := nqp::atpos(@graph, $j);
 
-                    if is_narrower(
-                      nqp::atkey(%graph_i, 'info'),
-                      nqp::atkey(%graph_j, 'info')
-                    ) {
+                    if nqp::atkey(
+                      %graph_i, 'possible'
+                    ).is_narrower(nqp::atkey(%graph_j, 'possible')) {
                         nqp::bindpos(
                           nqp::atkey(%graph_i, 'edges'),
                           nqp::atkey(%graph_i, 'edges_out'),
@@ -3657,9 +3794,9 @@ BEGIN {
         }
 
         # Perform the topological sort.
-        my int $candidates_to_sort := nqp::elems(@graph);
+        my int $possibles_to_sort := nqp::elems(@graph);
         my @result;
-        while $candidates_to_sort > 0 {
+        while $possibles_to_sort > 0 {
             my int $rem_results := nqp::elems(@result);
 
             # Find any nodes that have no incoming edges and add them to
@@ -3671,9 +3808,9 @@ BEGIN {
                 if nqp::atkey(%graph_i, 'edges_in') == 0 {
 
                     # Add to results.
-                    nqp::push(@result, nqp::atkey(%graph_i, 'info'));
+                    nqp::push(@result, nqp::atkey(%graph_i, 'possible'));
 
-                    --$candidates_to_sort;
+                    --$possibles_to_sort;
                     nqp::bindkey(%graph_i, 'edges_in', $EDGE_REMOVAL_TODO);
                 }
                 ++$i;
@@ -3718,8 +3855,8 @@ BEGIN {
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
 
-        unless nqp::isnull(nqp::getattr($self, Routine, '@!dispatch_order')) {
-            nqp::bindattr($self, Routine, '@!dispatch_order',
+        unless nqp::isnull(nqp::getattr($self, Routine, '$!dispatch_order')) {
+            nqp::bindattr($self, Routine, '$!dispatch_order',
                 $self.'!sort_dispatchees_internal'());
         }
     }));
@@ -3729,8 +3866,8 @@ BEGIN {
         $self := nqp::decont($self);
 
         nqp::ifnull(
-          nqp::getattr($self, Routine, '@!dispatch_order'),
-          nqp::bindattr($self, Routine, '@!dispatch_order',
+          nqp::getattr($self, Routine, '$!dispatch_order'),
+          nqp::bindattr($self, Routine, '$!dispatch_order',
             $self.'!sort_dispatchees_internal'()
           )
         )
@@ -3770,33 +3907,25 @@ BEGIN {
             if nqp::isconcrete($candidate) {
 
                 # Admissible by arity.
-                unless $num_args < nqp::atkey($candidate, 'min_arity')
-                    || $num_args > nqp::atkey($candidate, 'max_arity') {
+                if $candidate.arity_fits($num_args) {
 
                     # Arity OK; now check if it's admissible by type.
                     my int $type_check_count :=
-                      nqp::atkey($candidate, 'num_types');
-                    $type_check_count := $num_args
-                      if $type_check_count > $num_args;
+                      $candidate.type_check_count($num_args);
 
                     my int $no_mismatch := 1;
                     my int $i;
-                    while $i < $type_check_count
-                      && $no_mismatch {
+                    while $i < $type_check_count && $no_mismatch {
 
-                        my $type_obj := nqp::atpos(
-                          nqp::atkey($candidate, 'types'), $i
-                        );
-                        my int $flags := nqp::atpos_i(
-                          nqp::atkey($candidate, 'type_flags'), $i
-                        );
+                        my $type_obj  := $candidate.type_at($i);
+                        my int $flags := $candidate.type_flags_at($i);
                         my $arg := nqp::captureposarg($capture, $i);
                         my int $got_prim :=
                           nqp::captureposprimspec($capture, $i);
 
                         # If we need a container but don't have one it
                         # clearly can't work.
-                        if nqp::atpos_i(nqp::atkey($candidate, 'rwness'), $i)
+                        if $candidate.rwness_at($i)
                           && nqp::not_i(nqp::isrwcont($arg)) {
                             $no_mismatch := 0;
                         }
@@ -3874,7 +4003,7 @@ BEGIN {
                                 # Not ok if exact invocant needed and not there
                                 $no_mismatch := 0
                                   if $i == 0
-                                  && nqp::existskey($candidate,'exact_invocant')
+                                  && $candidate.exact_invocant
                                   && nqp::not_i(nqp::eqaddr($type, $type_obj));
                             }
 
@@ -3934,15 +4063,15 @@ BEGIN {
                     my int $m := nqp::elems(@possibles);
                     my int $i;
                     while $i < $m {
-                        my %info := nqp::atpos(@possibles, $i);
+                        my $candidate := nqp::atpos(@possibles, $i);
 
                         # First, if there's a required named parameter and
                         # it was not passed, we can very quickly eliminate
                         # this candidate without doing a full bindability check
-                        if nqp::existskey(%info, 'req_named')
+                        my str $req_named := $candidate.req_named;
+                        if $req_named
                           && nqp::not_i(nqp::captureexistsnamed(
-                               $capture,
-                               nqp::atkey(%info, 'req_named')
+                               $capture, $req_named
                              )) {
 
                             # Required named arg not passed, so we eliminate
@@ -3954,8 +4083,8 @@ BEGIN {
                         }
 
                         # Otherwise, may need full bind check.
-                        elsif nqp::existskey(%info, 'bind_check') {
-                            my $sub := nqp::atkey(%info, 'sub');
+                        elsif $candidate.bind_check {
+                            my $sub := $candidate.sub;
                             my $cs  := nqp::getattr($sub, Code, '@!compstuff');
 
                             unless nqp::isnull($cs) {
@@ -3967,8 +4096,7 @@ BEGIN {
 
                             # Since we had to do a bindability check, this is
                             # not a result we can cache on nominal type.
-                            $pure_type_result := 0
-                              if nqp::existskey(%info, 'constrainty');
+                            $pure_type_result := 0 if $candidate.constrainty;
 
                             # If we haven't got a possibles storage space,
                             # allocate it now.
@@ -4021,10 +4149,7 @@ BEGIN {
                 # Otherwise, we have the result we were looking for.
                 if $many {
                     while nqp::elems(@possibles) {
-                        nqp::push(
-                          $many_res,
-                          nqp::atkey(nqp::shift(@possibles), 'sub')
-                        )
+                        nqp::push($many_res, nqp::shift(@possibles).sub)
                     }
                 }
 
@@ -4054,7 +4179,7 @@ BEGIN {
             my int $i;
             while $i < $m {
                 my $possibility := nqp::atpos(@possibles, $i);
-                my $sub         := nqp::atkey($possibility, 'sub');
+                my $sub         := $possibility.sub;
 
                 # Is the routine marked with "is default"?
                 if nqp::can($sub, 'default') && $sub.default {
@@ -4079,9 +4204,7 @@ BEGIN {
                 my int $i;
                 while $i < $m {
                     my $possibility := nqp::atpos(@possibles, $i);
-                    if nqp::atkey($possibility, 'min_arity') == $num_args &&
-                       nqp::atkey($possibility, 'max_arity') == $num_args {
-
+                    if $possibility.exact_arity($num_args) {
                         if nqp::isnull($exact_arity) {
                             $exact_arity := $possibility;
                         }

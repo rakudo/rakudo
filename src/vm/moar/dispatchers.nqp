@@ -2106,9 +2106,9 @@ my int $BIND_VAL_STR      := 3;
 my @hll_type := (Nil, Int, Num, Str, Nil, Nil, Nil, Nil, Nil, Nil, Int);
 
 # Helper sub, returning 1 if there is a mismatch in named arguments, else 0.
-sub has-named-args-mismatch($capture, %info) {
+sub has-named-args-mismatch($capture, $candidate) {
     # First consider required nameds.
-    my $required-name-sets := %info<required_names>;
+    my $required-name-sets := $candidate.required_names;
     my $nameds-list := nqp::syscall('capture-names-list', $capture);
 
     if $required-name-sets {
@@ -2136,20 +2136,18 @@ sub has-named-args-mismatch($capture, %info) {
     }
 
     # If we don't accept all nameds, then check there are acceptable nameds
-    if $nameds-list && !nqp::atkey(%info, 'allows_all_names') {
+    if $nameds-list && nqp::not_i($candidate.allows_all_names) {
         # Quick exit if there are no allowed nameds
-        return 1
-          unless my $allowed-names := nqp::atkey(%info, 'allowed_names');
+        return 1 unless my $allowed-names := $candidate.allowed_names;
 
         # Go through the nameds and check they are allowed.
+        my int $m := nqp::elems($nameds-list);
         my int $i;
-        my int $n := nqp::elems($nameds-list);
-        while $i < $n {
-            return 1
-              unless nqp::existskey(
-                $allowed-names, nqp::atpos_s($nameds-list, $i)
-            );
-            ++$i;
+        while $i < $m {
+            nqp::existskey(
+              $allowed-names, nqp::atpos_s($nameds-list, $i)
+            ) ?? (return 1)
+              !! ++$i;
         }
     }
 
@@ -2228,15 +2226,12 @@ sub raku-multi-plan(
 
             # Candidate; does the arity fit? (If not, it drops out on callsite
             # shape.)
-            if   $num_args >= nqp::atkey($cur_candidate, 'min_arity')
-              && $num_args <= nqp::atkey($cur_candidate, 'max_arity') {
+            if $cur_candidate.arity-fits($num_args) {
 
                 # Arity OK; now go through the arguments and see if we can
                 # eliminate any of them based on guardable properties.
                 my int $type_check_count :=
-                  nqp::atkey($cur_candidate, 'num_types');
-                $type_check_count := $num_args
-                  if $type_check_count > $num_args;
+                  $cur_candidate.type_check_count($num_args);
 
                 my int $type_mismatch;
                 my int $rwness_mismatch;
@@ -2245,15 +2240,9 @@ sub raku-multi-plan(
                   && !($type_mismatch +| $rwness_mismatch) {
 
                     # Obtain parameter properties.
-                    my $type := nqp::atpos(
-                      nqp::atkey($cur_candidate, 'types'), $i
-                    );
-                    my int $type_flags := nqp::atpos_i(
-                      nqp::atkey($cur_candidate, 'type_flags'), $i
-                    );
-                    my int $rwness := nqp::atpos_i(
-                      nqp::atkey($cur_candidate, 'rwness'), $i
-                    );
+                    my     $type       := $cur_candidate.type_at($i);
+                    my int $type_flags := $cur_candidate.type_flags_at($i);
+                    my int $rwness     := $cur_candidate.rwness_at($i);
 
                     my int $definedness :=
                       $type_flags +& nqp::const::DEFCON_MASK;
@@ -2457,18 +2446,14 @@ sub raku-multi-plan(
                 my int $n := nqp::elems(@possibles);
                 my int $i;
                 while $i < $n {
-                    my %info := @possibles[$i];
-                    unless has-named-args-mismatch($capture, %info) {
-                        nqp::push(@filtered-possibles, %info);
-                        ++$need-bind-check
-                          if nqp::existskey(%info, 'bind_check');
-                        my $sub := nqp::atkey(%info, 'sub');
-                        nqp::push(@defaults, %info)
-                          if nqp::can($sub, 'default')
-                          && $sub.default;
-                        nqp::push(@exact-arity, %info)
-                          if nqp::atkey(%info,'min_arity') == $num_args
-                          && nqp::atkey(%info,'max_arity') == $num_args;
+                    my $possible := nqp::atpos(@possibles, $i);
+                    unless has-named-args-mismatch($capture, $possible) {
+                        nqp::push(@filtered-possibles, $possible);
+                        ++$need-bind-check if $possible.bind_check;
+                        nqp::push(@defaults, $possible)
+                          if $possible.is_default;
+                        nqp::push(@exact-arity, $possible)
+                          if $possible.exact_arity($num_args);
                     }
                     ++$i;
                 }
@@ -2496,7 +2481,8 @@ sub raku-multi-plan(
                 $i := 0;
                 $n := nqp::elems(@filtered-possibles);
                 while $i < $n {
-                    my %info := nqp::atpos(@filtered-possibles, $i);
+                    my $possible := nqp::atpos(@filtered-possibles, $i);
+                    my $sub      := $possible.sub;
                     my $node;
 
                     if $need-bind-check {
@@ -2504,8 +2490,7 @@ sub raku-multi-plan(
                         # Ensure it's already compiled, otherwise we can have
                         # compiler frames obscuring the bind control record
                         # we use for trying the next candidate.
-                        my $sub := nqp::atkey(%info, 'sub');
-                        my $cs  := nqp::getattr($sub, Code, '@!compstuff');
+                        my $cs := nqp::getattr($sub, Code, '@!compstuff');
                         unless nqp::isnull($cs) {
                             my $ctf := nqp::atpos($cs,1);
                             $ctf() if $ctf;
@@ -2515,7 +2500,7 @@ sub raku-multi-plan(
 
                     # No bind check needed
                     else {
-                        $node := MultiDispatchCall.new(nqp::atkey(%info,'sub'));
+                        $node := MultiDispatchCall.new($sub);
                     }
 
                     # Add the node at the right place
@@ -2684,19 +2669,13 @@ nqp::register('raku-multi-core',
 
         # Obtain the candidate list, producing it if it doesn't already exist
         my $target := nqp::captureposarg($capture, 0);
-        my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
-        if nqp::isnull(@candidates) {
-            nqp::scwbdisable();
-            @candidates := $target.'!sort_dispatchees_internal'();
-            nqp::bindattr($target, Routine, '@!dispatch_order', @candidates);
-            nqp::scwbenable();
-        }
 
         # Drop the first argument, to get just the arguments to dispatch on,
         # and then produce a multi-dispatch plan. Decide what to do based
         # upon it
         my $arg-capture := nqp::syscall('dispatcher-drop-arg', $capture, 0);
-        my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 1);
+        my $dispatch-plan :=
+          raku-multi-plan($target.dispatch_order, $arg-capture, 1);
 
         # A trivial multi dispatch
         if nqp::istype($dispatch-plan, MultiDispatchCall)
@@ -2783,9 +2762,9 @@ nqp::register('raku-multi-core',
             # Obtain resume initialization arguments and form the plan.
             my $init-args  := nqp::syscall('dispatcher-get-resume-init-args');
             my $target     := nqp::captureposarg($init-args, 0);
-            my @candidates := nqp::getattr($target,Routine,'@!dispatch_order');
             my $arg-capture := nqp::syscall('dispatcher-drop-arg',$init-args,0);
-            my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 0);
+            my $dispatch-plan :=
+              raku-multi-plan($target.dispatch_order, $arg-capture, 0);
 
             # Put a guard on the dispatchees.
             my $Ttarget := nqp::track('arg', $init-args, 0);
@@ -3144,7 +3123,6 @@ nqp::register('raku-multi-remove-proxies',
             # using the resume init args.
             my $orig-capture := nqp::syscall('dispatcher-get-resume-init-args');
             my $target := nqp::captureposarg($orig-capture, 0);
-            my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
 
             # Put a guard on the dispatchees. (TODO This risks the callsite in
             # the generated removers becoming a polymorphic blow-up point; when
@@ -3162,8 +3140,12 @@ nqp::register('raku-multi-remove-proxies',
                 $capture, 0);
             my $orig-arg-capture := nqp::syscall('dispatcher-drop-arg',
                 $orig-capture, 0);
-            my $dispatch-plan := raku-multi-plan(@candidates, $no-proxy-arg-capture, 0,
-                $orig-arg-capture);
+            my $dispatch-plan := raku-multi-plan(
+              $target.dispatch_order,
+              $no-proxy-arg-capture,
+              0,
+              $orig-arg-capture
+            );
 
             # Consider the dispatch plan. Note we should always pass along the original
             # arguments when invoking, so anything `is rw` gets the Proxy. We for now

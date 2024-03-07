@@ -4670,13 +4670,14 @@ BEGIN {
         # Get the name of the only capture, if there is only one.
         method onlyname() { '' }
     }
-    # class Regex is Method {
-    #     has $!caps;
-    #     has Mu $!nfa;
-    #     has @!alt_nfas;
-    #     has str $!source;
-    #     has $!topic;
-    #     has $!slash;
+
+# class Regex is Method {
+#     has $!caps;
+#     has Mu $!nfa;
+#     has @!alt_nfas;
+#     has str $!source;
+#     has $!topic;
+#     has $!slash;
     Regex.HOW.add_parent(Regex, Method);
 
     Regex.HOW.add_attribute(Regex, scalar_attr(
@@ -5264,30 +5265,34 @@ nqp::p6settypes(EXPORT::DEFAULT.WHO);
 
 # HLL configuration: interop, boxing and exit handling.
 nqp::sethllconfig('Raku', nqp::hash(
-    'int_box', Int,
-    'num_box', Num,
-    'str_box', Str,
-    'null_value', Mu,
-    'true_value', (Bool.WHO)<True>,
-    'false_value', (Bool.WHO)<False>,
+    'int_box',          Int,
+    'num_box',          Num,
+    'str_box',          Str,
+    'null_value',       Mu,
+    'true_value',       (Bool.WHO)<True>,
+    'false_value',      (Bool.WHO)<False>,
     'foreign_type_int', Int,
     'foreign_type_num', Num,
     'foreign_type_str', Str,
+
     'foreign_transform_array', -> $farray {
         my $list := nqp::create(List);
         nqp::bindattr($list, List, '$!reified', $farray);
         $list
     },
+
     'foreign_transform_hash', -> $hash {
         my $result := nqp::create(Hash);
         nqp::bindattr($result, Map, '$!storage', $hash);
         $result
     },
+
     'foreign_transform_code', -> $code {
         my $result := nqp::create(ForeignCode);
         nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
     },
+
     'exit_handler', -> $coderef, $resultish {
         unless nqp::p6inpre() {
             # when we get here, we assume the $!phasers attribute is concrete.
@@ -5303,30 +5308,31 @@ nqp::sethllconfig('Raku', nqp::hash(
 
                 my @leaves := nqp::atkey($phasers, '!LEAVE-ORDER');
                 unless nqp::isnull(@leaves) {
-                    my $valid :=
-                      !nqp::isnull($resultish)
-                        && nqp::isconcrete($resultish)
+                    my $valid := nqp::isconcrete($resultish)
 #?if jvm
-                        && nqp::hllizefor(nqp::decont($resultish),'Raku').defined;
+                      && nqp::hllizefor(nqp::decont($resultish),'Raku').defined;
 #?endif
 #?if !jvm
-                        && $resultish.defined;
+                      && $resultish.defined;
 #?endif
 
-                    for @leaves -> $phaser {
+                    my int $m := nqp::elems(@leaves);
+                    my int $i := -1;
+                    while ++$i < $m {
                         CATCH { nqp::push(@exceptions, $_) }
 
                         # a KEEP/UNDO phaser
+                        my $phaser := nqp::atpos(@leaves, $i);
                         if nqp::islist($phaser) {
-                            my $name := nqp::atpos($phaser,0);
+                            my str $name := nqp::atpos($phaser, 0);
                             if ($name eq 'KEEP' && $valid)
                               || ($name eq 'UNDO' && !$valid) {
 #?if jvm
-                                nqp::atpos($phaser,1)();
+                                nqp::atpos($phaser, 1)();
 #?endif
 #?if !jvm
                                 nqp::p6capturelexwhere(
-                                  nqp::atpos($phaser,1).clone
+                                  nqp::atpos($phaser, 1).clone
                                 )();
 #?endif
                             }
@@ -5347,12 +5353,17 @@ nqp::sethllconfig('Raku', nqp::hash(
                 my @posts := nqp::atkey($phasers, 'POST');
                 unless nqp::isnull(@posts) {
                     my $value := nqp::ifnull($resultish,Mu);
-                    for @posts -> $phaser {
+
+                    my int $m := nqp::elems(@posts);
+                    my int $i := -1;
+                    while ++$i < $m {
 #?if jvm
-                        $phaser($value);
+                        nqp::atpos(@posts, $i)($value);
 #?endif
 #?if !jvm
-                        nqp::p6capturelexwhere($phaser.clone)($value);
+                        nqp::p6capturelexwhere(
+                          nqp::atpos(@posts, $i).clone
+                        )($value);
 #?endif
                     }
                 }
@@ -5364,7 +5375,7 @@ nqp::sethllconfig('Raku', nqp::hash(
                            "Multiple exceptions were thrown by LEAVE/POST phasers",
                            :exceptions(@exceptions)
                          )
-                      !! nqp::rethrow(@exceptions[0]);
+                      !! nqp::rethrow(nqp::atpos(@exceptions, 0));
                 }
             }
 
@@ -5381,79 +5392,89 @@ nqp::sethllconfig('Raku', nqp::hash(
         }
     },
 #?if !jvm
+
     'bind_error', -> $capture {
+
         # Get signature and lexpad.
         my $caller := nqp::getcodeobj(nqp::callercode());
         my $sig    := nqp::getattr($caller, Code, '$!signature');
-        my $lexpad := nqp::ctxcaller(nqp::ctx());
+        my $lexpad := nqp::ctxcaller(nqp::ctx);
 
         # Run full binder to produce an error.
         my @error;
         my int $bind_res := Binder.bind($capture, $sig, $lexpad, 0, @error);
+
         if $bind_res {
+
+            # A Junction result
             if $bind_res == 2 {
                 my @pos_args;
                 my int $num_pos_args := nqp::captureposelems($capture);
-                my int $got_prim;
-                my int $k := -1;
-                while ++$k < $num_pos_args {
-                    $got_prim := nqp::captureposprimspec($capture, $k);
-                    if $got_prim == 0 {
-                        nqp::push(@pos_args, nqp::captureposarg($capture, $k));
-                    }
-                    elsif $got_prim == 1 {
-                        nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_i($capture, $k), Int));
-                    }
-                    elsif $got_prim == 2 {
-                        nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
-                    }
-                    elsif $got_prim == 10 {
-                        nqp::push(@pos_args, nqp::box_u(nqp::captureposarg_u($capture, $k), Int));
-                    }
-                    else {
-                        nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
-                    }
+                my int $i;
+                while $i < $num_pos_args {
+                    my $got_prim := nqp::captureposprimspec($capture, $i);
+                    nqp::push(@pos_args, $got_prim
+                      ?? $got_prim == 3
+                        ?? nqp::box_s(nqp::captureposarg_s($capture, $i), Str)
+                        !! $got_prim == 1
+                          ?? nqp::box_i(
+                               nqp::captureposarg_i($capture, $i), Int
+                             )
+                          !! $got_prim == 10
+                            ?? nqp::box_u(
+                                 nqp::captureposarg_u($capture, $i), Int
+                               )
+                            !! nqp::box_n(  # got_prim == 2
+                                 nqp::captureposarg_n($capture, $i), Num
+                               )
+                      !! nqp::captureposarg($capture, $i)
+                    );
+
+                    ++$i;
                 }
                 my %named_args := nqp::capturenamedshash($capture);
-                Junction.AUTOTHREAD($caller,
-                        |@pos_args,
-                        |%named_args);
+                Junction.AUTOTHREAD($caller, |@pos_args, |%named_args);
             }
             else {
-                nqp::isinvokable(@error[0]) ?? @error[0]() !! nqp::die(@error[0]);
+                my $error := nqp::atpos(@error, 0);
+                nqp::isinvokable($error) ?? $error() !! nqp::die($error);
             }
         }
         else {
             nqp::die("Internal error: inconsistent bind result");
         }
     },
+
     'method_not_found_error', -> $obj, str $name, *@pos, *%named {
         my $class := nqp::getlexcaller('$?CLASS');
-        my $die_msg := "Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'";
-        if $name eq 'STORE' {
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Assignment::RO',
-                $die_msg,
-                :value($obj)
-            );
-        }
-        Perl6::Metamodel::Configuration.throw_or_die(
-            'X::Method::NotFound',
-            $die_msg,
-            :invocant($obj),
-            :method($name),
-            :typename($obj.HOW.name($obj)),
-            :private(nqp::hllboolfor(0, 'Raku')),
-            :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku'))
-        );
+        my str $typename := $obj.HOW.name($obj);
+        my $message :=
+          "Method '$name' not found for invocant of class '$typename'";
+
+        $name eq 'STORE'
+          ?? Perl6::Metamodel::Configuration.throw_or_die(
+               'X::Assignment::RO', $message, :value($obj)
+             )
+          !! Perl6::Metamodel::Configuration.throw_or_die(
+               'X::Method::NotFound',
+               $message,
+               :invocant($obj),
+               :method($name),
+               :$typename,
+               :private(nqp::hllboolfor(0, 'Raku')),
+               :in-class-call(
+                  nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku')
+               )
+             );
     },
 #?endif
+
     'lexical_handler_not_found_error', -> $cat, $out_of_dyn_scope {
         if $cat == nqp::const::CONTROL_RETURN {
             Perl6::Metamodel::Configuration.throw_or_die(
-                'X::ControlFlow::Return',
-                'Attempt to return outside of any Routine',
-                :out-of-dynamic-scope(nqp::hllboolfor($out_of_dyn_scope, 'Raku'))
+              'X::ControlFlow::Return',
+              'Attempt to return outside of any Routine',
+              :out-of-dynamic-scope(nqp::hllboolfor($out_of_dyn_scope, 'Raku'))
             );
         }
         else {
@@ -5462,50 +5483,65 @@ nqp::sethllconfig('Raku', nqp::hash(
             nqp::getcomp('Raku').handle-control($ex);
         }
     },
+
     'finalize_handler', -> @objs {
         # Reinstate $*STACK-ID if invoked in a specilized finalization thread.
         # Preserve the current stack ID otherwise.
-        my $*STACK-ID :=
-            nqp::ifnull(
-                nqp::getlexreldyn(nqp::ctxcaller(nqp::ctx()), '$*STACK-ID'),
-                Perl6::Metamodel::Configuration.next_id );
-        for @objs -> $o {
-            for $o.HOW.destroyers($o) -> $d {
-                $d($o)
+        my $*STACK-ID := nqp::ifnull(
+          nqp::getlexreldyn(nqp::ctxcaller(nqp::ctx), '$*STACK-ID'),
+          Perl6::Metamodel::Configuration.next_id
+        );
+
+        my int $m := nqp::elems(@objs);
+        my int $i;
+        while $i < $m {
+            my $obj := nqp::atpos(@objs, $i);
+            my @destroyers := $obj.HOW.destroyers($obj);
+
+            my int $n := nqp::elems(@destroyers);
+            my int $j;
+            while $j < $n {
+                nqp::atpos(@destroyers, $j)($obj);
+                ++$j;
             }
+
+            ++$i;
         }
     },
-    'int_lex_ref', IntLexRef,
-    'uint_lex_ref', UIntLexRef,
-    'num_lex_ref', NumLexRef,
-    'str_lex_ref', StrLexRef,
-    'int_attr_ref', IntAttrRef,
-    'uint_attr_ref', UIntAttrRef,
-    'num_attr_ref', NumAttrRef,
-    'str_attr_ref', StrAttrRef,
-    'int_pos_ref', IntPosRef,
-    'uint_pos_ref', UIntPosRef,
-    'num_pos_ref', NumPosRef,
-    'str_pos_ref', StrPosRef,
-    'int_multidim_ref', IntMultidimRef,
+
+    'int_lex_ref',       IntLexRef,
+    'uint_lex_ref',      UIntLexRef,
+    'num_lex_ref',       NumLexRef,
+    'str_lex_ref',       StrLexRef,
+    'int_attr_ref',      IntAttrRef,
+    'uint_attr_ref',     UIntAttrRef,
+    'num_attr_ref',      NumAttrRef,
+    'str_attr_ref',      StrAttrRef,
+    'int_pos_ref',       IntPosRef,
+    'uint_pos_ref',      UIntPosRef,
+    'num_pos_ref',       NumPosRef,
+    'str_pos_ref',       StrPosRef,
+    'int_multidim_ref',  IntMultidimRef,
     'uint_multidim_ref', UIntMultidimRef,
-    'num_multidim_ref', NumMultidimRef,
-    'str_multidim_ref', StrMultidimRef,
+    'num_multidim_ref',  NumMultidimRef,
+    'str_multidim_ref',  StrMultidimRef,
 #?if js
-    'int64_lex_ref', Int64LexRef,
-    'int64_attr_ref', Int64AttrRef,
-    'int64_pos_ref', Int64PosRef,
+    'int64_lex_ref',      Int64LexRef,
+    'int64_attr_ref',     Int64AttrRef,
+    'int64_pos_ref',      Int64PosRef,
     'int64_multidim_ref', Int64MultidimRef,
 #?endif
+
 #?if moar
-    'call_dispatcher', 'raku-call',
-    'method_call_dispatcher', 'raku-meth-call',
-    'find_method_dispatcher', 'raku-find-meth',
+    'call_dispatcher',         'raku-call',
+    'method_call_dispatcher',  'raku-meth-call',
+    'find_method_dispatcher',  'raku-find-meth',
     'resume_error_dispatcher', 'raku-resume-error',
-    'hllize_dispatcher', 'raku-hllize',
-    'istype_dispatcher', 'nqp-istype',  # Can write a Raku one later for more opts
-    'isinvokable_dispatcher', 'raku-isinvokable',
-    'max_inline_size', 384,
+    'hllize_dispatcher',       'raku-hllize',
+    # Can write a Raku one later for more opts
+    'istype_dispatcher',       'nqp-istype',
+    'isinvokable_dispatcher',  'raku-isinvokable',
+    'max_inline_size',         384,
 #?endif
 ));
 

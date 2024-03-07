@@ -5295,7 +5295,8 @@ nqp::sethllconfig('Raku', nqp::hash(
 
     'exit_handler', -> $coderef, $resultish {
         unless nqp::p6inpre() {
-            # when we get here, we assume the $!phasers attribute is concrete.
+
+            # When we get here, we assume the $!phasers attribute is concrete.
             # if it is *not* a hash, it is a lone LEAVE phaser, the most
             # commonly used phaser (in the core at least).
             my $phasers := nqp::getattr(
@@ -5318,6 +5319,7 @@ nqp::sethllconfig('Raku', nqp::hash(
 
                     my int $m := nqp::elems(@leaves);
                     my int $i := -1;
+                    # XXX why do we need pre-increment here??
                     while ++$i < $m {
                         CATCH { nqp::push(@exceptions, $_) }
 
@@ -5356,6 +5358,7 @@ nqp::sethllconfig('Raku', nqp::hash(
 
                     my int $m := nqp::elems(@posts);
                     my int $i := -1;
+                    # XXX why do we need pre-increment here??
                     while ++$i < $m {
 #?if jvm
                         nqp::atpos(@posts, $i)($value);
@@ -5571,19 +5574,28 @@ my @transform_type := nqp::list(
 );
 
 nqp::register('raku-hllize', -> $capture {
+
     my $arg := nqp::track('arg', $capture, 0);
     nqp::guard('type', $arg);
     nqp::guard('concreteness', $arg);
-    my $spec := nqp::captureposprimspec($capture, 0);
-    if $spec {
+
+    my int $got_prim := nqp::captureposprimspec($capture, 0);
+
+    # Got a native value
+    if $got_prim {
         nqp::delegate('lang-call',
           nqp::syscall('dispatcher-insert-arg-literal-obj',
             $capture,
             0,
-            @transform_type[$spec == 10 ?? 7 !! $spec > 3 ?? 1 !! $spec]
-           )
+            nqp::atpos(
+              @transform_type,
+              $got_prim == 10 ?? 7 !! $got_prim > 3 ?? 1 !! $got_prim
+            )
+          )
         );
     }
+
+    # Not a native
     else {
         my $obj := nqp::captureposarg($capture, 0);
 
@@ -5602,7 +5614,7 @@ nqp::register('raku-hllize', -> $capture {
                 if nqp::isconcrete($obj) {
                     nqp::delegate('lang-call',
                       nqp::syscall('dispatcher-insert-arg-literal-obj',
-                        $capture, 0, @transform_type[$role]
+                        $capture, 0, nqp::atpos(@transform_type, $role)
                       )
                     );
                 }
@@ -5611,7 +5623,7 @@ nqp::register('raku-hllize', -> $capture {
                       nqp::syscall('dispatcher-insert-arg-literal-obj',
                         nqp::syscall('dispatcher-drop-arg', $capture, 0),
                         0,
-                        @types_for_hll_role[$role]
+                        nqp::atpos(@types_for_hll_role, $role)
                       )
                     );
                 }
@@ -5641,33 +5653,75 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
 #?endif
     nqp::setcodeobj($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);
-    nqp::bindattr($sel, Routine, '@!dispatchees', []);
+    nqp::bindattr($sel, Routine, '@!dispatchees', nqp::list);
     $sel
 });
 
 # Roles pretend to be narrower than certain types for the purpose
 # of type checking. Also, they pun to classes.
+
+# Lookup of methods and the type object they're expected to be found in
+# for these roles
 my %excluded := nqp::hash(
-    'ACCEPTS', Mu, 'item', Mu, 'dispatch:<.=>', Mu, 'Bool', Mu,
-    'gist', Mu, 'perl', Mu, 'raku', Mu, 'Str', Mu, 'sink', Mu, 'defined', Mu,
-    'WHICH', Mu, 'WHERE', Mu, 'WHY', Mu, 'set_why', Mu, 'so', Mu, 'not', Mu,
-    'Numeric', Mu, 'Real', Mu, 'Stringy', Mu, 'say', Mu, 'print', Mu,
-    'put', Mu, 'note', Mu, 'DUMP', Mu, 'dispatch:<var>', Mu,
-    'dispatch:<.?>', Mu, 'dispatch:<.^>', Mu);
-Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be([Cool, Any, Mu]);
+  'ACCEPTS',        Mu,
+  'Bool',           Mu,
+  'defined',        Mu,
+  'dispatch:<.?>',  Mu,
+  'dispatch:<.^>',  Mu,
+  'dispatch:<.=>',  Mu,
+  'dispatch:<var>', Mu,
+  'DUMP',           Mu,
+  'gist',           Mu,
+  'item',           Mu,
+  'not',            Mu,
+  'note',           Mu,
+  'Numeric',        Mu,
+  'perl',           Mu,
+  'print',          Mu,
+  'put',            Mu,
+  'raku',           Mu,
+  'Real',           Mu,
+  'say',            Mu,
+  'set_why',        Mu,
+  'sink',           Mu,
+  'so',             Mu,
+  'Str',            Mu,
+  'Stringy',        Mu,
+  'WHERE',          Mu,
+  'WHICH',          Mu,
+  'WHY',            Mu,
+);
+
+Perl6::Metamodel::ParametricRoleGroupHOW.pretend_to_be(
+  nqp::list(Cool,Any,Mu)
+);
 Perl6::Metamodel::ParametricRoleGroupHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-Perl6::Metamodel::ParametricRoleHOW.pretend_to_be([Cool, Any, Mu]);
+   Perl6::Metamodel::ClassHOW, %excluded
+);
+
+Perl6::Metamodel::ParametricRoleHOW.pretend_to_be(
+  nqp::list(Cool, Any, Mu)
+);
 Perl6::Metamodel::ParametricRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
-Perl6::Metamodel::CurriedRoleHOW.pretend_to_be([Cool, Any, Mu]);
+  Perl6::Metamodel::ClassHOW, %excluded
+);
+
+Perl6::Metamodel::CurriedRoleHOW.pretend_to_be(
+  nqp::list(Cool, Any, Mu)
+);
 Perl6::Metamodel::CurriedRoleHOW.configure_punning(
-    Perl6::Metamodel::ClassHOW, %excluded);
+  Perl6::Metamodel::ClassHOW, %excluded
+);
 
 # Similar for packages and modules, but just has methods from Any.
-Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
+Perl6::Metamodel::PackageHOW.pretend_to_be(
+  nqp::list(Any, Mu)
+);
 Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
-Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
+
+Perl6::Metamodel::ModuleHOW.pretend_to_be(
+  nqp::list(Any, Mu)
+);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
 
 #?if !moar

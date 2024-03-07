@@ -491,6 +491,11 @@ Returns the context of the outer of the given $code object.  Workhorse of
 `nqp::p6getouterctx`.
 
 ### raku-hllize
+```
+nqp::dispatch("raku-hllize", $value);
+```
+Returns a Raku HLLized version of the given value, if it needs HLLizing..
+
 ### raku-is-attr-inited
 ```
 nqp::dispatch("raku-is-attr-inited", $attribute);

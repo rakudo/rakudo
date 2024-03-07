@@ -4153,7 +4153,7 @@ BEGIN {
             for @possibles {
                 nqp::push(@ambiguous, $_<sub>);
             }
-            my str $name := self.name;
+            my str $name := $self.name;
 #?if !moar
             sub assemble_capture(*@pos, *%named) {
                 my $c := nqp::create(Capture);

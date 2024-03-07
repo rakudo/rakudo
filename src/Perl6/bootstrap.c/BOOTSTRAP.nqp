@@ -4471,37 +4471,49 @@ BEGIN {
     Routine.HOW.compose_invocation(Routine);
 #?endif
 
-    # class Sub is Routine {
+#- Sub -------------------------------------------------------------------------
+# class Sub is Routine {
     Sub.HOW.add_parent(Sub, Routine);
     Sub.HOW.compose_repr(Sub);
 #?if !moar
     Sub.HOW.compose_invocation(Sub);
 #?endif
 
-    # class Operator is Sub {
+#- Operator --------------------------------------------------------------------
+# class Operator is Sub {
     #     has Mu $!properties;
     Operator.HOW.add_parent(Operator, Sub);
-    Operator.HOW.add_attribute(Operator, Attribute.new(:name<$!properties>, :type(Mu), :package(Operator)));
+
+    Operator.HOW.add_attribute(Operator, Attribute.new(
+      :name<$!properties>, :type(Mu), :package(Operator)
+    ));
+
     Operator.HOW.compose_repr(Operator);
 #?if !moar
     Operator.HOW.compose_invocation(Operator);
 #?endif
 
-    # class Method is Routine {
+#- Method ----------------------------------------------------------------------
+# class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
+
     Method.HOW.compose_repr(Method);
 #?if !moar
     Method.HOW.compose_invocation(Method);
 #?endif
 
-    # class Submethod is Routine {
+#- Submethod -------------------------------------------------------------------
+# class Submethod is Routine {
     Submethod.HOW.add_parent(Submethod, Routine);
+
     Submethod.HOW.compose_repr(Submethod);
 #?if !moar
     Submethod.HOW.compose_invocation(Submethod);
 #?endif
 
-    # Capture store for SET_CAPS.
+#- Regex -----------------------------------------------------------------------
+# Capture store for SET_CAPS.
+
     my class RegexCaptures {
         # An integer array of positional capture counts.
         has @!pos-capture-counts;
@@ -4518,18 +4530,22 @@ BEGIN {
 
         method !from-capnames(%capnames) {
             # Initialize.
-            @!pos-capture-counts := nqp::list_i();
-            @!named-capture-names := nqp::list_s();
-            @!named-capture-counts := nqp::list_i();
+            @!pos-capture-counts   := nqp::list_i;
+            @!named-capture-names  := nqp::list_s;
+            @!named-capture-counts := nqp::list_i;
 
             # Go over the captures and build up the data structure.
             for %capnames {
-                my $name := nqp::iterkey_s($_);
+                my str $name := nqp::iterkey_s($_);
                 if $name ne '' {
-                    my $count := nqp::iterval($_);
+                    my int $count := nqp::iterval($_);
+
+                    # Positional
                     if nqp::ord($name) != 36 && nqp::ord($name) < 58 {
                         nqp::bindpos_i(@!pos-capture-counts, +$name, $count);
                     }
+
+                    # Named
                     else {
                         nqp::push_s(@!named-capture-names, $name);
                         nqp::push_i(@!named-capture-counts, $count);
@@ -4542,7 +4558,8 @@ BEGIN {
 
         # Are there any captures?
         method has-captures() {
-            nqp::elems(@!named-capture-counts) || nqp::elems(@!pos-capture-counts)
+            nqp::elems(@!named-capture-counts)
+              || nqp::elems(@!pos-capture-counts)
         }
 
         ## Raku Match object building
@@ -4553,20 +4570,22 @@ BEGIN {
         my @EMPTY-LIST;
         my %EMPTY-HASH;
         method prepare-raku-list() {
+
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
-                my $result := nqp::list();
-                my int $i := -1;
-                while ++$i < $n {
+                my $result := nqp::list;
+                my int $i;
+                while $i < $n {
                     nqp::bindpos($result, $i, nqp::create(Array))
-                        if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
+                      if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
+                    ++$i;
                 }
                 $result
             }
             else {
 #?if js
                 # HACK js backend bug workaround
-                nqp::list()
+                nqp::list
 #?endif
 #?if !js
                 @EMPTY-LIST
@@ -4577,23 +4596,25 @@ BEGIN {
         # Build a hash of named captures, or return a shared empty hash if there
         # are none. This only populates the slots that need an array.
         method prepare-raku-hash() {
+
             my int $n := nqp::elems(@!named-capture-counts);
             if $n > 0 {
-                my $result := nqp::hash();
-                my int $i := -1;
-                while ++$i < $n {
-                    if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
-                        nqp::bindkey($result,
-                            nqp::atpos_s(@!named-capture-names, $i),
-                            nqp::create(Array));
-                    }
+                my $result := nqp::hash;
+                my int $i;
+                while $i < $n {
+                    nqp::bindkey(
+                      $result,
+                      nqp::atpos_s(@!named-capture-names, $i),
+                      nqp::create(Array)
+                    ) if nqp::atpos_i(@!named-capture-counts, $i) >= 2;
+                    ++$i;
                 }
                 $result
             }
             else {
 #?if js
                 # HACK js backend bug workaround
-                nqp::hash()
+                nqp::hash
 #?endif
 #?if !js
                 %EMPTY-HASH
@@ -4607,13 +4628,15 @@ BEGIN {
         # Build a list of positional captures, or return a shared empty list if
         # there are none. This only populates the slots which need an array.
         method prepare-list() {
+
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
-                my $result := nqp::list();
-                my int $i := -1;
-                while ++$i < $n {
-                    nqp::bindpos($result, $i, nqp::list())
-                        if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
+                my $result := nqp::list;
+                my int $i;
+                while $i < $n {
+                    nqp::bindpos($result, $i, nqp::list)
+                      if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
+                    ++$i;
                 }
                 $result
             }
@@ -4622,19 +4645,20 @@ BEGIN {
             }
         }
 
-        # Build a hash of named camptures, or return a shared empty hash if there
-        # are none. This only poplates the slots that need an array.
+        # Build a hash of named captures, or return a shared empty hash if
+        # there are none. This only populates the slots that need an array.
         method prepare-hash() {
             my int $n := nqp::elems(@!named-capture-counts);
             if $n > 0 {
-                my $result := nqp::hash();
-                my int $i := -1;
-                while ++$i < $n {
-                    if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
-                        nqp::bindkey($result,
-                            nqp::atpos_s(@!named-capture-names, $i),
-                            nqp::list());
-                    }
+                my $result := nqp::hash;
+                my int $i;
+                while $i < $n {
+                    nqp::bindkey(
+                      $result,
+                      nqp::atpos_s(@!named-capture-names, $i),
+                      nqp::list
+                    ) if nqp::atpos_i(@!named-capture-counts, $i) >= 2;
+                    ++$i;
                 }
                 $result
             }
@@ -4654,198 +4678,372 @@ BEGIN {
     #     has $!topic;
     #     has $!slash;
     Regex.HOW.add_parent(Regex, Method);
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!caps', Mu, Regex, :auto_viv_container));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!nfa', Mu, Regex, :auto_viv_container));
-    Regex.HOW.add_attribute(Regex, scalar_attr('%!alt_nfas', Hash, Regex, :auto_viv_container));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!source', str, Regex, :auto_viv_container));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!topic', Mu, Regex, :auto_viv_container));
-    Regex.HOW.add_attribute(Regex, scalar_attr('$!slash', Mu, Regex, :auto_viv_container));
-    Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $capnames) {
-            nqp::bindattr(nqp::decont($self), Regex, '$!caps',
-                RegexCaptures.from-capnames($capnames))
-        }));
-    Regex.HOW.add_method(Regex, 'SET_NFA', nqp::getstaticcode(sub ($self, $nfa) {
-            nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
-        }));
-    Regex.HOW.add_method(Regex, 'SET_ALT_NFA', nqp::getstaticcode(sub ($self, str $name, $nfa) {
-            my %alts := nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas');
-            unless %alts {
-                %alts := nqp::hash();
-                nqp::bindattr(nqp::decont($self), Regex, '%!alt_nfas', %alts);
-            }
-            nqp::bindkey(%alts, $name, $nfa);
-        }));
-    Regex.HOW.add_method(Regex, 'CAPS', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self), Regex, '$!caps')
-        }));
-    Regex.HOW.add_method(Regex, 'NFA', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self), Regex, '$!nfa')
-        }));
-    Regex.HOW.add_method(Regex, 'ALT_NFA', nqp::getstaticcode(sub ($self, str $name) {
-            nqp::atkey(
-                nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas'),
-                $name)
-        }));
-    Regex.HOW.add_method(Regex, 'ALT_NFAS', nqp::getstaticcode(sub ($self) {
-            my $store := nqp::decont(nqp::getattr(nqp::decont($self), Regex, '%!alt_nfas'));
-            if nqp::istype($store, Hash) {
-                nqp::hash();
-            } else {
-                $store
-            }
-        }));
+
+    Regex.HOW.add_attribute(Regex, scalar_attr(
+      '$!caps', Mu, Regex, :auto_viv_container)
+    );
+
+    Regex.HOW.add_attribute(Regex, scalar_attr(
+      '$!nfa', Mu, Regex, :auto_viv_container)
+    );
+
+    Regex.HOW.add_attribute(Regex, scalar_attr(
+      '%!alt_nfas', Hash, Regex, :auto_viv_container)
+    );
+
+    Regex.HOW.add_attribute(Regex, scalar_attr(
+      '$!source', str, Regex, :auto_viv_container)
+    );
+
+    Regex.HOW.add_attribute(Regex, scalar_attr(
+      '$!topic', Mu, Regex, :auto_viv_container)
+    );
+
+    Regex.HOW.add_attribute(Regex, scalar_attr(
+      '$!slash', Mu, Regex, :auto_viv_container)
+    );
+
+    Regex.HOW.add_method(Regex, 'SET_CAPS',
+      nqp::getstaticcode(sub ($self, $capnames) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr($self, Regex, '$!caps',
+          RegexCaptures.from-capnames($capnames))
+    }));
+
+    Regex.HOW.add_method(Regex, 'SET_NFA',
+      nqp::getstaticcode(sub ($self, $nfa) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr($self, Regex, '$!nfa', $nfa)
+    }));
+
+    Regex.HOW.add_method(Regex, 'SET_ALT_NFA',
+      nqp::getstaticcode(sub ($self, str $name, $nfa) {
+        $self := nqp::decont($self);
+
+        my %alts := nqp::getattr($self, Regex, '%!alt_nfas');
+        nqp::bindattr($self, Regex, '%!alt_nfas', %alts := nqp::hash)
+          unless %alts;
+        nqp::bindkey(%alts, $name, $nfa)
+    }));
+
+    Regex.HOW.add_method(Regex, 'CAPS',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Regex, '$!caps')
+    }));
+
+    Regex.HOW.add_method(Regex, 'NFA',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Regex, '$!nfa')
+    }));
+
+    Regex.HOW.add_method(Regex, 'ALT_NFA',
+      nqp::getstaticcode(sub ($self, str $name) {
+        $self := nqp::decont($self);
+
+        nqp::atkey(nqp::getattr($self, Regex, '%!alt_nfas'), $name)
+    }));
+
+    Regex.HOW.add_method(Regex, 'ALT_NFAS',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        my $store := nqp::decont(nqp::getattr($self, Regex, '%!alt_nfas'));
+        nqp::istype($store, Hash)
+          ?? nqp::hash
+          !! $store
+    }));
+
     Regex.HOW.compose_repr(Regex);
 #?if !moar
     Regex.HOW.compose_invocation(Regex);
 #?endif
 
-    # class Str is Cool {
-    #     has str $!value is box_target;
+#- Str -------------------------------------------------------------------------
+# class Str is Cool {
+#     has str $!value is box_target;
+
     Str.HOW.add_parent(Str, Cool);
-    Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(Str)));
+
+    Str.HOW.add_attribute(Str, BOOTSTRAPATTR.new(
+      :name<$!value>, :type(str), :box_target(1), :package(Str))
+    );
+
     Str.HOW.set_boolification_mode(Str, 3);
     Str.HOW.publish_boolification_spec(Str);
     Str.HOW.compose_repr(Str);
 
-    # class Int is Cool {
-    #     has bigint $!value is box_target;
+#- Int -------------------------------------------------------------------------
+# class Int is Cool {
+#     has bigint $!value is box_target;
+
     Int.HOW.add_parent(Int, Cool);
-    Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(:name<$!value>, :type(bigint), :box_target(1), :package(Int)));
+
+    Int.HOW.add_attribute(Int, BOOTSTRAPATTR.new(
+      :name<$!value>, :type(bigint), :box_target(1), :package(Int))
+    );
+
     Int.HOW.set_boolification_mode(Int, 6);
     Int.HOW.publish_boolification_spec(Int);
     Int.HOW.compose_repr(Int);
 
-    # class Num is Cool {
-    #     has num $!value is box_target;
+#- Num -------------------------------------------------------------------------
+# class Num is Cool {
+#     has num $!value is box_target;
+
     Num.HOW.add_parent(Num, Cool);
-    Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(:name<$!value>, :type(num), :box_target(1), :package(Num)));
+
+    Num.HOW.add_attribute(Num, BOOTSTRAPATTR.new(
+      :name<$!value>, :type(num), :box_target(1), :package(Num))
+    );
+
     Num.HOW.set_boolification_mode(Num, 2);
     Num.HOW.publish_boolification_spec(Num);
     Num.HOW.compose_repr(Num);
 
-    # class Nil is Cool {
+#- Nil -------------------------------------------------------------------------
+# class Nil is Cool {
+
     Nil.HOW.compose_repr(Nil);
 
-    # class List is Cool {
-    #     has Mu $!reified;
-    #     has Mu $!todo;
+#- List ------------------------------------------------------------------------
+# class List is Cool {
+#     has Mu $!reified;
+#     has Mu $!todo;
+
     List.HOW.add_parent(List, Cool);
+
     List.HOW.add_attribute(List, storage_attr('$!reified', Mu, List, Mu));
     List.HOW.add_attribute(List, storage_attr('$!todo', Mu, List, Mu));
     List.HOW.compose_repr(List);
 
-    # class Slip is List {
+#- Slip ------------------------------------------------------------------------
+# class Slip is List {
+
     Slip.HOW.add_parent(Slip, List);
+
     Slip.HOW.compose_repr(Slip);
 
-    # class Array is List {
-    #     has Mu $!descriptor;
+#- Array -----------------------------------------------------------------------
+# class Array is List {
+#     has Mu $!descriptor;
+
     Array.HOW.add_parent(Array, List);
-    Array.HOW.add_attribute(Array, storage_attr('$!descriptor', Mu, Array,
-        Scalar.HOW.cache_get(Scalar, 'default_cont_spec')));
+
+    Array.HOW.add_attribute(Array, storage_attr(
+      '$!descriptor', Mu, Array,
+      Scalar.HOW.cache_get(Scalar, 'default_cont_spec')
+    ));
+
     Array.HOW.compose_repr(Array);
 
-    # class array does Iterable does Positional {
+#- array -----------------------------------------------------------------------
+# class array does Iterable does Positional {
+
     array.HOW.compose_repr(array);
-    # class IterationBuffer {
+
+#- IterationBuffer -------------------------------------------------------------
+# class IterationBuffer {
+
     IterationBuffer.HOW.compose_repr(IterationBuffer);
 
-    # my class Map is Cool {
-    #     has Mu $!storage;
+#- Map -------------------------------------------------------------------------
+# my class Map is Cool {
+#     has Mu $!storage;
+
     Map.HOW.add_parent(Map, Cool);
-    Map.HOW.add_attribute(Map, storage_attr('$!storage', Mu, Map, nqp::hash(),
-        :associative_delegate));
+
+    Map.HOW.add_attribute(Map, storage_attr(
+      '$!storage', Mu, Map, nqp::hash, :associative_delegate
+    ));
+
     Map.HOW.compose_repr(Map);
     nqp::settypehllrole(Map, 5);
 
-    # my class Hash is Map {
-    #     has Mu $!descriptor;
+#- Hash ------------------------------------------------------------------------
+# my class Hash is Map {
+#     has Mu $!descriptor;
+
     Hash.HOW.add_parent(Hash, Map);
-    Hash.HOW.add_attribute(Hash, storage_attr('$!descriptor', Mu, Hash,
-        Scalar.HOW.cache_get(Scalar, 'default_cont_spec')));
+
+    Hash.HOW.add_attribute(Hash, storage_attr(
+      '$!descriptor', Mu, Hash,
+      Scalar.HOW.cache_get(Scalar, 'default_cont_spec')
+    ));
+
     Hash.HOW.compose_repr(Hash);
     nqp::settypehllrole(Hash, 5);
 
-    # my class TypeEnv is Map {
+#- TypeEnv ---------------------------------------------------------------------
+# my class TypeEnv is Map {
+
     TypeEnv.HOW.add_parent(TypeEnv, Map);
-    TypeEnv.HOW.add_attribute(TypeEnv, Attribute.new(:name<$!primary>, :type(Bool), :package(TypeEnv)));
-    TypeEnv.HOW.add_attribute(TypeEnv, Attribute.new(:name<$!WHICH>, :type(ValueObjAt), :package(TypeEnv)));
+
+    TypeEnv.HOW.add_attribute(TypeEnv, Attribute.new(
+      :name<$!primary>, :type(Bool), :package(TypeEnv)
+    ));
+
+    TypeEnv.HOW.add_attribute(TypeEnv, Attribute.new(
+      :name<$!WHICH>, :type(ValueObjAt), :package(TypeEnv)
+    ));
+
     TypeEnv.HOW.compose_repr(TypeEnv);
     nqp::settypehllrole(TypeEnv, 5);
 
-    # class Capture is Any {
-    #     has @!list;
-    #     has %!hash;
+#- Capture ---------------------------------------------------------------------
+# class Capture is Any {
+#     has @!list;
+#     has %!hash;
+
     Capture.HOW.add_parent(Capture, Any);
-    Capture.HOW.add_attribute(Capture, scalar_attr('@!list', List, Capture));
-    Capture.HOW.add_attribute(Capture, scalar_attr('%!hash', Hash, Capture));
+
+    Capture.HOW.add_attribute(Capture, scalar_attr(
+      '@!list', List, Capture
+    ));
+
+    Capture.HOW.add_attribute(Capture, scalar_attr(
+      '%!hash', Hash, Capture
+    ));
+
     Capture.HOW.compose_repr(Capture);
 
-    # class Junction is Mu {
-    #     has Mu $!eigenstates;
-    #     has str $!type;
+#- Junction --------------------------------------------------------------------
+# class Junction is Mu {
+#     has Mu         $!eigenstates;
+#     has str        $!type;
+#     has ValueObjAt $!WHICH;
+
     Junction.HOW.add_parent(Junction, Mu);
-    Junction.HOW.add_attribute(Junction, scalar_attr('$!eigenstates', Mu, Junction, :auto_viv_container));
-    Junction.HOW.add_attribute(Junction, scalar_attr('$!type', str, Junction, :auto_viv_container));
-    Junction.HOW.add_attribute(Junction, Attribute.new(:name<$!WHICH>, :type(ValueObjAt), :package(Junction), :auto_viv_container));
+
+    Junction.HOW.add_attribute(Junction, scalar_attr(
+      '$!eigenstates', Mu, Junction, :auto_viv_container
+    ));
+
+    Junction.HOW.add_attribute(Junction, scalar_attr(
+      '$!type', str, Junction, :auto_viv_container
+    ));
+
+    Junction.HOW.add_attribute(Junction, Attribute.new(
+      :name<$!WHICH>, :type(ValueObjAt), :package(Junction),
+      :auto_viv_container
+    ));
+
     Junction.HOW.compose_repr(Junction);
 
-    # class Bool is Int {
-    #     has str $!key;
-    #     has int $!value;
+#- Bool ------------------------------------------------------------------------
+# class Bool is Int {
+#     has str $!key;
+#     has int $!value;
+
     Bool.HOW.set_base_type(Bool, Int);
-    Bool.HOW.add_attribute(Bool, Attribute.new(:name<$!key>, :type(str), :package(Bool)));
-    Bool.HOW.add_attribute(Bool, Attribute.new(:name<$!value>, :type(int), :package(Bool)));
+
+    Bool.HOW.add_attribute(Bool, Attribute.new(
+      :name<$!key>, :type(str), :package(Bool)
+    ));
+
+    Bool.HOW.add_attribute(Bool, Attribute.new(
+      :name<$!value>, :type(int), :package(Bool)
+    ));
+
+    Bool.HOW.add_method(Bool, 'key',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr_s($self, Bool, '$!key')
+    }));
+
+    Bool.HOW.add_method(Bool, 'value',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr_i($self, Bool, '$!value')
+    }));
+
     Bool.HOW.set_boolification_mode(Bool, 1);
     Bool.HOW.publish_boolification_spec(Bool);
     Bool.HOW.compose_repr(Bool);
-    Bool.HOW.add_method(Bool, 'key', nqp::getstaticcode(sub ($self) {
-            nqp::getattr_s(nqp::decont($self),
-                Bool, '$!key');
-        }));
-    Bool.HOW.add_method(Bool, 'value', nqp::getstaticcode(sub ($self) {
-            nqp::getattr_i(nqp::decont($self),
-                Bool, '$!value');
-        }));
 
-    # class ObjAt is Any {
-    #     has str $!value;
+#- ObjAt -----------------------------------------------------------------------
+# class ObjAt is Any {
+#     has str $!value;
+
     ObjAt.HOW.add_parent(ObjAt, Any);
-    ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(:name<$!value>, :type(str), :box_target(1), :package(ObjAt)));
+
+    ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(
+      :name<$!value>, :type(str), :box_target(1), :package(ObjAt)
+    ));
+
     ObjAt.HOW.compose_repr(ObjAt);
 
-    # class ValueObjAt is ObjAt {
+#- ValueObjAt ------------------------------------------------------------------
+# class ValueObjAt is ObjAt {
+
     ValueObjAt.HOW.add_parent(ValueObjAt, ObjAt);
+
     ValueObjAt.HOW.compose_repr(ValueObjAt);
 
-    # class ForeignCode {
-    #     has Mu $!do;                # Code object we delegate to
+#- ForeignCode -----------------------------------------------------------------
+# class ForeignCode {
+#     has Mu $!do;                # Code object we delegate to
+
     ForeignCode.HOW.add_parent(ForeignCode, Any);
-    ForeignCode.HOW.add_attribute(ForeignCode, Attribute.new(:name<$!do>, :type(Code), :package(ForeignCode)));
+
+    ForeignCode.HOW.add_attribute(ForeignCode, Attribute.new(
+      :name<$!do>, :type(Code), :package(ForeignCode)
+    ));
+
     ForeignCode.HOW.compose_repr(ForeignCode);
 #?if !moar
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
 #?endif
 
-    # class Version {
-    #     has $!parts;
-    #     has int $!plus;
-    #     has str $!string;
+#- Version ---------------------------------------------------------------------
+# class Version {
+#     has     $!parts;
+#     has int $!plus;
+#     has str $!string;
+
     Version.HOW.add_parent(Version, Any);
-    Version.HOW.add_attribute(Version, Attribute.new(:name('$!parts'), :type(Mu), :package(Version)));
-    Version.HOW.add_attribute(Version, Attribute.new(:name('$!plus'), :type(int), :package(Version)));
-    Version.HOW.add_attribute(Version, Attribute.new(:name('$!string'), :type(str), :package(Version)));
+
+    Version.HOW.add_attribute(Version, Attribute.new(
+      :name('$!parts'), :type(Mu), :package(Version)
+    ));
+
+    Version.HOW.add_attribute(Version, Attribute.new(
+      :name('$!plus'), :type(int), :package(Version)
+    ));
+
+    Version.HOW.add_attribute(Version, Attribute.new(
+      :name('$!string'), :type(str), :package(Version)
+    ));
+
     Version.HOW.compose_repr(Version);
 
-    # Set up Stash type, which is really just a hash with a name.
-    # class Stash is Hash {
-    #     has str $!longname;
-    #     has $!lock;
+#- Stash -----------------------------------------------------------------------
+# Set up Stash type, which is really just a hash with a name.
+# class Stash is Hash {
+#     has str $!longname;
+#     has $!lock;
+
     Stash.HOW.add_parent(Stash, Hash);
-    Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
-    Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!lock>, :type(Any), :package(Stash)));
+
+    Stash.HOW.add_attribute(Stash, Attribute.new(
+      :name<$!longname>, :type(str), :package(Stash)
+    ));
+
+    Stash.HOW.add_attribute(Stash, Attribute.new(
+      :name<$!lock>, :type(Any), :package(Stash)
+    ));
+
     Stash.HOW.compose_repr(Stash);
+
+#- (epilogue) ------------------------------------------------------------------
 
     # Configure the stash type.
     Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
@@ -4988,7 +5186,7 @@ BEGIN {
     # from user land.
     Perl6::Metamodel::PackageHOW.add_stash(Metamodel);
     for Perl6::Metamodel.WHO {
-        (Metamodel.WHO){$_.key} := $_.value;
+        nqp::bindkey(Metamodel.WHO, $_.key, $_.value);
     }
 
     # Fill out EXPORT namespace.
@@ -5057,7 +5255,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Version>             := Version;
 }
 EXPORT::DEFAULT.WHO<NQPMatchRole> := NQPMatchRole;
-EXPORT::DEFAULT.WHO<NQPdidMATCH> := NQPdidMATCH;
+EXPORT::DEFAULT.WHO<NQPdidMATCH>  := NQPdidMATCH;
 
 #?if !moar
 # Set up various type mappings.
@@ -5335,6 +5533,7 @@ my @transform_type := nqp::list(
     },
     -> $uint { nqp::box_u($uint, Int) },
 );
+
 nqp::register('raku-hllize', -> $capture {
     my $arg := nqp::track('arg', $capture, 0);
     nqp::guard('type', $arg);

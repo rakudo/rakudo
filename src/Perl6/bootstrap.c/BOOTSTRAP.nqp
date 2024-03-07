@@ -4162,7 +4162,7 @@ BEGIN {
                 $c
             }
             my $raku_capture :=
-              nqp::invokewithcapture(&assemble_capture, $capture)
+              nqp::invokewithcapture(&assemble_capture, $capture);
 #?endif
 #?if moar
             my $raku_capture := nqp::create(Capture);

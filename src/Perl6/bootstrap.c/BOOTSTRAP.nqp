@@ -3185,8 +3185,8 @@ BEGIN {
       :name<$!package>, :type(Mu), :package(Routine)
     ));
 
-    Routine.HOW.add_attribute(Routine, scalar_attr(
-      '$!dispatch_order', List, Routine
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!dispatch_order>, :type(Mu), :package(Routine)
     ));
 
 #?if !moar

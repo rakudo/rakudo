@@ -3157,6 +3157,7 @@ BEGIN {
 #     has int $!flags;
 #     has Mu $!inline_info;
 #     has Mu $!package;
+#     has Mu $!dispatch_info;
 #     has @!dispatch_order;
 #     has Mu $!dispatch_cache;
 #     has Mu $!op_props;
@@ -3183,6 +3184,10 @@ BEGIN {
 
     Routine.HOW.add_attribute(Routine, Attribute.new(
       :name<$!package>, :type(Mu), :package(Routine)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!dispatch_info>, :type(Mu), :package(Routine)
     ));
 
     Routine.HOW.add_attribute(Routine, scalar_attr(
@@ -3259,6 +3264,222 @@ BEGIN {
         nqp::getattr($self, Routine, '@!dispatchees')
     }));
 
+    Routine.HOW.add_method(Routine, 'dispatch_info',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        my $info := nqp::getattr($self, Routine, '$!dispatch_info');
+        nqp::isconcrete($info)
+          ?? $info
+          !! $self."!create_dispatch_info"()
+    }));
+
+    Routine.HOW.add_method(Routine, '!create_dispatch_info',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # XXX convert to nqp::const::xxx
+        my int $SLURPY_ARITY := 1073741824;  # 1 +< 30
+
+        # Get hold of signature.
+        my $sig    := nqp::getattr($self, Code, '$!signature');
+        my @params := nqp::getattr($sig, Signature, '@!params');
+
+        my @types       := nqp::list;
+        my @type_flags  := nqp::list_i;
+        my @constraints := nqp::list;
+        my @rwness      := nqp::list_i;
+
+        # Create it an entry.
+        my %info := nqp::hash(
+          'sub',         $self,
+          'signature',   $sig,
+          'types',       @types,
+          'type_flags',  @type_flags,
+          'constraints', @constraints,
+          'rwness',      @rwness,
+        );
+
+        nqp::bindkey(%info, 'exact_invocant', 1)
+          if nqp::istype($self, Submethod);
+
+        my int $significant_param;
+        my int $min_arity;
+        my int $max_arity;
+        my int $num_types;
+        my @coerce_type_idxs;
+        my @coerce_type_objs;
+
+        my int $n := nqp::elems(@params);
+        my int $j;
+        while $j < $n {
+            my $param := nqp::atpos(@params, $j);
+            ++$j;  # increment here so we can "next"
+
+            # If it's got a sub-signature, also need a bind check and
+            # to check constraint on every dispatch. Same if it's got a
+            # `where` clause.
+            unless nqp::isnull(
+              nqp::getattr($param, Parameter, '$!sub_signature')
+            ) && nqp::isnull(
+              nqp::getattr($param, Parameter, '@!post_constraints')
+            ) && nqp::not_i(nqp::defined(
+              nqp::getattr($param, Parameter, '$!signature_constraint')
+            )) {
+                nqp::bindkey(%info, 'bind_check',  1);
+                nqp::bindkey(%info, 'constrainty', 1);
+            }
+
+            # For named arguments:
+            # * Under the legacy dispatcher (not on MoarVM, which uses
+            #   new-disp) we leave named argument checking to be done via
+            #   a bind check. We only set that if it's a required named.
+            # * For the new-disp based dispatcher, we collect a list of
+            #   required named arguments and allowed named arguments, and
+            #   filter those out without the bind check.
+            my int $flags :=
+              nqp::getattr_i($param, Parameter, '$!flags');
+            my $named_names :=
+              nqp::getattr($param, Parameter, '@!named_names');
+
+            unless nqp::isnull($named_names) {
+                if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT {
+                    unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
+                        nqp::push(
+                          nqp::ifnull(
+                            nqp::atkey(%info, 'required_names'),
+                            nqp::bindkey(%info, 'required_names', nqp::list)
+                          ),
+                          $named_names
+                        );
+                        nqp::bindkey(
+                          %info, 'req_named', nqp::atpos_s($named_names, 0)
+                        ) if nqp::elems($named_names) == 1;
+                    }
+                    nqp::bindkey(%info, 'bind_check', 1);
+                }
+
+                my $allowed_names := nqp::ifnull(
+                  nqp::atkey(%info, 'allowed_names'),
+                  nqp::bindkey(%info, 'allowed_names', nqp::hash)
+                );
+
+                my int $o := nqp::elems($named_names);
+                my int $k;
+                while $k < $o {
+                    nqp::bindkey(
+                      $allowed_names,
+                      nqp::atpos_s($named_names, $k),
+                      NQPMu
+                    );
+                    ++$k;
+                }
+                next;
+            }
+
+            if $flags +& nqp::const::SIG_ELEM_ALL_NAMES_OK {
+                nqp::bindkey(%info, 'allows_all_names', 1);
+                nqp::deletekey(%info, 'allowed_names');
+            }
+            last if $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED;
+
+            # Otherwise, positional or slurpy and contributes to arity.
+            if $flags +& nqp::const::SIG_ELEM_SLURPY_ARITY {
+                $max_arity := $SLURPY_ARITY;
+                next;
+            }
+            elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
+                ++$max_arity;
+            }
+            else {
+                ++$max_arity;
+                ++$min_arity;
+            }
+
+            # Record type info for this parameter.
+            if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
+                nqp::bindkey(%info, 'bind_check', 1);
+                nqp::bindkey(%info, 'constrainty', 1);
+                nqp::bindpos(@types, $significant_param, Any);
+            }
+            else {
+                my $ptype := nqp::getattr($param, Parameter, '$!type');
+                if $ptype.HOW.archetypes($ptype).coercive {
+                    my $ctype := $ptype.HOW.wrappee($ptype, :coercion);
+                    $ptype    := $ctype.HOW.constraint_type($ctype);
+                }
+                nqp::bindpos(@types, $significant_param, $ptype);
+            }
+
+            nqp::bindpos(@constraints, $significant_param, 1)
+              unless nqp::isnull(
+                nqp::getattr($param, Parameter, '@!post_constraints')
+              ) && nqp::not_i(nqp::defined(
+                nqp::getattr($param, Parameter, '$!signature_constraint')
+              ));
+
+            ++$num_types
+              if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT;
+
+            nqp::bindpos_i(@rwness, $significant_param, 1)
+              if $flags +& nqp::const::SIG_ELEM_IS_RW;
+
+            if $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY {
+                nqp::bindpos_i(
+                  @type_flags,
+                  $significant_param,
+                  nqp::const::DEFCON_DEFINED
+                );
+            }
+            elsif $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY {
+                nqp::bindpos_i(
+                  @type_flags,
+                  $significant_param,
+                  nqp::const::DEFCON_UNDEFINED
+                );
+            }
+
+            if $flags +& nqp::const::SIG_ELEM_NATIVE_VALUE {
+                nqp::bindpos_i(
+                  @type_flags,
+                  $significant_param,
+                  ($flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE
+                    ?? nqp::const::TYPE_NATIVE_STR
+                    !! $flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE
+                      ?? nqp::const::TYPE_NATIVE_INT
+                      !! $flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
+                        ?? nqp::const::TYPE_NATIVE_UINT
+                        !! nqp::const::TYPE_NATIVE_NUM  # SIG_ELEM_NATIVE_NUM_VALUE
+                  ) + nqp::atpos_i(@type_flags, $significant_param)
+                )
+            }
+
+            # Keep track of coercion types; they'll need an extra entry
+            # in the things we sort.
+            if $param.coercive {
+                nqp::push(@coerce_type_idxs, $significant_param);
+                my $ptype := nqp::getattr($param, Parameter, '$!type');
+                my $ctype := $ptype.HOW.wrappee($ptype, :coercion);
+                nqp::push(
+                  @coerce_type_objs, $ctype.HOW.target_type($ctype)
+                );
+            }
+
+            ++$significant_param;
+        }
+        nqp::bindkey(%info, 'min_arity', $min_arity);
+        nqp::bindkey(%info, 'max_arity', $max_arity);
+        nqp::bindkey(%info, 'num_types', $num_types);
+
+        if nqp::elems(@coerce_type_idxs) {
+            nqp::bindkey(%info, 'coerce_type_idxs', @coerce_type_idxs);
+            nqp::bindkey(%info, 'coerce_type_objs', @coerce_type_objs);
+        }
+
+        nqp::bindattr($self, Routine, '$!dispatch_info', %info)
+    }));
+
+    # XXX why is this a method on Routine??
     Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
       nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
         nqp::bindhllsym('Raku', 'MD_Pos', $Positional);
@@ -3398,197 +3619,7 @@ BEGIN {
         my int $m := nqp::elems(@candidates);
         my int $i;
         while $i < $m {
-            my $candidate := nqp::atpos(@candidates, $i);
-
-            # Get hold of signature.
-            my $sig    := nqp::getattr($candidate, Code, '$!signature');
-            my @params := nqp::getattr($sig, Signature, '@!params');
-
-            my @types       := nqp::list;
-            my @type_flags  := nqp::list_i;
-            my @constraints := nqp::list;
-            my @rwness      := nqp::list_i;
-
-            # Create it an entry.
-            my %info := nqp::hash(
-              'sub',         $candidate,
-              'signature',   $sig,
-              'types',       @types,
-              'type_flags',  @type_flags,
-              'constraints', @constraints,
-              'rwness',      @rwness,
-            );
-
-            nqp::bindkey(%info, 'exact_invocant', 1)
-              if nqp::istype($candidate, Submethod);
-
-            my int $significant_param;
-            my int $min_arity;
-            my int $max_arity;
-            my int $num_types;
-            my @coerce_type_idxs;
-            my @coerce_type_objs;
-
-            my int $n := nqp::elems(@params);
-            my int $j;
-            while $j < $n {
-                my $param := nqp::atpos(@params, $j);
-                ++$j;  # increment here so we can "next"
-
-                # If it's got a sub-signature, also need a bind check and
-                # to check constraint on every dispatch. Same if it's got a
-                # `where` clause.
-                unless nqp::isnull(
-                  nqp::getattr($param, Parameter, '$!sub_signature')
-                ) && nqp::isnull(
-                  nqp::getattr($param, Parameter, '@!post_constraints')
-                ) && nqp::not_i(nqp::defined(
-                  nqp::getattr($param, Parameter, '$!signature_constraint')
-                )) {
-                    nqp::bindkey(%info, 'bind_check',  1);
-                    nqp::bindkey(%info, 'constrainty', 1);
-                }
-
-                # For named arguments:
-                # * Under the legacy dispatcher (not on MoarVM, which uses
-                #   new-disp) we leave named argument checking to be done via
-                #   a bind check. We only set that if it's a required named.
-                # * For the new-disp based dispatcher, we collect a list of
-                #   required named arguments and allowed named arguments, and
-                #   filter those out without the bind check.
-                my int $flags :=
-                  nqp::getattr_i($param, Parameter, '$!flags');
-                my $named_names :=
-                  nqp::getattr($param, Parameter, '@!named_names');
-
-                unless nqp::isnull($named_names) {
-                    if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT {
-                        unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                            nqp::push(
-                              nqp::ifnull(
-                                nqp::atkey(%info, 'required_names'),
-                                nqp::bindkey(%info, 'required_names', nqp::list)
-                              ),
-                              $named_names
-                            );
-                            nqp::bindkey(
-                              %info, 'req_named', nqp::atpos_s($named_names, 0)
-                            ) if nqp::elems($named_names) == 1;
-                        }
-                        nqp::bindkey(%info, 'bind_check', 1);
-                    }
-
-                    my $allowed_names := nqp::ifnull(
-                      nqp::atkey(%info, 'allowed_names'),
-                      nqp::bindkey(%info, 'allowed_names', nqp::hash)
-                    );
-
-                    my int $o := nqp::elems($named_names);
-                    my int $k;
-                    while $k < $o {
-                        nqp::bindkey(
-                          $allowed_names,
-                          nqp::atpos_s($named_names, $k),
-                          NQPMu
-                        );
-                        ++$k;
-                    }
-                    next;
-                }
-
-                if $flags +& nqp::const::SIG_ELEM_ALL_NAMES_OK {
-                    nqp::bindkey(%info, 'allows_all_names', 1);
-                    nqp::deletekey(%info, 'allowed_names');
-                }
-                last if $flags +& nqp::const::SIG_ELEM_SLURPY_NAMED;
-
-                # Otherwise, positional or slurpy and contributes to arity.
-                if $flags +& nqp::const::SIG_ELEM_SLURPY_ARITY {
-                    $max_arity := $SLURPY_ARITY;
-                    next;
-                }
-                elsif $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL {
-                    ++$max_arity;
-                }
-                else {
-                    ++$max_arity;
-                    ++$min_arity;
-                }
-
-                # Record type info for this parameter.
-                if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
-                    nqp::bindkey(%info, 'bind_check', 1);
-                    nqp::bindkey(%info, 'constrainty', 1);
-                    nqp::bindpos(@types, $significant_param, Any);
-                }
-                else {
-                    my $ptype := nqp::getattr($param, Parameter, '$!type');
-                    if $ptype.HOW.archetypes($ptype).coercive {
-                        my $ctype := $ptype.HOW.wrappee($ptype, :coercion);
-                        $ptype    := $ctype.HOW.constraint_type($ctype);
-                    }
-                    nqp::bindpos(@types, $significant_param, $ptype);
-                }
-
-                nqp::bindpos(@constraints, $significant_param, 1)
-                  unless nqp::isnull(
-                    nqp::getattr($param, Parameter, '@!post_constraints')
-                  ) && nqp::not_i(nqp::defined(
-                    nqp::getattr($param, Parameter, '$!signature_constraint')
-                  ));
-
-                ++$num_types
-                  if $flags +& nqp::const::SIG_ELEM_MULTI_INVOCANT;
-
-                nqp::bindpos_i(@rwness, $significant_param, 1)
-                  if $flags +& nqp::const::SIG_ELEM_IS_RW;
-
-                if $flags +& nqp::const::SIG_ELEM_DEFINED_ONLY {
-                    nqp::bindpos_i(
-                      @type_flags,
-                      $significant_param,
-                      nqp::const::DEFCON_DEFINED
-                    );
-                }
-                elsif $flags +& nqp::const::SIG_ELEM_UNDEFINED_ONLY {
-                    nqp::bindpos_i(
-                      @type_flags,
-                      $significant_param,
-                      nqp::const::DEFCON_UNDEFINED
-                    );
-                }
-
-                if $flags +& nqp::const::SIG_ELEM_NATIVE_VALUE {
-                    nqp::bindpos_i(
-                      @type_flags,
-                      $significant_param,
-                      ($flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE
-                        ?? nqp::const::TYPE_NATIVE_STR
-                        !! $flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE
-                          ?? nqp::const::TYPE_NATIVE_INT
-                          !! $flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE
-                            ?? nqp::const::TYPE_NATIVE_UINT
-                            !! nqp::const::TYPE_NATIVE_NUM  # SIG_ELEM_NATIVE_NUM_VALUE
-                      ) + nqp::atpos_i(@type_flags, $significant_param)
-                    )
-                }
-
-                # Keep track of coercion types; they'll need an extra entry
-                # in the things we sort.
-                if $param.coercive {
-                    nqp::push(@coerce_type_idxs, $significant_param);
-                    my $ptype := nqp::getattr($param, Parameter, '$!type');
-                    my $ctype := $ptype.HOW.wrappee($ptype, :coercion);
-                    nqp::push(
-                      @coerce_type_objs, $ctype.HOW.target_type($ctype)
-                    );
-                }
-
-                ++$significant_param;
-            }
-            nqp::bindkey(%info, 'min_arity', $min_arity);
-            nqp::bindkey(%info, 'max_arity', $max_arity);
-            nqp::bindkey(%info, 'num_types', $num_types);
+            my %info := nqp::atpos(@candidates, $i).dispatch_info;
 
             # Add it to graph node, and initialize list of edges.
             nqp::push(@graph, nqp::hash(
@@ -3600,11 +3631,14 @@ BEGIN {
 
             # If there were any coercion types, then we also need to create
             # a candidate entry for the specific types.
-            if @coerce_type_idxs {
+            if nqp::existskey(%info, 'coerce_type_idxs') {
+
                 my %c_info  := nqp::clone(%info);
-                my @c_types := nqp::clone(@types);
+                my @c_types := nqp::clone(nqp::atkey(%info, 'types'));
                 nqp::bindkey(%c_info, 'types', @c_types);
 
+                my @coerce_type_idxs := nqp::atkey(%info, 'coerce_type_idxs');
+                my @coerce_type_objs := nqp::atkey(%info, 'coerce_type_objs');
                 my int $m := nqp::elems(@coerce_type_idxs);
                 my int $i;
                 while $i < $m {

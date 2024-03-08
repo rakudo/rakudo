@@ -14,6 +14,7 @@ my class Routine { # declared in BOOTSTRAP
     #     has int $!flags;
     #     has Mu $!inline_info;
     #     has Mu $!package;
+    #     has Mu $!dispatch_info;
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
     #     has Mu $!op_props;

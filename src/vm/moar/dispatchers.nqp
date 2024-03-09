@@ -2684,13 +2684,7 @@ nqp::register('raku-multi-core',
 
         # Obtain the candidate list, producing it if it doesn't already exist
         my $target := nqp::captureposarg($capture, 0);
-        my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
-        if nqp::isnull(@candidates) {
-            nqp::scwbdisable();
-            @candidates := $target.'!sort_dispatchees_internal'();
-            nqp::bindattr($target, Routine, '@!dispatch_order', @candidates);
-            nqp::scwbenable();
-        }
+        my @candidates := $target.dispatch_order;
 
         # Drop the first argument, to get just the arguments to dispatch on,
         # and then produce a multi-dispatch plan. Decide what to do based
@@ -2783,7 +2777,7 @@ nqp::register('raku-multi-core',
             # Obtain resume initialization arguments and form the plan.
             my $init-args  := nqp::syscall('dispatcher-get-resume-init-args');
             my $target     := nqp::captureposarg($init-args, 0);
-            my @candidates := nqp::getattr($target,Routine,'@!dispatch_order');
+            my @candidates := $target.dispatch_order;
             my $arg-capture := nqp::syscall('dispatcher-drop-arg',$init-args,0);
             my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 0);
 
@@ -3143,8 +3137,8 @@ nqp::register('raku-multi-remove-proxies',
             # Yes, it's the resume we're looking for. Locate the candidates by
             # using the resume init args.
             my $orig-capture := nqp::syscall('dispatcher-get-resume-init-args');
-            my $target := nqp::captureposarg($orig-capture, 0);
-            my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
+            my $target     := nqp::captureposarg($orig-capture, 0);
+            my @candidates := $target.dispatch_order;
 
             # Put a guard on the dispatchees. (TODO This risks the callsite in
             # the generated removers becoming a polymorphic blow-up point; when

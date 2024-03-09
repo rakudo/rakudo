@@ -3762,12 +3762,15 @@ BEGIN {
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
 
-        nqp::ifnull(
-          nqp::getattr($self, Routine, '@!dispatch_order'),
-          nqp::bindattr($self, Routine, '@!dispatch_order',
-            $self.'!sort_dispatchees_internal'()
-          )
-        )
+        my $dispatch_order := nqp::getattr($self, Routine, '@!dispatch_order');
+        if nqp::isnull($dispatch_order) {
+            nqp::scwbdisable;
+            nqp::bindattr($self, Routine, '@!dispatch_order',
+              $dispatch_order := $self.'!sort_dispatchees_internal'()
+            );
+            nqp::scwbenable;
+        }
+        $dispatch_order
     }));
 
     Routine.HOW.add_method(Routine, 'find_best_dispatchee',

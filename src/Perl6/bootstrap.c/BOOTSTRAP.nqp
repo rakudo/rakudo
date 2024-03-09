@@ -1799,16 +1799,16 @@ BEGIN {
 #?endif
 
 #- Mu --------------------------------------------------------------------------
-    # class Mu { ... }
+# class Mu {
     Mu.HOW.compose_repr(Mu);
 
 #- Any -------------------------------------------------------------------------
-    # class Any is Mu { ... }
+# class Any is Mu {
     Any.HOW.add_parent(Any, Mu);
     Any.HOW.compose_repr(Any);
 
 #- Cool ------------------------------------------------------------------------
-    # class Cool is Any { ... }
+# class Cool is Any {
     Cool.HOW.add_parent(Cool, Any);
     Cool.HOW.compose_repr(Cool);
 
@@ -1816,6 +1816,8 @@ BEGIN {
 # class Attribute is Any {
 #     has str $!name;
 #     has int $!rw;
+#     has int $!ro;
+#     has Mu  $!required;
 #     has int $!is_built;
 #     has int $!is_bound;
 #     has int $!has_accessor;
@@ -1826,12 +1828,14 @@ BEGIN {
 #     has Mu  $!package;
 #     has int $!inlined;
 #     has Mu  $!dimensions;
+#     has int $!box_target;
 #     has int $!positional_delegate;
 #     has int $!associative_delegate;
 #     has Mu  $!why;
 #     has Mu  $!container_initializer;
 #     # original attribute object used for instantiation
 #     has Attribute $!original;
+#     has int $!composed;
 
     Attribute.HOW.add_parent(Attribute, Any);
 
@@ -2473,9 +2477,9 @@ BEGIN {
 #?endif
 
 #- Proxy -----------------------------------------------------------------------
-    # class Proxy is Any {
-    #    has Mu &!FETCH;
-    #    has Mu &!STORE;
+# class Proxy is Any {
+#    has Mu &!FETCH;
+#    has Mu &!STORE;
     my $PROXY_FETCH := nqp::getstaticcode(sub ($cont) {
         my $var := nqp::create(Scalar);
         nqp::bindattr($var, Scalar, '$!value', $cont);
@@ -2685,6 +2689,7 @@ BEGIN {
 #     has Mu $!container_descriptor;
 #     has Mu $!attr_package;
 #     has Mu $!why;
+#     has Signature $!signature_constraint
 
     Parameter.HOW.add_parent(Parameter, Any);
 
@@ -3026,7 +3031,9 @@ BEGIN {
       :name<$!phasers>, :type(Mu), :package(Block), :auto_viv_primitive(NQPMu)
     ));
 
-    Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block));
+    Block.HOW.add_attribute(Block, scalar_attr(
+      '$!why', Mu, Block
+    ));
 
     Block.HOW.add_method(Block, 'clone',
       nqp::getstaticcode(sub ($self) {
@@ -3159,7 +3166,7 @@ BEGIN {
 #     has Mu $!package;
 #     has Mu $!dispatch_info;
 #     has @!dispatch_order;
-#     has Mu $!dispatch_cache;
+#     has Mu $!dispatch_cache;  # NOT on MoarVM
 #     has Mu $!op_props;
 
     Routine.HOW.add_parent(Routine, Block);
@@ -4918,8 +4925,14 @@ BEGIN {
 
     List.HOW.add_parent(List, Cool);
 
-    List.HOW.add_attribute(List, storage_attr('$!reified', Mu, List, Mu));
-    List.HOW.add_attribute(List, storage_attr('$!todo', Mu, List, Mu));
+    List.HOW.add_attribute(List, storage_attr(
+      '$!reified', Mu, List, Mu
+    ));
+
+    List.HOW.add_attribute(List, storage_attr(
+      '$!todo', Mu, List, Mu
+    ));
+
     List.HOW.compose_repr(List);
 
 #- Slip ------------------------------------------------------------------------
@@ -5075,7 +5088,7 @@ BEGIN {
     ObjAt.HOW.add_parent(ObjAt, Any);
 
     ObjAt.HOW.add_attribute(ObjAt, BOOTSTRAPATTR.new(
-      :name<$!value>, :type(str), :box_target(1), :package(ObjAt)
+      :name<$!value>, :type(str), :box_target, :package(ObjAt)
     ));
 
     ObjAt.HOW.compose_repr(ObjAt);

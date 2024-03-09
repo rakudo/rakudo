@@ -11,6 +11,7 @@ my class Parameter { # declared in BOOTSTRAP
     #     has Mu $!container_descriptor;
     #     has Mu $!attr_package;
     #     has Mu $!why;
+    #     has Signature $!signature_constraint
 
 #?if !js
     my constant $sigils2bit = nqp::hash(

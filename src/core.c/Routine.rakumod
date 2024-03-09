@@ -16,7 +16,7 @@ my class Routine { # declared in BOOTSTRAP
     #     has Mu $!package;
     #     has Mu $!dispatch_info;
     #     has @!dispatch_order;
-    #     has Mu $!dispatch_cache;
+    #     has Mu $!dispatch_cache;  # NOT on MoarVM
     #     has Mu $!op_props;
 
     method candidates(Bool :$local = True, Bool() :$with-proto) {

@@ -1,22 +1,25 @@
 my class Attribute { # declared in BOOTSTRAP
-    # class Attribute is Any
+    # class Attribute is Any {
     #     has str $!name;
     #     has int $!rw;
+    #     has int $!ro;
+    #     has Mu  $!required;
     #     has int $!is_built;
     #     has int $!is_bound;
     #     has int $!has_accessor;
-    #     has Mu $!type;
-    #     has Mu $!container_descriptor;
-    #     has Mu $!auto_viv_container;
-    #     has Mu $!build_closure;
-    #     has Mu $!package;
+    #     has Mu  $!type;
+    #     has Mu  $!container_descriptor;
+    #     has Mu  $!auto_viv_container;
+    #     has Mu  $!build_closure;
+    #     has Mu  $!package;
     #     has int $!inlined;
-    #     has Mu $!dimensions;
+    #     has Mu  $!dimensions;
+    #     has int $!box_target;
     #     has int $!positional_delegate;
     #     has int $!associative_delegate;
-    #     has Mu $!why;
-    #     has $!required;
-    #     has Mu $!container_initializer;
+    #     has Mu  $!why;
+    #     has Mu  $!container_initializer;
+    #     # original attribute object used for instantiation
     #     has Attribute $!original;
     #     has int $!composed;
 

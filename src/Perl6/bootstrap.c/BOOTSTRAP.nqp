@@ -3486,14 +3486,61 @@ BEGIN {
         nqp::bindhllsym('Raku', 'MD_PBF', $PositionalBindFailover);
     }));
 
+    # Helper class to handle sorting by abstracting the edges logic into
+    # a better optimizable object.
+    class Node {
+        has     $!possible;
+        has     $!edges;
+        has int $!edges_in;
+
+        method new($possible) {
+            my $obj := nqp::create(self);
+            nqp::bindattr($obj, Node, '$!possible', $possible);
+            nqp::bindattr($obj, Node, '$!edges',    nqp::list);
+            $obj
+        }
+
+        method possible() { $!possible  }
+
+        method push_outer_edge($node) {
+            nqp::push($!edges, $node);
+            nqp::bindattr_i($node, Node, '$!edges_in',
+              nqp::getattr($node, Node, '$!edges_in') + 1
+            );
+        }
+
+        method accepted(@result) {
+            # Note: returns 0 if the "if" failed, -1 if successful
+            if $!edges_in == 0 {
+                nqp::push(@result, $!possible);
+                nqp::bindattr_i(self, Node, '$!edges_in', -1);
+            }
+        }
+
+        method remove_if_accepted() {
+            if $!edges_in == -1 {
+                my     $edges    := $!edges;
+                my int $nr_edges := nqp::elems($edges);
+
+                my int $i;
+                while $i < $nr_edges {
+                    my $node := nqp::atpos($edges, $i);
+                    nqp::bindattr_i($node, Node, '$!edges_in',
+                      nqp::getattr_i($node, Node, '$!edges_in') - 1
+                    );
+                    ++$i;
+                }
+                nqp::bindattr_i(self, Node, '$!edges_in', -2);
+            }
+        }
+    }
+
     Routine.HOW.add_method(Routine, '!sort_dispatchees_internal',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
 
         # XXX convert to nqp::const::xxx
         my int $SLURPY_ARITY      := 1073741824;  # 1 +< 30
-        my int $EDGE_REMOVAL_TODO := -1;
-        my int $EDGE_REMOVED      := -2;
 
         # Takes two candidates and determines if the first one is narrower
         # than the second. Returns a true value if they are.
@@ -3622,12 +3669,7 @@ BEGIN {
             my %info := nqp::atpos(@candidates, $i).dispatch_info;
 
             # Add it to graph node, and initialize list of edges.
-            nqp::push(@graph, nqp::hash(
-                'info',      %info,
-                'edges',     nqp::list,
-                'edges_in',  0,
-                'edges_out', 0
-            ));
+            nqp::push(@graph, Node.new(%info));
 
             # If there were any coercion types, then we also need to create
             # a candidate entry for the specific types.
@@ -3649,12 +3691,7 @@ BEGIN {
                     );
                     ++$i;
                 }
-                nqp::push(@graph, nqp::hash(
-                    'info',      %c_info,
-                    'edges',     nqp::list,
-                    'edges_in',  0,
-                    'edges_out', 0
-                ));
+                nqp::push(@graph, Node.new(%c_info));
             }
 
             ++$i;
@@ -3665,25 +3702,15 @@ BEGIN {
         $m := nqp::elems(@graph);
         $i := 0;
         while $i < $m {
+            my $node_i := nqp::atpos(@graph, $i);
+
             my int $j;
             while $j < $m {
                 unless $i == $j {
-                    my %graph_i := nqp::atpos(@graph, $i);
-                    my %graph_j := nqp::atpos(@graph, $j);
+                    my $node_j := nqp::atpos(@graph, $j);
 
-                    if is_narrower(
-                      nqp::atkey(%graph_i, 'info'),
-                      nqp::atkey(%graph_j, 'info')
-                    ) {
-                        nqp::bindpos(
-                          nqp::atkey(%graph_i, 'edges'),
-                          nqp::atkey(%graph_i, 'edges_out'),
-                          nqp::atpos(@graph, $j)
-                        );
-
-                        ++%graph_i<edges_out>;
-                        ++%graph_j<edges_in>;
-                    }
+                    $node_i.push_outer_edge($node_j)
+                      if is_narrower($node_i.possible, $node_j.possible);
                 }
                 ++$j;
             }
@@ -3700,16 +3727,8 @@ BEGIN {
             # results.
             $i := 0;
             while $i < $m {
-                my %graph_i := nqp::atpos(@graph, $i);
-
-                if nqp::atkey(%graph_i, 'edges_in') == 0 {
-
-                    # Add to results.
-                    nqp::push(@result, nqp::atkey(%graph_i, 'info'));
-
-                    --$candidates_to_sort;
-                    nqp::bindkey(%graph_i, 'edges_in', $EDGE_REMOVAL_TODO);
-                }
+                --$candidates_to_sort
+                  if nqp::atpos(@graph, $i).accepted(@result);
                 ++$i;
             }
 
@@ -3721,20 +3740,7 @@ BEGIN {
             # edges from candidates we added here.
             $i := 0;
             while $i < $m {
-                my %graph_i := nqp::atpos(@graph, $i);
-
-                if nqp::atkey(%graph_i, 'edges_in') == $EDGE_REMOVAL_TODO {
-                    my int $edges_out := nqp::atkey(%graph_i, 'edges_out');
-
-                    my int $j;
-                    while $j < $edges_out {
-                        --nqp::atpos(
-                            nqp::atkey(%graph_i, 'edges'), $j
-                          )<edges_in>;
-                        ++$j;
-                    }
-                    nqp::bindkey(%graph_i, 'edges_in', $EDGE_REMOVED);
-                }
+                nqp::atpos(@graph, $i).remove_if_accepted;
                 ++$i;
             }
 

@@ -2531,14 +2531,14 @@ class Perl6::World is HLL::World {
         while ++$i < $n {
             my $param := @parameters[$i];
             my int $flags := nqp::getattr_i($param, $p_type, '$!flags');
-            if $flags +& (nqp::const::SIG_ELEM_IS_CAPTURE +| nqp::const::SIG_ELEM_SLURPY_POS +| nqp::const::SIG_ELEM_SLURPY_LOL +| nqp::const::SIG_ELEM_SLURPY_ONEARG) {
+            if $flags +& nqp::const::SIG_ELEM_SLURPY_ARITY {
                 $count := -1;
             }
             elsif !($flags +& nqp::const::SIG_ELEM_SLURPY_NAMED) &&
                     nqp::isnull(nqp::getattr($param, $p_type, '@!named_names')) {
                 $count++;
                 $arity++ unless $flags +& nqp::const::SIG_ELEM_IS_OPTIONAL;
-                if $i < 64 {
+                if $i < 64 {    # XXX where does the 64 come from??
                     unless $flags +& (nqp::const::SIG_ELEM_IS_RW +| nqp::const::SIG_ELEM_IS_RAW) {
                         $readonly := $readonly +| nqp::bitshiftl_i(1, $i);
                     }

@@ -519,6 +519,7 @@ class RakuAST::StatementPrefix::Phaser::Check
 # The INIT phaser.
 class RakuAST::StatementPrefix::Phaser::Init
   is RakuAST::StatementPrefix::Phaser
+  is RakuAST::StatementPrefix::Thunky
   is RakuAST::Attaching
 {
     has Scalar $.container;
@@ -540,6 +541,12 @@ class RakuAST::StatementPrefix::Phaser::Init
         my $container := $!container;
         $context.ensure-sc($container);
         QAST::WVal.new( :value($container) )
+    }
+
+    method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $block := self.meta-object;
+        $context.ensure-sc($block);
+        QAST::Op.new( :op('call'), QAST::WVal.new(:value($block)))
     }
 }
 

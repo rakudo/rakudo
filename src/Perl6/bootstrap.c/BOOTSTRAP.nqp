@@ -2959,34 +2959,6 @@ BEGIN {
         $self
     }));
 
-    Code.HOW.add_method(Code, 'is_generic',
-      nqp::getstaticcode(sub ($self) {
-        $self := nqp::decont($self);
-
-        # Delegate to signature, since it contains all the type info.
-        nqp::getattr($self, Code, '$!signature').is_generic
-    }));
-
-    Code.HOW.add_method(Code, 'instantiate_generic',
-      nqp::getstaticcode(sub ($self, $type_environment) {
-        $self := nqp::decont($self);
-
-        # Clone the code object, then instantiate the generic signature.
-        # Also need to clone dispatchees list.
-        my $ins := $self.clone;
-
-        my $dispatchees := nqp::getattr($self, Routine, '@!dispatchees');
-        nqp::bindattr($ins, Routine, '@!dispatchees', nqp::clone($dispatchees))
-          if nqp::defined($dispatchees);
-
-        my $sig := nqp::getattr($self, Code, '$!signature');
-        nqp::bindattr($ins, Code, '$!signature',
-          $sig.instantiate_generic($type_environment)
-        );
-
-        $ins
-    }));
-
     Code.HOW.add_method(Code, 'name',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
@@ -3208,6 +3180,34 @@ BEGIN {
       :name<$!dispatch_cache>, :type(Mu), :package(Routine)
     ));
 #?endif
+
+    Routine.HOW.add_method(Routine, 'is_generic',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # Delegate to signature, since it contains all the type info.
+        nqp::getattr($self, Code, '$!signature').is_generic
+    }));
+
+    Routine.HOW.add_method(Routine, 'instantiate_generic',
+      nqp::getstaticcode(sub ($self, $type_environment) {
+        $self := nqp::decont($self);
+
+        # Clone the code object, then instantiate the generic signature.
+        # Also need to clone dispatchees list.
+        my $ins := $self.clone;
+
+        my $dispatchees := nqp::getattr($self, Routine, '@!dispatchees');
+        nqp::bindattr($ins, Routine, '@!dispatchees', nqp::clone($dispatchees))
+          if nqp::defined($dispatchees);
+
+        my $sig := nqp::getattr($self, Code, '$!signature');
+        nqp::bindattr($ins, Code, '$!signature',
+          $sig.instantiate_generic($type_environment)
+        );
+
+        $ins
+    }));
 
     Routine.HOW.add_method(Routine, 'is_dispatcher',
       nqp::getstaticcode(sub ($self) {

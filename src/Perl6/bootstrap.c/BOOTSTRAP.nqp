@@ -3156,22 +3156,18 @@ BEGIN {
 
 #- Routine ---------------------------------------------------------------------
 # class Routine is Block {
-#     has @!dispatchees;
 #     has Mu $!dispatcher;
 #     has int $!flags;
 #     has Mu $!inline_info;
 #     has Mu $!package;
+#     has Mu $!op_props;  # to be DEPRECATED
+#--- proto specific ---
+#     has @!dispatchees;
 #     has Mu $!dispatch_info;
 #     has @!dispatch_order;
 #     has Mu $!dispatch_cache;  # NOT on MoarVM
-#     has Mu $!op_props;
 
     Routine.HOW.add_parent(Routine, Block);
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<@!dispatchees>, :type(List), :package(Routine),
-      :auto_viv_primitive(NQPMu)
-    ));
 
     Routine.HOW.add_attribute(Routine, Attribute.new(
       :name<$!dispatcher>, :type(Mu), :package(Routine),
@@ -3191,6 +3187,15 @@ BEGIN {
     ));
 
     Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!op_props>, :type(Mu), :package(Routine)  # to be DEPRECATED
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<@!dispatchees>, :type(List), :package(Routine),
+      :auto_viv_primitive(NQPMu)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
       :name<$!dispatch_info>, :type(Mu), :package(Routine)
     ));
 
@@ -3203,10 +3208,6 @@ BEGIN {
       :name<$!dispatch_cache>, :type(Mu), :package(Routine)
     ));
 #?endif
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<$!op_props>, :type(Mu), :package(Routine)
-    ));
 
     Routine.HOW.add_method(Routine, 'is_dispatcher',
       nqp::getstaticcode(sub ($self) {

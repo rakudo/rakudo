@@ -9,15 +9,16 @@ my role SoftRoutine {
 
 my class Routine { # declared in BOOTSTRAP
     # class Routine is Block
-    #     has @!dispatchees;
     #     has Mu $!dispatcher;
     #     has int $!flags;
     #     has Mu $!inline_info;
     #     has Mu $!package;
+    #     has Mu $!op_props;  # to be DEPRECATED
+    #--- proto specific ---
+    #     has @!dispatchees;
     #     has Mu $!dispatch_info;
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;  # NOT on MoarVM
-    #     has Mu $!op_props;
 
     method candidates(Bool :$local = True, Bool() :$with-proto) {
         $local

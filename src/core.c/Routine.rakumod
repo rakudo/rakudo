@@ -131,54 +131,55 @@ my class Routine { # declared in BOOTSTRAP
 
 #?if moar
     my role Wrapped {
-        has Mu $!wrappers;
+        has Mu      $!wrappers;
         has Routine $!wrapper-type;
-        method WRAPPERS() { $!wrappers }
+        method WRAPPERS()     { $!wrappers     }
         method WRAPPER-TYPE() { $!wrapper-type }
+
         method ADD-WRAPPER(&wrapper --> Nil) {
             my $new-wrappers := nqp::isconcrete($!wrappers)
-                ?? nqp::clone($!wrappers)
-                !! IterationBuffer.new;
+              ?? nqp::clone($!wrappers)
+              !! IterationBuffer.new;
             nqp::unshift($new-wrappers, &wrapper);
             $!wrappers := $new-wrappers;
         }
-        method REMOVE-WRAPPER(&wrapper --> Bool) {
-            my $new-wrappers := IterationBuffer.new;
-            my int $i = 0;
-            my Bool $found := False;
-            while $i < nqp::elems($!wrappers) {
-                my $wrapper := nqp::atpos($!wrappers, $i);
-                if nqp::eqaddr(&wrapper, $wrapper) {
-                    $found := True;
+
+        method REMOVE-WRAPPER(&wrapper --> Bool:D) {
+            my $wrappers := nqp::clone($!wrappers);
+
+            my int $m = nqp::elems($wrappers);
+            my int $i;
+            while $i < $m {
+                my $wrapper := nqp::atpos($wrappers, $i);
+                if nqp::eqaddr(&wrapper, nqp::atpos($wrappers, $i)) {
+                    nqp::splice($wrappers, nqp::list, $i, 1);
+                    $!wrappers := $wrappers;
+                    return True;
                 }
-                else {
-                    nqp::push($new-wrappers, $wrapper);
-                }
-                $i++;
+                ++$i;
             }
-            $!wrappers := $new-wrappers if $found;
-            $found
+            False
         }
         method is-wrapped(--> Bool) { nqp::elems($!wrappers) > 1 }
     }
     my class WrapHandle {
         has &!routine;
         has $!wrapper;
-        method restore(--> Bool) {
+        method restore(--> Bool:D) {
             nqp::can(&!routine, 'REMOVE-WRAPPER')
-                ?? &!routine.REMOVE-WRAPPER($!wrapper)
-                !! False
+              ?? &!routine.REMOVE-WRAPPER($!wrapper)
+              !! False
         }
     }
+
     method wrap(&wrapper) {
         # We can't wrap a hardened routine (that is, one that's been
         # marked inlinable).
-        if nqp::istype(self, HardRoutine) {
-            die "Cannot wrap a HardRoutine, since it may have been inlined; " ~
-                "use the 'soft' pragma to avoid marking routines as hard.";
-        }
+        die "Cannot wrap a HardRoutine, since it may have been inlined; "
+          ~ "use the 'soft' pragma to avoid marking routines as hard."
+          if nqp::istype(self, HardRoutine);
 
-        # Mix in the Wrapped role if needed and add the wrapper.
+        # Mix in the Wrapped role if needed and add the wrapper
         unless nqp::istype(self, Wrapped) {
             my $orig := self.clone;
             self does Wrapped;
@@ -196,8 +197,8 @@ my class Routine { # declared in BOOTSTRAP
 #?endif
 
     method unwrap($handle) {
-        $handle.can('restore') && $handle.restore() ||
-            X::Routine::Unwrap.new.throw
+        X::Routine::Unwrap.new.throw
+          unless $handle.can('restore') && $handle.restore;
     }
 
     method package() { $!package }
@@ -205,16 +206,16 @@ my class Routine { # declared in BOOTSTRAP
     method leave(*@) { NYI("{self.^name}.leave()").throw; }
 
     my class CandidateIterator does Iterator {
-        has $!routine;
-        has Mu $!candidates;
+        has     $!routine;
+        has Mu  $!candidates;
         has int $!pos;
-        has Mu $!backlog;
-        has $!local;
-        has $!with-proto;
+        has Mu  $!backlog;
+        has     $!local;
+        has     $!with-proto;
 
         method !SET-SELF($routine, $!local, $!with-proto) {
             self!SET-FROM-CANDIDATE($routine);
-            $!backlog := nqp::list();
+            $!backlog := nqp::list;
             self
         }
 
@@ -235,12 +236,9 @@ my class Routine { # declared in BOOTSTRAP
                     $!pos = -1 if $!with-proto;
                 }
             }
-            if nqp::defined($candidates) {
-                $!candidates := $candidates;
-            }
-            else {
-                $!candidates := nqp::list($!routine);
-            }
+            $!candidates := nqp::defined($candidates)
+              ?? $candidates
+              !! nqp::list($!routine);
         }
 
         method pull-one() {
@@ -279,8 +277,9 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     method iterator(Bool :$candidates, Bool() :$local, Bool() :$with-proto) {
-        return self.Mu::iterator unless $candidates && (self.is_dispatcher || self.is-wrapped);
-        CandidateIterator.new(self, $local, $with-proto)
+        $candidates && (self.is_dispatcher || self.is-wrapped)
+          ?? CandidateIterator.new(self, $local, $with-proto)
+          !! self.Mu::iterator
     }
 
     # Return 1 if all candidates of the given proto have a :U invocant

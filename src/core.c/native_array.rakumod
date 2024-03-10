@@ -4767,13 +4767,13 @@ my class array does Iterable does Positional {
         my int $kind = nqp::objprimspec($t);
         my $what;
 
-        if $kind == 1 {
+        if $kind == nqp::const::BIND_VAL_INT {
             $what := arr.^mixin(intarray[$t]);
         }
-        elsif $kind == 2 {
+        elsif $kind == nqp::const::BIND_VAL_NUM {
             $what := arr.^mixin(numarray[$t]);
         }
-        elsif $kind == 3 {
+        elsif $kind == nqp::const::BIND_VAL_STR {
             $what := arr.^mixin(strarray[$t]);
         }
         elsif $kind >= 4 && $kind <= 6 {

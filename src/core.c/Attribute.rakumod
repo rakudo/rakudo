@@ -43,28 +43,28 @@ my class Attribute { # declared in BOOTSTRAP
                   && self.DEPRECATED -> $alternative {
                     my $what = "Method $meth_name (from $package.^name())";
                     if self.rw {
-                        $meth := nqp::iseq_i($attr_type, 0)
+                        $meth := nqp::iseq_i($attr_type, nqp::const::BIND_VAL_OBJ)
                             ??
                             method (Mu:D \fles:) is raw {
                                 Rakudo::Deprecations.DEPRECATED($alternative,:$what);
                                 nqp::getattr(nqp::decont(fles), $dcpkg, $name)
                             }
                             !!
-                            nqp::iseq_i($attr_type, 1)
+                            nqp::iseq_i($attr_type, nqp::const::BIND_VAL_INT)
                             ??
                             method (Mu:D \fles:) is raw {
                                 Rakudo::Deprecations.DEPRECATED($alternative,:$what);
                                 nqp::getattrref_i(nqp::decont(fles), $dcpkg, $name)
                             }
                             !!
-                            nqp::iseq_i($attr_type, 10)
+                            nqp::iseq_i($attr_type, nqp::const::BIND_VAL_UINT)
                             ??
                             method (Mu:D \fles:) is raw {
                                 Rakudo::Deprecations.DEPRECATED($alternative,:$what);
                                 nqp::getattrref_u(nqp::decont(fles), $dcpkg, $name)
                             }
                             !!
-                            nqp::iseq_i($attr_type, 2)
+                            nqp::iseq_i($attr_type, nqp::const::BIND_VAL_NUM)
                             ??
                             method (Mu:D \fles:) is raw {
                                 Rakudo::Deprecations.DEPRECATED($alternative,:$what);
@@ -212,25 +212,25 @@ my class Attribute { # declared in BOOTSTRAP
 
     method get_value(Mu $obj) is raw {
         (my int $t = nqp::objprimspec($!type))
-          ?? nqp::iseq_i($t,1)
+          ?? nqp::iseq_i($t,nqp::const::BIND_VAL_INT)
             ?? nqp::getattr_i(nqp::decont($obj),$!package,$!name)
-            !! nqp::iseq_i($t,10)
+            !! nqp::iseq_i($t,nqp::const::BIND_VAL_UINT)
               ?? nqp::getattr_u(nqp::decont($obj),$!package,$!name)
-              !! nqp::iseq_i($t,2)
+              !! nqp::iseq_i($t,nqp::const::BIND_VAL_NUM)
                 ?? nqp::getattr_n(nqp::decont($obj),$!package,$!name)
-                !! nqp::getattr_s(nqp::decont($obj),$!package,$!name) # assume t=3
+                !! nqp::getattr_s(nqp::decont($obj),$!package,$!name) # STR
           !! nqp::getattr(nqp::decont($obj),$!package,$!name)
     }
 
     method set_value(Mu $obj, Mu \value) is raw {
         (my int $t = nqp::objprimspec($!type))
-          ?? nqp::iseq_i($t,1)
+          ?? nqp::iseq_i($t,nqp::const::BIND_VAL_INT)
             ?? nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value)
-            !! nqp::iseq_i($t,10)
+            !! nqp::iseq_i($t,nqp::const::BIND_VAL_UINT)
               ?? nqp::bindattr_u(nqp::decont($obj),$!package,$!name,value)
-              !! nqp::iseq_i($t,2)
+              !! nqp::iseq_i($t,nqp::const::BIND_VAL_NUM)
                 ?? nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value)
-                !! nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value) # t=3
+                !! nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value) # STR
           !! nqp::bindattr(nqp::decont($obj),$!package,$!name,value)
     }
 

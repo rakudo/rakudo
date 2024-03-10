@@ -1003,10 +1003,21 @@ my class Mu { # declared in BOOTSTRAP
                 my Mu $package := $attr.package;
 
                 $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
-                    when 0 {              nqp::getattr(  self,$package,$name)  }
-                    when 1 { nqp::p6box_i(nqp::getattr_i(self,$package,$name)) }
-                    when 2 { nqp::p6box_n(nqp::getattr_n(self,$package,$name)) }
-                    when 3 { nqp::p6box_s(nqp::getattr_s(self,$package,$name)) }
+                    when nqp::const::BIND_VAL_OBJ {
+                        nqp::getattr(self,$package,$name)
+                    }
+                    when nqp::const::BIND_VAL_INT {
+                        nqp::p6box_i(nqp::getattr_i(self,$package,$name))
+                    }
+                    when nqp::const::BIND_VAL_UINT {
+                        nqp::p6box_u(nqp::getattr_u(self,$package,$name))
+                    }
+                    when nqp::const::BIND_VAL_NUM {
+                        nqp::p6box_n(nqp::getattr_n(self,$package,$name))
+                    }
+                    when nqp::const::BIND_VAL_STR {
+                        nqp::p6box_s(nqp::getattr_s(self,$package,$name))
+                    }
                 };
             }
             else {
@@ -1406,10 +1417,21 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) { # is implementation-detail
         }
         else {
             given nqp::p6box_i(nqp::captureposprimspec($capture, 0)) {
-                when 0 { $type ~ '<' ~ $obj_num ~ '>(...)' }
-                when 1 { nqp::captureposarg_i($capture, 0).DUMP(:$indent-step, :%ctx) }
-                when 2 { nqp::captureposarg_n($capture, 0).DUMP(:$indent-step, :%ctx) }
-                when 3 { nqp::captureposarg_s($capture, 0).DUMP(:$indent-step, :%ctx) }
+                when nqp::const::BIND_VAL_OBJ {
+                    $type ~ '<' ~ $obj_num ~ '>(...)'
+                }
+                when nqp::const::BIND_VAL_INT {
+                    nqp::captureposarg_i($capture, 0).DUMP(:$indent-step, :%ctx)
+                }
+                when nqp::const::BIND_VAL_UINT {
+                    nqp::captureposarg_u($capture, 0).DUMP(:$indent-step, :%ctx)
+                }
+                when nqp::const::BIND_VAL_NUM {
+                    nqp::captureposarg_n($capture, 0).DUMP(:$indent-step, :%ctx)
+                }
+                when nqp::const::BIND_VAL_STR {
+                    nqp::captureposarg_s($capture, 0).DUMP(:$indent-step, :%ctx)
+                }
             }
         }
     }

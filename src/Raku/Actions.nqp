@@ -264,7 +264,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 my $revision := @vparts[0];
                 # Consider version to have a language modifier if the last
                 # part of is a string of non-zero length.
-                my $modifier := @vparts > 1 && nqp::objprimspec(@vparts[-1]) == 3
+                my $modifier := @vparts > 1
+                  && nqp::objprimspec(@vparts[-1]) == nqp::const::BIND_VAL_STR
                   ?? @vparts[-1]
                   !! nqp::null();
 

@@ -1306,8 +1306,9 @@ my class Operand {
     # If operand has a concrete compile-time value then get a native out of it if possible.
     method native-value() {
         return nqp::null() unless self.is-literal && (my $spec := nqp::objprimspec($!value));
-        return nqp::unbox_i($!value) if $spec == 1;
-        return nqp::unbox_n($!value) if $spec == 2;
+        return nqp::unbox_i($!value) if $spec == nqp::const::BIND_VAL_INT;
+        return nqp::unbox_u($!value) if $spec == nqp::const::BIND_VAL_UINT;
+        return nqp::unbox_n($!value) if $spec == nqp::const::BIND_VAL_NUM;
         return nqp::unbox_s($!value);
     }
 
@@ -2511,7 +2512,7 @@ class Perl6::Optimizer {
 
         # my int $foo
         elsif nqp::istype($node, QAST::Var)
-          && nqp::objprimspec($node.returns) == 1 {
+          && nqp::objprimspec($node.returns) == nqp::const::BIND_VAL_INT {  # XXX uint?
             return [$extra
               ?? QAST::Op.new( :op<add_i>, :returns($node.returns),
                    $node,
@@ -2700,7 +2701,8 @@ class Perl6::Optimizer {
                 my $varname := $op[0].name;
 
                 if $want_type eq 'Ii' {
-                    if $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
+                    if $type =:= (my $numtype := $!symbols.find_in_setting("Num"))
+                      || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
                                 :$varname, :vartype($numtype), :value($op[1][2].value), :suggestiontype<Real>,
                                 :valuetype<Int>,
@@ -2720,7 +2722,8 @@ class Perl6::Optimizer {
                 } elsif $want_type eq 'Nn' {
                     my $value := $op[1][2];
                     if $value.HOW.name($value) eq 'QAST::NVal' {
-                        if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
+                        if $type =:= (my $inttype := $!symbols.find_in_setting("Int"))
+                          || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
                             $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[1],
                                     :$varname, :vartype($inttype), :value($value.value), :suggestiontype<Real>,
                                     :valuetype<Num>,
@@ -2748,13 +2751,15 @@ class Perl6::Optimizer {
                 my $val_type := $value.HOW.name($value);
                 my $varname := $op[0].name;
                 if $val_type eq 'Rat' || $val_type eq 'RatStr' {
-                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
+                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int"))
+                          || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($inttype), :value($value), :suggestiontype<Real>,
                                 :valuetype<Rat>,
                                 :native(!($type =:= $inttype))
                             );
-                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
+                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num"))
+                        || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($numtype), :value($value), :suggestiontype<Real>,
                                 :valuetype<Rat>,
@@ -2768,13 +2773,15 @@ class Perl6::Optimizer {
                     }
                 }
                 elsif $val_type eq 'Complex' || $val_type eq 'ComplexStr' {
-                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int")) || nqp::objprimspec($type) == 1 {
+                    if $type =:= (my $inttype := $!symbols.find_in_setting("Int"))
+                      || nqp::objprimspec($type) == nqp::const::BIND_VAL_INT {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($inttype), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Complex>,
                                 :native(!($type =:= $inttype))
                             );
-                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num")) || nqp::objprimspec($type) == 2 {
+                    } elsif $type =:= (my $numtype := $!symbols.find_in_setting("Num"))
+                        || nqp::objprimspec($type) == nqp::const::BIND_VAL_NUM {
                         $!problems.add_exception(['X', 'Syntax', 'Number', 'LiteralType'], $op[0],
                                 :$varname, :vartype($numtype), :value($value), :suggestiontype<Numeric>,
                                 :valuetype<Complex>,
@@ -2920,11 +2927,11 @@ class Perl6::Optimizer {
                 $target := $target[0];
             }
             if nqp::istype($target, QAST::Op) && $target.op eq 'hllbool' {
-                if nqp::objprimspec($target[0].returns) == nqp::objprimspec(int) {
+                if nqp::objprimspec($target[0].returns) == nqp::const::BIND_VAL_INT {
                     $update[0] := $target[0];
                 }
             }
-            elsif nqp::istype($target,QAST::Var) && ($target.scope eq 'lexicalref' || $target.scope eq 'attributeref' || $target.scope eq "localref") && nqp::objprimspec($target.returns) == 1 {
+            elsif nqp::istype($target,QAST::Var) && ($target.scope eq 'lexicalref' || $target.scope eq 'attributeref' || $target.scope eq "localref") && nqp::objprimspec($target.returns) == nqp::const::BIND_VAL_INT {
                 # turn $i into $i != 0
                 $target.scope($target.scope eq 'lexicalref' ?? 'lexical' !! $target.scope eq 'attributeref' ?? 'attribute' !! 'local');
                 $update[0] := QAST::Op.new( :op('isne_i'), :returns($target.returns), $target, QAST::IVal.new( :value(0) ));
@@ -3438,13 +3445,13 @@ class Perl6::Optimizer {
 
         # if we got a native int/num, we can rewrite into nqp ops
         if nqp::istype($var,QAST::Var) && ($var.scope eq 'lexicalref' || $var.scope eq 'attributeref')
-        && ((my $primspec := nqp::objprimspec($var.returns)) == 1 # native int
-          || $primspec == 2 || $primspec == 4 || $primspec == 5) # native num or "emulated" 64bit int
+        && ((my $primspec := nqp::objprimspec($var.returns)) == nqp::const::BIND_VAL_INT
+          || $primspec == nqp::const::BIND_VAL_NUM || $primspec == 4 || $primspec == 5) # native num or "emulated" 64bit int
         {
             my $returns := $var.returns;
             my $is-dec := nqp::eqat($op.name, '--', -3);
 
-            if $primspec == 1 { # native int
+            if $primspec == nqp::const::BIND_VAL_INT {
                 $!block_var_stack.do('unregister_call');
                 my $one := QAST::IVal.new: :value(1);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {
@@ -3464,7 +3471,7 @@ class Perl6::Optimizer {
                         $one
                 }
             }
-            elsif $primspec == 2 { # native num
+            elsif $primspec == nqp::const::BIND_VAL_NUM {
                 $!block_var_stack.do('unregister_call');
                 my $one := QAST::NVal.new: :value(1.0);
                 if $!void_context || nqp::eqat($op.name, '&pre', 0) {

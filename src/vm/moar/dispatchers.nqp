@@ -2098,11 +2098,6 @@ my class MultiDispatchNonScalar {
 # mode. A resumption of a trivial dispatch will call this again, but with that
 # flag not set, and then drop the first candidate from the plan, which was
 # already invoked. It will then walk the candidate list as usual.
-my int $BIND_VAL_OBJ      := 0;
-my int $BIND_VAL_INT      := 1;
-my int $BIND_VAL_UINT     := 10;
-my int $BIND_VAL_NUM      := 2;
-my int $BIND_VAL_STR      := 3;
 my @hll_type := (Nil, Int, Num, Str, Nil, Nil, Nil, Nil, Nil, Nil, Int);
 
 # Helper sub, returning 1 if there is a mismatch in named arguments, else 0.
@@ -2279,13 +2274,13 @@ sub raku-multi-plan(
                         elsif $want_prim {
                             $type_mismatch := 1
                               if (($type_flags +& nqp::const::TYPE_NATIVE_STR)
-                                   && $got_prim != $BIND_VAL_STR)
+                                   && $got_prim != nqp::const::BIND_VAL_STR)
                               || (($type_flags +& nqp::const::TYPE_NATIVE_INT)
-                                   && $got_prim != $BIND_VAL_INT)
+                                   && $got_prim != nqp::const::BIND_VAL_INT)
                               || (($type_flags +& nqp::const::TYPE_NATIVE_UINT)
-                                   && $got_prim != $BIND_VAL_UINT)
+                                   && $got_prim != nqp::const::BIND_VAL_UINT)
                               || (($type_flags +& nqp::const::TYPE_NATIVE_NUM)
-                                   && $got_prim != $BIND_VAL_NUM);
+                                   && $got_prim != nqp::const::BIND_VAL_NUM);
                         }
 
                         # Otherwise, we want an object type. Figure out the
@@ -3323,9 +3318,16 @@ nqp::register('raku-invoke', -> $capture {
             my $arg-type;
             my int $could-not-guard;
             my int $prim := nqp::captureposprimspec($capture, 1);
-            if $prim == 1    { $arg-type := Int }
-            elsif $prim == 2 { $arg-type := Num }
-            elsif $prim == 3 { $arg-type := Str }
+            if $prim == nqp::const::BIND_VAL_INT
+              || $prim == nqp::const::BIND_VAL_UINT {
+                $arg-type := Int
+            }
+            elsif $prim == nqp::const::BIND_VAL_NUM {
+                $arg-type := Num
+            }
+            elsif $prim == nqp::const::BIND_VAL_STR {
+                $arg-type := Str
+            }
             else {
                 # Object argument, so type guard.
                 my $arg := nqp::captureposarg($capture, 1);
@@ -3868,9 +3870,9 @@ nqp::register('raku-boolify', -> $capture {
     # Get the thing to boolify and track it
     my $arg-spec := nqp::captureposprimspec($capture, 0);
     my $arg := $arg-spec
-      ?? $arg-spec == 1
+      ?? $arg-spec == nqp::const::BIND_VAL_INT  # XXX UINT ??
         ?? nqp::captureposarg_i($capture, 0)
-        !! $arg-spec == 2
+        !! $arg-spec == nqp::const::BIND_VAL_NUM
           ?? nqp::captureposarg_n($capture, 0)
           !! nqp::captureposarg_s($capture, 0)
       !! nqp::captureposarg($capture, 0);

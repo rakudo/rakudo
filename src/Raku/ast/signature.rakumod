@@ -604,8 +604,6 @@ class RakuAST::Parameter
         nqp::bindattr($parameter, Parameter, '$!type', $type);
         if $!target {
             my $name := $!target.introspection-name;
-            my constant SIG_ELEM_IS_RW   := 256;
-            my constant SIG_ELEM_IS_COPY := 512;
             for self.IMPL-UNWRAP-LIST(self.traits) {
                 if nqp::istype($_, RakuAST::Trait::Is) && ($_.name.canonicalize eq 'copy' || $_.name.canonicalize eq 'rw') {
                     my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
@@ -642,62 +640,50 @@ class RakuAST::Parameter
     }
 
     method IMPL-FLAGS() {
-        my constant SIG_ELEM_INVOCANT            := 64;
-        my constant SIG_ELEM_MULTI_INVOCANT      := 128;
-        my constant SIG_ELEM_IS_RAW              := 1024;
-        my constant SIG_ELEM_IS_OPTIONAL         := 2048;
-        my constant SIG_ELEM_ARRAY_SIGIL         := 4096;
-        my constant SIG_ELEM_HASH_SIGIL          := 8192;
-        my constant SIG_ELEM_UNDEFINED_ONLY      := 65536;
-        my constant SIG_ELEM_DEFINED_ONLY        := 131072;
-        my constant SIG_ELEM_TYPE_GENERIC        := 524288;
-        my constant SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
-        my constant SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
-        my constant SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
-        my constant SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
-        my constant SIG_ELEM_CODE_SIGIL          := 33554432;
-        my constant SIG_ELEM_IS_COERCIVE         := 67108864;
 
         my $sigil := $!target.sigil;
         my int $flags;
-        $flags := $flags +| SIG_ELEM_INVOCANT if $!invocant;
-        $flags := $flags +| SIG_ELEM_MULTI_INVOCANT;
-        $flags := $flags +| SIG_ELEM_IS_OPTIONAL if self.is-optional;
+        $flags := $flags +| nqp::const::SIG_ELEM_INVOCANT if $!invocant;
+        $flags := $flags +| nqp::const::SIG_ELEM_MULTI_INVOCANT;
+        $flags := $flags +| nqp::const::SIG_ELEM_IS_OPTIONAL if self.is-optional;
         if $sigil eq '@' {
-            $flags := $flags +| SIG_ELEM_ARRAY_SIGIL;
+            $flags := $flags +| nqp::const::SIG_ELEM_ARRAY_SIGIL;
         }
         elsif $sigil eq '%' {
-            $flags := $flags +| SIG_ELEM_HASH_SIGIL;
+            $flags := $flags +| nqp::const::SIG_ELEM_HASH_SIGIL;
         }
         elsif $sigil eq '&' {
-            $flags := $flags +| SIG_ELEM_CODE_SIGIL;
+            $flags := $flags +| nqp::const::SIG_ELEM_CODE_SIGIL;
         }
         if nqp::istype($!target, RakuAST::ParameterTarget::Term) {
-            $flags := $flags +| SIG_ELEM_IS_RAW;
+            $flags := $flags +| nqp::const::SIG_ELEM_IS_RAW;
         }
         if nqp::istype($!type, RakuAST::Type::Definedness) {
-            $flags := $flags +| ($!type.definite ?? SIG_ELEM_DEFINED_ONLY !! SIG_ELEM_UNDEFINED_ONLY);
+            $flags := $flags +| ($!type.definite
+              ?? nqp::const::SIG_ELEM_DEFINED_ONLY
+              !! nqp::const::SIG_ELEM_UNDEFINED_ONLY
+            );
         }
         if nqp::istype($!type, RakuAST::Type::Coercion) {
-            $flags := $flags +| SIG_ELEM_IS_COERCIVE;
+            $flags := $flags +| nqp::const::SIG_ELEM_IS_COERCIVE;
         }
         if $!type {
             my $meta-object := $!type.meta-object;
             if $meta-object.HOW.archetypes.generic {
-                $flags := $flags +| SIG_ELEM_TYPE_GENERIC;
+                $flags := $flags +| nqp::const::SIG_ELEM_TYPE_GENERIC;
             }
             my $primspec := nqp::objprimspec($!type.meta-object);
-            if $primspec == 1 {
-                $flags := $flags +| SIG_ELEM_NATIVE_INT_VALUE;
+            if $primspec == nqp::const::BIND_VAL_INT {
+                $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_INT_VALUE;
             }
-            elsif $primspec == 2 {
-                $flags := $flags +| SIG_ELEM_NATIVE_NUM_VALUE;
+            elsif $primspec == nqp::const::BIND_VAL_NUM {
+                $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_NUM_VALUE;
             }
-            elsif $primspec == 3 {
-                $flags := $flags +| SIG_ELEM_NATIVE_STR_VALUE;
+            elsif $primspec == nqp::const::BIND_VAL_STR {
+                $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_STR_VALUE;
             }
-            elsif $primspec == 10 {
-                $flags := $flags +| SIG_ELEM_NATIVE_UINT_VALUE;
+            elsif $primspec == nqp::const::BIND_VAL_UINT {
+                $flags := $flags +| nqp::const::SIG_ELEM_NATIVE_UINT_VALUE;
             }
         }
         $flags := $flags +| $!slurpy.IMPL-FLAGS($sigil);
@@ -817,16 +803,12 @@ class RakuAST::Parameter
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         nqp::die('shouldnt get here') if $!sub-signature;
         # Flag constants we need to pay attention to.
-        my constant SIG_ELEM_IS_RW               := 256;
-        my constant SIG_ELEM_IS_COPY             := 512;
-        my constant SIG_ELEM_IS_RAW              := 1024;
-        my constant SIG_ELEM_IS_COERCIVE         := 67108864;
         my @iscont-ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
 
         # Get the parameter meta-object, since traits can change some things.
         my $param-obj := self.meta-object;
         my int $flags := nqp::getattr_i($param-obj, Parameter, '$!flags');
-        my int $is-rw := $flags +& SIG_ELEM_IS_RW;
+        my int $is-rw := $flags +& nqp::const::SIG_ELEM_IS_RW;
 
         my $param-type := nqp::getattr($param-obj, Parameter, '$!type');
         my $ptype-archetypes := $param-type.HOW.archetypes($param-type);
@@ -1029,7 +1011,7 @@ class RakuAST::Parameter
                                 QAST::WVal.new(:value(Parameter)),
                                 QAST::SVal.new(:value('$!flags'))
                             ),
-                            QAST::IVal.new(:value(SIG_ELEM_IS_COERCIVE))
+                            QAST::IVal.new(:value(nqp::const::SIG_ELEM_IS_COERCIVE))
                         ),
                         QAST::Op.new(
                             :op('bind'),
@@ -1150,14 +1132,16 @@ class RakuAST::Parameter
                     )));
         }
         if nqp::isconcrete($!target) {
-            if $flags +& (SIG_ELEM_IS_RW +| SIG_ELEM_IS_RAW) {
+            if $flags +& (
+              nqp::const::SIG_ELEM_IS_RW +| nqp::const::SIG_ELEM_IS_RAW
+            ) {
                 # Don't do any decontainerization (rw or raw).
                 $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast-var));
             }
             else {
                 my $value := $get-decont-var() // $temp-qast-var;
 
-                if $flags +& SIG_ELEM_IS_COPY {
+                if $flags +& nqp::const::SIG_ELEM_IS_COPY {
                     my $sigil := $!target.sigil;
                     if (my $is-array := $sigil eq '@') || $sigil eq '%' {
                         my $copy-var := $name ~ '_copy';
@@ -1543,10 +1527,8 @@ class RakuAST::Parameter::Slurpy::Flattened
   is RakuAST::Parameter::Slurpy
 {
     method IMPL-FLAGS(str $sigil) {
-        my constant SIG_ELEM_SLURPY_POS   := 8;
-        my constant SIG_ELEM_SLURPY_NAMED := 16;
-        $sigil eq '@' ?? SIG_ELEM_SLURPY_POS !!
-        $sigil eq '%' ?? SIG_ELEM_SLURPY_NAMED !!
+        $sigil eq '@' ?? nqp::const::SIG_ELEM_SLURPY_POS !!
+        $sigil eq '%' ?? nqp::const::SIG_ELEM_SLURPY_NAMED !!
                          0
     }
 
@@ -1584,8 +1566,7 @@ class RakuAST::Parameter::Slurpy::Unflattened
   is RakuAST::Parameter::Slurpy
 {
     method IMPL-FLAGS(str $sigil) {
-        my constant SIG_ELEM_SLURPY_LOL := 32;
-        $sigil eq '@' ?? SIG_ELEM_SLURPY_LOL !! 0
+        $sigil eq '@' ?? nqp::const::SIG_ELEM_SLURPY_LOL !! 0
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
@@ -1604,8 +1585,9 @@ class RakuAST::Parameter::Slurpy::SingleArgument
   is RakuAST::Parameter::Slurpy
 {
     method IMPL-FLAGS(str $sigil) {
-        my constant SIG_ELEM_SLURPY_ONEARG := 16777216;
-        $sigil eq '@' || $sigil eq '' ?? SIG_ELEM_SLURPY_ONEARG !! 0
+        $sigil eq '@' || $sigil eq ''
+          ?? nqp::const::SIG_ELEM_SLURPY_ONEARG
+          !! 0
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
@@ -1624,8 +1606,7 @@ class RakuAST::Parameter::Slurpy::Capture
   is RakuAST::Parameter::Slurpy
 {
     method IMPL-FLAGS(str $sigil) {
-        my constant SIG_ELEM_IS_CAPTURE := 32768;
-        SIG_ELEM_IS_CAPTURE
+        nqp::const::SIG_ELEM_IS_CAPTURE
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,

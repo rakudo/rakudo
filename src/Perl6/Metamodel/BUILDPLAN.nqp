@@ -84,7 +84,7 @@ role Perl6::Metamodel::BUILDPLAN {
                     next;
                 }
             }
-            if nqp::objprimspec($_.type) == 0 {
+            if nqp::objprimspec($_.type) == nqp::const::BIND_VAL_OBJ {
                 %attrs_untouched{$_.name} := NQPMu;
             }
         }
@@ -186,9 +186,9 @@ role Perl6::Metamodel::BUILDPLAN {
                     # check native attribute
                     elsif $primspec {
                         my $destination := $*W.find_single_symbol(
-                          $primspec == 2
+                          $primspec == nqp::const::BIND_VAL_NUM
                             ?? "Num"
-                            !! $primspec == 3
+                            !! $primspec == nqp::const::BIND_VAL_STR
                               ?? "Str"
                               !! "Int"  # 1,4,5,10
                         );

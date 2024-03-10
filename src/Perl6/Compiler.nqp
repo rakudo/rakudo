@@ -94,7 +94,7 @@ class Perl6::Compiler is HLL::Compiler {
             my $is-list := nqp::islist($internal);
             my $is-version := !nqp::isnull($Version) && nqp::istype($internal, $Version);
             my @parts;
-            if $primspec == 3 || $is-list || $is-version {
+            if $primspec == nqp::const::BIND_VAL_STR || $is-list || $is-version {
                 # A string
                 @parts := $is-version
                     ?? nqp::clone(nqp::getattr($internal, $Version, '$!parts'))
@@ -102,7 +102,8 @@ class Perl6::Compiler is HLL::Compiler {
                         ?? nqp::clone($internal)
                         !! nqp::split(".", $internal);
                 my $rev := @parts[0];
-                if nqp::objprimspec($rev) == 3 && $rev ~~ /^ v? $<vnum>=\d+ $<plus>='+'? $/ -> $m {
+                if nqp::objprimspec($rev) == nqp::const::BIND_VAL_STR
+                  && $rev ~~ /^ v? $<vnum>=\d+ $<plus>='+'? $/ -> $m {
                     # Turn internal revision number info a Perl6-revision char
                     @parts[0] := self.p6rev(+$m<vnum>) ~ $m<plus>;
                 }
@@ -110,7 +111,8 @@ class Perl6::Compiler is HLL::Compiler {
                     @parts[0] := self.p6rev($rev);
                 }
             }
-            elsif $primspec == 1 || $primspec == 10 { # int, unit
+            elsif $primspec == nqp::const::BIND_VAL_INT
+              || $primspec == nqp::const::BIND_VAL_UINT {
                 @parts.push: self.p6rev($internal);
             }
             else {

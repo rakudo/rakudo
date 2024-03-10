@@ -119,11 +119,6 @@ my stub Int64MultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 # so we exclude everything else.
 my class Binder {
 
-    # Binding result flags.
-    my int $BIND_RESULT_OK       := 0;
-    my int $BIND_RESULT_FAIL     := 1;
-    my int $BIND_RESULT_JUNCTION := 2;
-
 #?if !jvm
 
     my $autothreader;
@@ -356,7 +351,7 @@ my class Binder {
                       "Expected a modifiable native $expected argument for '$varname'"
                     ) if nqp::defined($error);
 
-                    return $BIND_RESULT_FAIL;
+                    return nqp::const::BIND_RESULT_FAIL;
                 }
             }
         }
@@ -395,7 +390,7 @@ my class Binder {
                   "Incompatible native type passed for '$varname'"
                 ) if nqp::defined($error);
 
-                return $BIND_RESULT_FAIL;
+                return nqp::const::BIND_RESULT_FAIL;
             }
 
             $got_native := $desired_native;
@@ -431,7 +426,7 @@ my class Binder {
                   || nqp::istype($oval, $param_type) {
 
                     # Report junction failure mode if it's a junction.
-                    return $BIND_RESULT_JUNCTION
+                    return nqp::const::BIND_RESULT_JUNCTION
                       if nqp::eqaddr($oval.WHAT, Junction)
                       && nqp::isconcrete($oval);
 
@@ -439,7 +434,7 @@ my class Binder {
                     nqp::bindpos($error, 0, typecheck_fail(
                       :$oval, :$param, :$param_type, :$varname,
                     )) if nqp::defined($error);
-                    return $BIND_RESULT_FAIL;
+                    return nqp::const::BIND_RESULT_FAIL;
                 }
 
                 # Also enforce definedness constraints.
@@ -454,7 +449,7 @@ my class Binder {
                            && $isconcrete {
 
                         # Report junction failure mode if it's a junction.
-                        return $BIND_RESULT_JUNCTION
+                        return nqp::const::BIND_RESULT_JUNCTION
                           if $isconcrete
                           && nqp::eqaddr($oval.WHAT, Junction);
 
@@ -463,7 +458,7 @@ my class Binder {
                           :$flags, :$lexpad, :$oval, :$param_type,
                           :$should_be_concrete, :$varname,
                         )) if nqp::defined($error);
-                        return $BIND_RESULT_FAIL;
+                        return nqp::const::BIND_RESULT_FAIL;
                     }
                 }
             }
@@ -487,7 +482,7 @@ my class Binder {
                 nqp::bindpos($error, 0,
                   "Unable to coerce natively typed parameter '$varname'"
                 ) if nqp::defined($error);
-                return $BIND_RESULT_FAIL;
+                return nqp::const::BIND_RESULT_FAIL;
             }
 
             my $coercion_type := $param_type.HOW.wrappee($param_type,:coercion);
@@ -529,7 +524,7 @@ my class Binder {
                           :symbol($varname)
                         )
                     }) if nqp::defined($error);
-                    return $BIND_RESULT_FAIL;
+                    return nqp::const::BIND_RESULT_FAIL;
                 }
             }
 
@@ -618,7 +613,7 @@ my class Binder {
                         )
                     }) if nqp::defined($error);
 
-                    return $BIND_RESULT_FAIL;
+                    return nqp::const::BIND_RESULT_FAIL;
                 }
             }
         }
@@ -657,7 +652,7 @@ my class Binder {
                         )
                     }) if nqp::defined($error);
 
-                    return $BIND_RESULT_FAIL;
+                    return nqp::const::BIND_RESULT_FAIL;
                 }
 
                 ++$i;
@@ -673,7 +668,7 @@ my class Binder {
                   "Unable to bind attributive parameter '$varname'; could not find self"
                 ) if nqp::defined($error);
 
-                return $BIND_RESULT_FAIL;
+                return nqp::const::BIND_RESULT_FAIL;
             }
 
             # Ensure it's not native; NYI.
@@ -682,7 +677,7 @@ my class Binder {
                   "Binding to natively typed attributive parameter '$varname' not supported"
                 ) if nqp::defined($error);
 
-                return $BIND_RESULT_FAIL;
+                return nqp::const::BIND_RESULT_FAIL;
             }
 
             # Find self and get the attribute container
@@ -719,7 +714,7 @@ my class Binder {
                   $error, 0, "Could not turn argument into capture"
                 ) if nqp::defined($error);
 
-                return $BIND_RESULT_FAIL;
+                return nqp::const::BIND_RESULT_FAIL;
             }
 
             # Recurse into signature binder.
@@ -730,7 +725,7 @@ my class Binder {
               $no_param_type_check,
               $error
             );
-            unless $result == $BIND_RESULT_OK {
+            unless $result == nqp::const::BIND_RESULT_OK {
                 if nqp::defined($error)
                   && nqp::isstr(my $message := nqp::atpos($error, 0)) {
 
@@ -742,12 +737,12 @@ my class Binder {
                     nqp::bindpos($error, 0, $message);
                 }
 
-                return $BIND_RESULT_FAIL;
+                return nqp::const::BIND_RESULT_FAIL;
             }
         }
 
         # Binding of this parameter was thus successful - we're done.
-        $BIND_RESULT_OK
+        nqp::const::BIND_RESULT_OK
     }
 
     # Drives the overall binding process.
@@ -799,7 +794,7 @@ my class Binder {
                 if nqp::isnull_s($var_name)
                   && !nqp::getattr($param, Parameter, '$!sub_signature')
                   && !nqp::getattr($param, Parameter, '@!post_constraints') {
-                    $bind_fail := $BIND_RESULT_OK;
+                    $bind_fail := nqp::const::BIND_RESULT_OK;
                 }
 
                 # Has a name, so we need to do the work.
@@ -811,16 +806,16 @@ my class Binder {
                     while $k < $num_pos_args {
                         $got_prim := nqp::captureposprimspec($capture, $k);
                         nqp::push(@pos_args, $got_prim
-                          ?? $got_prim == 3
+                          ?? $got_prim == nqp::const::BIND_VAL_STR
                             ?? nqp::box_s(
                                  nqp::captureposarg_s($capture, $k), Str
                                )
-                            !! $got_prim == 2
+                            !! $got_prim == nqp::const::BIND_VAL_NUM
                               ?? nqp::box_n(
                                    nqp::captureposarg_n($capture, $k), Num
                                  )
-                              !! nqp::box_i(  # 1 or 10
-                                   $got_prim == 10
+                              !! nqp::box_i(  # INT | UINT
+                                   $got_prim == nqp::const::BIND_VAL_UINT
                                      ?? nqp::captureposarg_u($capture, $k)
                                      !! nqp::captureposarg_i($capture, $k),
                                    Int
@@ -846,7 +841,7 @@ my class Binder {
                 # Since a capture acts as "the ultimate slurpy" in a sense, if
                 # this is the last parameter in the signature we can return
                 # success right off the bat.
-                return $BIND_RESULT_OK if $i == $num_params;
+                return nqp::const::BIND_RESULT_OK if $i == $num_params;
 
                 # Not the last parameter, reset flag if next is slurpy
                 $arity_fail := 0
@@ -897,18 +892,18 @@ my class Binder {
                           nqp::captureposprimspec($capture, $cur_pos_arg);
 
                         nqp::push($temp, $got_prim
-                          ?? $got_prim == 3
+                          ?? $got_prim == nqp::const::BIND_VAL_STR
                             ?? nqp::box_s(
                                  nqp::captureposarg_s($capture, $cur_pos_arg),
                                  Str
                                )
-                            !! $got_prim == 2
+                            !! $got_prim == nqp::const::BIND_VAL_NUM
                               ?? nqp::box_n(
                                    nqp::captureposarg_n($capture, $cur_pos_arg),
                                    Num
                                  )
-                              !! nqp::box_i(  # 1 or 10
-                                   $got_prim == 10
+                              !! nqp::box_i(  # INT | UINT
+                                   $got_prim == nqp::const::BIND_VAL_UINT
                                      ?? nqp::captureposarg_u(
                                           $capture, $cur_pos_arg
                                         )
@@ -946,7 +941,7 @@ my class Binder {
                       nqp::captureposprimspec($capture, $cur_pos_arg);
 
                     $bind_fail := $got_prim
-                      ?? $got_prim == 3
+                      ?? $got_prim == nqp::const::BIND_VAL_STR
                         ?? bind_one_param(
                              $sig, $lexpad, $no_param_type_check, $error,
                              $param,
@@ -956,7 +951,7 @@ my class Binder {
                              0.0,
                              nqp::captureposarg_s($capture, $cur_pos_arg)
                            )
-                        !! $got_prim == 2
+                        !! $got_prim == nqp::const::BIND_VAL_NUM
                           ?? bind_one_param(
                                $sig, $lexpad, $no_param_type_check, $error,
                                $param,
@@ -966,12 +961,12 @@ my class Binder {
                                nqp::captureposarg_n($capture, $cur_pos_arg),
                                ''
                              )
-                          !! bind_one_param(  # 1 or 10
+                          !! bind_one_param(  # INT | UINT
                                $sig, $lexpad, $no_param_type_check, $error,
                                $param,
                                nqp::const::SIG_ELEM_NATIVE_INT_VALUE,
                                nqp::null,
-                               $got_prim == 10
+                               $got_prim == nqp::const::BIND_VAL_UINT
                                  ?? nqp::captureposarg_u($capture,$cur_pos_arg)
                                  !! nqp::captureposarg_i($capture,$cur_pos_arg),
                                0.0,
@@ -1014,7 +1009,7 @@ my class Binder {
                       @params, $num_params, $num_pos_args, 0, $lexpad
                     )) if nqp::defined($error);
 
-                    return $BIND_RESULT_FAIL;
+                    return nqp::const::BIND_RESULT_FAIL;
                 }
             }
 
@@ -1063,7 +1058,7 @@ my class Binder {
                           ~ "' not passed"
                         ) if nqp::defined($error);
 
-                        return $BIND_RESULT_FAIL;
+                        return nqp::const::BIND_RESULT_FAIL;
                     }
                 }
 
@@ -1093,7 +1088,7 @@ my class Binder {
               @params, $num_params, $num_pos_args, 1, $lexpad
             )) if nqp::defined($error);
 
-            $BIND_RESULT_FAIL
+            nqp::const::BIND_RESULT_FAIL
         }
 
         # Oh noes, unexpected named args.
@@ -1115,12 +1110,12 @@ my class Binder {
                        ~")"
                 );
             }
-            $BIND_RESULT_FAIL
+            nqp::const::BIND_RESULT_FAIL
         }
 
         # If we get here, we're done.
         else {
-            $BIND_RESULT_OK
+            nqp::const::BIND_RESULT_OK
         }
     }
 
@@ -1151,7 +1146,7 @@ my class Binder {
         my @error;
         my int $bind_res := bind($capture, $sig, $lexpad, 0, @error);
         if $bind_res {
-            if $bind_res == $BIND_RESULT_JUNCTION {
+            if $bind_res == nqp::const::BIND_RESULT_JUNCTION {
                 my @pos_args;
 
                 my int $num_pos_args := nqp::captureposelems($capture);
@@ -1209,7 +1204,7 @@ my class Binder {
           -> {
               bind(
                 $capture, $sig, nqp::ctxcaller(nqp::ctx), 0, NQPMu
-              ) != $BIND_RESULT_FAIL
+              ) != nqp::const::BIND_RESULT_FAIL
              }
         )
     }
@@ -1326,13 +1321,14 @@ my class Binder {
                         # can ever bind.
                         return $TRIAL_BIND_NO_WAY
                           if (($flags +& nqp::const::SIG_ELEM_NATIVE_STR_VALUE)
-                               && $got_prim != 3)
+                               && $got_prim != nqp::const::BIND_VAL_STR)
                           || (($flags +& nqp::const::SIG_ELEM_NATIVE_INT_VALUE)
-                               && $got_prim != 1)
+                               && $got_prim != nqp::const::BIND_VAL_INT)
                           || (($flags +& nqp::const::SIG_ELEM_NATIVE_UINT_VALUE)
-                               && $got_prim != 10 && $got_prim != 1)
+                               && $got_prim != nqp::const::BIND_VAL_UINT
+                               && $got_prim != nqp::const::BIND_VAL_INT)
                           || (($flags +& nqp::const::SIG_ELEM_NATIVE_NUM_VALUE)
-                               && $got_prim != 2);
+                               && $got_prim != nqp::const::BIND_VAL_NUM);
                     }
 
                     # We got an object; if we aren't sure we can unbox,
@@ -1362,11 +1358,12 @@ my class Binder {
                     # Work out a parameter type to consider, and see if it
                     # matches.
                     my $arg := $got_prim
-                      ?? $got_prim == 3
+                      ?? $got_prim == nqp::const::BIND_VAL_STR
                         ?? Str
-                        !! $got_prim == 1 || $got_prim == 10
+                        !! $got_prim == nqp::const::BIND_VAL_INT
+                          || $got_prim == nqp::const::BIND_VAL_UINT
                           ?? Int
-                          !! Num  # assume $got_prim == 2
+                          !! Num  # assume $got_prim == BIND_VAL_NUM
                       !! nqp::atpos($args, $cur_pos_arg);
 
                     my $param_type := nqp::getattr($param, Parameter, '$!type');
@@ -3788,17 +3785,12 @@ BEGIN {
 
     Routine.HOW.add_method(Routine, 'find_best_dispatchee',
       nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
-        my int $BIND_VAL_OBJ      := 0;
-        my int $BIND_VAL_INT      := 1;
-        my int $BIND_VAL_UINT     := 10;
-        my int $BIND_VAL_NUM      := 2;
-        my int $BIND_VAL_STR      := 3;
+        $self := nqp::decont($self);
 
         # Count arguments.
         my int $num_args := nqp::captureposelems($capture);
 
         # Get list and number of candidates, triggering a sort if there are none.
-        $self := nqp::decont($self);
         my @candidates := $self.dispatch_order;
 
         # Iterate over the candidates and collect best ones; terminate
@@ -3856,7 +3848,7 @@ BEGIN {
 
                             # Looking for a natively typed value. Did we
                             # get one?
-                            if $got_prim == $BIND_VAL_OBJ {
+                            if $got_prim == nqp::const::BIND_VAL_OBJ {
 
                                 # Object, but could be a native container.
                                 # If not, mismatch.
@@ -3876,14 +3868,14 @@ BEGIN {
                             # Got a native, does it match?
                             elsif (
                               ($flags +& nqp::const::TYPE_NATIVE_STR)
-                                && $got_prim != $BIND_VAL_STR
+                                && $got_prim != nqp::const::BIND_VAL_STR
                             ) || (
                               ($flags +& nqp::const::TYPE_NATIVE_INT)
-                                && $got_prim != $BIND_VAL_INT
+                                && $got_prim != nqp::const::BIND_VAL_INT
                             ) || (
                               ($flags +& nqp::const::TYPE_NATIVE_UINT)
-                                && $got_prim != $BIND_VAL_UINT
-                            ) || $got_prim != $BIND_VAL_NUM {  # NATIVE_NUM
+                                && $got_prim != nqp::const::BIND_VAL_UINT
+                            ) || $got_prim != nqp::const::BIND_VAL_NUM {  # NATIVE_NUM
 
                                 # Mismatch.
                                 $no_mismatch := 0;
@@ -3903,7 +3895,7 @@ BEGIN {
 
                             # Adapt type to any native argument (whether in a
                             # container or not)
-                            $got_prim == $BIND_VAL_OBJ
+                            $got_prim == nqp::const::BIND_VAL_OBJ
                               ?? nqp::iscont_s($arg)
                                 ?? ($type := Str)
                                 !! nqp::iscont_i($arg) || nqp::iscont_u($arg)
@@ -3911,10 +3903,10 @@ BEGIN {
                                   !! nqp::iscont_n($arg)
                                     ?? ($type := Num)
                                     !! ($primish := 0)  # not a native container
-                              !! $got_prim == $BIND_VAL_STR
+                              !! $got_prim == nqp::const::BIND_VAL_STR
                                 ?? ($type := Str)
-                                !! ($got_prim == $BIND_VAL_INT
-                                     || $got_prim == $BIND_VAL_UINT)
+                                !! ($got_prim == nqp::const::BIND_VAL_INT
+                                     || $got_prim == nqp::const::BIND_VAL_UINT)
                                   ?? ($type := Int)
                                   !! ($type := Num);  # BIND_VAL_NUM
 
@@ -3966,7 +3958,7 @@ BEGIN {
                         else {
                             my int $primish;
                             my $param := $arg;
-                            if $got_prim == $BIND_VAL_OBJ {
+                            if $got_prim == nqp::const::BIND_VAL_OBJ {
                                 if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
                                 elsif nqp::iscont_u($param) { $param := Int; $primish := 1; }
                                 elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
@@ -3974,9 +3966,9 @@ BEGIN {
                                 else { $param := nqp::hllizefor($param, 'Raku') }
                             }
                             else {
-                                $param := $got_prim == $BIND_VAL_INT ?? Int !!
-                                          $got_prim == $BIND_VAL_UINT ?? Int !!
-                                          $got_prim == $BIND_VAL_NUM ?? Num !!
+                                $param := $got_prim == nqp::const::BIND_VAL_INT ?? Int !!
+                                          $got_prim == nqp::const::BIND_VAL_UINT ?? Int !!
+                                          $got_prim == nqp::const::BIND_VAL_NUM ?? Num !!
                                                                         Str;
                                 $primish := 1;
                             }
@@ -4303,11 +4295,6 @@ BEGIN {
         my $MD_CT_NO_WAY   := -1;  # Proved it'd never manage to dispatch.
 
         # Other constants we need.
-        my int $BIND_VAL_OBJ      := 0;
-        my int $BIND_VAL_INT      := 1;
-        my int $BIND_VAL_UINT     := 10;
-        my int $BIND_VAL_NUM      := 2;
-        my int $BIND_VAL_STR      := 3;
         my int $ARG_IS_LITERAL    := 32;
 
         # Count arguments.
@@ -4378,7 +4365,7 @@ BEGIN {
                 if $type_flags +& nqp::const::TYPE_NATIVE_MASK {
 
                     # Did we get one?
-                    if $got_prim == $BIND_VAL_OBJ {
+                    if $got_prim == nqp::const::BIND_VAL_OBJ {
 
                         # Object; won't do.
                         $type_mismatch := 1;
@@ -4388,13 +4375,13 @@ BEGIN {
                     # Got a native, but does it have the right type? Also
                     # look at rw-ness for literals.
                     elsif ($type_flags +& nqp::const::TYPE_NATIVE_STR
-                           && $got_prim != $BIND_VAL_STR)
+                           && $got_prim != nqp::const::BIND_VAL_STR)
                       || ($type_flags +& nqp::const::TYPE_NATIVE_INT
-                           && $got_prim != $BIND_VAL_INT)
+                           && $got_prim != nqp::const::BIND_VAL_INT)
                       || ($type_flags +& nqp::const::TYPE_NATIVE_UINT
-                           && $got_prim != $BIND_VAL_UINT)
+                           && $got_prim != nqp::const::BIND_VAL_UINT)
                       || ($type_flags +& nqp::const::TYPE_NATIVE_NUM
-                           && $got_prim != $BIND_VAL_NUM)
+                           && $got_prim != nqp::const::BIND_VAL_NUM)
                       || (nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL
                            && nqp::atpos_i(
                                 nqp::atkey($candidate, 'rwness'), $i
@@ -4416,12 +4403,12 @@ BEGIN {
                     );
 
                     # Work out parameter.
-                    my $type := $got_prim == $BIND_VAL_OBJ
+                    my $type := $got_prim == nqp::const::BIND_VAL_OBJ
                       ?? nqp::atpos(@args, $i).WHAT
-                      !! $got_prim == $BIND_VAL_STR
+                      !! $got_prim == nqp::const::BIND_VAL_STR
                         ?? Str
-                        !! $got_prim == $BIND_VAL_INT
-                             || $got_prim == $BIND_VAL_UINT
+                        !! $got_prim == nqp::const::BIND_VAL_INT
+                             || $got_prim == nqp::const::BIND_VAL_UINT
                           ?? Int
                           !! Num;  # assume BIND_VAL_NUM
 
@@ -5522,24 +5509,24 @@ nqp::sethllconfig('Raku', nqp::hash(
         if $bind_res {
 
             # A Junction result
-            if $bind_res == 2 {
+            if $bind_res == nqp::const::BIND_RESULT_JUNCTION {
                 my @pos_args;
                 my int $num_pos_args := nqp::captureposelems($capture);
                 my int $i;
                 while $i < $num_pos_args {
                     my $got_prim := nqp::captureposprimspec($capture, $i);
                     nqp::push(@pos_args, $got_prim
-                      ?? $got_prim == 3
+                      ?? $got_prim == nqp::const::BIND_VAL_STR
                         ?? nqp::box_s(nqp::captureposarg_s($capture, $i), Str)
-                        !! $got_prim == 1
+                        !! $got_prim == nqp::const::BIND_VAL_INT
                           ?? nqp::box_i(
                                nqp::captureposarg_i($capture, $i), Int
                              )
-                          !! $got_prim == 10
+                          !! $got_prim == nqp::const::BIND_VAL_UINT
                             ?? nqp::box_u(
                                  nqp::captureposarg_u($capture, $i), Int
                                )
-                            !! nqp::box_n(  # got_prim == 2
+                            !! nqp::box_n(  # got_prim == BIND_VAL_NUM
                                  nqp::captureposarg_n($capture, $i), Num
                                )
                       !! nqp::captureposarg($capture, $i)
@@ -5700,8 +5687,12 @@ nqp::register('raku-hllize', -> $capture {
             $capture,
             0,
             nqp::atpos(
-              @transform_type,
-              $got_prim == 10 ?? 7 !! $got_prim > 3 ?? 1 !! $got_prim
+              @transform_type,  # XXX use a translation table
+              $got_prim == nqp::const::BIND_VAL_UINT
+                ?? 7
+                !! $got_prim > nqp::const::BIND_VAL_STR
+                  ?? 1
+                  !! $got_prim
             )
           )
         );

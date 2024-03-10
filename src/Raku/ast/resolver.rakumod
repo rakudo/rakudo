@@ -309,7 +309,8 @@ class RakuAST::Resolver {
     method resolve-lexical-in-outer(Str $name, Bool :$current-scope-only) {
 
         # Mapping primspec to apprpriate native type
-        my constant PRIMSPEC-TO-TYPE := nqp::list(Mu, int, num, str);
+        my constant PRIMSPEC-TO-TYPE :=
+          nqp::list(Mu, int, num, str, Mu, Mu, Mu, Mu, Mu, Mu, uint);
 
         # Look through the contexts for the name.
         my $context := $!outer;

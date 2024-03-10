@@ -454,10 +454,18 @@ sub decontrv_op($version) {
         else {
             my $type := &get_binder().get_return_type($op[0].value);
             if !nqp::isnull($type) && nqp::objprimspec(nqp::decont($type)) -> int $prim {
-                if    $prim == 1  { $qastcomp.as_mast($op[1], :want($MVM_reg_int64)) }
-                elsif $prim == 2  { $qastcomp.as_mast($op[1], :want($MVM_reg_num64)) }
-                elsif $prim == 10 { $qastcomp.as_mast($op[1], :want($MVM_reg_uint64)) }
-                else              { $qastcomp.as_mast($op[1], :want($MVM_reg_str)) }
+                if    $prim == nqp::const::BIND_VAL_INT {
+                    $qastcomp.as_mast($op[1], :want($MVM_reg_int64))
+                }
+                elsif $prim == nqp::const::BIND_VAL_NUM  {
+                    $qastcomp.as_mast($op[1], :want($MVM_reg_num64))
+                }
+                elsif $prim == nqp::const::BIND_VAL_UINT {
+                    $qastcomp.as_mast($op[1], :want($MVM_reg_uint64))
+                }
+                else {
+                    $qastcomp.as_mast($op[1], :want($MVM_reg_str))
+                }
             }
             else {
                 $qastcomp.as_mast(QAST::Op.new( :op("p6decontrv_internal"), $op[1], $version ));

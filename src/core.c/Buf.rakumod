@@ -376,7 +376,8 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
 
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     die "Can only parameterize with native int types, not '{T.^name}'."
-      unless nqp::objprimspec(T) == 1 || (nqp::objprimspec(T) >= 4 && nqp::objprimspec(T) <= 10);
+      unless nqp::objprimspec(T) == nqp::const::BIND_VAL_INT
+        || (nqp::objprimspec(T) >= 4 && nqp::objprimspec(T) <= 10);
 
     $?CLASS.^add_role(T.^unsigned ?? UnsignedBlob.^parameterize(T) !! SignedBlob.^parameterize(T));
 

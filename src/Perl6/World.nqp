@@ -2319,16 +2319,16 @@ class Perl6::World is HLL::World {
             $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
         }
         my $primspec := nqp::objprimspec(%param_info<type>);
-        if $primspec == 1 {
+        if $primspec == nqp::const::BIND_VAL_INT {
             $flags := $flags + nqp::const::SIG_ELEM_NATIVE_INT_VALUE;
         }
-        elsif $primspec == 2 {
+        elsif $primspec == nqp::const::BIND_VAL_NUM {
             $flags := $flags + nqp::const::SIG_ELEM_NATIVE_NUM_VALUE;
         }
-        elsif $primspec == 3 {
+        elsif $primspec == nqp::const::BIND_VAL_STR {
             $flags := $flags + nqp::const::SIG_ELEM_NATIVE_STR_VALUE;
         }
-        elsif $primspec == 10 {
+        elsif $primspec == nqp::const::BIND_VAL_UINT {
             $flags := $flags + nqp::const::SIG_ELEM_NATIVE_UINT_VALUE;
         }
 

@@ -633,6 +633,7 @@ my @expected = (
   Q{PromiseStatus},
   Q{ProtocolFamily},
   Q{ProtocolType},
+  Q{ProtoInfo},
   Q{Proxy},
   Q{PseudoStash},
   Q{QuantHash},

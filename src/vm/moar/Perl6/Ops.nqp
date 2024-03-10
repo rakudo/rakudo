@@ -77,19 +77,20 @@ $ops.add_hll_op('Raku', 'p6store', -> $qastcomp, $op {
     my $cont_res  := $qastcomp.as_mast(nqp::atpos($op, 0), :want($MVM_reg_obj));
     my $value_res := $qastcomp.as_mast(nqp::atpos($op, 1), :want($MVM_reg_obj));
 
-    my $iscont_reg  := $qastcomp.regalloc.fresh_i;
-    my $decont_reg  := $qastcomp.regalloc.fresh_o;
+    my $regalloc    := $qastcomp.regalloc;
+    my $iscont_reg  := $regalloc.fresh_i;
+    my $decont_reg  := $regalloc.fresh_o;
     my $no_cont_lbl := MAST::Label.new;
     my $done_lbl    := MAST::Label.new;
 
     my $frame := $qastcomp.mast_frame;
     MAST::Op.new(:$frame, :op<iscont>,   $iscont_reg, $cont_res.result_reg);
     MAST::Op.new(:$frame, :op<unless_i>, $iscont_reg, $no_cont_lbl);
-    $qastcomp.regalloc.release_register($iscont_reg, $MVM_reg_int64);
+    $regalloc.release_register($iscont_reg, $MVM_reg_int64);
 
     MAST::Op.new(:$frame, :op<decont>, $decont_reg, $value_res.result_reg);
     MAST::Op.new(:$frame, :op<assign>, $cont_res.result_reg, $decont_reg);
-    $qastcomp.regalloc.release_register($decont_reg, $MVM_reg_obj);
+    $regalloc.release_register($decont_reg, $MVM_reg_obj);
     MAST::Op.new(:$frame, :op<goto>, $done_lbl );
 
     $frame.add-label($no_cont_lbl);
@@ -115,16 +116,17 @@ $ops.add_hll_op('Raku', 'p6store', -> $qastcomp, $op {
 
 $ops.add_hll_op('Raku', 'p6definite', -> $qastcomp, $op {
     my $value_res := $qastcomp.as_mast(nqp::atpos($op, 0), :want($MVM_reg_obj));
-    my $tmp_reg := $qastcomp.regalloc.fresh_i;
-    my $res_reg := $qastcomp.regalloc.fresh_o;
+    my $regalloc := $qastcomp.regalloc;
+    my $tmp_reg  := $regalloc.fresh_i;
+    my $res_reg  := $regalloc.fresh_o;
 
     my $frame := $qastcomp.mast_frame;
     MAST::Op.new(:$frame, :op<decont>,     $res_reg, $value_res.result_reg );
     MAST::Op.new(:$frame, :op<isconcrete>, $tmp_reg, $res_reg );
     MAST::Op.new(:$frame, :op<hllbool>,    $res_reg, $tmp_reg );
 
-    $qastcomp.regalloc.release_register($value_res.result_reg, $MVM_reg_obj);
-    $qastcomp.regalloc.release_register($tmp_reg, $MVM_reg_int64);
+    $regalloc.release_register($value_res.result_reg, $MVM_reg_obj);
+    $regalloc.release_register($tmp_reg, $MVM_reg_int64);
     MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
 
@@ -208,16 +210,17 @@ $ops.add_hll_op('Raku', 'p6getouterctx', -> $qastcomp, $op {
 $ops.add_hll_moarop_mapping('nqp', 'p6captureouters2', 'p6captureouters', 0);
 
 $ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {
-    my $res_reg := $qastcomp.regalloc.fresh_o;
-    my $frame   := $qastcomp.mast_frame;
+    my $regalloc := $qastcomp.regalloc;
+    my $res_reg  := $regalloc.fresh_o;
+    my $frame    := $qastcomp.mast_frame;
     MAST::Op.new(:$frame, :op<param_sp>, $res_reg,
       MAST::IVal.new(:value(0), :size(16))
     );
 
-    my $i_reg    := $qastcomp.regalloc.fresh_i;
-    my $n_reg    := $qastcomp.regalloc.fresh_i;
-    my $cmp_reg  := $qastcomp.regalloc.fresh_i;
-    my $tmp_reg  := $qastcomp.regalloc.fresh_o;
+    my $i_reg    := $regalloc.fresh_i;
+    my $n_reg    := $regalloc.fresh_i;
+    my $cmp_reg  := $regalloc.fresh_i;
+    my $tmp_reg  := $regalloc.fresh_o;
     my $lbl_next := MAST::Label.new;
     my $lbl_done := MAST::Label.new;
     MAST::Op.new(:$frame, :op<elems>,     $n_reg, $res_reg );
@@ -240,10 +243,10 @@ $ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {
     MAST::Op.new(:$frame, :op<goto>,      $lbl_next );
 
     $frame.add-label($lbl_done);
-    $qastcomp.regalloc.release_register($i_reg, $MVM_reg_int64);
-    $qastcomp.regalloc.release_register($n_reg, $MVM_reg_int64);
-    $qastcomp.regalloc.release_register($cmp_reg, $MVM_reg_int64);
-    $qastcomp.regalloc.release_register($tmp_reg, $MVM_reg_obj);
+    $regalloc.release_register($i_reg, $MVM_reg_int64);
+    $regalloc.release_register($n_reg, $MVM_reg_int64);
+    $regalloc.release_register($cmp_reg, $MVM_reg_int64);
+    $regalloc.release_register($tmp_reg, $MVM_reg_obj);
     MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
 
@@ -264,7 +267,8 @@ $ops.add_hll_op('Raku', 'p6bindattrinvres', -> $qastcomp, $op {
       if nqp::istype($name, QAST::Want)
       && nqp::atpos($name,1 ) eq 'Ss';
 
-    my $frame := $qastcomp.mast_frame;
+    my $regalloc := $qastcomp.regalloc;
+    my $frame    := $qastcomp.mast_frame;
     if nqp::istype($name, QAST::SVal) {
         MAST::Op.new(:$frame, :op<bindattr_o>,
           $inv_res.result_reg,
@@ -282,11 +286,11 @@ $ops.add_hll_op('Raku', 'p6bindattrinvres', -> $qastcomp, $op {
           $nam_res.result_reg,
           $val_res.result_reg
         );
-        $qastcomp.regalloc.release_register($nam_res.result_reg, $MVM_reg_str);
+        $regalloc.release_register($nam_res.result_reg, $MVM_reg_str);
     }
 
-    $qastcomp.regalloc.release_register($ch_res.result_reg, $MVM_reg_obj);
-    $qastcomp.regalloc.release_register($val_res.result_reg, $MVM_reg_obj);
+    $regalloc.release_register($ch_res.result_reg, $MVM_reg_obj);
+    $regalloc.release_register($val_res.result_reg, $MVM_reg_obj);
     MAST::InstructionList.new($inv_res.result_reg, $MVM_reg_obj)
 });
 
@@ -429,7 +433,8 @@ QAST::MASTOperations.add_hll_unbox('Raku', $MVM_reg_str, -> $qastcomp, $reg {
 # Signature binding related bits.
 our $Binder;
 $ops.add_hll_op('Raku', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
-    my $isnull_result := $qastcomp.regalloc.fresh_i;
+    my $regalloc      := $qastcomp.regalloc;
+    my $isnull_result := $regalloc.fresh_i;
     my $dont_return_lbl := MAST::Label.new;
 
     my $bind_res := $qastcomp.as_mast(
@@ -446,8 +451,8 @@ $ops.add_hll_op('Raku', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     MAST::Op.new(:$frame, :op<return_o>, $bind_res.result_reg );
     $frame.add-label($dont_return_lbl);
 
-    $qastcomp.regalloc.release_register($bind_res.result_reg, $MVM_reg_obj);
-    $qastcomp.regalloc.release_register($isnull_result,       $MVM_reg_int64);
+    $regalloc.release_register($bind_res.result_reg, $MVM_reg_obj);
+    $regalloc.release_register($isnull_result,       $MVM_reg_int64);
     MAST::InstructionList.new(MAST::VOID, $MVM_reg_void)
 });
 

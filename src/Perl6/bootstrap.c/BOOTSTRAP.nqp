@@ -3518,13 +3518,6 @@ BEGIN {
         nqp::bindattr($self, Routine, '$!dispatch_info', %info)
     }));
 
-    # XXX why is this a method on Routine??
-    Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
-      nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
-        nqp::bindhllsym('Raku', 'MD_Pos', $Positional);
-        nqp::bindhllsym('Raku', 'MD_PBF', $PositionalBindFailover);
-    }));
-
     # Helper class to handle sorting by abstracting the edges logic into
     # a better optimizable object.
     class Node {

@@ -40,7 +40,8 @@ my role PositionalBindFailover {
     }
 }
 nqp::p6configposbindfailover(Positional, PositionalBindFailover); # Binder
-Routine.'!configure_positional_bind_failover'(Positional, PositionalBindFailover); # Multi-dispatch
+nqp::bindhllsym('Raku', 'MD_Pos', Positional);             # Multi-dispatch
+nqp::bindhllsym('Raku', 'MD_PBF', PositionalBindFailover); # Multi-dispatch
 
 my role Sequence does PositionalBindFailover {
     multi method Array(::?CLASS:D:) { Array.from-iterator(self.iterator) }

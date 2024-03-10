@@ -3566,21 +3566,22 @@ BEGIN {
                 $types_to_check := $num_types_b
                   if $types_to_check > $num_types_b
             }
-            elsif $max_arity_a != $SLURPY_ARITY
-               && $max_arity_b == $SLURPY_ARITY {
-                return 1;
-            }
             else {
-                return 0;
+                return $max_arity_a != $SLURPY_ARITY
+                    && $max_arity_b == $SLURPY_ARITY;
             }
+
+            # Shortcuts to lists
+            my $types_a := nqp::atkey(%a, 'types');
+            my $types_b := nqp::atkey(%b, 'types');
 
             # Analyse each parameter in the two candidates.
             my int $narrower;
             my int $tied;
             my int $i;
             while $i < $types_to_check {
-                my $type_obj_a := nqp::atpos(nqp::atkey(%a, 'types'), $i);
-                my $type_obj_b := nqp::atpos(nqp::atkey(%b, 'types'), $i);
+                my $type_obj_a := nqp::atpos($types_a, $i);
+                my $type_obj_b := nqp::atpos($types_b, $i);
 
                 if nqp::eqaddr($type_obj_a, $type_obj_b) {
 

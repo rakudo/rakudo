@@ -60,7 +60,6 @@ my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Code metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Block metaclass Perl6::Metamodel::ClassHOW { ... };
-my stub ProtoInfo metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Routine metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Sub metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Operator metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -3127,42 +3126,6 @@ BEGIN {
     Block.HOW.compose_invocation(Block);
 #?endif
 
-#- ProtoInfo -------------------------------------------------------------------
-# class ProtoInfo is Any {
-#     has @!dispatchees;
-#     has Mu $!dispatch_info;
-#     has @!dispatch_order;
-#     has Mu $!dispatch_cache;  # NOT on MoarVM
-
-    ProtoInfo.HOW.add_parent(ProtoInfo, Block);
-
-    ProtoInfo.HOW.add_attribute(ProtoInfo, Attribute.new(
-      :name<$!dispatchees>, :type(Mu), :package(ProtoInfo),
-    ));
-
-    ProtoInfo.HOW.add_attribute(ProtoInfo, Attribute.new(
-      :name<$!dispatch_info>, :type(Mu), :package(ProtoInfo)
-    ));
-
-    ProtoInfo.HOW.add_attribute(ProtoInfo, Attribute.new(
-      :name<$!dispatch_order>, :type(Mu), :package(ProtoInfo)
-    ));
-
-    ProtoInfo.HOW.add_attribute(ProtoInfo, scalar_attr(
-      '@!dispatch_order', List, ProtoInfo
-    ));
-
-#?if !moar
-    ProtoInfo.HOW.add_attribute(ProtoInfo, Attribute.new(
-      :name<$!dispatch_cache>, :type(Mu), :package(ProtoInfo)
-    ));
-#?endif
-
-    ProtoInfo.HOW.compose_repr(ProtoInfo);
-#?if !moar
-    ProtoInfo.HOW.compose_invocation(ProtoInfo);
-#?endif
-
 #- Routine ---------------------------------------------------------------------
 # class Routine is Block {
 #     has Mu $!dispatcher;
@@ -5328,7 +5291,6 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Parameter>  := Parameter;
     EXPORT::DEFAULT.WHO<Code>       := Code;
     EXPORT::DEFAULT.WHO<Block>      := Block;
-    EXPORT::DEFAULT.WHO<ProtoInfo>  := ProtoInfo;
     EXPORT::DEFAULT.WHO<Routine>    := Routine;
     EXPORT::DEFAULT.WHO<Sub>        := Sub;
     EXPORT::DEFAULT.WHO<Operator>   := Operator;

@@ -923,7 +923,7 @@ my class JunctionOptimizer {
         if $found == 1 {
             my @candidates;
             if $obj.is_dispatcher {
-                @candidates := nqp::getattr($obj, $!symbols.Routine, '@!dispatchees');
+                @candidates := $!symbols.Routine.dispatchees;
             }
             else {
                 @candidates := nqp::list($obj);
@@ -4466,27 +4466,30 @@ class Perl6::Optimizer {
     method call_ct_chosen_multi($call, $proto, $chosen) {
         self.simplify_refs($call, $chosen.signature);
         if nqp::getcomp('Raku').backend.name eq 'jvm' {
-            my @cands := $proto.dispatchees();
-            my int $idx := 0;
-            for @cands {
-                if $_ =:= $chosen {
-                    $call.unshift(QAST::Op.new(
-                        :op('atpos'),
-                        QAST::Var.new(
-                            :name('@!dispatchees'), :scope('attribute'),
-                            QAST::Var.new( :name($call.name), :scope('lexical') ),
-                            QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
-                        ),
-                        QAST::IVal.new( :value($idx) )
-                    ));
-                    $call.name(NQPMu);
-                    $call.op('call');
-                    #say("# Compile-time resolved a call to " ~ $proto.name);
-                    last;
-                }
-                $idx := $idx + 1;
-            }
-            $call := copy_returns($call, $chosen);
+# DISABLED THIS OPTIMIZATION BECAUSE THE @!dispatchees ATTRIBUTE IS NO
+# LONGER IN THE Routine OBJECT.
+#            my @cands := $proto.dispatchees();
+#            my int $idx := 0;
+#            for @cands {
+#                if $_ =:= $chosen {
+#                    $call.unshift(
+#                      QAST::Op.new(:op<atpos>,
+#                        QAST::Var.new(
+#                          :name<@!dispatchees>, :scope<attribute>,
+#                          QAST::Var.new(:name($call.name), :scope<lexical>),
+#                          QAST::WVal.new(:value($!symbols.find_lexical('Routine')))
+#                        ),
+#                        QAST::IVal.new(:value($idx))
+#                      )
+#                    );
+#                    $call.name(NQPMu);
+#                    $call.op('call');
+#                    #say("# Compile-time resolved a call to " ~ $proto.name);
+#                    last;
+#                }
+#                $idx := $idx + 1;
+#            }
+#            $call := copy_returns($call, $chosen);
         }
         else {
             my $scopes := $!symbols.scopes_in($call.name);
@@ -4558,8 +4561,8 @@ class Perl6::Optimizer {
         }
         elsif nqp::can($routine, 'is_dispatcher') && $routine.is_dispatcher {
             my @dispatchees := nqp::istype($routine, NQPRoutine)
-                                ?? nqp::getattr($routine, NQPRoutine, '$!dispatchees')
-                                !! nqp::getattr($routine, $!symbols.Routine, '@!dispatchees');
+              ?? nqp::getattr($routine, NQPRoutine, '$!dispatchees')
+              !! $routine.dispatchees;
             for @dispatchees {
                 self.routine_candidates($_, @candidates);
             }

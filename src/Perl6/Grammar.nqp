@@ -2433,7 +2433,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DOC := $*DECLARATOR_DOCS;
         { $*DECLARATOR_DOCS := '' }
         :my $*POD_BLOCK;
-        :my $*DECLARAND := $*W.stub_code_object('Sub');
+        :my $*DECLARAND := $*W.stub_code_object('Sub', :proto($*IN_PROTO));
         :my $*CODE_OBJECT := $*DECLARAND;
         :my $*CURPAD;
         :my $*SIG_OBJ;

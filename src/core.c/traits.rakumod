@@ -13,6 +13,9 @@ my class X::Syntax::ParentAsHash { ... }
 my class X::TypeCheck::Assignment { ... }
 
 proto sub trait_mod:<is>(Mu $, |) {*}
+BEGIN {
+    nqp::say(nqp::unbox_i(&trait_mod:<is>.is_dispatcher));
+}
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
     if $parent.HOW.archetypes.inheritable()
         || ($child.HOW.archetypes.parametric && $parent.^archetypes.generic)
@@ -414,8 +417,11 @@ multi sub trait_mod:<returns>(Routine:D $target, Mu:U $type) {
     $target.^mixin(Callable.^parameterize($type))
 }
 
+BEGIN { nqp::say("after returns") }
+
 proto sub trait_mod:<handles>($, $, *%) {*}
-multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
+BEGIN { nqp::say("after proto handles") }
+multi sub trait_mod:<handles>($target, $thunk) {
     $target does role {
         has $.handles;
 
@@ -500,6 +506,8 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
     };
     $target.set_handles($thunk());
 }
+
+BEGIN { nqp::say("after handles") }
 
 multi sub trait_mod:<handles>(Method:D $m, &thunk) {
     $m does role {

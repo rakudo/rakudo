@@ -14,28 +14,17 @@ my class Routine { # declared in BOOTSTRAP
     #     has Mu $!inline_info;
     #     has Mu $!package;
     #     has Mu $!op_props;  # to be DEPRECATED
-    #--- proto specific ---
-    #     has @!dispatchees;
-    #     has Mu $!dispatch_info;
-    #     has @!dispatch_order;
-    #     has Mu $!dispatch_cache;  # NOT on MoarVM
 
     method candidates(Bool :$local = True, Bool() :$with-proto) {
         $local
-            ?? (self.is_dispatcher ?? nqp::hllize(@!dispatchees) !! (self,))
+            ?? (self.is_dispatcher ?? nqp::hllize(self.dispatchees) !! (self,))
             !! Seq.new(self.iterator(:candidates, :!local, :$with-proto))
     }
 
     proto method cando(|) {*}
     multi method cando(Capture:D $c) {
-        my $disp;
-        if self.is_dispatcher {
-            $disp := self;
-        }
-        else {
-            $disp := nqp::create(self);
-            nqp::bindattr($disp, Routine, '@!dispatchees', nqp::list(self));
-        }
+        my $disp := self.is_dispatcher ?? self !! self.new(:proto);
+
         # Call this lexical sub to get rid of 'self' in the signature.
         sub checker(|) {
             nqp::hllize($disp.find_best_dispatchee(nqp::usecapture(), 1))
@@ -45,7 +34,7 @@ my class Routine { # declared in BOOTSTRAP
     multi method cando(|c) { self.cando(c) }
 
     method multi() {
-        self.dispatcher.defined
+        nqp::hllbool(nqp::isinvokable($!dispatcher))
     }
 
     multi method gist(Routine:D:) {
@@ -233,7 +222,7 @@ my class Routine { # declared in BOOTSTRAP
                     $candidates := $!routine.WRAPPERS;
                 }
                 elsif $!routine.?is_dispatcher {
-                    $candidates := nqp::getattr($!routine, Routine, '@!dispatchees');
+                    $candidates := $!routine.dispatchees;
                     $!pos = -1 if $!with-proto;
                 }
             }

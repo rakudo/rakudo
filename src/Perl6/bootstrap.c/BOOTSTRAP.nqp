@@ -2938,6 +2938,13 @@ BEGIN {
       '@!compstuff', List, Code
     ));
 
+    Code.HOW.add_method(Code, 'new',
+      nqp::getstaticcode(sub ($self, *%_) {
+        $self := nqp::decont($self);
+
+        nqp::create($self)
+    }));
+
     # Need clone in here, plus generics instantiation.
     Code.HOW.add_method(Code, 'clone',
       nqp::getstaticcode(sub ($self) {
@@ -3129,9 +3136,9 @@ BEGIN {
 
 #- ProtoInfo -------------------------------------------------------------------
 # class ProtoInfo is Any {
-#     has @!dispatchees;
+#     has Mu $!dispatchees;
 #     has Mu $!dispatch_info;
-#     has @!dispatch_order;
+#     has My $!dispatch_order;
 #     has Mu $!dispatch_cache;  # NOT on MoarVM
 
     ProtoInfo.HOW.add_parent(ProtoInfo, Block);
@@ -3148,180 +3155,80 @@ BEGIN {
       :name<$!dispatch_order>, :type(Mu), :package(ProtoInfo)
     ));
 
-    ProtoInfo.HOW.add_attribute(ProtoInfo, scalar_attr(
-      '@!dispatch_order', List, ProtoInfo
-    ));
-
 #?if !moar
     ProtoInfo.HOW.add_attribute(ProtoInfo, Attribute.new(
       :name<$!dispatch_cache>, :type(Mu), :package(ProtoInfo)
     ));
 #?endif
 
-    ProtoInfo.HOW.compose_repr(ProtoInfo);
-#?if !moar
-    ProtoInfo.HOW.compose_invocation(ProtoInfo);
-#?endif
-
-#- Routine ---------------------------------------------------------------------
-# class Routine is Block {
-#     has Mu $!dispatcher;
-#     has int $!flags;
-#     has Mu $!inline_info;
-#     has Mu $!package;
-#     has Mu $!op_props;  # to be DEPRECATED
-#--- proto specific ---
-#     has @!dispatchees;
-#     has Mu $!dispatch_info;
-#     has @!dispatch_order;
-#     has Mu $!dispatch_cache;  # NOT on MoarVM
-
-    Routine.HOW.add_parent(Routine, Block);
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<$!dispatcher>, :type(Mu), :package(Routine),
-      :auto_viv_primitive(NQPMu)
-    ));
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<$!flags>, :type(int), :package(Routine)
-    ));
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<$!inline_info>, :type(Mu), :package(Routine)
-    ));
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<$!package>, :type(Mu), :package(Routine)
-    ));
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<$!op_props>, :type(Mu), :package(Routine)  # to be DEPRECATED
-    ));
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<@!dispatchees>, :type(List), :package(Routine),
-      :auto_viv_primitive(NQPMu)
-    ));
-
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<$!dispatch_info>, :type(Mu), :package(Routine)
-    ));
-
-    Routine.HOW.add_attribute(Routine, scalar_attr(
-      '@!dispatch_order', List, Routine
-    ));
-
-#?if !moar
-    Routine.HOW.add_attribute(Routine, Attribute.new(
-      :name<$!dispatch_cache>, :type(Mu), :package(Routine)
-    ));
-#?endif
-
-    Routine.HOW.add_method(Routine, 'is_generic',
+    ProtoInfo.HOW.add_method(ProtoInfo, 'new',
       nqp::getstaticcode(sub ($self) {
-        $self := nqp::decont($self);
+        my $obj := nqp::create($self);
 
-        # Delegate to signature, since it contains all the type info.
-        nqp::getattr($self, Code, '$!signature').is_generic
+nqp::say("created proto");
+
+        nqp::bindattr($obj, ProtoInfo, '$!dispatchees',    nqp::list);
+        nqp::bindattr($obj, ProtoInfo, '$!dispatch_info',  nqp::null);
+        nqp::bindattr($obj, ProtoInfo, '$!dispatch_order', nqp::null);
+#?if !moar
+        nqp::bindattr($obj, ProtoInfo, '$!dispatch_cache', nqp::null);
+#?endif
+
+        $obj
     }));
 
-    Routine.HOW.add_method(Routine, 'instantiate_generic',
-      nqp::getstaticcode(sub ($self, $type_environment) {
-        $self := nqp::decont($self);
+    ProtoInfo.HOW.add_method(ProtoInfo, 'clone',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::clone($self);
 
-        # Clone the code object, then instantiate the generic signature.
-        # Also need to clone dispatchees list.
-        my $ins := $self.clone;
-
-        my $dispatchees := nqp::getattr($self, Routine, '@!dispatchees');
-        nqp::bindattr($ins, Routine, '@!dispatchees', nqp::clone($dispatchees))
-          if nqp::defined($dispatchees);
-
-        my $sig := nqp::getattr($self, Code, '$!signature');
-        nqp::bindattr($ins, Code, '$!signature',
-          $sig.instantiate_generic($type_environment)
+        nqp::bindattr($self, ProtoInfo, '$!dispatchees',
+          nqp::clone(nqp::getattr($self, ProtoInfo, '$!dispatchees'))
         );
-
-        $ins
-    }));
-
-    Routine.HOW.add_method(Routine, 'is_dispatcher',
-      nqp::getstaticcode(sub ($self) {
-        $self := nqp::decont($self);
-
-        nqp::defined(nqp::getattr($self, Routine, '@!dispatchees'))
-    }));
-
-    Routine.HOW.add_method(Routine, 'add_dispatchee',
-      nqp::getstaticcode(sub ($self, $dispatchee) {
-        $self := nqp::decont($self);
-
-        my $dispatchees := nqp::getattr($self, Routine, '@!dispatchees');
-        nqp::die("Cannot add dispatchee '"
-          ~ $dispatchee.name
-          ~ "' to non-dispatcher code object '"
-          ~ $self.name()
-          ~ "'"
-        ) unless nqp::defined($dispatchees);
-
-        nqp::push($dispatchees, $dispatchee);
-        nqp::bindattr($dispatchee, Routine, '$!dispatcher', $self);
-
-        nqp::scwbdisable;
-        nqp::bindattr($self, Routine, '@!dispatch_order', nqp::null);
+        nqp::bindattr($self, ProtoInfo, '$!dispatch_info',
+          nqp::clone(nqp::getattr($self, ProtoInfo, '$!dispatch_info'))
+        );
+        nqp::bindattr($self, ProtoInfo, '$!dispatch_order',
+          nqp::clone(nqp::getattr($self, ProtoInfo, '$!dispatch_order'))
+        );
 #?if !moar
-        nqp::bindattr($self, Routine, '$!dispatch_cache', nqp::null);
+        nqp::bindattr($self, ProtoInfo, '$!dispatch_cache',
+          nqp::clone(nqp::getattr($self, ProtoInfo, '$!dispatch_cache'))
+        );
 #?endif
-        nqp::scwbenable;
 
         $self
     }));
 
-    Routine.HOW.add_method(Routine, 'derive_dispatcher',
-      nqp::getstaticcode(sub ($self) {
-        $self  := $self.clone;
-
-        nqp::bindattr($self, Routine, '@!dispatchees',
-          nqp::clone(nqp::getattr($self, Routine, '@!dispatchees'))
-        );
-
-        $self
-    }));
-
-    Routine.HOW.add_method(Routine, 'dispatcher',
+    ProtoInfo.HOW.add_method(ProtoInfo, 'dispatchees',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
 
-        nqp::getattr($self, Routine, '$!dispatcher')
+nqp::say("in proto dispatchees with " ~ nqp::elems(
+  nqp::getattr($self, ProtoInfo, '$!dispatchees')
+));
+
+        nqp::getattr($self, ProtoInfo, '$!dispatchees')
     }));
 
-    Routine.HOW.add_method(Routine, 'dispatchees',
-      nqp::getstaticcode(sub ($self) {
+    ProtoInfo.HOW.add_method(ProtoInfo, 'dispatch_info',
+      nqp::getstaticcode(sub ($self, $routine) {
         $self := nqp::decont($self);
 
-        nqp::getattr($self, Routine, '@!dispatchees')
+        nqp::ifnull(
+          nqp::getattr($self, ProtoInfo, '$!dispatch_info'),
+          $self."!create_dispatch_info"($routine)
+        )
     }));
 
-    Routine.HOW.add_method(Routine, 'dispatch_info',
-      nqp::getstaticcode(sub ($self) {
-        $self := nqp::decont($self);
-
-        my $info := nqp::getattr($self, Routine, '$!dispatch_info');
-        nqp::isconcrete($info)
-          ?? $info
-          !! $self."!create_dispatch_info"()
-    }));
-
-    Routine.HOW.add_method(Routine, '!create_dispatch_info',
-      nqp::getstaticcode(sub ($self) {
+    ProtoInfo.HOW.add_method(ProtoInfo, '!create_dispatch_info',
+      nqp::getstaticcode(sub ($self, $routine) {
         $self := nqp::decont($self);
 
         # XXX convert to nqp::const::xxx
         my int $SLURPY_ARITY := 1073741824;  # 1 +< 30
 
         # Get hold of signature.
-        my $sig    := nqp::getattr($self, Code, '$!signature');
+        my $sig    := nqp::getattr($routine, Code, '$!signature');
         my @params := nqp::getattr($sig, Signature, '@!params');
 
         my @types       := nqp::list;
@@ -3331,7 +3238,7 @@ BEGIN {
 
         # Create it an entry.
         my %info := nqp::hash(
-          'sub',         $self,
+          'sub',         $routine,
           'signature',   $sig,
           'types',       @types,
           'type_flags',  @type_flags,
@@ -3515,7 +3422,7 @@ BEGIN {
             nqp::bindkey(%info, 'coerce_type_objs', @coerce_type_objs);
         }
 
-        nqp::bindattr($self, Routine, '$!dispatch_info', %info)
+        nqp::bindattr($self, ProtoInfo, '$!dispatch_info', %info)
     }));
 
     # Helper class to handle sorting by abstracting the edges logic into
@@ -3567,12 +3474,14 @@ BEGIN {
         }
     }
 
-    Routine.HOW.add_method(Routine, '!sort_dispatchees_internal',
+    ProtoInfo.HOW.add_method(ProtoInfo, '!sort_dispatchees_internal',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
 
+nqp::say("sorting dispatchees");
+
         # XXX convert to nqp::const::xxx
-        my int $SLURPY_ARITY      := 1073741824;  # 1 +< 30
+        my int $SLURPY_ARITY := 1073741824;  # 1 +< 30
 
         # Takes two candidates and determines if the first one is narrower
         # than the second. Returns a true value if they are.
@@ -3692,7 +3601,7 @@ BEGIN {
                        && !nqp::atkey(%b, 'bind_check')
         }
 
-        my @candidates := nqp::getattr($self, Routine, '@!dispatchees');
+        my @candidates := nqp::getattr($self, ProtoInfo, '$!dispatchees');
         my @graph;
 
         # Create a node for each candidate in the graph.
@@ -3787,24 +3696,15 @@ BEGIN {
         @result
     }));
 
-    Routine.HOW.add_method(Routine, 'sort_dispatchees',
+    ProtoInfo.HOW.add_method(ProtoInfo, 'dispatch_order',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
 
-        unless nqp::isnull(nqp::getattr($self, Routine, '@!dispatch_order')) {
-            nqp::bindattr($self, Routine, '@!dispatch_order',
-                $self.'!sort_dispatchees_internal'());
-        }
-    }));
-
-    Routine.HOW.add_method(Routine, 'dispatch_order',
-      nqp::getstaticcode(sub ($self) {
-        $self := nqp::decont($self);
-
-        my $dispatch_order := nqp::getattr($self, Routine, '@!dispatch_order');
+        my $dispatch_order :=
+          nqp::getattr($self, ProtoInfo, '$!dispatch_order');
         if nqp::isnull($dispatch_order) {
             nqp::scwbdisable;
-            nqp::bindattr($self, Routine, '@!dispatch_order',
+            nqp::bindattr($self, ProtoInfo, '$!dispatch_order',
               $dispatch_order := $self.'!sort_dispatchees_internal'()
             );
             nqp::scwbenable;
@@ -3812,15 +3712,17 @@ BEGIN {
         $dispatch_order
     }));
 
-    Routine.HOW.add_method(Routine, 'find_best_dispatchee',
-      nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
+    ProtoInfo.HOW.add_method(ProtoInfo, 'find_best_dispatchee',
+      nqp::getstaticcode(sub ($self, $capture, int $many) {
         $self := nqp::decont($self);
 
         # Count arguments.
         my int $num_args := nqp::captureposelems($capture);
 
-        # Get list and number of candidates, triggering a sort if there are none.
+        # Get list and number of candidates, triggering a sort if there are none
         my @candidates := $self.dispatch_order;
+
+nqp::say("find_best_dispatchee with " ~ nqp::elems(@candidates));
 
         # Iterate over the candidates and collect best ones; terminate
         # when we see two type objects (indicating end).
@@ -4316,7 +4218,7 @@ BEGIN {
         }
     }));
 
-    Routine.HOW.add_method(Routine, 'analyze_dispatch',
+    ProtoInfo.HOW.add_method(ProtoInfo, 'analyze_dispatch',
       nqp::getstaticcode(sub ($self, @args, @flags) {
         # Compile time dispatch result.
         my $MD_CT_NOT_SURE :=  0;  # Needs a runtime dispatch.
@@ -4519,6 +4421,201 @@ BEGIN {
               ?? nqp::list($MD_CT_NOT_SURE, NQPMu)
               !! nqp::list($MD_CT_DECIDED, $result)
         }
+    }));
+
+    ProtoInfo.HOW.add_method(ProtoInfo, 'add_dispatchee',
+      nqp::getstaticcode(sub ($self, $dispatchee) {
+        $self := nqp::decont($self);
+
+nqp::say("adding dispatchee: " ~ try $dispatchee.name);
+
+        # atomically update dispatchees
+        my $dispatchees := nqp::clone(
+          nqp::getattr($self, ProtoInfo, '$!dispatchees')
+        );
+        nqp::push($dispatchees, $dispatchee);
+nqp::say("added dispatchee, now at " ~ nqp::elems($dispatchees));
+        nqp::bindattr($self, ProtoInfo, '$!dispatchees', $dispatchees);
+
+        nqp::bindattr($dispatchee, Routine, '$!dispatcher', $self);
+
+        nqp::scwbdisable;
+        nqp::bindattr($self, ProtoInfo, '$!dispatch_order', nqp::null);
+#?if !moar
+        nqp::bindattr($self, ProtoInfo, '$!dispatch_cache', nqp::null);
+#?endif
+        nqp::scwbenable;
+
+        $self
+    }));
+
+    ProtoInfo.HOW.compose_repr(ProtoInfo);
+#?if !moar
+    ProtoInfo.HOW.compose_invocation(ProtoInfo);
+#?endif
+
+#- Routine ---------------------------------------------------------------------
+# class Routine is Block {
+#     has Mu $!dispatcher;
+#     has int $!flags;
+#     has Mu $!inline_info;
+#     has Mu $!package;
+#     has Mu $!op_props;  # to be DEPRECATED
+
+    Routine.HOW.add_parent(Routine, Block);
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!dispatcher>, :type(Mu), :package(Routine),
+      :auto_viv_primitive(NQPMu)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!flags>, :type(int), :package(Routine)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!inline_info>, :type(Mu), :package(Routine)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!package>, :type(Mu), :package(Routine)
+    ));
+
+    Routine.HOW.add_attribute(Routine, Attribute.new(
+      :name<$!op_props>, :type(Mu), :package(Routine)  # to be DEPRECATED
+    ));
+
+    Routine.HOW.add_method(Routine, 'new',
+      nqp::getstaticcode(sub ($self, :$proto) {
+        my $obj := nqp::create($self);
+
+        nqp::bindattr($obj, Routine, '$!dispatcher', ProtoInfo.new)
+          if $proto;
+
+        $obj
+    }));
+
+    Routine.HOW.add_method(Routine, 'is_dispatcher',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::istype(nqp::getattr($self, Routine, '$!dispatcher'), ProtoInfo)
+    }));
+
+    Routine.HOW.add_method(Routine, 'is_generic',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # Delegate to signature, since it contains all the type info.
+        nqp::getattr($self, Code, '$!signature').is_generic
+    }));
+
+    Routine.HOW.add_method(Routine, 'instantiate_generic',
+      nqp::getstaticcode(sub ($self, $type_environment) {
+        $self := nqp::decont($self);
+
+        # Clone the code object, then instantiate the generic signature.
+        # Also need to clone dispatchees list.
+        my $ins := $self.clone;
+
+        nqp::bindattr($ins, Routine, '$!dispatcher',
+          nqp::getattr($ins, Routine, '$!dispatcher').clone
+        ) if $self.is_dispatcher;
+
+        my $sig := nqp::getattr($self, Code, '$!signature');
+        nqp::bindattr($ins, Code, '$!signature',
+          $sig.instantiate_generic($type_environment)
+        );
+
+        $ins
+    }));
+
+    Routine.HOW.add_method(Routine, 'add_dispatchee',
+      nqp::getstaticcode(sub ($self, $dispatchee) {
+        $self := nqp::decont($self);
+
+        $self.is_dispatcher
+          ?? nqp::getattr(
+               $self, Routine, '$!dispatcher'
+             ).add_dispatchee($dispatchee)
+          !! nqp::die("Cannot add dispatchee '"
+               ~ $dispatchee.name
+               ~ "' to non-dispatcher code object '"
+               ~ $self.name()
+               ~ "'"
+             );
+    }));
+
+    Routine.HOW.add_method(Routine, 'derive_dispatcher',
+      nqp::getstaticcode(sub ($self) {
+        $self := $self.clone;
+
+        nqp::bindattr($self, Routine, '$!dispatcher',
+          nqp::getattr($self, Routine, '$!dispatcher').clone
+        );
+
+        $self
+    }));
+
+    Routine.HOW.add_method(Routine, 'dispatcher',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Routine, '$!dispatcher')
+    }));
+
+    Routine.HOW.add_method(Routine, 'dispatchees',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+nqp::say("in dispatchees");
+
+        nqp::getattr($self, Routine, '$!dispatcher').dispatchees
+    }));
+
+    Routine.HOW.add_method(Routine, 'dispatch_info',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Routine, '$!dispatcher').dispatch_info($self)
+    }));
+
+    Routine.HOW.add_method(Routine, 'sort_dispatchees',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        # just call the dispatch_order logic, it will create the sorted
+        # list if it doesn't exist yet
+        nqp::getattr($self, Routine, '$!dispatcher').dispatch_order
+    }));
+
+    Routine.HOW.add_method(Routine, 'dispatch_order',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::getattr($self, Routine, '$!dispatcher').dispatch_order
+    }));
+
+    Routine.HOW.add_method(Routine, 'find_best_dispatchee',
+      nqp::getstaticcode(sub ($self, $capture, int $many = 0) {
+        $self := nqp::decont($self);
+
+nqp::say("find_best_dispatchee");
+
+        nqp::getattr(
+          $self, Routine, '$!dispatcher'
+        ).find_best_dispatchee($capture, $many)
+    }));
+
+    Routine.HOW.add_method(Routine, 'analyze_dispatch',
+      nqp::getstaticcode(sub ($self, @args, @flags) {
+        $self := nqp::decont($self);
+
+nqp::say("analyze_dispatch");
+
+        nqp::getattr(
+          $self, Routine, '$!dispatcher'
+        ).analyze_dispatch(@args, @flags)
     }));
 
     Routine.HOW.add_method(Routine, 'set_flag',
@@ -5771,22 +5868,19 @@ nqp::register('raku-hllize', -> $capture {
 
 # Tell parametric role groups how to create a dispatcher.
 Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
-    my $sel := nqp::create(Sub);
-#?if moar
+    my $sel      := Sub.new(:proto);
     my $onlystar := sub (*@pos, *%named) {
+#?if moar
         nqp::dispatch('boot-resume', nqp::const::DISP_ONLYSTAR)
-    };
 #?endif
 #?if !moar
-    my $onlystar := sub (*@pos, *%named) {
         nqp::invokewithcapture(
-            nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
-            nqp::usecapture())
-    };
+            nqp::getcodeobj(nqp::curcode).find_best_dispatchee(nqp::usecapture),
+            nqp::usecapture)
 #?endif
+    };
     nqp::setcodeobj($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);
-    nqp::bindattr($sel, Routine, '@!dispatchees', nqp::list);
     $sel
 });
 

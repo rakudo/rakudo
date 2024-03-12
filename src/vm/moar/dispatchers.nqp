@@ -1073,16 +1073,22 @@ nqp::register('raku-call', -> $capture {
         }
 
         # Not something to just invoke
-        elsif !nqp::can($callee, 'CALL-ME') {
+        elsif nqp::not_i(nqp::can($callee, 'CALL-ME'))
+          && $callee.is_dispatcher {
 
-            # Guard if not a literal callee
+            # Guard if not a literal callee if a dispatcher
             nqp::guard('literal',
-              nqp::track('attr', $Tcallee, Routine, '@!dispatchees')
-            ) unless nqp::syscall('dispatcher-is-arg-literal', $capture, 0);
-
-            $delegate := $callee.is_dispatcher
-              ?? 'raku-multi'
-              !! 'raku-invoke';
+              nqp::track('attr',
+                nqp::track('attr',
+                  nqp::track('arg', $capture, 0), Routine, '$!dispatcher'
+                ),
+                ProtoInfo,
+                '$!dispatchees'
+              )
+            ) unless nqp::syscall(
+                'dispatcher-is-arg-literal', $capture, 0
+              );
+            $delegate := 'raku-multi';
         }
     }
 
@@ -1474,21 +1480,22 @@ nqp::register('raku-meth-call-resolved',
             }
 
             # Not something to just invoke
-            elsif !nqp::can($method, 'CALL-ME') {
+            elsif nqp::not_i(nqp::can($method, 'CALL-ME'))
+              && $method.is_dispatcher {
+
                 # If it's not a constant, need a guard on whether it's a
                 # dispatcher, and if so on the candidate list. (Will want
                 # to move this when we have a megamorphic multi solution.)
                 nqp::guard('literal',
                   nqp::track('attr',
-                    nqp::track('arg', $capture, 0),
-                    Routine,
-                    '@!dispatchees'
+                    nqp::track('attr',
+                      nqp::track('arg', $capture, 0), Routine, '$!dispatcher'
+                    ),
+                    ProtoInfo,
+                    '$!dispatchees'
                   )
                 ) unless $code-constant;
-
-                $delegate := $method.is_dispatcher
-                  ?? 'raku-multi'
-                  !! 'raku-invoke';
+                $delegate := 'raku-multi';
             }
         }
 
@@ -1629,7 +1636,8 @@ sub method-deferral-step($chain-head, int $kind, $args) {
             if nqp::can($code, 'WRAPPERS') {
                 $delegate := 'raku-invoke-wrapped';
             }
-            elsif !nqp::can($code, 'CALL-ME') && $code.is_dispatcher {
+            elsif nqp::not_i(nqp::can($code, 'CALL-ME'))
+              && $code.is_dispatcher {
                 $delegate := 'raku-multi';
             }
         }
@@ -1896,7 +1904,13 @@ nqp::register('raku-multi',
             $capture := nqp::syscall('dispatcher-get-resume-init-args');
             nqp::guard('literal',
               nqp::track('attr',
-                nqp::track('arg', $capture, 0), Routine, '@!dispatchees'
+                nqp::track('attr',
+                  nqp::track('arg', $capture, 0),
+                  Routine,
+                  '$!dispatcher'
+                ),
+                ProtoInfo,
+                '$!dispatchees'
               )
             );
             nqp::delegate('raku-multi-core', $capture);
@@ -2196,8 +2210,8 @@ sub raku-multi-plan(
 
     # We keep track of the head of the plan as well as the tail node of it,
     # so we know where to add the next step.
-    my $current-head := nqp::null();
-    my $current-tail := nqp::null();
+    my $current-head := nqp::null;
+    my $current-tail := nqp::null;
 
     # Look through all candidates. Eliminate those that can be ruled out by
     # setting guards on the incoming arguments OR by the shape of the
@@ -2218,8 +2232,11 @@ sub raku-multi-plan(
         # type object sentinel.
         my $cur_candidate := nqp::atpos(@candidates, $cur_idx++);
 
+nqp::say("Got $num_args arguments");
+
         # An actual candidate
         if nqp::isconcrete($cur_candidate) {
+nqp::say("--- candidate: " ~ nqp::atkey($cur_candidate,'min_arity') ~ " .. " ~ nqp::atkey($cur_candidate,'max_arity'));
 
             # Candidate; does the arity fit? (If not, it drops out on callsite
             # shape.)
@@ -2435,6 +2452,7 @@ sub raku-multi-plan(
 
         # End of tied group
         else {
+nqp::say("found " ~ nqp::elems(@possibles) ~ " possibles");
 
             # If there's possibles...
             if nqp::elems(@possibles) {
@@ -2566,9 +2584,11 @@ sub raku-multi-plan(
 
     # Return the dispatch plan, just an end marker if none so far
     if nqp::isnull($current-head) {
+nqp::say("MultiDispatchEnd");
         MultiDispatchEnd
     }
     else {
+nqp::say("found plan");
         $current-tail.set-next(MultiDispatchEnd);
         $current-head
     }
@@ -2728,6 +2748,7 @@ nqp::register('raku-multi-core',
 
         # Nothing to dispatch to
         elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
+nqp::say("multi-core no match");
             multi-no-match-handler(
               $target, $arg-capture, $capture, $arg-capture
             );
@@ -2779,7 +2800,11 @@ nqp::register('raku-multi-core',
             # Put a guard on the dispatchees.
             my $Ttarget := nqp::track('arg', $init-args, 0);
             nqp::guard('literal',
-              nqp::track('attr', $Ttarget, Routine, '@!dispatchees')
+              nqp::track('attr',
+                nqp::track('attr', $Ttarget, Routine, '$!dispatcher'),
+                ProtoInfo,
+                '$!dispatchees'
+              )
             );
 
             # We already called the first candidate in the trivial plan, so
@@ -3065,6 +3090,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
         # resumption (possibly method dispatch), and finally give up.
         if $kind == nqp::const::DISP_NONE {
             my $target := nqp::captureposarg($orig-capture, 0);
+nqp::say("non-trivial-step");
             multi-no-match-handler($target, $arg-capture, $orig-capture, $arg-capture);
         }
         else {
@@ -3139,10 +3165,17 @@ nqp::register('raku-multi-remove-proxies',
             # the generated removers becoming a polymorphic blow-up point; when
             # we can associate it with the dispatch program of the initial
             # dispatch, that will be rather better.)
-            my $track_callee := nqp::track('arg',
-                $orig-capture, 0);
             nqp::guard('literal',
-              nqp::track('attr', $track_callee, Routine, '@!dispatchees'));
+              nqp::track('attr',
+                nqp::track('attr',
+                  nqp::track('arg', $orig-capture, 0),
+                  Routine,
+                  '$!dispatcher'
+                ),
+                ProtoInfo,
+                '$!dispatchees'
+              )
+            );
 
             # We now make the dispatch plan using the arguments with proxies
             # removed, put pass along the original arg capture too, for use
@@ -3166,6 +3199,7 @@ nqp::register('raku-multi-remove-proxies',
                 multi-ambiguous-handler($dispatch-plan, $target, $orig-arg-capture);
             }
             elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
+nqp::say("remove proxies");
                 multi-no-match-handler($target, $no-proxy-arg-capture, $orig-capture,
                     $orig-arg-capture);
             }
@@ -3668,11 +3702,19 @@ nqp::register('raku-call-simple', -> $capture {
     nqp::guard('type', $Tcallee);
     my str $delegate := 'raku-invoke';
 
-    if nqp::istype_nd($callee, Routine) {
+    if nqp::istype_nd($callee, Routine) && $callee.is_dispatcher {
         nqp::guard('literal',
-          nqp::track('attr', $Tcallee, Routine, '@!dispatchees')
+          nqp::track('attr',
+            nqp::track('attr',
+              $Tcallee,
+              Routine,
+              '$!dispatcher'
+            ),
+            ProtoInfo,
+            '$!dispatchees'
+          )
         );
-        $delegate := 'raku-multi' if $callee.is_dispatcher;
+        $delegate := 'raku-multi';
     }
 
     nqp::delegate($delegate, $capture);
@@ -4270,14 +4312,7 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
     # on NQP/Raku language boundary. Therefore we use a truncated local
     # version of it.
     my sub method-cando($method, *@pos) {
-        my $disp;
-        if $method.is_dispatcher {
-            $disp := $method;
-        }
-        else {
-            $disp := nqp::create(nqp::what($method));
-            nqp::bindattr($disp, Routine, '@!dispatchees', nqp::list($method));
-        }
+        my $disp := $method.is_dispatcher ?? $method !! $method.new(:proto);
         -> *@_ { $disp.find_best_dispatchee( nqp::usecapture(), 1) }(|@pos)
     }
 
@@ -4288,7 +4323,7 @@ sub select-coercer($coercion, $value, :$with-runtime = 0) {
         return 0 unless nqp::istype($method, Routine);
 
         my @cands := $method.is_dispatcher
-          ?? nqp::getattr($method, Routine, '@!dispatchees')
+          ?? $method.dispatchees
           !! nqp::list($method);
 
         for @cands -> $cand {

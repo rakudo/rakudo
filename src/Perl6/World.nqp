@@ -2592,17 +2592,17 @@ class Perl6::World is HLL::World {
     # Creates a code object of the specified type, attached the passed signature
     # object and sets up dynamic compilation thunk.
     method create_code_object($code_past, $type, $signature, $is_dispatcher = 0, :$yada) {
-        my $code := self.stub_code_object($type);
+        my $code := self.stub_code_object($type, :proto($is_dispatcher));
         self.attach_signature($code, $signature);
-        self.finish_code_object($code, $code_past, $is_dispatcher, :yada($yada));
+        self.finish_code_object($code, $code_past, $is_dispatcher, :$yada);
         self.add_phasers_handling_code($code, $code_past);
         $code
     }
 
     # Stubs a code object of the specified type.
-    method stub_code_object($type) {
+    method stub_code_object($type, *%_) {
         my $type_obj := self.find_single_symbol_in_setting($type);
-        my $code     := nqp::create($type_obj);
+        my $code     := $type_obj.new(|%_);
         self.context().push_code_object($code);
         self.add_object_if_no_sc($code)
     }
@@ -2664,9 +2664,9 @@ class Perl6::World is HLL::World {
                 $compiler_thunk();
             }
 
-            my $code_obj := nqp::getcodeobj(nqp::curcode());
 #?if !js
             # Temporarily disabled for js until we figure the bug out
+            my $code_obj := nqp::getcodeobj(nqp::curcode);
             unless nqp::isnull($code_obj) {
                 return $code_obj(|@pos, |%named);
             }
@@ -2737,12 +2737,6 @@ class Perl6::World is HLL::World {
 
         # Stash the QAST block in the comp stuff.
         @compstuff[0] := $code_past;
-
-        # If this is a dispatcher, install dispatchee list that we can
-        # add the candidates too.
-        if $is_dispatcher {
-            nqp::bindattr($code, $routine_type, '@!dispatchees', []);
-        }
 
         # Set yada flag if needed.
         if $yada {

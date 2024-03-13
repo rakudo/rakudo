@@ -29,8 +29,12 @@ my class Metamodel::Primitives {
             nqp::push($cache, nqp::decont($_));
         }
         nqp::settypecache($type, $cache);
-        nqp::settypecheckmode($type,
-            ($authoritative ?? 0 !! 1) + ($call_accepts ?? 2 !! 0));
+        nqp::settypecheckmode($type, $call_accepts
+          ?? nqp::const::TYPE_CHECK_NEEDS_ACCEPTS
+          !! $authoritative
+            ?? nqp::const::TYPE_CHECK_CACHE_DEFINITIVE
+            !! nqp::const::TYPE_CHECK_CACHE_THEN_METHOD
+        );
         $type
     }
 

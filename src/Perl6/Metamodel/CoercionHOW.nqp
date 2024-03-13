@@ -254,7 +254,10 @@ BEGIN {
         $metaclass.set_constraint_type($params[1]);
         my $coercion_type := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'Raku');
         $metaclass.set_language_version($coercion_type, :force);
-        nqp::settypecheckmode($coercion_type, 2);
+        nqp::settypecheckmode(
+          $coercion_type,
+          nqp::const::TYPE_CHECK_NEEDS_ACCEPTS
+        );
         $coercion_type
     });
     (Perl6::Metamodel::CoercionHOW.WHO)<root> := $root;

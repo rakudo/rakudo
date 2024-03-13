@@ -261,7 +261,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         my @tc := nqp::clone(self.pretending_to_be());
         nqp::push(@tc, $target.WHAT);
         nqp::settypecache($target, @tc);
-        nqp::settypecheckmode($target, 1);
+        nqp::settypecheckmode(
+          $target,
+          nqp::const::TYPE_CHECK_CACHE_THEN_METHOD
+        );
     }
 }
 

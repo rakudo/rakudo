@@ -54,7 +54,7 @@ class Perl6::Metamodel::SubsetHOW
         my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'Raku');
         $metasubset.set_name($type, $name);
         $metasubset.set_language_version($metasubset, :force);
-        nqp::settypecheckmode($type, 2);
+        nqp::settypecheckmode($type, nqp::const::TYPE_CHECK_NEEDS_ACCEPTS);
         self.add_stash($type)
     }
 

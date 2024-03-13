@@ -148,7 +148,7 @@ BEGIN {
     nqp::setparameterizer($root, sub ($type, $params) {
         # Re-use same HOW.
         my $thing := nqp::settypehll(nqp::newtype($type.HOW, 'Uninstantiable'), 'Raku');
-        nqp::settypecheckmode($thing, 2)
+        nqp::settypecheckmode($thing, nqp::const::TYPE_CHECK_NEEDS_ACCEPTS)
     });
     (Perl6::Metamodel::DefiniteHOW.WHO)<root> := $root;
 }

@@ -75,7 +75,7 @@ class Perl6::Metamodel::CurriedRoleHOW
         $meta.compose_invocation($type);
 #?endif
 
-        nqp::settypecheckmode($type, 2);
+        nqp::settypecheckmode($type, nqp::const::TYPE_CHECK_NEEDS_ACCEPTS);
     }
 
     method parameterize_roles($target) {

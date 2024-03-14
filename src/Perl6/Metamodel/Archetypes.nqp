@@ -46,7 +46,9 @@ class Perl6::Metamodel::Archetypes {
     # Is it a coercive type?
     has int $!coercive;
 
-    # Is it a definite type?
+    # Is it a definite type?  In other words: does definiteness needs to
+    # be checked in typechecks (so either :D or :U, *not* :_, which means
+    # that we're not interested in definiteness)
     has int $!definite;
 
     # Are we allowed to augment the type?

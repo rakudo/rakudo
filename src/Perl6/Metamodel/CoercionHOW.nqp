@@ -24,6 +24,8 @@ class Perl6::Metamodel::CoercionHOW
           $target_type.HOW.archetypes($target_type).generic;
         my int $constraint_type_generic :=
           $constraint_type.HOW.archetypes($constraint_type).generic;
+        my str $name := $target_type.HOW.name($target_type)
+          ~ '(' ~ $constraint_type.HOW.name($constraint_type) ~ ')';
 
         nqp::bindattr($obj, Perl6::Metamodel::CoercionHOW, '$!target_type',
           $target_type);
@@ -46,10 +48,10 @@ class Perl6::Metamodel::CoercionHOW
             :generic($target_type_generic || $constraint_type_generic),
             :definite($target_type.HOW.archetypes($target_type).definite)
           ));
-        nqp::bindattr_s($obj, Perl6::Metamodel::CoercionHOW, '$!name',
-          $target_type.HOW.name($target_type)
-            ~ '(' ~ $constraint_type.HOW.name($constraint_type) ~ ')'
-        );
+
+        nqp::bindattr_s($obj, Perl6::Metamodel::CoercionHOW, '$!name', $name);
+        nqp::setdebugtypename($obj, $name);
+
         nqp::bindattr_s($obj, Perl6::Metamodel::CoercionHOW, '$!shortname',
           $target_type.HOW.shortname($target_type)
             ~ '(' ~ $constraint_type.HOW.shortname($constraint_type) ~ ')'

@@ -972,9 +972,9 @@ public final class Binder {
          * to work on. We'll delete stuff from it as we bind, and what we have
          * left over can become the slurpy hash or - if we aren't meant to be
          * taking one - tell us we have a problem. */
-        Object2IntOpenHashMap namedArgsCopy = csd.nameMap == null
+        Object2IntOpenHashMap<String> namedArgsCopy = csd.nameMap == null
             ? null
-            : new Object2IntOpenHashMap(csd.nameMap);
+            : new Object2IntOpenHashMap<String>(csd.nameMap);
 
         /* Now we'll walk through the signature and go about binding things. */
         int numPosArgs = csd.numPositionals;
@@ -1190,16 +1190,14 @@ public final class Binder {
             if (error != null) {
                 int numExtra = namedArgsCopy.size();
                 if (numExtra == 1) {
-                    for (Object n : namedArgsCopy.keySet()) {
-                        String name = (String)n;
+                    for (String name : namedArgsCopy.keySet()) {
                         error[0] = "Unexpected named argument '" + name + "' passed";
                     }
                 }
                 else {
                     boolean first = true;
                     error[0] = numExtra + " unexpected named arguments passed (";
-                    for (Object n : namedArgsCopy.keySet()) {
-                        String name = (String)n;
+                    for (String name : namedArgsCopy.keySet()) {
                         if (!first)
                             error[0] += ", ";
                         else
@@ -1217,13 +1215,12 @@ public final class Binder {
     }
 
     /* Takes any nameds we didn't capture yet and makes a VM Hash of them. */
-    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, RakOps.GlobalExt gcx, Object2IntOpenHashMap namedArgsCopy, Object[] args) {
+    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, RakOps.GlobalExt gcx, Object2IntOpenHashMap<String> namedArgsCopy, Object[] args) {
         SixModelObject slurpy = gcx.Mu;
         if (namedArgsCopy != null) {
             SixModelObject BOOTHash = tc.gc.BOOTHash;
             slurpy = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
-            for (Object n : namedArgsCopy.keySet()) {
-                String name = (String)n;
+            for (String name : namedArgsCopy.keySet()) {
                 int lookup = namedArgsCopy.getInt(name);
                 switch (lookup & 7) {
                 case CallSiteDescriptor.ARG_OBJ:

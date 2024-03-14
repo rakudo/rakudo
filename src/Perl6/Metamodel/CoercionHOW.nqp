@@ -5,7 +5,6 @@
 # This means we get cross-compilation-unit interning "for free", as well as
 # avoiding a meta-object instance per coercion type created.
 class Perl6::Metamodel::CoercionHOW
-    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Nominalizable
 {

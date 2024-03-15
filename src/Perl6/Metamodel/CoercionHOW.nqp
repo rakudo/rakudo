@@ -288,7 +288,7 @@ BEGIN {
           my $coercion := nqp::newtype($HOW, 'Uninstantiable');
           nqp::settypehll($coercion, 'Raku');
           $HOW.set_language_version($coercion, :force);
-          nqp::setdebugtypename($coercion, $coercion.HOW.name($coercion));
+          nqp::setdebugtypename($coercion, $HOW.name($HOW));
           nqp::settypecheckmode(
             $coercion, nqp::const::TYPE_CHECK_NEEDS_ACCEPTS
           );

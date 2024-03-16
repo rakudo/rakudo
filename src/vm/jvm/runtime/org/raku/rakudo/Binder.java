@@ -179,13 +179,8 @@ public final class Binder {
                since *trying* to get a container would throw already, we first check
                if the target Attribute is native. */
             int hint = -1;
-            for (HashMap<String, Integer> map : ((P6OpaqueREPRData) (attrPackage.st.REPRData)).nameToHintMap) {
-                try {
-                    hint = map.get(varName);
-                }
-                catch (Exception e) {
-                    continue;
-                }
+            for (Object2IntOpenHashMap<String> map : ((P6OpaqueREPRData) (attrPackage.st.REPRData)).nameToHintMap) {
+                hint = map.getOrDefault(varName, -1);
             }
             REPR attrREPR = null;
             if (((P6OpaqueREPRData) (attrPackage.st.REPRData)).flattenedSTables[hint] != null) {

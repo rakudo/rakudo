@@ -156,7 +156,7 @@ my class Mu { # declared in BOOTSTRAP
         # Get the build plan. Note that we do this "low level" to
         # avoid the NQP type getting mapped to a Rakudo one, which
         # would get expensive.
-        my $bp := nqp::findmethod(self.HOW,'BUILDALLPLAN')(self.HOW, self);
+        my $bp := nqp::findmethod(self.HOW,'BUILDALLPLAN')(self.HOW);
         my int $count = nqp::elems($bp);
         my int $i = -1;
 
@@ -479,7 +479,7 @@ my class Mu { # declared in BOOTSTRAP
         method BUILD_LEAST_DERIVED(%attrinit) {
             my $init := nqp::getattr(%attrinit,Map,'$!storage');
             # Get the build plan for just this class.
-            my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW,self);
+            my $bp := nqp::findmethod(self.HOW,'BUILDPLAN')(self.HOW);
             my int $count = nqp::elems($bp);
             my int $i     = -1;
 

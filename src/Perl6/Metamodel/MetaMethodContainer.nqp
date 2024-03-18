@@ -2,9 +2,6 @@
 role Perl6::Metamodel::MetaMethodContainer {
     has @!meta_methods;
     has %!meta_method_table;
-    has $!meta_method_lock;
-
-    method TWEAK(*%_) { $!meta_method_lock := NQPLock.new }
 
     # Add a meta-method in a threadsafe manner
     method add_meta_method($target, str $name, $method) {
@@ -13,7 +10,7 @@ role Perl6::Metamodel::MetaMethodContainer {
           ~ "' already has a meta-method '$name'"
         ) if nqp::existskey(%!meta_method_table, $name);
 
-        $!meta_method_lock.protect({
+        self.protect({
             my $list := nqp::clone(@!meta_methods);
             my $hash := nqp::clone(%!meta_method_table);
 
@@ -66,7 +63,7 @@ role Perl6::Metamodel::MetaMethodContainer {
         # If we have any meta-methods, build a role for them to go in and
         # compose it into the meta-object..
         if nqp::elems($names) {
-            $!meta_method_lock.protect({
+            self.protect({
                 my $role := $?PACKAGE.HOW.new_type;
                 my $HOW  := $role.HOW;
 

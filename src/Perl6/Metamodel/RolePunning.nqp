@@ -67,7 +67,7 @@ role Perl6::Metamodel::RolePunning {
         }
         else {
             my $pun := self.pun($target);
-            nqp::can($!pun, $name)
+            nqp::can($pun, $name)
               ?? -> $inv, *@_, *%_ { $pun."$name"(|@_, |%_) }
               !! nqp::null
         }

@@ -18,10 +18,10 @@ role Perl6::Metamodel::Composing {
         my int $was_composed := $!composed;
 
         # Run code and set flag if we were not composed yet
-        unless $was_composed {
-            $code();
+        self.protect({
+            $code() unless $!composed;  # run code only if not raced
             $!composed := 1;
-        }
+        }) unless $was_composed;
 
         $was_composed
     }

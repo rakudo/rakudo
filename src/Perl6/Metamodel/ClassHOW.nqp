@@ -1,4 +1,5 @@
 class Perl6::Metamodel::ClassHOW
+    does Perl6::Metamodel::Locking
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting

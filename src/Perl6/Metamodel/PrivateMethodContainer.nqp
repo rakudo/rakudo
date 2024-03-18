@@ -12,9 +12,20 @@ role Perl6::Metamodel::PrivateMethodContainer {
           ~ self.name($target)
         ) if nqp::existskey(%!private_methods, $name);
 
-        nqp::bindkey(%!private_methods, $name, $code);
-        nqp::push(@!private_methods, $code);
-        nqp::push(@!private_method_names, $name);
+        self.protect({
+            my %private_methods      := nqp::clone(%!private_methods);
+            my @private_methods      := nqp::clone(@!private_methods);
+            my @private_method_names := nqp::clone(@!private_method_names);
+
+            nqp::bindkey(%private_methods, $name, $code);
+            nqp::push(@private_methods, $code);
+            nqp::push(@private_method_names, $name);
+
+            # Still has a risk of other threads reading inconsistent state here
+            %!private_methods      := %private_methods;
+            @!private_methods      := @private_methods;
+            @!private_method_names := @private_method_names;
+        });
     }
 
     method private_method_table($XXX?) { %!private_methods      }

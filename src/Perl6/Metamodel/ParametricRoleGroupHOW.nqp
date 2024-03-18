@@ -11,6 +11,7 @@
 # list by multi-dispatching over the set of candidates to pick
 # a particular candidate.
 class Perl6::Metamodel::ParametricRoleGroupHOW
+    does Perl6::Metamodel::Locking
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Stashing

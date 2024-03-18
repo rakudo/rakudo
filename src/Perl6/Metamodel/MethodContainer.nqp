@@ -1,3 +1,7 @@
+#- Metamodel::MethodContainer --------------------------------------------------
+# Handle the aspects of a HOW that can contain methods and submethods, and
+# their regexy counterparts.
+
 role Perl6::Metamodel::MethodContainer {
     # Lookup table of the methods.
     has %!methods;
@@ -14,96 +18,119 @@ role Perl6::Metamodel::MethodContainer {
     has %!cache;
 
     # Add a method.
-    method add_method($target, $name, $code_obj, :$handles = 1) {
+    method add_method($target, $name, $code, :$handles = 1) {
         # Ensure we haven't already got it.
-        $code_obj := nqp::decont($code_obj);
+        $code := nqp::decont(  $code);
         $name := nqp::decont_s($name);
-        if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
-            # XXX try within nqp::die() causes a hang. Pre-cache the result and use it later.
-            my $method-type := try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method';
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Method::Duplicate',
-                "Package '"
-                    ~ self.name($target)
-                    ~ "' already has a "
-                    ~ $method-type
-                    ~ " '"
-                    ~ $name
-                    ~ "' (did you mean to declare a multi method?)",
-                :$method-type,
-                :method($name),
-                :typename(self.name($target))
-            );
-        }
+
+        self.throw_duplicate($target, $name, $code)
+          if nqp::existskey(%!methods, $name)
+          || nqp::existskey(%!submethods, $name);
 
         # Add to correct table depending on if it's a Submethod.
-        if !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type)
-            && nqp::istype($code_obj, Perl6::Metamodel::Configuration.submethod_type) {
-            %!submethods{$name} := $code_obj;
-        }
-        else {
-            %!methods{$name} := $code_obj;
-        }
+        nqp::bindkey(
+          nqp::istype($code, Perl6::Metamodel::Configuration.submethod_type)
+            ?? %!submethods
+            !! %!methods,
+          $name,
+          $code
+        );
 
-        # See if trait `handles` has been applied and we can use it on the target type.
-        # XXX Also skip this step if method is being added under a different name but the original code object has been
-        # installed earlier. This step is here until Method::Also incorporates support for :!handles argument.
+        # See if trait `handles` has been applied and we can use it on the
+        # target type.
+        # XXX Also skip this step if method is being added under a different
+        # name but the original code object has been installed earlier. This
+        # step is here until Method::Also incorporates support for :!handles
+        # argument.
         if $handles
-            && nqp::can($code_obj, 'apply_handles')
-            && nqp::can(self, 'find_method_fallback')
-        {
-            my $do_apply := 1;
-            for @!method_order {
-                if $_ =:= $code_obj {
-                    $do_apply := 0;
-                    last
-                }
+          && nqp::can($code, 'apply_handles')
+          && nqp::can(self,  'find_method_fallback') {
+            my @method_order := @!method_order;
+
+            my int $m := nqp::elems(@method_order);
+            my int $i;
+            while $i < $m {
+                nqp::eqaddr(nqp::atpos(@method_order, $i), $code)
+                  ?? (last)
+                  !! ++$i;
             }
-            $code_obj.apply_handles($target) if $do_apply;
+
+            # Apply if none of the methods matched
+            $code.apply_handles($target) if $i == $m;
         }
 
         # Adding a method means any cache is no longer authoritative.
-        if nqp::can(self, "invalidate_method_caches") {
-            self.invalidate_method_caches($target);
-        }
-        %!cache := {};
-        nqp::push(@!method_order, $code_obj);
+        self.invalidate_method_caches($target)
+          if nqp::can(self, "invalidate_method_caches");
+        %!cache := nqp::hash;
+
+        nqp::push(@!method_order, $code);
         nqp::push(@!method_names, $name);
     }
 
     # Gets the method hierarchy.
     method methods($target, :$local, :$excl, :$all, :$implementation-detail) {
-        my @meths;
+        my @methods;
 
-        my $check-implementation-detail := !$implementation-detail;
+        sub add_methods($source) {
+            my int $m := nqp::elems($source);
+            if $m {
 
-        # Always need local methods on the list.
-        for @!method_order {
-            @meths.push(nqp::hllizefor($_,'Raku'))
-              unless $check-implementation-detail
-                && nqp::can($_,'is-implementation-detail')
-                && $_.is-implementation-detail;
-        }
-
-        # If local flag was not passed, include those from parents.
-        unless $local {
-            for self.parents($target, :all($all), :excl($excl)) {
-                for nqp::hllize($_.HOW.method_table($_)) {
-                    @meths.push(nqp::hllizefor(nqp::decont($_.value),'Raku'))
-                      unless $check-implementation-detail
-                        && nqp::can($_,'is-implementation-detail')
-                        && $_.is-implementation-detail;
+                # Convert to values if given a hash
+                if nqp::ishash($source) {
+                    my $values := nqp::list;
+                    for $source {
+                        nqp::push($values, $_.value);
+                    }
+                    $source := $values;
                 }
-                for nqp::hllize($_.HOW.submethod_table($_)) {
-                    @meths.push(nqp::hllizefor(nqp::decont($_.value),'Raku'))
-                      unless $check-implementation-detail
-                        && nqp::can($_,'is-implementation-detail')
-                        && $_.is-implementation-detail;
+
+                # Include implementation detail methods only.  Since this is
+                # a HLL construct, we don't need to do any HLLizing
+                if $implementation-detail {
+                    my int $i;
+                    while $i < $m {
+                        my $method := nqp::atpos($source, $i);
+                        nqp::push(@methods, $method)
+                          if nqp::can($method, 'is-implementation-detail')
+                          && $method.is-implementation-detail;
+                        ++$i;
+                    }
+                }
+
+                # Include all methods, possibly from NQP as well, so make
+                # sure they're HLLized
+                else {
+                    my int $i;
+                    while $i < $m {
+                        nqp::push(
+                          @methods,
+                          nqp::hllizefor(nqp::atpos($source, $i), 'Raku')
+                        );
+                        ++$i;
+                    }
                 }
             }
         }
 
-        @meths
+        # Always need local methods on the list.
+        add_methods(@!method_order);
+
+        # If local flag was not passed, include those from parents.
+        unless $local {
+            my @parents := self.parents($target, :$all, :$excl);
+
+            my int $m := nqp::elems(@parents);
+            my int $i;
+            while $i < $m {
+                my $parent := nqp::atpos(@parents, $i);
+                add_methods($parent.HOW.method_order(   $parent));
+                add_methods($parent.HOW.submethod_table($parent));
+                ++$i;
+            }
+        }
+
+        @methods
     }
 
     method method_order($XXX?) { @!method_order }
@@ -118,46 +145,74 @@ role Perl6::Metamodel::MethodContainer {
 
     # Checks if this package (not its parents) declares a given
     # method. Checks submethods also.
-    method declares_method($XXX, $name) {
-        %!methods{$name} || %!submethods{$name} ?? 1 !! 0
+    method declares_method($XXX, str $name) {
+        nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name)
     }
 
     # Looks up a method with the provided name, for introspection purposes.
-    method lookup($target, $name) {
-        for self.mro($target) {
-            my %meth := nqp::hllize($_.HOW.method_table($target));
-            if nqp::existskey(%meth, $name) {
-                return nqp::decont(%meth{$name});
+    # Returns nqp::null if not found
+    method lookup($target, str $name) {
+        my @mro := self.mro($target);
+
+        my int $m := nqp::elems(@mro);
+        my int $i;
+        while $i < $m {
+            my $HOW := nqp::atpos(@mro, $i).HOW;
+
+            my %method_table := $HOW.method_table($target);
+            return nqp::decont(nqp::atkey(%method_table, $name))
+              if nqp::existskey(%method_table, $name);
+
+            if nqp::can($HOW, 'submethod_table') {
+                my %submethod_table := $HOW.submethod_table($target);
+                return nqp::decont(nqp::atkey(%submethod_table, $name))
+                  if nqp::existskey(%submethod_table, $name);
             }
-            if nqp::can($_.HOW, 'submethod_table') {
-                my %submeth := nqp::hllize($_.HOW.submethod_table($target));
-                if nqp::existskey(%submeth, $name) {
-                    return nqp::decont(%submeth{$name});
-                }
-            }
+
+            ++$i;
         }
-        nqp::null()
+        nqp::null
     }
 
     # Caches or updates a cached value.
     method cache($target, str $key, $value_generator) {
-        my %orig_cache := %!cache;
-        nqp::ishash(%orig_cache) && nqp::existskey(%!cache, $key)
-            ?? %!cache{$key}
-            !! self.cache_add($target, $key, $value_generator())
+        nqp::ifnull(
+          nqp::atkey(%!cache, $key),
+          self.cache_add($target, $key, $value_generator())
+        )
     }
 
     method cache_get($XXX, str $key) {
-        my %caches := %!cache;
-        nqp::ishash(%caches) ?? nqp::atkey(%caches, $key) !! nqp::null()
+        nqp::atkey(%!cache, $key)
     }
 
     method cache_add($XXX, str $key, $value) {
-        my %orig_cache := %!cache;
-        my %copy := nqp::ishash(%orig_cache) ?? nqp::clone(%orig_cache) !! {};
-        %copy{$key} := $value;
+        my %copy := nqp::clone(%!cache);
+        nqp::bindkey(%copy, $key, $value);
+
         %!cache := %copy;
         $value
+    }
+
+    # Helper method to throw a duplicate method error
+    method throw_duplicate($target, str $method, $code) {
+
+        # XXX try within nqp::die() causes a hang. Pre-cache the result
+        # and use it later.
+        my str $typename  := self.name($target);
+        my   $method-type := try { nqp::lc($code.HOW.name($code)) } // 'method';
+
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Method::Duplicate',
+          "Package '"
+            ~ $typename
+            ~ "' already has a "
+            ~ $method-type
+            ~ " '"
+            ~ $method
+            ~ "' (did you mean to declare a multi method?)",
+          :$method, :$method-type, :$typename
+        );
     }
 }
 

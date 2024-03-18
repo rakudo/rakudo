@@ -1,11 +1,6 @@
 role Perl6::Metamodel::C3MRO {
     # Storage of the MRO.
     has $!mro;
-    has $!mro_lock;
-
-    method TWEAK(*%named) {
-        $!mro_lock := NQPLock.new();
-    }
 
     # Computes C3 MRO.
     method compute_mro($class) {
@@ -139,7 +134,7 @@ role Perl6::Metamodel::C3MRO {
             ++$i;
         }
 
-        $!mro_lock.protect({
+        self.protect({
             $!mro := nqp::hash(
               'all', nqp::hash(
                 'all',      @all,

@@ -1,6 +1,7 @@
 my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
-my $currier := Perl6::Metamodel::CurriedRoleHOW;
+my $currier  := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
+    does Perl6::Metamodel::Locking
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
@@ -23,13 +24,12 @@ class Perl6::Metamodel::ParametricRoleHOW
     has $!group;
     has $!signatured;
     has @!role_typecheck_list;
-    has $!specialize_lock;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes($XXX?) { $archetypes }
 
     method new_type(:$repr, :$signatured, *%_) {
-        my $HOW    := self.new(:$signatured, :specialize_lock(NQPLock.new));
+        my $HOW    := self.new(:$signatured);
         my $target := nqp::settypehll(nqp::newtype($HOW, 'Uninstantiable'), 'Raku');
 
         $HOW.set_identity($target, %_);
@@ -129,7 +129,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         # but we don't do the appropriate cloning until a bit later. These
         # must happen before another specialize happens and re-captures the
         # things we are composing.
-        $!specialize_lock.protect({
+        self.protect({
             my $class := @pos_args[0];
             my $conc := nqp::if(nqp::can($class.HOW, 'get_cached_conc'),
                         $class.HOW.get_cached_conc($class, $target, @pos_args, %named_args),

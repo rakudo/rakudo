@@ -3,8 +3,6 @@ role Perl6::Metamodel::Concretization {
     has @!concretizations;
     has %!conc_table;
 
-    my $lock := NQPLock.new;
-
     method add_concretization($XXX, $role, $concrete) {
         nqp::push(@!concretizations, nqp::list($role, $concrete))
     }
@@ -39,7 +37,7 @@ role Perl6::Metamodel::Concretization {
         # depend on its size to know whether or not a rebuild is necessary, but
         # there may be a wait before then. Try for more predictable output.
         my int $captured := nqp::elems(@!concretizations);
-        $lock.protect: {
+        self.protect: {
             # The concretization table can be depended on outside a
             # thread-safe context, e.g. MRO-based method dispatch. Parsing
             # a grammar from a start block can lead to a concurrent access

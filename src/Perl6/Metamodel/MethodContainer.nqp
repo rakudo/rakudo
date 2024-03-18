@@ -27,14 +27,17 @@ role Perl6::Metamodel::MethodContainer {
           if nqp::existskey(%!methods, $name)
           || nqp::existskey(%!submethods, $name);
 
-        # Add to correct table depending on if it's a Submethod.
-        nqp::bindkey(
+        my str $attr_name :=
           nqp::istype($code, Perl6::Metamodel::Configuration.submethod_type)
-            ?? %!submethods
-            !! %!methods,
-          $name,
-          $code
-        );
+            ?? '%!submethods'
+            !! '%!methods';
+
+        # Add to correct table depending on if it's a Submethod.
+        self.protect({
+            my %table := nqp::clone(nqp::getattr(self, $?CLASS, $attr_name));
+            nqp::bindkey(%table, $name, $code);
+            nqp::bindattr(self, $?CLASS, $attr_name, %table);
+        });
 
         # See if trait `handles` has been applied and we can use it on the
         # target type.
@@ -187,11 +190,12 @@ role Perl6::Metamodel::MethodContainer {
     }
 
     method cache_add($XXX, str $key, $value) {
-        my %copy := nqp::clone(%!cache);
-        nqp::bindkey(%copy, $key, $value);
-
-        %!cache := %copy;
-        $value
+        self.protect({
+            my %cache := nqp::clone(%!cache);
+            nqp::bindkey(%cache, $key, $value);
+            %!cache := %cache;
+            $value
+        })
     }
 
     # Helper method to throw a duplicate method error

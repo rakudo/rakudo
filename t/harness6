@@ -57,7 +57,7 @@ sub MAIN(
                     :long(!$quick), :$stress, :slow,
                     :jvm($vm eq 'jvm'), :moar($vm eq 'moar'),
                     :conc(?($vm eq any("jvm","moar"))),
-                    :rakuast(?%ENV<RAKUDO_RAKUAST>);
+                    :rakuast(?%*ENV<RAKUDO_RAKUAST>);
         my $recode-path = $*SPEC !~~ IO::Spec::Unix;
         for $tests-from-file.IO.lines {
             next if / ^ \s* '#' / or not m/ \S /;

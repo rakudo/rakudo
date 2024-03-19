@@ -3260,7 +3260,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method doc-block:sym<finish>($/) {
-        $*CU.replace-finish-content(~$<finish>);
+        $*CU.replace-finish-content(~$<finish>) if $*CU;
     }
 
     method doc-block:sym<alias>($/) {

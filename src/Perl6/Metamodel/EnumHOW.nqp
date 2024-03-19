@@ -104,17 +104,17 @@ class Perl6::Metamodel::EnumHOW
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
-        my @roles_to_compose := self.roles_to_compose($target);
         my $rtca;
-        if @roles_to_compose {
+        unless nqp::isnull(my $r := self.pop_role_to_compose) {
             my @ins_roles;
-            while @roles_to_compose {
-                my $r := nqp::pop(@roles_to_compose);
+            until nqp::isnull($r) {
                 nqp::push(@!role_typecheck_list, $r);
                 my $ins := $r.HOW.specialize($r, $target);
                 self.check-type-compat($target, $ins, [3])
                     if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
+
+                $r := self.pop_role_to_compose;
             }
             $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
             $rtca.prepare($target, @ins_roles);

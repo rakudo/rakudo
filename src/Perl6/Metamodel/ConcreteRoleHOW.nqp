@@ -55,8 +55,8 @@ class Perl6::Metamodel::ConcreteRoleHOW
     method compose($target) {
         $target := nqp::decont($target);
 
-        Perl6::Metamodel::Configuration.role_to_role_applier_type.apply($target, self.roles_to_compose($target));
-        for self.roles_to_compose($target) {
+        Perl6::Metamodel::Configuration.role_to_role_applier_type.apply($target, self.roles_to_compose);
+        for self.roles_to_compose {
             nqp::push(@!role_typecheck_list, $_);
             for $_.HOW.role_typecheck_list($_) {
                 nqp::push(@!role_typecheck_list, $_);
@@ -76,10 +76,10 @@ class Perl6::Metamodel::ConcreteRoleHOW
     method collisions($XXX?) { @!collisions }
 
     # It makes sense for concretizations to default to MRO order of roles.
-    method roles($target, :$transitive = 1, :$mro = 1) {
+    method roles($XXX?, :$transitive = 1, :$mro = 1) {
         $transitive
-            ?? self.roles-ordered($target, @!roles, :transitive, :$mro)
-            !! @!roles
+          ?? self.roles-ordered(@!roles, :transitive, :$mro)
+          !! @!roles
     }
 
     method add_to_role_typecheck_list($XXX, $type) {

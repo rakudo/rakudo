@@ -136,7 +136,7 @@ class Perl6::Metamodel::CurriedRoleHOW
         # for $!curried_role.HOW.role_typecheck_list($target) {
         #     nqp::push(@rtl, $_);
         # }
-        for self.roles_to_compose($target) -> $role {
+        for self.roles_to_compose -> $role {
             my $how := $role.HOW;
             if $how.archetypes.composable() || $how.archetypes.composalizable() {
                 nqp::push(@rtl, $role);
@@ -182,7 +182,7 @@ class Perl6::Metamodel::CurriedRoleHOW
 
     method roles($target, :$transitive = 1, :$mro = 0) {
         self.complete_parameterization($target);
-        self.roles-ordered($target, self.roles_to_compose($target), :$transitive, :$mro)
+        self.roles-ordered(self.roles_to_compose, :$transitive, :$mro)
     }
 
     method role_typecheck_list($target) {

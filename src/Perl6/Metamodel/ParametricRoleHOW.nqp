@@ -69,7 +69,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         if $!in_group {
             @rtl.push($!group);
         }
-        for self.roles_to_compose($target) {
+        for self.roles_to_compose {
             my $how := $_.HOW;
             if $how.archetypes.composable || $how.archetypes.composalizable {
                 @rtl.push($_);
@@ -86,8 +86,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         $target
     }
 
-    method roles($target, :$transitive = 1, :$mro) {
-        self.roles-ordered($target, self.roles_to_compose($target), :$transitive, :$mro);
+    method roles($XXX?, :$transitive = 1, :$mro) {
+        self.roles-ordered(self.roles_to_compose, :$transitive, :$mro);
     }
 
     method role_typecheck_list($XXX?) { @!role_typecheck_list }
@@ -115,7 +115,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                 return 1;
             }
         }
-        for self.roles_to_compose($target) {
+        for self.roles_to_compose {
             if nqp::istype($checkee, $_) {
                 return 1;
             }
@@ -229,7 +229,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         }
 
         # Roles done by this role need fully specializing also.
-        for self.roles_to_compose($target) {
+        for self.roles_to_compose {
             my $ins := my $r := $_;
             if $_.HOW.archetypes($_).generic {
                 $ins := $ins.HOW.instantiate_generic($ins, $type_env);

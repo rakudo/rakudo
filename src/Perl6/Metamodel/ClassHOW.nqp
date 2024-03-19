@@ -114,13 +114,11 @@ class Perl6::Metamodel::ClassHOW
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
-        my @roles_to_compose := self.roles_to_compose($target);
         my @stubs;
         my $rtca;
-        if @roles_to_compose {
+        unless nqp::isnull(my $r := self.pop_role_to_compose) {
             my @ins_roles;
-            while @roles_to_compose {
-                my $r := @roles_to_compose.pop();
+            until nqp::isnull($r) {
                 nqp::push(@!roles, $r);
                 nqp::push(@!role_typecheck_list, $r);
                 my $ins := $r.HOW.specialize($r, $target);
@@ -131,6 +129,8 @@ class Perl6::Metamodel::ClassHOW
                 }
                 @ins_roles.push($ins);
                 self.add_concretization($target, $r, $ins);
+
+                $r := self.pop_role_to_compose;
             }
             self.compute_mro($target); # to the best of our knowledge, because the role applier wants it.
             $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
@@ -268,7 +268,7 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method roles($target, :$local, :$transitive = 1, :$mro = 0) {
-        my @result := self.roles-ordered($target, @!roles, :$transitive, :$mro);
+        my @result := self.roles-ordered(@!roles, :$transitive, :$mro);
         unless $local {
             my $first := 1;
             for self.mro($target) {
@@ -285,7 +285,7 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method role_typecheck_list($target) {
-        self.is_composed ?? @!role_typecheck_list !! self.roles_to_compose($target)
+        self.is_composed ?? @!role_typecheck_list !! self.roles_to_compose
     }
 
     # Stuff for junctiony dispatch fallback.

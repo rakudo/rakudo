@@ -5226,7 +5226,7 @@ Rakudo significantly on *every* run."
 
     # directives that may not be used as block names
     token rakudoc-directives {
-        alias | begin | column | config | end | finish | for | row
+        alias | begin | column | config | end | finish | for | place | row
     }
 
     proto token doc-block {*}
@@ -5250,14 +5250,14 @@ Rakudo significantly on *every* run."
         \n?
     }
 
-    # handle =column / =row
-    token doc-block:sym<column-row> {
+    # handle =column / =place / =row
+    token doc-block:sym<column-place-row> {
 
         # save any leading whitespace from start of line
         ^^ $<margin>=[ \h* ]
 
         # custom config madness
-        '=' $<type>=[ column | row ]
+        '=' $<type>=[ column | place | row ]
 
         # fetch any configuration
         [ [\n $<margin> '=']? \h+ <colonpair> ]*

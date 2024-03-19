@@ -3280,7 +3280,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
           :lemma(~$<lemma>), :@paragraphs
     }
 
-    method doc-block:sym<column-row>($/) {
+    method doc-block:sym<column-place-row>($/) {
         unless $*FROM-SEEN{$/.from}++ {
             $*SEEN{$/.from} := Nodify('Doc','Block').new:
               :directive, :margin(~$<margin>), :type(~$<type>),

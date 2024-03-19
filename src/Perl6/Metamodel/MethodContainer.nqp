@@ -28,6 +28,9 @@ role Perl6::Metamodel::MethodContainer {
           || nqp::existskey(%!submethods, $name);
 
         my str $attr_name :=
+#?if jvm
+          !nqp::isnull(Perl6::Metamodel::Configuration.submethod_type) &&
+#?endif
           nqp::istype($code, Perl6::Metamodel::Configuration.submethod_type)
             ?? '%!submethods'
             !! '%!methods';

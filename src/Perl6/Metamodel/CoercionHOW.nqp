@@ -5,6 +5,7 @@
 # This means we get cross-compilation-unit interning "for free", as well as
 # avoiding a meta-object instance per coercion type created.
 class Perl6::Metamodel::CoercionHOW
+    does Perl6::Metamodel::Naming
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Nominalizable
 {
@@ -14,8 +15,6 @@ class Perl6::Metamodel::CoercionHOW
     has     $!archetypes;
     has int $!target_type_generic;
     has int $!constraint_type_generic;
-    has str $!name;
-    has str $!shortname;
 
     method new(:$target_type!, :$constraint_type!) {
         my $obj := nqp::create(self);
@@ -49,10 +48,9 @@ class Perl6::Metamodel::CoercionHOW
             :definite($target_type.HOW.archetypes($target_type).definite)
           ));
 
-        nqp::bindattr_s($obj, Perl6::Metamodel::CoercionHOW, '$!name', $name);
-        nqp::setdebugtypename($obj, $name);
-
-        nqp::bindattr_s($obj, Perl6::Metamodel::CoercionHOW, '$!shortname',
+        $obj.set_name(Mu, $name);
+        $obj.set_shortname(
+          Mu,
           $target_type.HOW.shortname($target_type)
             ~ '(' ~ $constraint_type.HOW.shortname($constraint_type) ~ ')'
         );
@@ -64,8 +62,6 @@ class Perl6::Metamodel::CoercionHOW
     method constraint_type($XXX?) { $!constraint_type }
     method nominal_target( $XXX?) { $!nominal_target  }
     method archetypes(     $XXX?) { $!archetypes      }
-    method name(           $XXX?) { $!name            }
-    method shortname(      $XXX?) { $!shortname       }
 
     method new_type($target, $constraint) {
         nqp::parameterizetype(

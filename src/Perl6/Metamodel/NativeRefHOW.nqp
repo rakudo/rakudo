@@ -55,8 +55,15 @@ class Perl6::Metamodel::NativeRefHOW
     method native_type($XXX?) { $!type    }
     method ref_kind($XXX?)    { $!refkind }
 
-    method method_table($XXX?)    { nqp::hash }
-    method submethod_table($XXX?) { nqp::hash }
+    my constant METHOD_TABLE := nqp::hash('new',
+      nqp::getstaticcode(sub (*@_, *%_) {
+        nqp::die('Cannot instantiate a native reference type')
+      })
+    );
+    my constant SUBMETHOD_TABLE := nqp::hash;
+
+    method method_table(   $XXX?) { METHOD_TABLE    }
+    method submethod_table($XXX?) { SUBMETHOD_TABLE }
 }
 
 # vim: expandtab sw=4

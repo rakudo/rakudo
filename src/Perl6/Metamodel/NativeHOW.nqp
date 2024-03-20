@@ -84,14 +84,15 @@ class Perl6::Metamodel::NativeHOW
     method unsigned(  $XXX?) { $!unsigned   }
     method nativesize($XXX?) { $!nativesize }
 
-    method method_table($XXX?) {
-        nqp::hash('new',
-          nqp::getstaticcode(sub (*@_, *%_) {
-            nqp::die('Cannot instantiate a native type')
-          }))
-    }
+    my constant METHOD_TABLE := nqp::hash('new',
+      nqp::getstaticcode(sub (*@_, *%_) {
+        nqp::die('Cannot instantiate a native type')
+      })
+    );
+    my constant SUBMETHOD_TABLE := nqp::hash;
 
-    method submethod_table($XXX?) { nqp::hash }
+    method method_table(   $XXX?) { METHOD_TABLE    }
+    method submethod_table($XXX?) { SUBMETHOD_TABLE }
 }
 
 # vim: expandtab sw=4

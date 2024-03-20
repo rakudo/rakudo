@@ -1,4 +1,5 @@
 #- Metamodel::DefaultParent ----------------------------------------------------
+# Provide default parent logic
 role Perl6::Metamodel::DefaultParent {
     my $default_parent_type := nqp::null;
 

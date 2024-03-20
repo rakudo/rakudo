@@ -44,7 +44,7 @@ my class RoleToClassApplier {
             $!to_compose_meta := $!to_compose.HOW;
         }
         else {
-            $!to_compose := $concrete.new_type();
+            $!to_compose := Perl6::Metamodel::ConcreteRoleHOW.new_type;
             $!to_compose_meta := $!to_compose.HOW;
             $!to_compose_meta.set_language_revision($!to_compose, $HOW.language_revision);
             for @roles {

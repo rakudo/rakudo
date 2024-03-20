@@ -78,10 +78,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         my $curried;
         if $maybe_nameds {
             my %nameds := $maybe_nameds;
-            $curried := $currier.new_type($target, |@args, |%nameds);
+            $curried := Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@args, |%nameds);
         }
         else {
-            $curried := $currier.new_type($target, |@args);
+            $curried := Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@args);
         }
         $curried.HOW.set_pun_repr($curried, self.pun_repr($target));
         $curried

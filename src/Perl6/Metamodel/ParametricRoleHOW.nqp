@@ -1,5 +1,3 @@
-my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
-my $currier  := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
@@ -40,7 +38,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method parameterize($target, *@pos_args, *%named_args) {
-        $currier.new_type($target, |@pos_args, |%named_args)
+        Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@pos_args, |%named_args)
     }
 
     method set_body_block($XXX, $block) {
@@ -137,7 +135,7 @@ class Perl6::Metamodel::ParametricRoleHOW
                 # Pre-create a concrete role. We'll finalize it later, in specialize_with method. But for now we need it
                 # to initialize $?CONCRETIZATION by role's body block.
                 my $*MOP-ROLE-CONCRETIZATION := $conc :=
-                    $concrete.new_type(:roles([$target]), :name(self.name($target)));
+                    Perl6::Metamodel::ConcreteRoleHOW.new_type(:roles([$target]), :name(self.name($target)));
                 $conc.HOW.set_language_revision($conc, self.language_revision);
                 $conc.HOW.set_hidden($conc) if self.hidden($target);
 

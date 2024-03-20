@@ -16,7 +16,6 @@
 # as both a way to curry on your way to a full specialization, but also
 # as a way to do type-checking or punning.
 class Perl6::Metamodel::CurriedRoleHOW
-    does Perl6::Metamodel::Locking
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::RolePunning

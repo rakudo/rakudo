@@ -1,7 +1,6 @@
 my $concrete := Perl6::Metamodel::ConcreteRoleHOW;
 my $currier  := Perl6::Metamodel::CurriedRoleHOW;
 class Perl6::Metamodel::ParametricRoleHOW
-    does Perl6::Metamodel::Locking
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting

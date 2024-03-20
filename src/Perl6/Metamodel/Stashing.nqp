@@ -1,4 +1,8 @@
+#- Metamodel::Stashing ---------------------------------------------------------
+# Provides the logic for stashes with a metaclass object
+
 role Perl6::Metamodel::Stashing {
+
     method add_stash($type_obj) {
         my $stash_type := Perl6::Metamodel::Configuration.stash_type;
         unless nqp::isnull($stash_type) {

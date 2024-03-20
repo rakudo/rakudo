@@ -38,6 +38,18 @@ role Perl6::Metamodel::Naming {
     method set_shortname($XXX, $shortname) {
         $!shortname := $shortname;
     }
+
+#-------------------------------------------------------------------------------
+# Note that this locking logic has nothing to do with naming.  But it was
+# the only way to have "protect" functionality on all fooHOW classes,
+# including ones in the ecosystem, most notably Inline::Perl5.
+
+    has $!locking;
+
+    method TWEAK(*%_) { $!locking := NQPLock.new }
+
+    method protect(&code) { $!locking.protect(&code) }
+#-------------------------------------------------------------------------------
 }
 
 # vim: expandtab sw=4

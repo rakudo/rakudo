@@ -3,7 +3,6 @@
 # created at composition time. It supports having roles composed in,
 # one or two of which presumably provide the core enum-ish methods.
 class Perl6::Metamodel::EnumHOW
-    does Perl6::Metamodel::Locking
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting

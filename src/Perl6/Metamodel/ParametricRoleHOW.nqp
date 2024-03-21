@@ -1,3 +1,5 @@
+#- Metamodel::ParametricRoleHOW ------------------------------------------------
+# All the logic to handle a single parametric role
 class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
@@ -16,14 +18,18 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::ArrayType
     does Perl6::Metamodel::InvocationProtocol
 {
-    has $!body_block;
-    has $!in_group;
-    has $!group;
-    has $!signatured;
-    has @!role_typecheck_list;
+    has     $!body_block;
+    has int $!in_group;
+    has     $!group;
+    has     $!signatured;
+    has     @!role_typecheck_list;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
+    my $archetypes := Perl6::Metamodel::Archetypes.new(
+      :nominal, :composable, :inheritalizable, :parametric
+    );
     method archetypes($XXX?) { $archetypes }
+
+    # XXX consider creating a custom .new and removing does BUILDALL
 
     method new_type(:$repr, :$signatured, *%_) {
         my $HOW    := self.new(:$signatured);
@@ -37,8 +43,8 @@ class Perl6::Metamodel::ParametricRoleHOW
         $HOW.add_stash($target);
     }
 
-    method parameterize($target, *@pos_args, *%named_args) {
-        Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@pos_args, |%named_args)
+    method parameterize($target, *@_, *%_) {
+        Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@_, |%_)
     }
 
     method set_body_block($XXX, $block) {
@@ -49,7 +55,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     method signatured($XXX?) { $!signatured }
 
     method set_group($XXX, $group) {
-        $!group := $group;
+        $!group    := $group;
         $!in_group := 1;
     }
 
@@ -63,17 +69,24 @@ class Perl6::Metamodel::ParametricRoleHOW
         self.set_language_version($target);
 
         my @rtl;
-        if $!in_group {
-            @rtl.push($!group);
-        }
-        for self.roles_to_compose {
-            my $how := $_.HOW;
-            if $how.archetypes.composable || $how.archetypes.composalizable {
-                @rtl.push($_);
-                for $_.HOW.role_typecheck_list($_) {
-                    @rtl.push($_);
-                }
+        @rtl.push($!group) if $!in_group;
+
+        my @roles := self.roles_to_compose;
+        my int $m := nqp::elems(@roles);
+        my int $i;
+        while $i < $m {
+            my $role := nqp::atpos(@roles, $i);
+            my $HOW  := $role.HOW;
+            if $HOW.archetypes.composable || $HOW.archetypes.composalizable {
+                @rtl.push($role);
+                nqp::splice(
+                  @rtl,
+                  $HOW.role_typecheck_list($role),
+                  nqp::elems(@rtl),
+                  0
+                );
             }
+            ++$i;
         }
         @!role_typecheck_list := @rtl;
 #?if !moar
@@ -89,53 +102,66 @@ class Perl6::Metamodel::ParametricRoleHOW
 
     method role_typecheck_list($XXX?) { @!role_typecheck_list }
 
-    # $checkee must always be decont'ed
     method type_check_parents($target, $checkee) {
-        for self.parents($target, :local) -> $parent {
-            if nqp::istype($parent, $checkee) {
-                return 1;
-            }
+        $checkee := nqp::decont($checkee);
+
+        my @parents := self.parents($target, :local);
+        my int $m   := nqp::elems(@parents);
+        my int $i;
+        while $i < $m {
+            nqp::istype(nqp::atpos(@parents, $i), $checkee)
+              ?? (return 1)
+              !! ++$i;
         }
         0
     }
 
     method type_check($target, $checkee) {
         $checkee := nqp::decont($checkee);
-        if $checkee =:= $target.WHAT {
-            return 1;
-        }
-        if $!in_group && $checkee =:= $!group {
-            return 1;
-        }
-        for self.pretending_to_be() {
-            if $checkee =:= nqp::decont($_) {
-                return 1;
+
+        # Helper sub to check checkee against a list of types
+        sub check_checkee_against(@types) {
+            my int $m := nqp::elems(@types);
+            my int $i;
+            while $i < $m {
+                nqp::eqaddr($checkee, nqp::decont(nqp::atpos(@types, $i)))
+                  ?? (return 1)
+                  !! ++$i;
             }
+            0
         }
-        for self.roles_to_compose {
-            if nqp::istype($checkee, $_) {
-                return 1;
-            }
-        }
-        self.type_check_parents($target, $checkee);
+
+        nqp::eqaddr($checkee, $target.WHAT)
+          || $!in_group && nqp::eqaddr($checkee, $!group)
+          || check_checkee_against(self.pretending_to_be)
+          || check_checkee_against(self.roles_to_compose)
+          || self.type_check_parents($target, $checkee)
     }
 
-    method specialize($target, *@pos_args, *%named_args) {
-        # We only allow one specialization of a role to take place at a time,
-        # since the body block captures the methods into its lexical scope,
-        # but we don't do the appropriate cloning until a bit later. These
-        # must happen before another specialize happens and re-captures the
-        # things we are composing.
-        self.protect({
-            my $class := @pos_args[0];
-            my $conc := nqp::if(nqp::can($class.HOW, 'get_cached_conc'),
-                        $class.HOW.get_cached_conc($class, $target, @pos_args, %named_args),
-                        nqp::null());
-            if (nqp::isnull($conc)) {
-                # Pre-create a concrete role. We'll finalize it later, in specialize_with method. But for now we need it
-                # to initialize $?CONCRETIZATION by role's body block.
-                my $*MOP-ROLE-CONCRETIZATION := $conc :=
-                    Perl6::Metamodel::ConcreteRoleHOW.new_type(:roles([$target]), :name(self.name($target)));
+    method specialize($target, *@_, *%_) {
+        my $class := nqp::atpos(@_, 0);
+        my $conc  := nqp::can($class.HOW, 'get_cached_conc')
+          ?? $class.HOW.get_cached_conc($class, $target, @_, %_)
+          !! nqp::null;
+
+        if nqp::isnull($conc) {
+
+            # We only allow one specialization of a role to take place at a time,
+            # since the body block captures the methods into its lexical scope,
+            # but we don't do the appropriate cloning until a bit later. These
+            # must happen before another specialize happens and re-captures the
+            # things we are composing.
+            self.protect({
+
+                # Pre-create a concrete role. We'll finalize it later, in
+                # specialize_with method. But for now we need it to initialize
+                # $?CONCRETIZATION by role's body block.
+                my $*MOP-ROLE-CONCRETIZATION :=
+                                       $conc :=
+                  Perl6::Metamodel::ConcreteRoleHOW.new_type(
+                    :roles(nqp::list($target)),
+                    :name(self.name($target))
+                  );
                 $conc.HOW.set_language_revision($conc, self.language_revision);
                 $conc.HOW.set_hidden($conc) if self.hidden($target);
 
@@ -144,126 +170,162 @@ class Perl6::Metamodel::ParametricRoleHOW
                 my $type_env;
                 my $error;
                 try {
-                    my $result := $!body_block(|@pos_args, |%named_args);
+                    my $result := $!body_block(|@_, |%_);
+
                     if nqp::isconcrete($result) {
-                        # Support for bodies returning Raku's positional
-                        my $original-result := $result;
-                        if nqp::can($result, 'FLATTENABLE_LIST') {
-                            $result := $result.FLATTENABLE_LIST();
-                        }
-                        if nqp::islist($result) && nqp::elems($result) == 2 {
-                            $type_env :=
-                                nqp::ifnull(Perl6::Metamodel::Configuration.type_env_from($result[1]), $result[1]);
-                        }
-                        else {
-                            Perl6::Metamodel::Configuration.throw_or_die(
-                                'X::Role::BodyReturn',
-                                "Role '" ~ self.name($target) ~ "' body block is expected to return a list, got '"
-                                    ~ $original-result.HOW.name($original-result) ~ "' instead",
-                                :role($target),
-                                :expected("a list of two elements"),
-                                :got( (nqp::isconcrete($original-result)
-                                        ?? "an object instance" !! "a type object")
-                                      ~ " of type " ~ $original-result.HOW.name($original-result) ))
-                        }
+                        # Support for bodies returning a Raku Positional
+                        my $original_result := $result;
+                        $result := $result.FLATTENABLE_LIST
+                          if nqp::can($result, 'FLATTENABLE_LIST');
+
+                        $type_env :=
+                          nqp::islist($result) && nqp::elems($result) == 2
+                            ?? nqp::ifnull(
+                                 Perl6::Metamodel::Configuration.type_env_from(
+                                   nqp::atpos($result, 1)
+                                 ),
+                                 nqp::atpos($result, 1)
+                               )
+                            !! self.wrong_body_result($target, $original_result);
                     }
+
                     else {
-                        # When there is no concrete return value from the body use empty TypeEnv then.
-                        # Assuming that no Raku-generated role body would return an undefined value, especially those
-                        # that belong to the core; and assuming that the only period of time when TypeEnv is not
-                        # available on the configuration class is the early stages of the CORE.c compilation, – we can
+
+                        # When there is no concrete return value from the body
+                        # use empty TypeEnv then.  Assuming that no
+                        # Raku-generated role body would return an undefined
+                        # value, especially those that belong to the core; and
+                        # assuming that the only period of time when TypeEnv
+                        # is not available on the configuration class is the
+                        # early stages of the CORE.c compilation, – we can
                         # safely skip the check for nullness. Can't we?
-                        $type_env := Perl6::Metamodel::Configuration.type_env_type().new;
+                        $type_env :=
+                          Perl6::Metamodel::Configuration.type_env_type.new;
                     }
                     CATCH {
                         $error := $!;
                     }
                 }
-                if $error {
-                    my $exception := nqp::getpayload($error);
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::Role::Instantiation',
-                        "Could not instantiate role '" ~ self.name($target)
-                            ~ "':\n" ~ ($exception || nqp::getmessage($error)),
-                        :role($target),
-                        :exception($error) )
-                }
+
+                # XXX shouldn't this be moved into the CATCH block?
+                self.could_not_instantiate($target, $error) if $error;
 
                 # Use it to build a concrete role.
-                $conc := self.specialize_with($target, $conc, $type_env, @pos_args);
-                nqp::if(
-                    nqp::can($class.HOW, 'add_conc_to_cache'),
-                    $class.HOW.add_conc_to_cache($class, $target, @pos_args, %named_args, $conc)
-                );
-            }
-            $conc
-        })
+                $conc := self.specialize_with($target, $conc, $type_env, @_);
+
+                # Cache it if possible
+                $class.HOW.add_conc_to_cache($class, $target, @_, %_, $conc)
+                  if nqp::can($class.HOW, 'add_conc_to_cache');
+            });
+        }
+
+        $conc
     }
 
-    method specialize_with($target, $conc, $type_env, @pos_args) {
+    method specialize_with($target, $conc, $type_env, @_) {
+
         # Go through attributes, reifying as needed and adding to
         # the concrete role.
-        for self.attributes($target, :local(1)) {
-            $conc.HOW.add_attribute($conc,
-                $_.is_generic ?? $_.instantiate_generic($type_env) !! nqp::clone($_));
+        my @attributes := self.attributes($target, :local);
+        my int $m := nqp::elems(@attributes);
+        my int $i;
+        while $i < $m {
+            my $attribute := nqp::atpos(@attributes, $i);
+            $conc.HOW.add_attribute($conc, $attribute.is_generic
+              ?? $attribute.instantiate_generic($type_env)
+              !! nqp::clone($attribute)
+            );
+            ++$i;
         }
 
         # Go through methods and instantiate them; we always do this
         # unconditionally, since we need the clone anyway.
-        my @methods      := nqp::hllize(self.method_order($target));
-        my @method_names := nqp::hllize(self.method_names($target));
-        my $method_iterator := nqp::iterator(@methods);
-        for @method_names -> $name {
-            $conc.HOW.add_method($conc, $name, nqp::shift($method_iterator).instantiate_generic($type_env))
+        my @methods      := self.method_order($target);
+        my @method_names := self.method_names($target);
+
+        $m := nqp::elems(@methods);
+        $i := 0;
+        while $i < $m {
+            $conc.HOW.add_method(
+              $conc,
+              nqp::atpos(@method_names, $i),
+              nqp::atpos(@methods, $i).instantiate_generic($type_env)
+            );
+            ++$i;
         }
-        my %private_methods := nqp::hllize(self.private_method_table($target));
-        my @private_methods := nqp::hllize(self.private_method_names($target));
-        for @private_methods -> $name {
-            $conc.HOW.add_private_method($conc, $name, %private_methods{$name}.instantiate_generic($type_env));
+
+        my %private_methods := self.private_method_table($target);
+        my @private_methods := self.private_method_names($target);
+
+        $m := nqp::elems(@private_methods);
+        $i := 0;
+        while $i < $m {
+            my str $name := nqp::atpos(@private_methods, $i);
+            $conc.HOW.add_private_method(
+              $conc,
+              $name,
+              nqp::atkey(%private_methods, $name).instantiate_generic($type_env)
+            );
+            ++$i;
         }
-        for self.multi_methods_to_incorporate($target) {
-            $conc.HOW.add_multi_method($conc, $_.name, $_.code.instantiate_generic($type_env))
+
+        my @multi_methods := self.multi_methods_to_incorporate($target);
+
+        $m := nqp::elems(@multi_methods);
+        $i := 0;
+        while $i < $m {
+            my $multi_method := nqp::atpos(@multi_methods, $i);
+            $conc.HOW.add_multi_method(
+              $conc,
+              $multi_method.name,
+              $multi_method.code.instantiate_generic($type_env)
+            );
+            ++$i;
         }
 
         # Roles done by this role need fully specializing also.
-        for self.roles_to_compose {
-            my $ins := my $r := $_;
-            if $_.HOW.archetypes($_).generic {
-                $ins := $ins.HOW.instantiate_generic($ins, $type_env);
-                unless $ins.HOW.archetypes.parametric {
-                    my $target-name := self.name($target);
-                    my $role-name := $ins.HOW.name($ins);
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::Composition::NotComposable',
-                        $role-name ~ " is not composable, so " ~ $target-name ~ " cannot compose it",
-                        :$target-name,
-                        composer => $ins,
-                    )
-                }
-                $conc.HOW.add_to_role_typecheck_list($conc, $ins);
+        my @roles := self.roles_to_compose;
+
+        $m := nqp::elems(@roles);
+        $i := 0;
+        while $i < $m {
+            my $ins := my $role := nqp::atpos(@roles, $i);
+
+            if $role.HOW.archetypes($role).generic {
+                $ins := $role.HOW.instantiate_generic($role, $type_env);
+                $ins.HOW.archetypes.parametric
+                  ?? $conc.HOW.add_to_role_typecheck_list($conc, $ins)
+                  !! self.not_composable($target, $ins);
             }
-            $ins := $ins.HOW.specialize($ins, @pos_args[0]);
+
+            $ins := $ins.HOW.specialize($ins, nqp::atpos(@_, 0));
             $conc.HOW.add_role($conc, $ins);
-            $conc.HOW.add_concretization($conc, $r, $ins);
+            $conc.HOW.add_concretization($conc, $role, $ins);
+            ++$i;
         }
 
         # Pass along any parents that have been added, resolving them in
         # the case they're generic (role Foo[::T] is T { })
-        for self.parents($target, :local(1)) {
-            my $p := $_;
-            if $p.HOW.archetypes($p).generic {
-                $p := $p.HOW.instantiate_generic($p, $type_env);
-            }
-            $conc.HOW.add_parent($conc, $p, :hides(self.hides_parent($target, $_)));
+        my @parents := self.parents($target, :local);
+
+        $m := nqp::elems(@parents);
+        $i := 0;
+        while $i < $m {
+            my     $parent := nqp::atpos(@parents, $i);
+            my int $hides  := self.hides_parent($target, $parent);
+            $parent := $parent.HOW.instantiate_generic($parent, $type_env)
+              if $parent.HOW.archetypes($parent).generic;
+
+            $conc.HOW.add_parent($conc, $parent, :$hides);
+            ++$i;
         }
 
         # Resolve any array type being passed along (only really used in the
         # punning case, since roles are the way we get generic types).
         if self.is_array_type {
             my $at := self.array_type;
-            if $at.HOW.archetypes($at).generic {
-                $at := $at.HOW.instantiate_generic($at, $type_env);
-            }
+            $at := $at.HOW.instantiate_generic($at, $type_env)
+              if $at.HOW.archetypes($at).generic;
             $conc.HOW.set_array_type($conc, $at);
         }
 
@@ -271,24 +333,91 @@ class Perl6::Metamodel::ParametricRoleHOW
         $conc
     }
 
-    # Instantiate all generics bound to special lexicals in role's body. Must be invoked by role code before any
-    # of these lexicals is referenced.
-    method resolve_instantiations($XXX, $ctx, @ins-list) {
-        my $type_env := Perl6::Metamodel::Configuration.type_env_from($ctx, :boundary-by('::?ROLE'));
-        my $hll-typeenv := nqp::isnull($type_env);
-        for @ins-list {
-            my $generic := nqp::getlexrel($ctx, $_);
-            nqp::bindkey(
-                $ctx, $_,
-                ($hll-typeenv
-                    ?? $type_env.cache($generic)
-                    !! $generic.HOW.instantiate_generic($generic, $type_env)));
+    # Instantiate all generics bound to special lexicals in role's body.
+    # Must be invoked by role code before any of these lexicals is referenced.
+    method resolve_instantiations($XXX, $ctx, @ins_list) {
+        my $type_env := Perl6::Metamodel::Configuration.type_env_from(
+          $ctx, :boundary-by('::?ROLE')
+        );
+
+        my int $m := nqp::elems(@ins_list);
+        if nqp::isnull($type_env) {
+            my int $i;
+            while $i < $m {
+                my $ins := nqp::atpos(@ins_list, $i);
+                nqp::bindkey(
+                  $ctx,
+                  $ins,
+                  $type_env.cache(nqp::getlexrel($ctx, $ins))
+                );
+                ++$i;
+            }
+            $type_env
         }
-        $hll-typeenv ?? $type_env !! $ctx
+        else {
+            my int $i;
+            while $i < $m {
+                my $ins     := nqp::atpos(@ins_list, $i);
+                my $generic := nqp::getlexrel($ctx, $ins);
+                nqp::bindkey(
+                  $ctx,
+                  $ins,
+                  $generic.HOW.instantiate_generic($generic, $type_env)
+                );
+                ++$i;
+            }
+            $ctx
+        }
     }
 
     method mro($target, :$roles, :$concretizations, :$unhidden) {
-        [$target]
+        nqp::list($target)
+    }
+
+    # Error handling methods
+    method wrong_body_result($target, $got) {
+        my str $got_name := $got.HOW.name($got);
+
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::BodyReturn',
+          "Role '"
+            ~ self.name($target)
+            ~ "' body block is expected to return a list, got '"
+            ~ $got_name
+            ~ "' instead",
+          :role($target),
+          :expected("a list of two elements"),
+          :got(
+            (nqp::isconcrete($got)
+              ?? "an object instance"
+              !! "a type object"
+            ) ~ " of type $got_name"
+          )
+        );
+    }
+
+    method could_not_instantiate($target, $error) {
+        my $exception := nqp::getpayload($error);
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Instantiation',
+          "Could not instantiate role '"
+            ~ self.name($target)
+            ~ "':\n"
+            ~ ($exception || nqp::getmessage($error)),
+          :role($target),
+          :exception($error)
+        );
+    }
+
+    method not_composable($target, $composer) {
+        my str $target-name := self.name($target);
+        my str $role-name   := $composer.HOW.name($composer);
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Composition::NotComposable',
+          "$role-name is not composable, so $target-name cannot compose it",
+          :$target-name,
+          :$composer
+        )
     }
 }
 

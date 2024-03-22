@@ -245,6 +245,11 @@ class RakuAST::Resolver {
 
         # Resolve the root part.
         my $name     := $root.name;
+        if ($name eq 'CORE') {
+            $root := nqp::shift(@parts);
+            $name := $root.name;
+            $setting := True;
+        }
         my $resolved := $name eq 'GLOBAL'
           ?? self.global-package()
           !! $name eq 'EXPORT'

@@ -267,7 +267,7 @@ class RakuAST::Type::Capture
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+        QAST::Var.new( :decl('static'), :scope('lexical'), :name($!name.canonicalize) )
     }
 
     method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {

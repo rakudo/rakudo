@@ -374,16 +374,18 @@ class RakuAST::ExpressionThunk
             str :$blocktype, RakuAST::Expression :$expression!) {
         # From the block, compiling the signature.
         my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
-        my $block :=
-            self.IMPL-SET-NODE(
-                QAST::Block.new(
-                    :blocktype('declaration_static'),
-                    QAST::Stmts.new( $signature.IMPL-QAST-BINDINGS($context) )),
-                :key);
         my $stmts := QAST::Stmts.new();
         for self.IMPL-UNWRAP-LIST($signature.parameters) {
             $stmts.push($_.target.IMPL-QAST-DECL($context)) unless $_.target.lexical-name eq '$_';
         }
+        $stmts.push($signature.IMPL-QAST-BINDINGS($context));
+        my $block :=
+            self.IMPL-SET-NODE(
+                QAST::Block.new(
+                    :blocktype('declaration_static'),
+                    $stmts),
+                :key);
+        $stmts := QAST::Stmts.new();
         if nqp::istype(self, RakuAST::ImplicitDeclarations) {
             for self.IMPL-UNWRAP-LIST(self.get-implicit-declarations()) -> $decl {
                 if $decl.is-simple-lexical-declaration {

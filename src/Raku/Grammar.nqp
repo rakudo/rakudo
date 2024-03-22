@@ -1692,6 +1692,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
     token statement-prefix:sym<try> {
         <.stmt-prefix-try> <.kok> <blorst>
+        <.set_braid_from(self)>
     }
 
     # Prefixes that work differently on for loops
@@ -3414,24 +3415,31 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token package-declarator {*}
     token package-declarator:sym<package> {
         <.package-package> <.kok> <package-def('package')>
+        <.set_braid_from(self)>
     }
     token package-declarator:sym<module> {
         <.package-module> <.kok> <package-def('module')>
+        <.set_braid_from(self)>
     }
     token package-declarator:sym<class> {
         <.package-class> <.kok> <package-def('class')>
+        <.set_braid_from(self)>
     }
     token package-declarator:sym<grammar> {
         <.package-grammar> <.kok> <package-def('grammar')>
+        <.set_braid_from(self)>
     }
     token package-declarator:sym<role> {
         <.package-role> <.kok> <package-def('role')>
+        <.set_braid_from(self)>
     }
     token package-declarator:sym<knowhow> {
         <.package-knowhow> <.kok> <package-def('knowhow')>
+        <.set_braid_from(self)>
     }
     token package-declarator:sym<native> {
         <.package-native> <.kok> <package-def('native')>
+        <.set_braid_from(self)>
     }
 
     rule package-def($*PKGDECL) {

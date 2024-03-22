@@ -245,10 +245,16 @@ class RakuAST::Resolver {
 
         # Resolve the root part.
         my $name     := $root.name;
+        my str $setting-rev;
         if ($name eq 'CORE') {
             $root := nqp::shift(@parts);
             $name := $root.name;
             $setting := True;
+            if (nqp::chars($name) == 3 && nqp::index($name, 'v6') == 0) {
+                $setting-rev := $name;
+                $root := nqp::shift(@parts);
+                $name := $root.name;
+            }
         }
         my $resolved := $name eq 'GLOBAL'
           ?? self.global-package()
@@ -257,7 +263,7 @@ class RakuAST::Resolver {
                  compile-time-value => $!export-package
                )
             !! $setting
-              ?? self.resolve-lexical-constant-in-setting($name)
+              ?? self.resolve-lexical-constant-in-setting($name, :$setting-rev)
               !! self.resolve-lexical-constant($name);
         $resolved
           ?? (my $symbol := $resolved.compile-time-value)
@@ -388,8 +394,20 @@ class RakuAST::Resolver {
 
     # Resolves a lexical using the outer contexts. The declaration must have a
     # compile-time value.
-    method resolve-lexical-constant-in-setting(Str $name) {
-        self.resolve-lexical-constant-in-context($!setting, $name)
+    method resolve-lexical-constant-in-setting(Str $name, str :$setting-rev) {
+        if $setting-rev {
+            my $setting := $!setting;
+            my $rev := nqp::substr($setting-rev, 2, 1);
+            until nqp::isnull($setting) {
+                nqp::existskey(nqp::ctxlexpad($setting), 'CORE-SETTING-REV') && nqp::ctxlexpad($setting)<CORE-SETTING-REV> eq $rev
+                  ?? (return self.external-constant($setting, $name))
+                  !! ($setting := nqp::ctxouter($setting));
+            }
+            nqp::die("Could not find setting revision $setting-rev trying to look up $name");
+        }
+        else {
+            self.resolve-lexical-constant-in-context($!setting, $name)
+        }
     }
 
     method IMPL-SETTING-FROM-CONTEXT(Mu $context) {

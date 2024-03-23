@@ -1545,8 +1545,11 @@ class RakuAST::Routine
             $routine.set_onlystar;
         }
 
-        nqp::bindattr($routine,Routine,'$!package',$!package.compile-time-value)
-          if $!package;
+        if $!package {
+            nqp::bindattr($routine,Routine,'$!package',$!package.compile-time-value);
+            ($!package.meta-object.WHO){self.lexical-name} := $routine
+                if self.lexical-name && self.scope eq 'our';
+        }
 
         # Make sure that any OperatorProperties are set on the meta-object
         # if it is some kind of operator.  This feels pretty hackish way
@@ -1780,7 +1783,6 @@ class RakuAST::Routine
         if $name && (self.scope eq 'our' || self.scope eq 'unit') {
             my $stmts := self.IMPL-SET-NODE(QAST::Stmts.new(), :key);
             $stmts.push($block);
-            ($!package.meta-object.WHO){$name} := self.meta-object;
             $stmts.push(QAST::Op.new(
                 :op('bindkey'),
                 QAST::Op.new( :op('who'), QAST::WVal.new( :value($!package.meta-object) ) ),

@@ -20,8 +20,10 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
-    does Perl6::Metamodel::InvocationProtocol
     does Perl6::Metamodel::Mixins
+#?if !moar
+    does Perl6::Metamodel::InvocationProtocol
+#?endif
 {
     # Hash representing enumeration keys to values.
     has %!values;

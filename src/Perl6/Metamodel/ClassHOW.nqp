@@ -22,11 +22,13 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::ArrayType
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
-    does Perl6::Metamodel::InvocationProtocol
     does Perl6::Metamodel::ContainerSpecProtocol
     does Perl6::Metamodel::Finalization
     does Perl6::Metamodel::Concretization
     does Perl6::Metamodel::ConcretizationCache
+#?if !moar
+    does Perl6::Metamodel::InvocationProtocol
+#?endif
 {
     has @!roles;
     has @!role_typecheck_list;

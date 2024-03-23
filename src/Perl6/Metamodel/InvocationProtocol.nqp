@@ -1,5 +1,5 @@
-role Perl6::Metamodel::InvocationProtocol {
 #?if !moar
+role Perl6::Metamodel::InvocationProtocol {
     has int $!has_invocation_attr;
     has $!invocation_attr_class;
     has str $!invocation_attr_name;
@@ -69,7 +69,7 @@ role Perl6::Metamodel::InvocationProtocol {
             }
         }
     }
-#?endif
 }
+#?endif
 
 # vim: expandtab sw=4

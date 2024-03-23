@@ -12,11 +12,20 @@ my class PseudoStash is Map {
     my int constant PRECISE_SCOPE      = 4;
     my int constant REQUIRE_DYNAMIC    = 8;
 
-    method new() {
+    multi method new() {
         my $obj := nqp::create(self);
         my $ctx := nqp::ctxcaller(nqp::ctx());
         nqp::bindattr($obj, PseudoStash, '$!ctx', $ctx);
         nqp::bindattr($obj, Map, '$!storage', nqp::ctxlexpad($ctx));
+        $obj
+    }
+
+    multi method new(Mu $ctx is raw, :$mode = STATIC_CHAIN) {
+        my $obj := nqp::create(self);
+        my Mu $dctx := nqp::decont($ctx);
+        nqp::bindattr($obj, PseudoStash, '$!ctx', $dctx);
+        nqp::bindattr($obj, Map, '$!storage', nqp::ctxlexpad($ctx));
+        nqp::bindattr_i($obj, PseudoStash, '$!mode', nqp::decont($mode));
         $obj
     }
 

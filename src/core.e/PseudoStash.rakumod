@@ -12,7 +12,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
     # A convenience shortcut
     my constant PseudoStash6c = CORE::v6c::PseudoStash;
 
-    method new(Mu :$ctx is raw, :$mode = STATIC_CHAIN) {
+    multi method new(Mu :$ctx is raw, :$mode = STATIC_CHAIN) {
         my $stash := nqp::create(self);
         my Mu $dctx := nqp::decont($ctx);
         $dctx := nqp::ctxcaller(nqp::ctx()) unless nqp::defined($dctx);
@@ -26,6 +26,17 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         # All values in $!storage hash are choosen to minimize memory footprint of the structure. All of them either
         # taken from where they already exists anyway (like lexpads), or are typeobjects (kind of the previous case),
         # or allocated once ever, like GLOBAL/PROCESS thunking objects.
+        nqp::p6bindattrinvres($stash, Map, '$!storage', nqp::hash())
+    }
+
+    multi method new(Mu $ctx is raw, Mu :$package!, :$mode = STATIC_CHAIN) {
+        my $stash := nqp::create(self);
+        my Mu $dctx := nqp::decont($ctx);
+        $dctx := nqp::ctxcaller(nqp::ctx()) unless nqp::defined($dctx);
+        nqp::bindattr($stash, PseudoStash6c, '$!ctx', nqp::decont($dctx));
+        nqp::bindattr_i($stash, PseudoStash6c, '$!mode', nqp::decont($mode));
+        nqp::bindattr($stash, PseudoStash, '$!package', nqp::decont($package));
+        # See the other method candidate
         nqp::p6bindattrinvres($stash, Map, '$!storage', nqp::hash())
     }
 

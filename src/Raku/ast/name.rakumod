@@ -212,12 +212,9 @@ class RakuAST::Name
         if $*IMPL-COMPILE-DYNAMICALLY && $!parts[0].name eq 'CORE' {
             nqp::shift($!parts); #FIXME don't modify please
             my $PseudoStash := $PseudoStash-lookup.resolution.compile-time-value;
-            my $stash := nqp::create($PseudoStash);
+            my $package := Perl6::Metamodel::ModuleHOW.new_type(:name('CORE'));
             my $found-ctx := $context.setting;
-            nqp::bindattr($stash, Map, '$!storage', nqp::ctxlexpad($found-ctx)),
-            nqp::bindattr($stash, $PseudoStash, '$!ctx', $found-ctx),
-            nqp::bindattr_i($stash, $PseudoStash, '$!mode', STATIC_CHAIN),
-            nqp::setwho(Perl6::Metamodel::ModuleHOW.new_type(:name('CORE')), $stash);
+            my $stash := $PseudoStash.new($found-ctx, :$package);
             $context.ensure-sc($stash);
             $result := QAST::WVal.new(:value($stash));
         }

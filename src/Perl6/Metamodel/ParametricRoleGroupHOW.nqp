@@ -135,133 +135,139 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $selected
     }
 
-    method specialize($target, *@pos_args, *%named_args) {
-        my $selected := self.select_candidate($target, @pos_args, %named_args);
+    method specialize($target, *@_, *%_) {
+        my $selected := self.select_candidate($target, @_, %_);
+
         # Having picked the appropriate one, specialize it.
-        $selected.HOW.specialize($selected, |@pos_args, |%named_args);
+        $selected.HOW.specialize($selected, |@_, |%_)
     }
 
     method update_role_typecheck_list($XXX?) {
-        my $ns := self.'!get_nonsignatured_candidate'();
-        @!role_typecheck_list := $ns.HOW.role_typecheck_list($ns) unless nqp::isnull($ns);
+        my $ns := nqp::atpos(@!nonsignatured, 0);
+        @!role_typecheck_list := $ns.HOW.role_typecheck_list($ns)
+          unless nqp::isnull($ns);
     }
 
     method role_typecheck_list($XXX?) { @!role_typecheck_list }
 
     method type_check($target, $checkee) {
         $checkee := nqp::decont($checkee);
-        if $checkee =:= $target.WHAT {
-            return 1;
-        }
-        for self.pretending_to_be() {
-            if $checkee =:= nqp::decont($_) {
-                return 1;
+
+        # Helper sub to check checkee against a list of types
+        sub check_checkee_against(@types) {
+            my int $m := nqp::elems(@types);
+            my int $i;
+            while $i < $m {
+                nqp::eqaddr($checkee, nqp::decont(nqp::atpos(@types, $i)))
+                  ?? (return 1)
+                  !! ++$i;
             }
+            0
         }
-        for @!role_typecheck_list {
-            if $checkee =:= nqp::decont($_) {
-                return 1;
-            }
-        }
-        my $ns := self.'!get_nonsignatured_candidate'();
-        return $ns.HOW.type_check_parents($ns, $checkee) unless nqp::isnull($ns);
-        0;
+
+        nqp::eqaddr($checkee, $target.WHAT)
+          || check_checkee_against(self.pretending_to_be)
+          || check_checkee_against(@!role_typecheck_list)
+          || (nqp::isnull(my $ns := nqp::atpos(@!nonsignatured, 0))
+               ?? 0
+               !! $ns.HOW.type_check_parents($ns, $checkee)
+             )
     }
 
     method candidates($XXX?) { nqp::clone(@!candidates) }
 
     method lookup($XXX, $name) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? []
-            !! $c.HOW.lookup($c, $name);
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::list
+          !! $c.HOW.lookup($c, $name)
     }
 
-    method methods($XXX, *@pos, *%name) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? []
-            !! $c.HOW.methods($c, |@pos, |%name);
+    method methods($XXX, *@_, *%_) {
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::list
+          !! $c.HOW.methods($c, |@_, |%_)
     }
 
-    method attributes($XXX, *@pos, *%name) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? []
-            !! $c.HOW.attributes($c, |@pos, |%name);
+    method attributes($XXX, *@_, *%_) {
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::list
+          !! $c.HOW.attributes($c, |@_, |%_)
     }
 
-    method parents($XXX, *%named) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? []
-            !! $c.HOW.parents($c, |%named)
+    method parents($XXX, *%_) {
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::list
+          !! $c.HOW.parents($c, |%_)
     }
 
-    method roles($XXX, *%named) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? []
-            !! $c.HOW.roles($c, |%named)
+    method roles($XXX, *%_) {
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::list
+          !! $c.HOW.roles($c, |%_)
     }
 
     method ver($XXX?) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? nqp::null()
-            !! $c.HOW.ver($c)
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::null
+          !! $c.HOW.ver($c)
     }
 
     method auth($XXX?) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? nqp::null()
-            !! $c.HOW.auth($c)
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::null
+          !! $c.HOW.auth($c)
     }
 
-    # See Perl6::Metamodel::LanguageRevision role comments about the difference between these two language revision
-    # methods.
+    method api($XXX?) {
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::null
+          !! $c.HOW.api($c)
+    }
+
+    # See Perl6::Metamodel::LanguageRevision role comments about the
+    # difference between these two language revision methods.
     method language-revision($XXX?) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? nqp::null()
-            !! $c.HOW.language-revision($c)
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::null
+          !! $c.HOW.language-revision($c)
     }
 
     method language_revision($XXX?) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? nqp::null()
-            !! $c.HOW.language_revision
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::null
+          !! $c.HOW.language_revision($c)
     }
 
     method is-implementation-detail($XXX?) {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? nqp::null()
-            !! $c.HOW.is-implementation-detail($c)
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::null
+          !! $c.HOW.is-implementation-detail($c)
     }
 
     method WHY() {
-        nqp::isnull(my $c := self.'!get_default_candidate'())
-            ?? nqp::null()
-            !! $c.HOW.WHY
+        nqp::isnull(my $c := nqp::atpos(@!nonsignatured, 0))
+          ?? nqp::null
+          !! $c.HOW.WHY
     }
 
     method set_why($why) {
+        my str $role-name := self.name;
+
         Perl6::Metamodel::Configuration.throw_or_die(
-            'X::Role::Group::Documenting',
-            "Parametric role group cannot be documented, use one of the candidates instead for '" ~ self.name ~ "'",
-            :role-name(self.name)
+          'X::Role::Group::Documenting',
+          "Parametric role group cannot be documented, use one of the candidates instead for '"
+            ~ $role-name
+            ~ "'",
+          :$role-name
         );
     }
 
-    method !get_default_candidate() {
-        nqp::isnull(my $c := self.'!get_nonsignatured_candidate'())
-            ?? nqp::null()
-            !! $c
-    }
-
-    method !get_nonsignatured_candidate() {
-        nqp::elems(@!nonsignatured)
-          ?? nqp::atpos(@!nonsignatured, 0)
-          !! nqp::null
-    }
-
     method publish_type_cache($target) {
+
         # We can at least include ourself and the types a role pretends to be.
-        my @tc := nqp::clone(self.pretending_to_be());
+        my @tc := nqp::clone(self.pretending_to_be);
         nqp::push(@tc, $target.WHAT);
+
         nqp::settypecache($target, @tc);
         nqp::settypecheckmode(
           $target,

@@ -1,3 +1,4 @@
+#- Metamodel::ParametricRoleGroupHOW -------------------------------------------
 # This represents a group of parametric roles. For example, given
 # we have the declarations:
 #
@@ -10,6 +11,7 @@
 # group of those, and know how to specialize to a certain parameter
 # list by multi-dispatching over the set of candidates to pick
 # a particular candidate.
+
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
@@ -26,36 +28,43 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     has @!role_typecheck_list;
     has @!nonsignatured;
 
-    my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
+    my $archetypes := Perl6::Metamodel::Archetypes.new(
+      :nominal, :composable, :inheritalizable, :parametric
+    );
     method archetypes($XXX?) { $archetypes }
 
     my $selector_creator;
-    method set_selector_creator($sc) {
-        $selector_creator := $sc;
-    }
+    method set_selector_creator($sc) { $selector_creator := $sc }
 
     method new_type(:$name!, :$repr) {
         # Build and configure the type's basic details.
-        my $meta := self.new(:selector($selector_creator()));
-        my $type_obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
-        $meta.set_name($type_obj, $name);
-        $meta.set_pun_repr($meta, $repr) if $repr;
-        $meta.set_boolification_mode($type_obj, 5);
-        $meta.publish_boolification_spec($type_obj);
-        $meta.publish_type_cache($type_obj);
-        self.add_stash($type_obj);
+        my $HOW  := self.new(:selector($selector_creator()));
+        my $type := nqp::newtype($HOW, 'Uninstantiable');
+        nqp::settypehll($type, 'Raku');
+
+        $HOW.set_name($type, $name);
+        $HOW.set_pun_repr($type, $repr) if $repr;
+        $HOW.set_boolification_mode($type, 5);
+        $HOW.publish_boolification_spec($type);
+        $HOW.publish_type_cache($type);
+        self.add_stash($type);
 
         # We use 6model parametrics to make this a parametric type on the
         # arguments we curry with. This means we'll make the curries unique.
-        nqp::setparameterizer($type_obj, sub ($type, @packed) {
-            $type.HOW.'!produce_parameterization'($type, @packed);
+        nqp::setparameterizer($type, sub ($target, @packed) {
+            my @_ := nqp::clone(@packed);
+            my %_ := nqp::pop(@_) || nqp::hash;
+            my $curried :=
+              Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@_, |%_);
+            $curried.HOW.set_pun_repr($curried, $target.HOW.pun_repr($target));
+            $curried
         });
 
 #?if !moar
-        $meta.compose_invocation($type_obj);
+        $HOW.compose_invocation($type);
 #?endif
 
-        $type_obj
+        $type
     }
 
     # We only take positional args into account for the parametric key. If
@@ -64,75 +73,59 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     # unequal.
     my class NO_NAMEDS { }
 
-    method parameterize($target, *@args, *%named_args) {
-        my int $n := nqp::elems(@args);
-        my int $i := -1;
-        while ++$i < $n {
-            @args[$i] := nqp::decont(@args[$i]);
+    method parameterize($target, *@_, *%_) {
+        my int $m := nqp::elems(@_);
+        my int $i;
+        while $i < $m {
+            nqp::bindpos(@_, $i, nqp::decont(nqp::atpos(@_, $i)));
+            ++$i;
         }
-        nqp::push(@args, %named_args || NO_NAMEDS);
-        nqp::parameterizetype($target, @args);
-    }
-
-    method !produce_parameterization($target, @packed) {
-        my @args := nqp::clone(@packed);
-        my $maybe_nameds := nqp::pop(@args);
-        my $curried;
-        if $maybe_nameds {
-            my %nameds := $maybe_nameds;
-            $curried := Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@args, |%nameds);
-        }
-        else {
-            $curried := Perl6::Metamodel::CurriedRoleHOW.new_type($target, |@args);
-        }
-        $curried.HOW.set_pun_repr($curried, self.pun_repr($target));
-        $curried
+        nqp::push(@_, %_ || NO_NAMEDS);
+        nqp::parameterizetype($target, @_);
     }
 
     method add_possibility($target, $possible) {
-        nqp::push(@!candidates, $possible);
-        nqp::push(@!nonsignatured, nqp::decont($possible)) unless $possible.HOW.signatured($possible);
-        $!selector.add_dispatchee($possible.HOW.body_block($possible));
-        self.update_role_typecheck_list($target);
+        $possible := nqp::decont($possible);
+
+        self.protect({
+            my @candidates := nqp::clone(@!candidates);
+            nqp::push(@candidates, $possible);
+            @!candidates := @candidates;
+
+            unless $possible.HOW.signatured($possible) {
+                my @nonsignatured := nqp::clone(@!nonsignatured);
+                nqp::push(@nonsignatured, $possible);
+                @!nonsignatured := @nonsignatured;
+            }
+
+            $!selector.add_dispatchee($possible.HOW.body_block($possible));
+            self.update_role_typecheck_list($target);
+        });
     }
 
-    method select_candidate($target, @pos_args, %named_args) {
+    method select_candidate($target, @_, %_) {
         # Use multi-dispatcher to pick the body block of the best role.
-        my $error;
         my $selected_body;
         try {
-            sub try_select(*@pos, *%named) {
-                $!selector.find_best_dispatchee(nqp::usecapture(), 0)
+            sub try_select(*@_, *%_) {
+                $!selector.find_best_dispatchee(nqp::usecapture, 0)
             }
-            $selected_body := try_select(|@pos_args, |%named_args);
-            CATCH { $error := $! }
-        }
-
-        if $error {
-            my $payload := nqp::getpayload($error);
-            my $hint := nqp::getmessage($error) || (nqp::defined($payload) ?? $payload.message !! "");
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Role::Parametric::NoSuchCandidate',
-                "Could not find an appropriate parametric role variant for '"
-                    ~ self.name($target) ~ "' using the arguments supplied:\n    "
-                    ~ $hint
-                    ,
-                :role($target), :$hint
-            );
+            $selected_body := try_select(|@_, |%_);
+            CATCH { self.no_such_candidate($target, $!) }
         }
 
         # Locate the role that has that body block.
-        my $selected := NQPMu;
-        for @!candidates {
-            if $_.HOW.body_block($_) =:= $selected_body {
-                $selected := $_;
-                last;
-            }
+        my @candidates := @!candidates;
+        my int $m := nqp::elems(@candidates);
+        my int $i;
+        while $i < $m {
+            my $candidate := nqp::atpos(@candidates, $i);
+            nqp::eqaddr($candidate.HOW.body_block($candidate), $selected_body)
+              ?? (return $candidate)
+              !! ++$i;
         }
-        if $selected =:= NQPMu {
-            nqp::die("Internal error: could not resolve body block to role candidate");
-        }
-        $selected
+
+        nqp::die("Internal error: could not resolve body block to role candidate");
     }
 
     method specialize($target, *@_, *%_) {
@@ -272,6 +265,22 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         nqp::settypecheckmode(
           $target,
           nqp::const::TYPE_CHECK_CACHE_THEN_METHOD
+        );
+    }
+
+    # Helper methods for error handling
+    method no_such_candidate($role, $error) {
+        my $payload := nqp::getpayload($error);
+        my $hint    := nqp::getmessage($error)
+          || (nqp::defined($payload) ?? $payload.message !! "");
+
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Parametric::NoSuchCandidate',
+          "Could not find an appropriate parametric role variant for '"
+            ~ self.name($role)
+            ~ "' using the arguments supplied:\n    "
+            ~ $hint,
+          :$role, :$hint
         );
     }
 }

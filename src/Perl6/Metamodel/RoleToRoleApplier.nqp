@@ -2,9 +2,6 @@ my class RoleToRoleApplier {
     method apply($target, @roles) {
         my $HOW := $target.HOW;
 
-        # Ensure we actually have something to appply.
-        return nqp::list unless nqp::elems(@roles);
-
         # Aggregate all of the methods sharing names, eliminating
         # any duplicates (a method can't collide with itself).
         my %meth_info;
@@ -15,6 +12,7 @@ my class RoleToRoleApplier {
         my %priv_meth_providers;
         my $with_submethods := $HOW.language_revision < 3; # less than 6.e
         my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
+
         for @roles {
             my $role := $_;
             sub build_meth_info(@methods, @meth_names, %meth_info_to_use, @meth_names_to_use, %meth_providers_to_use) {
@@ -299,8 +297,6 @@ my class RoleToRoleApplier {
                 }
             }
         }
-
-        1;
     }
 
     Perl6::Metamodel::Configuration.set_role_to_role_applier_type(RoleToRoleApplier);

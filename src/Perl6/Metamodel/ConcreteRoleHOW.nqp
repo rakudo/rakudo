@@ -77,7 +77,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
 
             Perl6::Metamodel::Configuration.role_to_role_applier_type.apply(
               $target, @roles_to_compose
-            );
+            ) if nqp::elems(@roles_to_compose);
 
             my @role_typecheck_list := nqp::clone(@!role_typecheck_list);
             sub add_to_typecheck_list(@roles) {

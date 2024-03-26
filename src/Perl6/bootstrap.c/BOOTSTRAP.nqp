@@ -3098,25 +3098,25 @@ BEGIN {
     Block.HOW.add_method(Block, '!capture_phasers', nqp::getstaticcode(sub ($self) {
             $self  := nqp::decont($self);
 #?if !jvm
-
-            # Assumes we *always* get a hash here
             my $phasers := nqp::getattr($self, Block, '$!phasers');
+            if nqp::ishash($phasers) {
 
-            sub capture_phaser(str $name) {
-                my @blocks := nqp::atkey($phasers, $name);
+                sub capture_phaser(str $name) {
+                    my @blocks := nqp::atkey($phasers, $name);
 
-                my int $m := nqp::elems(@blocks);
-                my int $i;
-                while $i < $m {
-                    nqp::p6capturelexwhere(nqp::atpos(@blocks, $i));
-                    ++$i;
+                    my int $m := nqp::elems(@blocks);
+                    my int $i;
+                    while $i < $m {
+                        nqp::p6capturelexwhere(nqp::atpos(@blocks, $i));
+                        ++$i;
+                    }
                 }
-            }
 
-            capture_phaser('NEXT')  if nqp::existskey($phasers, 'NEXT' );
-            capture_phaser('LAST')  if nqp::existskey($phasers, 'LAST' );
-            capture_phaser('QUIT')  if nqp::existskey($phasers, 'QUIT' );
-            capture_phaser('CLOSE') if nqp::existskey($phasers, 'CLOSE');
+                capture_phaser('NEXT')  if nqp::existskey($phasers, 'NEXT' );
+                capture_phaser('LAST')  if nqp::existskey($phasers, 'LAST' );
+                capture_phaser('QUIT')  if nqp::existskey($phasers, 'QUIT' );
+                capture_phaser('CLOSE') if nqp::existskey($phasers, 'CLOSE');
+            }
 #?endif
             $self
     }));

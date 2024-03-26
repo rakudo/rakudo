@@ -80,10 +80,10 @@ class Perl6::Metamodel::ParametricRoleHOW
             my $role := nqp::atpos(@roles, $i);
             my $HOW  := $role.HOW;
             if $HOW.archetypes.composable || $HOW.archetypes.composalizable {
-                @rtl.push($role);
+                nqp::push(@rtl, $role);
                 nqp::splice(
                   @rtl,
-                  $HOW.role_typecheck_list($role),
+                  $role.HOW.role_typecheck_list($role),
                   nqp::elems(@rtl),
                   0
                 );

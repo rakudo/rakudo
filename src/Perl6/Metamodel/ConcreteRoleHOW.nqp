@@ -62,8 +62,8 @@ class Perl6::Metamodel::ConcreteRoleHOW
 
     method add_collision($XXX, $name, @role_names, :$private, :$multi) {
         self.protect({
-            my @collisions := @!collisions;
-            nqp::push(@!collisions, Collision.new(
+            my @collisions := nqp::clone(@!collisions);
+            nqp::push(@collisions, Collision.new(
               $name, @role_names, $private, $multi
             ));
             @!collisions := @collisions;

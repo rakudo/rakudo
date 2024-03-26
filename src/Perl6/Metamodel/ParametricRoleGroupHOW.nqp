@@ -106,13 +106,15 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method select_candidate($target, @_, %_) {
         # Use multi-dispatcher to pick the body block of the best role.
         my $selected_body;
+        my $error;
         try {
             sub try_select(*@_, *%_) {
                 $!selector.find_best_dispatchee(nqp::usecapture, 0)
             }
             $selected_body := try_select(|@_, |%_);
-            CATCH { self.no_such_candidate($target, $!) }
+            CATCH { $error := $! }
         }
+        self.no_such_candidate($target, $error) if $error;
 
         # Locate the role that has that body block.
         my @candidates := @!candidates;

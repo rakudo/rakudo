@@ -11,7 +11,7 @@ role Perl6::Metamodel::RoleContainer {
         });
     }
 
-    method roles_to_compose() { @!roles_to_compose }
+    method roles_to_compose($XXX?) { @!roles_to_compose }
 
     method pop_role_to_compose() {
         self.protect({

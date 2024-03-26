@@ -3877,7 +3877,7 @@ BEGIN {
                         # Not a native parameter, but we may getting a native
                         # value, possibly in a container.
 #?if !jvm
-                        elsif nqp::not_i(nqp::eqaddr($type_obj, Mu)) {
+                        else {
 
                             # Assume a native value unless proven otherwise
                             my int $primish := 1;
@@ -3903,7 +3903,8 @@ BEGIN {
                                   !! ($type := Num);  # BIND_VAL_NUM
 
                             # Type ok?
-                            if nqp::istype($type, $type_obj) { # type ok
+                            if nqp::eqaddr($type_obj, Mu)
+                              ||nqp::istype($type, $type_obj) { # type ok
 
                                 # Not ok if exact invocant needed and not there
                                 $no_mismatch := 0

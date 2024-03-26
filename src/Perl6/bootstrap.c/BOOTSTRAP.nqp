@@ -3213,7 +3213,10 @@ BEGIN {
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);
 
-        nqp::defined(nqp::getattr($self, Routine, '@!dispatchees'))
+        nqp::hllboolfor(
+          nqp::defined(nqp::getattr($self, Routine, '@!dispatchees')),
+          "Raku"
+        );
     }));
 
     Routine.HOW.add_method(Routine, 'add_dispatchee',

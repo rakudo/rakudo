@@ -97,121 +97,115 @@ class Perl6::Metamodel::CurriedRoleHOW
         nqp::settypecheckmode($type, nqp::const::TYPE_CHECK_NEEDS_ACCEPTS)
     }
 
-    method parameterize_roles($target) {
-        self.parameterize_role_group($target)
-          if nqp::istype(
-            $!curried_role.HOW, Perl6::Metamodel::ParametricRoleGroupHOW
-          );
-        self.update_role_typecheck_list($target);
-    }
+    method complete_parameterization($target) {
+        self.protect({ unless $!is_complete {  # in case we were raced
+            $!is_complete := 1;
 
-    method parameterize_role_group($target) {
+            if nqp::istype(
+              $!curried_role.HOW,
+              Perl6::Metamodel::ParametricRoleGroupHOW
+            ) {
 
-        # Make sure positional arguments carry the invocant
-        my @pos_args := nqp::clone(@!pos_args);
-        nqp::unshift(@pos_args,$target);
-        my %named_args := %!named_args;
+                # Make sure positional arguments carry the invocant
+                my @pos_args := nqp::clone(@!pos_args);
+                nqp::unshift(@pos_args,$target);
+                my %named_args := %!named_args;
 
-        my $curried_role    := $!curried_role;
-        my $curried_roleHOW := $curried_role.HOW;
-        my $candidate := $curried_roleHOW.select_candidate(
-          $curried_role, @pos_args, %named_args
-        );
-        my $candidateHOW := $candidate.HOW;
+                my $curried_role    := $!curried_role;
+                my $curried_roleHOW := $curried_role.HOW;
+                my $candidate := $curried_roleHOW.select_candidate(
+                  $curried_role, @pos_args, %named_args
+                );
+                my $candidateHOW := $candidate.HOW;
 
-        self.set_language_revision($target, $candidateHOW.language_revision);
+                self.set_language_revision(
+                  $target, $candidateHOW.language_revision
+                );
 
-        my $type_env;
-        try {
-            $type_env := nqp::atpos(
-              $candidateHOW.body_block($candidate)(
-                |@pos_args, |%named_args
-              ),
-              1
-            );
-            if self.archetypes.generic {
-                my $env :=
-                  Perl6::Metamodel::Configuration.type_env_from($type_env);
-                $type_env := $env unless nqp::isnull($env);
+                my $type_env;
+                try {
+                    $type_env := nqp::atpos(
+                      $candidateHOW.body_block($candidate)(
+                        |@pos_args, |%named_args
+                      ),
+                      1
+                    );
+                    if $!archetypes.generic {
+                        my $env := Perl6::Metamodel::Configuration.type_env_from(
+                          $type_env
+                        );
+                        $type_env := $env unless nqp::isnull($env);
+                    }
+                }
+
+                my @roles := $candidateHOW.roles($candidate, :!transitive);
+                my int $m := nqp::elems(@roles);
+                my int $i;
+                while $i < $m {
+                    my $role := nqp::atpos(@roles, $i);
+                    my $HOW  := $role.HOW;
+                    $role := $HOW.instantiate_generic($role, $type_env)
+                      if $type_env && $HOW.archetypes.generic;
+
+                    $HOW.archetypes.generic || $HOW.archetypes.parametric
+                      ?? self.add_role($target, $role)
+                      !! self.not_composable($target, $role);
+                    ++$i;
+                }
+
+                # Contrary to roles, we only consider generic parents. I.e.
+                # cases like: # role R[::T] is T {}
+                if $type_env {
+                    my @parents := $candidateHOW.parents($candidate, :local);
+                    my @parent_typecheck_list :=
+                      nqp::clone(@!parent_typecheck_list);
+
+                    my int $m := nqp::elems(@parents);
+                    my int $i;
+                    while $i < $m {
+                        my $parent := nqp::atpos(@parents, $i);
+                        nqp::push(
+                          @parent_typecheck_list,
+                          $parent.HOW.instantiate_generic($parent, $type_env)
+                        ) if $parent.HOW.archetypes.generic;
+                        ++$i;
+                    }
+                    @!parent_typecheck_list := @parent_typecheck_list;
+                }
+
+                $!candidate := $candidate;
             }
-        }
 
-        my @roles := $candidateHOW.roles($candidate, :!transitive);
-        my int $m := nqp::elems(@roles);
-        my int $i;
-        while $i < $m {
-            my $role := nqp::atpos(@roles, $i);
-            my $HOW  := $role.HOW;
-            $role := $HOW.instantiate_generic($role, $type_env)
-              if $type_env && $HOW.archetypes.generic;
+            my @role_typecheck_list := nqp::list($!curried_role);
+            # XXX Not sure if it makes sense adding roles from group into the
+            # type checking.
+            # nqp::splice(
+            #   @role_typecheck_list,
+            #   $!curried_role.HOW.role_typecheck_list($target),
+            #   1,
+            #   0
+            # );
 
-            $HOW.archetypes.generic || $HOW.archetypes.parametric
-              ?? self.add_role($target, $role)
-              !! self.not_composable($target, $role);
-            ++$i;
-        }
+            my @roles := self.roles_to_compose;
 
-        # Contrary to roles, we only consider generic parents. I.e. cases
-        # like: # role R[::T] is T {}
-        if $type_env {
-            my @parents := $candidateHOW.parents($candidate, :local);
-            my @parent_typecheck_list := nqp::clone(@!parent_typecheck_list);
-
-            my int $m := nqp::elems(@parents);
+            my int $m := nqp::elems(@roles);
             my int $i;
             while $i < $m {
-                my $parent := nqp::atpos(@parents, $i);
-                nqp::push(
-                  @parent_typecheck_list,
-                  $parent.HOW.instantiate_generic($parent, $type_env)
-                ) if $parent.HOW.archetypes.generic;
+                my $role := nqp::atpos(@roles, $i);
+                my $HOW  := $role.HOW;
+                if $HOW.archetypes.composable || $HOW.archetypes.composalizable {
+                    nqp::push(@role_typecheck_list, $role);
+                    nqp::splice(
+                      @role_typecheck_list,
+                      $HOW.role_typecheck_list($role),
+                      nqp::elems(@role_typecheck_list),
+                      0
+                   );
+                }
                 ++$i;
             }
-            @!parent_typecheck_list := @parent_typecheck_list;
-        }
-
-        $!candidate := $candidate;
-    }
-
-    method update_role_typecheck_list($target) {
-        my @rtl := nqp::list($!curried_role);
-
-        # XXX Not sure if it makes sense adding roles from group into the
-        # type checking.
-        # nqp::splice(
-        #   @rtl, $!curried_role.HOW.role_typecheck_list($target), 1, 0
-        # );
-
-        my @roles := self.roles_to_compose;
-
-        my int $m := nqp::elems(@roles);
-        my int $i;
-        while $i < $m {
-            my $role := nqp::atpos(@roles, $i);
-            my $HOW  := $role.HOW;
-            if $HOW.archetypes.composable || $HOW.archetypes.composalizable {
-                nqp::push(@rtl, $role);
-                nqp::splice(
-                  @rtl,
-                  $HOW.role_typecheck_list($role),
-                  nqp::elems(@rtl),
-                  0
-               );
-            }
-            ++$i;
-        }
-        @!role_typecheck_list := @rtl;
-    }
-
-    method complete_parameterization($target) {
-        unless $!is_complete {
-            self.protect({
-                unless $!is_complete {  # in case we were raced
-                    $!is_complete := 1;  # XXX should be after!!
-                    self.parameterize_roles($target);
-                }
-            });
-        }
+            @!role_typecheck_list := @role_typecheck_list;
+        }}) unless $!is_complete;
     }
 
     method instantiate_generic($XXX, $type_env) {

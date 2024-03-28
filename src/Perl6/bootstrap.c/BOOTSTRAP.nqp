@@ -3881,25 +3881,33 @@ BEGIN {
                         # value, possibly in a container.
 #?if !jvm
                         else {
-                            my int $primish;
-                            my $param := $arg;
-                            if $got_prim == nqp::const::BIND_VAL_OBJ {
-                                if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
-                                elsif nqp::iscont_u($param) { $param := Int; $primish := 1; }
-                                elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
-                                elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
-                                else { $param := nqp::hllizefor($param, 'Raku') }
-                            }
-                            else {
-                                $param := $got_prim == nqp::const::BIND_VAL_INT ?? Int !!
-                                          $got_prim == nqp::const::BIND_VAL_UINT ?? Int !!
-                                          $got_prim == nqp::const::BIND_VAL_NUM ?? Num !!
-                                                                        Str;
-                                $primish := 1;
-                            }
-                            if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+
+                            # Assume a native value unless proven otherwise
+                            my int $primish := 1;
+
+                            # Set type to fall back to if no native involved
+                            my $type := $arg.WHAT;
+
+                            # Adapt type to any native argument (whether in a
+                            # container or not)
+                            $got_prim == nqp::const::BIND_VAL_OBJ
+                              ?? nqp::iscont_s($arg)
+                                ?? ($type := Str)
+                                !! nqp::iscont_i($arg) || nqp::iscont_u($arg)
+                                  ?? ($type := Int)
+                                  !! nqp::iscont_n($arg)
+                                    ?? ($type := Num)
+                                    !! ($primish := 0)  # not a native container
+                              !! $got_prim == nqp::const::BIND_VAL_STR
+                                ?? ($type := Str)
+                                !! ($got_prim == nqp::const::BIND_VAL_INT
+                                     || $got_prim == nqp::const::BIND_VAL_UINT)
+                                  ?? ($type := Int)
+                                  !! ($type := Num);  # BIND_VAL_NUM
+
+                            if nqp::eqaddr($type_obj, Mu) || nqp::istype($arg, $type_obj) {
                                 if $i == 0 && nqp::existskey($candidate, 'exact_invocant') {
-                                    unless $param.WHAT =:= $type_obj {
+                                    unless $type.WHAT =:= $type_obj {
                                         $no_mismatch := 0;
                                     }
                                 }
@@ -3914,7 +3922,7 @@ BEGIN {
                               )
                             ) {
                                 $no_mismatch := 0 unless nqp::istype(
-                                  $param,
+                                  $arg,
                                   nqp::ifnull(
                                     $PositionalBindFailover,
                                     $PositionalBindFailover :=
@@ -3928,15 +3936,15 @@ BEGIN {
                                 $no_mismatch := 0;
                             }
 
-                            # Check for definedness if it still makes sense
-                            if $no_mismatch && $flags +& nqp::const::DEFCON_MASK {
-                                my int $defined := $primish || nqp::isconcrete($param);
-                                my int $desired := $flags +& nqp::const::DEFCON_MASK;
-                                if ($defined && $desired == nqp::const::DEFCON_UNDEFINED) ||
-                                   (!$defined && $desired == nqp::const::DEFCON_DEFINED) {
-                                    $no_mismatch := 0;
-                                }
-                            }
+                            # Check conreteness if makes sense and so required
+                            $no_mismatch := 0
+                              if $no_mismatch
+                              && (my int $mask :=
+                                   $flags +& nqp::const::DEFCON_MASK)
+                              && ($primish || nqp::isconcrete($arg)
+                                   ?? nqp::const::DEFCON_DEFINED
+                                   !! nqp::const::DEFCON_UNDEFINED
+                                 ) != $mask;
 #?endif
 #?if jvm
                         else {

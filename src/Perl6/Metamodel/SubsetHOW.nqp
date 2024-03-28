@@ -63,7 +63,7 @@ class Perl6::Metamodel::SubsetHOW
         if $archetypes.generic {
             nqp::die("Use of a generic as 'of' type of a subset is not implemented yet")
         }
-        unless $archetypes.nominal || $archetypes.nominalizable {
+        unless $archetypes.nominalish {
             nqp::die("The 'of' type of a subset must either be a valid nominal " ~
                 "type or a type that can provide one");
         }

@@ -1943,8 +1943,7 @@ class Perl6::World is HLL::World {
                     $new-ast := QAST::Var.new( :name($ins_lexical), :scope<lexical> );
                     $new-ast.annotate('generic-lexical', 1);
                 }
-                elsif !($archetypes.nominal || $archetypes.nominalizable
-                        || $archetypes.composable || $archetypes.composalizable) {
+                elsif !($archetypes.nominalish || $archetypes.composablish) {
                     # Pure generic types, resolve via lexical lookup
                     $new-ast := QAST::Var.new( :name(my $name := $cont_type.HOW.name($cont_type)), :scope<lexical> );
                     $new-ast.annotate('pure-generic-lexical', 1);

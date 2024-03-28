@@ -3863,8 +3863,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*OFTYPE {
             $of_type := $*OFTYPE.ast;
             my $archetypes := $of_type.HOW.archetypes($of_type);
-            unless $archetypes.nominal
-                || $archetypes.nominalizable
+            unless $archetypes.nominalish
                 || $archetypes.generic
                 || $archetypes.definite
                 || $archetypes.coercive {

@@ -79,7 +79,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         while $i < $m {
             my $role := nqp::atpos(@roles, $i);
             my $HOW  := $role.HOW;
-            if $HOW.archetypes.composable || $HOW.archetypes.composalizable {
+            if $HOW.archetypes.composablish {
                 @rtl.push($role);
                 nqp::splice(
                   @rtl,

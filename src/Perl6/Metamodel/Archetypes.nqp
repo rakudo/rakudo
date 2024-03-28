@@ -95,6 +95,11 @@ class Perl6::Metamodel::Archetypes {
     method coercive()        { $!coercive        }
     method definite()        { $!definite        }
     method augmentable()     { $!augmentable     }
+
+    # Shortcuts to often occurring checks
+    method nominalish()      { $!nominal     || $!nominalizable   }
+    method inheritablish()   { $!inheritable || $!inheritalizable }
+    method composablish()    { $!composable  || $!composalizable  }
 }
 
 # vim: expandtab sw=4

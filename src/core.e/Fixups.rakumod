@@ -1,6 +1,19 @@
 # This file contains fixups to existing core classes by means of augmentation
 # for language level 6.e.
 
+augment class Mu {
+
+    # introducing .Callable($method)
+    method Callable(str $method) {
+        nqp::ifnull(
+          nqp::tryfindmethod(self,$method),
+          X::Method::NotFound.new(
+            :invocant(self), :typename(self.^name), :$method
+          ).Failure
+        )
+    }
+}
+
 augment class Any {
 
     # introducing snip

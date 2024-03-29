@@ -5385,13 +5385,13 @@ nqp::sethllconfig('Raku', nqp::hash(
     },
 
     'exit_handler', -> $coderef, $resultish {
-        unless nqp::p6inpre() {
+        unless nqp::p6inpre {
 
             # When we get here, we assume the $!phasers attribute is concrete.
             # if it is *not* a hash, it is a lone LEAVE phaser, the most
             # commonly used phaser (in the core at least).
             my $phasers := nqp::getattr(
-              nqp::getcodeobj($coderef),Block,'$!phasers'
+              nqp::getcodeobj($coderef), Block, '$!phasers'
             );
 
             # slow path here
@@ -5400,19 +5400,13 @@ nqp::sethllconfig('Raku', nqp::hash(
 
                 my @leaves := nqp::atkey($phasers, '!LEAVE-ORDER');
                 unless nqp::isnull(@leaves) {
-                    my $valid := nqp::isconcrete($resultish)
-#?if jvm
-                      && nqp::hllizefor(nqp::decont($resultish),'Raku').defined;
-#?endif
-#?if !jvm
-                      && $resultish.defined;
-#?endif
+                    my $valid :=
+                     nqp::hllizefor(nqp::decont($resultish),'Raku').defined;
 
                     my int $m := nqp::elems(@leaves);
-                    my int $i := -1;
-                    # XXX why do we need pre-increment here??
-                    while ++$i < $m {
-                        CATCH { nqp::push(@exceptions, $_) }
+                    my int $i;
+                    while $i < $m {
+                        CATCH { nqp::push(@exceptions, $_); ++$i }
 
                         # a KEEP/UNDO phaser
                         my $phaser := nqp::atpos(@leaves, $i);
@@ -5440,6 +5434,7 @@ nqp::sethllconfig('Raku', nqp::hash(
                             nqp::p6capturelexwhere($phaser.clone)();
 #?endif
                         }
+                        ++$i;
                     }
                 }
 
@@ -5448,9 +5443,8 @@ nqp::sethllconfig('Raku', nqp::hash(
                     my $value := nqp::ifnull($resultish,Mu);
 
                     my int $m := nqp::elems(@posts);
-                    my int $i := -1;
-                    # XXX why do we need pre-increment here??
-                    while ++$i < $m {
+                    my int $i;
+                    while $i < $m {
 #?if jvm
                         nqp::atpos(@posts, $i)($value);
 #?endif
@@ -5459,15 +5453,16 @@ nqp::sethllconfig('Raku', nqp::hash(
                           nqp::atpos(@posts, $i).clone
                         )($value);
 #?endif
+                        ++$i;
                     }
                 }
 
-                if @exceptions {
-                    nqp::elems(@exceptions) > 1
+                if nqp::elems(@exceptions) -> $nr_exceptions {
+                    $nr_exceptions > 1
                       ?? Perl6::Metamodel::Configuration.throw_or_die(
                            'X::PhaserExceptions',
-                           "Multiple exceptions were thrown by LEAVE/POST phasers",
-                           :exceptions(@exceptions)
+                           "Multiple exceptions were thrown by LEAVE phasers",
+                           :@exceptions
                          )
                       !! nqp::rethrow(nqp::atpos(@exceptions, 0));
                 }

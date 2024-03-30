@@ -1339,7 +1339,10 @@ class RakuAST::VarDeclaration::Term
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $init-qast := $!initializer.IMPL-TO-QAST($context);
+        my $invocant-qast := nqp::defined($!type)
+            ?? $!type.IMPL-EXPR-QAST
+            !! QAST::WVal.new(:value(Mu));
+        my $init-qast := $!initializer.IMPL-TO-QAST($context, :$invocant-qast);
         if $!type && !$!type.is-known-to-be-exactly(Mu) {
             $init-qast := QAST::Op.new(
                 :op('p6bindassert'),

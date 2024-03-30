@@ -1093,6 +1093,57 @@ my class Array { # declared in BOOTSTRAP
                :range("0..^{self.elems - $offset}")
              ).throw
     }
+    #------ splice(offset,size,positional scalar) candidates
+
+    # these candidates allow the user of splice to indicate that they
+    # want to treat an array as a single item to splice by itemizing
+    # that array a la (*, *, $[1])
+    multi method splice(Array:D:
+                        Whatever $offset, Whatever $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+    multi method splice(Array:D:
+                        Whatever $offset, Callable:D $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+    multi method splice(Array:D:
+                        Whatever $offset, Int:D $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+    multi method splice(Array:D:
+                        Callable:D $offset, Whatever $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+    multi method splice(Array:D:
+                        Callable:D $offset, Callable:D $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+    multi method splice(Array:D:
+                        Callable:D $offset, Int:D $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+    multi method splice(Array:D:
+                        Int:D $offset, Whatever $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+    multi method splice(Array:D:
+                        Int:D $offset, Callable:D $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+    multi method splice(Array:D:
+                        Int:D $offset, Int:D $size, Positional $new
+        --> Array:D) {
+        self.splice($offset, $size, [$new,])
+    }
+
     #------ splice(offset,size,array) candidates
 
     # we have these 9 multies to avoid infiniloop when incorrect types are

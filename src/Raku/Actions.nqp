@@ -2790,8 +2790,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 # Types
 
     method type-for-name($/, $base-name) {
-        my $type :=
-          Nodify('Type','Simple').new: $base-name.without-colonpair('_');
+        my $type := Nodify('Type','Simple').new(
+          $base-name.without-colonpair('_').without-colonpair('D').without-colonpair('U')
+        );
 
         $type := $base-name.has-colonpair('D')
           ?? Nodify('Type','Definedness').new(:base-type($type), :definite)

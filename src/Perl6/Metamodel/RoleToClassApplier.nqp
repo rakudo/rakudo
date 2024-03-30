@@ -1,34 +1,31 @@
+#- RoleToClassApplier ----------------------------------------------------------
 my class RoleToClassApplier {
     has $!target;
     has $!to_compose;
     has $!to_compose_meta;
     has @!roles;
 
-    sub has_method($target, $name, $local) {
-        if $local {
-            my %mt := nqp::hllize($target.HOW.method_table($target));
-            return 1 if nqp::existskey(%mt, $name);
-            %mt := nqp::hllize($target.HOW.submethod_table($target));
-            return nqp::existskey(%mt, $name);
-        }
-        else {
-            for $target.HOW.mro($target) {
-                my %mt := nqp::hllize($_.HOW.method_table($_));
-                if nqp::existskey(%mt, $name) {
-                    return 1;
-                }
-                %mt := nqp::hllize($_.HOW.submethod_table($_));
-                if nqp::existskey(%mt, $name) {
-                    return 1;
-                }
-            }
-            return 0;
-        }
+    sub has_local_method($target, str $name) {
+        nqp::existskey($target.HOW.method_table($target), $name)
+          || nqp::existskey($target.HOW.submethod_table($target), $name)
     }
 
-    sub has_private_method($target, $name) {
-        my %pmt := nqp::hllize($target.HOW.private_method_table($target));
-        return nqp::existskey(%pmt, $name)
+    sub has_method($target, str $name) {
+        my     @mro := $target.HOW.mro($target);
+        my int $m   := nqp::elems(@mro);
+        my int $i;
+        while $i < $m {
+            my $class := nqp::atpos(@mro, $i);
+            return 1
+              if nqp::existskey($class.HOW.method_table($class), $name)
+              || nqp::existskey($class.HOW.submethod_table($class), $name);
+            ++$i;
+        }
+        0
+    }
+
+    sub has_private_method($target, str $name) {
+        nqp::existskey($target.HOW.private_method_table($target), $name)
     }
 
     method prepare($target, @roles) {
@@ -57,16 +54,8 @@ my class RoleToClassApplier {
         my @collisions := $!to_compose_meta.collisions($!to_compose);
         for @collisions {
             if $_.private {
-                unless has_private_method($target, $_.name) {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::Role::Unresolved::Private',
-                        "Private method '" ~ $_.name
-                        ~ "' must be resolved by class " ~ $HOW.name($target)
-                        ~ " because it exists in multiple roles (" ~ nqp::join(", ", $_.roles) ~ ")",
-                        :method($_),
-                        :$target,
-                    )
-                }
+                self.unresolved_private_method($target, $_)
+                  unless has_private_method($target, $_.name);
             }
             elsif nqp::isconcrete($_.multi) {
                 my $match := 0;
@@ -77,28 +66,11 @@ my class RoleToClassApplier {
                         last;
                     }
                 }
-                unless $match {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::Role::Unresolved::Multi',
-                        "Multi method '" ~ $_.name ~ "' with signature "
-                        ~ $_.multi.signature.raku ~ " must be resolved by class " ~ $HOW.name($target)
-                        ~ " because it exists in multiple roles (" ~ nqp::join(", ", $_.roles) ~ ")",
-                        :method($_),
-                        :$target
-                    )
-                }
+                self.unresolved_multi_method($target, $_) unless $match;
             }
             else {
-                unless has_method($target, $_.name, 1) {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::Role::Unresolved::Method',
-                        "Method '" ~ $_.name
-                        ~ "' must be resolved by class " ~ $HOW.name($target)
-                        ~ " because it exists in multiple roles (" ~ nqp::join(", ", $_.roles) ~ ")",
-                        :method($_),
-                        :$target
-                    )
-                }
+                self.unresolved_method($target, $_)
+                  unless has_local_method($target, $_.name);
             }
         }
     }
@@ -119,7 +91,7 @@ my class RoleToClassApplier {
                 my $yada := 0;
                 try { $yada := $method.yada }
                 if $yada {
-                    unless has_method($!target, $name, 0)
+                    unless has_method($!target, $name)
                             || $!target.HOW.has_public_attribute($!target, $name) {
                         my @needed;
                         for @!roles {
@@ -132,7 +104,7 @@ my class RoleToClassApplier {
                         nqp::push(@stubs, nqp::hash('name', $name, 'needed', @needed, 'target', $!target));
                     }
                 }
-                elsif !has_method($!target, $name, 1)
+                elsif !has_local_method($!target, $name)
                         && ($with_submethods
                             || !nqp::istype($method, Perl6::Metamodel::Configuration.submethod_type))
                 {
@@ -193,17 +165,8 @@ my class RoleToClassApplier {
                             }
                         }
                     }
-                    unless $satisfaction {
-                        my $name := $req.name;
-                        my $sig := $req.code.signature.raku;
-                        Perl6::Metamodel::Configuration.throw_or_die(
-                            'X::Role::Unimplemented::Multi',
-                            "Multi method '$name' with signature $sig must be implemented by "
-                            ~ $!target.HOW.name($!target) ~ " because it is required by a role",
-                            :method($req),
-                            :target($!target)
-                        )
-                    }
+                    self.unimplemented_multi_method($!target, $req)
+                      unless $satisfaction;
                 }
             }
         }
@@ -211,17 +174,9 @@ my class RoleToClassApplier {
         # Compose in any role attributes.
         my @attributes := $!to_compose_meta.attributes($!to_compose, :local(1));
         for @attributes {
-            if $!target.HOW.has_attribute($!target, $_.name) {
-                Perl6::Metamodel::Configuration.throw_or_die(
-                    'X::Role::Attribute::Exists',
-                    "Attribute '" ~ $_.name
-                    ~ "' already exists in the class '" ~ $!target.HOW.name($!target)
-                    ~ "', but a role also wishes to compose it",
-                    :target($!target),
-                    :attribute($_)
-                )
-            }
-            $!target.HOW.add_attribute($!target, $_);
+            $!target.HOW.has_attribute($!target, $_.name)
+              ?? self.attribute_exists($!target, $_)
+              !! $!target.HOW.add_attribute($!target, $_);
         }
 
         # Compose in any parents.
@@ -242,6 +197,80 @@ my class RoleToClassApplier {
         }
 
         @stubs;
+    }
+
+    # Helper error methods to reduce bytecode for the fast paths
+    method unresolved_private_method($target, $method) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Unresolved::Private',
+          "Private method '"
+            ~ $method.name
+            ~ "' must be resolved by class "
+            ~ $target.HOW.name($target)
+            ~ " because it exists in multiple roles ("
+            ~ nqp::join(", ", $method.roles)
+            ~ ")",
+            :$method,
+            :$target,
+        );
+    }
+
+    method unresolved_multi_method($target, $method) { 
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Unresolved::Multi',
+          "Multi method '"
+            ~ $method.name ~ "' with signature "
+            ~ $method.multi.signature.raku
+            ~ " must be resolved by class "
+            ~ $target.HOW.name($target)
+            ~ " because it exists in multiple roles ("
+            ~ nqp::join(", ", $method.roles) ~ ")",
+            :$method,
+            :$target
+        );
+    }
+
+    method unresolved_method($target, $method) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Unresolved::Method',
+          "Method '"
+          ~ $method.name
+          ~ "' must be resolved by class "
+          ~ $target.HOW.name($target)
+          ~ " because it exists in multiple roles ("
+          ~ nqp::join(", ", $method.roles)
+          ~ ")",
+          :$method,
+          :$target
+        );
+    }
+
+    method unimplemented_multi_method($target, $method) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Unimplemented::Multi',
+          "Multi method '"
+            ~ $method.name
+            ~ "' with signature "
+            ~ $method.code.signature.raku
+            ~ " must be implemented by "
+            ~ $target.HOW.name($target)
+            ~ " because it is required by a role",
+          :$method,
+          :$target
+        );
+    }
+
+    method attribute_exists($target, $attribute) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Attribute::Exists',
+          "Attribute '"
+          ~ $attribute.name
+          ~ "' already exists in the class '"
+          ~ $target.HOW.name($target)
+          ~ "', but a role also wishes to compose it",
+          :$target,
+          :$attribute
+        );
     }
 
     Perl6::Metamodel::Configuration.set_role_to_class_applier_type(RoleToClassApplier);

@@ -182,7 +182,7 @@ class RakuAST::ContainerCreator {
 
     method IMPL-CONTAINER(Mu $of, Mu $cont-desc) {
         # Form the container.
-        my $default := self.type ?? $of !! Any;
+        my $default := self.type ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) !! Any;
         my str $sigil := self.sigil;
         my $container-base-type;
         my $container-type;

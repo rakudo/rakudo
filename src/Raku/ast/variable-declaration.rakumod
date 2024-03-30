@@ -360,7 +360,7 @@ class RakuAST::VarDeclaration::Constant
             my $type :=
               self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value;
 
-            unless nqp::istype(nqp::what($!value), $type) {
+            unless nqp::istype($!value, $type) {
                 my $name := nqp::getattr_s(self, RakuAST::VarDeclaration::Constant, '$!name');
                 self.add-sorry:
                   $resolver.build-exception: 'X::Comp::TypeCheck',

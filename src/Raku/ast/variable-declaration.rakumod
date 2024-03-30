@@ -1339,9 +1339,11 @@ class RakuAST::VarDeclaration::Term
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $invocant-qast := nqp::defined($!type)
-            ?? $!type.IMPL-EXPR-QAST
-            !! QAST::WVal.new(:value(Mu));
+        my $invocant := nqp::defined($!type)
+            ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($!type.meta-object)
+            !! Mu;
+        $context.ensure-sc($invocant);
+        my $invocant-qast := QAST::WVal.new(:value($invocant));
         my $init-qast := $!initializer.IMPL-TO-QAST($context, :$invocant-qast);
         if $!type && !$!type.is-known-to-be-exactly(Mu) {
             $init-qast := QAST::Op.new(

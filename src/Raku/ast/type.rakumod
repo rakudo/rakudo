@@ -36,6 +36,29 @@ class RakuAST::Type
         self
     }
 
+    method IMPL-MAYBE-DEFINITE-HOW-BASE($v) {
+        # returns the value itself, unless it's a DefiniteHOW, in which case,
+        # it returns its base type. Behaviour available in 6.d and later only.
+        nqp::getcomp('Raku').language_revision >= 2
+            && nqp::eqaddr($v.HOW, Perl6::Metamodel::DefiniteHOW)
+            ?? $v.HOW.base_type: $v
+            !! $v
+    }
+
+    method IMPL-MAYBE-NOMINALIZE($v) {
+        # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
+        # current compiler.
+        my $v-how := $v.HOW;
+        !$v-how.archetypes($v).coercive
+            && (nqp::can($v-how, 'language_revision')
+                    ?? $v-how.language_revision($v) < 3
+                    !! nqp::getcomp('Raku').language_revision < 3)
+            ?? self.IMPL-MAYBE-DEFINITE-HOW-BASE($v)
+            !! ($v-how.archetypes($v).nominalizable
+                ?? $v-how.nominalize($v)
+                !! $v)
+    }
+
     method is-native() { False }
 }
 

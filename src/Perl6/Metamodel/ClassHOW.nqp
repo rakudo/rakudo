@@ -178,9 +178,9 @@ class Perl6::Metamodel::ClassHOW
 
         # Test the remaining stubs
         for @stubs -> %data {
-            if !has_method(%data<target>, %data<name>) {
+            if !has_method($target, %data<name>) {
                 nqp::die("Method '" ~ %data<name> ~ "' must be implemented by " ~
-                         %data<target>.HOW.name(%data<target>) ~
+                         $target.HOW.name($target) ~
                          " because it is required by roles: " ~
                          nqp::join(", ", %data<needed>) ~ ".");
             }

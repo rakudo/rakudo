@@ -172,7 +172,6 @@ my class RoleToClassApplier {
                       @stubs, nqp::hash(
                         'name',   $name,
                         'needed', @needed,
-                        'target', $target,
                       )
                     );
                 }

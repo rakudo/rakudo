@@ -292,31 +292,41 @@ my class RoleToClassApplier {
         }
 
         # Compose in any role attributes.
-        my @attributes := $to_composeHOW.attributes($to_compose, :local(1));
-        for @attributes {
-            $targetHOW.has_attribute($target, $_.name)
-              ?? attribute_exists($target, $_)
-              !! $targetHOW.add_attribute($target, $_);
+        my @attributes := $to_composeHOW.attributes($to_compose, :local);
+        $m := nqp::elems(@attributes);
+        $i := 0;
+        while $i < $m {
+            my $attribute := nqp::atpos(@attributes, $i);
+            $targetHOW.has_attribute($target, $attribute.name)
+              ?? attribute_exists($target, $attribute)
+              !! $targetHOW.add_attribute($target, $attribute);
+            ++$i;
         }
 
         # Compose in any parents.
         if nqp::can($to_composeHOW, 'parents') {
-            my @parents := $to_composeHOW.parents($to_compose, :local(1));
-            for @parents {
-                $targetHOW.add_parent($target, $_, :hides($to_composeHOW.hides_parent($to_compose, $_)));
+            my @parents := $to_composeHOW.parents($to_compose, :local);
+            my int $m := nqp::elems(@parents);
+            my int $i;
+            while $i < $m {
+                my $parent := nqp::atpos(@parents, $i);
+                $targetHOW.add_parent(
+                  $target,
+                  $parent,
+                  :hides($to_composeHOW.hides_parent($to_compose, $parent))
+                );
+                ++$i;
             }
         }
 
         # Copy any array_type.
-        if nqp::can($targetHOW, 'is_array_type') && !$targetHOW.is_array_type {
-            if nqp::can($to_composeHOW, 'is_array_type') {
-                if $to_composeHOW.is_array_type {
-                    $targetHOW.set_array_type($target, $to_composeHOW.array_type);
-                }
-            }
-        }
+        $targetHOW.set_array_type($target, $to_composeHOW.array_type)
+          if nqp::can($targetHOW, 'is_array_type')
+          && nqp::not_i($targetHOW.is_array_type)
+          && nqp::can($to_composeHOW, 'is_array_type')
+          && $to_composeHOW.is_array_type;
 
-        @stubs;
+        @stubs
     }
 
     # Helper error subs to reduce bytecode for the fast paths

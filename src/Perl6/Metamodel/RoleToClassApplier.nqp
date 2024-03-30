@@ -121,54 +121,76 @@ my class RoleToClassApplier {
         my $to_composeHOW := $to_compose.HOW;
         my @roles         := @!roles;
 
-        my @stubs;
-
         # Only transfer submethods from pre-6.e roles into pre-6.e classes.
         my $with_submethods := $targetHOW.language_revision < 3
-          && (!nqp::istype($to_composeHOW, Perl6::Metamodel::LanguageRevision)
-          || $to_composeHOW.language_revision < 3);
+          && (nqp::not_i(nqp::istype(
+               $to_composeHOW, Perl6::Metamodel::LanguageRevision
+             )) || $to_composeHOW.language_revision < 3);
 
-        # Compose in any methods.
-        sub compose_method_table(@methods, @method_names) {
-            my $method_iterator := nqp::iterator(@methods);
-            for @method_names -> str $name {
-                my $method := nqp::shift($method_iterator);
-                if nqp::can($method, 'yada') && $method.yada {
-                    unless has_method($target, $name)
-                            || $targetHOW.has_public_attribute($target, $name) {
-                        my @needed;
-                        for @roles {
-                            for nqp::hllize($_.HOW.method_table($_)) -> $m {
-                                if $m.key eq $name {
-                                    nqp::push(@needed, $_.HOW.name($_));
-                                }
-                            }
-                        }
-                        nqp::push(@stubs, nqp::hash('name', $name, 'needed', @needed, 'target', $target));
-                    }
-                }
-                elsif !has_local_method($target, $name)
-                        && ($with_submethods
-                            || !nqp::istype($method, Perl6::Metamodel::Configuration.submethod_type))
-                {
-                    $targetHOW.add_method($target, $name, $method);
-                }
-            }
-        }
+        my @stubs;
         my @methods      := $to_composeHOW.method_order($to_compose);
         my @method_names := $to_composeHOW.method_names($to_compose);
-        compose_method_table(
-            nqp::hllize(@methods),
-            nqp::hllize(@method_names),
-        );
-        if nqp::can($to_composeHOW, 'private_method_table') {
-            my @private_methods      := nqp::hllize($to_composeHOW.private_methods($to_compose));
-            my @private_method_names := nqp::hllize($to_composeHOW.private_method_names($to_compose));
-            my $i := 0;
-            for @private_method_names -> str $name {
-                unless has_private_method($target, $name) {
-                    $target.HOW.add_private_method($target, $name, @private_methods[$i]);
+
+        # Compose in any methods.
+        my int $m := nqp::elems(@methods);
+        my int $i;
+        while $i < $m {
+            my     $method := nqp::atpos(@methods,      $i);
+            my str $name   := nqp::atpos(@method_names, $i);
+
+            # Not yet an actual method
+            if nqp::can($method, 'yada') && $method.yada {
+                unless has_method($target, $name)
+                  || $targetHOW.has_public_attribute($target, $name) {
+                    my @needed;
+
+                    my int $n := nqp::elems(@roles);
+                    my int $j;
+                    while $j < $n {
+                        my $role := nqp::atpos(@roles, $j);
+                        nqp::push(@needed, $role.HOW.name($role))
+                          if nqp::existskey(
+                               $role.HOW.method_table($role), $name
+                             );
+                        ++$j;
+                    }
+
+                    nqp::push(
+                      @stubs, nqp::hash(
+                        'name',   $name,
+                        'needed', @needed,
+                        'target', $target,
+                      )
+                    );
                 }
+            }
+
+
+            # Not a method *in* the target yet
+            elsif nqp::not_i(has_local_method($target, $name))
+              && ($with_submethods
+                   || nqp::not_i(nqp::istype(
+                        $method, Perl6::Metamodel::Configuration.submethod_type
+                      ))
+                 ) {
+                $targetHOW.add_method($target, $name, $method);
+            }
+
+            ++$i;
+        }
+
+        # Composing into something that has private methods
+        if nqp::can($to_composeHOW, 'private_method_table') {
+            my @methods := $to_composeHOW.private_methods($to_compose);
+            my @names   := $to_composeHOW.private_method_names($to_compose);
+
+            my int $m := nqp::elems(@methods);
+            my int $i;
+            while $i < $m {
+                my str $name := nqp::atpos(@names, $i);
+                $targetHOW.add_private_method(
+                  $target, $name, nqp::atpos(@methods, $i)
+                ) unless has_private_method($target, $name);
                 $i++;
             }
         }

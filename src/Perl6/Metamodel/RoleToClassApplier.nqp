@@ -64,6 +64,19 @@ my class RoleToClassApplier {
         0
     }
 
+    # Check whether the given code object has a matching candidate
+    sub has_matching_candidate($code, @candidates) {
+        my int $m := nqp::elems(@candidates);
+        my int $i;
+        while $i < $m {
+            Perl6::Metamodel::Configuration.compare_multi_sigs(
+              nqp::atpos(@candidates, $i), $code
+            ) ?? (return 1)
+              !! ++$i;
+        }
+        0
+    }
+
     method prepare($target, @roles) {
         my $targetHOW := $target.HOW;
         my $to_compose;
@@ -198,40 +211,82 @@ my class RoleToClassApplier {
         # Compose in any multi-methods, looking for any requirements and
         # ensuring they are met.
         if nqp::can($to_composeHOW, 'multi_methods_to_incorporate') {
-            my @multis := $to_composeHOW.multi_methods_to_incorporate($to_compose);
-            my @required;
-            for @multis -> $add {
-                my $yada := 0;
-                try { $yada := $add.code.yada }
-                if $yada {
-                    nqp::push(@required, $add);
+            my @adds :=
+              $to_composeHOW.multi_methods_to_incorporate($to_compose);
+
+            # There are multis that need to be added
+            if nqp::elems(@adds) {
+
+                # Set up lookup of existing multis
+                my @multis := $targetHOW.multi_methods_to_incorporate($target);
+                my %multis;
+                my int $m := nqp::elems(@multis);
+                my int $i;
+                while $i < $m {
+                    my $multi := nqp::atpos(@multis, $i);
+                    nqp::push(
+                      nqp::ifnull(
+                        nqp::atkey(%multis, $multi.name),
+                        nqp::bindkey(%multis, $multi.name, nqp::list)
+                      ),
+                      $multi.code
+                    );
+                    ++$i;
                 }
-                else {
-                    my $already := 0;
-                    for $targetHOW.multi_methods_to_incorporate($target) -> $existing {
-                        if $existing.name eq $add.name {
-                            if Perl6::Metamodel::Configuration.compare_multi_sigs($existing.code, $add.code) {
-                                $already := 1;
-                                last;
+
+                my @yadas;
+                $m := nqp::elems(@adds);
+                $i := 0;
+                while $i < $m {
+                    my $add  := nqp::atpos(@adds, $i);
+                    my $code := $add.code;
+
+                    # Needs to be resolved
+                    if nqp::can($code, 'yada') && $code.yada {
+                        nqp::push(@yadas, $add);
+                    }
+
+                    # Add multi-method if no matching candidate available yet
+                    else {
+                        my str $name   := $add.name;
+
+                        if nqp::islist(
+                            my @candidates := nqp::atkey(%multis, $name)
+                        ) {
+
+                            # Add to target and in local lookup if no
+                            # matching candidate has been found
+                            unless has_matching_candidate($code, @candidates) {
+                                $targetHOW.add_multi_method(
+                                  $target, $name, $code
+                                );
+                                nqp::push(@candidates, $code);
                             }
                         }
-                    }
-                    unless $already {
-                        $targetHOW.add_multi_method($target, $add.name, $add.code);
-                    }
-                }
-                for @required -> $req {
-                    my $satisfaction := 0;
-                    for $targetHOW.multi_methods_to_incorporate($target) -> $existing {
-                        if $existing.name eq $req.name {
-                            if Perl6::Metamodel::Configuration.compare_multi_sigs($existing.code, $req.code) {
-                                $satisfaction := 1;
-                                last;
-                            }
+
+                        # No candidate known by name yet, add it, also locally
+                        else {
+                            $targetHOW.add_multi_method($target, $name, $code);
+                            nqp::bindkey(%multis, $name, nqp::list($code));
                         }
                     }
-                    unimplemented_multi_method($target, $req)
-                      unless $satisfaction;
+                    ++$i;
+                }
+
+                # Found yadas
+                if ($m := nqp::elems(@yadas)) {
+                    $i := 0;
+                    while $i < $m {
+                        my $required := nqp::atpos(@yadas, $i);
+
+                        nqp::isnull(
+                          my @candidates := nqp::atkey(%multis, $required.name)
+                        ) || nqp::not_i(has_matching_candidate(
+                               $required.code, @candidates
+                             ))
+                          ?? unimplemented_multi_method($target, $required)
+                          !! ++$i;  # now has matching implementation
+                    }
                 }
             }
         }

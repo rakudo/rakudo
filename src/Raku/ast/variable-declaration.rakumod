@@ -137,7 +137,7 @@ class RakuAST::ContainerCreator {
         }
 
         # Form container descriptor.
-        my $default := self.type ?? $of !! Any;
+        my $default := self.type ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) !! Any;
         my int $dynamic := self.twigil eq '*' ?? 1 !! self.forced-dynamic ?? 1 !! 0;
         (
             nqp::eqaddr($of, Mu)

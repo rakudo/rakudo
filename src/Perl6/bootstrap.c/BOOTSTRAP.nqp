@@ -4231,6 +4231,77 @@ BEGIN {
             }
         }
 
+        # If @possibles is currently greater than 1, we were already going to throw an
+        # exception right after this anyway... so don't bother doing an ahead-of-time
+        # check for the possibility of $a-candidate-has-scalar-pos and instead
+        # determine that here for all ambiguous cases.
+        if nqp::elems(@possibles) > 1 {
+            my @new-possibles := nqp::list();
+            my $capture-scalar-pos-args := nqp::list_i();
+            my int $num-capture-args := nqp::captureposelems($capture);
+            my int $i;
+            while $i < $num-capture-args {
+                if ! nqp::captureposprimspec($capture, $i) {
+                    my $value := nqp::captureposarg($capture, $i);
+                    nqp::push_i($capture-scalar-pos-args, $i)
+                        if nqp::istype_nd($value, Scalar) # could also be nqp::iscont($value)
+                        && nqp::istype($value, Array);
+                }
+                ++$i;
+            }
+            my int $total-capture-scalar-pos-args := nqp::elems($capture-scalar-pos-args);
+
+            my int $num-possibles := nqp::elems(@possibles);
+            my int $a-candidate-has-scalar-pos;
+            my int $already-assigned-possibles;
+            my %current;
+            $i := 0;
+            while $i < $num-possibles {
+                %current := nqp::atpos(@possibles, $i);
+                my @types := nqp::atkey(%current, 'types');
+                my @params := nqp::getattr(nqp::atkey(%current, 'signature'), Signature, '@!params');
+
+                my $z;
+                my $cand-scalar-pos-params := nqp::list_i();
+                while $z < nqp::elems(@params) {
+                    my int $flags := nqp::getattr(nqp::atpos(@params, $z), Parameter, '$!flags');
+                    nqp::push_i($cand-scalar-pos-params, $z)
+                        if ! nqp::bitand_i($flags, nqp::const::SIG_ELEM_INVOCANT)
+                        && ! nqp::bitand_i($flags,
+                            (
+                                nqp::const::SIG_ELEM_ARRAY_SIGIL +|
+                                nqp::const::SIG_ELEM_HASH_SIGIL +|
+                                nqp::const::SIG_ELEM_CODE_SIGIL
+                            ))
+                        && nqp::istype(
+                            nqp::hllizefor(nqp::atpos(@types, $z), 'Raku'),
+                            nqp::ifnull(
+                                $Positional,
+                                $Positional :=
+                                  nqp::gethllsym('Raku', 'MD_Pos')
+                            ));
+                    ++$z;
+                }
+                my $total-cand-scalar-pos-params := nqp::elems($cand-scalar-pos-params);
+                ++$a-candidate-has-scalar-pos if $total-cand-scalar-pos-params;
+
+                if $total-capture-scalar-pos-args == $total-cand-scalar-pos-params {
+                    my $w;
+                    my int $perfect-match := 1;
+                    while $w < $total-capture-scalar-pos-args {
+                        $perfect-match := $perfect-match
+                            && nqp::atpos_i($capture-scalar-pos-args, $w) == nqp::atpos_i($cand-scalar-pos-params, $w);
+                        ++$w;
+                    }
+                    @new-possibles := nqp::list(%current) if $perfect-match;
+                }
+                ++$i;
+            }
+            if $a-candidate-has-scalar-pos {
+                @possibles := nqp::elems(@new-possibles) ?? @new-possibles !! nqp::list(%current);
+            }
+        }
+
         # Need a unique candidate.
         if nqp::elems(@possibles) == 1 {
             nqp::atkey(nqp::atpos(@possibles, 0), 'sub')

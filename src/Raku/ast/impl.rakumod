@@ -58,7 +58,12 @@ class RakuAST::IMPL::QASTContext {
     method lang-version() { 'd' }
 
     method is-moar() {
-        nqp::getcomp('Raku').backend.name eq 'moar'
+#?if moar
+        True
+#?endif
+#?if !moar
+        False
+#?endif
     }
 
     method is-precompilation-mode() {

@@ -3734,29 +3734,32 @@ class Perl6::Optimizer {
             }
         }
 
+#?if moar
         # If resolution didn't work out this way, and we're on the MoarVM
         # backend, use a dispatcher to speed it up. Give it the package and
         # name ahead of the invocant, as this makes the calling far more
         # optimal.
-        if nqp::getcomp('Raku').backend.name eq 'moar' {
-            my $inv := $op.shift;
-            my $name := $op.shift;
-            my $pkg := $op.shift;
-            $op.unshift($inv);
-            $op.unshift($name_node);
-            $op.unshift($pkg);
-            $op.unshift(QAST::SVal.new( :value('raku-meth-private') ));
-            $!block_var_stack.do('unregister_call');
-            $op.op('dispatch');
-            $op.name(NQPMu);
-            return 1;
-        }
+
+        my $inv := $op.shift;
+        my $name := $op.shift;
+        my $pkg := $op.shift;
+        $op.unshift($inv);
+        $op.unshift($name_node);
+        $op.unshift($pkg);
+        $op.unshift(QAST::SVal.new( :value('raku-meth-private') ));
+        $!block_var_stack.do('unregister_call');
+        $op.op('dispatch');
+        $op.name(NQPMu);
+        return 1;
+#?endif
     }
 
     method optimize_qual_method_call($op) {
         # Dispatch only available on MoarVM for now.
-        return $op unless nqp::getcomp('Raku').backend.name eq 'moar';
-
+#?if !moar
+        $op;
+#?endif
+#?if moar
         # We can only optimize if we have a compile-time-known name.
         my $name_node := $op[1];
         if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
@@ -3793,13 +3796,16 @@ class Perl6::Optimizer {
             |@args
         ));
         $!block_var_stack.do('unregister_call');
-        return $op;
+        $op;
+#?endif
     }
 
     method optimize_maybe_method_call($op) {
         # Spesh plugins only available on MoarVM.
-        return $op unless nqp::getcomp('Raku').backend.name eq 'moar';
-
+#?if !moar
+        $op;
+#?endif
+#?if moar
         # We can only optimize if we have a compile-time-known name.
         my $name_node := $op[1];
         if nqp::istype($name_node, QAST::Want) && $name_node[1] eq 'Ss' {
@@ -3834,7 +3840,8 @@ class Perl6::Optimizer {
             |@args
         ));
         $!block_var_stack.do('unregister_call');
-        return $op;
+        $op;
+#?endif
     }
 
     method generate_optimized_for($op,$callee,$start,$end,$step) {
@@ -4465,35 +4472,35 @@ class Perl6::Optimizer {
     # we may be passing.
     method call_ct_chosen_multi($call, $proto, $chosen) {
         self.simplify_refs($call, $chosen.signature);
-        if nqp::getcomp('Raku').backend.name eq 'jvm' {
-            my @cands := $proto.dispatchees();
-            my int $idx := 0;
-            for @cands {
-                if $_ =:= $chosen {
-                    $call.unshift(QAST::Op.new(
-                        :op('atpos'),
-                        QAST::Var.new(
-                            :name('@!dispatchees'), :scope('attribute'),
-                            QAST::Var.new( :name($call.name), :scope('lexical') ),
-                            QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
-                        ),
-                        QAST::IVal.new( :value($idx) )
-                    ));
-                    $call.name(NQPMu);
-                    $call.op('call');
-                    #say("# Compile-time resolved a call to " ~ $proto.name);
-                    last;
-                }
-                $idx := $idx + 1;
+#?if jvm
+        my @cands := $proto.dispatchees();
+        my int $idx := 0;
+        for @cands {
+            if $_ =:= $chosen {
+                $call.unshift(QAST::Op.new(
+                    :op('atpos'),
+                    QAST::Var.new(
+                        :name('@!dispatchees'), :scope('attribute'),
+                        QAST::Var.new( :name($call.name), :scope('lexical') ),
+                        QAST::WVal.new( :value($!symbols.find_lexical('Routine')) )
+                    ),
+                    QAST::IVal.new( :value($idx) )
+                ));
+                $call.name(NQPMu);
+                $call.op('call');
+                #say("# Compile-time resolved a call to " ~ $proto.name);
+                last;
             }
-            $call := copy_returns($call, $chosen);
+            $idx := $idx + 1;
         }
-        else {
-            my $scopes := $!symbols.scopes_in($call.name);
-            if $scopes == 0 || $scopes == 1 && nqp::can($proto, 'soft') && !$proto.soft {
-                $call.op('callstatic');
-            }
+        $call := copy_returns($call, $chosen);
+#?endif
+#?if !jvm
+        my $scopes := $!symbols.scopes_in($call.name);
+        if $scopes == 0 || $scopes == 1 && nqp::can($proto, 'soft') && !$proto.soft {
+            $call.op('callstatic');
         }
+#?endif
         $call
     }
 

@@ -9299,7 +9299,6 @@ Did you mean a call like '"
     }
 
     # Adds code to do the signature binding.
-    my $use_vm_binder;
     sub add_signature_binding_code($block, $sig_obj, @params, :$multi) {
         # Set arity.
         my int $arity := 0;
@@ -9319,50 +9318,46 @@ Did you mean a call like '"
         # Consider using the VM binder on backends where it will work out
         # (e.g. we can get the same errors).
         my $need_full_binder := 1;
-        unless nqp::defined($use_vm_binder) {
-            $use_vm_binder := nqp::getcomp('Raku').backend.name eq 'moar' ||
-              nqp::getcomp('Raku').backend.name eq 'js';
+#?if !jvm
+        # If there are zero parameters, then we can trivially leave it to
+        # the VM, with no extra work.
+        if nqp::elems(@params) == 0 {
+            $need_full_binder := 0;
         }
-        if $use_vm_binder {
-            # If there are zero parameters, then we can trivially leave it to
-            # the VM, with no extra work.
-            if nqp::elems(@params) == 0 {
-                $need_full_binder := 0;
-            }
 
-            # If there is one anonymous capture parameter with no sub-signature
-            # or additional constraint, as is common with protos, then we've
-            # nothing to check or store; flag as custom bind but don't invoke
-            # the binder.
-            elsif is_anon_capture(@params) {
-                $block.custom_args(1);
-                $need_full_binder := 0;
-            }
+        # If there is one anonymous capture parameter with no sub-signature
+        # or additional constraint, as is common with protos, then we've
+        # nothing to check or store; flag as custom bind but don't invoke
+        # the binder.
+        elsif is_anon_capture(@params) {
+            $block.custom_args(1);
+            $need_full_binder := 0;
+        }
 
-            # If there is a single raw $_ then handle this very common case
-            # also. Two possibilities: optional and not.
-            elsif default_topic_kind(@params) -> $kind {
-                my $var := find_var_decl($block, '$_');
-                $var.decl('param');
-                if $kind eq 'optional' {
-                    $var.default(QAST::Op.new(
-                        :op('getlexouter'),
-                        QAST::SVal.new( :value('$_') )
-                    ));
+        # If there is a single raw $_ then handle this very common case
+        # also. Two possibilities: optional and not.
+        elsif default_topic_kind(@params) -> $kind {
+            my $var := find_var_decl($block, '$_');
+            $var.decl('param');
+            if $kind eq 'optional' {
+                $var.default(QAST::Op.new(
+                    :op('getlexouter'),
+                    QAST::SVal.new( :value('$_') )
+                ));
+            }
+            $need_full_binder := 0;
+        }
+
+        # Otherwise, need to go through and do a fuller analysis.
+        else {
+            if lower_signature($block, $sig_obj, @params) -> @todo {
+                for @todo {
+                    $block[0].push($_);
                 }
                 $need_full_binder := 0;
             }
-
-            # Otherwise, need to go through and do a fuller analysis.
-            else {
-                if lower_signature($block, $sig_obj, @params) -> @todo {
-                    for @todo {
-                        $block[0].push($_);
-                    }
-                    $need_full_binder := 0;
-                }
-            }
         }
+#?endif
 
         # If we need the full binder, invoke it; mark we do custom args
         # handling.

@@ -2212,7 +2212,7 @@ sub raku-multi-plan(
 
     my int $done;
     my int $cur_idx;
-    my int $candidates-with-positional-args;
+    my int $possible-with-positional-args;
     until $done {
 
         # The candidate list is broken into tied groups (that is, groups of
@@ -2264,7 +2264,7 @@ sub raku-multi-plan(
                     # checks that occur, as we don't currently use the
                     # total number of examined candidates with positional
                     # args (just the fact that at least one candidate exists).
-                    if ! $candidates-with-positional-args {
+                    if ! $possible-with-positional-args {
                         ++$positional-args if nqp::istype(
                             $type,
                             nqp::ifnull(
@@ -2447,16 +2447,17 @@ sub raku-multi-plan(
                     ++$i;
                 }
 
-                # Currently this will only run once, as the increment to
-                # $positional-args is guarded.
-                if $positional-args > 0 {
-                     ++$candidates-with-positional-args;
-                     $positional-args := 0;
-                 }
+                unless $type_mismatch || $rwness_mismatch {
+                    # Add candidate to the possibles list of this group.
+                    nqp::push(@possibles, $cur_candidate);
 
-                # Add it to the possibles list of this group.
-                nqp::push(@possibles, $cur_candidate)
-                  unless $type_mismatch || $rwness_mismatch;
+                    # Currently this will only run once, as the increment to
+                    # $positional-args is guarded.
+                    if $positional-args > 0 {
+                        $possible-with-positional-args := 1;
+                        $positional-args := 0;
+                    }
+                }
             }
         }
 
@@ -2505,7 +2506,7 @@ sub raku-multi-plan(
                     elsif nqp::elems(@exact-arity) == 1 {
                         @filtered-possibles := @exact-arity;
                     }
-                    elsif $candidates-with-positional-args {
+                    elsif $possible-with-positional-args {
                         @filtered-possibles
                             := disambiguate-positional-arg-candidates(
                                 @filtered-possibles,

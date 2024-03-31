@@ -214,7 +214,8 @@ class RakuAST::Name
             my $PseudoStash := $PseudoStash-lookup.resolution.compile-time-value;
             my $package := Perl6::Metamodel::ModuleHOW.new_type(:name('CORE'));
             my $found-ctx := $context.setting;
-            my $stash := $PseudoStash.new($found-ctx, :$package);
+            my $stash := $PseudoStash.new();
+            $stash.update-with-new-values($found-ctx, :$package);
             $context.ensure-sc($stash);
             $result := QAST::WVal.new(:value($stash));
         }

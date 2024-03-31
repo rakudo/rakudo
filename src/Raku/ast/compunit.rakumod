@@ -411,12 +411,21 @@ class RakuAST::CompUnit
             && +(@*MODULES // []) == 0
             && (my $main := self.find-lexical('&MAIN'))
         {
-            $top-level.set_children([QAST::Op.new(
+            my $run-main := QAST::Op.new(
               :op('call'),
               :name('&RUN-MAIN'),
               QAST::WVal.new(:value($main.meta-object)),
               QAST::Stmts.new(|$top-level.list) # run the mainline and get its result
-            )]);
+            );
+            unless nqp::getcomp('Raku').language_revision < 2 {
+                $run-main.push(
+                  QAST::WVal.new( # $*IN as $*ARGSFILES
+                    value => True,
+                    :named('in-as-argsfiles')
+                  )
+                );
+            }
+            $top-level.set_children([$run-main]);
         }
 
         QAST::CompUnit.new:

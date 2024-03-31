@@ -1,6 +1,8 @@
 my class Allomorph is Str {
     multi method Bool(::?CLASS:D:) { self.Numeric.Bool }
 
+    method narrow(::?CLASS:D:) { self.Numeric }
+
     multi method ACCEPTS(Allomorph:D: Any:D \a) is default {
         nqp::istype(a, Numeric)
           ?? self.Numeric.ACCEPTS(a)

@@ -168,6 +168,12 @@ class RakuAST::ContainerCreator {
                        $key-type
                      )
             }
+            elsif $sigil eq '&' {
+                my $Callable := self.IMPL-CALLABLE;
+                $container-type := self.type
+                    ?? $Callable.HOW.parameterize($Callable, $of)
+                    !! $Callable;
+            }
             else {
                 $container-type := $of
             }
@@ -182,8 +188,10 @@ class RakuAST::ContainerCreator {
 
     method IMPL-CONTAINER(Mu $of, Mu $cont-desc) {
         # Form the container.
-        my $default := self.type ?? RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of) !! Any;
         my str $sigil := self.sigil;
+        my $default := self.type
+            ?? $sigil eq '&' ?? self.IMPL-CALLABLE !! RakuAST::Type.IMPL-MAYBE-NOMINALIZE($of)
+            !! Any;
         my $container-base-type;
         my $container-type;
         if nqp::eqaddr($!container-base-type, Mu) {
@@ -787,7 +795,16 @@ class RakuAST::VarDeclaration::Simple
           !! nqp::null
         );
 
+        @lookups.push(self.sigil eq '&'
+            ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
+            !! nqp::null
+        );
+
         self.IMPL-WRAP-LIST(@lookups)
+    }
+
+    method IMPL-CALLABLE() {
+       self.get-implicit-lookups.AT-POS(2).resolution.compile-time-value
     }
 
     method PRODUCE-META-OBJECT() {
@@ -801,7 +818,12 @@ class RakuAST::VarDeclaration::Simple
                !! self.get-implicit-lookups.AT-POS(0)
              ).resolution.compile-time-value
           !! Mu;
-        my $descriptor := self.IMPL-CONTAINER-DESCRIPTOR($of);
+        my $default := self.sigil eq '&'
+            ?? $!type
+                ?? self.IMPL-CALLABLE.HOW.parameterize(self.IMPL-CALLABLE, $of)
+                !! self.IMPL-CALLABLE
+            !! $of;
+        my $descriptor := self.IMPL-CONTAINER-DESCRIPTOR($default);
 
         # `my %h{Any}` creates this shape declaration:
         #

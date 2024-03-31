@@ -33,12 +33,22 @@ class Perl6::Metamodel::ClassHOW
     has @!roles;
     has @!role_typecheck_list;
     has @!fallbacks;
-    has $!is_pun;
-    has $!pun_source; # If class is coming from a pun then this is the source role
+
+    # If class is coming from a pun then this is the source role
+    has $!pun_source;
+
     has $!archetypes;
 
-    my $archetypes-ng := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable );
-    my $archetypes-g  := Perl6::Metamodel::Archetypes.new( :nominal, :inheritable, :augmentable, :generic );
+    my $archetypes-ng := Perl6::Metamodel::Archetypes.new(
+      :nominal, :inheritable, :augmentable
+    );
+    my $archetypes-g  := Perl6::Metamodel::Archetypes.new(
+      :nominal, :inheritable, :augmentable, :generic
+    );
+
+    method TWEAK(*%_) {
+        $!pun_source := nqp::null;
+    }
 
     method archetypes($target = nqp::null()) {
 #?if moar
@@ -60,6 +70,10 @@ class Perl6::Metamodel::ClassHOW
                 ?? $archetypes-g
                 !! $archetypes-ng
     }
+
+    method set_pun_source($XXX, $role) { $!pun_source := nqp::decont($role) }
+    method is_pun(    $XXX?) { nqp::not_i(nqp::isnull($!pun_source)) }
+    method pun_source($XXX?) { $!pun_source }
 
     method new_type(:$repr = 'P6opaque', :$is_mixin, *%_) {
         my $HOW := self.new;
@@ -363,14 +377,6 @@ class Perl6::Metamodel::ClassHOW
         }
         0
     }
-
-    method set_pun_source($XXX, $role) {
-        $!pun_source := nqp::decont($role);
-        $!is_pun := 1;
-    }
-
-    method is_pun(    $XXX?) { $!is_pun     }
-    method pun_source($XXX?) { $!pun_source }
 
     method instantiate_generic($target, $type_environment) {
         my $type-env := Perl6::Metamodel::Configuration.type_env_from($type_environment);

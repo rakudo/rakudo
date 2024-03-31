@@ -48,8 +48,7 @@ class RakuAST::Name
     }
 
     method is-empty() {
-        nqp::elems($!parts) == 0
-          || (nqp::elems($!parts) == 1 && $!parts[0].name eq '')
+        nqp::elems($!parts) == 0 || (nqp::elems($!parts) == 1 && $!parts[0].is-empty)
     }
 
     method is-simple() {
@@ -297,6 +296,10 @@ class RakuAST::Name::Part {
 
     method visit-children(Code $visitor) {
     }
+
+    method is-empty() { # returns Bool
+        nqp::die("is-empty not implemented on " ~ self.HOW.name(self));
+    }
 }
 
 # A simple name part, wrapping a string name.
@@ -326,6 +329,10 @@ class RakuAST::Name::Part::Simple
         || $name eq 'SETTING'
         || $name eq 'UNIT'
         || $name eq 'COMPILING' # seems to be reserved
+    }
+
+    method is-empty() {
+        $!name eq ''
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final, str :$sigil, Bool :$global-fallback) {
@@ -397,6 +404,11 @@ class RakuAST::Name::Part::Expression
     method name() {
         $!expr.literalize // nqp::die('Name ' ~ $!expr.DEPARSE ~ ' is not compile-time known')
     }
+
+    method is-empty() {
+        my $name := $!expr.literalize;
+        nqp::defined($!expr) && $!expr eq ''
+    }
 }
 
 # An empty name part, implying .WHO
@@ -416,4 +428,6 @@ class RakuAST::Name::Part::Empty
     }
 
     method name() { "" }
+
+    method is-empty() { True }
 }

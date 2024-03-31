@@ -327,13 +327,28 @@ class RakuAST::VarDeclaration::Constant
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST($!type ?? [$!type] !! [])
+        self.IMPL-WRAP-LIST([
+            self.sigil eq '@'
+                ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Positional'))
+                !! self.sigil eq '%'
+                    ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Associative'))
+                    !! self.sigil eq '&'
+                        ?? RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Callable'))
+                        !! $!type
+                            ?? $!type
+                            !! nqp::null,
+
+        ])
     }
 
     method visit-children(Code $visitor) {
         $visitor($!type) if $!type;
         $visitor($!initializer) if $!initializer;
         self.visit-traits($visitor);
+    }
+
+    method sigil {
+        nqp::substr($!name, 0, 1)
     }
 
     method PERFORM-BEGIN(

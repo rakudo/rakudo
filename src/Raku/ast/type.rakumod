@@ -36,6 +36,12 @@ class RakuAST::Type
         self
     }
 
+    # The type to use for e.g. default values, i.e. Int on a Int:D constrainted variable.
+    # Or Foo[Int] on Foo:D[Int](Bar)
+    method IMPL-VALUE-TYPE() {
+        self
+    }
+
     method IMPL-MAYBE-DEFINITE-HOW-BASE($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
@@ -200,6 +206,10 @@ class RakuAST::Type::Coercion
         my $base-type := self.base-type;
         nqp::istype($base-type, RakuAST::Type::Coercion) ?? $base-type.IMPL-TARGET-TYPE !! $base-type
     }
+
+    method IMPL-VALUE-TYPE() {
+        self.IMPL-TARGET-TYPE.IMPL-VALUE-TYPE
+    }
 }
 
 class RakuAST::Type::Definedness
@@ -244,12 +254,16 @@ class RakuAST::Type::Definedness
         self.meta-object
     }
 
+    method IMPL-VALUE-TYPE() {
+        self.base-type
+    }
+
     method is-simple-lexical-declaration() {
         False
     }
 
     method visit-children(Code $visitor) {
-        $visitor(self.base-type);
+        $visitor(self.base-type.IMPL-VALUE-TYPE);
     }
 }
 
@@ -405,6 +419,10 @@ class RakuAST::Type::Parameterized
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         self.meta-object
+    }
+
+    method IMPL-VALUE-TYPE() {
+        RakuAST::Type::Parameterized.new(:base-type(self.base-type.IMPL-VALUE-TYPE), :args($!args))
     }
 
     method is-simple-lexical-declaration() {

@@ -683,7 +683,7 @@ class RakuAST::VarDeclaration::Simple
                             $initializer,
                             RakuAST::Initializer::CallAssign
                           ) ?? RakuAST::ApplyPostfix.new(
-                                 operand => $!type,
+                                 operand => $!type.IMPL-VALUE-TYPE,
                                  postfix => $initializer.postfixish
                                )
                              !! $initializer.expression

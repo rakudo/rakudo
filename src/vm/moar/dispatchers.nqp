@@ -2622,7 +2622,7 @@ sub disambiguate-positional-arg-candidates($candidates, $capture) {
             my $value := nqp::captureposarg($capture, $i);
             nqp::push_i($capture-scalar-pos-args, $i)
                 if nqp::istype_nd($value, Scalar) # could also be nqp::iscont($value)
-                && nqp::istype($value, Array);
+                && (nqp::istype($value, Array) || nqp::istype($value, List));
         }
         ++$i;
     }

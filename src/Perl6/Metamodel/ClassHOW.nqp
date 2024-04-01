@@ -85,13 +85,18 @@ class Perl6::Metamodel::ClassHOW
         nqp::setmethcacheauth($target, 0);
 #?endif
 
-        # Add it.
-        nqp::push(
-          @!fallbacks,
-          nqp::hash('cond', $condition, 'calc', $calculator)
-        );
+        # Add it in a threadsafe manner
+        self.protect({
+            my @fallbacks := nqp::clone(@!fallbacks);
+            nqp::push(
+              @fallbacks,
+              nqp::hash('cond', $condition, 'calc', $calculator)
+            );
+            @!fallbacks := @fallbacks;
+        });
     }
 
+    # Does the type declare a method by the given name
     sub has_method($target, str $name) {
         my @mro := $target.HOW.mro($target);
 
@@ -114,55 +119,83 @@ class Perl6::Metamodel::ClassHOW
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
-        my @stubs;
-        my $rtca;
-        unless nqp::isnull(my $r := self.pop_role_to_compose) {
+        my $applier;
+        unless nqp::isnull(my $role := self.pop_role_to_compose) {
+            my @roles               := nqp::clone(@!roles);
+            my @role_typecheck_list := nqp::clone(@!role_typecheck_list);
             my @ins_roles;
-            until nqp::isnull($r) {
-                nqp::push(@!roles, $r);
-                nqp::push(@!role_typecheck_list, $r);
-                my $ins := $r.HOW.specialize($r, $target);
-                # If class is a result of pun then transfer hidden flag from the source role
-                if $!pun_source =:= $r {
-                    self.set_hidden($target) if $ins.HOW.hidden($ins);
-                    self.set_language_revision($target, $ins.HOW.language_revision, :force);
-                }
-                @ins_roles.push($ins);
-                self.add_concretization($target, $r, $ins);
 
-                $r := self.pop_role_to_compose;
+            until nqp::isnull($role) {
+                nqp::push(@roles, $role);
+                nqp::push(@role_typecheck_list, $role);
+
+                my $ins := $role.HOW.specialize($role, $target);
+
+                # If class is a result of pun then transfer hidden flag
+                # and language revision from the source role
+#?if !moar
+                if self.is_pun && nqp::eqaddr($!pun_source, $role) {
+#?endif
+#?if moar
+                if nqp::eqaddr($!pun_source, $role) {
+#?endif
+                    self.set_hidden($target) if $ins.HOW.hidden($ins);
+                    self.set_language_revision(
+                      $target, $ins.HOW.language_revision, :force
+                    );
+                }
+
+                nqp::push(@ins_roles, $ins);
+                self.add_concretization($target, $role, $ins);
+
+                # fetch next tole to handle
+                $role := self.pop_role_to_compose;
             }
-            self.compute_mro($target); # to the best of our knowledge, because the role applier wants it.
-            $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
-            $rtca.prepare($target, @ins_roles);
+
+            # Because the role applier needs to have it
+            self.compute_mro($target);
+            $applier :=
+              Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+            $applier.prepare($target, @ins_roles);
 
             self.wipe_conc_cache;
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
-            for @ins_roles {
-                nqp::push(@!role_typecheck_list, $_);
-                for $_.HOW.role_typecheck_list($_) {
-                    nqp::push(@!role_typecheck_list, $_);
-                }
+            my int $m := nqp::elems(@ins_roles);
+            my int $i;
+            while $i < $m {
+                my $ins_role := nqp::atpos(@ins_roles, $i);
+                nqp::push(@role_typecheck_list, $ins_role);
+                nqp::splice(
+                  @role_typecheck_list,
+                  $ins_role.HOW.role_typecheck_list($ins_role),
+                  nqp::elems(@role_typecheck_list),
+                  0
+                );
+                ++$i;
             }
+
+            # Update atomically
+            @!roles               := @roles;
+            @!role_typecheck_list := @role_typecheck_list;
         }
 
-        # Compose class attributes first. We prioritize them and their accessors over anything coming from roles.
+        # Compose class attributes first. We prioritize them and their
+        # accessors over anything coming from roles.
         self.compose_attributes($target, :$compiler_services);
 
-        if $rtca {
-            @stubs := $rtca.apply();
-        }
+        # Apply any roles to the class, obtain remaining stubs
+        my @stubs := $applier.apply if $applier;
 
         # Some things we only do if we weren't already composed once, like
         # building the MRO.
         my $was_composed := self.run_if_not_composed({
-            if self.parents($target, :local) == 0
+            self.add_parent($target, self.get_default_parent_type)
+              if nqp::elems(self.parents($target, :local)) == 0
               && self.has_default_parent_type
-              && self.name($target) ne 'Mu' {
-                self.add_parent($target, self.get_default_parent_type);
-            }
+              && self.name($target) ne 'Mu';
+
             self.compute_mro($target);
         });
 
@@ -176,13 +209,13 @@ class Perl6::Metamodel::ClassHOW
         self.setup_finalization($target);
 
         # Test the remaining stubs
-        for @stubs -> %data {
-            if !has_method($target, %data<name>) {
-                nqp::die("Method '" ~ %data<name> ~ "' must be implemented by " ~
-                         $target.HOW.name($target) ~
-                         " because it is required by roles: " ~
-                         nqp::join(", ", %data<needed>) ~ ".");
-            }
+        my int $m := nqp::elems(@stubs);
+        my int $i;
+        while $i < $m {
+            my %data := nqp::atpos(@stubs, $i);
+            has_method($target, nqp::atkey(%data, 'name'))
+              ?? ++$i
+              !! self.method_not_implemented($target, %data)
         }
 
         # See if we have a Bool method other than the one in the top type.
@@ -193,7 +226,7 @@ class Perl6::Metamodel::ClassHOW
             my int $m := nqp::elems(@mro);
             my int $i;
             while $i < $m {
-                my $ptype := @mro[$i];
+                my $ptype := nqp::atpos(@mro, $i);
                 $ptype.HOW.declares_method($ptype, 'Bool')
                   ?? (last)
                   !! ++$i;
@@ -365,6 +398,17 @@ class Perl6::Metamodel::ClassHOW
         my $type-env := Perl6::Metamodel::Configuration.type_env_from($type_environment);
         return $target if nqp::isnull($type-env);
         $type-env.cache($target, { $target.INSTANTIATE-GENERIC($type-env) });
+    }
+
+    method method_not_implemented($target, %data) {
+        nqp::die("Method '"
+          ~ nqp::atkey(%data, 'name')
+          ~ "' must be implemented by "
+          ~ $target.HOW.name($target)
+          ~ " because it is required by roles: "
+          ~ nqp::join(", ", nqp::atkey(%data, 'needed'))
+          ~ "."
+        );
     }
 }
 

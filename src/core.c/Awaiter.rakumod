@@ -83,7 +83,7 @@ my class Awaiter::Blocking does Awaiter {
                             --$remaining;
                             $ready.signal unless $remaining;
                         }
-                        elsif !nqp::isconcrete($exception) {
+                        elsif nqp::not_i(nqp::isconcrete($exception)) {
                             $exception := result;
                             $remaining = 0;
                             $ready.signal;

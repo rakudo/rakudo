@@ -131,7 +131,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash6c, '$!ctx');
             until nqp::isnull($ctx)
                     || (nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER')
-                        && !nqp::existskey(nqp::ctxlexpad($ctx), '!EVAL_MARKER')) {
+                        && nqp::not_i(nqp::existskey(nqp::ctxlexpad($ctx), '!EVAL_MARKER'))) {
                 $ctx := nqp::ctxouterskipthunks($ctx);
             }
             # EVAL adds two extra contexts to EVAL'ed code.

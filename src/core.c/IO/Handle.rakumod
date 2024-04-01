@@ -201,7 +201,7 @@ my class IO::Handle {
     }
 
     method !set-out-buffer-size($buffer is copy) {
-        $buffer //= !nqp::isttyfh($!PIO);
+        $buffer //= nqp::not_i(nqp::isttyfh($!PIO));
         $!out-buffer = nqp::istype($buffer, Bool)
             ?? ($buffer ?? 8192 !! 0)
             !! $buffer.Int;

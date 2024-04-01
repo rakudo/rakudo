@@ -16,7 +16,7 @@ my enum Signal does Signal::Signally ( BEGIN |do {
 
 proto sub signal(|) {*}
 multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
-    if @signals.grep( { !nqp::istype($_,Signal) } ) -> @invalid {
+    if @signals.grep( { nqp::not_i(nqp::istype($_,Signal)) } ) -> @invalid {
         die "Found invalid signals: @invalid.join(', ')"
     }
 

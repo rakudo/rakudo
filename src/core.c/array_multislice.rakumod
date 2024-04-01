@@ -6,7 +6,7 @@ sub MD-ARRAY-SLICE-ONE-POSITION(
 ) is raw is implementation-detail {
     my int $next-dim = $dim + 1;
     if $next-dim < indices.elems {
-        if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
+        if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
             for idx {
                 MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
             }
@@ -27,7 +27,7 @@ sub MD-ARRAY-SLICE-ONE-POSITION(
         }
     }
     else {
-        if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
+        if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
             for idx {
                 MD-ARRAY-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
             }

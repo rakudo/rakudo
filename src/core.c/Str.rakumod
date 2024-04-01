@@ -2947,11 +2947,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $/ := nqp::getlexcaller('$/');
 
         return self.trans(($what,), |%n)
-          if !nqp::istype($from,Str)   # from not a string
-          || !$from.defined            # or a type object
-          || !nqp::istype($to,Str)     # or to not a string
-          || !$to.defined              # or a type object
-          || %n;                       # or any named params passed
+          if nqp::not_i(nqp::istype($from,Str))  # from not a string
+          || !$from.defined                      # or a type object
+          || nqp::not_i(nqp::istype($to,Str))    # or to not a string
+          || !$to.defined                        # or a type object
+          || %n;                                 # or any named params passed
 
         # from 1 char
         return nqp::box_s(

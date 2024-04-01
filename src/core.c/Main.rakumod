@@ -150,8 +150,14 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     if !$arg { $arg = @args.shift // '' }
                     %named.push: $optstring => ($negated ?? thevalue($arg) but False !! thevalue($arg));
                 }
-                elsif !nqp::elems($split) { %named.push: $optstring => ($negated ?? False !! True) }
-                else { %named.push: $optstring => $negated ?? thevalue $arg but False !! thevalue $arg }
+                elsif nqp::not_i(nqp::elems($split)) {
+                    %named.push: $optstring => ($negated ?? False !! True)
+                }
+                else {
+                    %named.push: $optstring => $negated
+                      ?? thevalue $arg but False
+                      !! thevalue $arg
+                }
             }
         }
         Capture.new( list => $positional.List, hash => %named )

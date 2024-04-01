@@ -518,8 +518,9 @@ my class Parameter { # declared in BOOTSTRAP
             $type ~~ / .*? \[ <( .* )> \] $$/;
             $raku ~= $/ ~ $modifier if $/;
         }
-        elsif $modifier or
-                !nqp::eqaddr($!type, nqp::decont($elide-type)) {
+        elsif $modifier || nqp::not_i(nqp::eqaddr(
+          $!type, nqp::decont($elide-type)
+        )) {
             $raku ~= $type ~ $modifier;
         }
 

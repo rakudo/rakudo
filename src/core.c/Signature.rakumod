@@ -168,7 +168,8 @@ my class Signature { # declared in BOOTSTRAP
                   !! ', '
             }
         }
-        if !nqp::isnull($!returns) && !($!returns =:= Mu) {
+        if nqp::not_i(nqp::isnull($!returns))
+          && nqp::not_i(nqp::eqaddr($!returns,Mu)) {
             $text = $text ~ ' --> ' ~ (nqp::can($!returns, 'raku') ?? $!returns.raku !! $!returns.^name)
         }
         # Closer.
@@ -176,7 +177,8 @@ my class Signature { # declared in BOOTSTRAP
     }
 
     method !deftype(Signature:D:) {
-         !nqp::isnull($!code) && $!code ~~ Routine ?? Any !! Mu
+         nqp::not_i(nqp::isnull($!code))
+           && $!code ~~ Routine ?? Any !! Mu
     }
 
     multi method raku(Signature:D:) {

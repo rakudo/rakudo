@@ -47,9 +47,12 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         method await(Awaitable:D $a) {
-            holding-locks() || !nqp::isnull(nqp::getlexdyn('$*RAKUDO-AWAIT-BLOCKING'))
-                ?? Awaiter::Blocking.await($a)
-                !! self!do-await($a)
+            holding-locks()
+              || nqp::not_i(nqp::isnull(nqp::getlexdyn(
+                   '$*RAKUDO-AWAIT-BLOCKING'
+                 )))
+              ?? Awaiter::Blocking.await($a)
+              !! self!do-await($a)
         }
 
         method !do-await(Awaitable:D $a) {
@@ -77,9 +80,12 @@ my class ThreadPoolScheduler does Scheduler {
         }
 
         method await-all(Iterable:D \i) {
-            holding-locks() || !nqp::isnull(nqp::getlexdyn('$*RAKUDO-AWAIT-BLOCKING'))
-                ?? Awaiter::Blocking.await-all(i)
-                !! self!do-await-all(i)
+            holding-locks()
+              || nqp::not_i(nqp::isnull(nqp::getlexdyn(
+                   '$*RAKUDO-AWAIT-BLOCKING'
+                 )))
+              ?? Awaiter::Blocking.await-all(i)
+              !! self!do-await-all(i)
         }
 
         method !do-await-all(Iterable:D \i) {
@@ -150,7 +156,7 @@ my class ThreadPoolScheduler does Scheduler {
                                     --$remaining;
                                     $resume = 1 unless $remaining;
                                 }
-                                elsif !nqp::isconcrete($exception) {
+                                elsif nqp::not_i(nqp::isconcrete($exception)) {
                                     $exception := result;
                                     $remaining = 0;
                                     $resume = 1;

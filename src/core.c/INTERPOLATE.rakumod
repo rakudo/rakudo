@@ -35,9 +35,13 @@ augment class Match {
             reserved => "use of hashes in regexes",
         ).throw if nqp::istype(var,Hash);
 
-        # Looks something we need to loop over
-        if !nqp::iscont(var) {
+        # Use the var as it is if it's not array-ish.
+        if nqp::iscont(var) {
+            $order := nqp::list(var);
+        }
 
+        # Looks something we need to loop over
+        else {
             my \varlist  := var.list;
             my int $elems = varlist.elems; # reifies
             my \list     := nqp::getattr(varlist,List,'$!reified');
@@ -95,11 +99,6 @@ augment class Match {
                   nqp::atpos(alts,nqp::atpos_i(fates,$j)))
                   while nqp::islt_i(++$j,$count);
             }
-        }
-
-        # Use the var as it is if it's not array-ish.
-        else {
-            $order := nqp::list(var);
         }
 
         my str $topic_str;
@@ -436,8 +435,13 @@ augment class Match {
 
         my Mu $order := nqp::list();
 
+        # Use the var as it is if it's not array-ish.
+        if nqp::iscont(var) {
+            nqp::push($order, var);
+        }
+
         # Looks something we need to loop over
-        if !nqp::iscont(var) {
+        else {
             my \varlist  := var.list;
             my int $elems = varlist.elems; # reifies
             my \list     := nqp::getattr(varlist,List,'$!reified');
@@ -475,11 +479,6 @@ augment class Match {
                 nqp::bindpos($order,$j,nqp::atpos(alts,nqp::atpos_i(fates,$j)))
                   while nqp::islt_i(++$j,$count);
             }
-        }
-
-        # Use the var as it is if it's not array-ish.
-        else {
-            nqp::push($order, var);
         }
 
         my str $topic_str;

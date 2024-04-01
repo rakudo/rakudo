@@ -298,7 +298,7 @@ my class IO::Path is Cool does IO {
             my str $next = nqp::concat($resolved, nqp::concat($sep, $part));
 
             # Path part doesn't exist...
-            if !nqp::stat($next, nqp::const::STAT_EXISTS) {
+            if nqp::not_i(nqp::stat($next, nqp::const::STAT_EXISTS)) {
                 # fail() if we were asked for complete resolution and we still
                 # have further parts to resolve. If it's the last part,
                 # don't fail; it can be a yet-to-be-created file or dir

@@ -2108,7 +2108,7 @@ CODE
             my str @parts;
             my str $spaces = $*INDENT;
             my $last-statement := @statements.first({
-                !nqp::istype($_,RakuAST::Doc::Block)
+                nqp::not_i(nqp::istype($_,RakuAST::Doc::Block))
             }, :end) // @statements.tail;
 
             my $code;

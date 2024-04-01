@@ -619,8 +619,8 @@ sub dd(|c) {  # is implementation-detail
                   !! $var.^name;
             }
             else {
-                my $name :=
-                  !nqp::istype($var.VAR,Failure) && try $var.VAR.name;
+                my $name := nqp::not_i(nqp::istype($var.VAR,Failure))
+                  && try $var.VAR.name;
                 $name := '' if $name && ($name eq 'element' | '%');
                 my $type := $name
                   ?? nqp::istype($var,Failure)

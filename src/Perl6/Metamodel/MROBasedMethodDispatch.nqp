@@ -50,10 +50,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             my $class := self.concretization(
               $target, $qtype, :transitive, :relaxed
             );
-            nqp::ifnull(
-              nqp::atkey($class.HOW.method_table($class), $name),
-              nqp::atkey($class.HOW.submethod_table($class), $name)
-            )
+            $class.HOW.code_of_method($class, $name)
         }
 
         # Non-parametric, so just locate it from the already concrete

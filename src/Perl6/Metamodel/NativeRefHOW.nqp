@@ -64,6 +64,12 @@ class Perl6::Metamodel::NativeRefHOW
 
     method method_table(   $XXX?) { METHOD_TABLE    }
     method submethod_table($XXX?) { SUBMETHOD_TABLE }
+    method declares_method($XXX, str $name) {
+        $name eq 'new'
+    }
+    method code_of_method( $XXX, str $name) {
+        nqp::atkey(METHOD_TABLE, $name)
+    }
 }
 
 # vim: expandtab sw=4

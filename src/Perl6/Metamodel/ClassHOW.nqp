@@ -101,22 +101,22 @@ class Perl6::Metamodel::ClassHOW
 #?endif
 
         # Add it.
-        my %desc;
-        %desc<cond> := $condition;
-        %desc<calc> := $calculator;
-        nqp::push(@!fallbacks, %desc);
+        nqp::push(
+          @!fallbacks,
+          nqp::hash('cond', $condition, 'calc', $calculator)
+        );
     }
 
-    sub has_method($target, $name) {
-        for $target.HOW.mro($target) {
-            my %mt := nqp::hllize($_.HOW.method_table($_));
-            if nqp::existskey(%mt, $name) {
-                return 1;
-            }
-            %mt := nqp::hllize($_.HOW.submethod_table($_));
-            if nqp::existskey(%mt, $name) {
-                return 1;
-            }
+    sub has_method($target, str $name) {
+        my @mro := $target.HOW.mro($target);
+
+        my int $m := nqp::elems(@mro);
+        my int $i;
+        while $i < $m {
+            my $type := nqp::atpos(@mro, $i);
+            $type.HOW.declares_method($type, $name)
+              ?? (return 1)
+              !! ++$i;
         }
         0
     }
@@ -209,14 +209,11 @@ class Perl6::Metamodel::ClassHOW
             my int $i;
             while $i < $m {
                 my $ptype := @mro[$i];
-                last if nqp::existskey(nqp::hllize($ptype.HOW.method_table($ptype)), 'Bool');
-                last if nqp::can($ptype.HOW, 'submethod_table') &&
-                    nqp::existskey(nqp::hllize($ptype.HOW.submethod_table($ptype)), 'Bool');
-                ++$i;
+                $ptype.HOW.declares_method($ptype, 'Bool')
+                  ?? (last)
+                  !! ++$i;
             }
-            if $i + 1 == $m {
-                self.set_boolification_mode($target, 5)
-            }
+            self.set_boolification_mode($target, 5) if $i + 1 == $m;
         }
 
         # If there's a FALLBACK method, register something to forward calls to it.
@@ -244,8 +241,7 @@ class Perl6::Metamodel::ClassHOW
             if nqp::isconcrete($compiler_services) {
 
                 # Class does not appear to have a BUILDALL yet
-                unless nqp::existskey(nqp::hllize(self.submethod_table($target)),'BUILDALL')
-                  || nqp::existskey(nqp::hllize(self.method_table($target)),'BUILDALL') {
+                unless self.declares_method($target, 'BUILDALL') {
                     my $builder := nqp::findmethod(
                       $compiler_services,'generate_buildplan_executor');
                     my $method :=

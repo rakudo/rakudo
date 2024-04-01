@@ -122,11 +122,9 @@ role Perl6::Metamodel::Mixins {
         $HOW.set_shortname($type, $shortname);
         $HOW.set_boolification_mode(
           $type,
-          nqp::existskey($HOW.method_table($type), 'Bool')
-            || nqp::can($HOW, 'submethod_table')
-                 && nqp::existskey($HOW.submethod_table($type), 'Bool')
-                 ?? 0
-                 !! self.get_boolification_mode($target)
+          $HOW.declares_method($type, 'Bool')
+            ?? 0
+            !! self.get_boolification_mode($target)
         );
         $HOW.publish_boolification_spec($type);
 

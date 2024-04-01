@@ -19,8 +19,7 @@ my class RoleToClassApplier {
 
     # Check whether it has a local method by the given name
     sub has_local_method($target, str $name) {
-        nqp::existskey($target.HOW.method_table($target), $name)
-          || nqp::existskey($target.HOW.submethod_table($target), $name)
+        $target.HOW.declares_method($target, $name)
     }
 
     # Die if it does not have this method in the class itself
@@ -56,8 +55,7 @@ my class RoleToClassApplier {
         my int $i;
         while $i < $m {
             my $class := nqp::atpos(@mro, $i);
-            nqp::existskey($class.HOW.method_table($class), $name)
-              || nqp::existskey($class.HOW.submethod_table($class), $name)
+            $class.HOW.declares_method($class, $name)
               ?? (return 1)
               !! ++$i;
         }

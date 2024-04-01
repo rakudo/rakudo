@@ -214,8 +214,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
             }
             nqp::isnull($found)
               ?? nqp::null
-              !! nqp::atkey($found.HOW.method_table($found), $name)
-                   || nqp::atkey($found.HOW.submethod_table($found), $name)
+              !! $found.HOW.code_of_method($found, $name)
         }
 
         # Non-parametric, so just locate it from the already concrete type.

@@ -154,6 +154,12 @@ role Perl6::Metamodel::MethodContainer {
     method declares_method($XXX, str $name) {
         nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name)
     }
+    method code_of_method( $XXX, str $name) {
+        nqp::ifnull(
+          nqp::atkey(%!methods, $name),
+          nqp::atkey(%!submethods, $name)
+        )
+    }
 
     # Looks up a method with the provided name, for introspection purposes.
     # Returns nqp::null if not found
@@ -163,19 +169,13 @@ role Perl6::Metamodel::MethodContainer {
         my int $m := nqp::elems(@mro);
         my int $i;
         while $i < $m {
-            my $HOW := nqp::atpos(@mro, $i).HOW;
+            my $code := nqp::atpos(
+              @mro, $i
+            ).HOW.code_of_method($target, $name);
 
-            my %method_table := $HOW.method_table($target);
-            return nqp::decont(nqp::atkey(%method_table, $name))
-              if nqp::existskey(%method_table, $name);
-
-            if nqp::can($HOW, 'submethod_table') {
-                my %submethod_table := $HOW.submethod_table($target);
-                return nqp::decont(nqp::atkey(%submethod_table, $name))
-                  if nqp::existskey(%submethod_table, $name);
-            }
-
-            ++$i;
+            nqp::isnull($code)
+              ?? ++$i
+              !! (return $code);
         }
         nqp::null
     }

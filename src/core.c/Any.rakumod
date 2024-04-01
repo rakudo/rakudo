@@ -8,6 +8,7 @@ my class X::Bind::ZenSlice      { ... }
 my class X::Item                { ... }
 my class X::Match::Bool         { ... }
 my class X::Pairup::OddNumber   { ... }
+my class X::Parameter::RW       { ... }
 my class X::Subscript::Negative { ... }
 
 my role  Numeric { ... }
@@ -281,16 +282,17 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method AT-POS(|) is nodal {*}
+    multi method AT-POS(Any:U $SELF is rw: Int:D \pos) is raw {
+        nqp::p6scalarfromcertaindesc(
+          ContainerDescriptor::VivifyArray.new($SELF, pos)
+        )
+    }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
-        nqp::iscont(SELF)
-          ?? nqp::p6scalarfromcertaindesc(
-               ContainerDescriptor::VivifyArray.new(SELF, pos)
-             )
-          !! pos
-            ?? X::OutOfRange.new(
-                 :what($*INDEX // 'Index'), :got(pos), :range<0..0>
-               ).Failure
-            !! SELF
+        pos
+          ?? X::OutOfRange.new(
+               :what($*INDEX // 'Index'), :got(pos), :range<0..0>
+             ).Failure
+          !! SELF
     }
     multi method AT-POS(Any:U: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
@@ -308,26 +310,26 @@ my class Any { # declared in BOOTSTRAP
              ).Failure
           !! self
     }
-    multi method AT-POS(Any:D: Num:D \pos) is raw {
+    multi method AT-POS(Any:D \SELF: Num:D \pos) is raw {
         nqp::isnanorinf(pos)
-          ?? X::Item.new(aggregate => self, index => pos).Failure
-          !! self.AT-POS(nqp::unbox_i(pos.Int))
+          ?? X::Item.new(aggregate => SELF, index => pos).Failure
+          !! SELF.AT-POS(nqp::unbox_i(pos.Int))
     }
-    multi method AT-POS(Any:D: Any:D \pos) is raw {
-        self.AT-POS(nqp::unbox_i(pos.Int));
+    multi method AT-POS(Any:D \SELF: Any:D \pos) is raw {
+        SELF.AT-POS(nqp::unbox_i(pos.Int));
     }
     multi method AT-POS(Any:   Any:U \pos) is raw {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method AT-POS(Any:D: \one, \two) is raw {
-        self.AT-POS(one).AT-POS(two)
+    multi method AT-POS(Any:D \SELF: \one, \two) is raw {
+        SELF.AT-POS(one).AT-POS(two)
     }
-    multi method AT-POS(Any:D: \one, \two, \three) is raw {
-        self.AT-POS(one).AT-POS(two).AT-POS(three)
+    multi method AT-POS(Any:D \SELF: \one, \two, \three) is raw {
+        SELF.AT-POS(one).AT-POS(two).AT-POS(three)
     }
-    multi method AT-POS(Any:D: **@indices) is raw {
+    multi method AT-POS(Any:D \SELF: **@indices) is raw {
         my $final := @indices.pop;
-        Rakudo::Internals.WALK-AT-POS(self,@indices).AT-POS($final)
+        Rakudo::Internals.WALK-AT-POS(SELF,@indices).AT-POS($final)
     }
 
     proto method ZEN-KEY(|) {*}
@@ -404,17 +406,21 @@ my class Any { # declared in BOOTSTRAP
         ).Failure
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
-        nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyHash.new(SELF, key))
+        nqp::p6scalarfromcertaindesc(
+          ContainerDescriptor::VivifyHash.new(SELF, key)
+        )
     }
 
     proto method BIND-KEY(|) is nodal {*}
     multi method BIND-KEY(Any:D: \k, \v) is raw {
         X::Bind.new(target => self.^name).throw
     }
-    multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is raw {
-        SELF = Hash.new;
-        SELF.BIND-KEY($key, $BIND);
+    multi method BIND-KEY(Any:U $SELF is rw: $key, $BIND ) is raw {
+        ($SELF = Hash.new).BIND-KEY($key, $BIND);
         $BIND
+    }
+    multi method BIND-KEY(Any:U \SELF: $key, $BIND ) is raw {
+        X::Parameter::RW.new(:symbol<self>, :got(self)).Failure
     }
 
     proto method ASSIGN-KEY(|) is nodal {*}

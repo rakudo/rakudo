@@ -1,3 +1,5 @@
+#- Metamodel::ClassHOW ---------------------------------------------------------
+# All the logic needed to create a Raku class
 class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::BUILDALL
@@ -48,28 +50,11 @@ class Perl6::Metamodel::ClassHOW
 
     method TWEAK(*%_) {
         $!pun_source := nqp::null;
+        # assume non-generic until compose time
+        $!archetypes := $archetypes-ng;
     }
 
-    method archetypes($target = nqp::null()) {
-#?if moar
-        # The dispatcher itself is declared at the end of this file. We can't have it in the BOOTSTRAP because the
-        # bootstrap process is using archetypes long before dispatchers from dispatchers.nqp gets registered.
-        nqp::dispatch('raku-class-archetypes', self, $target)
-#?endif
-#?if !moar
-        if nqp::isconcrete(my $dcobj := nqp::decont($target)) && nqp::can($dcobj, 'is-generic') {
-            return $dcobj.is-generic ?? $archetypes-g !! $archetypes-ng;
-        }
-        $!archetypes // $archetypes-ng
-#?endif
-    }
-
-    method !refresh_archetypes($target) {
-        $!archetypes :=
-            nqp::can($target, 'is-generic') && $target.is-generic
-                ?? $archetypes-g
-                !! $archetypes-ng
-    }
+    method archetypes($XXX?) { $!archetypes }
 
     method set_pun_source($XXX, $role) { $!pun_source := nqp::decont($role) }
     method is_pun(    $XXX?) { nqp::not_i(nqp::isnull($!pun_source)) }
@@ -273,7 +258,9 @@ class Perl6::Metamodel::ClassHOW
         self.compose_invocation($target);
 #?endif
 
-        self.'!refresh_archetypes'($target);
+        # Mark as generic if type is generic
+        $!archetypes := $archetypes-g
+          if nqp::can($target, 'is-generic') && $target.is-generic;
 
         $target
     }
@@ -379,64 +366,6 @@ class Perl6::Metamodel::ClassHOW
         return $target if nqp::isnull($type-env);
         $type-env.cache($target, { $target.INSTANTIATE-GENERIC($type-env) });
     }
-
-#?if moar
-    # Returns archetypes of a class or a class instance.
-    # Dispatcher arguments: ClassHOW object, invocant object
-    nqp::register('raku-class-archetypes', -> $capture {
-
-        my $how := nqp::captureposarg($capture, 0);
-        my $Thow := nqp::track('arg', $capture, 0);
-        nqp::guard('concreteness', $Thow);
-
-        nqp::delegate('boot-code-constant', $archetypes-ng)
-          unless nqp::isconcrete($how);
-
-        my $obj  := nqp::captureposarg($capture, 1);
-        my $Tobj := nqp::track('arg', $capture, 1);
-        nqp::guard('concreteness', $Tobj);
-        nqp::guard('type', $Tobj);
-
-        if nqp::isconcrete_nd($obj) && nqp::iscont($obj) {
-            my $Scalar := nqp::gethllsym('Raku', 'Scalar');
-            my $Tvalue := nqp::track('attr', $Tobj, $Scalar, '$!value');
-            nqp::guard('concreteness', $Tvalue);
-            nqp::guard('type', $Tvalue);
-            $obj := nqp::getattr($obj, $Scalar, '$!value');
-        }
-
-        my $can-is-generic :=
-          !nqp::isnull($obj) && nqp::can($obj, 'is-generic');
-        if nqp::isconcrete($obj) && $can-is-generic {
-            # If invocant of .HOW.archetypes is a concrete object
-            # implementing 'is-generic' method then method outcome
-            # is the ultimate result. But we won't cache it in
-            # type's HOW $!archetypes.
-            nqp::delegate('boot-code-constant',
-              nqp::syscall('dispatcher-insert-arg-literal-obj',
-                nqp::syscall('dispatcher-drop-n-args',
-                  $capture, 0, 2
-                ),
-                0, { $obj.is-generic ?? $archetypes-g !! $archetypes-ng }
-              )
-            );
-        }
-        else {
-            nqp::guard('literal', nqp::track('attr',
-              $Thow, Perl6::Metamodel::ClassHOW, '$!archetypes'
-            ));
-
-            nqp::delegate('boot-constant',
-              nqp::syscall('dispatcher-insert-arg-literal-obj',
-                $capture, 0,
-                nqp::getattr($how, Perl6::Metamodel::ClassHOW, '$!archetypes')
-                  // $archetypes-ng
-              )
-            );
-        }
-    }
-);
-#?endif
 }
 
 # vim: expandtab sw=4

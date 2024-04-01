@@ -1,3 +1,4 @@
+#- Metamodel::Concretization ---------------------------------------------------
 # Support for mapping of non-specialized roles into their concretized state.
 role Perl6::Metamodel::Concretization {
     has @!concretizations;
@@ -7,28 +8,58 @@ role Perl6::Metamodel::Concretization {
         nqp::push(@!concretizations, nqp::list($role, $concrete))
     }
 
-    method concretizations($target, :$local = 0, :$transitive = 1) {
+    method concretizations($target, :$local, :$transitive = 1) {
+        my @concretizations := @!concretizations;
+        my int $m := nqp::elems(@concretizations);
         my @conc;
-        for @!concretizations {
-            my @c := $transitive ?? [] !! @conc;
-            nqp::push(@c, $_[1]);
-            if $transitive && nqp::can($_[1].HOW, 'concretizations') {
-                for $_[1].HOW.concretizations($_[1], :$local) {
-                    nqp::push(@c, $_);
+
+        if $transitive {
+            my int $i;
+            while $i < $m {
+                my $concretization := nqp::atpos(
+                  nqp::atpos(@concretizations, $i), 1
+                );
+                if nqp::can($concretization.HOW, 'concretizations') {
+                    my @c := nqp::clone($concretization.HOW.concretizations(
+                      $concretization, :$local
+                    ));
+                    nqp::unshift(@c, $concretization);
+                    nqp::push(@conc, @c);
                 }
+                else {
+                    nqp::push(@conc, nqp::list($concretization));
+                }
+                ++$i;
             }
-            nqp::push(@conc, @c) if $transitive;
+            @conc := self.c3_merge(@conc);
         }
-        @conc := self.c3_merge(@conc) if $transitive;
+
+        # Not transitive, simply collect
+        else {
+            my int $i;
+            while $i < $m {
+                nqp::push(@conc,nqp::atpos(nqp::atpos(@concretizations,$i), 1));
+                ++$i;
+            }
+        }
+
         unless $local {
-            for self.parents($target, :local) {
-                if nqp::can($_.HOW, 'concretizations') {
-                    for $_.HOW.concretizations($_, :$local, :$transitive) {
-                        nqp::push(@conc, $_)
-                    }
-                }
+            my @parents := self.parents($target, :local);
+
+            my int $m := nqp::elems(@parents);
+            my int $i;
+            while $i < $m {
+                my $parent := nqp::atpos(@parents, $i);
+                nqp::splice(
+                  @conc,
+                  $parent.HOW.concretizations($parent, :$local, :$transitive),
+                  nqp::elems(@conc),
+                  0
+                ) if nqp::can($parent.HOW, 'concretizations');
+                ++$i;
             }
         }
+
         @conc
     }
 
@@ -81,7 +112,7 @@ role Perl6::Metamodel::Concretization {
             }
             return @result if @result[0];
         }
-        return [0] if !$relaxed && self.is_composed($target) && !nqp::istype(nqp::decont($target), $ptype);
+        return [0] if !$relaxed && self.is_composed($target) && nqp::not_i(nqp::istype(nqp::decont($target), $ptype));
         if $transitive {
             for @!concretizations {
                 if nqp::istype($_[1], $ptype) {

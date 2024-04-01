@@ -67,26 +67,35 @@ role Perl6::Metamodel::Concretization {
         # Capturing the concretization list is first and foremost because we
         # depend on its size to know whether or not a rebuild is necessary, but
         # there may be a wait before then. Try for more predictable output.
-        my int $captured := nqp::elems(@!concretizations);
-        self.protect: {
+        my @concretizations := @!concretizations;
+        my int $captured    := nqp::elems(@concretizations);
+
+        self.protect({
             # The concretization table can be depended on outside a
             # thread-safe context, e.g. MRO-based method dispatch. Parsing
             # a grammar from a start block can lead to a concurrent access
             # and modification, for instance.
             my %conc_table := %!conc_table;
             my int $cached := nqp::elems(%conc_table);
+
             if $cached < $captured {
                 %conc_table := nqp::clone(%conc_table);
                 repeat { # Update.
-                    my @c := @!concretizations[$cached];
-                    %conc_table{~nqp::objectid(nqp::decont(@c[0]))} := nqp::decont(@c[1]);
+                    my @c := nqp::atpos(@concretizations, $cached);
+                    nqp::bindkey(
+                      %conc_table,
+                      ~nqp::objectid(nqp::decont(nqp::atpos(@c, 0))),
+                      nqp::decont(nqp::atpos(@c, 1))
+                    );
                 } while ++$cached < $captured;
-                nqp::scwbdisable();
+
+                nqp::scwbdisable;
                 %!conc_table := %conc_table;
-                nqp::scwbenable();
+                nqp::scwbenable;
             }
+
             %conc_table
-        }
+        })
     }
 
     # Returns a list where the first element is the number of roles found and the rest are actual type objects.

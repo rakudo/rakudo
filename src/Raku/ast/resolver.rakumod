@@ -239,7 +239,7 @@ class RakuAST::Resolver {
         if nqp::istype($root, RakuAST::Name::Part::Empty) {
             return Nil;
         }
-        elsif nqp::istype($root, RakuAST::Name::Part::Expression) {
+        elsif nqp::istype($root, RakuAST::Name::Part::Expression) && !$root.has-compile-time-name {
             return Nil;
         }
 

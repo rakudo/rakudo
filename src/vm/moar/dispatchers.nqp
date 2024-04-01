@@ -1989,7 +1989,7 @@ nqp::bindhllsym('Raku', 'PROXY-READERS', $PROXY-READERS);
 
 #- raku-multi-core -------------------------------------------------------------
 # The core of multi dispatch. Once we are here, either there was a simple
-# proto that we don't need to invoke, or we already did invoke the proto.
+# proto that we don't need to inovke, or we already did invoke the proto.
 #
 # Multiple dispatch is relatively complex in the most general case. However,
 # the most common case by far consists of:
@@ -2038,7 +2038,7 @@ my class MultiDispatchCall {
     method next() { $!next }
     method trivial() { nqp::istype($!next,MultiDispatchEnd) }
     method debug() {
-        "Candidate " ~ $!candidate.signature.raku ~ ($!next ?? "\n" ~ $!next.debug !! '')
+        "Candidate " ~ $!candidate.signature.raku ~ "\n" ~ $!next.debug
     }
 }
 
@@ -2048,7 +2048,7 @@ my class MultiDispatchTry is MultiDispatchCall {
     method trivial() { 0 }
     method debug() {
         "Try candidate " ~ self.candidate.signature.raku ~ "\n"
-          ~ (self.next ?? self.next.debug !! '')
+          ~ self.next.debug
     }
 }
 
@@ -2172,7 +2172,6 @@ sub raku-multi-plan(
     # references don't count; we know the native types they shall match up with
     # and don't need to dereference them
     my $non-scalar := nqp::list_i();
-    my $capture-pos-scalar := nqp::list_i();
     my int $i;
     while $i < $num_args {
         unless nqp::captureposprimspec($capture, $i) {
@@ -2212,11 +2211,10 @@ sub raku-multi-plan(
 
     my int $done;
     my int $cur_idx;
-    my int $candidates-with-positional-args;
     until $done {
 
         # The candidate list is broken into tied groups (that is, groups of
-        # candidates that are equally narrow). Those are separated by a
+        # candidates that are equally narrow). Those are seperated by a
         # type object sentinel.
         my $cur_candidate := nqp::atpos(@candidates, $cur_idx++);
 
@@ -2237,7 +2235,6 @@ sub raku-multi-plan(
 
                 my int $type_mismatch;
                 my int $rwness_mismatch;
-                my int $positional-args;
                 my int $i;
                 while $i < $type_check_count
                   && !($type_mismatch +| $rwness_mismatch) {
@@ -2255,23 +2252,6 @@ sub raku-multi-plan(
 
                     my int $definedness :=
                       $type_flags +& nqp::const::DEFCON_MASK;
-
-                    # We want to be able to distinguish between a
-                    # Positional $scalar and a @positional. We increment
-                    # here and then later use this to mark the candidate
-                    # as containing a positional.
-                    # The guard is to try and reduce the number of type
-                    # checks that occur, as we don't currently use the
-                    # total number of examined candidates with positional
-                    # args (just the fact that at least one candidate exists).
-                    if ! $candidates-with-positional-args {
-                        ++$positional-args if nqp::istype(
-                            $type,
-                            nqp::ifnull(
-                                $Positional,
-                                $Positional := nqp::gethllsym('Raku', 'MD_Pos')
-                            ));
-                    }
 
                     # Get the primitive type of the argument, and go on
                     # whether it's an object or primitive type
@@ -2447,13 +2427,6 @@ sub raku-multi-plan(
                     ++$i;
                 }
 
-                # Currently this will only run once, as the increment to
-                # $positional-args is guarded.
-                if $positional-args > 0 {
-                     ++$candidates-with-positional-args;
-                     $positional-args := 0;
-                 }
-
                 # Add it to the possibles list of this group.
                 nqp::push(@possibles, $cur_candidate)
                   unless $type_mismatch || $rwness_mismatch;
@@ -2505,13 +2478,6 @@ sub raku-multi-plan(
                     elsif nqp::elems(@exact-arity) == 1 {
                         @filtered-possibles := @exact-arity;
                     }
-                    elsif $candidates-with-positional-args {
-                        @filtered-possibles
-                            := disambiguate-positional-arg-candidates(
-                                @filtered-possibles,
-                                $capture
-                            );
-                    }
                     else {
                         my $node := MultiDispatchAmbiguous.new();
                         nqp::isnull($current-head)
@@ -2524,7 +2490,6 @@ sub raku-multi-plan(
                 # Add the filtered possibles to the plan
                 $i := 0;
                 $n := nqp::elems(@filtered-possibles);
-
                 while $i < $n {
                     my %info := nqp::atpos(@filtered-possibles, $i);
                     my $node;
@@ -2607,71 +2572,6 @@ sub raku-multi-plan(
         $current-tail.set-next(MultiDispatchEnd);
         $current-head
     }
-}
-
-# Helper sub to allow multis to dispatch based on being passed an $[] or []
-#   multi s(Positional $a) {...} # will match for $[]
-#   multi s(@a) {...}            # will match for []
-sub disambiguate-positional-arg-candidates($candidates, $capture) {
-    my int $num-args := nqp::captureposelems($capture);
-    my $capture-scalar-pos-args := nqp::list_i();
-
-    my int $i;
-    while $i < $num-args {
-        if ! nqp::captureposprimspec($capture, $i) {
-            my $value := nqp::captureposarg($capture, $i);
-            nqp::push_i($capture-scalar-pos-args, $i)
-                if nqp::istype_nd($value, Scalar) # could also be nqp::iscont($value)
-                && nqp::istype($value, Array);
-        }
-        ++$i;
-    }
-    my int $total-capture-scalar-pos-args := nqp::elems($capture-scalar-pos-args);
-
-    $i := 0;
-    my %current;
-    while $i < nqp::elems($candidates) {
-        %current := nqp::atpos($candidates, $i);
-        my $signature := nqp::atkey(%current, 'signature');
-        my @types := nqp::atkey(%current, 'types');
-        my @params := nqp::getattr($signature, Signature, '@!params');
-
-        my $z;
-        my $cand-scalar-pos-params := nqp::list_i();
-        while $z < nqp::elems(@params) {
-            my int $flags := nqp::getattr(nqp::atpos(@params, $z), Parameter, '$!flags');
-            nqp::push_i($cand-scalar-pos-params, $z)
-                if ! nqp::bitand_i($flags, nqp::const::SIG_ELEM_INVOCANT)
-                && ! nqp::bitand_i($flags,
-                    (
-                        nqp::const::SIG_ELEM_ARRAY_SIGIL +|
-                        nqp::const::SIG_ELEM_HASH_SIGIL +|
-                        nqp::const::SIG_ELEM_CODE_SIGIL
-                    ))
-                && nqp::istype(
-                    nqp::hllizefor(nqp::atpos(@types, $z), 'Raku'),
-                    nqp::ifnull(
-                        $Positional,
-                        $Positional :=
-                          nqp::gethllsym('Raku', 'MD_Pos')
-                    ));
-            ++$z;
-        }
-
-        my $total-cand-scalar-pos-params := nqp::elems($cand-scalar-pos-params);
-        if $total-capture-scalar-pos-args == $total-cand-scalar-pos-params {
-            my $w;
-            my int $perfect-match := 1;
-            while $w < $total-capture-scalar-pos-args {
-                $perfect-match := $perfect-match
-                    && nqp::atpos_i($capture-scalar-pos-args, $w) == nqp::atpos_i($cand-scalar-pos-params, $w);
-                ++$w;
-            }
-            return [ %current ] if $perfect-match;
-        }
-        ++$i;
-    }
-    [ %current ]
 }
 
 # Helper sub to return a Raku Capture for the given VM capture

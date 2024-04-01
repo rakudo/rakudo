@@ -234,16 +234,18 @@ class Perl6::Metamodel::ClassHOW
             self.set_boolification_mode($target, 5) if $i + 1 == $m;
         }
 
-        # If there's a FALLBACK method, register something to forward calls to it.
+        # If there's a FALLBACK method, register something to forward
+        # calls to it.
         my $FALLBACK := self.find_method($target, 'FALLBACK', :no_fallback);
-        if !nqp::isnull($FALLBACK) && nqp::defined($FALLBACK) {
+        if nqp::isconcrete($FALLBACK) {
             self.add_fallback($target,
-                sub ($target, str $name) {
-                    $name ne 'sink' && $name ne 'CALL-ME'
-                },
-                sub ($target, str $name) {
-                    -> $inv, *@pos, *%named { $FALLBACK($inv, $name, |@pos, |%named) }
-                });
+              sub ($target, str $name) {
+                  $name ne 'sink' && $name ne 'CALL-ME'
+              },
+              sub ($target, str $name) {
+                  -> $self, *@_, *%_ { $FALLBACK($self, $name, |@_, |%_) }
+              }
+            );
         }
 
         # This isn't an augment.
@@ -260,15 +262,14 @@ class Perl6::Metamodel::ClassHOW
 
                 # Class does not appear to have a BUILDALL yet
                 unless self.declares_method($target, 'BUILDALL') {
-                    my $builder := nqp::findmethod(
-                      $compiler_services,'generate_buildplan_executor');
-                    my $method :=
-                      $builder($compiler_services,$target,self.BUILDALLPLAN($target));
+                    my $method := nqp::findmethod(
+                      $compiler_services, 'generate_buildplan_executor'
+                    )($compiler_services, $target, self.BUILDALLPLAN($target));
 
                     # We have a generated BUILDALL submethod, so install!
-                    unless $method =:= NQPMu {
+                    if nqp::isconcrete($method) {
                         $method.set_name('BUILDALL');
-                        self.add_method($target,'BUILDALL',$method);
+                        self.add_method($target, 'BUILDALL', $method);
                     }
                 }
             }
@@ -298,21 +299,25 @@ class Perl6::Metamodel::ClassHOW
         $target
     }
 
-    method roles($target, :$local, :$transitive = 1, :$mro = 0) {
-        my @result := self.roles-ordered(@!roles, :$transitive, :$mro);
+    method roles($target, :$local, :$transitive = 1, :$mro) {
+        my @roles := self.roles-ordered(@!roles, :$transitive, :$mro);
         unless $local {
-            my $first := 1;
-            for self.mro($target) {
-                if $first {
-                    $first := 0;
-                    next;
-                }
-                for $_.HOW.roles($_, :$transitive, :$mro, :local(1)) {
-                    @result.push($_);
-                }
+            my @mro := self.mro($target);
+
+            my int $m := nqp::elems(@mro);
+            my int $i := 1;  # intentionally skip first
+            while $i < $m {
+                my $type := nqp::atpos(@mro, $i);
+                nqp::splice(
+                  @roles,
+                  $type.HOW.roles($type, :$transitive, :$mro, :local),
+                  nqp::elems(@roles),
+                  0
+                );
+                ++$i;
             }
         }
-        @result
+        @roles
     }
 
     method role_typecheck_list($target) {
@@ -326,50 +331,60 @@ class Perl6::Metamodel::ClassHOW
 #?if !moar
         nqp::setmethcacheauth($type, 0);
 #?endif
-        $junction_type := $type;
+        $junction_type         := $type;
         $junction_autothreader := $autothreader;
     }
 
     # Handles the various dispatch fallback cases we have.
-    method find_method_fallback($target, $name, :$local = 0) {
-        # If the object is a junction, need to do a junction dispatch.
-        if nqp::istype($target.WHAT, $junction_type) && $junction_autothreader {
-            my $p6name := nqp::hllizefor($name, 'Raku');
-            return -> *@pos_args, *%named_args {
-                # Fallback on an undefined junction means no method found.
-                nqp::isconcrete(@pos_args[0])
-                    ?? $junction_autothreader($p6name, |@pos_args, |%named_args)
-                    !! nqp::null()
-            };
-        }
+    method find_method_fallback($target, $name, :$local) {
 
-        # Consider other fallbacks, if we have any.
-        for @!fallbacks {
-            if ($_<cond>)($target, $name) {
-                return ($_<calc>)(targetobj, $name);
+        # If the object is a junction, need to do a junction dispatch.
+        if nqp::isconcrete($junction_autothreader)
+          && nqp::istype($target, $junction_type) {
+
+            $name := nqp::hllizefor($name, 'Raku');
+            -> *@_, *%_ {
+                # Fallback on an undefined junction means no method found.
+                nqp::isconcrete(nqp::atpos(@_, 0))
+                  ?? $junction_autothreader($name, |@_, |%_)
+                  !! nqp::null
             }
         }
 
-        unless $local {
-            my @mro := self.mro($target);
+        else {
+            my @fallbacks := @!fallbacks;
 
-            my int $m := nqp::elems(@mro);
-            my int $i := 1;  # intentionally skip first
+            # Consider other fallbacks, if we have any.
+            my int $m := nqp::elems(@fallbacks);
+            my int $i;
             while $i < $m {
-                my $HOW := nqp::atpos(@mro, $i).HOW;
-                nqp::can($HOW, 'find_method_fallback')
-                  && nqp::not_i(nqp::isnull(
-                       my $fallback := $HOW.find_method_fallback(
-                         $target, $name, :local
-                       )
-                     ))
-                  ?? (return $fallback)
+                my %data := nqp::atpos(@fallbacks, $i);
+                nqp::atkey(%data, 'cond')($target, $name)
+                  ?? (return nqp::atkey(%data, 'calc')($target, $name))
                   !! ++$i;
             }
-        }
 
-        # Otherwise, didn't find anything.
-        nqp::null()
+            unless $local {
+                my @mro := self.mro($target);
+
+                my int $m := nqp::elems(@mro);
+                my int $i := 1;  # intentionally skip first
+                while $i < $m {
+                    my $HOW := nqp::atpos(@mro, $i).HOW;
+                    nqp::can($HOW, 'find_method_fallback')
+                      && nqp::isconcrete(
+                           my $fallback := $HOW.find_method_fallback(
+                             $target, $name, :local
+                           )
+                         )
+                      ?? (return $fallback)
+                      !! ++$i;
+                }
+            }
+
+            # Otherwise, didn't find anything.
+            nqp::null
+        }
     }
 
     # Does the type have any fallbacks?
@@ -395,9 +410,15 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method instantiate_generic($target, $type_environment) {
-        my $type-env := Perl6::Metamodel::Configuration.type_env_from($type_environment);
-        return $target if nqp::isnull($type-env);
-        $type-env.cache($target, { $target.INSTANTIATE-GENERIC($type-env) });
+        my $type-env :=
+          Perl6::Metamodel::Configuration.type_env_from($type_environment);
+
+        nqp::isnull($type-env)
+          ?? $target
+          !! $type-env.cache(
+               $target,
+               { $target.INSTANTIATE-GENERIC($type-env) }
+             )
     }
 
     method method_not_implemented($target, %data) {

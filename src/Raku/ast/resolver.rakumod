@@ -452,7 +452,7 @@ class RakuAST::Resolver {
         my $constant := self.resolve-name($Rname);
         nqp::istype($constant, RakuAST::CompileTimeValue)
              # Name resolves, but is it an instance or a type object?
-          ?? nqp::isconcrete($constant.compile-time-value)
+          ?? nqp::isconcrete_nd($constant.compile-time-value)
             ?? False
             !! True
              # Name doesn't resolve to a constant at all, so can't be a type.

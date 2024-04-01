@@ -75,6 +75,24 @@ class Perl6::Metamodel::ClassHOW
         $target
     }
 
+    my class Fallback {
+        has $!calculator;
+        has $!condition;
+
+        method new($condition, $calculator) {
+            my $obj := nqp::create(self);
+            nqp::bindattr($obj, Fallback, '$!condition',  $condition );
+            nqp::bindattr($obj, Fallback, '$!calculator', $calculator);
+            $obj
+        }
+
+        method fallbacker($target, str $name) {
+            $!condition($target, $name)
+              ?? $!calculator($target, $name)
+              !! nqp::null
+        }
+    }
+
     # Adds a new fallback for method dispatch. Expects the specified
     # condition to have been met (passes it the object and method name),
     # and if it is calls $calculator with the object and method name to
@@ -86,14 +104,9 @@ class Perl6::Metamodel::ClassHOW
 #?endif
 
         # Add it in a threadsafe manner
-        self.protect({
-            my @fallbacks := nqp::clone(@!fallbacks);
-            nqp::push(
-              @fallbacks,
-              nqp::hash('cond', $condition, 'calc', $calculator)
-            );
-            @!fallbacks := @fallbacks;
-        });
+        my @fallbacks := nqp::clone(@!fallbacks);
+        nqp::push(@fallbacks, Fallback.new($condition, $calculator));
+        @!fallbacks := @fallbacks;
     }
 
     # Does the type declare a method by the given name
@@ -358,10 +371,12 @@ class Perl6::Metamodel::ClassHOW
             my int $m := nqp::elems(@fallbacks);
             my int $i;
             while $i < $m {
-                my %data := nqp::atpos(@fallbacks, $i);
-                nqp::atkey(%data, 'cond')($target, $name)
-                  ?? (return nqp::atkey(%data, 'calc')($target, $name))
-                  !! ++$i;
+                nqp::isnull(
+                  my $fallbacker := nqp::atpos(
+                    @fallbacks, $i
+                  ).fallbacker($target, $name)
+                ) ?? ++$i
+                  !! (return $fallbacker)
             }
 
             unless $local {

@@ -424,8 +424,10 @@ role Perl6::Metamodel::BUILDPLAN {
     }
 
     method throw_compound_attribute_NYI($target, $attribute) {
-        # XXX needs fix for RakuAST
-        $*W.find_symbol(["X","Comp","NYI"]).new(
+        my $NYI := $*R
+            ?? $*R.setting-constant('X', 'Comp', 'NYI')
+            !! $*W.find_symbol(["X","Comp","NYI"]);
+        $NYI.new(
           feature    => "Defaults on compound attribute types",
           workaround => "Create/Adapt TWEAK method in class "
             ~ self.name($target)

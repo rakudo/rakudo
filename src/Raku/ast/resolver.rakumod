@@ -368,9 +368,11 @@ class RakuAST::Resolver {
 
     # Helper method for grammar / actions to quickly access any type from
     # the setting.
-    method setting-constant(Str $name) {
+    method setting-constant(*@name) {
         nqp::isconcrete(
-          my $resolved := self.resolve-lexical-constant-in-setting($name)
+          my $resolved := self.resolve-name-constant-in-setting(
+              RakuAST::Name.from-identifier-parts(|@name)
+            )
         ) ?? $resolved.compile-time-value
           !! $resolved
     }

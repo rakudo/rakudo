@@ -216,7 +216,7 @@ my class X::Method::NotFound is Exception {
 
     method message() {
         (try $!message // self!create-message)
-          // "Method " ~ $.invocant.^name ~ "." ~ $.method ~ " not found";
+          // "Method " ~ $!invocant.^name ~ "." ~ $!method ~ " not found";
     }
     method suggestions() {
         self!create-message unless $!message;

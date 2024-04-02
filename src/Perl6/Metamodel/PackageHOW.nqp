@@ -1,7 +1,6 @@
 #- Metamodel::PackageHOW -------------------------------------------------------
 class Perl6::Metamodel::PackageHOW
     does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Composing
     does Perl6::Metamodel::Stashing

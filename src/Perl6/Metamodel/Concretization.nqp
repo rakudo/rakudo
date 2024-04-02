@@ -98,52 +98,106 @@ role Perl6::Metamodel::Concretization {
         })
     }
 
-    # Returns a list where the first element is the number of roles found and the rest are actual type objects.
-    method concretization_lookup($target, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
+    my $no_roles := nqp::list(0);
+
+    # Returns a list where the first element is the number of roles found
+    # and the rest are actual type objects.
+    method concretization_lookup(
+      $target, $ptype, :$local, :$transitive = 1, :$relaxed
+    ) {
         my %working_conc_table := self.'!maybe_rebuild_table'();
-        return [0] unless !$local || $transitive || nqp::elems(%working_conc_table);
-        $ptype := nqp::decont($ptype);
-        my $id := ~nqp::objectid($ptype);
-        my @result;
-        if nqp::existskey(%working_conc_table, $id) {
-            return [1, %working_conc_table{$id}];
-        }
+        return $no_roles
+          unless nqp::not_i($local)
+            || $transitive
+            || nqp::elems(%working_conc_table);
+
+        $ptype     := nqp::decont($ptype);
+        my str $id := ~nqp::objectid($ptype);
+        return nqp::list(1, nqp::atkey(%working_conc_table, $id))
+          if nqp::existskey(%working_conc_table, $id);
+
         if $relaxed {
-            # Try search by role group for curryings. The first match is ok. Used by FQN method calls.
-            @result[0] := 0;
-            for @!concretizations {
-                next unless $_[0].HOW.archetypes.parametric;
-                my $conc := nqp::can($_[0].HOW, 'curried_role') ?? $_[0].HOW.curried_role($_[0]) !! $_[0];
-                if $conc =:= $ptype {
-                    ++@result[0];
-                    nqp::push(@result, $_[1]);
+            my @concretizations := @!concretizations;
+
+            # Try search by role group for curryings. The first match is ok.
+            # Used by FQN method calls.
+            my @result;
+            my int $m := nqp::elems(@concretizations);
+            my int $i;
+            while $i < $m {
+                my $type := nqp::atpos(nqp::atpos(@concretizations, $i), 0);
+                if $type.HOW.archetypes.parametric {
+                    $type := $type.HOW.curried_role($type)
+                      if nqp::can($type.HOW, 'curried_role');
+                    nqp::push(
+                      @result,
+                      nqp::atpos(nqp::atpos(@concretizations, $i), 1)
+                    ) if nqp::eqaddr($type, $ptype);
                 }
+                ++$i;
             }
-            return @result if @result[0];
+
+            if nqp::elems(@result) {
+                nqp::unshift(@result, nqp::elems(@result));
+                return @result;
+            }
         }
-        return [0] if !$relaxed && self.is_composed($target) && nqp::not_i(nqp::istype(nqp::decont($target), $ptype));
+
+        return $no_roles
+          if nqp::not_i($relaxed)
+          && self.is_composed($target)
+          && nqp::not_i(nqp::istype($target, $ptype));
+
         if $transitive {
-            for @!concretizations {
-                if nqp::istype($_[1], $ptype) {
-                    @result := $_[1].HOW.concretization_lookup($_[1], $ptype, :$local, :transitive, :$relaxed);
-                    return @result if @result[0];
+            my @concretizations := @!concretizations;
+
+            my int $m := nqp::elems(@concretizations);
+            my int $i;
+            while $i < $m {
+                my $concretization :=
+                  nqp::atpos(nqp::atpos(@concretizations, $i), 1);
+                if nqp::istype($concretization, $ptype) {
+                    my @result := $concretization.HOW.concretization_lookup(
+                      $concretization, $ptype, :$local, :transitive, :$relaxed
+                    );
+                    return @result if nqp::atpos(@result, 0);
                 }
+                ++$i;
             }
         }
+
         unless $local {
-            for self.parents($target, :local) {
-                @result := $_.HOW.concretization_lookup($_, $ptype, :local(0), :$transitive, :$relaxed);
-                return @result if @result[0];
+            my @parents := self.parents($target, :local);
+
+            my int $m := nqp::elems(@parents);
+            my int $i;
+            while $i < $m {
+                my $parent := nqp::atpos(@parents, $i);
+                my @result := $parent.HOW.concretization_lookup(
+                  $parent, $ptype, :$transitive, :$relaxed
+                );
+                nqp::atpos(@result, 0)
+                  ?? (return @result)
+                  !! ++$i;
             }
         }
-        [0]
+
+        $no_roles
     }
 
-    method concretization($target, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
-        my @result := self.concretization_lookup($target, $ptype, :$local, :$transitive, :$relaxed);
-        nqp::die("No concretization found for " ~ $ptype.HOW.name($ptype)) unless @result[0];
-        nqp::die("Ambiguous concretization lookup for " ~ $ptype.HOW.name($ptype)) if @result[0] > 1;
-        @result[1]
+    method concretization(
+      $target, $ptype, :$local, :$transitive = 1, :$relaxed
+    ) {
+        my @result := self.concretization_lookup(
+          $target, $ptype, :$local, :$transitive, :$relaxed
+        );
+
+        (my $nr_roles := nqp::atpos(@result, 0)) == 1
+          ?? nqp::atpos(@result, 1)
+          !! nqp::die(($nr_roles
+               ?? "Ambiguous concretization lookup for "
+               !! "No concretization found for "
+             ) ~ $ptype.HOW.name($ptype))
     }
 }
 

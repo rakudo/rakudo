@@ -463,6 +463,12 @@ nqp::dispatch("raku-capture-lex-callers", $code);
 Returns a capture of the environment of the caller matching the outer of
 the given $code object.  Workhorse of `nqp::p6capturelexwhere`.
 
+### raku-class-archetypes
+```
+nqp::dispatch("raku-class-archetypes", $HOW, $object);
+```
+Returns a list of archetypes of the given $HOW and $object.
+
 ### raku-coercion
 ```
 nqp::dispatch("raku-coercion", $coercion-type, $value);

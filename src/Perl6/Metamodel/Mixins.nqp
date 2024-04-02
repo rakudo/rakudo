@@ -49,19 +49,9 @@ role Perl6::Metamodel::Mixins {
         );
 
         # Ensure there's a mixin attribute, if we need it.
-        if $need-mixin-attribute {
-            my $found := $mixin_type.HOW.mixin_attribute($mixin_type);
-            unless $found {
-                my $role     := nqp::atpos(@roles, 0);
-                my str $name := $role.HOW.name($role);
-
-                Perl6::Metamodel::Configuration.throw_or_die(
-                  'X::Role::Initialization',
-                  "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '$name'",
-                    :$role
-                );
-            }
-        }
+        self.no_single_attribute(nqp::atpos(@roles, 0))
+          if $need-mixin-attribute
+          && !$mixin_type.HOW.mixin_attribute($mixin_type);
 
         # If the original object was concrete, change its type by calling a
         # low level op. Otherwise, we just return the new type object
@@ -162,6 +152,16 @@ role Perl6::Metamodel::Mixins {
               ?? ++$i
               !! (return $class);
         }
+    }
+
+    method no_single_attribute($role) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+          'X::Role::Initialization',
+          "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '"
+            ~ $role.HOW.name($role)
+            ~ "'",
+          :$role
+        );
     }
 }
 

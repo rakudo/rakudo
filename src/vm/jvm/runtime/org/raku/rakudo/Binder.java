@@ -54,6 +54,8 @@ public final class Binder {
     private static final int SIG_ELEM_SLURPY              = (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG);
     private static final int SIG_ELEM_CODE_SIGIL          = 33554432;
     private static final int SIG_ELEM_IS_COERCIVE         = 67108864;
+    private static final int SIG_ELEM_IS_ITEM             = 268435456;
+    private static final int SIG_ELEM_IS_EXACT_TYPE       = 536870912;
 
     /* Hints for Parameter attributes. */
     private static final int HINT_variable_name = 0;

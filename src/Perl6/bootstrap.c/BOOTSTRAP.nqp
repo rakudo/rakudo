@@ -2889,6 +2889,30 @@ BEGIN {
         $self
     }));
 
+    Parameter.HOW.add_method(Parameter, 'set_item',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        my str $name := nqp::getattr_s($self, Parameter, '$!variable_name');
+        if nqp::eqat($name, '$', 0) {
+             Perl6::Metamodel::Configuration.throw_or_die(
+               'X::Trait::Invalid',
+               "Cannot use 'is item' on \$-sigilled parameter '$name'",
+               :type<is>,
+               :subtype<item>,
+               :declaring('$-sigilled parameter'),
+               :$name
+             );
+        }
+
+        nqp::bindattr_i($self, Parameter, '$!flags',
+          nqp::getattr_i($self, Parameter, '$!flags')
+            +| nqp::const::SIG_ELEM_IS_ITEM
+        );
+
+      $self
+    }));
+
     Parameter.HOW.add_method(Parameter, 'WHY',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);

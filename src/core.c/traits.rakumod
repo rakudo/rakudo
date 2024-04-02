@@ -248,6 +248,9 @@ multi sub trait_mod:<is>(Parameter:D $param, :raw($)!) {
 multi sub trait_mod:<is>(Parameter:D $param, :onearg($)!) {
     $param.set_onearg();
 }
+multi sub trait_mod:<is>(Parameter:D $param, :item($)!) {
+    $param.set_item();
+}
 multi sub trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
     Rakudo::Internals.SET_LEADING_DOCS($param, $leading_docs);
 }

@@ -63,6 +63,7 @@ my class Parameter { # declared in BOOTSTRAP
         Bool:D :$is-raw         = False,
         Bool:D :$is-rw          = False,
         Bool:D :$multi-invocant = True,
+        Bool:D :$is-item        = False,
                *%args  # type / default / where / sub_signature captured through %_
         --> Nil
       ) {
@@ -194,6 +195,7 @@ my class Parameter { # declared in BOOTSTRAP
         }
 
         $flags +|= nqp::const::SIG_ELEM_MULTI_INVOCANT if $multi-invocant;
+        $flags +|= nqp::const::SIG_ELEM_IS_ITEM        if $is-item;
         $flags +|= nqp::const::SIG_ELEM_IS_COPY        if $is-copy;
         $flags +|= nqp::const::SIG_ELEM_IS_RAW         if $is-raw;
         $flags +|= nqp::const::SIG_ELEM_IS_RW          if $is-rw;
@@ -348,6 +350,9 @@ my class Parameter { # declared in BOOTSTRAP
     method multi-invocant(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_MULTI_INVOCANT))
     }
+    method item(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_ITEM))
+    }
 
     method default(Parameter:D: --> Code:_) {
         nqp::isnull($!default_value)
@@ -426,7 +431,12 @@ my class Parameter { # declared in BOOTSTRAP
                 # here is part of MMD, or both are part of MMD
                   && nqp::isle_i(
                     nqp::bitand_i( $flags,nqp::const::SIG_ELEM_MULTI_INVOCANT),
-                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_MULTI_INVOCANT));
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_MULTI_INVOCANT))
+
+                # here is indicated as an item, or both are indicated as an item
+                  && nqp::isle_i(
+                    nqp::bitand_i( $flags,nqp::const::SIG_ELEM_IS_ITEM),
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_IS_ITEM));
             }
         }
 
@@ -556,6 +566,9 @@ my class Parameter { # declared in BOOTSTRAP
             $rest ~= ' is rw';
         } elsif $!flags +& nqp::const::SIG_ELEM_IS_COPY {
             $rest ~= ' is copy';
+        }
+        if $!flags +& nqp::const::SIG_ELEM_IS_ITEM {
+            $rest ~= ' is item';
         }
         if $!flags +& nqp::const::SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
             # Do not emit cases of anonymous '\' which we cannot reparse

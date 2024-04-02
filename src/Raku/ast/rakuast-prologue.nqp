@@ -47,5 +47,7 @@
     sub compose($type) {
         $type.HOW.compose_repr($type);
         $type.HOW.publish_type_cache($type);
+#?if !moar
         $type.HOW.publish_method_cache($type);
+#?endif
     }

@@ -47,9 +47,14 @@ role InsHOW {
     method ins-new-type(Mu \obj, TypeEnv:D $typeenv --> Mu) is raw {
         my Mu \new-how = clone-HOW($!ins-orig-how);
         my Mu \new-type = Metamodel::Primitives.create_type(new-how);
-        new-type.^set_name(obj.^name ~ "_" ~ ++⚛$next-id); # Not necessary, but will help in identifying instantiation
-        new-type.^publish_method_cache; # This will prevent re-use of methods coming from the original class
-        # Concretizations cache has to be wiped out to avoid them be re-used from the original type.
+        # Not necessary, but will help in identifying instantiation
+        new-type.^set_name(obj.^name ~ "_" ~ ++⚛$next-id);
+
+        # This will prevent re-use of methods coming from the original class
+        new-type.^publish_method_cache if $*VM.name ne 'moar';
+
+        # Concretizations cache has to be wiped out to avoid them be re-used
+        # from the original type.
         new-type.HOW.wipe_conc_cache;
         # This is a trick that makes the instantiated class match to the original
         new-type.^add_parent($!ins-orig);

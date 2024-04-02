@@ -650,7 +650,7 @@ class RakuAST::VarDeclaration::Simple
         self.set-traits(self.IMPL-WRAP-LIST(@late-traits));
 
         if $scope eq 'has' || $scope eq 'HAS' {
-            if $!shape || self.IMPL-HAS-CONTAINER-BASE-TYPE || $subset {
+            if ($!sigil eq '@' && $!shape) || self.IMPL-HAS-CONTAINER-BASE-TYPE || $subset {
                 my $args := $!shape
                     ?? RakuAST::ArgList.new(
                         RakuAST::ColonPair::Value.new(:key<shape>, :value($!shape))

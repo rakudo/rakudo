@@ -12,7 +12,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
     # A convenience shortcut
     my constant PseudoStash6c = CORE::v6c::PseudoStash;
 
-    multi method new(Mu :$ctx is raw, :$mode = STATIC_CHAIN) {
+    method new(Mu :$ctx is raw, :$mode = STATIC_CHAIN) {
         my $stash := nqp::create(self);
         my Mu $dctx := nqp::decont($ctx);
         $dctx := nqp::ctxcaller(nqp::ctx()) unless nqp::defined($dctx);
@@ -29,15 +29,12 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         nqp::p6bindattrinvres($stash, Map, '$!storage', nqp::hash())
     }
 
-    multi method new(Mu $ctx is raw, Mu :$package!, :$mode = STATIC_CHAIN) {
-        my $stash := nqp::create(self);
+    method update-with-new-values(Mu $ctx is raw, Mu :$package!, :$mode = STATIC_CHAIN) {
         my Mu $dctx := nqp::decont($ctx);
         $dctx := nqp::ctxcaller(nqp::ctx()) unless nqp::defined($dctx);
-        nqp::bindattr($stash, PseudoStash6c, '$!ctx', nqp::decont($dctx));
-        nqp::bindattr_i($stash, PseudoStash6c, '$!mode', nqp::decont($mode));
-        nqp::bindattr($stash, PseudoStash, '$!package', nqp::decont($package));
-        # See the other method candidate
-        nqp::p6bindattrinvres($stash, Map, '$!storage', nqp::hash())
+        nqp::bindattr(self, PseudoStash6c, '$!ctx', nqp::decont($dctx));
+        nqp::bindattr_i(self, PseudoStash6c, '$!mode', nqp::decont($mode));
+        nqp::bindattr(self, PseudoStash, '$!package', nqp::decont($package));
     }
 
     my Int $id = 0;

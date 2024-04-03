@@ -12,7 +12,7 @@ my class PseudoStash is Map {
     my int constant PRECISE_SCOPE      = 4;
     my int constant REQUIRE_DYNAMIC    = 8;
 
-    multi method new() {
+    method new() {
         my $obj := nqp::create(self);
         my $ctx := nqp::ctxcaller(nqp::ctx());
         nqp::bindattr($obj, PseudoStash, '$!ctx', $ctx);
@@ -20,13 +20,11 @@ my class PseudoStash is Map {
         $obj
     }
 
-    multi method new(Mu $ctx is raw, :$mode = STATIC_CHAIN) {
-        my $obj := nqp::create(self);
+    method update-with-new-stuff-values(Mu $ctx is raw, :$mode = STATIC_CHAIN) {
         my Mu $dctx := nqp::decont($ctx);
-        nqp::bindattr($obj, PseudoStash, '$!ctx', $dctx);
-        nqp::bindattr($obj, Map, '$!storage', nqp::ctxlexpad($ctx));
-        nqp::bindattr_i($obj, PseudoStash, '$!mode', nqp::decont($mode));
-        $obj
+        nqp::bindattr(self, PseudoStash, '$!ctx', $dctx);
+        nqp::bindattr(self, Map, '$!storage', nqp::ctxlexpad($ctx));
+        nqp::bindattr_i(self, PseudoStash, '$!mode', nqp::decont($mode));
     }
 
     sub ok-to-include(Mu \value) {

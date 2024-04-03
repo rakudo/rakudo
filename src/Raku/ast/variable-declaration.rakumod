@@ -815,6 +815,14 @@ class RakuAST::VarDeclaration::Simple
             !! nqp::null
         );
 
+        @lookups.push(
+            RakuAST::Var::Lexical.new(
+                :sigil('$'),
+                :twigil<?>,
+                :desigilname(RakuAST::Name.from-identifier('CLASS')),
+            )
+        );
+
         self.IMPL-WRAP-LIST(@lookups)
     }
 
@@ -866,7 +874,10 @@ class RakuAST::VarDeclaration::Simple
               has_accessor          => self.twigil eq '.',
               container_descriptor  => $descriptor,
               auto_viv_container    => self.IMPL-CONTAINER($of, $descriptor),
-              package               => $!attribute-package.compile-time-value,
+              # For classes package would be just $!attribute-package.compile-time-value
+              # but for roles we have to use the $?CLASS generic to defer instantiation
+              # to consuming class' compose times.
+              package               => self.get-implicit-lookups.AT-POS(3).resolution.compile-time-value,
               container_initializer => $!container-initializer,
             );
             nqp::bindattr_i($meta-object,$meta-object.WHAT,'$!inlined',1)

@@ -2887,6 +2887,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $parameter := $<param-var> || $<named-param> || $<param-term>;
         $parameter := $parameter ?? $parameter.ast !! Nodify('Parameter').new;
 
+        if $*DEFAULT-RW {
+            $parameter.set-default-rw;
+        }
+
         my $capture := Nodify('Type', 'Capture');
         my $raku-type := Nodify('Type');
         my $raku-quotedstring := Nodify('QuotedString');

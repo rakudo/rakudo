@@ -356,6 +356,7 @@ class RakuAST::Parameter
     has Mu                         $!names;
     has Bool                       $.invocant;
     has Bool                       $.optional;
+    has Bool                       $.default-rw;
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
@@ -370,6 +371,7 @@ class RakuAST::Parameter
                           List :$names,
                           Bool :$invocant,
                           Bool :$optional,
+                          Bool :$default-rw,
     RakuAST::Parameter::Slurpy :$slurpy,
                           List :$traits,
            RakuAST::Expression :$default,
@@ -393,6 +395,10 @@ class RakuAST::Parameter
         nqp::bindattr($obj, RakuAST::Parameter, '$!optional',
           nqp::defined($optional)
             ?? ($optional ?? True !! False)
+            !! Bool);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!default-rw',
+          nqp::defined($default-rw)
+            ?? ($default-rw ?? True !! False)
             !! Bool);
         nqp::bindattr($obj, RakuAST::Parameter, '$!slurpy',
           nqp::istype($slurpy, RakuAST::Parameter::Slurpy)
@@ -447,6 +453,11 @@ class RakuAST::Parameter
 
     method clear-optionality() {
         nqp::bindattr(self, RakuAST::Parameter, '$!optional', Bool);
+        Nil
+    }
+
+    method set-default-rw() {
+        nqp::bindattr(self, RakuAST::Parameter, '$!default-rw', True);
         Nil
     }
 
@@ -586,6 +597,18 @@ class RakuAST::Parameter
         self.IMPL-WRAP-LIST(@types)
     }
 
+    method IMPL-DEFAULT-RW() {
+        return True if $!default-rw;
+
+        for self.IMPL-UNWRAP-LIST(self.traits) {
+            if nqp::istype($_, RakuAST::Trait::Is) && $_.name.canonicalize eq 'rw' {
+                return True;
+            }
+        }
+
+        False
+    }
+
     method PRODUCE-META-OBJECT() {
         my $parameter := nqp::create(Parameter);
         if $!target {
@@ -605,7 +628,12 @@ class RakuAST::Parameter
         if $!target {
             my $name := $!target.introspection-name;
             for self.IMPL-UNWRAP-LIST(self.traits) {
-                if nqp::istype($_, RakuAST::Trait::Is) && ($_.name.canonicalize eq 'copy' || $_.name.canonicalize eq 'rw') {
+                if $!default-rw
+                    || nqp::istype($_, RakuAST::Trait::Is) && (
+                        $_.name.canonicalize eq 'copy'
+                        || $_.name.canonicalize eq 'rw'
+                    )
+                {
                     my $cd := ContainerDescriptor.new(:of($type), :$name, :default($type), :dynamic(0));
                     nqp::bindattr($parameter, Parameter, '$!container_descriptor', $cd);
                     last;
@@ -654,6 +682,9 @@ class RakuAST::Parameter
         }
         elsif $sigil eq '&' {
             $flags := $flags +| nqp::const::SIG_ELEM_CODE_SIGIL;
+        }
+        if $!default-rw {
+            $flags := $flags +| nqp::const::SIG_ELEM_IS_RW;
         }
         if nqp::istype($!target, RakuAST::ParameterTarget::Term) {
             $flags := $flags +| nqp::const::SIG_ELEM_IS_RAW;

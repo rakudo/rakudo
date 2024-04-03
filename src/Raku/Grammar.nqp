@@ -1246,9 +1246,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         { $*BORG := {} }                            # initialize new context
         :my $*BLOCK;                                # localize block to here
         [
-          | <.pointy-block-starter>                 # block with signature
+          | <pointy-block-starter>                 # block with signature
             :my $*GOAL := '{';
             <.enter-block-scope('PointyBlock')>
+            {}
+            :my $*DEFAULT-RW := $<pointy-block-starter> eq '<->';
             <signature>
             <blockoid>
             <.leave-block-scope>

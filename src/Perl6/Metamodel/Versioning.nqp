@@ -1,3 +1,4 @@
+#- Metamodel::Versioning -------------------------------------------------------
 role Perl6::Metamodel::Versioning {
     has     $!ver;
     has str $!auth;
@@ -22,13 +23,13 @@ role Perl6::Metamodel::Versioning {
           $target,
           nqp::ifnull(
             nqp::atkey(%nameds, 'name'),
-            "<anon|" ~ $anon_id_lock.protect({ ++$anon_id })
+            "<anon|" ~ $anon_id_lock.protect({ ++$anon_id }) ~ ">"
           )
         );
 
-        $!ver  := nqp::ifnull(nqp::atkey(%nameds,'ver' ),'');
-        $!auth := nqp::ifnull(nqp::atkey(%nameds,'auth'),'');
-        $!api  := nqp::ifnull(nqp::atkey(%nameds,'api' ),'');
+        $!ver  := nqp::ifnull(nqp::atkey(%nameds, 'ver' ), '');
+        $!auth := nqp::ifnull(nqp::atkey(%nameds, 'auth'), '');
+        $!api  := nqp::ifnull(nqp::atkey(%nameds, 'api' ), '');
     }
 }
 

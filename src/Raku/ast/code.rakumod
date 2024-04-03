@@ -1547,7 +1547,7 @@ class RakuAST::Routine
 
         if $!package {
             nqp::bindattr($routine,Routine,'$!package',$!package.compile-time-value);
-            ($!package.meta-object.WHO){self.lexical-name} := $routine
+            ($!package.stubbed-meta-object.WHO){self.lexical-name} := $routine
                 if self.lexical-name && self.scope eq 'our';
         }
 

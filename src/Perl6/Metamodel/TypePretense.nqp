@@ -1,24 +1,15 @@
+#- Metamodel::TypePretense -----------------------------------------------------
+# Handle those classes that pretend to be some type without actually
+# inheriting from them
 role Perl6::Metamodel::TypePretense {
     my @pretending;
 
-    method pretend_to_be(@types) {
-        @pretending := @types;
-    }
-
-    method pretending_to_be() {
-        @pretending
-    }
+    method pretending_to_be()    { @pretending           }
+    method pretend_to_be(@types) { @pretending := @types }
 
     method type_check($target, $checkee) {
-        if $target =:= $checkee {
-            return 1;
-        }
-        for self.pretending_to_be() {
-            if $checkee =:= $_ {
-                return 1;
-            }
-        }
-        0;
+        nqp::eqaddr($target, $checkee)
+          || self.checkee_eqaddr_list($checkee, self.pretending_to_be)
     }
 }
 

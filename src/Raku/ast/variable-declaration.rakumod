@@ -598,6 +598,15 @@ class RakuAST::VarDeclaration::Simple
         }
     }
 
+    method IMPL-OF-TYPE() {
+        $!type
+          ?? ($!type.is-resolved
+               ?? $!type
+               !! self.get-implicit-lookups.AT-POS(0)
+             ).resolution.compile-time-value
+          !! Mu;
+    }
+
     method PERFORM-BEGIN(
                RakuAST::Resolver $resolver,
       RakuAST::IMPL::QASTContext $context
@@ -656,11 +665,7 @@ class RakuAST::VarDeclaration::Simple
                         RakuAST::ColonPair::Value.new(:key<shape>, :value($!shape))
                     )
                     !! RakuAST::ArgList.new;
-                my $of := $subset
-                        ?? $subset.meta-object
-                        !! $!type
-                            ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
-                            !! Mu;
+                my $of := $subset ?? $subset.meta-object !! self.IMPL-OF-TYPE;
 
                 my $container-initializer-ast := RakuAST::ApplyPostfix.new(
                     operand => RakuAST::Declaration::ResolvedConstant.new(
@@ -835,12 +840,7 @@ class RakuAST::VarDeclaration::Simple
         my str $scope := self.scope;
 
         # Calculate the type.
-        my $of := $!type
-          ?? ($!type.is-resolved
-               ?? $!type
-               !! self.get-implicit-lookups.AT-POS(0)
-             ).resolution.compile-time-value
-          !! Mu;
+        my $of := self.IMPL-OF-TYPE;
         my $default := self.sigil eq '&'
             ?? $!type
                 ?? self.IMPL-CALLABLE.HOW.parameterize(self.IMPL-CALLABLE, $of)
@@ -907,11 +907,7 @@ class RakuAST::VarDeclaration::Simple
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my str $scope := self.scope;
-        my $of := $!where
-                    ?? $!type.meta-object
-                    !! $!type
-                        ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
-                        !! Mu;
+        my $of := $!where ?? $!type.meta-object !! self.IMPL-OF-TYPE;
 
         if $scope eq 'my' && !$!desigilname.is-multi-part {
             # Lexically scoped
@@ -1003,9 +999,7 @@ class RakuAST::VarDeclaration::Simple
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
             my str $sigil := self.sigil;
             my $var-access := QAST::Var.new( :$name, :scope<lexical> );
-            my $of := $!type
-              ?? $lookups.AT-POS(0).resolution.compile-time-value
-              !! Mu;
+            my $of := self.IMPL-OF-TYPE;
 
             if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
                 # Natively typed value. Need to initialize it to a default
@@ -1096,9 +1090,7 @@ class RakuAST::VarDeclaration::Simple
             unless $rvalue {
                 # Potentially l-value native lookups need a lexicalref.
                 if self.sigil eq '$' && self.scope ne 'our' {
-                    my $of := $!type
-                      ?? self.get-implicit-lookups.AT-POS(0).resolution.compile-time-value
-                      !! Mu;
+                    my $of := self.IMPL-OF-TYPE;
                     if nqp::objprimspec($of) {
                         $scope := 'lexicalref';
                     }

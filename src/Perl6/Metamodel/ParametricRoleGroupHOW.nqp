@@ -148,21 +148,9 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method type_check($target, $checkee) {
         $checkee := nqp::decont($checkee);
 
-        # Helper sub to check checkee against a list of types
-        sub check_checkee_against(@types) {
-            my int $m := nqp::elems(@types);
-            my int $i;
-            while $i < $m {
-                nqp::eqaddr($checkee, nqp::decont(nqp::atpos(@types, $i)))
-                  ?? (return 1)
-                  !! ++$i;
-            }
-            0
-        }
-
         nqp::eqaddr($checkee, $target.WHAT)
-          || check_checkee_against(self.pretending_to_be)
-          || check_checkee_against(@!role_typecheck_list)
+          || self.checkee_eqaddr_list($checkee, self.pretending_to_be)
+          || self.checkee_eqaddr_list($checkee, @!role_typecheck_list)
           || (nqp::isnull(my $ns := nqp::atpos(@!nonsignatured, 0))
                ?? 0
                !! $ns.HOW.type_check_parents($ns, $checkee)

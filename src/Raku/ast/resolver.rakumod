@@ -474,7 +474,7 @@ class RakuAST::Resolver {
 
     # Check if a name is known (declared) at all.
     method is-name-known(RakuAST::Name $Rname) {
-        $Rname.is-pseudo-package || nqp::isconcrete(self.resolve-name($Rname))
+        $Rname.is-pseudo-package || nqp::isconcrete(self.resolve-name($Rname.base-name))
           ?? True
           !! False
     }

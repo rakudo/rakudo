@@ -18,8 +18,21 @@ role Perl6::Metamodel::AttributeContainer {
         ) if nqp::existskey(%!attribute_lookup, $name);
 
         $attribute.default_to_rw if $!attr_rw_by_default;
-        nqp::push(@!attributes, $attribute);
-        nqp::bindkey(%!attribute_lookup, $name, $attribute);
+
+        # Make sure updates are threadsafe
+        self.protect({
+            my @attributes := nqp::clone(@!attributes);
+            nqp::push(@attributes, $attribute);
+
+            my %attribute_lookup := nqp::clone(%!attribute_lookup);
+            nqp::bindkey(%attribute_lookup, $name, $attribute);
+
+            # Update as atomically as possible
+            @!attributes       := @attributes;
+            %!attribute_lookup := %attribute_lookup;
+        });
+
+        $attribute
     }
 
     # Composes all attributes.

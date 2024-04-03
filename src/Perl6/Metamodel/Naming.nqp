@@ -50,6 +50,47 @@ role Perl6::Metamodel::Naming {
 
     method protect(&code) { $!locking.protect(&code) }
 #-------------------------------------------------------------------------------
+# Note that this helper logic has nothing to do with naming.  But it was
+# deemed to be a good place to allow all fooHOW classes to have them.
+
+    # Helper method to return 1 if any of the types in the given list of types
+    # matches the checkee, else 0
+    method list_istype_checkee(@types, $checkee) {
+        my int $m   := nqp::elems(@types);
+        my int $i;
+        while $i < $m {
+            nqp::istype(nqp::atpos(@types, $i), $checkee)
+              ?? (return 1)
+              !! ++$i;
+        }
+        0
+    }
+
+    # Helper method to return 1 if the checkee matches the type of any of
+    # the types in the given list of types, else 0
+    method checkee_istype_list($checkee, @types) {
+        my int $m   := nqp::elems(@types);
+        my int $i;
+        while $i < $m {
+            nqp::istype($checkee, nqp::atpos(@types, $i))
+              ?? (return 1)
+              !! ++$i;
+        }
+        0
+    }
+
+    # Helper method to return 1 if the checkee is the same as the type of any
+    # of the types in the given list of types, else 0
+    method checkee_eqaddr_list($checkee, @types) {
+        my int $m   := nqp::elems(@types);
+        my int $i;
+        while $i < $m {
+            nqp::eqaddr($checkee, nqp::decont(nqp::atpos(@types, $i)))
+              ?? (return 1)
+              !! ++$i;
+        }
+        0
+    }
 }
 
 # vim: expandtab sw=4

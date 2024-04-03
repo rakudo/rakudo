@@ -17,6 +17,13 @@ class RakuAST::Meta
         $!cached-meta-object
     }
 
+    # For when the user would be fine with a stubbed meta-object but may also
+    # deal with objects that don't stub and instead just have a fully initialized
+    # meta-object available.
+    method stubbed-meta-object() {
+        self.meta-object
+    }
+
     method has-meta-object() {
         $!meta-object-produced || False
     }

@@ -20,11 +20,13 @@ my class PseudoStash is Map {
         $obj
     }
 
-    method update-with-new-stuff-values(Mu $ctx is raw, :$mode = STATIC_CHAIN) {
+    method new-from-ctx(Mu $ctx is raw, :$mode = STATIC_CHAIN) {
+        my $obj := nqp::create(self);
         my Mu $dctx := nqp::decont($ctx);
-        nqp::bindattr(self, PseudoStash, '$!ctx', $dctx);
-        nqp::bindattr(self, Map, '$!storage', nqp::ctxlexpad($ctx));
-        nqp::bindattr_i(self, PseudoStash, '$!mode', nqp::decont($mode));
+        nqp::bindattr($obj, PseudoStash, '$!ctx', $dctx);
+        nqp::bindattr($obj, Map, '$!storage', nqp::ctxlexpad($ctx));
+        nqp::bindattr_i($obj, PseudoStash, '$!mode', nqp::decont($mode));
+        $obj
     }
 
     sub ok-to-include(Mu \value) {

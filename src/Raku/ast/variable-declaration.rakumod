@@ -186,7 +186,7 @@ class RakuAST::ContainerCreator {
         }
     }
 
-    method IMPL-CONTAINER(Mu $of, Mu $cont-desc) {
+    method IMPL-CONTAINER(Mu $of, Mu $cont-desc, Bool :$attribute) {
         # Form the container.
         my str $sigil := self.sigil;
         my $default := self.type
@@ -210,7 +210,7 @@ class RakuAST::ContainerCreator {
             else {
                 if nqp::objprimspec($of) {
                     nqp::die("Natively typed state variables not yet implemented") if self.scope eq 'state';
-                    return nqp::null;
+                    return nqp::null unless $attribute;
                 }
 
                 $container-base-type := Scalar;
@@ -873,7 +873,7 @@ class RakuAST::VarDeclaration::Simple
               type => $type,
               has_accessor          => self.twigil eq '.',
               container_descriptor  => $descriptor,
-              auto_viv_container    => self.IMPL-CONTAINER($of, $descriptor),
+              auto_viv_container    => self.IMPL-CONTAINER($of, $descriptor, :attribute),
               # For classes package would be just $!attribute-package.compile-time-value
               # but for roles we have to use the $?CLASS generic to defer instantiation
               # to consuming class' compose times.

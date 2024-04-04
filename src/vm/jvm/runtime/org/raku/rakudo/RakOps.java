@@ -491,8 +491,8 @@ public final class RakOps {
     private static SixModelObject getremotelex(CallFrame pad, String name) { /* use for sub_find_pad */
         CallFrame curFrame = pad;
         while (curFrame != null) {
-            Integer found = curFrame.codeRef.staticInfo.oTryGetLexicalIdx(name);
-            if (found != null)
+            int found = curFrame.codeRef.staticInfo.oTryGetLexicalIdx(name);
+            if (found != -1)
                 return curFrame.oLex[found];
             curFrame = curFrame.outer;
         }
@@ -553,8 +553,8 @@ public final class RakOps {
         while (ctx != null) {
             /* Do we have a dispatcher here? */
             StaticCodeInfo sci = ctx.codeRef.staticInfo;
-            Integer dispLexIdx = sci.oTryGetLexicalIdx("$*DISPATCHER");
-            if (dispLexIdx != null) {
+            int dispLexIdx = sci.oTryGetLexicalIdx("$*DISPATCHER");
+            if (dispLexIdx != -1) {
                 SixModelObject maybeDispatcher = ctx.oLex[dispLexIdx];
                 if (maybeDispatcher != null) {
                     dispatcher = maybeDispatcher;
@@ -606,8 +606,8 @@ public final class RakOps {
         while (ctx != null) {
             /* Do we have the dispatcher we're looking for? */
             StaticCodeInfo sci = ctx.codeRef.staticInfo;
-            Integer dispLexIdx = sci.oTryGetLexicalIdx("$*DISPATCHER");
-            if (dispLexIdx != null) {
+            int dispLexIdx = sci.oTryGetLexicalIdx("$*DISPATCHER");
+            if (dispLexIdx != -1) {
                 SixModelObject maybeDispatcher = ctx.oLex[dispLexIdx];
                 if (maybeDispatcher == disp) {
                     /* Found; grab args. */

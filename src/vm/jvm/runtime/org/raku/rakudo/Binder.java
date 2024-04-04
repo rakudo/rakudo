@@ -2,6 +2,8 @@ package org.raku.rakudo;
 
 import java.util.*;
 
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+
 import org.raku.nqp.runtime.*;
 import org.raku.nqp.sixmodel.*;
 import org.raku.nqp.sixmodel.reprs.ContextRefInstance;
@@ -154,9 +156,9 @@ public final class Binder {
             int paramFlags, SixModelObject attrPackage, SixModelObject value, Object[] error) {
         /* Find self. */
         StaticCodeInfo sci = cf.codeRef.staticInfo;
-        Integer selfIdx = sci.oTryGetLexicalIdx("self");
+        int selfIdx = sci.oTryGetLexicalIdx("self");
         SixModelObject self = null;
-        if (selfIdx == null) {
+        if (selfIdx == -1) {
             self = Ops.getlexouter("self", tc);
             if (self == null) {
                 if (error != null)
@@ -177,13 +179,8 @@ public final class Binder {
                since *trying* to get a container would throw already, we first check
                if the target Attribute is native. */
             int hint = -1;
-            for (HashMap<String, Integer> map : ((P6OpaqueREPRData) (attrPackage.st.REPRData)).nameToHintMap) {
-                try {
-                    hint = map.get(varName);
-                }
-                catch (Exception e) {
-                    continue;
-                }
+            for (Object2IntOpenHashMap<String> map : ((P6OpaqueREPRData) (attrPackage.st.REPRData)).nameToHintMap) {
+                hint = map.getOrDefault(varName, -1);
             }
             REPR attrREPR = null;
             if (((P6OpaqueREPRData) (attrPackage.st.REPRData)).flattenedSTables[hint] != null) {
@@ -834,8 +831,8 @@ public final class Binder {
             String varName = tc.native_s;
             CallFrame curOuter = cf.outer;
             while (curOuter != null) {
-                Integer idx = curOuter.codeRef.staticInfo.oTryGetLexicalIdx(varName);
-                if (idx != null)
+                int idx = curOuter.codeRef.staticInfo.oTryGetLexicalIdx(varName);
+                if (idx != -1)
                     return curOuter.oLex[idx];
                 curOuter = curOuter.outer;
             }
@@ -970,9 +967,9 @@ public final class Binder {
          * to work on. We'll delete stuff from it as we bind, and what we have
          * left over can become the slurpy hash or - if we aren't meant to be
          * taking one - tell us we have a problem. */
-        HashMap<String, Integer> namedArgsCopy = csd.nameMap == null
+        Object2IntOpenHashMap<String> namedArgsCopy = csd.nameMap == null
             ? null
-            : new HashMap<String, Integer>(csd.nameMap);
+            : new Object2IntOpenHashMap<String>(csd.nameMap);
 
         /* Now we'll walk through the signature and go about binding things. */
         int numPosArgs = csd.numPositionals;
@@ -1134,20 +1131,21 @@ public final class Binder {
             /* Else, it's a non-slurpy named. */
             else {
                 /* Try and get hold of value. */
-                Integer lookup = null;
+                int lookup = -1;
                 if (namedArgsCopy != null) {
                     long numNames = namedNames.elems(tc);
                     for (long j = 0; j < numNames; j++) {
                         namedNames.at_pos_native(tc, j);
                         String name = tc.native_s;
-                        lookup = namedArgsCopy.remove(name);
-                        if (lookup != null)
+                        if (namedArgsCopy.containsKey(name)) {
+                            lookup = namedArgsCopy.remove(name);
                             break;
+                        }
                     }
                 }
 
                 /* Did we get one? */
-                if (lookup == null) {
+                if (lookup == -1) {
                     /* Nope. We'd better hope this param was optional... */
                     if ((flags & SIG_ELEM_IS_OPTIONAL) != 0) {
                         bindFail = bindOneParam(tc, gcx, cf, param,
@@ -1187,8 +1185,9 @@ public final class Binder {
             if (error != null) {
                 int numExtra = namedArgsCopy.size();
                 if (numExtra == 1) {
-                    for (String name : namedArgsCopy.keySet())
+                    for (String name : namedArgsCopy.keySet()) {
                         error[0] = "Unexpected named argument '" + name + "' passed";
+                    }
                 }
                 else {
                     boolean first = true;
@@ -1211,13 +1210,13 @@ public final class Binder {
     }
 
     /* Takes any nameds we didn't capture yet and makes a VM Hash of them. */
-    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, RakOps.GlobalExt gcx, HashMap<String, Integer> namedArgsCopy, Object[] args) {
+    private static SixModelObject vmHashOfRemainingNameds(ThreadContext tc, RakOps.GlobalExt gcx, Object2IntOpenHashMap<String> namedArgsCopy, Object[] args) {
         SixModelObject slurpy = gcx.Mu;
         if (namedArgsCopy != null) {
             SixModelObject BOOTHash = tc.gc.BOOTHash;
             slurpy = BOOTHash.st.REPR.allocate(tc, BOOTHash.st);
             for (String name : namedArgsCopy.keySet()) {
-                int lookup = namedArgsCopy.get(name);
+                int lookup = namedArgsCopy.getInt(name);
                 switch (lookup & 7) {
                 case CallSiteDescriptor.ARG_OBJ:
                     slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 6]);

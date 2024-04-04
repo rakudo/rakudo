@@ -3929,7 +3929,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto rule trait_mod {*}
     rule trait_mod:sym<is> {
-        <.traitmod-is> [ <typename> || <longname><circumfix>? || <.panic: 'Invalid name'> ]
+        <.traitmod-is> [ <typename(:allow-capture(0))> || <longname><circumfix>? || <.panic: 'Invalid name'> ]
         {
             if $<circumfix> && nqp::eqat(self.orig, '{', $<longname>.to) {
                 $*BORG<block> := $<circumfix>;
@@ -4431,7 +4431,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #-------------------------------------------------------------------------------
 # Types
 
-    token typename {
+    token typename(:$allow-capture = 1) {
         [
           # parse ::?CLASS as special case
           | '::?'<identifier> <colonpair>*
@@ -4441,7 +4441,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <?{
                  # ::T introduces a type, so always is one
                  nqp::eqat(~$<longname>, '::', 0)
-                   || $*R.is-name-known($<longname>.ast.without-colonpairs)
+                   ?? $allow-capture
+                   !! $*R.is-name-known($<longname>.ast.without-colonpairs)
             }>
         ]
         # parametric/coercion type?

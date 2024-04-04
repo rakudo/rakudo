@@ -2383,10 +2383,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         return self.handle-is-repr($/) if ~$longname eq 'repr';
 
         my $circumfix := $<circumfix>;
-        my $trait := Nodify('Trait', 'Is').new(
-          :name($longname.trait-is2ast),
-          :argument($circumfix ?? $circumfix.ast !! Mu)
-        );
+        my $trait := $<typename>
+            ?? Nodify('Trait', 'Is').new-from-type(:type($<typename>.ast))
+            !! Nodify('Trait', 'Is').new(
+              :name($longname.trait-is2ast),
+              :argument($circumfix ?? $circumfix.ast !! Mu)
+            );
 
         $trait.ensure-begin-performed($*R, $*CU.context);
         self.attach: $/, $trait;

@@ -116,7 +116,7 @@ class RakuAST::Trait::Is
 {
     has RakuAST::Name $.name;
     has RakuAST::Circumfix $.argument;
-    has RakuAST::Term::Name $.resolved-name;
+    has RakuAST::Type $.type;
 
     method new(RakuAST::Name :$name!, RakuAST::Circumfix :$argument) {
         my $obj := nqp::create(self);
@@ -126,15 +126,22 @@ class RakuAST::Trait::Is
         $obj
     }
 
+    method new-from-type(RakuAST::Type :$type!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Trait::Is, '$!type', $type);
+        $obj
+    }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         # See if the name resolves as a type and commit to that.
-        my $resolution := $resolver.resolve-name-constant($!name);
-        if nqp::istype($resolution, RakuAST::CompileTimeValue) &&
-                !nqp::isconcrete($resolution.compile-time-value) {
-            my $resolved-name := RakuAST::Type::Simple.new($!name);
-            $resolved-name.set-resolution($resolution);
-            nqp::bindattr(self, RakuAST::Trait::Is, '$!resolved-name',
-                $resolved-name);
+        unless $!type {
+            my $resolution := $resolver.resolve-name-constant($!name);
+            if nqp::istype($resolution, RakuAST::CompileTimeValue) &&
+                    !nqp::isconcrete($resolution.compile-time-value) {
+                my $type := RakuAST::Type::Simple.new($!name);
+                $type.set-resolution($resolution);
+                nqp::bindattr(self, RakuAST::Trait::Is, '$!type', $type);
+            }
         }
         Nil
     }
@@ -143,8 +150,8 @@ class RakuAST::Trait::Is
 
     method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
         my @args := [$target];
-        if $!resolved-name {
-            @args.push($!resolved-name);
+        if $!type {
+            @args.push($!type);
         }
         else {
             my $key := $!name.canonicalize;
@@ -158,8 +165,9 @@ class RakuAST::Trait::Is
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!name);
+        $visitor($!name) if $!name;
         $visitor($!argument) if $!argument;
+        $visitor($!type) if $!type;
     }
 }
 

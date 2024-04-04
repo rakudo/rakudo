@@ -3929,7 +3929,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto rule trait_mod {*}
     rule trait_mod:sym<is> {
-        <.traitmod-is> [ <longname><circumfix>? || <.panic: 'Invalid name'> ]
+        <.traitmod-is> [ <typename> || <longname><circumfix>? || <.panic: 'Invalid name'> ]
         {
             if $<circumfix> && nqp::eqat(self.orig, '{', $<longname>.to) {
                 $*BORG<block> := $<circumfix>;

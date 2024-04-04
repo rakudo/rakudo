@@ -634,7 +634,7 @@ class RakuAST::VarDeclaration::Simple
                 next;
             }
             elsif nqp::istype($_, RakuAST::Trait::Is) {
-                my $type := $_.resolved-name;
+                my $type := $_.type;
 
                 # an actual type
                 if nqp::isconcrete($type) && !$_.argument && $type.is-resolved {

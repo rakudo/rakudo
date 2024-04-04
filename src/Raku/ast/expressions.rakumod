@@ -1924,6 +1924,7 @@ class RakuAST::Postcircumfix
 # A postcircumfix array index operator, possibly multi-dimensional.
 class RakuAST::Postcircumfix::ArrayIndex
   is RakuAST::Postcircumfix
+  is RakuAST::CheckTime
   is RakuAST::Lookup
 {
     has RakuAST::SemiList   $.index;
@@ -1971,6 +1972,30 @@ class RakuAST::Postcircumfix::ArrayIndex
     }
 
     method IMPL-CURRIES() { 3 }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        my $statements := $!index.code-statements;
+
+        if nqp::elems($statements) == 1
+            && nqp::istype($statements[0], RakuAST::Statement::Expression)
+        {
+            my $expression := $statements[0].expression;
+            if nqp::istype($expression, RakuAST::ApplyPrefix)
+                && nqp::istype($expression.prefix, RakuAST::Prefix)
+                && $expression.prefix.operator eq '-'
+                && nqp::istype($expression.operand, RakuAST::IntLiteral)
+            {
+                my $literal := -$expression.operand.value;
+
+                self.add-sorry:
+                  $resolver.build-exception:
+                      'X::Obsolete',
+                      old => "a negative " ~ $literal ~ " subscript to index from the end",
+                      replacement => "a function such as *" ~ $literal;
+            }
+        }
+
+    }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;

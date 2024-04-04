@@ -1497,27 +1497,14 @@ class RakuAST::DottyInfix::CallAssign
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
             RakuAST::Postfixish $rhs-ast) {
-        # Store the target in a temporary, so we only evaluate it once.
-        my $temp := QAST::Node.unique('meta_assign');
-        my $bind-lhs := QAST::Op.new(
-            :op('bind'),
-            QAST::Var.new( :decl('var'), :scope('local'), :name($temp) ),
-            $lhs-qast
-        );
-
-        # Emit the assignment.
-        # TODO case analyze these
-        QAST::Stmt.new(
-            $bind-lhs,
-            QAST::Op.new(
-                :op('assign'),
-                QAST::Var.new( :scope('local'), :name($temp) ),
-                $rhs-ast.IMPL-POSTFIX-QAST(
-                    $context,
-                    QAST::Var.new( :scope('local'), :name($temp) ),
-                )
-            )
-        )
+        my $call := $rhs-ast.IMPL-POSTFIX-QAST($context, $lhs-qast);
+        my $target := $call.shift;
+        $call.unshift(QAST::SVal.new(:value($call.name))) if $call.name || !$call.list;
+        $call.unshift($target);
+        $call.name('dispatch:<.=>');
+        $call.op('callmethod');
+        $call.nosink(1);
+        $call;
     }
 }
 

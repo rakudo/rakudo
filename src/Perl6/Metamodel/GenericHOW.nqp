@@ -29,7 +29,7 @@ class Perl6::Metamodel::GenericHOW
         my $found := $kind eq 'BOOTContext'
 #?endif
 #?if jvm
-        my $found := $kind eq 'ContextRef' {
+        my $found := $kind eq 'ContextRef'
 #?endif
           ?? nqp::getlexrel($type_environment, $name)
           !! $kind eq 'BOOTHash'

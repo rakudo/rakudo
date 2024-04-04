@@ -5641,6 +5641,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Stash any traits.
         %param_info<traits> := $<trait>;
+        # Process to discover whether parameter demands an itemized argument
+        if my $num_traits := nqp::elems(%param_info<traits>) {
+            my int $z;
+            while !%param_info<is_item> && $z < $num_traits {
+                %param_info<is_item> := 1
+                    if nqp::index(%param_info<traits>[$z], 'item') >= 0;
+                ++$z;
+            }
+        }
 
         if $<type_constraint> {
             if %param_info<pos_slurpy> || %param_info<pos_lol> || %param_info<pos_onearg> {
@@ -9672,6 +9681,14 @@ Did you mean a call like '"
                             )));
                         }
                     }
+                }
+                if %info<is_item> {
+                    $var.push(QAST::ParamTypeCheck.new(
+                        QAST::Op.new(
+                            :op('istype_nd'),
+                            QAST::Var.new( :name($name), :scope('local') ),
+                            QAST::WVal.new( :value($Scalar) )
+                        )));
                 }
                 if %info<undefined_only> {
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(

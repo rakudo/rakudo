@@ -750,6 +750,47 @@ class RakuAST::Call::VarMethod
     }
 }
 
+class RakuAST::Call::BlockMethod
+  is RakuAST::Call::Methodish
+{
+    has RakuAST::Block $.block;
+
+    method new(RakuAST::Block :$block!, RakuAST::ArgList :$args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Call::BlockMethod, '$!block', $block);
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj
+    }
+
+    method can-be-used-with-hyper() { True }
+
+    method visit-children(Code $visitor) {
+        $visitor($!block);
+        $visitor(self.args);
+    }
+
+    method default-operator-properties() {
+        OperatorProperties.postfix('.&')
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        my $call := QAST::Op.new(:op<call>, $!block.IMPL-EXPR-QAST($context), $invocant-qast);
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $call := QAST::Op.new:
+            :op('callmethod'), :name('dispatch:<hyper>'),
+            $operand-qast,
+            $!block.IMPL-EXPR-QAST($context),
+            QAST::SVal.new( :value('dispatch:<var>') ),
+            $!block.IMPL-EXPR-QAST($context);
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
+    }
+}
+
 # Base role for all stubs
 class RakuAST::Stub
   is RakuAST::ImplicitLookups

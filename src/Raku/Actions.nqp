@@ -1209,6 +1209,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               :name($<quote>.ast), :$args
             );
         }
+        elsif $<variable> {
+            $ast := Nodify('Call','BlockMethod').new(:block($<variable>.ast), :$args);
+        }
         else {
             nqp::die('NYI kind of methodop');
         }

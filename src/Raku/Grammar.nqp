@@ -2279,7 +2279,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
               self.malformed("class-qualified postfix call")
                 if $<longname> eq '::';
           }
-#        | <?[$@&]> <variable> { self.check-variable($<variable>) }
+        | <?[$@&]> <variable> { self.check-variable($<variable>) }
         | <?['"]>
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>

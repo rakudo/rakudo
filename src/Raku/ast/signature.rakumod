@@ -357,6 +357,7 @@ class RakuAST::Parameter
     has Bool                       $.invocant;
     has Bool                       $.optional;
     has Bool                       $.default-rw;
+    has Bool                       $.default-raw;
     has RakuAST::Parameter::Slurpy $.slurpy;
     has RakuAST::Expression        $.default;
     has RakuAST::Expression        $.where;
@@ -372,6 +373,7 @@ class RakuAST::Parameter
                           Bool :$invocant,
                           Bool :$optional,
                           Bool :$default-rw,
+                          Bool :$default-raw,
     RakuAST::Parameter::Slurpy :$slurpy,
                           List :$traits,
            RakuAST::Expression :$default,
@@ -399,6 +401,10 @@ class RakuAST::Parameter
         nqp::bindattr($obj, RakuAST::Parameter, '$!default-rw',
           nqp::defined($default-rw)
             ?? ($default-rw ?? True !! False)
+            !! Bool);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!default-raw',
+          nqp::defined($default-raw)
+            ?? ($default-raw ?? True !! False)
             !! Bool);
         nqp::bindattr($obj, RakuAST::Parameter, '$!slurpy',
           nqp::istype($slurpy, RakuAST::Parameter::Slurpy)
@@ -580,6 +586,7 @@ class RakuAST::Parameter
         $visitor($!where)         if $!where;
         $visitor($!sub-signature) if $!sub-signature;
         $visitor(self.WHY)        if self.WHY;
+        self.visit-traits($visitor);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -685,6 +692,9 @@ class RakuAST::Parameter
         }
         if $!default-rw {
             $flags := $flags +| nqp::const::SIG_ELEM_IS_RW;
+        }
+        if $!default-raw {
+            $flags := $flags +| nqp::const::SIG_ELEM_IS_RAW;
         }
         if nqp::istype($!target, RakuAST::ParameterTarget::Term) {
             $flags := $flags +| nqp::const::SIG_ELEM_IS_RAW;

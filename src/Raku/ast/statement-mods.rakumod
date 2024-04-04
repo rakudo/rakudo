@@ -244,11 +244,7 @@ class RakuAST::StatementModifier::For::Thunk
         RakuAST::Signature.new(parameters => [
             RakuAST::Parameter.new(
               target => RakuAST::ParameterTarget::Var.new(:name<$_>),
-              traits => [
-                RakuAST::Trait::Is.new(
-                  name => RakuAST::Name.from-identifier('raw')
-                )
-              ]
+              default-raw => True,
           )
         ])
     }

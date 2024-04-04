@@ -461,6 +461,17 @@ my class Binder {
                         return nqp::const::BIND_RESULT_FAIL;
                     }
                 }
+
+                if $flags +& nqp::const::SIG_ELEM_IS_ITEM {
+                    if nqp::iscont($oval) {
+                        return nqp::const::BIND_RESULT_OK;
+                    } else {
+                        nqp::bindpos($error, 0,
+                          "Parameter '$varname' only accepts an itemized argument"
+                        ) if nqp::defined($error);
+                        return nqp::const::BIND_RESULT_FAIL;
+                    }
+                }
             }
         }
 

@@ -1623,6 +1623,12 @@ class RakuAST::Prefix
         my $name := self.resolution.lexical-name;
         QAST::Var.new( :scope('lexical'), :$name )
     }
+
+    method IMPL-CAN-INTERPRET() { self.is-resolved }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.resolution.compile-time-value
+    }
 }
 
 # The prefix hyper meta-operator.
@@ -1725,6 +1731,13 @@ class RakuAST::ApplyPrefix
 
     method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
+    }
+
+    method IMPL-CAN-INTERPRET() { $!operand.IMPL-CAN-INTERPRET && $!prefix.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my $op := $!prefix.IMPL-INTERPRET($ctx);
+        $op($!operand.IMPL-INTERPRET($ctx))
     }
 
     method visit-children(Code $visitor) {

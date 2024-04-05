@@ -404,6 +404,7 @@ class RakuAST::Role
         $signature.set-is-on-role-body(1);
 
         $body := RakuAST::Block.new unless $body;
+        my $orig-body := $body;
         $body := $body.body;
         $body.statement-list.add-statement(
           RakuAST::Statement::Expression.new(
@@ -416,6 +417,7 @@ class RakuAST::Role
           )
         );
         $body := RakuAST::Sub.new(:name(self.name), :$signature, :$body);
+        $body.IMPL-TRANSFER-DECLARATIONS($orig-body);
 
         nqp::bindattr(self, RakuAST::Package, '$!body', $body);
         Nil

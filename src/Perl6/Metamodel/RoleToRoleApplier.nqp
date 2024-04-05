@@ -118,40 +118,54 @@ my class RoleToRoleApplier {
         # Also need methods of target.
         my %target_method_info := $targetHOW.method_table($target);
 
-        # Process method list.
-        for @method_names -> $name {
-            my @add_meths := %method_info{$name};
+        $m := nqp::elems(@method_names);
+        $i := 0;
+        while $i < $m {
+            my str $name := nqp::atpos(@method_names, $i);
+            my     @seen := nqp::atkey(%method_info, $name);
 
-            # Do we already have a method of this name? If so, ignore all of the
-            # methods we have from elsewhere.
+            # Do we already have a method of this name? If so, ignore all of
+            # the methods we have from elsewhere.
             unless nqp::existskey(%target_method_info, $name) {
+                my int $n := nqp::elems(@seen);
+
                 # No methods in the target role. If only one, it's easy...
-                if nqp::elems(@add_meths) == 1 {
-                    $targetHOW.add_method($target, $name, nqp::atpos(@add_meths, 0));
+                if $n == 1 {
+                    $targetHOW.add_method(
+                      $target, $name, nqp::atpos(@seen, 0)
+                    );
                 }
+
+                # Always more than one
                 else {
+
                     # Find if any of the methods are actually requirements, not
                     # implementations.
-                    my @impl_meths;
-                    for @add_meths {
-                        nqp::push(@impl_meths, $_)
-                          unless nqp::can($_, 'yada') && $_.yada;
+                    my @implemented;
+                    my int $j;
+                    while $j < $n {
+                        my $method := nqp::atpos(@seen, $j);
+                        nqp::push(@implemented, $method)
+                          unless nqp::can($method, 'yada') && $method.yada;
+                        ++$j;
                     }
 
-                    # If there's still more than one possible - add to collisions list.
-                    # If we got down to just one, add it. If they were all requirements,
-                    # just choose one.
-                    if nqp::elems(@impl_meths) == 1 {
-                        $targetHOW.add_method($target, $name, @impl_meths[0]);
-                    }
-                    elsif nqp::elems(@impl_meths) == 0 {
-                        $targetHOW.add_method($target, $name, @add_meths[0]);
-                    }
-                    else {
-                        $targetHOW.add_collision($target, $name, %method_providers{$name});
-                    }
+                    # If there's still more than one possible - add to
+                    # collisions list.  If we got down to just one, add it.
+                    # If they were all requirements, just choose one.
+                    ($n := nqp::elems(@implemented)) > 1
+                      ?? $targetHOW.add_collision(
+                           $target, $name, nqp::atkey(%method_providers, $name)
+                         )
+                      !! $targetHOW.add_method(
+                           $target,
+                           $name,
+                           nqp::atpos(($n ?? @implemented !! @seen), 0)
+                         );
                 }
             }
+
+            ++$i;
         }
 
         # Process private method list.

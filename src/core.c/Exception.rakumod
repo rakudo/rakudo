@@ -981,10 +981,10 @@ my class X::Comp::BeginTime does X::Comp {
     has $.exception;
 
     method message() {
-        $!exception ~~ X::MOP
-            ?? $!exception.message
-            !! "An exception {$!exception.^name} occurred while $!use-case"
-                ~ (try { ": " ~ $!exception.message } // "")
+        (try $!exception ~~ X::MOP)
+          ?? $!exception.message
+          !! "An exception {$!exception.^name} occurred while $!use-case"
+               ~ (try { ":\n" ~ $!exception.message } // "")
     }
 
     multi method gist(::?CLASS:D: :$sorry = True) {

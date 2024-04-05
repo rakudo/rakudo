@@ -5641,6 +5641,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Stash any traits.
         %param_info<traits> := $<trait>;
+        if my int $num_traits := nqp::elems(%param_info<traits>) {
+            my int $z;
+            while !%param_info<is_item> && $z < $num_traits {
+                %param_info<is_item> := 1
+                    if nqp::index(%param_info<traits>[$z], 'item') > 0;
+                ++$z;
+            }
+            if %param_info<is_item> && (%param_info<sigil> eq '$' || %param_info<sigil> eq '&') {
+                $/.typed_sorry('X::Comp::Trait::Invalid',
+                    name        => %param_info<variable_name>,
+                    reason      => "only '\@' or '\%' sigiled parameters can be constrained to itemized arguments",
+                    declaring   => 'parameter',
+                    type        => 'is',
+                    subtype     => 'item'
+                );
+            }
+        }
 
         if $<type_constraint> {
             if %param_info<pos_slurpy> || %param_info<pos_lol> || %param_info<pos_onearg> {

@@ -62,6 +62,7 @@ my class Parameter { # declared in BOOTSTRAP
         Bool:D :$is-copy        = False,
         Bool:D :$is-raw         = False,
         Bool:D :$is-rw          = False,
+        Bool:D :$is-item        = False,
         Bool:D :$multi-invocant = True,
                *%args  # type / default / where / sub_signature captured through %_
         --> Nil
@@ -198,6 +199,7 @@ my class Parameter { # declared in BOOTSTRAP
         $flags +|= nqp::const::SIG_ELEM_IS_RAW         if $is-raw;
         $flags +|= nqp::const::SIG_ELEM_IS_RW          if $is-rw;
         $flags +|= nqp::const::SIG_ELEM_IS_COERCIVE    if $!type.^archetypes.coercive;
+        $flags +|= nqp::const::SIG_ELEM_IS_ITEM        if $is-item;
 
         $!variable_name = $name if $name;
         $!flags = $flags;
@@ -342,6 +344,9 @@ my class Parameter { # declared in BOOTSTRAP
     method readonly(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::iseq_i(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_NOT_READONLY),0))
     }
+    method is-item(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_IS_ITEM))
+    }
     method invocant(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,nqp::const::SIG_ELEM_INVOCANT))
     }
@@ -426,7 +431,12 @@ my class Parameter { # declared in BOOTSTRAP
                 # here is part of MMD, or both are part of MMD
                   && nqp::isle_i(
                     nqp::bitand_i( $flags,nqp::const::SIG_ELEM_MULTI_INVOCANT),
-                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_MULTI_INVOCANT));
+                    nqp::bitand_i($oflags,nqp::const::SIG_ELEM_MULTI_INVOCANT))
+
+                # here is only for items, or both are only for items
+                  && nqp::isle_i(
+                      nqp::bitand_i( $flags,nqp::const::SIG_ELEM_IS_ITEM),
+                      nqp::bitand_i($oflags,nqp::const::SIG_ELEM_IS_ITEM));
             }
         }
 
@@ -557,6 +567,9 @@ my class Parameter { # declared in BOOTSTRAP
             $rest ~= ' is rw';
         } elsif $!flags +& nqp::const::SIG_ELEM_IS_COPY {
             $rest ~= ' is copy';
+        }
+        if $!flags +& nqp::const::SIG_ELEM_IS_ITEM {
+            $rest ~= ' is item';
         }
         if $!flags +& nqp::const::SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
             # Do not emit cases of anonymous '\' which we cannot reparse

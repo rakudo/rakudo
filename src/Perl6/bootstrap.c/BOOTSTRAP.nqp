@@ -2877,6 +2877,18 @@ BEGIN {
         $self
     }));
 
+    Parameter.HOW.add_method(Parameter, 'set_item',
+      nqp::getstaticcode(sub ($self) {
+        $self := nqp::decont($self);
+
+        nqp::bindattr_i($self, Parameter, '$!flags',
+          nqp::getattr_i($self, Parameter, '$!flags')
+            +| nqp::const::SIG_ELEM_IS_ITEM
+        );
+
+        $self
+    }));
+
     Parameter.HOW.add_method(Parameter, 'set_onearg',
       nqp::getstaticcode(sub ($self) {
         $self := nqp::decont($self);

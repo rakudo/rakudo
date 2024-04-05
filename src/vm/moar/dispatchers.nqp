@@ -2158,6 +2158,8 @@ sub has-named-args-mismatch($capture, %info) {
 my $Positional             := nqp::null;
 my $PositionalBindFailover := nqp::null;
 
+my $Associative            := nqp::null;
+
 # Helper sub to create the dispatch plan.
 sub raku-multi-plan(
       @candidates,              # list of candidates to check
@@ -2208,6 +2210,7 @@ sub raku-multi-plan(
     my $need_type_guard      := nqp::list_i;
     my $need_conc_guard      := nqp::list_i;
     my @possibles;
+    my int $candidates-with-itemizable-params;
 
     my int $done;
     my int $cur_idx;
@@ -2220,6 +2223,12 @@ sub raku-multi-plan(
 
         # An actual candidate
         if nqp::isconcrete($cur_candidate) {
+
+            # Mark this group for disambigation via is item traits on params
+            if ! $candidates-with-itemizable-params
+            && nqp::atkey($cur_candidate, 'item_disambiguation') {
+                $candidates-with-itemizable-params := 1
+            }
 
             # Candidate; does the arity fit? (If not, it drops out on callsite
             # shape.)
@@ -2235,6 +2244,8 @@ sub raku-multi-plan(
 
                 my int $type_mismatch;
                 my int $rwness_mismatch;
+                my int $positional-params;
+                my int $associative-params;
                 my int $i;
                 while $i < $type_check_count
                   && !($type_mismatch +| $rwness_mismatch) {
@@ -2456,7 +2467,11 @@ sub raku-multi-plan(
                     unless has-named-args-mismatch($capture, %info) {
                         nqp::push(@filtered-possibles, %info);
                         ++$need-bind-check
-                          if nqp::existskey(%info, 'bind_check');
+                          if nqp::existskey(%info, 'bind_check')
+                          # bugs in callstatic and callmethod decont
+                          # the value sent into ParamTypeCheck, meaning
+                          # we can't use the VM binder for named args.
+                          && !$candidates-with-itemizable-params;
                         my $sub := nqp::atkey(%info, 'sub');
                         nqp::push(@defaults, %info)
                           if nqp::can($sub, 'default')
@@ -2477,6 +2492,12 @@ sub raku-multi-plan(
                     }
                     elsif nqp::elems(@exact-arity) == 1 {
                         @filtered-possibles := @exact-arity;
+                    }
+                    elsif $candidates-with-itemizable-params
+                        && 1 == nqp::elems(my @disambiguated
+                            := itemized-disambiguation($capture, @filtered-possibles))
+                    {
+                        @filtered-possibles := @disambiguated;
                     }
                     else {
                         my $node := MultiDispatchAmbiguous.new();
@@ -2533,6 +2554,9 @@ sub raku-multi-plan(
                   !! nqp::setelems(@possibles, 0);
             }
 
+            # reset for the next group
+            $candidates-with-itemizable-params := 0;
+
             # If we're really at the end of the list, we're done
             $done := 1
               unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx));
@@ -2572,6 +2596,143 @@ sub raku-multi-plan(
         $current-tail.set-next(MultiDispatchEnd);
         $current-head
     }
+}
+
+# Helper sub to disambiguate candidates that may have itemization requirements
+sub itemized-disambiguation($capture, $candidates) {
+    my int $num-candidates := nqp::elems($candidates);
+
+    my @capture-item-assoc := nqp::list_i;
+    my @capture-item-pos   := nqp::list_i;
+    my $num-capture-args   := nqp::captureposelems($capture);
+    my int $x;
+    while $x < $num-capture-args {
+        my $arg := nqp::captureposarg($capture, $x);
+        if nqp::iscont($arg) {
+            if nqp::istype($arg,
+                nqp::ifnull($Associative, $Associative := nqp::gethllsym('Raku', 'Associative')))
+            {
+                nqp::push_i(@capture-item-assoc, $x);
+            } elsif nqp::istype($arg,
+                nqp::ifnull($Positional, $Positional := nqp::gethllsym('Raku', 'MD_Pos')))
+            {
+                nqp::push_i(@capture-item-pos, $x);
+            }
+        }
+        ++$x;
+    }
+
+    my %capture-named-item-assoc := nqp::hash;
+    my %capture-named-item-pos   := nqp::hash;
+    if my %nameds := nqp::capturenamedshash($capture) {
+        my $iter := nqp::iterator(%nameds);
+        while $iter {
+            my $pair := nqp::shift($iter);
+            my $arg-name := nqp::iterkey_s($pair);
+            my $arg := nqp::iterval($pair);
+            if nqp::iscont($arg) {
+                if nqp::istype($arg,
+                    nqp::ifnull($Associative, $Associative := nqp::gethllsym('Raku', 'Associative')))
+                {
+                    nqp::bindkey(
+                        %capture-named-item-assoc,
+                        $arg-name, 1
+                    );
+                } elsif nqp::istype($arg,
+                    nqp::ifnull($Positional, $Positional := nqp::gethllsym('Raku', 'MD_Pos')))
+                {
+                    nqp::bindkey(
+                        %capture-named-item-pos,
+                        $arg-name, 1
+                    );
+                }
+            }
+         }
+    }
+
+    my int $z := 0;
+    my $candidate;
+    while $z < $num-candidates {
+        $candidate := nqp::atpos($candidates, $z);
+        my $signature := nqp::atkey($candidate, 'signature');
+        my @params    := nqp::getattr($signature, Signature, '@!params');
+
+        my %cand-named-item-assoc := nqp::hash;
+        my %cand-named-item-pos   := nqp::hash;
+
+        my @cand-item-assoc := nqp::list_i;
+        my @cand-item-pos   := nqp::list_i;
+        my $num-cand-params := nqp::elems(@params);
+        my @cand-types      := nqp::atkey($candidate, 'types');
+        my %named-types     := nqp::atkey($candidate, 'named_types');
+        my int $y;
+        while $y < $num-cand-params {
+            my $param := nqp::atpos(@params, $y);
+            my int $is-named-param := $param.named;
+            my $type  := $is-named-param
+                            ?? nqp::atkey(%named-types, $param.usage-name)
+                            !! nqp::atpos(@cand-types, $y);
+            if $param.is-item {
+                if nqp::istype($type,
+                    nqp::ifnull($Associative, $Associative := nqp::gethllsym('Raku', 'Associative')))
+                {
+                    $is-named-param
+                        ?? nqp::bindkey(%cand-named-item-assoc, $param.usage-name, 1)
+                        !! nqp::push_i(@cand-item-assoc, $y);
+                } elsif nqp::istype($type,
+                    nqp::ifnull($Positional, $Positional := nqp::gethllsym('Raku', 'MD_Pos')))
+                {
+                    $is-named-param
+                        ?? nqp::bindkey(%cand-named-item-pos, $param.usage-name, 1)
+                        !! nqp::push_i(@cand-item-pos, $y);
+                }
+            }
+            ++$y;
+        }
+
+        # when all counts are 0, the perfect-match will be the non-itemized signature
+        if     (my int $num-assoc   := nqp::elems(@capture-item-assoc))       == nqp::elems(@cand-item-assoc)
+            && (my int $num-pos     := nqp::elems(@capture-item-pos))         == nqp::elems(@cand-item-pos)
+            && (my int $named-assoc := nqp::elems(%capture-named-item-assoc)) == nqp::elems(%cand-named-item-assoc)
+            && (my int $named-pos   := nqp::elems(%capture-named-item-pos))   == nqp::elems(%cand-named-item-pos)
+        {
+            my int $perfect-match := 1;
+            my int $z;
+            while $z < $num-assoc {
+                $perfect-match := $perfect-match
+                    && nqp::atpos_i(@capture-item-assoc, $z) == nqp::atpos_i(@cand-item-assoc, $z);
+                ++$z;
+            }
+
+            $z := 0 if $z;
+            while $perfect-match && $z < $num-pos {
+                $perfect-match := $perfect-match
+                    && nqp::atpos_i(@capture-item-pos, $z) == nqp::atpos_i(@cand-item-pos, $z);
+                ++$z;
+            }
+
+            if $named-assoc > 0 {
+                my $iter := nqp::iterator(%capture-named-item-assoc);
+                while $iter {
+                    $perfect-match := $perfect-match
+                        && nqp::atkey(%cand-named-item-assoc, nqp::iterkey_s(nqp::shift($iter)));
+                }
+            }
+
+            if $named-pos > 0 {
+                my $iter := nqp::iterator(%capture-named-item-pos);
+                while $iter {
+                    $perfect-match := $perfect-match
+                        && nqp::atkey(%cand-named-item-pos, nqp::iterkey_s(nqp::shift($iter)));
+                }
+            }
+
+            # for a well constructed multi, there should only be one candidate that is a perfect match.
+            return [ $candidate ] if $perfect-match;
+        }
+        ++$z;
+    }
+    []
 }
 
 # Helper sub to return a Raku Capture for the given VM capture

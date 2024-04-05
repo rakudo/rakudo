@@ -9,4 +9,6 @@ my role Associative[::TValue = Mu, ::TKey = Str(Any)] {
 #    method EXISTS-KEY($) { ... }
 }
 
+nqp::bindhllsym('Raku', 'Associative', Associative);
+
 # vim: expandtab shiftwidth=4

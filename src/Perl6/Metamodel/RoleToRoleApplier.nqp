@@ -1,93 +1,130 @@
+#- RoleToRoleApplier -----------------------------------------------------------
 my class RoleToRoleApplier {
     method apply($target, @roles) {
         my $targetHOW := $target.HOW;
 
         # Aggregate all of the methods sharing names, eliminating
         # any duplicates (a method can't collide with itself).
-        my %meth_info;
-        my @meth_names;
-        my %meth_providers;
-        my %priv_meth_info;
-        my @priv_meth_names;
-        my %priv_meth_providers;
-        my $with_submethods := $targetHOW.language_revision < 3; # less than 6.e
+        my %method_info;
+        my @method_names;
+        my %method_providers;
+        my %private_method_info;
+        my @private_method_names;
+        my %private_method_providers;
+        my int $target_pre6e := $targetHOW.language_revision < 3;
         my $submethod_type := Perl6::Metamodel::Configuration.submethod_type;
+
+        # Helper sub to return whether the given method exists in the given
+        # list of methods
+        sub method_exists(@methods, $target) {
+            my int $m := nqp::elems(@methods);
+            if nqp::can($target, 'id') {
+                my int $id := $target.id;
+
+                my int $i;
+                while $i < $m {
+                    my $method := nqp::atpos(@methods, $i);
+                    nqp::eqaddr($method, $target)
+                      || (nqp::can($method, 'id') && $method.id == $id)
+                      ?? (return 1)
+                      !! ++$i;
+                }
+            }
+            else {
+                my int $i;
+                while $i < $m {
+                    nqp::eqaddr($target, nqp::atpos(@methods, $i))
+                      ?? (return 1)
+                      !! ++$i;
+                }
+            }
+            0
+        }
 
         my int $m := nqp::elems(@roles);
         my int $i;
         while $i < $m {
             my $role    := nqp::atpos(@roles, $i);
             my $roleHOW := $role.HOW;
+            my int $with_submethods :=
+              $target_pre6e && $role.HOW.language_revision < 3;
 
-            sub build_meth_info(
+            sub build_method_info(
               @methods,
-              @meth_names,
-              %meth_info_to_use,
-              @meth_names_to_use,
-              %meth_providers_to_use
+              @method_names,
+              %method_info_to_use,
+              @method_names_to_use,
+              %method_providers_to_use
             ) {
-                my $meth_iterator := nqp::iterator(@methods);
-                for @meth_names -> $name {
-                    my $meth := nqp::shift($meth_iterator);
-                    # Only transfer submethods from pre-6.e roles into pre-6.e classes.
-                    next if nqp::istype($meth, $submethod_type)
-                            && !($with_submethods
-                                && $role.HOW.language_revision < 3);
-                    my @meth_list;
-                    my @meth_providers;
-                    if nqp::existskey(%meth_info_to_use, $name) {
-                        @meth_list := %meth_info_to_use{$name};
-                        @meth_providers := %meth_providers_to_use{$name};
-                    }
-                    else {
-                        %meth_info_to_use{$name} := @meth_list;
-                        nqp::push(@meth_names_to_use, $name);
-                        %meth_providers_to_use{$name} := @meth_providers;
-                    }
-                    my $found := 0;
-                    for @meth_list {
-                        if $meth =:= $_ {
-                            $found := 1;
+                my int $m := nqp::elems(@methods);
+                my int $i;
+                while $i < $m {
+                    my $method   := nqp::atpos(@methods, $i);
+
+                    # Transfer all method if from pre 6.e to pre.6e, otherwise
+                    # only transfer methods that are *not* submethods
+                    if $with_submethods
+                      || nqp::not_i(nqp::istype($method, $submethod_type)) {
+                        my str $name := nqp::atpos(@method_names, $i);
+
+                        # Use existing info if method by that name already known
+                        if nqp::existskey(%method_info_to_use, $name) {
+                            my @method_list :=
+                              nqp::atkey(%method_info_to_use, $name);
+
+                            # Add if method not added yet
+                            unless method_exists(@method_list, $method) {
+                                nqp::push(@method_list, $method);
+                                nqp::push(
+                                  nqp::atkey(%method_providers_to_use, $name),
+                                  $roleHOW.name($role)
+                                );
+                            }
                         }
-                        elsif nqp::can($meth, 'id') && nqp::can($_, 'id') {
-                            $found := $meth.id == $_.id;
+                        # Method not known yet, set up new info
+                        else {
+                            nqp::push(@method_names_to_use, $name);
+                            nqp::bindkey(%method_info_to_use, $name,
+                              nqp::list($method)
+                            );
+                            nqp::bindkey(%method_providers_to_use, $name,
+                              nqp::list($roleHOW.name($role))
+                            );
                         }
                     }
-                    unless $found {
-                        @meth_list.push($meth);
-                        @meth_providers.push($role.HOW.name($role));
-                    }
+
+                    ++$i;
                 }
             }
 
-            build_meth_info(
+            build_method_info(
                 $roleHOW.method_order($role),
                 $roleHOW.method_names($role),
-                %meth_info,
-                @meth_names,
-                %meth_providers
+                %method_info,
+                @method_names,
+                %method_providers
             );
-            build_meth_info(
+            build_method_info(
                 $roleHOW.private_methods($role),
                 $roleHOW.private_method_names($role),
-                %priv_meth_info,
-                @priv_meth_names,
-                %priv_meth_providers
+                %private_method_info,
+                @private_method_names,
+                %private_method_providers
             ) if nqp::can($roleHOW, 'private_method_table');
 
             ++$i;
         }
 
         # Also need methods of target.
-        my %target_meth_info := $targetHOW.method_table($target);
+        my %target_method_info := $targetHOW.method_table($target);
 
         # Process method list.
-        for @meth_names -> $name {
-            my @add_meths := %meth_info{$name};
+        for @method_names -> $name {
+            my @add_meths := %method_info{$name};
 
             # Do we already have a method of this name? If so, ignore all of the
             # methods we have from elsewhere.
-            unless nqp::existskey(%target_meth_info, $name) {
+            unless nqp::existskey(%target_method_info, $name) {
                 # No methods in the target role. If only one, it's easy...
                 if nqp::elems(@add_meths) == 1 {
                     $targetHOW.add_method($target, $name, nqp::atpos(@add_meths, 0));
@@ -111,7 +148,7 @@ my class RoleToRoleApplier {
                         $targetHOW.add_method($target, $name, @add_meths[0]);
                     }
                     else {
-                        $targetHOW.add_collision($target, $name, %meth_providers{$name});
+                        $targetHOW.add_collision($target, $name, %method_providers{$name});
                     }
                 }
             }
@@ -119,10 +156,10 @@ my class RoleToRoleApplier {
 
         # Process private method list.
         if nqp::can($targetHOW, 'private_method_table') {
-            my %target_priv_meth_info := $targetHOW.private_method_table($target);
-            for @priv_meth_names -> $name {
-                my @add_meths := %priv_meth_info{$name};
-                unless nqp::existskey(%target_priv_meth_info, $name) {
+            my %target_private_method_info := $targetHOW.private_method_table($target);
+            for @private_method_names -> $name {
+                my @add_meths := %private_method_info{$name};
+                unless nqp::existskey(%target_private_method_info, $name) {
                     if nqp::elems(@add_meths) == 1 {
                         $targetHOW.add_private_method($target, $name, @add_meths[0]);
                     }
@@ -146,7 +183,7 @@ my class RoleToRoleApplier {
                             $targetHOW.add_private_method($target, $name, @add_meths[0]);
                         }
                         else {
-                            $targetHOW.add_collision($target, $name, %priv_meth_providers{$name}, :private(1));
+                            $targetHOW.add_collision($target, $name, %private_method_providers{$name}, :private(1));
                         }
                     }
                 }
@@ -165,7 +202,7 @@ my class RoleToRoleApplier {
                     my $name := $_.name;
                     my $to_add := $_.code;
                     next if nqp::istype($to_add, $submethod_type)
-                            && !($with_submethods
+                            && !($target_pre6e
                                 && $role.HOW.language_revision < 3);
                     my $yada := 0;
                     try { $yada := $to_add.yada; }

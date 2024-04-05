@@ -2317,6 +2317,9 @@ class Perl6::World is HLL::World {
         if %param_info<default_is_literal> {
             $flags := $flags + nqp::const::SIG_ELEM_DEFAULT_IS_LITERAL;
         }
+        if %param_info<is_item> {
+            $flags := $flags + nqp::const::SIG_ELEM_IS_ITEM;
+        }
         my $primspec := nqp::objprimspec(%param_info<type>);
         if $primspec == nqp::const::BIND_VAL_INT {
             $flags := $flags + nqp::const::SIG_ELEM_NATIVE_INT_VALUE;
@@ -4368,7 +4371,8 @@ class Perl6::World is HLL::World {
     # Applies a list of traits, by calling the apply method on each.
     my %is-traits-to-warn-on-duplicate := nqp::hash(
         'tighter',  1,  'looser', 1,  'equiv', 1,  'rw',   1,  'default', 1,
-        'readonly', 1,  'raw',    1,  'assoc', 1,  'pure', 1,  'export',  1
+        'readonly', 1,  'raw',    1,  'assoc', 1,  'pure', 1,  'export',  1,
+        'item', 1
     );
     method apply_traits($traits, $declarand) {
         my %seen;

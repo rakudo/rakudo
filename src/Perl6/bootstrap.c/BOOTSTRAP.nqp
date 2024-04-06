@@ -3846,15 +3846,25 @@ BEGIN {
         my @possibles;
         my int $done_bind_check;
 
+        # Only do itemized argument disambiguation when the group contains
+        # a candidate with params having the 'is item' trait.
+        my int $candidate-with-itemized-params;
+
         # Core types to be initialized lazily once needed
         my $Positional             := nqp::null;
         my $PositionalBindFailover := nqp::null;
+        my $Associative            := nqp::null;
 
         my int $done;
         until $done {
             my $candidate := nqp::atpos(@candidates, $cur_idx);
 
             if nqp::isconcrete($candidate) {
+
+                if ! $candidate-with-itemized-params
+                && nqp::atkey($candidate, 'item_disambiguation') {
+                    $candidate-with-itemized-params := 1;
+                }
 
                 # Admissible by arity.
                 unless $num_args < nqp::atkey($candidate, 'min_arity')
@@ -4094,7 +4104,9 @@ BEGIN {
                         }
 
                         # Otherwise, may need full bind check.
-                        elsif nqp::existskey(%info, 'bind_check') {
+                        elsif nqp::existskey(%info, 'bind_check')
+                            && !$candidate-with-itemized-params
+                        {
                             my $sub := nqp::atkey(%info, 'sub');
                             my $cs  := nqp::getattr($sub, Code, '@!compstuff');
 
@@ -4279,6 +4291,142 @@ BEGIN {
                 }
                 ++$i;
             }
+        }
+
+        # Disambiguate based on $param.is-item and itemized capture arguments
+        if $candidate-with-itemized-params
+        && (my int $num-candidates := nqp::elems(@possibles)) > 1 {
+            my @fresh-possibles    := nqp::list;
+            my @capture-item-assoc := nqp::list_i;
+            my @capture-item-pos   := nqp::list_i;
+            my $num-capture-args   := nqp::captureposelems($capture);
+            my int $x;
+            while $x < $num-capture-args {
+                my $arg := nqp::captureposarg($capture, $x);
+                if nqp::iscont($arg) {
+                    if nqp::istype($arg,
+                        nqp::ifnull($Associative, $Associative := nqp::gethllsym('Raku', 'Associative')))
+                    {
+                        nqp::push_i(@capture-item-assoc, $x);
+                    } elsif nqp::istype($arg,
+                        nqp::ifnull($Positional, $Positional := nqp::gethllsym('Raku', 'MD_Pos')))
+                    {
+                        nqp::push_i(@capture-item-pos, $x);
+                    }
+                }
+                ++$x;
+            }
+
+            my %capture-named-item-assoc := nqp::hash;
+            my %capture-named-item-pos   := nqp::hash;
+            if my %nameds := nqp::capturenamedshash($capture) {
+                my $it := nqp::iterator(%nameds);
+                while $it {
+                    my $elem := nqp::shift($it);
+                    my $arg-name := nqp::iterkey_s($elem);
+                    my $arg := nqp::iterval($elem);
+                    if nqp::iscont($arg) {
+                        if nqp::istype($arg,
+                            nqp::ifnull($Associative,
+                                $Associative := nqp::gethllsym('Raku', 'Associative')))
+                        {
+                            nqp::bindkey(%capture-named-item-assoc, $arg-name, 1);
+                        } elsif nqp::istype($arg,
+                            nqp::ifnull($Positional,
+                                $Positional := nqp::gethllsym('Raku', 'MD_Pos')))
+                        {
+                            nqp::bindkey(%capture-named-item-pos, $arg-name, 1);
+                        }
+                    }
+                }
+            }
+
+            $x := 0 if $x;
+            my int $possible-candidate;
+            while $x < $num-candidates {
+                my $candidate := nqp::atpos(@possibles, $x);
+                my $signature := nqp::atkey($candidate, 'signature');
+                my @params    := nqp::getattr($signature, Signature, '@!params');
+
+                my %cand-named-item-assoc := nqp::hash;
+                my %cand-named-item-pos   := nqp::hash;
+
+                my @cand-item-assoc := nqp::list_i;
+                my @cand-item-pos   := nqp::list_i;
+                my $num-cand-params := nqp::elems(@params);
+                my @cand-types      := nqp::atkey($candidate, 'types');
+                my %named-types     := nqp::atkey($candidate, 'named_types');
+                my int $named-types := nqp::defined(%named-types);
+                my int $y;
+                while $y < $num-cand-params {
+                    my $param := nqp::atpos(@params, $y);
+                    my int $is-named-param := $param.named;
+                    my $type  := $is-named-param && $named-types
+                                    ?? nqp::atkey(%named-types, $param.usage-name)
+                                    !! nqp::atpos(@cand-types, $y);
+                    if $param.is-item {
+                        if nqp::istype($type,
+                            nqp::ifnull($Associative,
+                                $Associative := nqp::gethllsym('Raku', 'Associative')))
+                        {
+                            $is-named-param
+                                    ?? nqp::bindkey(%cand-named-item-assoc, $param.usage-name, 1)
+                                    !! nqp::push_i(@cand-item-assoc, $y);
+                        } elsif nqp::istype($type,
+                            nqp::ifnull($Positional,
+                                $Positional := nqp::gethllsym('Raku', 'MD_Pos')))
+                        {
+                            $is-named-param
+                                    ?? nqp::bindkey(%cand-named-item-pos, $param.usage-name, 1)
+                                    !! nqp::push_i(@cand-item-pos, $y);
+                        }
+                    }
+                    ++$y;
+                }
+
+                if     (my int $num-assoc   := nqp::elems(@capture-item-assoc))       == nqp::elems(@cand-item-assoc)
+                    && (my int $num-pos     := nqp::elems(@capture-item-pos))         == nqp::elems(@cand-item-pos)
+                    && (my int $named-assoc := nqp::elems(%capture-named-item-assoc)) == nqp::elems(%cand-named-item-assoc)
+                    && (my int $named-pos   := nqp::elems(%capture-named-item-pos))   == nqp::elems(%cand-named-item-pos)
+                {
+                    $possible-candidate := 1;
+                    my int $z;
+                    while $possible-candidate && $z < $num-assoc {
+                        $possible-candidate := $possible-candidate
+                            && nqp::atpos_i(@capture-item-assoc, $z) == nqp::atpos_i(@cand-item-assoc, $z);
+                        ++$z;
+                    }
+
+                    $z := 0 if $z;
+                    while $possible-candidate && $z < $num-pos {
+                        $possible-candidate := $possible-candidate
+                            && nqp::atpos_i(@capture-item-pos, $z) == nqp::atpos_i(@cand-item-pos, $z);
+                        ++$z;
+                    }
+
+                    if $named-assoc {
+                        my $it := nqp::iterator(%capture-named-item-assoc);
+                        while $it {
+                            $possible-candidate := $possible-candidate
+                                && nqp::atkey(%cand-named-item-assoc, nqp::iterkey_s(nqp::shift($it)));
+                        }
+                    }
+
+                    if $named-pos {
+                        my $it := nqp::iterator(%capture-named-item-pos);
+                        while $it {
+                            $possible-candidate := $possible-candidate
+                                && nqp::atkey(%cand-named-item-pos, nqp::iterkey_s(nqp::shift($it)));
+                        }
+                    }
+                } elsif $possible-candidate {
+                    # in case it became true on a previous candidate
+                    $possible-candidate := 0;
+                }
+                nqp::push(@fresh-possibles, $candidate) if $possible-candidate;
+                ++$x;
+            }
+            @possibles := @fresh-possibles if nqp::elems(@fresh-possibles);
         }
 
         # Need a unique candidate.

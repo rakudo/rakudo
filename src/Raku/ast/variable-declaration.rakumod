@@ -114,9 +114,13 @@ class RakuAST::Initializer::CallAssign
 
 class RakuAST::ContainerCreator {
     has Mu $!container-base-type;
+    has Mu $!conflicting-base-type;
     has Bool $.forced-dynamic;
 
     method IMPL-SET-CONTAINER-BASE-TYPE(Mu $type) {
+        if self.IMPL-HAS-CONTAINER-BASE-TYPE {
+            nqp::bindattr(self, RakuAST::ContainerCreator, '$!conflicting-base-type', $!container-base-type);
+        }
         nqp::bindattr(self, RakuAST::ContainerCreator, '$!container-base-type', $type);
     }
 
@@ -124,8 +128,16 @@ class RakuAST::ContainerCreator {
         !nqp::eqaddr($!container-base-type, Mu)
     }
 
+    method IMPL-HAS-CONFLICTING-BASE-TYPE() {
+        !nqp::eqaddr($!conflicting-base-type, Mu)
+    }
+
     method IMPL-CONTAINER-BASE-TYPE() {
         $!container-base-type
+    }
+
+    method IMPL-CONFLICTING-BASE-TYPE() {
+        $!conflicting-base-type
     }
 
     method IMPL-CONTAINER-DESCRIPTOR(Mu $of) {
@@ -784,6 +796,12 @@ class RakuAST::VarDeclaration::Simple
           $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
             :outer($!conflicting-type.compile-time-value), :inner($!type.compile-time-value)
         ) if $!conflicting-type;
+
+        self.add-sorry(
+          $resolver.build-exception: 'X::Syntax::Variable::ConflictingTypes',
+            outer => self.IMPL-CONFLICTING-BASE-TYPE,
+            inner => self.IMPL-CONTAINER-BASE-TYPE,
+        ) if self.IMPL-HAS-CONFLICTING-BASE-TYPE;
 
         my $type := self.type;
         if nqp::istype($type,RakuAST::Type::Simple) {

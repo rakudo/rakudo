@@ -456,6 +456,7 @@ class RakuAST::VarDeclaration::Simple
     has RakuAST::Initializer $.initializer;
     has RakuAST::SemiList    $.shape;
     has RakuAST::Package     $!attribute-package;
+    has RakuAST::Role        $!generics-package;
     has RakuAST::Method      $!accessor;
     has RakuAST::Type        $!conflicting-type;
     has RakuAST::Expression  $.where;
@@ -596,6 +597,9 @@ class RakuAST::VarDeclaration::Simple
             nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!package',
                 $package);
         }
+
+        nqp::bindattr(self, RakuAST::VarDeclaration::Simple, '$!generics-package',
+            $resolver.find-attach-target('generics-pad'));
     }
 
     method IMPL-OF-TYPE() {
@@ -762,6 +766,11 @@ class RakuAST::VarDeclaration::Simple
             }
 
             self.apply-traits($resolver, $context, $target);
+
+            my $of := $subset ?? $subset.meta-object !! self.IMPL-OF-TYPE;
+            if $of.HOW.archetypes.generic {
+                $!generics-package.IMPL-ADD-GENERIC-LEXICAL(self);
+            }
         }
     }
 

@@ -243,6 +243,10 @@ class RakuAST::StatementList
         nqp::push(     $!statements, $statement);
         nqp::push($!code-statements, $statement);
     }
+    method unshift-statement(RakuAST::Statement $statement) {
+        nqp::unshift(     $!statements, $statement);
+        nqp::unshift($!code-statements, $statement);
+    }
     method statements() {
         self.IMPL-WRAP-LIST($!statements)
     }

@@ -392,8 +392,11 @@ class RakuAST::Package::Attachable
 class RakuAST::Role
   is RakuAST::Package::Attachable
 {
+    has Array $.instantiation-lexicals;
+
     method declarator()  { "role"                       }
     method default-how() { Metamodel::ParametricRoleHOW }
+    method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also', 'generics-pad']) }
 
     method replace-body(RakuAST::Code $body, RakuAST::Signature $signature) {
         # The body of a role is internally a Sub that has the parameterization
@@ -406,16 +409,29 @@ class RakuAST::Role
         $body := RakuAST::Block.new unless $body;
         my $orig-body := $body;
         $body := $body.body;
+
+        my $resolve-instantiations;
+        unless nqp::defined($!instantiation-lexicals) {
+            nqp::bindattr(self, RakuAST::Role, '$!instantiation-lexicals', []);
+        }
+        $body.statement-list.unshift-statement(
+            $resolve-instantiations := RakuAST::Role::ResolveInstantiations.new(
+                $!instantiation-lexicals)
+        );
+
         $body.statement-list.add-statement(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::Nqp.new('list',
               RakuAST::Declaration::ResolvedConstant.new(
                 compile-time-value => self.stubbed-meta-object
               ),
-              RakuAST::Nqp.new('curlexpad')
+              nqp::elems($!instantiation-lexicals)
+                  ?? RakuAST::Role::TypeEnvVar.new($resolve-instantiations.type-env-var)
+                  !! RakuAST::Nqp.new('curlexpad')
             )
           )
         );
+
         $body := RakuAST::Sub.new(:name(self.name), :$signature, :$body);
         $body.IMPL-TRANSFER-DECLARATIONS($orig-body);
 
@@ -489,6 +505,65 @@ class RakuAST::Role
         $group.HOW.add_possibility($group, $type) unless $group =:= Mu;
 
         $type
+    }
+
+    method IMPL-ADD-GENERIC-LEXICAL(Mu $lexical) {
+        unless nqp::defined($!instantiation-lexicals) {
+            nqp::bindattr(self, RakuAST::Role, '$!instantiation-lexicals', []);
+        }
+        nqp::push($!instantiation-lexicals, $lexical);
+    }
+}
+
+class RakuAST::Role::ResolveInstantiations
+  is RakuAST::Statement
+{
+    has List $.instantiation-lexicals;
+    has str $.type-env-var;
+
+    method new(@instantiation-lexicals) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Role::ResolveInstantiations, '$!instantiation-lexicals', @instantiation-lexicals);
+        nqp::bindattr_s($obj, RakuAST::Role::ResolveInstantiations, '$!type-env-var', QAST::Node.unique('__typeenv_'));
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        if nqp::elems($!instantiation-lexicals) {
+            my @names;
+            for $!instantiation-lexicals {
+                nqp::push(@names, $_.lexical-name);
+            }
+            $context.ensure-sc(@names);
+            QAST::Op.new( :op<bind>,
+                QAST::Var.new( :name($!type-env-var), :scope<local>, :decl<var> ),
+                QAST::Op.new( :op<callmethod>, :name<resolve_instantiations>,
+                    QAST::Op.new( :op<how>,
+                        QAST::Var.new( :name<::?ROLE>, :scope<lexical> ) ),
+                    QAST::Var.new( :name<::?ROLE>, :scope<lexical> ),
+                    QAST::Op.new( :op<curlexpad> ),
+                    QAST::WVal.new( :value(@names) )
+                ))
+        }
+        else {
+            QAST::Op.new(:op<null>)
+        }
+    }
+}
+
+class RakuAST::Role::TypeEnvVar
+    is RakuAST::Expression
+{
+    has str $.type-env-var;
+
+    method new(str $type-env-var) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Role::TypeEnvVar, '$!type-env-var', $type-env-var);
+        $obj
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+      QAST::Var.new( :name($!type-env-var), :scope<local> )
     }
 }
 

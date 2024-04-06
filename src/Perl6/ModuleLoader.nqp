@@ -19,9 +19,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     );
 
     method register_language_module_loader($lang, $loader, :$force) {
-        nqp::die("Language loader already registered for $lang")
-            if ! $force && nqp::existskey(%language_module_loaders, $lang);
-        %language_module_loaders{$lang} := $loader;
+        nqp::existskey(%language_module_loaders, $lang) && !$force
+          ?? nqp::die("Language loader already registered for $lang")
+          !! nqp::bindkey(%language_module_loaders, $lang, $loader);
     }
 
     method register_absolute_path_func($func) {
@@ -33,64 +33,94 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 
     method ctxsave() {
-        $*MAIN_CTX := nqp::ctxcaller(nqp::ctx());
+        $*MAIN_CTX := nqp::ctxcaller(nqp::ctx);
         $*CTXSAVE := 0;
     }
 
-    method search_path() {
-        self.vm_search_paths()
-    }
+    method search_path() { self.vm_search_paths }
 
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
         DEBUG("going to load $module_name") if $DEBUG;
+
         if nqp::eqat($module_name, 'Perl6::BOOTSTRAP::v6', 0) {
             my $preserve_global := nqp::gethllsym('Raku', 'GLOBAL');
             my %*COMPILING := {};
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
-            my $file := nqp::join('/', nqp::split('::', $module_name)) ~ self.file-extension;
+            my str $file := nqp::join('/', nqp::split('::', $module_name)) ~ self.file-extension;
 
-            my @prefixes := self.search_path();
-            for @prefixes -> $prefix {
-                if nqp::stat("$prefix/$file", 0) {
-                    $file := "$prefix/$file";
-                    last;
+            my @prefixes := self.search_path;
+            if (my int $m := nqp::elems(@prefixes)) {
+                my int $i;
+                while $i < $m {
+                    my str $prefix := nqp::atpos(@prefixes, $i);
+                    if nqp::stat("$prefix/$file", 0) {
+                        $file := "$prefix/$file";
+                        $i := $m;  # last without control exception
+                    }
+                    else {
+                        ++$i;
+                    }
                 }
             }
+            my $ctx := nqp::atkey(%modules_loaded, $file);
 
-            if nqp::existskey(%modules_loaded, $file) {
-                return nqp::ctxlexpad(%modules_loaded{$file});
-            }
+            # Not loaded yet, need to load now
+            if nqp::isnull($ctx) {
+                nqp::loadbytecode($file);
+                nqp::bindkey(
+                  %modules_loaded, $file, my $module_ctx := $*MAIN_CTX
+                );
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
 
-            nqp::loadbytecode($file);
-            %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
-            nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
-            my $UNIT := nqp::ctxlexpad($module_ctx);
-            if +@GLOBALish {
-                unless nqp::isnull($UNIT<GLOBALish>) {
-                    self.merge_globals(@GLOBALish[0].WHO, $UNIT<GLOBALish>.WHO);
-                }
+                my $UNIT := nqp::ctxlexpad($module_ctx);
+                self.merge_globals(
+                  nqp::atpos(@GLOBALish, 0).WHO,
+                  nqp::atkey($UNIT, 'GLOBALish').WHO
+                ) if nqp::elems(@GLOBALish)
+                  && nqp::not_i(nqp::isnull(nqp::atkey($UNIT, 'GLOBALish')));
+
+                $UNIT
             }
-            return $UNIT;
+            
+            # Already loaded
+            else {
+                nqp::ctxlexpad($ctx)
+            }
         }
-        if nqp::existskey(%language_module_loaders, %opts<from> // 'NQP') {
-            # We expect that custom module loaders will accept a Stash, only
-            # NQP expects a hash and therefor needs special handling.
-            if %opts<from> eq 'NQP' {
-                if +@GLOBALish {
-                    my $target := nqp::knowhow().new_type(:name('GLOBALish'));
-                    nqp::setwho($target, @GLOBALish[0].WHO.FLATTENABLE_HASH());
-                    return %language_module_loaders<NQP>.load_module($module_name, $target);
+
+        # Not a bootstrap file
+        else {
+            my str $from := nqp::ifnull(nqp::atkey(%opts, 'from'), 'NQP');
+            my $loader   := nqp::atkey(%language_module_loaders, $from);
+
+            if nqp::isnull($loader) {
+                nqp::die("Do not know how to load code from $from");
+            }
+
+            # A loader is available
+            else {
+                # We expect that custom module loaders will accept a Stash, only
+                # NQP expects a hash and therefor needs special handling.
+                if $from eq 'NQP' {
+                    if nqp::elems(@GLOBALish) {
+                        my $target := nqp::knowhow.new_type(:name('GLOBALish'));
+                        nqp::setwho(
+                          $target,
+                          nqp::atpos(@GLOBALish, 0).WHO.FLATTENABLE_HASH
+                        );
+                        $loader.load_module($module_name, $target);
+                    }
+                    else {
+                        $loader.load_module($module_name);
+                    }
                 }
                 else {
-                    return %language_module_loaders<NQP>.load_module($module_name);
+                    $loader.load_module(
+                      $module_name, %opts, |@GLOBALish, :$line, :$file
+                    )
                 }
             }
-            return %language_module_loaders{%opts<from>}.load_module($module_name,
-                %opts, |@GLOBALish, :$line, :$file);
-        }
-        else {
-            nqp::die("Do not know how to load code from " ~ %opts<from>);
         }
     }
 
@@ -99,12 +129,12 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     # than this, but that would seem to involve copying too, and the
     # details of exactly what that entails are a bit hazy to me at the
     # moment. We'll see how far this takes us.
-    my $stub_how_name := 'Perl6::Metamodel::PackageHOW';
-    my $nqp_stub_how_name := 'KnowHOW';
+    my str $raku_stub_how_name := 'Perl6::Metamodel::PackageHOW';
+    my str $nqp_stub_how_name  := 'KnowHOW';
     sub is_HOW_stub($target) {
-         my $how  := $target.HOW;
-         my $name := $how.HOW.name($how);
-         $name eq $stub_how_name || $name eq $nqp_stub_how_name
+         my $targetHOW := $target.HOW;
+         my str $name  := $targetHOW.HOW.name($targetHOW);
+         $name eq $raku_stub_how_name || $name eq $nqp_stub_how_name
     }
     method merge_globals($target, $source) {
         my $metamodel-configuration := nqp::gethllsym('Raku', 'METAMODEL_CONFIGURATION');

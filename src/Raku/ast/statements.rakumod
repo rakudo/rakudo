@@ -408,6 +408,21 @@ class RakuAST::SemiList
   is RakuAST::StatementList
   is RakuAST::ImplicitLookups
 {
+    method propagate-sink(Bool $is-sunk, Bool :$has-block-parent) {
+        # Sink all statements only if the whole list is sunk
+        # If not, we're gonna need all values as they are used for creating an indexing list.
+        my @statements := self.code-statements;
+        my int $i;
+        my int $n := nqp::elems(@statements);
+        while $i < $n {
+            my $cur-statement := @statements[$i];
+            $cur-statement.apply-sink($is-sunk);
+            ++$i;
+        }
+        nqp::bindattr_i(self, RakuAST::StatementList, '$!is-sunk', $is-sunk ?? 1 !! 0);
+        Nil
+    }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&infix:<,>'),

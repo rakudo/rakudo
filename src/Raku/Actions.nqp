@@ -946,7 +946,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     # An assignment, or infix expression
     method INFIX-EXPR($/) {
         if $<infix><sym> eq '=' {
-            my $lhs := $/[0];
+            my $lhs := $/[0].ast;
             if nqp::istype($lhs,Nodify('ApplyPostfix')) {
                 my $postfix := $lhs.postfix;
                 if (nqp::istype(        # [foo]
@@ -957,7 +957,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                        $postfix,
                        Nodify('Postcircumfix','LiteralHashIndex')
                      ) {
-                    $postfix.set-assignee($/[1]);
+                    $postfix.set-assignee($/[1].ast);
                     self.attach: $/, $lhs;
                     return;
                 }

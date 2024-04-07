@@ -1853,6 +1853,11 @@ CODE
         @parts.join
     }
 
+#- Ro --------------------------------------------------------------------------
+
+    multi method deparse(RakuAST::Role::ResolveInstantiations:D $ast --> Nil) {
+    }
+
 #- S ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
@@ -2118,11 +2123,14 @@ CODE
                   ?? $.last-statement
                   !! $.end-statement;
                 my $deparsed := self.deparse($statement);
-                $deparsed := $deparsed.chop(2) if $deparsed.ends-with("};\n");
+                unless nqp::eqaddr($deparsed, Nil) {
+                    $deparsed := $deparsed.chop(2)
+                      if $deparsed.ends-with("};\n");
 
-                @parts.push($spaces);
-                @parts.push($deparsed);
-                @parts.push("\n") if $deparsed.ends-with('}');
+                    @parts.push($spaces);
+                    @parts.push($deparsed);
+                    @parts.push("\n") if $deparsed.ends-with('}');
+                }
             }
 
             @parts.join

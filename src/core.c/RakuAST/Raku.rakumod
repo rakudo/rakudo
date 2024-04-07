@@ -931,6 +931,12 @@ augment class RakuAST::Node {
         self!positional(self.regex)
     }
 
+#- Ro --------------------------------------------------------------------------
+
+    multi method raku(RakuAST::Role::ResolveInstantiations:D: --> Str:D) {
+        self!positionals(self.instantiation-lexicals)
+    }
+
 #- S ---------------------------------------------------------------------------
 
     multi method raku(RakuAST::SemiList:D: --> Str:D) {

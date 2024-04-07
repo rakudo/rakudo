@@ -1967,12 +1967,41 @@ class RakuAST::Postcircumfix::ArrayIndex
             && nqp::istype($statements[0], RakuAST::Statement::Expression)
         {
             my $expression := $statements[0].expression;
+
+            # ApplyPrefix  ⎡-⎤
+            #   Prefix  ⎡-⎤
+            #   IntLiteral  ⎡2⎤
             if nqp::istype($expression, RakuAST::ApplyPrefix)
                 && nqp::istype($expression.prefix, RakuAST::Prefix)
                 && $expression.prefix.operator eq '-'
                 && nqp::istype($expression.operand, RakuAST::IntLiteral)
             {
                 my $literal := -$expression.operand.value;
+
+                self.add-sorry:
+                  $resolver.build-exception:
+                      'X::Obsolete',
+                      old => "a negative " ~ $literal ~ " subscript to index from the end",
+                      replacement => "a function such as *" ~ $literal;
+            }
+
+            # ApplyInfix  ⎡..⎤
+            #   Infix 【..】  ⎡..⎤
+            #   ArgList
+            #     IntLiteral  ⎡0⎤
+            #     ApplyPrefix  ⎡-⎤
+            #       Prefix  ⎡-⎤
+            #       IntLiteral  ⎡2⎤
+            if nqp::istype($expression, RakuAST::ApplyInfix)
+                && nqp::istype($expression.infix, RakuAST::Infix)
+                && $expression.infix.operator eq '..'
+                && $expression.args.args.elems == 2
+                && nqp::istype((my $end := $expression.args.args.AT-POS(1)), RakuAST::ApplyPrefix)
+                && nqp::istype($end.prefix, RakuAST::Prefix)
+                && $end.prefix.operator eq '-'
+                && nqp::istype($end.operand, RakuAST::IntLiteral)
+            {
+                my $literal := -$end.operand.value;
 
                 self.add-sorry:
                   $resolver.build-exception:

@@ -2139,12 +2139,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
               ?? $/.panic(
                    "Cannot declare an anonymous '$scope' scoped variable"
                  )
-              !! $<twigil>
-                ?? $/.panic(
-                     "Cannot declare an anonymous variable with a twigil"
-                   )
-                !! ($decl := Nodify('VarDeclaration', 'Anonymous').new(
-                     :$scope, :$type, :$sigil
+              !! ($decl := Nodify('VarDeclaration', 'Anonymous').new(
+                     :$scope, :$type, :$sigil, :twigil(~$<twigil> || '')
                    ));
         }
 

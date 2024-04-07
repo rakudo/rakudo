@@ -4807,14 +4807,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token sigil { <[$@%&]> }
 
     proto token twigil {*}
-    token twigil:sym<.> { <sym> <?before \w> }
-    token twigil:sym<!> { <sym> <?before \w> }
-    token twigil:sym<^> { <sym> <?before \w> }
-    token twigil:sym<:> { <sym> <?before \w> }
-    token twigil:sym<*> { <sym> <?before \w> }
-    token twigil:sym<?> { <sym> <?before \w> }
-    token twigil:sym<=> { <sym> <?before \w> }
-    token twigil:sym<~> { <sym> <?before \w> }
+    token twigil:sym<.> { <sym> <?before <alpha>> }
+    token twigil:sym<!> { <sym> <?before <alpha>> }
+    token twigil:sym<^> { <sym> <?before <alpha>> }
+    token twigil:sym<:> { <sym> <?before <alpha>> }
+    token twigil:sym<*> { <sym> <?before <alpha>> }
+    token twigil:sym<?> { <sym> <?before <alpha>> }
+    token twigil:sym<=> { <sym> <?before <alpha>> }
+    token twigil:sym<~> { <sym> <?before <alpha>> }
 
     token end-keyword {
         »

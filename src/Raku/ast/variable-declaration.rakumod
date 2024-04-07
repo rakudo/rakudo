@@ -788,6 +788,11 @@ class RakuAST::VarDeclaration::Simple
 
     method PERFORM-CHECK(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
         self.add-sorry(
+          $resolver.build-exception: 'X::Adhoc',
+            :message('Cannot declare an anonymous variable with a twigil')
+        ) if self.twigil && self.desigilname.is-empty;
+
+        self.add-sorry(
           $resolver.build-exception: 'X::Dynamic::Package',
             :symbol(self.name)
         ) if self.twigil eq '*' && self.desigilname.is-multi-part;
@@ -1333,13 +1338,13 @@ class RakuAST::VarDeclaration::Signature
 class RakuAST::VarDeclaration::Anonymous
   is RakuAST::VarDeclaration::Simple
 {
-    method new(str :$sigil!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
+    method new(str :$sigil!, str :$twigil, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
                str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!desigilname',
             self.IMPL-GENERATE-NAME());
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!sigil', $sigil);
-        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', '');
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!twigil', $twigil);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',

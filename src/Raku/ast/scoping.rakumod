@@ -33,6 +33,14 @@ class RakuAST::LexicalScope
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
 
+        # Visit declarations and produce declaration QAST.
+        for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
+            $stmts.push($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
+        }
+        for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations()) {
+            $stmts.push($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
+        }
+
         # Visit code objects that need to make a declaration entry. We don't
         # visit any code objects immediately under an ImmediateBlockUser (but
         # should visit their other nodes).
@@ -53,14 +61,6 @@ class RakuAST::LexicalScope
                     @code-todo.push($node);
                 }
             }
-        }
-
-        # Visit declarations and produce declaration QAST.
-        for self.IMPL-UNWRAP-LIST(self.generated-lexical-declarations()) {
-            $stmts.unshift($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
-        }
-        for self.IMPL-UNWRAP-LIST(self.ast-lexical-declarations()) {
-            $stmts.unshift($_.IMPL-QAST-DECL($context)) unless $_ =:= self;
         }
 
         # If there's handler block declarations, add those.

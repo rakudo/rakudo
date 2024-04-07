@@ -581,7 +581,8 @@ augment class RakuAST::Node {
                 !! RakuAST::Block.new(
                      body => RakuAST::Blockoid.new(
                        RakuAST::StatementList.new(
-                         |$statements.head(*-1) # lose fabricated return value
+                         # lose fabricated values
+                         |$statements.skip.head(*-1)
                        )
                      )
                    )
@@ -929,12 +930,6 @@ augment class RakuAST::Node {
 
     multi method raku(RakuAST::Regex::WithWhitespace:D: --> Str:D) {
         self!positional(self.regex)
-    }
-
-#- Ro --------------------------------------------------------------------------
-
-    multi method raku(RakuAST::Role::ResolveInstantiations:D: --> Str:D) {
-        self!positionals(self.instantiation-lexicals)
     }
 
 #- S ---------------------------------------------------------------------------

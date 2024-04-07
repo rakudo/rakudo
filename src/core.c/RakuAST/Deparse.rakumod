@@ -1084,7 +1084,7 @@ CODE
                body => RakuAST::Blockoid.new(
                  # lose fabricated return value
                  RakuAST::StatementList.new(
-                   |$ast.body.body.statement-list.statements.head(*-1)
+                   |$ast.body.body.statement-list.statements.skip.head(*-1)
                  )
                )
              )
@@ -1853,11 +1853,6 @@ CODE
         @parts.join
     }
 
-#- Ro --------------------------------------------------------------------------
-
-    multi method deparse(RakuAST::Role::ResolveInstantiations:D $ast --> Nil) {
-    }
-
 #- S ---------------------------------------------------------------------------
 
     multi method deparse(RakuAST::SemiList:D $ast --> Str:D) {
@@ -2123,14 +2118,11 @@ CODE
                   ?? $.last-statement
                   !! $.end-statement;
                 my $deparsed := self.deparse($statement);
-                unless nqp::eqaddr($deparsed, Nil) {
-                    $deparsed := $deparsed.chop(2)
-                      if $deparsed.ends-with("};\n");
+                $deparsed := $deparsed.chop(2) if $deparsed.ends-with("};\n");
 
-                    @parts.push($spaces);
-                    @parts.push($deparsed);
-                    @parts.push("\n") if $deparsed.ends-with('}');
-                }
+                @parts.push($spaces);
+                @parts.push($deparsed);
+                @parts.push("\n") if $deparsed.ends-with('}');
             }
 
             @parts.join

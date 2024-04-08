@@ -46,8 +46,11 @@ my class RoleToRoleApplier {
         while $i < $m {
             my $role    := nqp::atpos(@roles, $i);
             my $roleHOW := $role.HOW;
-            my int $with_submethods :=
-              $target_pre6e && $role.HOW.language_revision < 3;
+            my int $with_submethods := $target_pre6e 
+              && (nqp::can($roleHOW, 'language_revision')
+                   ?? $roleHOW.language_revision < 3
+                   !! 1
+                 );
 
             sub build_method_info(
               @methods,

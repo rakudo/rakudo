@@ -3326,6 +3326,7 @@ BEGIN {
         my int $num_types;
         my @coerce_type_idxs;
         my @coerce_type_objs;
+        my int $item_disambiguation;
 
         my int $n := nqp::elems(@params);
         my int $j;
@@ -3348,7 +3349,7 @@ BEGIN {
             }
 
             # For named arguments:
-            # * Under the legacy dispatcher (not on MoarVM, which uses
+            # * Under the legacy dispatcher (not on MoarVM, which uses
             #   new-disp) we leave named argument checking to be done via
             #   a bind check. We only set that if it's a required named.
             # * For the new-disp based dispatcher, we collect a list of
@@ -3390,6 +3391,31 @@ BEGIN {
                       NQPMu
                     );
                     ++$k;
+                }
+                # we can't use binding in the case of SIG_ELEM_IS_ITEM due
+                # to a bug that deconts arguments as passed to ParamTypeCheck
+                # in 'callstatic' and 'callmethod'. instead we do a type check
+                # of named arguments in the case of ambiguous dispatch.
+                if $flags +& nqp::const::SIG_ELEM_IS_ITEM {
+                    ++$item_disambiguation;
+                    my $named_types := nqp::ifnull(
+                        nqp::atkey(%info, 'named_types'),
+                        nqp::bindkey(%info, 'named_types', nqp::hash)
+                    );
+                    if $flags +& nqp::const::SIG_ELEM_TYPE_GENERIC {
+                        nqp::bindkey(%info, 'bind_check', 1);
+                        nqp::bindkey(%info, 'constrainty', 1);
+                        nqp::bindkey($named_types, nqp::atpos_s($named_names,0), Any);
+                    }
+                    else {
+                        my $ptype := nqp::getattr($param, Parameter, '$!type');
+                        if $ptype.HOW.archetypes($ptype).coercive {
+                            my $ctype := $ptype.HOW.wrappee($ptype, :coercion);
+                            $ptype    := $ctype.HOW.constraint_type($ctype);
+                        }
+                        nqp::bindkey($named_types, nqp::atpos_s($named_names,0), $ptype);
+                    }
+                    # TODO: Coercion types ...
                 }
                 next;
             }
@@ -3471,6 +3497,15 @@ BEGIN {
                 )
             }
 
+            if $flags +& nqp::const::SIG_ELEM_IS_ITEM {
+                nqp::bindpos_i(
+                  @type_flags,
+                  $significant_param,
+                  nqp::atpos_i(@type_flags, $significant_param) + nqp::const::SIG_ELEM_IS_ITEM
+                );
+                ++$item_disambiguation;
+            }
+
             # Keep track of coercion types; they'll need an extra entry
             # in the things we sort.
             if $param.coercive {
@@ -3487,6 +3522,9 @@ BEGIN {
         nqp::bindkey(%info, 'min_arity', $min_arity);
         nqp::bindkey(%info, 'max_arity', $max_arity);
         nqp::bindkey(%info, 'num_types', $num_types);
+
+        nqp::bindkey(%info, 'item_disambiguation', 1)
+            if $item_disambiguation;
 
         if nqp::elems(@coerce_type_idxs) {
             nqp::bindkey(%info, 'coerce_type_idxs', @coerce_type_idxs);

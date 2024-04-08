@@ -5065,7 +5065,7 @@ Rakudo significantly on *every* run."
         }
 
         # May also need to add to the actions.
-        my $actions-mixin;
+        my $actions-mixin := nqp::null;
         if $category eq 'postcircumfix' {
             my role PostcircumfixAction[$meth, $subname] {
                 method ::($meth)($/) {
@@ -5112,7 +5112,7 @@ Rakudo significantly on *every* run."
 
         # Set up next statement to have new actions.
         $actions := $actions.HOW.mixin($actions, $actions-mixin)
-          if $actions-mixin;
+          unless nqp::isnull($actions-mixin);
         %*LANG<MAIN-actions> := $actions;
         self.define_slang('MAIN', self.WHAT, $actions);
 

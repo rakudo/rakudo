@@ -4801,7 +4801,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('new term to be defined')
 
         <identifier>
-        # TODO colonpairs
+        [
+        | <colonpair>+
+            {
+                if $<colonpair>[0]<coloncircumfix> -> $cf {
+                    my $category := $<identifier>.Str;
+                    my $opname := '';
+                    if $cf<circumfix> -> $ccf {
+                        $opname := (my $nibble := $ccf<nibble>)
+                          ?? $nibble.ast.literal-value // ~$nibble
+                          !! $ccf<semilist>;
+                    }
+                    my $canop := self.actions.r('ColonPairish').IMPL-QUOTE-VALUE(~$opname);
+                    my $canname := $category ~ ':sym' ~ $canop;
+                    my $termname := $category ~ ':' ~ $canop;
+                    $/.add-categorical($category, $opname, $canname, $termname, :defterm);
+                }
+            }
+        | <?>
+        ]
     }
 
     token sigil { <[$@%&]> }
@@ -4979,7 +4997,7 @@ only have 1 MAIN grammar, otherwise it will slow down loading of
 Rakudo significantly on *every* run."
         ) if $*COMPILING_CORE_SETTING;
 
-        $declarand := $declarand.compile-time-value;
+        $declarand := $declarand.compile-time-value if $declarand;
 
         # when importing, reuse known precedence overrides
         if %prec && nqp::can($declarand,'prec') {
@@ -5095,14 +5113,12 @@ Rakudo significantly on *every* run."
         elsif $category eq 'term' {
             my role TermAction[$meth, $subname] {
                 method ::($meth)($/) {
-                    make QAST::Op.new(
-                        :op('call'), :name('&' ~ $subname), :node($/),
-                    );
+                    self.attach: $/, $actions.r('Term', 'Named').new($subname)
                 }
             };
             my role TermActionConstant[$meth, $name] {
                 method ::($meth)($/) {
-                    make QAST::Var.new( :$name, :scope('lexical') );
+                    self.attach: $/, $actions.r('Term', 'Name').new($actions.r('Name').from-identifier($name))
                 }
             };
             $actions-mixin := $defterm

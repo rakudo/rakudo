@@ -3128,7 +3128,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method defterm($/) {
-        self.attach: $/, Nodify('Name').from-identifier(~$/);
+        my $name := Nodify('Name').from-identifier(~$<identifier>);
+        for $<colonpair> {
+            $name.add-colonpair($_.ast);
+        }
+        self.attach: $/, $name;
     }
 
     method comment:sym<line_directive>($/) {

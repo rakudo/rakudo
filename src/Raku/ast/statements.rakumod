@@ -1748,21 +1748,78 @@ class RakuAST::Statement::Import
 # A require statement.
 class RakuAST::Statement::Require
   is RakuAST::Statement
+  is RakuAST::BeginTime
   is RakuAST::ImplicitLookups
 {
     has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.argument;
+    has List $!arglist;
+    has Mu $!stub;
 
-    method new(RakuAST::Name :$module-name!) {
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Require, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::Statement::Require, '$!argument',
+            $argument // RakuAST::Expression);
         $obj
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')),
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')),
-        ])
+        my @lookups;
+        nqp::push(@lookups, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')));
+        nqp::push(@lookups, RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')));
+        if $!module-name && !$!module-name.is-indirect-lookup() {
+            my $current;
+            my $top := $!module-name.parts.AT-POS(0);
+            nqp::push(@lookups, RakuAST::Type::Simple.new(RakuAST::Name.new($top)));
+        }
+        self.IMPL-WRAP-LIST(@lookups)
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver, RakuAST::IMPL::QASTContext $context) {
+        # Evaluate the argument to the import, if any.
+        my @arglist := $!argument
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver, $context).List.FLATTENABLE_LIST
+            !! Nil;
+        nqp::bindattr(self, RakuAST::Statement::Require, '$!arglist', @arglist);
+
+        my $target-scope := $resolver.current-scope;
+        my $stash := Stash.new;
+        $context.ensure-sc($stash);
+        $target-scope.merge-generated-lexical-declaration:
+            :$resolver,
+            RakuAST::VarDeclaration::Implicit::Constant.new:
+                :name<%?REQUIRE-SYMBOLS>,
+                :value($stash);
+
+        if @arglist {
+            for @arglist {
+                my $declarand := RakuAST::Type::Capture.new: RakuAST::Name.from-identifier($_.Str);
+                $target-scope.merge-generated-lexical-declaration: $declarand, :$resolver;
+            }
+        }
+
+        if $!module-name && !$!module-name.is-indirect-lookup() {
+            my $lookups := self.get-implicit-lookups;
+            my @components := nqp::clone(self.IMPL-UNWRAP-LIST($!module-name.parts));
+            my $top := @components.shift;
+            my $existing-lookup := $lookups.AT-POS(2);
+            unless $existing-lookup.is-resolved {
+                my $stub := Perl6::Metamodel::PackageHOW.new_type(name => $top.name);
+                $stub.HOW.compose($stub);
+                nqp::bindattr(self, RakuAST::Statement::Require, '$!stub', $stub);
+
+                my $name := RakuAST::Name.new($top);
+                $resolver.current-scope.merge-generated-lexical-declaration:
+                    :$resolver,
+                    RakuAST::Declaration::LexicalPackage.new:
+                        :lexical-name($name),
+                        :compile-time-value($stub),
+                        :package(RakuAST::Package.new(:scope<my>, :$name));
+            }
+        }
+
+        Nil
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -1785,6 +1842,42 @@ class RakuAST::Statement::Require
             ),
             $spec,
         );
+        my $require-past := QAST::Op.new(:op<call>, :name<&REQUIRE_IMPORT>, $compunit_past);
+        # A list of the components of the pre-existing outer symbols name (if any)
+        my $existing-path := QAST::Var.new( :name('Any'), :scope('lexical') );
+        # The top level package object of the  pre-existing outer package (if any)
+        my $top-existing := QAST::Var.new( :name('Any'), :scope('lexical') );
+        # The name of the lexical stub we insert (if any)
+        my $lexical_stub;
+        if $!module-name && !$!module-name.is-indirect-lookup() {
+            my $current;
+            my @components := nqp::clone(self.IMPL-UNWRAP-LIST($!module-name.parts));
+            my $top := @components.shift.name;
+            $existing-path := QAST::Op.new(:op<call>, :name('&infix:<,>'));
+            my $existing-lookup := $lookups.AT-POS(2);
+            if $existing-lookup.is-resolved {
+                my $existing := $existing-lookup.resolutions.compile-time-value;
+                $top-existing := QAST::WVal.new(:value($existing));
+                $current := nqp::who($existing);
+                $existing-path.push: QAST::SVal.new(:value($top));
+            }
+            else {
+                $current := nqp::who($!stub);
+                $lexical_stub := QAST::SVal.new(:value($top));
+            }
+        }
+        $require-past.push($existing-path);
+        $require-past.push($top-existing);
+        $require-past.push($lexical_stub // QAST::Var.new( :name('Any'), :scope('lexical') ));
+        if $!argument {
+            for $!arglist {
+                $require-past.push(QAST::SVal.new(:value($_.Str)));
+            }
+        }
+
+        my $past := QAST::Stmts.new;
+        $past.push($require-past);
+        $past;
     }
 
     method visit-children(Code $visitor) {

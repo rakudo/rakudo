@@ -46,7 +46,7 @@ my class RoleToRoleApplier {
         while $i < $m {
             my $role    := nqp::atpos(@roles, $i);
             my $roleHOW := $role.HOW;
-            my int $with_submethods := $target_pre6e 
+            my int $with_submethods := $target_pre6e
               && (nqp::can($roleHOW, 'language_revision')
                    ?? $roleHOW.language_revision < 3
                    !! 1
@@ -205,7 +205,7 @@ my class RoleToRoleApplier {
         while $i < $m {
             my $role    := nqp::atpos(@roles, $i);
             my $roleHOW := $role.HOW;
-            my int $with_submethods := $target_pre6e 
+            my int $with_submethods := $target_pre6e
               && (nqp::can($roleHOW, 'language_revision')
                    ?? $roleHOW.language_revision < 3
                    !! 1
@@ -263,27 +263,39 @@ my class RoleToRoleApplier {
         }
 
         # Look for conflicts, and compose non-conflicting.
-        for @multi_names -> $name {
-            my @cands := %multis_by_name{$name};
-            for @cands -> $c1 {
-                my @collides;
-                for @cands -> $c2 {
+        $m := nqp::elems(@multi_names);
+        $i := 0;
+        while $i < $m {
+            my str $name   := nqp::atpos(@multi_names, $i);
+            my @candidates := nqp::atkey(%multis_by_name, $name);
+
+            my int $n := nqp::elems(@candidates);
+            my int $j;
+            while $j < $n {
+                my $c1 := nqp::atpos(@candidates, $j);
+
+                my @collisions;
+                for @candidates -> $c2 {
                     unless $c1[1] =:= $c2[1] {
                         if Perl6::Metamodel::Configuration.compare_multi_sigs($c1[1], $c2[1]) {
                             for ($c1, $c2) {
-                                nqp::push(@collides, $_[0].HOW.name($_[0]));
+                                nqp::push(@collisions, $_[0].HOW.name($_[0]));
                             }
                             last;
                         }
                     }
                 }
-                if @collides {
-                    $targetHOW.add_collision($target, $name, @collides, :multi($c1[1]));
-                }
-                else {
-                    $targetHOW.add_multi_method($target, $name, $c1[1]);
-                }
+
+                @collisions
+                  ?? $targetHOW.add_collision(
+                       $target, $name, @collisions, :multi($c1[1])
+                     )
+                  !! $targetHOW.add_multi_method($target, $name, $c1[1]);
+
+                ++$j;
             }
+
+            ++$i;
         }
 
         # Pass on any unsatisfied requirements (note that we check for the

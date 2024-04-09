@@ -41,6 +41,7 @@ my class RoleToRoleApplier {
             0
         }
 
+        # Initial collection of information about roles being applied
         my int $m := nqp::elems(@roles);
         my int $i;
         while $i < $m {
@@ -52,6 +53,7 @@ my class RoleToRoleApplier {
                    !! 1
                  );
 
+            # Helper sub to setup method info
             sub build_method_info(
               @methods,
               @method_names,
@@ -100,6 +102,7 @@ my class RoleToRoleApplier {
                 }
             }
 
+            # Set up info for (private) methods
             build_method_info(
                 $roleHOW.method_order($role),
                 $roleHOW.method_names($role),
@@ -301,18 +304,14 @@ my class RoleToRoleApplier {
                             );
                             nqp::push(@multis_required_names, $name);
                         }
-                        else {
-                            nqp::push(@multi_names, $name)
-                              if Candidate.new($role, $code).push_if_unique(
-                                   nqp::ifnull(
-                                     nqp::atkey(%multis_by_name, $name),
-                                     nqp::bindkey(
-                                       %multis_by_name, $name, nqp::list
-                                     )
-                                   )
-                                 );
+                        elsif Candidate.new($role, $code).push_if_unique(
+                          nqp::ifnull(
+                            nqp::atkey(%multis_by_name, $name),
+                            nqp::bindkey(%multis_by_name, $name, nqp::list)
+                          )
+                        ) {
+                            nqp::push(@multi_names, $name);
                         }
-
                     }
 
                     ++$j;
@@ -412,6 +411,7 @@ my class RoleToRoleApplier {
             }
         }
 
+        # Set up initial set of attributes
         my @attributes := $targetHOW.attributes($target, :local);
         $m := nqp::elems(@attributes);
         $i := 0;
@@ -482,10 +482,14 @@ my class RoleToRoleApplier {
                 }
             }
 
-            $targetHOW.set_array_type($target, $roleHOW.array_type)
-              if $could_be_arraytype
+            # Set array type if there is one and there can be one and
+            # not already set
+            if $could_be_arraytype
               && nqp::can($roleHOW, 'is_array_type')
-              && $roleHOW.is_array_type;
+              && $roleHOW.is_array_type {
+                $targetHOW.set_array_type($target, $roleHOW.array_type);
+                $could_be_arraytype := 0;
+            }
 
             ++$i;
         }

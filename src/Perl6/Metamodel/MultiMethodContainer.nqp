@@ -14,23 +14,35 @@ role Perl6::Metamodel::MultiMethodContainer {
         $autogen_submethod_proto := $submethod_proto;
     }
 
+    # Represents a multi candidate to incorporate.
+    my class MultiToIncorporate {
+        has str $!name;
+        has     $!code;
+
+        method new(str $name, $code) {
+            my $obj := nqp::create(self);
+
+            nqp::bindattr_s($obj, MultiToIncorporate, '$!name', $name);
+            nqp::bindattr(
+              $obj, MultiToIncorporate, '$!code', nqp::decont($code)
+            );
+
+            $obj
+        }
+        method name() { $!name }
+        method code() { $!code }
+    }
+
     # We can't incorporate multis right away as we don't know all parents
     # yet, maybe, which influences whether we even can have multis, need to
     # generate a proto and so forth. So just queue them up in a todo list and
     # we handle it at class composition time.
-    method add_multi_method($XXX, $name, $code_obj) {
-        # Represents a multi candidate to incorporate.
-        my class MultiToIncorporate {
-            has $!name;
-            has $!code;
-            method name() { $!name }
-            method code() { $!code }
-        }
-        my $how := MultiToIncorporate.HOW.WHAT;
-        my $todo := MultiToIncorporate.new( :name($name), :code(nqp::decont($code_obj)) );
-        nqp::push(@!multi_methods_to_incorporate, $todo);
-        %!multi_candidate_names{$name} := 1;
-        $code_obj;
+    method add_multi_method($XXX, str $name, $code) {
+        nqp::push(@!multi_methods_to_incorporate,
+          MultiToIncorporate.new($name, $code)
+        );
+        nqp::bindkey(%!multi_candidate_names, $name, 1);
+        $code
     }
 
     # Gets the multi methods that are to be incorporated.

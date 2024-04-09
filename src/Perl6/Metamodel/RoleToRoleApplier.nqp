@@ -366,8 +366,8 @@ my class RoleToRoleApplier {
 
         my %current-attributes;
         my class AttrReg {
-            has $!attribute;
-            has $!from;
+            has $!attribute;  # actual Attribute object
+            has $!from;       # sourced from, for error messages on conflicts
 
             # Create object *and* store it in hash of current attributes
             # by name
@@ -382,6 +382,47 @@ my class RoleToRoleApplier {
 
             method attribute() { $!attribute }
             method from()      { $!from      }
+
+            # Helper method to check whether the given attribute conflicts
+            # with the invocant's attribute.  Returns 1 if the given attribute
+            # matches, 0 if they don't match and have a different name, or
+            # throws an error if they don't match, but have the same name.
+            method check_conflicts($target, $role, $attribute) {
+                my $registered := $!attribute;
+
+                # We haz a match
+                if nqp::eqaddr(
+                     nqp::decont($registered),
+                     nqp::decont($attribute)
+                   ) || (nqp::eqaddr(
+                     nqp::decont($registered.original),
+                     nqp::decont($attribute.original)
+                   ) && nqp::eqaddr(
+                     nqp::decont($registered.type),
+                     nqp::decont($attribute.type)
+                   )) {
+                    1  # indicate adding not needed
+                }
+
+                # We haz a conflict
+                elsif $registered.name eq $attribute.name {
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                      'X::Role::Attribute::Conflicts',
+                      "Attribute '"
+                        ~ $registered.name
+                        ~ "' conflicts in role composition",
+                      :$target,
+                      :attribute($registered),
+                      :from1($!from),
+                      :from2($role)
+                    );
+                }
+
+                # No match and no conflict, need to add
+                else {
+                    0
+                }
+            }
         }
 
         my @attributes := $targetHOW.attributes($target, :local);
@@ -392,65 +433,79 @@ my class RoleToRoleApplier {
             ++$i;
         }
 
+        # Set flag for when the target *can* be an arraytype, but isn't yet
+        my $could_be_arraytype :=
+          nqp::can($targetHOW, 'is_array_type')
+            && nqp::not_i($targetHOW.is_array_type);
+
         # Now do the other bits.
-        for @roles -> $r {
-            my $roleHOW := $r.HOW;
+        $m := nqp::elems(@roles);
+        $i := 0;
+        while $i < $m {
+            my $role    := nqp::atpos(@roles, $i);
+            my $roleHOW := $role.HOW;
 
             # Compose is any attributes, unless there's a conflict.
-            my @attributes := $roleHOW.attributes($r, :local);
-            for @attributes -> $add_attr {
-                my $skip := 0;
+            my @attributes := $roleHOW.attributes($role, :local);
 
-                if nqp::can($add_attr, 'original') {
-                    my $name := $add_attr.name;
-                    if nqp::existskey(%current-attributes, $name) {
-                        my $cur-attr := %current-attributes{$name}.attribute;
-                        if (nqp::decont($cur-attr.original) =:= nqp::decont($add_attr.original)
-                            && nqp::decont($cur-attr.type) =:= nqp::decont($add_attr.type))
-                            || (nqp::decont($cur-attr) =:= nqp::decont($add_attr))
-                        {
-                            $skip := 1;
-                        }
-                        else {
-                            if $cur-attr.name eq $add_attr.name {
-                                Perl6::Metamodel::Configuration.throw_or_die(
-                                    'X::Role::Attribute::Conflicts',
-                                    "Attribute '" ~ $cur-attr.name ~ "' conflicts in role composition",
-                                    :$target,
-                                    :attribute($cur-attr),
-                                    :from1(%current-attributes{$name}.from),
-                                    :from2($r)
-                                )
-                            }
-                        }
-                    }
+            my int $n := nqp::elems(@attributes);
+            my int $j;
+            while $j < $n {
+                my $attribute := nqp::atpos(@attributes, $j);
+                my int $skip;
+
+                # Check for conflicts if we can
+                if nqp::can($attribute, 'original')
+                  && nqp::atkey(
+                      %current-attributes, $attribute.name
+                     ) -> $registered {
+
+                    $skip := $registered.check_conflicts(
+                      $target, $role, $attribute
+                    );
                 }
 
+                # Need to add this as an attribute to the target, and
+                # register it for future iterations
                 unless $skip {
-                    $targetHOW.add_attribute($target, $add_attr);
-                    AttrReg.register($add_attr, $r)
+                    $targetHOW.add_attribute($target, $attribute);
+                    AttrReg.register($attribute, $role)
                 }
+
+                ++$j;
             }
 
             # Any parents can also just be copied over.
             if nqp::can($roleHOW, 'parents') {
-                my @parents := $roleHOW.parents($r, :local);
-                for @parents -> $p {
-                    $targetHOW.add_parent($target, $p, :hides($roleHOW.hides_parent($r, $p)));
+                my @parents := $roleHOW.parents($role, :local);
+
+                my int $n := nqp::elems(@parents);
+                my int $j;
+                while $j < $n {
+                    my $parent := nqp::atpos(@parents, $j);
+
+                    $targetHOW.add_parent(
+                      $target,
+                      $parent,
+                      :hides($roleHOW.hides_parent($role, $parent))
+                    );
+
+                    ++$j;
                 }
             }
 
-            if nqp::can($targetHOW, 'is_array_type') && !$targetHOW.is_array_type {
-                if nqp::can($roleHOW, 'is_array_type') {
-                    if $roleHOW.is_array_type {
-                        $targetHOW.set_array_type($target, $roleHOW.array_type);
-                    }
-                }
-            }
+            $targetHOW.set_array_type($target, $roleHOW.array_type)
+              if $could_be_arraytype
+              && nqp::can($roleHOW, 'is_array_type')
+              && $roleHOW.is_array_type;
+
+            ++$i;
         }
     }
 
-    Perl6::Metamodel::Configuration.set_role_to_role_applier_type(RoleToRoleApplier);
+    Perl6::Metamodel::Configuration.set_role_to_role_applier_type(
+      RoleToRoleApplier
+    );
 }
 
 # vim: expandtab sw=4

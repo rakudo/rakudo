@@ -195,6 +195,23 @@ my class RoleToRoleApplier {
           'add_private_method'
         ) if nqp::can($targetHOW, 'private_method_table');
 
+        # Helper class to abstract information / logic about a multi candidate
+        class Candidate {
+            has $!role;
+            has $!code;
+
+            method new($role, $code) {
+                my $obj := nqp::create(self);
+                nqp::bindattr($obj, Candidate, '$!role', $role);
+                nqp::bindattr($obj, Candidate, '$!code', $code);
+                $obj
+            }
+
+            method role() { $!role                  }
+            method code() { $!code                  }
+            method name() { $!role.HOW.name($!role) }
+        }
+
         # Compose multi-methods; need to pay attention to the signatures.
         my %multis_by_name;
         my @multi_names;
@@ -239,17 +256,17 @@ my class RoleToRoleApplier {
                             # A multi-method can't conflict with itself.
                             my int $already := 0;
                             for @existing {
-                                if $_[1] =:= $code {
+                                if nqp::eqaddr($_.code, $code) {
                                     $already := 1;
                                     last;
                                 }
                             }
-                            nqp::push(@existing, [$role, $code])
+                            nqp::push(@existing, Candidate.new($role, $code))
                               unless $already;
                         }
                         else {
                             nqp::bindkey(%multis_by_name, $name,
-                              nqp::list([$role, $code])
+                              nqp::list(Candidate.new($role, $code))
                             );
                             nqp::push(@multi_names, $name);
                         }
@@ -276,10 +293,10 @@ my class RoleToRoleApplier {
 
                 my @collisions;
                 for @candidates -> $c2 {
-                    unless $c1[1] =:= $c2[1] {
-                        if Perl6::Metamodel::Configuration.compare_multi_sigs($c1[1], $c2[1]) {
+                    unless nqp::eqaddr($c1.code, $c2.code) {
+                        if Perl6::Metamodel::Configuration.compare_multi_sigs($c1.code, $c2.code) {
                             for ($c1, $c2) {
-                                nqp::push(@collisions, $_[0].HOW.name($_[0]));
+                                nqp::push(@collisions, $_.name);
                             }
                             last;
                         }
@@ -288,9 +305,9 @@ my class RoleToRoleApplier {
 
                 @collisions
                   ?? $targetHOW.add_collision(
-                       $target, $name, @collisions, :multi($c1[1])
+                       $target, $name, @collisions, :multi($c1.code)
                      )
-                  !! $targetHOW.add_multi_method($target, $name, $c1[1]);
+                  !! $targetHOW.add_multi_method($target, $name, $c1.code);
 
                 ++$j;
             }

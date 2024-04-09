@@ -351,10 +351,16 @@ my class RoleToRoleApplier {
         # Pass on any unsatisfied requirements (note that we check for the
         # requirements being met when applying the summation of roles to a
         # class, so we can avoid duplicating that logic here.)
-        for @multis_required_names -> $name {
-            for %multis_required_by_name{$name} {
-                $targetHOW.add_multi_method($target, $name, $_);
-            }
+        $m := nqp::elems(@multis_required_names);
+        $i := 0;
+        while $i < $m {
+            my str $name := nqp::atpos(@multis_required_names, $i);
+
+            $targetHOW.add_multi_methods(
+              $target, $name, nqp::atkey(%multis_required_by_name, $name)
+            );
+
+            ++$i;
         }
 
         my %cur-attrs;
@@ -374,7 +380,6 @@ my class RoleToRoleApplier {
         for @cur_attrs {
             reg-cur-attr($_, $target);
         }
-
 
         # Now do the other bits.
         for @roles -> $r {

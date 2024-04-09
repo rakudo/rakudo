@@ -385,43 +385,30 @@ my class RoleToRoleApplier {
 
             # Helper method to check whether the given attribute conflicts
             # with the invocant's attribute.  Returns 1 if the given attribute
-            # matches, 0 if they don't match and have a different name, or
-            # throws an error if they don't match, but have the same name.
+            # is already registered, or throws an error if they don't match
             method check_conflicts($target, $role, $attribute) {
                 my $registered := $!attribute;
 
-                # We haz a match
-                if nqp::eqaddr(
-                     nqp::decont($registered),
-                     nqp::decont($attribute)
-                   ) || (nqp::eqaddr(
-                     nqp::decont($registered.original),
-                     nqp::decont($attribute.original)
-                   ) && nqp::eqaddr(
-                     nqp::decont($registered.type),
-                     nqp::decont($attribute.type)
-                   )) {
-                    1  # indicate adding not needed
-                }
-
-                # We haz a conflict
-                elsif $registered.name eq $attribute.name {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                      'X::Role::Attribute::Conflicts',
-                      "Attribute '"
-                        ~ $registered.name
-                        ~ "' conflicts in role composition",
-                      :$target,
-                      :attribute($registered),
-                      :from1($!from),
-                      :from2($role)
-                    );
-                }
-
-                # No match and no conflict, need to add
-                else {
-                    0
-                }
+                # Throw an error if no match, or return 1
+                nqp::eqaddr(
+                  nqp::decont($registered),
+                  nqp::decont($attribute)
+                ) || (nqp::eqaddr(
+                  nqp::decont($registered.original),
+                  nqp::decont($attribute.original)
+                ) && nqp::eqaddr(
+                  nqp::decont($registered.type),
+                  nqp::decont($attribute.type)
+                )) || Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::Role::Attribute::Conflicts',
+                        "Attribute '"
+                          ~ $registered.name
+                          ~ "' conflicts in role composition",
+                        :$target,
+                        :attribute($registered),
+                        :from1($!from),
+                        :from2($role)
+                      );
             }
         }
 
@@ -460,6 +447,7 @@ my class RoleToRoleApplier {
                       %current-attributes, $attribute.name
                      ) -> $registered {
 
+                    # If this returns, we already have it
                     $skip := $registered.check_conflicts(
                       $target, $role, $attribute
                     );

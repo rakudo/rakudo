@@ -38,11 +38,41 @@ role Perl6::Metamodel::MultiMethodContainer {
     # generate a proto and so forth. So just queue them up in a todo list and
     # we handle it at class composition time.
     method add_multi_method($XXX, str $name, $code) {
-        nqp::push(@!multi_methods_to_incorporate,
-          MultiToIncorporate.new($name, $code)
-        );
-        nqp::bindkey(%!multi_candidate_names, $name, 1);
+        self.protect({
+            my @methods := nqp::clone(@!multi_methods_to_incorporate);
+            my %names   := nqp::clone(%!multi_candidate_names);
+
+            nqp::push(@methods, MultiToIncorporate.new($name, $code));
+            nqp::bindkey(%names, $name, 1);
+
+            @!multi_methods_to_incorporate := @methods;
+            %!multi_candidate_names        := %names;
+        });
+
         $code
+    }
+
+    # Shortcut method to add multiple multis with the same name in one
+    # fell swoop
+    method add_multi_methods($XXX, str $name, @codes) {
+        self.protect({
+            my @methods := nqp::clone(@!multi_methods_to_incorporate);
+            my %names   := nqp::clone(%!multi_candidate_names);
+
+            my int $m := nqp::elems(@codes);
+            my int $i;
+
+            while $i < $m {
+                nqp::push(@methods,
+                  MultiToIncorporate.new($name, nqp::atpos(@codes, $i))
+                );
+                ++$i;
+            }
+            nqp::bindkey(%names, $name, 1);
+
+            @!multi_methods_to_incorporate := @methods;
+            %!multi_candidate_names        := %names;
+        });
     }
 
     # Gets the multi methods that are to be incorporated.

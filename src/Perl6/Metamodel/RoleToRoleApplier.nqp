@@ -363,22 +363,33 @@ my class RoleToRoleApplier {
             ++$i;
         }
 
-        my %cur-attrs;
 
+        my %current-attributes;
         my class AttrReg {
-            has $!attr;
+            has $!attribute;
             has $!from;
-            method attr() { $!attr }
-            method from() { $!from }
+
+            # Create object *and* store it in hash of current attributes
+            # by name
+            method register($attribute, $from) {
+                my $obj := nqp::create(self);
+
+                nqp::bindattr($obj, AttrReg, '$!attribute', $attribute);
+                nqp::bindattr($obj, AttrReg, '$!from',      $from     );
+
+                nqp::bindkey(%current-attributes, $attribute.name, $obj)
+            }
+
+            method attribute() { $!attribute }
+            method from()      { $!from      }
         }
 
-        sub reg-cur-attr($attr, $from) {
-            %cur-attrs{$attr.name} := AttrReg.new(:$attr, :$from);
-        }
-
-        my @cur_attrs := $targetHOW.attributes($target, :local);
-        for @cur_attrs {
-            reg-cur-attr($_, $target);
+        my @attributes := $targetHOW.attributes($target, :local);
+        $m := nqp::elems(@attributes);
+        $i := 0;
+        while $i < $m {
+            AttrReg.register(nqp::atpos(@attributes, $i), $target);
+            ++$i;
         }
 
         # Now do the other bits.
@@ -392,8 +403,8 @@ my class RoleToRoleApplier {
 
                 if nqp::can($add_attr, 'original') {
                     my $name := $add_attr.name;
-                    if nqp::existskey(%cur-attrs, $name) {
-                        my $cur-attr := %cur-attrs{$name}.attr;
+                    if nqp::existskey(%current-attributes, $name) {
+                        my $cur-attr := %current-attributes{$name}.attribute;
                         if (nqp::decont($cur-attr.original) =:= nqp::decont($add_attr.original)
                             && nqp::decont($cur-attr.type) =:= nqp::decont($add_attr.type))
                             || (nqp::decont($cur-attr) =:= nqp::decont($add_attr))
@@ -407,7 +418,7 @@ my class RoleToRoleApplier {
                                     "Attribute '" ~ $cur-attr.name ~ "' conflicts in role composition",
                                     :$target,
                                     :attribute($cur-attr),
-                                    :from1(%cur-attrs{$name}.from),
+                                    :from1(%current-attributes{$name}.from),
                                     :from2($r)
                                 )
                             }
@@ -417,7 +428,7 @@ my class RoleToRoleApplier {
 
                 unless $skip {
                     $targetHOW.add_attribute($target, $add_attr);
-                    reg-cur-attr($add_attr, $r);
+                    AttrReg.register($add_attr, $r)
                 }
             }
 

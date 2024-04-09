@@ -200,42 +200,66 @@ my class RoleToRoleApplier {
         my @multi_names;
         my %multis_required_by_name;
         my @multis_required_names;
-        for @roles -> $role {
-            my $how := $role.HOW;
-            if nqp::can($how, 'multi_methods_to_incorporate') {
-                for $how.multi_methods_to_incorporate($role) {
-                    my $name := $_.name;
-                    my $to_add := $_.code;
-                    next if nqp::istype($to_add, $submethod_type)
-                            && !($target_pre6e
-                                && $role.HOW.language_revision < 3);
-                    my $yada := 0;
-                    try { $yada := $to_add.yada; }
-                    if $yada {
-                        %multis_required_by_name{$name} := []
-                            unless %multis_required_by_name{$name};
-                        nqp::push(%multis_required_by_name{$name}, $to_add);
-                        nqp::push(@multis_required_names, $name);
-                    }
-                    else {
-                        if %multis_by_name{$name} -> @existing {
+
+        $i := 0;
+        while $i < $m {
+            my $role    := nqp::atpos(@roles, $i);
+            my $roleHOW := $role.HOW;
+            my int $with_submethods := $target_pre6e 
+              && (nqp::can($roleHOW, 'language_revision')
+                   ?? $roleHOW.language_revision < 3
+                   !! 1
+                 );
+
+            if nqp::can($roleHOW, 'multi_methods_to_incorporate') {
+                my @multis := $roleHOW.multi_methods_to_incorporate($role);
+
+                my int $n := nqp::elems(@multis);
+                my int $j;
+                while $j < $n {
+                    my     $multi := nqp::atpos(@multis, $j);
+                    my str $name  := $multi.name;
+                    my     $code  := $multi.code;
+                    if $with_submethods
+                      || nqp::not_i(nqp::istype($code, $submethod_type)) {
+
+                        if nqp::can($code, 'yada') && $code.yada {
+                            nqp::push(
+                              nqp::ifnull(
+                                nqp::atkey(%multis_required_by_name, $name),
+                                nqp::bindkey(
+                                  %multis_required_by_name, $name, nqp::list
+                                )
+                              ),
+                              $code
+                            );
+                            nqp::push(@multis_required_names, $name);
+                        }
+                        elsif nqp::atkey(%multis_by_name, $name) -> @existing {
                             # A multi-method can't conflict with itself.
                             my int $already := 0;
                             for @existing {
-                                if $_[1] =:= $to_add {
+                                if $_[1] =:= $code {
                                     $already := 1;
                                     last;
                                 }
                             }
-                            nqp::push(@existing, [$role, $to_add]) unless $already;
+                            nqp::push(@existing, [$role, $code])
+                              unless $already;
                         }
                         else {
-                            %multis_by_name{$name} := [[$role, $to_add],];
+                            nqp::bindkey(%multis_by_name, $name,
+                              nqp::list([$role, $code])
+                            );
                             nqp::push(@multi_names, $name);
                         }
+
+                        ++$j;
                     }
                 }
             }
+
+            ++$i;
         }
 
         # Look for conflicts, and compose non-conflicting.

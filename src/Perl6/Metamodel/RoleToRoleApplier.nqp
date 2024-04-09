@@ -196,7 +196,7 @@ my class RoleToRoleApplier {
         ) if nqp::can($targetHOW, 'private_method_table');
 
         # Helper class to abstract information / logic about a multi candidate
-        class Candidate {
+        my class Candidate {
             has $!role;
             has $!code;
 
@@ -210,6 +210,54 @@ my class RoleToRoleApplier {
             method role() { $!role                  }
             method code() { $!code                  }
             method name() { $!role.HOW.name($!role) }
+
+            # Helper method to check for (signature) collisions.  Returns
+            # a list of 2 roles with a collision, or nqp::null if no
+            # collisions were detected.  Takes the index to start checking
+            # from to prevent a <-> b  b <-> a checks.
+            method collisions(@candidates, int $i) {
+
+                if (my int $m := nqp::elems(@candidates)) {
+                    my $code := $!code;
+
+                    # initial index is same as invocant, so skip it to prevent
+                    # a false positive in collision detection
+                    ++$i;
+
+                    while $i < $m {
+                        my $other := nqp::atpos(@candidates, $i);
+
+                        nqp::not_i(nqp::eqaddr($code, $other.code))
+                          && Perl6::Metamodel::Configuration.compare_multi_sigs(
+                               $code, $other.code
+                             )
+                          ?? (return nqp::list(self.name, $other.name))
+                          !! ++$i;
+                    }
+                }
+
+                nqp::null
+            }
+
+            # Push the invocant on the given list if there is no instance
+            # on it with the same code object.  Returns 1 if the instance
+            # was added as the first entry, 0 otherwise
+            method push_if_unique(@existing) {
+                if (my int $m := nqp::elems(@existing)) {
+                    my $code := $!code;
+                    my int $i;
+
+                    while $i < $m {
+                        nqp::eqaddr($code, nqp::atpos(@existing, $i).code)
+                          ?? (return 0)
+                          !! ++$i;
+                    }
+                }
+
+                # Empty or not found, so add and return indicating so
+                nqp::push(@existing, self);
+                nqp::elems(@existing) == 1
+            }
         }
 
         # Compose multi-methods; need to pay attention to the signatures.
@@ -237,6 +285,7 @@ my class RoleToRoleApplier {
                     my     $multi := nqp::atpos(@multis, $j);
                     my str $name  := $multi.name;
                     my     $code  := $multi.code;
+
                     if $with_submethods
                       || nqp::not_i(nqp::istype($code, $submethod_type)) {
 
@@ -252,27 +301,21 @@ my class RoleToRoleApplier {
                             );
                             nqp::push(@multis_required_names, $name);
                         }
-                        elsif nqp::atkey(%multis_by_name, $name) -> @existing {
-                            # A multi-method can't conflict with itself.
-                            my int $already := 0;
-                            for @existing {
-                                if nqp::eqaddr($_.code, $code) {
-                                    $already := 1;
-                                    last;
-                                }
-                            }
-                            nqp::push(@existing, Candidate.new($role, $code))
-                              unless $already;
-                        }
                         else {
-                            nqp::bindkey(%multis_by_name, $name,
-                              nqp::list(Candidate.new($role, $code))
-                            );
-                            nqp::push(@multi_names, $name);
+                            nqp::push(@multi_names, $name)
+                              if Candidate.new($role, $code).push_if_unique(
+                                   nqp::ifnull(
+                                     nqp::atkey(%multis_by_name, $name),
+                                     nqp::bindkey(
+                                       %multis_by_name, $name, nqp::list
+                                     )
+                                   )
+                                 );
                         }
 
-                        ++$j;
                     }
+
+                    ++$j;
                 }
             }
 
@@ -289,25 +332,15 @@ my class RoleToRoleApplier {
             my int $n := nqp::elems(@candidates);
             my int $j;
             while $j < $n {
-                my $c1 := nqp::atpos(@candidates, $j);
+                my $candidate := nqp::atpos(@candidates, $j);
 
-                my @collisions;
-                for @candidates -> $c2 {
-                    unless nqp::eqaddr($c1.code, $c2.code) {
-                        if Perl6::Metamodel::Configuration.compare_multi_sigs($c1.code, $c2.code) {
-                            for ($c1, $c2) {
-                                nqp::push(@collisions, $_.name);
-                            }
-                            last;
-                        }
-                    }
-                }
-
-                @collisions
-                  ?? $targetHOW.add_collision(
-                       $target, $name, @collisions, :multi($c1.code)
-                     )
-                  !! $targetHOW.add_multi_method($target, $name, $c1.code);
+                nqp::isnull(
+                  my @collisions := $candidate.collisions(@candidates, $j)
+                ) ?? $targetHOW.add_multi_method(
+                       $target, $name, $candidate.code)
+                  !! $targetHOW.add_collision(
+                       $target, $name, @collisions, :multi($candidate.code)
+                     );
 
                 ++$j;
             }

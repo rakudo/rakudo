@@ -120,6 +120,14 @@ role Perl6::Metamodel::MultiMethodContainer {
                 }
 
                 else {
+
+                    # Helper sub to add proto and a dispatchee
+                    sub add_proto_and_dispatchee($proto, $dispatchee) {
+                        $proto.add_dispatchee($dispatchee);
+                        self.add_method($target, $name, $proto);
+                        nqp::push(@new_protos, $proto);
+                    }
+
                     my int $found;
                     unless $is_submethod {
                         # Go hunting in the MRO for a method proto. Note that
@@ -130,21 +138,18 @@ role Perl6::Metamodel::MultiMethodContainer {
                         my int $j := 1;  # intentionally skip first
                         while $j < $n && nqp::not_i($found) {
                             my $parent  := nqp::atpos(@mro, $j);
-                            my %methods := $parent.HOW."$method_table"($parent);
+                            my %methods := $parent.HOW.method_table($parent);
 
                             if nqp::existskey(%methods, $name) {
                                 # Found a possible - make sure it's a
                                 # dispatcher, not an only.
                                 my $dispatcher := nqp::atkey(%methods, $name);
-                                if $dispatcher.is_dispatcher {
-                                    # Clone it and install it in our method
-                                    # table.
-                                    my $copy := $dispatcher.derive_dispatcher;
-                                    $copy.add_dispatchee($code);
-                                    self.add_method($target, $name, $copy);
-                                    nqp::push(@new_protos, $copy);
-                                    $found := 1;
-                                }
+
+                                # Clone it and install it in our method
+                                # table.
+                                add_proto_and_dispatchee(
+                                  $dispatcher.derive_dispatcher, $code
+                                ) if $found := $dispatcher.is_dispatcher;
                             }
                             ++$j;
                         }
@@ -159,9 +164,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                               nqp::hash('T', $target)
                             );
                             $proto.set_name($name);
-                            $proto.add_dispatchee($code);
-                            self.add_method($target, $name, $proto);
-                            nqp::push(@new_protos, $proto);
+                            add_proto_and_dispatchee($proto, $code);
                         }
 
                         # No proto found, so we'll generate one here.

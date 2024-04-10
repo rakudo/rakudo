@@ -184,21 +184,25 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
         }
     }
+
     method merge_globals_lexically($world, $target, $source) {
         if stash_hash($source) -> %source {
+
+            # Set up known symbols for this target
+            my %known_symbols;
+            my $iter := nqp::iterator(stash_hash($target.symtable));
+            nqp::while(
+              $iter,
+              nqp::bindkey(
+                %known_symbols,
+                nqp::iterkey_s(nqp::shift($iter)),
+                nqp::atkey(nqp::iterval($iter), 'value')
+              )
+            );
+
             # Start off merging top-level symbols. Easy when there's no
             # overlap. Otherwise, we need to recurse.
             for sorted_keys(%source) -> $sym {
-                my %known_symbols;
-                my $iter := nqp::iterator(stash_hash($target.symtable));
-                nqp::while(
-                  $iter,
-                  nqp::bindkey(
-                    %known_symbols,
-                    nqp::iterkey_s(nqp::shift($iter)),
-                    nqp::iterval($iter)<value>
-                  )
-                );
                 my $value := %source{$sym};
                 my $outer := 0;
                 if nqp::not_i(nqp::existskey(%known_symbols, $sym)) {

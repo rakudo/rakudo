@@ -327,26 +327,36 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         $setting
     }
 
-    # Handles any object repossession conflicts that occurred during module load,
-    # or complains about any that cannot be resolved.
+    # Handles any object repossession conflicts that occurred during module
+    # load, or complains about any that cannot be resolved.
     method resolve_repossession_conflicts(@conflicts) {
-        for @conflicts -> $orig, $current {
-            # If it's a Stash in conflict, we make sure any original entries get
-            # appropriately copied.
-            if $orig.HOW.name($orig) eq 'Stash' {
-                for $orig.FLATTENABLE_HASH() {
-                    if !nqp::existskey($current, $_.key) || nqp::eqat($_.key, '&', 0) {
-                        $current{$_.key} := $_.value;
-                    }
+        my int $m := nqp::elems(@conflicts);
+        my int $i;
+        while $i < $m {
+            my $original := nqp::atpos(@conflicts, $i);
+
+            # If it's a Stash in conflict, we make sure any original entries
+            # get appropriately copied.
+            if $original.HOW.name($original) eq 'Stash' {  # XXX typecheck??
+                my %current := nqp::atpos(@conflicts, $i + 1);
+
+                for $original.FLATTENABLE_HASH {
+                    my str $key := $_.key;
+
+                    nqp::bindkey(%current, $key, $_.value)
+                      if nqp::eqat($key, '&', 0);
+                      || nqp::not_i(nqp::existskey(%current, $key))
                 }
             }
             # We could complain about anything else, and may in the future; for
             # now, we let it pass by with "latest wins" semantics.
+
+            $i := $i + 2;
         }
     }
 
     sub stash_hash($pkg) {
-        nqp::ishash($pkg) ?? $pkg !! $pkg.FLATTENABLE_HASH()
+        nqp::ishash($pkg) ?? $pkg !! $pkg.FLATTENABLE_HASH
     }
 }
 

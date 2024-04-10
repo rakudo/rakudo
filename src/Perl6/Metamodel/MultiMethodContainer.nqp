@@ -1,4 +1,5 @@
 #- Metamodel::MultiMethodContainer ---------------------------------------------
+# All the logic related to multi methods
 role Perl6::Metamodel::MultiMethodContainer {
     # Set of multi-methods to incorporate. Not just the method handles;
     # each is a hash containing keys name and body.
@@ -85,6 +86,11 @@ role Perl6::Metamodel::MultiMethodContainer {
         my $submethod_type :=
           Perl6::Metamodel::Configuration.submethod_type;
 
+        my @method_table := nqp::list(
+          self.method_table(   $target),
+          self.submethod_table($target)
+        );
+
         self.protect({
             my @methods := @!multi_methods_to_incorporate;
             my @new_protos;
@@ -95,16 +101,15 @@ role Perl6::Metamodel::MultiMethodContainer {
                 my $method := nqp::atpos(@methods, $i);
 
                 # Get method name and code.
-                my str $name          := $method.name;
-                my     $code          := $method.code;
-                my int $is_submethod  := nqp::istype($code, $submethod_type);
+                my str $name := $method.name;
+                my     $code := $method.code;
+
+                # Get type of method flag and appropriate lookup table
+                my int $is_submethod := nqp::istype($code, $submethod_type);
+                my %methods := nqp::atpos(@method_table, $is_submethod);
 
                 # Do we have anything in the methods table already in
                 # this class?
-                my $method_table  := $is_submethod
-                                        ?? 'submethod_table'
-                                        !! 'method_table';
-                my %methods := nqp::hllize(self."$method_table"($target));
                 if nqp::existskey(%methods, $name) {
                     # Yes. Only or dispatcher, though? If only, error. If
                     # dispatcher, simply add new dispatchee.
@@ -124,14 +129,23 @@ role Perl6::Metamodel::MultiMethodContainer {
                     # Helper sub to add proto and a dispatchee
                     sub add_proto_and_dispatchee($proto, $dispatchee) {
                         $proto.add_dispatchee($dispatchee);
-                        self.add_method($target, $name, $proto);
+
+                        # Add method and update appropriate local version as
+                        # well
+                        nqp::bindpos(
+                          @method_table,
+                          $is_submethod,
+                          self.add_method($target, $name, $proto)
+                        );
                         nqp::push(@new_protos, $proto);
                     }
 
-                    my int $found;
+                    my int $found; # flag, whether a dispatcher was found
+
+                    # Submethods don't chase their MROs
                     unless $is_submethod {
-                        # Go hunting in the MRO for a method proto. Note that
-                        # we don't traverse MRO for submethods.
+
+                        # Go hunting in the MRO for a method proto
                         my @mro := self.mro($target);
 
                         my int $n := nqp::elems(@mro);
@@ -154,6 +168,8 @@ role Perl6::Metamodel::MultiMethodContainer {
                             ++$j;
                         }
                     }
+
+                    # Did not find a dispatcher, need to add one
                     unless $found {
                         my $autogen_proto := nqp::atpos(
                           @autogen_proto, $is_submethod
@@ -178,6 +194,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                     }
                 }
 
+                # Process any "handles <foo bar>"
                 $code.apply_handles($target)
                   if nqp::can($code, 'apply_handles')
                   && nqp::can(self, 'find_method_fallback');
@@ -185,6 +202,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                 ++$i;
             }
 
+            # Make sure any new protos have their dispatchees sorted
             $m := nqp::elems(@new_protos);
             $i := 0;
             while $i < $m {

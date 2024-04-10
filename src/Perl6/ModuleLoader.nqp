@@ -186,7 +186,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 
     method merge_globals_lexically($world, $target, $source) {
-        if stash_hash($source) -> %source {
+        my %source := stash_hash($source);
+
+        if (my int $m := nqp::elems(%source)) {
 
             # Set up known symbols for this target
             my %known_symbols;
@@ -202,47 +204,75 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
             # Start off merging top-level symbols. Easy when there's no
             # overlap. Otherwise, we need to recurse.
-            for sorted_keys(%source) -> $sym {
-                my $value := %source{$sym};
-                my $outer := 0;
-                if nqp::not_i(nqp::existskey(%known_symbols, $sym)) {
+            my @keys := sorted_keys(%source);
+            my int $i;
+            while $i < $m {
+                my str $symbol := nqp::atpos_s(@keys, $i);
+                my     $value  := nqp::atkey(%source, $symbol);
+                my int $outer;
+
+                unless nqp::existskey(%known_symbols, $symbol) {
                     try {
-                        %known_symbols{$sym} := $world.find_single_symbol($sym);
+                        nqp::bindkey(
+                          %known_symbols,
+                          $symbol,
+                          $world.find_single_symbol($symbol)
+                        );
                         $outer := 1;
                     }
                 }
-                if nqp::not_i(nqp::existskey(%known_symbols, $sym)) {
-                    $target.symbol($sym, :scope<lexical>, :$value);
-                    $target[0].push(QAST::Var.new(
-                      :scope<lexical>, :name($sym), :decl<static>, :$value
-                    ));
-                    $world.add_object_if_no_sc($value);
-                }
-                elsif nqp::decont(my $known_sym := %known_symbols{$sym}) =:=
-                  nqp::decont($value) { # Stash entries are containerized
+
+                # We have a potential collision
+                if nqp::existskey(%known_symbols, $symbol) {
+                    my $existing := nqp::atkey(%known_symbols, $symbol);
+
                     # No problemo; a symbol can't conflict with itself.
-                }
-                elsif is_HOW_stub($value) {
+                    if nqp::eqaddr(
+                         nqp::decont($existing),
+                         nqp::decont($value)
+                       ) {
+                    }
+
                     # Since the source is a stub, it doesn't matter whether
                     # the target is also a stub or not.  In either case,
                     # it is fine to merge source symbols into target.
-                    self.merge_globals($known_sym.WHO, $value.WHO);
-                }
-                elsif is_HOW_stub($known_sym) {
+                    elsif is_HOW_stub($value) {
+                        self.merge_globals($existing.WHO, $value.WHO);
+                    }
+
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($value.WHO, $known_sym.WHO);
-                    $target.symbol($sym, :scope<lexical>, :$value);
-                }
-                elsif $outer || nqp::eqat($sym, '&', 0) {
+                    elsif is_HOW_stub($existing) {
+                        self.merge_globals($value.WHO, $existing.WHO);
+                        $target.symbol($symbol, :scope<lexical>, :$value);
+                    }
+
                     # ok to overwrite non-stub symbols of outer lexical scopes
                     # or "latest wins" semantics for functions
-                    $target.symbol($sym, :scope<lexical>, :$value);
+                    elsif $outer || nqp::eqat($symbol, '&', 0) {
+                        $target.symbol($symbol, :scope<lexical>, :$value);
+                    }
+
+                    # Alas
+                    else {
+                        nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $symbol");
+                    }
                 }
+
+                # Not known yet, add it
                 else {
-                    nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    $target.symbol($symbol, :scope<lexical>, :$value);
+                    nqp::push(
+                      nqp::atpos($target, 0),
+                      QAST::Var.new(:name($symbol),
+                        :scope<lexical>, :decl<static>, :$value
+                     )
+                    );
+                    $world.add_object_if_no_sc($value);
                 }
+
+                ++$i;
             }
         }
     }

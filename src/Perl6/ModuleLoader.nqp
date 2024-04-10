@@ -136,51 +136,87 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
          my str $name  := $targetHOW.HOW.name($targetHOW);
          $name eq $raku_stub_how_name || $name eq $nqp_stub_how_name
     }
+
+    my $stash_type := nqp::null;
     method merge_globals($target, $source) {
-        my $metamodel-configuration := nqp::gethllsym('Raku', 'METAMODEL_CONFIGURATION');
-        if !nqp::isnull($metamodel-configuration) && nqp::istype($target, $metamodel-configuration.stash_type()) {
-            # merge-symbols will loop back on this method again, but would lock-protect itself first.
+
+        # Try to get the type for HLL stashes, unless we have that already
+        if nqp::isnull($stash_type) {
+            my $config := nqp::gethllsym('Raku', 'METAMODEL_CONFIGURATION');
+            $stash_type := $config.stash_type unless nqp::isnull($config);
+        }
+
+#?if !moar
+        if !nqp::isnull($stash_type) && nqp::istype($target, $stash_type) {
+#?endif
+#?if moar
+        if nqp::istype($target, $stash_type) {
+#?endif
+            # merge-symbols will loop back on this method again, but would
+            # lock-protect itself first.
             $target.merge-symbols($source);
         }
+
+        # There's something to be merged with a hash
         elsif stash_hash($source) -> %source {
+
+            # Create lookup of original target state, and create
+            # sorted list of symbols so that builds will be consistent
+            my %known_symbols := nqp::clone(stash_hash($target));
+            my @keys          := sorted_keys(%source);
+
             # Start off merging top-level symbols. Easy when there's no
             # overlap. Otherwise, we need to recurse.
-            my %known_symbols;
-            my $iter := nqp::iterator(stash_hash($target));
-            nqp::while(
-              $iter,
-              nqp::bindkey(%known_symbols,nqp::iterkey_s(nqp::shift($iter)),1)
-            );
-            for sorted_keys(%source) -> $sym {
-                my $value := %source{$sym};
-                if nqp::not_i(%known_symbols{$sym}) {
-                    $target{$sym} := $value;
-                }
-                elsif nqp::decont(my $target_sym := $target{$sym}) =:=
-                  nqp::decont($value) { # Stash entries are containerized
-                    # No problemo; a symbol can't conflict with itself.
-                }
-                elsif is_HOW_stub($value) {
+            my int $m := nqp::elems(@keys);
+            my int $i;
+            while $i < $m {
+                my str $symbol := nqp::atpos_s(@keys, $i);
+                my     $value  := nqp::atkey(%source, $symbol);
+
+                # A potential conflict
+                if nqp::existskey(%known_symbols, $symbol) {
+                    my $existing := nqp::atkey($target, $symbol);
+
+                    # Merging identity
+                    if nqp::eqaddr(
+                         nqp::decont($existing),
+                         nqp::decont($value)  # Stash entries are containerized
+                       ) {
+                        # No problemo; a symbol can't conflict with itself.
+                    }
+
                     # Since the source is a stub, it doesn't matter whether
                     # the target is also a stub or not.  In either case,
                     # it is fine to merge source symbols into target.
-                    self.merge_globals($target_sym.WHO, $value.WHO);
-                }
-                elsif is_HOW_stub($target_sym) {
+                    elsif is_HOW_stub($value) {
+                        self.merge_globals($existing.WHO, $value.WHO);
+                    }
+
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($value.WHO, $target_sym.WHO);
-                    $target{$sym} := $value;
-                }
-                elsif nqp::eqat($sym, '&', 0) {
-                    # "Latest wins" semantics for functions
-                    $target{$sym} := $value;
-                }
-                else {
+                    elsif is_HOW_stub($existing) {
+                        self.merge_globals($value.WHO, $existing.WHO);
+                        nqp::bindkey($target, $symbol, $value);
+                    }
+
+                    # "Latest wins" semantics for subroutines
+                    elsif nqp::eqat($symbol, '&', 0) {
+                        nqp::bindkey($target, $symbol, $value);
+                    }
+
                     # Potentially do other conflict resolution in the future
-                    nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    else {
+                        nqp::die("Merging GLOBAL symbols failed: duplicate definition of symbol $symbol");
+                    }
                 }
+
+                # Does not exist, so can be added
+                else {
+                    nqp::bindkey($target, $symbol, $value);
+                }
+
+                ++$i;
             }
         }
     }

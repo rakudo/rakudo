@@ -36,8 +36,9 @@ role Perl6::Metamodel::MethodContainer {
             !! '%!methods';
 
         # Add to correct table depending on if it's a Submethod.
+        my %table;
         self.protect({
-            my %table := nqp::clone(nqp::getattr(self, $?CLASS, $attr_name));
+            %table := nqp::clone(nqp::getattr(self, $?CLASS, $attr_name));
             nqp::bindkey(%table, $name, $code);
             nqp::bindattr(self, $?CLASS, $attr_name, %table);
         });
@@ -72,6 +73,9 @@ role Perl6::Metamodel::MethodContainer {
 
         nqp::push(@!method_order, $code);
         nqp::push(@!method_names, $name);
+
+        # Return updated (sub)method table
+        %table
     }
 
     # Gets the method hierarchy.

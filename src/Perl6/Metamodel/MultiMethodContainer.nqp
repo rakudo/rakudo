@@ -6,13 +6,11 @@ role Perl6::Metamodel::MultiMethodContainer {
     has %!multi_candidate_names;
 
     # The proto we'll clone.
-    my $autogen_method_proto;
-    my $autogen_submethod_proto;
+    my @autogen_proto := nqp::list;
 
     # Sets the proto we'll auto-gen based on.
     method set_autogen_proto($method_proto, $submethod_proto) {
-        $autogen_method_proto    := $method_proto;
-        $autogen_submethod_proto := $submethod_proto;
+        @autogen_proto := nqp::list($method_proto, $submethod_proto);
     }
 
     # Represents a multi candidate to incorporate.
@@ -152,24 +150,28 @@ role Perl6::Metamodel::MultiMethodContainer {
                         }
                     }
                     unless $found {
-                        my $autogen_proto := $is_submethod
-                          ?? $autogen_submethod_proto
-                          !! $autogen_method_proto;
+                        my $autogen_proto := nqp::atpos(
+                          @autogen_proto, $is_submethod
+                        );
+
+                        if $autogen_proto {
+                            my $proto := $autogen_proto.instantiate_generic(
+                              nqp::hash('T', $target)
+                            );
+                            $proto.set_name($name);
+                            $proto.add_dispatchee($code);
+                            self.add_method($target, $name, $proto);
+                            nqp::push(@new_protos, $proto);
+                        }
 
                         # No proto found, so we'll generate one here.
-                        nqp::die(
-                          "Cannot auto-generate a proto method for '"
-                          ~ $name
-                          ~ "' in the setting"
-                        ) unless $autogen_proto;
-
-                        my $proto := $autogen_proto.instantiate_generic(
-                          nqp::hash('T', $target)
-                        );
-                        $proto.set_name($name);
-                        $proto.add_dispatchee($code);
-                        self.add_method($target, $name, $proto);
-                        nqp::push(@new_protos, $proto);
+                        else {
+                            nqp::die(
+                              "Cannot auto-generate a proto method for '"
+                              ~ $name
+                              ~ "' in the setting"
+                            );
+                        }
                     }
                 }
 

@@ -839,6 +839,17 @@ class RakuAST::Parameter
         if $is-generic && $is-coercive && !$was-slurpy && !($param-type =:= Mu) && !self.invocant {
             $!owner.set-custom-args;
         }
+
+        my $sigil := $!target.sigil;
+        if self.meta-object.is-item && ($sigil eq '$' || $sigil eq '&') {
+            self.add-sorry:
+                $resolver.build-exception:  'X::Comp::Trait::Invalid',
+                                            name        => $!target.name,
+                                            reason      => "only '\@' or '\%' sigiled parameters can be constrained to itemized arguments",
+                                            declaring   => 'parameter',
+                                            type        => 'is',
+                                            subtype     => 'item';
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

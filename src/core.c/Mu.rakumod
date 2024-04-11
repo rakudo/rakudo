@@ -164,7 +164,7 @@ my class Mu { # declared in BOOTSTRAP
           nqp::islt_i(++$i,$count),
 
           nqp::if(
-            nqp::istype((my $task := nqp::atpos($bp,$i)),Callable),
+            nqp::isinvokable(my $task := nqp::atpos($bp,$i)),
             nqp::if(                             # BUILD/TWEAK
               nqp::istype(
                 (my $build := nqp::if(
@@ -487,7 +487,7 @@ my class Mu { # declared in BOOTSTRAP
           nqp::islt_i(++$i,$count),
 
           nqp::if(
-            nqp::istype((my $task := nqp::atpos($bp,$i)),Callable),
+            nqp::isinvokable(my $task := nqp::atpos($bp,$i)),
             nqp::if(                             # BUILD/TWEAK
               nqp::istype(
                 (my $build := nqp::if(

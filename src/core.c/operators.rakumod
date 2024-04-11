@@ -277,7 +277,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
 }
 
 sub REQUIRE_IMPORT(
-  $compunit, $existing-path,$top-existing-pkg,$stubname, *@syms --> Nil
+  $compunit, $existing-path, $top-existing-pkg, $stubname, $scalar is raw, $name-parts, *@syms --> Nil
 ) is implementation-detail {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
@@ -316,6 +316,15 @@ sub REQUIRE_IMPORT(
         $sourceWHO := $GLOBALish.AT-KEY($stubname).WHO;
         $targetWHO.merge-symbols($sourceWHO);
     }
+
+    if nqp::isconcrete_nd($scalar) {
+        my $cur-source := $GLOBALish.AT-KEY($name-parts[0]);
+        for $name-parts[1..*] {
+            $cur-source := $cur-source.WHO.AT-KEY($_);
+        }
+        $scalar = $cur-source;
+    }
+
     # Set the runtime values for compile time stub symbols
     for @syms {
         unless $DEFAULT.EXISTS-KEY($_) {
@@ -324,6 +333,7 @@ sub REQUIRE_IMPORT(
         }
         $block{$_} := $DEFAULT{$_};
     }
+
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }

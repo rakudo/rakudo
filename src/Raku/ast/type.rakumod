@@ -515,7 +515,7 @@ class RakuAST::Type::Enum
     method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
         RakuAST::VarDeclaration::Implicit::Constant.new:
             :name($name),
-            :value($type-object),
+            :value(nqp::eqaddr($type-object, Mu) ?? self.stubbed-meta-object !! $type-object),
             :scope(self.scope);
     }
 
@@ -610,7 +610,7 @@ class RakuAST::Type::Enum
         my $anonymous := !$!name.canonicalize;
         if !$anonymous {
             self.IMPL-INSTALL-PACKAGE(
-                $resolver, self.scope, $!name, $meta, $!current-package
+                $resolver, self.scope, $!name, $!current-package, :meta-object(Mu)
             );
         }
 
@@ -756,7 +756,7 @@ class RakuAST::Type::Subset
     method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
         RakuAST::VarDeclaration::Implicit::Constant.new:
             :name($name),
-            :value($type-object),
+            :value(nqp::eqaddr($type-object, Mu) ?? self.stubbed-meta-object !! $type-object),
             :scope(self.scope);
     }
 
@@ -813,7 +813,7 @@ class RakuAST::Type::Subset
         nqp::bindattr_s($type.WHO, Stash, '$!longname', $type.HOW.name($type));
 
         self.IMPL-INSTALL-PACKAGE(
-          $resolver, self.scope, $!name, $type, $package
+          $resolver, self.scope, $!name, $package, :meta-object(Mu)
         );
     }
 

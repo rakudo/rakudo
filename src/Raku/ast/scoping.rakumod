@@ -609,7 +609,7 @@ class RakuAST::Declaration::LexicalPackage
     has Mu $.compile-time-value;
     has RakuAST::Package $.package;
 
-    method new(str :$lexical-name!, Mu :$compile-time-value!, RakuAST::Package :$package!) {
+    method new(str :$lexical-name!, Mu :$compile-time-value! is raw, RakuAST::Package :$package!) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::LexicalPackage,
             '$!lexical-name', $lexical-name);
@@ -620,7 +620,7 @@ class RakuAST::Declaration::LexicalPackage
         $obj
     }
 
-    method set-value(Mu $compile-time-value) {
+    method set-value(Mu $compile-time-value is raw) {
         nqp::bindattr(self, RakuAST::Declaration::LexicalPackage,
             '$!compile-time-value', $compile-time-value);
     }
@@ -655,7 +655,7 @@ class RakuAST::Declaration::ResolvedConstant
 {
     has Mu $.compile-time-value;
 
-    method new(Mu :$compile-time-value!) {
+    method new(Mu :$compile-time-value! is raw) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Declaration::ResolvedConstant,
             '$!compile-time-value', $compile-time-value);
@@ -785,13 +785,14 @@ class RakuAST::PackageInstaller {
         RakuAST::Resolver $resolver,
         str $scope,
         RakuAST::Name $name,
-        Mu $type-object,
         RakuAST::Package $current-package,
-        Bool :$no-lexical
+        Bool :$no-lexical,
+        Mu :$meta-object
      ) {
         my $target;
         my $final;
         my $lexical;
+        my $type-object := nqp::eqaddr($meta-object, Mu) ?? self.stubbed-meta-object !! $meta-object;
         my $pure-package-installation := nqp::istype(self, RakuAST::Package);
 
         my $illegal-pseudo-package := $name.contains-pseudo-package-illegal-for-declaration;
@@ -808,7 +809,7 @@ class RakuAST::PackageInstaller {
                 if $pure-package-installation || !$lexical {
                     $resolver.current-scope.merge-generated-lexical-declaration:
                         :$resolver,
-                        self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $type-object);
+                        self.IMPL-GENERATE-LEXICAL-DECLARATION($final, $meta-object);
                 }
             }
             # If `our`-scoped, also put it into the current package.

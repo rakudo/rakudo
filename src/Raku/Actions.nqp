@@ -795,10 +795,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement-control:sym<require>($/) {
-        self.attach: $/, Nodify('Statement', 'Require').new(
+        my $ast := Nodify('Statement', 'Require').new(
             module-name => $<module-name>.ast,
             argument => $<EXPR> ?? $<EXPR>.ast !! Nodify('Expression'),
         );
+        $ast.ensure-begin-performed($*R, $*CU.context);
+        self.attach: $/, $ast;
     }
 
 #-------------------------------------------------------------------------------

@@ -2360,6 +2360,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $require_past.push($existing_path);
         $require_past.push($top-existing);
         $require_past.push($lexical_stub // $world.symbol_lookup(['Any'], $/));
+        $require_past.push(QAST::Var.new( :name<Any>, :scope<lexical> ));
+        $require_past.push(QAST::Var.new( :name<Any>, :scope<lexical> ));
 
         if $<EXPR> {
             my $p6_argiter   := $world.compile_time_evaluate($/, WANTED($<EXPR>.ast,'require')).eager.iterator;

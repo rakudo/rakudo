@@ -25,6 +25,7 @@ class RakuAST::Package
 
     has Mu   $!block-semantics-applied;
     has Bool $.is-stub;
+    has Bool $.is-require-stub;
 
     method new(          str :$scope,
                RakuAST::Name :$name,
@@ -35,6 +36,7 @@ class RakuAST::Package
                           Mu :$how,
                          Str :$repr,
                         Bool :$augmented,
+                        Bool :$is-require-stub,
     RakuAST::Doc::Declarator :$WHY
     ) {
         my $obj := nqp::create(self);
@@ -46,6 +48,7 @@ class RakuAST::Package
           nqp::eqaddr($how,NQPMu) ?? $obj.default-how !! $how);
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!augmented',$augmented // False);
+        nqp::bindattr($obj, RakuAST::Package, '$!is-require-stub',$is-require-stub // False);
 
         $obj.set-traits($traits) if $traits;
         $obj.replace-body($body, $parameterization);
@@ -122,10 +125,12 @@ class RakuAST::Package
     }
 
     method IMPL-GENERATE-LEXICAL-DECLARATION(RakuAST::Name $name, Mu $type-object) {
-        RakuAST::Declaration::LexicalPackage.new:
+        $type-object := self.stubbed-meta-object if nqp::eqaddr($type-object, Mu);
+        my $package := RakuAST::Declaration::LexicalPackage.new:
             :lexical-name($name),
             :compile-time-value($type-object),
             :package(self);
+        $package
     }
 
     method PERFORM-BEGIN(
@@ -161,9 +166,7 @@ class RakuAST::Package
             nqp::bindattr_s($type-object.WHO, Stash, '$!longname',
               $type-object.HOW.name($type-object));
 
-            self.install-in-scope(
-              $resolver, $scope, $name, $full-name, $type-object
-            );
+            self.install-in-scope($resolver, $scope, $name, $full-name);
         }
 
         # TODO split off the above into a pre-begin handler, so the enter-scope
@@ -178,9 +181,9 @@ class RakuAST::Package
     }
 
     # Need to install the package somewhere
-    method install-in-scope($resolver,$scope,$name,$full-name,$type-object) {
+    method install-in-scope($resolver,$scope,$name,$full-name) {
         self.IMPL-INSTALL-PACKAGE(
-          $resolver, $scope, $name, $type-object, $resolver.current-package
+          $resolver, $scope, $name, $resolver.current-package, :meta-object(Mu)
         ) if $scope eq 'my' || $scope eq 'our';
     }
 
@@ -228,7 +231,15 @@ class RakuAST::Package
                     %options{$_.key} := $_.simple-compile-time-quote-value;
                 }
             }
-            $!how.new_type(|%options)
+            my $meta-object := $!how.new_type(|%options);
+            if $!is-require-stub {
+                my $cont := nqp::create(Scalar);
+                nqp::bindattr($cont, Scalar, '$!value', $meta-object);
+                my $cont-desc := ContainerDescriptor::Untyped.new(:of(Mu), :default(Mu), :!dynamic);
+                nqp::bindattr($cont, Scalar, '$!descriptor', $cont-desc);
+                $meta-object := $cont;
+            }
+            $meta-object
         }
     }
 
@@ -451,7 +462,7 @@ class RakuAST::Role
         }
     }
 
-    method install-in-scope($resolver,$scope,$name,$full-name,$type-object) {
+    method install-in-scope($resolver,$scope,$name,$full-name) {
         # Find an appropriate existing role group
         my $group-name := $full-name.canonicalize(:colonpairs(0));
         my $group      := $resolver.resolve-lexical-constant($group-name);
@@ -474,11 +485,12 @@ class RakuAST::Role
             );
 
             self.IMPL-INSTALL-PACKAGE(
-              $resolver, $scope, $name, $group, $resolver.current-package,
-              :no-lexical
+              $resolver, $scope, $name, $resolver.current-package,
+              :no-lexical, :meta-object($group),
             ) if $scope eq 'our';
         }
         # Add ourselves to the role group
+        my $type-object := self.stubbed-meta-object;
         $type-object.HOW.set_group($type-object, $group);
         nqp::bindattr(self,RakuAST::Package::Attachable,'$!role-group',$group);
     }

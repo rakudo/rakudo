@@ -82,7 +82,7 @@ my sub raku-nativecall(Mu $capture is raw) {
         my $reader := $PROXY-READERS.reader-for($args, $non-scalar);
         my $capture-delegate := nqp::syscall(
           'dispatcher-insert-arg-literal-obj',
-          $capture, 0, nqp::getattr($reader, Code, '$!do'));
+          $capture, 0, nqp::getattr($reader, $reader.WHAT, '$!do'));
         nqp::delegate('raku-nativecall-deproxy', $capture-delegate);
         return;
     }

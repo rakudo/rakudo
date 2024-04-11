@@ -25,7 +25,8 @@ my %HOW2syntax = (
   "Perl6::Metamodel::ParametricRoleGroupHOW" => 'role',
 );
 sub HOW(\obj --> Str:D) {
-    %HOW2syntax{obj.HOW.^name} // obj.HOW.^name.substr(18)
+    my $name := obj.HOW.^name;
+    %HOW2syntax{$name} // $name.subst("Perl6::Metamodel::")
 }
 
 # text of BUILDPLAN of given object/type

@@ -436,14 +436,11 @@ my class Rakudo::Internals {
             nqp::composetype($dim_type, nqp::hash('array',
                 nqp::hash('dimensions', $dims, 'type', $type)));
             nqp::settypehll($dim_type, 'Raku');
-
             # Make sure the debug name and various caches are propagated
             # for native arrays (where this type is exposed to userspace).
             if nqp::objprimspec($type) {
                 nqp::setdebugtypename($dim_type, $meta.name($dim_type));
-#?if !moar
                 $meta.publish_method_cache($dim_type);
-#?endif
                 $meta.publish_type_cache($dim_type);
             }
             $dim_type

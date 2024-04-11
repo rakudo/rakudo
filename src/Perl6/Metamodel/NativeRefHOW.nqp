@@ -31,9 +31,7 @@ class Perl6::Metamodel::NativeRefHOW
 
         self.compose_repr($target);
         self.compute_mro($target);
-#?if !moar
         self.publish_method_cache($target);
-#?endif
         self.publish_type_cache($target);
         self.set_composed;
         $target

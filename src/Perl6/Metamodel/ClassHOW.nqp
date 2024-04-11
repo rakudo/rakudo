@@ -308,9 +308,7 @@ class Perl6::Metamodel::ClassHOW
 
         # Publish type and method caches.
         self.publish_type_cache($target);
-#?if !moar
         self.publish_method_cache($target);
-#?endif
         self.publish_boolification_spec($target);
         self.publish_container_spec($target);
 

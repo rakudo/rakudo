@@ -28,9 +28,7 @@ class Perl6::Metamodel::NativeHOW
         $target := nqp::decont($target);
 
         self.compute_mro($target);
-#?if !moar
         self.publish_method_cache($target);
-#?endif
         self.publish_type_cache($target);
 
         if !self.is_composed && ($!nativesize || $!unsigned) {

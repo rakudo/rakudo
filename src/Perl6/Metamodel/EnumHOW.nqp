@@ -184,9 +184,7 @@ class Perl6::Metamodel::EnumHOW
 
             # Publish type, method caches and boolification spec.
             self.publish_type_cache($target);
-#?if !moar
             self.publish_method_cache($target);
-#?endif
             self.publish_boolification_spec($target);
 
             # Create BUILDPLAN.

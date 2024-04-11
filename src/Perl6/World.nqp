@@ -3541,6 +3541,7 @@ class Perl6::World is HLL::World {
         method generate_accessor(
           $/, str $meth_name, $package_type, str $attr_name, $type, int $rw
         ) {
+            my $w := $!w;
 
             # Is it a native attribute? (primpspec != 0)
             my $native := nqp::objprimspec($type);
@@ -3569,11 +3570,11 @@ class Perl6::World is HLL::World {
             );
 
             # Make sure the block has a SC
-            $!w.cur_lexpad()[0].push($block);
+            nqp::push(nqp::atpos($w.cur_lexpad, 0), $block);
 
             # Find/Create the type of the invocant
             my $invocant_type :=
-              $!w.create_definite_type($!DefiniteHOW, $package_type, 1);
+              $w.create_definite_type($!DefiniteHOW, $package_type, 1);
 
             # Seen accessors of this class before, so use existing signature
             my $sig;
@@ -3583,15 +3584,15 @@ class Perl6::World is HLL::World {
 
             # First time, create new signature and mark it cached
             else {
-                $sig := $!w.create_signature_and_params(
+                $sig := $w.create_signature_and_params(
                   NQPMu, %!sig_empty, $block, 'Any', :method, :$invocant_type);
                 $!acc_sig_cache      := $sig;
                 $!acc_sig_cache_type := $invocant_type;
             }
 
             # Create a code object of the block, make sure we can write if ok
-            my $code := $!w.create_code_object($block, 'Method', $sig);
-            $code.set_rw() if $rw;
+            my $code := $w.create_code_object($block, 'Method', $sig);
+            $code.set_rw if $rw;
 
             # That's it
             $code
@@ -3622,6 +3623,7 @@ class Perl6::World is HLL::World {
         # iterates over the BUILDALLPLAN at runtime with fewer inlining
         # and JITting opportunities.
         method generate_buildplan_executor($/, $in_object, $in_build_plan) {
+            my $w := $!w;
 
             # low level hash access
             my $dc_build_plan := nqp::decont($in_build_plan);
@@ -3651,11 +3653,11 @@ class Perl6::World is HLL::World {
                 );
 
                 # Register the block in its SC
-                $!w.cur_lexpad()[0].push($block);
+                nqp::push(nqp::atpos($w.cur_lexpad, 0), $block);
 
                 # Create the invocant type we need
                 my $invocant_type :=
-                  $!w.create_definite_type($!DefiniteHOW, $object, 1);
+                  $w.create_definite_type($!DefiniteHOW, $object, 1);
 
                 # Debugging
 #                $stmts.push(
@@ -3672,9 +3674,9 @@ class Perl6::World is HLL::World {
 #                );
 
 # my $init := nqp::getattr(%init,Map,'$!storage')
-                $stmts.push(QAST::Op.new( :op<bind>,
+                nqp::push($stmts, QAST::Op.new(:op<bind>,
                   $!init,
-                  QAST::Op.new( :op<getattr>,
+                  QAST::Op.new(:op<getattr>,
                     $!hllinit, QAST::WVal.new( :value($!Map) ), $!storage
                   )
                 ));
@@ -3687,7 +3689,7 @@ class Perl6::World is HLL::World {
                     if nqp::islist(my $task := nqp::atpos($build_plan,$i)) {
 
                         # Register the class in the SC if needed
-                        $!w.add_object_if_no_sc( nqp::atpos($task,1) );
+                        $w.add_object_if_no_sc( nqp::atpos($task,1) );
 
                         # We always need the class object & full attribute name
                         my $class :=
@@ -3729,7 +3731,7 @@ class Perl6::World is HLL::World {
                                     $getattr,
                                     QAST::Var.new( :name($tmp), :scope<local> ),
                                     QAST::WVal.new(
-                                      :value($!w.find_symbol(
+                                      :value($w.find_symbol(
                                         ['Bool','True'], :setting-only
                                       )),
                                       :named('INITIALIZE')
@@ -3838,7 +3840,7 @@ class Perl6::World is HLL::World {
                                 $unless.push(
                                   QAST::Op.new( :op<callmethod>, :name<STORE>,
                                     $getattr, $initializer, QAST::WVal.new(
-                                      :value($!w.find_symbol(
+                                      :value($w.find_symbol(
                                         ['Bool','True'], :setting-only
                                       )),
                                       :named('INITIALIZE')
@@ -3921,7 +3923,7 @@ class Perl6::World is HLL::World {
                               )
                             );
 
-                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                            $w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
                         # 403 = set native string with default if not set
@@ -3952,7 +3954,7 @@ class Perl6::World is HLL::World {
                               )
                             );
 
-                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                            $w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
                         # 800 = die if opaque not yet initialized
@@ -4027,7 +4029,7 @@ class Perl6::World is HLL::World {
                               )
                             );
 
-                            $!w.add_object_if_no_sc(nqp::atpos($task,3));
+                            $w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
                         # 1000 = set attrinited on attribute
@@ -4092,13 +4094,13 @@ class Perl6::World is HLL::World {
                             ),
                             QAST::Op.new( :op<call>,
                               QAST::WVal.new(
-                                :value($!w.find_single_symbol('&return'))),
+                                :value($w.find_single_symbol('&return'))),
                               QAST::Var.new(:scope<local>, :name<return>)
                             )
                           )
                         );
 
-                        $!w.add_object_if_no_sc($task);
+                        $w.add_object_if_no_sc($task);
                     }
                 }
 
@@ -4118,13 +4120,13 @@ class Perl6::World is HLL::World {
                 $block.push($stmts);
 
 # :(Foo:D: %init)
-                my $sig := $!w.create_signature_and_params(
+                my $sig := $w.create_signature_and_params(
                   NQPMu, %!sig_init, $block, 'Any', :method, :$invocant_type
                 );
 
                 # Create the code object, hide it from backtraces and return it
-                my $code := $!w.create_code_object($block, 'Submethod', $sig);
-                my $trait_mod_is := $!w.find_single_symbol('&trait_mod:<is>');
+                my $code := $w.create_code_object($block, 'Submethod', $sig);
+                my $trait_mod_is := $w.find_single_symbol('&trait_mod:<is>');
                 $trait_mod_is($code,:hidden-from-backtrace);
                 $code
             }
@@ -4145,18 +4147,18 @@ class Perl6::World is HLL::World {
                 );
 
                 # Register the block in its SC
-                $!w.cur_lexpad()[0].push($block);
+                $w.cur_lexpad()[0].push($block);
 
-                my $invocant_type := $!w.create_definite_type(
-                  $!DefiniteHOW, $!w.find_single_symbol_in_setting('Any'), 1);
+                my $invocant_type := $w.create_definite_type(
+                  $!DefiniteHOW, $w.find_single_symbol_in_setting('Any'), 1);
 
-                my $sig := $!w.create_signature_and_params(
+                my $sig := $w.create_signature_and_params(
                   NQPMu, %!sig_init, $block, 'Any', :method, :$invocant_type
                 );
 
                 # Create the code object, save and return it
                 $!empty_buildplan_method :=
-                  $!w.create_code_object($block, 'Submethod', $sig)
+                  $w.create_code_object($block, 'Submethod', $sig)
             }
         }
     }

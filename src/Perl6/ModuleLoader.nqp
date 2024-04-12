@@ -39,15 +39,19 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     method search_path() { self.vm_search_paths }
 
-    method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
+    method load_module(
+      $module_name,
+      %opts,
+      *@GLOBALish,
+      :$line,
+      :$file,
+      :%chosen
+    ) {
         DEBUG("going to load $module_name") if $DEBUG;
 
         if nqp::eqat($module_name, 'Perl6::BOOTSTRAP::v6', 0) {
-            my $preserve_global := nqp::gethllsym('Raku', 'GLOBAL');
-            my %*COMPILING := {};
-            my $*CTXSAVE := self;
-            my $*MAIN_CTX;
-            my str $file := nqp::join('/', nqp::split('::', $module_name)) ~ self.file-extension;
+            my str $file := nqp::join('/', nqp::split('::', $module_name))
+              ~ self.file-extension;
 
             my @prefixes := self.search_path;
             if (my int $m := nqp::elems(@prefixes)) {
@@ -67,18 +71,23 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
             # Not loaded yet, need to load now
             if nqp::isnull($ctx) {
+                my %*COMPILING := nqp::hash;
+                my $*CTXSAVE   := self;
+                my $*MAIN_CTX;
+
+                my $preserve_global := nqp::gethllsym('Raku', 'GLOBAL');
                 nqp::loadbytecode($file);
                 nqp::bindkey(
-                  %modules_loaded, $file, my $module_ctx := $*MAIN_CTX
+                  %modules_loaded, $file, $ctx := $*MAIN_CTX
                 );
                 nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
 
-                my $UNIT := nqp::ctxlexpad($module_ctx);
+                my $UNIT := nqp::ctxlexpad($ctx);
                 self.merge_globals(
                   nqp::atpos(@GLOBALish, 0).WHO,
                   nqp::atkey($UNIT, 'GLOBALish').WHO
                 ) if nqp::elems(@GLOBALish)
-                  && nqp::not_i(nqp::isnull(nqp::atkey($UNIT, 'GLOBALish')));
+                  && nqp::existskey($UNIT, 'GLOBALish');
 
                 $UNIT
             }

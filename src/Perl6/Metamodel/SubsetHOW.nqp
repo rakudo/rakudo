@@ -20,7 +20,7 @@ class Perl6::Metamodel::SubsetHOW
     has $!archetypes;
 
     method archetypes($XXX?) {
-        unless nqp::isconcrete($!archetypes) {
+        if nqp::isnull($!archetypes) {
             my $refinee_archetypes := $!refinee.HOW.archetypes($!refinee);
             my $generic := $refinee_archetypes.generic
                             || (nqp::defined($!refinement)
@@ -33,7 +33,9 @@ class Perl6::Metamodel::SubsetHOW
                 coercive => $refinee_archetypes.coercive,
             );
         }
-        $!archetypes
+        else {
+            $!archetypes
+        }
     }
 
     method mro($target, *%_) {
@@ -43,9 +45,10 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method BUILD(:$refinee, :$refinement) {
-        $!refinee := $refinee;
-        $!refinement := $refinement;
+        $!refinee        := $refinee;
+        $!refinement     := $refinement;
         $!pre-e-behavior := self.language_revision < 3; # less than 6.e
+        $!archetypes     := nqp::null;
     }
 
     method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
@@ -58,7 +61,8 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method set_of($XXX, $refinee) {
-        $refinee := nqp::decont($refinee);
+        $refinee     := nqp::decont($refinee);
+        $!archetypes := nqp::null;
 
         my $archetypes := $refinee.HOW.archetypes($refinee);
         $archetypes.generic
@@ -75,6 +79,7 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method set_where($XXX, $refinement) {
+        $!archetypes := nqp::null;
         $!refinement := nqp::decont($refinement)
     }
 

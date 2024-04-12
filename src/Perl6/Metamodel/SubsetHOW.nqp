@@ -58,22 +58,20 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method set_of($XXX, $refinee) {
+        $refinee := nqp::decont($refinee);
+
         my $archetypes := $refinee.HOW.archetypes($refinee);
-        if $archetypes.generic {
-            nqp::die("Use of a generic as 'of' type of a subset is not implemented yet")
-        }
-        unless $archetypes.nominalish {
-            nqp::die("The 'of' type of a subset must either be a valid nominal " ~
-                "type or a type that can provide one");
-        }
-        $!refinee := nqp::decont($refinee);
-        if nqp::objprimspec($!refinee) {
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::NYI',
-                "Subsets of native types NYI",
-                :feature(nqp::hllizefor('Subsets of native types', 'Raku'))
-            );
-        }
+        $archetypes.generic
+          ?? nqp::die("Use of a generic as 'of' type of a subset is not implemented yet")
+          !! nqp::not_i($archetypes.nominalish)
+            ?? nqp::die("The 'of' type of a subset must either be a valid nominal type or a type that can provide one")
+            !! nqp::objprimspec($refinee)
+              ?? Perl6::Metamodel::Configuration.throw_or_die(
+                   'X::NYI',
+                   "Subsets of native types NYI",
+                   :feature('Subsets of native types')
+                 )
+              !! ($!refinee := $refinee)
     }
 
     method set_where($XXX, $refinement) {
@@ -130,9 +128,9 @@ class Perl6::Metamodel::SubsetHOW
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($XXX, $checkee) {
         nqp::hllboolfor(
-            ($!pre-e-behavior && nqp::istrue($checkee.HOW =:= self))
-                || nqp::istype($!refinee, $checkee),
-            "Raku"
+          ($!pre-e-behavior && nqp::eqaddr($checkee.HOW, self))
+            || nqp::istype($!refinee, $checkee),
+          "Raku"
         )
     }
 

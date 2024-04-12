@@ -1,10 +1,12 @@
+#- Metamodel::SubsetHOW --------------------------------------------------------
+# All the logic pertaining to the creation of subsets
 class Perl6::Metamodel::SubsetHOW
-    does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::BUILDALL
-    does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Stashing
-    does Perl6::Metamodel::LanguageRevision
-    does Perl6::Metamodel::Nominalizable
+  does Perl6::Metamodel::Naming
+  does Perl6::Metamodel::BUILDALL
+  does Perl6::Metamodel::Documenting
+  does Perl6::Metamodel::Stashing
+  does Perl6::Metamodel::LanguageRevision
+  does Perl6::Metamodel::Nominalizable
 {
     # The subset type or nominal type that we refine.
     has $!refinee;
@@ -34,12 +36,9 @@ class Perl6::Metamodel::SubsetHOW
         $!archetypes
     }
 
-    method mro($target, *%named) {
-        my @mro;
-        @mro.push($target);
-        for $!refinee.HOW.mro($!refinee, |%named) {
-            @mro.push($_);
-        }
+    method mro($target, *%_) {
+        my @mro := nqp::clone($!refinee.HOW.mro($!refinee, |%_));
+        nqp::unshift(@mro, $target);
         @mro
     }
 
@@ -87,25 +86,38 @@ class Perl6::Metamodel::SubsetHOW
 
     method isa($XXX, $type) {
         $!refinee.isa($type)
-            || nqp::hllboolfor(nqp::istrue($type.HOW =:= self), "Raku")
+          || nqp::hllboolfor(nqp::eqaddr($type.HOW, self), "Raku")
     }
 
     method instantiate_generic($target, $type_env) {
-        return $target unless $!archetypes.generic;
-        my $ins_refinee := $!refinee.HOW.instantiate_generic($!refinee, $type_env);
-        my $ins_refinement := $!refinement;
-        if nqp::isconcrete($!refinement) {
-            if nqp::can($!refinement, 'is_generic') && $!refinement.is_generic {
-                $ins_refinement := $!refinement.instantiate_generic($type_env);
-            }
+        if $!archetypes.generic {
+            my $ins_refinee :=
+              $!refinee.HOW.instantiate_generic($!refinee, $type_env);
+
+            my $refinement     := $!refinement;
+            my $ins_refinement := nqp::isconcrete($refinement)
+             && nqp::can($refinement, 'is_generic')
+             && $refinement.is_generic
+             ?? $refinement.instantiate_generic($type_env)
+             !! $refinement;
+
+            self.new_type(
+              :name(self.name($target)),
+              :refinee($ins_refinee),
+              :refinement($ins_refinement)
+            )
         }
-        self.new_type(:name(self.name($target)), :refinee($ins_refinee), :refinement($ins_refinement))
+        else {
+            $target
+        }
     }
 
     method nominalize($XXX?) {
-        $!refinee.HOW.archetypes($!refinee).nominalizable
-            ?? $!refinee.HOW.nominalize($!refinee)
-            !! $!refinee
+        my $refinee := $!refinee;
+
+        $refinee.HOW.archetypes($refinee).nominalizable
+          ?? $refinee.HOW.nominalize($refinee)
+          !! $refinee
     }
 
     # Should have the same methods of the (eventually nominal) type

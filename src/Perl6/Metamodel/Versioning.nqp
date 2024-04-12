@@ -27,7 +27,7 @@ role Perl6::Metamodel::Versioning {
           )
         );
 
-        $!ver  := nqp::ifnull(nqp::atkey(%nameds, 'ver' ), '');
+        $!ver  :=             nqp::atkey(%nameds, 'ver' );
         $!auth := nqp::ifnull(nqp::atkey(%nameds, 'auth'), '');
         $!api  := nqp::ifnull(nqp::atkey(%nameds, 'api' ), '');
     }

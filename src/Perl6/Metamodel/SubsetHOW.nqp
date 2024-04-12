@@ -138,13 +138,19 @@ class Perl6::Metamodel::SubsetHOW
 
     # Here we check the value itself (when on RHS on smartmatch).
     method accepts_type($XXX, $checkee) {
+        my $refinee := $!refinee;
+
         nqp::hllboolfor(
-            nqp::istype($checkee, $!refinee) &&
-            (nqp::isnull($!refinement)
-             || ($!refinee.HOW.archetypes($!refinee).coercive
-                    ?? nqp::istrue($!refinement.ACCEPTS($!refinee.HOW.coerce($!refinee, $checkee)))
-                    !! nqp::istrue($!refinement.ACCEPTS($checkee)))),
-            "Raku")
+          nqp::istype($checkee, $refinee)
+            && (nqp::isnull($!refinement)
+                  || nqp::istrue($!refinement.ACCEPTS(
+                       $refinee.HOW.archetypes($refinee).coercive
+                         ?? $refinee.HOW.coerce($refinee, $checkee)
+                         !! $checkee
+                     ))
+          ),
+          "Raku"
+        )
     }
 
     # Methods needed by Perl6::Metamodel::Nominalizable
